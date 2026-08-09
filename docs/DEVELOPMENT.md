@@ -22,11 +22,16 @@ The script finds the MSYS2 compiler, adds its runtime directory to the current
 process path, compiles with C++17 and strict warnings-as-errors, and runs:
 
 - radio transport contract/fake tests;
-- packet-v0 codec tests; and
-- packet/transport integration tests; and
-- identity, group-membership lifecycle, reset, rename, revoke, and alias-collision tests.
+- packet-v0 codec and packet/transport integration tests;
+- identity, group-membership lifecycle, reset, rename, revoke, and alias-collision tests;
+- delivery policy, acknowledgement/retry/expiry, duplicate-window reboot, and lost-ACK integration tests;
+- controlled-forwarding role, TTL, loop suppression, group isolation, and congestion simulations;
+- priority reservation, preemption, rate, stale/failure, and delivery integration tests; and
+- diagnostics compile/runtime filtering, timestamp/tag, redaction, sanitization, and sink-backpressure tests; and
+- GPS provider, validation, stale-boundary, recovery, and no-UTC behavior tests.
 
-Generated executables live under ignored `build\host-tests`.
+Generated executables live in per-run directories under ignored
+`build\host-tests` so a stale Windows process cannot block the next compile.
 
 ## Inspect connected MeshCore USB companions
 

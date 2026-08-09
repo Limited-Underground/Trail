@@ -36,7 +36,7 @@ OpenTrail owns trail networking, group/location behavior, messaging, maps, and a
 
 ## Start here
 
-Read [the architecture](docs/ARCHITECTURE.md), [project status and assumptions](docs/PROJECT_STATUS.md), [the identity/group threat model](docs/security/THREAT_MODEL_V0.md), [the transport evidence](tests/hardware/OT-007A-2026-08-08.md), [the packet-v0 proof](tests/hardware/OT-007-2026-08-08.md), and [the backlog](tasks/BACKLOG.md). OT-005's identity boundaries and lifecycle model are now host-tested, while its cryptographic and physical lifecycle gates remain. The next implementation step is OT-008 acknowledgement, retry/expiry, and duplicate handling against the fake transport. Hardware identity and regulatory questions continue in parallel.
+Read [the architecture](docs/ARCHITECTURE.md), [project status and assumptions](docs/PROJECT_STATUS.md), [the identity/group threat model](docs/security/THREAT_MODEL_V0.md), [the experimental delivery policy](docs/protocol/DELIVERY_POLICY_V0.md), [the controlled-forwarding policy](docs/protocol/FORWARDING_POLICY_V0.md), [the GPS/location abstraction](docs/location/GPS_ABSTRACTION.md), [the diagnostics foundation](docs/DIAGNOSTICS.md), [the transport evidence](tests/hardware/OT-007A-2026-08-08.md), [the packet-v0 proof](tests/hardware/OT-007-2026-08-08.md), and [the backlog](tasks/BACKLOG.md). OT-009's forwarding and OT-010's priority simulation gates pass, while their authenticated wire/UI/hardware gates remain. OT-011's stale/no-UTC location semantics now pass on the host; the next step is OT-012's compact position-broadcast format and airtime/cadence budget. Hardware identity and regulatory questions continue in parallel.
 
 ## License and contributions
 

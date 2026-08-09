@@ -20,7 +20,7 @@ if (-not $compiler) {
 $compilerDirectory = Split-Path -Parent $compiler
 $env:Path = "$compilerDirectory;$env:Path"
 
-$buildDirectory = Join-Path $projectRoot 'build\host-tests'
+$buildDirectory = Join-Path $projectRoot "build\host-tests\run-$PID"
 New-Item -ItemType Directory -Force -Path $buildDirectory | Out-Null
 $commonArguments = @(
     '-std=c++17',
@@ -32,7 +32,12 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'firmware\components\radio\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\radio\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\protocol\include'),
-    '-I', (Join-Path $projectRoot 'firmware\components\identity\include')
+    '-I', (Join-Path $projectRoot 'firmware\components\identity\include'),
+    '-I', (Join-Path $projectRoot 'firmware\components\delivery\include'),
+    '-I', (Join-Path $projectRoot 'firmware\components\diagnostics\include'),
+    '-I', (Join-Path $projectRoot 'firmware\components\diagnostics\test_support'),
+    '-I', (Join-Path $projectRoot 'firmware\components\location\include'),
+    '-I', (Join-Path $projectRoot 'firmware\components\location\test_support')
 )
 
 $builds = @(
@@ -67,6 +72,79 @@ $builds = @(
         Sources = @(
             (Join-Path $projectRoot 'firmware\components\identity\src\identity_model.cpp'),
             (Join-Path $projectRoot 'tests\host\identity_model_tests.cpp')
+        )
+    },
+    @{
+        Name = 'delivery controller'
+        Output = Join-Path $buildDirectory 'delivery_controller_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\radio\test_support\fake_radio_transport.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\delivery_controller.cpp'),
+            (Join-Path $projectRoot 'tests\host\delivery_controller_tests.cpp')
+        )
+    },
+    @{
+        Name = 'duplicate window'
+        Output = Join-Path $buildDirectory 'duplicate_window_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_window.cpp'),
+            (Join-Path $projectRoot 'tests\host\duplicate_window_tests.cpp')
+        )
+    },
+    @{
+        Name = 'delivery integration'
+        Output = Join-Path $buildDirectory 'delivery_integration_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\radio\test_support\fake_radio_transport.cpp'),
+            (Join-Path $projectRoot 'firmware\components\protocol\src\packet_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\delivery_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_window.cpp'),
+            (Join-Path $projectRoot 'tests\host\delivery_integration_tests.cpp')
+        )
+    },
+    @{
+        Name = 'controlled forwarding'
+        Output = Join-Path $buildDirectory 'forwarding_controller_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_window.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\forwarding_controller.cpp'),
+            (Join-Path $projectRoot 'tests\host\forwarding_controller_tests.cpp')
+        )
+    },
+    @{
+        Name = 'priority queue'
+        Output = Join-Path $buildDirectory 'priority_queue_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\priority_queue.cpp'),
+            (Join-Path $projectRoot 'tests\host\priority_queue_tests.cpp')
+        )
+    },
+    @{
+        Name = 'priority delivery integration'
+        Output = Join-Path $buildDirectory 'priority_delivery_integration_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\radio\test_support\fake_radio_transport.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\delivery_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\priority_queue.cpp'),
+            (Join-Path $projectRoot 'tests\host\priority_delivery_integration_tests.cpp')
+        )
+    },
+    @{
+        Name = 'diagnostics logger'
+        Output = Join-Path $buildDirectory 'logger_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\logger.cpp'),
+            (Join-Path $projectRoot 'firmware\components\diagnostics\test_support\memory_log_sink.cpp'),
+            (Join-Path $projectRoot 'tests\host\logger_tests.cpp')
+        )
+    },
+    @{
+        Name = 'GPS/location abstraction'
+        Output = Join-Path $buildDirectory 'location_tracker_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\location\src\location_tracker.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\test_support\fake_gps_provider.cpp'),
+            (Join-Path $projectRoot 'tests\host\location_tracker_tests.cpp')
         )
     },
     @{
