@@ -38,6 +38,7 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'firmware\components\diagnostics\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\location\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\location\test_support'),
+    '-I', (Join-Path $projectRoot 'firmware\components\integration\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\persistence\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\persistence\test_support')
 )
@@ -192,6 +193,14 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\test_support\memory_persistent_storage.cpp'),
             (Join-Path $projectRoot 'tests\host\configuration_store_tests.cpp')
+        )
+    },
+    @{
+        Name = 'critical alert ingress'
+        Output = Join-Path $buildDirectory 'critical_alert_ingress_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\integration\src\critical_alert.cpp'),
+            (Join-Path $projectRoot 'tests\host\critical_alert_ingress_tests.cpp')
         )
     },
     @{

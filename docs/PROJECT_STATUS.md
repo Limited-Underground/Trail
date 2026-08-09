@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-08
+Status date: 2026-08-09
 
 ## Conceptual goals
 
@@ -9,7 +9,7 @@ Status date: 2026-08-08
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
-The close-range MeshCore path now has bounded transport, experimental OpenTrail packet-v0, and three-node MeshCore repeater hardware evidence including a software-forced route with a repeat-off negative control. Fixed-capacity C++ radio, codec, identity lifecycle, group-access policy, non-secret configuration persistence, acknowledgement/retry/expiry, duplicate suppression, controlled forwarding, priority admission, GPS fix validation/age handling, compact position encoding, LoRa airtime calculation, and redacted diagnostics components have deterministic host tests. Cryptographic joining, persistent secret/group/counter state, wire-level authenticated acknowledgements/priority, physical field repeater behavior, physical GPS compatibility/performance, position scheduling/hardware transmission, maps, store-forward behavior, OpenGauge integration, a direct SX1262 binding, rendered UI, and field performance remain unvalidated.
+The close-range MeshCore path now has bounded transport, experimental OpenTrail packet-v0, and three-node MeshCore repeater hardware evidence including a software-forced route with a repeat-off negative control. Fixed-capacity C++ radio, codec, identity lifecycle, group-access policy, non-secret configuration persistence, acknowledgement/retry/expiry, duplicate suppression, controlled forwarding, priority admission, GPS fix validation/age handling, compact position encoding, LoRa airtime calculation, redacted diagnostics, and the OpenGauge critical-alert ingress have deterministic host tests. Cryptographic joining, persistent secret/group/counter state, wire-level authenticated acknowledgements/priority, physical alert transport/authentication, physical field repeater behavior, physical GPS compatibility/performance, position scheduling/hardware transmission, maps, store-forward behavior, a direct SX1262 binding, rendered UI, and field performance remain unvalidated.
 
 ## Decisions captured
 
@@ -21,6 +21,7 @@ The close-range MeshCore path now has bounded transport, experimental OpenTrail 
 - Protocols and stored configuration will be versioned and defensively decoded.
 - Loss of GPS, maps, UI, peers, or OpenGauge must degrade independently.
 - Offline-map formats/providers remain replaceable and must permit offline use with correct attribution.
+- OpenGauge alerts cross a fixed 64-byte `OGA0` semantic boundary with canonical units and explicit assert/clear lifecycle IDs. CRC detects corruption only; the transport must supply authenticated and authorized producer identity before OpenTrail accepts an alert.
 
 ## Available hardware and current evidence
 
@@ -60,7 +61,7 @@ Hardware is not added to a tested-compatible list until repeatable evidence exis
 
 - Map data source/license, package/container, renderer, storage medium, transfer method, and update workflow
 - Touchscreen UI framework and distracted-driving/safe-use constraints
-- OpenGauge alert schema transport, trust boundary, rate limits, and physical/wireless connection
+- OpenGauge physical transport, peer/key lifecycle, replay protection, failure UX, and radio integration; the v0 semantic schema, trust boundary, freshness, duplicate/conflict, and rate policy are host-tested
 
 ### Governance
 
@@ -68,4 +69,4 @@ Hardware is not added to a tested-compatible list until repeatable evidence exis
 
 ## Next decision checkpoint
 
-OT-004, OT-006, OT-007, OT-008, OT-011, OT-012, OT-013, OT-014, and OT-015's bounded foundations are complete. OT-009 now has its three-node host simulation, close-range MeshCore relay evidence, and a software-forced one-hop route with a repeat-off negative control, but still needs authenticated routing fields, a direct SX1262/OpenTrail binding, and field evidence; OT-010's priority queue passes but needs authenticated wire priority, realistic mixed traffic, and rendered failure UX. Next specify and host-test OT-017's normalized OpenGauge critical-alert input while OT-005 cryptography, OT-009 field/direct-radio work, regulatory, physical inventory, secret/counter persistence, GPS hardware, position scheduling, and direct-radio airtime gates remain explicit.
+OT-004, OT-006, OT-007, OT-008, OT-011, OT-012, OT-013, OT-014, OT-015, and OT-017's bounded foundations are complete. OT-009 now has its three-node host simulation, close-range MeshCore relay evidence, and a software-forced one-hop route with a repeat-off negative control, but still needs authenticated routing fields, a direct SX1262/OpenTrail binding, and field evidence; OT-010's priority queue passes but needs authenticated wire priority, realistic mixed traffic, and rendered failure UX. Next continue OT-003A's physical/regulatory inventory and OT-005's cryptographic gates while OpenGauge advances its normalized-signal foundations. Physical alert transport/authentication, secret/counter persistence, GPS hardware, position scheduling, and direct-radio airtime remain explicit later gates.
