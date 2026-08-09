@@ -14,6 +14,7 @@ inline constexpr std::size_t kPacketOverheadBytes =
     kPacketHeaderBytes + kPacketChecksumBytes;
 
 enum class PacketType : std::uint8_t {
+    position = 0x01,
     experimental_probe = 0xF0,
 };
 

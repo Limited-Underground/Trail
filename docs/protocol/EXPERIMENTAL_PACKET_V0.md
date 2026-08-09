@@ -14,7 +14,7 @@ All multi-byte integers are little-endian.
 | ---: | ---: | --- | --- |
 | 0 | 2 | Magic | ASCII `OT` (`4F 54`) |
 | 2 | 1 | Version | `0` |
-| 3 | 1 | Type | `F0` experimental probe only |
+| 3 | 1 | Type | `01` position payload or `F0` experimental probe |
 | 4 | 1 | Flags | Must be zero; reserved |
 | 5 | 1 | Header length | `20` |
 | 6 | 4 | Source node ID | Nonzero ephemeral test identifier |
@@ -33,10 +33,13 @@ Adapters must use their measured usable MTU rather than assuming either number.
 The decoder rejects incorrect magic/header length, truncated or trailing bytes,
 unknown versions/types, nonzero reserved flags, zero test identifiers, and CRC
 failure. It returns a view into the caller-owned frame and performs no dynamic
-allocation.
+allocation. Type `01` must contain the separately validated 16-byte
+[position payload](POSITION_BROADCAST_V0.md); the envelope intentionally leaves
+payload semantics to the selected type codec.
 
 The CRC detects accidental corruption only. It is not a message authentication
 code. Identity derivation, group membership, encryption, authentication,
-replay protection, timestamps, priority, acknowledgements, retry, TTL, and
-forwarding remain intentionally outside v0 and must be threat-modeled before a
-packet v1 is proposed.
+replay protection, authenticated timestamps, priority, acknowledgements, retry,
+TTL, and forwarding remain intentionally outside v0 and must be threat-modeled
+before a packet v1 is proposed. The OT-007 hardware proof used only type `F0`;
+type `01` currently has host evidence only.

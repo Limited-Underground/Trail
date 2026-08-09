@@ -103,7 +103,7 @@ void test_encode_validation() {
            PacketCodecError::unsupported_version);
 
     packet = valid_packet(payload.data(), payload.size());
-    packet.header.type = static_cast<PacketType>(1);
+    packet.header.type = static_cast<PacketType>(2);
     EXPECT(encode_packet(packet, {output.data(), output.size()}).error ==
            PacketCodecError::unsupported_type);
 
@@ -126,7 +126,7 @@ void test_decode_rejects_malformed_and_incompatible_frames() {
            PacketCodecError::unsupported_version);
 
     modified = valid;
-    modified[3] = 1;
+    modified[3] = 2;
     EXPECT(decode_packet({modified.data(), size}).error ==
            PacketCodecError::unsupported_type);
 

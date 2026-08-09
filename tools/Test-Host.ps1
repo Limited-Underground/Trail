@@ -148,6 +148,34 @@ $builds = @(
         )
     },
     @{
+        Name = 'position payload codec'
+        Output = Join-Path $buildDirectory 'position_codec_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\location\src\position_codec.cpp'),
+            (Join-Path $projectRoot 'tests\host\position_codec_tests.cpp')
+        )
+    },
+    @{
+        Name = 'position packet integration'
+        Output = Join-Path $buildDirectory 'position_packet_integration_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\radio\test_support\fake_radio_transport.cpp'),
+            (Join-Path $projectRoot 'firmware\components\protocol\src\packet_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\location_tracker.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\position_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\test_support\fake_gps_provider.cpp'),
+            (Join-Path $projectRoot 'tests\host\position_packet_integration_tests.cpp')
+        )
+    },
+    @{
+        Name = 'LoRa airtime'
+        Output = Join-Path $buildDirectory 'lora_airtime_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\radio\src\lora_airtime.cpp'),
+            (Join-Path $projectRoot 'tests\host\lora_airtime_tests.cpp')
+        )
+    },
+    @{
         Name = 'packet codec CLI'
         Output = Join-Path $buildDirectory 'packet_codec_cli.exe'
         Sources = @(

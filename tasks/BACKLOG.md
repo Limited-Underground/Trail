@@ -30,7 +30,7 @@ Statuses: `done` means the documented acceptance criteria are evidenced; `partia
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
 | OT-011 | done | GPS abstraction | Fixed-unit provider contract, optional-field validity, no-fix, validation, exact stale boundary, no-UTC boot, refresh recovery, and monotonic-time rejection pass nine deterministic host scenarios |
-| OT-012 | planned | Position broadcast format | Accuracy/age/unknown semantics and airtime/cadence budget documented |
+| OT-012 | done | Position broadcast format | Fixed 16-byte current/stale/unknown payload, conservative age/accuracy, canonical rejection, 38-byte packet integration, and theoretical airtime/cadence budget pass eight codec, one transport-integration, and four airtime scenario groups. Authentication/privacy UX, scheduler, direct-radio hardware airtime, contention, and regulatory evidence remain later gates |
 | OT-013 | planned | Group membership/joining | Provisioning threat model and join/revoke/recovery UX specified |
 | OT-014 | planned | Persistent configuration | Versioning, integrity, migration, safe defaults, secret separation, and wear behavior tested |
 
@@ -45,4 +45,4 @@ Statuses: `done` means the documented acceptance criteria are evidenced; `partia
 
 ## Recommended sequence
 
-Complete the remaining OT-003A physical/regulatory inventory and OT-005 cryptographic gates in parallel. Next define OT-012's compact position-broadcast semantics and airtime/cadence budget using OT-011's validity and age model. OT-009 still needs a third physical radio before repeater hardware evidence can be claimed. Security and regulatory constraints must remain inputs before any public packet v1 is declared.
+Complete the remaining OT-003A physical/regulatory inventory and OT-005 cryptographic gates in parallel. Next specify OT-013's provisioning, join, revoke, and recovery behavior without treating a human-readable name or network alias as cryptographic identity. OT-009 still needs a third physical radio before repeater hardware evidence can be claimed. Security and regulatory constraints must remain inputs before any public packet v1 is declared.

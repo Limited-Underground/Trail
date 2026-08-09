@@ -9,7 +9,7 @@ Status date: 2026-08-08
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
-The close-range MeshCore path now has bounded transport and experimental OpenTrail packet-v0 hardware evidence. Fixed-capacity C++ radio, codec, identity lifecycle, acknowledgement/retry/expiry, duplicate suppression, controlled forwarding, priority admission, GPS fix validation/age handling, and redacted diagnostics components have deterministic host tests. Group workflows, secure identity, wire-level authenticated acknowledgements/priority, physical GPS compatibility/performance, position broadcasts, maps, store-forward behavior, OpenGauge integration, a direct SX1262 binding, rendered UI, and field performance remain unvalidated.
+The close-range MeshCore path now has bounded transport and experimental OpenTrail packet-v0 hardware evidence. Fixed-capacity C++ radio, codec, identity lifecycle, acknowledgement/retry/expiry, duplicate suppression, controlled forwarding, priority admission, GPS fix validation/age handling, compact position encoding, LoRa airtime calculation, and redacted diagnostics components have deterministic host tests. Group workflows, secure identity, wire-level authenticated acknowledgements/priority, physical GPS compatibility/performance, position scheduling/hardware transmission, maps, store-forward behavior, OpenGauge integration, a direct SX1262 binding, rendered UI, and field performance remain unvalidated.
 
 ## Decisions captured
 
@@ -53,7 +53,7 @@ Hardware is not added to a tested-compatible list until repeatable evidence exis
 
 - Direct/repeater topology, modulation profiles, airtime budget, broadcast cadence, and congestion policy
 - Identity/name/alias/membership boundaries and reset/revoke lifecycle are defined and host-tested under partial OT-005. Exact Node-ID/alias derivation, group administrator/recovery rules, authenticated join handshake, encryption, key storage, rollback protection, and physical lifecycle evidence remain
-- Packet-v0 encoding/budget and host-only acknowledgement/retry/expiry/duplicate policies are bounded and tested. Authenticated ACK wire encoding, measured deployed timing, persistent checkpoint integrity/rollback, TTL/forwarding, priority reservation, congestion, and final queue/cache limits remain
+- Packet-v0 encoding/budget, position payload, and host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies are bounded and tested. Authenticated ACK/routing/priority wire encoding, measured deployed timing, persistent checkpoint integrity/rollback, realistic contention, and final queue/cache limits remain
 - Firmware compatibility policy and OTA/update architecture
 
 ### Maps and interface
@@ -68,4 +68,4 @@ Hardware is not added to a tested-compatible list until repeatable evidence exis
 
 ## Next decision checkpoint
 
-OT-004, OT-006, OT-007, OT-008, OT-011, and OT-015's bounded foundations are complete. OT-009's three-node forwarding simulation passes but needs a third radio and authenticated routing fields; OT-010's priority queue passes but needs authenticated wire priority, realistic mixed traffic, and rendered failure UX. Next define and host-test OT-012's compact position-broadcast semantics, unknown/accuracy/age handling, and airtime/cadence budget while OT-005 security, OT-009 hardware, regulatory, physical inventory, and GPS hardware gates remain explicit.
+OT-004, OT-006, OT-007, OT-008, OT-011, OT-012, and OT-015's bounded foundations are complete. OT-009's three-node forwarding simulation passes but needs a third radio and authenticated routing fields; OT-010's priority queue passes but needs authenticated wire priority, realistic mixed traffic, and rendered failure UX. Next specify OT-013's provisioning, join, revoke, lost-node, and recovery behavior while OT-005 cryptography, OT-009 hardware, regulatory, physical inventory, GPS hardware, position scheduling, and direct-radio airtime gates remain explicit.

@@ -35,7 +35,8 @@ std::uint32_t read_u32_le(const std::uint8_t* source) {
 }
 
 bool supported_type(std::uint8_t value) {
-    return value == static_cast<std::uint8_t>(PacketType::experimental_probe);
+    return value == static_cast<std::uint8_t>(PacketType::position) ||
+           value == static_cast<std::uint8_t>(PacketType::experimental_probe);
 }
 
 }  // namespace
