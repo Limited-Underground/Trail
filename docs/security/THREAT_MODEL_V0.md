@@ -1,6 +1,6 @@
 # OpenTrail Identity and Group Threat Model v0
 
-Status: architecture input for OT-005, 2026-08-08
+Status: architecture input for OT-005 and host-tested lifecycle input for OT-013, 2026-08-08
 
 This document defines threats and lifecycle rules. It does not select or claim
 an implemented cryptographic protocol. Packet v0 remains unauthenticated test
@@ -57,6 +57,11 @@ generation or cryptography. Its 32-byte fingerprint is an algorithm-neutral
 placeholder and its 64-bit alias/group fields are model inputs, not a final wire
 derivation.
 
+The separate `GroupAccessController` exercises administrator-gated invitation,
+join, promotion, revocation, epoch-change, and rekey behavior. Its authentication
+evidence flags are adapter obligations, not implemented cryptographic proof. See
+[the OT-013 lifecycle and UX specification](GROUP_LIFECYCLE_V0.md).
+
 ## Lifecycle
 
 ```text
@@ -82,7 +87,7 @@ factory reset: any state -> unprovisioned, identity and memberships erased
   Factory reset generates a new identity on next provisioning unless an
   explicit, authenticated recovery import is performed.
 
-## Proposed offline join properties
+## Required offline join properties
 
 The intended UX may use a QR or short join code, but the code must be a
 single-use, short-lived invitation rather than a reusable plaintext group key.
@@ -146,8 +151,8 @@ and its guidance on
 ## Evidence still required to complete OT-005
 
 - select and benchmark an audited crypto library on the exact ESP32 target;
-- specify the invitation and authenticated handshake transcript/timeout/retry;
-- define group administrator delegation and recovery quorum behavior;
+- instantiate the invitation and authenticated handshake transcript/timeout/retry with the selected crypto library;
+- decide whether production privilege changes need multi-administrator approval beyond OT-013's one-current-administrator policy;
 - define alias derivation/collision recovery and privacy rotation;
 - define key/epoch storage, rollback protection, and physical reset behavior;
 - add standard cryptographic vectors and negative/interoperability tests; and

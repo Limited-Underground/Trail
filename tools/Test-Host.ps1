@@ -75,6 +75,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'group access lifecycle'
+        Output = Join-Path $buildDirectory 'group_access_controller_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_access_controller.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_access_controller_tests.cpp')
+        )
+    },
+    @{
         Name = 'delivery controller'
         Output = Join-Path $buildDirectory 'delivery_controller_tests.exe'
         Sources = @(

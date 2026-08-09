@@ -31,7 +31,7 @@ Statuses: `done` means the documented acceptance criteria are evidenced; `partia
 | --- | --- | --- | --- |
 | OT-011 | done | GPS abstraction | Fixed-unit provider contract, optional-field validity, no-fix, validation, exact stale boundary, no-UTC boot, refresh recovery, and monotonic-time rejection pass nine deterministic host scenarios |
 | OT-012 | done | Position broadcast format | Fixed 16-byte current/stale/unknown payload, conservative age/accuracy, canonical rejection, 38-byte packet integration, and theoretical airtime/cadence budget pass eight codec, one transport-integration, and four airtime scenario groups. Authentication/privacy UX, scheduler, direct-radio hardware airtime, contention, and regulatory evidence remain later gates |
-| OT-013 | planned | Group membership/joining | Provisioning threat model and join/revoke/recovery UX specified |
+| OT-013 | done | Group membership/joining | Algorithm-neutral, fixed-capacity lifecycle and operator UX specify administrator-gated single-use invitations, four authentication obligations, separate promotion, epoch-advancing revoke/rekey, revoked-identity exclusion, last-admin protection, and reset/recovery boundaries; twelve host scenario groups pass. Exact cryptography, persistence, rendered UX, and physical multi-device evidence remain OT-005/OT-014/field gates |
 | OT-014 | planned | Persistent configuration | Versioning, integrity, migration, safe defaults, secret separation, and wear behavior tested |
 
 ## Maps and integration
@@ -45,4 +45,4 @@ Statuses: `done` means the documented acceptance criteria are evidenced; `partia
 
 ## Recommended sequence
 
-Complete the remaining OT-003A physical/regulatory inventory and OT-005 cryptographic gates in parallel. Next specify OT-013's provisioning, join, revoke, and recovery behavior without treating a human-readable name or network alias as cryptographic identity. OT-009 still needs a third physical radio before repeater hardware evidence can be claimed. Security and regulatory constraints must remain inputs before any public packet v1 is declared.
+Complete the remaining OT-003A physical/regulatory inventory and OT-005 cryptographic gates in parallel. Next implement OT-014's versioned persistent-configuration envelope, integrity/migration behavior, safe defaults, secret separation, and interrupted-write/wear simulations. OT-009 still needs a third physical radio before repeater hardware evidence can be claimed. Security and regulatory constraints must remain inputs before any public packet v1 is declared.

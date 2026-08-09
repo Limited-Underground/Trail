@@ -23,7 +23,8 @@ process path, compiles with C++17 and strict warnings-as-errors, and runs:
 
 - radio transport contract/fake tests;
 - packet-v0 codec and packet/transport integration tests;
-- identity, group-membership lifecycle, reset, rename, revoke, and alias-collision tests;
+- identity, local membership, reset, rename, revoke, and alias-collision tests;
+- bounded group invitation, mutual-auth obligation, promotion, epoch-rekey, revocation, and recovery-policy tests;
 - delivery policy, acknowledgement/retry/expiry, duplicate-window reboot, and lost-ACK integration tests;
 - controlled-forwarding role, TTL, loop suppression, group isolation, and congestion simulations;
 - priority reservation, preemption, rate, stale/failure, and delivery integration tests; and
