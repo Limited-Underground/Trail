@@ -77,10 +77,13 @@ python .\tools\Test-OpenTrailTwoNodeV0.py --port-a COM6 --port-b COM11
 ```
 
 The hardware script creates a temporary private channel, uses ephemeral test
-identifiers and non-sensitive markers, sends three frames each direction, and
-erases and verifies the channel in a `finally` block. Port assignments may
-change. Do not run it through an unattended automation until recovery from a
-failed cleanup has been separately tested.
+identifiers and non-sensitive markers, and sends three frames each direction.
+It now uses the same non-secret lease journal and exact-name cleanup as the soak
+harness, so an interrupted run can be recovered with
+`Test-MeshCorePrivateSample.py --recover-only` and its
+`meshcore-packet-v0-channel.json` journal. Port assignments may change. The
+refactored script must complete one fresh physical packet-v0 run after the
+active soak releases the ports before unattended packet-v0 use is claimed.
 
 ## Run a recoverable three-node bench soak
 

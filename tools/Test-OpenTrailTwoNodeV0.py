@@ -3,7 +3,7 @@
 The adapter wraps each opaque binary frame in URL-safe base64 because the
 current MeshCore companion API exposes channel text, not a stable OpenTrail raw
 radio binding. A temporary private channel and ephemeral test identifiers are
-created in memory, then erased from both devices in a finally block.
+created in memory. A non-secret lease journal makes cleanup recoverable.
 """
 
 from __future__ import annotations
@@ -22,6 +22,13 @@ from typing import Any
 
 from meshcore import MeshCore
 from meshcore.events import EventType
+
+from meshcore_channel_lease import (
+    cleanup_lease,
+    configure_lease,
+    load_journal,
+    new_channel_name,
+)
 
 
 TEXT_PREFIX = "OT0:"
@@ -159,17 +166,6 @@ def delta(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def read_channels(node: MeshCore) -> list[dict[str, Any]]:
-    channels = []
-    index = 0
-    while True:
-        event = await node.commands.get_channel(index)
-        if event is None or event.is_error():
-            return channels
-        channels.append(event.payload)
-        index += 1
-
-
 def summarize(samples: list[dict[str, Any]]) -> dict[str, Any]:
     delivered = [sample for sample in samples if sample["delivered"]]
     latencies = [sample["latency_ms"] for sample in delivered]
@@ -202,13 +198,12 @@ async def run(
     count: int,
     timeout: float,
     codec_path: Path,
+    journal_path: Path,
 ) -> dict[str, Any]:
     codec = PacketCodec(codec_path)
     node_a: MeshCore | None = None
     node_b: MeshCore | None = None
     temporary_index: int | None = None
-    configured_a = False
-    configured_b = False
     cleanup = {port_a: False, port_b: False}
     result: dict[str, Any] = {"success": False, "cleanup": cleanup}
 
@@ -222,42 +217,15 @@ async def run(
         if node_a is None or node_b is None:
             raise ConnectionError("One or both MeshCore serial connections failed")
 
-        channels_a = await read_channels(node_a)
-        channels_b = await read_channels(node_b)
-        for index in range(1, min(len(channels_a), len(channels_b))):
-            if (
-                channels_a[index].get("channel_name", "") == ""
-                and channels_b[index].get("channel_name", "") == ""
-            ):
-                temporary_index = index
-                break
-        if temporary_index is None:
-            raise RuntimeError("No shared empty channel slot is available")
-
         temporary_secret = secrets.token_bytes(16)
-        channel_name = "OpenTrailV0"
-        event_a = await node_a.commands.set_channel(
-            temporary_index, channel_name, temporary_secret
+        nodes = {port_a: node_a, port_b: node_b}
+        lease = await configure_lease(
+            nodes,
+            journal_path,
+            new_channel_name("OTV0"),
+            temporary_secret,
         )
-        if event_a is None or event_a.is_error():
-            raise RuntimeError("Failed to configure temporary channel on first node")
-        configured_a = True
-        event_b = await node_b.commands.set_channel(
-            temporary_index, channel_name, temporary_secret
-        )
-        if event_b is None or event_b.is_error():
-            raise RuntimeError("Failed to configure temporary channel on second node")
-        configured_b = True
-
-        verify_a = (await node_a.commands.get_channel(temporary_index)).payload
-        verify_b = (await node_b.commands.get_channel(temporary_index)).payload
-        if (
-            verify_a.get("channel_name") != channel_name
-            or verify_b.get("channel_name") != channel_name
-            or verify_a.get("channel_secret") != temporary_secret
-            or verify_b.get("channel_secret") != temporary_secret
-        ):
-            raise RuntimeError("Temporary private channel verification failed")
+        temporary_index = lease.channel_index
 
         transports = {
             port_a: MeshCoreUsbTextTransport(node_a, temporary_index),
@@ -358,31 +326,24 @@ async def run(
             }
         )
     finally:
-        zero_secret = bytes(16)
-        if temporary_index is not None:
-            for port, node, configured in (
-                (port_a, node_a, configured_a),
-                (port_b, node_b, configured_b),
-            ):
-                if node is not None and configured:
-                    try:
-                        cleared = await node.commands.set_channel(
-                            temporary_index, "", zero_secret
-                        )
-                        verified = await node.commands.get_channel(temporary_index)
-                        cleanup[port] = (
-                            cleared is not None
-                            and not cleared.is_error()
-                            and verified is not None
-                            and not verified.is_error()
-                            and verified.payload.get("channel_name", "") == ""
-                        )
-                    except Exception:
-                        cleanup[port] = False
+        if journal_path.exists():
+            try:
+                record = load_journal(journal_path)
+                connected_nodes = {
+                    port: node
+                    for port, node in ((port_a, node_a), (port_b, node_b))
+                    if node is not None
+                }
+                cleanup = await cleanup_lease(
+                    connected_nodes, record, journal_path
+                )
+            except Exception:
+                cleanup = {port_a: False, port_b: False}
         for node in (node_a, node_b):
             if node is not None:
                 await node.disconnect()
 
+    result["cleanup"] = cleanup
     result["success"] = result["success"] and all(cleanup.values())
     return result
 
@@ -399,13 +360,28 @@ def main() -> int:
         type=Path,
         default=project_root / "build" / "host-tests" / "packet_codec_cli.exe",
     )
+    parser.add_argument(
+        "--journal",
+        type=Path,
+        default=project_root
+        / "build"
+        / "hardware-test-state"
+        / "meshcore-packet-v0-channel.json",
+    )
     args = parser.parse_args()
     if args.count < 1 or args.count > 10:
         parser.error("--count must be between 1 and 10")
 
     try:
         result = asyncio.run(
-            run(args.port_a, args.port_b, args.count, args.timeout, args.codec)
+            run(
+                args.port_a,
+                args.port_b,
+                args.count,
+                args.timeout,
+                args.codec,
+                args.journal,
+            )
         )
     except Exception as error:
         print(
