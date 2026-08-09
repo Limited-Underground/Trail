@@ -96,7 +96,8 @@ times with zero failures.
 
 ## Remaining gates
 
-- bind ACK generation only after OpenTrail ingress produces a final decision;
+- bind the completed final-ingress ACK responder to the same authenticated
+  physical peer/session that supplied the alert;
 - define authenticated framed serial or local-wireless transport and peer/key
   lifecycle;
 - implement bounded session/sequence replay tracking, restart, wrap, persistence,

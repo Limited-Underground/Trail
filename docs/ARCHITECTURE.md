@@ -87,6 +87,14 @@ corruption only; authenticated transport identity, persistent replay handling,
 delivery-controller/outbox correlation, and physical delivery remain separate
 integration gates.
 
+The host-tested ACK responder now accepts only a final alert-ingress decision
+and its exact trust/time context. Accepted and byte-identical duplicate alerts
+produce accepted/none; authenticated policy rejection maps to a canonical
+negative reason; malformed, unauthenticated, producer-mismatched, and local
+clock-rollback input produces no response. It adds monotonic elapsed alert age
+and advances its boot-session sequence only after successful encoding.
+Authenticated response transport and durable session/sequence state remain.
+
 Initial transports to evaluate are a local serial interface and an authenticated local wireless interface. The semantic event schema should remain transport-independent.
 
 ## Persistence and diagnostics

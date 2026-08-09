@@ -204,6 +204,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'critical alert ACK responder'
+        Output = Join-Path $buildDirectory 'critical_alert_ack_responder_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\integration\src\critical_alert.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\critical_alert_ack.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\critical_alert_ack_responder.cpp'),
+            (Join-Path $projectRoot 'tests\host\critical_alert_ack_responder_tests.cpp')
+        )
+    },
+    @{
         Name = 'critical alert ingress'
         Output = Join-Path $buildDirectory 'critical_alert_ingress_tests.exe'
         Sources = @(
