@@ -31,7 +31,8 @@ process path, compiles with C++17 and strict warnings-as-errors, and runs:
 - diagnostics compile/runtime filtering, timestamp/tag, redaction, sanitization, and sink-backpressure tests; and
 - GPS provider, validation, stale-boundary, recovery, and no-UTC behavior tests;
 - position payload validation/round-trip and packet/transport integration tests; and
-- deterministic LoRa airtime formula and invalid-input tests.
+- deterministic LoRa airtime formula and invalid-input tests;
+- two-slot persistent-configuration version, CRC, migration, safe-default, secret-separation, wear, and power-loss tests.
 
 Generated executables live in per-run directories under ignored
 `build\host-tests` so a stale Windows process cannot block the next compile.

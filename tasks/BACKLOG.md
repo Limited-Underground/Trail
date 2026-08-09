@@ -8,7 +8,7 @@ Statuses: `done` means the documented acceptance criteria are evidenced; `partia
 | --- | --- | --- | --- |
 | OT-001 | done | Project bootstrap and repository structure | Self-contained directories, agent guide, README, architecture, status, and backlog exist |
 | OT-002 | done | Initial architecture documentation | Layers, boundaries, failure modes, roles, and architecture gates documented |
-| OT-003 | planned | Hardware abstraction contracts | Radio, clock, random, GPS, storage, display/touch, power, and logging interfaces reviewed with fake implementations |
+| OT-003 | partial | Hardware abstraction contracts | Radio, GPS, logging, and persistent-storage contracts have deterministic fakes/tests. Clock, random, display/touch, power, target composition, and whole-contract review remain |
 | OT-003A | partial | Hardware inventory | Both boards are runtime-confirmed as Heltec V4 OLED with MeshCore USB Companion `v1.16.0-07a3ca9` and matching USA/Canada settings. Both passed serial/configuration/runtime checks; `OT-DEV-001` has ROM-level MCU/memory evidence, while `OT-DEV-002` does not. Exact SKU/RF front ends/full bands, antennas, pinouts, power details, and regulatory constraints remain |
 | OT-015 | done | Diagnostics/logging foundation | Fixed-capacity ERROR/WARN/INFO/DEBUG/TRACE logger demonstrates compile/runtime filtering, monotonic timestamps, component tags, redaction, truncation/sanitization, test sink, and counted backpressure in seven host scenarios |
 
@@ -32,7 +32,7 @@ Statuses: `done` means the documented acceptance criteria are evidenced; `partia
 | OT-011 | done | GPS abstraction | Fixed-unit provider contract, optional-field validity, no-fix, validation, exact stale boundary, no-UTC boot, refresh recovery, and monotonic-time rejection pass nine deterministic host scenarios |
 | OT-012 | done | Position broadcast format | Fixed 16-byte current/stale/unknown payload, conservative age/accuracy, canonical rejection, 38-byte packet integration, and theoretical airtime/cadence budget pass eight codec, one transport-integration, and four airtime scenario groups. Authentication/privacy UX, scheduler, direct-radio hardware airtime, contention, and regulatory evidence remain later gates |
 | OT-013 | done | Group membership/joining | Algorithm-neutral, fixed-capacity lifecycle and operator UX specify administrator-gated single-use invitations, four authentication obligations, separate promotion, epoch-advancing revoke/rekey, revoked-identity exclusion, last-admin protection, and reset/recovery boundaries; twelve host scenario groups pass. Exact cryptography, persistence, rendered UX, and physical multi-device evidence remain OT-005/OT-014/field gates |
-| OT-014 | planned | Persistent configuration | Versioning, integrity, migration, safe defaults, secret separation, and wear behavior tested |
+| OT-014 | done | Persistent configuration | Two fixed 64-byte slots provide version/schema checks, CRC-32, commit-last recovery, generation selection/conflict/exhaustion, v1-to-v2 migration, safe defaults, structural secret-domain separation, no-op/rate/alternating-slot wear controls, and five power-loss boundaries across twelve host scenario groups. CRC is not authentication; ESP32 binding, secret storage, secure rollback, and physical endurance remain later gates |
 
 ## Maps and integration
 
@@ -45,4 +45,4 @@ Statuses: `done` means the documented acceptance criteria are evidenced; `partia
 
 ## Recommended sequence
 
-Complete the remaining OT-003A physical/regulatory inventory and OT-005 cryptographic gates in parallel. Next implement OT-014's versioned persistent-configuration envelope, integrity/migration behavior, safe defaults, secret separation, and interrupted-write/wear simulations. OT-009 still needs a third physical radio before repeater hardware evidence can be claimed. Security and regulatory constraints must remain inputs before any public packet v1 is declared.
+Complete the remaining OT-003A physical/regulatory inventory and OT-005 cryptographic gates in parallel. Next specify and host-test OT-017's normalized OpenGauge critical-alert input, including schema versioning, validation, trust/authentication boundary, rate/stale/duplicate behavior, and fixtures. OT-009 still needs a third physical radio before repeater hardware evidence can be claimed. Security and regulatory constraints must remain inputs before any public packet v1 is declared.

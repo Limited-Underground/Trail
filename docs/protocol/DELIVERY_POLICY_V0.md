@@ -69,11 +69,13 @@ monotonic clock rather than persisting meaningless pre-reboot timestamps.
 Malformed, zero-lifetime, duplicate-key, or wrong-version checkpoints are
 rejected atomically.
 
-The checkpoint is a state representation, not a secure storage format. OT-014
-must add schema integrity, atomic persistence, wear limits, rollback handling,
-and safe recovery. Packet-v0 also lacks a group epoch field, so current codec
-integration supplies an experimental external epoch; packet v1 must bind the
-epoch cryptographically.
+The checkpoint is a state representation, not a secure storage format. OT-014's
+two-slot journal now proves those properties for non-secret runtime
+configuration, but the duplicate checkpoint is not serialized or bound to that
+store. Its integrity, atomic persistence, wear budget, and rollback-resistant
+counter behavior therefore remain open. Packet-v0 also lacks a group epoch
+field, so current codec integration supplies an experimental external epoch;
+packet v1 must bind the epoch cryptographically.
 
 ## Host evidence
 

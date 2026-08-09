@@ -142,8 +142,9 @@ An eventual recovery export must be encrypted, integrity-protected, versioned,
 and unlocked by a user-controlled secret. It must identify whether it restores
 the old device identity, administrator authority, or only group metadata. It
 must never appear in logs, reusable screenshots, crash reports, or ordinary QR
-invitations. Import, rollback protection, storage wear, and interrupted recovery
-belong to OT-014/OT-019 and remain unimplemented.
+invitations. OT-014 now supplies a non-secret configuration journal only;
+encrypted recovery import, secret rollback protection, interrupted recovery,
+and zeroization remain OT-005/OT-019 work.
 
 ## Required visible states and failures
 

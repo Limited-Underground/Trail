@@ -37,7 +37,9 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'firmware\components\diagnostics\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\diagnostics\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\location\include'),
-    '-I', (Join-Path $projectRoot 'firmware\components\location\test_support')
+    '-I', (Join-Path $projectRoot 'firmware\components\location\test_support'),
+    '-I', (Join-Path $projectRoot 'firmware\components\persistence\include'),
+    '-I', (Join-Path $projectRoot 'firmware\components\persistence\test_support')
 )
 
 $builds = @(
@@ -181,6 +183,15 @@ $builds = @(
         Sources = @(
             (Join-Path $projectRoot 'firmware\components\radio\src\lora_airtime.cpp'),
             (Join-Path $projectRoot 'tests\host\lora_airtime_tests.cpp')
+        )
+    },
+    @{
+        Name = 'persistent configuration'
+        Output = Join-Path $buildDirectory 'configuration_store_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\test_support\memory_persistent_storage.cpp'),
+            (Join-Path $projectRoot 'tests\host\configuration_store_tests.cpp')
         )
     },
     @{
