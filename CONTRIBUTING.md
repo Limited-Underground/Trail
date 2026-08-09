@@ -12,4 +12,6 @@ Until those governance decisions are recorded:
 
 Repository work must follow [AGENTS.md](AGENTS.md), the architecture boundaries in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and the acceptance criteria in [tasks/BACKLOG.md](tasks/BACKLOG.md).
 
+Development prerequisites and repeatable test commands are documented in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Run the host test suite for every transport or packet-codec change. Hardware results require a separate evidence record and must not be inferred from host tests.
+
 This file will be expanded when the license, contributor terms, code of conduct, review process, and release policy are selected.

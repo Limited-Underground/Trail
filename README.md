@@ -4,7 +4,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 
 ## Project status
 
-Architecture and bounded proof-of-concept phase. Two Heltec V4 OLED boards running MeshCore USB Companion have completed a close-range private-channel transport characterization: 5/5 numbered messages delivered in each direction with no loss, duplicates, or errors. This is bench evidence, not a production protocol, field-range result, or supported-hardware declaration. No production firmware, selected display, or tested-compatible hardware list exists yet.
+Architecture and bounded proof-of-concept phase. Two Heltec V4 OLED boards running MeshCore USB Companion completed a close-range private-channel transport characterization and a separate OpenTrail packet-v0 proof. The v0 run delivered three C++-encoded/checksummed frames in each direction with no loss, duplicates, or errors. This is bench evidence through an experimental MeshCore text adapter, not a production/security protocol, direct-radio binding, field-range result, or supported-hardware declaration. No production firmware, selected display, or tested-compatible hardware list exists yet.
 
 ## Intended capabilities
 
@@ -36,7 +36,7 @@ OpenTrail owns trail networking, group/location behavior, messaging, maps, and a
 
 ## Start here
 
-Read [the architecture](docs/ARCHITECTURE.md), [project status and assumptions](docs/PROJECT_STATUS.md), [the two-node hardware evidence](tests/hardware/OT-007A-2026-08-08.md), and [the backlog](tasks/BACKLOG.md). The next engineering step is the OT-004 radio transport abstraction, while hardware identity and regulatory questions continue in parallel.
+Read [the architecture](docs/ARCHITECTURE.md), [project status and assumptions](docs/PROJECT_STATUS.md), [the identity/group threat model](docs/security/THREAT_MODEL_V0.md), [the transport evidence](tests/hardware/OT-007A-2026-08-08.md), [the packet-v0 proof](tests/hardware/OT-007-2026-08-08.md), and [the backlog](tasks/BACKLOG.md). OT-005's identity boundaries and lifecycle model are now host-tested, while its cryptographic and physical lifecycle gates remain. The next implementation step is OT-008 acknowledgement, retry/expiry, and duplicate handling against the fake transport. Hardware identity and regulatory questions continue in parallel.
 
 ## License and contributions
 

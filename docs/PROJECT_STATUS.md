@@ -9,7 +9,7 @@ Status date: 2026-08-08
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
-Only the close-range two-node MeshCore transport path has bounded hardware evidence. Group workflows, location, maps, priorities, store-forward behavior, OpenGauge integration, and field performance remain unvalidated.
+The close-range MeshCore path now has bounded transport and experimental OpenTrail packet-v0 hardware evidence. A fixed-capacity C++ radio contract, deterministic fake, defensive v0 codec, and host integration tests exist. Group workflows, secure identity, acknowledgements/retries, location, maps, priorities, store-forward behavior, OpenGauge integration, a direct SX1262 binding, and field performance remain unvalidated.
 
 ## Decisions captured
 
@@ -26,7 +26,7 @@ Only the close-range two-node MeshCore transport path has bounded hardware evide
 
 | Item | Current status | Required evidence |
 | --- | --- | --- |
-| Two Heltec V4 LoRa-capable boards | Both units are runtime-identified as **Heltec V4 OLED** and run MeshCore USB Companion `v1.16.0-07a3ca9` with matching USA/Canada settings (910.525 MHz, BW 62.5 kHz, SF7, CR5, 10 dBm). Antennas were user-confirmed attached. Raw-RX evidence established channel match, MAC validation, decryption, queue notification, and application retrieval. A temporary private-channel sample delivered 5/5 numbered messages each direction with 0 loss, 0 duplicates, 233.3-247.2 ms latency, 11.25-12.25 dB SNR, and zero receive/core errors; the channel was erased and verified empty afterward. Earlier timeouts were harness false negatives caused by exact full-display-text matching. See `tests/hardware/OT-007A-2026-08-08.md`. `OT-DEV-001` has ROM-level ESP32-S3/2 MB PSRAM/16 MB flash evidence; `OT-DEV-002` does not. | Use the bench evidence for OT-004/OT-006; usable RSSI, fine-grained airtime, field range/mobility, regulatory constraints, and exact SKU/RF/antenna/pinout/power questions remain. |
+| Two Heltec V4 LoRa-capable boards | Both units are runtime-identified as **Heltec V4 OLED** and run MeshCore USB Companion `v1.16.0-07a3ca9` with matching USA/Canada settings (910.525 MHz, BW 62.5 kHz, SF7, CR5, 10 dBm). Antennas were user-confirmed attached. Raw-RX evidence established channel match, MAC validation, decryption, queue notification, and application retrieval. A temporary private-channel sample delivered 5/5 numbered messages each direction with 0 loss, 0 duplicates, 233.3-247.2 ms latency, 11.25-12.25 dB SNR, and zero receive/core errors. A separate packet-v0 run delivered 3/3 C++-encoded and decoded frames each direction with no loss, duplicates, or errors. Both temporary channels were erased and verified empty. See `tests/hardware/OT-007A-2026-08-08.md` and `tests/hardware/OT-007-2026-08-08.md`. `OT-DEV-001` has ROM-level ESP32-S3/2 MB PSRAM/16 MB flash evidence; `OT-DEV-002` does not. | OT-004, OT-006, and the bounded OT-007 proof use this bench evidence. Usable RSSI, fine-grained airtime, field range/mobility, regulatory constraints, and exact SKU/RF/antenna/pinout/power questions remain. |
 | Seeed solar device, believed Solar Pro/P1-type | Identity and programmability unknown | Exact model, datasheet, interfaces, firmware access, battery/solar characteristics |
 | Two approximately 7-inch touchscreens | Original test intent; no exact hardware identified | Board/display/controller, interface, resolution, memory/storage needs, availability |
 
@@ -52,7 +52,7 @@ Hardware is not added to a tested-compatible list until repeatable evidence exis
 ### Protocol and security
 
 - Direct/repeater topology, modulation profiles, airtime budget, broadcast cadence, and congestion policy
-- Node-ID derivation, group identity, join/revocation/recovery flow, authentication, encryption, and key storage
+- Identity/name/alias/membership boundaries and reset/revoke lifecycle are defined and host-tested under partial OT-005. Exact Node-ID/alias derivation, group administrator/recovery rules, authenticated join handshake, encryption, key storage, rollback protection, and physical lifecycle evidence remain
 - Packet encoding, maximum payloads, acknowledgement classes, retries, TTL, duplicate-cache size, and queue limits
 - Firmware compatibility policy and OTA/update architecture
 
@@ -68,4 +68,4 @@ Hardware is not added to a tested-compatible list until repeatable evidence exis
 
 ## Next decision checkpoint
 
-Use the completed OT-007A bench evidence to define OT-004's radio transport contract and OT-006's experimental byte budget without freezing the full network protocol. In parallel, confirm the regulatory constraints applicable to the selected USA/Canada preset and record the remaining physical SKU/RF/antenna details when available.
+OT-004, OT-006, and the bounded OT-007 proof are complete. OT-005 now has an explicit threat model, identity boundaries, and host-tested lifecycle state model, but cryptographic selection and physical join/revoke/reset evidence remain. Next implement OT-008 acknowledgement, retry/expiry, and duplicate behavior against the fake transport without treating v0 as public or secure. In parallel, evaluate the remaining OT-005 cryptographic gates, confirm applicable radio regulations, and record physical SKU/RF/antenna details when available.
