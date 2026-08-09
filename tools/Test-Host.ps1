@@ -227,3 +227,12 @@ foreach ($build in $builds) {
         }
     }
 }
+
+$python = Get-Command python -ErrorAction SilentlyContinue
+if ($null -eq $python) {
+    throw 'Python was not found for MeshCore channel lease host tests.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\meshcore_channel_lease_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "MeshCore channel lease tests failed with exit code $LASTEXITCODE."
+}

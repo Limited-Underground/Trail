@@ -1,7 +1,8 @@
 """Run a bounded bidirectional sample on a temporary private MeshCore channel.
 
-The channel secret is generated in memory, never printed or written, and the
-temporary channel is removed from both companions in a finally block.
+The channel secret is generated in memory, never printed or written. A
+non-secret lease journal makes cleanup recoverable if the process loses a
+device response or is interrupted.
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+from pathlib import Path
 import secrets
 import statistics
 import time
@@ -16,6 +18,13 @@ from typing import Any
 
 from meshcore import MeshCore
 from meshcore.events import EventType
+
+from meshcore_channel_lease import (
+    cleanup_lease,
+    configure_lease,
+    load_journal,
+    new_channel_name,
+)
 
 
 async def snapshot(node: MeshCore) -> dict[str, Any]:
@@ -42,17 +51,6 @@ def delta(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
         "last_rssi_dbm": after["radio"]["last_rssi"],
         "last_snr_db": after["radio"]["last_snr"],
     }
-
-
-async def read_channels(node: MeshCore) -> list[dict[str, Any]]:
-    channels = []
-    index = 0
-    while True:
-        event = await node.commands.get_channel(index)
-        if event is None or event.is_error():
-            return channels
-        channels.append(event.payload)
-        index += 1
 
 
 async def wait_for_marker(
@@ -112,12 +110,16 @@ def summarize(samples: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-async def run(port_a: str, port_b: str, count: int, timeout: float) -> dict[str, Any]:
+async def run(
+    port_a: str,
+    port_b: str,
+    count: int,
+    timeout: float,
+    journal_path: Path,
+) -> dict[str, Any]:
     node_a: MeshCore | None = None
     node_b: MeshCore | None = None
     temporary_index: int | None = None
-    configured_a = False
-    configured_b = False
     cleanup = {port_a: False, port_b: False}
     result: dict[str, Any] = {"success": False, "cleanup": cleanup}
 
@@ -131,43 +133,15 @@ async def run(port_a: str, port_b: str, count: int, timeout: float) -> dict[str,
         if node_a is None or node_b is None:
             raise ConnectionError("One or both MeshCore serial connections failed")
 
-        channels_a = await read_channels(node_a)
-        channels_b = await read_channels(node_b)
-        shared_slots = min(len(channels_a), len(channels_b))
-        for index in range(1, shared_slots):
-            if (
-                channels_a[index].get("channel_name", "") == ""
-                and channels_b[index].get("channel_name", "") == ""
-            ):
-                temporary_index = index
-                break
-        if temporary_index is None:
-            raise RuntimeError("No shared empty channel slot is available")
-
         temporary_secret = secrets.token_bytes(16)
-        channel_name = "OpenTrailBench"
-        event_a = await node_a.commands.set_channel(
-            temporary_index, channel_name, temporary_secret
+        nodes = {port_a: node_a, port_b: node_b}
+        lease = await configure_lease(
+            nodes,
+            journal_path,
+            new_channel_name(),
+            temporary_secret,
         )
-        if event_a is None or event_a.is_error():
-            raise RuntimeError("Failed to configure the temporary channel on first node")
-        configured_a = True
-        event_b = await node_b.commands.set_channel(
-            temporary_index, channel_name, temporary_secret
-        )
-        if event_b is None or event_b.is_error():
-            raise RuntimeError("Failed to configure the temporary channel on second node")
-        configured_b = True
-
-        verify_a = (await node_a.commands.get_channel(temporary_index)).payload
-        verify_b = (await node_b.commands.get_channel(temporary_index)).payload
-        if (
-            verify_a.get("channel_name") != channel_name
-            or verify_b.get("channel_name") != channel_name
-            or verify_a.get("channel_secret") != temporary_secret
-            or verify_b.get("channel_secret") != temporary_secret
-        ):
-            raise RuntimeError("Temporary channel verification failed")
+        temporary_index = lease.channel_index
 
         before_a = await snapshot(node_a)
         before_b = await snapshot(node_b)
@@ -231,48 +205,93 @@ async def run(port_a: str, port_b: str, count: int, timeout: float) -> dict[str,
             }
         )
     finally:
-        zero_secret = bytes(16)
-        if temporary_index is not None:
-            for port, node, configured in (
-                (port_a, node_a, configured_a),
-                (port_b, node_b, configured_b),
-            ):
-                if node is not None and configured:
-                    try:
-                        cleared = await node.commands.set_channel(
-                            temporary_index, "", zero_secret
-                        )
-                        verified = await node.commands.get_channel(temporary_index)
-                        cleanup[port] = (
-                            cleared is not None
-                            and not cleared.is_error()
-                            and verified is not None
-                            and not verified.is_error()
-                            and verified.payload.get("channel_name", "") == ""
-                        )
-                    except Exception:
-                        cleanup[port] = False
+        if journal_path.exists():
+            try:
+                record = load_journal(journal_path)
+                connected_nodes = {
+                    port: node
+                    for port, node in ((port_a, node_a), (port_b, node_b))
+                    if node is not None
+                }
+                cleanup = await cleanup_lease(
+                    connected_nodes, record, journal_path
+                )
+            except Exception:
+                cleanup = {port_a: False, port_b: False}
         for node in (node_a, node_b):
             if node is not None:
                 await node.disconnect()
 
+    result["cleanup"] = cleanup
     result["success"] = result["success"] and all(cleanup.values())
     return result
 
 
+async def recover_only(
+    port_a: str, port_b: str, journal_path: Path
+) -> dict[str, Any]:
+    record = load_journal(journal_path)
+    if set(record.ports) != {port_a, port_b}:
+        raise RuntimeError(
+            "Journal ports do not match --port-a and --port-b; no channel changed"
+        )
+    node_a: MeshCore | None = None
+    node_b: MeshCore | None = None
+    try:
+        node_a = await MeshCore.create_serial(
+            port=port_a, only_error=True, default_timeout=10
+        )
+        node_b = await MeshCore.create_serial(
+            port=port_b, only_error=True, default_timeout=10
+        )
+        if node_a is None or node_b is None:
+            raise ConnectionError("One or both MeshCore serial connections failed")
+        cleanup = await cleanup_lease(
+            {port_a: node_a, port_b: node_b}, record, journal_path
+        )
+        return {
+            "success": all(cleanup.values()),
+            "recovery_only": True,
+            "cleanup": cleanup,
+            "journal_removed": not journal_path.exists(),
+        }
+    finally:
+        for node in (node_a, node_b):
+            if node is not None:
+                await node.disconnect()
+
+
 def main() -> int:
+    project_root = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser()
     parser.add_argument("--port-a", required=True)
     parser.add_argument("--port-b", required=True)
     parser.add_argument("--count", type=int, default=5)
     parser.add_argument("--timeout", type=float, default=15.0)
+    parser.add_argument(
+        "--journal",
+        type=Path,
+        default=project_root
+        / "build"
+        / "hardware-test-state"
+        / "meshcore-private-channel.json",
+    )
+    parser.add_argument("--recover-only", action="store_true")
     args = parser.parse_args()
     if args.count < 1 or args.count > 20:
         parser.error("--count must be between 1 and 20")
 
     try:
         result = asyncio.run(
-            run(args.port_a, args.port_b, args.count, args.timeout)
+            recover_only(args.port_a, args.port_b, args.journal)
+            if args.recover_only
+            else run(
+                args.port_a,
+                args.port_b,
+                args.count,
+                args.timeout,
+                args.journal,
+            )
         )
     except Exception as exc:
         print(json.dumps({"success": False, "error": f"{type(exc).__name__}: {exc}"}))

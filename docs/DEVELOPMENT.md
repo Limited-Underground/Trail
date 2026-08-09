@@ -32,7 +32,8 @@ process path, compiles with C++17 and strict warnings-as-errors, and runs:
 - GPS provider, validation, stale-boundary, recovery, and no-UTC behavior tests;
 - position payload validation/round-trip and packet/transport integration tests; and
 - deterministic LoRa airtime formula and invalid-input tests;
-- two-slot persistent-configuration version, CRC, migration, safe-default, secret-separation, wear, and power-loss tests.
+- two-slot persistent-configuration version, CRC, migration, safe-default, secret-separation, wear, and power-loss tests; and
+- non-secret MeshCore temporary-channel lease, uncertain-response recovery, mismatch protection, and journal validation tests.
 
 Generated executables live in per-run directories under ignored
 `build\host-tests` so a stale Windows process cannot block the next compile.
@@ -80,3 +81,35 @@ identifiers and non-sensitive markers, sends three frames each direction, and
 erases and verifies the channel in a `finally` block. Port assignments may
 change. Do not run it through an unattended automation until recovery from a
 failed cleanup has been separately tested.
+
+## Run a recoverable three-node bench soak
+
+`Test-MeshCoreThreeNodeSoak.py` uses a low-duty temporary private channel
+between two USB Companions and reads the repeater console at the beginning,
+every ten probes, and the end. It checkpoints only redacted counters and
+summaries. Its lease journal records the two port labels, ephemeral channel
+name, and slot—but never the channel secret, device identity, key, coordinates,
+or message marker.
+
+First run a short smoke test and inspect its cleanup result:
+
+```powershell
+python .\tools\Test-MeshCoreThreeNodeSoak.py `
+  --port-a COM6 --port-b COM11 --repeater-port COM17 `
+  --duration-minutes 1 --interval-seconds 15
+```
+
+Only after that succeeds, choose a longer duration and conservative interval.
+If the process or laptop stops before verified cleanup, do not start another
+test. Reconnect the same two logical companions and run recovery against the
+retained soak journal:
+
+```powershell
+python .\tools\Test-MeshCorePrivateSample.py `
+  --port-a COM6 --port-b COM11 --recover-only `
+  --journal .\build\hardware-test-state\meshcore-soak-channel.json
+```
+
+Recovery reads the journal, verifies the exact ephemeral channel name in the
+recorded slot, clears only a matching slot, verifies zeroed channel state on
+both nodes, and removes the journal. A different channel name is never erased.
