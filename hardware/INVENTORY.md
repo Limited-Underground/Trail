@@ -99,6 +99,42 @@ Device-specific identity/public-key values returned by MeshCLI were deliberately
 - Installed antenna type/connector, physical GNSS source, battery/charger details, sensors, and pin assignments
 - Regulatory constraints applicable to the selected preset and intended deployment
 
+## Device OT-DEV-003
+
+Connected to the development laptop and queried over its MeshCore repeater USB
+console on 2026-08-08 after the user installed the official repeater firmware
+and selected the USA region.
+
+| Field | Verified result | Evidence/source |
+| --- | --- | --- |
+| Inventory state | Runtime board/firmware identity, USB interface, active radio configuration, battery, repeater role, and close-range forwarding behavior identified; exact commercial P1/P1 Pro SKU and physical internals remain unresolved | MeshCLI repeater console, USB enumeration, and the bounded OT-009 bench experiment |
+| Runtime board | `Seeed SenseCap Solar` | Repeater `board` command |
+| USB interface during test | `COM17`; USB `VID 2886`, `PID 0059` | pySerial enumeration; port assignment can change |
+| Installed role and firmware | MeshCore Repeater `v1.16.0-07a3ca9`, build 06-Jun-2026 | Repeater `ver` command |
+| Radio configuration | 910.5250244 MHz, 62.5 kHz bandwidth, SF7, CR5, 22 dBm transmit power; repeating enabled | Repeater `get radio`, `get tx`, and `get repeat` commands |
+| Battery snapshot | 4.155 V while USB-connected | Repeater `stats-core`; transient observation only |
+| Runtime health snapshot | Uptime 448 seconds, 0 core errors, empty queue, -110 dBm reported noise floor, and 0 receive errors | Repeater `stats-core`, `stats-radio`, and `stats-packets` |
+| Clock | Fresh flash initially reported 15-May-2024; synchronized over USB to current UTC and verified remotely from both Heltec companions | Repeater `clock sync`; Companion `req_clock` from `COM6` and `COM11` |
+| Companion discovery | Both Heltec companions independently stored the SenseCAP repeater advert | Redacted contact-list comparison on `COM6` and `COM11` |
+| Close-range forwarding | One temporary private-channel message delivered in each Heltec direction with 0 loss, 0 duplicates, 240.8/276.9 ms latency, and 11.5/12.0 dB SNR; the repeater recorded exactly +2 flood RX/+2 flood TX. Explicit one-hop direct routes then succeeded in both directions (1,121 ms and 880 ms acknowledgement round trips), each with exactly +2 direct RX/+2 direct TX at the repeater. With repeat temporarily off, the repeater recorded +1 direct RX/+0 direct TX, the sender timed out, and the destination received no message. | `tests/hardware/OT-009-2026-08-08.md` |
+
+The device-specific USB serial number, MeshCore public key, and node identity
+were deliberately excluded from this inventory.
+
+### Still unresolved for OT-DEV-003
+
+- Exact SenseCAP commercial SKU (P1 versus P1 Pro), installed battery type,
+  optional GPS presence, enclosure revision, and internal board revision
+- Independent MCU/radio/flash identity and exact antenna/RF characteristics
+- Solar charging performance, sleep/current behavior, weather exposure, and
+  battery endurance
+- Field range, physical obstructed-path behavior, congestion behavior, reboot recovery,
+  and regulatory constraints at the selected power and radio preset
+- MeshCLI `req_status` compatibility: the repeater exchanged packets during the
+  request but MeshCLI 1.5.7 returned no parsed status within 15 seconds;
+  `req_clock` succeeded from both companions, so this was not a radio-link
+  failure
+
 ## Two-node USB preflight
 
 Both boards were connected simultaneously to the development laptop on 2026-08-08 and detected independently as `COM6` (`OT-DEV-001`) and `COM11` (`OT-DEV-002`). The redacted USB health check confirmed:
@@ -109,3 +145,25 @@ Both boards were connected simultaneously to the development laptop on 2026-08-0
 - Both reported 0 errors, empty queues, 0 packets sent/received, 0 receive errors, and 0 transmit/receive airtime.
 
 The user subsequently confirmed both LoRa antennas were attached. OT-007A establishes authenticated bidirectional application delivery. A temporary private-channel sample delivered 5/5 numbered messages in each direction with 0 loss, 0 duplicates, 233.3-247.2 ms observed latency, 11.25-12.25 dB SNR, zero receive/core errors, and empty queues. The temporary channel was erased and verified empty on both devices. Earlier application timeouts were harness false negatives caused by requiring the full MeshCore display text to equal the marker; MeshCore includes sender display text around channel messages. `OT-DEV-002` also had a stale clock, which was synchronized but was not the root cause. See `tests/hardware/OT-007A-2026-08-08.md`.
+
+## Three-node repeater bench proof
+
+With `OT-DEV-003` running as a repeater on the matching USA/Canada radio
+settings, both Heltec companions received its advert and successfully requested
+its synchronized clock over LoRa. A separate temporary private-channel run sent
+one message in each direction between the Heltecs. Both messages delivered with
+no loss or duplicates, and the SenseCAP counters changed by exactly +2 flood RX
+and +2 flood TX, proving that it received and retransmitted both flood packets.
+The private channel was erased from both companions and verified empty by the
+test harness. This initial flood sample is bounded close-range forwarding
+evidence, not by itself forced-path or field-range evidence; the Heltecs were
+also within direct radio range.
+
+A follow-up used explicit one-hop companion contact paths through the SenseCAP.
+Positive direct-message tests succeeded in both directions and produced exact
+message/acknowledgement direct RX/TX deltas at the repeater. With repeating
+temporarily disabled, the repeater heard but did not retransmit the same routed
+packet, the sender received no acknowledgement, and the destination received no
+message. Repeating was restored and verified on; temporary paths and peer
+contacts were removed. This proves the logical repeater path without claiming
+physical isolation or range.
