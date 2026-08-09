@@ -103,6 +103,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'duplicate checkpoint codec'
+        Output = Join-Path $buildDirectory 'duplicate_checkpoint_codec_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_window.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_codec.cpp'),
+            (Join-Path $projectRoot 'tests\host\duplicate_checkpoint_codec_tests.cpp')
+        )
+    },
+    @{
         Name = 'delivery integration'
         Output = Join-Path $buildDirectory 'delivery_integration_tests.exe'
         Sources = @(

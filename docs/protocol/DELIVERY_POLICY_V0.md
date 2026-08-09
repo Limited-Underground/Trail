@@ -74,13 +74,18 @@ monotonic clock rather than persisting meaningless pre-reboot timestamps.
 Malformed, zero-lifetime, duplicate-key, or wrong-version checkpoints are
 rejected atomically.
 
-The checkpoint is a state representation, not a secure storage format. OT-014's
-two-slot journal now proves those properties for non-secret runtime
-configuration, but the duplicate checkpoint is not serialized or bound to that
-store. Its integrity, atomic persistence, wear budget, and rollback-resistant
-counter behavior therefore remain open. Packet-v0 also lacks a group epoch
-field, so current codec integration supplies an experimental external epoch;
-packet v1 must bind the epoch cryptographically.
+The fixed 672-byte `OTD0` codec now serializes the checkpoint canonically with
+explicit little-endian fields, zeroed unused capacity, semantic validation, and
+CRC-32 accidental-corruption detection. Decode is atomic and rejects duplicate
+keys, invalid lifetimes, malformed capacity, noncanonical padding, unsupported
+versions, and repaired-CRC semantic tampering. See
+`DUPLICATE_CHECKPOINT_CODEC_V0.md`.
+
+The codec is not a durable or secure storage format. Atomic persistence, wear
+budget, privacy lifecycle, and rollback-resistant counter behavior remain
+open. Packet-v0 also lacks a group epoch field, so current codec integration
+supplies an experimental external epoch; packet v1 must bind the epoch
+cryptographically.
 
 ## Host evidence
 
@@ -88,4 +93,7 @@ Tests cover class policies, confirmation, lost ACK/retry, attempt exhaustion,
 expiry, one-shot unacknowledged traffic, transient/permanent transport errors,
 queue/ID validation, duplicate scope and expiry, capacity eviction, reboot
 checkpoint restoration, invalid checkpoint atomicity, and an end-to-end lost
-ACK scenario through the packet codec and fake radio transport.
+ACK scenario through the packet codec and fake radio transport. Seven codec
+groups cover canonical serialization, corruption and semantic rejection, and
+remaining-lifetime restore; the codec and duplicate-window suites each pass
+100 consecutive repeats.

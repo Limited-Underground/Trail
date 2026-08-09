@@ -108,7 +108,7 @@ Initial transports to evaluate are a local serial interface and an authenticated
 
 ## Persistence and diagnostics
 
-Persistent configuration is schema-versioned, checksummed, recoverable to safe defaults, and separated from secrets. Store-forward queues require explicit capacity, expiry, and wear strategy. Logging uses compile/runtime levels `ERROR`, `WARN`, `INFO`, `DEBUG`, and `TRACE`; release builds can remove verbose paths. Diagnostics must not leak secrets.
+Persistent configuration is schema-versioned, checksummed, recoverable to safe defaults, and separated from secrets. The duplicate window has a fixed canonical `OTD0` checkpoint codec carrying remaining lifetimes across monotonic-clock restarts; it is not yet bound to atomic durable storage or rollback protection. Store-forward queues require explicit capacity, expiry, and wear strategy. Logging uses compile/runtime levels `ERROR`, `WARN`, `INFO`, `DEBUG`, and `TRACE`; release builds can remove verbose paths. Diagnostics must not leak secrets.
 
 ## Failure boundaries
 
