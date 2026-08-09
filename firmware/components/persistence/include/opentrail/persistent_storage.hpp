@@ -11,6 +11,7 @@ inline constexpr std::size_t kPersistentSlotBytes = 64;
 enum class StorageDomain : std::uint8_t {
     configuration = 0,
     secret_material = 1,
+    protocol_state = 2,
 };
 
 struct StorageByteView {

@@ -2,7 +2,7 @@
 
 Status: deterministic host-tested OpenTrail ingress-to-ACK composition,
 2026-08-09. This is not a physical transport, cryptographic identity proof,
-persistent sequence store, or physical OpenGauge delivery result.
+persistent per-session sequence store, or physical OpenGauge delivery result.
 
 ## Boundary
 
@@ -45,9 +45,13 @@ suppressed or invalid response cannot consume a number. Unsigned increment
 supports normal 32-bit wrap; OpenGauge's ingress independently applies its
 bounded replay window.
 
-The boot session and next sequence are RAM-only. Production requires durable
-rollback-resistant lifecycle policy coordinated with peer authorization and
-key rotation.
+`AckResponderSessionStore` now allocates a commit-last, nonzero boot session
+before the responder starts and binds it to the exact consumer ID and
+authorization epoch. Each successful restart allocation increments the session;
+OpenGauge must explicitly bind that new session. The next ACK sequence remains
+RAM-only within the allocated session. Target persistence, secure rollback
+resistance, and coordination with physical peer authorization/key rotation
+remain production gates.
 
 ## Host evidence
 
@@ -70,8 +74,8 @@ times with zero failures.
 
 - bind response transmission to the same authenticated peer/session that
   supplied the alert;
-- persist consumer boot-session/next-sequence and authorization epoch with
-  power-loss, corruption, rollback, revoke, rotation, and reset recovery;
+- bind the host-tested boot-session allocator to target storage and define
+  per-session sequence persistence or a reserved-range policy;
 - connect typed redacted diagnostics and bounded response/rate queues;
 - test loss, duplicate, delay, reorder, retry, restart, and negative reasons
   across the full OpenGauge-outbox to OpenTrail-ingress round trip; and

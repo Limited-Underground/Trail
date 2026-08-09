@@ -57,8 +57,8 @@ private:
 
     using Slot = std::array<std::uint8_t, kPersistentSlotBytes>;
     using DomainSlots = std::array<Slot, kPersistentSlotCount>;
-    std::array<DomainSlots, 2> domains_{};
-    std::array<StorageAccessCounters, 2> counters_{};
+    std::array<DomainSlots, 3> domains_{};
+    std::array<StorageAccessCounters, 3> counters_{};
     std::size_t successful_mutations_before_failure_{0};
     std::size_t successful_mutations_since_arm_{0};
     bool power_loss_armed_{false};

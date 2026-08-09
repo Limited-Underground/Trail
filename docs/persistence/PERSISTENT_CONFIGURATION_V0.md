@@ -26,8 +26,9 @@ and no more than 3,600 seconds.
 
 Identity private material, group keys, recovery exports, invitation tokens,
 message counters, and precise location/history do not appear in this structure.
-The storage interface has separate `configuration` and `secret_material`
-domains. `ConfigurationStore` always addresses only `configuration`; tests seed
+The storage interface has separate `configuration`, `secret_material`, and
+`protocol_state` domains. `ConfigurationStore` always addresses only
+`configuration`; tests seed
 a secret-domain sentinel and prove zero secret reads, erases, writes, or syncs.
 An eventual secret store needs separate encryption, access control, lifecycle,
 zeroization, and hardware evidence.

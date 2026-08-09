@@ -93,7 +93,16 @@ produce accepted/none; authenticated policy rejection maps to a canonical
 negative reason; malformed, unauthenticated, producer-mismatched, and local
 clock-rollback input produces no response. It adds monotonic elapsed alert age
 and advances its boot-session sequence only after successful encoding.
-Authenticated response transport and durable session/sequence state remain.
+Authenticated response transport and per-session sequence persistence remain.
+
+A host-tested commit-last allocator now assigns the responder a durable nonzero
+boot-session ID before use. Its 64-byte `OTAS` record binds consumer identity
+and authorization epoch, alternates two protocol-state slots, and increments
+the session on every successful boot allocation. Corruption, ambiguous equal
+generations, epoch/identity changes, and uncertain committed state fail closed;
+an explicit reset and new seed is required for rebind/recovery. The ACK sequence
+remains RAM-only within each newly allocated session. Target storage binding,
+trusted anti-rollback, and physical power-loss evidence remain.
 
 Initial transports to evaluate are a local serial interface and an authenticated local wireless interface. The semantic event schema should remain transport-independent.
 
