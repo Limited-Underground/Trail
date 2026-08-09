@@ -49,6 +49,21 @@ The script discovers compatible Espressif USB ports and prints a redacted health
 snapshot. It does not print identities, coordinates, keys, PINs, or channel
 contents.
 
+## Preflight an incoming Wio Tracker L1 Pro
+
+Before pairing, entering DFU, or flashing the candidate Wio unit, run:
+
+```powershell
+.\tools\Get-WioTrackerL1Preflight.ps1 | Format-List
+```
+
+This is enumeration only. It records serial-port names, public-safe matching
+PnP names when Windows allows the query, redacted USB-registry names as a
+fallback, and a mounted `TRACKER L1` DFU volume. It deliberately does not open
+a serial port, reset, pair, erase, flash, or read files. Follow
+`hardware/WIO_TRACKER_L1_PRO_BRINGUP.md`; normal shipping Bluetooth Companion
+operation should be preserved before recovery is tested.
+
 ## Repeat the bounded packet-v0 hardware proof
 
 Confirm both antennas are attached and both nodes use the intended regional

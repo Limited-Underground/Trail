@@ -1,6 +1,6 @@
 # OpenTrail Hardware Inventory
 
-Last updated: 2026-08-08
+Last updated: 2026-08-09
 
 Compatibility states used here:
 
@@ -9,6 +9,23 @@ Compatibility states used here:
 - `validated`: passed defined repeatable compatibility criteria.
 
 No OpenTrail hardware is validated yet.
+
+## Incoming candidate OT-CAND-004
+
+The owner reports ordering a **Seeed Studio Wio Tracker L1 Pro for MeshCore**
+with OLED, GNSS, antenna, enclosure, and built-in battery. It has not arrived
+and has no OpenTrail evidence yet.
+
+| Field | Candidate information | Evidence boundary |
+| --- | --- | --- |
+| Retail identity | Seeed's MeshCore product page currently lists `Wio Tracker L1 Pro for MeshCore`, SKU `100030144`, pre-flashed as Bluetooth Companion | The Amazon package label/revision must be inspected; a related Meshtastic datasheet uses SKU `114993649`, so the exact received SKU is unresolved |
+| Controller/radio | Vendor datasheet identifies nRF52840 and Wio-SX1262, 862-930 MHz | Specifications only; no physical/electronic confirmation and not an ESP32 OpenTrail firmware target |
+| GNSS/display/power | Vendor datasheet identifies L76K multi-constellation GNSS, 1.3-inch 128x64 OLED, USB-C, solar input, and a built-in 2000 mAh battery | Specifications only; fix performance, screen revision, charging, endurance, and solar behavior are untested |
+| Intended first role | Preserve and evaluate shipping MeshCore Bluetooth Companion firmware; redacted USB/BLE/GNSS and Heltec interoperability checks | No erase or reflash is authorized merely to inventory the device; see `hardware/WIO_TRACKER_L1_PRO_BRINGUP.md` |
+| Recovery candidate | Vendor documents double-`RST` UF2 entry as a `TRACKER L1` volume and single-`User` exit | Procedure only; entry/exit and bootloader recovery remain untested on the received unit |
+
+This candidate does not change the statement that no OpenTrail hardware is on
+a tested-compatible list.
 
 ## Device OT-DEV-001
 

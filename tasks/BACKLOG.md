@@ -10,6 +10,7 @@ Statuses: `done` means the documented acceptance criteria are evidenced; `partia
 | OT-002 | done | Initial architecture documentation | Layers, boundaries, failure modes, roles, and architecture gates documented |
 | OT-003 | partial | Hardware abstraction contracts | Radio, GPS, logging, and persistent-storage contracts have deterministic fakes/tests. Clock, random, display/touch, power, target composition, and whole-contract review remain |
 | OT-003A | partial | Hardware inventory | Both boards are runtime-confirmed as Heltec V4 OLED with MeshCore USB Companion `v1.16.0-07a3ca9` and matching USA/Canada settings. Both passed serial/configuration/runtime checks; `OT-DEV-001` has ROM-level MCU/memory evidence, while `OT-DEV-002` does not. Exact SKU/RF front ends/full bands, antennas, pinouts, power details, and regulatory constraints remain |
+| OT-020 | planned | Wio Tracker L1 Pro compatibility | A non-destructive arrival procedure and read-only Windows preflight tool cover exact label/SKU/revision, shipping firmware preservation, USB/UF2 recovery enumeration, redacted BLE settings, GNSS current/stale/loss behavior, bounded Heltec interoperability, cleanup, and recovery. No unit has arrived or been tested |
 | OT-015 | done | Diagnostics/logging foundation | Fixed-capacity ERROR/WARN/INFO/DEBUG/TRACE logger demonstrates compile/runtime filtering, monotonic timestamps, component tags, redaction, truncation/sanitization, test sink, and counted backpressure in seven host scenarios |
 
 ## Transport and protocol
@@ -45,4 +46,11 @@ Statuses: `done` means the documented acceptance criteria are evidenced; `partia
 
 ## Recommended sequence
 
-Complete the remaining OT-003A physical/regulatory inventory and OT-005 cryptographic gates while OpenGauge advances OG-005/OG-007 normalized-signal foundations. OT-009's remaining hardware work is a direct SX1262/OpenTrail binding and later field measurements; the software-forced MeshCore path is proven. OT-017's physical serial/wireless adapter, key lifecycle, replay protection, and field failure UX remain integration gates rather than semantic-schema work. Security and regulatory constraints must remain inputs before any public packet v1 is declared.
+Complete the remaining OT-003A physical/regulatory inventory and OT-005
+cryptographic gates. Run OT-020 only after the Wio Tracker arrives, preserving
+its shipping firmware before any write. OT-009's remaining hardware work is a
+direct SX1262/OpenTrail binding and later field measurements; the
+software-forced MeshCore path is proven. OT-017's physical serial/wireless
+adapter, key lifecycle, replay protection, and field failure UX remain
+integration gates rather than semantic-schema work. Security and regulatory
+constraints must remain inputs before any public packet v1 is declared.
