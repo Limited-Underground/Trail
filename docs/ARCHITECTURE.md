@@ -78,6 +78,15 @@ OpenTrail host tests enforce freshness, duplicate/conflict, monotonic-time, and
 emergency-reserve rate policy. This does not validate a physical transport or
 replace transport authentication and replay protection.
 
+The mirrored `OGK0` acknowledgement contract records accepted or rejected
+disposition, a canonical rejection reason, the original producer/event/
+condition/lifecycle identities, consumer identity and boot-session sequence,
+and bounded observed age in a separate 64-byte frame. Independent codecs in
+OpenTrail and OpenGauge round-trip the same normative bytes. The CRC detects
+corruption only; authenticated transport identity, persistent replay handling,
+delivery-controller/outbox correlation, and physical delivery remain separate
+integration gates.
+
 Initial transports to evaluate are a local serial interface and an authenticated local wireless interface. The semantic event schema should remain transport-independent.
 
 ## Persistence and diagnostics

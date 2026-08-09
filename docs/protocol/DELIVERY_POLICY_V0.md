@@ -3,8 +3,11 @@
 Status: host-test policy for OT-008, 2026-08-08
 
 This state machine is above the opaque radio transport and below application
-workflows. It does not add acknowledgement packets to the wire format, provide
-authentication, reserve emergency capacity, or claim field-safe timing.
+workflows. It does not add a generic acknowledgement type to packet v0,
+provide authentication, reserve emergency capacity, or claim field-safe timing.
+The separate `OGK0` critical-alert ACK codec can supply an external semantic
+acknowledgement after authenticated transport and correlation are composed;
+that composition is not part of this controller yet.
 
 ## Message-class policy
 
@@ -41,8 +44,10 @@ and field behavior must determine deployed values.
 - An acknowledgement is accepted only after at least one send and before
   expiry. The controller assumes its caller already authenticated and decoded
   the acknowledgement.
-- Packet v0 has no acknowledgement type. A real authenticated ACK wire format
-  remains required before hardware acknowledgement tests.
+- Packet v0 has no generic acknowledgement type. The external `OGK0` alert-ACK
+  bytes are defined and host-tested, but authenticated transport, replay
+  persistence, controller correlation, and hardware acknowledgement evidence
+  remain required.
 
 ## Duplicate suppression
 

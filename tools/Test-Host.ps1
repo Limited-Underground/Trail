@@ -196,6 +196,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'critical alert acknowledgement codec'
+        Output = Join-Path $buildDirectory 'critical_alert_ack_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\integration\src\critical_alert_ack.cpp'),
+            (Join-Path $projectRoot 'tests\host\critical_alert_ack_tests.cpp')
+        )
+    },
+    @{
         Name = 'critical alert ingress'
         Output = Join-Path $buildDirectory 'critical_alert_ingress_tests.exe'
         Sources = @(
