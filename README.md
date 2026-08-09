@@ -40,4 +40,8 @@ Read [the architecture](docs/ARCHITECTURE.md), [project status and assumptions](
 
 ## License and contributions
 
-The project is intended to be free/open source and hosted on GitHub, but a license and contribution policy have not yet been selected. Do not accept external code until those governance decisions are recorded.
+OpenTrail is free/open-source software licensed under the
+[Apache License 2.0](LICENSE). Contributions are welcome through GitHub issues
+and pull requests; read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting
+code or hardware evidence and use [SECURITY.md](SECURITY.md) for sensitive
+security reports.

@@ -22,6 +22,7 @@ The close-range MeshCore path now has bounded transport, experimental OpenTrail 
 - Loss of GPS, maps, UI, peers, or OpenGauge must degrade independently.
 - Offline-map formats/providers remain replaceable and must permit offline use with correct attribution.
 - OpenGauge alerts cross a fixed 64-byte `OGA0` semantic boundary with canonical units and explicit assert/clear lifecycle IDs. CRC detects corruption only; the transport must supply authenticated and authorized producer identity before OpenTrail accepts an alert.
+- Project software and documentation are published under Apache-2.0; external contributions follow `CONTRIBUTING.md`, and sensitive reports follow `SECURITY.md`.
 
 ## Available hardware and current evidence
 
@@ -65,7 +66,7 @@ Hardware is not added to a tested-compatible list until repeatable evidence exis
 
 ### Governance
 
-- Open-source license, contribution policy, code of conduct, security reporting, CI, release/signing, and supported-hardware evidence policy
+- Code of conduct, CI, release/signing process, and supported-hardware evidence policy; Apache-2.0 licensing, contribution guidance, and security reporting are established
 
 ## Next decision checkpoint
 
