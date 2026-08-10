@@ -85,8 +85,9 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   [v0 update/recovery architecture](docs/update/UPDATE_RECOVERY_ARCHITECTURE_V0.md)
   requires signed hardware-bound bundles, verified inactive-slot writes,
   bounded health-confirmed trials, automatic rollback, trusted version floors,
-  and physical/USB recovery. It is a design boundary; no updater or physical
-  interruption/recovery result exists.
+  and physical/USB recovery. Its pure lifecycle guard passes eight host groups;
+  no target updater, persistent trial adapter, or physical interruption/recovery
+  result exists.
 - **Security overhead is now visible before wire freeze:** a bounded
   [protected-packet budget](docs/protocol/PROTECTED_PACKET_BUDGET_V0.md) charges
   every candidate frame a corrected 44-byte authenticated header and 16-byte

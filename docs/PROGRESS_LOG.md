@@ -13,6 +13,9 @@ public chronology.
 - Required inactive-slot write/readback, persisted bounded trial boot,
   independent health confirmation, automatic rollback, and a trusted version
   floor.
+- Added a pure lifecycle guard with eight passing host groups for candidate and
+  write evidence, stable health, exact deadline, boot/clock failures, bounded
+  trials, and exact rollback completion.
 - Kept exact target partitions, signer/key custody, implementation, protected
   rollback storage, and physical interruption/recovery evidence explicitly
   open.

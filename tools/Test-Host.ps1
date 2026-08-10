@@ -63,6 +63,7 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'firmware\components\power\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\ui\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\ui\test_support'),
+    '-I', (Join-Path $projectRoot 'firmware\components\update\include'),
     '-I', (Join-Path $projectRoot 'firmware\targets\portable_client\include')
 )
 
@@ -372,6 +373,14 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\ui\src\local_interface.cpp'),
             (Join-Path $projectRoot 'firmware\components\ui\test_support\fake_local_interface.cpp'),
             (Join-Path $projectRoot 'tests\host\local_interface_tests.cpp')
+        )
+    },
+    @{
+        Name = 'update boot guard'
+        Output = Join-Path $buildDirectory 'update_boot_guard_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\update\src\update_boot_guard.cpp'),
+            (Join-Path $projectRoot 'tests\host\update_boot_guard_tests.cpp')
         )
     },
     @{

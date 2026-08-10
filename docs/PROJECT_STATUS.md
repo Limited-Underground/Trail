@@ -291,8 +291,10 @@ not treated as proof of authorization.
 - The v0 update/recovery architecture requires signed hardware-bound bundles,
   complete inactive-slot readback, persisted bounded trials, independent health
   confirmation, automatic rollback, a trusted firmware floor, and documented
-  physical/USB recovery. No target partition table, signer, updater, protected
-  rollback storage, or physical interruption/recovery evidence exists.
+  physical/USB recovery. A pure guard passes eight host groups across candidate,
+  write, trial-health, deadline, boot-limit/mismatch, clock, and rollback paths.
+  No target partition table, signer, updater adapter, protected trial/rollback
+  storage, or physical interruption/recovery evidence exists.
 
 ### Maps and interface
 

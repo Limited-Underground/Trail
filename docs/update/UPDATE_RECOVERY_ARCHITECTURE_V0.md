@@ -1,7 +1,19 @@
 # Update and recovery architecture v0
 
-Status: host architecture only; no updater, target partition table, signing key,
-or physical recovery result exists.
+Status: architecture plus a pure host-tested lifecycle guard; no updater, target
+partition table, signing key, persistent trial adapter, or physical recovery
+result exists.
+
+## Host lifecycle evidence
+
+`UpdateBootGuard` is deliberately unable to verify signatures, write flash,
+select boot slots, persist state, or execute rollback. It accepts only adapter-
+supplied verification/write/boot evidence and enforces the lifecycle around it.
+Eight deterministic groups cover policy/candidate refusal, staging cancellation,
+complete-write evidence, stable-time and health confirmation, the exact
+confirmation deadline, trial-boot exhaustion, boot mismatch plus exact rollback
+completion, explicit health failure, duplicate boot sessions, and monotonic-
+clock regression.
 
 ## Safety objective
 
@@ -104,6 +116,5 @@ Metadata announcements over radio are advisory and never authorize installation.
 - preservation/erasure behavior for configuration, identity, and group secrets;
 - repeat/endurance counts, timings, power conditions, and artifact hashes.
 
-Until those results exist, this document is a design boundary rather than a
-supported OTA or recovery claim.
-
+Until those target results exist, this architecture and host guard are design
+evidence rather than a supported OTA or recovery claim.
