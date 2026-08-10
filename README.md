@@ -81,6 +81,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   eight operation timing sets, resources, hashes, and eight security/lifecycle
   gates. Its public plan remains blocked until the real target is frozen; no
   crypto library has been selected or benchmarked on-device.
+- **Updates must fail back to a recoverable client:** the
+  [v0 update/recovery architecture](docs/update/UPDATE_RECOVERY_ARCHITECTURE_V0.md)
+  requires signed hardware-bound bundles, verified inactive-slot writes,
+  bounded health-confirmed trials, automatic rollback, trusted version floors,
+  and physical/USB recovery. It is a design boundary; no updater or physical
+  interruption/recovery result exists.
 - **Security overhead is now visible before wire freeze:** a bounded
   [protected-packet budget](docs/protocol/PROTECTED_PACKET_BUDGET_V0.md) charges
   every candidate frame a corrected 44-byte authenticated header and 16-byte
@@ -286,7 +292,7 @@ OpenTrail owns trail networking, group/location behavior, messaging, maps, and a
 
 ## Start here
 
-Read [the dated progress log](docs/PROGRESS_LOG.md), [the portable-client composition contract](docs/platform/PORTABLE_CLIENT_COMPOSITION_V0.md), [the funding packet](docs/funding/README.md), [the four-person standalone pilot](docs/testing/FOUR_PERSON_PILOT_V0.md), [its result evaluator](docs/testing/FOUR_PERSON_PILOT_RESULT_V0.md), [the cryptographic candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md), [the group-load model](docs/testing/GROUP_LOAD_MODEL_V0.md), [the privacy-safe field-log contract](docs/testing/FIELD_TEST_LOG_V0.md), [the latest live-state physical evidence](tests/hardware/OT-017I-2026-08-09.md), [the OpenGauge target recovery plan](https://github.com/nbjelanovic/OpenGauge/blob/main/docs/integration/TARGET_SYSTEM_RECOVERY_ADAPTER_PLAN.md), [the architecture](docs/ARCHITECTURE.md), [project status and assumptions](docs/PROJECT_STATUS.md), [the hardware inventory](hardware/INVENTORY.md), [the Wio Tracker arrival plan](hardware/WIO_TRACKER_L1_PRO_BRINGUP.md), [the critical-alert v0 contract](docs/integration/OPENGAUGE_CRITICAL_ALERT_V0.md), and [the backlog](tasks/BACKLOG.md). Detailed protocol, persistence, security, funding, and evidence documents remain organized under `docs/` and `tests/`. The completed OT-017-series checkpoints listed in the backlog are bounded evidence, not production acceptance. Hardware identity, cryptography, authenticated on-device alert transport, secret storage, and regulatory questions continue in parallel.
+Read [the dated progress log](docs/PROGRESS_LOG.md), [the portable-client composition contract](docs/platform/PORTABLE_CLIENT_COMPOSITION_V0.md), [the update/recovery architecture](docs/update/UPDATE_RECOVERY_ARCHITECTURE_V0.md), [the funding packet](docs/funding/README.md), [the four-person standalone pilot](docs/testing/FOUR_PERSON_PILOT_V0.md), [its result evaluator](docs/testing/FOUR_PERSON_PILOT_RESULT_V0.md), [the cryptographic candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md), [the group-load model](docs/testing/GROUP_LOAD_MODEL_V0.md), [the privacy-safe field-log contract](docs/testing/FIELD_TEST_LOG_V0.md), [the latest live-state physical evidence](tests/hardware/OT-017I-2026-08-09.md), [the OpenGauge target recovery plan](https://github.com/nbjelanovic/OpenGauge/blob/main/docs/integration/TARGET_SYSTEM_RECOVERY_ADAPTER_PLAN.md), [the architecture](docs/ARCHITECTURE.md), [project status and assumptions](docs/PROJECT_STATUS.md), [the hardware inventory](hardware/INVENTORY.md), [the Wio Tracker arrival plan](hardware/WIO_TRACKER_L1_PRO_BRINGUP.md), [the critical-alert v0 contract](docs/integration/OPENGAUGE_CRITICAL_ALERT_V0.md), and [the backlog](tasks/BACKLOG.md). Detailed protocol, persistence, security, funding, and evidence documents remain organized under `docs/` and `tests/`. The completed OT-017-series checkpoints listed in the backlog are bounded evidence, not production acceptance. Hardware identity, cryptography, authenticated on-device alert transport, secret storage, and regulatory questions continue in parallel.
 
 ## License and contributions
 

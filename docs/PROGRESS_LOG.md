@@ -6,6 +6,17 @@ public chronology.
 
 ## 2026-08-10
 
+### Fail-safe update and recovery boundary
+
+- Defined signed, hardware-bound release bundles and a USB-first transport that
+  cannot weaken artifact verification.
+- Required inactive-slot write/readback, persisted bounded trial boot,
+  independent health confirmation, automatic rollback, and a trusted version
+  floor.
+- Kept exact target partitions, signer/key custody, implementation, protected
+  rollback storage, and physical interruption/recovery evidence explicitly
+  open.
+
 ### Verified protected-fragment reassembly
 
 - Added a fixed-memory reassembler that accepts only future crypto-adapter-

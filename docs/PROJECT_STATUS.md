@@ -288,7 +288,11 @@ not treated as proof of authorization.
 - Packet-v0 encoding/budget, position payload, host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies, the external `OGK0` alert-ACK codec, and OT-014 non-secret configuration persistence are bounded and tested. Generic packet-v0 ACK composition, authenticated routing/priority/ACK transport, measured deployed timing, persistent message/duplicate counter integrity and secure rollback, realistic contention, and final queue/cache limits remain
 - Duplicate checkpoints have a canonical fixed 672-byte `OTD0` codec with CRC, strict padding/capacity/version checks, duplicate-key rejection, atomic decode, and remaining-lifetime restoration. Seven codec groups, the full 23-executable matrix, and 100 codec/window repeats pass. Atomic durable storage, wear/privacy policy, authenticated integrity, and rollback protection remain
 - The fixed 704-byte `ODS0` store now uses context-bound v1: its formerly reserved bytes carry the exact nonzero group-context ID and epoch, and every active inner key must match. Wrong binding and structurally valid legacy unbound v0 media fail without live mutation or overwrite. Original generation/rotation/readback/degraded/conflict/exhaustion behavior remains. Ten store groups, the full 28-executable matrix, and 100 focused store/coordinator repeats pass locally; the exact matrix passes publicly in run `31374678550`. Protected ESP32 namespace binding, physical atomicity/endurance, authorized migration/reset, authenticated integrity, and trusted rollback protection remain
-- Firmware compatibility policy and OTA/update architecture
+- The v0 update/recovery architecture requires signed hardware-bound bundles,
+  complete inactive-slot readback, persisted bounded trials, independent health
+  confirmation, automatic rollback, a trusted firmware floor, and documented
+  physical/USB recovery. No target partition table, signer, updater, protected
+  rollback storage, or physical interruption/recovery evidence exists.
 
 ### Maps and interface
 
