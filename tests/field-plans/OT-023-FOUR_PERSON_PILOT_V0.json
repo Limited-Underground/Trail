@@ -1,0 +1,88 @@
+{
+  "acceptance": {
+    "critical_alert_losses_allowed": 0,
+    "critical_latency_max_ms": 5000,
+    "ending_battery_min_percent": 20,
+    "false_successes_allowed": 0,
+    "gps_first_fix_max_ms": 300000,
+    "operator_visible_duplicates_allowed": 0,
+    "p95_latency_max_ms": 2000,
+    "peer_stale_max_ms": 180000,
+    "position_delivery_min_ppm": 950000,
+    "queue_overflows_allowed": 0,
+    "resets_allowed": 0
+  },
+  "hardware_freeze": {
+    "battery_required": true,
+    "client_model": null,
+    "display_required": true,
+    "enclosure_required": true,
+    "firmware_version": null,
+    "gnss_required": true,
+    "identical_units_required": true,
+    "local_input_required": true,
+    "selection_status": "pending",
+    "usb_recovery_required": true
+  },
+  "logging": {
+    "public_format": "OTFL0/v0",
+    "raw_capture_local_only": true,
+    "required_aggregate_evidence": [
+      "attempted_delivered_lost_duplicate_by_class",
+      "latency_min_median_p95_max",
+      "source_and_radio_counter_deltas",
+      "queue_rate_limit_preemption",
+      "reset_and_uptime",
+      "gps_current_stale_no_fix",
+      "battery_start_end",
+      "configuration_and_cleanup"
+    ]
+  },
+  "plan": {
+    "id": "four-person-pilot-v0",
+    "phase": "four-standalone",
+    "status": "draft_blocked"
+  },
+  "privacy": {
+    "aggregate_only": true,
+    "hardware_identifiers_included": false,
+    "participant_identifiers_included": false,
+    "precise_coordinates_included": false,
+    "secrets_included": false,
+    "transport_ports_included": false
+  },
+  "requirements": {
+    "internet_required": false,
+    "laptop_required_during_session": false,
+    "phone_required": false,
+    "repeater_required": false,
+    "server_required": false,
+    "vehicle_connection_required": false
+  },
+  "schema": "OTFP0",
+  "session": {
+    "duration_minutes": 60,
+    "minimum_sessions": 3,
+    "scenario_classes": [
+      "open-field",
+      "wooded-trail",
+      "rolling-road"
+    ]
+  },
+  "topology": {
+    "clients": 4,
+    "repeaters": 0
+  },
+  "traffic": {
+    "critical_alert_origins": 4,
+    "critical_alerts_per_client": 1,
+    "peer_delivery_opportunities": 900,
+    "position_interval_seconds": 60,
+    "position_origins": 240,
+    "quick_status_origins": 8,
+    "quick_statuses_per_client": 2,
+    "status_interval_seconds": 300,
+    "status_origins": 48
+  },
+  "version": 0
+}

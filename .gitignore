@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# PlatformIO and firmware build output
+.pio/
+build/
+dist/
+artifacts/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+secrets.*
+credentials.*
+*.pem
+*.key
+
+# Logs, captures, and temporary files
+*.log
+*.tmp
+*.bak
+captures/
+
+# Editors and operating systems
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+.DS_Store

@@ -1,0 +1,122 @@
+# Local display and input boundary v0
+
+Status: **host-tested semantic contract; no renderer or physical-display claim**
+
+## Purpose
+
+The first four-person OpenTrail pilot requires each standalone client to have a
+locally readable display and local controls for quick status and critical-alert
+actions. The same application behavior should remain possible on a small OLED
+with buttons, a touch display, or a later accessible input adapter without
+making screen dimensions, color, touch, or a specific UI framework part of the
+application state machine.
+
+This contract separates semantic frames and normalized actions from pixels,
+fonts, coordinates, GPIOs, touch controllers, localization, and rendering.
+
+## Capabilities
+
+Target composition supplies one explicit `DisplayCapabilities` record:
+
+- nonzero pixel width and height;
+- color depth from 1 through 32 bits;
+- one through four base action slots;
+- touch and/or button input; and
+- whether a hold gesture is available.
+
+No resolution, color depth, or touch mode is declared "supported" merely by
+passing host validation. A target adapter still has to render the required
+states legibly and prove its input mapping on physical hardware.
+
+The four-action limit is the minimal portable-client surface, not a claim that
+larger displays cannot show more information. Additional pages or target-local
+presentation can exist without expanding the base application contract.
+
+## Semantic frame
+
+`UiFrame` is fixed-size and contains:
+
+- a nonzero, strictly increasing boot-local revision;
+- one screen role: home, status, quick-status menu, critical confirmation, or
+  system fault;
+- attention and notice enums;
+- radio, position, and power indicator states;
+- optional peer count and bounded unread count; and
+- up to four ordered semantic action bindings.
+
+It contains no coordinates, free-form labels, peer identity, message text,
+radio address, key handle, credential, or other private identifier. Renderers
+choose localized wording and layout for known enum values.
+
+Unused action slots must remain canonical zero/disabled values. Active actions
+must be known and unique. A frame is committed only after the display sink
+reports complete success. Not-ready or failed presentation does not advance the
+active revision, so the same revision may be retried safely.
+
+## Input binding
+
+The target input adapter maps its physical button, encoder, touch target, or
+accessible control to an action-slot number from the frame it actually showed.
+Application code receives no raw coordinate or GPIO identity.
+
+Every `LocalInputEvent` carries the exact frame revision. The checked boundary
+rejects an event when:
+
+- no frame has been successfully presented;
+- the input source is not ready or failed;
+- the revision is stale or from another frame;
+- the slot is outside the active action count or disabled; or
+- the gesture is unknown or inappropriate for that action.
+
+This prevents a delayed touch/button event from activating the same screen
+location after the application has changed its meaning.
+
+## Critical-alert boundary
+
+`open_critical_confirmation` only requests the dedicated confirmation screen;
+it does not send an alert. That confirmation frame is canonical:
+
+1. critical attention;
+2. exactly two enabled actions in order: `confirm_critical_alert`, then
+   `cancel`; and
+3. a target capability that supports a hold gesture.
+
+Only a hold on the confirmation slot resolves `confirm_critical_alert`. A tap,
+stale event, disabled slot, different screen, or system-fault send action fails
+closed. Resolution is still an application request, not proof of radio delivery
+or emergency response. Delivery success/failure must remain separately visible.
+
+## Host evidence
+
+Twelve deterministic scenario groups cover:
+
+1. invalid capabilities rejected before display I/O;
+2. atomic presentation of a complete semantic frame;
+3. not-ready retry and sink-failure preservation;
+4. strict revisions, enums, capacities, canonical slots, and uniqueness;
+5. action-slot and hold-capability limits;
+6. the exact critical-confirmation shape;
+7. ordinary action resolution against the current frame;
+8. stale, out-of-range, and disabled input rejection;
+9. hold-only critical confirmation;
+10. not-ready, failed, unknown, and pre-frame input behavior;
+11. system-fault action restrictions; and
+12. bounded FIFO/script capacity and ordering in test support.
+
+The predictable display and input fakes remain under `test_support` only.
+
+## Remaining target gates
+
+- Implement separate Heltec, Wio, and any future touch-display adapters only
+  after their exact board/controller/pin/input identities are known.
+- Define fonts, localization, contrast, daylight/night readability, minimum
+  target size, glove/wet use, accessible input, and distracted-driving policy.
+- Prove every notice and enabled/disabled/confirmation state on real hardware,
+  including display/input failure, reboot, USB recovery, low power, and radio/
+  GNSS concurrency.
+- Measure render and input latency, CPU/RAM/flash use, power draw, burn-in risk,
+  temperature behavior, and long-session stability.
+- Connect resolved application requests to the tested priority/delivery path
+  without turning local acceptance into false delivery success.
+- Freeze one exact four-unit client model and firmware before changing the
+  four-person pilot from `draft_blocked` to `ready`.

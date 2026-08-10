@@ -1,0 +1,120 @@
+{
+  "cleanup": {
+    "clients_expected": 2,
+    "clients_verified": 2,
+    "lease_journal_removed": true
+  },
+  "hardware": {
+    "clients": [
+      {
+        "counters": {
+          "core_errors": 0,
+          "direct_rx": 0,
+          "direct_tx": 0,
+          "flood_rx": 45,
+          "flood_tx": 15,
+          "last_rssi_dbm": 0.0,
+          "last_snr_db": 12.0,
+          "queue_length": 0,
+          "receive_errors": 0,
+          "received": 45,
+          "rx_airtime_seconds": 10,
+          "sent": 15,
+          "tx_airtime_seconds": 3
+        },
+        "firmware": "v1.16.0-07a3ca9",
+        "label": "client-1",
+        "model": "Heltec V4 OLED"
+      },
+      {
+        "counters": {
+          "core_errors": 0,
+          "direct_rx": 0,
+          "direct_tx": 0,
+          "flood_rx": 45,
+          "flood_tx": 15,
+          "last_rssi_dbm": 0.0,
+          "last_snr_db": 12.0,
+          "queue_length": 0,
+          "receive_errors": 0,
+          "received": 45,
+          "rx_airtime_seconds": 9,
+          "sent": 15,
+          "tx_airtime_seconds": 3
+        },
+        "firmware": "v1.16.0-07a3ca9",
+        "label": "client-2",
+        "model": "Heltec V4 OLED"
+      }
+    ],
+    "repeater": {
+      "counters": {
+        "core_errors": 0,
+        "direct_rx": 0,
+        "direct_tx": 0,
+        "flood_rx": 30,
+        "flood_tx": 30,
+        "last_rssi_dbm": 0.0,
+        "last_snr_db": 12.75,
+        "queue_length": 0,
+        "receive_errors": 0,
+        "received": 30,
+        "rx_airtime_seconds": 7,
+        "sent": 30,
+        "tx_airtime_seconds": 7
+      },
+      "firmware": "v1.16.0-07a3ca9",
+      "label": "repeater-1",
+      "model": "Seeed SenseCap Solar"
+    }
+  },
+  "privacy": {
+    "aggregate_only": true,
+    "hardware_identifiers_included": false,
+    "precise_coordinates_included": false,
+    "secrets_included": false,
+    "transport_ports_included": false
+  },
+  "radio": {
+    "bandwidth_khz": 62.5,
+    "client_tx_power_dbm": 10,
+    "coding_rate_denominator": 5,
+    "frequency_mhz": 910.525,
+    "repeater_enabled_end": true,
+    "repeater_enabled_start": true,
+    "repeater_tx_power_dbm": 22,
+    "spreading_factor": 7
+  },
+  "result": {
+    "raw_test_reported_success": true
+  },
+  "schema": "OTFL0",
+  "session": {
+    "completed_utc": "2026-08-10T07:10:35.255855+00:00",
+    "duration_seconds": 69.0,
+    "id": "20260810-bench-burst-a",
+    "location_class": "indoor-bench",
+    "motion": "stationary",
+    "phase": "bench-two-plus-repeater",
+    "started_utc": "2026-08-10T07:09:25.968665+00:00"
+  },
+  "topology": {
+    "clients": 2,
+    "repeater_required": "not_proved",
+    "repeaters": 1
+  },
+  "traffic": {
+    "attempted": 30,
+    "delivered": 30,
+    "duplicates": 0,
+    "interval_seconds": 2.0,
+    "latency_ms": {
+      "maximum": 431.2,
+      "median": 268.4,
+      "minimum": 238.0,
+      "p95": 275.6
+    },
+    "lost": 0
+  },
+  "version": 0
+}

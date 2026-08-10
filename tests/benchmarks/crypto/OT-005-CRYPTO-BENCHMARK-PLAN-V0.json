@@ -1,0 +1,76 @@
+{
+  "schema": "OTCB0",
+  "version": 0,
+  "artifact_kind": "plan",
+  "benchmark_id": "OT-005-CRYPTO-ESP32S3-V0",
+  "status": "draft_blocked",
+  "created_utc": "2026-08-10T08:15:00Z",
+  "target": {
+    "manufacturer": "",
+    "board_model": "",
+    "board_revision": "",
+    "mcu": "ESP32-S3",
+    "flash_bytes": 0,
+    "psram_bytes": 0
+  },
+  "toolchain": {
+    "esp_idf_version": "",
+    "esp_idf_commit": "",
+    "compiler": "",
+    "compiler_version": "",
+    "sdkconfig_sha256": ""
+  },
+  "radio": {
+    "mtu_bytes": 0,
+    "frequency_hz": 0,
+    "bandwidth_hz": 0,
+    "spreading_factor": 0,
+    "coding_rate_denominator": 0
+  },
+  "candidates": [
+    {
+      "candidate_id": "espressif_libsodium",
+      "role": "primary",
+      "version": "1.0.22",
+      "source_commit": "",
+      "lock_sha256": "",
+      "license_spdx": "ISC"
+    },
+    {
+      "candidate_id": "esp_idf_mbedtls_psa",
+      "role": "comparison",
+      "version": "",
+      "source_commit": "",
+      "lock_sha256": "",
+      "license_spdx": "Apache-2.0"
+    },
+    {
+      "candidate_id": "monocypher",
+      "role": "comparison",
+      "version": "4.0.3",
+      "source_commit": "",
+      "lock_sha256": "",
+      "license_spdx": "CC0-1.0 OR BSD-2-Clause"
+    }
+  ],
+  "required_gates": [
+    "primitive_vectors_and_negative_cases",
+    "noise_xk_independent_interoperability",
+    "invitation_replay_reorder_timeout_refusal",
+    "entropy_and_cold_start_uniqueness",
+    "temporary_secret_wipe_and_log_redaction",
+    "rollback_safe_counter_interruption",
+    "two_device_join_revoke_reset_recovery",
+    "license_sbom_and_reproducible_lock"
+  ],
+  "minimum_repetitions": {
+    "cold": 100,
+    "warm": 100
+  },
+  "blockers": [
+    "exact_client_board_and_revision_not_frozen",
+    "esp_idf_toolchain_and_sdkconfig_not_pinned",
+    "candidate_source_commits_and_dependency_locks_not_pinned",
+    "direct_radio_mtu_and_phy_profile_not_frozen"
+  ]
+}
