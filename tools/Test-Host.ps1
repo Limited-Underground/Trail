@@ -461,3 +461,13 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw "Crypto benchmark evidence tests failed with exit code $LASTEXITCODE."
 }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\publication_safety_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "Publication-safety scanner tests failed with exit code $LASTEXITCODE."
+}
+
+& $python.Source (Join-Path $projectRoot 'tools\Test-PublicationSafety.py') --root $projectRoot
+if ($LASTEXITCODE -ne 0) {
+    throw "Publication-safety tracked-content scan failed with exit code $LASTEXITCODE."
+}

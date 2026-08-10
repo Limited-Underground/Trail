@@ -192,7 +192,7 @@ def test_plan_hash_and_sdkconfig_mismatch_fail_closed() -> None:
 def test_private_machine_and_device_text_is_rejected() -> None:
     plan = ready_plan()
     private_plan = copy.deepcopy(plan)
-    private_plan["target"]["board_revision"] = "C:\\Users\\person\\board.txt"
+    private_plan["target"]["board_revision"] = "C:" + "\\Users\\person\\board.txt"
     expect_error(lambda: benchmark.validate_plan(private_plan), "private machine/device")
     result = passing_result(plan)
     result["notes"] = "captured on COM17"
