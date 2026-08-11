@@ -74,13 +74,17 @@ Ten deterministic groups cover:
 10. checked local-interface resolution followed by an exact action-time sample.
 
 The command and safety executables each pass 100/100 focused repeats. The
-complete 53-executable OpenTrail host matrix plus all Python and
+complete 54-executable OpenTrail host matrix plus all Python and
 publication-safety checks pass.
+
+The [position-sharing UI coordinator](POSITION_SHARING_UI_COORDINATOR_V0.md)
+now supplies one cooperative owner for revision publication, checked input,
+live command application, and post-action refresh.
 
 ## Remaining gates
 
-- assign one target task/lock owner for frame publication, action resolution,
-  coordinator commands, and service cycles;
+- bind the host-tested UI owner to one exact target task/lock shared with
+  outbound service cycles;
 - define visible retry behavior for a temporary not-ready Start without
   manufacturing a successful state;
 - bind the checked clock to one exact ESP-IDF source and prove cold-start,

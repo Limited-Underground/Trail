@@ -86,7 +86,7 @@ Ten deterministic groups cover:
 9. unrelated and unknown action rejection without mutation; and
 10. idempotent repeated actions plus typed start rejection.
 
-The focused executable passes 100/100 repeats. The complete 53-executable
+The focused executable passes 100/100 repeats. The complete 54-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 A separate ten-group runtime-aware suite covers real source-failure/rollback
@@ -97,12 +97,16 @@ A second ten-group command-authority suite covers action-time checked sampling,
 temporary deferral, permanent fault latching, clock-independent Stop, typed
 adapter mapping, and checked UI action composition. It passes 100/100 repeats.
 
+A third ten-group [UI coordinator](POSITION_SHARING_UI_COORDINATOR_V0.md) suite
+owns cooperative revision publication, checked input, live command application,
+and post-action refresh. It passes 100/100 repeats.
+
 ## Remaining gates
 
 - define exact localized wording, icons, color-independent cues, and layout;
 - prove start, stop, waiting, deferred, and failure behavior on each physical
   button/touch target, including glove/wet/distracted-use review;
-- assign target task ownership and boot-local frame revisions without races;
+- bind the host-tested cooperative UI owner to one exact target task/lock;
 - connect scheduler service to one exact GPS, authenticated packet/priority
   path, direct-radio adapter, and final cadence policy;
 - verify reboot/default/privacy expectations and persistent preference policy;

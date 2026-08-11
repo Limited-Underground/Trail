@@ -62,6 +62,9 @@ failed position sharing. `start_position_sharing` and
 host-tested mapping from these requests to the scheduler: start arms it without
 submitting a payload, while stop disables it immediately. A renderer neither
 gains coordinate access nor acquires radio, emergency, or update authority.
+The [position-sharing UI coordinator](POSITION_SHARING_UI_COORDINATOR_V0.md)
+now owns the host-tested revision/poll/action/refresh sequence around that
+adapter; it does not provide an ESP-IDF task, lock, or physical renderer.
 
 Unused action slots must remain canonical zero/disabled values. Active actions
 must be known and unique. A frame is committed only after the display sink

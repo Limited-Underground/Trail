@@ -67,13 +67,17 @@ Ten deterministic groups cover:
 9. incoherent runtime status failing closed; and
 10. revision-zero and unknown-clock-state refusal.
 
-The focused executable passes 100/100 repeats. The complete 53-executable
+The focused executable passes 100/100 repeats. The complete 54-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
+
+The [position-sharing UI coordinator](POSITION_SHARING_UI_COORDINATOR_V0.md)
+now owns cooperative revision publication, checked input, live action
+application, and fail-closed post-action refresh.
 
 ## Remaining gates
 
-- define the target owner of runtime status snapshots, frame revisions, action
-  resolution, and scheduler mutation without races;
+- bind the host-tested cooperative owner to one exact target task/lock without
+  races against outbound service;
 - add a distinct coarse system clock/service notice only if renderer/user
   research shows `position_sharing_failed` is insufficient;
 - prove boot/restart behavior and prevent in-place recovery of a latched boot

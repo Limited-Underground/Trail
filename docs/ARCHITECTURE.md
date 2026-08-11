@@ -149,6 +149,14 @@ source failure stops sharing and latches the coordinator. Stop is immediate and
 does not access the clock. The target-facing UI adapter therefore accepts no
 caller-supplied timestamp.
 
+A host-only position UI coordinator now owns boot-local revision allocation,
+current presentation, one checked input poll, live Start/Stop application, and
+the required post-action refresh. Temporary clock deferral retains the current
+truthful Start frame. A failed post-action publication invokes immediate Stop
+and latches further input closed; revision exhaustion does the same before an
+action is polled. This proves cooperative sequencing only. One target task or
+lock must still serialize UI and outbound service calls.
+
 Target-facing position presentation must combine scheduler state with the
 outbound coordinator status. A coherent latched clock rollback/source failure
 overrides the scheduler's stopped state with a critical no-action frame, while
@@ -156,8 +164,7 @@ incoherent runtime/scheduler combinations also fail closed. Start is rejected
 against that latched status even if it was resolved from a previously displayed
 healthy revision; stop remains safe and idempotent. The lower-level scheduler-
 only mapping remains a host component, not sufficient target composition by
-itself. Target synchronization, frame publication scheduling, and physical
-rendering/input remain gates.
+itself. Exact target synchronization and physical rendering/input remain gates.
 
 A separate host-tested position-sharing control adapter maps scheduler state to
 the existing semantic local-interface boundary. It exposes start only while

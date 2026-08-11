@@ -83,7 +83,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   immediate; stale screen input cannot change the state; and terminal scheduler
   faults expose no misleading execution action. Ten groups plus 100 focused
   repeats pass on both button and touch capability shapes. Exact wording,
-  renderer, target task/revision ownership, and physical behavior remain open.
+  renderer, exact target synchronization, and physical behavior remain open.
 - **Scheduled positions now reach bounded experimental packet admission:** the
   [packet-admission sink](docs/protocol/POSITION_PACKET_ADMISSION_V0.md)
   revalidates the 16-byte current-position payload, obtains caller-owned
@@ -131,6 +131,14 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   repeats of the updated safety overlay. This is host action authority—not a
   target task/clock driver, rendered retry UX, reboot policy, or physical-input
   result.
+- **Position privacy UI sequencing now has one cooperative owner:** the
+  [UI coordinator](docs/platform/POSITION_SHARING_UI_COORDINATOR_V0.md) allocates
+  revisions, publishes current state, resolves one checked input, applies the
+  live Start/Stop command, and commits the resulting higher-revision frame.
+  Temporary clock deferral retains the truthful Start frame; failed post-action
+  publication stops sharing and latches input closed. Ten groups plus 100
+  focused repeats pass. This is host ordering—not an ESP-IDF task/lock,
+  renderer, physical input, or concurrency result.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned
@@ -312,13 +320,14 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 53 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 54 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet
   admission, loss-aware priority-to-delivery handoff, checked-time outbound
   service coordination, fail-visible outbound position safety, checked-time
-  outbound position commands, portable-client
+  outbound position commands, single-owner position UI coordination,
+  portable-client
   composition, local-interface, power-state, clock,
   randomness,
   pilot-result/template,

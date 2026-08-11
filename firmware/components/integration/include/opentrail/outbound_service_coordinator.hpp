@@ -89,6 +89,8 @@ public:
     [[nodiscard]] OutboundPositionCommandResult start_position_sharing();
     [[nodiscard]] OutboundPositionCommandResult stop_position_sharing();
     [[nodiscard]] OutboundServiceStatus status() const;
+    [[nodiscard]] location::PositionBroadcastSchedulerStatus
+    position_status() const;
 
 private:
     void observe_time(std::uint64_t now_ms);

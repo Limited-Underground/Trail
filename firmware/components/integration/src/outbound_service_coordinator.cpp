@@ -143,6 +143,11 @@ OutboundServiceStatus OutboundServiceCoordinator::status() const {
     return status_;
 }
 
+location::PositionBroadcastSchedulerStatus
+OutboundServiceCoordinator::position_status() const {
+    return position_.status();
+}
+
 void OutboundServiceCoordinator::observe_time(std::uint64_t now_ms) {
     status_.has_time = true;
     status_.last_now_ms = now_ms;

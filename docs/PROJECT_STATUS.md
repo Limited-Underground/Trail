@@ -59,6 +59,14 @@ the clock. Ten command groups plus 100 repeats, and 100 repeats of the updated
 safety suite, pass. Target task synchronization, concrete clock binding,
 rendered retry behavior, reboot policy, and physical input remain absent.
 
+A cooperative position-sharing UI coordinator now owns revision allocation,
+initial/current publication, one checked input poll, live command application,
+and post-action refresh. Temporary Start deferral retains the current truthful
+frame. A failed result-frame write or exhausted revision space stops sharing and
+latches input closed. Ten groups plus 100 repeats pass. This is not an ESP-IDF
+task/lock, renderer, physical input, or concurrency result; exact target
+serialization remains absent.
+
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
 phone/laptop/vehicle dependency during a session, at least three materially
@@ -281,13 +289,12 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 53 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 54 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
   handoff, checked-time outbound service coordination, fail-visible outbound
-  position safety,
-  checked-time outbound position commands,
+  position safety, checked-time position commands, single-owner position UI,
   portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
   physical MeshCore,
@@ -375,7 +382,7 @@ not treated as proof of authorization.
   flags. Hardware/candidate identity, checkpoint payloads, raw adapter errors,
   and nested results are absent; unknown or contradictory input blocks normal
   operation as service-required. Eight groups plus 100 repeats pass in the
-  complete 53-executable matrix. A versioned `OTRD0` adapter now records one
+  complete 54-executable matrix. A versioned `OTRD0` adapter now records one
   coherent status through the existing logger as one fixed hexadecimal 32-bit
   word. Generations and identity-bearing detail are omitted; magic, version,
   reserved bits, enums, flags, and state/action/reason coherence fail closed.
@@ -397,9 +404,8 @@ not treated as proof of authorization.
   deferred, and terminal-failure scheduler states through that same checked UI
   boundary. Start only arms the scheduler, stop is immediate, stale frame input
   is rejected, and unrelated actions cannot mutate position sharing. Ten groups
-  plus 100 repeats pass. Renderer wording/layout, target scheduling/revision
-  ownership, direct radio/GPS composition, and physical privacy behavior remain
-  absent.
+  plus 100 repeats pass. Renderer wording/layout, exact target synchronization,
+  direct radio/GPS composition, and physical privacy behavior remain absent.
   An experimental packet-admission sink now revalidates the scheduler's
   canonical current payload, obtains injected ephemeral packet-v0 metadata,
   encodes one exact 38-byte frame, and admits it only as background traffic
@@ -426,12 +432,17 @@ not treated as proof of authorization.
   access; rollback/source failure latches closed; Stop is immediate without a
   clock read. Ten groups plus 100 repeats pass. No target task/clock binding,
   rendered retry behavior, reboot policy, or physical input is claimed.
+  A cooperative position-sharing UI coordinator now owns revision allocation,
+  initial/current presentation, one checked input poll, live Start/Stop, and the
+  required post-action refresh. Temporary clock deferral retains the truthful
+  Start frame. Post-action display failure and revision exhaustion stop sharing
+  and latch input closed. Ten groups plus 100 repeats pass. Exact ESP-IDF
+  task/lock serialization, rendering, and physical behavior remain absent.
   A runtime-aware position overlay now validates the coordinator status before
   presentation or Start/Stop application. Latched rollback/source failure and
   incoherent state produce a no-action critical frame; stale healthy Start is
   rejected, while Stop remains safe. Ten groups plus 100 repeats pass. Exact
-  revision publication, renderer/input, reboot, and physical behavior remain
-  absent.
+  renderer/input, reboot, and physical behavior remain absent.
 
 ### Maps and interface
 

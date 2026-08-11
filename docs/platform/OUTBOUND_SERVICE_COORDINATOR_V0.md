@@ -72,7 +72,7 @@ Ten deterministic groups cover:
 9. handoff rejection while already accepted delivery still sends; and
 10. full-delivery deferral followed by retained-queue recovery.
 
-The focused executable passes 100/100 repeats. The complete 53-executable
+The focused executable passes 100/100 repeats. The complete 54-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The [runtime-aware position safety overlay](OUTBOUND_POSITION_SAFETY_V0.md) now
@@ -80,11 +80,14 @@ maps this coordinator's coherent latched clock state to a critical no-action
 frame. The [command authority](OUTBOUND_POSITION_COMMAND_V0.md) rechecks live
 clock authority when applying Start/Stop actions.
 
+The [position-sharing UI coordinator](POSITION_SHARING_UI_COORDINATOR_V0.md)
+then provides one cooperative presentation/input/action owner around those
+commands. Exact target serialization with outbound service remains open.
+
 ## Remaining gates
 
-- define the target task, synchronization, watchdog, and service cadence;
-- bind the host-tested safety/command overlays to exact target frame
-  publication, synchronization, and task/revision ownership;
+- bind outbound and position-UI service to one exact target task/lock, watchdog,
+  and service/presentation cadence;
 - add bounded inbound receive/decode/authenticate/replay/delivery processing;
 - integrate boot/recovery, protected persistence, entropy, power, and diagnostic
   service ordering;
