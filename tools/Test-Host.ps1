@@ -659,6 +659,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'map selector protected trusted-generation boundary'
+        Output = Join-Path $buildDirectory 'map_selector_trusted_generation_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_trusted_generation.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_trusted_generation_tests.cpp')
+        )
+    },
+    @{
         Name = 'authorized map selector reseed coordinator'
         Output = Join-Path $buildDirectory 'map_selector_reseed_tests.exe'
         Sources = @(

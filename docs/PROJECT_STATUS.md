@@ -196,6 +196,16 @@ credentials/challenges, backend replay persistence, protected trusted history,
 physical package and selector adapters, locking, audit, renderer, and target
 evidence remain open.
 
+A separate protected trusted-generation prerequisite now replaces the implied
+idea that any caller-supplied selector floor is itself rollback protection. The
+boot-local, non-copyable common enforcer reads an injected backend, requires an
+atomic exact-expected compare-and-advance, and accepts an advance only after
+exact readback. Source rollback, stale conflict, and nonincreasing requests do
+not write. Any reported advance failure or post-write ambiguity latches all
+later source I/O closed until fresh-boot reconciliation. Ten groups pass. No
+protected backend or target composition exists yet, and the current selector
+coordinators still receive scalar floors from their callers.
+
 The selector now has a backend-neutral key/value adapter contract. Fixed
 `ot_state` / `ot_maps` / `otm_sel_a|b` binding, exact 64-byte reads, durable
 commit after staged write/erase, full-blob marker rewrite, idempotent missing-
@@ -205,7 +215,7 @@ partition-wide erase, fixes a local-service authority handoff, and defines the
 physical interruption matrix. No ESP-IDF source, partition table, target
 task/lock, encryption/trusted-generation choice, physical result, or concrete
 service-authentication backend exists.
-All ten map suites pass 100/100 repeats, and the complete 68-executable host
+All eleven map suites pass 100/100 repeats, and the complete 69-executable host
 matrix passes.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test

@@ -233,14 +233,23 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   service verifier, rejects remote radio and every scope/boot/binding/time
   mismatch, and rechecks boot/time while burning the permit before selector
   access. Ten authorization
-  groups pass; a concrete credential verifier, protected generation source,
-  exclusive target ownership, physical package/storage adapters,
+  groups pass; a concrete credential verifier, exclusive target ownership,
+  physical package/storage adapters,
   renderer, and target task remain open.
+  A separate
+  [trusted-generation boundary](docs/maps/OFFLINE_MAP_SELECTOR_TRUSTED_GENERATION_SOURCE_V0.md)
+  now gives a future protected backend one atomic expected-value advance and
+  exact-readback contract. Rollback, stale conflict, and nonincreasing requests
+  never write; any advance or readback uncertainty latches later source access
+  closed until fresh-boot reconciliation. Ten groups pass. This is still only
+  backend-neutral host enforcement: existing map coordinators accept caller-
+  supplied floors, and no protected counter/storage, target composition,
+  reset/replacement authority, or physical result exists.
   An [NVS-ready key/value adapter](docs/maps/OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
   now fixes `ot_state` / `ot_maps` / `otm_sel_a|b`, requires commit after every
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
-  and all ten map suites pass 100/100 repeats in the complete 68-executable
+  and all eleven map suites pass 100/100 repeats in the complete 69-executable
   host matrix. It contains no ESP-IDF backend, partition table, target lock,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains

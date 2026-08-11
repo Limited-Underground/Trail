@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-11
 
+### Protected map-selector trusted-generation boundary
+
+- Added a backend-neutral source contract whose mutation must atomically match
+  the exact current generation before advancing to a strictly greater value.
+- Added a boot-local, non-copyable common enforcer that distinguishes source
+  rollback from stale conflict, rejects nonincreasing requests without a write,
+  and requires exact post-advance readback.
+- Treated every advance error as commit-uncertain. Advance failure, failed
+  readback, frozen readback, and advanced-past readback latch all later source
+  I/O closed until reconciliation through a fresh boot instance.
+- Added ten deterministic groups. All eleven map suites pass 100/100 focused
+  repeats, and the complete 69-executable host matrix passes locally. No
+  protected backend, target composition, reset/replacement authority, hardware
+  counter, ESP-IDF implementation, or physical anti-rollback result is claimed.
+
 ### Single-use local-service authorization for map reseed
 
 - Replaced the reseed coordinator's five caller-created booleans with a
