@@ -238,7 +238,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 40 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 41 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
@@ -301,15 +301,22 @@ not treated as proof of authorization.
   across partial/corrupt writes, verifies readback, repairs a known invalid
   peer, and fails closed on unreadable/conflicted state. A caller-supplied
   trusted-generation contract rejects missing/stale generations before live
-  restore and allocates beyond the greater local/trusted value. All 16 store
-  groups plus 100 focused repeats pass. No target partition table, signer,
+  restore and allocates beyond the greater local/trusted value. Read-only
+  inspection exposes empty, degraded, unreadable, invalid, and conflicted media
+  without mutating the guard or slots. All 20 store groups plus 100 focused
+  repeats pass. No target partition table, signer,
   updater adapter, authenticated target storage, hardware-backed trusted
   generation source, or physical interruption/recovery evidence exists. A
   typed host boot coordinator now holds guard state private until the observed
   image is validated, any trial/rollback transition is readback-verified, and
   the trusted generation advances with exact readback. Fifteen groups plus 100
-  focused repeats pass; target boot tasks, terminal cleanup/reset authority,
-  protected backends, and physical restart evidence remain absent.
+  focused repeats pass. A verified normal-save coordinator now requires exact
+  local/trusted agreement, verifies the next checkpoint before advancing trust,
+  and verifies exact trust readback before reporting committed. Ten groups plus
+  100 repeats pass; uncertain/local-ahead state requires reboot reconciliation.
+  A target-facing lifecycle-transition wrapper, target boot tasks, terminal
+  cleanup/reset authority, protected backends, and physical restart evidence
+  remain absent.
 
 ### Maps and interface
 

@@ -53,15 +53,25 @@ After a degraded restore, a later save targets the missing/invalid peer and
 reports that it repaired the redundant copy. Reset requires both abstract slot
 erases to succeed.
 
+## Read-only inspection
+
+`inspect` applies the same two-slot selection and conflict rules without
+restoring a guard or writing storage. It reports slot states, selected source
+and generation, checkpoint availability, and whether known degradation requires
+recovery. An unreadable peer remains a storage failure even when the other slot
+is visible, because that peer could conceal a newer committed generation.
+
 ## Evidence and limitations
 
-Sixteen deterministic groups plus 100 focused repeats cover empty/first save,
+Twenty deterministic groups plus 100 focused repeats cover empty/first save,
 rotation/newest selection, partial-write preservation, corrupt-readback
 preservation, invalid-peer repair, unreadable-slot fail-close, equal-generation
 conflict, atomic policy rejection, generation exhaustion, reset, and rejection
 of nonpersistent guard state, plus missing/stale trusted-floor rejection,
 boundary acceptance, allocation beyond local/trusted state, and trusted-floor
-exhaustion. The complete OpenTrail host matrix passes.
+exhaustion. Four inspection groups additionally cover empty, healthy/degraded,
+unreadable-peer, invalid-only, and conflict observations without mutation. The
+complete OpenTrail host matrix passes.
 
 The slot interface does not define flash erase, atomic program units, sync,
 wear leveling, namespace protection, encryption, anti-rollback, or commit

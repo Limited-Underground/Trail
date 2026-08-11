@@ -441,6 +441,89 @@ void test_trusted_generation_exhaustion_prevents_write() {
     EXPECT(!storage.present[1]);
 }
 
+void test_read_only_inspection_reports_exact_empty_media() {
+    FakeUpdateStorage storage{};
+    UpdateCheckpointStore store{storage};
+
+    const auto inspected = store.inspect();
+    EXPECT(inspected.error == UpdateCheckpointStoreError::no_checkpoint);
+    EXPECT(!inspected.checkpoint_available);
+    EXPECT(!inspected.recovery_required);
+    EXPECT(inspected.source == UpdateCheckpointSource::none);
+    EXPECT(inspected.slot_a == UpdateCheckpointSlotState::empty);
+    EXPECT(inspected.slot_b == UpdateCheckpointSlotState::empty);
+}
+
+void test_inspection_selects_newest_and_reports_degradation() {
+    const auto guard = pending_guard();
+
+    FakeUpdateStorage healthy_storage{};
+    healthy_storage.seed(0, encoded_checkpoint(checkpoint(guard, 4)));
+    healthy_storage.seed(1, encoded_checkpoint(checkpoint(guard, 5)));
+    UpdateCheckpointStore healthy_store{healthy_storage};
+    const auto healthy = healthy_store.inspect();
+    EXPECT(healthy.error == UpdateCheckpointStoreError::none);
+    EXPECT(healthy.checkpoint_available);
+    EXPECT(healthy.generation == 5);
+    EXPECT(healthy.source == UpdateCheckpointSource::slot_b);
+    EXPECT(!healthy.recovery_required);
+
+    FakeUpdateStorage degraded_storage{};
+    degraded_storage.seed(0, encoded_checkpoint(checkpoint(guard, 5)));
+    degraded_storage.present[1] = true;
+    degraded_storage.slots[1].fill(0xA5U);
+    UpdateCheckpointStore degraded_store{degraded_storage};
+    const auto degraded = degraded_store.inspect();
+    EXPECT(degraded.error == UpdateCheckpointStoreError::none);
+    EXPECT(degraded.checkpoint_available);
+    EXPECT(degraded.generation == 5);
+    EXPECT(degraded.recovery_required);
+    EXPECT(degraded.slot_b == UpdateCheckpointSlotState::invalid);
+    EXPECT(degraded.codec_error != UpdateCheckpointCodecError::none);
+}
+
+void test_inspection_exposes_unreadable_peer_with_visible_checkpoint() {
+    FakeUpdateStorage storage{};
+    const auto guard = pending_guard();
+    storage.seed(0, encoded_checkpoint(checkpoint(guard, 5)));
+    storage.fail_read_slot = 1;
+    UpdateCheckpointStore store{storage};
+
+    const auto inspected = store.inspect();
+    EXPECT(inspected.error == UpdateCheckpointStoreError::storage_failure);
+    EXPECT(inspected.checkpoint_available);
+    EXPECT(inspected.generation == 5);
+    EXPECT(inspected.source == UpdateCheckpointSource::slot_a);
+    EXPECT(inspected.recovery_required);
+    EXPECT(inspected.slot_b == UpdateCheckpointSlotState::io_failure);
+}
+
+void test_inspection_rejects_invalid_only_and_conflicted_media() {
+    FakeUpdateStorage invalid_storage{};
+    invalid_storage.present[0] = true;
+    invalid_storage.slots[0].fill(0xA5U);
+    UpdateCheckpointStore invalid_store{invalid_storage};
+    const auto invalid = invalid_store.inspect();
+    EXPECT(invalid.error == UpdateCheckpointStoreError::invalid_state);
+    EXPECT(!invalid.checkpoint_available);
+    EXPECT(invalid.recovery_required);
+
+    FakeUpdateStorage conflict_storage{};
+    const auto guard = pending_guard();
+    auto first = checkpoint(guard, 5);
+    auto second = first;
+    second.state = UpdateState::rollback_required;
+    second.rollback_reason = RollbackReason::boot_mismatch;
+    conflict_storage.seed(0, encoded_checkpoint(first));
+    conflict_storage.seed(1, encoded_checkpoint(second));
+    UpdateCheckpointStore conflict_store{conflict_storage};
+    const auto conflict = conflict_store.inspect();
+    EXPECT(conflict.error ==
+           UpdateCheckpointStoreError::generation_conflict);
+    EXPECT(!conflict.checkpoint_available);
+    EXPECT(conflict.recovery_required);
+}
+
 void test_reset_and_nonpersistent_guard_rejection() {
     FakeUpdateStorage storage{};
     UpdateCheckpointStore store{storage};
@@ -481,6 +564,10 @@ int main() {
     test_empty_save_advances_beyond_trusted_generation();
     test_save_advances_beyond_greater_generation();
     test_trusted_generation_exhaustion_prevents_write();
+    test_read_only_inspection_reports_exact_empty_media();
+    test_inspection_selects_newest_and_reports_degradation();
+    test_inspection_exposes_unreadable_peer_with_visible_checkpoint();
+    test_inspection_rejects_invalid_only_and_conflicted_media();
     test_reset_and_nonpersistent_guard_rejection();
 
     if (failures != 0) {
@@ -488,6 +575,6 @@ int main() {
             " update checkpoint store assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 16 update checkpoint store scenario groups\n";
+    std::cout << "PASS: 20 update checkpoint store scenario groups\n";
     return EXIT_SUCCESS;
 }

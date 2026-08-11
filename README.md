@@ -95,14 +95,19 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   unreadable or conflicted slot. Its explicit [trusted-generation
   contract](docs/update/UPDATE_TRUSTED_GENERATION_FLOOR_V0.md) rejects missing
   or stale checkpoints before live restore and saves beyond the greater local/
-  trusted generation. All 16 store groups plus 100 focused repeats pass. No
+  trusted generation. All 20 store groups plus 100 focused repeats pass. No
   target updater, authenticated store, hardware-backed trusted source, or
   physical interruption/recovery result exists. A new [typed boot
   coordinator](docs/update/UPDATE_RECOVERY_BOOT_COORDINATOR_V0.md) works on a
   private guard, persists trial/rollback transitions, advances and exactly
   reads back trust, and releases live application state only after the complete
   sequence succeeds. Fifteen groups plus 100 focused repeats pass; this remains
-  host ordering evidence, not an on-device boot result.
+  host ordering evidence, not an on-device boot result. A [verified save
+  coordinator](docs/update/UPDATE_RECOVERY_SAVE_COORDINATOR_V0.md) requires
+  exact local/trusted agreement, verifies checkpoint-before-trust ordering, and
+  returns a typed reboot-reconciliation result for uncertain or local-ahead
+  state. Ten groups plus 100 repeats pass. A target-facing lifecycle-transition
+  wrapper and physical persistence evidence remain.
 - **Security overhead is now visible before wire freeze:** a bounded
   [protected-packet budget](docs/protocol/PROTECTED_PACKET_BUDGET_V0.md) charges
   every candidate frame a corrected 44-byte authenticated header and 16-byte
@@ -220,7 +225,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 40 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 41 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including portable-client composition, local-interface, power-state, clock, randomness,

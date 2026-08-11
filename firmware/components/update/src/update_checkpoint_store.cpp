@@ -86,6 +86,50 @@ UpdateCheckpointStore::UpdateCheckpointStore(
     UpdateCheckpointStorage& storage)
     : storage_(storage) {}
 
+UpdateCheckpointInspectionResult UpdateCheckpointStore::inspect() {
+    UpdateCheckpointInspectionResult result{};
+    const auto a = inspect_slot(storage_, 0);
+    const auto b = inspect_slot(storage_, 1);
+    result.slot_a = a.state;
+    result.slot_b = b.state;
+    result.codec_error = first_codec_error(a, b);
+
+    if (generation_conflict(a, b)) {
+        result.error = UpdateCheckpointStoreError::generation_conflict;
+        result.recovery_required = true;
+        return result;
+    }
+
+    std::uint8_t selected_slot = 0;
+    const auto* selected = newest_valid(a, b, selected_slot);
+    const bool any_io_failure =
+        a.state == UpdateCheckpointSlotState::io_failure ||
+        b.state == UpdateCheckpointSlotState::io_failure;
+    const bool any_invalid =
+        a.state == UpdateCheckpointSlotState::invalid ||
+        b.state == UpdateCheckpointSlotState::invalid;
+    if (selected == nullptr) {
+        result.error = any_io_failure
+                           ? UpdateCheckpointStoreError::storage_failure
+                       : any_invalid
+                           ? UpdateCheckpointStoreError::invalid_state
+                           : UpdateCheckpointStoreError::no_checkpoint;
+        result.recovery_required = any_io_failure || any_invalid;
+        return result;
+    }
+
+    result.error = any_io_failure
+                       ? UpdateCheckpointStoreError::storage_failure
+                       : UpdateCheckpointStoreError::none;
+    result.source = source_for_slot(selected_slot);
+    result.generation = selected->checkpoint.generation;
+    result.checkpoint_available = true;
+    result.recovery_required =
+        a.state != UpdateCheckpointSlotState::valid ||
+        b.state != UpdateCheckpointSlotState::valid;
+    return result;
+}
+
 UpdateCheckpointLoadResult UpdateCheckpointStore::restore(
     UpdateBootGuard& guard) {
     return restore_at_or_above(guard, 0);

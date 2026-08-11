@@ -29,7 +29,7 @@ invalid peer, and fails closed when an unreadable slot could conceal newer
 state. Its caller-supplied [trusted-generation
 contract](UPDATE_TRUSTED_GENERATION_FLOOR_V0.md) also rejects missing or stale
 checkpoint generations before live restore and allocates beyond both local and
-trusted state. Sixteen store groups plus 100 focused repeats pass. Target
+trusted state. Twenty store groups plus 100 focused repeats pass. Target
 atomicity, authenticated integrity, a hardware-backed trusted source, wear, and
 physical power cuts remain.
 
@@ -40,6 +40,14 @@ exactly reads back trust, and exposes live state only after the sequence
 succeeds. Fifteen groups plus 100 focused repeats pass. This remains host state-
 machine evidence; no target boot task, protected backend, or physical restart
 result exists.
+
+The [verified save coordinator](UPDATE_RECOVERY_SAVE_COORDINATOR_V0.md) applies
+the corresponding normal-operation ordering. It requires exact local/trusted
+generation agreement, verifies the next checkpoint before advancing trust, and
+requires exact trust readback before reporting committed. Ten groups plus 100
+focused repeats pass. It persists an already-mutated running guard; a target-
+facing transition wrapper that owns mutation, failure shutdown, scheduling, and
+reboot remains open.
 
 ## Safety objective
 

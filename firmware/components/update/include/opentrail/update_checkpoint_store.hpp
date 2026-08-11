@@ -72,6 +72,19 @@ struct UpdateCheckpointLoadResult {
     bool restored{false};
 };
 
+struct UpdateCheckpointInspectionResult {
+    UpdateCheckpointStoreError error{
+        UpdateCheckpointStoreError::no_checkpoint};
+    UpdateCheckpointSource source{UpdateCheckpointSource::none};
+    UpdateCheckpointSlotState slot_a{UpdateCheckpointSlotState::empty};
+    UpdateCheckpointSlotState slot_b{UpdateCheckpointSlotState::empty};
+    UpdateCheckpointCodecError codec_error{
+        UpdateCheckpointCodecError::none};
+    std::uint64_t generation{0};
+    bool checkpoint_available{false};
+    bool recovery_required{false};
+};
+
 struct UpdateCheckpointSaveResult {
     UpdateCheckpointStoreError error{
         UpdateCheckpointStoreError::storage_failure};
@@ -94,6 +107,9 @@ class UpdateCheckpointStore {
 public:
     explicit UpdateCheckpointStore(UpdateCheckpointStorage& storage);
 
+    // Read-only inspection for generation reconciliation. This never restores
+    // or otherwise mutates a lifecycle guard.
+    [[nodiscard]] UpdateCheckpointInspectionResult inspect();
     [[nodiscard]] UpdateCheckpointLoadResult restore(
         UpdateBootGuard& guard);
     [[nodiscard]] UpdateCheckpointLoadResult restore_at_or_above(

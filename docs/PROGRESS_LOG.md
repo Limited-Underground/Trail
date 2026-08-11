@@ -6,6 +6,24 @@ public chronology.
 
 ## 2026-08-11
 
+### Verified normal update persistence
+
+- Added read-only two-slot checkpoint inspection so normal persistence can
+  compare local state with independent trust without restoring a guard or
+  changing storage. Empty, known-degraded, unreadable, invalid-only, and
+  equal-generation conflict results remain distinct.
+- Added a typed save coordinator that requires a running guard and exact
+  local/trusted generation agreement, verifies the next checkpoint before
+  advancing trust, and requires exact trust readback before reporting committed.
+  Rollback enters safe mode; local-ahead, uncertain-write, and post-write trust
+  failures require reboot reconciliation and no same-boot retry.
+- Covered ten save-coordinator groups and the expanded 20-group checkpoint store
+  in the complete 41-executable matrix and across 100 focused repeats each.
+- Kept the claim bounded: this generic coordinator persists an already-mutated
+  guard. A target-facing wrapper must still own lifecycle mutation, persistence
+  failure shutdown, scheduling, reboot, protected storage/trust, and physical
+  interruption evidence.
+
 ### Typed update-recovery boot ordering
 
 - Added a boot coordinator that starts/restores only a private guard and exposes

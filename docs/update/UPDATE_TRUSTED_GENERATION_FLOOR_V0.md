@@ -51,7 +51,7 @@ If either value is `UINT64_MAX`, allocation fails with
 unreadable, invalid-only, conflicted, write-error, and readback-error behavior
 does not become less strict.
 
-The store does not advance the trusted source. A future coordinator must:
+The store does not advance the trusted source. Its coordinator must:
 
 1. read the trusted generation;
 2. commit and verify the next checkpoint;
@@ -65,14 +65,23 @@ implements that ordering for boot restoration, trial-attempt persistence, and
 rollback completion. The injected trusted source and target storage still do
 not exist.
 
+The host-tested [save coordinator](UPDATE_RECOVERY_SAVE_COORDINATOR_V0.md) now
+implements the normal-operation half. It requires exact local/trusted agreement,
+verifies the next checkpoint, advances trust, and verifies exact trust readback.
+Local-ahead or uncertain post-write results require reboot reconciliation. The
+generic coordinator does not own the lifecycle mutation that precedes a save;
+that target-facing transition wrapper remains open.
+
 ## Evidence and limitations
 
 Six new scenario groups cover absent media below a trusted floor, stale valid
 media rejection without live mutation, exact/newer boundary acceptance, first
 save beyond trust, allocation beyond the greater of local/trusted state, and
 trusted-counter exhaustion without a write. Together with the ten original
-store groups, all 16 pass in the complete OpenTrail host matrix and across 100
-focused repeats.
+groups and four read-only inspection groups, all 20 store groups pass in the
+complete OpenTrail host matrix and across 100 focused repeats. Ten save-
+coordinator groups and 100 focused repeats separately verify exact normal-
+operation checkpoint/trust ordering.
 
 This is an interface and state-machine result. It does not prove that any ESP32
 target can keep the supplied generation secret, authentic, monotonic, durable,
