@@ -1,5 +1,7 @@
 #include "opentrail/update_boot_guard.hpp"
 
+#include "opentrail/update_checkpoint.hpp"
+
 namespace opentrail::update {
 namespace {
 
@@ -215,6 +217,77 @@ UpdateGuardError UpdateBootGuard::complete_rollback(
     return UpdateGuardError::none;
 }
 
+UpdateGuardError UpdateBootGuard::export_checkpoint(
+    std::uint64_t generation,
+    UpdateGuardCheckpoint& output) const {
+    if (!status_.running || generation == 0) {
+        return UpdateGuardError::invalid_state;
+    }
+    UpdateGuardCheckpoint candidate{
+        kUpdateCheckpointVersion,
+        status_.state,
+        status_.rollback_reason,
+        policy_.current_slot,
+        status_.candidate.target_slot,
+        status_.trial_boots,
+        policy_.maximum_trial_boots,
+        policy_.hardware_id,
+        policy_.current_version,
+        status_.candidate.version,
+        status_.candidate.image_bytes,
+        policy_.required_health_mask,
+        policy_.minimum_stable_ms,
+        policy_.confirmation_deadline_ms,
+        policy_.maximum_image_bytes,
+        generation};
+    if (validate_update_checkpoint(candidate) !=
+        UpdateCheckpointCodecError::none) {
+        return UpdateGuardError::invalid_state;
+    }
+    output = candidate;
+    return UpdateGuardError::none;
+}
+
+UpdateGuardError UpdateBootGuard::restore_checkpoint(
+    const UpdateGuardCheckpoint& checkpoint) {
+    if (!status_.running || status_.state != UpdateState::idle) {
+        return UpdateGuardError::invalid_state;
+    }
+    if (validate_update_checkpoint(checkpoint) !=
+        UpdateCheckpointCodecError::none) {
+        return UpdateGuardError::invalid_checkpoint;
+    }
+    if (checkpoint.hardware_id != policy_.hardware_id ||
+        checkpoint.baseline_version != policy_.current_version ||
+        checkpoint.baseline_slot != policy_.current_slot ||
+        checkpoint.required_health_mask != policy_.required_health_mask ||
+        checkpoint.minimum_stable_ms != policy_.minimum_stable_ms ||
+        checkpoint.confirmation_deadline_ms !=
+            policy_.confirmation_deadline_ms ||
+        checkpoint.maximum_trial_boots != policy_.maximum_trial_boots ||
+        checkpoint.maximum_image_bytes != policy_.maximum_image_bytes) {
+        return UpdateGuardError::checkpoint_mismatch;
+    }
+
+    status_.candidate = {
+        checkpoint.hardware_id,
+        checkpoint.candidate_version,
+        checkpoint.candidate_slot,
+        checkpoint.image_bytes,
+        true,
+        true,
+        true,
+        true};
+    status_.state = checkpoint.state;
+    status_.rollback_reason = checkpoint.rollback_reason;
+    status_.trial_boots = checkpoint.trial_boots;
+    status_.trial_boot_session_id = 0;
+    status_.trial_started_ms = 0;
+    status_.last_monotonic_ms = 0;
+    status_.observed_health_mask = 0;
+    return UpdateGuardError::none;
+}
+
 UpdateGuardStatus UpdateBootGuard::status() const {
     return status_;
 }
@@ -233,5 +306,4 @@ void UpdateBootGuard::require_rollback(RollbackReason reason) {
 }
 
 }  // namespace opentrail::update
-
 

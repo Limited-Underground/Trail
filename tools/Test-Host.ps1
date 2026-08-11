@@ -379,8 +379,18 @@ $builds = @(
         Name = 'update boot guard'
         Output = Join-Path $buildDirectory 'update_boot_guard_tests.exe'
         Sources = @(
+            (Join-Path $projectRoot 'firmware\components\update\src\update_checkpoint.cpp'),
             (Join-Path $projectRoot 'firmware\components\update\src\update_boot_guard.cpp'),
             (Join-Path $projectRoot 'tests\host\update_boot_guard_tests.cpp')
+        )
+    },
+    @{
+        Name = 'update state checkpoint'
+        Output = Join-Path $buildDirectory 'update_checkpoint_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\update\src\update_checkpoint.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_boot_guard.cpp'),
+            (Join-Path $projectRoot 'tests\host\update_checkpoint_tests.cpp')
         )
     },
     @{

@@ -40,6 +40,8 @@ enum class UpdateGuardError : std::uint8_t {
     confirmation_timeout,
     clock_regression,
     rollback_mismatch,
+    invalid_checkpoint,
+    checkpoint_mismatch,
 };
 
 enum class TrialHealth : std::uint32_t {
@@ -113,6 +115,8 @@ struct UpdateGuardStatus {
     std::uint32_t observed_health_mask{0};
 };
 
+struct UpdateGuardCheckpoint;
+
 // Pure update lifecycle guard. Signature verification, image writing, boot-slot
 // switching, persistence, and rollback execution remain adapter responsibilities.
 class UpdateBootGuard {
@@ -139,6 +143,11 @@ public:
         RollbackReason reason);
     [[nodiscard]] UpdateGuardError complete_rollback(
         const BootObservation& observation);
+    [[nodiscard]] UpdateGuardError export_checkpoint(
+        std::uint64_t generation,
+        UpdateGuardCheckpoint& output) const;
+    [[nodiscard]] UpdateGuardError restore_checkpoint(
+        const UpdateGuardCheckpoint& checkpoint);
 
     [[nodiscard]] UpdateGuardStatus status() const;
 
@@ -151,5 +160,4 @@ private:
 };
 
 }  // namespace opentrail::update
-
 

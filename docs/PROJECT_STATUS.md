@@ -293,8 +293,12 @@ not treated as proof of authorization.
   confirmation, automatic rollback, a trusted firmware floor, and documented
   physical/USB recovery. A pure guard passes eight host groups across candidate,
   write, trial-health, deadline, boot-limit/mismatch, clock, and rollback paths.
-  No target partition table, signer, updater adapter, protected trial/rollback
-  storage, or physical interruption/recovery evidence exists.
+  A separate canonical 64-byte `OTU0/v0` checkpoint binds hardware, baseline,
+  candidate, exact policy, trial count, rollback reason, and caller-owned
+  generation across eight more groups. Restore is atomic and intentionally
+  clears boot-local health, time, and session evidence. No target partition
+  table, signer, updater adapter, authenticated two-slot storage, protected
+  generation floor, or physical interruption/recovery evidence exists.
 
 ### Maps and interface
 

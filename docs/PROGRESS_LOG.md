@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-10
 
+### Canonical update-state checkpoint
+
+- Added the fixed 64-byte `OTU0/v0` record for hardware/version/policy binding,
+  candidate state, trial-boot count, rollback reason, and a future store-owned
+  generation.
+- Wired atomic export/restore into the update boot guard; trial restoration
+  preserves the attempt count but clears session, clock, and accumulated health
+  so a restarted image must prove health again.
+- Covered deterministic round trip, restart, rollback completion, exact policy
+  mismatch, corruption/canonical/version failures, invalid state, and output
+  preservation across eight new groups plus 100 focused repeats; the complete
+  host matrix passes.
+- Kept authenticated two-slot target storage, trusted generation persistence,
+  ESP-IDF/bootloader adapters, power interruption, wear, and physical recovery
+  explicitly open.
+
 ### Fail-safe update and recovery boundary
 
 - Defined signed, hardware-bound release bundles and a USB-first transport that

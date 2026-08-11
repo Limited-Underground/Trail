@@ -85,9 +85,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   [v0 update/recovery architecture](docs/update/UPDATE_RECOVERY_ARCHITECTURE_V0.md)
   requires signed hardware-bound bundles, verified inactive-slot writes,
   bounded health-confirmed trials, automatic rollback, trusted version floors,
-  and physical/USB recovery. Its pure lifecycle guard passes eight host groups;
-  no target updater, persistent trial adapter, or physical interruption/recovery
-  result exists.
+  and physical/USB recovery. Its pure lifecycle guard passes eight host groups.
+  A canonical [64-byte reboot checkpoint](docs/update/UPDATE_STATE_CHECKPOINT_V0.md)
+  adds exact policy binding, generation, corruption detection, and atomic
+  trial/rollback restoration across eight more groups while forcing every new
+  boot to re-prove health. No target updater, authenticated store, protected
+  generation floor, or physical interruption/recovery result exists.
 - **Security overhead is now visible before wire freeze:** a bounded
   [protected-packet budget](docs/protocol/PROTECTED_PACKET_BUDGET_V0.md) charges
   every candidate frame a corrected 44-byte authenticated header and 16-byte
@@ -205,7 +208,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 36 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 38 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including portable-client composition, local-interface, power-state, clock, randomness,

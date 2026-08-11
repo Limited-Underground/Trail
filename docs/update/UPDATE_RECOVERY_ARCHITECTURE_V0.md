@@ -1,8 +1,8 @@
 # Update and recovery architecture v0
 
-Status: architecture plus a pure host-tested lifecycle guard; no updater, target
-partition table, signing key, persistent trial adapter, or physical recovery
-result exists.
+Status: architecture plus a pure host-tested lifecycle guard and canonical
+reboot-state checkpoint; no updater, target partition table, signing key,
+protected target store, or physical recovery result exists.
 
 ## Host lifecycle evidence
 
@@ -14,6 +14,13 @@ complete-write evidence, stable-time and health confirmation, the exact
 confirmation deadline, trial-boot exhaustion, boot mismatch plus exact rollback
 completion, explicit health failure, duplicate boot sessions, and monotonic-
 clock regression.
+
+The fixed 64-byte [`OTU0/v0` checkpoint](UPDATE_STATE_CHECKPOINT_V0.md)
+captures only reboot-relevant lifecycle facts and a caller-owned generation.
+Eight additional groups plus 100 focused repeats cover canonical encoding, corruption, exact policy
+binding, trial/rollback restoration, atomic failure, and deliberate removal of
+boot-local health/time/session evidence. CRC is accidental-corruption evidence,
+not authentication or rollback protection.
 
 ## Safety objective
 
@@ -79,9 +86,11 @@ separate physical maintenance mode that erases group secrets and cannot be
 entered remotely. Ordinary factory reset does not lower the trusted firmware
 floor.
 
-The trial record, confirmed slot/version, boot-attempt count, and trusted floor
-need authenticated, interruption-safe target storage. CRC alone is insufficient
-against deliberate rollback.
+The canonical host checkpoint fixes the trial record shape, confirmed
+slot/version binding, boot-attempt count, policy, and generation. It still needs
+authenticated, interruption-safe target storage and a separately protected
+trusted generation floor. CRC alone is insufficient against deliberate
+rollback.
 
 ## Recovery paths
 
