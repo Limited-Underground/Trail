@@ -76,6 +76,14 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   separate injected interval. Ten groups plus 100 repeats pass. No cadence,
   authenticated packet, radio binding, physical GPS behavior, or regulatory
   result is selected or claimed.
+- **Position sharing has a local privacy-control contract:** the
+  [semantic control adapter](docs/platform/POSITION_SHARING_CONTROL_V0.md)
+  presents stopped, active, waiting-for-fix, deferred, and failed states through
+  the checked local-interface boundary. Start only arms the scheduler; stop is
+  immediate; stale screen input cannot change the state; and terminal scheduler
+  faults expose no misleading execution action. Ten groups plus 100 focused
+  repeats pass on both button and touch capability shapes. Exact wording,
+  renderer, target task/revision ownership, and physical behavior remain open.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned
@@ -257,11 +265,11 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 47 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 48 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
-  including position scheduling, portable-client composition, local-interface,
-  power-state, clock, randomness,
+  including position scheduling/privacy control, portable-client composition,
+  local-interface, power-state, clock, randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,
   passes on `main`.

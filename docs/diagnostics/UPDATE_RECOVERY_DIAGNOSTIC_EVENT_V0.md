@@ -88,7 +88,7 @@ Eight deterministic groups cover:
 8. fixed, trivially copyable, generation- and identifier-free shape.
 
 The diagnostic adapter and ring integration focused executables each pass
-100/100 repeats. The complete 47-executable
+100/100 repeats. The complete 48-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 ## Remaining gates

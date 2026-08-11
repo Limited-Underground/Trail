@@ -65,7 +65,7 @@ Ten deterministic groups plus 100 focused repeats cover committed confirmation,
 committed explicit rollback, volatile health/time, rejected confirmation with
 clock retention, deadline rollback through both tick and health reporting,
 invalid requests without storage/trust access, uncertain writes, local/trusted
-generation mismatch, and post-write trust failures. The complete 47-executable
+generation mismatch, and post-write trust failures. The complete 48-executable
 OpenTrail host matrix and publication-safety scans pass.
 
 The separate [redacted operator status](UPDATE_RECOVERY_STATUS_V0.md) validates

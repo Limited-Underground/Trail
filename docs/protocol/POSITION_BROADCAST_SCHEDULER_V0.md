@@ -80,8 +80,12 @@ Ten deterministic groups cover:
 9. malformed-current encoding refusal before sink access; and
 10. checked time horizon plus fixed payload/script capacities.
 
-The focused executable passes 100/100 repeats. The complete 47-executable
+The focused executable passes 100/100 repeats. The complete 48-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
+
+The separate [semantic privacy-control adapter](../platform/POSITION_SHARING_CONTROL_V0.md)
+now maps scheduler state to explicit local start/stop actions without granting
+the UI sink, radio, GPS, or emergency authority.
 
 ## Remaining gates
 
@@ -91,7 +95,8 @@ OpenTrail host matrix plus all Python and publication-safety checks pass.
   and an exact direct-radio adapter;
 - decide remote position expiry and whether an explicit no-fix heartbeat is
   justified;
-- integrate local start/stop UX and make its current state unmistakable;
+- render and physically validate the host-tested local start/stop states and
+  make their wording, layout, and interaction unmistakable;
 - bind one exact GPS and monotonic-clock target implementation; and
 - measure motion, GPS loss/recovery, queue pressure, airtime, power, range, and
   regional compliance on physical units.

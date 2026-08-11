@@ -296,6 +296,11 @@ void test_system_fault_screen_cannot_offer_send_actions() {
     frame.actions[1] = {};
     frame.actions[2] = {};
     EXPECT(interface.present(frame).ok());
+
+    auto unsafe_start = frame;
+    unsafe_start.revision = 2;
+    unsafe_start.actions[0] = {UiAction::start_position_sharing, true};
+    EXPECT(interface.present(unsafe_start).error == PresentError::invalid_frame);
 }
 
 void test_fakes_are_bounded_and_ordered() {

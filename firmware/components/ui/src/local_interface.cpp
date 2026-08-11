@@ -55,7 +55,12 @@ bool valid_notice(UiNotice notice) {
            notice == UiNotice::update_cleanup_required ||
            notice == UiNotice::update_safe_mode ||
            notice == UiNotice::update_service_required ||
-           notice == UiNotice::update_reconciliation_required;
+           notice == UiNotice::update_reconciliation_required ||
+           notice == UiNotice::position_sharing_stopped ||
+           notice == UiNotice::position_sharing_active ||
+           notice == UiNotice::position_sharing_waiting_for_fix ||
+           notice == UiNotice::position_sharing_deferred ||
+           notice == UiNotice::position_sharing_failed;
 }
 
 bool valid_action(UiAction action) {
@@ -65,7 +70,9 @@ bool valid_action(UiAction action) {
            action == UiAction::submit_selected_quick_status ||
            action == UiAction::confirm_critical_alert ||
            action == UiAction::cancel ||
-           action == UiAction::acknowledge_notice;
+           action == UiAction::acknowledge_notice ||
+           action == UiAction::start_position_sharing ||
+           action == UiAction::stop_position_sharing;
 }
 
 bool valid_gesture(InputGesture gesture) {
@@ -125,7 +132,8 @@ bool valid_frame(const UiFrame& frame, const DisplayCapabilities& capabilities) 
         }
         if (frame.screen == UiScreen::system_fault &&
             (frame.actions[index].action == UiAction::open_critical_confirmation ||
-             frame.actions[index].action == UiAction::submit_selected_quick_status)) {
+             frame.actions[index].action == UiAction::submit_selected_quick_status ||
+             frame.actions[index].action == UiAction::start_position_sharing)) {
             return false;
         }
     }

@@ -55,6 +55,14 @@ required, and reboot reconciliation. The separate
 selects these tokens from validated `OTRD0/v0`; the base UI boundary still
 assigns no update, cleanup, reboot, reset, or service authority to a notice.
 
+Known notices also include stopped, active, waiting-for-fix, deferred, and
+failed position sharing. `start_position_sharing` and
+`stop_position_sharing` are semantic requests, not radio commands. The separate
+[position-sharing control adapter](POSITION_SHARING_CONTROL_V0.md) is the only
+host-tested mapping from these requests to the scheduler: start arms it without
+submitting a payload, while stop disables it immediately. A renderer neither
+gains coordinate access nor acquires radio, emergency, or update authority.
+
 Unused action slots must remain canonical zero/disabled values. Active actions
 must be known and unique. A frame is committed only after the display sink
 reports complete success. Not-ready or failed presentation does not advance the

@@ -244,9 +244,10 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 47 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 48 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
-  suites. The matrix includes portable-client composition, local-interface, power, time, randomness,
+  suites. The matrix includes position scheduling/privacy control,
+  portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
   physical MeshCore,
   target firmware/bindings, cryptography, or measured-radio evidence.
@@ -291,8 +292,9 @@ not treated as proof of authorization.
 
 - Direct/repeater topology, modulation profiles, airtime budget, final
   position/status cadence, and congestion policy. The position scheduler's
-  fixed start/stop/coalescing mechanics are host-tested, but policy values
-  remain unselected pending measurement
+  fixed start/stop/coalescing mechanics and semantic local privacy control are
+  host-tested, but policy values and rendered physical behavior remain
+  unselected pending measurement
 - Identity/name/alias/membership boundaries and the OT-013 invitation/promotion/revoke/rekey/recovery policy are defined and host-tested. Exact Node-ID/alias derivation, production administrator quorum, authenticated join-handshake instantiation, encryption, key storage, rollback protection, persistent recovery, rendered UX, and physical lifecycle evidence remain under partial OT-005 and later gates
 - Packet-v0 encoding/budget, position payload, host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies, the external `OGK0` alert-ACK codec, and OT-014 non-secret configuration persistence are bounded and tested. Generic packet-v0 ACK composition, authenticated routing/priority/ACK transport, measured deployed timing, persistent message/duplicate counter integrity and secure rollback, realistic contention, and final queue/cache limits remain
 - Duplicate checkpoints have a canonical fixed 672-byte `OTD0` codec with CRC, strict padding/capacity/version checks, duplicate-key rejection, atomic decode, and remaining-lifetime restoration. Seven codec groups, the full 23-executable matrix, and 100 codec/window repeats pass. Atomic durable storage, wear/privacy policy, authenticated integrity, and rollback protection remain
@@ -332,7 +334,7 @@ not treated as proof of authorization.
   flags. Hardware/candidate identity, checkpoint payloads, raw adapter errors,
   and nested results are absent; unknown or contradictory input blocks normal
   operation as service-required. Eight groups plus 100 repeats pass in the
-  complete 47-executable matrix. A versioned `OTRD0` adapter now records one
+  complete 48-executable matrix. A versioned `OTRD0` adapter now records one
   coherent status through the existing logger as one fixed hexadecimal 32-bit
   word. Generations and identity-bearing detail are omitted; magic, version,
   reserved bits, enums, flags, and state/action/reason coherence fail closed.
@@ -350,6 +352,13 @@ not treated as proof of authorization.
   acknowledgement, which has no confirm/cleanup/reboot authority. Nine groups
   plus 100 repeats pass. Exact renderer, target scheduling/revision ownership,
   and physical operator workflow remain absent.
+  A separate position-sharing adapter now presents stopped, active, waiting,
+  deferred, and terminal-failure scheduler states through that same checked UI
+  boundary. Start only arms the scheduler, stop is immediate, stale frame input
+  is rejected, and unrelated actions cannot mutate position sharing. Ten groups
+  plus 100 repeats pass. Renderer wording/layout, target scheduling/revision
+  ownership, direct radio/GPS composition, and physical privacy behavior remain
+  absent.
 
 ### Maps and interface
 

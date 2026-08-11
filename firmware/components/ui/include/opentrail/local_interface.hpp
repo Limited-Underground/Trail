@@ -64,6 +64,11 @@ enum class UiNotice : std::uint8_t {
     update_safe_mode,
     update_service_required,
     update_reconciliation_required,
+    position_sharing_stopped,
+    position_sharing_active,
+    position_sharing_waiting_for_fix,
+    position_sharing_deferred,
+    position_sharing_failed,
 };
 
 // These are semantic application requests, not physical button or touch IDs.
@@ -77,6 +82,8 @@ enum class UiAction : std::uint8_t {
     confirm_critical_alert,
     cancel,
     acknowledge_notice,
+    start_position_sharing,
+    stop_position_sharing,
 };
 
 struct DisplayCapabilities {

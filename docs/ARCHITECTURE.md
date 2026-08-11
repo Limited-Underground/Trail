@@ -121,6 +121,15 @@ needs authenticated packet/priority composition; chat and position must not
 starve emergency traffic. Exact cadence, airtime budgets, retry policy, and
 regional constraints depend on measurement and review.
 
+A separate host-tested position-sharing control adapter maps scheduler state to
+the existing semantic local-interface boundary. It exposes start only while
+stopped, stop while active/waiting/deferred, and no execution action for a
+terminal scheduler fault. Start arms scheduling without servicing or sending a
+payload; stop changes only scheduler state. Frame revisions keep delayed input
+from activating an obsolete privacy action. Renderers own localized wording and
+physical controls, while this adapter contains no coordinates, identity, radio,
+emergency, update, or target-driver authority.
+
 The host-only group-load model provides a shared accounting baseline for the
 four-client, four-plus-repeater, and eight-plus-repeater field phases. It uses
 the exact LoRa airtime calculator and exposes source attempts and forwarding
