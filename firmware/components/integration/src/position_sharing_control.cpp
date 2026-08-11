@@ -32,6 +32,34 @@ bool terminal_error(location::PositionBroadcastScheduleError error) {
            error == location::PositionBroadcastScheduleError::time_exhausted;
 }
 
+bool known_clock_error(time::MonotonicClockError error) {
+    return error == time::MonotonicClockError::none ||
+           error == time::MonotonicClockError::not_ready ||
+           error == time::MonotonicClockError::source_failed ||
+           error == time::MonotonicClockError::rollback_detected ||
+           error == time::MonotonicClockError::fault_latched;
+}
+
+bool valid_outbound_status(const OutboundServiceStatus& status) {
+    if (!known_clock_error(status.latched_clock_error) ||
+        status.serviced_cycles > status.service_calls ||
+        status.clock_deferred > status.service_calls ||
+        status.clock_failures > status.service_calls ||
+        status.latched_refusals > status.service_calls ||
+        (!status.has_time && status.last_now_ms != 0)) {
+        return false;
+    }
+    if (!status.faulted) {
+        return status.latched_clock_error == time::MonotonicClockError::none &&
+               status.clock_failures == 0 && status.latched_refusals == 0;
+    }
+    return (status.latched_clock_error ==
+                time::MonotonicClockError::source_failed ||
+            status.latched_clock_error ==
+                time::MonotonicClockError::rollback_detected) &&
+           status.clock_failures != 0;
+}
+
 PositionSharingPresentationResult invalid_status(
     std::uint32_t revision) {
     return {
@@ -106,6 +134,32 @@ PositionSharingPresentationResult make_position_sharing_presentation(
     }
 }
 
+PositionSharingPresentationResult make_position_sharing_presentation(
+    const location::PositionBroadcastSchedulerStatus& scheduler_status,
+    const OutboundServiceStatus& outbound_status,
+    std::uint32_t frame_revision) {
+    if (frame_revision == 0) {
+        return {PositionSharingPresentationError::invalid_revision};
+    }
+    if (!valid_outbound_status(outbound_status) ||
+        (outbound_status.faulted && scheduler_status.active)) {
+        return {
+            PositionSharingPresentationError::invalid_outbound_status,
+            failed_frame(frame_revision),
+            true,
+        };
+    }
+    if (outbound_status.faulted) {
+        return {
+            PositionSharingPresentationError::outbound_faulted,
+            failed_frame(frame_revision),
+            true,
+        };
+    }
+    return make_position_sharing_presentation(
+        scheduler_status, frame_revision);
+}
+
 PositionSharingControlResult apply_position_sharing_action(
     location::PositionBroadcastScheduler& scheduler,
     ui::UiAction action,
@@ -139,6 +193,35 @@ PositionSharingControlResult apply_position_sharing_action(
         location::PositionBroadcastScheduleError::none,
         false,
     };
+}
+
+PositionSharingControlResult apply_position_sharing_action(
+    location::PositionBroadcastScheduler& scheduler,
+    const OutboundServiceStatus& outbound_status,
+    ui::UiAction action,
+    std::uint64_t now_ms) {
+    if (action == ui::UiAction::stop_position_sharing) {
+        return apply_position_sharing_action(
+            scheduler, action, now_ms);
+    }
+    if (!valid_outbound_status(outbound_status) ||
+        (outbound_status.faulted && scheduler.status().active)) {
+        return {
+            PositionSharingControlError::invalid_outbound_status,
+            location::PositionBroadcastScheduleError::none,
+            false,
+        };
+    }
+    if (outbound_status.faulted &&
+        action == ui::UiAction::start_position_sharing) {
+        return {
+            PositionSharingControlError::outbound_faulted,
+            location::PositionBroadcastScheduleError::none,
+            false,
+        };
+    }
+    return apply_position_sharing_action(
+        scheduler, action, now_ms);
 }
 
 }  // namespace opentrail::integration

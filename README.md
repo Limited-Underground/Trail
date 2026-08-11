@@ -113,6 +113,16 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   same-cycle exact position delivery to a fake-radio peer and pressure/failure
   isolation. This is cooperative host ordering—not an ESP-IDF task, target
   driver, inbound path, authenticated packet, or physical-radio result.
+- **A latched outbound clock fault can no longer look like an ordinary stopped
+  privacy state:** the
+  [runtime-aware safety overlay](docs/platform/OUTBOUND_POSITION_SAFETY_V0.md)
+  validates coarse coordinator status, gives a real rollback/source fault
+  precedence over the scheduler's stopped screen, and emits a critical
+  no-action frame. It also rejects a Start action resolved from an older healthy
+  frame without touching the scheduler; Stop remains safe and idempotent. Ten
+  groups plus 100 focused repeats pass. Exact rendering, action-time clock
+  sampling, target revision/task ownership, reboot recovery, and physical input
+  remain open.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned
@@ -294,13 +304,13 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 51 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 52 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet
   admission, loss-aware priority-to-delivery handoff, checked-time outbound
-  service coordination, portable-client composition, local-interface,
-  power-state, clock,
+  service coordination, fail-visible outbound position safety, portable-client
+  composition, local-interface, power-state, clock,
   randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,

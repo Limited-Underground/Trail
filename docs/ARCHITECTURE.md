@@ -142,6 +142,16 @@ failure does not block already queued messaging, and handoff failure does not
 block already accepted delivery work. This is not a target task, synchronization
 primitive, inbound receiver, UI-input loop, or physical driver composition.
 
+Target-facing position presentation must combine scheduler state with the
+outbound coordinator status. A coherent latched clock rollback/source failure
+overrides the scheduler's stopped state with a critical no-action frame, while
+incoherent runtime/scheduler combinations also fail closed. Start is rejected
+against that latched status even if it was resolved from a previously displayed
+healthy revision; stop remains safe and idempotent. The lower-level scheduler-
+only mapping remains a host component, not sufficient target composition by
+itself. Action-time checked-clock sampling, frame publication scheduling, and
+physical rendering/input remain target gates.
+
 A separate host-tested position-sharing control adapter maps scheduler state to
 the existing semantic local-interface boundary. It exposes start only while
 stopped, stop while active/waiting/deferred, and no execution action for a

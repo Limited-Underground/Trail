@@ -310,6 +310,28 @@ $builds = @(
         )
     },
     @{
+        Name = 'fail-visible outbound position safety'
+        Output = Join-Path $buildDirectory 'outbound_position_safety_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\radio\test_support\fake_radio_transport.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\delivery_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\priority_queue.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\location_tracker.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\position_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\position_broadcast_scheduler.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\test_support\fake_gps_provider.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\test_support\fake_position_broadcast_sink.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\monotonic_clock.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\test_support\fake_monotonic_counter_source.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\priority_delivery_handoff.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\outbound_service_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\position_sharing_control.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\local_interface.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\test_support\fake_local_interface.cpp'),
+            (Join-Path $projectRoot 'tests\host\outbound_position_safety_tests.cpp')
+        )
+    },
+    @{
         Name = 'position packet integration'
         Output = Join-Path $buildDirectory 'position_packet_integration_tests.exe'
         Sources = @(

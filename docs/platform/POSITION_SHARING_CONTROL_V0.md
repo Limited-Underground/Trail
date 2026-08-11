@@ -10,6 +10,11 @@ scheduler API. This adapter connects the host-tested position-broadcast
 scheduler to the existing checked local display/input contract without giving
 a renderer access to coordinates or broad application authority.
 
+The scheduler-only mapping remains the reusable lower-level foundation. Target
+composition must use the runtime-aware overload documented in
+[Outbound Position Safety v0](OUTBOUND_POSITION_SAFETY_V0.md), so a permanent
+outbound clock fault cannot be mistaken for ordinary stopped sharing.
+
 It has two independent functions:
 
 1. convert one scheduler-status snapshot into a fixed semantic `UiFrame`; and
@@ -73,8 +78,12 @@ Ten deterministic groups cover:
 9. unrelated and unknown action rejection without mutation; and
 10. idempotent repeated actions plus typed start rejection.
 
-The focused executable passes 100/100 repeats. The complete 51-executable
+The focused executable passes 100/100 repeats. The complete 52-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
+
+A separate ten-group runtime-aware suite covers real source-failure/rollback
+precedence, coherent-status validation, no-action fault presentation, stale
+Start rejection, and safe idempotent Stop. It also passes 100/100 repeats.
 
 ## Remaining gates
 

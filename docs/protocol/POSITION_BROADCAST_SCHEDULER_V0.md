@@ -82,7 +82,7 @@ Ten deterministic groups cover:
 9. malformed-current encoding refusal before sink access; and
 10. checked time horizon plus fixed payload/script capacities.
 
-The focused executable passes 100/100 repeats. The complete 51-executable
+The focused executable passes 100/100 repeats. The complete 52-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The separate [semantic privacy-control adapter](../platform/POSITION_SHARING_CONTROL_V0.md)

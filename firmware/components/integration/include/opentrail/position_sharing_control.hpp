@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "opentrail/local_interface.hpp"
+#include "opentrail/outbound_service_coordinator.hpp"
 #include "opentrail/position_broadcast_scheduler.hpp"
 
 namespace opentrail::integration {
@@ -11,6 +12,8 @@ enum class PositionSharingPresentationError : std::uint8_t {
     none = 0,
     invalid_revision,
     invalid_scheduler_status,
+    invalid_outbound_status,
+    outbound_faulted,
 };
 
 struct PositionSharingPresentationResult {
@@ -35,10 +38,21 @@ make_position_sharing_presentation(
     const location::PositionBroadcastSchedulerStatus& status,
     std::uint32_t frame_revision);
 
+// Target-facing overload. A coherent latched outbound clock fault takes
+// precedence over the scheduler's stopped state and produces a no-action
+// system-fault frame rather than offering an unsafe restart.
+[[nodiscard]] PositionSharingPresentationResult
+make_position_sharing_presentation(
+    const location::PositionBroadcastSchedulerStatus& scheduler_status,
+    const OutboundServiceStatus& outbound_status,
+    std::uint32_t frame_revision);
+
 enum class PositionSharingControlError : std::uint8_t {
     none = 0,
     invalid_action,
     scheduler_rejected,
+    invalid_outbound_status,
+    outbound_faulted,
 };
 
 struct PositionSharingControlResult {
@@ -57,6 +71,14 @@ struct PositionSharingControlResult {
 // it does not call service or submit a payload. Stopping is immediate.
 [[nodiscard]] PositionSharingControlResult apply_position_sharing_action(
     location::PositionBroadcastScheduler& scheduler,
+    ui::UiAction action,
+    std::uint64_t now_ms);
+
+// Target-facing overload. Start is refused whenever the outbound runtime is
+// latched. Stop remains safe and idempotent, including after a fault.
+[[nodiscard]] PositionSharingControlResult apply_position_sharing_action(
+    location::PositionBroadcastScheduler& scheduler,
+    const OutboundServiceStatus& outbound_status,
     ui::UiAction action,
     std::uint64_t now_ms);
 

@@ -67,7 +67,7 @@ wrong image, uninitialized-media conflict, trusted-source failure, zero trust,
 missing/stale rollback, pending and resumed trials, boot mismatch, attempt
 exhaustion, rollback completion/mismatch, confirmed/rolled-back cleanup, trust
 advance/readback failure, uncertain checkpoint commit, equal-generation
-conflict, and unreadable peer media. The complete 51-executable OpenTrail host
+conflict, and unreadable peer media. The complete 52-executable OpenTrail host
 matrix passes.
 
 Runtime persistence after boot uses the separate [verified save
