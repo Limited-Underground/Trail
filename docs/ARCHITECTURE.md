@@ -445,6 +445,18 @@ no erase, reset, import, domain creation, or migration authority. Ten host
 groups pass; credentials, continuity proof, secure domain generation, durable
 replay/audit, domain records, and all execution remain target gates.
 
+The separate canonical
+[`OTMD/v0` lifecycle record](maps/OFFLINE_MAP_SELECTOR_DOMAIN_RECORD_V0.md)
+preserves the fixed `OTM0/v0` selector format. Its 80 bytes bind current and
+retired 128-bit domains, a quarantined selector-generation floor, the accepted
+selector generation, domain epoch, record generation, commit-last marker, and
+CRC. Fresh commissioning permits only epoch-1 pending-first-baseline/active
+state with no retired domain. Same-device replacement requires distinct current
+and retired domains, pending-reseed/active state, epoch at least 2, and accepted
+selector generation strictly above the retired floor. Ten codec groups pass.
+A recoverable two-slot domain store and permit-consuming transition coordinator
+remain separate gates.
+
 The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
 can mint that non-copyable, single-use permit only after an injected local-
 service verifier returns an exact-bound, short-lived grant and atomically

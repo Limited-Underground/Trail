@@ -1,8 +1,8 @@
 #pragma once
 
-#include <array>
 #include <cstdint>
 
+#include "opentrail/map_selector_domain_record.hpp"
 #include "opentrail/map_selector_reset_policy.hpp"
 
 namespace opentrail::maps {
@@ -83,7 +83,8 @@ struct MapSelectorDomainAuthorizationBinding {
     MapSelectorDomainMediaState media_state{
         MapSelectorDomainMediaState::unknown};
     std::uint64_t reviewed_selector_generation{0};
-    std::array<std::uint8_t, 16> proposed_domain{};
+    MapSelectorDomainId retired_domain{};
+    MapSelectorDomainId proposed_domain{};
 };
 
 struct MapSelectorDomainAuthorizationPolicy {

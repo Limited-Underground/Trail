@@ -60,8 +60,8 @@ preservation across every known state, authorized reseed routing, temporary
 source unavailability, missing same-device history, protected-source
 replacement, fresh-device commissioning, retained-selector rejection,
 continuity mismatch, unknown/future values, and exhaustive route coherence.
-The suite and all eighteen map suites pass 100/100 focused repeats in the
-complete 76-executable host matrix under strict C++17 warnings-as-errors.
+The suite and all nineteen map suites pass 100/100 focused repeats in the
+complete 77-executable host matrix under strict C++17 warnings-as-errors.
 
 This is policy evidence only. No physical continuity detector, protected
 counter/storage, new-domain provisioner, credential verifier, target lock/task,

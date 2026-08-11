@@ -35,6 +35,7 @@ MapSelectorDomainAuthorizationBinding same_device_binding() {
         MapSelectorLifecycleState::same_device_source_missing_or_replaced,
         MapSelectorDomainMediaState::retained_quarantined,
         8,
+        domain(101),
         domain()};
 }
 
@@ -44,6 +45,7 @@ MapSelectorDomainAuthorizationBinding new_device_binding() {
         MapSelectorLifecycleState::new_device_unprovisioned,
         MapSelectorDomainMediaState::verified_empty,
         0,
+        {},
         domain(21)};
 }
 
@@ -192,6 +194,18 @@ void test_invalid_policy_request_domain_and_media_never_reach_backend() {
     zero_domain.proposed_domain = {};
     EXPECT(authorize(backend, permit, zero_domain).error ==
            MapSelectorDomainAuthorizationError::invalid_binding);
+    auto missing_retired = same_device_binding();
+    missing_retired.retired_domain = {};
+    EXPECT(authorize(backend, permit, missing_retired).error ==
+           MapSelectorDomainAuthorizationError::invalid_binding);
+    auto reused_domain = same_device_binding();
+    reused_domain.proposed_domain = reused_domain.retired_domain;
+    EXPECT(authorize(backend, permit, reused_domain).error ==
+           MapSelectorDomainAuthorizationError::invalid_binding);
+    auto new_with_retired = new_device_binding();
+    new_with_retired.retired_domain = domain(91);
+    EXPECT(authorize(backend, permit, new_with_retired).error ==
+           MapSelectorDomainAuthorizationError::invalid_binding);
     auto bad_empty = same_device_binding();
     bad_empty.media_state = MapSelectorDomainMediaState::verified_empty;
     EXPECT(authorize(backend, permit, bad_empty).error ==
@@ -266,7 +280,8 @@ void test_handle_scope_usb_and_boot_must_match_exactly() {
 }
 
 void test_every_binding_field_is_echo_checked() {
-    std::array<MapSelectorDomainAuthorizationGrant, 5> grants{
+    std::array<MapSelectorDomainAuthorizationGrant, 6> grants{
+        authorized_grant(),
         authorized_grant(),
         authorized_grant(),
         authorized_grant(),
@@ -279,7 +294,8 @@ void test_every_binding_field_is_echo_checked() {
     grants[2].binding.media_state =
         MapSelectorDomainMediaState::verified_empty;
     ++grants[3].binding.reviewed_selector_generation;
-    ++grants[4].binding.proposed_domain[0];
+    ++grants[4].binding.retired_domain[0];
+    ++grants[5].binding.proposed_domain[0];
 
     for (const auto& grant : grants) {
         FakeBackend backend{};

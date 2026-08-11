@@ -27,10 +27,15 @@ contradictory route fail before backend access.
 
 ## Media and fresh-domain binding
 
-Every request binds a nonzero 128-bit proposed map trust domain. Common code
-checks only nonzero and exact echo; a future target must generate it from an
-approved secure-random source, keep it out of logs, and durably bind it to the
-protected source and selector format before execution is possible.
+Every request binds a nonzero 128-bit proposed map trust domain. Same-device
+replacement also binds a nonzero retired domain that must differ from the
+proposal; first commissioning requires the retired domain to be all zero.
+Common code checks only these invariants and exact echo. A future target must
+obtain the values from approved continuity/secure-random evidence, keep them out
+of logs, and durably bind them to the protected source and selector lifecycle
+before execution is possible. The separate canonical
+[`OTMD/v0` record](OFFLINE_MAP_SELECTOR_DOMAIN_RECORD_V0.md) now defines that
+lifecycle data, but no store or provisioner exists.
 
 Same-device replacement may describe either:
 
@@ -85,11 +90,12 @@ must recheck binding, boot, and use time before any mutation.
 Ten deterministic groups cover same-device replacement, distinct new-device
 commissioning, invalid routes, invalid domain/media/policy/request preflight,
 backend denial/readiness/failure, handle/scope/USB/boot checks, exact binding
-echo, all six confirmations, local revision, time boundaries, backend replay,
-output invalidation, and move-without-copy ownership.
+echo including retired-domain absence/reuse/new-device contamination, all six
+confirmations, local revision, time boundaries, backend replay, output
+invalidation, and move-without-copy ownership.
 
-All eighteen map suites pass 100/100 focused repeats in the complete
-76-executable host matrix under strict C++17 warnings-as-errors.
+All nineteen map suites pass 100/100 focused repeats in the complete
+77-executable host matrix under strict C++17 warnings-as-errors.
 
 This is authorization-handoff evidence only. It does not prove device
 continuity, secure randomness, credential strength, physical presence, audit or

@@ -3,15 +3,6 @@
 namespace opentrail::maps {
 namespace {
 
-bool domain_nonzero(const std::array<std::uint8_t, 16>& domain) {
-    for (const auto byte : domain) {
-        if (byte != 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
 bool binding_equal(
     const MapSelectorDomainAuthorizationBinding& left,
     const MapSelectorDomainAuthorizationBinding& right) {
@@ -20,6 +11,7 @@ bool binding_equal(
            left.media_state == right.media_state &&
            left.reviewed_selector_generation ==
                right.reviewed_selector_generation &&
+           left.retired_domain == right.retired_domain &&
            left.proposed_domain == right.proposed_domain;
 }
 
@@ -62,18 +54,21 @@ bool valid_media_binding(
     MapSelectorDomainAuthorizationScope scope) {
     if (scope == MapSelectorDomainAuthorizationScope::
                      replace_same_device_domain) {
-        return (binding.media_state ==
-                    MapSelectorDomainMediaState::verified_empty &&
-                binding.reviewed_selector_generation == 0) ||
-               (binding.media_state ==
-                    MapSelectorDomainMediaState::retained_quarantined &&
-                binding.reviewed_selector_generation != 0);
+        return map_selector_domain_id_nonzero(binding.retired_domain) &&
+               binding.retired_domain != binding.proposed_domain &&
+               ((binding.media_state ==
+                     MapSelectorDomainMediaState::verified_empty &&
+                 binding.reviewed_selector_generation == 0) ||
+                (binding.media_state ==
+                     MapSelectorDomainMediaState::retained_quarantined &&
+                 binding.reviewed_selector_generation != 0));
     }
     if (scope == MapSelectorDomainAuthorizationScope::
                      commission_new_device_domain) {
         return binding.media_state ==
                    MapSelectorDomainMediaState::verified_empty &&
-               binding.reviewed_selector_generation == 0;
+               binding.reviewed_selector_generation == 0 &&
+               !map_selector_domain_id_nonzero(binding.retired_domain);
     }
     return false;
 }
@@ -83,7 +78,7 @@ bool valid_binding(
     MapSelectorDomainAuthorizationScope& scope) {
     scope = required_scope(binding);
     return scope != MapSelectorDomainAuthorizationScope::none &&
-           domain_nonzero(binding.proposed_domain) &&
+           map_selector_domain_id_nonzero(binding.proposed_domain) &&
            valid_media_binding(binding, scope);
 }
 

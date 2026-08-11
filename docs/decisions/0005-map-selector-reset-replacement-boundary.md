@@ -55,6 +55,9 @@ rollback shortcut.
   requires a consumed exact local-USB grant, and mints a move-only preparation
   permit. The permit deliberately has no consumer until domain/retirement
   records and a target provisioner satisfy the remaining requirements here.
+- The canonical `OTMD/v0` record now defines current/retired domain and selector-
+  floor lifecycle data without changing `OTM0/v0`. Recoverable storage and the
+  permit-consuming provisioner remain required before any domain mutation.
 - A future new-device provisioner must establish a fresh domain and cannot
   silently import another device's selector.
 - Radio, messaging, alerts, position sharing, OpenGauge integration, and USB

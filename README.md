@@ -288,15 +288,21 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   boot, coherent empty/quarantined media evidence, a fresh nonzero 128-bit
   domain, six confirmations, local revision, and short time window. It mints a
   non-copyable preparation permit, but no provisioner can consume it or mutate
-  storage. Ten groups pass. No protected counter/storage, concrete credential
-  verifier, domain/retirement record, provisioner, ESP-IDF target composition,
-  or physical result exists.
+  storage. Ten groups pass. A separate canonical
+  [`OTMD/v0` lifecycle record](docs/maps/OFFLINE_MAP_SELECTOR_DOMAIN_RECORD_V0.md)
+  now keeps `OTM0/v0` unchanged while recording distinct current/retired
+  domains, the quarantined selector floor, accepted selector generation, domain
+  epoch, record generation, commit-last marker, and CRC. Pending first baseline,
+  pending replacement reseed, and active state fail closed across ten codec
+  groups. No protected counter/storage, concrete credential verifier,
+  recoverable domain-record store, provisioner, ESP-IDF target composition, or
+  physical result exists.
   An [NVS-ready key/value adapter](docs/maps/OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
   now fixes `ot_state` / `ot_maps` / `otm_sel_a|b`, requires commit after every
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
-  and all eighteen map suites pass 100/100 focused repeats in the complete
-  76-executable host matrix. It contains no ESP-IDF backend, partition table,
+  and all nineteen map suites pass 100/100 focused repeats in the complete
+  77-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
@@ -486,7 +492,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 76 C++ test
+  builds six verifier/planning/operator CLIs and runs all 77 C++ test
   executables plus the Python MeshCore lease, privacy-safe field-log/pilot, and
   crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,

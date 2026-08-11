@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-11
 
+### Canonical map trust-domain lifecycle record
+
+- Added fixed 80-byte `OTMD/v0` instead of breaking the existing 64-byte
+  `OTM0/v0` selector checkpoint or squeezing a truncated domain into its six
+  reserved bytes.
+- Bound current and retired 128-bit domains, quarantined selector-generation
+  floor, accepted selector generation, domain epoch, record generation,
+  commit-last marker, and CRC across fresh/pending-reseed/active lifecycles.
+- Tightened protected-domain authorization: same-device replacement must name a
+  distinct nonzero retired domain, while first commissioning must name none.
+- Added ten deterministic codec groups. All nineteen map suites pass 100/100
+  focused repeats, and the complete 77-executable host matrix passes locally
+  including publication safety. Recoverable domain-record storage, a permit
+  consumer/provisioner, target locking, and physical durability remain open.
+
 ### Protected map-domain authorization handoff
 
 - Added separate same-device replacement and blank-new-device commissioning
