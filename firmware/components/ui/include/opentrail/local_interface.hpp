@@ -57,6 +57,13 @@ enum class UiNotice : std::uint8_t {
     message_failed,
     critical_alert_pending,
     critical_alert_failed,
+    update_trial_active,
+    update_transition_rejected,
+    update_reboot_required,
+    update_cleanup_required,
+    update_safe_mode,
+    update_service_required,
+    update_reconciliation_required,
 };
 
 // These are semantic application requests, not physical button or touch IDs.

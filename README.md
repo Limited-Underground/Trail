@@ -124,9 +124,14 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   distinct. A production-facing [bounded RAM ring](docs/diagnostics/RING_LOG_SINK_V0.md)
   now retains the newest 32 canonical records, snapshots them oldest-first,
   counts rollover/rejection, preserves boot-local ordering across clears, and
-  captures real `OTRD0` events. Both focused suites pass 100/100 repeats. Exact
-  target composition/concurrency, persistent audit/export, and physical service
-  capture remain.
+  captures real `OTRD0` events. Both focused suites pass 100/100 repeats. A
+  [semantic recovery presentation](docs/update/UPDATE_RECOVERY_PRESENTATION_V0.md)
+  now maps valid outcomes to the existing status/system-fault UI contract;
+  corrupt diagnostics fail visibly to a generic service frame. Acknowledgement
+  is offered only for nonblocking notices and never confirms, cleans up, or
+  reboots. Its nine groups plus 100 repeats pass. Exact target composition,
+  renderer, concurrency, persistent audit/export, and physical service capture
+  remain.
 - **Security overhead is now visible before wire freeze:** a bounded
   [protected-packet budget](docs/protocol/PROTECTED_PACKET_BUDGET_V0.md) charges
   every candidate frame a corrected 44-byte authenticated header and 16-byte
@@ -244,7 +249,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 45 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 46 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including portable-client composition, local-interface, power-state, clock, randomness,

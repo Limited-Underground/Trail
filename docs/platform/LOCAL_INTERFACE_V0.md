@@ -48,6 +48,13 @@ It contains no coordinates, free-form labels, peer identity, message text,
 radio address, key handle, credential, or other private identifier. Renderers
 choose localized wording and layout for known enum values.
 
+Known notices now include coarse update-recovery tokens for trial active,
+transition rejected, reboot required, cleanup required, safe mode, service
+required, and reboot reconciliation. The separate
+[recovery-presentation adapter](../update/UPDATE_RECOVERY_PRESENTATION_V0.md)
+selects these tokens from validated `OTRD0/v0`; the base UI boundary still
+assigns no update, cleanup, reboot, reset, or service authority to a notice.
+
 Unused action slots must remain canonical zero/disabled values. Active actions
 must be known and unique. A frame is committed only after the display sink
 reports complete success. Not-ready or failed presentation does not advance the

@@ -60,6 +60,14 @@ delivery. Exact renderer/input adapters, localization, accessibility,
 readability, distracted-driving policy, performance, and physical behavior
 remain target gates.
 
+Update recovery presentation reuses that same semantic boundary. A valid
+`OTRD0/v0` outcome maps to fixed status or system-fault notice enums; invalid
+diagnostics fail visibly to a generic critical service frame. Only nonblocking
+trial, rejected-transition, and cleanup notices offer acknowledgement, which
+cannot confirm update health, execute cleanup, request service, or reboot.
+Exact target scheduling, renderer wording, revision ownership, and physical
+recovery behavior remain target gates.
+
 The host-tested portable-client composition preflight now collects every
 target-facing dependency required by the first self-contained client and
 rejects missing bindings or incoherent product capabilities before application
@@ -294,9 +302,11 @@ one canonical message through the existing logger. Generation values and all
 identity, policy, checkpoint, key, address, and raw adapter detail are omitted.
 Magic, version, reserved bits, enums, state/action/reason coherence, and the
 mandatory redaction bit fail closed. The bounded RAM ring now supplies an exact
-in-memory sink and retains/decodes `OTRD0` in host tests. Target task binding,
-concurrency, persistent retention/export, rendering, power-loss behavior, and
-physical failure capture remain gates.
+in-memory sink and retains/decodes `OTRD0` in host tests. A separate semantic
+adapter maps decoded outcomes into the checked local-interface contract without
+adding execution authority. Target task binding, concurrency, persistent
+retention/export, rendering, power-loss behavior, and physical failure capture
+remain gates.
 
 ## Failure boundaries
 

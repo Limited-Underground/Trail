@@ -48,7 +48,14 @@ bool valid_notice(UiNotice notice) {
            notice == UiNotice::power_low || notice == UiNotice::power_critical ||
            notice == UiNotice::message_failed ||
            notice == UiNotice::critical_alert_pending ||
-           notice == UiNotice::critical_alert_failed;
+           notice == UiNotice::critical_alert_failed ||
+           notice == UiNotice::update_trial_active ||
+           notice == UiNotice::update_transition_rejected ||
+           notice == UiNotice::update_reboot_required ||
+           notice == UiNotice::update_cleanup_required ||
+           notice == UiNotice::update_safe_mode ||
+           notice == UiNotice::update_service_required ||
+           notice == UiNotice::update_reconciliation_required;
 }
 
 bool valid_action(UiAction action) {

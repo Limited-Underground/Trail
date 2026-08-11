@@ -472,6 +472,17 @@ $builds = @(
         )
     },
     @{
+        Name = 'semantic update recovery presentation'
+        Output = Join-Path $buildDirectory 'update_recovery_presentation_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\update_recovery_diagnostics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\update_recovery_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\local_interface.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\test_support\fake_local_interface.cpp'),
+            (Join-Path $projectRoot 'tests\host\update_recovery_presentation_tests.cpp')
+        )
+    },
+    @{
         Name = 'portable-client target composition'
         Output = Join-Path $buildDirectory 'portable_client_composition_tests.exe'
         Sources = @(

@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-11
 
+### Fail-visible update recovery presentation
+
+- Connected decoded `OTRD0/v0` outcomes to the existing fixed semantic UI
+  frame instead of introducing a parallel renderer or free-form recovery text.
+- Mapped nonblocking trial, rejected-transition, and cleanup states to warning
+  notices with acknowledgement only. Rollback, safe mode, service, and reboot
+  reconciliation become critical system-fault frames with no reboot, cleanup,
+  confirmation, or service execution action.
+- Made corrupt/unsupported/incoherent diagnostic words fail visibly to a generic
+  critical service-required frame when a valid revision exists; revision zero
+  cannot create a presentable frame.
+- Covered nine groups through the real checked local-interface boundary, 100
+  focused repeats, the complete 46-executable host matrix, and every Python/
+  publication-safety check. Exact renderer, target task/revision ownership,
+  physical recovery execution, and operator workflow remain open.
+
 ### Bounded runtime diagnostic ring
 
 - Added a production-facing fixed-capacity `LogSink` that retains the newest 32
@@ -19,7 +35,7 @@ public chronology.
   records only as `[REDACTED]`, and is neither a serialized/persistent format
   nor an internally synchronized target service.
 - Covered eight groups including actual `OTRD0` capture, 100 focused repeats,
-  the complete 45-executable host matrix, and every Python/publication-safety
+  the complete 46-executable host matrix, and every Python/publication-safety
   check. Exact target composition, measured RAM/timing, persistent audit/export,
   and physical failure capture remain open.
 
@@ -35,7 +51,7 @@ public chronology.
 - Kept logger authority intact: info/warn/error severity follows operator state,
   runtime filtering is an accepted non-write, and full-sink rejection remains
   visible rather than becoming false success.
-- Covered eight scenario groups, 100 focused repeats, the complete 45-executable
+- Covered eight scenario groups, 100 focused repeats, the complete 46-executable
   matrix, and all Python/publication-safety checks. Target sink binding,
   persistent retention/export, display rendering, and physical failure capture
   remain open.

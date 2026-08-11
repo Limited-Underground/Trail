@@ -238,7 +238,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 45 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 46 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
@@ -323,7 +323,7 @@ not treated as proof of authorization.
   flags. Hardware/candidate identity, checkpoint payloads, raw adapter errors,
   and nested results are absent; unknown or contradictory input blocks normal
   operation as service-required. Eight groups plus 100 repeats pass in the
-  complete 45-executable matrix. A versioned `OTRD0` adapter now records one
+  complete 46-executable matrix. A versioned `OTRD0` adapter now records one
   coherent status through the existing logger as one fixed hexadecimal 32-bit
   word. Generations and identity-bearing detail are omitted; magic, version,
   reserved bits, enums, flags, and state/action/reason coherence fail closed.
@@ -335,6 +335,12 @@ not treated as proof of authorization.
   reboot execution, target boot tasks, terminal
   cleanup/reset authority, protected backends, and physical restart evidence
   remain absent.
+  A semantic presentation adapter now maps valid `OTRD0` outcomes into the
+  existing checked status/system-fault frame. Invalid words fail visibly to a
+  generic critical service frame; only nonblocking notices expose
+  acknowledgement, which has no confirm/cleanup/reboot authority. Nine groups
+  plus 100 repeats pass. Exact renderer, target scheduling/revision ownership,
+  and physical operator workflow remain absent.
 
 ### Maps and interface
 
