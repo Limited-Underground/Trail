@@ -6,6 +6,24 @@ public chronology.
 
 ## 2026-08-11
 
+### Authorized map selector service reseed
+
+- Added a separate service-only coordinator for dirty or previously used map
+  selector state; clean first use and healthy active replacement remain routed
+  to their non-destructive coordinators.
+- Required five explicit caller acknowledgements, an already-mapless owner,
+  exact policy, valid package evidence, and pre-erase generation review.
+- Added `reset_and_verify_empty`: both abstract selector records are erased and
+  read back, and reported-success erase without exact emptiness fails closed.
+  Package bytes and other persistence domains are never touched.
+- Advanced the new stable record beyond the greater of observable local and
+  reviewed trusted history, rechecked emptiness through `save_if_empty`, and
+  allowed exposure only after commit-last exact readback.
+- Added twelve reseed groups and raised the selector store to fourteen groups.
+  Partial/dishonest erase, exhaustion, write/commit/readback uncertainty, and a
+  post-clear selector race remain mapless. All eight map suites pass 100/100
+  repeats, and the complete 66-executable host matrix passes.
+
 ### Restart-safe first map baseline
 
 - Added a first-use coordinator that accepts only a clean `no_selector`

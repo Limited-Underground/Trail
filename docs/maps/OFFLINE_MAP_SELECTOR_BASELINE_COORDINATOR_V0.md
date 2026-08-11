@@ -35,8 +35,9 @@ Every call requires all of the following:
    store ownership for the operation.
 
 A nonzero trusted generation means the device has prior selector history even
-if local slots are empty. That state requires reconciliation or a future
-explicit reset/reseed policy; it is never treated as first use.
+if local slots are empty. That state requires reconciliation or the separate
+[service-reseed coordinator](OFFLINE_MAP_SELECTOR_RESEED_COORDINATOR_V0.md); it
+is never treated as first use.
 
 ## Commit-before-exposure ordering
 
@@ -93,8 +94,8 @@ media, prepared-write failure, commit ambiguity, corrupt readback, and a
 selector appearing between inspect and save. All six affected map suites pass
 100/100 focused repeats under strict C++17 warnings-as-errors.
 
-This is host ordering evidence only. No reset/reseed policy, operator UX,
-physical package/storage adapter, concurrency primitive, atomic-byte guarantee,
+This is host ordering evidence only. Service reseed is supplied separately;
+no authenticated operator UX, physical package/storage adapter, concurrency primitive, atomic-byte guarantee,
 wear/endurance or power-loss result, protected trusted floor, package
 authentication, filesystem, renderer, display, target task, or on-device
 result is claimed.

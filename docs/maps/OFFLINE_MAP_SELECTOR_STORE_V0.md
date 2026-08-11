@@ -63,6 +63,15 @@ new or restored selector from being overwritten between preflight and the
 canonical generation-1 save. It never erases or treats invalid/uncommitted
 media as empty.
 
+`reset_and_verify_empty` is the service-grade clear boundary. It attempts both
+selector-slot erases, then reads both slots back and succeeds only when each is
+exactly empty. It reports the two erase outcomes and the two observed slot
+states separately. The
+[service-reseed coordinator](OFFLINE_MAP_SELECTOR_RESEED_COORDINATOR_V0.md)
+uses this result before creating a new baseline. The legacy `reset()` result is
+retained for existing transition behavior but does not provide verified-empty
+evidence.
+
 ## Guard restore boundary
 
 After selecting a record, the store asks the map activation guard to revalidate
@@ -85,18 +94,19 @@ key, URL, or free text. It cannot open a map package, authenticate data, mount a
 filesystem, delete package data, render a map, control a radio, stop messaging,
 or alter alerts/position sharing/USB recovery.
 
-`reset()` erases both abstract selector slots only when explicitly called. It
-does not erase map packages or any other persistence domain.
+`reset()` and `reset_and_verify_empty()` address only the two abstract selector
+slots. Neither operation erases map packages or any other persistence domain.
 
 ## Current evidence
 
-Thirteen deterministic host groups cover empty first save/restore, alternating
+Fourteen deterministic host groups cover empty first save/restore, alternating
 generation selection, partial prepared writes, commit-before/after-error
 uncertainty, corrupt readback, degraded-peer repair, unreadable peer media,
 equal-generation conflict, policy/package mismatch, trusted-floor rejection and
 generation exhaustion, exact live-checkpoint verification, persisted trial-
-boot increment, exact-generation save rejection, and partial/successful reset.
-All seven map executables pass
+boot increment, exact-generation save rejection, partial/successful reset, and
+reported-success erase that fails exact empty readback. All eight map
+executables pass
 100/100 focused repeats under strict
 C++17 warnings-as-errors.
 

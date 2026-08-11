@@ -140,7 +140,8 @@ last, followed by exact full readback. The store alternates away from the newest
 valid slot, selects only unique newer generations, repairs known invalid/
 uncommitted peers, rejects unreadable media and equal-generation conflict, and
 can enforce an external minimum generation. Read-only exact live-checkpoint
-verification brings the store to thirteen groups and 100/100 repeats. A typed
+verification plus exact post-erase empty readback brings the store to fourteen
+groups and 100/100 repeats. A typed
 boot coordinator now holds restored guard state private, persists
 and verifies every resumed-trial increment and boot-limit fallback before
 release, exposes stable/fallback state without an unnecessary rewrite, and
@@ -173,9 +174,21 @@ record generation 1 is constructed privately, committed last, and read back
 exactly before the map becomes available. Existing/dirty/unreadable selectors,
 nonzero history, races, and write/readback uncertainty remain mapless and
 cannot be reset or reseeded through this API. Ten groups and all six affected
-suites pass 100/100 repeats. Explicit provisioning authority, physical package
-and selector adapters, locking, authentication, reset policy, renderer, and
-target evidence remain open.
+suites pass 100/100 repeats.
+
+A separate service-reseed coordinator now handles dirty or previously used
+selector state without weakening first use or healthy replacement. Five
+caller-supplied acknowledgements, an already-mapless owner, exact policy,
+valid package evidence, and exclusive store ownership are required. Only the
+two selector records are erased; both must read back empty, the new record must
+advance beyond observable/trusted history, and exact commit-last readback must
+finish before map exposure. Twelve coordinator groups and fourteen store
+groups cover conflict, dirty state, partial/dishonest erase, exhaustion,
+persistence uncertainty, restart restore, and a post-clear selector race.
+All eight map suites pass 100/100 repeats, and the complete 66-executable host
+matrix passes.
+Authenticated authorization, protected trusted history, physical package and
+selector adapters, locking, renderer, and target evidence remain open.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -399,7 +412,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 65 C++ executables plus the Python
+  six verifier/planning/operator CLIs and runs all 66 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery

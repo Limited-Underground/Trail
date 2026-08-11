@@ -99,6 +99,9 @@ public:
         if (fail_erase_slot == static_cast<int>(slot)) {
             return MapSelectorStorageError::io_failure;
         }
+        if (pretend_erase_success_slot == static_cast<int>(slot)) {
+            return MapSelectorStorageError::none;
+        }
         present[slot] = false;
         slots[slot].fill(0);
         return MapSelectorStorageError::none;
@@ -117,6 +120,7 @@ public:
     int fail_read_slot{-1};
     int fail_commit_slot{-1};
     int fail_erase_slot{-1};
+    int pretend_erase_success_slot{-1};
     std::size_t partial_write_bytes{kMapSelectorCheckpointBytes};
     bool corrupt_after_write{false};
     bool corrupt_after_commit{false};
@@ -481,6 +485,27 @@ void test_reset_reports_partial_failure_and_success() {
     EXPECT(store.inspect().error == MapSelectorStoreError::no_checkpoint);
 }
 
+void test_verified_reset_requires_exact_empty_readback() {
+    FakeMapSelectorStorage storage{};
+    MapSelectorStore store{storage};
+    const auto guard = active_guard();
+    EXPECT(store.save(guard).saved());
+    EXPECT(store.save(guard).saved());
+
+    storage.pretend_erase_success_slot = 1;
+    const auto retained = store.reset_and_verify_empty();
+    EXPECT(retained.error == MapSelectorStoreError::verification_failure);
+    EXPECT(!retained.empty_verified);
+    EXPECT(retained.slot_a == MapSelectorSlotState::empty);
+    EXPECT(retained.slot_b == MapSelectorSlotState::valid);
+
+    storage.pretend_erase_success_slot = -1;
+    const auto cleared = store.reset_and_verify_empty();
+    EXPECT(cleared.cleared());
+    EXPECT(cleared.slot_a == MapSelectorSlotState::empty);
+    EXPECT(cleared.slot_b == MapSelectorSlotState::empty);
+}
+
 }  // namespace
 
 int main() {
@@ -497,11 +522,12 @@ int main() {
     test_current_guard_must_exactly_match_newest_checkpoint();
     test_trial_restart_count_is_resaved();
     test_reset_reports_partial_failure_and_success();
+    test_verified_reset_requires_exact_empty_readback();
 
     if (failures != 0) {
         std::cerr << failures << " map selector store assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 13 map selector store scenario groups\n";
+    std::cout << "PASS: 14 map selector store scenario groups\n";
     return EXIT_SUCCESS;
 }

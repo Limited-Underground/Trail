@@ -119,6 +119,21 @@ struct MapSelectorSaveResult {
     }
 };
 
+struct MapSelectorResetResult {
+    MapSelectorStoreError error{MapSelectorStoreError::storage_failure};
+    MapSelectorStorageError erase_slot_a{
+        MapSelectorStorageError::io_failure};
+    MapSelectorStorageError erase_slot_b{
+        MapSelectorStorageError::io_failure};
+    MapSelectorSlotState slot_a{MapSelectorSlotState::io_failure};
+    MapSelectorSlotState slot_b{MapSelectorSlotState::io_failure};
+    bool empty_verified{false};
+
+    [[nodiscard]] constexpr bool cleared() const {
+        return error == MapSelectorStoreError::none && empty_verified;
+    }
+};
+
 class MapSelectorStore {
 public:
     explicit MapSelectorStore(MapSelectorStorage& storage);
@@ -158,6 +173,10 @@ public:
         std::uint64_t expected_current_generation,
         std::uint64_t last_trusted_generation);
     [[nodiscard]] MapSelectorStoreError reset();
+    // Erases both selector records and then reads both back. A successful erase
+    // call is not considered sufficient proof that the selector is empty.
+    // Package bytes and all non-selector storage are outside this operation.
+    [[nodiscard]] MapSelectorResetResult reset_and_verify_empty();
 
 private:
     [[nodiscard]] MapSelectorSaveResult save_impl(

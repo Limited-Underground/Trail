@@ -107,6 +107,8 @@ MapSelectorInspectionResult MapSelectorStore::inspect() {
 
     if (generation_conflict(a, b)) {
         result.error = MapSelectorStoreError::generation_conflict;
+        result.generation = a.checkpoint.record_generation;
+        result.checkpoint_available = true;
         result.recovery_required = true;
         return result;
     }
@@ -445,6 +447,34 @@ MapSelectorStoreError MapSelectorStore::reset() {
                    b == MapSelectorStorageError::none
                ? MapSelectorStoreError::none
                : MapSelectorStoreError::storage_failure;
+}
+
+MapSelectorResetResult MapSelectorStore::reset_and_verify_empty() {
+    MapSelectorResetResult result{};
+    result.erase_slot_a = storage_.erase_slot(0);
+    result.erase_slot_b = storage_.erase_slot(1);
+
+    const auto a = inspect_slot(storage_, 0);
+    const auto b = inspect_slot(storage_, 1);
+    result.slot_a = a.state;
+    result.slot_b = b.state;
+
+    if (result.erase_slot_a != MapSelectorStorageError::none ||
+        result.erase_slot_b != MapSelectorStorageError::none ||
+        a.state == MapSelectorSlotState::io_failure ||
+        b.state == MapSelectorSlotState::io_failure) {
+        result.error = MapSelectorStoreError::storage_failure;
+        return result;
+    }
+    if (a.state != MapSelectorSlotState::empty ||
+        b.state != MapSelectorSlotState::empty) {
+        result.error = MapSelectorStoreError::verification_failure;
+        return result;
+    }
+
+    result.error = MapSelectorStoreError::none;
+    result.empty_verified = true;
+    return result;
 }
 
 }  // namespace opentrail::maps

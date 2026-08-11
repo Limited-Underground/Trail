@@ -320,6 +320,8 @@ complete `OTM0` with a zero commit byte, commits byte 59 last, verifies exact
 readback, alternates away from prior-good state, repairs known degraded peers,
 and rejects unreadable media or equal-generation conflict. It accepts an
 external trusted floor but does not own anti-rollback state.
+Its service-grade clear attempts both selector erases and requires both records
+to read back exactly empty; reported erase success alone is insufficient.
 
 The [map selector boot coordinator](maps/OFFLINE_MAP_SELECTOR_BOOT_COORDINATOR_V0.md)
 restores only into a private guard. Stable state can be released unchanged,
@@ -357,6 +359,17 @@ readback. It cannot reset or reseed a used selector domain; any previous,
 dirty, unreadable, or changed state remains mapless and requires service or
 reconciliation. Calls require explicit provisioning authority and exclusive
 store ownership, neither of which this host boundary implements.
+
+The [service-reseed coordinator](maps/OFFLINE_MAP_SELECTOR_RESEED_COORDINATOR_V0.md)
+is the separate recovery path for a dirty or previously used selector domain.
+It requires a mapless service owner and five caller-supplied acknowledgements,
+advances beyond the greatest observable/trusted generation, verified-clears
+only the two selector records, rechecks exact emptiness at save time, and
+publishes a stable baseline only after commit-last exact readback. Clean first
+use and healthy active replacement are deliberately rejected into their normal
+coordinators. The acknowledgements are not authentication, the generation
+floor is not protected here, and physical package/storage behavior remains
+outside this host boundary.
 
 ## External critical-alert interface
 
