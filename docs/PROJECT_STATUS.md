@@ -92,7 +92,8 @@ dispatch to their original validators and emit a leading stable record type;
 malformed supported records and unsupported prefixes fail without echoing the
 input. The unified tool adds no file, log, device, network, export, or execution
 authority and changes no wire or logger format. Both canonical records plus
-malformed/unsupported smoke cases pass in the complete local host gate.
+malformed/unsupported smoke cases pass in the complete local host gate and in
+public GitHub Actions run `31502841481`.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/

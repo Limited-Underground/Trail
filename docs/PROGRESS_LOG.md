@@ -18,8 +18,8 @@ public chronology.
   position-control, update, cleanup, reboot, or recovery access.
 - Passed both canonical record smoke checks, malformed supported input,
   unsupported input, all 58 C++ executables, and every Python/publication-
-  safety gate in the complete local host run. Public-main CI confirmation is
-  still required for this increment.
+  safety gate in the complete local host run. The exact published increment
+  passes in GitHub Actions run `31502841481`.
 
 ### Strict offline update-recovery diagnostic decoder
 
