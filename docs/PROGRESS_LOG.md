@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-11
 
+### Fail-safe offline map activation policy
+
+- Added a fixed-memory C++ guard for mapless/active/staged/trial/fallback state
+  without selecting a filesystem, selector record, renderer, or target.
+- Boot refuses missing, unreadable, ambiguous, or invalid selections. Staging
+  leaves the current map untouched, and trial begins only after an adapter
+  confirms the exact staged slot/generation selector was committed.
+- Retained the prior package until a bounded complete-read threshold passes.
+  Trial read failure, deadline, clock regression, and media removal require an
+  exact verified prior restore or enter visible mapless state without guessing.
+- Covered ten deterministic groups plus 100/100 focused repeats with strict
+  C++17 warnings-as-errors. The interface contains no paths, geographic data,
+  identity, secrets, free text, radio, message, alert, or USB authority.
+- This is lifecycle-policy evidence, not authentication, selector durability,
+  storage/renderer integration, received-display, or on-device evidence.
+
 ### Offline map package manifest and verifier
 
 - Added strict `OTMP0/v0` metadata for source/licence/offline rights/visible

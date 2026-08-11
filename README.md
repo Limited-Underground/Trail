@@ -179,7 +179,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   now validates rights/attribution, candidate layout, coverage, exact length,
   SHA-256, and compatibility/storage requirements and can verify supplied local
   bytes without writing or echoing rejected paths. Seven synthetic groups pass;
-  this is package preflight, not authenticity, activation, or rendering.
+  this is package preflight, not authenticity, activation, or rendering. A
+  bounded [activation guard](docs/maps/OFFLINE_MAP_ACTIVATION_GUARD_V0.md) now
+  makes non-destructive staging, exact selector-confirmed trial activation,
+  prior retention, bounded health promotion, explicit fallback, and mapless
+  degradation testable without selecting a filesystem or renderer. Ten groups
+  and 100/100 focused repeats pass; target persistence and hardware remain open.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
   or on-device map result is selected or claimed.
@@ -368,7 +373,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 58 C++ test executables plus
+  builds six verifier/planning/operator CLIs and runs all 59 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet
@@ -378,7 +383,8 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   semantic position-state observation, privacy-safe position UI diagnostics,
   strict offline position and recovery diagnostic decoding plus one unified
   operator entry point,
-  portable-client composition, local-interface, power-state, clock, randomness,
+  map activation, portable-client composition, local-interface, power-state,
+  clock, randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,
   passes on `main`.

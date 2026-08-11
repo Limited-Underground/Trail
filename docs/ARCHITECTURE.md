@@ -299,6 +299,14 @@ SHA-256, reader, firmware, storage, and scratch requirements. Its verifier is a
 read-only preflight—not package authentication, staging, activation, rendering,
 or target compatibility evidence.
 
+The bounded [map activation guard](maps/OFFLINE_MAP_ACTIVATION_GUARD_V0.md)
+makes the lifecycle policy executable without choosing the persistence layer.
+It admits only fully evidenced alternate-slot candidates, changes trial state
+only after exact external selector-commit evidence, retains the prior package
+until bounded healthy reads pass, and otherwise requires exact fallback or a
+visible mapless state. It owns no filesystem, selector codec, authentication,
+renderer, radio, messaging, alert, position-sharing, or USB authority.
+
 ## External critical-alert interface
 
 OpenTrail accepts normalized events, never raw CAN/J1939 frames. The boundary should support at least schema version, event type, severity, source/vehicle identity, event time/age, optional typed value/unit, validity, and diagnostic context. OpenTrail adds its own node and current GPS context before radio transmission. Producers are untrusted inputs: values, lengths, rates, and event types require validation and rate limiting.

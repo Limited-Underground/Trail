@@ -78,6 +78,7 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'firmware\components\diagnostics\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\location\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\location\test_support'),
+    '-I', (Join-Path $projectRoot 'firmware\components\maps\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\integration\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\persistence\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\persistence\test_support'),
@@ -564,6 +565,14 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\ui\src\local_interface.cpp'),
             (Join-Path $projectRoot 'firmware\components\ui\test_support\fake_local_interface.cpp'),
             (Join-Path $projectRoot 'tests\host\local_interface_tests.cpp')
+        )
+    },
+    @{
+        Name = 'map activation guard'
+        Output = Join-Path $buildDirectory 'map_activation_guard_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_activation_guard.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_activation_guard_tests.cpp')
         )
     },
     @{
