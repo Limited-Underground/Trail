@@ -33,6 +33,14 @@ trusted state. Sixteen store groups plus 100 focused repeats pass. Target
 atomicity, authenticated integrity, a hardware-backed trusted source, wear, and
 physical power cuts remain.
 
+The [typed boot coordinator](UPDATE_RECOVERY_BOOT_COORDINATOR_V0.md) fixes the
+next ordering layer. It starts and restores only a private guard, validates the
+observed image, commits trial-count or rollback transitions, advances and
+exactly reads back trust, and exposes live state only after the sequence
+succeeds. Fifteen groups plus 100 focused repeats pass. This remains host state-
+machine evidence; no target boot task, protected backend, or physical restart
+result exists.
+
 ## Safety objective
 
 A failed, interrupted, incompatible, or unhealthy update must not silently leave

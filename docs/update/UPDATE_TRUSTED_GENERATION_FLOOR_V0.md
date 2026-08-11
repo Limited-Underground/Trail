@@ -60,6 +60,11 @@ The store does not advance the trusted source. A future coordinator must:
 5. route any uncertain checkpoint or trust result through boot reconciliation
    before enabling normal operation.
 
+The host-tested [boot coordinator](UPDATE_RECOVERY_BOOT_COORDINATOR_V0.md) now
+implements that ordering for boot restoration, trial-attempt persistence, and
+rollback completion. The injected trusted source and target storage still do
+not exist.
+
 ## Evidence and limitations
 
 Six new scenario groups cover absent media below a trusted floor, stale valid

@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-10
+Status date: 2026-08-11
 
 ## Conceptual goals
 
@@ -236,9 +236,9 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AA records OpenGauge's known-degraded repair coordinator. Only current operational degraded evidence with matching active/trusted generation and one valid plus one known empty/invalid slot can write. The next `ORS0`, trust update/readback, and final two-valid-slot inspection must all pass. Healthy, unreadable, service, stale, and uncertain cases fail closed. Five groups, the complete 39-executable matrix, and 100 repeats pass. Physical repair durability and unreadable-media service remain unproved.
 - OT-017AB records OpenGauge's redacted recovery-status boundary. Boot, save, and repair results map into one fixed-shape record with operator state/reason/action, slot health, observed/trusted generations, key-failure class, and transport/repair flags. Peer IDs and key handles are structurally absent, and unknown or inconsistent inputs fail closed. Seven groups, the complete 40-executable matrix, and 100 repeats pass locally. Target logging/rendering, persistent audit retention, and physical service workflows remain unproved.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
-- OpenTrail has its own public GitHub Actions validation on `main` pushes and
+- OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 36 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 40 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
@@ -304,7 +304,12 @@ not treated as proof of authorization.
   restore and allocates beyond the greater local/trusted value. All 16 store
   groups plus 100 focused repeats pass. No target partition table, signer,
   updater adapter, authenticated target storage, hardware-backed trusted
-  generation source, or physical interruption/recovery evidence exists.
+  generation source, or physical interruption/recovery evidence exists. A
+  typed host boot coordinator now holds guard state private until the observed
+  image is validated, any trial/rollback transition is readback-verified, and
+  the trusted generation advances with exact readback. Fifteen groups plus 100
+  focused repeats pass; target boot tasks, terminal cleanup/reset authority,
+  protected backends, and physical restart evidence remain absent.
 
 ### Maps and interface
 

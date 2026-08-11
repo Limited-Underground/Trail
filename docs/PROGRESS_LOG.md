@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-11
 
+### Typed update-recovery boot ordering
+
+- Added a boot coordinator that starts/restores only a private guard and exposes
+  it to the application only after exact image validation and all required
+  persistence steps succeed.
+- Persisted each new trial attempt and boot-mismatch/attempt-limit rollback
+  decision before release; exact rollback completion is persisted before the
+  recovered baseline can operate.
+- Advanced and exactly read back the injected trusted generation only after a
+  fully verified checkpoint write. Uncertain checkpoint or trust state requires
+  reboot reconciliation and leaves the live guard untouched.
+- Covered 15 typed baseline/trial/rollback/terminal/failure groups in the
+  complete 40-executable matrix and across 100 focused repeats. No ESP-IDF boot
+  task, protected backend, authorized cleanup/reset, or physical result is
+  claimed.
+
 ### Trusted update-generation boundary
 
 - Added an explicit trusted-floor restore path that rejects missing or stale-

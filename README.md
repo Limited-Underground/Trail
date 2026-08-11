@@ -4,7 +4,7 @@
 
 OpenTrail is a proposed free/open-source, ESP32-based off-road communication, location-awareness, and safety platform designed to keep a group useful when cellular service is unavailable.
 
-## Current snapshot — 2026-08-10
+## Current snapshot — 2026-08-11
 
 ### Funding and future web path
 
@@ -97,7 +97,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   or stale checkpoints before live restore and saves beyond the greater local/
   trusted generation. All 16 store groups plus 100 focused repeats pass. No
   target updater, authenticated store, hardware-backed trusted source, or
-  physical interruption/recovery result exists.
+  physical interruption/recovery result exists. A new [typed boot
+  coordinator](docs/update/UPDATE_RECOVERY_BOOT_COORDINATOR_V0.md) works on a
+  private guard, persists trial/rollback transitions, advances and exactly
+  reads back trust, and releases live application state only after the complete
+  sequence succeeds. Fifteen groups plus 100 focused repeats pass; this remains
+  host ordering evidence, not an on-device boot result.
 - **Security overhead is now visible before wire freeze:** a bounded
   [protected-packet budget](docs/protocol/PROTECTED_PACKET_BUDGET_V0.md) charges
   every candidate frame a corrected 44-byte authenticated header and 16-byte
@@ -215,13 +220,13 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 39 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 40 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including portable-client composition, local-interface, power-state, clock, randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,
-  passes publicly.
+  passes on `main`.
 - **Shared integration validation:** the OpenGauge host matrix runs in
   [GitHub Actions](https://github.com/nbjelanovic/OpenGauge/actions/workflows/host-validation.yml)
   on every `main` push and pull request. Its current-main warning-free run
