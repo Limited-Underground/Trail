@@ -187,7 +187,7 @@ void test_empty_first_save_and_restore() {
     EXPECT(absent.error == MapSelectorStoreError::no_checkpoint);
     EXPECT(!absent.restored);
 
-    const auto saved = store.save(guard);
+    const auto saved = store.save_if_empty(guard);
     EXPECT(saved.saved());
     EXPECT(saved.generation == 1);
     EXPECT(saved.written_slot == MapSelectorSource::slot_a);
@@ -430,6 +430,10 @@ void test_current_guard_must_exactly_match_newest_checkpoint() {
     EXPECT(!stale.exact_match);
 
     const auto writes_before = storage.write_calls;
+    const auto not_empty = store.save_if_empty(active);
+    EXPECT(not_empty.error == MapSelectorStoreError::state_mismatch);
+    EXPECT(storage.write_calls == writes_before);
+
     const auto stale_writer = store.save_after_exact(active, 4, 5);
     EXPECT(stale_writer.error == MapSelectorStoreError::state_mismatch);
     EXPECT(storage.write_calls == writes_before);

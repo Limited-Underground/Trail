@@ -408,6 +408,16 @@ MapActivationStatus MapActivationGuard::status() const {
     return status_;
 }
 
+bool MapActivationGuard::matches_policy(
+    const MapActivationPolicy& policy) const {
+    return status_.running &&
+           policy_.maximum_package_bytes == policy.maximum_package_bytes &&
+           policy_.trial_deadline_ms == policy.trial_deadline_ms &&
+           policy_.required_healthy_reads ==
+               policy.required_healthy_reads &&
+           policy_.maximum_trial_boots == policy.maximum_trial_boots;
+}
+
 bool MapActivationGuard::package_acceptable(
     const MapPackageEvidence& package) const {
     return known_slot(package.slot) && package.generation != 0 &&

@@ -6,6 +6,24 @@ public chronology.
 
 ## 2026-08-11
 
+### Restart-safe first map baseline
+
+- Added a first-use coordinator that accepts only a clean `no_selector`
+  mapless guard, exact policy, fully evidenced package, two readable empty
+  selector slots, and zero trusted generation history.
+- Avoided an unencodable no-prior trial. The initial package becomes private
+  stable state and canonical selector record generation 1 is committed/read
+  back before map exposure.
+- Added `save_if_empty` so a selector appearing between preflight and save is
+  never overwritten. Exclusive target ownership is still required; the check
+  is not a lock.
+- Refused existing, dirty, unreadable, conflicted, previously trusted, and
+  changed selector state. This path cannot reset or reseed a used device.
+- Added ten deterministic groups covering success/restart, owner/policy/package
+  rejection, trusted history, media states, write/commit/readback failure, and
+  the inspect/save race. All six affected suites pass 100/100 repeats; the full
+  65-executable matrix is the publication gate.
+
 ### Safe replacement-map candidate ordering
 
 - Added a typed candidate coordinator for replacing one stable active map with

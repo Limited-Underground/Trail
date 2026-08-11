@@ -166,6 +166,17 @@ mapless. Eleven groups and all four affected suites pass 100/100 repeats. This
 does not establish the first map baseline, provide locking, stage physical
 bytes, select a renderer, or prove target behavior.
 
+First installation now has its own coordinator rather than a no-fallback trial.
+It requires a clean `no_selector` mapless guard, exact policy, fully evidenced
+package, two readable empty selector slots, and zero trusted history. Stable
+record generation 1 is constructed privately, committed last, and read back
+exactly before the map becomes available. Existing/dirty/unreadable selectors,
+nonzero history, races, and write/readback uncertainty remain mapless and
+cannot be reset or reseeded through this API. Ten groups and all six affected
+suites pass 100/100 repeats. Explicit provisioning authority, physical package
+and selector adapters, locking, authentication, reset policy, renderer, and
+target evidence remain open.
+
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
 phone/laptop/vehicle dependency during a session, at least three materially
@@ -388,7 +399,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 64 C++ executables plus the Python
+  six verifier/planning/operator CLIs and runs all 65 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery

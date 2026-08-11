@@ -151,6 +151,8 @@ public:
         MapSelectorCheckpoint& output) const;
 
     [[nodiscard]] MapActivationStatus status() const;
+    [[nodiscard]] bool matches_policy(
+        const MapActivationPolicy& policy) const;
 
 private:
     [[nodiscard]] bool package_acceptable(

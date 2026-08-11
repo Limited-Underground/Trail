@@ -61,6 +61,13 @@ operations fail.
 Invalid transitions and slot/generation mismatches fail without granting a new
 active package.
 
+Persistent first installation does not use the guard's volatile no-prior trial
+primitive. The separate
+[first-baseline coordinator](OFFLINE_MAP_SELECTOR_BASELINE_COORDINATOR_V0.md)
+requires a clean unused selector domain and commits a fully evidenced package
+as stable active state before exposure. A no-prior trial cannot produce a
+restart-safe `OTM0` checkpoint.
+
 ## Evidence boundary
 
 `MapPackageEvidence` is deliberately small and contains only:

@@ -290,14 +290,21 @@ MapSelectorVerifyResult MapSelectorStore::verify_current(
 
 MapSelectorSaveResult MapSelectorStore::save(
     const MapActivationGuard& guard) {
-    return save_impl(guard, 0, false, 0);
+    return save_impl(guard, 0, false, 0, false);
 }
 
 MapSelectorSaveResult MapSelectorStore::save_next_after(
     const MapActivationGuard& guard,
     std::uint64_t last_trusted_generation) {
     return save_impl(
-        guard, last_trusted_generation, false, 0);
+        guard, last_trusted_generation, false, 0, false);
+}
+
+MapSelectorSaveResult MapSelectorStore::save_if_empty(
+    const MapActivationGuard& guard,
+    std::uint64_t last_trusted_generation) {
+    return save_impl(
+        guard, last_trusted_generation, false, 0, true);
 }
 
 MapSelectorSaveResult MapSelectorStore::save_after_exact(
@@ -313,14 +320,16 @@ MapSelectorSaveResult MapSelectorStore::save_after_exact(
         guard,
         last_trusted_generation,
         true,
-        expected_current_generation);
+        expected_current_generation,
+        false);
 }
 
 MapSelectorSaveResult MapSelectorStore::save_impl(
     const MapActivationGuard& guard,
     std::uint64_t last_trusted_generation,
     bool require_expected_generation,
-    std::uint64_t expected_current_generation) {
+    std::uint64_t expected_current_generation,
+    bool require_empty) {
     MapSelectorSaveResult result{};
     const auto a = inspect_slot(storage_, 0);
     const auto b = inspect_slot(storage_, 1);
@@ -343,6 +352,13 @@ MapSelectorSaveResult MapSelectorStore::save_impl(
     if (current == nullptr && any_degraded) {
         result.error = MapSelectorStoreError::invalid_state;
         result.codec_error = first_codec_error(a, b);
+        return result;
+    }
+    if (require_empty &&
+        (current != nullptr ||
+         a.state != MapSelectorSlotState::empty ||
+         b.state != MapSelectorSlotState::empty)) {
+        result.error = MapSelectorStoreError::state_mismatch;
         return result;
     }
     if (require_expected_generation &&

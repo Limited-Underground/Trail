@@ -14,8 +14,9 @@ stable active map only.
 First-ever installation on a mapless device is not supported by this
 coordinator. An `OTM0` trial must name an exact prior-good package so a restart
 can recover from failed candidate reads. Inventing that prior state would make
-the checkpoint unsafe. Establishing the initial trusted map baseline therefore
-remains a separate policy decision.
+the checkpoint unsafe. The separate
+[first-baseline coordinator](OFFLINE_MAP_SELECTOR_BASELINE_COORDINATOR_V0.md)
+now owns initial installation without changing this replacement boundary.
 
 The input candidate is typed evidence for package bytes already placed in the
 alternate physical package slot by an external adapter. The coordinator does
@@ -84,8 +85,9 @@ invalid policy, and generation exhaustion. The candidate, transition, boot,
 and store suites each pass 100/100 focused repeats under strict C++17
 warnings-as-errors.
 
-This is host ordering evidence only. No initial-baseline policy, physical
-storage or package-slot adapter, concurrency primitive, atomic-byte guarantee,
-wear/endurance or power-loss result, protected trusted floor, package
-authentication, filesystem, renderer, display, target task, or on-device
-result is claimed.
+This is host replacement-ordering evidence only. Initial installation is owned
+by the separate baseline coordinator; this API does not implement it. No
+physical storage or package-slot adapter, concurrency primitive, atomic-byte
+guarantee, wear/endurance or power-loss result, protected trusted floor,
+package authentication, filesystem, renderer, display, target task, or
+on-device result is claimed.

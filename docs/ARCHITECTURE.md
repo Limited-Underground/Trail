@@ -348,6 +348,16 @@ fails mapless. It deliberately does not create the first map baseline because
 a restart-safe trial requires an exact prior-good package. Calls require
 exclusive selector-store ownership; the generation check is not a lock.
 
+The [first-baseline coordinator](maps/OFFLINE_MAP_SELECTOR_BASELINE_COORDINATOR_V0.md)
+provides the separate initial-install path. It accepts only a clean mapless
+`no_selector` guard, exact policy, fully evidenced package, two readable empty
+selector slots, and zero trusted generation history. It creates stable active
+record generation 1 privately and publishes only after commit-last exact
+readback. It cannot reset or reseed a used selector domain; any previous,
+dirty, unreadable, or changed state remains mapless and requires service or
+reconciliation. Calls require explicit provisioning authority and exclusive
+store ownership, neither of which this host boundary implements.
+
 ## External critical-alert interface
 
 OpenTrail accepts normalized events, never raw CAN/J1939 frames. The boundary should support at least schema version, event type, severity, source/vehicle identity, event time/age, optional typed value/unit, validity, and diagnostic context. OpenTrail adds its own node and current GPS context before radio transmission. Producers are untrusted inputs: values, lengths, rates, and event types require validation and rate limiting.

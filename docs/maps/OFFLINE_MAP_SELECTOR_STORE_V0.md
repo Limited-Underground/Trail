@@ -57,6 +57,12 @@ and candidate coordinators use this form so a newer checkpoint observed after
 their read-only preflight is not overwritten. This comparison is not a lock;
 the target must provide exclusive store ownership throughout a save.
 
+`save_if_empty` similarly re-inspects both slots and writes only when both are
+still readable and empty. The first-baseline coordinator uses it to prevent a
+new or restored selector from being overwritten between preflight and the
+canonical generation-1 save. It never erases or treats invalid/uncommitted
+media as empty.
+
 ## Guard restore boundary
 
 After selecting a record, the store asks the map activation guard to revalidate
@@ -90,7 +96,7 @@ uncertainty, corrupt readback, degraded-peer repair, unreadable peer media,
 equal-generation conflict, policy/package mismatch, trusted-floor rejection and
 generation exhaustion, exact live-checkpoint verification, persisted trial-
 boot increment, exact-generation save rejection, and partial/successful reset.
-All six map executables pass
+All seven map executables pass
 100/100 focused repeats under strict
 C++17 warnings-as-errors.
 

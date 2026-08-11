@@ -145,6 +145,11 @@ public:
     [[nodiscard]] MapSelectorSaveResult save_next_after(
         const MapActivationGuard& guard,
         std::uint64_t last_trusted_generation);
+    // Saves only when both selector slots are still empty. This is not a lock;
+    // callers must hold exclusive store ownership throughout the call.
+    [[nodiscard]] MapSelectorSaveResult save_if_empty(
+        const MapActivationGuard& guard,
+        std::uint64_t last_trusted_generation = 0);
     // Re-inspects the store and saves only when the newest valid record still
     // has expected_current_generation. This is not a lock; callers must hold
     // exclusive store ownership throughout the call.
@@ -159,7 +164,8 @@ private:
         const MapActivationGuard& guard,
         std::uint64_t last_trusted_generation,
         bool require_expected_generation,
-        std::uint64_t expected_current_generation);
+        std::uint64_t expected_current_generation,
+        bool require_empty);
 
     MapSelectorStorage& storage_;
 };

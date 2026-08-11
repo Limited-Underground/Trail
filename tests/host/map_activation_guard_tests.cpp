@@ -65,8 +65,13 @@ void test_policy_and_fail_safe_boot_selection() {
     auto invalid = policy();
     invalid.required_healthy_reads = 0;
     EXPECT(guard.start(invalid, {}) == MapActivationError::invalid_policy);
+    EXPECT(!guard.matches_policy(policy()));
 
     EXPECT(guard.start(policy(), {}) == MapActivationError::none);
+    EXPECT(guard.matches_policy(policy()));
+    auto different = policy();
+    different.maximum_trial_boots = 2;
+    EXPECT(!guard.matches_policy(different));
     EXPECT(guard.status().state == MapActivationState::mapless);
     EXPECT(guard.status().reason == MapActivationReason::no_selector);
     EXPECT(!guard.status().map_available);
