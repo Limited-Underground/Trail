@@ -68,7 +68,8 @@ publication-safety scan pass locally under strict C++17 warnings-as-errors.
 
 This is common host composition, not a lock, package transfer, or protected
 backend. First baseline now has a separate protected-source composition;
-service reseed and protected reset/replacement recovery remain separate gates.
+service reseed now has one as well. Protected reset/replacement recovery remains
+a separate gate.
 Target serialization, physical package-slot retention, NVS/counter backends,
 authentication, power-loss interruption, flash replacement, wear, physical
 attack resistance, filesystem/renderer behavior, and on-device replacement

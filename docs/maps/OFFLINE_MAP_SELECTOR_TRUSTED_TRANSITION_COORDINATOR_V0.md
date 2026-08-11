@@ -75,7 +75,8 @@ warnings-as-errors.
 
 This is common host composition, not a lock or protected backend. Candidate
 replacement and first baseline now have separate protected-source compositions.
-Service reseed and protected reset/replacement recovery remain separate gates.
+Service reseed now has one as well. Protected reset/replacement recovery remains
+a separate gate.
 Target serialization, NVS and counter backends, authentication, package/media
 behavior, power-loss interruption, flash replacement, wear, physical attack
 resistance, renderer behavior, and on-device runtime transitions remain

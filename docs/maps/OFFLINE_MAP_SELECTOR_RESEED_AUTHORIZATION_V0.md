@@ -73,6 +73,14 @@ time mismatch also burns the permit, and a second use is rejected before
 storage access. Any later service or persistence failure therefore requires a
 newly verified authorization.
 
+The
+[protected service-reseed coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_RESEED_COORDINATOR_V0.md)
+derives the reviewed generation from the protected source before invoking the
+lower reseed operation. The permit must match that exact derived value. This
+keeps the authorization backend responsible for explicit trusted-floor review
+without allowing an ordinary reseed caller to choose the floor used for
+selector recovery.
+
 ## Failure and authority limits
 
 - Invalid policy, request, or package binding never reaches the backend.
@@ -105,3 +113,8 @@ suites pass 100/100 focused repeats in the complete 68-executable host matrix.
 This is host authorization-handoff evidence only—not authentication, an ESP-IDF
 target, a service UI, protected trust, persistence of replay state, or a
 physical service result.
+
+The twelve-group protected-reseed composition also exercises exact permit
+binding to source-derived history, initial source failure without permit use,
+and no protected advance on lower-layer failure. All sixteen current map suites
+and the complete 74-executable host matrix pass locally.

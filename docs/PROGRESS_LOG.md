@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Protected-generation map-selector service reseed
+
+- Added a service-recovery composition that derives the reviewed floor from
+  protected history before selector access and requires the existing single-use
+  permit to match that exact value.
+- Kept verified selector clear and replacement save on a private guard, then
+  advanced and exactly read back protected history before publishing the
+  recovered map.
+- Left a permit retryable after initial temporary trust failure, prevented every
+  selector failure from advancing trust, and contained every post-save trust
+  conflict or uncertainty as ambiguous-mapless for fresh-boot reconciliation.
+- Added twelve deterministic groups and completed 100/100 focused repeats. All
+  sixteen map suites and the complete 74-executable host matrix pass locally,
+  including publication safety. Concrete credential and protected-generation
+  backends, reset/replacement authority, target locking, physical durability,
+  and on-device results remain open.
+
 ### Protected-generation map-selector first baseline
 
 - Added a first-use composition that inspects protected history before selector

@@ -59,6 +59,17 @@ For a valid service request, the coordinator:
 states. An adapter returning success without actually clearing a record is a
 verification failure, not a successful reset.
 
+## Protected-generation composition
+
+The separate
+[protected service-reseed coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_RESEED_COORDINATOR_V0.md)
+replaces the caller-supplied reviewed floor with a protected-source inspection
+before selector access. The permit must match that exact value. This lower
+coordinator clears and saves against a private guard; the wrapper then advances
+and exactly reads back protected history before publishing the recovered map.
+Initial source failure reaches no selector storage, and post-save trust
+uncertainty remains mapless for fresh-boot reconciliation.
+
 ## Failure behavior
 
 - Missing, mismatched, or consumed permit, wrong live ownership, invalid
@@ -102,8 +113,14 @@ separate authorization suite adds ten groups. All ten map suites pass 100/100
 repeats, and the complete 68-executable host matrix passes under strict C++17
 warnings-as-errors.
 
+Twelve additional protected-reseed groups cover protected-history-first access,
+exact permit binding, selector-save-before-protect ordering, source failure,
+clear/save/race isolation, and post-save protected uncertainty. That suite also
+passes 100/100 focused repeats. All sixteen current map suites and the complete
+74-executable host matrix pass locally.
+
 This is abstract host ordering evidence plus a backend-neutral key/value
 mapping only. No ESP-IDF backend, physical erase/atomicity/endurance/power-loss
-result, concrete operator-authentication backend, protected trusted floor, package
-authentication, filesystem, renderer, display, target task, or on-device result
-is claimed.
+result, concrete operator-authentication backend, protected-generation backend,
+package authentication, filesystem, renderer, display, target task, or
+on-device result is claimed.

@@ -339,7 +339,7 @@ unchanged value or atomically advances and exactly reads back a newer value
 before publication. Nonzero trusted history with empty selector media is
 service-required, and any uncertain trust advance keeps the saved selector
 private. Target composition must serialize both storage and trust ownership;
-reseed and reset/replacement paths remain separate gates.
+reset/replacement remains a separate gate.
 
 The [trusted runtime transition coordinator](maps/OFFLINE_MAP_SELECTOR_TRUSTED_TRANSITION_COORDINATOR_V0.md)
 removes the caller-created current/floor values from live selector mutation.
@@ -409,8 +409,16 @@ only the two selector records, rechecks exact emptiness at save time, and
 publishes a stable baseline only after commit-last exact readback. Clean first
 use and healthy active replacement are deliberately rejected into their normal
 coordinators. The permit is consumed before store access, but the generation
-floor is not protected here and physical package/storage behavior remains
-outside this host boundary.
+floor remains a scalar input at this independently testable lower layer.
+Physical package/storage behavior remains outside this host boundary.
+
+The [protected service-reseed coordinator](maps/OFFLINE_MAP_SELECTOR_TRUSTED_RESEED_COORDINATOR_V0.md)
+derives that floor from protected history before selector access and requires
+the permit to match it exactly. Selector clear and replacement save happen on a
+private guard. Protected history advances only after exact selector readback,
+and the recovered map is published only after exact protected readback. Initial
+source failure reaches no selector storage; every post-save trust conflict or
+uncertainty remains ambiguous-mapless for fresh-boot reconciliation.
 
 The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
 can mint that non-copyable, single-use permit only after an injected local-

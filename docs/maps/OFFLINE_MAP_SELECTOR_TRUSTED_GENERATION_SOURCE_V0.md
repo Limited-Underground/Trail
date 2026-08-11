@@ -73,8 +73,9 @@ does the same for runtime trial, fallback, and cleanup operations. The
 [trusted candidate coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_CANDIDATE_COORDINATOR_V0.md)
 owns replacement ordering. The
 [protected first-baseline coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_BASELINE_COORDINATOR_V0.md)
-owns clean initial-install ordering. Service reseed still needs its own
-protected-source composition.
+owns clean initial-install ordering. The
+[protected service-reseed coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_RESEED_COORDINATOR_V0.md)
+owns authorized selector-recovery ordering.
 
 The service-reseed authorization permit is also separate. Authorization to
 erase and reseed two selector records is not authorization to lower or reset
@@ -91,9 +92,10 @@ advance failure including applied-then-failed behavior, failed post-write
 readback, frozen and advanced-past readback, the no-more-I/O latch, and fresh-
 boot reconciliation.
 
-The source suite and its trusted boot/runtime/candidate/baseline compositions
-pass under strict C++17 warnings-as-errors in the complete 73-executable
-OpenTrail host matrix. This proves only common interface, state-machine,
+The source suite and its trusted boot/runtime/candidate/baseline/reseed
+compositions pass under strict C++17 warnings-as-errors in the complete
+74-executable OpenTrail host matrix. This proves only common interface,
+state-machine,
 boot-ordering, and runtime/replacement-ordering behavior. It does not prove
 secrecy, authenticity,
 monotonicity, flash-replacement resistance, power-loss durability, wear,
