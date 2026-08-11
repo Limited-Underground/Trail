@@ -323,6 +323,124 @@ void test_generation_exhaustion_prevents_write() {
     EXPECT(!saved.commit_uncertain);
 }
 
+void test_missing_checkpoint_below_trusted_floor() {
+    FakeUpdateStorage storage{};
+    UpdateCheckpointStore store{storage};
+    UpdateBootGuard restored{};
+    EXPECT(restored.start(policy()) == UpdateGuardError::none);
+
+    const auto loaded = store.restore_at_or_above(restored, 1);
+    EXPECT(loaded.error ==
+           UpdateCheckpointStoreError::generation_below_floor);
+    EXPECT(!loaded.restored);
+    EXPECT(loaded.recovery_required);
+    EXPECT(loaded.source == UpdateCheckpointSource::none);
+    EXPECT(restored.status().state == UpdateState::idle);
+}
+
+void test_rollback_checkpoint_below_trusted_floor() {
+    FakeUpdateStorage storage{};
+    UpdateCheckpointStore store{storage};
+    const auto guard = pending_guard();
+    storage.seed(0, encoded_checkpoint(checkpoint(guard, 4)));
+
+    UpdateBootGuard restored{};
+    EXPECT(restored.start(policy()) == UpdateGuardError::none);
+    const auto loaded = store.restore_at_or_above(restored, 5);
+    EXPECT(loaded.error ==
+           UpdateCheckpointStoreError::generation_below_floor);
+    EXPECT(!loaded.restored);
+    EXPECT(loaded.recovery_required);
+    EXPECT(loaded.source == UpdateCheckpointSource::slot_a);
+    EXPECT(loaded.generation == 4);
+    EXPECT(restored.status().state == UpdateState::idle);
+}
+
+void test_floor_boundary_and_newer_generation_restore() {
+    const auto guard = pending_guard();
+
+    FakeUpdateStorage exact_storage{};
+    exact_storage.seed(
+        0, encoded_checkpoint(checkpoint(guard, 5)));
+    UpdateCheckpointStore exact_store{exact_storage};
+    UpdateBootGuard exact_restore{};
+    EXPECT(exact_restore.start(policy()) == UpdateGuardError::none);
+    const auto exact = exact_store.restore_at_or_above(exact_restore, 5);
+    EXPECT(exact.restored);
+    EXPECT(exact.generation == 5);
+    EXPECT(exact_restore.status().state == UpdateState::pending_reboot);
+
+    FakeUpdateStorage newer_storage{};
+    newer_storage.seed(
+        1, encoded_checkpoint(checkpoint(guard, 6)));
+    UpdateCheckpointStore newer_store{newer_storage};
+    UpdateBootGuard newer_restore{};
+    EXPECT(newer_restore.start(policy()) == UpdateGuardError::none);
+    const auto newer = newer_store.restore_at_or_above(newer_restore, 5);
+    EXPECT(newer.restored);
+    EXPECT(newer.generation == 6);
+    EXPECT(newer.source == UpdateCheckpointSource::slot_b);
+}
+
+void test_empty_save_advances_beyond_trusted_generation() {
+    FakeUpdateStorage storage{};
+    UpdateCheckpointStore store{storage};
+    const auto guard = pending_guard();
+
+    const auto saved = store.save_next_after(guard, 7);
+    EXPECT(saved.saved());
+    EXPECT(saved.generation == 8);
+    EXPECT(saved.written_slot == UpdateCheckpointSource::slot_a);
+
+    UpdateBootGuard restored{};
+    EXPECT(restored.start(policy()) == UpdateGuardError::none);
+    const auto loaded = store.restore_at_or_above(restored, 7);
+    EXPECT(loaded.restored);
+    EXPECT(loaded.generation == 8);
+}
+
+void test_save_advances_beyond_greater_generation() {
+    const auto guard = pending_guard();
+
+    FakeUpdateStorage local_newer_storage{};
+    local_newer_storage.seed(
+        0, encoded_checkpoint(checkpoint(guard, 8)));
+    UpdateCheckpointStore local_newer_store{local_newer_storage};
+    const auto local_newer = local_newer_store.save_next_after(guard, 3);
+    EXPECT(local_newer.saved());
+    EXPECT(local_newer.generation == 9);
+
+    FakeUpdateStorage trust_newer_storage{};
+    trust_newer_storage.seed(
+        0, encoded_checkpoint(checkpoint(guard, 3)));
+    UpdateCheckpointStore trust_newer_store{trust_newer_storage};
+    const auto trust_newer = trust_newer_store.save_next_after(guard, 8);
+    EXPECT(trust_newer.saved());
+    EXPECT(trust_newer.generation == 9);
+    EXPECT(trust_newer.written_slot == UpdateCheckpointSource::slot_b);
+
+    UpdateBootGuard restored{};
+    EXPECT(restored.start(policy()) == UpdateGuardError::none);
+    const auto loaded =
+        trust_newer_store.restore_at_or_above(restored, 8);
+    EXPECT(loaded.restored);
+    EXPECT(loaded.generation == 9);
+}
+
+void test_trusted_generation_exhaustion_prevents_write() {
+    FakeUpdateStorage storage{};
+    UpdateCheckpointStore store{storage};
+    const auto guard = pending_guard();
+
+    const auto saved = store.save_next_after(
+        guard, std::numeric_limits<std::uint64_t>::max());
+    EXPECT(saved.error == UpdateCheckpointStoreError::generation_exhausted);
+    EXPECT(saved.written_slot == UpdateCheckpointSource::none);
+    EXPECT(!saved.commit_uncertain);
+    EXPECT(!storage.present[0]);
+    EXPECT(!storage.present[1]);
+}
+
 void test_reset_and_nonpersistent_guard_rejection() {
     FakeUpdateStorage storage{};
     UpdateCheckpointStore store{storage};
@@ -357,6 +475,12 @@ int main() {
     test_equal_generation_conflict_fails_closed();
     test_policy_mismatch_rejects_without_live_mutation();
     test_generation_exhaustion_prevents_write();
+    test_missing_checkpoint_below_trusted_floor();
+    test_rollback_checkpoint_below_trusted_floor();
+    test_floor_boundary_and_newer_generation_restore();
+    test_empty_save_advances_beyond_trusted_generation();
+    test_save_advances_beyond_greater_generation();
+    test_trusted_generation_exhaustion_prevents_write();
     test_reset_and_nonpersistent_guard_rejection();
 
     if (failures != 0) {
@@ -364,6 +488,6 @@ int main() {
             " update checkpoint store assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 10 update checkpoint store scenario groups\n";
+    std::cout << "PASS: 16 update checkpoint store scenario groups\n";
     return EXIT_SUCCESS;
 }

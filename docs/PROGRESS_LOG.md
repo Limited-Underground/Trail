@@ -4,6 +4,21 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-11
+
+### Trusted update-generation boundary
+
+- Added an explicit trusted-floor restore path that rejects missing or stale-
+  but-valid `OTU0` media before any live boot-guard mutation.
+- Added save allocation beyond the greater of the newest local checkpoint and
+  caller-supplied last-trusted generation, including fail-closed 64-bit
+  exhaustion before export or write.
+- Covered absent, rollback, exact-boundary, newer, local-ahead, trust-ahead,
+  and exhausted cases. All 16 checkpoint-store groups pass in the complete
+  host matrix and across 100 focused repeats.
+- Kept the security claim bounded: OpenTrail consumes but does not yet provide
+  a hardware-backed trusted source or authenticated target checkpoint store.
+
 ## 2026-08-10
 
 ### Canonical update-state checkpoint

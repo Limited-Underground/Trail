@@ -1,8 +1,9 @@
 # Recoverable update checkpoint store v0
 
-Status: abstract two-slot host composition with deterministic fault injection.
-No ESP-IDF/NVS/partition adapter, authenticated integrity, protected generation
-floor, physical interruption, or endurance evidence exists.
+Status: abstract two-slot host composition with deterministic fault injection
+and a caller-supplied trusted-generation contract. No ESP-IDF/NVS/partition
+adapter, hardware-backed trusted source, authenticated integrity, physical
+interruption, or endurance evidence exists.
 
 ## Purpose
 
@@ -17,8 +18,10 @@ slots.
 2. Fail closed if either read fails, or equal generations contain different
    valid bytes.
 3. Select the newest unique valid record.
-4. Allocate generation 1 on empty media, otherwise newest plus one; refuse
-   64-bit exhaustion before export or write.
+4. Normal `save` allocates generation 1 on empty media, otherwise newest plus
+   one. `save_next_after` instead allocates one beyond the greater of newest
+   local and last-trusted generation. Both refuse 64-bit exhaustion before
+   export or write.
 5. Ask the running guard to export its current persistent lifecycle state with
    that generation.
 6. Write an empty/invalid peer slot, or the slot opposite the newest record.
@@ -41,19 +44,28 @@ slots. The store never overwrites the sole valid record during that attempt.
   and
 - policy/hardware/version rejection by the guard: no live mutation.
 
+The explicit `restore_at_or_above` path additionally rejects missing media or a
+newest valid checkpoint below the caller-supplied trusted minimum before guard
+restore. Exact or newer generations continue through normal validation. See the
+[trusted-generation contract](UPDATE_TRUSTED_GENERATION_FLOOR_V0.md).
+
 After a degraded restore, a later save targets the missing/invalid peer and
 reports that it repaired the redundant copy. Reset requires both abstract slot
 erases to succeed.
 
 ## Evidence and limitations
 
-Ten deterministic groups plus 100 focused repeats cover empty/first save,
+Sixteen deterministic groups plus 100 focused repeats cover empty/first save,
 rotation/newest selection, partial-write preservation, corrupt-readback
 preservation, invalid-peer repair, unreadable-slot fail-close, equal-generation
 conflict, atomic policy rejection, generation exhaustion, reset, and rejection
-of nonpersistent guard state. The complete OpenTrail host matrix passes.
+of nonpersistent guard state, plus missing/stale trusted-floor rejection,
+boundary acceptance, allocation beyond local/trusted state, and trusted-floor
+exhaustion. The complete OpenTrail host matrix passes.
 
 The slot interface does not define flash erase, atomic program units, sync,
 wear leveling, namespace protection, encryption, anti-rollback, or commit
 markers. The target adapter must define and physically test those properties.
-CRC remains accidental-corruption evidence only.
+The caller-supplied floor does not make its source protected and cannot prevent
+forged newer state without authenticated checkpoint integrity. CRC remains
+accidental-corruption evidence only.

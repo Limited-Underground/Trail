@@ -88,6 +88,12 @@ UpdateCheckpointStore::UpdateCheckpointStore(
 
 UpdateCheckpointLoadResult UpdateCheckpointStore::restore(
     UpdateBootGuard& guard) {
+    return restore_at_or_above(guard, 0);
+}
+
+UpdateCheckpointLoadResult UpdateCheckpointStore::restore_at_or_above(
+    UpdateBootGuard& guard,
+    std::uint64_t trusted_minimum_generation) {
     UpdateCheckpointLoadResult result{};
     const auto a = inspect_slot(storage_, 0);
     const auto b = inspect_slot(storage_, 1);
@@ -112,16 +118,28 @@ UpdateCheckpointLoadResult UpdateCheckpointStore::restore(
         const bool any_invalid =
             a.state == UpdateCheckpointSlotState::invalid ||
             b.state == UpdateCheckpointSlotState::invalid;
-        result.error = any_invalid
-                           ? UpdateCheckpointStoreError::invalid_state
-                           : UpdateCheckpointStoreError::no_checkpoint;
+        if (any_invalid) {
+            result.error = UpdateCheckpointStoreError::invalid_state;
+        } else if (trusted_minimum_generation != 0) {
+            result.error =
+                UpdateCheckpointStoreError::generation_below_floor;
+        } else {
+            result.error = UpdateCheckpointStoreError::no_checkpoint;
+        }
         result.codec_error = first_codec_error(a, b);
-        result.recovery_required = any_invalid;
+        result.recovery_required =
+            any_invalid || trusted_minimum_generation != 0;
         return result;
     }
 
     result.source = source_for_slot(selected_slot);
     result.generation = selected->checkpoint.generation;
+    if (result.generation < trusted_minimum_generation) {
+        result.error =
+            UpdateCheckpointStoreError::generation_below_floor;
+        result.recovery_required = true;
+        return result;
+    }
     result.recovery_required =
         a.state != UpdateCheckpointSlotState::valid ||
         b.state != UpdateCheckpointSlotState::valid;
@@ -138,6 +156,12 @@ UpdateCheckpointLoadResult UpdateCheckpointStore::restore(
 
 UpdateCheckpointSaveResult UpdateCheckpointStore::save(
     const UpdateBootGuard& guard) {
+    return save_next_after(guard, 0);
+}
+
+UpdateCheckpointSaveResult UpdateCheckpointStore::save_next_after(
+    const UpdateBootGuard& guard,
+    std::uint64_t last_trusted_generation) {
     UpdateCheckpointSaveResult result{};
     const auto a = inspect_slot(storage_, 0);
     const auto b = inspect_slot(storage_, 1);
@@ -165,15 +189,16 @@ UpdateCheckpointSaveResult UpdateCheckpointStore::save(
         return result;
     }
 
-    std::uint64_t next_generation = 1;
-    if (current != nullptr) {
-        if (current->checkpoint.generation ==
-            std::numeric_limits<std::uint64_t>::max()) {
-            result.error = UpdateCheckpointStoreError::generation_exhausted;
-            return result;
-        }
-        next_generation = current->checkpoint.generation + 1;
+    std::uint64_t generation_base = last_trusted_generation;
+    if (current != nullptr &&
+        current->checkpoint.generation > generation_base) {
+        generation_base = current->checkpoint.generation;
     }
+    if (generation_base == std::numeric_limits<std::uint64_t>::max()) {
+        result.error = UpdateCheckpointStoreError::generation_exhausted;
+        return result;
+    }
+    const auto next_generation = generation_base + 1;
 
     UpdateGuardCheckpoint checkpoint{};
     result.guard_error = guard.export_checkpoint(

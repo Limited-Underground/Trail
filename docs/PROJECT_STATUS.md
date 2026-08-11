@@ -299,10 +299,12 @@ not treated as proof of authorization.
   clears boot-local health, time, and session evidence. An abstract two-slot
   store now owns normal generation allocation, preserves prior-good state
   across partial/corrupt writes, verifies readback, repairs a known invalid
-  peer, and fails closed on unreadable/conflicted state across ten groups plus
-  100 repeats. No target partition table, signer, updater adapter,
-  authenticated target storage, protected generation floor, or physical
-  interruption/recovery evidence exists.
+  peer, and fails closed on unreadable/conflicted state. A caller-supplied
+  trusted-generation contract rejects missing/stale generations before live
+  restore and allocates beyond the greater local/trusted value. All 16 store
+  groups plus 100 focused repeats pass. No target partition table, signer,
+  updater adapter, authenticated target storage, hardware-backed trusted
+  generation source, or physical interruption/recovery evidence exists.
 
 ### Maps and interface
 

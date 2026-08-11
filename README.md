@@ -92,9 +92,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   boot to re-prove health. Its [two-slot host store](docs/update/UPDATE_CHECKPOINT_STORE_V0.md)
   owns generation allocation, preserves prior-good state across partial/corrupt
   writes, verifies readback, repairs known degradation, and fails closed on an
-  unreadable or conflicted slot across ten groups. No target updater,
-  authenticated store, protected generation floor, or physical interruption/
-  recovery result exists.
+  unreadable or conflicted slot. Its explicit [trusted-generation
+  contract](docs/update/UPDATE_TRUSTED_GENERATION_FLOOR_V0.md) rejects missing
+  or stale checkpoints before live restore and saves beyond the greater local/
+  trusted generation. All 16 store groups plus 100 focused repeats pass. No
+  target updater, authenticated store, hardware-backed trusted source, or
+  physical interruption/recovery result exists.
 - **Security overhead is now visible before wire freeze:** a bounded
   [protected-packet budget](docs/protocol/PROTECTED_PACKET_BUDGET_V0.md) charges
   every candidate frame a corrected 44-byte authenticated header and 16-byte

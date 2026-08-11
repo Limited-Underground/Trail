@@ -49,6 +49,7 @@ enum class UpdateCheckpointStoreError : std::uint8_t {
     storage_failure,
     verification_failure,
     checkpoint_rejected,
+    generation_below_floor,
 };
 
 enum class UpdateCheckpointSource : std::uint8_t {
@@ -95,8 +96,14 @@ public:
 
     [[nodiscard]] UpdateCheckpointLoadResult restore(
         UpdateBootGuard& guard);
+    [[nodiscard]] UpdateCheckpointLoadResult restore_at_or_above(
+        UpdateBootGuard& guard,
+        std::uint64_t trusted_minimum_generation);
     [[nodiscard]] UpdateCheckpointSaveResult save(
         const UpdateBootGuard& guard);
+    [[nodiscard]] UpdateCheckpointSaveResult save_next_after(
+        const UpdateBootGuard& guard,
+        std::uint64_t last_trusted_generation);
     [[nodiscard]] UpdateCheckpointStoreError reset();
 
 private:

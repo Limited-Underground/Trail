@@ -26,8 +26,12 @@ The abstract [two-slot store](UPDATE_CHECKPOINT_STORE_V0.md) then owns normal
 generation allocation, preserves the newest unique valid record across partial
 or corrupt writes, readback-verifies every successful save, repairs a known
 invalid peer, and fails closed when an unreadable slot could conceal newer
-state. Ten groups plus 100 focused repeats pass. Target atomicity, authenticated
-integrity, trusted rollback protection, wear, and physical power cuts remain.
+state. Its caller-supplied [trusted-generation
+contract](UPDATE_TRUSTED_GENERATION_FLOOR_V0.md) also rejects missing or stale
+checkpoint generations before live restore and allocates beyond both local and
+trusted state. Sixteen store groups plus 100 focused repeats pass. Target
+atomicity, authenticated integrity, a hardware-backed trusted source, wear, and
+physical power cuts remain.
 
 ## Safety objective
 
@@ -96,8 +100,9 @@ floor.
 The canonical host checkpoint fixes the trial record shape, confirmed
 slot/version binding, boot-attempt count, policy, and generation. It still needs
 authenticated, interruption-safe target storage and a separately protected
-trusted generation floor. CRC alone is insufficient against deliberate
-rollback.
+trusted generation source. The host store can enforce a supplied floor but does
+not protect, advance, or reset that source. CRC alone is insufficient against
+deliberate rollback or forged newer state.
 
 ## Recovery paths
 
