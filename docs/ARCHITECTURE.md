@@ -174,7 +174,10 @@ reason, and presentation/change/containment flags. Idle polls are suppressed;
 revisions, timestamps, runtime counters, coordinates, packet/message content,
 identity, addresses, credentials, and free text are not event fields. This
 does not select target retention, persistence, export, or physical service
-workflow.
+workflow. A separate host-only operator decoder accepts exactly the canonical
+uppercase `OTPD0=XXXXXXXX` record, reruns the binary word validation, and emits
+stable names for the coarse v0 fields. It performs no device, network, file,
+retention, or export work and does not make target logging operational.
 
 Target-facing position presentation must combine scheduler state with the
 outbound coordinator status. A coherent latched clock rollback/source failure

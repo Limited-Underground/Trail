@@ -74,7 +74,7 @@ Ten deterministic groups cover:
 10. checked local-interface resolution followed by an exact action-time sample.
 
 The command and safety executables each pass 100/100 focused repeats. The
-complete 56-executable OpenTrail host matrix plus all Python and
+complete 57-executable OpenTrail host matrix plus all Python and
 publication-safety checks pass.
 
 The [position-sharing UI coordinator](POSITION_SHARING_UI_COORDINATOR_V0.md)

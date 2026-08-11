@@ -646,6 +646,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'position-sharing UI diagnostic operator decoding'
+        Output = Join-Path $buildDirectory 'position_sharing_ui_diagnostic_operator_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\position_sharing_ui_diagnostics.cpp'),
+            (Join-Path $projectRoot 'tests\host\position_sharing_ui_diagnostic_operator_tests.cpp')
+        )
+    },
+    @{
         Name = 'semantic update recovery presentation'
         Output = Join-Path $buildDirectory 'update_recovery_presentation_tests.exe'
         Sources = @(
@@ -703,6 +711,15 @@ $builds = @(
             (Join-Path $projectRoot 'tools\GroupLoadCli.cpp')
         )
         Run = $false
+    },
+    @{
+        Name = 'position-sharing UI diagnostic CLI'
+        Output = Join-Path $buildDirectory 'position_sharing_ui_diagnostic_cli.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\position_sharing_ui_diagnostics.cpp'),
+            (Join-Path $projectRoot 'tools\PositionSharingUiDiagnosticCli.cpp')
+        )
+        Run = $false
     }
 )
 
@@ -718,6 +735,21 @@ foreach ($build in $builds) {
             throw "$($build.Name) tests failed with exit code $LASTEXITCODE."
         }
     }
+}
+
+$diagnosticCli = Join-Path $buildDirectory 'position_sharing_ui_diagnostic_cli.exe'
+$diagnosticOutput = & $diagnosticCli 'OTPD0=C0012040' 2>&1
+if ($LASTEXITCODE -ne 0 -or
+    $diagnosticOutput -ne 'event=presentation outcome=succeeded notice=stopped reason=none frame_presented=1 state_changed=0 sharing_contained=0 sensitive_detail_redacted=1') {
+    throw 'Position-sharing UI diagnostic CLI canonical smoke test failed.'
+}
+$invalidDiagnosticOutput = & $diagnosticCli 'OTPD0=c0012040' 2>&1
+$invalidDiagnosticText = @(
+    $invalidDiagnosticOutput | ForEach-Object { $_.ToString() }
+) -join "`n"
+if ($LASTEXITCODE -eq 0 -or
+    $invalidDiagnosticText -ne 'OTPD0 decode failed: invalid_message') {
+    throw 'Position-sharing UI diagnostic CLI invalid-input smoke test failed.'
 }
 
 $python = Get-Command python -ErrorAction SilentlyContinue

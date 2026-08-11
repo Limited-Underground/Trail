@@ -80,7 +80,11 @@ diagnostic and fixed public logger message. It retains only coarse event,
 outcome, displayed position notice, reason, and safety flags; idle polls are
 suppressed and identifier/location/runtime detail is structurally absent. Ten
 groups plus 100 repeats pass. Target log binding, retention/export/clear policy,
-persistence, operator tooling, and physical service capture remain absent.
+persistence, and physical service capture remain absent. A separate host-only
+CLI accepts exactly the canonical uppercase logger record, revalidates the
+complete word shape, and emits stable operator category names. It does not
+read a device, log, file, or network service and does not establish an export
+workflow.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -304,12 +308,13 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 56 C++ executables plus the Python
+  four verifier/planning/operator CLIs and runs all 57 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
   handoff, checked-time outbound service coordination, fail-visible outbound
   position safety, checked-time position commands, single-owner position UI,
+  privacy-safe position UI diagnostics and strict offline operator decoding,
   portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
   physical MeshCore,
@@ -397,7 +402,7 @@ not treated as proof of authorization.
   flags. Hardware/candidate identity, checkpoint payloads, raw adapter errors,
   and nested results are absent; unknown or contradictory input blocks normal
   operation as service-required. Eight groups plus 100 repeats pass in the
-  complete 56-executable matrix. A versioned `OTRD0` adapter now records one
+  complete 57-executable matrix. A versioned `OTRD0` adapter now records one
   coherent status through the existing logger as one fixed hexadecimal 32-bit
   word. Generations and identity-bearing detail are omitted; magic, version,
   reserved bits, enums, flags, and state/action/reason coherence fail closed.

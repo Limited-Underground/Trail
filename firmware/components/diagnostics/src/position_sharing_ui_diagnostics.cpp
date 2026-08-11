@@ -484,6 +484,149 @@ decode_position_sharing_ui_diagnostic(std::uint32_t word) {
     return {PositionSharingUiDiagnosticError::none, diagnostic};
 }
 
+PositionSharingUiDiagnosticMessageResult
+parse_position_sharing_ui_diagnostic_message(std::string_view message) {
+    constexpr std::string_view prefix{"OTPD0="};
+    if (message.size() != kPositionSharingUiDiagnosticMessageBytes ||
+        message.substr(0, prefix.size()) != prefix) {
+        return {};
+    }
+
+    std::uint32_t word = 0;
+    for (std::size_t index = prefix.size(); index < message.size(); ++index) {
+        const char character = message[index];
+        std::uint32_t nibble = 0;
+        if (character >= '0' && character <= '9') {
+            nibble = static_cast<std::uint32_t>(character - '0');
+        } else if (character >= 'A' && character <= 'F') {
+            nibble = static_cast<std::uint32_t>(character - 'A' + 10);
+        } else {
+            return {};
+        }
+        word = (word << 4U) | nibble;
+    }
+
+    const auto decoded = decode_position_sharing_ui_diagnostic(word);
+    if (!decoded.decoded()) {
+        return {decoded.error, word};
+    }
+    return {
+        PositionSharingUiDiagnosticError::none,
+        word,
+        decoded.diagnostic,
+    };
+}
+
+std::string_view position_sharing_ui_diagnostic_error_name(
+    PositionSharingUiDiagnosticError error) {
+    using Error = PositionSharingUiDiagnosticError;
+    switch (error) {
+        case Error::none:
+            return "none";
+        case Error::no_event:
+            return "no_event";
+        case Error::invalid_result:
+            return "invalid_result";
+        case Error::invalid_word:
+            return "invalid_word";
+        case Error::unsupported_version:
+            return "unsupported_version";
+        case Error::invalid_message:
+            return "invalid_message";
+    }
+    return "unknown";
+}
+
+std::string_view position_sharing_ui_diagnostic_event_name(
+    PositionSharingUiDiagnosticEvent event) {
+    using Event = PositionSharingUiDiagnosticEvent;
+    switch (event) {
+        case Event::presentation:
+            return "presentation";
+        case Event::state_refresh:
+            return "state_refresh";
+        case Event::action:
+            return "action";
+        case Event::input:
+            return "input";
+        case Event::failure:
+            return "failure";
+    }
+    return "unknown";
+}
+
+std::string_view position_sharing_ui_diagnostic_outcome_name(
+    PositionSharingUiDiagnosticOutcome outcome) {
+    using Outcome = PositionSharingUiDiagnosticOutcome;
+    switch (outcome) {
+        case Outcome::succeeded:
+            return "succeeded";
+        case Outcome::deferred:
+            return "deferred";
+        case Outcome::rejected:
+            return "rejected";
+        case Outcome::contained:
+            return "contained";
+        case Outcome::failed:
+            return "failed";
+    }
+    return "unknown";
+}
+
+std::string_view position_sharing_ui_diagnostic_notice_name(
+    PositionSharingUiDiagnosticNotice notice) {
+    using Notice = PositionSharingUiDiagnosticNotice;
+    switch (notice) {
+        case Notice::none:
+            return "none";
+        case Notice::stopped:
+            return "stopped";
+        case Notice::active:
+            return "active";
+        case Notice::waiting_for_fix:
+            return "waiting_for_fix";
+        case Notice::deferred:
+            return "deferred";
+        case Notice::failed:
+            return "failed";
+    }
+    return "unknown";
+}
+
+std::string_view position_sharing_ui_diagnostic_reason_name(
+    PositionSharingUiDiagnosticReason reason) {
+    using Reason = PositionSharingUiDiagnosticReason;
+    switch (reason) {
+        case Reason::none:
+            return "none";
+        case Reason::clock_not_ready:
+            return "clock_not_ready";
+        case Reason::outbound_faulted:
+            return "outbound_faulted";
+        case Reason::stale_input:
+            return "stale_input";
+        case Reason::invalid_input:
+            return "invalid_input";
+        case Reason::input_source_failed:
+            return "input_source_failed";
+        case Reason::display_not_ready:
+            return "display_not_ready";
+        case Reason::display_failed:
+            return "display_failed";
+        case Reason::revision_exhausted:
+            return "revision_exhausted";
+        case Reason::presentation_unavailable:
+            return "presentation_unavailable";
+        case Reason::command_rejected:
+            return "command_rejected";
+        case Reason::invalid_initial_revision:
+            return "invalid_initial_revision";
+        case Reason::refresh_contained:
+            return "refresh_contained";
+    }
+    return "unknown";
+}
+
 namespace detail {
 
 LogLevel position_sharing_ui_diagnostic_level(

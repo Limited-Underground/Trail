@@ -1,7 +1,8 @@
 # Position-Sharing UI Diagnostic Event v0
 
-Status: **host-tested fixed public event; no target log binding, retention,
-export, persistence, operator workflow, or physical service claim**
+Status: **host-tested fixed public event with a separate strict offline
+decoder; no target log binding, retention, export, persistence, or physical
+service claim**
 
 ## Purpose
 
@@ -94,8 +95,13 @@ Ten deterministic groups cover:
 9. filtering, sink rejection, and idle suppression; and
 10. malformed words, incoherent results, fixed size, and excluded fields.
 
-The focused executable passes 100/100 repeats. The complete 56-executable
+The focused executable passes 100/100 repeats. The complete 57-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
+
+The separate
+[strict offline decoder](POSITION_SHARING_UI_DIAGNOSTIC_CLI_V0.md) accepts only
+the canonical uppercase logger message and preserves these versioned category
+names. Its ten operator groups and canonical/invalid CLI smoke checks also pass.
 
 ## Remaining gates
 
@@ -103,7 +109,6 @@ OpenTrail host matrix plus all Python and publication-safety checks pass.
   clock read or leaking source detail;
 - select RAM retention, overwrite, clear, export, and optional persistence
   policy with explicit privacy controls;
-- build an operator decoder/tool that preserves the versioned categories;
 - test sink pressure, restart, low power, long sessions, and service capture on
   exact hardware; and
 - decide whether any field artifact may include these public events and under

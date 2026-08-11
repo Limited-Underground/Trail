@@ -19,6 +19,7 @@ enum class PositionSharingUiDiagnosticError : std::uint8_t {
     invalid_result,
     invalid_word,
     unsupported_version,
+    invalid_message,
 };
 
 enum class PositionSharingUiDiagnosticEvent : std::uint8_t {
@@ -103,6 +104,17 @@ struct PositionSharingUiDiagnosticDecodeResult {
     }
 };
 
+struct PositionSharingUiDiagnosticMessageResult {
+    PositionSharingUiDiagnosticError error{
+        PositionSharingUiDiagnosticError::invalid_message};
+    std::uint32_t word{0};
+    PositionSharingUiDiagnostic diagnostic{};
+
+    [[nodiscard]] constexpr bool parsed() const {
+        return error == PositionSharingUiDiagnosticError::none;
+    }
+};
+
 struct PositionSharingUiDiagnosticRecordResult {
     PositionSharingUiDiagnosticError error{
         PositionSharingUiDiagnosticError::invalid_result};
@@ -132,6 +144,25 @@ encode_position_sharing_ui_diagnostic(
 
 [[nodiscard]] PositionSharingUiDiagnosticDecodeResult
 decode_position_sharing_ui_diagnostic(std::uint32_t word);
+
+// Accepts only the canonical public logger message: "OTPD0=" followed by
+// exactly eight uppercase hexadecimal digits. The decoded event is validated
+// with the same fail-closed rules as a binary word.
+[[nodiscard]] PositionSharingUiDiagnosticMessageResult
+parse_position_sharing_ui_diagnostic_message(std::string_view message);
+
+// Stable operator-facing category names. Unknown enum values are rendered as
+// "unknown" for defensive display; the strict parser never returns them.
+[[nodiscard]] std::string_view position_sharing_ui_diagnostic_error_name(
+    PositionSharingUiDiagnosticError error);
+[[nodiscard]] std::string_view position_sharing_ui_diagnostic_event_name(
+    PositionSharingUiDiagnosticEvent event);
+[[nodiscard]] std::string_view position_sharing_ui_diagnostic_outcome_name(
+    PositionSharingUiDiagnosticOutcome outcome);
+[[nodiscard]] std::string_view position_sharing_ui_diagnostic_notice_name(
+    PositionSharingUiDiagnosticNotice notice);
+[[nodiscard]] std::string_view position_sharing_ui_diagnostic_reason_name(
+    PositionSharingUiDiagnosticReason reason);
 
 namespace detail {
 
