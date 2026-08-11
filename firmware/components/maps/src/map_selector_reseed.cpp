@@ -91,7 +91,8 @@ MapSelectorReseedCoordinator::MapSelectorReseedCoordinator(
 MapSelectorReseedResult MapSelectorReseedCoordinator::reseed(
     MapActivationGuard& live_guard,
     const MapSelectorReseedContext& context,
-    const MapPackageEvidence& baseline) {
+    const MapPackageEvidence& baseline,
+    MapSelectorReseedPermit& permit) {
     MapSelectorReseedResult result{};
     const auto before = live_guard.status();
     result.before_state = before.state;
@@ -101,7 +102,43 @@ MapSelectorReseedResult MapSelectorReseedCoordinator::reseed(
     result.map_exposure_allowed = before.map_available;
     result.live_guard_mapless = before.state == MapActivationState::mapless;
 
-    if (!context.authorization.complete()) {
+    const MapSelectorReseedAuthorizationBinding authorization_binding{
+        context.policy, context.trusted_minimum_generation, baseline};
+    const auto permit_use = permit.consume(
+        authorization_binding,
+        context.boot_session_id,
+        context.authorization_use_time_ms);
+    result.authorization_consumed =
+        permit_use != MapSelectorReseedPermitUse::unavailable &&
+        permit_use != MapSelectorReseedPermitUse::already_consumed;
+    if (permit_use != MapSelectorReseedPermitUse::none) {
+        switch (permit_use) {
+            case MapSelectorReseedPermitUse::already_consumed:
+                result.reason = MapSelectorReseedReason::
+                    authorization_already_consumed;
+                break;
+            case MapSelectorReseedPermitUse::binding_mismatch:
+                result.reason = MapSelectorReseedReason::
+                    authorization_binding_mismatch;
+                break;
+            case MapSelectorReseedPermitUse::boot_session_mismatch:
+                result.reason = MapSelectorReseedReason::
+                    authorization_boot_session_mismatch;
+                break;
+            case MapSelectorReseedPermitUse::not_yet_valid:
+                result.reason = MapSelectorReseedReason::
+                    authorization_not_yet_valid;
+                break;
+            case MapSelectorReseedPermitUse::expired:
+                result.reason =
+                    MapSelectorReseedReason::authorization_expired;
+                break;
+            case MapSelectorReseedPermitUse::unavailable:
+            case MapSelectorReseedPermitUse::none:
+                result.reason =
+                    MapSelectorReseedReason::authorization_required;
+                break;
+        }
         return result;
     }
     if (!before.running) {

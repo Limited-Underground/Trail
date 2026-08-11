@@ -183,39 +183,118 @@ std::array<std::uint8_t, kMapSelectorCheckpointBytes> encode_guard(
     return bytes;
 }
 
-MapSelectorReseedAuthorizationEvidence authorization() {
-    return {true, true, true, true, true};
-}
-
 MapSelectorReseedContext context(
     std::uint64_t trusted_minimum_generation = 0) {
-    return {policy(), trusted_minimum_generation, authorization()};
+    return {policy(), trusted_minimum_generation, 73, 150};
 }
 
-void test_every_authorization_acknowledgement_is_required() {
-    std::array<MapSelectorReseedAuthorizationEvidence, 5> incomplete{};
-    incomplete.fill(authorization());
-    incomplete[0].explicit_operator_confirmation = false;
-    incomplete[1].map_unavailability_acknowledged = false;
-    incomplete[2].selector_only_scope_confirmed = false;
-    incomplete[3].package_retention_confirmed = false;
-    incomplete[4].trusted_generation_reviewed = false;
+class PermitBackend final : public MapSelectorReseedAuthorizationBackend {
+public:
+    explicit PermitBackend(MapSelectorReseedAuthorizationGrant grant)
+        : grant_(grant) {}
 
-    for (const auto& evidence : incomplete) {
-        auto live = mapless_guard();
-        FakeStorage storage{};
-        MapSelectorStore store{storage};
-        MapSelectorReseedCoordinator coordinator{store};
-        auto ctx = context(4);
-        ctx.authorization = evidence;
-        const auto result = coordinator.reseed(live, ctx, package());
-        EXPECT(result.state == MapSelectorReseedState::rejected);
-        EXPECT(result.reason ==
-               MapSelectorReseedReason::authorization_required);
-        EXPECT(storage.read_calls == 0);
-        EXPECT(storage.erase_calls == 0);
-        EXPECT(storage.write_calls == 0);
+    MapSelectorReseedAuthorizationGrant verify_and_consume(
+        std::uint64_t,
+        const MapSelectorReseedAuthorizationBinding&) override {
+        return grant_;
     }
+
+private:
+    MapSelectorReseedAuthorizationGrant grant_{};
+};
+
+MapSelectorReseedAuthorizationBinding authorization_binding(
+    const MapSelectorReseedContext& ctx,
+    const MapPackageEvidence& baseline) {
+    return {ctx.policy, ctx.trusted_minimum_generation, baseline};
+}
+
+MapSelectorReseedPermit permit_for(
+    const MapSelectorReseedContext& ctx,
+    const MapPackageEvidence& baseline,
+    bool expect_authorized = true) {
+    const auto binding = authorization_binding(ctx, baseline);
+    const MapSelectorReseedAuthorizationGrant grant{
+        MapSelectorReseedAuthorizationBackendState::authorized,
+        MapSelectorReseedAuthorizationScope::selector_reseed,
+        MapSelectorReseedServiceTransport::local_usb,
+        41,
+        73,
+        100,
+        200,
+        9,
+        binding,
+        {true, true, true, true, true}};
+    PermitBackend backend{grant};
+    MapSelectorReseedAuthorizer authorizer{backend};
+    MapSelectorReseedPermit permit{};
+    const auto result = authorizer.authorize(
+        {100}, {41, 73, 150}, binding, permit);
+    EXPECT(result.authorized() == expect_authorized);
+    EXPECT(permit.available() == expect_authorized);
+    return permit;
+}
+
+MapSelectorReseedResult authorized_reseed(
+    MapSelectorReseedCoordinator& coordinator,
+    MapActivationGuard& live,
+    const MapSelectorReseedContext& ctx,
+    const MapPackageEvidence& baseline,
+    bool expect_authorized = true) {
+    auto permit = permit_for(ctx, baseline, expect_authorized);
+    return coordinator.reseed(live, ctx, baseline, permit);
+}
+
+void test_permit_is_required_exact_bound_and_single_use() {
+    auto live = mapless_guard();
+    FakeStorage storage{};
+    MapSelectorStore store{storage};
+    MapSelectorReseedCoordinator coordinator{store};
+    MapSelectorReseedPermit missing{};
+    const auto missing_result =
+        coordinator.reseed(live, context(4), package(), missing);
+    EXPECT(missing_result.reason ==
+           MapSelectorReseedReason::authorization_required);
+    EXPECT(!missing_result.authorization_consumed);
+
+    const auto original = context(4);
+    auto permit = permit_for(original, package());
+    const auto mismatched =
+        coordinator.reseed(live, context(5), package(), permit);
+    EXPECT(mismatched.reason ==
+           MapSelectorReseedReason::authorization_binding_mismatch);
+    EXPECT(mismatched.authorization_consumed);
+    EXPECT(!permit.available());
+
+    const auto replayed =
+        coordinator.reseed(live, original, package(), permit);
+    EXPECT(replayed.reason ==
+           MapSelectorReseedReason::authorization_already_consumed);
+    EXPECT(storage.read_calls == 0);
+    EXPECT(storage.erase_calls == 0);
+    EXPECT(storage.write_calls == 0);
+
+    auto wrong_boot_permit = permit_for(original, package());
+    auto wrong_boot = original;
+    wrong_boot.boot_session_id = 74;
+    EXPECT(coordinator.reseed(
+               live, wrong_boot, package(), wrong_boot_permit)
+               .reason == MapSelectorReseedReason::
+                              authorization_boot_session_mismatch);
+
+    auto early_permit = permit_for(original, package());
+    auto early = original;
+    early.authorization_use_time_ms = 99;
+    EXPECT(coordinator.reseed(live, early, package(), early_permit).reason ==
+           MapSelectorReseedReason::authorization_not_yet_valid);
+
+    auto expired_permit = permit_for(original, package());
+    auto expired = original;
+    expired.authorization_use_time_ms = 200;
+    EXPECT(coordinator.reseed(
+               live, expired, package(), expired_permit)
+               .reason == MapSelectorReseedReason::authorization_expired);
+    EXPECT(storage.read_calls == 0);
 }
 
 void test_only_running_mapless_service_owner_can_reseed() {
@@ -226,8 +305,8 @@ void test_only_running_mapless_service_owner_can_reseed() {
         FakeStorage storage{};
         MapSelectorStore store{storage};
         MapSelectorReseedCoordinator coordinator{store};
-        const auto result = coordinator.reseed(
-            *guard, context(4), package());
+        const auto result = authorized_reseed(
+            coordinator, *guard, context(4), package());
         EXPECT(result.state == MapSelectorReseedState::rejected);
         EXPECT(result.reason ==
                (guard == &stopped
@@ -243,7 +322,8 @@ void test_clean_first_use_is_routed_to_baseline_coordinator() {
     FakeStorage storage{};
     MapSelectorStore store{storage};
     MapSelectorReseedCoordinator coordinator{store};
-    const auto result = coordinator.reseed(live, context(), package());
+    const auto result =
+        authorized_reseed(coordinator, live, context(), package());
     EXPECT(result.state == MapSelectorReseedState::rejected);
     EXPECT(result.reason ==
            MapSelectorReseedReason::first_use_requires_baseline);
@@ -258,8 +338,13 @@ void test_valid_selector_reseeds_above_observed_generation() {
     storage.seed(0, encode_guard(active_guard(), 5));
     MapSelectorStore store{storage};
     MapSelectorReseedCoordinator coordinator{store};
-    const auto result = coordinator.reseed(live, context(3), package());
+    const auto ctx = context(3);
+    const auto baseline = package();
+    auto permit = permit_for(ctx, baseline);
+    const auto result = coordinator.reseed(live, ctx, baseline, permit);
     EXPECT(result.committed());
+    EXPECT(result.authorization_consumed);
+    EXPECT(!permit.available());
     EXPECT(result.prior_observed_record_generation == 5);
     EXPECT(result.generation_base == 5);
     EXPECT(result.active_record_generation == 6);
@@ -274,6 +359,10 @@ void test_valid_selector_reseeds_above_observed_generation() {
     EXPECT(loaded.restored);
     EXPECT(loaded.generation == 6);
     EXPECT(restored.status().state == MapActivationState::active);
+
+    const auto replayed = coordinator.reseed(live, ctx, baseline, permit);
+    EXPECT(replayed.reason ==
+           MapSelectorReseedReason::authorization_already_consumed);
 }
 
 void test_trusted_floor_and_conflict_generation_are_preserved() {
@@ -282,8 +371,8 @@ void test_trusted_floor_and_conflict_generation_are_preserved() {
     trusted_storage.seed(0, encode_guard(active_guard(), 5));
     MapSelectorStore trusted_store{trusted_storage};
     MapSelectorReseedCoordinator trusted{trusted_store};
-    const auto above_trusted = trusted.reseed(
-        trusted_live, context(8), package());
+    const auto above_trusted = authorized_reseed(
+        trusted, trusted_live, context(8), package());
     EXPECT(above_trusted.committed());
     EXPECT(above_trusted.generation_base == 8);
     EXPECT(above_trusted.active_record_generation == 9);
@@ -295,8 +384,8 @@ void test_trusted_floor_and_conflict_generation_are_preserved() {
         1, encode_guard(active_guard(MapSlot::slot_b, 11), 7));
     MapSelectorStore conflict_store{conflict_storage};
     MapSelectorReseedCoordinator conflict{conflict_store};
-    const auto resolved = conflict.reseed(
-        conflict_live, context(2), package());
+    const auto resolved = authorized_reseed(
+        conflict, conflict_live, context(2), package());
     EXPECT(resolved.committed());
     EXPECT(resolved.inspection.error ==
            MapSelectorStoreError::generation_conflict);
@@ -312,7 +401,8 @@ void test_dirty_selector_can_reseed_from_reviewed_trusted_floor() {
     storage.seed(0, dirty);
     MapSelectorStore store{storage};
     MapSelectorReseedCoordinator coordinator{store};
-    const auto result = coordinator.reseed(live, context(4), package());
+    const auto result =
+        authorized_reseed(coordinator, live, context(4), package());
     EXPECT(result.committed());
     EXPECT(result.inspection.error == MapSelectorStoreError::invalid_state);
     EXPECT(result.prior_observed_record_generation == 0);
@@ -326,9 +416,10 @@ void test_candidate_and_policy_fail_before_selector_mutation() {
     MapSelectorReseedCoordinator invalid_coordinator{invalid_store};
     auto invalid = package();
     invalid.integrity_verified = false;
-    const auto rejected = invalid_coordinator.reseed(
-        invalid_live, context(4), invalid);
-    EXPECT(rejected.reason == MapSelectorReseedReason::candidate_rejected);
+    const auto rejected = authorized_reseed(
+        invalid_coordinator, invalid_live, context(4), invalid, false);
+    EXPECT(rejected.reason ==
+           MapSelectorReseedReason::authorization_required);
     EXPECT(invalid_storage.read_calls == 0);
     EXPECT(invalid_storage.erase_calls == 0);
 
@@ -338,8 +429,8 @@ void test_candidate_and_policy_fail_before_selector_mutation() {
     MapSelectorReseedCoordinator policy_coordinator{policy_store};
     auto wrong = context(4);
     wrong.policy.maximum_trial_boots = 2;
-    const auto mismatch = policy_coordinator.reseed(
-        policy_live, wrong, package());
+    const auto mismatch = authorized_reseed(
+        policy_coordinator, policy_live, wrong, package());
     EXPECT(mismatch.reason == MapSelectorReseedReason::invalid_policy);
     EXPECT(mismatch.state == MapSelectorReseedState::service_required);
     EXPECT(!policy_live.status().running);
@@ -352,8 +443,8 @@ void test_storage_failure_and_generation_exhaustion_prevent_erase() {
     unavailable_storage.fail_read_slot = 1;
     MapSelectorStore unavailable_store{unavailable_storage};
     MapSelectorReseedCoordinator unavailable{unavailable_store};
-    const auto failed = unavailable.reseed(
-        unavailable_live, context(4), package());
+    const auto failed = authorized_reseed(
+        unavailable, unavailable_live, context(4), package());
     EXPECT(failed.reason == MapSelectorReseedReason::storage_unavailable);
     EXPECT(failed.state == MapSelectorReseedState::service_required);
     EXPECT(unavailable_storage.erase_calls == 0);
@@ -366,8 +457,8 @@ void test_storage_failure_and_generation_exhaustion_prevent_erase() {
             active_guard(), std::numeric_limits<std::uint64_t>::max()));
     MapSelectorStore exhausted_store{exhausted_storage};
     MapSelectorReseedCoordinator exhausted{exhausted_store};
-    const auto blocked = exhausted.reseed(
-        exhausted_live, context(), package());
+    const auto blocked = authorized_reseed(
+        exhausted, exhausted_live, context(), package());
     EXPECT(blocked.reason == MapSelectorReseedReason::generation_exhausted);
     EXPECT(exhausted_storage.erase_calls == 0);
     EXPECT(exhausted_storage.present[0]);
@@ -380,8 +471,8 @@ void test_partial_or_unverified_clear_requires_reconciliation() {
     partial_storage.fail_erase_slot = 0;
     MapSelectorStore partial_store{partial_storage};
     MapSelectorReseedCoordinator partial{partial_store};
-    const auto failed = partial.reseed(
-        partial_live, context(), package());
+    const auto failed = authorized_reseed(
+        partial, partial_live, context(), package());
     EXPECT(failed.reason == MapSelectorReseedReason::selector_reset_failed);
     EXPECT(failed.reconciliation_required);
     EXPECT(!failed.selector_clear_verified);
@@ -395,8 +486,8 @@ void test_partial_or_unverified_clear_requires_reconciliation() {
     retained_storage.pretend_erase_success_slot = 0;
     MapSelectorStore retained_store{retained_storage};
     MapSelectorReseedCoordinator retained_coordinator{retained_store};
-    const auto retained = retained_coordinator.reseed(
-        retained_live, context(), package());
+    const auto retained = authorized_reseed(
+        retained_coordinator, retained_live, context(), package());
     EXPECT(retained.reason ==
            MapSelectorReseedReason::selector_reset_unverified);
     EXPECT(retained.reconciliation_required);
@@ -411,7 +502,8 @@ void test_prepared_write_failure_stays_mapless_after_verified_clear() {
     storage.fail_write_slot = 0;
     MapSelectorStore store{storage};
     MapSelectorReseedCoordinator coordinator{store};
-    const auto result = coordinator.reseed(live, context(), package());
+    const auto result =
+        authorized_reseed(coordinator, live, context(), package());
     EXPECT(result.reason ==
            MapSelectorReseedReason::checkpoint_save_failed);
     EXPECT(result.state == MapSelectorReseedState::service_required);
@@ -428,8 +520,8 @@ void test_uncertain_commit_and_bad_readback_require_reconciliation() {
     uncertain_storage.commit_then_fail = true;
     MapSelectorStore uncertain_store{uncertain_storage};
     MapSelectorReseedCoordinator uncertain{uncertain_store};
-    const auto commit_failed = uncertain.reseed(
-        uncertain_live, context(), package());
+    const auto commit_failed = authorized_reseed(
+        uncertain, uncertain_live, context(), package());
     EXPECT(commit_failed.reason ==
            MapSelectorReseedReason::checkpoint_commit_uncertain);
     EXPECT(commit_failed.reconciliation_required);
@@ -441,8 +533,8 @@ void test_uncertain_commit_and_bad_readback_require_reconciliation() {
     corrupt_storage.corrupt_after_commit = true;
     MapSelectorStore corrupt_store{corrupt_storage};
     MapSelectorReseedCoordinator corrupt{corrupt_store};
-    const auto bad_readback = corrupt.reseed(
-        corrupt_live, context(), package());
+    const auto bad_readback = authorized_reseed(
+        corrupt, corrupt_live, context(), package());
     EXPECT(bad_readback.reason ==
            MapSelectorReseedReason::checkpoint_verification_failed);
     EXPECT(bad_readback.reconciliation_required);
@@ -458,7 +550,8 @@ void test_selector_race_after_clear_is_never_overwritten() {
     storage.inject_bytes = encode_guard(active_guard(), 9);
     MapSelectorStore store{storage};
     MapSelectorReseedCoordinator coordinator{store};
-    const auto result = coordinator.reseed(live, context(), package());
+    const auto result =
+        authorized_reseed(coordinator, live, context(), package());
     EXPECT(result.reason == MapSelectorReseedReason::selector_changed);
     EXPECT(result.save.error == MapSelectorStoreError::state_mismatch);
     EXPECT(result.reconciliation_required);
@@ -471,7 +564,7 @@ void test_selector_race_after_clear_is_never_overwritten() {
 }  // namespace
 
 int main() {
-    test_every_authorization_acknowledgement_is_required();
+    test_permit_is_required_exact_bound_and_single_use();
     test_only_running_mapless_service_owner_can_reseed();
     test_clean_first_use_is_routed_to_baseline_coordinator();
     test_valid_selector_reseeds_above_observed_generation();

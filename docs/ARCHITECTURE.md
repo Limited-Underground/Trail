@@ -362,14 +362,23 @@ store ownership, neither of which this host boundary implements.
 
 The [service-reseed coordinator](maps/OFFLINE_MAP_SELECTOR_RESEED_COORDINATOR_V0.md)
 is the separate recovery path for a dirty or previously used selector domain.
-It requires a mapless service owner and five caller-supplied acknowledgements,
+It requires a mapless service owner and a fresh exact-operation permit,
 advances beyond the greatest observable/trusted generation, verified-clears
 only the two selector records, rechecks exact emptiness at save time, and
 publishes a stable baseline only after commit-last exact readback. Clean first
 use and healthy active replacement are deliberately rejected into their normal
-coordinators. The acknowledgements are not authentication, the generation
-floor is not protected here, and physical package/storage behavior remains
+coordinators. The permit is consumed before store access, but the generation
+floor is not protected here and physical package/storage behavior remains
 outside this host boundary.
+
+The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
+can mint that non-copyable, single-use permit only after an injected local-
+service verifier returns an exact-bound, short-lived grant and atomically
+consumes its opaque handle. It rejects remote radio, wrong boot/scope/transport,
+any policy/package/trusted-floor mismatch, missing service confirmation, and
+invalid time windows. It carries no credentials or identity. Concrete USB or
+local-wireless authentication, challenge generation, administrator policy,
+protected replay state, audit, and physical confirmation remain target gates.
 
 The [key/value target adapter](maps/OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
 fixes one backend-neutral mapping onto partition label `ot_state`, namespace

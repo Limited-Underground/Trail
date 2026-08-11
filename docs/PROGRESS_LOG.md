@@ -6,6 +6,24 @@ public chronology.
 
 ## 2026-08-11
 
+### Single-use local-service authorization for map reseed
+
+- Replaced the reseed coordinator's five caller-created booleans with a
+  non-copyable permit minted only through an injected authorization backend.
+- Bound each grant to the exact boot session, selector-reseed scope, local USB
+  or independently authenticated local-wireless transport, activation policy,
+  baseline package evidence, reviewed trusted floor, five service
+  confirmations, and committed local-confirmation revision.
+- Enforced a configurable short lifetime under a hard five-minute ceiling,
+  exact-expiry rejection, backend handle consumption, move-without-copy permit
+  ownership, and burn-before-selector-access behavior. Remote radio, replay,
+  mismatch, invalid time, denial, unavailable backend, and failure mint no
+  permit.
+- Added ten authorization groups and retained twelve reseed groups. All ten map
+  suites pass 100/100 focused repeats, and the complete 68-executable host
+  matrix passes. No credential verifier, target service UI, protected replay
+  store, audit backend, or on-device authentication is claimed.
+
 ### NVS-ready map selector key/value boundary
 
 - Fixed one backend-neutral selector binding: `ot_state` partition label,
@@ -19,8 +37,9 @@ public chronology.
 - Added ten deterministic groups including normal two-slot rotation and
   verified selector clear through the real store. The ESP-IDF/NVS plan fixes
   service scope and physical interruption gates without claiming a target
-  backend or hardware durability. All nine map suites pass 100/100 repeats,
-  and the complete 67-executable host matrix passes.
+  backend or hardware durability. At this checkpoint nine map suites passed
+  100/100 repeats and the complete 67-executable host matrix passed; the newer
+  authorization section above supersedes the current matrix count.
 
 ### Authorized map selector service reseed
 

@@ -651,12 +651,21 @@ $builds = @(
         )
     },
     @{
+        Name = 'map selector reseed service authorization'
+        Output = Join-Path $buildDirectory 'map_selector_reseed_authorization_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_reseed_authorization.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_reseed_authorization_tests.cpp')
+        )
+    },
+    @{
         Name = 'authorized map selector reseed coordinator'
         Output = Join-Path $buildDirectory 'map_selector_reseed_tests.exe'
         Sources = @(
             (Join-Path $projectRoot 'firmware\components\maps\src\map_activation_guard.cpp'),
             (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_checkpoint.cpp'),
             (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_reseed_authorization.cpp'),
             (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_reseed.cpp'),
             (Join-Path $projectRoot 'tests\host\map_selector_reseed_tests.cpp')
         )

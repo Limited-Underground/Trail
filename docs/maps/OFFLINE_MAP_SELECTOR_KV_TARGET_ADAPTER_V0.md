@@ -88,8 +88,9 @@ operator. NVS encryption is a separate target option. The official
 describes encrypted NVS, while the NVS guide explicitly notes that encryption
 does not prevent erasure.
 
-Before setting all five reseed acknowledgement booleans, a target service
-workflow must independently provide:
+Before the common
+[reseed authorizer](OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md) may mint a
+permit, a target service backend must independently provide:
 
 1. an authenticated and authorized local service session;
 2. explicit identification of the device being serviced without publishing a
@@ -101,10 +102,12 @@ workflow must independently provide:
 7. one atomic outcome record for success, service required, or reconciliation
    required without paths, keys, locations, or credentials.
 
-The five booleans remain caller-supplied intent evidence, not an authenticated
-command. Radio-delivered reset/reseed is prohibited by this v0 plan. Exact USB,
-local display/input, recovery, expiry, challenge, and audit mechanisms remain
-open until the target and security model are selected.
+The common authorizer now requires an exact-operation, short-lived, single-use
+backend grant and rejects remote-radio transport. This is a tested handoff
+contract, not a concrete authenticated command. Radio-delivered reset/reseed
+remains prohibited. Exact USB or authenticated local-wireless credentials,
+challenge, replay persistence, local display/input, recovery, and audit
+mechanisms remain open until the target and security model are selected.
 
 ## Physical acceptance matrix
 
@@ -136,11 +139,13 @@ Ten deterministic host groups cover fixed binding names, argument validation,
 exact/missing/wrong-sized reads, write-plus-commit ordering, staged-write and
 commit failure, full-blob marker rewrite, malformed/already-committed refusal,
 idempotent committed erase, and composition with normal two-slot save/rotation
-plus verified clear. All nine map suites pass 100/100 repeats, and the complete
-67-executable host matrix passes under strict C++17 warnings-as-errors.
+plus verified clear. With the separate reseed-authorization boundary, all ten
+map suites pass 100/100 repeats, and the complete 68-executable host matrix
+passes under strict C++17 warnings-as-errors.
 
 This proves only adapter semantics against a deterministic fake. It does not
 provide an ESP-IDF component, partition table, NVS handle, target lock/task,
-encryption or trusted-generation source, real service authorization, physical
+encryption or trusted-generation source, concrete service-authentication
+backend, physical
 atomicity/endurance/power-loss evidence, package storage, renderer, display, or
 on-device map result.

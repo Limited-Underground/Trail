@@ -221,22 +221,28 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   for a used device. Ten groups and all six affected suites pass 100/100
   repeats. A separate
   [service-reseed coordinator](docs/maps/OFFLINE_MAP_SELECTOR_RESEED_COORDINATOR_V0.md)
-  requires five explicit service acknowledgements and a mapless owner, clears
+  requires five backend-verified service confirmations and a mapless owner, clears
   and verifies only the two selector records, advances beyond observed/trusted
   history, and publishes a stable baseline only after commit-last exact
   readback. Its twelve groups cover dirty/conflicted state, dishonest or
   partial erase adapters, exhaustion, persistence uncertainty, and a post-clear
-  selector race. All eight map suites pass 100/100 repeats. The physical
-  package/storage adapters, authenticated service
-  authorization, protected generation source, exclusive target ownership,
+  selector race. A separate
+  [authorization boundary](docs/maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
+  now replaces caller-created booleans with a non-copyable, exact-operation,
+  single-use permit. It accepts only short-lived grants from an injected local-
+  service verifier, rejects remote radio and every scope/boot/binding/time
+  mismatch, and rechecks boot/time while burning the permit before selector
+  access. Ten authorization
+  groups pass; a concrete credential verifier, protected generation source,
+  exclusive target ownership, physical package/storage adapters,
   renderer, and target task remain open.
   An [NVS-ready key/value adapter](docs/maps/OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
   now fixes `ot_state` / `ot_maps` / `otm_sel_a|b`, requires commit after every
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
-  and all nine map suites pass 100/100 repeats in the complete 67-executable
+  and all ten map suites pass 100/100 repeats in the complete 68-executable
   host matrix. It contains no ESP-IDF backend, partition table, target lock,
-  physical interruption evidence, or authenticated service UI.
+  physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
   or on-device map result is selected or claimed.
@@ -425,7 +431,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 67 C++ test executables plus
+  builds six verifier/planning/operator CLIs and runs all 68 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet

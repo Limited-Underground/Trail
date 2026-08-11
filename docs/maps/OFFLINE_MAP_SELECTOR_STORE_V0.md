@@ -110,8 +110,8 @@ uncertainty, corrupt readback, degraded-peer repair, unreadable peer media,
 equal-generation conflict, policy/package mismatch, trusted-floor rejection and
 generation exhaustion, exact live-checkpoint verification, persisted trial-
 boot increment, exact-generation save rejection, partial/successful reset, and
-reported-success erase that fails exact empty readback. All nine map
-executables pass
+reported-success erase that fails exact empty readback. With the separate
+reseed-authorization suite, all ten map executables pass
 100/100 focused repeats under strict
 C++17 warnings-as-errors.
 

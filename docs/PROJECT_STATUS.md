@@ -177,18 +177,24 @@ cannot be reset or reseeded through this API. Ten groups and all six affected
 suites pass 100/100 repeats.
 
 A separate service-reseed coordinator now handles dirty or previously used
-selector state without weakening first use or healthy replacement. Five
-caller-supplied acknowledgements, an already-mapless owner, exact policy,
+selector state without weakening first use or healthy replacement. A fresh,
+exact-operation service permit, an already-mapless owner, exact policy,
 valid package evidence, and exclusive store ownership are required. Only the
 two selector records are erased; both must read back empty, the new record must
 advance beyond observable/trusted history, and exact commit-last readback must
 finish before map exposure. Twelve coordinator groups and fourteen store
 groups cover conflict, dirty state, partial/dishonest erase, exhaustion,
 persistence uncertainty, restart restore, and a post-clear selector race.
-All eight map suites pass 100/100 repeats, and the complete 66-executable host
-matrix passes.
-Authenticated authorization, protected trusted history, physical package and
-selector adapters, locking, renderer, and target evidence remain open.
+The permit now comes from a separate host-tested authorizer: an injected backend
+must verify and atomically consume a short-lived local-service grant bound to
+the exact boot, scope, transport, policy, package, trusted floor, five service
+confirmations, and local-confirmation revision. The non-copyable permit's boot
+and expiry are rechecked when it is burned before selector access; remote
+radio, mismatch, expiry, and replay fail
+closed. Ten authorization groups and twelve reseed groups pass. Concrete
+credentials/challenges, backend replay persistence, protected trusted history,
+physical package and selector adapters, locking, audit, renderer, and target
+evidence remain open.
 
 The selector now has a backend-neutral key/value adapter contract. Fixed
 `ot_state` / `ot_maps` / `otm_sel_a|b` binding, exact 64-byte reads, durable
@@ -197,9 +203,9 @@ key erase, and upper-store composition pass ten host groups. The accompanying
 ESP-IDF plan records official NVS commit semantics, prohibits namespace/
 partition-wide erase, fixes a local-service authority handoff, and defines the
 physical interruption matrix. No ESP-IDF source, partition table, target
-task/lock, encryption/trusted-generation choice, physical result, or real
-service authorization exists.
-All nine map suites pass 100/100 repeats, and the complete 67-executable host
+task/lock, encryption/trusted-generation choice, physical result, or concrete
+service-authentication backend exists.
+All ten map suites pass 100/100 repeats, and the complete 68-executable host
 matrix passes.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
@@ -424,7 +430,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 67 C++ executables plus the Python
+  six verifier/planning/operator CLIs and runs all 68 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery

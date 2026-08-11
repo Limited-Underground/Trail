@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "opentrail/map_selector_reseed_authorization.hpp"
 #include "opentrail/map_selector_store.hpp"
 
 namespace opentrail::maps {
@@ -16,6 +17,11 @@ enum class MapSelectorReseedState : std::uint8_t {
 enum class MapSelectorReseedReason : std::uint8_t {
     none = 0,
     authorization_required,
+    authorization_already_consumed,
+    authorization_binding_mismatch,
+    authorization_boot_session_mismatch,
+    authorization_not_yet_valid,
+    authorization_expired,
     live_guard_not_running,
     mapless_service_required,
     invalid_policy,
@@ -31,28 +37,11 @@ enum class MapSelectorReseedReason : std::uint8_t {
     checkpoint_verification_failed,
 };
 
-// These acknowledgements are caller-supplied service intent evidence. They are
-// not authentication, durable consent, or proof of an operator's identity.
-struct MapSelectorReseedAuthorizationEvidence {
-    bool explicit_operator_confirmation{false};
-    bool map_unavailability_acknowledged{false};
-    bool selector_only_scope_confirmed{false};
-    bool package_retention_confirmed{false};
-    bool trusted_generation_reviewed{false};
-
-    [[nodiscard]] constexpr bool complete() const {
-        return explicit_operator_confirmation &&
-               map_unavailability_acknowledged &&
-               selector_only_scope_confirmed &&
-               package_retention_confirmed &&
-               trusted_generation_reviewed;
-    }
-};
-
 struct MapSelectorReseedContext {
     MapActivationPolicy policy{};
     std::uint64_t trusted_minimum_generation{0};
-    MapSelectorReseedAuthorizationEvidence authorization{};
+    std::uint64_t boot_session_id{0};
+    std::uint64_t authorization_use_time_ms{0};
 };
 
 struct MapSelectorReseedResult {
@@ -73,6 +62,7 @@ struct MapSelectorReseedResult {
     bool map_exposure_allowed{false};
     bool live_guard_mapless{false};
     bool selector_clear_verified{false};
+    bool authorization_consumed{false};
     bool reconciliation_required{false};
 
     [[nodiscard]] constexpr bool committed() const {
@@ -84,8 +74,9 @@ struct MapSelectorReseedResult {
 // service state. It clears only the two abstract selector records, verifies
 // emptiness, then commits a stable baseline above observed/trusted history
 // before map exposure. Package bytes are never erased or modified here.
-// The caller must provide real authorization upstream and exclusive ownership
-// of the selector store throughout reseed().
+// The caller must provide a fresh exact-operation permit minted by the
+// service-authorizer boundary and exclusive ownership of the selector store
+// throughout reseed(). The permit is consumed before any store access.
 class MapSelectorReseedCoordinator {
 public:
     explicit MapSelectorReseedCoordinator(MapSelectorStore& store);
@@ -93,7 +84,8 @@ public:
     [[nodiscard]] MapSelectorReseedResult reseed(
         MapActivationGuard& live_guard,
         const MapSelectorReseedContext& context,
-        const MapPackageEvidence& baseline);
+        const MapPackageEvidence& baseline,
+        MapSelectorReseedPermit& permit);
 
 private:
     MapSelectorStore& store_;
