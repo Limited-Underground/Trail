@@ -70,6 +70,10 @@ distinguishable from a sink rejection. A full or failing sink increments the
 existing logger backpressure counter and the adapter returns `sink_rejected`;
 it does not claim the event was accepted.
 
+The production-facing [bounded RAM ring](RING_LOG_SINK_V0.md) overwrites its
+oldest record when full, so normal rollover is an accepted write with a visible
+overwrite count rather than a sink rejection. Malformed writes still reject.
+
 ## Host evidence
 
 Eight deterministic groups cover:
@@ -83,12 +87,13 @@ Eight deterministic groups cover:
 7. bad magic, version, reserved bits, enum, flags, and redaction; and
 8. fixed, trivially copyable, generation- and identifier-free shape.
 
-The focused executable passes 100/100 repeats. The complete 44-executable
+The diagnostic adapter and ring integration focused executables each pass
+100/100 repeats. The complete 45-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 ## Remaining gates
 
-- bind the existing logger to an exact target sink and rollover policy;
+- bind and serialize the RAM ring in an exact target task composition;
 - define authorized persistent retention, export, and deletion;
 - prove power-loss behavior for any persistent log backend;
 - render decoded actions accessibly on candidate displays; and

@@ -280,7 +280,7 @@ Initial transports to evaluate are a local serial interface and an authenticated
 
 ## Persistence and diagnostics
 
-Persistent configuration is schema-versioned, checksummed, recoverable to safe defaults, and separated from secrets. The duplicate window has a fixed canonical `OTD0` checkpoint codec carrying remaining lifetimes across monotonic-clock restarts plus a context/epoch-bound `ODS0/v1` two-slot generation/readback/recovery boundary. Legacy unbound v0 and mismatched group media require service rather than implicit restore or overwrite. No protected target storage binding, authenticated integrity, or secure rollback primitive exists yet. Store-forward queues require explicit capacity, expiry, and wear strategy. Logging uses compile/runtime levels `ERROR`, `WARN`, `INFO`, `DEBUG`, and `TRACE`; release builds can remove verbose paths. Diagnostics must not leak secrets.
+Persistent configuration is schema-versioned, checksummed, recoverable to safe defaults, and separated from secrets. The duplicate window has a fixed canonical `OTD0` checkpoint codec carrying remaining lifetimes across monotonic-clock restarts plus a context/epoch-bound `ODS0/v1` two-slot generation/readback/recovery boundary. Legacy unbound v0 and mismatched group media require service rather than implicit restore or overwrite. No protected target storage binding, authenticated integrity, or secure rollback primitive exists yet. Store-forward queues require explicit capacity, expiry, and wear strategy. Logging uses compile/runtime levels `ERROR`, `WARN`, `INFO`, `DEBUG`, and `TRACE`; release builds can remove verbose paths. A production-facing RAM sink retains the newest 32 canonical records, assigns boot-local sequences, snapshots all retained entries oldest-first, and counts overwrite and rejection without allocating. It is not a serialized/persistent format and is not internally synchronized; exact target composition must serialize access. Diagnostics must not leak secrets.
 
 Hardware-test publication uses a separate `OTFL0` boundary. Raw captures and
 recovery journals remain local; the converter emits only aggregate counters,
@@ -293,8 +293,10 @@ coherent redacted boot/save/transition status becomes one fixed 32-bit word and
 one canonical message through the existing logger. Generation values and all
 identity, policy, checkpoint, key, address, and raw adapter detail are omitted.
 Magic, version, reserved bits, enums, state/action/reason coherence, and the
-mandatory redaction bit fail closed. Exact target sink, retention/export,
-rendering, and physical failure capture remain target gates.
+mandatory redaction bit fail closed. The bounded RAM ring now supplies an exact
+in-memory sink and retains/decodes `OTRD0` in host tests. Target task binding,
+concurrency, persistent retention/export, rendering, power-loss behavior, and
+physical failure capture remain gates.
 
 ## Failure boundaries
 

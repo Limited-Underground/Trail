@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Bounded runtime diagnostic ring
+
+- Added a production-facing fixed-capacity `LogSink` that retains the newest 32
+  canonical records in RAM, assigns boot-local sequences, and snapshots the
+  complete retained set oldest-first without partial caller output.
+- Made pressure visible: normal rollover overwrites exactly the oldest entry
+  and increments its counter, while malformed direct records are rejected and
+  reach the existing logger's sink-drop accounting. Clear erases records but
+  preserves boot-local order and lifetime counters.
+- Kept the boundary narrow: it allocates no dynamic storage, accepts redacted
+  records only as `[REDACTED]`, and is neither a serialized/persistent format
+  nor an internally synchronized target service.
+- Covered eight groups including actual `OTRD0` capture, 100 focused repeats,
+  the complete 45-executable host matrix, and every Python/publication-safety
+  check. Exact target composition, measured RAM/timing, persistent audit/export,
+  and physical failure capture remain open.
+
 ### Versioned redacted update-recovery diagnostic event
 
 - Added canonical `OTRD0/v0`: one 32-bit recovery outcome logged through the
@@ -18,7 +35,7 @@ public chronology.
 - Kept logger authority intact: info/warn/error severity follows operator state,
   runtime filtering is an accepted non-write, and full-sink rejection remains
   visible rather than becoming false success.
-- Covered eight scenario groups, 100 focused repeats, the complete 44-executable
+- Covered eight scenario groups, 100 focused repeats, the complete 45-executable
   matrix, and all Python/publication-safety checks. Target sink binding,
   persistent retention/export, display rendering, and physical failure capture
   remain open.

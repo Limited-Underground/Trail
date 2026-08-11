@@ -462,6 +462,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'bounded production ring log sink'
+        Output = Join-Path $buildDirectory 'ring_log_sink_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\logger.cpp'),
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\ring_log_sink.cpp'),
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\update_recovery_diagnostics.cpp'),
+            (Join-Path $projectRoot 'tests\host\ring_log_sink_tests.cpp')
+        )
+    },
+    @{
         Name = 'portable-client target composition'
         Output = Join-Path $buildDirectory 'portable_client_composition_tests.exe'
         Sources = @(
