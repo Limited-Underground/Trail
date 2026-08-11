@@ -433,6 +433,18 @@ fixed-shape classifier grants no erase, protected-reset, generation-lowering,
 credential, or migration authority. Ten host groups pass; continuity evidence
 and execution authority remain target gates.
 
+The [protected-domain authorization handoff](maps/OFFLINE_MAP_SELECTOR_DOMAIN_AUTHORIZATION_V0.md)
+derives either same-device domain replacement or blank-new-device commissioning
+from that lifecycle policy before contacting an injected target verifier. It
+requires local USB, an atomically consumed opaque handle, exact boot/route/media
+binding, a nonzero proposed 128-bit domain, six confirmations, a committed local
+revision, and a short checked-time window. Retained same-device selector state
+may be marked only as quarantined; new-device commissioning requires verified-
+empty media. The resulting non-copyable permit has no consumer yet and grants
+no erase, reset, import, domain creation, or migration authority. Ten host
+groups pass; credentials, continuity proof, secure domain generation, durable
+replay/audit, domain records, and all execution remain target gates.
+
 The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
 can mint that non-copyable, single-use permit only after an injected local-
 service verifier returns an exact-bound, short-lived grant and atomically

@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Protected map-domain authorization handoff
+
+- Added separate same-device replacement and blank-new-device commissioning
+  scopes derived from the reset/replacement policy before backend access.
+- Required an atomically consumed local-USB grant bound to exact lifecycle,
+  coherent empty or quarantined selector evidence, a fresh nonzero 128-bit
+  domain, boot session, six confirmations, committed local revision, and short
+  checked-time window.
+- Rejected temporary source failure, retained state on claimed new hardware,
+  wireless/radio transport, malformed or mismatched grants, expiry, and replay.
+  Retained same-device selector state remains quarantined and cannot be imported.
+- Added ten deterministic groups. All eighteen map suites pass 100/100 focused
+  repeats, and the complete 76-executable host matrix passes locally including
+  publication safety. The move-only permit has no consumer; no domain record,
+  reset/provision executor, concrete credentials, target lock, or physical
+  result exists.
+
 ### Map-selector reset and device-replacement boundary
 
 - Separated ordinary factory reset, authorized selector reseed, same-device

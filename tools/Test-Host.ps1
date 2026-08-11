@@ -675,6 +675,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'map selector protected-domain authorization'
+        Output = Join-Path $buildDirectory 'map_selector_domain_authorization_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_reset_policy.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_authorization.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_domain_authorization_tests.cpp')
+        )
+    },
+    @{
         Name = 'map selector protected trusted boot coordinator'
         Output = Join-Path $buildDirectory 'map_selector_trusted_boot_tests.exe'
         Sources = @(

@@ -51,6 +51,10 @@ rollback shortcut.
 - A future external recovery design must define authority, audit, physical
   presence, domain binding, target locks, and power-loss behavior before it can
   mutate protected state.
+- A host-tested authorization handoff now derives the two domain scopes,
+  requires a consumed exact local-USB grant, and mints a move-only preparation
+  permit. The permit deliberately has no consumer until domain/retirement
+  records and a target provisioner satisfy the remaining requirements here.
 - A future new-device provisioner must establish a fresh domain and cannot
   silently import another device's selector.
 - Radio, messaging, alerts, position sharing, OpenGauge integration, and USB
