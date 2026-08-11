@@ -103,6 +103,16 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   priority-to-delivery path through the fake radio. This is fixed-memory host
   composition only: packet v0 is still unauthenticated, no real coordinates
   are allowed, and no physical or direct-radio result is claimed.
+- **One checked timestamp now drives a complete outbound service cycle:** the
+  [host coordinator](docs/platform/OUTBOUND_SERVICE_COORDINATOR_V0.md) samples
+  the guarded boot-local clock once, then services location scheduling,
+  priority handoff, delivery, and the opaque radio in a fixed order. Position
+  sharing reads no GPS while stopped; temporary clock unavailability touches no
+  downstream component; rollback or source failure stops sharing and latches
+  the coordinator closed. Ten groups plus 100 focused repeats pass, including
+  same-cycle exact position delivery to a fake-radio peer and pressure/failure
+  isolation. This is cooperative host ordering—not an ESP-IDF task, target
+  driver, inbound path, authenticated packet, or physical-radio result.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned
@@ -284,12 +294,13 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 50 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 51 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet
-  admission, loss-aware priority-to-delivery handoff, portable-client
-  composition, local-interface, power-state, clock,
+  admission, loss-aware priority-to-delivery handoff, checked-time outbound
+  service coordination, portable-client composition, local-interface,
+  power-state, clock,
   randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,

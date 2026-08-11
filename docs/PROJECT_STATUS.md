@@ -34,6 +34,15 @@ plus 100 repeats include an exact scheduler-to-packet-to-priority-to-delivery
 fake-radio flow. This is host composition evidence only, not authentication,
 real-coordinate permission, direct-radio binding, or physical delivery.
 
+A cooperative outbound coordinator now obtains one successful checked
+monotonic sample and reuses it for location, scheduling, handoff, delivery, and
+opaque-radio service in a fixed order. Sharing stopped means no GPS read;
+temporary clock not-ready means no downstream call; rollback/source failure
+stops sharing and latches the boot composition closed. Ten groups plus 100
+repeats cover exact ordering, failure isolation, pressure recovery, and
+same-cycle packet delivery to a fake peer. This is not ESP-IDF task/concurrency,
+inbound, authenticated-packet, target-adapter, or physical-radio evidence.
+
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
 phone/laptop/vehicle dependency during a session, at least three materially
@@ -256,11 +265,11 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 50 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 51 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
-  handoff,
+  handoff, checked-time outbound service coordination,
   portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
   physical MeshCore,
@@ -348,7 +357,7 @@ not treated as proof of authorization.
   flags. Hardware/candidate identity, checkpoint payloads, raw adapter errors,
   and nested results are absent; unknown or contradictory input blocks normal
   operation as service-required. Eight groups plus 100 repeats pass in the
-  complete 50-executable matrix. A versioned `OTRD0` adapter now records one
+  complete 51-executable matrix. A versioned `OTRD0` adapter now records one
   coherent status through the existing logger as one fixed hexadecimal 32-bit
   word. Generations and identity-bearing detail are omitted; magic, version,
   reserved bits, enums, flags, and state/action/reason coherence fail closed.
@@ -388,6 +397,12 @@ not treated as proof of authorization.
   rejection, exact expiry, rollback-safe time handling, and the complete
   position-packet path through a fake radio. Authentication, target concurrency,
   direct-radio binding, and physical delivery remain absent.
+  A checked-time outbound service coordinator now reads the guarded monotonic
+  clock once and orders optional active-sharing location, scheduling, handoff,
+  delivery, and radio service. It performs no GPS or downstream work when time
+  is unavailable, and permanent clock faults stop sharing and latch service
+  closed. Ten groups plus 100 repeats pass. Target task/concurrency, inbound
+  processing, concrete adapters, and physical behavior remain absent.
 
 ### Maps and interface
 
@@ -411,7 +426,8 @@ not treated as proof of authorization.
 The hardware-abstraction set and host-tested portable-client composition now
 cover all ten enumerated target-facing endpoints. The whole-contract review is
 complete and records the separate 64-byte and 704-byte storage obligations.
-OT-003 remains partial only because no exact ESP-IDF radio/GPS/log/storage/
+OT-003F now supplies the first checked-time outbound runtime composition, but
+OT-003 remains partial because no exact ESP-IDF radio/GPS/log/storage/
 entropy/time/power/display/input adapters, target application build, or
 on-device composition evidence exists. Exact adapters, thresholds, and rendered
 behavior wait for frozen client hardware. OT-023 remains blocked at the exact

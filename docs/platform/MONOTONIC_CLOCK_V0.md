@@ -68,6 +68,13 @@ surface a coarse diagnostic through the existing redacted logger, and follow
 the role-specific safe-mode/restart policy. A timer failure must never make an
 expired message current or bypass a retry/rate/freshness boundary.
 
+The host-tested [outbound service coordinator](OUTBOUND_SERVICE_COORDINATOR_V0.md)
+now proves this rule for the location/scheduler/priority/delivery/radio slice:
+one successful sample is shared across the complete cycle, not-ready invokes no
+downstream service, and rollback/source failure stops position sharing and
+latches the coordinator closed. Remaining target boot, persistence, inbound,
+UI, and concurrency composition still require their own evidence.
+
 ## Deterministic fake and host evidence
 
 `FakeMonotonicCounterSource` is a fixed 16-sample FIFO that scripts successful

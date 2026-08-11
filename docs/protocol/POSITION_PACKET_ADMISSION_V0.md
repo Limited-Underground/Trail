@@ -76,7 +76,7 @@ Ten deterministic groups cover:
 9. invalid queue and duplicate-message-ID failure; and
 10. critical-before-position selection plus visible position expiry.
 
-The focused executable passes 100/100 repeats. The complete 50-executable
+The focused executable passes 100/100 repeats. The complete 51-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The separate [loss-aware priority-to-delivery handoff](PRIORITY_DELIVERY_HANDOFF_V0.md)
@@ -84,14 +84,18 @@ now proves that an admitted frame is retained until delivery accepts it and
 that this exact position packet can cross the fake-radio host path. That does
 not change packet v0's unauthenticated status or authorize real coordinates.
 
+The [checked-time outbound coordinator](../platform/OUTBOUND_SERVICE_COORDINATOR_V0.md)
+now services the scheduler, this sink, priority handoff, delivery, and fake
+radio with one successful guarded clock sample.
+
 ## Remaining gates
 
 - replace packet v0 with an authenticated/encrypted packet version after the
   cryptographic benchmark and threat-model gates;
 - bind metadata to the selected group identity, epoch, and rollback-safe
   outbound counter without narrowing the counter unsafely;
-- define target ownership/concurrency across scheduler, queue, delivery, UI,
-  GPS, and checked monotonic clock;
+- replace the host single-owner ordering proof with exact target task,
+  synchronization, watchdog, UI, GPS, and clock-adapter evidence;
 - choose queue lifetime, rate, cadence, and congestion policy only after
   measured four-client traffic, power, privacy, and regional review;
 - replace the fake-radio-only delivery proof with one exact authenticated

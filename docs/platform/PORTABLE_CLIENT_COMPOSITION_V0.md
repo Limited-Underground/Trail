@@ -82,8 +82,10 @@ The 2026-08-10 review enumerated every abstract target-facing interface under
   owning components and composition, preventing duplicate interpretations.
 - The remaining target-facing interfaces have compatible non-owning lifetimes
   and do not require preflight I/O.
-- One future application composition must own one `CheckedMonotonicClock` and
-  share its one successful sample across all time-dependent work in a cycle.
+- OT-003F's [outbound service coordinator](OUTBOUND_SERVICE_COORDINATOR_V0.md)
+  now owns one `CheckedMonotonicClock` sample across location, scheduling,
+  priority handoff, delivery, and radio service. Full boot, persistence,
+  inbound, UI, power, logging, and target-task composition remains.
 - UI failure must remain independent of radio servicing; GPS no-fix must not
   stop messaging; entropy not-ready must gate cryptographic work; and storage
   failure must not be hidden by default configuration.

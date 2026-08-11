@@ -62,8 +62,12 @@ Ten deterministic groups cover:
 10. scheduler to position packet admission to priority queue to delivery
     controller to fake-radio peer, with exact packet and position decode.
 
-The focused executable passes 100/100 repeats. The complete 50-executable
+The focused executable passes 100/100 repeats. The complete 51-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
+
+The host-tested [checked-time outbound coordinator](../platform/OUTBOUND_SERVICE_COORDINATOR_V0.md)
+now proves one single-owner cycle through scheduling, this handoff, delivery,
+and fake-radio service using one successful monotonic sample.
 
 ## Remaining gates
 
@@ -71,8 +75,8 @@ OpenTrail host matrix plus all Python and publication-safety checks pass.
   priority to authenticated message semantics;
 - bind metadata to the selected group, epoch, identity, and rollback-safe
   outbound counter;
-- define and prove target task ownership, synchronization, and checked
-  monotonic-clock integration;
+- replace the host single-owner/checked-clock proof with exact target task,
+  synchronization, watchdog, and concrete clock-adapter evidence;
 - select lifetimes, retry timing, capacity, and congestion policy from measured
   four-client evidence and regional review;
 - bind one exact direct-radio adapter and prove physical queue pressure, expiry,

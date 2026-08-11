@@ -132,6 +132,16 @@ composition is still required. Chat and position must not starve emergency
 traffic. Exact cadence, airtime budgets, retry policy, and regional constraints
 depend on measurement and review.
 
+A host-only outbound coordinator now establishes one cooperative service order:
+sample `CheckedMonotonicClock` once, optionally read location only while sharing
+is active, service position scheduling, attempt one priority-to-delivery
+handoff, service delivery, and finally service the opaque radio. A temporary
+not-ready clock performs none of that downstream work; rollback or source
+failure stops position sharing and latches the coordinator closed. Position
+failure does not block already queued messaging, and handoff failure does not
+block already accepted delivery work. This is not a target task, synchronization
+primitive, inbound receiver, UI-input loop, or physical driver composition.
+
 A separate host-tested position-sharing control adapter maps scheduler state to
 the existing semantic local-interface boundary. It exposes start only while
 stopped, stop while active/waiting/deferred, and no execution action for a

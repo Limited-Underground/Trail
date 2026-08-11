@@ -82,7 +82,7 @@ Ten deterministic groups cover:
 9. malformed-current encoding refusal before sink access; and
 10. checked time horizon plus fixed payload/script capacities.
 
-The focused executable passes 100/100 repeats. The complete 50-executable
+The focused executable passes 100/100 repeats. The complete 51-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The separate [semantic privacy-control adapter](../platform/POSITION_SHARING_CONTROL_V0.md)
@@ -94,12 +94,18 @@ proves exact-time packet-v0/background-queue composition without claiming
 authentication, delivery, radio transmission, or safe handling of real
 coordinates.
 
+The host-tested [outbound service coordinator](../platform/OUTBOUND_SERVICE_COORDINATOR_V0.md)
+now supplies one checked monotonic value to active-sharing location, this
+scheduler, priority handoff, delivery, and radio service. It also proves that
+stopped sharing performs no GPS read and that a permanent clock fault stops
+sharing and latches the cooperative outbound cycle closed.
+
 ## Remaining gates
 
 - select cadence only after measured four-client contention, privacy, and power
   review;
 - replace the experimental packet-v0 admission sink with authenticated packet
-  composition and connect priority output to an exact direct-radio adapter;
+  composition and the fake transport with one exact direct-radio adapter;
 - decide remote position expiry and whether an explicit no-fix heartbeat is
   justified;
 - render and physically validate the host-tested local start/stop states and
