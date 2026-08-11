@@ -1,8 +1,8 @@
 # Offline Map Selector Trust-Domain Record v0
 
 Status: deterministic host-tested canonical record, 2026-08-11. An abstract
-recoverable store now exists; no protected backend, provisioner, or on-device
-persistence exists.
+recoverable store and bounded provisioner now exist; no protected backend or
+on-device persistence exists.
 
 `OTMD/v0` is a separate 80-byte lifecycle record for the map selector's trust
 domain. It does not change the fixed 64-byte `OTM0/v0` selector checkpoint.
@@ -73,8 +73,8 @@ package operation, logging, network, radio, or UI action. The separate abstract
 [two-slot store](OFFLINE_MAP_SELECTOR_DOMAIN_STORE_V0.md) now preserves the
 previous committed record while writing a successor, enforces exact lifecycle
 transitions and record-generation advance, commits byte 75 last, and verifies
-exact readback. The future permit-consuming provisioner must still order
-pending-record persistence before any protected-source or selector mutation.
+exact readback. The permit-consuming provisioner orders pending-record
+persistence before any protected-source or selector mutation.
 
 ## Authorization tightening
 
@@ -98,10 +98,10 @@ and output atomicity, full 64-bit boundaries, and field-sensitive canonical
 bytes. The tightened authorization suite covers retired-domain absence, reuse,
 new-device contamination, and exact echo.
 
-All twenty map suites pass 100/100 focused repeats in the complete
-78-executable host matrix under strict C++17 warnings-as-errors.
+All twenty-one map suites pass 100/100 focused repeats in the complete
+79-executable host matrix under strict C++17 warnings-as-errors.
 
 The codec and abstract store are host evidence only. No authenticated integrity,
 rollback-resistant target storage, domain entropy source, device-continuity
-proof, provisioner, permit consumer, target lock/task, ESP-IDF composition,
-power-loss result, or physical behavior is claimed.
+proof, target lock/task, ESP-IDF composition, power-loss result, or physical
+behavior is claimed. The provisioner proves bounded common-code ordering only.

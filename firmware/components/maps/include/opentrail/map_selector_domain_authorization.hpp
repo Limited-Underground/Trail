@@ -130,8 +130,18 @@ public:
 class MapSelectorDomainAuthorizer;
 class MapSelectorDomainProvisioner;
 
-// Boot-local, non-copyable authority for one future domain-provisioning
-// operation. No provisioner exists yet, so this type cannot mutate storage.
+enum class MapSelectorDomainPermitUse : std::uint8_t {
+    none = 0,
+    unavailable,
+    already_consumed,
+    binding_mismatch,
+    boot_session_mismatch,
+    not_yet_valid,
+    expired,
+};
+
+// Boot-local, non-copyable authority for one domain-provisioning operation.
+// Only MapSelectorDomainProvisioner can consume it after authorization.
 class MapSelectorDomainAuthorizationPermit {
 public:
     MapSelectorDomainAuthorizationPermit() = default;
@@ -158,6 +168,10 @@ private:
         std::uint64_t boot_session_id,
         std::uint64_t issued_at_ms,
         std::uint64_t expires_at_ms);
+    [[nodiscard]] MapSelectorDomainPermitUse consume(
+        const MapSelectorDomainAuthorizationBinding& expected_binding,
+        std::uint64_t boot_session_id,
+        std::uint64_t now_ms);
     void invalidate();
 
     MapSelectorDomainAuthorizationScope scope_{

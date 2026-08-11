@@ -1,8 +1,7 @@
 # Offline Map Selector Trust-Domain Store v0
 
 Status: deterministic host-tested abstract two-slot store, 2026-08-11. No
-physical backend, protected rollback anchor, provisioner, or on-device
-persistence exists.
+physical backend, protected rollback anchor, or on-device persistence exists.
 
 This store gives the canonical 80-byte
 [`OTMD/v0` lifecycle record](OFFLINE_MAP_SELECTOR_DOMAIN_RECORD_V0.md) a
@@ -50,8 +49,9 @@ one of these forms:
 
 Replacement also rejects immediate reuse of the current record's retired
 domain. The two-record format cannot prove lifetime domain uniqueness, entropy,
-or physical-device continuity; those remain obligations of the future
-permit-consuming provisioner and protected target composition.
+or physical-device continuity. The permit-consuming provisioner requires those
+values as exact authorized inputs, while proof and generation remain
+obligations of protected target composition.
 
 Backward state, binding mutation inside one domain, skipped epochs, domain
 reuse, a lowered quarantine floor, or commissioning over existing records is
@@ -84,9 +84,10 @@ protected continuity, or rollback resistance.
 This is a persistence mechanism, not a provisioning authority. Calling
 `save()` does not prove that a protected-domain permit was issued, device
 continuity was established, selector media was reviewed, a domain was securely
-generated, or protected history was reset. The future provisioner must be the
-only target component allowed to assemble authorized domain-changing records
-and must serialize access across domain, protected-generation, and selector
+generated, or protected history was reset. The separate
+[provisioner](OFFLINE_MAP_SELECTOR_DOMAIN_PROVISIONER_V0.md) is the only common
+component that assembles authorized domain-changing records, and its caller
+must serialize access across domain, protected-generation, and selector
 operations.
 
 The store contains only typed fixed-size records and coarse result enums. It
@@ -106,10 +107,11 @@ unreadable and invalid-only media, equal-generation conflict and identical
 copies, codec rejection, and generation exhaustion.
 
 The focused suite passes 100/100 repeats under strict C++17 warnings-as-errors.
-All twenty map suites pass 100/100 repeats, and the complete 78-executable host
-matrix passes including publication-safety checks.
+All twenty-one map suites pass 100/100 repeats, and the complete 79-executable
+host matrix passes including publication-safety checks.
 
 No key/value or ESP-IDF backend, partition/namespace binding, authenticated
 integrity, protected rollback anchor, physical atomicity or power-cut evidence,
-wear/endurance result, target lock/task, permit consumer, provisioner,
-cross-store transaction, or on-device behavior is claimed.
+wear/endurance result, target lock/task, transactional rollback across stores,
+or on-device behavior is claimed. The provisioner supplies fixed recoverable
+ordering rather than a cross-store atomic transaction.

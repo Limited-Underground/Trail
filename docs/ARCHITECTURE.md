@@ -440,10 +440,10 @@ requires local USB, an atomically consumed opaque handle, exact boot/route/media
 binding, a nonzero proposed 128-bit domain, six confirmations, a committed local
 revision, and a short checked-time window. Retained same-device selector state
 may be marked only as quarantined; new-device commissioning requires verified-
-empty media. The resulting non-copyable permit has no consumer yet and grants
-no erase, reset, import, domain creation, or migration authority. Ten host
-groups pass; credentials, continuity proof, secure domain generation, durable
-replay/audit, domain records, and all execution remain target gates.
+empty media. The resulting non-copyable permit can be consumed only by the
+domain provisioner and grants no general erase, reset, import, or migration
+authority. Ten host groups pass; credentials, continuity proof, secure domain
+generation, and durable replay/audit remain target gates.
 
 The separate canonical
 [`OTMD/v0` lifecycle record](maps/OFFLINE_MAP_SELECTOR_DOMAIN_RECORD_V0.md)
@@ -462,8 +462,16 @@ verifies exact readback. It supports exact maintenance repair,
 pending-to-active, monotonic accepted-selector, and linked replacement
 successors while refusing unreadable/conflicted/backward/reused-domain state.
 It deliberately has no erase/reset API and grants no provisioning authority.
-Ten store groups pass; a protected target backend and permit-consuming
-transition coordinator remain separate gates.
+Ten store groups pass. The separate
+[permit-consuming provisioner](maps/OFFLINE_MAP_SELECTOR_DOMAIN_PROVISIONER_V0.md)
+requires exclusive ownership, burns binding/boot/time authority before I/O,
+persists an exact pending lifecycle record before selector clear or protected-
+source establishment, and verifies empty selector media plus protected
+generation zero while keeping the map stopped. Its protected-source interface
+can establish only independently uninitialized state and cannot reset or rebind
+an initialized source. Matching pending state is resumable with a new exact
+permit. Thirteen groups pass; later baseline/reseed activation, protected
+target adapters, task locking, and physical durability remain separate gates.
 
 The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
 can mint that non-copyable, single-use permit only after an injected local-

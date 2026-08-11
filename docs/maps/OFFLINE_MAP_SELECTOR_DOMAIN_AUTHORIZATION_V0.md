@@ -1,15 +1,15 @@
 # Offline Map Selector Protected-Domain Authorization v0
 
-Status: deterministic host-tested authorization handoff, 2026-08-11. No
-protected-domain provisioner, reset executor, credential verifier, or on-device
-authentication exists.
+Status: deterministic host-tested authorization handoff, 2026-08-11. No reset
+executor, credential verifier, or on-device authentication exists.
 
 This boundary implements the authority handoff required by the
 [reset/replacement policy](OFFLINE_MAP_SELECTOR_RESET_REPLACEMENT_POLICY_V0.md)
 without implementing either destructive operation. It can mint one boot-local,
 non-copyable permit for future same-device map-domain replacement or fresh-
-device domain commissioning. The permit has no storage API that can consume it
-today.
+device domain commissioning. Only the separate
+[trust-domain provisioner](OFFLINE_MAP_SELECTOR_DOMAIN_PROVISIONER_V0.md) can
+consume it.
 
 ## Two exact scopes
 
@@ -37,7 +37,8 @@ before execution is possible. The separate canonical
 [`OTMD/v0` record](OFFLINE_MAP_SELECTOR_DOMAIN_RECORD_V0.md) now defines that
 lifecycle data, and its separate
 [two-slot store](OFFLINE_MAP_SELECTOR_DOMAIN_STORE_V0.md) provides recoverable
-host persistence. No permit-consuming provisioner exists.
+host persistence. The provisioner adds bounded preparation ordering without
+giving the authorizer or store a general reset API.
 
 Same-device replacement may describe either:
 
@@ -84,8 +85,9 @@ lifetime limits. Exact expiry is rejected.
 The permit contains only scope, exact operation binding, boot session, and time
 bounds. It is non-copyable; movement transfers the sole owner and invalidates
 the source object. Reauthorization first invalidates an existing output permit.
-A future provisioner must be the only friend allowed to burn this permit and
-must recheck binding, boot, and use time before any mutation.
+The provisioner is the only friend allowed to burn this permit and rechecks
+binding, boot, and use time before any I/O. Binding, boot, early use, exact
+expiry, and replay failures consume or reject authority without storage access.
 
 ## Current evidence and limits
 
@@ -96,12 +98,14 @@ echo including retired-domain absence/reuse/new-device contamination, all six
 confirmations, local revision, time boundaries, backend replay, output
 invalidation, and move-without-copy ownership.
 
-All twenty map suites pass 100/100 focused repeats in the complete
-78-executable host matrix under strict C++17 warnings-as-errors.
+All twenty-one map suites pass 100/100 focused repeats in the complete
+79-executable host matrix under strict C++17 warnings-as-errors.
 
 This is authorization-handoff evidence only. It does not prove device
 continuity, secure randomness, credential strength, physical presence, audit or
 replay durability. The record store has no permit input or erase/reset
-authority. No selector clear, protected-source reset, generation migration,
-package import, provisioner, target lock/task, ESP-IDF composition, power-loss
-result, or on-device behavior is implemented or authorized.
+authority. The provisioner can prepare only exact fresh or replacement-domain
+state and cannot reset/rebind an initialized source, import selector records,
+or expose a map. Concrete target credentials, protected-source and storage
+adapters, target lock/task, ESP-IDF composition, power-loss result, and
+on-device behavior remain unimplemented and unproven.

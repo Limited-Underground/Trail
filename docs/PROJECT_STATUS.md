@@ -256,8 +256,8 @@ empty or quarantined selector evidence, a nonzero proposed 128-bit domain, boot
 session, six reviewed confirmations, committed local revision, and short time
 window. Temporary source failure, retained media on a claimed new device,
 wireless/radio transport, malformed grant, mismatch, expiry, and replay cannot
-mint the non-copyable permit. No provisioner exists, so the permit cannot reset,
-clear, import, retire, or create state. Ten groups pass.
+mint the non-copyable permit. Only the bounded domain provisioner can consume
+it. Ten groups pass.
 
 A separate 80-byte `OTMD/v0` codec now records the map trust-domain lifecycle
 without changing `OTM0/v0`. Fresh-device state carries a nonzero current domain,
@@ -276,9 +276,20 @@ slot across twelve interrupted prepared-write boundaries, commits byte 75 last,
 verifies exact readback, repairs known degraded peers, and fails closed on
 unreadable, invalid-only, conflicted, exhausted, backward, floor-lowering, or
 immediate retired-domain-reuse state. It has no erase/reset API and no
-provisioning authority. Ten store groups pass; no protected target backend,
-permit consumer, provisioner, target lock, or physical durability evidence
-exists.
+provisioning authority. Ten store groups pass.
+
+The permit-consuming trust-domain provisioner now requires exclusive ownership
+and burns exact binding, boot, and checked-time authority before any I/O. It
+accepts only stopped or mapless ownership, verifies all domain/selector/source
+preconditions, commits the exact pending `OTMD/v0` record first, then verified-
+clears retained selector media, and only then establishes and reads back an
+independently uninitialized protected source at generation zero. Matching
+pending state can resume under a new permit, including exact readback after an
+applied-then-failed source call; initialized sources cannot be reset or rebound.
+Success is prepared/mapless state, not an active map. Thirteen groups pass; no
+protected target backend, concrete credential/continuity/entropy evidence,
+baseline/reseed activation composition, target lock, or physical durability
+evidence exists.
 
 The selector now has a backend-neutral key/value adapter contract. Fixed
 `ot_state` / `ot_maps` / `otm_sel_a|b` binding, exact 64-byte reads, durable
@@ -289,8 +300,8 @@ partition-wide erase, fixes a local-service authority handoff, and defines the
 physical interruption matrix. No ESP-IDF source, partition table, target
 task/lock, encryption/trusted-generation choice, physical result, or concrete
 service-authentication backend exists.
-All twenty map suites pass 100/100 focused repeats, and the complete
-78-executable host matrix passes.
+All twenty-one map suites pass 100/100 focused repeats, and the complete
+79-executable host matrix passes.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -514,7 +525,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 77 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 79 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
@@ -525,7 +536,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
   portable-client composition, local-interface, power, time, randomness,
   replay, map activation/checkpoint/store/boot, protected-generation boot,
   first baseline, authorized service reseed, candidate replacement, and
-  runtime-transition recovery,
+  runtime-transition recovery plus protected-domain provisioning,
   pilot, and benchmark boundaries.
   This is host/build evidence, not
   physical MeshCore,
@@ -698,11 +709,12 @@ not treated as proof of authorization.
   provider/data, package/container, renderer, storage medium, transfer method,
   signature policy, limits, and exact target remain open pending OT-016/OT-018
   experiments
-- `OTMD/v0` now has canonical lifecycle and recoverable abstract-store evidence.
-  The next domain decision is the permit-consuming provisioner and exact
-  pending-record-before-protected-source/selector ordering; protected target
-  storage, device-continuity evidence, secure domain generation, and cross-store
-  interruption recovery remain open
+- `OTMD/v0` now has canonical lifecycle, recoverable abstract-store, and
+  permit-consuming preparation evidence with pending-record-before-selector/
+  protected-source ordering. The next domain decision is the coordinator that
+  advances the fresh selector/protected generation and marks the pending domain
+  active; protected target storage, device-continuity evidence, secure domain
+  generation, and physical interruption recovery remain open
 - Touchscreen UI framework and distracted-driving/safe-use constraints
 - OpenGauge authenticated on-device transport, peer/key lifecycle, persistent replay/outbox state, failure UX, and direct radio integration; the v0 semantic schema/policy is host-tested and OT-017D/OT-017E supply bounded physical byte and host-component completion evidence
 - Field-session repetition count, movement/terrain profiles, acceptance

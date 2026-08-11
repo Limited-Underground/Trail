@@ -6,6 +6,25 @@ public chronology.
 
 ## 2026-08-11
 
+### Authorized map trust-domain provisioner
+
+- Added the sole common-code consumer for the protected-domain permit. It burns
+  exact binding, boot-session, and checked-time authority before any I/O and
+  requires exclusive stopped/mapless ownership throughout the operation.
+- Fixed the mutation order at verified pending `OTMD/v0` record, verified-empty
+  selector media, then protected-source establishment/readback at generation
+  zero. The source boundary can establish only independently uninitialized
+  state and exposes no reset or rebind operation.
+- Added exact new-permit resume for matching pending state, including recovery
+  when a source call applied the domain before reporting failure. Every
+  post-pending failure remains mapless and reconciliation-required; successful
+  preparation still requires a later baseline/reseed activation.
+- Added thirteen deterministic scenario groups. All twenty-one map suites pass
+  100/100 focused repeats, and the complete 79-executable host matrix passes
+  locally including publication safety. Protected target adapters, concrete
+  credentials/continuity/entropy, exclusive target tasking, physical power-cut
+  evidence, and active-domain completion remain open.
+
 ### Recoverable map trust-domain lifecycle store
 
 - Added a separate two-slot storage boundary for exact 80-byte `OTMD/v0`

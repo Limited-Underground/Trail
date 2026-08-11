@@ -129,6 +129,32 @@ MapSelectorDomainAuthorizationPermit::operator=(
     return *this;
 }
 
+MapSelectorDomainPermitUse MapSelectorDomainAuthorizationPermit::consume(
+    const MapSelectorDomainAuthorizationBinding& expected_binding,
+    std::uint64_t boot_session_id,
+    std::uint64_t now_ms) {
+    if (consumed_) {
+        return MapSelectorDomainPermitUse::already_consumed;
+    }
+    if (!granted_) {
+        return MapSelectorDomainPermitUse::unavailable;
+    }
+
+    consumed_ = true;
+    granted_ = false;
+    if (!binding_equal(binding_, expected_binding)) {
+        return MapSelectorDomainPermitUse::binding_mismatch;
+    }
+    if (boot_session_id == 0 || boot_session_id != boot_session_id_) {
+        return MapSelectorDomainPermitUse::boot_session_mismatch;
+    }
+    if (now_ms < issued_at_ms_) {
+        return MapSelectorDomainPermitUse::not_yet_valid;
+    }
+    return now_ms < expires_at_ms_ ? MapSelectorDomainPermitUse::none
+                                   : MapSelectorDomainPermitUse::expired;
+}
+
 void MapSelectorDomainAuthorizationPermit::invalidate() {
     scope_ = MapSelectorDomainAuthorizationScope::none;
     binding_ = {};
