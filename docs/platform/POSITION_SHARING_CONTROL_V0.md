@@ -73,7 +73,7 @@ Ten deterministic groups cover:
 9. unrelated and unknown action rejection without mutation; and
 10. idempotent repeated actions plus typed start rejection.
 
-The focused executable passes 100/100 repeats. The complete 48-executable
+The focused executable passes 100/100 repeats. The complete 49-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 ## Remaining gates

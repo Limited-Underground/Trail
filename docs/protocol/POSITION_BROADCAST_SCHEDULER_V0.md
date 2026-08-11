@@ -9,9 +9,10 @@ or regulatory result is claimed.
 `PositionBroadcastScheduler` turns caller-supplied location snapshots into the
 existing canonical 16-byte position payload at an explicit start/stop cadence.
 It sends payloads only to an injected application sink. The sink may later
-connect to authenticated packet composition and priority admission; this
-component does not build packet v0/v1, queue radio frames, or call a board
-driver.
+connect to authenticated packet composition and priority admission. The
+separate experimental packet-v0 admission sink proves an unauthenticated host
+composition, but this scheduler itself does not build packet v0/v1, queue radio
+frames, or call a board driver.
 
 The scheduler starts stopped. A successful explicit `start(now_ms)` makes one
 current fix immediately due. `stop()` prevents further sink calls immediately.
@@ -49,9 +50,10 @@ coordinates after GPS loss. Remote peers must age the last authenticated
 position independently. A later explicit no-fix heartbeat policy would require
 separate airtime, privacy, UI, and protocol review.
 
-The sink receives a temporary view of exactly one canonical 16-byte payload and
-must copy or consume it before returning success. Not-ready/full pressure and
-sink failure remain distinct and cannot become false submission success.
+The sink receives a temporary view of exactly one canonical 16-byte payload
+plus the exact service-attempt monotonic time and must copy or consume the view
+before returning success. Not-ready/full pressure and sink failure remain
+distinct and cannot become false submission success.
 
 ## Time failure
 
@@ -80,19 +82,24 @@ Ten deterministic groups cover:
 9. malformed-current encoding refusal before sink access; and
 10. checked time horizon plus fixed payload/script capacities.
 
-The focused executable passes 100/100 repeats. The complete 48-executable
+The focused executable passes 100/100 repeats. The complete 49-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The separate [semantic privacy-control adapter](../platform/POSITION_SHARING_CONTROL_V0.md)
 now maps scheduler state to explicit local start/stop actions without granting
 the UI sink, radio, GPS, or emergency authority.
 
+The [experimental packet-admission sink](POSITION_PACKET_ADMISSION_V0.md) now
+proves exact-time packet-v0/background-queue composition without claiming
+authentication, delivery, radio transmission, or safe handling of real
+coordinates.
+
 ## Remaining gates
 
 - select cadence only after measured four-client contention, privacy, and power
   review;
-- connect the sink to authenticated packet composition, priority admission,
-  and an exact direct-radio adapter;
+- replace the experimental packet-v0 admission sink with authenticated packet
+  composition and connect priority output to an exact direct-radio adapter;
 - decide remote position expiry and whether an explicit no-fix heartbeat is
   justified;
 - render and physically validate the host-tested local start/stop states and

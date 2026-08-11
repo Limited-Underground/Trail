@@ -18,9 +18,13 @@ evidence, not a field-capacity, collision, delivery, range, or regulatory result
 
 A fixed-memory position scheduler now adds explicit start/stop, current-fix-only
 output, delayed-service coalescing, and separate cadence/retry timing around the
-existing 16-byte payload. It exposes pressure/failure counts but stops at an
-injected sink. No final cadence, authenticated packet/priority composition,
-direct-radio/GPS binding, privacy UX, or physical position-sharing result exists.
+existing 16-byte payload. A host-only sink now carries its exact attempt time,
+revalidates the current payload, obtains injected ephemeral packet-v0 metadata,
+encodes one exact 38-byte frame, and admits it only as background position
+traffic. Rate/capacity pressure feeds typed scheduler retry. This is
+unauthenticated packet-v0 component evidence: real coordinates remain
+prohibited, and no final cadence, authenticated packet/priority composition,
+direct-radio/GPS binding, or physical position-sharing result exists.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -244,9 +248,10 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 48 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 49 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
-  suites. The matrix includes position scheduling/privacy control,
+  suites. The matrix includes position scheduling/privacy control and
+  experimental packet/priority admission,
   portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
   physical MeshCore,
@@ -334,7 +339,7 @@ not treated as proof of authorization.
   flags. Hardware/candidate identity, checkpoint payloads, raw adapter errors,
   and nested results are absent; unknown or contradictory input blocks normal
   operation as service-required. Eight groups plus 100 repeats pass in the
-  complete 48-executable matrix. A versioned `OTRD0` adapter now records one
+  complete 49-executable matrix. A versioned `OTRD0` adapter now records one
   coherent status through the existing logger as one fixed hexadecimal 32-bit
   word. Generations and identity-bearing detail are omitted; magic, version,
   reserved bits, enums, flags, and state/action/reason coherence fail closed.
@@ -359,6 +364,14 @@ not treated as proof of authorization.
   plus 100 repeats pass. Renderer wording/layout, target scheduling/revision
   ownership, direct radio/GPS composition, and physical privacy behavior remain
   absent.
+  An experimental packet-admission sink now revalidates the scheduler's
+  canonical current payload, obtains injected ephemeral packet-v0 metadata,
+  encodes one exact 38-byte frame, and admits it only as background traffic
+  using the actual scheduler attempt time. Ten groups plus 100 repeats cover
+  round-trip, expiry, priority, pressure, and failure behavior. Packet v0 is
+  unauthenticated and prohibited for real coordinates; identity/counter
+  lifecycle, authenticated composition, delivery/radio binding, and physical
+  behavior remain absent.
 
 ### Maps and interface
 

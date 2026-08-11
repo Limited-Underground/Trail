@@ -69,6 +69,8 @@ void test_start_submits_current_fix_immediately() {
     EXPECT(result.submitted());
     EXPECT(result.next_attempt_ms == 1050);
     EXPECT(sink.size() == 1);
+    EXPECT(sink.has_submit_time());
+    EXPECT(sink.last_submit_ms() == 50);
     const auto decoded = decode_at(sink, 0);
     EXPECT(decoded.decoded());
     EXPECT(decoded.position.state == BroadcastPositionState::current);

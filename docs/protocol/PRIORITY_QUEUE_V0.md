@@ -63,6 +63,13 @@ reset, expiry events, validation, duplicate IDs, and emergency-over-critical
 behavior. An integration scenario proves emergency selection reaches the
 delivery controller before an existing normal backlog.
 
+A separate ten-group
+[experimental position-admission integration](POSITION_PACKET_ADMISSION_V0.md)
+proves that scheduler-produced packet-v0 positions can enter only as background
+traffic, use the actual attempt time for expiry, remain behind critical
+traffic, expire visibly, and return typed rate/capacity pressure. It does not
+add authentication, delivery, or radio evidence.
+
 OT-010 remains partial until packet types and authenticated priority are defined,
 airtime/congestion values are measured, emergency rate/preemption behavior is
 tested with realistic mixed traffic, and an actual UI visibly distinguishes

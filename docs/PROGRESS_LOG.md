@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Experimental position packet and priority admission
+
+- Added a fixed-memory sink that revalidates only canonical current-position
+  payloads, obtains injected ephemeral packet-v0 metadata, encodes the exact
+  38-byte frame, and admits it as `MessageClass::position` background traffic.
+- Passed the scheduler's actual service timestamp into its sink so queue
+  creation and expiry start from real attempted work, not an unrelated clock
+  sample. Metadata is consumed before admission and never reused after pressure.
+- Kept failure semantics typed: metadata or queue not-ready/rate pressure is
+  retryable; reserved/full capacity maps to full; malformed/noncurrent payload,
+  invalid metadata, duplicate IDs, invalid policy, and queue failure fail closed.
+- Covered ten groups including scheduler composition, decode round-trip,
+  priority ordering, exact expiry, pressure, and failure paths; the focused
+  executable passes 100/100 repeats and the complete 49-executable host matrix
+  plus every Python/publication-safety check passes. This is explicitly
+  unauthenticated packet-v0 host evidence, not real-coordinate or radio use.
+
 ### Local position-sharing privacy control
 
 - Added fixed semantic notices for stopped, active, waiting-for-fix, deferred,
@@ -18,7 +35,7 @@ public chronology.
   conditions remain warning states with stop available; invalid policy,
   monotonic rollback, and time exhaustion become critical action-free faults.
 - Covered ten groups through button and touch capability shapes, 100 focused
-  repeats, the complete 48-executable host matrix, and every Python/publication-
+  repeats, the complete 49-executable host matrix, and every Python/publication-
   safety check. Exact renderer/text, target scheduling/revision ownership,
   direct radio/GPS composition, and physical privacy UX remain open.
 
@@ -33,7 +50,7 @@ public chronology.
 - Allowed only current validated fixes into the injected sink. Unavailable,
   stale, invalid, and malformed-current snapshots are suppressed or rejected
   before sink access; not-ready/full/failure outcomes remain typed.
-- Covered ten groups, 100 focused repeats, the complete 48-executable host
+- Covered ten groups, 100 focused repeats, the complete 49-executable host
   matrix, and every Python/publication-safety check. Exact cadence, rendered UX,
   authenticated packet/priority composition, direct radio/GPS binding, field
   behavior, and regulatory acceptance remain open.
@@ -50,7 +67,7 @@ public chronology.
   critical service-required frame when a valid revision exists; revision zero
   cannot create a presentable frame.
 - Covered nine groups through the real checked local-interface boundary, 100
-  focused repeats, the complete 48-executable host matrix, and every Python/
+  focused repeats, the complete 49-executable host matrix, and every Python/
   publication-safety check. Exact renderer, target task/revision ownership,
   physical recovery execution, and operator workflow remain open.
 
@@ -67,7 +84,7 @@ public chronology.
   records only as `[REDACTED]`, and is neither a serialized/persistent format
   nor an internally synchronized target service.
 - Covered eight groups including actual `OTRD0` capture, 100 focused repeats,
-  the complete 48-executable host matrix, and every Python/publication-safety
+  the complete 49-executable host matrix, and every Python/publication-safety
   check. Exact target composition, measured RAM/timing, persistent audit/export,
   and physical failure capture remain open.
 
@@ -83,7 +100,7 @@ public chronology.
 - Kept logger authority intact: info/warn/error severity follows operator state,
   runtime filtering is an accepted non-write, and full-sink rejection remains
   visible rather than becoming false success.
-- Covered eight scenario groups, 100 focused repeats, the complete 48-executable
+- Covered eight scenario groups, 100 focused repeats, the complete 49-executable
   matrix, and all Python/publication-safety checks. Target sink binding,
   persistent retention/export, display rendering, and physical failure capture
   remain open.

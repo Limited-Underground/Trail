@@ -84,6 +84,15 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   faults expose no misleading execution action. Ten groups plus 100 focused
   repeats pass on both button and touch capability shapes. Exact wording,
   renderer, target task/revision ownership, and physical behavior remain open.
+- **Scheduled positions now reach bounded experimental packet admission:** the
+  [packet-admission sink](docs/protocol/POSITION_PACKET_ADMISSION_V0.md)
+  revalidates the 16-byte current-position payload, obtains caller-owned
+  ephemeral packet metadata, encodes exactly one 38-byte packet-v0 frame, and
+  admits it only as background traffic with the scheduler's actual attempt
+  time. Rate/capacity pressure remains retryable and invalid metadata or queue
+  state fails closed. Ten groups plus 100 focused repeats pass. Packet v0 is
+  still unauthenticated and unsuitable for real coordinates; no radio,
+  identity lifecycle, persistence, or physical result is claimed.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned
@@ -265,11 +274,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 48 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 49 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
-  including position scheduling/privacy control, portable-client composition,
-  local-interface, power-state, clock, randomness,
+  including position scheduling/privacy control and experimental packet
+  admission, portable-client composition, local-interface, power-state, clock,
+  randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,
   passes on `main`.

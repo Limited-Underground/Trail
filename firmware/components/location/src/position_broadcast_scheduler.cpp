@@ -130,7 +130,8 @@ PositionBroadcastScheduleResult PositionBroadcastScheduler::service(
         };
     }
 
-    const auto sink_error = sink_.submit({payload.data(), payload.size()});
+    const auto sink_error =
+        sink_.submit({payload.data(), payload.size()}, now_ms);
     switch (sink_error) {
         case PositionBroadcastSinkError::none:
             saturating_increment(status_.submitted);

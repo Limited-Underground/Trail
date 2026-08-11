@@ -17,10 +17,13 @@ bool FakePositionBroadcastSink::enqueue_result(
 }
 
 PositionBroadcastSinkError FakePositionBroadcastSink::submit(
-    radio::ByteView payload) {
+    radio::ByteView payload,
+    std::uint64_t now_ms) {
     if (submit_attempts_ != std::numeric_limits<std::uint32_t>::max()) {
         ++submit_attempts_;
     }
+    has_submit_time_ = true;
+    last_submit_ms_ = now_ms;
     if (payload.data == nullptr || payload.size != kPositionPayloadBytes) {
         return PositionBroadcastSinkError::failed;
     }
@@ -54,6 +57,14 @@ FakePositionBroadcastSink::at(std::size_t index) const {
 
 std::uint32_t FakePositionBroadcastSink::submit_attempts() const {
     return submit_attempts_;
+}
+
+bool FakePositionBroadcastSink::has_submit_time() const {
+    return has_submit_time_;
+}
+
+std::uint64_t FakePositionBroadcastSink::last_submit_ms() const {
+    return last_submit_ms_;
 }
 
 }  // namespace opentrail::location::test_support

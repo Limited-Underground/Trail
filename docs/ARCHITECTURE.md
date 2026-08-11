@@ -116,10 +116,16 @@ Priority classes should reserve capacity for emergency and critical traffic. A
 host-tested position scheduler now requires explicit start, stops immediately,
 emits only a current validated fix, and schedules from actual accepted/deferred
 work so delayed service coalesces instead of creating a catch-up queue. Stale,
-unavailable, invalid, and unencodable fixes never reach its sink. The sink still
-needs authenticated packet/priority composition; chat and position must not
-starve emergency traffic. Exact cadence, airtime budgets, retry policy, and
-regional constraints depend on measurement and review.
+unavailable, invalid, and unencodable fixes never reach its sink. An explicitly
+experimental host sink now revalidates that payload, obtains injected ephemeral
+packet-v0 metadata, encodes the exact 38-byte frame, and admits it to the tested
+priority queue only as background position traffic. Queue creation/expiry uses
+the scheduler's actual attempt time, and pressure remains visible to scheduler
+retry. This proves component composition only: packet v0 is unauthenticated,
+real coordinates remain prohibited, and authenticated packet/priority plus
+direct-radio composition is still required. Chat and position must not starve
+emergency traffic. Exact cadence, airtime budgets, retry policy, and regional
+constraints depend on measurement and review.
 
 A separate host-tested position-sharing control adapter maps scheduler state to
 the existing semantic local-interface boundary. It exposes start only while

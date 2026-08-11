@@ -78,6 +78,12 @@ moving/stationary profile or unknown heartbeat. Earlier 60-second moving,
 only. State changes and any no-fix heartbeat still require congestion,
 priority, privacy, and regulatory review. No cadence is a safety guarantee.
 
+The host-tested [experimental packet-admission sink](POSITION_PACKET_ADMISSION_V0.md)
+now revalidates only `current` payloads, wraps them in the exact 38-byte
+packet-v0 frame, and admits them as background traffic using the scheduler's
+actual attempt time. This is component-composition evidence only; packet v0 is
+not authenticated or permitted to carry real coordinates.
+
 ## Host evidence and remaining gates
 
 Eight codec scenario groups cover current/stale/unknown states, no-UTC input,
@@ -87,7 +93,7 @@ inside a 38-byte packet-v0 frame through the fake radio transport. Four airtime
 scenario groups cover the bench settings, a 125 kHz reference, low-data-rate
 optimization, and invalid inputs.
 
-Authentication/encryption, privacy UX, authenticated packet/priority scheduler
+Authentication/encryption, rendered privacy UX, authenticated packet/priority
 composition, selected cadence, multi-node contention, direct SX1262 binding,
 per-packet hardware airtime, motion/field behavior, and regional compliance
 remain later gates.

@@ -14,11 +14,14 @@ public:
 
     [[nodiscard]] bool enqueue_result(PositionBroadcastSinkError error);
     [[nodiscard]] PositionBroadcastSinkError submit(
-        radio::ByteView payload) override;
+        radio::ByteView payload,
+        std::uint64_t now_ms) override;
     [[nodiscard]] std::size_t size() const;
     [[nodiscard]] const std::array<std::uint8_t, kPositionPayloadBytes>* at(
         std::size_t index) const;
     [[nodiscard]] std::uint32_t submit_attempts() const;
+    [[nodiscard]] bool has_submit_time() const;
+    [[nodiscard]] std::uint64_t last_submit_ms() const;
 
 private:
     std::array<PositionBroadcastSinkError, kCapacity> results_{};
@@ -29,6 +32,8 @@ private:
         kCapacity> payloads_{};
     std::size_t payload_count_{0};
     std::uint32_t submit_attempts_{0};
+    bool has_submit_time_{false};
+    std::uint64_t last_submit_ms_{0};
 };
 
 }  // namespace opentrail::location::test_support

@@ -20,7 +20,8 @@ public:
     // The view is valid only for this call. A successful sink must copy or
     // consume the exact payload before returning.
     [[nodiscard]] virtual PositionBroadcastSinkError submit(
-        radio::ByteView payload) = 0;
+        radio::ByteView payload,
+        std::uint64_t now_ms) = 0;
 };
 
 struct PositionBroadcastSchedulePolicy {
