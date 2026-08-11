@@ -175,6 +175,11 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   MBTiles, PMTiles, and a pre-rendered raster reference. Packages are prepared
   off-device, staged and verified before read-only activation, retain a prior-
   good fallback, and may fail to a mapless UI without stopping communications.
+  A strict [`OTMP0/v0` host manifest](docs/maps/OFFLINE_MAP_PACKAGE_MANIFEST_V0.md)
+  now validates rights/attribution, candidate layout, coverage, exact length,
+  SHA-256, and compatibility/storage requirements and can verify supplied local
+  bytes without writing or echoing rejected paths. Seven synthetic groups pass;
+  this is package preflight, not authenticity, activation, or rendering.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
   or on-device map result is selected or claimed.

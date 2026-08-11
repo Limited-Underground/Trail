@@ -105,6 +105,15 @@ recovery, and allowed to fail to a mapless UI without stopping communications.
 No provider, package, target renderer, storage path, or on-device map result is
 claimed.
 
+That gate now has a strict `OTMP0/v0` host manifest and exact-byte verifier.
+Canonical rights/attribution, experimental container/encoding/scheme, Web
+Mercator coverage, byte/tile counts, SHA-256, reader/firmware, storage, and
+scratch requirements fail closed across seven groups. The tool reads only a
+manifest and optional local package, streams its digest, writes nothing, and
+does not echo rejected paths. This proves metadata and byte identity only—not
+source authenticity, a lawful real package, staging/activation, rendering, or
+target compatibility.
+
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
 phone/laptop/vehicle dependency during a session, at least three materially

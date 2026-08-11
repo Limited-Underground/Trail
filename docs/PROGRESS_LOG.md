@@ -6,6 +6,26 @@ public chronology.
 
 ## 2026-08-11
 
+### Offline map package manifest and verifier
+
+- Added strict `OTMP0/v0` metadata for source/licence/offline rights/visible
+  attribution, experimental container/encoding/scheme, Web Mercator coverage,
+  exact bytes/tile count/SHA-256, and reader/firmware/storage/scratch needs.
+- Limited v0 experiments to MBTiles/JPEG/TMS, PMTiles/JPEG/XYZ, and indexed-
+  raster JPEG-or-RGB565/XYZ. Unsupported formats, extra fields, bad bounds,
+  incompatible pairs, and insufficient storage fail before package reads.
+- Added a read-only host verifier that streams the supplied package digest and
+  rejects truncation and same-length mutation. It performs no download, write,
+  transfer, mount, signing, activation, deletion, rollback, or rendering.
+- Passed seven focused groups covering all accepted candidates, strict shape,
+  bounds/zooms, coherence, rights/attribution and blocked public OSM endpoints,
+  exact-byte verification, mutation/truncation, and rejected-path redaction.
+- Hardened the Windows PowerShell host harness so the four intentional negative
+  diagnostic-CLI smoke checks capture native stderr and exit status instead of
+  being prematurely terminated by the script-wide stop preference.
+- The tests use synthetic bytes. No real map data, provider, package approval,
+  received display, or target result is claimed.
+
 ### Offline-map architecture gate
 
 - Rechecked current OSMF policy and made the public OpenStreetMap tile servers

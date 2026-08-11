@@ -33,6 +33,33 @@ if (-not $compiler) {
 $compilerDirectory = Split-Path -Parent $compiler
 $env:Path = "$compilerDirectory;$env:Path"
 
+function Invoke-ExpectedNativeFailure {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Executable,
+        [Parameter(Mandatory = $true)]
+        [string] $Argument
+    )
+
+    $previousPreference = $ErrorActionPreference
+    try {
+        # Windows PowerShell converts native stderr into ErrorRecord objects.
+        # Keep expected negative CLI evidence capturable under the script-wide
+        # Stop preference, then restore that preference immediately.
+        $ErrorActionPreference = 'Continue'
+        $output = & $Executable $Argument 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
+    }
+
+    [PSCustomObject]@{
+        ExitCode = $exitCode
+        Text = (@($output | ForEach-Object { $_.ToString() }) -join "`n")
+    }
+}
+
 $buildDirectory = Join-Path $projectRoot "build\host-tests\run-$PID"
 New-Item -ItemType Directory -Force -Path $buildDirectory | Out-Null
 $commonArguments = @(
@@ -770,12 +797,9 @@ if ($LASTEXITCODE -ne 0 -or
     $diagnosticOutput -ne 'event=presentation outcome=succeeded notice=stopped reason=none frame_presented=1 state_changed=0 sharing_contained=0 sensitive_detail_redacted=1') {
     throw 'Position-sharing UI diagnostic CLI canonical smoke test failed.'
 }
-$invalidDiagnosticOutput = & $diagnosticCli 'OTPD0=c0012040' 2>&1
-$invalidDiagnosticText = @(
-    $invalidDiagnosticOutput | ForEach-Object { $_.ToString() }
-) -join "`n"
-if ($LASTEXITCODE -eq 0 -or
-    $invalidDiagnosticText -ne 'OTPD0 decode failed: invalid_message') {
+$invalidDiagnostic = Invoke-ExpectedNativeFailure $diagnosticCli 'OTPD0=c0012040'
+if ($invalidDiagnostic.ExitCode -eq 0 -or
+    $invalidDiagnostic.Text -ne 'OTPD0 decode failed: invalid_message') {
     throw 'Position-sharing UI diagnostic CLI invalid-input smoke test failed.'
 }
 
@@ -785,12 +809,9 @@ if ($LASTEXITCODE -ne 0 -or
     $recoveryDiagnosticOutput -ne 'operation=boot state=operational reason=clean_baseline action=continue_operation operation_succeeded=1 normal_operation_blocked=0 attention_required=0 reboot_required=0 confirmation_required=0 cleanup_required=0 sensitive_detail_redacted=1') {
     throw 'Update-recovery diagnostic CLI canonical smoke test failed.'
 }
-$invalidRecoveryOutput = & $recoveryDiagnosticCli 'OTRD0=d0105084' 2>&1
-$invalidRecoveryText = @(
-    $invalidRecoveryOutput | ForEach-Object { $_.ToString() }
-) -join "`n"
-if ($LASTEXITCODE -eq 0 -or
-    $invalidRecoveryText -ne 'OTRD0 decode failed: invalid_message') {
+$invalidRecovery = Invoke-ExpectedNativeFailure $recoveryDiagnosticCli 'OTRD0=d0105084'
+if ($invalidRecovery.ExitCode -eq 0 -or
+    $invalidRecovery.Text -ne 'OTRD0 decode failed: invalid_message') {
     throw 'Update-recovery diagnostic CLI invalid-input smoke test failed.'
 }
 
@@ -805,20 +826,14 @@ if ($LASTEXITCODE -ne 0 -or
     $unifiedRecoveryOutput -ne 'record=update_recovery operation=boot state=operational reason=clean_baseline action=continue_operation operation_succeeded=1 normal_operation_blocked=0 attention_required=0 reboot_required=0 confirmation_required=0 cleanup_required=0 sensitive_detail_redacted=1') {
     throw 'Unified diagnostic CLI recovery-record smoke test failed.'
 }
-$invalidUnifiedOutput = & $unifiedDiagnosticCli 'OTXX0=00000000' 2>&1
-$invalidUnifiedText = @(
-    $invalidUnifiedOutput | ForEach-Object { $_.ToString() }
-) -join "`n"
-if ($LASTEXITCODE -eq 0 -or
-    $invalidUnifiedText -ne 'diagnostic decode failed: unsupported_record') {
+$invalidUnified = Invoke-ExpectedNativeFailure $unifiedDiagnosticCli 'OTXX0=00000000'
+if ($invalidUnified.ExitCode -eq 0 -or
+    $invalidUnified.Text -ne 'diagnostic decode failed: unsupported_record') {
     throw 'Unified diagnostic CLI unsupported-record smoke test failed.'
 }
-$malformedUnifiedOutput = & $unifiedDiagnosticCli 'OTPD0=c0012040' 2>&1
-$malformedUnifiedText = @(
-    $malformedUnifiedOutput | ForEach-Object { $_.ToString() }
-) -join "`n"
-if ($LASTEXITCODE -eq 0 -or
-    $malformedUnifiedText -ne 'position_ui decode failed: invalid_message') {
+$malformedUnified = Invoke-ExpectedNativeFailure $unifiedDiagnosticCli 'OTPD0=c0012040'
+if ($malformedUnified.ExitCode -eq 0 -or
+    $malformedUnified.Text -ne 'position_ui decode failed: invalid_message') {
     throw 'Unified diagnostic CLI malformed-record smoke test failed.'
 }
 
@@ -844,6 +859,11 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "Crypto benchmark evidence tests failed with exit code $LASTEXITCODE."
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\map_package_manifest_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "Map-package manifest tests failed with exit code $LASTEXITCODE."
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\publication_safety_tests.py')
