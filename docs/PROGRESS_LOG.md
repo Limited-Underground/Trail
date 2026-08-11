@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Recoverable map selector store
+
+- Reserved `OTM0` byte 59 as commit marker `0xA5`; CRC covers the committed
+  form, so a complete prepared record with zero there is explicitly invalid.
+- Added an abstract two-slot store that writes prepared bytes, commits last,
+  verifies exact readback, alternates away from prior-good state, and chooses
+  only a unique newest committed generation.
+- Preserved older state through partial writes, separated known-uncommitted from
+  uncertain commit failures, repaired invalid/uncommitted peers, and rejected
+  unreadable slots, equal-generation conflict, and generation exhaustion.
+- Added optional external trusted-floor comparison without claiming protected
+  anti-rollback state. Trial restore exposes its incremented boot count for a
+  later coordinator to persist before candidate use.
+- Passed twelve store groups plus all three map executables 100/100 repeats.
+  No physical backend, atomicity/endurance/power-loss result, authentication,
+  target filesystem, renderer, display, or on-device behavior is claimed.
+
 ### Restart-safe map selector checkpoint
 
 - Added canonical 64-byte `OTM0/v0` for stable, candidate-trial, and fallback-

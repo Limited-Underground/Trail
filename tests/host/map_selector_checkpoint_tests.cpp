@@ -241,6 +241,11 @@ void test_corruption_magic_version_and_reserved_bytes_fail() {
     EXPECT(decode_map_selector_checkpoint(
                reserved.data(), reserved.size(), output).error ==
            MapSelectorCheckpointError::noncanonical_record);
+    auto uncommitted = encoded;
+    uncommitted[kMapSelectorCommitOffset] = 0;
+    EXPECT(decode_map_selector_checkpoint(
+               uncommitted.data(), uncommitted.size(), output).error ==
+           MapSelectorCheckpointError::uncommitted_record);
 }
 
 void test_state_and_previous_coherence_fail_closed() {

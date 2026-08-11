@@ -315,6 +315,13 @@ volatile health, bounds trial reboots, preserves prior recovery, and never
 guesses missing media. CRC is not authentication or rollback protection; a
 recoverable physical store and trusted-generation policy remain separate.
 
+The [abstract two-slot store](maps/OFFLINE_MAP_SELECTOR_STORE_V0.md) prepares a
+complete `OTM0` with a zero commit byte, commits byte 59 last, verifies exact
+readback, alternates away from prior-good state, repairs known degraded peers,
+and rejects unreadable media or equal-generation conflict. It accepts an
+external trusted floor but does not own anti-rollback state. A boot coordinator
+must persist an incremented resumed-trial count before exposing that candidate.
+
 ## External critical-alert interface
 
 OpenTrail accepts normalized events, never raw CAN/J1939 frames. The boundary should support at least schema version, event type, severity, source/vehicle identity, event time/age, optional typed value/unit, validity, and diagnostic context. OpenTrail adds its own node and current GPS context before radio transmission. Producers are untrusted inputs: values, lengths, rates, and event types require validation and rate limiting.

@@ -30,7 +30,8 @@ All integers use little-endian byte order.
 | 36 | 8 | Maximum package bytes |
 | 44 | 8 | Nonzero record generation |
 | 52 | 1 | Maximum trial boot count |
-| 53 | 7 | Canonical zero reserved bytes |
+| 53 | 6 | Canonical zero reserved bytes |
+| 59 | 1 | Commit-last marker `0xA5` |
 | 60 | 4 | CRC-32 over bytes 0-59 |
 
 The record contains no path, filename, package name, geographic bounds, route,
@@ -52,8 +53,10 @@ credential, key, or free text.
   no accepted record.
 
 Unknown state/reason/slot values, unsupported versions, nonzero reserved bytes,
-incoherent prior fields, zero policy/generations, and CRC mismatch fail closed.
-Decode and export change caller output only after complete validation.
+missing commit marker, incoherent prior fields, zero policy/generations, and CRC
+mismatch fail closed. Decode and export change caller output only after complete
+validation. CRC is calculated for the committed marker; a prepared record with
+zero at byte 59 is never decodable as valid.
 
 ## Restart behavior
 
@@ -81,9 +84,12 @@ and prior cleanup authority is removed.
 
 CRC-32 detects accidental mutation and truncation only. It does not
 authenticate the record, establish trusted generation, or prevent rollback.
-The next persistence layer must use recoverable commit-last storage, exact
-readback, generation conflict handling, and an explicit rollback/authentication
-policy before a physical target can depend on `OTM0`.
+The host-tested
+[abstract two-slot selector store](OFFLINE_MAP_SELECTOR_STORE_V0.md) now uses
+recoverable commit-last writes, exact readback, generation conflict handling,
+and an optional external trusted floor. A physical backend must still prove its
+atomic-byte behavior, endurance, and power-loss semantics, and a protected
+rollback/authentication policy remains unselected.
 
 The codec performs no filesystem, NVS, flash, SD-card, selector write, package
 write, mount, deletion, download, network, radio, rendering, or communication
@@ -91,13 +97,14 @@ operation.
 
 ## Current evidence
 
-Ten deterministic host groups cover stable deterministic round trip, trial
+Ten deterministic codec groups cover stable deterministic round trip, trial
 restart and boot-limit fallback, fallback persistence, confirmed cleanup,
 corruption/magic/version/reserved-byte rejection, semantic coherence, argument
 and output atomicity, policy/package mismatch, missing prior evidence, and
 export preconditions. Both map executables pass 100/100 focused repeats under
-strict C++17 warnings-as-errors.
+strict C++17 warnings-as-errors. The separate store adds twelve commit/recovery
+groups; all three map executables pass 100/100 focused repeats.
 
-This is codec and restart-policy evidence only. No durable two-slot selector
-store, trusted generation, package authentication, target filesystem, renderer,
-physical display, or on-device power-interruption result is claimed.
+This is codec, restart-policy, and abstract-store evidence only. No physical
+selector backend, trusted generation, package authentication, target filesystem,
+renderer, display, or on-device power-interruption result is claimed.

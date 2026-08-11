@@ -9,6 +9,8 @@ namespace opentrail::maps {
 
 inline constexpr std::uint8_t kMapSelectorCheckpointVersion = 0;
 inline constexpr std::size_t kMapSelectorCheckpointBytes = 64;
+inline constexpr std::size_t kMapSelectorCommitOffset = 59;
+inline constexpr std::uint8_t kMapSelectorCommitMarker = 0xA5U;
 
 // OTM0 contains no path, package name, geographic content, identity, key, URL,
 // credential, timestamp, or free text. CRC detects accidental corruption; it
@@ -36,6 +38,7 @@ enum class MapSelectorCheckpointError : std::uint8_t {
     bad_magic,
     unsupported_version,
     noncanonical_record,
+    uncommitted_record,
     integrity_failure,
 };
 

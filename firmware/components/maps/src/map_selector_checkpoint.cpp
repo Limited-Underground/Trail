@@ -156,6 +156,7 @@ MapSelectorCheckpointResult encode_map_selector_checkpoint(
     write_u64(candidate.data() + 36, checkpoint.maximum_package_bytes);
     write_u64(candidate.data() + 44, checkpoint.record_generation);
     candidate[52] = checkpoint.maximum_trial_boots;
+    candidate[kMapSelectorCommitOffset] = kMapSelectorCommitMarker;
     write_u32(candidate.data() + kCrcOffset,
               crc32(candidate.data(), kCrcOffset));
     std::copy(candidate.begin(), candidate.end(), output);
@@ -175,9 +176,12 @@ MapSelectorCheckpointResult decode_map_selector_checkpoint(
     if (data[4] != kMapSelectorCheckpointVersion) {
         return {MapSelectorCheckpointError::unsupported_version, 0};
     }
-    if (!std::all_of(data + 53, data + kCrcOffset,
+    if (!std::all_of(data + 53, data + kMapSelectorCommitOffset,
                      [](std::uint8_t value) { return value == 0; })) {
         return {MapSelectorCheckpointError::noncanonical_record, 0};
+    }
+    if (data[kMapSelectorCommitOffset] != kMapSelectorCommitMarker) {
+        return {MapSelectorCheckpointError::uncommitted_record, 0};
     }
     if (read_u32(data + kCrcOffset) != crc32(data, kCrcOffset)) {
         return {MapSelectorCheckpointError::integrity_failure, 0};
