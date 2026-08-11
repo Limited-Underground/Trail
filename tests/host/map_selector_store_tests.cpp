@@ -428,6 +428,15 @@ void test_current_guard_must_exactly_match_newest_checkpoint() {
     const auto stale = store.verify_current(active, 6);
     EXPECT(stale.error == MapSelectorStoreError::generation_below_floor);
     EXPECT(!stale.exact_match);
+
+    const auto writes_before = storage.write_calls;
+    const auto stale_writer = store.save_after_exact(active, 4, 5);
+    EXPECT(stale_writer.error == MapSelectorStoreError::state_mismatch);
+    EXPECT(storage.write_calls == writes_before);
+
+    const auto advanced = store.save_after_exact(active, 5, 5);
+    EXPECT(advanced.saved());
+    EXPECT(advanced.generation == 6);
 }
 
 void test_trial_restart_count_is_resaved() {

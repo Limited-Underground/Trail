@@ -205,8 +205,15 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   now commits trial promotion/failure, deadline/clock fallback, exact fallback
   completion, and prior cleanup before release. It also requires an exact live-
   checkpoint and generation-token match. Thirteen transition groups, thirteen
-  store groups, and 100/100 focused repeats pass; the physical storage adapter
-  and target task remain open.
+  store groups, and 100/100 focused repeats pass. A
+  [candidate coordinator](docs/maps/OFFLINE_MAP_SELECTOR_CANDIDATE_COORDINATOR_V0.md)
+  now accepts only externally evidenced alternate-slot replacement packages,
+  rechecks the exact stored generation immediately before commit-last save,
+  and publishes trial state only after exact readback. Invalid evidence leaves
+  the stable map unchanged; storage or generation uncertainty fails mapless.
+  Its eleven groups and all four affected suites pass 100/100 repeats. First-
+  ever map baseline policy, the physical package/storage adapters, exclusive
+  target ownership, renderer, and target task remain open.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
   or on-device map result is selected or claimed.
@@ -395,7 +402,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 63 C++ test executables plus
+  builds six verifier/planning/operator CLIs and runs all 64 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet

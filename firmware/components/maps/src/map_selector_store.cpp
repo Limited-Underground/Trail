@@ -290,12 +290,37 @@ MapSelectorVerifyResult MapSelectorStore::verify_current(
 
 MapSelectorSaveResult MapSelectorStore::save(
     const MapActivationGuard& guard) {
-    return save_next_after(guard, 0);
+    return save_impl(guard, 0, false, 0);
 }
 
 MapSelectorSaveResult MapSelectorStore::save_next_after(
     const MapActivationGuard& guard,
     std::uint64_t last_trusted_generation) {
+    return save_impl(
+        guard, last_trusted_generation, false, 0);
+}
+
+MapSelectorSaveResult MapSelectorStore::save_after_exact(
+    const MapActivationGuard& guard,
+    std::uint64_t expected_current_generation,
+    std::uint64_t last_trusted_generation) {
+    if (expected_current_generation == 0) {
+        MapSelectorSaveResult result{};
+        result.error = MapSelectorStoreError::state_mismatch;
+        return result;
+    }
+    return save_impl(
+        guard,
+        last_trusted_generation,
+        true,
+        expected_current_generation);
+}
+
+MapSelectorSaveResult MapSelectorStore::save_impl(
+    const MapActivationGuard& guard,
+    std::uint64_t last_trusted_generation,
+    bool require_expected_generation,
+    std::uint64_t expected_current_generation) {
     MapSelectorSaveResult result{};
     const auto a = inspect_slot(storage_, 0);
     const auto b = inspect_slot(storage_, 1);
@@ -318,6 +343,13 @@ MapSelectorSaveResult MapSelectorStore::save_next_after(
     if (current == nullptr && any_degraded) {
         result.error = MapSelectorStoreError::invalid_state;
         result.codec_error = first_codec_error(a, b);
+        return result;
+    }
+    if (require_expected_generation &&
+        (current == nullptr ||
+         current->checkpoint.record_generation !=
+             expected_current_generation)) {
+        result.error = MapSelectorStoreError::state_mismatch;
         return result;
     }
 

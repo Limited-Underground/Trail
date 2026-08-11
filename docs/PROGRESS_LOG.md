@@ -6,6 +6,27 @@ public chronology.
 
 ## 2026-08-11
 
+### Safe replacement-map candidate ordering
+
+- Added a typed candidate coordinator for replacing one stable active map with
+  externally staged and fully evidenced alternate-slot package bytes.
+- Candidate lifecycle changes occur on a private guard; the trial becomes live
+  only after commit-last selector save and exact readback.
+- Added exact-generation guarded saves to close the preflight-to-save gap for
+  boot, runtime-transition, and candidate coordinators. The caller still must
+  provide exclusive store ownership; this is not a lock.
+- Invalid package evidence leaves the current active map unchanged. Unreadable,
+  conflicting, stale, changed-generation, failed-write, uncertain-commit, and
+  corrupt-readback states fail mapless with typed service/reconciliation
+  outcomes.
+- Kept first-ever map installation explicitly out of scope because restart-
+  safe trial state requires a real prior-good package rather than invented
+  fallback authority.
+- Added eleven deterministic candidate groups, including a newer checkpoint
+  appearing after preflight but before save. Candidate, transition, boot, and
+  store suites each pass 100/100 focused repeats; the full 64-executable matrix
+  is the publication gate.
+
 ### Verified runtime map transition persistence
 
 - Added read-only exact live-checkpoint verification to the two-slot store; a

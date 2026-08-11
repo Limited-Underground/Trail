@@ -145,9 +145,22 @@ public:
     [[nodiscard]] MapSelectorSaveResult save_next_after(
         const MapActivationGuard& guard,
         std::uint64_t last_trusted_generation);
+    // Re-inspects the store and saves only when the newest valid record still
+    // has expected_current_generation. This is not a lock; callers must hold
+    // exclusive store ownership throughout the call.
+    [[nodiscard]] MapSelectorSaveResult save_after_exact(
+        const MapActivationGuard& guard,
+        std::uint64_t expected_current_generation,
+        std::uint64_t last_trusted_generation);
     [[nodiscard]] MapSelectorStoreError reset();
 
 private:
+    [[nodiscard]] MapSelectorSaveResult save_impl(
+        const MapActivationGuard& guard,
+        std::uint64_t last_trusted_generation,
+        bool require_expected_generation,
+        std::uint64_t expected_current_generation);
+
     MapSelectorStorage& storage_;
 };
 

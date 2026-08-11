@@ -143,8 +143,10 @@ MapSelectorBootResult MapSelectorBootCoordinator::boot(
         candidate_status.state == MapActivationState::trial ||
         boot_limit_transition;
     if (persistence_required) {
-        result.save = store_.save_next_after(
-            candidate, trusted_minimum_generation);
+        result.save = store_.save_after_exact(
+            candidate,
+            result.load.generation,
+            trusted_minimum_generation);
         result.repair_required =
             result.repair_required || result.save.repaired_peer;
         if (!result.save.saved()) {

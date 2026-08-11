@@ -51,6 +51,12 @@ reported until exact committed readback passes.
 minimum. The store does not create, protect, persist, or advance that trusted
 floor, so this option is not an anti-rollback claim.
 
+`save_after_exact` re-inspects both slots and writes only when the newest valid
+record still has the caller's expected generation. Boot, runtime-transition,
+and candidate coordinators use this form so a newer checkpoint observed after
+their read-only preflight is not overwritten. This comparison is not a lock;
+the target must provide exclusive store ownership throughout a save.
+
 ## Guard restore boundary
 
 After selecting a record, the store asks the map activation guard to revalidate
@@ -78,12 +84,13 @@ does not erase map packages or any other persistence domain.
 
 ## Current evidence
 
-Twelve deterministic host groups cover empty first save/restore, alternating
+Thirteen deterministic host groups cover empty first save/restore, alternating
 generation selection, partial prepared writes, commit-before/after-error
 uncertainty, corrupt readback, degraded-peer repair, unreadable peer media,
 equal-generation conflict, policy/package mismatch, trusted-floor rejection and
 generation exhaustion, exact live-checkpoint verification, persisted trial-
-boot increment, and partial/successful reset. All five map executables pass
+boot increment, exact-generation save rejection, and partial/successful reset.
+All six map executables pass
 100/100 focused repeats under strict
 C++17 warnings-as-errors.
 

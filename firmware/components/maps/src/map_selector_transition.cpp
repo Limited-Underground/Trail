@@ -357,8 +357,10 @@ MapSelectorTransitionResult MapSelectorTransitionCoordinator::finish(
         return result;
     }
 
-    result.save = store_.save_next_after(
-        attempted_guard, context.trusted_minimum_generation);
+    result.save = store_.save_after_exact(
+        attempted_guard,
+        context.current_generation,
+        context.trusted_minimum_generation);
     result.repair_required =
         result.repair_required || result.save.repaired_peer;
     if (result.save.saved()) {

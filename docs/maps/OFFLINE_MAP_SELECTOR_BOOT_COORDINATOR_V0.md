@@ -18,7 +18,8 @@ The live guard must be stopped when boot begins. The coordinator then:
 2. revalidates the exact policy plus selected and prior package evidence;
 3. leaves stable active and already-fallback-required state unchanged;
 4. for a resumed trial, saves the incremented trial-boot count as a new
-   commit-last record;
+   commit-last record only if the generation restored at preflight is still
+   current;
 5. when the trial boot limit is reached, saves the transition to
    fallback-required as a new record;
 6. waits for the store's exact committed readback; and
@@ -27,6 +28,10 @@ The live guard must be stopped when boot begins. The coordinator then:
 The candidate map can be exposed only from `active_ready` or `trial_ready`.
 An existing fallback requirement is published with no map, and a new boot-limit
 fallback is published only after the transition is durable.
+
+The exact-generation save closes the read-only-restore-to-save gap but is not
+a lock. The target must keep exclusive selector-store ownership for the whole
+boot operation.
 
 ## Typed outcomes
 

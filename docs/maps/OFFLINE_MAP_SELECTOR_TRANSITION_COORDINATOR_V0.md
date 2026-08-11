@@ -43,8 +43,11 @@ verifying.
 
 Volatile-only success and rejected operations do not write. Persistent changes
 are encoded from the private attempted guard, written to the alternate/degraded
-slot, committed last, and read back exactly. Only then is the attempted guard
-published and the returned generation advanced.
+slot only if the preflight generation is still current, committed last, and
+read back exactly. Only then is the attempted guard published and the returned
+generation advanced. The exact-generation comparison closes the preflight-to-
+save gap but is not a lock; the caller must retain exclusive store ownership
+throughout the operation.
 
 If fallback evidence is invalid, the lifecycle guard deliberately becomes
 mapless. Because mapless state grants no selector authority and is not an
