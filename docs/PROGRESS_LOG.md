@@ -6,6 +6,25 @@ public chronology.
 
 ## 2026-08-11
 
+### Recoverable stable map trust-domain activation
+
+- Added the stable-baseline activation coordinator for a provisioned pending
+  trust domain. Fresh commissioning uses selector generation 1; replacement
+  reseed uses exactly one generation above the retired-domain quarantine floor.
+- Fixed the durable order at exact selector save/readback, atomic protected
+  source advance/readback, exact selector recheck, pending-to-active
+  `OTMD/v0` save/readback, final protected-source recheck, then live-map
+  publication. No intermediate state exposes a map.
+- Added restart reconciliation after selector persistence, protected advance,
+  applied-then-failed source mutation, uncertain domain commit, and an already
+  active exact stable baseline. Divergent selector, source, domain, policy, or
+  package evidence remains mapless and requires service or reconciliation.
+- Added fourteen deterministic scenario groups. All twenty-two map suites pass
+  100/100 focused repeats, and the complete 80-executable host matrix passes
+  locally including publication safety. Active-domain boot, candidate/trial/
+  fallback/cleanup synchronization, protected target adapters, and physical
+  power-cut evidence remain open.
+
 ### Authorized map trust-domain provisioner
 
 - Added the sole common-code consumer for the protected-domain permit. It burns

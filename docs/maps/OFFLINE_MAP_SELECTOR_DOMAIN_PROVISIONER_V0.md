@@ -29,7 +29,9 @@ outside this map-only boundary.
 The injected target boundary can read its state and can establish a fresh
 domain only when the target has independently determined that the source is
 uninitialized. It has no erase, reset, lower, or rebind operation. Common code
-therefore cannot turn an initialized source into a replacement source.
+therefore cannot turn an initialized source into a replacement source. The
+same boundary now supports an atomic exact-domain/exact-generation increase for
+the separate activation coordinator; mutation failure is commit-uncertain.
 
 An uninitialized read must contain a zero domain and selector generation zero.
 A ready read must contain a nonzero domain. Establishment requests carry the
@@ -61,9 +63,10 @@ Generation/epoch exhaustion and retained-media rollback fail before mutation.
 
 The successful result is only `prepared`: the pending record is durable,
 selector media is verified empty, the protected source is verified at
-generation zero, and map exposure remains blocked. A later baseline/reseed
-composition must persist and protect a new selector generation before it can
-mark the domain active and publish a map.
+generation zero, and map exposure remains blocked. The separate
+[activation coordinator](OFFLINE_MAP_SELECTOR_DOMAIN_ACTIVATION_V0.md) now
+persists and protects the stable baseline, marks the domain active, and only
+then publishes the map.
 
 ## Retry and reconciliation
 
@@ -91,11 +94,13 @@ uncertainty, selector-clear failure, source failure and exact pending retry,
 applied-then-failed recovery without reapply, selector races, and protected
 readback mismatch.
 
-All twenty-one map suites pass 100/100 focused repeats, and the complete
-79-executable host matrix passes under strict C++17 warnings-as-errors.
+All twenty-two map suites pass 100/100 focused repeats, and the complete
+80-executable host matrix passes under strict C++17 warnings-as-errors.
 
 This proves common-code ordering and deterministic recovery decisions only.
 The target still needs independently evidenced continuity and blank-source
 state, secure domain generation, credentials/physical-presence/audit/replay,
 exclusive task locking, protected rollback resistance, ESP-IDF storage and
 source adapters, power-cut/endurance testing, and physical on-device evidence.
+The activation coordinator adds stable-baseline completion but not domain-aware
+candidate/trial/runtime maintenance.

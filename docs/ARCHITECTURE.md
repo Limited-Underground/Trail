@@ -470,8 +470,15 @@ source establishment, and verifies empty selector media plus protected
 generation zero while keeping the map stopped. Its protected-source interface
 can establish only independently uninitialized state and cannot reset or rebind
 an initialized source. Matching pending state is resumable with a new exact
-permit. Thirteen groups pass; later baseline/reseed activation, protected
-target adapters, task locking, and physical durability remain separate gates.
+permit. Thirteen groups pass. The separate
+[domain activation coordinator](maps/OFFLINE_MAP_SELECTOR_DOMAIN_ACTIVATION_V0.md)
+uses selector generation 1 for fresh commissioning or exactly retired-floor-
+plus-one for replacement, then persists selector, advances the exact protected
+domain/generation, marks `OTMD/v0` active, and publishes only after final
+agreement. Pending selector/source/domain steps and an exact already-active
+stable baseline are restart-resumable. Fourteen groups pass; domain-aware
+candidate/trial/runtime maintenance, protected target adapters, task locking,
+and physical durability remain separate gates.
 
 The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
 can mint that non-copyable, single-use permit only after an injected local-

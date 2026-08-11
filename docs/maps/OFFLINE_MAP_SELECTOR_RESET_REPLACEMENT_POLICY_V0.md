@@ -60,8 +60,8 @@ preservation across every known state, authorized reseed routing, temporary
 source unavailability, missing same-device history, protected-source
 replacement, fresh-device commissioning, retained-selector rejection,
 continuity mismatch, unknown/future values, and exhaustive route coherence.
-The suite and all twenty-one map suites pass 100/100 focused repeats in the
-complete 79-executable host matrix under strict C++17 warnings-as-errors.
+The suite and all twenty-two map suites pass 100/100 focused repeats in the
+complete 80-executable host matrix under strict C++17 warnings-as-errors.
 
 This is policy evidence only. No physical continuity detector, protected
 counter/storage, credential verifier, target lock/task, factory-reset executor,
@@ -74,4 +74,7 @@ domain routes. The separate
 permit input or reset/provision authority. The separate
 [domain provisioner](OFFLINE_MAP_SELECTOR_DOMAIN_PROVISIONER_V0.md) can consume
 the exact permit and prepare pending/mapless state, but it cannot reset an
-initialized protected source, import selector history, or activate a map.
+initialized protected source or import selector history. The separate
+[stable activation coordinator](OFFLINE_MAP_SELECTOR_DOMAIN_ACTIVATION_V0.md)
+can finish only exact stable-baseline activation; active-domain candidate,
+trial, fallback, cleanup, and runtime synchronization remain open.

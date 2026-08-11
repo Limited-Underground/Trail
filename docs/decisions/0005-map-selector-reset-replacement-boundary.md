@@ -1,7 +1,8 @@
 # Decision 0005: Map Selector Reset and Replacement Boundary
 
-Status: accepted architecture direction; common preparation implemented,
-target authority and physical composition pending, 2026-08-11
+Status: accepted architecture direction; common preparation and stable
+activation implemented, target authority and physical composition pending,
+2026-08-11
 
 ## Decision
 
@@ -61,9 +62,14 @@ rollback shortcut.
   readback, prior-good preservation, and fail-closed media selection without an
   erase/reset API. The provisioner commits a pending record before verified
   selector clear or protected-source establishment, supports exact pending
-  recovery under a new permit, and leaves maps unavailable for later baseline/
-  reseed activation. Protected target/credential/continuity backends and
-  physical evidence remain required before on-device domain preparation.
+  recovery under a new permit. The stable activation coordinator then commits
+  a generation-1 or retired-floor-plus-one selector, atomically advances the
+  exact protected domain, marks the domain active, rechecks every durable fact,
+  and only then exposes the baseline map. It resumes each committed intermediate
+  state without lowering or rebinding protected history. Active-domain boot and
+  candidate/trial/fallback/cleanup synchronization, protected target/credential/
+  continuity backends, and physical evidence remain required before complete
+  on-device domain operation.
 - A future new-device provisioner must establish a fresh domain and cannot
   silently import another device's selector.
 - Radio, messaging, alerts, position sharing, OpenGauge integration, and USB

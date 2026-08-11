@@ -98,8 +98,8 @@ echo including retired-domain absence/reuse/new-device contamination, all six
 confirmations, local revision, time boundaries, backend replay, output
 invalidation, and move-without-copy ownership.
 
-All twenty-one map suites pass 100/100 focused repeats in the complete
-79-executable host matrix under strict C++17 warnings-as-errors.
+All twenty-two map suites pass 100/100 focused repeats in the complete
+80-executable host matrix under strict C++17 warnings-as-errors.
 
 This is authorization-handoff evidence only. It does not prove device
 continuity, secure randomness, credential strength, physical presence, audit or
@@ -108,4 +108,6 @@ authority. The provisioner can prepare only exact fresh or replacement-domain
 state and cannot reset/rebind an initialized source, import selector records,
 or expose a map. Concrete target credentials, protected-source and storage
 adapters, target lock/task, ESP-IDF composition, power-loss result, and
-on-device behavior remain unimplemented and unproven.
+on-device behavior remain unimplemented and unproven. The separate
+[stable trust-domain activation coordinator](OFFLINE_MAP_SELECTOR_DOMAIN_ACTIVATION_V0.md)
+can activate only the exact durable pending state that the provisioner leaves.

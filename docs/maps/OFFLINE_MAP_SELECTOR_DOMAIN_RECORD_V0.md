@@ -98,10 +98,11 @@ and output atomicity, full 64-bit boundaries, and field-sensitive canonical
 bytes. The tightened authorization suite covers retired-domain absence, reuse,
 new-device contamination, and exact echo.
 
-All twenty-one map suites pass 100/100 focused repeats in the complete
-79-executable host matrix under strict C++17 warnings-as-errors.
+All twenty-two map suites pass 100/100 focused repeats in the complete
+80-executable host matrix under strict C++17 warnings-as-errors.
 
 The codec and abstract store are host evidence only. No authenticated integrity,
 rollback-resistant target storage, domain entropy source, device-continuity
 proof, target lock/task, ESP-IDF composition, power-loss result, or physical
-behavior is claimed. The provisioner proves bounded common-code ordering only.
+behavior is claimed. The provisioner and stable activation coordinator prove
+bounded common-code ordering only.

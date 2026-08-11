@@ -40,9 +40,17 @@ struct MapSelectorDomainProtectedEstablishRequest {
     MapSelectorDomainId proposed_domain{};
 };
 
+struct MapSelectorDomainProtectedAdvanceRequest {
+    MapSelectorDomainId expected_domain{};
+    std::uint64_t expected_selector_generation{0};
+    std::uint64_t proposed_selector_generation{0};
+};
+
 // A target implementation may establish only an independently uninitialized
 // source. It must not erase, reset, or rebind an initialized source through
-// this interface. Any reported establish failure is commit-uncertain.
+// this interface. Generation advance must atomically compare the exact domain
+// and generation before increasing it. Any reported mutation failure is
+// commit-uncertain.
 class MapSelectorDomainProtectedSource {
 public:
     virtual ~MapSelectorDomainProtectedSource() = default;
@@ -51,6 +59,9 @@ public:
     [[nodiscard]] virtual MapSelectorDomainProtectedSourceError
     establish_fresh_domain(
         const MapSelectorDomainProtectedEstablishRequest& request) = 0;
+    [[nodiscard]] virtual MapSelectorDomainProtectedSourceError
+    advance_selector_generation(
+        const MapSelectorDomainProtectedAdvanceRequest& request) = 0;
 };
 
 enum class MapSelectorDomainProvisionState : std::uint8_t {

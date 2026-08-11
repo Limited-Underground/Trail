@@ -270,6 +270,11 @@ public:
         return establish_error;
     }
 
+    MapSelectorDomainProtectedSourceError advance_selector_generation(
+        const MapSelectorDomainProtectedAdvanceRequest&) override {
+        return MapSelectorDomainProtectedSourceError::rejected;
+    }
+
     void set_ready(
         const MapSelectorDomainId& value,
         std::uint64_t generation = 0) {

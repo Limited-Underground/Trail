@@ -107,11 +107,12 @@ unreadable and invalid-only media, equal-generation conflict and identical
 copies, codec rejection, and generation exhaustion.
 
 The focused suite passes 100/100 repeats under strict C++17 warnings-as-errors.
-All twenty-one map suites pass 100/100 repeats, and the complete 79-executable
+All twenty-two map suites pass 100/100 repeats, and the complete 80-executable
 host matrix passes including publication-safety checks.
 
 No key/value or ESP-IDF backend, partition/namespace binding, authenticated
 integrity, protected rollback anchor, physical atomicity or power-cut evidence,
 wear/endurance result, target lock/task, transactional rollback across stores,
-or on-device behavior is claimed. The provisioner supplies fixed recoverable
-ordering rather than a cross-store atomic transaction.
+or on-device behavior is claimed. The provisioner and stable activation
+coordinator supply fixed recoverable ordering rather than a cross-store atomic
+transaction.
