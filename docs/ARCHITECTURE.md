@@ -329,6 +329,15 @@ mapless guard; an unpersisted candidate is never exposed. The coordinator does
 not bind a physical backend, own the trusted floor, open a package, render a
 map, or control communications.
 
+The [runtime transition coordinator](maps/OFFLINE_MAP_SELECTOR_TRANSITION_COORDINATOR_V0.md)
+requires the live guard to exactly match the newest persisted checkpoint and
+caller-held generation before applying trial reads, trial time, fallback
+completion, or prior cleanup to a private copy. Persistent changes become live
+only after commit-last save and exact readback. Volatile health/time changes do
+not create unnecessary writes. An invalid fallback verified-clears only the
+selector records before becoming mapless; uncertain clearing remains mapless
+and reconciliation-required.
+
 ## External critical-alert interface
 
 OpenTrail accepts normalized events, never raw CAN/J1939 frames. The boundary should support at least schema version, event type, severity, source/vehicle identity, event time/age, optional typed value/unit, validity, and diagnostic context. OpenTrail adds its own node and current GPS context before radio transmission. Producers are untrusted inputs: values, lengths, rates, and event types require validation and rate limiting.

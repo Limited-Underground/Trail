@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-11
 
+### Verified runtime map transition persistence
+
+- Added read-only exact live-checkpoint verification to the two-slot store; a
+  stale or arbitrary in-memory guard cannot become the next durable state.
+- Added a transition coordinator that applies trial reads/time, fallback
+  completion, and prior cleanup to a private guard copy and publishes durable
+  changes only after commit-last save plus exact readback.
+- Avoided writes for healthy reads/time that do not change checkpoint state and
+  for rejected operations.
+- Verified-cleared only the two selector records when fallback evidence was
+  invalid; partial clearing, storage uncertainty, rollback, conflicts, policy,
+  and generation mismatch remain fail-visible and mapless.
+- Passed thirteen store and thirteen transition groups plus 100/100 focused
+  repeats. No physical storage, package deletion, renderer, target task, or
+  on-device behavior is claimed.
+
 ### Persist-before-exposure map selector boot
 
 - Added a typed boot coordinator that restores only into a private map guard
@@ -36,7 +52,7 @@ public chronology.
 - Added optional external trusted-floor comparison without claiming protected
   anti-rollback state. Trial restore exposes its incremented boot count for the
   boot coordinator to persist before candidate use.
-- Passed twelve store groups plus all four map executables 100/100 repeats.
+- Passed thirteen store groups plus all five map executables 100/100 repeats.
   No physical backend, atomicity/endurance/power-loss result, authentication,
   target filesystem, renderer, display, or on-device behavior is claimed.
 

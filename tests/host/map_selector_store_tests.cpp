@@ -407,6 +407,29 @@ void test_generation_floor_and_exhaustion() {
            MapSelectorStoreError::generation_exhausted);
 }
 
+void test_current_guard_must_exactly_match_newest_checkpoint() {
+    FakeMapSelectorStorage storage{};
+    MapSelectorStore store{storage};
+    const auto active = active_guard();
+    storage.seed(0, encoded_checkpoint(active, 5));
+
+    const auto exact = store.verify_current(active, 5);
+    EXPECT(exact.error == MapSelectorStoreError::none);
+    EXPECT(exact.exact_match);
+    EXPECT(exact.generation == 5);
+    EXPECT(exact.recovery_required);
+
+    const auto different = trial_guard();
+    const auto mismatch = store.verify_current(different, 5);
+    EXPECT(mismatch.error == MapSelectorStoreError::state_mismatch);
+    EXPECT(!mismatch.exact_match);
+    EXPECT(mismatch.generation == 5);
+
+    const auto stale = store.verify_current(active, 6);
+    EXPECT(stale.error == MapSelectorStoreError::generation_below_floor);
+    EXPECT(!stale.exact_match);
+}
+
 void test_trial_restart_count_is_resaved() {
     FakeMapSelectorStorage storage{};
     MapSelectorStore store{storage};
@@ -458,6 +481,7 @@ int main() {
     test_equal_generation_conflict_fails_closed();
     test_policy_and_package_mismatch_fail_mapless();
     test_generation_floor_and_exhaustion();
+    test_current_guard_must_exactly_match_newest_checkpoint();
     test_trial_restart_count_is_resaved();
     test_reset_reports_partial_failure_and_success();
 
@@ -465,6 +489,6 @@ int main() {
         std::cerr << failures << " map selector store assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 12 map selector store scenario groups\n";
+    std::cout << "PASS: 13 map selector store scenario groups\n";
     return EXIT_SUCCESS;
 }

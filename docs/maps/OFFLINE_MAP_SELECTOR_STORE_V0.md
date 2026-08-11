@@ -82,8 +82,9 @@ Twelve deterministic host groups cover empty first save/restore, alternating
 generation selection, partial prepared writes, commit-before/after-error
 uncertainty, corrupt readback, degraded-peer repair, unreadable peer media,
 equal-generation conflict, policy/package mismatch, trusted-floor rejection and
-generation exhaustion, persisted trial-boot increment, and partial/successful
-reset. All four map executables pass 100/100 focused repeats under strict
+generation exhaustion, exact live-checkpoint verification, persisted trial-
+boot increment, and partial/successful reset. All five map executables pass
+100/100 focused repeats under strict
 C++17 warnings-as-errors.
 
 This is abstract-store evidence only. No ESP32 storage adapter, atomic-byte

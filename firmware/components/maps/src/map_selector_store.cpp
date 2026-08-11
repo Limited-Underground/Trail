@@ -216,6 +216,78 @@ MapSelectorLoadResult MapSelectorStore::restore_at_or_above(
     return result;
 }
 
+MapSelectorVerifyResult MapSelectorStore::verify_current(
+    const MapActivationGuard& guard,
+    std::uint64_t trusted_minimum_generation) {
+    MapSelectorVerifyResult result{};
+    const auto a = inspect_slot(storage_, 0);
+    const auto b = inspect_slot(storage_, 1);
+    result.slot_a = a.state;
+    result.slot_b = b.state;
+    result.codec_error = first_codec_error(a, b);
+
+    if (a.state == MapSelectorSlotState::io_failure ||
+        b.state == MapSelectorSlotState::io_failure) {
+        result.error = MapSelectorStoreError::storage_failure;
+        result.recovery_required = true;
+        return result;
+    }
+    if (generation_conflict(a, b)) {
+        result.error = MapSelectorStoreError::generation_conflict;
+        result.recovery_required = true;
+        return result;
+    }
+
+    std::uint8_t selected_slot = 0;
+    const auto* selected = newest_valid(a, b, selected_slot);
+    if (selected == nullptr) {
+        const bool any_degraded =
+            degraded_slot(a.state) || degraded_slot(b.state);
+        result.error = any_degraded
+                           ? MapSelectorStoreError::invalid_state
+                       : trusted_minimum_generation != 0
+                           ? MapSelectorStoreError::generation_below_floor
+                           : MapSelectorStoreError::no_checkpoint;
+        result.recovery_required =
+            any_degraded || trusted_minimum_generation != 0;
+        return result;
+    }
+
+    result.source = source_for_slot(selected_slot);
+    result.generation = selected->checkpoint.record_generation;
+    result.recovery_required =
+        a.state != MapSelectorSlotState::valid ||
+        b.state != MapSelectorSlotState::valid;
+    if (result.generation < trusted_minimum_generation) {
+        result.error = MapSelectorStoreError::generation_below_floor;
+        result.recovery_required = true;
+        return result;
+    }
+
+    MapSelectorCheckpoint checkpoint{};
+    result.guard_error = guard.export_checkpoint(
+        result.generation, checkpoint);
+    if (result.guard_error != MapActivationError::none) {
+        result.error = MapSelectorStoreError::checkpoint_rejected;
+        return result;
+    }
+    std::array<std::uint8_t, kMapSelectorCheckpointBytes> encoded{};
+    const auto codec = encode_map_selector_checkpoint(
+        checkpoint, encoded.data(), encoded.size());
+    result.codec_error = codec.error;
+    if (!codec.succeeded()) {
+        result.error = MapSelectorStoreError::checkpoint_rejected;
+        return result;
+    }
+    if (encoded != selected->bytes) {
+        result.error = MapSelectorStoreError::state_mismatch;
+        return result;
+    }
+    result.error = MapSelectorStoreError::none;
+    result.exact_match = true;
+    return result;
+}
+
 MapSelectorSaveResult MapSelectorStore::save(
     const MapActivationGuard& guard) {
     return save_next_after(guard, 0);

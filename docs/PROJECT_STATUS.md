@@ -139,14 +139,21 @@ record has a zero commit byte and is therefore undecodable; byte 59 is committed
 last, followed by exact full readback. The store alternates away from the newest
 valid slot, selects only unique newer generations, repairs known invalid/
 uncommitted peers, rejects unreadable media and equal-generation conflict, and
-can enforce an external minimum generation. Twelve groups and 100/100 repeats
-pass. A typed boot coordinator now holds restored guard state private, persists
+can enforce an external minimum generation. Read-only exact live-checkpoint
+verification brings the store to thirteen groups and 100/100 repeats. A typed
+boot coordinator now holds restored guard state private, persists
 and verifies every resumed-trial increment and boot-limit fallback before
 release, exposes stable/fallback state without an unnecessary rewrite, and
 publishes only a fresh mapless guard on storage, conflict, rollback, package,
 or save failure. Ten groups and 100/100 repeats pass. No physical backend,
 atomicity/endurance/power-loss evidence, protected generation, authentication,
-target task, or on-device result exists.
+target task, or on-device result exists. A runtime transition coordinator now
+requires exact stored/live/policy/generation agreement and persists trial
+promotion/failure, deadline/clock fallback, fallback completion, and prior
+cleanup before publishing a private attempted guard. Invalid fallback evidence
+verified-clears only selector records and stays mapless. Thirteen transition
+groups and 100/100 repeats pass; physical clearing and target behavior remain
+unproved.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -370,7 +377,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 62 C++ executables plus the Python
+  six verifier/planning/operator CLIs and runs all 63 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
@@ -379,7 +386,8 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
   privacy-safe position UI diagnostics and strict offline position/recovery
   operator decoding and the unified diagnostic entry point,
   portable-client composition, local-interface, power, time, randomness,
-  replay, map activation/checkpoint/store/boot recovery, pilot, and benchmark boundaries.
+  replay, map activation/checkpoint/store/boot/runtime-transition recovery,
+  pilot, and benchmark boundaries.
   This is host/build evidence, not
   physical MeshCore,
   target firmware/bindings, cryptography, or measured-radio evidence.

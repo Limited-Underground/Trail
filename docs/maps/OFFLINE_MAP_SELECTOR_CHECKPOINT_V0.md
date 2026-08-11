@@ -103,7 +103,7 @@ corruption/magic/version/reserved-byte rejection, semantic coherence, argument
 and output atomicity, policy/package mismatch, missing prior evidence, and
 export preconditions. Both map executables pass 100/100 focused repeats under
 strict C++17 warnings-as-errors. The separate store adds twelve commit/recovery
-groups; all four map executables pass 100/100 focused repeats.
+groups; all five map executables pass 100/100 focused repeats.
 
 This is codec, restart-policy, and abstract-store evidence only. No physical
 selector backend, trusted generation, package authentication, target filesystem,

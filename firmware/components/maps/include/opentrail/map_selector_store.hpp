@@ -52,6 +52,7 @@ enum class MapSelectorStoreError : std::uint8_t {
     generation_conflict,
     generation_exhausted,
     generation_below_floor,
+    state_mismatch,
     storage_failure,
     verification_failure,
     checkpoint_rejected,
@@ -86,6 +87,19 @@ struct MapSelectorLoadResult {
     std::uint64_t generation{0};
     bool recovery_required{false};
     bool restored{false};
+};
+
+struct MapSelectorVerifyResult {
+    MapSelectorStoreError error{MapSelectorStoreError::no_checkpoint};
+    MapSelectorSource source{MapSelectorSource::none};
+    MapSelectorSlotState slot_a{MapSelectorSlotState::empty};
+    MapSelectorSlotState slot_b{MapSelectorSlotState::empty};
+    MapSelectorCheckpointError codec_error{
+        MapSelectorCheckpointError::none};
+    MapActivationError guard_error{MapActivationError::none};
+    std::uint64_t generation{0};
+    bool exact_match{false};
+    bool recovery_required{false};
 };
 
 struct MapSelectorSaveResult {
@@ -123,6 +137,9 @@ public:
         const MapPackageEvidence& previous,
         std::uint64_t now_ms,
         std::uint64_t trusted_minimum_generation);
+    [[nodiscard]] MapSelectorVerifyResult verify_current(
+        const MapActivationGuard& guard,
+        std::uint64_t trusted_minimum_generation = 0);
     [[nodiscard]] MapSelectorSaveResult save(
         const MapActivationGuard& guard);
     [[nodiscard]] MapSelectorSaveResult save_next_after(
