@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Restart-safe map selector checkpoint
+
+- Added canonical 64-byte `OTM0/v0` for stable, candidate-trial, and fallback-
+  required map state with abstract slots/generations, bounded trial policy,
+  record generation, canonical reserved bytes, and CRC-32.
+- Wired atomic guard export/restore. Every selected package is re-evidenced;
+  trial/fallback also require the exact prior package. Restart discards volatile
+  reads/time, increments a persisted boot count, and requires full health again.
+- Reaching the trial-boot limit enters visible fallback rather than repeatedly
+  restarting an unproven candidate. Corrupt, future, incoherent, policy-
+  mismatched, active-mismatched, or missing-prior input fails closed.
+- Covered ten checkpoint groups and 100/100 focused repeats alongside 100/100
+  unchanged activation-guard repeats with strict warnings-as-errors.
+- `OTM0` contains no path, geographic content, identity, credential, key, URL,
+  or free text. CRC is not authentication/anti-rollback; durable two-slot
+  storage, trusted generation, filesystem integration, and hardware remain.
+
 ### Fail-safe offline map activation policy
 
 - Added a fixed-memory C++ guard for mapless/active/staged/trial/fallback state

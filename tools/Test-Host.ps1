@@ -572,7 +572,17 @@ $builds = @(
         Output = Join-Path $buildDirectory 'map_activation_guard_tests.exe'
         Sources = @(
             (Join-Path $projectRoot 'firmware\components\maps\src\map_activation_guard.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_checkpoint.cpp'),
             (Join-Path $projectRoot 'tests\host\map_activation_guard_tests.cpp')
+        )
+    },
+    @{
+        Name = 'map selector checkpoint'
+        Output = Join-Path $buildDirectory 'map_selector_checkpoint_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_activation_guard.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_checkpoint.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_checkpoint_tests.cpp')
         )
     },
     @{

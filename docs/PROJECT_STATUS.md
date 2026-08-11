@@ -124,6 +124,16 @@ Ten groups and 100/100 focused repeats pass. No selector codec/storage adapter,
 package authentication, filesystem integration, renderer, or target result is
 claimed, and the guard has no communications authority.
 
+Restart state is now explicit through fixed 64-byte `OTM0/v0`. The canonical
+CRC-protected record contains only active/prior slots and generations,
+stable/trial/fallback state, bounded health/deadline/boot policy, and record
+generation. Trial restore discards volatile reads/time, increments the boot
+count, retains the exact verified prior, and requires full health again; boot-
+limit, policy/evidence mismatch, corruption, or missing prior fail to fallback
+or mapless. Ten checkpoint groups and 100/100 focused repeats pass. CRC is not
+authentication or anti-rollback, and no durable selector store or target result
+is claimed.
+
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
 phone/laptop/vehicle dependency during a session, at least three materially
@@ -346,7 +356,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 59 C++ executables plus the Python
+  six verifier/planning/operator CLIs and runs all 60 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
@@ -355,8 +365,8 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
   privacy-safe position UI diagnostics and strict offline position/recovery
   operator decoding and the unified diagnostic entry point,
   portable-client composition, local-interface, power, time, randomness,
-  replay, map activation, pilot, and benchmark boundaries. This is host/build
-  evidence, not
+  replay, map activation/checkpoint recovery, pilot, and benchmark boundaries.
+  This is host/build evidence, not
   physical MeshCore,
   target firmware/bindings, cryptography, or measured-radio evidence.
 - Public OpenGauge GitHub Actions separately validates the shared Windows host matrix on every `main` push and pull request. Its current-main warning-free run passes all 41 executables with zero annotations; OpenTrail links that evidence without conflating the two scopes.

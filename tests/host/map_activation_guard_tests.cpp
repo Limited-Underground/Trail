@@ -19,7 +19,7 @@ void expect(bool condition, const char* expression, int line) {
 #define EXPECT(expression) expect((expression), #expression, __LINE__)
 
 MapActivationPolicy policy() {
-    return {8U * 1024U * 1024U, 500, 3};
+    return {8U * 1024U * 1024U, 500, 3, 3};
 }
 
 MapPackageEvidence package(

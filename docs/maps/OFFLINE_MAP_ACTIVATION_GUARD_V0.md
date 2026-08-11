@@ -33,6 +33,13 @@ provider.
 9. When no prior package exists, the same faults become mapless immediately.
 10. Mapless and fallback-required states require a visible unavailable notice.
 
+The separate fixed 64-byte
+[`OTM0/v0` selector checkpoint](OFFLINE_MAP_SELECTOR_CHECKPOINT_V0.md) preserves
+stable/trial/fallback state without paths or geographic content. Trial restart
+discards volatile health, increments a bounded boot count, retains the prior
+package, and requires the full health threshold again. Reaching the boot limit
+requires fallback instead of indefinitely restarting the candidate trial.
+
 The guard has no messaging, alert, position-sharing, radio, or USB control.
 Those services therefore cannot be stopped through this interface. Target
 composition still must prove that they actually remain available when map
@@ -71,7 +78,7 @@ these typed results only as adapter inputs; it does not reproduce the checks in
 ## Adapter obligations
 
 Before calling `mark_selector_committed`, an eventual target adapter must write
-and read back a recoverable selector without modifying either package. Before
+and read back `OTM0` without modifying either package. Before
 calling `complete_fallback`, it must durably restore and verify the exact prior
 selector. It must also:
 
@@ -82,8 +89,9 @@ selector. It must also:
 - make unavailable state visible; and
 - keep communications and USB recovery independently serviceable.
 
-No selector record/codec, filesystem operation, authentication decision, or
-target adapter is implemented by this component.
+The `OTM0` codec and guard restart boundary now exist, but no durable selector
+store, trusted generation, filesystem operation, authentication decision, or
+target adapter is implemented.
 
 ## Current evidence
 

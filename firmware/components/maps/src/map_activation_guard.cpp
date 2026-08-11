@@ -2,6 +2,8 @@
 
 #include <limits>
 
+#include "opentrail/map_selector_checkpoint.hpp"
+
 namespace opentrail::maps {
 namespace {
 
@@ -16,6 +18,13 @@ bool known_selector_state(MapSelectorState state) {
            state == MapSelectorState::ambiguous;
 }
 
+bool valid_policy(const MapActivationPolicy& policy) {
+    return policy.maximum_package_bytes != 0 &&
+           policy.trial_deadline_ms != 0 &&
+           policy.required_healthy_reads != 0 &&
+           policy.maximum_trial_boots != 0;
+}
+
 }  // namespace
 
 MapActivationError MapActivationGuard::start(
@@ -24,9 +33,7 @@ MapActivationError MapActivationGuard::start(
     if (status_.running) {
         return MapActivationError::invalid_state;
     }
-    if (policy.maximum_package_bytes == 0 ||
-        policy.trial_deadline_ms == 0 ||
-        policy.required_healthy_reads == 0) {
+    if (!valid_policy(policy)) {
         return MapActivationError::invalid_policy;
     }
     if (!known_selector_state(boot.selector_state)) {
@@ -58,6 +65,94 @@ MapActivationError MapActivationGuard::start(
     status_.state = MapActivationState::active;
     status_.active_slot = boot.selected.slot;
     status_.active_generation = boot.selected.generation;
+    status_.map_available = true;
+    return MapActivationError::none;
+}
+
+MapActivationError MapActivationGuard::start_from_checkpoint(
+    const MapActivationPolicy& policy,
+    const MapSelectorCheckpoint& checkpoint,
+    const MapPackageEvidence& selected,
+    const MapPackageEvidence& previous,
+    std::uint64_t now_ms) {
+    if (status_.running) {
+        return MapActivationError::invalid_state;
+    }
+    if (!valid_policy(policy)) {
+        return MapActivationError::invalid_policy;
+    }
+
+    policy_ = policy;
+    status_ = {};
+    status_.running = true;
+    if (validate_map_selector_checkpoint(checkpoint) !=
+        MapSelectorCheckpointError::none) {
+        enter_mapless(MapActivationReason::checkpoint_invalid);
+        return MapActivationError::invalid_checkpoint;
+    }
+    if (checkpoint.maximum_package_bytes != policy.maximum_package_bytes ||
+        checkpoint.trial_deadline_ms != policy.trial_deadline_ms ||
+        checkpoint.required_healthy_reads != policy.required_healthy_reads ||
+        checkpoint.maximum_trial_boots != policy.maximum_trial_boots) {
+        enter_mapless(MapActivationReason::checkpoint_policy_mismatch);
+        return MapActivationError::checkpoint_mismatch;
+    }
+    if (selected.slot != checkpoint.active_slot ||
+        selected.generation != checkpoint.active_generation ||
+        !package_acceptable(selected)) {
+        enter_mapless(MapActivationReason::selected_package_invalid);
+        return MapActivationError::verification_required;
+    }
+
+    const bool expects_previous =
+        checkpoint.previous_slot != MapSlot::none;
+    const bool previous_acceptable =
+        expects_previous && previous.slot == checkpoint.previous_slot &&
+        previous.generation == checkpoint.previous_generation &&
+        package_acceptable(previous);
+
+    status_.active_slot = checkpoint.active_slot;
+    status_.active_generation = checkpoint.active_generation;
+    if (checkpoint.state == MapActivationState::active) {
+        status_.state = MapActivationState::active;
+        status_.map_available = true;
+        if (previous_acceptable) {
+            status_.previous_slot = checkpoint.previous_slot;
+            status_.previous_generation = checkpoint.previous_generation;
+            status_.previous_cleanup_permitted = true;
+        } else if (expects_previous) {
+            status_.reason = MapActivationReason::fallback_unavailable;
+        }
+        return MapActivationError::none;
+    }
+
+    if (!previous_acceptable) {
+        enter_mapless(MapActivationReason::fallback_unavailable);
+        return MapActivationError::fallback_unavailable;
+    }
+    status_.previous_slot = checkpoint.previous_slot;
+    status_.previous_generation = checkpoint.previous_generation;
+    status_.trial_boots = checkpoint.trial_boots;
+    if (checkpoint.state == MapActivationState::fallback_required) {
+        status_.state = MapActivationState::fallback_required;
+        status_.reason = checkpoint.reason;
+        status_.map_available = false;
+        status_.unavailable_notice_required = true;
+        return MapActivationError::none;
+    }
+
+    if (checkpoint.trial_boots >= policy.maximum_trial_boots) {
+        status_.state = MapActivationState::fallback_required;
+        status_.reason = MapActivationReason::trial_boot_limit_reached;
+        status_.map_available = false;
+        status_.unavailable_notice_required = true;
+        return MapActivationError::trial_boot_limit_reached;
+    }
+
+    status_.state = MapActivationState::trial;
+    ++status_.trial_boots;
+    status_.trial_started_ms = now_ms;
+    status_.last_monotonic_ms = now_ms;
     status_.map_available = true;
     return MapActivationError::none;
 }
@@ -125,6 +220,7 @@ MapActivationError MapActivationGuard::mark_selector_committed(
     status_.trial_started_ms = now_ms;
     status_.last_monotonic_ms = now_ms;
     status_.healthy_trial_reads = 0;
+    status_.trial_boots = 1;
     status_.map_available = true;
     status_.unavailable_notice_required = false;
     status_.previous_cleanup_permitted = false;
@@ -158,6 +254,7 @@ MapActivationError MapActivationGuard::report_trial_read(
         status_.reason = MapActivationReason::none;
         status_.previous_cleanup_permitted =
             status_.previous_slot != MapSlot::none;
+        status_.trial_boots = 0;
     }
     return MapActivationError::none;
 }
@@ -202,6 +299,7 @@ MapActivationError MapActivationGuard::complete_fallback(
     status_.unavailable_notice_required = false;
     status_.previous_cleanup_permitted = false;
     status_.healthy_trial_reads = 0;
+    status_.trial_boots = 0;
     return MapActivationError::none;
 }
 
@@ -272,6 +370,40 @@ MapActivationError MapActivationGuard::report_media_removed(MapSlot slot) {
     return MapActivationError::none;
 }
 
+MapActivationError MapActivationGuard::export_checkpoint(
+    std::uint64_t record_generation,
+    MapSelectorCheckpoint& output) const {
+    if (!status_.running || record_generation == 0 ||
+        (status_.state != MapActivationState::active &&
+         status_.state != MapActivationState::trial &&
+         status_.state != MapActivationState::fallback_required)) {
+        return MapActivationError::invalid_state;
+    }
+
+    MapSelectorCheckpoint candidate{
+        kMapSelectorCheckpointVersion,
+        status_.state,
+        status_.state == MapActivationState::fallback_required
+            ? status_.reason
+            : MapActivationReason::none,
+        status_.active_slot,
+        status_.previous_slot,
+        status_.trial_boots,
+        policy_.maximum_trial_boots,
+        policy_.required_healthy_reads,
+        status_.active_generation,
+        status_.previous_generation,
+        policy_.trial_deadline_ms,
+        policy_.maximum_package_bytes,
+        record_generation};
+    if (validate_map_selector_checkpoint(candidate) !=
+        MapSelectorCheckpointError::none) {
+        return MapActivationError::invalid_state;
+    }
+    output = candidate;
+    return MapActivationError::none;
+}
+
 MapActivationStatus MapActivationGuard::status() const {
     return status_;
 }
@@ -304,6 +436,7 @@ void MapActivationGuard::enter_mapless(MapActivationReason reason) {
     status_.trial_started_ms = 0;
     status_.last_monotonic_ms = 0;
     status_.healthy_trial_reads = 0;
+    status_.trial_boots = 0;
     status_.map_available = false;
     status_.unavailable_notice_required = true;
     status_.previous_cleanup_permitted = false;
