@@ -288,6 +288,14 @@ latency, coarse environment, verified configuration, and cleanup under neutral
 role labels. The public validator rejects identity-, secret-, transport-port-,
 channel-name-, and precise-location-bearing fields before evidence is committed.
 
+Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
+coherent redacted boot/save/transition status becomes one fixed 32-bit word and
+one canonical message through the existing logger. Generation values and all
+identity, policy, checkpoint, key, address, and raw adapter detail are omitted.
+Magic, version, reserved bits, enums, state/action/reason coherence, and the
+mandatory redaction bit fail closed. Exact target sink, retention/export,
+rendering, and physical failure capture remain target gates.
+
 ## Failure boundaries
 
 - GPS loss marks positions unavailable/stale but does not stop messaging.

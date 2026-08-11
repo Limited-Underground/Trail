@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Versioned redacted update-recovery diagnostic event
+
+- Added canonical `OTRD0/v0`: one 32-bit recovery outcome logged through the
+  existing bounded logger as exactly `OTRD0=XXXXXXXX` under the fixed
+  `update-recovery` component.
+- Omitted observed/trusted generations and all identity, policy, checkpoint,
+  key, address, and raw adapter detail. The mandatory redaction bit, fixed magic
+  and version, zero reserved bits, enum ranges, flags, and state/action/reason
+  coherence all fail closed on encode and decode.
+- Kept logger authority intact: info/warn/error severity follows operator state,
+  runtime filtering is an accepted non-write, and full-sink rejection remains
+  visible rather than becoming false success.
+- Covered eight scenario groups, 100 focused repeats, the complete 44-executable
+  matrix, and all Python/publication-safety checks. Target sink binding,
+  persistent retention/export, display rendering, and physical failure capture
+  remain open.
+
 ### Redacted update-recovery operator status
 
 - Added one fixed, pointer-free operator record for boot, normal save, and

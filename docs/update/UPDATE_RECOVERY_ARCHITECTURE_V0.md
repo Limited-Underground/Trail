@@ -62,6 +62,12 @@ coherence before mapping; unknown, incomplete, or contradictory input becomes
 service-required and blocked. Eight groups plus 100 focused repeats pass. No
 target logger, renderer, persistent audit, or physical operator workflow exists.
 
+The versioned [`OTRD0` diagnostics adapter](../diagnostics/UPDATE_RECOVERY_DIAGNOSTIC_EVENT_V0.md)
+then removes both generations and writes one canonical 32-bit status through the
+existing logger. It validates the word independently and preserves logger
+filtering/backpressure behavior. Eight groups plus 100 focused repeats pass.
+Target sink binding, retained audit/export, and physical service capture remain.
+
 ## Safety objective
 
 A failed, interrupted, incompatible, or unhealthy update must not silently leave

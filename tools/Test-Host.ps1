@@ -452,6 +452,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'versioned update recovery diagnostic event'
+        Output = Join-Path $buildDirectory 'update_recovery_diagnostics_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\logger.cpp'),
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\update_recovery_diagnostics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\diagnostics\test_support\memory_log_sink.cpp'),
+            (Join-Path $projectRoot 'tests\host\update_recovery_diagnostics_tests.cpp')
+        )
+    },
+    @{
         Name = 'portable-client target composition'
         Output = Join-Path $buildDirectory 'portable_client_composition_tests.exe'
         Sources = @(
