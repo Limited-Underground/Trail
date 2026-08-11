@@ -22,6 +22,13 @@ binding, trial/rollback restoration, atomic failure, and deliberate removal of
 boot-local health/time/session evidence. CRC is accidental-corruption evidence,
 not authentication or rollback protection.
 
+The abstract [two-slot store](UPDATE_CHECKPOINT_STORE_V0.md) then owns normal
+generation allocation, preserves the newest unique valid record across partial
+or corrupt writes, readback-verifies every successful save, repairs a known
+invalid peer, and fails closed when an unreadable slot could conceal newer
+state. Ten groups plus 100 focused repeats pass. Target atomicity, authenticated
+integrity, trusted rollback protection, wear, and physical power cuts remain.
+
 ## Safety objective
 
 A failed, interrupted, incompatible, or unhealthy update must not silently leave

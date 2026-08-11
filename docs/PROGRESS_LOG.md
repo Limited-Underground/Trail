@@ -14,10 +14,14 @@ public chronology.
 - Wired atomic export/restore into the update boot guard; trial restoration
   preserves the attempt count but clears session, clock, and accumulated health
   so a restarted image must prove health again.
+- Added an abstract two-slot store that owns generation allocation, preserves
+  the previous valid record across partial/corrupt writes, verifies exact
+  readback, repairs known invalid redundancy, and refuses unreadable or
+  equal-generation-conflicted media.
 - Covered deterministic round trip, restart, rollback completion, exact policy
   mismatch, corruption/canonical/version failures, invalid state, and output
-  preservation across eight new groups plus 100 focused repeats; the complete
-  host matrix passes.
+  preservation across eight codec/guard groups plus 100 repeats, then ten store
+  groups plus 100 repeats; the complete host matrix passes.
 - Kept authenticated two-slot target storage, trusted generation persistence,
   ESP-IDF/bootloader adapters, power interruption, wear, and physical recovery
   explicitly open.

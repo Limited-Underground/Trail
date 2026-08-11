@@ -72,6 +72,11 @@ readback verification, authenticated integrity, protected namespace binding,
 and a trusted minimum generation. The generation in this record is evidence
 for that future composition, not a trusted counter by itself.
 
+The abstract [two-slot host store](UPDATE_CHECKPOINT_STORE_V0.md) now owns
+normal generation allocation, preserves a prior valid record across partial or
+corrupt writes, and readback-verifies new records. It does not make the
+generation trusted or define target flash behavior.
+
 The host evidence does not prove bootloader behavior, flash partitions,
 signature verification, secure boot, USB recovery, power-loss survival, wear,
 or rollback resistance.

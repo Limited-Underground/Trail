@@ -296,9 +296,13 @@ not treated as proof of authorization.
   A separate canonical 64-byte `OTU0/v0` checkpoint binds hardware, baseline,
   candidate, exact policy, trial count, rollback reason, and caller-owned
   generation across eight more groups. Restore is atomic and intentionally
-  clears boot-local health, time, and session evidence. No target partition
-  table, signer, updater adapter, authenticated two-slot storage, protected
-  generation floor, or physical interruption/recovery evidence exists.
+  clears boot-local health, time, and session evidence. An abstract two-slot
+  store now owns normal generation allocation, preserves prior-good state
+  across partial/corrupt writes, verifies readback, repairs a known invalid
+  peer, and fails closed on unreadable/conflicted state across ten groups plus
+  100 repeats. No target partition table, signer, updater adapter,
+  authenticated target storage, protected generation floor, or physical
+  interruption/recovery evidence exists.
 
 ### Maps and interface
 

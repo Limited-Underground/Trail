@@ -394,6 +394,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'recoverable update checkpoint store'
+        Output = Join-Path $buildDirectory 'update_checkpoint_store_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\update\src\update_checkpoint.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_checkpoint_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_boot_guard.cpp'),
+            (Join-Path $projectRoot 'tests\host\update_checkpoint_store_tests.cpp')
+        )
+    },
+    @{
         Name = 'portable-client target composition'
         Output = Join-Path $buildDirectory 'portable_client_composition_tests.exe'
         Sources = @(
