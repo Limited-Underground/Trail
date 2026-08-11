@@ -97,6 +97,11 @@ or alter alerts/position sharing/USB recovery.
 `reset()` and `reset_and_verify_empty()` address only the two abstract selector
 slots. Neither operation erases map packages or any other persistence domain.
 
+The [key/value target adapter](OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
+provides one tested mapping from this interface to two exact blobs with an
+explicit durable-commit backend boundary. It is NVS-ready but is not an
+ESP-IDF implementation or physical storage result.
+
 ## Current evidence
 
 Fourteen deterministic host groups cover empty first save/restore, alternating
@@ -105,12 +110,12 @@ uncertainty, corrupt readback, degraded-peer repair, unreadable peer media,
 equal-generation conflict, policy/package mismatch, trusted-floor rejection and
 generation exhaustion, exact live-checkpoint verification, persisted trial-
 boot increment, exact-generation save rejection, partial/successful reset, and
-reported-success erase that fails exact empty readback. All eight map
+reported-success erase that fails exact empty readback. All nine map
 executables pass
 100/100 focused repeats under strict
 C++17 warnings-as-errors.
 
-This is abstract-store evidence only. No ESP32 storage adapter, atomic-byte
-guarantee, wear/endurance result, protected generation, package authentication,
-physical power interruption, filesystem, renderer, display, or on-device result
-is claimed.
+This is abstract-store evidence plus a backend-neutral key/value mapping only.
+No ESP-IDF/NVS backend, partition table, atomicity guarantee, wear/endurance
+result, protected generation, package authentication, physical power
+interruption, filesystem, renderer, display, or on-device result is claimed.

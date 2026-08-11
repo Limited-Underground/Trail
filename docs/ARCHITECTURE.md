@@ -371,6 +371,15 @@ coordinators. The acknowledgements are not authentication, the generation
 floor is not protected here, and physical package/storage behavior remains
 outside this host boundary.
 
+The [key/value target adapter](maps/OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
+fixes one backend-neutral mapping onto partition label `ot_state`, namespace
+`ot_maps`, and two exact 64-byte blob keys. Every prepared write, full-blob
+marker rewrite, and erase requires a backend commit before success; the upper
+store still owns exact readback and reconciliation. This is an NVS-ready host
+boundary, not an ESP-IDF component or physical durability result. Exact target
+partition layout, task/lock, encryption, trusted generation, service UI, and
+power-interruption evidence remain separate gates.
+
 ## External critical-alert interface
 
 OpenTrail accepts normalized events, never raw CAN/J1939 frames. The boundary should support at least schema version, event type, severity, source/vehicle identity, event time/age, optional typed value/unit, validity, and diagnostic context. OpenTrail adds its own node and current GPS context before radio transmission. Producers are untrusted inputs: values, lengths, rates, and event types require validation and rate limiting.

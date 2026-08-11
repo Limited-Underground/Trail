@@ -95,7 +95,8 @@ suite separately covers exact clear readback across fourteen groups. All eight
 map suites pass 100/100 repeats, and the complete 66-executable host matrix
 passes under strict C++17 warnings-as-errors.
 
-This is abstract host ordering evidence only. No ESP32 storage adapter,
-physical erase/atomicity/endurance/power-loss result, real operator
-authorization, protected trusted floor, package authentication, filesystem,
-renderer, display, target task, or on-device result is claimed.
+This is abstract host ordering evidence plus a backend-neutral key/value
+mapping only. No ESP-IDF backend, physical erase/atomicity/endurance/power-loss
+result, real operator authorization, protected trusted floor, package
+authentication, filesystem, renderer, display, target task, or on-device result
+is claimed.

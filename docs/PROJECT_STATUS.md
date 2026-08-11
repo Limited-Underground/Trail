@@ -190,6 +190,18 @@ matrix passes.
 Authenticated authorization, protected trusted history, physical package and
 selector adapters, locking, renderer, and target evidence remain open.
 
+The selector now has a backend-neutral key/value adapter contract. Fixed
+`ot_state` / `ot_maps` / `otm_sel_a|b` binding, exact 64-byte reads, durable
+commit after staged write/erase, full-blob marker rewrite, idempotent missing-
+key erase, and upper-store composition pass ten host groups. The accompanying
+ESP-IDF plan records official NVS commit semantics, prohibits namespace/
+partition-wide erase, fixes a local-service authority handoff, and defines the
+physical interruption matrix. No ESP-IDF source, partition table, target
+task/lock, encryption/trusted-generation choice, physical result, or real
+service authorization exists.
+All nine map suites pass 100/100 repeats, and the complete 67-executable host
+matrix passes.
+
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
 phone/laptop/vehicle dependency during a session, at least three materially
@@ -412,7 +424,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 66 C++ executables plus the Python
+  six verifier/planning/operator CLIs and runs all 67 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery

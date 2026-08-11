@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-11
 
+### NVS-ready map selector key/value boundary
+
+- Fixed one backend-neutral selector binding: `ot_state` partition label,
+  `ot_maps` namespace, and exact 64-byte `otm_sel_a` / `otm_sel_b` blobs.
+- Required a backend commit after every staged blob write or key erase. Marker
+  commit reads the prepared record, changes only byte 59, rewrites the complete
+  blob, commits it, and leaves exact readback to the upper store.
+- Kept missing keys distinct from I/O, made missing-key erase idempotent, and
+  rejected wrong sizes, bindings, offsets, marker values, and already-committed
+  blobs without guessing state.
+- Added ten deterministic groups including normal two-slot rotation and
+  verified selector clear through the real store. The ESP-IDF/NVS plan fixes
+  service scope and physical interruption gates without claiming a target
+  backend or hardware durability. All nine map suites pass 100/100 repeats,
+  and the complete 67-executable host matrix passes.
+
 ### Authorized map selector service reseed
 
 - Added a separate service-only coordinator for dirty or previously used map
