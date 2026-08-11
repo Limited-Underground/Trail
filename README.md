@@ -111,7 +111,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   health, time, confirmation, and rollback operations to a private guard copy;
   durable state becomes live only after the verified save succeeds, while any
   persistence failure stops the original guard. Ten groups plus 100 repeats
-  pass. Target scheduling/reboot and physical persistence evidence remain.
+  pass. A fixed [redacted recovery status](docs/update/UPDATE_RECOVERY_STATUS_V0.md)
+  then converts boot, save, and transition results into one coarse operator
+  state/reason/action record. It structurally omits hardware/candidate identity,
+  raw checkpoints, adapter errors, and nested results; inconsistent input fails
+  closed to blocked service. Eight groups plus 100 repeats pass. Target
+  logging/rendering, scheduling/reboot, and physical persistence evidence remain.
 - **Security overhead is now visible before wire freeze:** a bounded
   [protected-packet budget](docs/protocol/PROTECTED_PACKET_BUDGET_V0.md) charges
   every candidate frame a corrected 44-byte authenticated header and 16-byte
@@ -229,7 +234,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 42 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 43 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including portable-client composition, local-interface, power-state, clock, randomness,

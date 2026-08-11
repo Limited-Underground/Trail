@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Redacted update-recovery operator status
+
+- Added one fixed, pointer-free operator record for boot, normal save, and
+  trial-time transition outcomes: coarse state, reason, action, two generation
+  values, and bounded success/attention/reboot/confirmation/cleanup flags.
+- Structurally excluded hardware and candidate identity, checkpoint payloads,
+  raw guard/trusted errors, and nested persistence results. The record is
+  trivially copyable and bounded to 32 bytes.
+- Validated source state, reason, flags, generations, operation, guard outcome,
+  lifecycle publication, and nested persistence coherence. Unknown, default,
+  incomplete, or contradictory input fails closed to blocked service with no
+  inherited continue, reboot, confirmation, or cleanup claim.
+- Covered eight scenario groups, 100 focused repeats, the complete 43-executable
+  host matrix, and all Python/publication-safety checks. Target logging,
+  rendering, retained audit, reboot/cleanup execution, and physical service UX
+  remain open.
+
 ### Durable trial-time update transitions
 
 - Added a lifecycle-transition coordinator for health reporting, checked ticks,
@@ -17,7 +34,7 @@ public chronology.
   unpublished, stops the original guard, and requires the typed recovery path.
 - Covered committed confirmation/rollback, both deadline routes, rejected and
   volatile behavior, uncertain writes, generation mismatch, and post-write
-  trust failures across ten groups, 100 focused repeats, and the complete 42-
+  trust failures across ten groups, 100 focused repeats, and the complete 43-
   executable matrix.
 - Kept the target claim bounded: staging/install, boot and rollback execution,
   terminal cleanup/reset, scheduling/watchdog behavior, protected backends, and

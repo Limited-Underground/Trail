@@ -58,7 +58,11 @@ commit, trusted read failure and zero trust, missing/invalid recovery, rollback,
 local-ahead reconciliation, conflict, unreadable media, exhaustion, stopped or
 idle guards, uncertain writes, and trust advance/readback failures. Four new
 read-only inspection groups expand the checkpoint-store suite to 20 groups. The
-complete 42-executable OpenTrail host matrix passes.
+complete 43-executable OpenTrail host matrix passes.
+
+Target-facing consumers use the separate [redacted operator
+status](UPDATE_RECOVERY_STATUS_V0.md), which verifies the save state, reason,
+and commit generations before exposing a persistence or recovery action.
 
 This is host state-machine evidence only. Target partition semantics, protected
 and authenticated storage, trusted-source provisioning/reset authority, actual

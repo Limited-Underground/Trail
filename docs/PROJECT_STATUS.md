@@ -238,7 +238,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 42 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 43 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
@@ -317,9 +317,15 @@ not treated as proof of authorization.
   A lifecycle-transition coordinator now applies health, tick, confirmation,
   and rollback to a private guard copy, publishes reboot-relevant state only
   after that verified save commits, and stops the original live guard on any
-  persistence failure. Ten groups plus 100 repeats pass. Target scheduling and
-  reboot execution, target boot tasks, terminal cleanup/reset authority,
-  protected backends, and physical restart evidence remain absent.
+  persistence failure. Ten groups plus 100 repeats pass. A fixed redacted
+  operator-status boundary validates boot, save, and transition coherence before
+  emitting only coarse state/reason/action, generation evidence, and recovery
+  flags. Hardware/candidate identity, checkpoint payloads, raw adapter errors,
+  and nested results are absent; unknown or contradictory input blocks normal
+  operation as service-required. Eight groups plus 100 repeats pass in the
+  complete 43-executable matrix. Target logging/rendering, scheduling and reboot
+  execution, target boot tasks, terminal cleanup/reset authority, protected
+  backends, and physical restart evidence remain absent.
 
 ### Maps and interface
 

@@ -55,6 +55,13 @@ publishing the attempted state. Ten groups plus 100 focused repeats pass.
 Target scheduling, reboot execution, staging/install composition, terminal
 cleanup, protected backends, and physical evidence remain open.
 
+The [redacted operator-status boundary](UPDATE_RECOVERY_STATUS_V0.md) maps boot,
+save, and transition results into one fixed record containing only coarse
+state/reason/action, generation evidence, and recovery flags. It verifies source
+coherence before mapping; unknown, incomplete, or contradictory input becomes
+service-required and blocked. Eight groups plus 100 focused repeats pass. No
+target logger, renderer, persistent audit, or physical operator workflow exists.
+
 ## Safety objective
 
 A failed, interrupted, incompatible, or unhealthy update must not silently leave

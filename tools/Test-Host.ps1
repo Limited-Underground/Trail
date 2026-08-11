@@ -438,6 +438,20 @@ $builds = @(
         )
     },
     @{
+        Name = 'redacted update recovery operator status'
+        Output = Join-Path $buildDirectory 'update_recovery_status_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\update\src\update_checkpoint.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_checkpoint_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_boot_guard.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_recovery_boot.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_recovery_save.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_recovery_transition.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_recovery_status.cpp'),
+            (Join-Path $projectRoot 'tests\host\update_recovery_status_tests.cpp')
+        )
+    },
+    @{
         Name = 'portable-client target composition'
         Output = Join-Path $buildDirectory 'portable_client_composition_tests.exe'
         Sources = @(
