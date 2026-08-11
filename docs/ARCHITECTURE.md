@@ -420,6 +420,19 @@ and the recovered map is published only after exact protected readback. Initial
 source failure reaches no selector storage; every post-save trust conflict or
 uncertainty remains ambiguous-mapless for fresh-boot reconciliation.
 
+The [reset/replacement lifecycle policy](maps/OFFLINE_MAP_SELECTOR_RESET_REPLACEMENT_POLICY_V0.md)
+keeps ordinary factory reset, authorized selector reseed, same-device protected-
+source recovery, and whole-device commissioning separate. Ordinary reset
+preserves selector records plus protected map history. Selector reseed is
+routed only while protected history is intact; a temporarily unavailable source
+blocks selector access, and a missing or replaced source on the same device
+requires future independent external recovery instead of becoming first use.
+Independently established blank replacement hardware may route only to future
+fresh-domain commissioning, while retained selector import is rejected. The
+fixed-shape classifier grants no erase, protected-reset, generation-lowering,
+credential, or migration authority. Ten host groups pass; continuity evidence
+and execution authority remain target gates.
+
 The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
 can mint that non-copyable, single-use permit only after an injected local-
 service verifier returns an exact-bound, short-lived grant and atomically

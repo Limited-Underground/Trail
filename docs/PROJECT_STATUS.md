@@ -237,6 +237,18 @@ failure never advances trust; and post-save trust uncertainty remains
 ambiguous-mapless for fresh-boot reconciliation. Twelve trusted-reseed groups
 pass.
 
+A separate reset/replacement policy now prevents four lifecycle events from
+collapsing into one destructive operation. Ordinary factory reset preserves
+both selector records and protected history. Selector reseed routes to the
+existing exact-bound authorized path only while protected history is intact;
+temporary source failure blocks selector access, and missing/replaced history
+on the same device cannot become first use. Same-device protected-source
+replacement requires future independent external recovery authority. Only an
+independently established blank replacement device may route to fresh-domain
+commissioning, and retained-selector import is rejected. The fixed-shape
+classifier carries no erase, reset, generation-lowering, credential, device-ID,
+or state-import authority. Ten groups pass.
+
 The selector now has a backend-neutral key/value adapter contract. Fixed
 `ot_state` / `ot_maps` / `otm_sel_a|b` binding, exact 64-byte reads, durable
 commit after staged write/erase, full-blob marker rewrite, idempotent missing-
@@ -246,8 +258,8 @@ partition-wide erase, fixes a local-service authority handoff, and defines the
 physical interruption matrix. No ESP-IDF source, partition table, target
 task/lock, encryption/trusted-generation choice, physical result, or concrete
 service-authentication backend exists.
-All sixteen map suites pass 100/100 focused repeats, and the complete
-74-executable host matrix passes.
+All seventeen map suites pass 100/100 focused repeats, and the complete
+75-executable host matrix passes.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -471,7 +483,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 74 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 75 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery

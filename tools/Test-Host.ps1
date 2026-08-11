@@ -667,6 +667,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'map selector reset and replacement policy'
+        Output = Join-Path $buildDirectory 'map_selector_reset_policy_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_reset_policy.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_reset_policy_tests.cpp')
+        )
+    },
+    @{
         Name = 'map selector protected trusted boot coordinator'
         Output = Join-Path $buildDirectory 'map_selector_trusted_boot_tests.exe'
         Sources = @(

@@ -6,6 +6,24 @@ public chronology.
 
 ## 2026-08-11
 
+### Map-selector reset and device-replacement boundary
+
+- Separated ordinary factory reset, authorized selector reseed, same-device
+  protected-source recovery, and whole-device commissioning into four explicit
+  lifecycle routes.
+- Kept ordinary reset outside both map persistence domains. It may reset
+  identity/configuration under their own policy, but cannot erase selector
+  records or lower protected map history.
+- Blocked selector reseed when protected history is unavailable or missing,
+  required future independent external authority for same-device source
+  replacement, and rejected retained-selector import through new-device
+  commissioning.
+- Added ten deterministic groups and an accepted architecture decision. All
+  seventeen map suites pass 100/100 focused repeats, and the complete
+  75-executable host matrix passes locally including publication safety. No
+  physical continuity detector, external recovery authority, fresh-domain
+  provisioner, target executor, or on-device result is claimed.
+
 ### Protected-generation map-selector service reseed
 
 - Added a service-recovery composition that derives the reviewed floor from
