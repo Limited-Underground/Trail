@@ -339,8 +339,16 @@ unchanged value or atomically advances and exactly reads back a newer value
 before publication. Nonzero trusted history with empty selector media is
 service-required, and any uncertain trust advance keeps the saved selector
 private. Target composition must serialize both storage and trust ownership;
-runtime transition, candidate, baseline, reseed, and reset/replacement paths
-remain separate gates.
+candidate, baseline, reseed, and reset/replacement paths remain separate gates.
+
+The [trusted runtime transition coordinator](maps/OFFLINE_MAP_SELECTOR_TRUSTED_TRANSITION_COORDINATOR_V0.md)
+removes the caller-created current/floor values from live selector mutation.
+It obtains both from protected history, runs the ordinary transition against a
+private guard, and publishes only after an unchanged generation is rechecked or
+a newly saved selector generation is atomically advanced and exactly read back.
+Trust failure or change contains the current map. Verified selector clearing
+after invalid fallback deliberately retains protected history and requires
+service reconciliation rather than becoming a clean first-use condition.
 
 The [runtime transition coordinator](maps/OFFLINE_MAP_SELECTOR_TRANSITION_COORDINATOR_V0.md)
 requires the live guard to exactly match the newest persisted checkpoint and
@@ -349,7 +357,9 @@ completion, or prior cleanup to a private copy. Persistent changes become live
 only after commit-last save and exact readback. Volatile health/time changes do
 not create unnecessary writes. An invalid fallback verified-clears only the
 selector records before becoming mapless; uncertain clearing remains mapless
-and reconciliation-required.
+and reconciliation-required. This lower-level coordinator remains independently
+testable with scalar generation context; protected runtime composition is owned
+by the trusted coordinator above.
 
 The [candidate coordinator](maps/OFFLINE_MAP_SELECTOR_CANDIDATE_COORDINATOR_V0.md)
 owns the replacement ordering boundary for an externally staged alternate-slot

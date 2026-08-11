@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Protected-generation map-selector runtime transitions
+
+- Added a runtime composition that obtains both the current selector generation
+  and rollback floor from the protected-generation source before selector-store
+  access.
+- Kept trial reads, deadline handling, fallback completion, and prior cleanup on
+  a private guard until unchanged trust is rechecked or a saved selector is
+  followed by an atomic protected advance and exact readback.
+- Contained a currently visible map after trust failure/change and retained
+  protected history after invalid-fallback selector clearing, routing that state
+  to service reconciliation instead of treating it as clean first use.
+- Added eleven deterministic groups and completed 100/100 focused repeats. All
+  thirteen map suites and the complete 71-executable host matrix pass locally,
+  including publication-safety checks. Candidate/baseline/reseed protected
+  composition, a concrete protected backend, target locking, physical
+  durability, and on-device results remain open.
+
 ### Protected-generation map-selector boot composition
 
 - Added the first map coordinator that derives its rollback floor directly

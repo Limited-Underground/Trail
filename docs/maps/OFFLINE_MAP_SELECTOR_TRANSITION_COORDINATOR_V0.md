@@ -32,6 +32,17 @@ The [selector store](OFFLINE_MAP_SELECTOR_STORE_V0.md) now exposes read-only
 `verify_current` for this purpose. It does not rewrite or repair media while
 verifying.
 
+## Protected-generation composition
+
+The separate
+[trusted transition coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_TRANSITION_COORDINATOR_V0.md)
+removes the caller-created current/floor values from a live runtime path. It
+derives both from the protected source, runs this coordinator on a private
+guard, and requires an exact protected recheck or selector-save-before-trust-
+advance ordering before publication. This lower-level coordinator deliberately
+retains scalar context so selector-store semantics remain independently
+testable.
+
 ## Operations and persistence
 
 | Operation | Volatile-only case | Persistent case |
@@ -75,8 +86,10 @@ prior cleanup, rejected operations, exact live/token/floor mismatches,
 unreadable/conflicted storage, prepared/commit/readback save failures, partial
 clear failure, invalid policy, and stopped ownership. The transition and store
 suites pass 100/100 focused repeats under strict C++17 warnings-as-errors.
+Eleven additional trusted-transition groups cover the protected runtime
+composition, also at 100/100 focused repeats.
 
 No ESP32 task binding, NVS/flash/SD adapter, atomic-byte or erase guarantee,
-wear/endurance result, protected generation source, package authentication,
-physical interruption, filesystem, renderer, display, package deletion, or
-on-device result is claimed.
+wear/endurance result, concrete protected generation backend, package
+authentication, physical interruption, filesystem, renderer, display, package
+deletion, or on-device result is claimed.
