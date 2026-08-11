@@ -596,6 +596,17 @@ $builds = @(
         )
     },
     @{
+        Name = 'map selector boot coordinator'
+        Output = Join-Path $buildDirectory 'map_selector_boot_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_activation_guard.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_checkpoint.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_boot.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_boot_tests.cpp')
+        )
+    },
+    @{
         Name = 'update boot guard'
         Output = Join-Path $buildDirectory 'update_boot_guard_tests.exe'
         Sources = @(

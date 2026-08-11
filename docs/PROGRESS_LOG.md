@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Persist-before-exposure map selector boot
+
+- Added a typed boot coordinator that restores only into a private map guard
+  and releases stable, trial, fallback, or mapless state through explicit
+  outcomes.
+- Required every resumed-trial boot increment and trial-limit fallback to pass
+  a new commit-last store write plus exact readback before the candidate or
+  fallback state becomes live.
+- Kept failed writes, uncertain commits, bad readback, unreadable media,
+  conflicts, rollback-floor rejection, and package mismatch mapless; the
+  private candidate is never exposed.
+- Preserved map/communications independence and kept physical storage, package
+  access, rendering, trusted-floor ownership, and target task binding outside
+  the coordinator.
+- Passed ten coordinator groups and 100/100 focused repeats under strict C++17
+  warnings-as-errors. No physical or on-device boot result is claimed.
+
 ### Recoverable map selector store
 
 - Reserved `OTM0` byte 59 as commit marker `0xA5`; CRC covers the committed
@@ -17,9 +34,9 @@ public chronology.
   uncertain commit failures, repaired invalid/uncommitted peers, and rejected
   unreadable slots, equal-generation conflict, and generation exhaustion.
 - Added optional external trusted-floor comparison without claiming protected
-  anti-rollback state. Trial restore exposes its incremented boot count for a
-  later coordinator to persist before candidate use.
-- Passed twelve store groups plus all three map executables 100/100 repeats.
+  anti-rollback state. Trial restore exposes its incremented boot count for the
+  boot coordinator to persist before candidate use.
+- Passed twelve store groups plus all four map executables 100/100 repeats.
   No physical backend, atomicity/endurance/power-loss result, authentication,
   target filesystem, renderer, display, or on-device behavior is claimed.
 

@@ -59,10 +59,11 @@ or package mismatch becomes a checkpoint rejection and leaves map authority
 fail-closed.
 
 Trial restore increments its boot count and resets volatile health/time. Before
-a target exposes that resumed candidate, a later boot coordinator must save and
-verify the incremented checkpoint. This store deliberately does not hide that
-ordering requirement. The coordinator, protected trusted-floor source, and
-target task composition remain separate work.
+a target exposes that resumed candidate, the
+[boot coordinator](OFFLINE_MAP_SELECTOR_BOOT_COORDINATOR_V0.md) saves and
+verifies the incremented checkpoint. This store deliberately does not hide
+that ordering requirement. A protected trusted-floor source and target task
+composition remain separate work.
 
 ## Data and authority limits
 
@@ -82,7 +83,7 @@ generation selection, partial prepared writes, commit-before/after-error
 uncertainty, corrupt readback, degraded-peer repair, unreadable peer media,
 equal-generation conflict, policy/package mismatch, trusted-floor rejection and
 generation exhaustion, persisted trial-boot increment, and partial/successful
-reset. All three map executables pass 100/100 focused repeats under strict
+reset. All four map executables pass 100/100 focused repeats under strict
 C++17 warnings-as-errors.
 
 This is abstract-store evidence only. No ESP32 storage adapter, atomic-byte

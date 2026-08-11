@@ -319,8 +319,15 @@ The [abstract two-slot store](maps/OFFLINE_MAP_SELECTOR_STORE_V0.md) prepares a
 complete `OTM0` with a zero commit byte, commits byte 59 last, verifies exact
 readback, alternates away from prior-good state, repairs known degraded peers,
 and rejects unreadable media or equal-generation conflict. It accepts an
-external trusted floor but does not own anti-rollback state. A boot coordinator
-must persist an incremented resumed-trial count before exposing that candidate.
+external trusted floor but does not own anti-rollback state.
+
+The [map selector boot coordinator](maps/OFFLINE_MAP_SELECTOR_BOOT_COORDINATOR_V0.md)
+restores only into a private guard. Stable state can be released unchanged,
+while a resumed-trial increment or boot-limit fallback must pass a new
+commit-last write and exact readback first. Failures publish at most a fresh
+mapless guard; an unpersisted candidate is never exposed. The coordinator does
+not bind a physical backend, own the trusted floor, open a package, render a
+map, or control communications.
 
 ## External critical-alert interface
 

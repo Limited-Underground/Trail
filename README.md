@@ -195,7 +195,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   complete record uncommitted, commits byte 59 last, verifies exact readback,
   rotates away from prior-good state, rejects unreadable/conflicting media, and
   supports an external generation floor. Twelve groups and 100/100 repeats
-  pass; the physical storage adapter and boot coordinator remain open.
+  pass. A typed
+  [boot coordinator](docs/maps/OFFLINE_MAP_SELECTOR_BOOT_COORDINATOR_V0.md)
+  now keeps restored state private, persists resumed-trial and boot-limit
+  transitions before release, and exposes only a verified active/trial map or
+  an explicit mapless/fallback result. Ten groups and 100/100 repeats pass;
+  the physical storage adapter and target task remain open.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
   or on-device map result is selected or claimed.
@@ -384,7 +389,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 61 C++ test executables plus
+  builds six verifier/planning/operator CLIs and runs all 62 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet
