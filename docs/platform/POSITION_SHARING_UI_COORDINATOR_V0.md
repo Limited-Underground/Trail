@@ -21,12 +21,14 @@ One `service()` call performs at most one of these paths:
 | Condition | Behavior |
 | --- | --- |
 | No frame has been published | Build current live presentation and publish the owned revision |
+| Live user-visible state differs from the active frame | Publish the changed state under the next revision before polling input |
 | No local input is ready | Return idle without runtime or display mutation |
 | Input is stale/invalid | Return typed rejection without a position command or refresh |
 | Start/Stop applies | Publish the resulting live state under the next revision |
 | Start is temporarily clock-deferred | Keep the current Start frame/revision and permit a later fresh retry |
 | Start permanently faults or scheduler rejects | Publish the resulting critical no-action frame |
 | Initial display write fails | Keep the revision unused so initial publication can retry |
+| Observed-state display write fails | Stop sharing and latch the UI coordinator closed before input |
 | Post-action display write fails | Stop sharing and latch the UI coordinator closed |
 | Revision space is exhausted | Stop sharing and latch before polling/applying another action |
 
@@ -50,6 +52,14 @@ remains representable.
 `OutboundServiceCoordinator::position_status()` exposes one read-only scheduler
 snapshot so target callers do not assemble presentation state themselves. This
 does not make two snapshots atomic under concurrency.
+
+The coordinator retains the last successfully presented semantic frame. Its
+comparison excludes the revision but includes the screen, attention, notice,
+complete status summary, action count, and every canonical action binding.
+This prevents service counters, retry deadlines, and timestamps from causing
+display churn while still advancing the revision for every visible change.
+The detailed behavior and evidence are recorded in the
+[position-sharing UI observation contract](POSITION_SHARING_UI_OBSERVATION_V0.md).
 
 ## Scope and privacy
 
@@ -77,7 +87,7 @@ Ten deterministic groups cover:
 9. post-action display failure stopping sharing and latching closed; and
 10. revision exhaustion and invalid seed failing closed before input.
 
-The focused executable passes 100/100 repeats. The complete 54-executable
+The focused executable passes 100/100 repeats. The complete 55-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 ## Remaining gates
@@ -86,7 +96,7 @@ OpenTrail host matrix plus all Python and publication-safety checks pass.
   serialize this coordinator with outbound service;
 - define a visible, localized retry treatment for temporary clock-not-ready;
 - integrate privacy-safe diagnostics for rejected input, display containment,
-  revision exhaustion, and permanent outbound failure;
+  observation refresh, revision exhaustion, and permanent outbound failure;
 - define boot/reboot/default position-sharing behavior and revision seeding;
 - render and measure every state on exact button and touch targets; and
 - physically test latency, stale input, display/input failure, glove/wet use,

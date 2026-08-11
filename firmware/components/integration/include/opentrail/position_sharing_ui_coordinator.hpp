@@ -9,6 +9,7 @@ namespace opentrail::integration {
 
 enum class PositionSharingUiDisposition : std::uint8_t {
     presented = 0,
+    refreshed,
     idle,
     action_applied,
     action_deferred,
@@ -24,6 +25,7 @@ enum class PositionSharingUiError : std::uint8_t {
     presentation_unavailable,
     display_failed,
     input_failed,
+    external_refresh_failed,
     post_action_refresh_failed,
 };
 
@@ -53,6 +55,7 @@ struct PositionSharingUiCoordinatorStatus {
     std::uint32_t next_revision{0};
     std::uint32_t service_calls{0};
     std::uint32_t presented_frames{0};
+    std::uint32_t state_refreshes{0};
     std::uint32_t idle_polls{0};
     std::uint32_t resolved_actions{0};
     std::uint32_t actions_applied{0};
@@ -75,13 +78,20 @@ public:
     [[nodiscard]] PositionSharingUiCoordinatorStatus status() const;
 
 private:
+    [[nodiscard]] PositionSharingPresentationResult current_presentation()
+        const;
+    [[nodiscard]] bool semantics_changed(
+        const ui::UiFrame& candidate) const;
     [[nodiscard]] bool publish(
+        const PositionSharingPresentationResult& presentation,
         PositionSharingUiServiceResult& result);
+    void contain_and_latch(PositionSharingUiError error);
     void latch(PositionSharingUiError error);
 
     OutboundServiceCoordinator& outbound_;
     ui::CheckedLocalInterface& local_interface_;
     PositionSharingUiCoordinatorStatus status_{};
+    ui::UiFrame active_frame_{};
 };
 
 }  // namespace opentrail::integration

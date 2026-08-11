@@ -157,6 +157,16 @@ and latches further input closed; revision exhaustion does the same before an
 action is polled. This proves cooperative sequencing only. One target task or
 lock must still serialize UI and outbound service calls.
 
+Before it polls input, that coordinator now derives a candidate from the live
+outbound/scheduler owners and compares only user-visible frame semantics with
+the last successfully committed frame. GPS wait/recovery, sink deferral, and a
+permanent outbound clock fault therefore advance the revision before an old
+action can resolve. Timestamp, deadline, and counter changes alone do not
+refresh. If an observed-state frame cannot be committed, immediate Stop and a
+latched UI fault contain the uncertainty. This remains cooperative host
+ordering; it does not make the outbound and UI snapshots atomic under target
+concurrency.
+
 Target-facing position presentation must combine scheduler state with the
 outbound coordinator status. A coherent latched clock rollback/source failure
 overrides the scheduler's stopped state with a critical no-action frame, while

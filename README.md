@@ -139,6 +139,16 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   publication stops sharing and latches input closed. Ten groups plus 100
   focused repeats pass. This is host ordering—not an ESP-IDF task/lock,
   renderer, physical input, or concurrency result.
+- **The position screen now observes outbound state before accepting input:**
+  the [semantic observation contract](docs/platform/POSITION_SHARING_UI_OBSERVATION_V0.md)
+  compares only user-visible frame meaning and publishes a higher revision when
+  outbound service changes active sharing to GPS-waiting, sink-deferred,
+  recovered, or permanently faulted. A queued action for the superseded screen
+  remains untouched until the refresh commits and is then rejected as stale;
+  failed refresh stops sharing and latches input closed. Runtime counters and
+  timestamps alone do not churn revisions. Ten groups plus 100/100 focused
+  repeats pass. Exact target serialization, rendering, and physical behavior
+  remain unproved.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned
@@ -320,7 +330,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 54 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 55 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet

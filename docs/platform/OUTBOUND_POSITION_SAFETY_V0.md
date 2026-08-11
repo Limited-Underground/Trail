@@ -67,12 +67,14 @@ Ten deterministic groups cover:
 9. incoherent runtime status failing closed; and
 10. revision-zero and unknown-clock-state refusal.
 
-The focused executable passes 100/100 repeats. The complete 54-executable
+The focused executable passes 100/100 repeats. The complete 55-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The [position-sharing UI coordinator](POSITION_SHARING_UI_COORDINATOR_V0.md)
 now owns cooperative revision publication, checked input, live action
-application, and fail-closed post-action refresh.
+application, and fail-closed post-action refresh. Its
+[semantic observation contract](POSITION_SHARING_UI_OBSERVATION_V0.md) also
+publishes a newly latched outbound fault before any queued input is polled.
 
 ## Remaining gates
 

@@ -1,5 +1,6 @@
 #include "opentrail/position_sharing_ui_coordinator.hpp"
 
+#include <cstddef>
 #include <limits>
 
 namespace opentrail::integration {
@@ -9,6 +10,33 @@ void saturating_increment(std::uint32_t& value) {
     if (value != std::numeric_limits<std::uint32_t>::max()) {
         ++value;
     }
+}
+
+bool same_status(const ui::UiStatusSummary& left,
+                 const ui::UiStatusSummary& right) {
+    return left.radio == right.radio &&
+           left.position == right.position &&
+           left.power == right.power &&
+           left.peer_count_valid == right.peer_count_valid &&
+           left.peer_count == right.peer_count &&
+           left.unread_messages == right.unread_messages;
+}
+
+bool same_semantics(const ui::UiFrame& left, const ui::UiFrame& right) {
+    if (left.screen != right.screen ||
+        left.attention != right.attention ||
+        left.notice != right.notice ||
+        !same_status(left.status, right.status) ||
+        left.action_count != right.action_count) {
+        return false;
+    }
+    for (std::size_t index = 0; index < ui::kMaxUiActions; ++index) {
+        if (left.actions[index].action != right.actions[index].action ||
+            left.actions[index].enabled != right.actions[index].enabled) {
+            return false;
+        }
+    }
+    return true;
 }
 
 }  // namespace
@@ -34,7 +62,8 @@ PositionSharingUiServiceResult PositionSharingUiCoordinator::service() {
     }
 
     if (!status_.has_presented_frame) {
-        if (publish(result)) {
+        const auto presentation = current_presentation();
+        if (publish(presentation, result)) {
             result.disposition = PositionSharingUiDisposition::presented;
         }
         return result;
@@ -49,6 +78,21 @@ PositionSharingUiServiceResult PositionSharingUiCoordinator::service() {
         saturating_increment(status_.failures);
         latch(PositionSharingUiError::revision_exhausted);
         result.error = PositionSharingUiError::revision_exhausted;
+        return result;
+    }
+
+    const auto observed = current_presentation();
+    if (!observed.presentable() || semantics_changed(observed.frame)) {
+        if (!publish(observed, result)) {
+            contain_and_latch(
+                PositionSharingUiError::external_refresh_failed);
+            result.disposition = PositionSharingUiDisposition::failed;
+            result.error =
+                PositionSharingUiError::external_refresh_failed;
+            return result;
+        }
+        result.disposition = PositionSharingUiDisposition::refreshed;
+        saturating_increment(status_.state_refreshes);
         return result;
     }
 
@@ -88,10 +132,10 @@ PositionSharingUiServiceResult PositionSharingUiCoordinator::service() {
         saturating_increment(status_.actions_applied);
     }
 
-    if (!publish(result)) {
-        const auto contained = outbound_.stop_position_sharing();
-        (void)contained;
-        latch(PositionSharingUiError::post_action_refresh_failed);
+    const auto presentation = current_presentation();
+    if (!publish(presentation, result)) {
+        contain_and_latch(
+            PositionSharingUiError::post_action_refresh_failed);
         result.disposition = PositionSharingUiDisposition::failed;
         result.error = PositionSharingUiError::post_action_refresh_failed;
         return result;
@@ -108,13 +152,23 @@ PositionSharingUiCoordinator::status() const {
     return status_;
 }
 
-bool PositionSharingUiCoordinator::publish(
-    PositionSharingUiServiceResult& result) {
-    result.revision = status_.next_revision;
-    const auto presentation = make_position_sharing_presentation(
+PositionSharingPresentationResult
+PositionSharingUiCoordinator::current_presentation() const {
+    return make_position_sharing_presentation(
         outbound_.position_status(),
         outbound_.status(),
         status_.next_revision);
+}
+
+bool PositionSharingUiCoordinator::semantics_changed(
+    const ui::UiFrame& candidate) const {
+    return !same_semantics(active_frame_, candidate);
+}
+
+bool PositionSharingUiCoordinator::publish(
+    const PositionSharingPresentationResult& presentation,
+    PositionSharingUiServiceResult& result) {
+    result.revision = status_.next_revision;
     result.presentation_error = presentation.error;
     if (!presentation.presentable()) {
         result.error = PositionSharingUiError::presentation_unavailable;
@@ -131,11 +185,19 @@ bool PositionSharingUiCoordinator::publish(
     }
 
     result.frame_presented = true;
+    active_frame_ = presentation.frame;
     status_.has_presented_frame = true;
     status_.active_revision = status_.next_revision;
     ++status_.next_revision;
     saturating_increment(status_.presented_frames);
     return true;
+}
+
+void PositionSharingUiCoordinator::contain_and_latch(
+    PositionSharingUiError error) {
+    const auto contained = outbound_.stop_position_sharing();
+    (void)contained;
+    latch(error);
 }
 
 void PositionSharingUiCoordinator::latch(PositionSharingUiError error) {
