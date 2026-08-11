@@ -67,8 +67,9 @@ passes 100/100 focused repeats; the complete 72-executable host matrix and
 publication-safety scan pass locally under strict C++17 warnings-as-errors.
 
 This is common host composition, not a lock, package transfer, or protected
-backend. First baseline, service reseed, and protected reset/replacement
-recovery remain separate gates. Target serialization, physical package-slot
-retention, NVS/counter backends, authentication, power-loss interruption, flash
-replacement, wear, physical attack resistance, filesystem/renderer behavior,
-and on-device replacement remain unproved.
+backend. First baseline now has a separate protected-source composition;
+service reseed and protected reset/replacement recovery remain separate gates.
+Target serialization, physical package-slot retention, NVS/counter backends,
+authentication, power-loss interruption, flash replacement, wear, physical
+attack resistance, filesystem/renderer behavior, and on-device replacement
+remain unproved.

@@ -66,8 +66,8 @@ isolation. The new suite passes 100/100 focused repeats; the complete
 70-executable host matrix and publication-safety scan pass locally under strict
 C++17 warnings-as-errors.
 
-Runtime transitions and candidate replacement now have separate protected-
-source compositions. First baseline, service reseed, and reset/replacement
+Runtime transitions, candidate replacement, and first baseline now have
+separate protected-source compositions. Service reseed and reset/replacement
 recovery still use separately supplied generation values. No concrete source
 is protected merely by implementing the interface. Target locking, NVS and
 counter backends, authentication, power-loss interruption, flash replacement,

@@ -260,15 +260,22 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   trial state first, advances and exactly reads back trust second, and only then
   publishes. Rejected candidates recheck trust before retaining the active map;
   any post-save trust uncertainty remains mapless for reconciliation. Eleven
-  groups pass. Baseline and reseed paths still accept caller-supplied
-  generations; no protected counter/storage, ESP-IDF target composition,
-  reset/replacement authority, or physical result exists.
+  groups pass. A new
+  [protected first-baseline coordinator](docs/maps/OFFLINE_MAP_SELECTOR_TRUSTED_BASELINE_COORDINATOR_V0.md)
+  now accepts only an exact clean no-selector owner with zero protected history,
+  saves stable selector generation 1 privately, advances protected history from
+  0 to 1 with exact readback, and publishes the first map only after agreement.
+  A retryable initial trust read leaves clean first use unchanged; nonzero
+  history blocks selector access, and any post-save uncertainty fails mapless
+  for fresh-boot reconciliation. Eleven groups pass. The reseed path still
+  accepts a caller-supplied generation; no protected counter/storage, ESP-IDF
+  target composition, reset/replacement authority, or physical result exists.
   An [NVS-ready key/value adapter](docs/maps/OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
   now fixes `ot_state` / `ot_maps` / `otm_sel_a|b`, requires commit after every
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
-  and all fourteen map suites pass 100/100 focused repeats in the complete
-  72-executable host matrix. It contains no ESP-IDF backend, partition table,
+  and all fifteen map suites pass 100/100 focused repeats in the complete
+  73-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,

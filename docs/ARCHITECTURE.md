@@ -339,7 +339,7 @@ unchanged value or atomically advances and exactly reads back a newer value
 before publication. Nonzero trusted history with empty selector media is
 service-required, and any uncertain trust advance keeps the saved selector
 private. Target composition must serialize both storage and trust ownership;
-baseline, reseed, and reset/replacement paths remain separate gates.
+reseed and reset/replacement paths remain separate gates.
 
 The [trusted runtime transition coordinator](maps/OFFLINE_MAP_SELECTOR_TRUSTED_TRANSITION_COORDINATOR_V0.md)
 removes the caller-created current/floor values from live selector mutation.
@@ -390,6 +390,16 @@ readback. It cannot reset or reseed a used selector domain; any previous,
 dirty, unreadable, or changed state remains mapless and requires service or
 reconciliation. Calls require explicit provisioning authority and exclusive
 store ownership, neither of which this host boundary implements.
+
+The [protected first-baseline coordinator](maps/OFFLINE_MAP_SELECTOR_TRUSTED_BASELINE_COORDINATOR_V0.md)
+removes the caller-created zero-history claim from that initial install. It
+inspects protected history before selector access, permits only exact zero,
+saves stable selector generation 1 against a private guard, then atomically
+advances protected history from 0 to 1 and requires exact readback before map
+publication. Retryable initial source failure preserves the exact clean
+`no_selector` owner. Nonzero history blocks selector access, while every
+post-save trust conflict or uncertainty fails ambiguous-mapless and requires
+fresh-boot reconciliation.
 
 The [service-reseed coordinator](maps/OFFLINE_MAP_SELECTOR_RESEED_COORDINATOR_V0.md)
 is the separate recovery path for a dirty or previously used selector domain.

@@ -55,6 +55,16 @@ The coordinator:
 being overwritten. It is not a lock; target composition must still provide
 exclusive ownership for the complete call.
 
+## Protected-generation composition
+
+The separate
+[protected first-baseline coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_BASELINE_COORDINATOR_V0.md)
+replaces the caller-supplied zero-history claim with an inspection of the
+trusted-generation source. It runs this lower-level save against a private
+guard, then advances protected history from 0 to 1 and requires exact readback
+before publishing the active map. Initial retryable trust failure preserves
+clean first use; nonzero history or any post-save uncertainty fails closed.
+
 ## Failure behavior
 
 - Invalid package evidence is rejected before reading or writing selector
@@ -94,8 +104,13 @@ media, prepared-write failure, commit ambiguity, corrupt readback, and a
 selector appearing between inspect and save. All six affected map suites pass
 100/100 focused repeats under strict C++17 warnings-as-errors.
 
-This is host ordering evidence only. Service reseed is supplied separately;
-no authenticated operator UX, physical package/storage adapter, concurrency primitive, atomic-byte guarantee,
-wear/endurance or power-loss result, protected trusted floor, package
-authentication, filesystem, renderer, display, target task, or on-device
-result is claimed.
+Eleven additional protected-baseline groups cover source-before-selector
+ordering, exact 0-to-1 protected advance/readback, initial trust failures,
+nonzero history, selector refusal/failure, and post-save uncertainty. That suite
+also passes 100/100 focused repeats.
+
+This is host ordering evidence only. Service reseed is supplied separately; no
+authenticated operator UX, physical package/storage adapter, concurrency
+primitive, atomic-byte guarantee, wear/endurance or power-loss result, concrete
+protected backend, package authentication, filesystem, renderer, display,
+target task, or on-device result is claimed.

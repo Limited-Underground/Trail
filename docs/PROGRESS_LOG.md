@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Protected-generation map-selector first baseline
+
+- Added a first-use composition that inspects protected history before selector
+  access and permits only an exact clean `no_selector` owner with zero history.
+- Saved canonical stable selector generation 1 against a private guard, then
+  advanced protected history from 0 to 1 with exact readback before publishing
+  the first active map.
+- Kept a retryable initial trust read clean and retryable. Nonzero history blocks
+  selector access; selector-save failure never advances trust; and every
+  post-save conflict or uncertainty remains ambiguous-mapless for fresh-boot
+  reconciliation.
+- Added eleven deterministic groups and completed 100/100 focused repeats. All
+  fifteen map suites and the complete 73-executable host matrix pass locally,
+  including publication-safety checks. Protected reseed composition, a concrete
+  protected backend, reset/replacement authority, target/package locking,
+  physical durability, and on-device results remain open.
+
 ### Protected-generation map-selector candidate replacement
 
 - Added a replacement composition that derives both selector generation values
