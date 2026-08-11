@@ -168,6 +168,16 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   malformed supported-prefix, and unsupported-prefix smoke checks pass in the
   complete local host gate.
   Target retention/export policy and physical service evidence remain open.
+- **Offline maps now have a legal and technical gate:** the dated
+  [offline-map architecture](docs/maps/OFFLINE_MAP_ARCHITECTURE_V0.md) excludes
+  public OpenStreetMap tile servers from offline package creation, requires
+  explicit offline/redistribution rights and visible attribution, and compares
+  MBTiles, PMTiles, and a pre-rendered raster reference. Packages are prepared
+  off-device, staged and verified before read-only activation, retain a prior-
+  good fallback, and may fail to a mapless UI without stopping communications.
+  The reported incoming pair of 466x466 Waveshare round touch boards remains
+  unreceived candidate hardware; no provider, package, renderer, storage path,
+  or on-device map result is selected or claimed.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned

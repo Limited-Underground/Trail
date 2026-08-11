@@ -6,6 +6,27 @@ public chronology.
 
 ## 2026-08-11
 
+### Offline-map architecture gate
+
+- Rechecked current OSMF policy and made the public OpenStreetMap tile servers
+  an explicit non-source for offline packs. Any package requires a provider or
+  self-hosted pipeline with documented offline/redistribution permission plus
+  visible attribution.
+- Compared MBTiles 1.3, PMTiles v3, and a pre-rendered indexed-raster reference
+  without selecting one before target evidence. The first display spike will
+  compare incrementally decoded JPEG with RGB565 and may reject every option.
+- Fixed an off-device, immutable update boundary: complete staging and
+  verification precede a small recoverable activation; normal reads are read-
+  only; prior-good data is retained; interruption or removal falls back to a
+  mapless UI without stopping messages, alerts, or privacy controls.
+- Added the owner-reported pair of incoming Waveshare 1.75-inch round AMOLED
+  boards as unreceived candidates only. Exact variant, shipping firmware,
+  storage, display/touch behavior, memory, performance, power, and usability
+  remain unverified OT-018 evidence gates.
+- This increment is current-source research and a measured-test plan. It adds
+  no map data, provider selection, package, target build, renderer, or hardware
+  compatibility claim.
+
 ### One offline diagnostic entry point
 
 - Added `opentrail_diagnostic_cli` as one operator-facing command for the

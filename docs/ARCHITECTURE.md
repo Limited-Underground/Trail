@@ -285,6 +285,13 @@ Map rendering and map-package ingestion are separate from radio networking. LoRa
 
 The package contract should be replaceable and include format/version, coverage, zoom/detail limits, attribution/license metadata, integrity, and storage requirements. Public `tile.openstreetmap.org` is not an offline bulk-download source; a provider or self-hosted pipeline must expressly permit offline use and redistribution.
 
+The dated [offline-map architecture gate](maps/OFFLINE_MAP_ARCHITECTURE_V0.md)
+now compares MBTiles 1.3, PMTiles v3, and a pre-rendered indexed-raster
+reference. It fixes off-device preparation, visible attribution, immutable
+read-only activation, prior-good recovery, and mapless degradation while
+leaving the final container, renderer, storage, transfer, and limits open until
+the exact display target is measured.
+
 ## External critical-alert interface
 
 OpenTrail accepts normalized events, never raw CAN/J1939 frames. The boundary should support at least schema version, event type, severity, source/vehicle identity, event time/age, optional typed value/unit, validity, and diagnostic context. OpenTrail adds its own node and current GPS context before radio transmission. Producers are untrusted inputs: values, lengths, rates, and event types require validation and rate limiting.

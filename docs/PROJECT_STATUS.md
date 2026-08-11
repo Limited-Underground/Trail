@@ -95,6 +95,16 @@ authority and changes no wire or logger format. Both canonical records plus
 malformed/unsupported smoke cases pass in the complete local host gate and in
 public GitHub Actions run `31502841481`.
 
+Offline maps now have a dated architecture gate rather than an implied
+provider or renderer selection. Public OpenStreetMap tile servers are excluded
+from offline package creation; source rights and visible attribution are
+mandatory. MBTiles 1.3, PMTiles v3, and a pre-rendered indexed-raster reference
+remain candidates for an exact-target comparison. Packages are prepared off-
+device, staged and fully verified, activated read-only with prior-good
+recovery, and allowed to fail to a mapless UI without stopping communications.
+No provider, package, target renderer, storage path, or on-device map result is
+claimed.
+
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
 phone/laptop/vehicle dependency during a session, at least three materially
@@ -339,6 +349,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 | Two Heltec V4 LoRa-capable boards | Both units are runtime-identified as **Heltec V4 OLED** and run MeshCore USB Companion `v1.16.0-07a3ca9` with matching USA/Canada settings (910.525 MHz, BW 62.5 kHz, SF7, CR5, 10 dBm). Antennas were user-confirmed attached. Raw-RX evidence established channel match, MAC validation, decryption, queue notification, and application retrieval. A temporary private-channel sample delivered 5/5 numbered messages each direction with 0 loss, 0 duplicates, 233.3-247.2 ms latency, 11.25-12.25 dB SNR, and zero receive/core errors. Packet-v0 delivered 3/3 C++-encoded/decoded frames each direction before and again after the five-hour repeater soak, with valid CRC, no loss/duplicates/errors, empty queues, and verified channel/journal cleanup. OT-017D then delivered 2/2 exact `OGA0` alerts and 2/2 correlated `OGK0` ACKs across role-reversed cycles with zero loss/duplicates/errors and verified cleanup. See `tests/hardware/OT-007A-2026-08-08.md`, `tests/hardware/OT-007-2026-08-08.md`, and `tests/hardware/OT-017D-2026-08-09.md`. `OT-DEV-001` has ROM-level ESP32-S3/2 MB PSRAM/16 MB flash evidence; `OT-DEV-002` does not. | OT-004, OT-006, OT-007, and host-mediated OT-017D use this bench evidence. Authenticated on-device alert binding, usable RSSI, fine-grained airtime, field range/mobility, regulatory constraints, and exact SKU/RF/antenna/pinout/power questions remain. |
 | Seeed SenseCAP solar node | Runtime-identified as **Seeed SenseCap Solar**, USB `VID 2886:0059`, running MeshCore Repeater `v1.16.0-07a3ca9` at 910.525 MHz/BW 62.5/SF7/CR5/22 dBm with repeat enabled. Both Heltecs received its advert and remotely read its synchronized clock. A temporary private-channel run produced exactly +2 flood RX/+2 flood TX. Explicit one-hop direct routes then succeeded both ways; with repeat off, the same route failed with +1 direct RX/+0 direct TX and no destination message, proving the repeater was required. A non-secret channel lease passed real stopped-session recovery. The 300-minute alternating close-bench run delivered 300/300 (150 each direction), zero loss/duplicates/errors, 229.8-312.1 ms latency, exact +300 repeater flood RX/TX, repeat preserved, empty queues, and verified exact-name channel/journal cleanup. OT-017D added exact aggregate +4 flood RX/+4 flood TX while two role-reversed alert/ACK cycles passed; repeat remained on and errors stayed zero. See `tests/hardware/OT-009-2026-08-08.md`, `tests/hardware/OT-009A-2026-08-09.md`, and `tests/hardware/OT-017D-2026-08-09.md`. | Exact P1/P1 Pro SKU and internals, battery/GPS/antenna details, solar endurance, physical field behavior/range, and regulatory validation remain. |
 | Wio Tracker L1 Pro for MeshCore | Owner reports ordered; not received. Vendor MeshCore page identifies SKU `100030144` and Bluetooth Companion shipping firmware, while the package/revision remains unconfirmed | Follow the non-destructive OT-020 arrival plan; exact label, USB/DFU/BLE, firmware, GNSS current/stale behavior, Heltec interoperability, recovery, power, and privacy-safe evidence |
+| Two Waveshare ESP32-S3 1.75-inch round AMOLED touch boards | Owner reports two ordered; not received or tested. The product family is advertised as 466x466 touch with ESP32-S3R8, 8 MB PSRAM, 16 MB flash, and standard/case/GPS variants; exact ordered and received variant remains unconfirmed | Preserve shipping firmware/recovery evidence; confirm exact labels/variant, display/touch/storage interfaces, usable memory, power/thermal behavior, and map/peer/alert rendering under OT-018 |
 | Two approximately 7-inch touchscreens | Original test intent; no exact hardware identified | Board/display/controller, interface, resolution, memory/storage needs, availability |
 
 Hardware is not added to a tested-compatible list until repeatable evidence exists.
@@ -491,7 +502,11 @@ not treated as proof of authorization.
 
 ### Maps and interface
 
-- Map data source/license, package/container, renderer, storage medium, transfer method, and update workflow
+- The v0 offline-map gate fixes legal/source metadata, off-device preparation,
+  immutable staged activation, prior-good recovery, and mapless fallback. The
+  provider/data, package/container, renderer, storage medium, transfer method,
+  signature policy, limits, and exact target remain open pending OT-016/OT-018
+  experiments
 - Touchscreen UI framework and distracted-driving/safe-use constraints
 - OpenGauge authenticated on-device transport, peer/key lifecycle, persistent replay/outbox state, failure UX, and direct radio integration; the v0 semantic schema/policy is host-tested and OT-017D/OT-017E supply bounded physical byte and host-component completion evidence
 - Field-session repetition count, movement/terrain profiles, acceptance
