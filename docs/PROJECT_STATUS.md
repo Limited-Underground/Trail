@@ -203,8 +203,14 @@ atomic exact-expected compare-and-advance, and accepts an advance only after
 exact readback. Source rollback, stale conflict, and nonincreasing requests do
 not write. Any reported advance failure or post-write ambiguity latches all
 later source I/O closed until fresh-boot reconciliation. Ten groups pass. No
-protected backend or target composition exists yet, and the current selector
-coordinators still receive scalar floors from their callers.
+protected backend exists yet. The boot path now has a separate trusted-source
+composition: it derives the floor internally, restores and persists selector
+state on a private guard, rechecks or advances trust with exact readback, and
+publishes only after both generations match. Empty selector media with nonzero
+trusted history, selector rollback, failed trust reads, uncertain advances,
+and final-value conflicts cannot expose a map. Ten trusted-boot groups pass.
+Runtime transition, candidate, baseline, and reseed coordinators still receive
+scalar generations from their callers.
 
 The selector now has a backend-neutral key/value adapter contract. Fixed
 `ot_state` / `ot_maps` / `otm_sel_a|b` binding, exact 64-byte reads, durable
@@ -215,8 +221,8 @@ partition-wide erase, fixes a local-service authority handoff, and defines the
 physical interruption matrix. No ESP-IDF source, partition table, target
 task/lock, encryption/trusted-generation choice, physical result, or concrete
 service-authentication backend exists.
-All eleven map suites pass 100/100 repeats, and the complete 69-executable host
-matrix passes.
+All twelve map suites pass 100/100 focused repeats, and the complete
+70-executable host matrix passes.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -440,7 +446,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 68 C++ executables plus the Python
+  six verifier/planning/operator CLIs and runs all 70 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
@@ -449,7 +455,8 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
   privacy-safe position UI diagnostics and strict offline position/recovery
   operator decoding and the unified diagnostic entry point,
   portable-client composition, local-interface, power, time, randomness,
-  replay, map activation/checkpoint/store/boot/runtime-transition recovery,
+  replay, map activation/checkpoint/store/boot/protected-generation boot/
+  runtime-transition recovery,
   pilot, and benchmark boundaries.
   This is host/build evidence, not
   physical MeshCore,

@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Protected-generation map-selector boot composition
+
+- Added the first map coordinator that derives its rollback floor directly
+  from the protected-generation boundary instead of accepting it from an
+  ordinary caller.
+- Kept restored and boot-updated selector state private until the protected
+  value is rechecked or atomically advanced and read back at the exact selector
+  generation.
+- Made nonzero trusted history with empty selector media service-required,
+  retained only fail-visible mapless state for selector rollback, and withheld
+  saved selector state after any uncertain protected advance or final conflict.
+- Added ten deterministic groups and completed 100/100 focused repeats. All
+  twelve map suites and the complete 70-executable host matrix pass locally,
+  including publication-safety checks.
+  No protected backend, ESP-IDF composition, physical durability, hardware
+  counter, reset/replacement authority, or on-device result is claimed.
+
 ### Protected map-selector trusted-generation boundary
 
 - Added a backend-neutral source contract whose mutation must atomically match

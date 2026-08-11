@@ -61,12 +61,14 @@ may have committed an advance before reporting an I/O error.
 
 ## Integration boundary
 
-The existing selector store, boot, candidate, transition, first-baseline, and
-service-reseed coordinators still receive a caller-supplied generation value.
-That scalar remains useful deterministic state-machine input, but it is not
-anti-rollback protection. This slice creates the protected-source prerequisite;
-a later coordinator must own this source, derive the scalar internally, and
-advance/read it in persist-before-exposure order.
+The selector store, candidate, transition, first-baseline, and service-reseed
+coordinators still receive a caller-supplied generation value. That scalar
+remains useful deterministic state-machine input, but it is not anti-rollback
+protection. The separate
+[trusted boot coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_BOOT_COORDINATOR_V0.md)
+now owns this source for the boot path, derives the scalar internally, and
+rechecks or advances it before selector publication. The remaining paths need
+their own protected-source compositions.
 
 The service-reseed authorization permit is also separate. Authorization to
 erase and reseed two selector records is not authorization to lower or reset
@@ -83,8 +85,9 @@ advance failure including applied-then-failed behavior, failed post-write
 readback, frozen and advanced-past readback, the no-more-I/O latch, and fresh-
 boot reconciliation.
 
-The new suite passes under strict C++17 warnings-as-errors and in the complete
-69-executable OpenTrail host matrix. This proves only common interface and
-state-machine behavior. It does not prove secrecy, authenticity, monotonicity,
-flash-replacement resistance, power-loss durability, wear, factory-reset
-policy, physical attack resistance, or an ESP32 implementation.
+The source suite and its trusted-boot composition pass under strict C++17
+warnings-as-errors in the complete 70-executable OpenTrail host matrix. This
+proves only common interface, state-machine, and boot-ordering behavior. It does
+not prove secrecy, authenticity, monotonicity, flash-replacement resistance,
+power-loss durability, wear, factory-reset policy, physical attack resistance,
+or an ESP32 implementation.

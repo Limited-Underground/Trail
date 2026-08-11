@@ -241,16 +241,22 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   now gives a future protected backend one atomic expected-value advance and
   exact-readback contract. Rollback, stale conflict, and nonincreasing requests
   never write; any advance or readback uncertainty latches later source access
-  closed until fresh-boot reconciliation. Ten groups pass. This is still only
-  backend-neutral host enforcement: existing map coordinators accept caller-
-  supplied floors, and no protected counter/storage, target composition,
-  reset/replacement authority, or physical result exists.
+  closed until fresh-boot reconciliation. Ten groups pass. A new
+  [trusted boot coordinator](docs/maps/OFFLINE_MAP_SELECTOR_TRUSTED_BOOT_COORDINATOR_V0.md)
+  now derives the boot floor from that source, keeps selector restore/save
+  private, rechecks or advances trust with exact readback, and publishes only
+  after both generations match. Nonzero trusted history with empty selector
+  media is service-required rather than a normal mapless first boot, and an
+  uncertain trust advance leaves the saved selector private. Ten more groups
+  pass. Runtime transition, candidate, baseline, and reseed paths still accept
+  caller-supplied generations; no protected counter/storage, ESP-IDF target
+  composition, reset/replacement authority, or physical result exists.
   An [NVS-ready key/value adapter](docs/maps/OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
   now fixes `ot_state` / `ot_maps` / `otm_sel_a|b`, requires commit after every
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
-  and all eleven map suites pass 100/100 repeats in the complete 69-executable
-  host matrix. It contains no ESP-IDF backend, partition table, target lock,
+  and all twelve map suites pass 100/100 focused repeats in the complete
+  70-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,

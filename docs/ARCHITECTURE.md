@@ -331,6 +331,17 @@ mapless guard; an unpersisted candidate is never exposed. The coordinator does
 not bind a physical backend, own the trusted floor, open a package, render a
 map, or control communications.
 
+The [trusted boot coordinator](maps/OFFLINE_MAP_SELECTOR_TRUSTED_BOOT_COORDINATOR_V0.md)
+is the first composition that removes a caller-created floor from a selector
+path. It inspects the protected-generation source before selector storage,
+runs ordinary boot restore/save against a private guard, then rechecks an
+unchanged value or atomically advances and exactly reads back a newer value
+before publication. Nonzero trusted history with empty selector media is
+service-required, and any uncertain trust advance keeps the saved selector
+private. Target composition must serialize both storage and trust ownership;
+runtime transition, candidate, baseline, reseed, and reset/replacement paths
+remain separate gates.
+
 The [runtime transition coordinator](maps/OFFLINE_MAP_SELECTOR_TRANSITION_COORDINATOR_V0.md)
 requires the live guard to exactly match the newest persisted checkpoint and
 caller-held generation before applying trial reads, trial time, fallback
