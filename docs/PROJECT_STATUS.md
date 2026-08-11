@@ -75,6 +75,13 @@ observed-state publication stops sharing and latches UI input closed. Ten
 additional groups plus 100 repeats pass. Exact target serialization, atomic
 snapshots, renderer behavior, and physical timing remain absent.
 
+One validated position UI result can now become a versioned 32-bit `OTPD0/v0`
+diagnostic and fixed public logger message. It retains only coarse event,
+outcome, displayed position notice, reason, and safety flags; idle polls are
+suppressed and identifier/location/runtime detail is structurally absent. Ten
+groups plus 100 repeats pass. Target log binding, retention/export/clear policy,
+persistence, operator tooling, and physical service capture remain absent.
+
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
 phone/laptop/vehicle dependency during a session, at least three materially
@@ -297,7 +304,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 55 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 56 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
@@ -390,7 +397,7 @@ not treated as proof of authorization.
   flags. Hardware/candidate identity, checkpoint payloads, raw adapter errors,
   and nested results are absent; unknown or contradictory input blocks normal
   operation as service-required. Eight groups plus 100 repeats pass in the
-  complete 55-executable matrix. A versioned `OTRD0` adapter now records one
+  complete 56-executable matrix. A versioned `OTRD0` adapter now records one
   coherent status through the existing logger as one fixed hexadecimal 32-bit
   word. Generations and identity-bearing detail are omitted; magic, version,
   reserved bits, enums, flags, and state/action/reason coherence fail closed.
@@ -451,6 +458,11 @@ not treated as proof of authorization.
   publish a higher revision first; nonvisible counters/timestamps do not.
   Failed observation refresh stops sharing and latches input closed. Ten groups
   plus 100 repeats pass. Exact target atomicity and physical timing remain
+  absent.
+  A separate `OTPD0/v0` adapter records validated position UI outcomes as one
+  fixed 32-bit public event while omitting revisions, timestamps, counters,
+  location, content, and identity. Idle polls are suppressed. Ten groups plus
+  100 repeats pass; target retention/export and physical service evidence are
   absent.
   A runtime-aware position overlay now validates the coordinator status before
   presentation or Start/Stop application. Latched rollback/source failure and

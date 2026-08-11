@@ -626,6 +626,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'versioned position sharing UI diagnostic event'
+        Output = Join-Path $buildDirectory 'position_sharing_ui_diagnostics_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\logger.cpp'),
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\position_sharing_ui_diagnostics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\diagnostics\test_support\memory_log_sink.cpp'),
+            (Join-Path $projectRoot 'tests\host\position_sharing_ui_diagnostics_tests.cpp')
+        )
+    },
+    @{
         Name = 'bounded production ring log sink'
         Output = Join-Path $buildDirectory 'ring_log_sink_tests.exe'
         Sources = @(

@@ -167,6 +167,15 @@ latched UI fault contain the uncertainty. This remains cooperative host
 ordering; it does not make the outbound and UI snapshots atomic under target
 concurrency.
 
+A separate `OTPD0/v0` diagnostics adapter converts one validated position UI
+service result into a fixed 32-bit public event and fixed logger message. It
+records only coarse event/outcome, the displayed position notice, a normalized
+reason, and presentation/change/containment flags. Idle polls are suppressed;
+revisions, timestamps, runtime counters, coordinates, packet/message content,
+identity, addresses, credentials, and free text are not event fields. This
+does not select target retention, persistence, export, or physical service
+workflow.
+
 Target-facing position presentation must combine scheduler state with the
 outbound coordinator status. A coherent latched clock rollback/source failure
 overrides the scheduler's stopped state with a critical no-action frame, while

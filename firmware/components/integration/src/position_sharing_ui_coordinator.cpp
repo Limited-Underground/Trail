@@ -185,6 +185,7 @@ bool PositionSharingUiCoordinator::publish(
     }
 
     result.frame_presented = true;
+    result.presented_notice = presentation.frame.notice;
     active_frame_ = presentation.frame;
     status_.has_presented_frame = true;
     status_.active_revision = status_.next_revision;

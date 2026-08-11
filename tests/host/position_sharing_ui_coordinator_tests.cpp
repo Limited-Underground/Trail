@@ -75,6 +75,8 @@ void test_first_service_publishes_owned_stopped_revision() {
     EXPECT(result.error == PositionSharingUiError::none);
     EXPECT(result.frame_presented);
     EXPECT(result.revision == 1);
+    EXPECT(result.presented_notice ==
+           UiNotice::position_sharing_stopped);
     EXPECT(fixture.display.latest_frame().revision == 1);
     EXPECT(fixture.display.latest_frame().notice ==
            UiNotice::position_sharing_stopped);
@@ -106,6 +108,8 @@ void test_start_uses_checked_time_and_publishes_active_revision() {
     EXPECT(started.state_changed);
     EXPECT(started.frame_presented);
     EXPECT(started.revision == 2);
+    EXPECT(started.presented_notice ==
+           UiNotice::position_sharing_active);
     EXPECT(fixture.scheduler.status().active);
     EXPECT(fixture.scheduler.status().last_now_ms == 40);
     EXPECT(fixture.display.latest_frame().notice ==

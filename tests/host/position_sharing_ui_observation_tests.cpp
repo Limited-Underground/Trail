@@ -109,6 +109,8 @@ void test_missing_fix_refreshes_waiting_state_before_input() {
            PositionSharingUiDisposition::refreshed);
     EXPECT(refreshed.frame_presented);
     EXPECT(refreshed.revision == 3);
+    EXPECT(refreshed.presented_notice ==
+           UiNotice::position_sharing_waiting_for_fix);
     EXPECT(fixture.display.latest_frame().notice ==
            UiNotice::position_sharing_waiting_for_fix);
     EXPECT(fixture.input.read_count() == input_reads);

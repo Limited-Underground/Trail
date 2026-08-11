@@ -84,7 +84,7 @@ Ten deterministic groups cover:
 9. revision exhaustion containing an observed change before queued input; and
 10. runtime timestamp/counter progress without semantic revision churn.
 
-The focused executable passes 100/100 repeats. The complete 55-executable
+The focused executable passes 100/100 repeats. The complete 56-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 ## Remaining gates
@@ -93,7 +93,8 @@ OpenTrail host matrix plus all Python and publication-safety checks pass.
   snapshot coherence under the selected cadence;
 - define renderer transitions and retry/fault wording without flashing or
   distracting churn;
-- add privacy-safe diagnostics for refresh, containment, and stale input;
+- bind the host-tested [privacy-safe diagnostic event](../diagnostics/POSITION_SHARING_UI_DIAGNOSTIC_EVENT_V0.md)
+  to target retention/export and operator workflows;
 - prove boot/reboot revision seeding and default sharing behavior; and
 - test real display/input latency, queued physical input, GPS/radio
   concurrency, low power, failures, long sessions, glove/wet use, and

@@ -67,7 +67,7 @@ Ten deterministic groups cover:
 9. incoherent runtime status failing closed; and
 10. revision-zero and unknown-clock-state refusal.
 
-The focused executable passes 100/100 repeats. The complete 55-executable
+The focused executable passes 100/100 repeats. The complete 56-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The [position-sharing UI coordinator](POSITION_SHARING_UI_COORDINATOR_V0.md)

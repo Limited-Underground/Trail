@@ -42,6 +42,7 @@ struct PositionSharingUiServiceResult {
         PositionSharingControlError::none};
     location::PositionBroadcastScheduleError scheduler_error{
         location::PositionBroadcastScheduleError::none};
+    ui::UiNotice presented_notice{ui::UiNotice::none};
     std::uint32_t revision{0};
     bool frame_presented{false};
     bool state_changed{false};

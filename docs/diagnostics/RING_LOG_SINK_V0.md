@@ -16,6 +16,10 @@ Pointer width, alignment, and padding may vary by target. The compile-time shape
 is bounded to 176 bytes per entry and 6,144 bytes for the complete sink, but
 exact target RAM use still requires a target build and measurement.
 
+The versioned [position-sharing UI diagnostic event](POSITION_SHARING_UI_DIAGNOSTIC_EVENT_V0.md)
+can use this sink through the existing logger, but no target retention, export,
+clear, or persistence policy is selected by either component.
+
 ## Admission and privacy
 
 The sink accepts only canonical records:
@@ -60,7 +64,7 @@ Eight deterministic groups cover:
 7. sensitive logger input retained only as `[REDACTED]`; and
 8. real `OTRD0` recovery events retained and decoded from the production ring.
 
-The focused executable passes 100/100 repeats. The complete 55-executable
+The focused executable passes 100/100 repeats. The complete 56-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 ## Remaining gates

@@ -149,6 +149,16 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   timestamps alone do not churn revisions. Ten groups plus 100/100 focused
   repeats pass. Exact target serialization, rendering, and physical behavior
   remain unproved.
+- **Position UI outcomes now have a privacy-safe diagnostic event:** the
+  [`OTPD0/v0` adapter](docs/diagnostics/POSITION_SHARING_UI_DIAGNOSTIC_EVENT_V0.md)
+  validates one coordinator result and emits only a fixed 32-bit event with a
+  coarse operation, outcome, displayed position notice, failure reason, and
+  safety flags. The existing logger receives exactly `OTPD0=XXXXXXXX`; idle
+  polls produce no event. Revisions, event timestamps, scheduler counters,
+  coordinates, packets, messages, identities, addresses, credentials, and free
+  text are absent from the payload. Ten groups plus 100/100 focused repeats
+  pass. Target retention/export policy and physical service evidence remain
+  open.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned
@@ -330,16 +340,15 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 55 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 56 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet
   admission, loss-aware priority-to-delivery handoff, checked-time outbound
   service coordination, fail-visible outbound position safety, checked-time
   outbound position commands, single-owner position UI coordination,
-  portable-client
-  composition, local-interface, power-state, clock,
-  randomness,
+  semantic position-state observation, privacy-safe position UI diagnostics,
+  portable-client composition, local-interface, power-state, clock, randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,
   passes on `main`.

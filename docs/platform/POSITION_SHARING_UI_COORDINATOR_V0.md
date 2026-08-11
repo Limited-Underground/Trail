@@ -71,6 +71,9 @@ mutex, renderer, text, physical input mapping, or retry dialog.
 Results and status contain only coarse semantic errors, revisions, state-change
 flags, and saturating counters. They contain no coordinates, packet bytes,
 messages, peer/device identity, keys, addresses, credentials, or free text.
+The successfully presented result also carries its coarse position notice so
+the separate [OTPD0 diagnostics adapter](../diagnostics/POSITION_SHARING_UI_DIAGNOSTIC_EVENT_V0.md)
+does not need a copied frame or runtime snapshot.
 
 ## Host evidence
 
@@ -87,7 +90,7 @@ Ten deterministic groups cover:
 9. post-action display failure stopping sharing and latching closed; and
 10. revision exhaustion and invalid seed failing closed before input.
 
-The focused executable passes 100/100 repeats. The complete 55-executable
+The focused executable passes 100/100 repeats. The complete 56-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 ## Remaining gates
@@ -95,8 +98,8 @@ OpenTrail host matrix plus all Python and publication-safety checks pass.
 - choose and prove the exact ESP-IDF task/lock and service cadence that
   serialize this coordinator with outbound service;
 - define a visible, localized retry treatment for temporary clock-not-ready;
-- integrate privacy-safe diagnostics for rejected input, display containment,
-  observation refresh, revision exhaustion, and permanent outbound failure;
+- bind the host-tested privacy-safe diagnostic event to an exact target log,
+  retention/export/clear policy, and operator workflow;
 - define boot/reboot/default position-sharing behavior and revision seeding;
 - render and measure every state on exact button and touch targets; and
 - physically test latency, stale input, display/input failure, glove/wet use,

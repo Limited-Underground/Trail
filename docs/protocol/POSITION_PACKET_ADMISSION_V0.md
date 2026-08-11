@@ -76,7 +76,7 @@ Ten deterministic groups cover:
 9. invalid queue and duplicate-message-ID failure; and
 10. critical-before-position selection plus visible position expiry.
 
-The focused executable passes 100/100 repeats. The complete 55-executable
+The focused executable passes 100/100 repeats. The complete 56-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The separate [loss-aware priority-to-delivery handoff](PRIORITY_DELIVERY_HANDOFF_V0.md)
