@@ -220,8 +220,7 @@ PriorityEnqueueResult PriorityTrafficQueue::enqueue(
             result.preempted_message_id};
 }
 
-QueuedTrafficResult PriorityTrafficQueue::take_next(std::uint64_t now_ms) {
-    purge_expired(now_ms);
+std::size_t PriorityTrafficQueue::select_next_index() const {
     std::size_t selected = entries_.size();
     for (std::size_t index = 0; index < entries_.size(); ++index) {
         const auto& entry = entries_[index];
@@ -237,12 +236,40 @@ QueuedTrafficResult PriorityTrafficQueue::take_next(std::uint64_t now_ms) {
             selected = index;
         }
     }
+    return selected;
+}
+
+QueuedTrafficResult PriorityTrafficQueue::peek_next(std::uint64_t now_ms) {
+    purge_expired(now_ms);
+    const auto selected = select_next_index();
     if (selected == entries_.size()) {
         return {};
     }
-    const auto traffic = entries_[selected].traffic;
+    return {true, entries_[selected].traffic};
+}
+
+bool PriorityTrafficQueue::commit_next(
+    std::uint32_t expected_message_id,
+    std::uint64_t now_ms) {
+    if (expected_message_id == 0) {
+        return false;
+    }
+    purge_expired(now_ms);
+    const auto selected = select_next_index();
+    if (selected == entries_.size() ||
+        entries_[selected].traffic.message_id != expected_message_id) {
+        return false;
+    }
     remove_entry(selected);
-    return {true, traffic};
+    return true;
+}
+
+QueuedTrafficResult PriorityTrafficQueue::take_next(std::uint64_t now_ms) {
+    const auto next = peek_next(now_ms);
+    if (!next.has_message || !commit_next(next.message.message_id, now_ms)) {
+        return {};
+    }
+    return next;
 }
 
 PriorityQueueEventResult PriorityTrafficQueue::next_event() {

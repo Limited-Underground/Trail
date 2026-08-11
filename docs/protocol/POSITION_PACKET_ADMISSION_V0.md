@@ -76,8 +76,13 @@ Ten deterministic groups cover:
 9. invalid queue and duplicate-message-ID failure; and
 10. critical-before-position selection plus visible position expiry.
 
-The focused executable passes 100/100 repeats. The complete 49-executable
+The focused executable passes 100/100 repeats. The complete 50-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
+
+The separate [loss-aware priority-to-delivery handoff](PRIORITY_DELIVERY_HANDOFF_V0.md)
+now proves that an admitted frame is retained until delivery accepts it and
+that this exact position packet can cross the fake-radio host path. That does
+not change packet v0's unauthenticated status or authorize real coordinates.
 
 ## Remaining gates
 
@@ -89,8 +94,8 @@ OpenTrail host matrix plus all Python and publication-safety checks pass.
   GPS, and checked monotonic clock;
 - choose queue lifetime, rate, cadence, and congestion policy only after
   measured four-client traffic, power, privacy, and regional review;
-- compose the priority queue into delivery and one exact direct-radio adapter;
-  and
+- replace the fake-radio-only delivery proof with one exact authenticated
+  direct-radio adapter; and
 - prove physical GPS loss/recovery, queue pressure, emergency preemption,
   radio airtime, power, range, and regulatory compliance without publishing
   private coordinates.

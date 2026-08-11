@@ -60,7 +60,7 @@ Nine deterministic groups cover:
 
 Every generated and fallback frame is exercised through the real checked local
 interface with bounded display/input fakes. The focused executable passes
-100/100 repeats. The complete 49-executable OpenTrail host matrix plus all
+100/100 repeats. The complete 50-executable OpenTrail host matrix plus all
 Python and publication-safety checks pass.
 
 ## Remaining gates

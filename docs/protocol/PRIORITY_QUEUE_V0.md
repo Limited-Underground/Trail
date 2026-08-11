@@ -43,6 +43,19 @@ Each entry has an explicit lifetime. Expired messages are removed before
 admission or selection and generate an expiry event. A stale position/status or
 alert is not sent merely because it eventually reaches the head of a queue.
 
+## Transactional handoff
+
+The queue exposes a single-owner `peek_next` / `commit_next` pair for integration
+with the delivery controller. Peeking applies the same expiry purge and strict
+priority/FIFO selection as destructive selection but retains the entry. Commit
+succeeds only for the exact currently selected nonzero message ID. The legacy
+`take_next` operation is implemented as that same peek followed by commit, so
+selection semantics have one implementation.
+
+The [priority-to-delivery handoff](PRIORITY_DELIVERY_HANDOFF_V0.md) uses this
+pair to remove a queued frame only after delivery admission succeeds. Full or
+rejected delivery admission therefore does not lose the priority entry.
+
 ## Failure surface
 
 Admission returns a distinct result for malformed input, invalid policy,
@@ -68,7 +81,13 @@ A separate ten-group
 proves that scheduler-produced packet-v0 positions can enter only as background
 traffic, use the actual attempt time for expiry, remain behind critical
 traffic, expire visibly, and return typed rate/capacity pressure. It does not
-add authentication, delivery, or radio evidence.
+add authentication or radio evidence.
+
+A further ten-group [loss-aware handoff](PRIORITY_DELIVERY_HANDOFF_V0.md)
+proves strict-priority transfer, retention under delivery capacity/rejection,
+original-expiry preservation, and one scheduler-produced position packet
+reaching a peer through the fake radio. It is host composition evidence, not an
+authenticated or physical transport result.
 
 OT-010 remains partial until packet types and authenticated priority are defined,
 airtime/congestion values are measured, emergency rate/preemption behavior is

@@ -26,6 +26,14 @@ unauthenticated packet-v0 component evidence: real coordinates remain
 prohibited, and no final cadence, authenticated packet/priority composition,
 direct-radio/GPS binding, or physical position-sharing result exists.
 
+A fixed-memory, single-owner handoff now peeks the priority/FIFO head and
+removes it only after `DeliveryController` accepts the copy. Delivery capacity,
+duplicate-ID, and frame-policy rejection retain the original entry; remaining
+priority lifetime bounds delivery expiry and cannot be extended. Ten groups
+plus 100 repeats include an exact scheduler-to-packet-to-priority-to-delivery
+fake-radio flow. This is host composition evidence only, not authentication,
+real-coordinate permission, direct-radio binding, or physical delivery.
+
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
 phone/laptop/vehicle dependency during a session, at least three materially
@@ -248,10 +256,11 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 49 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 50 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
-  suites. The matrix includes position scheduling/privacy control and
-  experimental packet/priority admission,
+  suites. The matrix includes position scheduling/privacy control,
+  experimental packet/priority admission, loss-aware priority-to-delivery
+  handoff,
   portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
   physical MeshCore,
@@ -339,7 +348,7 @@ not treated as proof of authorization.
   flags. Hardware/candidate identity, checkpoint payloads, raw adapter errors,
   and nested results are absent; unknown or contradictory input blocks normal
   operation as service-required. Eight groups plus 100 repeats pass in the
-  complete 49-executable matrix. A versioned `OTRD0` adapter now records one
+  complete 50-executable matrix. A versioned `OTRD0` adapter now records one
   coherent status through the existing logger as one fixed hexadecimal 32-bit
   word. Generations and identity-bearing detail are omitted; magic, version,
   reserved bits, enums, flags, and state/action/reason coherence fail closed.
@@ -372,6 +381,13 @@ not treated as proof of authorization.
   unauthenticated and prohibited for real coordinates; identity/counter
   lifecycle, authenticated composition, delivery/radio binding, and physical
   behavior remain absent.
+  A single-owner priority-to-delivery handoff now peeks before admission and
+  commits only after the delivery controller accepts. Full/rejected delivery
+  admission retains the queue entry, and remaining queue lifetime bounds the
+  delivery expiry. Ten groups plus 100 repeats cover strict priority, pressure,
+  rejection, exact expiry, rollback-safe time handling, and the complete
+  position-packet path through a fake radio. Authentication, target concurrency,
+  direct-radio binding, and physical delivery remain absent.
 
 ### Maps and interface
 

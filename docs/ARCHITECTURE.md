@@ -121,11 +121,16 @@ experimental host sink now revalidates that payload, obtains injected ephemeral
 packet-v0 metadata, encodes the exact 38-byte frame, and admits it to the tested
 priority queue only as background position traffic. Queue creation/expiry uses
 the scheduler's actual attempt time, and pressure remains visible to scheduler
-retry. This proves component composition only: packet v0 is unauthenticated,
-real coordinates remain prohibited, and authenticated packet/priority plus
-direct-radio composition is still required. Chat and position must not starve
-emergency traffic. Exact cadence, airtime budgets, retry policy, and regional
-constraints depend on measurement and review.
+retry. A single-owner handoff then peeks at the strict-priority/FIFO head and
+commits that entry only after the delivery controller accepts its copy. Full or
+rejected delivery admission retains the priority entry, the remaining queue
+lifetime caps rather than extends delivery expiry, and an impossible commit
+mismatch latches the composition closed to prevent duplicate retry. This proves
+component composition only: packet v0 is unauthenticated, real coordinates
+remain prohibited, and authenticated packet/priority plus direct-radio
+composition is still required. Chat and position must not starve emergency
+traffic. Exact cadence, airtime budgets, retry policy, and regional constraints
+depend on measurement and review.
 
 A separate host-tested position-sharing control adapter maps scheduler state to
 the existing semantic local-interface boundary. It exposes start only while

@@ -6,6 +6,24 @@ public chronology.
 
 ## 2026-08-11
 
+### Loss-aware priority-to-delivery handoff
+
+- Added a fixed-memory, single-owner handoff that peeks the strict-priority/FIFO
+  head and removes it only after `DeliveryController` accepts the exact frame.
+  Delivery capacity or typed rejection leaves the original priority entry
+  available instead of losing it during transfer.
+- Preserved the original deadline across layers: remaining priority-queue
+  lifetime can shorten but never extend the delivery class expiry. Expiry at
+  the queue boundary still wins and remains visible through the queue event;
+  impossible commit mismatch latches the coordinator closed.
+- Covered ten groups for ordering, exact peek/commit, full-queue deferral,
+  duplicate/MTU rejection, expiry, unsafe time spans, and the complete
+  scheduler-to-packet-to-priority-to-delivery fake-radio path. The focused
+  executable passes 100/100 repeats and the complete 50-executable host matrix
+  plus every Python/publication-safety check passes. This is host-only,
+  unauthenticated packet-v0 composition, not real-coordinate or physical-radio
+  evidence.
+
 ### Experimental position packet and priority admission
 
 - Added a fixed-memory sink that revalidates only canonical current-position
@@ -19,7 +37,7 @@ public chronology.
   invalid metadata, duplicate IDs, invalid policy, and queue failure fail closed.
 - Covered ten groups including scheduler composition, decode round-trip,
   priority ordering, exact expiry, pressure, and failure paths; the focused
-  executable passes 100/100 repeats and the complete 49-executable host matrix
+  executable passes 100/100 repeats and the complete 50-executable host matrix
   plus every Python/publication-safety check passes. This is explicitly
   unauthenticated packet-v0 host evidence, not real-coordinate or radio use.
 
@@ -35,7 +53,7 @@ public chronology.
   conditions remain warning states with stop available; invalid policy,
   monotonic rollback, and time exhaustion become critical action-free faults.
 - Covered ten groups through button and touch capability shapes, 100 focused
-  repeats, the complete 49-executable host matrix, and every Python/publication-
+  repeats, the complete 50-executable host matrix, and every Python/publication-
   safety check. Exact renderer/text, target scheduling/revision ownership,
   direct radio/GPS composition, and physical privacy UX remain open.
 
@@ -50,7 +68,7 @@ public chronology.
 - Allowed only current validated fixes into the injected sink. Unavailable,
   stale, invalid, and malformed-current snapshots are suppressed or rejected
   before sink access; not-ready/full/failure outcomes remain typed.
-- Covered ten groups, 100 focused repeats, the complete 49-executable host
+- Covered ten groups, 100 focused repeats, the complete 50-executable host
   matrix, and every Python/publication-safety check. Exact cadence, rendered UX,
   authenticated packet/priority composition, direct radio/GPS binding, field
   behavior, and regulatory acceptance remain open.
@@ -67,7 +85,7 @@ public chronology.
   critical service-required frame when a valid revision exists; revision zero
   cannot create a presentable frame.
 - Covered nine groups through the real checked local-interface boundary, 100
-  focused repeats, the complete 49-executable host matrix, and every Python/
+  focused repeats, the complete 50-executable host matrix, and every Python/
   publication-safety check. Exact renderer, target task/revision ownership,
   physical recovery execution, and operator workflow remain open.
 
@@ -84,7 +102,7 @@ public chronology.
   records only as `[REDACTED]`, and is neither a serialized/persistent format
   nor an internally synchronized target service.
 - Covered eight groups including actual `OTRD0` capture, 100 focused repeats,
-  the complete 49-executable host matrix, and every Python/publication-safety
+  the complete 50-executable host matrix, and every Python/publication-safety
   check. Exact target composition, measured RAM/timing, persistent audit/export,
   and physical failure capture remain open.
 
@@ -100,7 +118,7 @@ public chronology.
 - Kept logger authority intact: info/warn/error severity follows operator state,
   runtime filtering is an accepted non-write, and full-sink rejection remains
   visible rather than becoming false success.
-- Covered eight scenario groups, 100 focused repeats, the complete 49-executable
+- Covered eight scenario groups, 100 focused repeats, the complete 50-executable
   matrix, and all Python/publication-safety checks. Target sink binding,
   persistent retention/export, display rendering, and physical failure capture
   remain open.

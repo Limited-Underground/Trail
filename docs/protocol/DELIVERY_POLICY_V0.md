@@ -26,6 +26,15 @@ These values are not firmware/regulatory defaults. Airtime measurements,
 regional constraints, congestion tests, emergency capacity, UI expectations,
 and field behavior must determine deployed values.
 
+## Priority-queue handoff
+
+The host-tested [single-owner handoff](PRIORITY_DELIVERY_HANDOFF_V0.md) peeks at
+the priority/FIFO head, supplies the exact frame to this controller, and commits
+the source entry only after `enqueue` accepts it. Queue-full and other typed
+rejections retain the source entry. The smaller of the class expiry and the
+entry's remaining queue lifetime becomes the delivery expiry, so moving between
+queues cannot make stale traffic live longer.
+
 ## Send and acknowledgement semantics
 
 - A transport acceptance increments the attempt count. It means locally queued,

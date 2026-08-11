@@ -93,6 +93,16 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   state fails closed. Ten groups plus 100 focused repeats pass. Packet v0 is
   still unauthenticated and unsuitable for real coordinates; no radio,
   identity lifecycle, persistence, or physical result is claimed.
+- **Queued traffic now reaches delivery without a lossy dequeue:** the
+  [single-owner handoff](docs/protocol/PRIORITY_DELIVERY_HANDOFF_V0.md) peeks at
+  the strict-priority/FIFO head and removes it only after the delivery
+  controller accepts its copy. A full delivery queue, duplicate ID, or frame
+  rejection leaves the original priority entry intact, while its remaining
+  queue lifetime can shorten but never extend delivery expiry. Ten groups plus
+  100 focused repeats pass, including the complete scheduler-to-packet-to-
+  priority-to-delivery path through the fake radio. This is fixed-memory host
+  composition only: packet v0 is still unauthenticated, no real coordinates
+  are allowed, and no physical or direct-radio result is claimed.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned
@@ -274,11 +284,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 49 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 50 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
-  including position scheduling/privacy control and experimental packet
-  admission, portable-client composition, local-interface, power-state, clock,
+  including position scheduling/privacy control, experimental packet
+  admission, loss-aware priority-to-delivery handoff, portable-client
+  composition, local-interface, power-state, clock,
   randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,

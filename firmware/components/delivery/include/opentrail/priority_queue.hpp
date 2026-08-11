@@ -132,6 +132,10 @@ public:
         std::uint64_t now_ms,
         std::uint32_t lifetime_ms);
     void purge_expired(std::uint64_t now_ms);
+    [[nodiscard]] QueuedTrafficResult peek_next(std::uint64_t now_ms);
+    [[nodiscard]] bool commit_next(
+        std::uint32_t expected_message_id,
+        std::uint64_t now_ms);
     [[nodiscard]] QueuedTrafficResult take_next(std::uint64_t now_ms);
     [[nodiscard]] PriorityQueueEventResult next_event();
     [[nodiscard]] PriorityQueueStatus status() const;
@@ -158,6 +162,7 @@ private:
     static std::uint64_t saturating_add(
         std::uint64_t value,
         std::uint32_t increment);
+    [[nodiscard]] std::size_t select_next_index() const;
     bool valid_policy() const;
     bool rate_available(TrafficPriority priority, std::uint64_t now_ms);
     void record_rate(TrafficPriority priority);

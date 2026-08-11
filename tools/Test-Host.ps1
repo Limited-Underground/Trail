@@ -275,6 +275,21 @@ $builds = @(
         )
     },
     @{
+        Name = 'loss-aware priority to delivery handoff'
+        Output = Join-Path $buildDirectory 'priority_delivery_handoff_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\radio\test_support\fake_radio_transport.cpp'),
+            (Join-Path $projectRoot 'firmware\components\protocol\src\packet_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\delivery_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\priority_queue.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\position_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\position_broadcast_scheduler.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\position_packet_admission.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\priority_delivery_handoff.cpp'),
+            (Join-Path $projectRoot 'tests\host\priority_delivery_handoff_tests.cpp')
+        )
+    },
+    @{
         Name = 'position packet integration'
         Output = Join-Path $buildDirectory 'position_packet_integration_tests.exe'
         Sources = @(
