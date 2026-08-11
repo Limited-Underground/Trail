@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-11
 
+### One offline diagnostic entry point
+
+- Added `opentrail_diagnostic_cli` as one operator-facing command for the
+  existing strict `OTPD0` position-UI and `OTRD0` update-recovery records.
+- Kept each original parser authoritative. Exact supported prefixes dispatch to
+  their complete validators; malformed records and unknown prefixes fail with
+  fixed errors that do not echo rejected content.
+- Preserved the narrow authority boundary: one command-line record only, with
+  no file, log, device, radio, identity, location, network, retention, export,
+  position-control, update, cleanup, reboot, or recovery access.
+- Passed both canonical record smoke checks, malformed supported input,
+  unsupported input, all 58 C++ executables, and every Python/publication-
+  safety gate in the complete local host run. Public-main CI confirmation is
+  still required for this increment.
+
 ### Strict offline update-recovery diagnostic decoder
 
 - Added a checked host parser for the exact uppercase

@@ -737,6 +737,16 @@ $builds = @(
             (Join-Path $projectRoot 'tools\UpdateRecoveryDiagnosticCli.cpp')
         )
         Run = $false
+    },
+    @{
+        Name = 'unified OpenTrail diagnostic CLI'
+        Output = Join-Path $buildDirectory 'opentrail_diagnostic_cli.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\position_sharing_ui_diagnostics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\update_recovery_diagnostics.cpp'),
+            (Join-Path $projectRoot 'tools\OpenTrailDiagnosticCli.cpp')
+        )
+        Run = $false
     }
 )
 
@@ -782,6 +792,34 @@ $invalidRecoveryText = @(
 if ($LASTEXITCODE -eq 0 -or
     $invalidRecoveryText -ne 'OTRD0 decode failed: invalid_message') {
     throw 'Update-recovery diagnostic CLI invalid-input smoke test failed.'
+}
+
+$unifiedDiagnosticCli = Join-Path $buildDirectory 'opentrail_diagnostic_cli.exe'
+$unifiedPositionOutput = & $unifiedDiagnosticCli 'OTPD0=C0012040' 2>&1
+if ($LASTEXITCODE -ne 0 -or
+    $unifiedPositionOutput -ne 'record=position_ui event=presentation outcome=succeeded notice=stopped reason=none frame_presented=1 state_changed=0 sharing_contained=0 sensitive_detail_redacted=1') {
+    throw 'Unified diagnostic CLI position-record smoke test failed.'
+}
+$unifiedRecoveryOutput = & $unifiedDiagnosticCli 'OTRD0=D0105084' 2>&1
+if ($LASTEXITCODE -ne 0 -or
+    $unifiedRecoveryOutput -ne 'record=update_recovery operation=boot state=operational reason=clean_baseline action=continue_operation operation_succeeded=1 normal_operation_blocked=0 attention_required=0 reboot_required=0 confirmation_required=0 cleanup_required=0 sensitive_detail_redacted=1') {
+    throw 'Unified diagnostic CLI recovery-record smoke test failed.'
+}
+$invalidUnifiedOutput = & $unifiedDiagnosticCli 'OTXX0=00000000' 2>&1
+$invalidUnifiedText = @(
+    $invalidUnifiedOutput | ForEach-Object { $_.ToString() }
+) -join "`n"
+if ($LASTEXITCODE -eq 0 -or
+    $invalidUnifiedText -ne 'diagnostic decode failed: unsupported_record') {
+    throw 'Unified diagnostic CLI unsupported-record smoke test failed.'
+}
+$malformedUnifiedOutput = & $unifiedDiagnosticCli 'OTPD0=c0012040' 2>&1
+$malformedUnifiedText = @(
+    $malformedUnifiedOutput | ForEach-Object { $_.ToString() }
+) -join "`n"
+if ($LASTEXITCODE -eq 0 -or
+    $malformedUnifiedText -ne 'position_ui decode failed: invalid_message') {
+    throw 'Unified diagnostic CLI malformed-record smoke test failed.'
 }
 
 $python = Get-Command python -ErrorAction SilentlyContinue

@@ -86,6 +86,14 @@ complete word shape, and emits stable operator category names. It does not
 read a device, log, file, or network service and does not establish an export
 workflow.
 
+The two strict diagnostic parsers now also sit behind one host-only
+`opentrail_diagnostic_cli` entry point. Exact `OTPD0` and `OTRD0` prefixes
+dispatch to their original validators and emit a leading stable record type;
+malformed supported records and unsupported prefixes fail without echoing the
+input. The unified tool adds no file, log, device, network, export, or execution
+authority and changes no wire or logger format. Both canonical records plus
+malformed/unsupported smoke cases pass in the complete local host gate.
+
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
 phone/laptop/vehicle dependency during a session, at least three materially
@@ -308,14 +316,14 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  five verifier/planning/operator CLIs and runs all 58 C++ executables plus the Python
+  six verifier/planning/operator CLIs and runs all 58 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
   handoff, checked-time outbound service coordination, fail-visible outbound
   position safety, checked-time position commands, single-owner position UI,
   privacy-safe position UI diagnostics and strict offline position/recovery
-  operator decoding,
+  operator decoding and the unified diagnostic entry point,
   portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
   physical MeshCore,

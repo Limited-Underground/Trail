@@ -161,6 +161,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   [offline operator decoder](docs/diagnostics/POSITION_SHARING_UI_DIAGNOSTIC_CLI_V0.md)
   now accepts only the canonical uppercase record, revalidates its complete
   v0 shape, and prints stable named categories without network or file access.
+  A [unified offline decoder](docs/diagnostics/OPERATOR_DIAGNOSTIC_CLI_V0.md)
+  now gives operators one command for exact `OTPD0` and `OTRD0` records while
+  preserving both strict parsers, fixed redacted output, and the no-file/no-
+  device/no-network/no-execution boundary. Canonical position and recovery,
+  malformed supported-prefix, and unsupported-prefix smoke checks pass in the
+  complete local host gate.
   Target retention/export policy and physical service evidence remain open.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
@@ -347,7 +353,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds five verifier/planning/operator CLIs and runs all 58 C++ test executables plus
+  builds six verifier/planning/operator CLIs and runs all 58 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet
@@ -355,7 +361,8 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   service coordination, fail-visible outbound position safety, checked-time
   outbound position commands, single-owner position UI coordination,
   semantic position-state observation, privacy-safe position UI diagnostics,
-  strict offline position and recovery diagnostic decoding,
+  strict offline position and recovery diagnostic decoding plus one unified
+  operator entry point,
   portable-client composition, local-interface, power-state, clock, randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,
