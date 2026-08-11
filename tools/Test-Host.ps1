@@ -240,6 +240,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'bounded position broadcast scheduler'
+        Output = Join-Path $buildDirectory 'position_broadcast_scheduler_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\location\src\position_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\position_broadcast_scheduler.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\test_support\fake_position_broadcast_sink.cpp'),
+            (Join-Path $projectRoot 'tests\host\position_broadcast_scheduler_tests.cpp')
+        )
+    },
+    @{
         Name = 'position packet integration'
         Output = Join-Path $buildDirectory 'position_packet_integration_tests.exe'
         Sources = @(

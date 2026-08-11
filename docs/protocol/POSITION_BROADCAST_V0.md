@@ -70,11 +70,13 @@ These figures exclude contention, collisions, retries, acknowledgements,
 forwarding, other traffic, receiver timing, and regional operating limits. They
 are not evidence of legal compliance or field performance.
 
-For later scheduler simulation, 60 seconds while moving and 300 seconds while
-stationary or reporting an unknown heartbeat are initial candidates, with a
-30-second absolute floor. State changes may request a prompt update but must
-still pass congestion, priority, and regulatory policy. No cadence policy is a
-safety guarantee, and no scheduler is claimed by OT-012.
+The host-tested [start/stop scheduler](POSITION_BROADCAST_SCHEDULER_V0.md)
+accepts an injected nonzero cadence and retry delay, coalesces delayed service,
+and emits only current validated fixes. It deliberately does not select a
+moving/stationary profile or unknown heartbeat. Earlier 60-second moving,
+300-second stationary, and 30-second-floor values remain planning candidates
+only. State changes and any no-fix heartbeat still require congestion,
+priority, privacy, and regulatory review. No cadence is a safety guarantee.
 
 ## Host evidence and remaining gates
 
@@ -85,6 +87,7 @@ inside a 38-byte packet-v0 frame through the fake radio transport. Four airtime
 scenario groups cover the bench settings, a 125 kHz reference, low-data-rate
 optimization, and invalid inputs.
 
-Authentication/encryption, privacy UX, a scheduler, multi-node contention,
-direct SX1262 binding, per-packet hardware airtime, motion/field behavior, and
-regional compliance remain later gates.
+Authentication/encryption, privacy UX, authenticated packet/priority scheduler
+composition, selected cadence, multi-node contention, direct SX1262 binding,
+per-packet hardware airtime, motion/field behavior, and regional compliance
+remain later gates.

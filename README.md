@@ -68,6 +68,14 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 
 ### Software and safety
 
+- **Position sharing now has an explicit start/stop scheduler:** the
+  [bounded scheduler](docs/protocol/POSITION_BROADCAST_SCHEDULER_V0.md) submits
+  only current validated fixes as the existing 16-byte payload. It starts only
+  by command, stops immediately, coalesces delayed service instead of building
+  a stale catch-up queue, and retries missing fixes or sink pressure at a
+  separate injected interval. Ten groups plus 100 repeats pass. No cadence,
+  authenticated packet, radio binding, physical GPS behavior, or regulatory
+  result is selected or claimed.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned
@@ -249,10 +257,11 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 46 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 47 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
-  including portable-client composition, local-interface, power-state, clock, randomness,
+  including position scheduling, portable-client composition, local-interface,
+  power-state, clock, randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,
   passes on `main`.

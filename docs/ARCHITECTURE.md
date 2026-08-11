@@ -112,7 +112,14 @@ Every packet envelope should eventually include:
 
 Core receive behavior should validate length/version/integrity, authenticate when enabled, suppress duplicates, apply group/address rules, deliver locally, and only then consider bounded forwarding. Acknowledgements are message-class policies rather than mandatory responses to all traffic.
 
-Priority classes should reserve capacity for emergency and critical traffic. Position updates may be coalesced or dropped when stale; chat should not starve emergency traffic. Exact airtime budgets and retry policies depend on measured modulation settings and regional constraints.
+Priority classes should reserve capacity for emergency and critical traffic. A
+host-tested position scheduler now requires explicit start, stops immediately,
+emits only a current validated fix, and schedules from actual accepted/deferred
+work so delayed service coalesces instead of creating a catch-up queue. Stale,
+unavailable, invalid, and unencodable fixes never reach its sink. The sink still
+needs authenticated packet/priority composition; chat and position must not
+starve emergency traffic. Exact cadence, airtime budgets, retry policy, and
+regional constraints depend on measurement and review.
 
 The host-only group-load model provides a shared accounting baseline for the
 four-client, four-plus-repeater, and eight-plus-repeater field phases. It uses
