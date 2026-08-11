@@ -693,6 +693,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'recoverable map selector trust-domain store'
+        Output = Join-Path $buildDirectory 'map_selector_domain_store_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_record.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_domain_store_tests.cpp')
+        )
+    },
+    @{
         Name = 'map selector protected trusted boot coordinator'
         Output = Join-Path $buildDirectory 'map_selector_trusted_boot_tests.exe'
         Sources = @(

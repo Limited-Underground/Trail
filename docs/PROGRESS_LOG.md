@@ -6,6 +6,26 @@ public chronology.
 
 ## 2026-08-11
 
+### Recoverable map trust-domain lifecycle store
+
+- Added a separate two-slot storage boundary for exact 80-byte `OTMD/v0`
+  records; it does not share keys, slots, erase, or reset authority with the
+  64-byte `OTM0/v0` selector store.
+- Required readable empty media plus fresh pending commissioning for generation
+  1, then exact next-generation maintenance, pending-to-active, monotonic
+  selector-acceptance, or linked replacement transitions. Backward state,
+  lowered retirement floors, binding changes, and immediate retired-domain
+  reuse fail before writes.
+- Preserved the prior committed record across twelve interrupted prepared-write
+  boundaries, committed byte 75 last, verified exact readback, reconciled both
+  sides of a commit-call error at boot, and repaired known degraded peers while
+  refusing unreadable, invalid-only, conflicted, or exhausted media.
+- Added ten deterministic store groups. All twenty map suites pass 100/100
+  focused repeats, and the complete 78-executable host matrix passes locally
+  including publication safety. Protected target storage/rollback, the permit-
+  consuming provisioner, cross-store ordering, target locking, and physical
+  durability remain open.
+
 ### Canonical map trust-domain lifecycle record
 
 - Added fixed 80-byte `OTMD/v0` instead of breaking the existing 64-byte

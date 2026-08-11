@@ -454,8 +454,16 @@ CRC. Fresh commissioning permits only epoch-1 pending-first-baseline/active
 state with no retired domain. Same-device replacement requires distinct current
 and retired domains, pending-reseed/active state, epoch at least 2, and accepted
 selector generation strictly above the retired floor. Ten codec groups pass.
-A recoverable two-slot domain store and permit-consuming transition coordinator
-remain separate gates.
+The separate abstract
+[two-slot domain store](maps/OFFLINE_MAP_SELECTOR_DOMAIN_STORE_V0.md) selects
+only a unique newest valid record, requires exact next-generation and lifecycle
+linkage, preserves the prior committed slot while committing byte 75 last, and
+verifies exact readback. It supports exact maintenance repair,
+pending-to-active, monotonic accepted-selector, and linked replacement
+successors while refusing unreadable/conflicted/backward/reused-domain state.
+It deliberately has no erase/reset API and grants no provisioning authority.
+Ten store groups pass; a protected target backend and permit-consuming
+transition coordinator remain separate gates.
 
 The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
 can mint that non-copyable, single-use permit only after an injected local-

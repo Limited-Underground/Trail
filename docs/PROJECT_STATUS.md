@@ -266,8 +266,19 @@ state. Same-device replacement requires distinct current/retired domains, epoch
 at least 2, pending-reseed or active state, and an accepted selector generation
 strictly above the quarantined floor before activation. Record generation,
 commit-last marker, reserved bytes, and CRC are canonical. OT-016S now binds the
-retired domain explicitly. Ten codec groups pass; no recoverable store or
-provisioning coordinator exists.
+retired domain explicitly. Ten codec groups pass.
+
+The separate abstract two-slot `OTMD/v0` store now accepts generation 1 only
+for fresh pending-first-baseline state on readable empty media, then requires
+the exact next record generation and a linked maintenance, activation,
+accepted-selector, or replacement transition. It preserves the prior committed
+slot across twelve interrupted prepared-write boundaries, commits byte 75 last,
+verifies exact readback, repairs known degraded peers, and fails closed on
+unreadable, invalid-only, conflicted, exhausted, backward, floor-lowering, or
+immediate retired-domain-reuse state. It has no erase/reset API and no
+provisioning authority. Ten store groups pass; no protected target backend,
+permit consumer, provisioner, target lock, or physical durability evidence
+exists.
 
 The selector now has a backend-neutral key/value adapter contract. Fixed
 `ot_state` / `ot_maps` / `otm_sel_a|b` binding, exact 64-byte reads, durable
@@ -278,8 +289,8 @@ partition-wide erase, fixes a local-service authority handoff, and defines the
 physical interruption matrix. No ESP-IDF source, partition table, target
 task/lock, encryption/trusted-generation choice, physical result, or concrete
 service-authentication backend exists.
-All nineteen map suites pass 100/100 focused repeats, and the complete
-77-executable host matrix passes.
+All twenty map suites pass 100/100 focused repeats, and the complete
+78-executable host matrix passes.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -687,6 +698,11 @@ not treated as proof of authorization.
   provider/data, package/container, renderer, storage medium, transfer method,
   signature policy, limits, and exact target remain open pending OT-016/OT-018
   experiments
+- `OTMD/v0` now has canonical lifecycle and recoverable abstract-store evidence.
+  The next domain decision is the permit-consuming provisioner and exact
+  pending-record-before-protected-source/selector ordering; protected target
+  storage, device-continuity evidence, secure domain generation, and cross-store
+  interruption recovery remain open
 - Touchscreen UI framework and distracted-driving/safe-use constraints
 - OpenGauge authenticated on-device transport, peer/key lifecycle, persistent replay/outbox state, failure UX, and direct radio integration; the v0 semantic schema/policy is host-tested and OT-017D/OT-017E supply bounded physical byte and host-component completion evidence
 - Field-session repetition count, movement/terrain profiles, acceptance

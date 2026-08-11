@@ -294,15 +294,21 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   domains, the quarantined selector floor, accepted selector generation, domain
   epoch, record generation, commit-last marker, and CRC. Pending first baseline,
   pending replacement reseed, and active state fail closed across ten codec
-  groups. No protected counter/storage, concrete credential verifier,
-  recoverable domain-record store, provisioner, ESP-IDF target composition, or
+  groups. Its separate abstract
+  [two-slot domain store](docs/maps/OFFLINE_MAP_SELECTOR_DOMAIN_STORE_V0.md)
+  accepts only exact next-generation lifecycle successors, preserves the prior
+  committed record across twelve interrupted-write boundaries, commits byte 75
+  last, verifies exact readback, repairs known degraded peers, and refuses
+  unreadable/conflicted/backward/reused-domain state without exposing erase or
+  reset. Ten store groups pass. No protected target backend, concrete credential
+  verifier, permit-consuming provisioner, ESP-IDF target composition, or
   physical result exists.
   An [NVS-ready key/value adapter](docs/maps/OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
   now fixes `ot_state` / `ot_maps` / `otm_sel_a|b`, requires commit after every
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
-  and all nineteen map suites pass 100/100 focused repeats in the complete
-  77-executable host matrix. It contains no ESP-IDF backend, partition table,
+  and all twenty map suites pass 100/100 focused repeats in the complete
+  78-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,

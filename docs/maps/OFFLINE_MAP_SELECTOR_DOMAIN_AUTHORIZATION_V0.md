@@ -35,7 +35,9 @@ obtain the values from approved continuity/secure-random evidence, keep them out
 of logs, and durably bind them to the protected source and selector lifecycle
 before execution is possible. The separate canonical
 [`OTMD/v0` record](OFFLINE_MAP_SELECTOR_DOMAIN_RECORD_V0.md) now defines that
-lifecycle data, but no store or provisioner exists.
+lifecycle data, and its separate
+[two-slot store](OFFLINE_MAP_SELECTOR_DOMAIN_STORE_V0.md) provides recoverable
+host persistence. No permit-consuming provisioner exists.
 
 Same-device replacement may describe either:
 
@@ -94,12 +96,12 @@ echo including retired-domain absence/reuse/new-device contamination, all six
 confirmations, local revision, time boundaries, backend replay, output
 invalidation, and move-without-copy ownership.
 
-All nineteen map suites pass 100/100 focused repeats in the complete
-77-executable host matrix under strict C++17 warnings-as-errors.
+All twenty map suites pass 100/100 focused repeats in the complete
+78-executable host matrix under strict C++17 warnings-as-errors.
 
 This is authorization-handoff evidence only. It does not prove device
 continuity, secure randomness, credential strength, physical presence, audit or
-replay durability. No selector clear, protected-source reset, domain record,
-retirement record, generation migration, package import, provisioner, target
-lock/task, ESP-IDF composition, power-loss result, or on-device behavior is
-implemented or authorized.
+replay durability. The record store has no permit input or erase/reset
+authority. No selector clear, protected-source reset, generation migration,
+package import, provisioner, target lock/task, ESP-IDF composition, power-loss
+result, or on-device behavior is implemented or authorized.
