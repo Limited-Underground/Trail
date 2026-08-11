@@ -18,6 +18,7 @@ enum class UpdateRecoveryDiagnosticError : std::uint8_t {
     invalid_status,
     invalid_word,
     unsupported_version,
+    invalid_message,
 };
 
 // Fixed decoded view of one OTRD0 word. Generation values and all source
@@ -60,6 +61,17 @@ struct UpdateRecoveryDiagnosticDecodeResult {
     }
 };
 
+struct UpdateRecoveryDiagnosticMessageResult {
+    UpdateRecoveryDiagnosticError error{
+        UpdateRecoveryDiagnosticError::invalid_message};
+    std::uint32_t word{0};
+    UpdateRecoveryDiagnostic diagnostic{};
+
+    [[nodiscard]] constexpr bool parsed() const {
+        return error == UpdateRecoveryDiagnosticError::none;
+    }
+};
+
 struct UpdateRecoveryDiagnosticRecordResult {
     UpdateRecoveryDiagnosticError error{
         UpdateRecoveryDiagnosticError::invalid_status};
@@ -85,6 +97,25 @@ encode_update_recovery_diagnostic(
 
 [[nodiscard]] UpdateRecoveryDiagnosticDecodeResult
 decode_update_recovery_diagnostic(std::uint32_t word);
+
+// Accepts only the canonical public logger message: "OTRD0=" followed by
+// exactly eight uppercase hexadecimal digits. Binary validation remains the
+// authority for magic, version, reserved bits, and field coherence.
+[[nodiscard]] UpdateRecoveryDiagnosticMessageResult
+parse_update_recovery_diagnostic_message(std::string_view message);
+
+// Stable operator-facing category names. Unknown enum values are rendered as
+// "unknown" defensively; a successful strict parse never contains them.
+[[nodiscard]] std::string_view update_recovery_diagnostic_error_name(
+    UpdateRecoveryDiagnosticError error);
+[[nodiscard]] std::string_view update_recovery_diagnostic_operation_name(
+    update::UpdateRecoveryStatusOperation operation);
+[[nodiscard]] std::string_view update_recovery_diagnostic_state_name(
+    update::UpdateRecoveryOperatorState state);
+[[nodiscard]] std::string_view update_recovery_diagnostic_reason_name(
+    update::UpdateRecoveryOperatorReason reason);
+[[nodiscard]] std::string_view update_recovery_diagnostic_action_name(
+    update::UpdateRecoveryOperatorAction action);
 
 namespace detail {
 

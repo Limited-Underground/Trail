@@ -70,5 +70,5 @@ display; fixed error names; and the bounded trivially-copyable parse result.
 
 The host matrix also runs canonical-success and invalid-input smoke checks
 against the built CLI. The focused executable passes 100/100 repeats, and the
-complete 57-executable OpenTrail host matrix plus all Python and publication-
+complete 58-executable OpenTrail host matrix plus all Python and publication-
 safety checks pass.

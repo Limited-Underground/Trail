@@ -80,7 +80,7 @@ Eight deterministic groups cover baseline/trial boot, rollback and terminal
 cleanup, safe/service/reconciliation boot outcomes, all save states, volatile
 and rejected transitions, committed confirmation and rollback, three durable
 persistence-failure routes, structural redaction, and unknown/incoherent input.
-The focused executable passes 100/100 repeats, and the complete 57-executable
+The focused executable passes 100/100 repeats, and the complete 58-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The separate versioned [`OTRD0` diagnostics

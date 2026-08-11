@@ -636,6 +636,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'update-recovery diagnostic operator decoding'
+        Output = Join-Path $buildDirectory 'update_recovery_diagnostic_operator_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\update_recovery_diagnostics.cpp'),
+            (Join-Path $projectRoot 'tests\host\update_recovery_diagnostic_operator_tests.cpp')
+        )
+    },
+    @{
         Name = 'bounded production ring log sink'
         Output = Join-Path $buildDirectory 'ring_log_sink_tests.exe'
         Sources = @(
@@ -720,6 +728,15 @@ $builds = @(
             (Join-Path $projectRoot 'tools\PositionSharingUiDiagnosticCli.cpp')
         )
         Run = $false
+    },
+    @{
+        Name = 'update-recovery diagnostic CLI'
+        Output = Join-Path $buildDirectory 'update_recovery_diagnostic_cli.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\update_recovery_diagnostics.cpp'),
+            (Join-Path $projectRoot 'tools\UpdateRecoveryDiagnosticCli.cpp')
+        )
+        Run = $false
     }
 )
 
@@ -750,6 +767,21 @@ $invalidDiagnosticText = @(
 if ($LASTEXITCODE -eq 0 -or
     $invalidDiagnosticText -ne 'OTPD0 decode failed: invalid_message') {
     throw 'Position-sharing UI diagnostic CLI invalid-input smoke test failed.'
+}
+
+$recoveryDiagnosticCli = Join-Path $buildDirectory 'update_recovery_diagnostic_cli.exe'
+$recoveryDiagnosticOutput = & $recoveryDiagnosticCli 'OTRD0=D0105084' 2>&1
+if ($LASTEXITCODE -ne 0 -or
+    $recoveryDiagnosticOutput -ne 'operation=boot state=operational reason=clean_baseline action=continue_operation operation_succeeded=1 normal_operation_blocked=0 attention_required=0 reboot_required=0 confirmation_required=0 cleanup_required=0 sensitive_detail_redacted=1') {
+    throw 'Update-recovery diagnostic CLI canonical smoke test failed.'
+}
+$invalidRecoveryOutput = & $recoveryDiagnosticCli 'OTRD0=d0105084' 2>&1
+$invalidRecoveryText = @(
+    $invalidRecoveryOutput | ForEach-Object { $_.ToString() }
+) -join "`n"
+if ($LASTEXITCODE -eq 0 -or
+    $invalidRecoveryText -ne 'OTRD0 decode failed: invalid_message') {
+    throw 'Update-recovery diagnostic CLI invalid-input smoke test failed.'
 }
 
 $python = Get-Command python -ErrorAction SilentlyContinue

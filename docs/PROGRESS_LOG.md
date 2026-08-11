@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Strict offline update-recovery diagnostic decoder
+
+- Added a checked host parser for the exact uppercase
+  `OTRD0=XXXXXXXX` logger record. Wrong length/prefix/case/hex, unsupported
+  versions, reserved bits, unknown categories, altered flags, and incoherent
+  recovery combinations fail before a decoded event is returned.
+- Added stable names for every v0 operation, operator state, reason, action,
+  and parser error plus a one-shot CLI with deterministic `key=value` output.
+  Rejected input is never echoed.
+- Kept the decoder local and offline: one command-line argument is the entire
+  input, with no file, device, log, network, persistence, retention, deletion,
+  or export access.
+- Covered ten operator-decoding groups, canonical and invalid CLI smoke tests,
+  100/100 focused repeats, the complete 58-executable host matrix, and every
+  Python/publication-safety check. Target log binding, accessible rendering,
+  execution authority, and physical recovery evidence remain separate gates.
+
 ### Strict offline position UI diagnostic decoder
 
 - Added a checked host parser for the exact uppercase
@@ -20,7 +37,7 @@ public chronology.
   performs no network, file, log, device, identity, location, retention, or
   export work.
 - Covered ten operator-decoding groups, canonical and invalid CLI smoke tests,
-  100/100 focused repeats, the complete 57-executable host matrix, and every
+  100/100 focused repeats, the complete 58-executable host matrix, and every
   Python/publication-safety check. Target log binding and physical service
   capture remain separate gates.
 
@@ -42,7 +59,7 @@ public chronology.
   and distinguished display containment, unavailable presentation, revision
   exhaustion, clock deferral, outbound fault, stale input, and invalid input
   without exporting source detail.
-- Covered ten groups, 100/100 focused repeats, the complete 57-executable host
+- Covered ten groups, 100/100 focused repeats, the complete 58-executable host
   matrix, and every Python/publication-safety check. Target log binding,
   retention/export/clear policy, persistence, and physical
   service evidence remain open.
@@ -63,7 +80,7 @@ public chronology.
   further UI input closed. Revision exhaustion does the same before either
   refresh or input can proceed.
 - Covered ten dedicated groups, 100/100 focused repeats, the complete
-  57-executable host matrix, and every Python/publication-safety check. Exact
+  58-executable host matrix, and every Python/publication-safety check. Exact
   ESP-IDF task/lock serialization, renderer behavior, physical display/input,
   and real concurrent service timing remain open.
 
@@ -81,7 +98,7 @@ public chronology.
   same unused revision, while post-action display failure immediately stops
   sharing and latches further input closed. Revision exhaustion stops and
   latches before another input is polled or action applied.
-- Covered ten groups, 100/100 focused repeats, the complete 57-executable host
+- Covered ten groups, 100/100 focused repeats, the complete 58-executable host
   matrix, and every Python/publication-safety check. Exact ESP-IDF task/lock,
   renderer/retry UX, reboot policy, diagnostics, physical input, and concurrency
   remain open.
@@ -101,7 +118,7 @@ public chronology.
   evidence against service plus command operations while copied status is no
   longer action authority.
 - Covered ten command groups plus 100/100 focused repeats, repeated the updated
-  safety suite 100/100 times, and passed the complete 57-executable host matrix
+  safety suite 100/100 times, and passed the complete 58-executable host matrix
   plus every Python/publication-safety check. Target task synchronization,
   concrete clock binding, rendered retry UX, reboot behavior, and physical
   input remain open.
@@ -121,7 +138,7 @@ public chronology.
   mutation; a newly presented fault revision invalidates old input; Stop
   remains safe/idempotent.
 - Covered ten groups using real coordinator source-failure and rollback paths,
-  100/100 focused repeats, the complete 57-executable host matrix, and every
+  100/100 focused repeats, the complete 58-executable host matrix, and every
   Python/publication-safety check. Exact renderer, target synchronization,
   reboot recovery, and physical input remain open.
 
@@ -140,7 +157,7 @@ public chronology.
   already accepted delivery, and full delivery retains priority work until a
   later checked cycle frees capacity.
 - Covered ten groups including same-cycle exact position packet delivery to a
-  fake-radio peer, 100/100 focused repeats, the complete 57-executable host
+  fake-radio peer, 100/100 focused repeats, the complete 58-executable host
   matrix, and every Python/publication-safety check. This is cooperative host
   ordering, not ESP-IDF task/concurrency, inbound processing, authentication,
   target adapters, or physical-radio evidence.
@@ -158,7 +175,7 @@ public chronology.
 - Covered ten groups for ordering, exact peek/commit, full-queue deferral,
   duplicate/MTU rejection, expiry, unsafe time spans, and the complete
   scheduler-to-packet-to-priority-to-delivery fake-radio path. The focused
-  executable passes 100/100 repeats and the complete 57-executable host matrix
+  executable passes 100/100 repeats and the complete 58-executable host matrix
   plus every Python/publication-safety check passes. This is host-only,
   unauthenticated packet-v0 composition, not real-coordinate or physical-radio
   evidence.
@@ -176,7 +193,7 @@ public chronology.
   invalid metadata, duplicate IDs, invalid policy, and queue failure fail closed.
 - Covered ten groups including scheduler composition, decode round-trip,
   priority ordering, exact expiry, pressure, and failure paths; the focused
-  executable passes 100/100 repeats and the complete 57-executable host matrix
+  executable passes 100/100 repeats and the complete 58-executable host matrix
   plus every Python/publication-safety check passes. This is explicitly
   unauthenticated packet-v0 host evidence, not real-coordinate or radio use.
 
@@ -192,7 +209,7 @@ public chronology.
   conditions remain warning states with stop available; invalid policy,
   monotonic rollback, and time exhaustion become critical action-free faults.
 - Covered ten groups through button and touch capability shapes, 100 focused
-  repeats, the complete 57-executable host matrix, and every Python/publication-
+  repeats, the complete 58-executable host matrix, and every Python/publication-
   safety check. Exact renderer/text, target synchronization, direct radio/GPS
   composition, and physical privacy UX remain open.
 
@@ -207,7 +224,7 @@ public chronology.
 - Allowed only current validated fixes into the injected sink. Unavailable,
   stale, invalid, and malformed-current snapshots are suppressed or rejected
   before sink access; not-ready/full/failure outcomes remain typed.
-- Covered ten groups, 100 focused repeats, the complete 57-executable host
+- Covered ten groups, 100 focused repeats, the complete 58-executable host
   matrix, and every Python/publication-safety check. Exact cadence, rendered UX,
   authenticated packet/priority composition, direct radio/GPS binding, field
   behavior, and regulatory acceptance remain open.
@@ -224,7 +241,7 @@ public chronology.
   critical service-required frame when a valid revision exists; revision zero
   cannot create a presentable frame.
 - Covered nine groups through the real checked local-interface boundary, 100
-  focused repeats, the complete 57-executable host matrix, and every Python/
+  focused repeats, the complete 58-executable host matrix, and every Python/
   publication-safety check. Exact renderer, target task/revision ownership,
   physical recovery execution, and operator workflow remain open.
 
@@ -241,7 +258,7 @@ public chronology.
   records only as `[REDACTED]`, and is neither a serialized/persistent format
   nor an internally synchronized target service.
 - Covered eight groups including actual `OTRD0` capture, 100 focused repeats,
-  the complete 57-executable host matrix, and every Python/publication-safety
+  the complete 58-executable host matrix, and every Python/publication-safety
   check. Exact target composition, measured RAM/timing, persistent audit/export,
   and physical failure capture remain open.
 
@@ -257,7 +274,7 @@ public chronology.
 - Kept logger authority intact: info/warn/error severity follows operator state,
   runtime filtering is an accepted non-write, and full-sink rejection remains
   visible rather than becoming false success.
-- Covered eight scenario groups, 100 focused repeats, the complete 57-executable
+- Covered eight scenario groups, 100 focused repeats, the complete 58-executable
   matrix, and all Python/publication-safety checks. Target sink binding,
   persistent retention/export, display rendering, and physical failure capture
   remain open.

@@ -324,6 +324,183 @@ UpdateRecoveryDiagnosticDecodeResult decode_update_recovery_diagnostic(
     return {UpdateRecoveryDiagnosticError::none, diagnostic};
 }
 
+UpdateRecoveryDiagnosticMessageResult
+parse_update_recovery_diagnostic_message(std::string_view message) {
+    constexpr std::string_view prefix{"OTRD0="};
+    if (message.size() != kUpdateRecoveryDiagnosticMessageBytes ||
+        message.substr(0, prefix.size()) != prefix) {
+        return {};
+    }
+
+    std::uint32_t word = 0;
+    for (std::size_t index = prefix.size(); index < message.size(); ++index) {
+        const char character = message[index];
+        std::uint32_t nibble = 0;
+        if (character >= '0' && character <= '9') {
+            nibble = static_cast<std::uint32_t>(character - '0');
+        } else if (character >= 'A' && character <= 'F') {
+            nibble = static_cast<std::uint32_t>(character - 'A' + 10);
+        } else {
+            return {};
+        }
+        word = (word << 4U) | nibble;
+    }
+
+    const auto decoded = decode_update_recovery_diagnostic(word);
+    if (!decoded.decoded()) {
+        return {decoded.error, word};
+    }
+    return {
+        UpdateRecoveryDiagnosticError::none,
+        word,
+        decoded.diagnostic,
+    };
+}
+
+std::string_view update_recovery_diagnostic_error_name(
+    UpdateRecoveryDiagnosticError error) {
+    using Error = UpdateRecoveryDiagnosticError;
+    switch (error) {
+        case Error::none:
+            return "none";
+        case Error::invalid_status:
+            return "invalid_status";
+        case Error::invalid_word:
+            return "invalid_word";
+        case Error::unsupported_version:
+            return "unsupported_version";
+        case Error::invalid_message:
+            return "invalid_message";
+    }
+    return "unknown";
+}
+
+std::string_view update_recovery_diagnostic_operation_name(
+    update::UpdateRecoveryStatusOperation operation) {
+    using Operation = update::UpdateRecoveryStatusOperation;
+    switch (operation) {
+        case Operation::boot:
+            return "boot";
+        case Operation::save:
+            return "save";
+        case Operation::transition:
+            return "transition";
+    }
+    return "unknown";
+}
+
+std::string_view update_recovery_diagnostic_state_name(
+    update::UpdateRecoveryOperatorState state) {
+    using State = update::UpdateRecoveryOperatorState;
+    switch (state) {
+        case State::service_required:
+            return "service_required";
+        case State::operational:
+            return "operational";
+        case State::trial_active:
+            return "trial_active";
+        case State::persistence_committed:
+            return "persistence_committed";
+        case State::transition_rejected:
+            return "transition_rejected";
+        case State::rollback_required:
+            return "rollback_required";
+        case State::cleanup_required:
+            return "cleanup_required";
+        case State::safe_mode:
+            return "safe_mode";
+        case State::reboot_reconcile_required:
+            return "reboot_reconcile_required";
+    }
+    return "unknown";
+}
+
+std::string_view update_recovery_diagnostic_reason_name(
+    update::UpdateRecoveryOperatorReason reason) {
+    using Reason = update::UpdateRecoveryOperatorReason;
+    switch (reason) {
+        case Reason::invalid_result:
+            return "invalid_result";
+        case Reason::none:
+            return "none";
+        case Reason::clean_baseline:
+            return "clean_baseline";
+        case Reason::trial_confirmation_required:
+            return "trial_confirmation_required";
+        case Reason::baseline_recovered:
+            return "baseline_recovered";
+        case Reason::cleanup_required:
+            return "cleanup_required";
+        case Reason::invalid_configuration:
+            return "invalid_configuration";
+        case Reason::live_state_invalid:
+            return "live_state_invalid";
+        case Reason::trusted_state_unavailable:
+            return "trusted_state_unavailable";
+        case Reason::trusted_state_invalid:
+            return "trusted_state_invalid";
+        case Reason::baseline_state_conflict:
+            return "baseline_state_conflict";
+        case Reason::recovery_missing:
+            return "recovery_missing";
+        case Reason::storage_unavailable:
+            return "storage_unavailable";
+        case Reason::rollback_detected:
+            return "rollback_detected";
+        case Reason::generation_conflict:
+            return "generation_conflict";
+        case Reason::generation_exhausted:
+            return "generation_exhausted";
+        case Reason::checkpoint_rejected:
+            return "checkpoint_rejected";
+        case Reason::boot_observation_rejected:
+            return "boot_observation_rejected";
+        case Reason::rollback_observation_rejected:
+            return "rollback_observation_rejected";
+        case Reason::boot_mismatch:
+            return "boot_mismatch";
+        case Reason::trial_boot_limit:
+            return "trial_boot_limit";
+        case Reason::trusted_reconciliation_required:
+            return "trusted_reconciliation_required";
+        case Reason::commit_uncertain:
+            return "commit_uncertain";
+        case Reason::trust_update_failed:
+            return "trust_update_failed";
+        case Reason::transition_rejected:
+            return "transition_rejected";
+        case Reason::confirmation_committed:
+            return "confirmation_committed";
+        case Reason::explicit_rollback:
+            return "explicit_rollback";
+        case Reason::confirmation_timeout:
+            return "confirmation_timeout";
+    }
+    return "unknown";
+}
+
+std::string_view update_recovery_diagnostic_action_name(
+    update::UpdateRecoveryOperatorAction action) {
+    using Action = update::UpdateRecoveryOperatorAction;
+    switch (action) {
+        case Action::service:
+            return "service";
+        case Action::none:
+            return "none";
+        case Action::continue_operation:
+            return "continue_operation";
+        case Action::continue_trial:
+            return "continue_trial";
+        case Action::reboot_to_baseline:
+            return "reboot_to_baseline";
+        case Action::reboot_and_reconcile:
+            return "reboot_and_reconcile";
+        case Action::cleanup_update_state:
+            return "cleanup_update_state";
+    }
+    return "unknown";
+}
+
 namespace detail {
 
 LogLevel update_recovery_diagnostic_level(

@@ -1,8 +1,8 @@
 # Update recovery diagnostic event v0
 
-Status: host-tested redacted diagnostics adapter, 2026-08-11. No target log
-backend, persistent audit retention, remote export, or physical operator
-workflow is claimed.
+Status: host-tested redacted diagnostics adapter with a separate strict offline
+decoder, 2026-08-11. No target log backend, persistent audit retention, remote
+export, or physical operator workflow is claimed.
 
 ## Purpose
 
@@ -88,8 +88,13 @@ Eight deterministic groups cover:
 8. fixed, trivially copyable, generation- and identifier-free shape.
 
 The diagnostic adapter and ring integration focused executables each pass
-100/100 repeats. The complete 57-executable
+100/100 repeats. The complete 58-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
+
+The separate
+[strict offline decoder](UPDATE_RECOVERY_DIAGNOSTIC_CLI_V0.md) accepts only the
+canonical uppercase message and exposes stable v0 category names. Its ten
+operator groups and canonical/invalid CLI smoke checks also pass.
 
 ## Remaining gates
 

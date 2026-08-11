@@ -84,7 +84,7 @@ Ten deterministic groups cover:
 9. revision exhaustion containing an observed change before queued input; and
 10. runtime timestamp/counter progress without semantic revision churn.
 
-The focused executable passes 100/100 repeats. The complete 57-executable
+The focused executable passes 100/100 repeats. The complete 58-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 ## Remaining gates

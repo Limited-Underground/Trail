@@ -64,7 +64,7 @@ Eight deterministic groups cover:
 7. sensitive logger input retained only as `[REDACTED]`; and
 8. real `OTRD0` recovery events retained and decoded from the production ring.
 
-The focused executable passes 100/100 repeats. The complete 57-executable
+The focused executable passes 100/100 repeats. The complete 58-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 ## Remaining gates

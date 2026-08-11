@@ -218,7 +218,11 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   distinct. A production-facing [bounded RAM ring](docs/diagnostics/RING_LOG_SINK_V0.md)
   now retains the newest 32 canonical records, snapshots them oldest-first,
   counts rollover/rejection, preserves boot-local ordering across clears, and
-  captures real `OTRD0` events. Both focused suites pass 100/100 repeats. A
+  captures real `OTRD0` events. The separate
+  [offline recovery decoder](docs/diagnostics/UPDATE_RECOVERY_DIAGNOSTIC_CLI_V0.md)
+  accepts only one exact uppercase record, reruns complete v0 validation, and
+  emits stable operation/state/reason/action names without file, device, or
+  network access. The diagnostic and ring focused suites pass 100/100 repeats. A
   [semantic recovery presentation](docs/update/UPDATE_RECOVERY_PRESENTATION_V0.md)
   now maps valid outcomes to the existing status/system-fault UI contract;
   corrupt diagnostics fail visibly to a generic service frame. Acknowledgement
@@ -343,15 +347,15 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds four verifier/planning/operator CLIs and runs all 57 C++ test executables plus
+  builds five verifier/planning/operator CLIs and runs all 58 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet
   admission, loss-aware priority-to-delivery handoff, checked-time outbound
   service coordination, fail-visible outbound position safety, checked-time
   outbound position commands, single-owner position UI coordination,
-  semantic position-state observation, privacy-safe position UI diagnostics
-  and strict offline operator decoding,
+  semantic position-state observation, privacy-safe position UI diagnostics,
+  strict offline position and recovery diagnostic decoding,
   portable-client composition, local-interface, power-state, clock, randomness,
   pilot-result/template,
   crypto-benchmark, protected-packet-budget, and immutable-repeater suites,

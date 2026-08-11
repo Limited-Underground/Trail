@@ -72,7 +72,7 @@ Ten deterministic groups cover:
 9. handoff rejection while already accepted delivery still sends; and
 10. full-delivery deferral followed by retained-queue recovery.
 
-The focused executable passes 100/100 repeats. The complete 57-executable
+The focused executable passes 100/100 repeats. The complete 58-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The [runtime-aware position safety overlay](OUTBOUND_POSITION_SAFETY_V0.md) now

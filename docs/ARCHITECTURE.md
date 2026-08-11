@@ -385,7 +385,10 @@ one canonical message through the existing logger. Generation values and all
 identity, policy, checkpoint, key, address, and raw adapter detail are omitted.
 Magic, version, reserved bits, enums, state/action/reason coherence, and the
 mandatory redaction bit fail closed. The bounded RAM ring now supplies an exact
-in-memory sink and retains/decodes `OTRD0` in host tests. A separate semantic
+in-memory sink and retains/decodes `OTRD0` in host tests. A strict host-only
+operator decoder accepts exactly one canonical uppercase logger record and
+emits stable coarse category names without file, device, network, retention,
+or export access. A separate semantic
 adapter maps decoded outcomes into the checked local-interface contract without
 adding execution authority. Target task binding, concurrency, persistent
 retention/export, rendering, power-loss behavior, and physical failure capture

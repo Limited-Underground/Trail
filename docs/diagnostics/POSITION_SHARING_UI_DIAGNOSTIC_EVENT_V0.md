@@ -95,7 +95,7 @@ Ten deterministic groups cover:
 9. filtering, sink rejection, and idle suppression; and
 10. malformed words, incoherent results, fixed size, and excluded fields.
 
-The focused executable passes 100/100 repeats. The complete 57-executable
+The focused executable passes 100/100 repeats. The complete 58-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The separate
