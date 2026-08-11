@@ -74,8 +74,9 @@ host matrix and publication-safety scan pass locally under strict C++17
 warnings-as-errors.
 
 This is common host composition, not a lock or protected backend. Candidate
-replacement, first baseline, service reseed, and protected reset/replacement
-recovery remain separate gates. Target serialization, NVS and counter backends,
-authentication, package/media behavior, power-loss interruption, flash
-replacement, wear, physical attack resistance, renderer behavior, and on-device
-runtime transitions remain unproved.
+replacement now has a separate protected-source composition. First baseline,
+service reseed, and protected reset/replacement recovery remain separate gates.
+Target serialization, NVS and counter backends, authentication, package/media
+behavior, power-loss interruption, flash replacement, wear, physical attack
+resistance, renderer behavior, and on-device runtime transitions remain
+unproved.

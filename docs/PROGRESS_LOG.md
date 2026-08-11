@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-11
 
+### Protected-generation map-selector candidate replacement
+
+- Added a replacement composition that derives both selector generation values
+  from protected history before selector-store access.
+- Kept candidate staging and the commit-last selector save private, then
+  advanced and exactly read back trust before publishing trial state.
+- Required a final exact trust recheck before a rejected candidate may retain
+  the active map. Selector-save failure never advances trust; every post-save
+  conflict or uncertain advance remains mapless for reconciliation.
+- Added eleven deterministic groups and completed 100/100 focused repeats. All
+  fourteen map suites and the complete 72-executable host matrix pass locally,
+  including publication-safety checks. Baseline/reseed protected composition,
+  a concrete protected backend, target/package-slot locking, physical
+  durability, and on-device results remain open.
+
 ### Protected-generation map-selector runtime transitions
 
 - Added a runtime composition that obtains both the current selector generation

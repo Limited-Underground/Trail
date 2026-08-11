@@ -680,6 +680,19 @@ $builds = @(
         )
     },
     @{
+        Name = 'map selector protected trusted candidate coordinator'
+        Output = Join-Path $buildDirectory 'map_selector_trusted_candidate_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_activation_guard.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_checkpoint.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_candidate.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_trusted_generation.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_trusted_candidate.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_trusted_candidate_tests.cpp')
+        )
+    },
+    @{
         Name = 'map selector protected trusted transition coordinator'
         Output = Join-Path $buildDirectory 'map_selector_trusted_transition_tests.exe'
         Sources = @(

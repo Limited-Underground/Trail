@@ -254,16 +254,21 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   selector mutation private, and requires an exact recheck or save-then-advance
   before publication. Trust failure or change contains the currently visible
   map, while invalid-fallback selector clearing retains nonzero protected
-  history for service reconciliation. Eleven groups pass. Candidate, baseline,
-  and reseed paths still accept caller-supplied generations; no protected
-  counter/storage, ESP-IDF target composition, reset/replacement authority, or
-  physical result exists.
+  history for service reconciliation. Eleven groups pass. A
+  [trusted candidate coordinator](docs/maps/OFFLINE_MAP_SELECTOR_TRUSTED_CANDIDATE_COORDINATOR_V0.md)
+  now derives replacement generations from the protected source, saves private
+  trial state first, advances and exactly reads back trust second, and only then
+  publishes. Rejected candidates recheck trust before retaining the active map;
+  any post-save trust uncertainty remains mapless for reconciliation. Eleven
+  groups pass. Baseline and reseed paths still accept caller-supplied
+  generations; no protected counter/storage, ESP-IDF target composition,
+  reset/replacement authority, or physical result exists.
   An [NVS-ready key/value adapter](docs/maps/OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
   now fixes `ot_state` / `ot_maps` / `otm_sel_a|b`, requires commit after every
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
-  and all thirteen map suites pass 100/100 focused repeats in the complete
-  71-executable host matrix. It contains no ESP-IDF backend, partition table,
+  and all fourteen map suites pass 100/100 focused repeats in the complete
+  72-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,

@@ -45,6 +45,17 @@ appear after read-only preflight but before save allocation. It is not a
 locking primitive: the caller must still prevent another writer from mutating
 the selector store during one coordinator call.
 
+## Protected-generation composition
+
+The separate
+[trusted candidate coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_CANDIDATE_COORDINATOR_V0.md)
+removes caller-created current/floor values from replacement. It derives both
+from the protected source, runs this coordinator against a private guard,
+advances trust only after the selector save, and publishes trial state only
+after exact protected readback. Rejected candidates receive a final protected
+recheck before the current map remains available. This lower-level coordinator
+retains scalar context so selector-store behavior stays independently testable.
+
 ## Failure behavior
 
 - Invalid, incomplete, same-slot, or same-generation candidate evidence is
@@ -83,11 +94,12 @@ mismatch, unreadable/conflicted media, prepared-write failure, commit
 ambiguity, corrupt readback, a newer checkpoint between preflight and save,
 invalid policy, and generation exhaustion. The candidate, transition, boot,
 and store suites each pass 100/100 focused repeats under strict C++17
-warnings-as-errors.
+warnings-as-errors. Eleven additional trusted-candidate groups cover the
+protected replacement composition, also at 100/100 focused repeats.
 
 This is host replacement-ordering evidence only. Initial installation is owned
 by the separate baseline coordinator; this API does not implement it. No
 physical storage or package-slot adapter, concurrency primitive, atomic-byte
-guarantee, wear/endurance or power-loss result, protected trusted floor,
-package authentication, filesystem, renderer, display, target task, or
-on-device result is claimed.
+guarantee, wear/endurance or power-loss result, concrete protected trusted
+backend, package authentication, filesystem, renderer, display, target task,
+or on-device result is claimed.

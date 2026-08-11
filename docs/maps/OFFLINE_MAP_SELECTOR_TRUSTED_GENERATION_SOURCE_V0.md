@@ -69,9 +69,10 @@ separate
 now owns this source for the boot path, derives the scalar internally, and
 rechecks or advances it before selector publication. The
 [trusted transition coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_TRANSITION_COORDINATOR_V0.md)
-does the same for runtime trial, fallback, and cleanup operations. Candidate
-replacement, first baseline, and service reseed still need their own protected-
-source compositions.
+does the same for runtime trial, fallback, and cleanup operations. The
+[trusted candidate coordinator](OFFLINE_MAP_SELECTOR_TRUSTED_CANDIDATE_COORDINATOR_V0.md)
+owns replacement ordering. First baseline and service reseed still need their
+own protected-source compositions.
 
 The service-reseed authorization permit is also separate. Authorization to
 erase and reseed two selector records is not authorization to lower or reset
@@ -88,9 +89,9 @@ advance failure including applied-then-failed behavior, failed post-write
 readback, frozen and advanced-past readback, the no-more-I/O latch, and fresh-
 boot reconciliation.
 
-The source suite and its trusted boot/runtime compositions pass under strict
-C++17 warnings-as-errors in the complete 71-executable OpenTrail host matrix.
-This proves only common interface, state-machine, boot-ordering, and runtime-
-ordering behavior. It does not prove secrecy, authenticity, monotonicity,
-flash-replacement resistance, power-loss durability, wear, factory-reset
-policy, physical attack resistance, or an ESP32 implementation.
+The source suite and its trusted boot/runtime/candidate compositions pass under
+strict C++17 warnings-as-errors in the complete 72-executable OpenTrail host
+matrix. This proves only common interface, state-machine, boot-ordering, and
+runtime/replacement-ordering behavior. It does not prove secrecy, authenticity,
+monotonicity, flash-replacement resistance, power-loss durability, wear,
+factory-reset policy, physical attack resistance, or an ESP32 implementation.

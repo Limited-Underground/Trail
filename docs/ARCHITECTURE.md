@@ -339,7 +339,7 @@ unchanged value or atomically advances and exactly reads back a newer value
 before publication. Nonzero trusted history with empty selector media is
 service-required, and any uncertain trust advance keeps the saved selector
 private. Target composition must serialize both storage and trust ownership;
-candidate, baseline, reseed, and reset/replacement paths remain separate gates.
+baseline, reseed, and reset/replacement paths remain separate gates.
 
 The [trusted runtime transition coordinator](maps/OFFLINE_MAP_SELECTOR_TRUSTED_TRANSITION_COORDINATOR_V0.md)
 removes the caller-created current/floor values from live selector mutation.
@@ -370,6 +370,16 @@ validation rejection leaves the current map unchanged; persistence uncertainty
 fails mapless. It deliberately does not create the first map baseline because
 a restart-safe trial requires an exact prior-good package. Calls require
 exclusive selector-store ownership; the generation check is not a lock.
+
+The [trusted candidate coordinator](maps/OFFLINE_MAP_SELECTOR_TRUSTED_CANDIDATE_COORDINATOR_V0.md)
+removes caller-created generations from replacement. It reads protected history
+before selector access, runs the ordinary candidate save against a private
+guard, advances and exactly reads back trust after selector persistence, and
+only then publishes trial state. Rejected candidates recheck unchanged trust
+before retaining the active map. Post-save conflict or uncertainty contains map
+exposure and requires fresh-boot reconciliation. Target composition must also
+serialize physical package-slot staging and retention, which common host code
+does not implement.
 
 The [first-baseline coordinator](maps/OFFLINE_MAP_SELECTOR_BASELINE_COORDINATOR_V0.md)
 provides the separate initial-install path. It accepts only a clean mapless
