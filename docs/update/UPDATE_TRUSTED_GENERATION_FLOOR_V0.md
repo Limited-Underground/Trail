@@ -69,8 +69,10 @@ The host-tested [save coordinator](UPDATE_RECOVERY_SAVE_COORDINATOR_V0.md) now
 implements the normal-operation half. It requires exact local/trusted agreement,
 verifies the next checkpoint, advances trust, and verifies exact trust readback.
 Local-ahead or uncertain post-write results require reboot reconciliation. The
-generic coordinator does not own the lifecycle mutation that precedes a save;
-that target-facing transition wrapper remains open.
+[transition coordinator](UPDATE_RECOVERY_TRANSITION_COORDINATOR_V0.md) now owns
+trial-time mutation on a private guard copy, publishes it only after the save
+commits, and stops the live guard on persistence failure. Target scheduling,
+reboot execution, protected trust, and bypass prevention remain open.
 
 ## Evidence and limitations
 
@@ -81,7 +83,8 @@ trusted-counter exhaustion without a write. Together with the ten original
 groups and four read-only inspection groups, all 20 store groups pass in the
 complete OpenTrail host matrix and across 100 focused repeats. Ten save-
 coordinator groups and 100 focused repeats separately verify exact normal-
-operation checkpoint/trust ordering.
+Ten transition-coordinator groups and 100 focused repeats verify that durable
+trial-time mutations cannot remain live only in RAM.
 
 This is an interface and state-machine result. It does not prove that any ESP32
 target can keep the supplied generation secret, authentic, monotonic, durable,

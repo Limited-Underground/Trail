@@ -45,9 +45,15 @@ The [verified save coordinator](UPDATE_RECOVERY_SAVE_COORDINATOR_V0.md) applies
 the corresponding normal-operation ordering. It requires exact local/trusted
 generation agreement, verifies the next checkpoint before advancing trust, and
 requires exact trust readback before reporting committed. Ten groups plus 100
-focused repeats pass. It persists an already-mutated running guard; a target-
-facing transition wrapper that owns mutation, failure shutdown, scheduling, and
-reboot remains open.
+focused repeats pass.
+
+The [transition coordinator](UPDATE_RECOVERY_TRANSITION_COORDINATOR_V0.md) now
+owns trial-time health, tick, confirmation, and explicit rollback calls on a
+private guard copy. Reboot-relevant state becomes live only after the verified
+save succeeds; any persistence failure stops the original guard without
+publishing the attempted state. Ten groups plus 100 focused repeats pass.
+Target scheduling, reboot execution, staging/install composition, terminal
+cleanup, protected backends, and physical evidence remain open.
 
 ## Safety objective
 

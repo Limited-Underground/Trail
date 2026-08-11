@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Durable trial-time update transitions
+
+- Added a lifecycle-transition coordinator for health reporting, checked ticks,
+  confirmation, and explicit rollback. Every operation runs against a private
+  guard copy first.
+- Boot-local health/time changes publish without flash writes. Confirmation or
+  rollback intent becomes live only after the next checkpoint and exact trusted
+  generation are verified; failed persistence leaves the attempted state
+  unpublished, stops the original guard, and requires the typed recovery path.
+- Covered committed confirmation/rollback, both deadline routes, rejected and
+  volatile behavior, uncertain writes, generation mismatch, and post-write
+  trust failures across ten groups, 100 focused repeats, and the complete 42-
+  executable matrix.
+- Kept the target claim bounded: staging/install, boot and rollback execution,
+  terminal cleanup/reset, scheduling/watchdog behavior, protected backends, and
+  physical interruption evidence remain open.
+
 ### Verified normal update persistence
 
 - Added read-only two-slot checkpoint inspection so normal persistence can

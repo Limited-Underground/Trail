@@ -67,12 +67,14 @@ wrong image, uninitialized-media conflict, trusted-source failure, zero trust,
 missing/stale rollback, pending and resumed trials, boot mismatch, attempt
 exhaustion, rollback completion/mismatch, confirmed/rolled-back cleanup, trust
 advance/readback failure, uncertain checkpoint commit, equal-generation
-conflict, and unreadable peer media. The complete 41-executable OpenTrail host
+conflict, and unreadable peer media. The complete 42-executable OpenTrail host
 matrix passes.
 
 Runtime persistence after boot uses the separate [verified save
-coordinator](UPDATE_RECOVERY_SAVE_COORDINATOR_V0.md). A target-facing wrapper
-that owns each lifecycle mutation plus its required durable save remains open.
+coordinator](UPDATE_RECOVERY_SAVE_COORDINATOR_V0.md), with trial-time mutation
+owned by the [transition
+coordinator](UPDATE_RECOVERY_TRANSITION_COORDINATOR_V0.md). Target scheduling,
+reboot execution, and terminal cleanup/reset remain open.
 
 The host contract cannot prove that `not_initialized` is authentic, that the
 trusted value resists erasure/rollback, that checkpoint contents cannot be

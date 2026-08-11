@@ -106,8 +106,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   coordinator](docs/update/UPDATE_RECOVERY_SAVE_COORDINATOR_V0.md) requires
   exact local/trusted agreement, verifies checkpoint-before-trust ordering, and
   returns a typed reboot-reconciliation result for uncertain or local-ahead
-  state. Ten groups plus 100 repeats pass. A target-facing lifecycle-transition
-  wrapper and physical persistence evidence remain.
+  state. Ten groups plus 100 repeats pass. A [lifecycle-transition
+  coordinator](docs/update/UPDATE_RECOVERY_TRANSITION_COORDINATOR_V0.md) applies
+  health, time, confirmation, and rollback operations to a private guard copy;
+  durable state becomes live only after the verified save succeeds, while any
+  persistence failure stops the original guard. Ten groups plus 100 repeats
+  pass. Target scheduling/reboot and physical persistence evidence remain.
 - **Security overhead is now visible before wire freeze:** a bounded
   [protected-packet budget](docs/protocol/PROTECTED_PACKET_BUDGET_V0.md) charges
   every candidate frame a corrected 44-byte authenticated header and 16-byte
@@ -225,7 +229,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 41 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 42 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including portable-client composition, local-interface, power-state, clock, randomness,

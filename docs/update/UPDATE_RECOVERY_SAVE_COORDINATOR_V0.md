@@ -44,11 +44,12 @@ identity, radio address, or checkpoint payload.
 ## Composition boundary
 
 This generic coordinator persists the current guard; it does not itself call
-`confirm`, `request_rollback`, `tick`, or `report_health`. A target-facing
-transition wrapper must still own each lifecycle mutation plus this persistence
-result, refuse continued normal operation when persistence is not `committed`,
-and define scheduling and reboot behavior. Callers must not interpret a RAM-only
-guard transition as durable.
+`confirm`, `request_rollback`, `tick`, or `report_health`. The host-tested
+[transition coordinator](UPDATE_RECOVERY_TRANSITION_COORDINATOR_V0.md) now owns
+those trial-time mutations on a private guard copy, publishes durable changes
+only after this save returns `committed`, and stops the live guard on persistence
+failure. Target scheduling, reboot execution, and bypass prevention remain
+composition obligations.
 
 ## Evidence and limitations
 
@@ -57,7 +58,7 @@ commit, trusted read failure and zero trust, missing/invalid recovery, rollback,
 local-ahead reconciliation, conflict, unreadable media, exhaustion, stopped or
 idle guards, uncertain writes, and trust advance/readback failures. Four new
 read-only inspection groups expand the checkpoint-store suite to 20 groups. The
-complete 41-executable OpenTrail host matrix passes.
+complete 42-executable OpenTrail host matrix passes.
 
 This is host state-machine evidence only. Target partition semantics, protected
 and authenticated storage, trusted-source provisioning/reset authority, actual
