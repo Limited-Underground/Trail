@@ -41,11 +41,20 @@ bool known_clock_error(time::MonotonicClockError error) {
 }
 
 bool valid_outbound_status(const OutboundServiceStatus& status) {
+    const auto runtime_calls =
+        static_cast<std::uint64_t>(status.service_calls) +
+        status.position_command_calls;
     if (!known_clock_error(status.latched_clock_error) ||
         status.serviced_cycles > status.service_calls ||
-        status.clock_deferred > status.service_calls ||
-        status.clock_failures > status.service_calls ||
+        status.clock_deferred > runtime_calls ||
+        status.clock_failures > runtime_calls ||
         status.latched_refusals > status.service_calls ||
+        status.position_commands_applied >
+            status.position_command_calls ||
+        status.position_commands_deferred >
+            status.position_command_calls ||
+        status.position_command_failures >
+            status.position_command_calls ||
         (!status.has_time && status.last_now_ms != 0)) {
         return false;
     }
@@ -193,35 +202,6 @@ PositionSharingControlResult apply_position_sharing_action(
         location::PositionBroadcastScheduleError::none,
         false,
     };
-}
-
-PositionSharingControlResult apply_position_sharing_action(
-    location::PositionBroadcastScheduler& scheduler,
-    const OutboundServiceStatus& outbound_status,
-    ui::UiAction action,
-    std::uint64_t now_ms) {
-    if (action == ui::UiAction::stop_position_sharing) {
-        return apply_position_sharing_action(
-            scheduler, action, now_ms);
-    }
-    if (!valid_outbound_status(outbound_status) ||
-        (outbound_status.faulted && scheduler.status().active)) {
-        return {
-            PositionSharingControlError::invalid_outbound_status,
-            location::PositionBroadcastScheduleError::none,
-            false,
-        };
-    }
-    if (outbound_status.faulted &&
-        action == ui::UiAction::start_position_sharing) {
-        return {
-            PositionSharingControlError::outbound_faulted,
-            location::PositionBroadcastScheduleError::none,
-            false,
-        };
-    }
-    return apply_position_sharing_action(
-        scheduler, action, now_ms);
 }
 
 }  // namespace opentrail::integration

@@ -1,25 +1,29 @@
 # Outbound Position Safety Overlay v0
 
-Status: **host-tested semantic safety composition; no renderer, action-time
-clock adapter, target task, reboot recovery, or physical-input claim**
+Status: **host-tested semantic safety composition; no renderer, target task,
+reboot recovery, or physical-input claim**
 
 ## Purpose
 
 `OutboundServiceCoordinator` stops the position scheduler when a checked clock
 rollback or source failure latches the outbound cycle. Scheduler status alone
 would then look ordinarily stopped and could offer Start. The target-facing
-position overload closes that gap by requiring both scheduler and outbound
-status for presentation and action application.
+position presentation closes that gap by requiring both scheduler and outbound
+status. Target-facing action application now uses the coordinator-owned command
+boundary documented in
+[Outbound Position Command Authority v0](OUTBOUND_POSITION_COMMAND_V0.md).
 
 The original scheduler-only functions remain useful lower-level tests. They are
 not sufficient target composition after the outbound coordinator exists.
 
 ## Status validation
 
-Before presentation or action, the overlay requires:
+Before presentation, the overlay requires:
 
 - a known latched-clock enum;
-- counters no greater than total service calls;
+- service counters no greater than service calls and clock counters no greater
+  than all coordinator service/command operations;
+- position-command outcome counters no greater than command calls;
 - zero last time when no successful time exists;
 - no latched error/failure/refusal while runtime is healthy; and
 - a source-failure or rollback cause plus failure evidence when faulted.
@@ -31,20 +35,16 @@ stops sharing when it latches. Unknown or contradictory input fails closed.
 
 | Condition | Presentation | Start | Stop |
 | --- | --- | --- | --- |
-| Healthy runtime | Existing scheduler mapping | Existing typed behavior | Existing immediate behavior |
-| Coherent latched clock fault | Critical `position_sharing_failed`, no actions | Rejected before scheduler access | Safe idempotent no-op |
-| Incoherent/unknown runtime state | Same safe critical frame | Rejected before scheduler access | Safe immediate stop |
+| Healthy runtime | Existing scheduler mapping | Coordinator obtains one checked action-time sample | Immediate, no clock read |
+| Coherent latched clock fault | Critical `position_sharing_failed`, no actions | Rejected before scheduler/clock-source access | Safe idempotent no-op |
+| Incoherent/unknown copied status | Same safe critical frame | Live coordinator remains authoritative | Live coordinator remains authoritative |
 | Revision zero | Not presentable | n/a | n/a |
 
-The action overload rechecks current runtime status after local-interface action
+The action overload no longer accepts copied runtime status or `now_ms`. It asks
+the live coordinator to apply Start/Stop after local-interface action
 resolution. A Start resolved from an older healthy frame is therefore rejected
 if the runtime faults before application. Publishing a newer fault frame also
 makes old input stale through the existing checked revision contract.
-
-The overload still receives `now_ms` for a healthy Start. Exact target
-composition must supply an action-time checked sample and must not invent or
-reuse time while the clock is temporarily not ready. That is a remaining gate,
-not a claim of this overlay.
 
 ## Privacy boundary
 
@@ -67,13 +67,11 @@ Ten deterministic groups cover:
 9. incoherent runtime status failing closed; and
 10. revision-zero and unknown-clock-state refusal.
 
-The focused executable passes 100/100 repeats. The complete 52-executable
+The focused executable passes 100/100 repeats. The complete 53-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 ## Remaining gates
 
-- obtain a checked monotonic sample at healthy Start application and defer
-  without mutation when time is not ready;
 - define the target owner of runtime status snapshots, frame revisions, action
   resolution, and scheduler mutation without races;
 - add a distinct coarse system clock/service notice only if renderer/user

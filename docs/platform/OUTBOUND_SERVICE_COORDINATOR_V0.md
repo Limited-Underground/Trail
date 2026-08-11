@@ -22,6 +22,13 @@ the same checked cycle. It does not receive frames, process UI input, create
 identity or packet metadata, perform cryptography, persist state, or choose a
 target task/thread model.
 
+The coordinator also owns target-facing position commands. Start obtains one
+new checked sample inside the coordinator and passes that exact value to the
+scheduler; temporary not-ready reaches no scheduler; a permanent clock failure
+stops sharing and shares the same latched fault as service. Stop is immediate
+and does not read the clock. See
+[Outbound Position Command Authority v0](OUTBOUND_POSITION_COMMAND_V0.md).
+
 ## Clock behavior
 
 | Checked clock result | Downstream behavior |
@@ -47,7 +54,7 @@ entry through the existing transactional handoff and may retry it on a later
 checked cycle.
 
 The status record contains only clock state, the last successful monotonic
-value, and saturating counters. It contains no coordinates, packet bytes,
+value, and saturating service/command counters. It contains no coordinates, packet bytes,
 identity, peer data, keys, addresses, credentials, or free text.
 
 ## Host evidence
@@ -65,18 +72,19 @@ Ten deterministic groups cover:
 9. handoff rejection while already accepted delivery still sends; and
 10. full-delivery deferral followed by retained-queue recovery.
 
-The focused executable passes 100/100 repeats. The complete 52-executable
+The focused executable passes 100/100 repeats. The complete 53-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The [runtime-aware position safety overlay](OUTBOUND_POSITION_SAFETY_V0.md) now
 maps this coordinator's coherent latched clock state to a critical no-action
-frame and rechecks it before applying Start/Stop actions.
+frame. The [command authority](OUTBOUND_POSITION_COMMAND_V0.md) rechecks live
+clock authority when applying Start/Stop actions.
 
 ## Remaining gates
 
 - define the target task, synchronization, watchdog, and service cadence;
-- bind the host-tested safety overlay to exact target frame publication,
-  action-time checked-clock sampling, and task/revision ownership;
+- bind the host-tested safety/command overlays to exact target frame
+  publication, synchronization, and task/revision ownership;
 - add bounded inbound receive/decode/authenticate/replay/delivery processing;
 - integrate boot/recovery, protected persistence, entropy, power, and diagnostic
   service ordering;

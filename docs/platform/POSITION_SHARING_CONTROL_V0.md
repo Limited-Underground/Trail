@@ -13,7 +13,10 @@ a renderer access to coordinates or broad application authority.
 The scheduler-only mapping remains the reusable lower-level foundation. Target
 composition must use the runtime-aware overload documented in
 [Outbound Position Safety v0](OUTBOUND_POSITION_SAFETY_V0.md), so a permanent
-outbound clock fault cannot be mistaken for ordinary stopped sharing.
+outbound clock fault cannot be mistaken for ordinary stopped sharing. Its
+target-facing action path uses
+[Outbound Position Command Authority v0](OUTBOUND_POSITION_COMMAND_V0.md) and
+does not accept a caller-supplied timestamp.
 
 It has two independent functions:
 
@@ -49,7 +52,7 @@ choose localized labels and layout for the known enums.
 
 ## Control behavior
 
-Start calls `PositionBroadcastScheduler::start(now_ms)` exactly once. Success
+The lower-level Start calls `PositionBroadcastScheduler::start(now_ms)` exactly once. Success
 only arms the scheduler and makes a current fix due; this adapter never calls
 `service()` and therefore cannot submit a payload. Scheduler policy/time errors
 remain typed and produce no state-change claim.
@@ -62,6 +65,11 @@ Every unrelated or unknown UI action is rejected before scheduler access. The
 checked local-interface revision contract separately rejects input for a frame
 that is no longer current, so a delayed press or touch cannot apply an obsolete
 start/stop meaning.
+
+In target composition, Start instead calls the outbound coordinator. That
+boundary obtains a fresh checked sample internally, defers without scheduler
+access when time is not ready, and latches permanent clock failure closed. Stop
+remains immediate and clock-independent.
 
 ## Host evidence
 
@@ -78,12 +86,16 @@ Ten deterministic groups cover:
 9. unrelated and unknown action rejection without mutation; and
 10. idempotent repeated actions plus typed start rejection.
 
-The focused executable passes 100/100 repeats. The complete 52-executable
+The focused executable passes 100/100 repeats. The complete 53-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 A separate ten-group runtime-aware suite covers real source-failure/rollback
 precedence, coherent-status validation, no-action fault presentation, stale
 Start rejection, and safe idempotent Stop. It also passes 100/100 repeats.
+
+A second ten-group command-authority suite covers action-time checked sampling,
+temporary deferral, permanent fault latching, clock-independent Stop, typed
+adapter mapping, and checked UI action composition. It passes 100/100 repeats.
 
 ## Remaining gates
 

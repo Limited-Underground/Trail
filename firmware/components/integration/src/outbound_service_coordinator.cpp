@@ -47,16 +47,12 @@ OutboundServiceResult OutboundServiceCoordinator::service() {
             return result;
         }
 
-        status_.faulted = true;
-        status_.latched_clock_error = now.error;
-        saturating_increment(status_.clock_failures);
-        position_.stop();
+        latch_clock_fault(now.error);
         result.disposition = OutboundServiceDisposition::failed;
         return result;
     }
 
-    status_.has_time = true;
-    status_.last_now_ms = now.value_ms;
+    observe_time(now.value_ms);
 
     location::LocationSnapshot snapshot{};
     if (position_.status().active) {
@@ -77,8 +73,87 @@ OutboundServiceResult OutboundServiceCoordinator::service() {
     return result;
 }
 
+OutboundPositionCommandResult
+OutboundServiceCoordinator::start_position_sharing() {
+    saturating_increment(status_.position_command_calls);
+    if (status_.faulted) {
+        saturating_increment(status_.position_command_failures);
+        return {
+            OutboundPositionCommandError::clock_faulted,
+            time::MonotonicClockError::fault_latched,
+        };
+    }
+
+    const auto now = clock_.now();
+    if (!now.ok()) {
+        if (now.error == time::MonotonicClockError::not_ready) {
+            saturating_increment(status_.clock_deferred);
+            saturating_increment(status_.position_commands_deferred);
+            return {
+                OutboundPositionCommandError::clock_not_ready,
+                now.error,
+            };
+        }
+
+        latch_clock_fault(now.error);
+        saturating_increment(status_.position_command_failures);
+        return {
+            OutboundPositionCommandError::clock_faulted,
+            now.error,
+        };
+    }
+
+    observe_time(now.value_ms);
+    const auto was_active = position_.status().active;
+    const auto scheduler_error = position_.start(now.value_ms);
+    if (scheduler_error !=
+        location::PositionBroadcastScheduleError::none) {
+        saturating_increment(status_.position_command_failures);
+        return {
+            OutboundPositionCommandError::scheduler_rejected,
+            time::MonotonicClockError::none,
+            scheduler_error,
+        };
+    }
+
+    saturating_increment(status_.position_commands_applied);
+    return {
+        OutboundPositionCommandError::none,
+        time::MonotonicClockError::none,
+        location::PositionBroadcastScheduleError::none,
+        !was_active && position_.status().active,
+    };
+}
+
+OutboundPositionCommandResult
+OutboundServiceCoordinator::stop_position_sharing() {
+    saturating_increment(status_.position_command_calls);
+    const auto was_active = position_.status().active;
+    position_.stop();
+    saturating_increment(status_.position_commands_applied);
+    return {
+        OutboundPositionCommandError::none,
+        time::MonotonicClockError::none,
+        location::PositionBroadcastScheduleError::none,
+        was_active && !position_.status().active,
+    };
+}
+
 OutboundServiceStatus OutboundServiceCoordinator::status() const {
     return status_;
+}
+
+void OutboundServiceCoordinator::observe_time(std::uint64_t now_ms) {
+    status_.has_time = true;
+    status_.last_now_ms = now_ms;
+}
+
+void OutboundServiceCoordinator::latch_clock_fault(
+    time::MonotonicClockError error) {
+    status_.faulted = true;
+    status_.latched_clock_error = error;
+    saturating_increment(status_.clock_failures);
+    position_.stop();
 }
 
 }  // namespace opentrail::integration

@@ -51,7 +51,7 @@ enum class PositionSharingControlError : std::uint8_t {
     none = 0,
     invalid_action,
     scheduler_rejected,
-    invalid_outbound_status,
+    outbound_not_ready,
     outbound_faulted,
 };
 
@@ -74,12 +74,11 @@ struct PositionSharingControlResult {
     ui::UiAction action,
     std::uint64_t now_ms);
 
-// Target-facing overload. Start is refused whenever the outbound runtime is
-// latched. Stop remains safe and idempotent, including after a fault.
+// Target-facing overload. Start obtains checked action time inside the
+// outbound coordinator; callers cannot supply stale or invented time. Stop is
+// immediate and clock-independent, including after a latched fault.
 [[nodiscard]] PositionSharingControlResult apply_position_sharing_action(
-    location::PositionBroadcastScheduler& scheduler,
-    const OutboundServiceStatus& outbound_status,
-    ui::UiAction action,
-    std::uint64_t now_ms);
+    OutboundServiceCoordinator& outbound,
+    ui::UiAction action);
 
 }  // namespace opentrail::integration

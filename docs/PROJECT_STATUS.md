@@ -48,8 +48,16 @@ fault from appearing as ordinary stopped sharing. Coherent source-failure or
 rollback status produces a critical no-action system-fault frame, incoherent
 status fails closed, and a Start resolved from an older healthy frame is
 rejected without scheduler access. Stop remains safe/idempotent. Ten groups
-plus 100 repeats pass. Exact renderer, action-time checked sampling, revision/
-task ownership, reboot behavior, and physical input evidence remain absent.
+plus 100 repeats pass. Exact renderer, revision/task ownership, reboot behavior,
+and physical input evidence remain absent.
+
+The live coordinator now also owns target-facing position commands. Start reads
+one checked sample at action application, defers without scheduler access when
+time is temporarily unavailable, and shares the permanent rollback/source-
+failure latch with outbound service. Stop applies immediately without reading
+the clock. Ten command groups plus 100 repeats, and 100 repeats of the updated
+safety suite, pass. Target task synchronization, concrete clock binding,
+rendered retry behavior, reboot policy, and physical input remain absent.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -273,12 +281,13 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  three verifier/planning CLIs and runs all 52 C++ executables plus the Python
+  three verifier/planning CLIs and runs all 53 C++ executables plus the Python
   MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
   handoff, checked-time outbound service coordination, fail-visible outbound
   position safety,
+  checked-time outbound position commands,
   portable-client composition, local-interface, power, time, randomness,
   replay, pilot, and benchmark boundaries. This is host/build evidence, not
   physical MeshCore,
@@ -366,7 +375,7 @@ not treated as proof of authorization.
   flags. Hardware/candidate identity, checkpoint payloads, raw adapter errors,
   and nested results are absent; unknown or contradictory input blocks normal
   operation as service-required. Eight groups plus 100 repeats pass in the
-  complete 52-executable matrix. A versioned `OTRD0` adapter now records one
+  complete 53-executable matrix. A versioned `OTRD0` adapter now records one
   coherent status through the existing logger as one fixed hexadecimal 32-bit
   word. Generations and identity-bearing detail are omitted; magic, version,
   reserved bits, enums, flags, and state/action/reason coherence fail closed.
@@ -412,12 +421,17 @@ not treated as proof of authorization.
   is unavailable, and permanent clock faults stop sharing and latch service
   closed. Ten groups plus 100 repeats pass. Target task/concurrency, inbound
   processing, concrete adapters, and physical behavior remain absent.
+  The same coordinator now owns target-facing position Start/Stop. Start obtains
+  one fresh checked sample internally; not-ready defers without scheduler
+  access; rollback/source failure latches closed; Stop is immediate without a
+  clock read. Ten groups plus 100 repeats pass. No target task/clock binding,
+  rendered retry behavior, reboot policy, or physical input is claimed.
   A runtime-aware position overlay now validates the coordinator status before
   presentation or Start/Stop application. Latched rollback/source failure and
   incoherent state produce a no-action critical frame; stale healthy Start is
   rejected, while Stop remains safe. Ten groups plus 100 repeats pass. Exact
-  target clock sampling, revision publication, renderer/input, reboot, and
-  physical behavior remain absent.
+  revision publication, renderer/input, reboot, and physical behavior remain
+  absent.
 
 ### Maps and interface
 

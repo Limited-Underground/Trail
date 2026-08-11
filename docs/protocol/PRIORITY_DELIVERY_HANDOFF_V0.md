@@ -62,7 +62,7 @@ Ten deterministic groups cover:
 10. scheduler to position packet admission to priority queue to delivery
     controller to fake-radio peer, with exact packet and position decode.
 
-The focused executable passes 100/100 repeats. The complete 52-executable
+The focused executable passes 100/100 repeats. The complete 53-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
 The host-tested [checked-time outbound coordinator](../platform/OUTBOUND_SERVICE_COORDINATOR_V0.md)

@@ -120,9 +120,17 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   precedence over the scheduler's stopped screen, and emits a critical
   no-action frame. It also rejects a Start action resolved from an older healthy
   frame without touching the scheduler; Stop remains safe and idempotent. Ten
-  groups plus 100 focused repeats pass. Exact rendering, action-time clock
-  sampling, target revision/task ownership, reboot recovery, and physical input
-  remain open.
+  groups plus 100 focused repeats pass. Exact rendering, target revision/task
+  ownership, reboot recovery, and physical input remain open.
+- **Position Start no longer trusts a caller-supplied timestamp:** the
+  [outbound command authority](docs/platform/OUTBOUND_POSITION_COMMAND_V0.md)
+  obtains one checked action-time sample inside the live coordinator. Temporary
+  clock unavailability defers without scheduler access, source failure or
+  rollback stops sharing and latches closed, and Stop remains immediate without
+  reading the clock. Ten groups plus 100 focused repeats pass, along with 100
+  repeats of the updated safety overlay. This is host action authority—not a
+  target task/clock driver, rendered retry UX, reboot policy, or physical-input
+  result.
 - **Cryptography remains gated, not claimed:** the dated
   [candidate review](docs/security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md)
   makes Espressif's libsodium component the first target benchmark, with pinned
@@ -304,12 +312,13 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds three verifier/planning CLIs and runs all 52 C++ test executables plus
+  builds three verifier/planning CLIs and runs all 53 C++ test executables plus
   the Python MeshCore lease, privacy-safe field-log/pilot, and crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet
   admission, loss-aware priority-to-delivery handoff, checked-time outbound
-  service coordination, fail-visible outbound position safety, portable-client
+  service coordination, fail-visible outbound position safety, checked-time
+  outbound position commands, portable-client
   composition, local-interface, power-state, clock,
   randomness,
   pilot-result/template,

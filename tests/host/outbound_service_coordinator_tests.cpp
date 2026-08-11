@@ -353,7 +353,7 @@ void test_full_delivery_defers_then_frees_capacity_for_next_cycle() {
 static_assert(std::is_trivially_copyable_v<OutboundServiceResult>);
 static_assert(std::is_trivially_copyable_v<OutboundServiceStatus>);
 static_assert(sizeof(OutboundServiceResult) <= 64);
-static_assert(sizeof(OutboundServiceStatus) <= 40);
+static_assert(sizeof(OutboundServiceStatus) <= 56);
 
 }  // namespace
 

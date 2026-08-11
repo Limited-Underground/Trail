@@ -96,10 +96,7 @@ void test_healthy_active_runtime_preserves_stop_action() {
     EXPECT(result.frame.actions[0].action ==
            UiAction::stop_position_sharing);
     const auto applied = apply_position_sharing_action(
-        fixture.scheduler,
-        fixture.runtime.status(),
-        UiAction::stop_position_sharing,
-        1);
+        fixture.runtime, UiAction::stop_position_sharing);
     EXPECT(applied.applied());
     EXPECT(applied.state_changed);
 }
@@ -150,10 +147,7 @@ void test_previously_resolved_start_is_rejected_after_fault() {
     EXPECT(!fixture.runtime.service().serviced());
     const auto before = fixture.scheduler.status().start_attempts;
     const auto rejected = apply_position_sharing_action(
-        fixture.scheduler,
-        fixture.runtime.status(),
-        resolved.action,
-        10);
+        fixture.runtime, resolved.action);
     EXPECT(rejected.error == PositionSharingControlError::outbound_faulted);
     EXPECT(!rejected.state_changed);
     EXPECT(fixture.scheduler.status().start_attempts == before);
@@ -183,10 +177,7 @@ void test_direct_start_is_rejected_without_scheduler_mutation() {
     EXPECT(!fixture.runtime.service().serviced());
     const auto before = fixture.scheduler.status();
     const auto result = apply_position_sharing_action(
-        fixture.scheduler,
-        fixture.runtime.status(),
-        UiAction::start_position_sharing,
-        100);
+        fixture.runtime, UiAction::start_position_sharing);
     EXPECT(result.error == PositionSharingControlError::outbound_faulted);
     EXPECT(!result.state_changed);
     EXPECT(fixture.scheduler.status().start_attempts == before.start_attempts);
@@ -199,10 +190,7 @@ void test_stop_remains_safe_and_idempotent_after_fault() {
     EXPECT(fixture.clock_source.enqueue_failure());
     EXPECT(!fixture.runtime.service().serviced());
     const auto result = apply_position_sharing_action(
-        fixture.scheduler,
-        fixture.runtime.status(),
-        UiAction::stop_position_sharing,
-        100);
+        fixture.runtime, UiAction::stop_position_sharing);
     EXPECT(result.applied());
     EXPECT(!result.state_changed);
     EXPECT(!fixture.scheduler.status().active);
@@ -218,23 +206,6 @@ void test_incoherent_runtime_status_fails_closed() {
     EXPECT(result.error ==
            PositionSharingPresentationError::invalid_outbound_status);
     expect_fault_frame(result, 8);
-    EXPECT(apply_position_sharing_action(
-               fixture.scheduler,
-               invalid,
-               UiAction::start_position_sharing,
-               0)
-               .error == PositionSharingControlError::invalid_outbound_status);
-
-    EXPECT(fixture.scheduler.start(0) ==
-           PositionBroadcastScheduleError::none);
-    const auto stopped = apply_position_sharing_action(
-        fixture.scheduler,
-        invalid,
-        UiAction::stop_position_sharing,
-        0);
-    EXPECT(stopped.applied());
-    EXPECT(stopped.state_changed);
-    EXPECT(!fixture.scheduler.status().active);
 }
 
 void test_invalid_revision_and_unknown_clock_state_fail_closed() {

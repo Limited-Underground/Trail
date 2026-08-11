@@ -142,6 +142,13 @@ failure does not block already queued messaging, and handoff failure does not
 block already accepted delivery work. This is not a target task, synchronization
 primitive, inbound receiver, UI-input loop, or physical driver composition.
 
+The same coordinator owns target-facing position commands. Start reads the
+checked clock when the action is applied and passes only that exact successful
+value to the scheduler. Temporary not-ready reaches no scheduler; rollback or
+source failure stops sharing and latches the coordinator. Stop is immediate and
+does not access the clock. The target-facing UI adapter therefore accepts no
+caller-supplied timestamp.
+
 Target-facing position presentation must combine scheduler state with the
 outbound coordinator status. A coherent latched clock rollback/source failure
 overrides the scheduler's stopped state with a critical no-action frame, while
@@ -149,8 +156,8 @@ incoherent runtime/scheduler combinations also fail closed. Start is rejected
 against that latched status even if it was resolved from a previously displayed
 healthy revision; stop remains safe and idempotent. The lower-level scheduler-
 only mapping remains a host component, not sufficient target composition by
-itself. Action-time checked-clock sampling, frame publication scheduling, and
-physical rendering/input remain target gates.
+itself. Target synchronization, frame publication scheduling, and physical
+rendering/input remain gates.
 
 A separate host-tested position-sharing control adapter maps scheduler state to
 the existing semantic local-interface boundary. It exposes start only while
