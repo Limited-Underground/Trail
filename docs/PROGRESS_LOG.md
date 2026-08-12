@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-11
 
+### Read-only active map trust-domain boot
+
+- Added the restart boundary for an already-active stable trust domain. It
+  requires exact agreement among the active `OTMD/v0` record, protected domain
+  and accepted generation, stable `OTM0/v0` selector, policy, and supplied
+  package evidence.
+- Fixed the read order at domain, protected source, private selector restore,
+  domain recheck, exact selector recheck, protected-source recheck, then live
+  publication. Boot has no domain/selector write, repair, erase, or protected-
+  mutation authority.
+- Added thirteen deterministic groups covering fresh/replacement boot,
+  degraded exact records, invalid or incomplete state, rollback/ahead evidence,
+  trial refusal, read failures, and domain/selector/source races. All twenty-
+  three map suites pass 100/100 focused repeats, and the complete 81-executable
+  host matrix passes locally including publication safety. Candidate/trial/
+  fallback/cleanup domain synchronization and physical target boot remain open.
+
 ### Recoverable stable map trust-domain activation
 
 - Added the stable-baseline activation coordinator for a provisioned pending

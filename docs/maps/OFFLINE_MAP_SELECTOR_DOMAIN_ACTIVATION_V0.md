@@ -90,11 +90,13 @@ reapply, pending and already-active domain-commit recovery, active restart,
 wrong package/source refusal, selector races, source readback/final change, and
 domain readback failure.
 
-All twenty-two map suites pass 100/100 focused repeats, and the complete
-80-executable host matrix passes under strict C++17 warnings-as-errors.
+All twenty-three map suites pass 100/100 focused repeats, and the complete
+81-executable host matrix passes under strict C++17 warnings-as-errors.
 
 This is stable-baseline lifecycle evidence only. It does not bind a real secure
 domain generator, physical continuity decision, credential/audit backend,
 protected rollback-resistant storage, ESP-IDF task/lock, package filesystem,
 power-cut behavior, or rendered map. Domain-aware trial/candidate/runtime
-generation maintenance remains a separate later composition.
+generation maintenance remains a separate later composition. The
+[active-domain boot coordinator](OFFLINE_MAP_SELECTOR_DOMAIN_BOOT_V0.md)
+now supplies read-only restart for the exact stable active state.

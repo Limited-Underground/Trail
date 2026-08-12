@@ -66,10 +66,11 @@ rollback shortcut.
   a generation-1 or retired-floor-plus-one selector, atomically advances the
   exact protected domain, marks the domain active, rechecks every durable fact,
   and only then exposes the baseline map. It resumes each committed intermediate
-  state without lowering or rebinding protected history. Active-domain boot and
-  candidate/trial/fallback/cleanup synchronization, protected target/credential/
-  continuity backends, and physical evidence remain required before complete
-  on-device domain operation.
+  state without lowering or rebinding protected history. Stable active-domain
+  boot now rereads domain, selector, and protected state without mutation before
+  exposure. Candidate/trial/fallback/cleanup synchronization, protected target/
+  credential/continuity backends, and physical evidence remain required before
+  complete on-device domain operation.
 - A future new-device provisioner must establish a fresh domain and cannot
   silently import another device's selector.
 - Radio, messaging, alerts, position sharing, OpenGauge integration, and USB

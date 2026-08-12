@@ -94,8 +94,8 @@ uncertainty, selector-clear failure, source failure and exact pending retry,
 applied-then-failed recovery without reapply, selector races, and protected
 readback mismatch.
 
-All twenty-two map suites pass 100/100 focused repeats, and the complete
-80-executable host matrix passes under strict C++17 warnings-as-errors.
+All twenty-three map suites pass 100/100 focused repeats, and the complete
+81-executable host matrix passes under strict C++17 warnings-as-errors.
 
 This proves common-code ordering and deterministic recovery decisions only.
 The target still needs independently evidenced continuity and blank-source

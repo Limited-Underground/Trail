@@ -476,9 +476,13 @@ uses selector generation 1 for fresh commissioning or exactly retired-floor-
 plus-one for replacement, then persists selector, advances the exact protected
 domain/generation, marks `OTMD/v0` active, and publishes only after final
 agreement. Pending selector/source/domain steps and an exact already-active
-stable baseline are restart-resumable. Fourteen groups pass; domain-aware
-candidate/trial/runtime maintenance, protected target adapters, task locking,
-and physical durability remain separate gates.
+stable baseline are restart-resumable. Fourteen groups pass. The separate
+[active trust-domain boot coordinator](maps/OFFLINE_MAP_SELECTOR_DOMAIN_BOOT_V0.md)
+then requires exact active-domain, protected-source, stable-selector, policy,
+and package agreement; it rereads all three durable owners before publishing
+and has no mutation authority. Thirteen groups pass; domain-aware candidate/
+trial/runtime maintenance, protected target adapters, task locking, and
+physical durability remain separate gates.
 
 The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
 can mint that non-copyable, single-use permit only after an injected local-
