@@ -11,6 +11,7 @@ namespace opentrail::maps {
 
 enum class MapSelectorDomainTrialBootState : std::uint8_t {
     rejected = 0,
+    active_ready,
     trial_ready,
     fallback_required,
     service_required,
@@ -92,7 +93,8 @@ struct MapSelectorDomainTrialBootResult {
     bool reconciliation_required{false};
 
     [[nodiscard]] constexpr bool completed() const {
-        return (state == MapSelectorDomainTrialBootState::trial_ready ||
+        return (state == MapSelectorDomainTrialBootState::active_ready ||
+                state == MapSelectorDomainTrialBootState::trial_ready ||
                 state ==
                     MapSelectorDomainTrialBootState::fallback_required) &&
                selector_booted && protected_source_verified &&
@@ -102,11 +104,12 @@ struct MapSelectorDomainTrialBootResult {
 };
 
 // Restart-safe composition for an active domain whose selector contains a
-// trial or fallback-required checkpoint. It accepts only the committed
-// baseline or the single-generation gaps that candidate entry and this boot
-// can leave after interruption. Selector persistence precedes protected-source
-// advance, which precedes the OTMD accepted-generation advance. Nothing is
-// published until all three boundaries reconcile exactly.
+// trial, fallback-required, or active runtime-transition checkpoint. It
+// accepts only the committed baseline or the single-generation gaps that
+// candidate entry, this boot, or a domain-aware runtime transition can leave
+// after interruption. Selector persistence precedes protected-source advance,
+// which precedes the OTMD accepted-generation advance. Nothing is published
+// until all three boundaries reconcile exactly.
 class MapSelectorDomainTrialBootCoordinator final {
 public:
     MapSelectorDomainTrialBootCoordinator(

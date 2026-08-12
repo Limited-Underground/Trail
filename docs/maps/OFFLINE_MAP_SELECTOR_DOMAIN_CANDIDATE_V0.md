@@ -87,11 +87,11 @@ failed protected advance, protected readback failure/mismatch, domain write and
 uncertain-commit failure, final domain/selector/source changes, and degraded-
 domain successor repair.
 
-All twenty-five map suites pass 100/100 focused repeats, and the complete
-83-executable host matrix passes under strict C++17 warnings-as-errors.
+All twenty-six map suites pass 100/100 focused repeats, and the complete
+84-executable host matrix passes under strict C++17 warnings-as-errors.
 
-This is host common-code evidence only. Domain-aware trial boot/recovery is now
-a separate composition. Healthy promotion, fallback completion, previous-
-package cleanup, and later candidate cycles remain open. Protected rollback-resistant storage, authenticated
+This is host common-code evidence only. Domain-aware trial boot/recovery and
+healthy promotion, fallback completion, and previous-package cleanup are now
+separate compositions. Later candidate cycles remain open. Protected rollback-resistant storage, authenticated
 integrity, target locks/tasks, physical package retention, power interruption,
 wear, rendering, and on-device transitions remain unproved.

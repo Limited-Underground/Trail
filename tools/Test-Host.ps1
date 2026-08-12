@@ -771,6 +771,22 @@ $builds = @(
         )
     },
     @{
+        Name = 'domain-aware map selector runtime transitions'
+        Output = Join-Path $buildDirectory 'map_selector_domain_transition_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_activation_guard.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_checkpoint.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_boot.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_transition.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_record.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_trial_boot.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_transition.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_domain_transition_tests.cpp')
+        )
+    },
+    @{
         Name = 'map selector protected trusted boot coordinator'
         Output = Join-Path $buildDirectory 'map_selector_trusted_boot_tests.exe'
         Sources = @(

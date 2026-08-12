@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-11
+Status date: 2026-08-12
 
 ## Conceptual goals
 
@@ -298,8 +298,8 @@ selector, marks `OTMD/v0` active, rechecks protected state, and only then
 publishes the map. Pending selector/source/domain steps and an already-active
 exact stable baseline can resume after restart, including applied-then-failed
 advance or domain-commit calls. Fourteen groups pass. Domain-aware candidate
-entry is now separate; trial boot, fallback, cleanup, and ordinary later
-active-generation maintenance remain open. No protected target backend or
+entry is separate; later paragraphs record the trial boot and runtime
+transition boundaries that build on it. No protected target backend or
 physical result exists.
 
 The read-only active trust-domain boot coordinator now restores a stable map
@@ -309,8 +309,8 @@ It keeps restoration private, rereads the domain record, exactly reverifies the
 selector, rereads protected state, and only then publishes. Missing, pending,
 unreadable, rollback, ahead, changed, trial, or mismatched evidence stays
 mapless. It never writes, repairs, erases, or mutates protected state. Thirteen
-groups pass; domain-aware candidate entry is now separate, while trial boot,
-fallback, cleanup, and physical target boot remain open.
+groups pass; domain-aware candidate entry and later runtime lifecycle work are
+separate, while physical target boot remains open.
 
 The domain-aware candidate coordinator now moves one stable active map into a
 private alternate-slot trial using fixed selector-before-protected-before-domain
@@ -319,19 +319,29 @@ reverifies selector generation `N+1`, atomically advances/readbacks the exact
 protected domain, advances/readbacks `OTMD/v0`'s accepted generation, then
 rechecks all three owners before publication. Safe candidate rejection also
 requires final exact rechecks. Any later failure remains fail-visible mapless
-without rollback. Thirteen groups pass; domain-aware trial boot/recovery,
-is now separate. Promotion, fallback completion, cleanup, and physical target
-transitions remain open.
+without rollback. Thirteen groups pass; domain-aware trial boot/recovery and
+runtime transitions are separate. Physical target transitions remain open.
 
 The domain-aware trial boot coordinator now resumes that private trial and
 reconciles only the exact interruption gaps left by candidate entry or an
-earlier trial boot. It accepts `D=S=G` or selector `G=D+1` with protected
-generation on either side, persists the resumed boot or boot-limit fallback
-privately, advances protected then accepted domain history as needed, and
-rereads all three owners before publication. Unrelated gaps and every uncertain
-post-selector result stay fail-visible mapless. Fourteen groups pass;
-promotion, fallback completion, cleanup, and physical target transitions remain
-open.
+earlier trial boot or runtime transition. It accepts `D=S=G` or selector
+`G=D+1` with protected generation on either side, restores trial, fallback, or
+canonical active state privately, persists resumed trial or boot-limit fallback
+state, advances protected then accepted domain history as needed, and rereads
+all three owners before publication. Unrelated gaps and every uncertain post-
+selector result stay fail-visible mapless. Fourteen groups pass.
+
+The domain-aware runtime transition coordinator now keeps healthy-read progress,
+promotion, deadline/failure fallback, valid fallback completion, and previous-
+package cleanup synchronized across the active `OTMD/v0` record, exact domain-
+bound protected source, and selector store. Volatile and rejected operations
+require unchanged three-owner rechecks. Persistent operations save selector
+generation `N+1`, advance/read back protected history, advance/read back the
+accepted domain generation, and reread all three owners before publication.
+Interrupted promotion and uncertain domain commit recover through the expanded
+boot boundary; invalid fallback evidence retains protected/domain history and
+routes to service instead of first use. Eleven groups pass. Physical target
+transitions remain open.
 
 The selector now has a backend-neutral key/value adapter contract. Fixed
 `ot_state` / `ot_maps` / `otm_sel_a|b` binding, exact 64-byte reads, durable
@@ -342,8 +352,8 @@ partition-wide erase, fixes a local-service authority handoff, and defines the
 physical interruption matrix. No ESP-IDF source, partition table, target
 task/lock, encryption/trusted-generation choice, physical result, or concrete
 service-authentication backend exists.
-All twenty-five map suites pass 100/100 focused repeats, and the complete
-83-executable host matrix passes.
+All twenty-six map suites pass 100/100 focused repeats, and the complete
+84-executable host matrix passes.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -567,7 +577,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 83 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 84 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
@@ -756,10 +766,10 @@ not treated as proof of authorization.
 - `OTMD/v0` now has canonical lifecycle, recoverable abstract-store, permit-
   consuming preparation, and stable-baseline activation evidence through final
   protected/domain readback, exact read-only stable boot, and synchronized
-  candidate entry, and restart-safe trial boot/recovery. The next domain
-  decision is how promotion, fallback completion, and cleanup keep the accepted domain generation
-  synchronized; protected target storage, continuity evidence, secure domain
-  generation, and physical interruption recovery remain open
+  candidate entry, restart-safe trial boot/recovery, and synchronized runtime
+  promotion, fallback completion, and previous-package cleanup. Protected
+  target storage, continuity evidence, secure domain generation, physical
+  package operations, and physical interruption recovery remain open
 - Touchscreen UI framework and distracted-driving/safe-use constraints
 - OpenGauge authenticated on-device transport, peer/key lifecycle, persistent replay/outbox state, failure UX, and direct radio integration; the v0 semantic schema/policy is host-tested and OT-017D/OT-017E supply bounded physical byte and host-component completion evidence
 - Field-session repetition count, movement/terrain profiles, acceptance

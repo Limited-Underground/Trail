@@ -4,6 +4,26 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-12
+
+### Domain-aware map runtime transitions
+
+- Added the runtime boundary after domain-aware trial boot. It handles healthy
+  trial reads and promotion, trial deadline/failure, valid fallback completion,
+  and previous-package cleanup without accepting caller-supplied generations.
+- Fixed the durable order at private selector generation `N+1`, unchanged-domain
+  recheck, exact selector verification, protected-domain advance/readback,
+  selector recheck, `OTMD/v0` accepted-generation save/readback, final
+  three-owner rechecks, then live publication.
+- Expanded restart recovery to canonical active checkpoints left after an
+  interrupted promotion, fallback completion, or cleanup. Invalid fallback
+  evidence retains protected/domain history for service instead of returning
+  to first-use state. Eleven deterministic groups and all twenty-six map suites
+  pass 100/100 focused repeats in the complete 84-executable host matrix,
+  including publication safety. Protected target adapters and locking, physical
+  package operations, interruption/wear, rendering, and on-device evidence
+  remain open.
+
 ## 2026-08-11
 
 ### Restart-safe domain-aware map trial boot

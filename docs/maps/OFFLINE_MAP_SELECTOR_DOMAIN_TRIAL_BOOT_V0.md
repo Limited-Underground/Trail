@@ -11,11 +11,12 @@ It composes the existing private
 [selector boot coordinator](OFFLINE_MAP_SELECTOR_BOOT_COORDINATOR_V0.md) with
 the active `OTMD/v0` lifecycle record and exact domain-bound protected source.
 
-It resumes a trial, persists a boot-limit transition to fallback-required, or
-reconciles the two narrowly defined single-generation gaps left when candidate
-entry or an earlier trial boot was interrupted. It does not promote a healthy
-trial, complete fallback, remove the previous package, transfer package bytes,
-or lower or rebind trust history.
+It resumes a trial, persists a boot-limit transition to fallback-required,
+restores an already-committed active runtime transition, or reconciles the two
+narrowly defined single-generation gaps left when candidate entry, an earlier
+trial boot, or a domain-aware runtime transition was interrupted. It does not
+perform promotion, fallback completion, or previous-package cleanup itself,
+transfer package bytes, or lower or rebind trust history.
 
 ## Accepted starting relationships
 
@@ -35,7 +36,7 @@ operations and therefore stays fail-visible mapless for reconciliation.
 
 ## Durable recovery order
 
-After the read-only relationship check, trial boot uses this order:
+After the read-only relationship check, boot recovery uses this order:
 
 1. restore the trial or fallback checkpoint into a private guard using
    `max(D, S)` as the caller-owned floor;
@@ -52,10 +53,11 @@ After the read-only relationship check, trial boot uses this order:
 7. reread the final domain record, selector, and protected source; and
 8. only then publish the private trial or fallback-required guard.
 
-An already-persisted fallback-required checkpoint at `D = S = G` is restored
-without a selector, protected-source, or domain write. A resumed trial counts
-as another conservative boot attempt even when it also reconciles an earlier
-interruption.
+An already-persisted fallback-required or active checkpoint at `D = S = G` is
+restored without a selector, protected-source, or domain write. Active state
+may retain a previous package pending cleanup or may represent completed
+fallback/cleanup state. A resumed trial counts as another conservative boot
+attempt even when it also reconciles an earlier interruption.
 
 ## Failure and privacy behavior
 
@@ -83,11 +85,13 @@ failed and applied-then-failed protected advance, protected readback mismatch,
 domain write and uncertain-commit failure, final owner changes, degraded-domain
 successor repair, and generation exhaustion.
 
-All twenty-five map suites pass 100/100 focused repeats, and the complete
-83-executable host matrix passes under strict C++17 warnings-as-errors.
+All twenty-six map suites pass 100/100 focused repeats, and the complete
+84-executable host matrix passes under strict C++17 warnings-as-errors.
 
 This is host common-code evidence only. Healthy trial promotion, fallback
-completion, previous-package cleanup, later candidate cycles, protected
+completion, and previous-package cleanup now use the separate
+[domain-aware runtime transition boundary](OFFLINE_MAP_SELECTOR_DOMAIN_TRANSITION_V0.md).
+Later candidate cycles, protected
 rollback-resistant target storage, authenticated integrity, target locks/tasks,
 physical package retention, power interruption, wear, rendering, and on-device
 transitions remain unproved.

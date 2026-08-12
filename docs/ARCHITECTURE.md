@@ -489,9 +489,18 @@ publishes trial state. Thirteen groups pass. The separate
 accepts only synchronized state or an exact single-generation interruption gap,
 persists resumed trial or boot-limit fallback state privately, advances
 protected then accepted domain history as needed, and publishes only after
-final three-owner agreement. Fourteen groups pass; promotion, fallback
-completion, cleanup, protected target adapters, task locking, and physical
-durability remain separate gates.
+final three-owner agreement. It also restores canonical active checkpoints
+left by interrupted runtime transitions. Fourteen groups pass. The separate
+[domain-aware runtime transition coordinator](maps/OFFLINE_MAP_SELECTOR_DOMAIN_TRANSITION_V0.md)
+keeps healthy-read progress, promotion, deadline/failure fallback, valid
+fallback completion, and previous-package cleanup behind the same exact active
+domain. Volatile and rejected operations recheck unchanged durable owners.
+Persistent operations save selector generation `N+1`, advance/read back the
+protected source, advance/read back `OTMD/v0`'s accepted generation, and reread
+all three owners before publication. Invalid fallback evidence can clear only
+selector records; retained protected/domain history routes to service rather
+than first use. Eleven groups pass. Protected target adapters, physical package
+operations, task locking, and physical durability remain separate gates.
 
 The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
 can mint that non-copyable, single-use permit only after an injected local-

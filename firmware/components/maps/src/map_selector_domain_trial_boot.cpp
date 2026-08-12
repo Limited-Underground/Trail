@@ -78,6 +78,12 @@ bool expected_private_state(
         status.staged_generation != 0) {
         return false;
     }
+    if (boot.state == MapSelectorBootState::active_ready) {
+        return status.state == MapActivationState::active &&
+               status.map_available &&
+               status.active_slot != MapSlot::none &&
+               status.active_generation != 0;
+    }
     if (boot.state == MapSelectorBootState::trial_ready) {
         return status.state == MapActivationState::trial &&
                status.map_available && status.active_slot != MapSlot::none &&
@@ -590,9 +596,15 @@ MapSelectorDomainTrialBootCoordinator::boot(
     result.fallback_required =
         result.selector_boot.state ==
         MapSelectorBootState::fallback_required;
-    result.state = result.fallback_required
-                       ? MapSelectorDomainTrialBootState::fallback_required
-                       : MapSelectorDomainTrialBootState::trial_ready;
+    if (result.fallback_required) {
+        result.state =
+            MapSelectorDomainTrialBootState::fallback_required;
+    } else if (result.selector_boot.state ==
+               MapSelectorBootState::active_ready) {
+        result.state = MapSelectorDomainTrialBootState::active_ready;
+    } else {
+        result.state = MapSelectorDomainTrialBootState::trial_ready;
+    }
     result.reason = MapSelectorDomainTrialBootReason::none;
     result.reconciliation_required = false;
     return result;
