@@ -82,7 +82,9 @@ three owners.
   capture/session, upload/retry, and UI work cannot interleave the copy.
 - Measure tuple copy time, stack/RAM use, render latency, and contention on the
   frozen client hardware.
-- Preserve the previous frame during temporary not-ready state and verify the
-  generic warning on source failure through the physical renderer.
+- Compose the host-tested
+  [single-owner archive UI coordinator](BREADCRUMB_ARCHIVE_UI_COORDINATOR_V0.md)
+  with the target source, renderer, and physical display; verify temporary
+  not-ready retention and the generic source-failure warning on hardware.
 - Keep recovery/discard/retention/export/deletion actions separate until their
   authorization and privacy policies are reviewed.

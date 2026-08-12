@@ -347,6 +347,17 @@ $builds = @(
         )
     },
     @{
+        Name = 'single-owner breadcrumb archive UI coordinator'
+        Output = Join-Path $buildDirectory 'breadcrumb_archive_ui_coordinator_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\ui\src\local_interface.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\test_support\fake_local_interface.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\breadcrumb_archive_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\breadcrumb_archive_ui_coordinator.cpp'),
+            (Join-Path $projectRoot 'tests\host\breadcrumb_archive_ui_coordinator_tests.cpp')
+        )
+    },
+    @{
         Name = 'local position sharing privacy control'
         Output = Join-Path $buildDirectory 'position_sharing_control_tests.exe'
         Sources = @(

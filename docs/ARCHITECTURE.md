@@ -195,6 +195,16 @@ interface requires a target implementation to serialize the copy but does not
 provide an ESP-IDF task or lock. See the
 [single-read archive snapshot contract](location/BREADCRUMB_ARCHIVE_SNAPSHOT_V0.md).
 
+A cooperative archive UI coordinator now owns the corresponding semantic-frame
+revisions. Every valid service call takes exactly one fresh serialized snapshot;
+unchanged state consumes no display write or revision, temporary source/display
+unavailability retains the last truthful frame, and failed or incoherent status
+attempts the existing redacted warning. The owner has no capture, outbox,
+upload, storage, input, or radio reference, so optional presentation failure
+cannot control base operation. No target task/lock, renderer, or physical
+display is implemented. See the
+[single-owner archive UI contract](location/BREADCRUMB_ARCHIVE_UI_COORDINATOR_V0.md).
+
 A host-only outbound coordinator now establishes one cooperative service order:
 sample `CheckedMonotonicClock` once, optionally read location only while sharing
 is active, service position scheduling, attempt one priority-to-delivery

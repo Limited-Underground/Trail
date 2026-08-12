@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-12
 
+### Single-owner breadcrumb archive UI coordinator
+
+- Added one cooperative UI owner that performs exactly one complete archive
+  snapshot read per valid service call and owns all semantic-frame revisions.
+- Unchanged state performs no display write and consumes no revision. Temporary
+  snapshot/display unavailability and display failure retain the last truthful
+  frame; recovery retries the same candidate revision after a fresh snapshot.
+- Failed, unknown, or incoherent source state remains the redacted action-free
+  archive warning. Maximum revision permits unchanged service but refuses a
+  changed frame because no strictly newer revision can be represented.
+- Ten deterministic groups plus 100/100 focused repeats and the complete
+  96-executable host matrix pass. No target task/lock, renderer, physical
+  display, resource measurement, or archive/base-radio execution authority was
+  added.
+
 ### Single-read breadcrumb archive status snapshot
 
 - Added one target-facing source contract for a complete capture-session,
