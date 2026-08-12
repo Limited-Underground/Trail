@@ -50,10 +50,11 @@ BreadcrumbArchiveWorkflowCoordinator(
     time::CheckedMonotonicClock& clock,
     ui::CheckedLocalInterface& local_interface,
     std::uint64_t initial_session_id,
+    std::uint64_t final_session_id,
     std::uint32_t initial_revision)
     : runtime_(runtime),
       local_interface_(local_interface),
-      consent_(runtime, clock, initial_session_id) {
+      consent_(runtime, clock, initial_session_id, final_session_id) {
     status_.next_revision = initial_revision;
     if (initial_revision == 0 ||
         initial_revision == std::numeric_limits<std::uint32_t>::max()) {

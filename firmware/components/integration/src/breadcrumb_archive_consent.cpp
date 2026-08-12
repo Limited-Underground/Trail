@@ -48,10 +48,13 @@ make_breadcrumb_archive_consent_presentation(
 BreadcrumbArchiveConsentController::BreadcrumbArchiveConsentController(
     SerializedBreadcrumbArchiveRuntimeOwner& runtime,
     time::CheckedMonotonicClock& clock,
-    std::uint64_t initial_session_id)
+    std::uint64_t initial_session_id,
+    std::uint64_t final_session_id)
     : runtime_(runtime), clock_(clock) {
-    status_.configuration_valid = initial_session_id != 0;
+    status_.configuration_valid =
+        initial_session_id != 0 && initial_session_id <= final_session_id;
     status_.next_session_id = initial_session_id;
+    status_.final_session_id = final_session_id;
 }
 
 BreadcrumbArchiveConsentResult BreadcrumbArchiveConsentController::apply(
@@ -176,8 +179,7 @@ BreadcrumbArchiveConsentController::stop() {
 void BreadcrumbArchiveConsentController::consume_session_id(
     BreadcrumbArchiveConsentResult& result) {
     result.session_id_consumed = true;
-    if (status_.next_session_id ==
-        std::numeric_limits<std::uint64_t>::max()) {
+    if (status_.next_session_id == status_.final_session_id) {
         status_.session_id_exhausted = true;
     } else {
         ++status_.next_session_id;

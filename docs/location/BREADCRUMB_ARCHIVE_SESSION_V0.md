@@ -30,9 +30,11 @@ the radio. A target composition must present the archive state independently.
   sink failure stops or refuses the session visibly.
 
 The same-boot monotonic session rule prevents accidental reuse within this
-object. It is not restart-safe allocation, stable identity, authorization, or
-rollback protection. A future target must obtain session IDs from an approved
-boot/session authority before this can carry private coordinates.
+object. The separate host-tested
+[restart-safe lease store](../persistence/BREADCRUMB_ARCHIVE_SESSION_LEASE_STORE_V0.md)
+now reserves nonoverlapping ranges across restarts, but target composition is
+still absent. Neither boundary supplies stable identity, authorization, secure
+initial entropy, authenticated integrity, or rollback protection.
 
 ## Canonical `OTBA/v0` record
 
@@ -112,8 +114,8 @@ network or remote-durability result.
 
 Before any real-coordinate trial, the optional archive still requires an
 explicit local UI composition, protected authenticated transport, evaluated
-persistent/offline retention, restart-safe session allocation, participant/group
-authority,
+persistent/offline retention, target lease allocation and recovery,
+participant/group authority,
 encrypted remote storage, retention/export/deletion controls, failure/retry
 policy, privacy review, and target/physical evidence. Base messaging and local
 recovery must continue when every archive component is absent or failed.

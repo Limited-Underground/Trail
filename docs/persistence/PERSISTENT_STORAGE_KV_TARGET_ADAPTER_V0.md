@@ -19,6 +19,7 @@ All domains use partition `ot_state`, keys `slot_a` and `slot_b`, and exact
 | secret material | `ot_secret` |
 | protocol state | `ot_proto` |
 | outbound-counter state | `ot_counter` |
+| breadcrumb archive state | `ot_archive` |
 
 Every identifier fits the ESP-IDF NVS 15-character limit. This naming prevents
 accidental key collision; it does not make any namespace confidential,
@@ -47,7 +48,10 @@ restart rotation and both unapplied and applied-then-failed commits without
 returning an uncertain counter range. The real ACK boot-session allocator has
 an independent [protocol-state proof](ACK_RESPONDER_SESSION_KV_COMPOSITION_V0.md)
 covering the same restart/uncertainty boundary plus explicit durable reset and
-reseed through `ot_proto`.
+reseed through `ot_proto`. The restart-safe breadcrumb archive session allocator
+has an independent [archive-lease proof](BREADCRUMB_ARCHIVE_SESSION_LEASE_STORE_V0.md)
+covering nonoverlapping range reservation, restart rotation, both ambiguous
+commit outcomes, and exact `ot_archive` isolation.
 
 ## Remaining target obligations
 
@@ -56,10 +60,10 @@ rejection, missing/present/wrong-sized reads, erase/partial-write/sync ordering,
 idempotent missing erase, erase-before-write and bit-clearing enforcement,
 fail-latched backend errors, applied-then-failed commit discovery, physical
 namespace separation, real configuration rotation, and final-commit restart
-recovery. Separate five-group counter and six-group ACK-session composition
-suites exercise real upper stores through this adapter and pass 100/100 repeats
-each. The complete 90-executable host matrix passes under strict C++17 warnings-as-errors
-including publication safety.
+recovery. Separate five-group counter, six-group ACK-session, and five-group
+archive-lease composition suites exercise real upper stores through this
+adapter and pass 100/100 repeats each. The complete 102-executable host matrix
+passes under strict C++17 warnings-as-errors including publication safety.
 
 The backend owns initialization, handles, locking, native error translation,
 namespace access policy, flash encryption, and evidence that commit survives

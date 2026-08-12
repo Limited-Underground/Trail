@@ -36,9 +36,14 @@ The parent application owns initial entry to this optional page and must replace
 its frame after `exit_requested`. Re-entry into the same boot-lived coordinator
 requires `open_archive_controls` already resolved against the exact active
 parent-frame revision. The coordinator resumes at the next revision without
-resetting its session allocator. A complete parent navigation owner is not yet
-implemented. Merely scheduling or entering this workflow cannot Start an
-archive because a second revision-matched local hold is still required.
+resetting its cursor inside the caller-supplied durable session-ID range. The
+range must come from the
+[restart-safe lease store](../persistence/BREADCRUMB_ARCHIVE_SESSION_LEASE_STORE_V0.md)
+before construction. The workflow refuses Start after the inclusive final ID;
+it does not allocate, wrap, or reuse a range. A complete parent navigation
+owner is not yet implemented. Merely scheduling or entering this workflow
+cannot Start an archive because a second revision-matched local hold is still
+required.
 
 ## Ordering and deferral
 
@@ -98,17 +103,18 @@ Fourteen deterministic scenario groups plus 100/100 focused repeats cover:
 13. exact-parent-revision re-entry preserving the session allocator; and
 14. invalid/exhausted revision containment.
 
-The complete 100-executable host matrix and Python evidence checks pass. This
+The complete 102-executable host matrix and Python evidence checks pass. This
 is deterministic host evidence, not rendered wording/layout, physical
 button/touch behavior, target concurrency, memory/latency/power measurement,
-persistent session identity, server behavior, or field proof.
+target lease/workflow composition, server behavior, or field proof.
 
 ## Next gates
 
 - Add a parent local navigation owner that enters/exits this optional page
   without making archive service a base-client requirement.
-- Add a restart-safe non-identifying session allocator or document why
-  boot-local ordering is sufficient for the selected archive protocol.
+- Compose a successfully committed non-identifying session lease before
+  constructing this workflow; allocation/recovery failure must leave Start
+  unavailable without affecting base messaging.
 - Bind one reviewed ESP-IDF synchronization primitive and prove all archive
   capture/upload/snapshot/control calls use it under concurrent stress.
 - Render and physically evaluate consent wording, active-state visibility,

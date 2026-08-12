@@ -154,8 +154,9 @@ public:
             kPersistentKvConfigurationNamespace,
             kPersistentKvSecretNamespace,
             kPersistentKvProtocolNamespace,
-            kPersistentKvCounterNamespace};
-        for (int index = 0; index < 4; ++index) {
+            kPersistentKvCounterNamespace,
+            kPersistentKvArchiveNamespace};
+        for (int index = 0; index < 5; ++index) {
             if (std::strcmp(namespace_name, names[index]) == 0) {
                 return index;
             }
@@ -197,9 +198,9 @@ public:
 
     std::array<
         std::array<std::array<std::uint8_t, kPersistentSlotBytes>, 2>,
-        4> durable{};
-    std::array<std::array<bool, 2>, 4> present{};
-    std::array<std::array<std::size_t, 2>, 4> sizes{};
+        kStorageDomainCount> durable{};
+    std::array<std::array<bool, 2>, kStorageDomainCount> present{};
+    std::array<std::array<std::size_t, 2>, kStorageDomainCount> sizes{};
     std::array<std::uint8_t, kPersistentSlotBytes> pending_bytes{};
     Pending pending{Pending::none};
     int pending_domain{-1};
@@ -246,12 +247,14 @@ void test_fixed_domain_names_are_bounded_and_distinct() {
     EXPECT(std::strcmp(kPersistentKvSecretNamespace, "ot_secret") == 0);
     EXPECT(std::strcmp(kPersistentKvProtocolNamespace, "ot_proto") == 0);
     EXPECT(std::strcmp(kPersistentKvCounterNamespace, "ot_counter") == 0);
+    EXPECT(std::strcmp(kPersistentKvArchiveNamespace, "ot_archive") == 0);
     EXPECT(std::strcmp(kPersistentKvSlotAKey, "slot_a") == 0);
     EXPECT(std::strcmp(kPersistentKvSlotBKey, "slot_b") == 0);
     EXPECT(std::strcmp(
                kPersistentKvConfigurationNamespace,
                kPersistentKvSecretNamespace) != 0);
     EXPECT(std::strlen(kPersistentKvCounterNamespace) <= 15);
+    EXPECT(std::strlen(kPersistentKvArchiveNamespace) <= 15);
 }
 
 void test_public_arguments_fail_before_backend_io() {

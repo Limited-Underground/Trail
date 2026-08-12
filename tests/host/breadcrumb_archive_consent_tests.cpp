@@ -70,8 +70,11 @@ struct Fixture {
         clock, remote, {1'000, 100}, {10, 80}, lock};
     BreadcrumbArchiveConsentController consent;
 
-    explicit Fixture(std::uint64_t initial_session_id = 1)
-        : consent(runtime, clock, initial_session_id) {}
+    explicit Fixture(
+        std::uint64_t initial_session_id = 1,
+        std::uint64_t final_session_id =
+            std::numeric_limits<std::uint64_t>::max())
+        : consent(runtime, clock, initial_session_id, final_session_id) {}
 };
 
 ResolvedAction resolved(UiAction action, std::uint32_t revision = 1) {
@@ -272,12 +275,41 @@ void test_uncertain_or_exhausted_session_id_never_reuses_value() {
            BreadcrumbArchiveConsentError::invalid_initial_session_id);
 }
 
+void test_durable_lease_limit_is_never_crossed_or_reused() {
+    Fixture fixture{100, 101};
+    EXPECT(fixture.clock_source.enqueue_time(10));
+    const auto first = fixture.consent.apply(
+        resolved(UiAction::confirm_archive_start));
+    EXPECT(first.disposition == BreadcrumbArchiveConsentDisposition::started);
+    EXPECT(first.session_id == 100);
+    EXPECT(fixture.consent.apply(resolved(UiAction::stop_archive)).disposition ==
+           BreadcrumbArchiveConsentDisposition::stopped);
+
+    EXPECT(fixture.clock_source.enqueue_time(20));
+    const auto final = fixture.consent.apply(
+        resolved(UiAction::confirm_archive_start, 2));
+    EXPECT(final.disposition == BreadcrumbArchiveConsentDisposition::started);
+    EXPECT(final.session_id == 101);
+    EXPECT(fixture.consent.status().session_id_exhausted);
+    EXPECT(fixture.consent.status().final_session_id == 101);
+
+    const auto reads = fixture.clock_source.read_count();
+    const auto exhausted = fixture.consent.apply(
+        resolved(UiAction::confirm_archive_start, 3));
+    EXPECT(exhausted.error ==
+           BreadcrumbArchiveConsentError::session_id_exhausted);
+    EXPECT(fixture.clock_source.read_count() == reads);
+
+    Fixture invalid_range{2, 1};
+    EXPECT(!invalid_range.consent.status().configuration_valid);
+}
+
 static_assert(std::is_trivially_copyable_v<
               BreadcrumbArchiveConsentPresentation>);
 static_assert(std::is_trivially_copyable_v<BreadcrumbArchiveConsentResult>);
 static_assert(std::is_trivially_copyable_v<BreadcrumbArchiveConsentStatus>);
 static_assert(sizeof(BreadcrumbArchiveConsentResult) <= 128);
-static_assert(sizeof(BreadcrumbArchiveConsentStatus) <= 48);
+static_assert(sizeof(BreadcrumbArchiveConsentStatus) <= 64);
 
 }  // namespace
 
@@ -292,12 +324,13 @@ int main() {
     test_clock_not_ready_or_failure_never_reaches_runtime();
     test_runtime_contention_preserves_candidate_for_explicit_retry();
     test_uncertain_or_exhausted_session_id_never_reuses_value();
+    test_durable_lease_limit_is_never_crossed_or_reused();
 
     if (failures != 0) {
         std::cerr << failures
                   << " breadcrumb archive consent assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 10 breadcrumb archive consent scenario groups\n";
+    std::cout << "PASS: 11 breadcrumb archive consent scenario groups\n";
     return EXIT_SUCCESS;
 }

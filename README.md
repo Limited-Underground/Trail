@@ -13,8 +13,8 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, and bounded close-range bench proofs |
-| Latest increment | [Complete local archive workflow](docs/location/BREADCRUMB_ARCHIVE_WORKFLOW_COORDINATOR_V0.md): one revision owner binds snapshot-backed controls, Start/Stop confirmation, Cancel, consent, and privacy-safe post-action refresh |
-| Proven so far | A 100-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited transport, soak, burst, and alert/acknowledgement tests |
+| Latest increment | [Restart-safe archive session leases](docs/persistence/BREADCRUMB_ARCHIVE_SESSION_LEASE_STORE_V0.md): each boot durably reserves a nonoverlapping ID range before local consent may Start capture |
+| Proven so far | A 102-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited transport, soak, burst, and alert/acknowledgement tests |
 | Planned first release | Up to eight active clients in one group with at most one optional authorized repeater |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, physical GPS/UI, field range, power endurance, or regulatory acceptance |
 

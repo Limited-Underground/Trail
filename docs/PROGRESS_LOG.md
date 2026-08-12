@@ -6,6 +6,25 @@ public chronology.
 
 ## 2026-08-12
 
+### Restart-safe breadcrumb archive session leases
+
+- Added a two-slot, 64-byte, commit-last `OTBL/v1` store that durably reserves
+  an inclusive nonoverlapping session-ID range before any ID is returned.
+  Unused IDs are abandoned on reboot; a committed-but-uncertain range is
+  skipped rather than reused.
+- Isolated the record in a fifth persistent-storage domain and exact
+  `ot_archive` key/value namespace. The record contains only generation and
+  range bounds—no participant, device, group, location, endpoint, account,
+  credential, or key identity.
+- Tightened local consent and the complete workflow to require explicit
+  first/final lease bounds. Start refuses to cross the final ID and never wraps
+  or silently allocates another range.
+- Nine store groups, five real key/value-composition groups, the eleven-group
+  consent suite, 100/100 focused repeats, and the complete 102-executable host
+  matrix pass. ESP-IDF/NVS binding, secure blank-state entropy, authenticated
+  integrity/rollback resistance, recovery UX, target boot composition,
+  physical interruption, and on-device evidence remain.
+
 ### Complete local breadcrumb archive workflow
 
 - Added one cooperative revision owner for snapshot-backed archive controls,
@@ -19,9 +38,10 @@ public chronology.
   successful Start, the coordinator attempts Stop and latches the workflow;
   revision exhaustion also fails privacy-safe by stopping.
 - Fourteen deterministic groups plus 100/100 focused repeats and the complete
-  100-executable host matrix pass. A parent menu/navigation owner, renderer,
-  physical input, restart-safe session allocation, ESP-IDF binding, concurrent
-  target stress, and on-device evidence remain.
+  102-executable host matrix pass. The workflow now requires explicit durable
+  session-range bounds and refuses to cross the inclusive final ID. A parent
+  menu/navigation owner, renderer, physical input, target lease composition,
+  ESP-IDF binding, concurrent target stress, and on-device evidence remain.
 
 ### Revision-bound local breadcrumb archive consent
 
@@ -31,13 +51,14 @@ public chronology.
 - The controller accepts only an already resolved local action. Stale, cancel,
   unsupported, failed-input, and clock-failed paths make no archive runtime
   call; Stop remains clock-independent for privacy control.
-- Confirmed Start uses one checked monotonic sample and one nonzero boot-local
-  session sequence. Contention preserves the candidate for a new explicit hold;
-  uncertain post-operation state consumes it so it cannot be reused.
-- Ten deterministic groups plus 100/100 focused repeats pass within the current
-  100-executable host matrix. No radio/server/automatic start input, renderer,
-  physical input, restart-safe allocator, ESP-IDF binding, or on-device
-  evidence exists.
+- Confirmed Start uses one checked monotonic sample and one nonzero ID inside
+  its explicit inclusive lease. Contention preserves the candidate for a new
+  explicit hold; uncertain post-operation state consumes it so it cannot be
+  reused, and the final lease ID permanently exhausts that controller.
+- Eleven deterministic groups plus 100/100 focused repeats pass within the
+  current 102-executable host matrix. No radio/server/automatic start input,
+  renderer, physical input, target lease composition, ESP-IDF binding, or
+  on-device evidence exists.
 
 ### Private serialized breadcrumb archive runtime owner
 
@@ -155,7 +176,7 @@ public chronology.
 - Added a fixed-memory client-side archive session that composes the existing
   explicit position scheduler with an injected nonblocking transport while
   remaining separate from base radio operation.
-- Fixed canonical `OTBA/v0` at 56 bytes: opaque same-boot session ID,
+- Fixed canonical `OTBA/v0` at 56 bytes: opaque nonzero session ID,
   session-local sequence, boot-local capture time, the existing exact 16-byte
   current-position payload, canonical reserves, and CRC-32.
 - Required strictly increasing nonzero session IDs within one object lifetime;

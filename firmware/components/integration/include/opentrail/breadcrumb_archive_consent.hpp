@@ -72,6 +72,7 @@ struct BreadcrumbArchiveConsentStatus {
     bool configuration_valid{false};
     bool session_id_exhausted{false};
     std::uint64_t next_session_id{0};
+    std::uint64_t final_session_id{0};
     std::uint32_t action_calls{0};
     std::uint32_t started{0};
     std::uint32_t stopped{0};
@@ -88,7 +89,8 @@ public:
     BreadcrumbArchiveConsentController(
         SerializedBreadcrumbArchiveRuntimeOwner& runtime,
         time::CheckedMonotonicClock& clock,
-        std::uint64_t initial_session_id = 1);
+        std::uint64_t initial_session_id,
+        std::uint64_t final_session_id);
 
     [[nodiscard]] BreadcrumbArchiveConsentResult apply(
         const ui::ResolvedAction& action);

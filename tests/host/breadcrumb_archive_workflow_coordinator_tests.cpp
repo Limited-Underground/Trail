@@ -70,11 +70,14 @@ struct Fixture {
     BreadcrumbArchiveWorkflowCoordinator coordinator;
 
     Fixture(std::uint64_t initial_session_id = 1,
+            std::uint64_t final_session_id =
+                std::numeric_limits<std::uint64_t>::max(),
             std::uint32_t initial_revision = 1)
         : coordinator(runtime,
                       clock,
                       local,
                       initial_session_id,
+                      final_session_id,
                       initial_revision) {}
 };
 
@@ -340,19 +343,29 @@ void test_local_parent_reentry_preserves_session_allocator() {
 }
 
 void test_invalid_or_exhausted_revision_fails_before_action() {
-    Fixture zero{1, 0};
+    const auto maximum_session =
+        std::numeric_limits<std::uint64_t>::max();
+    Fixture invalid_lease{2, 1};
+    EXPECT(invalid_lease.coordinator.service().error ==
+           BreadcrumbArchiveWorkflowError::invalid_initial_session_id);
+    EXPECT(invalid_lease.lock.acquire_calls == 0);
+
+    Fixture zero{1, maximum_session, 0};
     EXPECT(zero.coordinator.service().error ==
            BreadcrumbArchiveWorkflowError::invalid_initial_revision);
     EXPECT(zero.lock.acquire_calls == 0);
 
-    Fixture maximum{1, std::numeric_limits<std::uint32_t>::max()};
+    Fixture maximum{
+        1,
+        maximum_session,
+        std::numeric_limits<std::uint32_t>::max()};
     EXPECT(maximum.coordinator.service().error ==
            BreadcrumbArchiveWorkflowError::invalid_initial_revision);
     EXPECT(maximum.lock.acquire_calls == 0);
 
     const auto near_maximum =
         std::numeric_limits<std::uint32_t>::max() - 1;
-    Fixture exhausted{1, near_maximum};
+    Fixture exhausted{1, maximum_session, near_maximum};
     EXPECT(exhausted.clock_source.enqueue_time(10));
     EXPECT(exhausted.runtime.start_capture(1, 10).completed());
     EXPECT(exhausted.coordinator.service().revision == near_maximum);

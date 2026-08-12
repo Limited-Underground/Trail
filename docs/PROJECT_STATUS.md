@@ -33,7 +33,7 @@ public repository.
 
 The optional archive now has a host-tested client-side session boundary rather
 than only a concept. Explicit start/stop controls the existing current-fix-only
-scheduler; one exact 56-byte `OTBA/v0` record carries only an opaque same-boot
+scheduler; one exact 56-byte `OTBA/v0` record carries only an opaque nonzero
 session ID, accepted-record sequence, boot-local capture time, the canonical
 16-byte current-position payload, reserves, and CRC-32. Session IDs must
 increase during one object lifetime, and sequence advances only after local
@@ -110,13 +110,14 @@ on-device measurements remain.
 Archive execution now has a revision-bound local-only consent boundary. The
 canonical Start confirmation requires a hold and exact active frame revision;
 Stop is immediate and clock-independent from its own exact confirmation frame.
-Start alone reads checked time and allocates a nonzero boot-local session ID;
-temporary clock/lock unavailability defers without mutation, while uncertain
-post-operation state consumes the ID so it cannot be reused. Stale, cancel,
-wrong-screen, unsupported, and failed-input paths make no archive call. Ten
-groups plus 100/100 focused repeats pass. Rendered consent, parent navigation,
-physical input, restart-safe allocation, ESP-IDF composition, and on-device
-evidence remain.
+Start alone reads checked time and consumes a nonzero session ID inside an
+explicit caller-supplied inclusive range. Temporary clock/lock unavailability
+defers without mutation, while uncertain post-operation state consumes the ID
+so it cannot be reused; the final lease ID permanently exhausts that
+controller. Stale, cancel, wrong-screen, unsupported, and failed-input paths
+make no archive call. Eleven groups plus 100/100 focused repeats pass. Rendered
+consent, parent navigation, physical input, target lease composition, ESP-IDF
+composition, and on-device evidence remain.
 
 One complete local workflow now composes that consent boundary with the private
 serialized runtime and a snapshot-backed archive controls screen. A coherent
@@ -127,10 +128,23 @@ remains immediate, Cancel mutates no runtime state, and each completed action
 must publish a newer truthful control frame. Failed post-Start refresh and
 revision exhaustion attempt privacy-safe Stop and latch. This remains host
 common code. Re-entry requires an exact-parent-revision local action and keeps
-the same boot session allocator, but complete parent navigation, renderer,
-physical controls, ESP-IDF binding, concurrent target stress, restart-safe
-session allocation, and device evidence are absent. See the
+the same cursor inside the precommitted range, but complete parent navigation,
+renderer, physical controls, target lease composition, ESP-IDF binding,
+concurrent target stress, and device evidence are absent. See the
 [complete archive workflow](location/BREADCRUMB_ARCHIVE_WORKFLOW_COORDINATOR_V0.md).
+
+A restart-safe non-identifying archive session lease store now reserves an
+entire inclusive ID range before the workflow may use its first value. Exact
+64-byte `OTBL/v1` records alternate across two commit-last slots in a separate
+`breadcrumb_archive_state` / `ot_archive` persistence domain. A later boot
+starts after the last committed final ID, abandoning unused or
+committed-but-uncertain values rather than reusing them. Nine store groups,
+five real key/value-composition groups, consent range exhaustion, and 100/100
+focused repeats pass. The record carries no participant/device/group/location/
+endpoint/account identity. Secure blank-state entropy, ESP-IDF/NVS binding,
+authenticated integrity, rollback resistance, recovery UX, target boot
+composition, physical interruption, and on-device durability remain absent.
+See the [archive session lease store](persistence/BREADCRUMB_ARCHIVE_SESSION_LEASE_STORE_V0.md).
 
 A host-only archive UI coordinator now owns display revisions around that
 single-read source. Every valid cooperative service call takes exactly one new
@@ -711,14 +725,15 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AE records the target-shaped cross-project recovery boundary as implemented host plumbing rather than a plan-only gap. The backend-neutral `ORS0` key/value adapter and real boot/save composition pass thirteen groups, 100/100 repeats, and the complete public 43-executable matrix. OpenTrail still has no exact ESP-IDF backend, protected key/trust source, physical interruption, or on-device composition.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 100 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 102 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, opt-in breadcrumb archive sessions,
   bounded outbox/durable-ack handoff, checked-time retry, privacy-safe archive
   presentation, single-read archive status capture, serialized archive snapshot
   adapter, private serialized archive runtime owner, revision-bound local
-  archive consent, complete local archive workflow, single-owner archive UI,
+  archive consent, complete local archive workflow, restart-safe archive
+  session leases and their key/value composition, single-owner archive UI,
   loss-aware priority-to-delivery
   handoff, checked-time outbound service coordination, fail-visible outbound
   position safety, checked-time position commands, single-owner position UI,
@@ -732,8 +747,8 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
   domain-aware candidate entry, restart-safe trial boot, domain-aware runtime
   transitions, update checkpoint, duplicate checkpoint, and multi-domain
   persistent key/value storage, non-erasable map trust-domain key/value
-  storage, outbound-counter key/value composition, and ACK-session key/value
-  composition,
+  storage, outbound-counter key/value composition, ACK-session key/value
+  composition, and archive-lease key/value composition,
   pilot, and benchmark boundaries.
   This is host/build evidence, not
   physical MeshCore,
@@ -784,7 +799,7 @@ not treated as proof of authorization.
   host-tested, but policy values and rendered physical behavior remain
   unselected pending measurement
 - Identity/name/alias/membership boundaries and the OT-013 invitation/promotion/revoke/rekey/recovery policy are defined and host-tested. Exact Node-ID/alias derivation, production administrator quorum, authenticated join-handshake instantiation, encryption, key storage, rollback protection, persistent recovery, rendered UX, and physical lifecycle evidence remain under partial OT-005 and later gates
-- Packet-v0 encoding/budget, position payload, host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies, the external `OGK0` alert-ACK codec, and OT-014 non-secret configuration persistence are bounded and tested. The [NVS-ready multi-domain adapter](persistence/PERSISTENT_STORAGE_KV_TARGET_ADAPTER_V0.md) now isolates four exact 64-byte namespaces and preserves erase/partial-write/sync ordering across twelve groups and 100/100 focused repeats in the complete 95-executable matrix. Its outbound-counter and ACK-session compositions add five and six groups respectively, each at 100/100 repeats, without granting protected storage. It is not a protected secret store, ESP-IDF backend, or physical durability result. Generic packet-v0 ACK composition, authenticated routing/priority/ACK transport, measured deployed timing, authenticated message/duplicate counter integrity and secure rollback, realistic contention, and final queue/cache limits remain
+- Packet-v0 encoding/budget, position payload, host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies, the external `OGK0` alert-ACK codec, and OT-014 non-secret configuration persistence are bounded and tested. The [NVS-ready multi-domain adapter](persistence/PERSISTENT_STORAGE_KV_TARGET_ADAPTER_V0.md) now isolates five exact 64-byte namespaces and preserves erase/partial-write/sync ordering across twelve groups and 100/100 focused repeats in the complete 102-executable matrix. Its outbound-counter, ACK-session, and archive-lease compositions add five, six, and five groups respectively, each at 100/100 repeats, without granting protected storage. It is not a protected secret store, ESP-IDF backend, or physical durability result. Generic packet-v0 ACK composition, authenticated routing/priority/ACK transport, measured deployed timing, authenticated message/duplicate counter integrity and secure rollback, realistic contention, and final queue/cache limits remain
 - Duplicate checkpoints have a canonical fixed 672-byte `OTD0` codec with CRC, strict padding/capacity/version checks, duplicate-key rejection, atomic decode, and remaining-lifetime restoration. Seven codec groups, the full 23-executable matrix, and 100 codec/window repeats pass. Atomic durable storage, wear/privacy policy, authenticated integrity, and rollback protection remain
 - The fixed 704-byte `ODS0` store now uses context-bound v1: its formerly reserved bytes carry the exact nonzero group-context ID and epoch, and every active inner key must match. Wrong binding and structurally valid legacy unbound v0 media fail without live mutation or overwrite. Original generation/rotation/readback/degraded/conflict/exhaustion behavior remains. Ten store groups, the full 28-executable matrix, and 100 focused store/coordinator repeats pass locally; the exact matrix passes publicly in run `31374678550`. A separate [NVS-ready key/value adapter](persistence/DUPLICATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md) fixes exact `ot_state` / `ot_replay` / `ods_dup_a|b` bindings, 704-byte values, explicit durable commits, idempotent erase, and applied-then-failed restart discovery. Nine groups and 100/100 focused repeats pass in the complete 95-executable matrix. Protected ESP-IDF namespace access, physical atomicity/endurance, authorized migration/reset, authenticated integrity, and trusted rollback protection remain
 - The v0 update/recovery architecture requires signed hardware-bound bundles,

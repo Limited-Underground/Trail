@@ -649,6 +649,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'breadcrumb archive session lease key/value composition'
+        Output = Join-Path $buildDirectory 'breadcrumb_archive_session_lease_kv_composition_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\breadcrumb_archive_session_lease_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\persistent_storage_kv.cpp'),
+            (Join-Path $projectRoot 'tests\host\breadcrumb_archive_session_lease_kv_composition_tests.cpp')
+        )
+    },
+    @{
         Name = 'ACK session key/value composition'
         Output = Join-Path $buildDirectory 'ack_responder_session_kv_composition_tests.exe'
         Sources = @(
@@ -694,6 +703,15 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\persistence\src\outbound_counter_lease_store.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\test_support\memory_persistent_storage.cpp'),
             (Join-Path $projectRoot 'tests\host\outbound_counter_lease_store_tests.cpp')
+        )
+    },
+    @{
+        Name = 'breadcrumb archive session lease store'
+        Output = Join-Path $buildDirectory 'breadcrumb_archive_session_lease_store_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\breadcrumb_archive_session_lease_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\test_support\memory_persistent_storage.cpp'),
+            (Join-Path $projectRoot 'tests\host\breadcrumb_archive_session_lease_store_tests.cpp')
         )
     },
     @{

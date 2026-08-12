@@ -7,13 +7,14 @@ namespace opentrail::persistence {
 
 inline constexpr std::size_t kPersistentSlotCount = 2;
 inline constexpr std::size_t kPersistentSlotBytes = 64;
-inline constexpr std::size_t kStorageDomainCount = 4;
+inline constexpr std::size_t kStorageDomainCount = 5;
 
 enum class StorageDomain : std::uint8_t {
     configuration = 0,
     secret_material = 1,
     protocol_state = 2,
     outbound_counter_state = 3,
+    breadcrumb_archive_state = 4,
 };
 
 struct StorageByteView {

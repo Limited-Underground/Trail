@@ -1,7 +1,8 @@
 # Revision-Bound Local Breadcrumb Archive Consent v0
 
-Status: **host-tested local consent/control boundary; no rendered UI, target
-input, persistent session allocator, or physical claim**, 2026-08-12.
+Status: **host-tested local consent/control boundary over an explicit durable
+session range; no rendered UI, target composition, or physical claim**,
+2026-08-12.
 
 ## Purpose
 
@@ -37,15 +38,20 @@ wrong-gesture, failed-input, and pre-frame events do not resolve.
 1. reads `CheckedMonotonicClock` once;
 2. defers without a runtime call when the clock is temporarily not ready;
 3. fails without a runtime call on rollback/source fault;
-4. submits the next nonzero boot-local session ID and checked time through the
-   private serialized runtime owner; and
+4. submits the next nonzero session ID within its caller-supplied inclusive
+   lease range and the checked time through the private serialized runtime
+   owner; and
 5. consumes the session ID only after successful start or an uncertain
    post-operation unlock failure.
 
 Runtime lock contention does not consume the candidate ID, so a new explicit
 local hold may retry it. Session rejection (for example, already active) also
 does not consume it. A session ID is never reused after an uncertain result.
-Maximum ID consumption permanently exhausts start for that controller instance.
+Consumption of the lease's final ID permanently exhausts Start for that
+controller instance. It never wraps, extends, or silently obtains another
+range. Target boot composition must first obtain the explicit first/final
+bounds from the
+[restart-safe archive session lease store](../persistence/BREADCRUMB_ARCHIVE_SESSION_LEASE_STORE_V0.md).
 
 The session ID is opaque boot-local ordering metadata, not a user/device/account
 identity, key, credential, or remotely accepted authorization token.
@@ -74,7 +80,7 @@ non-control scheduling/UI services.
 
 ## Host evidence
 
-Ten deterministic scenario groups plus 100/100 focused repeats cover:
+Eleven deterministic scenario groups plus 100/100 focused repeats cover:
 
 1. canonical hold-only Start presentation and resolution;
 2. canonical immediate Stop presentation and resolution;
@@ -85,11 +91,13 @@ Ten deterministic scenario groups plus 100/100 focused repeats cover:
 7. clock-independent local Stop;
 8. clock not-ready/failure containment;
 9. runtime contention preserving the candidate for a new explicit retry; and
-10. uncertain/max session consumption and zero-seed rejection.
+10. uncertain session consumption and zero-seed rejection; and
+11. inclusive durable-range exhaustion, including invalid range rejection.
 
-The complete 100-executable host matrix and Python evidence checks pass. This is
+The complete 102-executable host matrix and Python evidence checks pass. This is
 not rendered-display, physical button/touch, localization/accessibility,
-distracted-use, restart-safe session allocation, ESP-IDF, or on-device evidence.
+distracted-use, target lease/workflow composition, ESP-IDF, or on-device
+evidence.
 
 ## Next gates
 
@@ -98,7 +106,7 @@ distracted-use, restart-safe session allocation, ESP-IDF, or on-device evidence.
   only target composition path to this controller.
 - Decide how the local menu exposes archive controls without making the optional
   service prominent, confusing, or accidental.
-- Add a restart-safe non-identifying session allocator or prove why same-boot
-  session IDs are sufficient for the selected remote archive protocol.
+- Compose one successfully committed non-identifying session lease into this
+  controller before the target makes archive Start available.
 - Bind and evaluate physical touch/button behavior, readable consent wording,
   accessibility, and explicit active-state indication on frozen hardware.

@@ -100,7 +100,8 @@ public:
         SerializedBreadcrumbArchiveRuntimeOwner& runtime,
         time::CheckedMonotonicClock& clock,
         ui::CheckedLocalInterface& local_interface,
-        std::uint64_t initial_session_id = 1,
+        std::uint64_t initial_session_id,
+        std::uint64_t final_session_id,
         std::uint32_t initial_revision = 1);
 
     [[nodiscard]] BreadcrumbArchiveWorkflowResult enter(

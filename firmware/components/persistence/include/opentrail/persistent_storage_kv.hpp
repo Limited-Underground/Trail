@@ -13,6 +13,7 @@ inline constexpr char kPersistentKvConfigurationNamespace[] = "ot_config";
 inline constexpr char kPersistentKvSecretNamespace[] = "ot_secret";
 inline constexpr char kPersistentKvProtocolNamespace[] = "ot_proto";
 inline constexpr char kPersistentKvCounterNamespace[] = "ot_counter";
+inline constexpr char kPersistentKvArchiveNamespace[] = "ot_archive";
 inline constexpr char kPersistentKvSlotAKey[] = "slot_a";
 inline constexpr char kPersistentKvSlotBKey[] = "slot_b";
 
@@ -21,6 +22,7 @@ static_assert(sizeof(kPersistentKvConfigurationNamespace) - 1 <= 15);
 static_assert(sizeof(kPersistentKvSecretNamespace) - 1 <= 15);
 static_assert(sizeof(kPersistentKvProtocolNamespace) - 1 <= 15);
 static_assert(sizeof(kPersistentKvCounterNamespace) - 1 <= 15);
+static_assert(sizeof(kPersistentKvArchiveNamespace) - 1 <= 15);
 static_assert(sizeof(kPersistentKvSlotAKey) - 1 <= 15);
 static_assert(sizeof(kPersistentKvSlotBKey) - 1 <= 15);
 

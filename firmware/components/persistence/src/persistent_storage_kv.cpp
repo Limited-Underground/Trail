@@ -19,6 +19,8 @@ const char* namespace_for_domain(StorageDomain domain) {
             return kPersistentKvProtocolNamespace;
         case StorageDomain::outbound_counter_state:
             return kPersistentKvCounterNamespace;
+        case StorageDomain::breadcrumb_archive_state:
+            return kPersistentKvArchiveNamespace;
     }
     return nullptr;
 }
