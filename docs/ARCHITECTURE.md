@@ -230,6 +230,12 @@ clients plus the repeater. No server, internet, phone, laptop, vehicle, or
 repeater may become a base-client dependency. This is a planned release ceiling
 and acceptance sequence, not current field-capacity evidence.
 
+The [product boundary map](PRODUCT_BOUNDARIES_V0.md) keeps one self-contained
+base client separate from optional repeater, server/archive, OpenGauge vehicle,
+offline-map/large-display, and post-session management roles. Optional roles
+may exchange only their documented inputs/outputs and must fail without taking
+base messaging, local status, critical presentation, or USB recovery with them.
+
 One `OTPR0/v0` aggregate result is evaluated against one ready `OTFP0/v0` plan.
 The evaluator separates an eligible measured failure from an ineligible setup
 and malformed or privacy-unsafe evidence. Expected origins and peer-delivery

@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-12
 
+### Base-versus-optional product boundary
+
+- Added one public capability/dependency map separating the self-contained base
+  client from optional repeater, server/archive, OpenGauge vehicle, offline-map
+  display, and post-session management roles.
+- Defined base v0 around local display/input, battery, GNSS-aware group state,
+  messaging/alerts, privacy-safe logging, and USB recovery with no infrastructure
+  dependency during operation.
+- Required each add-on to fail independently: repeater loss falls back to direct
+  behavior, archive loss stops remote retention only, vehicle loss removes
+  normalized vehicle alerts only, and map/display loss retains simpler local UI.
+- Kept provider accounts, hosting/DNS operations, costs, credentials, private
+  routes/participants, and implementation-specific deployment details outside
+  the public boundary.
+
 ### First-release capacity boundary
 
 - Fixed the planned v0 ceiling at eight active clients in one group plus at

@@ -23,6 +23,14 @@ eight-plus-repeater evidence on frozen hardware/firmware. The base client may
 not require the repeater, server, internet, phone, laptop, or vehicle. No phase
 has passed yet, so this remains a release target rather than a support claim.
 
+The product boundary map now defines one self-contained base client and five
+optional role families. Repeater, opt-in archive, OpenGauge vehicle input,
+offline-map/large-display hardware, and post-session management may add value
+but may not become requirements for base radio/group operation. Their allowed
+data and failure behavior are explicit; concrete hosting operations, private
+location/participant data, credentials, and provider choices remain outside the
+public repository.
+
 A fixed-memory position scheduler now adds explicit start/stop, current-fix-only
 output, delayed-service coalescing, and separate cadence/retry timing around the
 existing 16-byte payload. A host-only sink now carries its exact attempt time,

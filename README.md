@@ -71,6 +71,20 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   theoretical scheduled demand is 1.2727%, 2.5455%, and 5.0911% respectively.
   These are not delivery, range, collision, or regulatory results.
 
+### Base system and optional additions
+
+- **Base v0 stays self-contained:** one client provides local display/input,
+  battery operation, GNSS-aware group status, messaging/alerts, logging, and USB
+  recovery without requiring a repeater, server, internet, phone, laptop, map
+  display, or vehicle connection.
+- **Optional modules must fail independently:** one repeater may extend
+  coverage; a future opt-in archive may retain selected breadcrumbs; OpenGauge
+  may supply normalized vehicle alerts; and larger offline-map displays may add
+  local context. Losing any one of them must not stop base client operation.
+- The [capability and dependency map](docs/PRODUCT_BOUNDARIES_V0.md) records what
+  belongs in the base release, what remains an add-on, what data may cross each
+  boundary, and how each add-on must degrade.
+
 ### Software and safety
 
 - **Cross-project recovery storage is no longer only a plan:** OpenGauge's
