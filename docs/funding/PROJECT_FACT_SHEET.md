@@ -68,8 +68,8 @@ pass/fail/ineligible verdicts. It is not hardware-ready yet.
   storage, GNSS behavior, production UI, field range, battery endurance,
   environmental suitability, and regulatory acceptance remain unproved.
 - No four-person field session has run.
-- Optional server-side breadcrumb recovery is a concept with a hosting strategy,
-  not an implemented or promised service.
+- Optional server-side breadcrumb recovery has only a host-tested local capture
+  boundary. No remote archive, account, retention, or promised service exists.
 
 ## Why the work is open
 

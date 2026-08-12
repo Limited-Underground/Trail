@@ -140,6 +140,22 @@ composition is still required. Chat and position must not starve emergency
 traffic. Exact cadence, airtime budgets, retry policy, and regional constraints
 depend on measurement and review.
 
+The optional archive uses a separate host-tested session around the same
+current-fix-only scheduler. Explicit local start supplies an opaque nonzero
+session ID that must increase within one object lifetime; stop is immediate.
+Each accepted capture becomes one canonical 56-byte `OTBA/v0` record containing
+only that session ID, a session-local sequence, boot-local capture time, the
+existing exact 16-byte position payload, canonical reserves, and CRC-32.
+Sequence advances only after the injected nonblocking transport accepts the
+record; retryable pressure reuses the same sequence. The transport contract's
+success is local acceptance, not a remote-server acknowledgement or persistence
+claim. This boundary contains no stable device/participant identity, provider,
+URL, credential, account, retention authority, or radio control. A server,
+authenticated/encrypted transport, offline queue, restart-safe session source,
+authorization, storage, export/deletion, target binding, and physical evidence
+remain separate gates. See
+[the archive session contract](location/BREADCRUMB_ARCHIVE_SESSION_V0.md).
+
 A host-only outbound coordinator now establishes one cooperative service order:
 sample `CheckedMonotonicClock` once, optionally read location only while sharing
 is active, service position scheduling, attempt one priority-to-delivery

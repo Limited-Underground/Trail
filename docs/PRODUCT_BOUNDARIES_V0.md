@@ -33,10 +33,14 @@ position-dependent behavior.
 
 ## Optional archive controls
 
-A future archive is opt-in, not assumed. Its minimum design gates are:
+The host-tested [client-side session boundary](location/BREADCRUMB_ARCHIVE_SESSION_V0.md)
+now proves explicit start/stop, current-fix-only capture, one minimized canonical
+record, monotonic same-boot session use, and fail-visible local transport
+pressure. It does not implement the server/archive service. The remaining
+minimum design gates are:
 
-- explicit local start and stop with visible state;
-- no silent background enablement;
+- target UI composition that preserves explicit start/stop and visible state;
+- no silent background enablement or restart enablement;
 - data minimization and bounded retention;
 - participant/group authorization;
 - export and deletion;

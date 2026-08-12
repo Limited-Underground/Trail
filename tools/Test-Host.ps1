@@ -289,6 +289,17 @@ $builds = @(
         )
     },
     @{
+        Name = 'opt-in breadcrumb archive session'
+        Output = Join-Path $buildDirectory 'breadcrumb_archive_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\location\src\position_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\position_broadcast_scheduler.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\breadcrumb_archive.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\test_support\fake_breadcrumb_archive_transport.cpp'),
+            (Join-Path $projectRoot 'tests\host\breadcrumb_archive_tests.cpp')
+        )
+    },
+    @{
         Name = 'local position sharing privacy control'
         Output = Join-Path $buildDirectory 'position_sharing_control_tests.exe'
         Sources = @(

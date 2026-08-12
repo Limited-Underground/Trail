@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-12
 
+### Opt-in breadcrumb archive session boundary
+
+- Added a fixed-memory client-side archive session that composes the existing
+  explicit position scheduler with an injected nonblocking transport while
+  remaining separate from base radio operation.
+- Fixed canonical `OTBA/v0` at 56 bytes: opaque same-boot session ID,
+  session-local sequence, boot-local capture time, the existing exact 16-byte
+  current-position payload, canonical reserves, and CRC-32.
+- Required strictly increasing nonzero session IDs within one object lifetime;
+  sequence advances only after local transport acceptance, while retryable
+  pressure retains the same record number. Invalid/stale fixes and clock faults
+  fail closed.
+- Ten deterministic groups and 100/100 focused repeats pass. Local acceptance
+  is not remote acknowledgement or persistence; server, account, authorization,
+  encryption, retention/export/deletion, target binding, and physical evidence
+  remain absent. Precise coordinates remain private.
+
 ### Base-versus-optional product boundary
 
 - Added one public capability/dependency map separating the self-contained base
