@@ -16,6 +16,13 @@ standalone, four-plus-repeater, and eight-plus-repeater phases using exact LoRa
 airtime plus explicit source and forwarding transmissions. It is host planning
 evidence, not a field-capacity, collision, delivery, range, or regulatory result.
 
+The first-release capacity policy now states one public boundary: at most eight
+active clients in one group plus one optional authorized repeater. Four
+standalone clients must pass first, followed by four-plus-repeater and then
+eight-plus-repeater evidence on frozen hardware/firmware. The base client may
+not require the repeater, server, internet, phone, laptop, or vehicle. No phase
+has passed yet, so this remains a release target rather than a support claim.
+
 A fixed-memory position scheduler now adds explicit start/stop, current-fix-only
 output, delayed-service coalescing, and separate cadence/retry timing around the
 existing 16-byte payload. A host-only sink now carries its exact attempt time,

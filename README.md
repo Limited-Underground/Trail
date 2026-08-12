@@ -47,6 +47,11 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 
 ### Field-test scale
 
+- **First-release support boundary:** the planned v0 ceiling is eight active
+  clients in one group, with at most one optional authorized repeater. The
+  client must remain useful without the repeater, server, internet, phone, or
+  vehicle connection. This is a release target—not a current support claim—until
+  the staged physical evidence passes on frozen hardware and firmware.
 - **Planned progression:** four clients without a repeater, then four plus one
   repeater, then eight plus one repeater. The base client remains independently
   useful; the repeater is optional.

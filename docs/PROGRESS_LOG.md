@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-12
 
+### First-release capacity boundary
+
+- Fixed the planned v0 ceiling at eight active clients in one group plus at
+  most one optional authorized repeater. The repeater is not a client and
+  cannot become a base-client dependency.
+- Required evidence remains deliberately staged: four standalone clients,
+  four clients plus one repeater, then eight clients plus one repeater, all on
+  frozen hardware/firmware with versioned procedures and privacy-safe results.
+- Clarified that host capacities, airtime estimates, close-bench tests, and one
+  successful field session do not create a support claim. No phase has passed,
+  so the ceiling remains a release target rather than current capability.
+- Removed a larger-capacity statement from the public pilot interpretation;
+  changing the release ceiling now requires a versioned policy, analysis,
+  security/recovery review, and staged physical evidence.
+
 ### Cross-project `ORS0` target-shaped storage sync
 
 - Reconciled OpenTrail's public cross-project status with current OpenGauge

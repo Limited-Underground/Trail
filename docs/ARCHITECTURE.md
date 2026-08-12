@@ -222,6 +222,14 @@ power, enclosure, GNSS, display, input, and USB recovery gates. Later
 four-plus-repeater and eight-plus-repeater phases are separate evidence steps,
 not assumptions inherited from this pilot.
 
+The [first-release capacity policy](testing/FIRST_RELEASE_CAPACITY_V0.md) fixes
+the intended v0 product boundary at no more than eight active clients in one
+group plus at most one optional authorized repeater. Support must be earned in
+order: four standalone clients, four clients plus the repeater, then eight
+clients plus the repeater. No server, internet, phone, laptop, vehicle, or
+repeater may become a base-client dependency. This is a planned release ceiling
+and acceptance sequence, not current field-capacity evidence.
+
 One `OTPR0/v0` aggregate result is evaluated against one ready `OTFP0/v0` plan.
 The evaluator separates an eligible measured failure from an ineligible setup
 and malformed or privacy-unsafe evidence. Expected origins and peer-delivery

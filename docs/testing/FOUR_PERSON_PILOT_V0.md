@@ -161,5 +161,6 @@ captures local and rejects identity-, transport-, precise-location-, and
 secret-bearing public fields.
 
 Passing three sessions would justify moving to the four-client-plus-repeater
-phase. It would not prove 16-device capacity, every terrain, emergency-service
-fitness, regulatory acceptance, production security, or a range specification.
+phase. It would not prove the first-release ceiling, every terrain,
+emergency-service fitness, regulatory acceptance, production security, or a
+range specification.

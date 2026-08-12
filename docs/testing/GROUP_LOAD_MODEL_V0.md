@@ -19,6 +19,11 @@ coverage tool whose extra transmissions and failure modes must stay visible.
 Progression to the next phase requires stable prior-phase evidence rather than a
 device-count demonstration alone.
 
+The planned first-release boundary is eight active clients in one group plus at
+most one optional authorized repeater. The model can calculate other bounded
+profiles for engineering work, but those results are not public support claims
+and do not expand the release boundary.
+
 ## Baseline profile
 
 The first comparison uses one hour and the current close-bench modulation
