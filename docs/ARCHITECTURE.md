@@ -120,6 +120,16 @@ Every packet envelope should eventually include:
 
 Core receive behavior should validate length/version/integrity, authenticate when enabled, suppress duplicates, apply group/address rules, deliver locally, and only then consider bounded forwarding. Acknowledgements are message-class policies rather than mandatory responses to all traffic.
 
+One identity-free 12-byte `OTQ0/v0` payload now fixes four generic quick-status
+meanings: I'm OK, Need assistance, Anyone online?, and Available to help. The
+payload carries only magic/version/length, one semantic value, a canonical
+reserve, and CRC-32. It contains no sender, group, location, timestamp, message
+ID, acknowledgement, text, key, or route. CRC is accidental-corruption
+detection, not authentication. Packet-v1 type/priority/replay/expiry/ACK,
+outbound admission, revision-safe menu selection, and target/radio evidence
+remain separate gates. See the
+[quick-status payload contract](protocol/QUICK_STATUS_PAYLOAD_V0.md).
+
 Priority classes should reserve capacity for emergency and critical traffic. A
 host-tested position scheduler now requires explicit start, stops immediately,
 emits only a current validated fix, and schedules from actual accepted/deferred

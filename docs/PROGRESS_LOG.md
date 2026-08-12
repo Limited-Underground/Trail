@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-12
 
+### Generic quick-status payload
+
+- Added one exact 12-byte `OTQ0/v0` payload for the four generic meanings
+  selected for the first small-group experience: I'm OK, Need assistance,
+  Anyone online?, and Available to help.
+- The payload contains only its fixed semantic value plus canonical framing and
+  CRC-32. Participant/device/group/location/time/message/ACK/text/key/routing
+  data are structurally absent; CRC does not claim authentication.
+- Ten groups plus 100/100 focused repeats cover the independent canonical
+  vector, all four round trips, strict failure classes, output preservation,
+  and corruption at every byte. The complete 106-executable matrix passes.
+- Authenticated packet-v1 binding, priority/replay/expiry/ACK policy, outbound
+  admission, menu/confirmation UI, renderer, target/radio, and physical
+  delivery remain explicit later gates.
+
 ### Optional archive parent page and restoration
 
 - Added one non-copyable semantic `status` page with exactly Archive controls
@@ -18,7 +33,7 @@ public chronology.
   pending revision and does not re-enter navigation/storage. Invalid summary,
   input/display failure, or lease/navigation failure stays inside this
   optional page and cannot directly affect base messaging.
-- Nine groups plus 100/100 focused repeats and the complete 105-executable host
+- Nine groups plus 100/100 focused repeats and the complete 106-executable host
   matrix pass. This is deliberately not a full client home/menu, renderer,
   physical input, target task/backend, or device claim.
 
@@ -34,7 +49,7 @@ public chronology.
 - Invalid/stale/already-active/exhausted entry rejects before storage;
   allocation failure latches before runtime/display access. Open remains only
   navigation and cannot Start capture.
-- Eight groups plus 100/100 focused repeats and the complete 105-executable
+- Eight groups plus 100/100 focused repeats and the complete 106-executable
   host matrix pass. The complete application shell, exact target bindings,
   renderer/physical input, concurrency, recovery UX, and on-device evidence
   remain.
@@ -52,7 +67,7 @@ public chronology.
 - Made the consent controller, workflow coordinator, and bootstrap explicitly
   non-copyable/non-movable so a leased cursor cannot be cloned accidentally.
 - Eight bootstrap groups plus 100/100 focused repeats and the complete
-  105-executable host matrix pass. Exact target backend/seed composition,
+  106-executable host matrix pass. Exact target backend/seed composition,
   recovery UX, parent navigation, renderer/physical input, concurrent stress,
   reset/brownout/endurance, and on-device evidence remain.
 
@@ -70,7 +85,7 @@ public chronology.
   first/final lease bounds. Start refuses to cross the final ID and never wraps
   or silently allocates another range.
 - Nine store groups, five real key/value-composition groups, the eleven-group
-  consent suite, 100/100 focused repeats, and the complete 105-executable host
+  consent suite, 100/100 focused repeats, and the complete 106-executable host
   matrix pass. ESP-IDF/NVS binding, secure blank-state entropy, authenticated
   integrity/rollback resistance, recovery UX, target boot composition,
   physical interruption, and on-device evidence remain.
@@ -88,7 +103,7 @@ public chronology.
   successful Start, the coordinator attempts Stop and latches the workflow;
   revision exhaustion also fails privacy-safe by stopping.
 - Fourteen deterministic groups plus 100/100 focused repeats and the complete
-  105-executable host matrix pass. The workflow now requires explicit durable
+  106-executable host matrix pass. The workflow now requires explicit durable
   session-range bounds and refuses to cross the inclusive final ID. A parent
   menu/navigation owner, renderer, physical input, target lease composition,
   ESP-IDF binding, concurrent target stress, and on-device evidence remain.
@@ -106,7 +121,7 @@ public chronology.
   explicit hold; uncertain post-operation state consumes it so it cannot be
   reused, and the final lease ID permanently exhausts that controller.
 - Eleven deterministic groups plus 100/100 focused repeats pass within the
-  current 105-executable host matrix. No radio/server/automatic start input,
+  current 106-executable host matrix. No radio/server/automatic start input,
   renderer, physical input, target lease composition, ESP-IDF binding, or
   on-device evidence exists.
 

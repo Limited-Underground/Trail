@@ -113,6 +113,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'generic quick-status payload codec'
+        Output = Join-Path $buildDirectory 'quick_status_codec_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\protocol\src\quick_status_codec.cpp'),
+            (Join-Path $projectRoot 'tests\host\quick_status_codec_tests.cpp')
+        )
+    },
+    @{
         Name = 'protected packet budget'
         Output = Join-Path $buildDirectory 'protected_packet_budget_tests.exe'
         Sources = @(

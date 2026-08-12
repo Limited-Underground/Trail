@@ -31,6 +31,19 @@ data and failure behavior are explicit; concrete hosting operations, private
 location/participant data, credentials, and provider choices remain outside the
 public repository.
 
+The first generic quick-status catalog now has one compact host-tested payload.
+Exact 12-byte `OTQ0/v0` carries only one of four fixed meanings: I'm OK, Need
+assistance, Anyone online?, or Available to help. It contains no participant,
+device, group, location, timestamp, message ID, acknowledgement, free text,
+credential, or routing data. Ten groups plus 100/100 focused repeats cover
+canonical vectors, all entries, strict version/reserve/length/status handling,
+no-mutation encode failures, and corruption at every byte. This is payload
+evidence only: authenticated packet-v1, priority/replay/expiry/ACK policy,
+outbound admission, menu/confirmation UX, renderer, target binding, radio
+delivery, and four-device evidence remain absent. `Need assistance` is not a
+guaranteed rescue request and does not replace the held critical-alert path.
+See the [quick-status payload contract](protocol/QUICK_STATUS_PAYLOAD_V0.md).
+
 The optional archive now has a host-tested client-side session boundary rather
 than only a concept. Explicit start/stop controls the existing current-fix-only
 scheduler; one exact 56-byte `OTBA/v0` record carries only an opaque nonzero
@@ -761,10 +774,11 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AE records the target-shaped cross-project recovery boundary as implemented host plumbing rather than a plan-only gap. The backend-neutral `ORS0` key/value adapter and real boot/save composition pass thirteen groups, 100/100 repeats, and the complete public 43-executable matrix. OpenTrail still has no exact ESP-IDF backend, protected key/trust source, physical interruption, or on-device composition.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 105 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 106 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
-  experimental packet/priority admission, opt-in breadcrumb archive sessions,
+  experimental packet/priority admission, the generic quick-status payload,
+  opt-in breadcrumb archive sessions,
   bounded outbox/durable-ack handoff, checked-time retry, privacy-safe archive
   presentation, single-read archive status capture, serialized archive snapshot
   adapter, private serialized archive runtime owner, revision-bound local
@@ -837,7 +851,7 @@ not treated as proof of authorization.
   host-tested, but policy values and rendered physical behavior remain
   unselected pending measurement
 - Identity/name/alias/membership boundaries and the OT-013 invitation/promotion/revoke/rekey/recovery policy are defined and host-tested. Exact Node-ID/alias derivation, production administrator quorum, authenticated join-handshake instantiation, encryption, key storage, rollback protection, persistent recovery, rendered UX, and physical lifecycle evidence remain under partial OT-005 and later gates
-- Packet-v0 encoding/budget, position payload, host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies, the external `OGK0` alert-ACK codec, and OT-014 non-secret configuration persistence are bounded and tested. The [NVS-ready multi-domain adapter](persistence/PERSISTENT_STORAGE_KV_TARGET_ADAPTER_V0.md) now isolates five exact 64-byte namespaces and preserves erase/partial-write/sync ordering across twelve groups and 100/100 focused repeats in the complete 105-executable matrix. Its outbound-counter, ACK-session, and archive-lease compositions add five, six, and five groups respectively, each at 100/100 repeats, without granting protected storage. It is not a protected secret store, ESP-IDF backend, or physical durability result. Generic packet-v0 ACK composition, authenticated routing/priority/ACK transport, measured deployed timing, authenticated message/duplicate counter integrity and secure rollback, realistic contention, and final queue/cache limits remain
+- Packet-v0 encoding/budget, quick-status and position payloads, host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies, the external `OGK0` alert-ACK codec, and OT-014 non-secret configuration persistence are bounded and tested. The [NVS-ready multi-domain adapter](persistence/PERSISTENT_STORAGE_KV_TARGET_ADAPTER_V0.md) now isolates five exact 64-byte namespaces and preserves erase/partial-write/sync ordering across twelve groups and 100/100 focused repeats in the complete 106-executable matrix. Its outbound-counter, ACK-session, and archive-lease compositions add five, six, and five groups respectively, each at 100/100 repeats, without granting protected storage. It is not a protected secret store, ESP-IDF backend, or physical durability result. Generic packet-v0 ACK composition, authenticated routing/priority/ACK transport, measured deployed timing, authenticated message/duplicate counter integrity and secure rollback, realistic contention, and final queue/cache limits remain
 - Duplicate checkpoints have a canonical fixed 672-byte `OTD0` codec with CRC, strict padding/capacity/version checks, duplicate-key rejection, atomic decode, and remaining-lifetime restoration. Seven codec groups, the full 23-executable matrix, and 100 codec/window repeats pass. Atomic durable storage, wear/privacy policy, authenticated integrity, and rollback protection remain
 - The fixed 704-byte `ODS0` store now uses context-bound v1: its formerly reserved bytes carry the exact nonzero group-context ID and epoch, and every active inner key must match. Wrong binding and structurally valid legacy unbound v0 media fail without live mutation or overwrite. Original generation/rotation/readback/degraded/conflict/exhaustion behavior remains. Ten store groups, the full 28-executable matrix, and 100 focused store/coordinator repeats pass locally; the exact matrix passes publicly in run `31374678550`. A separate [NVS-ready key/value adapter](persistence/DUPLICATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md) fixes exact `ot_state` / `ot_replay` / `ods_dup_a|b` bindings, 704-byte values, explicit durable commits, idempotent erase, and applied-then-failed restart discovery. Nine groups and 100/100 focused repeats pass in the complete 95-executable matrix. Protected ESP-IDF namespace access, physical atomicity/endurance, authorized migration/reset, authenticated integrity, and trusted rollback protection remain
 - The v0 update/recovery architecture requires signed hardware-bound bundles,

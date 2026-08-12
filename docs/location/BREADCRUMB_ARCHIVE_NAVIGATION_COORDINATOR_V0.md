@@ -74,7 +74,7 @@ Eight deterministic scenario groups plus 100/100 focused repeats cover:
 8. exhausted parent revision rejection before storage access.
 
 Compile-time checks make the handoff non-copyable and non-movable. The complete
-105-executable C++ host matrix and Python publication checks pass.
+106-executable C++ host matrix and Python publication checks pass.
 
 This is not a complete parent menu/home coordinator, ESP-IDF task/backend,
 renderer, localization/accessibility review, physical input proof, secure seed

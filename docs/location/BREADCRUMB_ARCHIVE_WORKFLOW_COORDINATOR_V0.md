@@ -103,7 +103,7 @@ Fourteen deterministic scenario groups plus 100/100 focused repeats cover:
 13. exact-parent-revision re-entry preserving the session allocator; and
 14. invalid/exhausted revision containment.
 
-The complete 105-executable host matrix and Python evidence checks pass. This
+The complete 106-executable host matrix and Python evidence checks pass. This
 is deterministic host evidence, not rendered wording/layout, physical
 button/touch behavior, target concurrency, memory/latency/power measurement,
 target lease/workflow composition, server behavior, or field proof.

@@ -95,7 +95,7 @@ Five key/value composition groups plus 100/100 focused repeats cover the exact
 applied-then-failed range abandonment, and wrong-sized value rejection. The
 consent suite adds an explicit inclusive-range exhaustion case.
 
-The complete 105-executable C++ host matrix and Python publication checks pass.
+The complete 106-executable C++ host matrix and Python publication checks pass.
 This is not evidence of ESP-IDF/NVS binding, flash encryption, authenticated
 integrity, anti-rollback storage, endurance, brownout behavior, secure initial
 entropy, target boot composition, physical interruption, or server identity.
