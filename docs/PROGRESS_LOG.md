@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-12
 
+### Non-erasable map trust-domain storage boundary
+
+- Added a backend-neutral key/value adapter for the two exact 80-byte
+  `OTMD/v0` slots with fixed `ot_state` / `ot_map_domain` / `otmd_a|b` binding
+  and no erase or reset API.
+- Preserved prepared-before-marker ordering by rereading the exact prepared
+  blob and rewriting it with only byte 75 committed, while keeping failed
+  commits uncertain for boot inspection instead of rollback or blind retry.
+- Five deterministic groups, all twenty-seven map suites at 100/100, and the
+  complete 88-executable host matrix pass including publication safety.
+  ESP-IDF binding, protected rollback/authentication, target locking, physical
+  interruption/endurance, and on-device evidence remain open.
+
 ### NVS-ready multi-domain persistent storage boundary
 
 - Added a backend-neutral adapter for the four existing 64-byte persistence
@@ -16,7 +29,7 @@ public chronology.
   Configuration body sync, commit-marker sync, rotation, and restart discovery
   after an applied-then-failed final commit pass through the real store.
 - Twelve deterministic groups and 100/100 focused repeats pass in the complete
-  87-executable host matrix including publication safety. The secret namespace
+  88-executable host matrix including publication safety. The secret namespace
   is structural only; protected secret storage, ESP-IDF binding, locking,
   authentication, rollback protection, power interruption, and endurance
   remain open.
@@ -59,8 +72,8 @@ public chronology.
 - Expanded restart recovery to canonical active checkpoints left after an
   interrupted promotion, fallback completion, or cleanup. Invalid fallback
   evidence retains protected/domain history for service instead of returning
-  to first-use state. Eleven deterministic groups and all twenty-six map suites
-  pass 100/100 focused repeats in the complete 84-executable host matrix,
+  to first-use state. Eleven deterministic groups and all twenty-seven map suites
+  pass 100/100 focused repeats in the complete 88-executable host matrix,
   including publication safety. Protected target adapters and locking, physical
   package operations, interruption/wear, rendering, and on-device evidence
   remain open.

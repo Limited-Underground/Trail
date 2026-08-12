@@ -722,6 +722,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'map selector domain key/value storage adapter'
+        Output = Join-Path $buildDirectory 'map_selector_domain_kv_storage_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_record.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_kv_storage.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_domain_kv_storage_tests.cpp')
+        )
+    },
+    @{
         Name = 'authorized map selector trust-domain provisioner'
         Output = Join-Path $buildDirectory 'map_selector_domain_provisioner_tests.exe'
         Sources = @(

@@ -344,8 +344,8 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   now fixes `ot_state` / `ot_maps` / `otm_sel_a|b`, requires commit after every
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
-  and all twenty-six map suites pass 100/100 focused repeats in the complete
-  87-executable host matrix. It contains no ESP-IDF backend, partition table,
+  and all twenty-seven map suites pass 100/100 focused repeats in the complete
+  88-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
@@ -556,7 +556,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 87 C++ test
+  builds six verifier/planning/operator CLIs and runs all 88 C++ test
   executables plus the Python MeshCore lease, privacy-safe field-log/pilot, and
   crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
@@ -575,6 +575,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   update checkpoint key/value storage,
   duplicate checkpoint key/value storage,
   multi-domain persistent key/value storage,
+  non-erasable map trust-domain key/value storage,
   portable-client composition,
   local-interface, power-state, clock, randomness,
   pilot-result/template,

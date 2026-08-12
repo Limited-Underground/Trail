@@ -1,7 +1,8 @@
 # Offline Map Selector Trust-Domain Store v0
 
-Status: deterministic host-tested abstract two-slot store, 2026-08-11. No
-physical backend, protected rollback anchor, or on-device persistence exists.
+Status: deterministic host-tested abstract two-slot store with a separate
+key/value target boundary, 2026-08-12. No physical backend, protected rollback
+anchor, or on-device persistence exists.
 
 This store gives the canonical 80-byte
 [`OTMD/v0` lifecycle record](OFFLINE_MAP_SELECTOR_DOMAIN_RECORD_V0.md) a
@@ -107,12 +108,14 @@ unreadable and invalid-only media, equal-generation conflict and identical
 copies, codec rejection, and generation exhaustion.
 
 The focused suite passes 100/100 repeats under strict C++17 warnings-as-errors.
-All twenty-five map suites pass 100/100 repeats, and the complete 83-executable
+All twenty-seven map suites pass 100/100 repeats, and the complete 88-executable
 host matrix passes including publication-safety checks.
 
-No key/value or ESP-IDF backend, partition/namespace binding, authenticated
-integrity, protected rollback anchor, physical atomicity or power-cut evidence,
-wear/endurance result, target lock/task, transactional rollback across stores,
-or on-device behavior is claimed. The provisioner and stable activation
-coordinator supply fixed recoverable ordering rather than a cross-store atomic
-transaction.
+The separate [key/value adapter](OFFLINE_MAP_SELECTOR_DOMAIN_KV_TARGET_ADAPTER_V0.md)
+fixes the partition/namespace/keys, exact 80-byte values, durable prepared and
+marker commits, and full-blob marker rewrite without erase authority. No
+ESP-IDF backend, authenticated integrity, protected rollback anchor, physical
+atomicity or power-cut evidence, wear/endurance result, target lock/task,
+transactional rollback across stores, or on-device behavior is claimed. The
+provisioner and stable activation coordinator supply fixed recoverable ordering
+rather than a cross-store atomic transaction.

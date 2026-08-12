@@ -50,7 +50,7 @@ idempotent missing erase, erase-before-write and bit-clearing enforcement,
 fail-latched backend errors, applied-then-failed commit discovery, physical
 namespace separation, real configuration rotation, and final-commit restart
 recovery. The focused suite passes 100/100 repeats, and the complete
-87-executable host matrix passes under strict C++17 warnings-as-errors
+88-executable host matrix passes under strict C++17 warnings-as-errors
 including publication safety.
 
 The backend owns initialization, handles, locking, native error translation,

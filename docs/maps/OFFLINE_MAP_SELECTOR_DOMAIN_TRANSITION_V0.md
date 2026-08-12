@@ -97,8 +97,8 @@ operations, pre-write generation mismatch, selector-save isolation,
 restart recovery after failed protected advance and uncertain domain commit,
 invalid-fallback retained history, and final protected-source change.
 
-All twenty-six map suites pass 100/100 focused repeats, and the complete
-87-executable host matrix passes under strict C++17 warnings-as-errors,
+All twenty-seven map suites pass 100/100 focused repeats, and the complete
+88-executable host matrix passes under strict C++17 warnings-as-errors,
 including publication safety.
 
 This is common host composition only. Protected rollback-resistant target
