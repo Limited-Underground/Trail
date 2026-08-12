@@ -91,6 +91,14 @@ public:
         time::CheckedMonotonicClock& clock,
         std::uint64_t initial_session_id,
         std::uint64_t final_session_id);
+    BreadcrumbArchiveConsentController(
+        const BreadcrumbArchiveConsentController&) = delete;
+    BreadcrumbArchiveConsentController& operator=(
+        const BreadcrumbArchiveConsentController&) = delete;
+    BreadcrumbArchiveConsentController(
+        BreadcrumbArchiveConsentController&&) = delete;
+    BreadcrumbArchiveConsentController& operator=(
+        BreadcrumbArchiveConsentController&&) = delete;
 
     [[nodiscard]] BreadcrumbArchiveConsentResult apply(
         const ui::ResolvedAction& action);

@@ -95,16 +95,17 @@ Five key/value composition groups plus 100/100 focused repeats cover the exact
 applied-then-failed range abandonment, and wrong-sized value rejection. The
 consent suite adds an explicit inclusive-range exhaustion case.
 
-The complete 102-executable C++ host matrix and Python publication checks pass.
+The complete 103-executable C++ host matrix and Python publication checks pass.
 This is not evidence of ESP-IDF/NVS binding, flash encryption, authenticated
 integrity, anti-rollback storage, endurance, brownout behavior, secure initial
 entropy, target boot composition, physical interruption, or server identity.
 
 ## Next gates
 
-- Compose lease allocation before the local archive workflow on one selected
-  target, and make allocation failure leave archive Start unavailable while
-  base messaging remains usable.
+- Preserve the host-tested
+  [lease-to-workflow bootstrap](../location/BREADCRUMB_ARCHIVE_WORKFLOW_BOOTSTRAP_V0.md)
+  when binding one selected target, and make allocation failure leave archive
+  Start unavailable while base messaging remains usable.
 - Define an owner-approved recovery flow for blank, corrupt, uncommitted,
   exhausted, or rollback-suspect archive state without an automatic reset.
 - Bind `ot_archive` to the reviewed ESP-IDF storage backend and inject reset,

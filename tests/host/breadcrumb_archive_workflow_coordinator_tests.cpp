@@ -29,6 +29,11 @@ void expect(bool condition, const char* expression, int line) {
 }
 #define EXPECT(expression) expect((expression), #expression, __LINE__)
 
+static_assert(!std::is_copy_constructible_v<
+              BreadcrumbArchiveWorkflowCoordinator>);
+static_assert(!std::is_move_constructible_v<
+              BreadcrumbArchiveWorkflowCoordinator>);
+
 class FakeWorkflowLock final : public BreadcrumbArchiveSnapshotLock {
 public:
     BreadcrumbArchiveSnapshotLockState next_acquire{

@@ -103,6 +103,14 @@ public:
         std::uint64_t initial_session_id,
         std::uint64_t final_session_id,
         std::uint32_t initial_revision = 1);
+    BreadcrumbArchiveWorkflowCoordinator(
+        const BreadcrumbArchiveWorkflowCoordinator&) = delete;
+    BreadcrumbArchiveWorkflowCoordinator& operator=(
+        const BreadcrumbArchiveWorkflowCoordinator&) = delete;
+    BreadcrumbArchiveWorkflowCoordinator(
+        BreadcrumbArchiveWorkflowCoordinator&&) = delete;
+    BreadcrumbArchiveWorkflowCoordinator& operator=(
+        BreadcrumbArchiveWorkflowCoordinator&&) = delete;
 
     [[nodiscard]] BreadcrumbArchiveWorkflowResult enter(
         const ui::ResolvedAction& action);

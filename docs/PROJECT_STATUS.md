@@ -116,8 +116,8 @@ defers without mutation, while uncertain post-operation state consumes the ID
 so it cannot be reused; the final lease ID permanently exhausts that
 controller. Stale, cancel, wrong-screen, unsupported, and failed-input paths
 make no archive call. Eleven groups plus 100/100 focused repeats pass. Rendered
-consent, parent navigation, physical input, target lease composition, ESP-IDF
-composition, and on-device evidence remain.
+consent, parent navigation, physical input, selected-target bootstrap binding,
+ESP-IDF composition, and on-device evidence remain.
 
 One complete local workflow now composes that consent boundary with the private
 serialized runtime and a snapshot-backed archive controls screen. A coherent
@@ -129,8 +129,8 @@ must publish a newer truthful control frame. Failed post-Start refresh and
 revision exhaustion attempt privacy-safe Stop and latch. This remains host
 common code. Re-entry requires an exact-parent-revision local action and keeps
 the same cursor inside the precommitted range, but complete parent navigation,
-renderer, physical controls, target lease composition, ESP-IDF binding,
-concurrent target stress, and device evidence are absent. See the
+renderer, physical controls, selected-target bootstrap binding, ESP-IDF
+binding, concurrent target stress, and device evidence are absent. See the
 [complete archive workflow](location/BREADCRUMB_ARCHIVE_WORKFLOW_COORDINATOR_V0.md).
 
 A restart-safe non-identifying archive session lease store now reserves an
@@ -145,6 +145,19 @@ endpoint/account identity. Secure blank-state entropy, ESP-IDF/NVS binding,
 authenticated integrity, rollback resistance, recovery UX, target boot
 composition, physical interruption, and on-device durability remain absent.
 See the [archive session lease store](persistence/BREADCRUMB_ARCHIVE_SESSION_LEASE_STORE_V0.md).
+
+A fixed-memory bootstrap now owns that store-to-workflow boundary. Explicit
+initialization commits and reads back the lease before the non-copyable workflow
+is constructed; dormant service/entry touches no storage, runtime, input, or
+display. Same-boot reinitialization is idempotent. Any invalid, failed, or
+uncertain allocation latches the optional path without retry/reset or workflow
+construction, while a fresh boot skips a range whose final commit became
+durable despite reporting failure. Eight groups plus 100/100 focused repeats
+pass. The bootstrap has no base-radio or automatic-Start authority. Exact
+ESP-IDF/NVS and secure-seed binding, parent navigation, recovery UX, concurrent
+target stress, renderer/physical input, reset/brownout/endurance, and on-device
+evidence remain. See the
+[durable archive workflow bootstrap](location/BREADCRUMB_ARCHIVE_WORKFLOW_BOOTSTRAP_V0.md).
 
 A host-only archive UI coordinator now owns display revisions around that
 single-read source. Every valid cooperative service call takes exactly one new
@@ -725,15 +738,16 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AE records the target-shaped cross-project recovery boundary as implemented host plumbing rather than a plan-only gap. The backend-neutral `ORS0` key/value adapter and real boot/save composition pass thirteen groups, 100/100 repeats, and the complete public 43-executable matrix. OpenTrail still has no exact ESP-IDF backend, protected key/trust source, physical interruption, or on-device composition.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 102 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 103 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, opt-in breadcrumb archive sessions,
   bounded outbox/durable-ack handoff, checked-time retry, privacy-safe archive
   presentation, single-read archive status capture, serialized archive snapshot
   adapter, private serialized archive runtime owner, revision-bound local
-  archive consent, complete local archive workflow, restart-safe archive
-  session leases and their key/value composition, single-owner archive UI,
+  archive consent, complete local archive workflow, durable lease-to-workflow
+  bootstrap, restart-safe archive session leases and their key/value
+  composition, single-owner archive UI,
   loss-aware priority-to-delivery
   handoff, checked-time outbound service coordination, fail-visible outbound
   position safety, checked-time position commands, single-owner position UI,
@@ -799,7 +813,7 @@ not treated as proof of authorization.
   host-tested, but policy values and rendered physical behavior remain
   unselected pending measurement
 - Identity/name/alias/membership boundaries and the OT-013 invitation/promotion/revoke/rekey/recovery policy are defined and host-tested. Exact Node-ID/alias derivation, production administrator quorum, authenticated join-handshake instantiation, encryption, key storage, rollback protection, persistent recovery, rendered UX, and physical lifecycle evidence remain under partial OT-005 and later gates
-- Packet-v0 encoding/budget, position payload, host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies, the external `OGK0` alert-ACK codec, and OT-014 non-secret configuration persistence are bounded and tested. The [NVS-ready multi-domain adapter](persistence/PERSISTENT_STORAGE_KV_TARGET_ADAPTER_V0.md) now isolates five exact 64-byte namespaces and preserves erase/partial-write/sync ordering across twelve groups and 100/100 focused repeats in the complete 102-executable matrix. Its outbound-counter, ACK-session, and archive-lease compositions add five, six, and five groups respectively, each at 100/100 repeats, without granting protected storage. It is not a protected secret store, ESP-IDF backend, or physical durability result. Generic packet-v0 ACK composition, authenticated routing/priority/ACK transport, measured deployed timing, authenticated message/duplicate counter integrity and secure rollback, realistic contention, and final queue/cache limits remain
+- Packet-v0 encoding/budget, position payload, host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies, the external `OGK0` alert-ACK codec, and OT-014 non-secret configuration persistence are bounded and tested. The [NVS-ready multi-domain adapter](persistence/PERSISTENT_STORAGE_KV_TARGET_ADAPTER_V0.md) now isolates five exact 64-byte namespaces and preserves erase/partial-write/sync ordering across twelve groups and 100/100 focused repeats in the complete 103-executable matrix. Its outbound-counter, ACK-session, and archive-lease compositions add five, six, and five groups respectively, each at 100/100 repeats, without granting protected storage. It is not a protected secret store, ESP-IDF backend, or physical durability result. Generic packet-v0 ACK composition, authenticated routing/priority/ACK transport, measured deployed timing, authenticated message/duplicate counter integrity and secure rollback, realistic contention, and final queue/cache limits remain
 - Duplicate checkpoints have a canonical fixed 672-byte `OTD0` codec with CRC, strict padding/capacity/version checks, duplicate-key rejection, atomic decode, and remaining-lifetime restoration. Seven codec groups, the full 23-executable matrix, and 100 codec/window repeats pass. Atomic durable storage, wear/privacy policy, authenticated integrity, and rollback protection remain
 - The fixed 704-byte `ODS0` store now uses context-bound v1: its formerly reserved bytes carry the exact nonzero group-context ID and epoch, and every active inner key must match. Wrong binding and structurally valid legacy unbound v0 media fail without live mutation or overwrite. Original generation/rotation/readback/degraded/conflict/exhaustion behavior remains. Ten store groups, the full 28-executable matrix, and 100 focused store/coordinator repeats pass locally; the exact matrix passes publicly in run `31374678550`. A separate [NVS-ready key/value adapter](persistence/DUPLICATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md) fixes exact `ot_state` / `ot_replay` / `ods_dup_a|b` bindings, 704-byte values, explicit durable commits, idempotent erase, and applied-then-failed restart discovery. Nine groups and 100/100 focused repeats pass in the complete 95-executable matrix. Protected ESP-IDF namespace access, physical atomicity/endurance, authorized migration/reset, authenticated integrity, and trusted rollback protection remain
 - The v0 update/recovery architecture requires signed hardware-bound bundles,

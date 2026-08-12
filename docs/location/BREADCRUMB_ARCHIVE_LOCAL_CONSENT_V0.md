@@ -94,7 +94,7 @@ Eleven deterministic scenario groups plus 100/100 focused repeats cover:
 10. uncertain session consumption and zero-seed rejection; and
 11. inclusive durable-range exhaustion, including invalid range rejection.
 
-The complete 102-executable host matrix and Python evidence checks pass. This is
+The complete 103-executable host matrix and Python evidence checks pass. This is
 not rendered-display, physical button/touch, localization/accessibility,
 distracted-use, target lease/workflow composition, ESP-IDF, or on-device
 evidence.
@@ -106,7 +106,9 @@ evidence.
   only target composition path to this controller.
 - Decide how the local menu exposes archive controls without making the optional
   service prominent, confusing, or accidental.
-- Compose one successfully committed non-identifying session lease into this
-  controller before the target makes archive Start available.
+- Preserve the host-tested
+  [lease-to-workflow bootstrap](BREADCRUMB_ARCHIVE_WORKFLOW_BOOTSTRAP_V0.md)
+  so a committed non-identifying lease exists before the target makes archive
+  Start available.
 - Bind and evaluate physical touch/button behavior, readable consent wording,
   accessibility, and explicit active-state indication on frozen hardware.

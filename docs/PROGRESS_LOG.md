@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-12
 
+### Durable archive lease-to-workflow bootstrap
+
+- Added a fixed-memory, explicit-initialization owner that commits and reads
+  back one restart-safe archive session range before constructing the local
+  archive workflow. Dormant service/entry cannot read storage, poll input,
+  present UI, or touch the archive runtime.
+- Successful same-boot reinitialization is idempotent. Any invalid,
+  corrupt/uncommitted, conflicting, exhausted, failed, or uncertain lease
+  result latches the optional path without a same-object retry or reset; a
+  committed-but-uncertain range is skipped after restart.
+- Made the consent controller, workflow coordinator, and bootstrap explicitly
+  non-copyable/non-movable so a leased cursor cannot be cloned accidentally.
+- Eight bootstrap groups plus 100/100 focused repeats and the complete
+  103-executable host matrix pass. Exact target backend/seed composition,
+  recovery UX, parent navigation, renderer/physical input, concurrent stress,
+  reset/brownout/endurance, and on-device evidence remain.
+
 ### Restart-safe breadcrumb archive session leases
 
 - Added a two-slot, 64-byte, commit-last `OTBL/v1` store that durably reserves
@@ -20,7 +37,7 @@ public chronology.
   first/final lease bounds. Start refuses to cross the final ID and never wraps
   or silently allocates another range.
 - Nine store groups, five real key/value-composition groups, the eleven-group
-  consent suite, 100/100 focused repeats, and the complete 102-executable host
+  consent suite, 100/100 focused repeats, and the complete 103-executable host
   matrix pass. ESP-IDF/NVS binding, secure blank-state entropy, authenticated
   integrity/rollback resistance, recovery UX, target boot composition,
   physical interruption, and on-device evidence remain.
@@ -38,7 +55,7 @@ public chronology.
   successful Start, the coordinator attempts Stop and latches the workflow;
   revision exhaustion also fails privacy-safe by stopping.
 - Fourteen deterministic groups plus 100/100 focused repeats and the complete
-  102-executable host matrix pass. The workflow now requires explicit durable
+  103-executable host matrix pass. The workflow now requires explicit durable
   session-range bounds and refuses to cross the inclusive final ID. A parent
   menu/navigation owner, renderer, physical input, target lease composition,
   ESP-IDF binding, concurrent target stress, and on-device evidence remain.
@@ -56,7 +73,7 @@ public chronology.
   explicit hold; uncertain post-operation state consumes it so it cannot be
   reused, and the final lease ID permanently exhausts that controller.
 - Eleven deterministic groups plus 100/100 focused repeats pass within the
-  current 102-executable host matrix. No radio/server/automatic start input,
+  current 103-executable host matrix. No radio/server/automatic start input,
   renderer, physical input, target lease composition, ESP-IDF binding, or
   on-device evidence exists.
 

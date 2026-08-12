@@ -103,7 +103,7 @@ Fourteen deterministic scenario groups plus 100/100 focused repeats cover:
 13. exact-parent-revision re-entry preserving the session allocator; and
 14. invalid/exhausted revision containment.
 
-The complete 102-executable host matrix and Python evidence checks pass. This
+The complete 103-executable host matrix and Python evidence checks pass. This
 is deterministic host evidence, not rendered wording/layout, physical
 button/touch behavior, target concurrency, memory/latency/power measurement,
 target lease/workflow composition, server behavior, or field proof.
@@ -112,9 +112,10 @@ target lease/workflow composition, server behavior, or field proof.
 
 - Add a parent local navigation owner that enters/exits this optional page
   without making archive service a base-client requirement.
-- Compose a successfully committed non-identifying session lease before
-  constructing this workflow; allocation/recovery failure must leave Start
-  unavailable without affecting base messaging.
+- Preserve the host-tested
+  [lease-to-workflow bootstrap](BREADCRUMB_ARCHIVE_WORKFLOW_BOOTSTRAP_V0.md)
+  so allocation/recovery failure leaves Start unavailable without constructing
+  this workflow or affecting base messaging.
 - Bind one reviewed ESP-IDF synchronization primitive and prove all archive
   capture/upload/snapshot/control calls use it under concurrent stress.
 - Render and physically evaluate consent wording, active-state visibility,

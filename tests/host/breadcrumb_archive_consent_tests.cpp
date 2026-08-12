@@ -308,6 +308,10 @@ static_assert(std::is_trivially_copyable_v<
               BreadcrumbArchiveConsentPresentation>);
 static_assert(std::is_trivially_copyable_v<BreadcrumbArchiveConsentResult>);
 static_assert(std::is_trivially_copyable_v<BreadcrumbArchiveConsentStatus>);
+static_assert(!std::is_copy_constructible_v<
+              BreadcrumbArchiveConsentController>);
+static_assert(!std::is_move_constructible_v<
+              BreadcrumbArchiveConsentController>);
 static_assert(sizeof(BreadcrumbArchiveConsentResult) <= 128);
 static_assert(sizeof(BreadcrumbArchiveConsentStatus) <= 64);
 
