@@ -68,6 +68,14 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 
 ### Software and safety
 
+- **Cross-project recovery storage is no longer only a plan:** OpenGauge's
+  target-shaped [`ORS0` key/value adapter](https://github.com/nbjelanovic/OpenGauge/blob/main/docs/integration/CRITICAL_ALERT_SYSTEM_RECOVERY_KV_TARGET_ADAPTER_V0.md)
+  binds exact 1280-byte `og_state` / `og_recovery` / `ors0_a|b` slots and now
+  runs through its real boot and verified-save coordinators across normal and
+  uncertain restarts. Thirteen groups plus 100/100 repeats pass in OpenGauge's
+  public 43-executable matrix. OpenTrail still has no ESP-IDF binding,
+  protected key/trust backend, physical power-cut result, or on-device
+  cross-project recovery.
 - **Position sharing now has an explicit start/stop scheduler:** the
   [bounded scheduler](docs/protocol/POSITION_BROADCAST_SCHEDULER_V0.md) submits
   only current validated fixes as the existing 16-byte payload. It starts only
@@ -558,12 +566,13 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   configuration rotation and final-commit restart recovery. The `ot_secret`
   name is structural separation only: production secret storage still requires
   a separately approved protected backend.
-- **Latest shared software result:** OpenGauge now records its redacted recovery
-  status as one versioned 32-bit diagnostics event. Coarse outcome, slot health,
-  protected-key error category, and flags round-trip without generations, peer
-  IDs, key handles, addresses, credentials, or raw checkpoint data. Invalid
-  combinations fail closed. Its complete 41-executable matrix and 100 focused
-  diagnostics repeats pass locally.
+- **Latest shared software result:** OpenGauge now runs its exact two-slot
+  `ORS0` key/value adapter through the real recovery boot/save coordinators.
+  Normal restart and both outcomes of a reported failed commit remain explicit;
+  applied state catches trust up and unapplied state preserves the prior trusted
+  generation. Thirteen focused groups plus 100/100 repeats pass in its public
+  43-executable matrix. Protected/ESP-IDF storage and physical interruption
+  remain unproved.
 
 ### Validation and operations
 
@@ -640,7 +649,8 @@ Architecture and bounded proof-of-concept phase. Two Heltec V4 OLED companions a
 - **Unreadable-slot fail-close:** known empty or checksum-invalid peer media may remain operationally degraded, but an unreadable peer slot can conceal a newer committed generation. OpenGauge now retains any visible restore only privately, requires service, avoids trust advancement, and keeps transport disabled. Ten boot groups, the full 38-executable matrix, and 100 repeats pass.
 - **Known-degraded repair:** OpenGauge's [repair coordinator](https://github.com/nbjelanovic/OpenGauge/blob/main/docs/integration/CRITICAL_ALERT_SYSTEM_RECOVERY_REPAIR_V0.md) accepts only exact operational degraded evidence for one valid plus one known empty/invalid slot, commits the next generation, advances/readbacks trust, and verifies both slots valid. Healthy, unreadable, service, stale, and uncertain cases cannot report repaired. Five groups, the full 39-executable matrix, and 100 repeats pass.
 - **Redacted operator status:** OpenGauge's [status boundary](https://github.com/nbjelanovic/OpenGauge/blob/main/docs/integration/CRITICAL_ALERT_SYSTEM_RECOVERY_STATUS_V0.md) maps boot, save, and repair outcomes to fixed state/reason/action, slot-health, generation, and transport/repair fields while omitting peer IDs, key handles, addresses, credentials, and raw checkpoint data. Unknown or incoherent input fails closed. Seven groups, the full 40-executable matrix, and 100 repeats pass locally; no target log/display or physical service workflow is claimed.
-- **Versioned diagnostic event:** OpenGauge's [diagnostics adapter](https://github.com/nbjelanovic/OpenGauge/blob/main/docs/diagnostics/RECOVERY_STATUS_DIAGNOSTIC_EVENT_V0.md) writes one atomic 32-bit event containing only the redacted coarse outcome, slot health, key-failure class, and flags. Magic/version/coherence checks fail closed, and generations plus identity-bearing fields are omitted. Eight groups, the full 41-executable matrix, and 100 repeats pass locally; no target log backend or persistent audit export is claimed.
+- **Target-shaped system storage:** OpenGauge's [`ORS0` key/value adapter](https://github.com/nbjelanovic/OpenGauge/blob/main/docs/integration/CRITICAL_ALERT_SYSTEM_RECOVERY_KV_TARGET_ADAPTER_V0.md) fixes exact 1280-byte `og_state` / `og_recovery` / `ors0_a|b` binding, durable commit after write/erase, strict size, and restart-visible uncertainty. Real boot/save composition proves normal restart, trusted-floor catch-up after an applied uncertain commit, and prior-trusted restoration after an unapplied commit. Thirteen groups, 100/100 repeats, and the full 43-executable public matrix pass; no ESP-IDF/protected/physical result is claimed.
+- **Versioned diagnostic event:** OpenGauge's [diagnostics adapter](https://github.com/nbjelanovic/OpenGauge/blob/main/docs/diagnostics/RECOVERY_STATUS_DIAGNOSTIC_EVENT_V0.md) writes one atomic 32-bit event containing only the redacted coarse outcome, slot health, key-failure class, and flags. Magic/version/coherence checks fail closed, and generations plus identity-bearing fields are omitted. Eight groups, the full 43-executable matrix, and 100 repeats pass publicly; no target log backend or persistent audit export is claimed.
 - **Verified save ordering:** OpenGauge's [save coordinator](https://github.com/nbjelanovic/OpenGauge/blob/main/docs/integration/CRITICAL_ALERT_SYSTEM_RECOVERY_SAVE_V0.md) refuses missing local state, local-behind rollback, and local-ahead unreconciled trust before normal persistence. It verifies the next `ORS0`, then advances and exactly reads back trust; uncertain commit or trust update requires typed reboot reconciliation. Eight groups, the full 38-executable matrix, and 100 repeats pass; no physical durability is claimed.
 - **Cleanup:** 4/4 temporary endpoint cleanup checks passed and no lease journal remained.
 

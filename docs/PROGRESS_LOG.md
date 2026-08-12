@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-12
 
+### Cross-project `ORS0` target-shaped storage sync
+
+- Reconciled OpenTrail's public cross-project status with current OpenGauge
+  evidence instead of leaving the target adapter described as unimplemented.
+- OpenGauge now binds exact 1280-byte `ORS0` slots through a backend-neutral
+  `og_state` / `og_recovery` / `ors0_a|b` key/value adapter and composes its
+  real boot/save coordinators through restarted adapter/store instances.
+- Thirteen adapter groups and 100/100 repeats cover normal one/two-slot boot,
+  verified save, applied-uncertain trusted-floor catch-up, and
+  unapplied-uncertain prior-generation recovery in the public 43-executable
+  matrix. No OpenTrail ESP-IDF binding, protected keys/trust, physical power
+  interruption, or on-device recovery result is claimed.
+
 ### ACK boot-session allocation through key/value storage
 
 - Composed the real commit-last `OTAS` allocator through the isolated
