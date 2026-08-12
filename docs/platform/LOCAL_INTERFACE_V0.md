@@ -120,6 +120,20 @@ rejects an event when:
 This prevents a delayed touch/button event from activating the same screen
 location after the application has changed its meaning.
 
+## Generic quick-status menu boundary
+
+The quick-status menu is now canonical across two four-action pages so all four
+generic choices retain a visible Back action. Page one is I'm OK, Need
+assistance, Next, Back. Page two is Anyone online?, Available to help,
+Previous, Back. All bindings are enabled, informational, action-only semantic
+enums on a `quick_status_menu` screen with no notice. The older ambiguous
+`submit_selected_quick_status` action is not accepted by frame validation.
+
+The separate [quick-status menu coordinator](QUICK_STATUS_MENU_COORDINATOR_V0.md)
+owns local revisions, page transitions, display deferral, typed selection, and
+the minimum newer revision needed by its parent. A selection remains a local
+request; it is not queued, sent, received, acknowledged, or delivered evidence.
+
 ## Critical-alert boundary
 
 `open_critical_confirmation` only requests the dedicated confirmation screen;
@@ -153,7 +167,7 @@ authority.
 
 ## Host evidence
 
-Twelve deterministic scenario groups cover:
+Thirteen deterministic scenario groups cover:
 
 1. invalid capabilities rejected before display I/O;
 2. atomic presentation of a complete semantic frame;
@@ -161,12 +175,13 @@ Twelve deterministic scenario groups cover:
 4. strict revisions, enums, capacities, canonical slots, and uniqueness;
 5. action-slot and hold-capability limits;
 6. the exact critical-confirmation shape;
-7. ordinary action resolution against the current frame;
-8. stale, out-of-range, and disabled input rejection;
-9. hold-only critical confirmation;
-10. not-ready, failed, unknown, and pre-frame input behavior;
-11. system-fault action restrictions; and
-12. bounded FIFO/script capacity and ordering in test support.
+7. both exact four-action quick-status menu pages;
+8. ordinary action resolution against the current frame;
+9. stale, out-of-range, and disabled input rejection;
+10. hold-only critical confirmation;
+11. not-ready, failed, unknown, and pre-frame input behavior;
+12. system-fault action restrictions; and
+13. bounded FIFO/script capacity and ordering in test support.
 
 The separate ten-group archive-consent suite covers canonical archive frames,
 wrong-screen rejection, hold-only Start, immediate Stop, stale/cancel paths,

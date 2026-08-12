@@ -60,14 +60,15 @@ Ten deterministic groups plus 100/100 focused repeats cover:
 9. corruption at every byte position; and
 10. fixed one-byte semantic state and 12-byte identity-free payload shape.
 
-The complete 106-executable host matrix and Python publication checks pass.
+The complete 107-executable host matrix and Python publication checks pass.
 
 ## Next gates
 
 - Define the authenticated packet-v1 message type, priority, replay, expiry,
   acknowledgement, and deduplication policy before any radio binding.
-- Build revision-safe menu selection and confirmation around the existing
-  semantic local-interface boundary without exceeding physical input limits.
+- Connect the host-tested two-page
+  [revision-safe menu](../platform/QUICK_STATUS_MENU_COORDINATOR_V0.md) to one
+  parent shell and later authenticated outbound owner.
 - Define clear sent/queued/delivered/failed presentation; local selection must
   never be shown as peer delivery.
 - Bind and measure one selected target, then exercise four physical clients

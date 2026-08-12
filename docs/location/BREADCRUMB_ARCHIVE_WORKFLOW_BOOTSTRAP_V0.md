@@ -71,7 +71,7 @@ Eight deterministic scenario groups plus 100/100 focused repeats cover:
    a clock read or range crossing.
 
 Compile-time checks reject copying/moving the bootstrap, workflow, and consent
-owners. The complete 106-executable C++ host matrix and Python publication
+owners. The complete 107-executable C++ host matrix and Python publication
 checks pass.
 
 This is not an ESP-IDF/NVS adapter, CSPRNG seed source, authenticated or

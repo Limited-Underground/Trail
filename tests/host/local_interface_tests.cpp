@@ -71,6 +71,39 @@ UiFrame critical_frame(std::uint32_t revision) {
     return frame;
 }
 
+UiFrame quick_status_frame(std::uint32_t revision, bool second_page = false) {
+    auto frame = home_frame(revision);
+    frame.screen = UiScreen::quick_status_menu;
+    frame.attention = UiAttention::information;
+    frame.action_count = 4;
+    if (!second_page) {
+        frame.actions[0] = {UiAction::select_quick_status_ok, true};
+        frame.actions[1] = {
+            UiAction::select_quick_status_need_assistance,
+            true,
+        };
+        frame.actions[2] = {
+            UiAction::show_next_quick_status_page,
+            true,
+        };
+    } else {
+        frame.actions[0] = {
+            UiAction::select_quick_status_anyone_online,
+            true,
+        };
+        frame.actions[1] = {
+            UiAction::select_quick_status_available_to_help,
+            true,
+        };
+        frame.actions[2] = {
+            UiAction::show_previous_quick_status_page,
+            true,
+        };
+    }
+    frame.actions[3] = {UiAction::cancel, true};
+    return frame;
+}
+
 void test_invalid_capabilities_never_touch_display() {
     FakeDisplaySink display;
     FakeLocalInputSource input;
@@ -314,6 +347,38 @@ void test_system_fault_screen_cannot_offer_send_actions() {
     EXPECT(interface.present(unsafe_start).error == PresentError::invalid_frame);
 }
 
+void test_quick_status_menu_has_two_canonical_four_action_pages() {
+    FakeDisplaySink display;
+    FakeLocalInputSource input;
+    CheckedLocalInterface interface(display, input, touch_capabilities());
+    EXPECT(interface.present(quick_status_frame(1)).ok());
+    EXPECT(input.enqueue_action(1, 1));
+    const auto assistance = interface.poll_action();
+    EXPECT(assistance.ok());
+    EXPECT(assistance.action ==
+           UiAction::select_quick_status_need_assistance);
+
+    EXPECT(interface.present(quick_status_frame(2, true)).ok());
+    auto wrong_order = quick_status_frame(3, true);
+    wrong_order.actions[0] = {
+        UiAction::select_quick_status_available_to_help,
+        true,
+    };
+    EXPECT(interface.present(wrong_order).error == PresentError::invalid_frame);
+
+    auto ambiguous = home_frame(3);
+    ambiguous.actions[0] = {UiAction::submit_selected_quick_status, true};
+    EXPECT(interface.present(ambiguous).error == PresentError::invalid_frame);
+
+    auto quick_action_on_home = home_frame(3);
+    quick_action_on_home.actions[0] = {
+        UiAction::select_quick_status_ok,
+        true,
+    };
+    EXPECT(interface.present(quick_action_on_home).error ==
+           PresentError::invalid_frame);
+}
+
 void test_fakes_are_bounded_and_ordered() {
     FakeLocalInputSource input;
     for (std::size_t index = 0; index < input.kCapacity; ++index) {
@@ -352,6 +417,7 @@ int main() {
     test_frame_validation_and_revision_are_fail_closed();
     test_capability_limits_and_hold_support_are_enforced();
     test_critical_confirmation_has_canonical_shape();
+    test_quick_status_menu_has_two_canonical_four_action_pages();
     test_normal_action_resolves_against_exact_frame();
     test_stale_invalid_and_disabled_slots_do_not_resolve();
     test_critical_confirmation_requires_hold();
@@ -363,6 +429,6 @@ int main() {
         std::cerr << failures << " local-interface assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 12 local display/input boundary scenario groups\n";
+    std::cout << "PASS: 13 local display/input boundary scenario groups\n";
     return EXIT_SUCCESS;
 }

@@ -77,7 +77,12 @@ bool valid_action(UiAction action) {
     return action == UiAction::show_status ||
            action == UiAction::open_quick_status_menu ||
            action == UiAction::open_critical_confirmation ||
-           action == UiAction::submit_selected_quick_status ||
+           action == UiAction::select_quick_status_ok ||
+           action == UiAction::select_quick_status_need_assistance ||
+           action == UiAction::select_quick_status_anyone_online ||
+           action == UiAction::select_quick_status_available_to_help ||
+           action == UiAction::show_next_quick_status_page ||
+           action == UiAction::show_previous_quick_status_page ||
            action == UiAction::confirm_critical_alert ||
            action == UiAction::cancel ||
            action == UiAction::acknowledge_notice ||
@@ -88,6 +93,15 @@ bool valid_action(UiAction action) {
            action == UiAction::request_archive_stop ||
            action == UiAction::confirm_archive_start ||
            action == UiAction::stop_archive;
+}
+
+bool quick_status_action(UiAction action) {
+    return action == UiAction::select_quick_status_ok ||
+           action == UiAction::select_quick_status_need_assistance ||
+           action == UiAction::select_quick_status_anyone_online ||
+           action == UiAction::select_quick_status_available_to_help ||
+           action == UiAction::show_next_quick_status_page ||
+           action == UiAction::show_previous_quick_status_page;
 }
 
 bool valid_gesture(InputGesture gesture) {
@@ -132,6 +146,31 @@ bool valid_frame(const UiFrame& frame, const DisplayCapabilities& capabilities) 
     }
     if (!actions_are_unique(frame)) {
         return false;
+    }
+
+    if (frame.screen == UiScreen::quick_status_menu) {
+        const bool first_page =
+            frame.actions[0].action == UiAction::select_quick_status_ok &&
+            frame.actions[1].action ==
+                UiAction::select_quick_status_need_assistance &&
+            frame.actions[2].action ==
+                UiAction::show_next_quick_status_page;
+        const bool second_page =
+            frame.actions[0].action ==
+                UiAction::select_quick_status_anyone_online &&
+            frame.actions[1].action ==
+                UiAction::select_quick_status_available_to_help &&
+            frame.actions[2].action ==
+                UiAction::show_previous_quick_status_page;
+        return frame.attention == UiAttention::information &&
+               frame.notice == UiNotice::none &&
+               frame.action_count == 4 &&
+               frame.actions[0].enabled &&
+               frame.actions[1].enabled &&
+               frame.actions[2].enabled &&
+               frame.actions[3].action == UiAction::cancel &&
+               frame.actions[3].enabled &&
+               (first_page || second_page);
     }
 
     if (frame.screen == UiScreen::critical_confirmation) {
@@ -179,6 +218,9 @@ bool valid_frame(const UiFrame& frame, const DisplayCapabilities& capabilities) 
     }
 
     for (std::size_t index = 0; index < frame.action_count; ++index) {
+        if (quick_status_action(frame.actions[index].action)) {
+            return false;
+        }
         if (frame.actions[index].action == UiAction::confirm_critical_alert ||
             frame.actions[index].action == UiAction::request_archive_start ||
             frame.actions[index].action == UiAction::request_archive_stop ||
