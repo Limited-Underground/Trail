@@ -204,6 +204,16 @@ every writer uses the same domain. No ESP-IDF mutex, concurrent-writer proof, or
 on-device evidence exists. See the
 [serialized archive snapshot adapter](location/BREADCRUMB_ARCHIVE_SNAPSHOT_ADAPTER_V0.md).
 
+The corresponding target-shaped runtime owner now constructs the concrete
+capture session, outbox, uploader, retry coordinator, and snapshot adapter as
+private members. Start, stop, capture, upload service, and snapshot access all
+pass through the same injected lock, so target composition receives no direct
+mutable-owner reference. Component rejection stays separate from lock failure;
+unlock uncertainty after a mutation latches this optional path without an
+unsafe compensating call. Local consent, ESP-IDF binding, concurrent task proof,
+and physical behavior remain absent. See the
+[serialized archive runtime owner](location/BREADCRUMB_ARCHIVE_RUNTIME_OWNER_V0.md).
+
 A cooperative archive UI coordinator now owns the corresponding semantic-frame
 revisions. Every valid service call takes exactly one fresh serialized snapshot;
 unchanged state consumes no display write or revision, temporary source/display

@@ -378,6 +378,24 @@ $builds = @(
         )
     },
     @{
+        Name = 'serialized breadcrumb archive runtime owner'
+        Output = Join-Path $buildDirectory 'breadcrumb_archive_runtime_owner_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\location\src\position_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\position_broadcast_scheduler.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\breadcrumb_archive.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\breadcrumb_archive_outbox.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\breadcrumb_archive_retry.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\test_support\fake_breadcrumb_archive_remote.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\monotonic_clock.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\test_support\fake_monotonic_counter_source.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\breadcrumb_archive_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\breadcrumb_archive_snapshot_adapter.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\breadcrumb_archive_runtime_owner.cpp'),
+            (Join-Path $projectRoot 'tests\host\breadcrumb_archive_runtime_owner_tests.cpp')
+        )
+    },
+    @{
         Name = 'local position sharing privacy control'
         Output = Join-Path $buildDirectory 'position_sharing_control_tests.exe'
         Sources = @(

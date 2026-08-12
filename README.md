@@ -13,8 +13,8 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, and bounded close-range bench proofs |
-| Latest increment | [Serialized optional-archive snapshot adapter](docs/location/BREADCRUMB_ARCHIVE_SNAPSHOT_ADAPTER_V0.md): one injected lock boundary around all three concrete status owners, with contention deferral and partial-output redaction |
-| Proven so far | A 97-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited transport, soak, burst, and alert/acknowledgement tests |
+| Latest increment | [Private serialized optional-archive runtime](docs/location/BREADCRUMB_ARCHIVE_RUNTIME_OWNER_V0.md): capture, outbox, upload/retry, and snapshots share one injected lock with no direct mutable-owner access |
+| Proven so far | A 98-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited transport, soak, burst, and alert/acknowledgement tests |
 | Planned first release | Up to eight active clients in one group with at most one optional authorized repeater |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, physical GPS/UI, field range, power endurance, or regulatory acceptance |
 

@@ -97,6 +97,15 @@ closed. Ten groups plus 100/100 focused repeats pass. The real ESP-IDF primitive
 shared writer discipline, concurrent stress, target resource measurements, and
 physical failure behavior remain unproved.
 
+A private target-shaped archive runtime owner now removes direct mutable access
+to the concrete capture session, outbox, uploader, and retry coordinator. Start,
+stop, capture, retry-controlled upload, and status snapshot calls share the one
+injected lock. Contention attempts no operation; component rejection remains
+typed and distinct; lock/unlock uncertainty latches the optional runtime, with
+post-operation unlock failure marked outcome-uncertain. Ten groups plus 100/100
+focused repeats pass. Explicit local consent, ESP-IDF binding, concurrent target
+stress, physical network/storage durability, and on-device measurements remain.
+
 A host-only archive UI coordinator now owns display revisions around that
 single-read source. Every valid cooperative service call takes exactly one new
 snapshot. Unchanged semantics redraw nothing and consume no revision;
@@ -676,13 +685,13 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AE records the target-shaped cross-project recovery boundary as implemented host plumbing rather than a plan-only gap. The backend-neutral `ORS0` key/value adapter and real boot/save composition pass thirteen groups, 100/100 repeats, and the complete public 43-executable matrix. OpenTrail still has no exact ESP-IDF backend, protected key/trust source, physical interruption, or on-device composition.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 97 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 98 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, opt-in breadcrumb archive sessions,
   bounded outbox/durable-ack handoff, checked-time retry, privacy-safe archive
   presentation, single-read archive status capture, serialized archive snapshot
-  adapter, single-owner archive UI,
+  adapter, private serialized archive runtime owner, single-owner archive UI,
   loss-aware priority-to-delivery
   handoff, checked-time outbound service coordination, fail-visible outbound
   position safety, checked-time position commands, single-owner position UI,

@@ -68,7 +68,7 @@ Ten deterministic scenario groups plus 100/100 focused repeats cover:
 9. composition through the privacy-safe single-owner archive UI; and
 10. fixed fake-lock script capacity.
 
-The complete 97-executable host matrix and Python evidence checks pass. This is
+The complete 98-executable host matrix and Python evidence checks pass. This is
 common-code ordering evidence, not proof that a target mutex is correct or that
 concurrent writers actually honor it.
 
@@ -76,8 +76,10 @@ concurrent writers actually honor it.
 
 - Select the concrete client target and bind the lock interface to its reviewed
   ESP-IDF synchronization primitive.
-- Route every session/outbox/retry mutation through the same serialization
-  domain and add concurrent service/copy stress evidence.
+- Compose the host-tested
+  [private serialized runtime owner](BREADCRUMB_ARCHIVE_RUNTIME_OWNER_V0.md),
+  which routes every exposed session/outbox/retry mutation through this lock;
+  then add concurrent target service/copy stress evidence.
 - Measure lock hold time, contention, priority behavior, stack/RAM, UI latency,
   and power on the frozen target.
 - Inject physical task stalls, display unavailability, reboot, and power faults

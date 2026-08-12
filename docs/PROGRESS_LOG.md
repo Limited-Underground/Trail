@@ -6,6 +6,20 @@ public chronology.
 
 ## 2026-08-12
 
+### Private serialized breadcrumb archive runtime owner
+
+- Added one target-shaped owner that privately constructs the capture session,
+  bounded outbox, uploader, retry coordinator, and snapshot adapter.
+- Start, stop, capture, upload service, and snapshots now share one injected
+  lock without exposing a direct mutable-owner reference. Temporary contention
+  attempts nothing; component rejection remains separate from lock failure.
+- Acquire uncertainty latches before mutation. Release uncertainty after a call
+  marks the outcome uncertain and blocks later archive operations without an
+  unsafe compensating mutation; base radio remains outside this owner.
+- Ten deterministic groups plus 100/100 focused repeats and the complete
+  98-executable host matrix pass. Local consent/authorization, real ESP-IDF
+  synchronization, concurrent target stress, and physical evidence remain.
+
 ### Serialized breadcrumb archive snapshot adapter
 
 - Added one target-shaped source over the concrete capture session, bounded
