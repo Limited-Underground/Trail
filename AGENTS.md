@@ -8,6 +8,15 @@ This directory is the complete boundary for OpenTrail. Do not place OpenTrail fi
 
 OpenTrail is in architecture and proof-of-concept planning. Capabilities in the README and architecture documents are goals unless backed by test evidence. Do not describe projected hardware or behavior as tested.
 
+## Brand and trademark safeguards
+
+- `Limited Underground` and `Limited Underground Business` are owner-approved working identities pending attorney clearance, not cleared or registered names.
+- Use `LU` only as a monogram visibly paired with the full words `Limited Underground`. Do not create or publish `LU Link`, `LU Studio`, or an `LU`-plus-number public model name such as `LU300`, `LU-300`, or `LU 300`.
+- Never use `®` without documented federal registration for the exact mark and relevant goods or services. Use `™` only where an unregistered trademark symbol is appropriate.
+- New public product or family names require documented preliminary screening and explicit owner approval; obtain professional clearance before permanent hardware marking, packaging, sales, or another hard-to-reverse release.
+- Keep working names out of protocol fields, compatibility identifiers, device IDs, persistent schemas, API contracts, cryptographic material, and board identifiers so branding remains replaceable.
+- Existing `OT-` engineering, protocol, test, and inventory identifiers remain allowed. They are OpenTrail technical identifiers, not `LU` model names.
+
 ## Working rules
 
 1. Read `README.md`, `docs/ARCHITECTURE.md`, `docs/PROJECT_STATUS.md`, and `tasks/BACKLOG.md` before implementation.
