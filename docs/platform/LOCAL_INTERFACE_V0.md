@@ -38,7 +38,7 @@ presentation can exist without expanding the base application contract.
 
 - a nonzero, strictly increasing boot-local revision;
 - one screen role: home, status, quick-status menu, critical confirmation,
-  archive confirmation, or system fault;
+  archive controls, archive confirmation, or system fault;
 - attention and notice enums;
 - radio, position, and power indicator states;
 - optional peer count and bounded unread count; and
@@ -76,6 +76,17 @@ export, deletion, server, or base-radio authority. The separate
 [local archive-consent boundary](../location/BREADCRUMB_ARCHIVE_LOCAL_CONSENT_V0.md)
 adds canonical confirmation-only actions without granting the renderer,
 radio, server, or automatic recovery path archive authority.
+
+The archive-controls screen is also canonical. It contains exactly one
+snapshot-derived request plus Cancel: coherent stopped state may request Start;
+coherent active state may request Stop; failed, unknown, or incoherent state may
+request only Stop. `request_archive_start` and `request_archive_stop` merely
+open the corresponding confirmation. They cannot execute an archive operation.
+The [complete archive workflow](../location/BREADCRUMB_ARCHIVE_WORKFLOW_COORDINATOR_V0.md)
+owns the control/confirmation/cancel/action/refresh revision sequence.
+`open_archive_controls` is a parent-navigation request rather than an archive
+operation; re-entry accepts it only after the checked interface resolves it
+against the exact active parent frame.
 
 Unused action slots must remain canonical zero/disabled values. Active actions
 must be known and unique. A frame is committed only after the display sink

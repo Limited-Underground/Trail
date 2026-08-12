@@ -24,6 +24,7 @@ bool valid_screen(UiScreen screen) {
     return screen == UiScreen::home || screen == UiScreen::status ||
            screen == UiScreen::quick_status_menu ||
            screen == UiScreen::critical_confirmation ||
+           screen == UiScreen::archive_controls ||
            screen == UiScreen::archive_confirmation ||
            screen == UiScreen::system_fault;
 }
@@ -82,6 +83,9 @@ bool valid_action(UiAction action) {
            action == UiAction::acknowledge_notice ||
            action == UiAction::start_position_sharing ||
            action == UiAction::stop_position_sharing ||
+           action == UiAction::open_archive_controls ||
+           action == UiAction::request_archive_start ||
+           action == UiAction::request_archive_stop ||
            action == UiAction::confirm_archive_start ||
            action == UiAction::stop_archive;
 }
@@ -156,8 +160,28 @@ bool valid_frame(const UiFrame& frame, const DisplayCapabilities& capabilities) 
                (canonical_start || canonical_stop);
     }
 
+    if (frame.screen == UiScreen::archive_controls) {
+        const bool start_available =
+            frame.notice == UiNotice::archive_stopped &&
+            frame.actions[0].action == UiAction::request_archive_start;
+        const bool stop_available =
+            (frame.notice == UiNotice::archive_active ||
+             frame.notice == UiNotice::archive_queued ||
+             frame.notice == UiNotice::archive_upload_waiting ||
+             frame.notice == UiNotice::archive_queue_full ||
+             frame.notice == UiNotice::archive_upload_failed) &&
+            frame.actions[0].action == UiAction::request_archive_stop;
+        return frame.action_count == 2 && frame.actions[0].enabled &&
+               frame.status.archive_queue_count_valid &&
+               frame.actions[1].action == UiAction::cancel &&
+               frame.actions[1].enabled &&
+               (start_available || stop_available);
+    }
+
     for (std::size_t index = 0; index < frame.action_count; ++index) {
         if (frame.actions[index].action == UiAction::confirm_critical_alert ||
+            frame.actions[index].action == UiAction::request_archive_start ||
+            frame.actions[index].action == UiAction::request_archive_stop ||
             frame.actions[index].action == UiAction::confirm_archive_start ||
             frame.actions[index].action == UiAction::stop_archive) {
             return false;
@@ -166,6 +190,7 @@ bool valid_frame(const UiFrame& frame, const DisplayCapabilities& capabilities) 
             (frame.actions[index].action == UiAction::open_critical_confirmation ||
              frame.actions[index].action == UiAction::submit_selected_quick_status ||
              frame.actions[index].action == UiAction::start_position_sharing ||
+             frame.actions[index].action == UiAction::open_archive_controls ||
              frame.actions[index].action == UiAction::confirm_archive_start)) {
             return false;
         }

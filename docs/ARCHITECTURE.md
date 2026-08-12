@@ -210,8 +210,8 @@ private members. Start, stop, capture, upload service, and snapshot access all
 pass through the same injected lock, so target composition receives no direct
 mutable-owner reference. Component rejection stays separate from lock failure;
 unlock uncertainty after a mutation latches this optional path without an
-unsafe compensating call. Local consent, ESP-IDF binding, concurrent task proof,
-and physical behavior remain absent. See the
+unsafe compensating call. Target-exclusive workflow composition, ESP-IDF
+binding, concurrent task proof, and physical behavior remain absent. See the
 [serialized archive runtime owner](location/BREADCRUMB_ARCHIVE_RUNTIME_OWNER_V0.md).
 
 Archive start/stop now has a separate local-only consent boundary. Start is a
@@ -219,9 +219,24 @@ hold on the exact active canonical archive-confirmation revision and requires
 one checked monotonic sample; Stop is immediate and clock-independent from its
 own exact local confirmation frame. Cancel, stale/wrong-screen input, clock
 failure, and unsupported actions reach no runtime operation. The controller has
-no radio/server/automatic input. A full archive UI revision coordinator,
-renderer, physical input, and target call-path proof remain absent. See
+no radio/server/automatic input. Renderer, physical input, parent navigation,
+and target call-path proof remain absent. See
 [local archive consent](location/BREADCRUMB_ARCHIVE_LOCAL_CONSENT_V0.md).
+
+The complete local archive workflow now keeps the serialized runtime, local
+consent controller, snapshot-backed control screen, Start/Stop confirmation,
+Cancel, and post-action refresh in one cooperative revision sequence. It reads
+a fresh serialized snapshot before polling a control action; unknown or
+incoherent state can expose Stop but never Start. Start remains hold-only and
+Stop remains immediate. If a successful Start cannot be followed by a truthful
+new frame, or if revisions are exhausted, the workflow attempts a privacy-safe
+Stop and latches. The workflow has no radio/server/automatic Start input, but a
+target shell must still own local entry/exit navigation and the runtime object
+must remain inaccessible to unapproved call paths. See the
+[archive workflow contract](location/BREADCRUMB_ARCHIVE_WORKFLOW_COORDINATOR_V0.md).
+After exit, re-entry requires `open_archive_controls` already resolved against
+the exact active parent revision; the same boot-lived coordinator retains its
+session sequence rather than recreating it.
 
 A cooperative archive UI coordinator now owns the corresponding semantic-frame
 revisions. Every valid service call takes exactly one fresh serialized snapshot;

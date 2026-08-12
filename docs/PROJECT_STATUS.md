@@ -103,8 +103,9 @@ stop, capture, retry-controlled upload, and status snapshot calls share the one
 injected lock. Contention attempts no operation; component rejection remains
 typed and distinct; lock/unlock uncertainty latches the optional runtime, with
 post-operation unlock failure marked outcome-uncertain. Ten groups plus 100/100
-focused repeats pass. Explicit local consent, ESP-IDF binding, concurrent target
-stress, physical network/storage durability, and on-device measurements remain.
+focused repeats pass. Target-exclusive local workflow composition, ESP-IDF
+binding, concurrent target stress, physical network/storage durability, and
+on-device measurements remain.
 
 Archive execution now has a revision-bound local-only consent boundary. The
 canonical Start confirmation requires a hold and exact active frame revision;
@@ -113,9 +114,23 @@ Start alone reads checked time and allocates a nonzero boot-local session ID;
 temporary clock/lock unavailability defers without mutation, while uncertain
 post-operation state consumes the ID so it cannot be reused. Stale, cancel,
 wrong-screen, unsupported, and failed-input paths make no archive call. Ten
-groups plus 100/100 focused repeats pass. A complete archive UI coordinator,
-rendered consent, physical input, restart-safe allocation, ESP-IDF composition,
-and on-device evidence remain.
+groups plus 100/100 focused repeats pass. Rendered consent, parent navigation,
+physical input, restart-safe allocation, ESP-IDF composition, and on-device
+evidence remain.
+
+One complete local workflow now composes that consent boundary with the private
+serialized runtime and a snapshot-backed archive controls screen. A coherent
+stopped state offers Start; active state offers Stop; unknown, failed, or
+incoherent state can offer only Stop. Control input is polled only after a fresh
+snapshot confirms the displayed semantics. Start remains hold-only, Stop
+remains immediate, Cancel mutates no runtime state, and each completed action
+must publish a newer truthful control frame. Failed post-Start refresh and
+revision exhaustion attempt privacy-safe Stop and latch. This remains host
+common code. Re-entry requires an exact-parent-revision local action and keeps
+the same boot session allocator, but complete parent navigation, renderer,
+physical controls, ESP-IDF binding, concurrent target stress, restart-safe
+session allocation, and device evidence are absent. See the
+[complete archive workflow](location/BREADCRUMB_ARCHIVE_WORKFLOW_COORDINATOR_V0.md).
 
 A host-only archive UI coordinator now owns display revisions around that
 single-read source. Every valid cooperative service call takes exactly one new
@@ -696,14 +711,14 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AE records the target-shaped cross-project recovery boundary as implemented host plumbing rather than a plan-only gap. The backend-neutral `ORS0` key/value adapter and real boot/save composition pass thirteen groups, 100/100 repeats, and the complete public 43-executable matrix. OpenTrail still has no exact ESP-IDF backend, protected key/trust source, physical interruption, or on-device composition.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 99 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 100 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, opt-in breadcrumb archive sessions,
   bounded outbox/durable-ack handoff, checked-time retry, privacy-safe archive
   presentation, single-read archive status capture, serialized archive snapshot
   adapter, private serialized archive runtime owner, revision-bound local
-  archive consent, single-owner archive UI,
+  archive consent, complete local archive workflow, single-owner archive UI,
   loss-aware priority-to-delivery
   handoff, checked-time outbound service coordination, fail-visible outbound
   position safety, checked-time position commands, single-owner position UI,

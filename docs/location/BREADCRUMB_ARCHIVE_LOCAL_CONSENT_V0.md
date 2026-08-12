@@ -87,14 +87,15 @@ Ten deterministic scenario groups plus 100/100 focused repeats cover:
 9. runtime contention preserving the candidate for a new explicit retry; and
 10. uncertain/max session consumption and zero-seed rejection.
 
-The complete 99-executable host matrix and Python evidence checks pass. This is
+The complete 100-executable host matrix and Python evidence checks pass. This is
 not rendered-display, physical button/touch, localization/accessibility,
 distracted-use, restart-safe session allocation, ESP-IDF, or on-device evidence.
 
 ## Next gates
 
-- Build a complete UI coordinator that owns archive status, confirmation entry,
-  cancel, consent application, and post-action refresh as one revision sequence.
+- Keep the host-tested
+  [complete UI workflow](BREADCRUMB_ARCHIVE_WORKFLOW_COORDINATOR_V0.md) as the
+  only target composition path to this controller.
 - Decide how the local menu exposes archive controls without making the optional
   service prominent, confusing, or accidental.
 - Add a restart-safe non-identifying session allocator or prove why same-boot

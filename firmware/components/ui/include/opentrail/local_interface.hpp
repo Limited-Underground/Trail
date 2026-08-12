@@ -30,6 +30,7 @@ enum class UiScreen : std::uint8_t {
     status,
     quick_status_menu,
     critical_confirmation,
+    archive_controls,
     archive_confirmation,
     system_fault,
 };
@@ -93,6 +94,9 @@ enum class UiAction : std::uint8_t {
     acknowledge_notice,
     start_position_sharing,
     stop_position_sharing,
+    open_archive_controls,
+    request_archive_start,
+    request_archive_stop,
     confirm_archive_start,
     stop_archive,
 };

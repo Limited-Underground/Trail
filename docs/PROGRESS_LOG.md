@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-12
 
+### Complete local breadcrumb archive workflow
+
+- Added one cooperative revision owner for snapshot-backed archive controls,
+  Start/Stop confirmation, Cancel, consent application, and post-action status
+  refresh. Every control action resolves against the exact displayed revision.
+- A coherent stopped snapshot offers Start; active state offers Stop. Failed,
+  unknown, or incoherent state can offer only the privacy-safe Stop path, never
+  Start. Start still requires hold while Stop remains immediate.
+- Snapshot contention prevents input polling. Runtime contention retains the
+  confirmation for an explicit retry. If active state cannot be shown after a
+  successful Start, the coordinator attempts Stop and latches the workflow;
+  revision exhaustion also fails privacy-safe by stopping.
+- Fourteen deterministic groups plus 100/100 focused repeats and the complete
+  100-executable host matrix pass. A parent menu/navigation owner, renderer,
+  physical input, restart-safe session allocation, ESP-IDF binding, concurrent
+  target stress, and on-device evidence remain.
+
 ### Revision-bound local breadcrumb archive consent
 
 - Added canonical local Start and Stop confirmation frames. Start requires a
@@ -17,10 +34,10 @@ public chronology.
 - Confirmed Start uses one checked monotonic sample and one nonzero boot-local
   session sequence. Contention preserves the candidate for a new explicit hold;
   uncertain post-operation state consumes it so it cannot be reused.
-- Ten deterministic groups plus 100/100 focused repeats and the complete
-  99-executable host matrix pass. No radio/server/automatic start input,
-  complete UI coordinator, renderer, physical input, restart-safe allocator,
-  ESP-IDF binding, or on-device evidence exists.
+- Ten deterministic groups plus 100/100 focused repeats pass within the current
+  100-executable host matrix. No radio/server/automatic start input, renderer,
+  physical input, restart-safe allocator, ESP-IDF binding, or on-device
+  evidence exists.
 
 ### Private serialized breadcrumb archive runtime owner
 
