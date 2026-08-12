@@ -30,6 +30,7 @@ enum class UiScreen : std::uint8_t {
     status,
     quick_status_menu,
     critical_confirmation,
+    archive_confirmation,
     system_fault,
 };
 
@@ -75,6 +76,8 @@ enum class UiNotice : std::uint8_t {
     archive_upload_waiting,
     archive_queue_full,
     archive_upload_failed,
+    archive_start_confirmation,
+    archive_stop_confirmation,
 };
 
 // These are semantic application requests, not physical button or touch IDs.
@@ -90,6 +93,8 @@ enum class UiAction : std::uint8_t {
     acknowledge_notice,
     start_position_sharing,
     stop_position_sharing,
+    confirm_archive_start,
+    stop_archive,
 };
 
 struct DisplayCapabilities {

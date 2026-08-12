@@ -214,6 +214,15 @@ unsafe compensating call. Local consent, ESP-IDF binding, concurrent task proof,
 and physical behavior remain absent. See the
 [serialized archive runtime owner](location/BREADCRUMB_ARCHIVE_RUNTIME_OWNER_V0.md).
 
+Archive start/stop now has a separate local-only consent boundary. Start is a
+hold on the exact active canonical archive-confirmation revision and requires
+one checked monotonic sample; Stop is immediate and clock-independent from its
+own exact local confirmation frame. Cancel, stale/wrong-screen input, clock
+failure, and unsupported actions reach no runtime operation. The controller has
+no radio/server/automatic input. A full archive UI revision coordinator,
+renderer, physical input, and target call-path proof remain absent. See
+[local archive consent](location/BREADCRUMB_ARCHIVE_LOCAL_CONSENT_V0.md).
+
 A cooperative archive UI coordinator now owns the corresponding semantic-frame
 revisions. Every valid service call takes exactly one fresh serialized snapshot;
 unchanged state consumes no display write or revision, temporary source/display

@@ -77,14 +77,15 @@ Ten deterministic scenario groups plus 100/100 focused repeats cover:
 9. snapshot lock failure propagating to the writer gate; and
 10. unknown writer acquire/release states failing closed.
 
-The complete 98-executable host matrix and Python evidence checks pass. This
+The complete 99-executable host matrix and Python evidence checks pass. This
 proves common-code object ownership and ordering only. It does not prove a real
 ESP-IDF primitive, preemptive concurrency, task priorities, physical storage,
 network durability, or hardware behavior.
 
 ## Next gates
 
-- Define explicit local archive consent and authorization for start/stop without
+- Compose the host-tested
+  [revision-bound local consent](BREADCRUMB_ARCHIVE_LOCAL_CONSENT_V0.md) without
   adding remote control or making archive service a base-client requirement.
 - Bind the lock to a reviewed ESP-IDF primitive and run all archive scheduling,
   upload, and UI calls through the private owner on one selected target.

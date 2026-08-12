@@ -37,8 +37,8 @@ presentation can exist without expanding the base application contract.
 `UiFrame` is fixed-size and contains:
 
 - a nonzero, strictly increasing boot-local revision;
-- one screen role: home, status, quick-status menu, critical confirmation, or
-  system fault;
+- one screen role: home, status, quick-status menu, critical confirmation,
+  archive confirmation, or system fault;
 - attention and notice enums;
 - radio, position, and power indicator states;
 - optional peer count and bounded unread count; and
@@ -68,12 +68,14 @@ now owns the host-tested revision/poll/action/refresh sequence around that
 adapter; it does not provide an ESP-IDF task, lock, or physical renderer.
 
 Known notices also include archive stopped, active, queued, upload waiting,
-queue full, and upload failed. The separate
+queue full, upload failed, start confirmation, and stop confirmation. The separate
 [breadcrumb-archive presentation adapter](../location/BREADCRUMB_ARCHIVE_PRESENTATION_V0.md)
 reduces copied session/outbox/retry status to these coordinate-free tokens and
 a bounded queue count. Archive presentation has no capture, upload, discard,
-export, deletion, server, or base-radio authority and defines no action
-bindings.
+export, deletion, server, or base-radio authority. The separate
+[local archive-consent boundary](../location/BREADCRUMB_ARCHIVE_LOCAL_CONSENT_V0.md)
+adds canonical confirmation-only actions without granting the renderer,
+radio, server, or automatic recovery path archive authority.
 
 Unused action slots must remain canonical zero/disabled values. Active actions
 must be known and unique. A frame is committed only after the display sink
@@ -113,6 +115,22 @@ stale event, disabled slot, different screen, or system-fault send action fails
 closed. Resolution is still an application request, not proof of radio delivery
 or emergency response. Delivery success/failure must remain separately visible.
 
+## Breadcrumb-archive consent boundary
+
+Archive control has a different canonical screen from critical alerts. Start
+uses informational attention, `archive_start_confirmation`, and exactly two
+enabled actions in order: `confirm_archive_start`, then `cancel`. The target
+must support hold, and only a hold resolves Start. Stop uses informational
+attention, `archive_stop_confirmation`, and exactly two enabled actions in
+order: `stop_archive`, then `cancel`; Stop resolves on activate/tap so privacy
+shutdown is not delayed unnecessarily.
+
+`confirm_archive_start` and `stop_archive` are invalid on every other screen,
+including home, status, critical confirmation, and system fault. Resolution is
+only a revision-bound local request. The renderer has no archive runtime,
+session allocation, upload, server, radio, discard, export, or deletion
+authority.
+
 ## Host evidence
 
 Twelve deterministic scenario groups cover:
@@ -129,6 +147,10 @@ Twelve deterministic scenario groups cover:
 10. not-ready, failed, unknown, and pre-frame input behavior;
 11. system-fault action restrictions; and
 12. bounded FIFO/script capacity and ordering in test support.
+
+The separate ten-group archive-consent suite covers canonical archive frames,
+wrong-screen rejection, hold-only Start, immediate Stop, stale/cancel paths,
+checked-time/session sequencing, and absence of any radio/server action source.
 
 The predictable display and input fakes remain under `test_support` only.
 

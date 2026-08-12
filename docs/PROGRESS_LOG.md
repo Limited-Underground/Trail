@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-12
 
+### Revision-bound local breadcrumb archive consent
+
+- Added canonical local Start and Stop confirmation frames. Start requires a
+  hold on the exact active revision; Stop resolves immediately from its exact
+  local frame. Archive actions are invalid on every other screen.
+- The controller accepts only an already resolved local action. Stale, cancel,
+  unsupported, failed-input, and clock-failed paths make no archive runtime
+  call; Stop remains clock-independent for privacy control.
+- Confirmed Start uses one checked monotonic sample and one nonzero boot-local
+  session sequence. Contention preserves the candidate for a new explicit hold;
+  uncertain post-operation state consumes it so it cannot be reused.
+- Ten deterministic groups plus 100/100 focused repeats and the complete
+  99-executable host matrix pass. No radio/server/automatic start input,
+  complete UI coordinator, renderer, physical input, restart-safe allocator,
+  ESP-IDF binding, or on-device evidence exists.
+
 ### Private serialized breadcrumb archive runtime owner
 
 - Added one target-shaped owner that privately constructs the capture session,

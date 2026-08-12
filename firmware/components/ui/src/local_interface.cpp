@@ -24,6 +24,7 @@ bool valid_screen(UiScreen screen) {
     return screen == UiScreen::home || screen == UiScreen::status ||
            screen == UiScreen::quick_status_menu ||
            screen == UiScreen::critical_confirmation ||
+           screen == UiScreen::archive_confirmation ||
            screen == UiScreen::system_fault;
 }
 
@@ -66,7 +67,9 @@ bool valid_notice(UiNotice notice) {
            notice == UiNotice::archive_queued ||
            notice == UiNotice::archive_upload_waiting ||
            notice == UiNotice::archive_queue_full ||
-           notice == UiNotice::archive_upload_failed;
+           notice == UiNotice::archive_upload_failed ||
+           notice == UiNotice::archive_start_confirmation ||
+           notice == UiNotice::archive_stop_confirmation;
 }
 
 bool valid_action(UiAction action) {
@@ -78,7 +81,9 @@ bool valid_action(UiAction action) {
            action == UiAction::cancel ||
            action == UiAction::acknowledge_notice ||
            action == UiAction::start_position_sharing ||
-           action == UiAction::stop_position_sharing;
+           action == UiAction::stop_position_sharing ||
+           action == UiAction::confirm_archive_start ||
+           action == UiAction::stop_archive;
 }
 
 bool valid_gesture(InputGesture gesture) {
@@ -135,14 +140,33 @@ bool valid_frame(const UiFrame& frame, const DisplayCapabilities& capabilities) 
                frame.actions[1].enabled;
     }
 
+    if (frame.screen == UiScreen::archive_confirmation) {
+        const bool canonical_start =
+            capabilities.supports_hold &&
+            frame.notice == UiNotice::archive_start_confirmation &&
+            frame.actions[0].action == UiAction::confirm_archive_start;
+        const bool canonical_stop =
+            frame.notice == UiNotice::archive_stop_confirmation &&
+            frame.actions[0].action == UiAction::stop_archive;
+        return frame.attention == UiAttention::information &&
+               frame.action_count == 2 &&
+               frame.actions[0].enabled &&
+               frame.actions[1].action == UiAction::cancel &&
+               frame.actions[1].enabled &&
+               (canonical_start || canonical_stop);
+    }
+
     for (std::size_t index = 0; index < frame.action_count; ++index) {
-        if (frame.actions[index].action == UiAction::confirm_critical_alert) {
+        if (frame.actions[index].action == UiAction::confirm_critical_alert ||
+            frame.actions[index].action == UiAction::confirm_archive_start ||
+            frame.actions[index].action == UiAction::stop_archive) {
             return false;
         }
         if (frame.screen == UiScreen::system_fault &&
             (frame.actions[index].action == UiAction::open_critical_confirmation ||
              frame.actions[index].action == UiAction::submit_selected_quick_status ||
-             frame.actions[index].action == UiAction::start_position_sharing)) {
+             frame.actions[index].action == UiAction::start_position_sharing ||
+             frame.actions[index].action == UiAction::confirm_archive_start)) {
             return false;
         }
     }
@@ -244,7 +268,8 @@ ResolvedAction CheckedLocalInterface::poll_action() {
         saturating_increment(status_.rejected_inputs);
         return rejected_action(ActionResolutionError::disabled_action);
     }
-    if (binding.action == UiAction::confirm_critical_alert) {
+    if (binding.action == UiAction::confirm_critical_alert ||
+        binding.action == UiAction::confirm_archive_start) {
         if (event.gesture != InputGesture::hold) {
             saturating_increment(status_.rejected_inputs);
             return rejected_action(ActionResolutionError::hold_required);

@@ -106,6 +106,17 @@ post-operation unlock failure marked outcome-uncertain. Ten groups plus 100/100
 focused repeats pass. Explicit local consent, ESP-IDF binding, concurrent target
 stress, physical network/storage durability, and on-device measurements remain.
 
+Archive execution now has a revision-bound local-only consent boundary. The
+canonical Start confirmation requires a hold and exact active frame revision;
+Stop is immediate and clock-independent from its own exact confirmation frame.
+Start alone reads checked time and allocates a nonzero boot-local session ID;
+temporary clock/lock unavailability defers without mutation, while uncertain
+post-operation state consumes the ID so it cannot be reused. Stale, cancel,
+wrong-screen, unsupported, and failed-input paths make no archive call. Ten
+groups plus 100/100 focused repeats pass. A complete archive UI coordinator,
+rendered consent, physical input, restart-safe allocation, ESP-IDF composition,
+and on-device evidence remain.
+
 A host-only archive UI coordinator now owns display revisions around that
 single-read source. Every valid cooperative service call takes exactly one new
 snapshot. Unchanged semantics redraw nothing and consume no revision;
@@ -685,13 +696,14 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AE records the target-shaped cross-project recovery boundary as implemented host plumbing rather than a plan-only gap. The backend-neutral `ORS0` key/value adapter and real boot/save composition pass thirteen groups, 100/100 repeats, and the complete public 43-executable matrix. OpenTrail still has no exact ESP-IDF backend, protected key/trust source, physical interruption, or on-device composition.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 98 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 99 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, opt-in breadcrumb archive sessions,
   bounded outbox/durable-ack handoff, checked-time retry, privacy-safe archive
   presentation, single-read archive status capture, serialized archive snapshot
-  adapter, private serialized archive runtime owner, single-owner archive UI,
+  adapter, private serialized archive runtime owner, revision-bound local
+  archive consent, single-owner archive UI,
   loss-aware priority-to-delivery
   handoff, checked-time outbound service coordination, fail-visible outbound
   position safety, checked-time position commands, single-owner position UI,
