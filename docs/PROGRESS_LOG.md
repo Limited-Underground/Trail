@@ -6,6 +6,20 @@ public chronology.
 
 ## 2026-08-12
 
+### ACK boot-session allocation through key/value storage
+
+- Composed the real commit-last `OTAS` allocator through the isolated
+  multi-domain key/value adapter using only `ot_state` / `ot_proto` /
+  `slot_a|b` and exact 64-byte values.
+- Proved restart session increment/slot rotation, retry after a confirmed
+  unapplied prepared commit, skipping a session whose marker became durable
+  despite a reported failure, and explicit durable two-key reset before
+  different consumer/authorization reseed.
+- Six deterministic groups and 100/100 focused repeats pass in the complete
+  90-executable host matrix including publication safety. ESP-IDF binding,
+  authenticated integrity, trusted rollback, reset/reseed UI, locking,
+  physical interruption/endurance, and on-device evidence remain open.
+
 ### Rollback-safe counter leasing through key/value storage
 
 - Composed the real `OTCN` outbound counter lease store through the isolated

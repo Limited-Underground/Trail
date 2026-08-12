@@ -499,6 +499,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'ACK session key/value composition'
+        Output = Join-Path $buildDirectory 'ack_responder_session_kv_composition_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\ack_responder_session_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\persistent_storage_kv.cpp'),
+            (Join-Path $projectRoot 'tests\host\ack_responder_session_kv_composition_tests.cpp')
+        )
+    },
+    @{
         Name = 'critical alert acknowledgement codec'
         Output = Join-Path $buildDirectory 'critical_alert_ack_tests.exe'
         Sources = @(

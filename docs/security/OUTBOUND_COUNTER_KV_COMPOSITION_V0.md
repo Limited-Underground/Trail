@@ -41,7 +41,7 @@ Five deterministic groups prove:
 5. a wrong-sized backend value fails closed without any erase, write, or
    commit attempt.
 
-The focused suite passes 100/100 repeats and the complete 89-executable host
+The focused suite passes 100/100 repeats and the complete 90-executable host
 matrix passes under strict C++17 warnings-as-errors including publication
 safety.
 

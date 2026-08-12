@@ -78,7 +78,12 @@ trusted monotonic primitive or authenticated protected storage.
 10. reset attempting both slots even when storage fails.
 
 The full OpenTrail matrix passes. This suite and the affected responder and
-configuration suites each repeated 100 times with zero failures.
+configuration suites each repeated 100 times with zero failures. A separate
+[key/value composition](ACK_RESPONDER_SESSION_KV_COMPOSITION_V0.md) runs the
+real allocator through `PersistentStorageKv` and proves exact `ot_proto`
+binding, restart rotation, failed-unapplied retry, applied-then-failed session
+skipping, durable two-key reset/reseed, and wrong-sized-value refusal across
+six groups and 100/100 repeats.
 
 ## Remaining gates
 

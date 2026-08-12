@@ -345,7 +345,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
   and all twenty-seven map suites pass 100/100 focused repeats in the complete
-  89-executable host matrix. It contains no ESP-IDF backend, partition table,
+  90-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
@@ -488,6 +488,14 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   and applied-then-failed commit recovery across five groups and 100/100
   repeats. This is not packet-v1, AEAD, protected storage, or physical
   interruption evidence.
+- **ACK boot sessions now compose through target-shaped storage:** the
+  commit-last [`OTAS` allocator](docs/persistence/ACK_RESPONDER_SESSION_STORE_V0.md)
+  now runs through an exact
+  [`ot_proto` key/value composition](docs/persistence/ACK_RESPONDER_SESSION_KV_COMPOSITION_V0.md).
+  Six groups and 100/100 repeats cover restart increment/rotation, both
+  unapplied and applied-then-failed commits, explicit two-key reset/reseed, and
+  wrong-sized-value refusal. This is not protected storage, trusted rollback,
+  a rendered reset workflow, or physical power-loss evidence.
 - **Nonce packing now rejects lease/key cross-wiring:** the
   [host-tested 96-bit composition boundary](docs/security/AEAD_NONCE_COMPOSITION_V0.md)
   requires matching full 128-bit lease/key domains and a nonzero counter before
@@ -560,7 +568,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 89 C++ test
+  builds six verifier/planning/operator CLIs and runs all 90 C++ test
   executables plus the Python MeshCore lease, privacy-safe field-log/pilot, and
   crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
@@ -580,6 +588,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   duplicate checkpoint key/value storage,
   multi-domain persistent key/value storage,
   outbound-counter key/value composition,
+  ACK-session key/value composition,
   non-erasable map trust-domain key/value storage,
   portable-client composition,
   local-interface, power-state, clock, randomness,

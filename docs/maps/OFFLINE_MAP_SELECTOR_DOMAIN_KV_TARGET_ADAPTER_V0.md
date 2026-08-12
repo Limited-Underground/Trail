@@ -35,7 +35,7 @@ missing / wrong-sized / failed reads, prepared-write and commit failures,
 full-blob marker rewrite and malformed/already-committed refusal, real store
 rotation, and restart discovery after an applied-then-failed marker commit.
 All twenty-seven map suites pass 100/100 repeats, and the complete
-89-executable host matrix passes under strict C++17 warnings-as-errors
+90-executable host matrix passes under strict C++17 warnings-as-errors
 including publication safety.
 
 There is deliberately no `erase_key` operation. Factory reset, replacement,

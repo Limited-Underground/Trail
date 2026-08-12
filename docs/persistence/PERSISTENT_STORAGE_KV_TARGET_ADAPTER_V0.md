@@ -44,7 +44,10 @@ second-sync ordering without depending on native NVS partial writes. The real
 outbound counter lease store also composes through the counter namespace; its
 [separate proof](../security/OUTBOUND_COUNTER_KV_COMPOSITION_V0.md) covers
 restart rotation and both unapplied and applied-then-failed commits without
-returning an uncertain counter range.
+returning an uncertain counter range. The real ACK boot-session allocator has
+an independent [protocol-state proof](ACK_RESPONDER_SESSION_KV_COMPOSITION_V0.md)
+covering the same restart/uncertainty boundary plus explicit durable reset and
+reseed through `ot_proto`.
 
 ## Remaining target obligations
 
@@ -53,9 +56,9 @@ rejection, missing/present/wrong-sized reads, erase/partial-write/sync ordering,
 idempotent missing erase, erase-before-write and bit-clearing enforcement,
 fail-latched backend errors, applied-then-failed commit discovery, physical
 namespace separation, real configuration rotation, and final-commit restart
-recovery. A separate five-group composition suite exercises real counter lease
-records through this adapter and passes 100/100 repeats. The complete
-89-executable host matrix passes under strict C++17 warnings-as-errors
+recovery. Separate five-group counter and six-group ACK-session composition
+suites exercise real upper stores through this adapter and pass 100/100 repeats
+each. The complete 90-executable host matrix passes under strict C++17 warnings-as-errors
 including publication safety.
 
 The backend owns initialization, handles, locking, native error translation,

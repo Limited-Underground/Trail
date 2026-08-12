@@ -564,8 +564,12 @@ and authorization epoch, alternates two protocol-state slots, and increments
 the session on every successful boot allocation. Corruption, ambiguous equal
 generations, epoch/identity changes, and uncertain committed state fail closed;
 an explicit reset and new seed is required for rebind/recovery. The ACK sequence
-remains RAM-only within each newly allocated session. Target storage binding,
-trusted anti-rollback, and physical power-loss evidence remain.
+remains RAM-only within each newly allocated session. A separate
+[key/value composition](persistence/ACK_RESPONDER_SESSION_KV_COMPOSITION_V0.md)
+proves exact `ot_proto` binding, fresh-instance restart rotation, correct
+unapplied/applied-then-failed commit recovery, durable two-key reset, reseed,
+and wrong-sized-value refusal. This is target-shaped host evidence, not trusted
+anti-rollback, authenticated storage, or physical power-loss evidence.
 
 A bounded host-mediated physical adapter now carried the exact 64-byte `OGA0`
 alert through one Heltec, applied the real ingress/responder C++ path on the
