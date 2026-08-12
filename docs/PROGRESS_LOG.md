@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-12
 
+### NVS-ready update checkpoint storage boundary
+
+- Added a backend-neutral key/value adapter for the recoverable two-slot
+  `OTU0/v0` store with exact `ot_state` / `ot_update` / `otu_chk_a|b` binding
+  and strict 64-byte value validation.
+- Made write and erase success depend on an explicit backend commit, retained
+  missing-key erase as idempotent, and kept applied-then-failed commits visible
+  so a restart can reconcile the durable record through the existing store.
+- Nine deterministic groups and 100/100 focused repeats pass in the complete
+  85-executable host matrix including publication safety. ESP-IDF binding,
+  partition/security configuration, target locking, hardware-backed trust,
+  power interruption, and endurance remain open.
+
 ### Domain-aware map runtime transitions
 
 - Added the runtime boundary after domain-aware trial boot. It handles healthy

@@ -893,6 +893,17 @@ $builds = @(
         )
     },
     @{
+        Name = 'update checkpoint key/value storage adapter'
+        Output = Join-Path $buildDirectory 'update_checkpoint_kv_storage_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\update\src\update_checkpoint.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_checkpoint_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_checkpoint_kv_storage.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\update_boot_guard.cpp'),
+            (Join-Path $projectRoot 'tests\host\update_checkpoint_kv_storage_tests.cpp')
+        )
+    },
+    @{
         Name = 'typed update recovery boot coordinator'
         Output = Join-Path $buildDirectory 'update_recovery_boot_tests.exe'
         Sources = @(

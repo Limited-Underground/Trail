@@ -345,7 +345,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
   and all twenty-six map suites pass 100/100 focused repeats in the complete
-  84-executable host matrix. It contains no ESP-IDF backend, partition table,
+  85-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
@@ -379,7 +379,13 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   or stale checkpoints before live restore and saves beyond the greater local/
   trusted generation. All 20 store groups plus 100 focused repeats pass. No
   target updater, authenticated store, hardware-backed trusted source, or
-  physical interruption/recovery result exists. A new [typed boot
+  physical interruption/recovery result exists. An
+  [NVS-ready key/value adapter](docs/update/UPDATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md)
+  now fixes `ot_state` / `ot_update` / `otu_chk_a|b`, exact 64-byte values,
+  explicit durable commit after write/erase, idempotent missing-key erase, and
+  restart discovery after an applied-then-failed commit. Nine groups and
+  100/100 focused repeats pass; no ESP-IDF backend, partition/security
+  configuration, target lock, or physical durability is claimed. The [typed boot
   coordinator](docs/update/UPDATE_RECOVERY_BOOT_COORDINATOR_V0.md) works on a
   private guard, persists trial/rollback transitions, advances and exactly
   reads back trust, and releases live application state only after the complete
@@ -535,7 +541,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 84 C++ test
+  builds six verifier/planning/operator CLIs and runs all 85 C++ test
   executables plus the Python MeshCore lease, privacy-safe field-log/pilot, and
   crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
@@ -551,6 +557,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   stable trust-domain activation, read-only active-domain boot, and
   domain-aware candidate entry, restart-safe trial boot, and domain-aware
   runtime transitions,
+  update checkpoint key/value storage,
   portable-client composition,
   local-interface, power-state, clock, randomness,
   pilot-result/template,

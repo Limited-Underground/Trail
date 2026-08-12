@@ -60,6 +60,14 @@ delivery. Exact renderer/input adapters, localization, accessibility,
 readability, distracted-driving policy, performance, and physical behavior
 remain target gates.
 
+Update checkpoint persistence now has a backend-neutral
+[key/value target boundary](update/UPDATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md).
+It fixes the `ot_state` partition, `ot_update` namespace, two exact 64-byte
+slot keys, and explicit backend commit after write or erase. Missing-key erase
+is idempotent; wrong-sized values and every failed or uncertain commit stay
+visible to the upper two-slot recovery store. This is NVS-ready host evidence,
+not an ESP-IDF backend or physical durability result.
+
 Update recovery presentation reuses that same semantic boundary. A valid
 `OTRD0/v0` outcome maps to fixed status or system-fault notice enums; invalid
 diagnostics fail visibly to a generic critical service frame. Only nonblocking

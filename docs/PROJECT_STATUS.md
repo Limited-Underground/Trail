@@ -353,7 +353,7 @@ physical interruption matrix. No ESP-IDF source, partition table, target
 task/lock, encryption/trusted-generation choice, physical result, or concrete
 service-authentication backend exists.
 All twenty-six map suites pass 100/100 focused repeats, and the complete
-84-executable host matrix passes.
+85-executable host matrix passes.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -577,7 +577,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 84 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 85 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
@@ -590,7 +590,8 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
   first baseline, authorized service reseed, candidate replacement, and
   runtime-transition recovery, protected-domain provisioning, and recoverable
   stable trust-domain activation, read-only active-domain boot, and
-  domain-aware candidate entry and restart-safe trial boot,
+  domain-aware candidate entry, restart-safe trial boot, domain-aware runtime
+  transitions, update checkpoint key/value storage,
   pilot, and benchmark boundaries.
   This is host/build evidence, not
   physical MeshCore,
@@ -660,7 +661,13 @@ not treated as proof of authorization.
   restore and allocates beyond the greater local/trusted value. Read-only
   inspection exposes empty, degraded, unreadable, invalid, and conflicted media
   without mutating the guard or slots. All 20 store groups plus 100 focused
-  repeats pass. No target partition table, signer,
+  repeats pass. A separate
+  [NVS-ready key/value adapter](update/UPDATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md)
+  fixes exact `ot_state` / `ot_update` / `otu_chk_a|b` bindings, 64-byte values,
+  explicit durable commits, idempotent erase, native-error containment, and
+  restart recovery after an applied-then-failed commit. Nine groups and 100/100
+  focused repeats pass in the complete 85-executable matrix. No ESP-IDF
+  backend, target partition/security configuration, task lock, signer,
   updater adapter, authenticated target storage, hardware-backed trusted
   generation source, or physical interruption/recovery evidence exists. A
   typed host boot coordinator now holds guard state private until the observed

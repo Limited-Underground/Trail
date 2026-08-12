@@ -1,9 +1,10 @@
 # Recoverable update checkpoint store v0
 
-Status: abstract two-slot host composition with deterministic fault injection
-and a caller-supplied trusted-generation contract. No ESP-IDF/NVS/partition
-adapter, hardware-backed trusted source, authenticated integrity, physical
-interruption, or endurance evidence exists.
+Status: abstract two-slot host composition with deterministic fault injection,
+a caller-supplied trusted-generation contract, and a separate host-tested
+key/value target boundary. No ESP-IDF backend, partition/security
+configuration, hardware-backed trusted source, authenticated integrity,
+physical interruption, or endurance evidence exists.
 
 ## Purpose
 
@@ -73,9 +74,12 @@ exhaustion. Four inspection groups additionally cover empty, healthy/degraded,
 unreadable-peer, invalid-only, and conflict observations without mutation. The
 complete OpenTrail host matrix passes.
 
-The slot interface does not define flash erase, atomic program units, sync,
-wear leveling, namespace protection, encryption, anti-rollback, or commit
-markers. The target adapter must define and physically test those properties.
+The slot interface does not define flash erase, atomic program units, wear
+leveling, namespace protection, encryption, anti-rollback, or commit markers.
+The separate [key/value adapter](UPDATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md)
+fixes exact names, 64-byte values, and explicit backend commit ordering, but
+the concrete target backend still must define and physically test those
+properties.
 The caller-supplied floor does not make its source protected and cannot prevent
 forged newer state without authenticated checkpoint integrity. CRC remains
 accidental-corruption evidence only.
