@@ -71,13 +71,14 @@ Ten deterministic menu groups plus 100/100 focused repeats cover:
 
 The underlying local-interface suite now has thirteen groups, including strict
 canonical page validation and rejection of the older ambiguous generic-submit
-action. Both suites pass 100/100 focused repeats. The complete 107-executable
+action. Both suites pass 100/100 focused repeats. The complete 108-executable
 matrix and Python publication checks pass.
 
 ## Next gates
 
-- Define one parent shell handoff that restores the correct home/status page at
-  the returned minimum revision.
+- Compose through the host-tested
+  [parent-page handoff](QUICK_STATUS_PARENT_PAGE_COORDINATOR_V0.md), then define
+  the broader home/messages/alerts/position/archive shell above it.
 - Encode and admit a selection only through an authenticated packet-v1
   quick-status path with bounded priority, expiry, retry, deduplication, and
   acknowledgement policy.

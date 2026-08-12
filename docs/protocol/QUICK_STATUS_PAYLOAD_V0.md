@@ -60,7 +60,7 @@ Ten deterministic groups plus 100/100 focused repeats cover:
 9. corruption at every byte position; and
 10. fixed one-byte semantic state and 12-byte identity-free payload shape.
 
-The complete 107-executable host matrix and Python publication checks pass.
+The complete 108-executable host matrix and Python publication checks pass.
 
 ## Next gates
 

@@ -870,6 +870,17 @@ $builds = @(
         )
     },
     @{
+        Name = 'quick-status parent page and restored selection handoff'
+        Output = Join-Path $buildDirectory 'quick_status_parent_page_coordinator_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\ui\src\local_interface.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\test_support\fake_local_interface.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\quick_status_menu_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\quick_status_parent_page_coordinator.cpp'),
+            (Join-Path $projectRoot 'tests\host\quick_status_parent_page_coordinator_tests.cpp')
+        )
+    },
+    @{
         Name = 'map activation guard'
         Output = Join-Path $buildDirectory 'map_activation_guard_tests.exe'
         Sources = @(

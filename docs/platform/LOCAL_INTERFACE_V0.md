@@ -133,6 +133,10 @@ The separate [quick-status menu coordinator](QUICK_STATUS_MENU_COORDINATOR_V0.md
 owns local revisions, page transitions, display deferral, typed selection, and
 the minimum newer revision needed by its parent. A selection remains a local
 request; it is not queued, sent, received, acknowledged, or delivered evidence.
+The [quick-status parent-page coordinator](QUICK_STATUS_PARENT_PAGE_COORDINATOR_V0.md)
+now owns exact entry and restoration, withholding a typed choice until the
+parent frame has been presented successfully. It remains narrower than the
+complete application shell and has no outbound authority.
 
 ## Critical-alert boundary
 

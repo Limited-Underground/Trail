@@ -74,7 +74,7 @@ Nine deterministic groups plus 100/100 focused repeats cover:
 9. invalid summary/revision rejection without archive mutation.
 
 Compile-time checks make the page owner non-copyable and non-movable. The
-complete 107-executable C++ host matrix and Python publication checks pass.
+complete 108-executable C++ host matrix and Python publication checks pass.
 
 This is not rendered wording/layout, a complete application shell, an ESP-IDF
 task/backend, physical touch/button behavior, accessibility/localization,

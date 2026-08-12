@@ -13,8 +13,8 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, and bounded close-range bench proofs |
-| Latest increment | [Revision-safe quick-status menu](docs/platform/QUICK_STATUS_MENU_COORDINATOR_V0.md): two exact four-action pages expose all four generic choices plus Back and return only a typed local request—not a delivery claim |
-| Proven so far | A 107-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited transport, soak, burst, and alert/acknowledgement tests |
+| Latest increment | [Quick-status parent handoff](docs/platform/QUICK_STATUS_PARENT_PAGE_COORDINATOR_V0.md): one Quick status/Back page restores itself before surfacing a typed choice and never claims the choice was sent or delivered |
+| Proven so far | A 108-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited transport, soak, burst, and alert/acknowledgement tests |
 | Planned first release | Up to eight active clients in one group with at most one optional authorized repeater |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, physical GPS/UI, field range, power endurance, or regulatory acceptance |
 
