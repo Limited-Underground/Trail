@@ -195,6 +195,15 @@ interface requires a target implementation to serialize the copy but does not
 provide an ESP-IDF task or lock. See the
 [single-read archive snapshot contract](location/BREADCRUMB_ARCHIVE_SNAPSHOT_V0.md).
 
+A target-shaped adapter now applies that contract to the three concrete archive
+owners under one injected nonblocking lock. It publishes the tuple only after a
+balanced successful release; contention defers with redacted output, while
+lock/unlock uncertainty redacts and latches the optional snapshot path closed.
+The target must still supply the real synchronization primitive and ensure
+every writer uses the same domain. No ESP-IDF mutex, concurrent-writer proof, or
+on-device evidence exists. See the
+[serialized archive snapshot adapter](location/BREADCRUMB_ARCHIVE_SNAPSHOT_ADAPTER_V0.md).
+
 A cooperative archive UI coordinator now owns the corresponding semantic-frame
 revisions. Every valid service call takes exactly one fresh serialized snapshot;
 unchanged state consumes no display write or revision, temporary source/display

@@ -6,6 +6,20 @@ public chronology.
 
 ## 2026-08-12
 
+### Serialized breadcrumb archive snapshot adapter
+
+- Added one target-shaped source over the concrete capture session, bounded
+  outbox, and retry coordinator under a single injected nonblocking lock.
+- Ready output requires one acquire, all three copies while held, and one
+  successful release. Contention redacts output and defers; lock/unlock failure
+  or unknown state redacts and latches this optional observation path closed.
+- The source has no archive mutation, upload, input, storage, or base-radio
+  authority and composes directly with the single-owner privacy-safe UI.
+- Ten deterministic groups plus 100/100 focused repeats and the complete
+  97-executable host matrix pass. A real ESP-IDF primitive, common writer
+  discipline, concurrent target proof, resource measurement, and physical
+  behavior remain absent.
+
 ### Single-owner breadcrumb archive UI coordinator
 
 - Added one cooperative UI owner that performs exactly one complete archive

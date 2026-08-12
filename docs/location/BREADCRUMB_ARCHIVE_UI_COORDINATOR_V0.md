@@ -77,14 +77,16 @@ Ten deterministic scenario groups plus 100/100 focused repeats cover:
 9. maximum-revision unchanged service and changed-state rejection; and
 10. zero-revision rejection before snapshot access.
 
-The complete 96-executable host matrix also passes. This is deterministic host
+The complete 97-executable host matrix also passes. This is deterministic host
 evidence, not proof of ESP-IDF task serialization, renderer behavior, display
 readability, target resource use, or physical failure recovery.
 
 ## Next gates
 
-- Implement the snapshot source and coordinator call inside one selected target
-  task/lock composition, then prove no interleaved status copy.
+- Bind the host-tested
+  [serialized snapshot adapter](BREADCRUMB_ARCHIVE_SNAPSHOT_ADAPTER_V0.md) and
+  coordinator call inside one selected target task/lock composition, then prove
+  no interleaved status copy.
 - Bind a renderer and physical display while preserving the semantic frame and
   revision contract.
 - Measure tuple-copy time, service latency, redraw cost, stack/RAM, contention,

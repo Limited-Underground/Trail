@@ -78,8 +78,10 @@ three owners.
 
 ## Next gates
 
-- Implement the source inside one selected target task or lock and prove that
-  capture/session, upload/retry, and UI work cannot interleave the copy.
+- Bind the host-tested
+  [serialized snapshot adapter](BREADCRUMB_ARCHIVE_SNAPSHOT_ADAPTER_V0.md) to
+  one selected target lock and prove capture/session, upload/retry, and UI work
+  cannot interleave the copy.
 - Measure tuple copy time, stack/RAM use, render latency, and contention on the
   frozen client hardware.
 - Compose the host-tested

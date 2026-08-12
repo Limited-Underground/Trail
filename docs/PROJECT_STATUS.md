@@ -85,8 +85,17 @@ per capture. Temporary not-ready returns no frame, failed or unknown source
 state ignores partial output and emits a generic warning with queue count zero,
 and revision zero is rejected before source access. Ten groups plus 100/100
 focused repeats pass. This defines the serialization obligation but does not
-implement an ESP-IDF task/lock, target adapter, concurrent runtime proof,
-renderer, physical display, or archive execution authority.
+implement an ESP-IDF task/lock, concurrent runtime proof, renderer, physical
+display, or archive execution authority.
+
+That source now has a target-shaped common-code adapter over the three concrete
+archive owners and one injected nonblocking lock. A ready result requires one
+acquire, all three status copies inside the held boundary, and one successful
+release before the tuple is published. Contention returns temporary not-ready;
+lock/unlock failure or unknown state redacts output and latches snapshotting
+closed. Ten groups plus 100/100 focused repeats pass. The real ESP-IDF primitive,
+shared writer discipline, concurrent stress, target resource measurements, and
+physical failure behavior remain unproved.
 
 A host-only archive UI coordinator now owns display revisions around that
 single-read source. Every valid cooperative service call takes exactly one new
@@ -667,12 +676,13 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AE records the target-shaped cross-project recovery boundary as implemented host plumbing rather than a plan-only gap. The backend-neutral `ORS0` key/value adapter and real boot/save composition pass thirteen groups, 100/100 repeats, and the complete public 43-executable matrix. OpenTrail still has no exact ESP-IDF backend, protected key/trust source, physical interruption, or on-device composition.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 96 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 97 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, opt-in breadcrumb archive sessions,
   bounded outbox/durable-ack handoff, checked-time retry, privacy-safe archive
-  presentation, single-read archive status capture, single-owner archive UI,
+  presentation, single-read archive status capture, serialized archive snapshot
+  adapter, single-owner archive UI,
   loss-aware priority-to-delivery
   handoff, checked-time outbound service coordination, fail-visible outbound
   position safety, checked-time position commands, single-owner position UI,
