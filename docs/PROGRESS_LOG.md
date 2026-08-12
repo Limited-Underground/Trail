@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-12
 
+### NVS-ready multi-domain persistent storage boundary
+
+- Added a backend-neutral adapter for the four existing 64-byte persistence
+  domains, with separate `ot_config`, `ot_secret`, `ot_proto`, and `ot_counter`
+  namespaces and two fixed keys per namespace.
+- Preserved erase-before-program, zero-to-one refusal, partial RAM accumulation,
+  full-blob sync/commit, durable-only reads, and fail-latched uncertain writes.
+  Configuration body sync, commit-marker sync, rotation, and restart discovery
+  after an applied-then-failed final commit pass through the real store.
+- Twelve deterministic groups and 100/100 focused repeats pass in the complete
+  87-executable host matrix including publication safety. The secret namespace
+  is structural only; protected secret storage, ESP-IDF binding, locking,
+  authentication, rollback protection, power interruption, and endurance
+  remain open.
+
 ### NVS-ready replay checkpoint storage boundary
 
 - Added a backend-neutral key/value adapter for the two context-bound

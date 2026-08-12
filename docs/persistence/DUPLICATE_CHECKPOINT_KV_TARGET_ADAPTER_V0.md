@@ -43,7 +43,7 @@ and missing reads, wrong-size and I/O failures, committed writes, failed and
 applied-then-failed commits, idempotent committed erase, real context-bound
 store rotation/restore/reset, and restart discovery after uncertain commit.
 
-The focused suite passes 100/100 repeats, and the complete 86-executable host
+The focused suite passes 100/100 repeats, and the complete 87-executable host
 matrix passes under strict C++17 warnings-as-errors including publication
 safety.
 

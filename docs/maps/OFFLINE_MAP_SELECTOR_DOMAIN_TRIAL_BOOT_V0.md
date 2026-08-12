@@ -86,7 +86,7 @@ domain write and uncertain-commit failure, final owner changes, degraded-domain
 successor repair, and generation exhaustion.
 
 All twenty-six map suites pass 100/100 focused repeats, and the complete
-86-executable host matrix passes under strict C++17 warnings-as-errors.
+87-executable host matrix passes under strict C++17 warnings-as-errors.
 
 This is host common-code evidence only. Healthy trial promotion, fallback
 completion, and previous-package cleanup now use the separate

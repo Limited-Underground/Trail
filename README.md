@@ -345,7 +345,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
   and all twenty-six map suites pass 100/100 focused repeats in the complete
-  86-executable host matrix. It contains no ESP-IDF backend, partition table,
+  87-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
@@ -537,6 +537,15 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   Eight groups pass in the complete 33-executable matrix. This is a target
   shape and whole-contract review—not an ESP-IDF application, concrete board
   adapter, target build, physical UI, or supported-hardware result.
+- **The four 64-byte persistence domains now have an NVS-ready boundary:** the
+  [multi-domain key/value adapter](docs/persistence/PERSISTENT_STORAGE_KV_TARGET_ADAPTER_V0.md)
+  fixes isolated `ot_config`, `ot_secret`, `ot_proto`, and `ot_counter`
+  namespaces, preserves erase-before-program and bit-clearing rules in a
+  64-byte RAM working image, and makes each sync a complete blob write plus
+  durable commit. Twelve groups and 100/100 focused repeats pass, including
+  configuration rotation and final-commit restart recovery. The `ot_secret`
+  name is structural separation only: production secret storage still requires
+  a separately approved protected backend.
 - **Latest shared software result:** OpenGauge now records its redacted recovery
   status as one versioned 32-bit diagnostics event. Coarse outcome, slot health,
   protected-key error category, and flags round-trip without generations, peer
@@ -547,7 +556,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 86 C++ test
+  builds six verifier/planning/operator CLIs and runs all 87 C++ test
   executables plus the Python MeshCore lease, privacy-safe field-log/pilot, and
   crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
@@ -565,6 +574,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   runtime transitions,
   update checkpoint key/value storage,
   duplicate checkpoint key/value storage,
+  multi-domain persistent key/value storage,
   portable-client composition,
   local-interface, power-state, clock, randomness,
   pilot-result/template,

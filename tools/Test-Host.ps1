@@ -481,6 +481,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'persistent key/value storage adapter'
+        Output = Join-Path $buildDirectory 'persistent_storage_kv_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\persistent_storage_kv.cpp'),
+            (Join-Path $projectRoot 'tests\host\persistent_storage_kv_tests.cpp')
+        )
+    },
+    @{
         Name = 'critical alert acknowledgement codec'
         Output = Join-Path $buildDirectory 'critical_alert_ack_tests.exe'
         Sources = @(
