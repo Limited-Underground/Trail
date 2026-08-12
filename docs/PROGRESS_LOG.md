@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-12
 
+### Checked-time breadcrumb archive retry boundary
+
+- Added a fixed-memory coordinator that reads the guarded boot-local monotonic
+  clock before any optional archive upload and attempts at most one FIFO head
+  per cooperative service call.
+- Transient not-ready/failure outcomes retain the exact head and double a
+  nonzero retry delay to a fixed maximum. Calls before the exact deadline make
+  no remote attempt; durable acknowledgement plus exact local commit restores
+  the initial delay for the next record.
+- Empty queue performs no clock read. Temporary clock not-ready defers, while
+  rollback/source failure, remote rejection, deadline overflow, or uploader
+  ambiguity retain the FIFO and latch this optional boot composition closed.
+- Ten deterministic groups plus 100/100 focused repeats pass. No target task,
+  reviewed field interval, connectivity detector, authenticated network
+  adapter, server receipt, persistence, power result, UI, or physical upload
+  exists; base radio behavior remains independent.
+
 ### Bounded breadcrumb archive outbox and durable-ack handoff
 
 - Added a 16-record fixed-memory FIFO that validates exact `OTBA/v0`, requires

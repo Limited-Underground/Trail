@@ -61,9 +61,12 @@ cannot be completed, the uploader latches closed. It will not blindly resend or
 pretend the local/remote state is reconciled. A future boot/service workflow
 must resolve that ambiguity.
 
-There is no automatic retry cadence, backoff, connectivity detection, TLS,
-authentication, authorization, request format, endpoint, provider, account,
-receipt verification, or remote read/delete API in this component.
+The uploader itself has no automatic retry cadence. The separate
+[checked-time retry coordinator](BREADCRUMB_ARCHIVE_RETRY_V0.md) now adds a
+host-tested bounded transient retry schedule and fail-closed clock/rejection
+handling without changing this queue or remote contract. Connectivity
+detection, TLS, authentication, authorization, request format, endpoint,
+provider, account, receipt verification, and remote read/delete remain absent.
 
 ## Privacy boundary
 
@@ -91,17 +94,18 @@ Ten deterministic host groups plus 100/100 focused repeats cover:
 9. fail-closed latching on post-ack local commit mismatch; and
 10. explicit discard, retained ordering history, and empty-uploader behavior.
 
-This is host-only evidence. No ESP-IDF task/lock, persistent queue, checked-time
-uploader, protected storage, physical reset/power-loss test, network adapter,
-server, account, cryptography, participant authority, retention/export/deletion
+This is host-only evidence. The separate retry coordinator provides checked
+time and bounded retry behavior, but no ESP-IDF task/lock, persistent queue,
+protected storage, physical reset/power-loss test, network adapter, server,
+account, cryptography, participant authority, retention/export/deletion
 workflow, target UI, or on-device result exists.
 
 ## Next gates
 
 Before real coordinates can use this path: define protected authenticated
-transport and exact durable receipt semantics; add checked-time retry/backoff;
-decide whether a protected persistent outbox is justified; bind participant and
-group authority; implement visible queue/failure/discard controls; define
-retention/export/deletion and lost-device access policy; and validate target
-memory, concurrency, interruption, and privacy behavior. The archive remains an
-optional aid, never a rescue guarantee.
+transport and exact durable receipt semantics; choose reviewed target retry
+intervals; decide whether a protected persistent outbox is justified; bind
+participant and group authority; implement visible queue/failure/discard
+controls; define retention/export/deletion and lost-device access policy; and
+validate target memory, concurrency, power, interruption, and privacy behavior.
+The archive remains an optional aid, never a rescue guarantee.

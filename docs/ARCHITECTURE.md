@@ -168,6 +168,17 @@ ordering metadata remains after removal. This is volatile host behavior, not
 protected persistence or remote durability evidence. See the
 [bounded outbox contract](location/BREADCRUMB_ARCHIVE_OUTBOX_V0.md).
 
+A separate checked-time retry coordinator prevents a target loop from turning
+remote pressure into an unbounded upload loop. It reads the guarded boot-local
+clock before any attempt, retries transient not-ready/failure outcomes with a
+bounded doubling delay, permits an attempt at the exact deadline, and resets
+the delay only after durable acknowledgement plus exact local commit. Temporary
+clock not-ready defers without upload; rollback, source failure, remote
+rejection, deadline overflow, or uploader ambiguity retain the FIFO and latch
+this optional boot composition closed. It has no base-radio or capture
+authority. See the
+[checked-time retry contract](location/BREADCRUMB_ARCHIVE_RETRY_V0.md).
+
 A host-only outbound coordinator now establishes one cooperative service order:
 sample `CheckedMonotonicClock` once, optionally read location only while sharing
 is active, service position scheduling, attempt one priority-to-delivery
