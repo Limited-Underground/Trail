@@ -490,6 +490,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'outbound counter key/value composition'
+        Output = Join-Path $buildDirectory 'outbound_counter_kv_composition_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\outbound_counter_lease_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\persistent_storage_kv.cpp'),
+            (Join-Path $projectRoot 'tests\host\outbound_counter_kv_composition_tests.cpp')
+        )
+    },
+    @{
         Name = 'critical alert acknowledgement codec'
         Output = Join-Path $buildDirectory 'critical_alert_ack_tests.exe'
         Sources = @(

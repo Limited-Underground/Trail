@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-12
 
+### Rollback-safe counter leasing through key/value storage
+
+- Composed the real `OTCN` outbound counter lease store through the isolated
+  multi-domain key/value adapter using only `ot_state` / `ot_counter` /
+  `slot_a|b` and exact 64-byte values.
+- Proved restart slot rotation and non-overlap, retry after a confirmed
+  unapplied prepared commit, and permanent skipping of a range whose marker
+  became durable even though backend commit reported failure.
+- Five deterministic groups and 100/100 focused repeats pass in the complete
+  89-executable host matrix including publication safety. ESP-IDF binding,
+  protected integrity/rollback, target locking, physical interruption,
+  endurance, packet-v1, and on-device evidence remain open.
+
 ### Non-erasable map trust-domain storage boundary
 
 - Added a backend-neutral key/value adapter for the two exact 80-byte

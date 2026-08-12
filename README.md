@@ -345,7 +345,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
   and all twenty-seven map suites pass 100/100 focused repeats in the complete
-  88-executable host matrix. It contains no ESP-IDF backend, partition table,
+  89-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
@@ -482,8 +482,12 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   commits a nonoverlapping 64-bit counter range before returning any counter,
   isolates it in its own two-slot domain, and wastes unused counters after a
   restart rather than reusing them. Ten interruption/domain/exhaustion groups
-  pass locally and on public `main`; this is not packet-v1, AEAD, or
-  target-storage evidence.
+  pass locally and on public `main`. Its
+  [key/value composition](docs/security/OUTBOUND_COUNTER_KV_COMPOSITION_V0.md)
+  now proves exact `ot_counter` binding, restart rotation, and both unapplied
+  and applied-then-failed commit recovery across five groups and 100/100
+  repeats. This is not packet-v1, AEAD, protected storage, or physical
+  interruption evidence.
 - **Nonce packing now rejects lease/key cross-wiring:** the
   [host-tested 96-bit composition boundary](docs/security/AEAD_NONCE_COMPOSITION_V0.md)
   requires matching full 128-bit lease/key domains and a nonzero counter before
@@ -556,7 +560,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 88 C++ test
+  builds six verifier/planning/operator CLIs and runs all 89 C++ test
   executables plus the Python MeshCore lease, privacy-safe field-log/pilot, and
   crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
@@ -575,6 +579,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   update checkpoint key/value storage,
   duplicate checkpoint key/value storage,
   multi-domain persistent key/value storage,
+  outbound-counter key/value composition,
   non-erasable map trust-domain key/value storage,
   portable-client composition,
   local-interface, power-state, clock, randomness,

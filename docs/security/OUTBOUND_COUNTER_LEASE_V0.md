@@ -104,5 +104,10 @@ Ten deterministic scenario groups cover:
 10. uncommitted/malformed record refusal.
 
 The matrix uses the existing fixed 64-byte two-slot fake with strict erase-
-before-write behavior. It is host state evidence, not ESP-IDF NVS, physical
-power-cut/endurance, secure rollback, AEAD, radio, or packet-v1 evidence.
+before-write behavior. A separate
+[key/value composition suite](OUTBOUND_COUNTER_KV_COMPOSITION_V0.md) runs this
+real store through `PersistentStorageKv` and proves exact `ot_counter` binding,
+restart rotation, failed-unapplied retry, applied-then-failed range skipping,
+and wrong-sized-value refusal across five groups and 100/100 repeats. This is
+host state evidence, not ESP-IDF NVS, physical power-cut/endurance, secure
+rollback, AEAD, radio, or packet-v1 evidence.

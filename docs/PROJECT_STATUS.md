@@ -353,7 +353,7 @@ physical interruption matrix. No ESP-IDF source, partition table, target
 task/lock, encryption/trusted-generation choice, physical result, or concrete
 service-authentication backend exists.
 All twenty-seven map suites pass 100/100 focused repeats, and the complete
-88-executable host matrix passes.
+89-executable host matrix passes.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -469,7 +469,13 @@ fixed `OTCN` store commits one nonoverlapping 64-bit range before returning it,
 alternates exact readback-verified slots in a separate persistence domain, binds
 the high-water mark to a 128-bit domain plus group epoch, and deliberately skips
 unused/commit-uncertain ranges after restart. Ten groups pass locally and on
-public `main`. A separate seven-group boundary now packs the adapter-supplied
+public `main`. A separate five-group
+[key/value composition](security/OUTBOUND_COUNTER_KV_COMPOSITION_V0.md) proves
+the real lease store reaches only `ot_state` / `ot_counter` / `slot_a|b`,
+rotates across fresh adapter instances, retries a range only when restart shows
+the failed prepared commit was absent, and skips a range when its marker became
+durable despite a reported commit failure. It passes 100/100 focused repeats in
+the complete 89-executable host matrix. A separate seven-group boundary packs the adapter-supplied
 32-bit prefix and rollback-safe counter only after full 128-bit lease/key domain
 equality. A fixed 52-byte `OTKD/v1` encoder separately binds group, epoch, full
 sender fingerprint, and three output purposes across eight groups. Exact KDF,
@@ -577,7 +583,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 88 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 89 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
@@ -592,8 +598,8 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
   stable trust-domain activation, read-only active-domain boot, and
   domain-aware candidate entry, restart-safe trial boot, domain-aware runtime
   transitions, update checkpoint, duplicate checkpoint, and multi-domain
-  persistent key/value storage and non-erasable map trust-domain key/value
-  storage,
+  persistent key/value storage, non-erasable map trust-domain key/value
+  storage, and outbound-counter key/value composition,
   pilot, and benchmark boundaries.
   This is host/build evidence, not
   physical MeshCore,
@@ -644,9 +650,9 @@ not treated as proof of authorization.
   host-tested, but policy values and rendered physical behavior remain
   unselected pending measurement
 - Identity/name/alias/membership boundaries and the OT-013 invitation/promotion/revoke/rekey/recovery policy are defined and host-tested. Exact Node-ID/alias derivation, production administrator quorum, authenticated join-handshake instantiation, encryption, key storage, rollback protection, persistent recovery, rendered UX, and physical lifecycle evidence remain under partial OT-005 and later gates
-- Packet-v0 encoding/budget, position payload, host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies, the external `OGK0` alert-ACK codec, and OT-014 non-secret configuration persistence are bounded and tested. The [NVS-ready multi-domain adapter](persistence/PERSISTENT_STORAGE_KV_TARGET_ADAPTER_V0.md) now isolates four exact 64-byte namespaces and preserves erase/partial-write/sync ordering across twelve groups and 100/100 focused repeats in the complete 88-executable matrix. It is not a protected secret store, ESP-IDF backend, or physical durability result. Generic packet-v0 ACK composition, authenticated routing/priority/ACK transport, measured deployed timing, persistent message/duplicate counter integrity and secure rollback, realistic contention, and final queue/cache limits remain
+- Packet-v0 encoding/budget, position payload, host-only acknowledgement/retry/expiry/duplicate/forwarding/priority policies, the external `OGK0` alert-ACK codec, and OT-014 non-secret configuration persistence are bounded and tested. The [NVS-ready multi-domain adapter](persistence/PERSISTENT_STORAGE_KV_TARGET_ADAPTER_V0.md) now isolates four exact 64-byte namespaces and preserves erase/partial-write/sync ordering across twelve groups and 100/100 focused repeats in the complete 89-executable matrix. Its outbound-counter composition passes five groups and 100/100 repeats without granting protected storage. It is not a protected secret store, ESP-IDF backend, or physical durability result. Generic packet-v0 ACK composition, authenticated routing/priority/ACK transport, measured deployed timing, authenticated message/duplicate counter integrity and secure rollback, realistic contention, and final queue/cache limits remain
 - Duplicate checkpoints have a canonical fixed 672-byte `OTD0` codec with CRC, strict padding/capacity/version checks, duplicate-key rejection, atomic decode, and remaining-lifetime restoration. Seven codec groups, the full 23-executable matrix, and 100 codec/window repeats pass. Atomic durable storage, wear/privacy policy, authenticated integrity, and rollback protection remain
-- The fixed 704-byte `ODS0` store now uses context-bound v1: its formerly reserved bytes carry the exact nonzero group-context ID and epoch, and every active inner key must match. Wrong binding and structurally valid legacy unbound v0 media fail without live mutation or overwrite. Original generation/rotation/readback/degraded/conflict/exhaustion behavior remains. Ten store groups, the full 28-executable matrix, and 100 focused store/coordinator repeats pass locally; the exact matrix passes publicly in run `31374678550`. A separate [NVS-ready key/value adapter](persistence/DUPLICATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md) fixes exact `ot_state` / `ot_replay` / `ods_dup_a|b` bindings, 704-byte values, explicit durable commits, idempotent erase, and applied-then-failed restart discovery. Nine groups and 100/100 focused repeats pass in the complete 88-executable matrix. Protected ESP-IDF namespace access, physical atomicity/endurance, authorized migration/reset, authenticated integrity, and trusted rollback protection remain
+- The fixed 704-byte `ODS0` store now uses context-bound v1: its formerly reserved bytes carry the exact nonzero group-context ID and epoch, and every active inner key must match. Wrong binding and structurally valid legacy unbound v0 media fail without live mutation or overwrite. Original generation/rotation/readback/degraded/conflict/exhaustion behavior remains. Ten store groups, the full 28-executable matrix, and 100 focused store/coordinator repeats pass locally; the exact matrix passes publicly in run `31374678550`. A separate [NVS-ready key/value adapter](persistence/DUPLICATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md) fixes exact `ot_state` / `ot_replay` / `ods_dup_a|b` bindings, 704-byte values, explicit durable commits, idempotent erase, and applied-then-failed restart discovery. Nine groups and 100/100 focused repeats pass in the complete 89-executable matrix. Protected ESP-IDF namespace access, physical atomicity/endurance, authorized migration/reset, authenticated integrity, and trusted rollback protection remain
 - The v0 update/recovery architecture requires signed hardware-bound bundles,
   complete inactive-slot readback, persisted bounded trials, independent health
   confirmation, automatic rollback, a trusted firmware floor, and documented
@@ -668,7 +674,7 @@ not treated as proof of authorization.
   fixes exact `ot_state` / `ot_update` / `otu_chk_a|b` bindings, 64-byte values,
   explicit durable commits, idempotent erase, native-error containment, and
   restart recovery after an applied-then-failed commit. Nine groups and 100/100
-  focused repeats pass in the complete 88-executable matrix. No ESP-IDF
+  focused repeats pass in the complete 89-executable matrix. No ESP-IDF
   backend, target partition/security configuration, task lock, signer,
   updater adapter, authenticated target storage, hardware-backed trusted
   generation source, or physical interruption/recovery evidence exists. A
