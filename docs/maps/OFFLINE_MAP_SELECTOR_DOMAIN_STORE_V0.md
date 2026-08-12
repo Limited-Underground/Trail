@@ -107,7 +107,7 @@ unreadable and invalid-only media, equal-generation conflict and identical
 copies, codec rejection, and generation exhaustion.
 
 The focused suite passes 100/100 repeats under strict C++17 warnings-as-errors.
-All twenty-three map suites pass 100/100 repeats, and the complete 81-executable
+All twenty-four map suites pass 100/100 repeats, and the complete 82-executable
 host matrix passes including publication-safety checks.
 
 No key/value or ESP-IDF backend, partition/namespace binding, authenticated

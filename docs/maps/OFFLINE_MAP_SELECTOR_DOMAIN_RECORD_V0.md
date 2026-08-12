@@ -98,8 +98,8 @@ and output atomicity, full 64-bit boundaries, and field-sensitive canonical
 bytes. The tightened authorization suite covers retired-domain absence, reuse,
 new-device contamination, and exact echo.
 
-All twenty-three map suites pass 100/100 focused repeats in the complete
-81-executable host matrix under strict C++17 warnings-as-errors.
+All twenty-four map suites pass 100/100 focused repeats in the complete
+82-executable host matrix under strict C++17 warnings-as-errors.
 
 The codec and abstract store are host evidence only. No authenticated integrity,
 rollback-resistant target storage, domain entropy source, device-continuity

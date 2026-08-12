@@ -68,9 +68,10 @@ rollback shortcut.
   and only then exposes the baseline map. It resumes each committed intermediate
   state without lowering or rebinding protected history. Stable active-domain
   boot now rereads domain, selector, and protected state without mutation before
-  exposure. Candidate/trial/fallback/cleanup synchronization, protected target/
-  credential/continuity backends, and physical evidence remain required before
-  complete on-device domain operation.
+  exposure. Candidate entry now advances selector, protected, then accepted
+  domain generation before trial exposure. Trial boot/promotion, fallback,
+  cleanup, protected target/credential/continuity backends, and physical
+  evidence remain required before complete on-device domain operation.
 - A future new-device provisioner must establish a fresh domain and cannot
   silently import another device's selector.
 - Radio, messaging, alerts, position sharing, OpenGauge integration, and USB

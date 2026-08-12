@@ -743,6 +743,20 @@ $builds = @(
         )
     },
     @{
+        Name = 'domain-aware map selector candidate entry'
+        Output = Join-Path $buildDirectory 'map_selector_domain_candidate_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_activation_guard.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_checkpoint.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_candidate.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_record.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\maps\src\map_selector_domain_candidate.cpp'),
+            (Join-Path $projectRoot 'tests\host\map_selector_domain_candidate_tests.cpp')
+        )
+    },
+    @{
         Name = 'map selector protected trusted boot coordinator'
         Output = Join-Path $buildDirectory 'map_selector_trusted_boot_tests.exe'
         Sources = @(

@@ -98,8 +98,8 @@ echo including retired-domain absence/reuse/new-device contamination, all six
 confirmations, local revision, time boundaries, backend replay, output
 invalidation, and move-without-copy ownership.
 
-All twenty-three map suites pass 100/100 focused repeats in the complete
-81-executable host matrix under strict C++17 warnings-as-errors.
+All twenty-four map suites pass 100/100 focused repeats in the complete
+82-executable host matrix under strict C++17 warnings-as-errors.
 
 This is authorization-handoff evidence only. It does not prove device
 continuity, secure randomness, credential strength, physical presence, audit or

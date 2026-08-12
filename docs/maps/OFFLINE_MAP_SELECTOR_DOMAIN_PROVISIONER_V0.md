@@ -94,13 +94,14 @@ uncertainty, selector-clear failure, source failure and exact pending retry,
 applied-then-failed recovery without reapply, selector races, and protected
 readback mismatch.
 
-All twenty-three map suites pass 100/100 focused repeats, and the complete
-81-executable host matrix passes under strict C++17 warnings-as-errors.
+All twenty-four map suites pass 100/100 focused repeats, and the complete
+82-executable host matrix passes under strict C++17 warnings-as-errors.
 
 This proves common-code ordering and deterministic recovery decisions only.
 The target still needs independently evidenced continuity and blank-source
 state, secure domain generation, credentials/physical-presence/audit/replay,
 exclusive task locking, protected rollback resistance, ESP-IDF storage and
 source adapters, power-cut/endurance testing, and physical on-device evidence.
-The activation coordinator adds stable-baseline completion but not domain-aware
-candidate/trial/runtime maintenance.
+The activation coordinator adds stable-baseline completion, and separate
+coordinators now cover stable boot and candidate entry. Domain-aware trial
+boot, promotion, fallback, cleanup, and later runtime maintenance remain open.

@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-11
 
+### Domain-aware map candidate entry
+
+- Added the runtime entry from one stable active map to a privately persisted
+  alternate-slot trial. The coordinator derives current generation from active
+  `OTMD/v0` and the exact domain-bound protected source rather than caller state.
+- Fixed the durable order at trial selector save/readback, domain recheck,
+  protected advance/readback, selector recheck, accepted-domain-generation
+  save/readback, final three-owner recheck, then live trial publication.
+- Added safe candidate-rejection rechecks and fail-visible interruption behavior
+  after selector persistence; no path rolls back protected or domain history.
+  Thirteen deterministic groups and all twenty-four map suites pass 100/100
+  focused repeats in the complete 82-executable host matrix including
+  publication safety. Domain-aware trial boot/recovery, promotion, fallback,
+  cleanup, protected target adapters, and physical evidence remain open.
+
 ### Read-only active map trust-domain boot
 
 - Added the restart boundary for an already-active stable trust domain. It
