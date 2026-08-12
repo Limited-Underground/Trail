@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-11
 
+### Restart-safe domain-aware map trial boot
+
+- Added the restart boundary after domain-aware candidate entry. It accepts
+  only exact synchronized durable state or either single-generation gap that
+  candidate entry or a prior trial boot can leave after interruption.
+- Fixed the recovery order at private selector boot/save, unchanged-domain and
+  selector recheck, protected advance/readback, selector recheck, accepted-
+  generation save/readback, final three-owner recheck, then live publication.
+- Added trial boot-limit persistence, already-persisted fallback restart,
+  replacement-domain recovery, generation/race/write/readback containment, and
+  degraded-peer repair coverage. Fourteen deterministic groups and all twenty-
+  five map suites pass 100/100 focused repeats in the complete 83-executable
+  host matrix including publication safety. Promotion, fallback completion,
+  cleanup, protected target adapters, and physical evidence remain open.
+
 ### Domain-aware map candidate entry
 
 - Added the runtime entry from one stable active map to a privately persisted
@@ -16,10 +31,11 @@ public chronology.
   save/readback, final three-owner recheck, then live trial publication.
 - Added safe candidate-rejection rechecks and fail-visible interruption behavior
   after selector persistence; no path rolls back protected or domain history.
-  Thirteen deterministic groups and all twenty-four map suites pass 100/100
-  focused repeats in the complete 82-executable host matrix including
-  publication safety. Domain-aware trial boot/recovery, promotion, fallback,
-  cleanup, protected target adapters, and physical evidence remain open.
+  Thirteen deterministic groups and all twenty-five map suites pass 100/100
+  focused repeats in the complete 83-executable host matrix including
+  publication safety. Trial boot/recovery is now a separate composition;
+  promotion, fallback completion, cleanup, protected target adapters, and
+  physical evidence remain open.
 
 ### Read-only active map trust-domain boot
 

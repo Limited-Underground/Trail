@@ -320,7 +320,18 @@ protected domain, advances/readbacks `OTMD/v0`'s accepted generation, then
 rechecks all three owners before publication. Safe candidate rejection also
 requires final exact rechecks. Any later failure remains fail-visible mapless
 without rollback. Thirteen groups pass; domain-aware trial boot/recovery,
-promotion, fallback, cleanup, and physical target transitions remain open.
+is now separate. Promotion, fallback completion, cleanup, and physical target
+transitions remain open.
+
+The domain-aware trial boot coordinator now resumes that private trial and
+reconciles only the exact interruption gaps left by candidate entry or an
+earlier trial boot. It accepts `D=S=G` or selector `G=D+1` with protected
+generation on either side, persists the resumed boot or boot-limit fallback
+privately, advances protected then accepted domain history as needed, and
+rereads all three owners before publication. Unrelated gaps and every uncertain
+post-selector result stay fail-visible mapless. Fourteen groups pass;
+promotion, fallback completion, cleanup, and physical target transitions remain
+open.
 
 The selector now has a backend-neutral key/value adapter contract. Fixed
 `ot_state` / `ot_maps` / `otm_sel_a|b` binding, exact 64-byte reads, durable
@@ -331,8 +342,8 @@ partition-wide erase, fixes a local-service authority handoff, and defines the
 physical interruption matrix. No ESP-IDF source, partition table, target
 task/lock, encryption/trusted-generation choice, physical result, or concrete
 service-authentication backend exists.
-All twenty-four map suites pass 100/100 focused repeats, and the complete
-82-executable host matrix passes.
+All twenty-five map suites pass 100/100 focused repeats, and the complete
+83-executable host matrix passes.
 
 The `OTFP0/v0` four-person standalone pilot plan fixes the first live-test
 boundary at four identical self-contained clients, no repeater/server/internet/
@@ -556,7 +567,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AC records OpenGauge's versioned recovery diagnostics adapter. One 32-bit event carries the redacted operation, state/reason/action, slot health, protected-key failure class, and transport/attention/repair/redaction flags. Generations and identity-bearing fields are omitted; magic/version/enums and coherence are validated before a ring write. Eight groups, the complete 41-executable matrix, and 100 repeats pass locally. Target log binding, persistent retention/export, and physical service capture remain unproved.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 82 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 83 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, loss-aware priority-to-delivery
@@ -569,7 +580,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
   first baseline, authorized service reseed, candidate replacement, and
   runtime-transition recovery, protected-domain provisioning, and recoverable
   stable trust-domain activation, read-only active-domain boot, and
-  domain-aware candidate entry,
+  domain-aware candidate entry and restart-safe trial boot,
   pilot, and benchmark boundaries.
   This is host/build evidence, not
   physical MeshCore,
@@ -745,8 +756,8 @@ not treated as proof of authorization.
 - `OTMD/v0` now has canonical lifecycle, recoverable abstract-store, permit-
   consuming preparation, and stable-baseline activation evidence through final
   protected/domain readback, exact read-only stable boot, and synchronized
-  candidate entry. The next domain decision is how trial boot/recovery,
-  promotion, fallback, and cleanup keep the accepted domain generation
+  candidate entry, and restart-safe trial boot/recovery. The next domain
+  decision is how promotion, fallback completion, and cleanup keep the accepted domain generation
   synchronized; protected target storage, continuity evidence, secure domain
   generation, and physical interruption recovery remain open
 - Touchscreen UI framework and distracted-driving/safe-use constraints

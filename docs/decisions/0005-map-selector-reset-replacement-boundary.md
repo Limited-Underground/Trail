@@ -69,9 +69,13 @@ rollback shortcut.
   state without lowering or rebinding protected history. Stable active-domain
   boot now rereads domain, selector, and protected state without mutation before
   exposure. Candidate entry now advances selector, protected, then accepted
-  domain generation before trial exposure. Trial boot/promotion, fallback,
-  cleanup, protected target/credential/continuity backends, and physical
-  evidence remain required before complete on-device domain operation.
+  domain generation before trial exposure. Trial boot now recognizes only the
+  committed relationship or the exact single-generation interruption gaps,
+  persists the boot count or boot-limit fallback privately, advances protected
+  then accepted domain history as needed, and publishes only after final
+  three-owner agreement. Promotion, fallback completion, cleanup, protected
+  target/credential/continuity backends, and physical evidence remain required
+  before complete on-device domain operation.
 - A future new-device provisioner must establish a fresh domain and cannot
   silently import another device's selector.
 - Radio, messaging, alerts, position sharing, OpenGauge integration, and USB

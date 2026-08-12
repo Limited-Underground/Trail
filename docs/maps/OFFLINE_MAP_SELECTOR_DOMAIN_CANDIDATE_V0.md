@@ -64,8 +64,9 @@ reapplied within the call.
 
 Those durable intermediate states are intentionally recognizable: selector may
 be one generation ahead of domain/protected state, or selector/protected may be
-one generation ahead of the domain record. The following domain-aware trial-
-boot recovery boundary must reconcile them before any map is exposed.
+one generation ahead of the domain record. The following
+[domain-aware trial-boot recovery boundary](OFFLINE_MAP_SELECTOR_DOMAIN_TRIAL_BOOT_V0.md)
+accepts only those exact gaps and reconciles them before any map is exposed.
 
 ## Result privacy
 
@@ -86,11 +87,11 @@ failed protected advance, protected readback failure/mismatch, domain write and
 uncertain-commit failure, final domain/selector/source changes, and degraded-
 domain successor repair.
 
-All twenty-four map suites pass 100/100 focused repeats, and the complete
-82-executable host matrix passes under strict C++17 warnings-as-errors.
+All twenty-five map suites pass 100/100 focused repeats, and the complete
+83-executable host matrix passes under strict C++17 warnings-as-errors.
 
-This is host common-code evidence only. Domain-aware trial boot/recovery,
-healthy promotion, fallback, previous-package cleanup, and later candidate
-cycles remain open. Protected rollback-resistant storage, authenticated
+This is host common-code evidence only. Domain-aware trial boot/recovery is now
+a separate composition. Healthy promotion, fallback completion, previous-
+package cleanup, and later candidate cycles remain open. Protected rollback-resistant storage, authenticated
 integrity, target locks/tasks, physical package retention, power interruption,
 wear, rendering, and on-device transitions remain unproved.

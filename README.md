@@ -324,16 +324,21 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   advances `OTMD/v0`'s accepted generation, rereads all three durable owners,
   and only then publishes trial state. Safe rejection preserves the current map
   only after exact final rechecks; post-selector interruption remains mapless
-  for trial-boot reconciliation. Thirteen groups pass. No protected
+  for trial-boot reconciliation. Thirteen groups pass. A new
+  [domain-aware trial boot](docs/maps/OFFLINE_MAP_SELECTOR_DOMAIN_TRIAL_BOOT_V0.md)
+  recognizes only synchronized state or an exact one-generation interruption
+  gap, privately persists the trial boot or boot-limit fallback, advances
+  protected then accepted domain generations as needed, and rereads all three
+  owners before publication. Fourteen groups pass. No protected
   target backend, concrete credential/continuity/entropy evidence, ESP-IDF
-  target composition, physical durability result, or domain-aware trial boot,
-  promotion, fallback, or cleanup maintenance exists.
+  target composition, physical durability result, or domain-aware promotion,
+  fallback completion, or cleanup maintenance exists.
   An [NVS-ready key/value adapter](docs/maps/OFFLINE_MAP_SELECTOR_KV_TARGET_ADAPTER_V0.md)
   now fixes `ot_state` / `ot_maps` / `otm_sel_a|b`, requires commit after every
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
-  and all twenty-four map suites pass 100/100 focused repeats in the complete
-  82-executable host matrix. It contains no ESP-IDF backend, partition table,
+  and all twenty-five map suites pass 100/100 focused repeats in the complete
+  83-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
@@ -523,7 +528,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 82 C++ test
+  builds six verifier/planning/operator CLIs and runs all 83 C++ test
   executables plus the Python MeshCore lease, privacy-safe field-log/pilot, and
   crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
@@ -537,7 +542,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   map activation/checkpoint/store plus protected boot, baseline, transition,
   candidate, authorized-reseed recovery, trust-domain provisioning, and
   stable trust-domain activation, read-only active-domain boot, and
-  domain-aware candidate entry,
+  domain-aware candidate entry and restart-safe trial boot,
   portable-client composition,
   local-interface, power-state, clock, randomness,
   pilot-result/template,

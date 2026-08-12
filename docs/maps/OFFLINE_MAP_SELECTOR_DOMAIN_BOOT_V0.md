@@ -72,11 +72,13 @@ second-read failures, and operational degraded records. Every group asserts
 that domain/selector writes, commits, erases, and protected mutations remain
 zero.
 
-All twenty-four map suites pass 100/100 focused repeats, and the complete
-82-executable host matrix passes under strict C++17 warnings-as-errors.
+All twenty-five map suites pass 100/100 focused repeats, and the complete
+83-executable host matrix passes under strict C++17 warnings-as-errors.
 
 This is host common-code evidence only. Domain-aware candidate entry now has a
-separate composition; trial boot/recovery, promotion, fallback, cleanup, and
+separate composition, as does
+[trial boot/recovery](OFFLINE_MAP_SELECTOR_DOMAIN_TRIAL_BOOT_V0.md). Promotion,
+fallback completion, cleanup, and
 later accepted-generation synchronization remain open. Protected rollback-
 resistant storage, target locks/tasks, authenticated integrity, package
 mounting/rendering, physical power interruption, wear, and on-device boot

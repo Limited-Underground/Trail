@@ -90,8 +90,8 @@ reapply, pending and already-active domain-commit recovery, active restart,
 wrong package/source refusal, selector races, source readback/final change, and
 domain readback failure.
 
-All twenty-four map suites pass 100/100 focused repeats, and the complete
-82-executable host matrix passes under strict C++17 warnings-as-errors.
+All twenty-five map suites pass 100/100 focused repeats, and the complete
+83-executable host matrix passes under strict C++17 warnings-as-errors.
 
 This is stable-baseline lifecycle evidence only. It does not bind a real secure
 domain generator, physical continuity decision, credential/audit backend,

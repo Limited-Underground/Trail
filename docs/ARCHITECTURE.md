@@ -484,8 +484,13 @@ and has no mutation authority. Thirteen groups pass. The separate
 [domain-aware candidate coordinator](maps/OFFLINE_MAP_SELECTOR_DOMAIN_CANDIDATE_V0.md)
 persists a private trial selector, advances the exact protected domain, advances
 the active record's accepted generation, rereads all three owners, and only then
-publishes trial state. Thirteen groups pass; domain-aware trial boot, promotion,
-fallback, cleanup, protected target adapters, task locking, and physical
+publishes trial state. Thirteen groups pass. The separate
+[domain-aware trial boot coordinator](maps/OFFLINE_MAP_SELECTOR_DOMAIN_TRIAL_BOOT_V0.md)
+accepts only synchronized state or an exact single-generation interruption gap,
+persists resumed trial or boot-limit fallback state privately, advances
+protected then accepted domain history as needed, and publishes only after
+final three-owner agreement. Fourteen groups pass; promotion, fallback
+completion, cleanup, protected target adapters, task locking, and physical
 durability remain separate gates.
 
 The [reseed authorization boundary](maps/OFFLINE_MAP_SELECTOR_RESEED_AUTHORIZATION_V0.md)
