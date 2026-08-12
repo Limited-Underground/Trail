@@ -113,6 +113,14 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   server ACK or durability proof; no remote service, account, authorization,
   encryption, retention, export/deletion, target binding, or on-device result
   exists, and base radio operation remains independent.
+- **Archive backpressure no longer requires record loss:** the
+  [bounded RAM outbox](docs/location/BREADCRUMB_ARCHIVE_OUTBOX_V0.md) holds 16
+  exact `OTBA/v0` records in strict FIFO order, never overwrites a full queue,
+  and retains the head on not-ready, remote rejection, or failure. Only an
+  explicit `durable_ack` result permits exact-head removal; a post-ACK local
+  mismatch latches upload closed. Ten groups plus 100/100 repeats pass. This is
+  volatile host behavior—not persistent storage, an endpoint, authenticated
+  transport, a server durability result, or lost-device recovery.
 - **Position sharing has a local privacy-control contract:** the
   [semantic control adapter](docs/platform/POSITION_SHARING_CONTROL_V0.md)
   presents stopped, active, waiting-for-fix, deferred, and failed states through
@@ -382,7 +390,7 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
   staged write or erase, rewrites the exact 64-byte blob for marker commit, and
   rejects missing/malformed/incorrectly sized state. Ten host groups pass. It
   and all twenty-seven map suites pass 100/100 focused repeats in the complete
-  91-executable host matrix. It contains no ESP-IDF backend, partition table,
+  92-executable host matrix. It contains no ESP-IDF backend, partition table,
   physical interruption evidence, or authenticated service backend/UI.
   The reported incoming pair of 466x466 Waveshare round touch boards remains
   unreceived candidate hardware; no provider, package, renderer, storage path,
@@ -606,13 +614,13 @@ OpenTrail is a proposed free/open-source, ESP32-based off-road communication, lo
 ### Validation and operations
 
 - **OpenTrail validation:** [GitHub Actions](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
-  builds six verifier/planning/operator CLIs and runs all 91 C++ test
+  builds six verifier/planning/operator CLIs and runs all 92 C++ test
   executables plus the Python MeshCore lease, privacy-safe field-log/pilot, and
   crypto-benchmark
   suites on every `main` push and pull request. The current-main matrix,
   including position scheduling/privacy control, experimental packet
-  admission, opt-in breadcrumb archive sessions, loss-aware priority-to-
-  delivery handoff, checked-time outbound
+  admission, opt-in breadcrumb archive sessions and bounded archive outbox,
+  loss-aware priority-to-delivery handoff, checked-time outbound
   service coordination, fail-visible outbound position safety, checked-time
   outbound position commands, single-owner position UI coordination,
   semantic position-state observation, privacy-safe position UI diagnostics,

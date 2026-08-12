@@ -102,11 +102,18 @@ encryption/authentication, remote service, storage backend, account/access
 model, retention/export/deletion workflow, physical interruption test, or
 on-device capture exists.
 
+The separate [bounded RAM outbox](BREADCRUMB_ARCHIVE_OUTBOX_V0.md) now provides
+the first concrete transport composition. It holds 16 exact records without
+overwrite, preserves FIFO data under remote pressure, and removes one only
+after an explicit durable-ack result. It is volatile host evidence, not a real
+network or remote-durability result.
+
 ## Next gates
 
 Before any real-coordinate trial, the optional archive still requires an
-explicit local UI composition, protected authenticated transport, bounded
-offline queue, restart-safe session allocation, participant/group authority,
+explicit local UI composition, protected authenticated transport, evaluated
+persistent/offline retention, restart-safe session allocation, participant/group
+authority,
 encrypted remote storage, retention/export/deletion controls, failure/retry
 policy, privacy review, and target/physical evidence. Base messaging and local
 recovery must continue when every archive component is absent or failed.

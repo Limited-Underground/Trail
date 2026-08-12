@@ -156,6 +156,18 @@ authorization, storage, export/deletion, target binding, and physical evidence
 remain separate gates. See
 [the archive session contract](location/BREADCRUMB_ARCHIVE_SESSION_V0.md).
 
+The session's first concrete transport is a 16-record fixed-memory outbox. It
+validates every exact `OTBA/v0` record, enforces contiguous sequence within
+strictly increasing sessions, preserves FIFO order, and reports full without
+overwrite or eviction. A cooperative uploader removes the exact head only when
+an injected remote adapter reports `durable_ack`; not-ready, rejection, and
+failure retain it. A post-ACK local commit mismatch latches upload closed for
+reconciliation. Records are zeroed when committed or explicitly discarded, but
+ordinary RAM zeroing is not certified secure erasure. Only session/sequence
+ordering metadata remains after removal. This is volatile host behavior, not
+protected persistence or remote durability evidence. See the
+[bounded outbox contract](location/BREADCRUMB_ARCHIVE_OUTBOX_V0.md).
+
 A host-only outbound coordinator now establishes one cooperative service order:
 sample `CheckedMonotonicClock` once, optionally read location only while sharing
 is active, service position scheduling, attempt one priority-to-delivery

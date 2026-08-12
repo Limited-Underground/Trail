@@ -6,6 +6,24 @@ public chronology.
 
 ## 2026-08-12
 
+### Bounded breadcrumb archive outbox and durable-ack handoff
+
+- Added a 16-record fixed-memory FIFO that validates exact `OTBA/v0`, requires
+  sequence 1 at each strictly increasing session start, and refuses duplicate,
+  gap, rollback, corrupt, or noncanonical input before mutation.
+- Full capacity never overwrites or evicts an uncommitted private record. The
+  archive session receives typed pressure and retries the same sequence after
+  space opens; stopping capture leaves already accepted outbox records intact.
+- Added a cooperative uploader that removes only the exact FIFO head after an
+  injected `durable_ack`. Not-ready, rejection, and failure retain it; an
+  impossible post-ACK local commit mismatch latches upload closed.
+- Removed the draft's unnecessary second copy of the latest full record, so
+  ordering history retains only opaque session/sequence metadata after a record
+  leaves. Ten groups and 100/100 focused repeats pass.
+- This queue is volatile RAM and the durable-ACK result is only a host adapter
+  contract. No server, endpoint, protected persistence, authentication,
+  account/access, retention/export/deletion, target, or physical evidence exists.
+
 ### Opt-in breadcrumb archive session boundary
 
 - Added a fixed-memory client-side archive session that composes the existing

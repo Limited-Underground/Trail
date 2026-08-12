@@ -36,7 +36,9 @@ position-dependent behavior.
 The host-tested [client-side session boundary](location/BREADCRUMB_ARCHIVE_SESSION_V0.md)
 now proves explicit start/stop, current-fix-only capture, one minimized canonical
 record, monotonic same-boot session use, and fail-visible local transport
-pressure. It does not implement the server/archive service. The remaining
+pressure. The separate [bounded RAM outbox](location/BREADCRUMB_ARCHIVE_OUTBOX_V0.md)
+adds no-overwrite FIFO retention and exact-head removal only after a host fake's
+durable-ack result. Neither implements the server/archive service. The remaining
 minimum design gates are:
 
 - target UI composition that preserves explicit start/stop and visible state;
@@ -45,7 +47,8 @@ minimum design gates are:
 - participant/group authorization;
 - export and deletion;
 - encrypted transport and protected storage;
-- offline queue limits and visible sync failure;
+- target-validated queue sizing, optional protected persistence, and visible
+  sync/discard/reconciliation controls;
 - no public raw route, participant, credential, or device-identity disclosure;
   and
 - base operation that survives server or internet failure.
