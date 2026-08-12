@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-12
 
+### NVS-ready replay checkpoint storage boundary
+
+- Added a backend-neutral key/value adapter for the two context-bound
+  `ODS0/v1` replay slots with exact `ot_state` / `ot_replay` / `ods_dup_a|b`
+  binding and strict 704-byte value validation.
+- Required an explicit backend commit after every write or present-key erase,
+  preserved missing-key erase as idempotent, and verified that a durable record
+  is discovered after an applied-then-failed commit rather than blindly retried.
+- Nine deterministic groups and 100/100 focused repeats pass in the complete
+  86-executable host matrix including publication safety. Protected ESP-IDF
+  namespace access, target locking, authentication, rollback protection,
+  physical power interruption, and endurance remain open.
+
 ### NVS-ready update checkpoint storage boundary
 
 - Added a backend-neutral key/value adapter for the recoverable two-slot

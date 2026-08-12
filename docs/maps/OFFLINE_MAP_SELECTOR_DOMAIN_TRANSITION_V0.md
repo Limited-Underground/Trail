@@ -98,7 +98,7 @@ restart recovery after failed protected advance and uncertain domain commit,
 invalid-fallback retained history, and final protected-source change.
 
 All twenty-six map suites pass 100/100 focused repeats, and the complete
-85-executable host matrix passes under strict C++17 warnings-as-errors,
+86-executable host matrix passes under strict C++17 warnings-as-errors,
 including publication safety.
 
 This is common host composition only. Protected rollback-resistant target

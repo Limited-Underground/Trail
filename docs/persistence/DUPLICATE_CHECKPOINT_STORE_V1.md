@@ -1,8 +1,8 @@
 # Duplicate Checkpoint Store v1
 
-Status: deterministic context-bound host storage boundary, not ESP-IDF/NVS,
-authenticated storage, trusted rollback, or physical power-loss evidence,
-2026-08-10
+Status: deterministic context-bound host storage boundary with a separate
+host-tested key/value target boundary; not an ESP-IDF backend, authenticated
+storage, trusted rollback, or physical power-loss result, 2026-08-12
 
 ## Purpose
 
@@ -12,9 +12,10 @@ slot size while binding every record to one nonzero group-context ID and one
 nonzero group epoch.
 
 This prevents a valid checkpoint from one configured group or epoch from being
-restored or overwritten through a differently bound store. The target adapter
-must still prove that the two physical slots belong to the expected protected
-namespace.
+restored or overwritten through a differently bound store. The separate
+[key/value adapter](DUPLICATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md) fixes exact
+slot names and commit ordering, while the concrete target must still prove
+that the two physical slots belong to the expected protected namespace.
 
 ## Fixed 704-byte `ODS0/v1` record
 
