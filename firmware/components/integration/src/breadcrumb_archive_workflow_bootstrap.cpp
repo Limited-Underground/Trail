@@ -18,17 +18,16 @@ BreadcrumbArchiveWorkflowBootstrap::BreadcrumbArchiveWorkflowBootstrap(
     SerializedBreadcrumbArchiveRuntimeOwner& runtime,
     time::CheckedMonotonicClock& clock,
     ui::CheckedLocalInterface& local_interface,
-    persistence::BreadcrumbArchiveSessionLeaseRequest lease_request,
-    std::uint32_t initial_revision)
+    persistence::BreadcrumbArchiveSessionLeaseRequest lease_request)
     : lease_store_(storage),
       runtime_(runtime),
       clock_(clock),
       local_interface_(local_interface),
-      lease_request_(lease_request),
-      initial_revision_(initial_revision) {}
+      lease_request_(lease_request) {}
 
 BreadcrumbArchiveWorkflowBootstrapResult
-BreadcrumbArchiveWorkflowBootstrap::initialize() {
+BreadcrumbArchiveWorkflowBootstrap::initialize(
+    std::uint32_t initial_revision) {
     saturating_increment(status_.initialize_calls);
     if (status_.state == BreadcrumbArchiveWorkflowBootstrapState::ready) {
         BreadcrumbArchiveWorkflowBootstrapResult result{};
@@ -40,8 +39,8 @@ BreadcrumbArchiveWorkflowBootstrap::initialize() {
         return unavailable();
     }
     if (lease_request_.initial_session_id == 0 ||
-        lease_request_.lease_size == 0 || initial_revision_ == 0 ||
-        initial_revision_ == std::numeric_limits<std::uint32_t>::max()) {
+        lease_request_.lease_size == 0 || initial_revision == 0 ||
+        initial_revision == std::numeric_limits<std::uint32_t>::max()) {
         latch(BreadcrumbArchiveWorkflowBootstrapError::invalid_configuration);
         return unavailable();
     }
@@ -67,7 +66,7 @@ BreadcrumbArchiveWorkflowBootstrap::initialize() {
         local_interface_,
         allocation.first_session_id,
         allocation.final_session_id,
-        initial_revision_);
+        initial_revision);
     if (!workflow_->status().configuration_valid) {
         workflow_.reset();
         latch(

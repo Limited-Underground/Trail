@@ -68,8 +68,7 @@ public:
         SerializedBreadcrumbArchiveRuntimeOwner& runtime,
         time::CheckedMonotonicClock& clock,
         ui::CheckedLocalInterface& local_interface,
-        persistence::BreadcrumbArchiveSessionLeaseRequest lease_request,
-        std::uint32_t initial_revision = 1);
+        persistence::BreadcrumbArchiveSessionLeaseRequest lease_request);
     BreadcrumbArchiveWorkflowBootstrap(
         const BreadcrumbArchiveWorkflowBootstrap&) = delete;
     BreadcrumbArchiveWorkflowBootstrap& operator=(
@@ -79,7 +78,8 @@ public:
     BreadcrumbArchiveWorkflowBootstrap& operator=(
         BreadcrumbArchiveWorkflowBootstrap&&) = delete;
 
-    [[nodiscard]] BreadcrumbArchiveWorkflowBootstrapResult initialize();
+    [[nodiscard]] BreadcrumbArchiveWorkflowBootstrapResult initialize(
+        std::uint32_t initial_revision = 1);
     [[nodiscard]] BreadcrumbArchiveWorkflowBootstrapResult service();
     [[nodiscard]] BreadcrumbArchiveWorkflowBootstrapResult enter(
         const ui::ResolvedAction& action);
@@ -94,7 +94,6 @@ private:
     time::CheckedMonotonicClock& clock_;
     ui::CheckedLocalInterface& local_interface_;
     persistence::BreadcrumbArchiveSessionLeaseRequest lease_request_{};
-    std::uint32_t initial_revision_{0};
     std::optional<BreadcrumbArchiveWorkflowCoordinator> workflow_{};
     BreadcrumbArchiveWorkflowBootstrapStatus status_{};
 };

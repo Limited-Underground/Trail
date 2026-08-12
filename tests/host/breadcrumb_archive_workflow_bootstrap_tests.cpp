@@ -68,15 +68,13 @@ struct Harness {
     Harness(
         MemoryPersistentStorage& storage,
         BreadcrumbArchiveSessionLeaseRequest request = {
-            kInitialSession, 4},
-        std::uint32_t initial_revision = 1)
+            kInitialSession, 4})
         : bootstrap(
               storage,
               runtime,
               clock,
               local,
-              request,
-              initial_revision) {}
+              request) {}
 };
 
 void test_dormant_bootstrap_blocks_every_workflow_call() {
@@ -108,11 +106,9 @@ void test_invalid_configuration_fails_before_storage_or_runtime() {
            BreadcrumbArchiveWorkflowBootstrapError::invalid_configuration);
     EXPECT(!request_result.lease_attempted);
 
-    Harness invalid_revision{
-        storage,
-        {kInitialSession, 4},
-        std::numeric_limits<std::uint32_t>::max()};
-    const auto revision_result = invalid_revision.bootstrap.initialize();
+    Harness invalid_revision{storage, {kInitialSession, 4}};
+    const auto revision_result = invalid_revision.bootstrap.initialize(
+        std::numeric_limits<std::uint32_t>::max());
     EXPECT(revision_result.error ==
            BreadcrumbArchiveWorkflowBootstrapError::invalid_configuration);
     EXPECT(storage.counters(

@@ -62,7 +62,7 @@ fail-latched backend errors, applied-then-failed commit discovery, physical
 namespace separation, real configuration rotation, and final-commit restart
 recovery. Separate five-group counter, six-group ACK-session, and five-group
 archive-lease composition suites exercise real upper stores through this
-adapter and pass 100/100 repeats each. The complete 103-executable host matrix
+adapter and pass 100/100 repeats each. The complete 104-executable host matrix
 passes under strict C++17 warnings-as-errors including publication safety.
 
 The backend owns initialization, handles, locking, native error translation,

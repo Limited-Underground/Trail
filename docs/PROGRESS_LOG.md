@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-12
 
+### Exact-revision archive parent/workflow handoff
+
+- Added one non-copyable local router that accepts only an already resolved
+  `open_archive_controls` action matching the exact active parent revision.
+  First entry derives the next workflow revision and initializes the durable
+  lease bootstrap before controls can be presented.
+- Cancel now returns an explicit minimum newer parent revision without
+  inventing a home/status frame. A later exact active parent action re-enters
+  the same boot workflow and lease without another storage allocation.
+- Invalid/stale/already-active/exhausted entry rejects before storage;
+  allocation failure latches before runtime/display access. Open remains only
+  navigation and cannot Start capture.
+- Eight groups plus 100/100 focused repeats and the complete 104-executable
+  host matrix pass. The complete application shell, exact target bindings,
+  renderer/physical input, concurrency, recovery UX, and on-device evidence
+  remain.
+
 ### Durable archive lease-to-workflow bootstrap
 
 - Added a fixed-memory, explicit-initialization owner that commits and reads
@@ -19,7 +36,7 @@ public chronology.
 - Made the consent controller, workflow coordinator, and bootstrap explicitly
   non-copyable/non-movable so a leased cursor cannot be cloned accidentally.
 - Eight bootstrap groups plus 100/100 focused repeats and the complete
-  103-executable host matrix pass. Exact target backend/seed composition,
+  104-executable host matrix pass. Exact target backend/seed composition,
   recovery UX, parent navigation, renderer/physical input, concurrent stress,
   reset/brownout/endurance, and on-device evidence remain.
 
@@ -37,7 +54,7 @@ public chronology.
   first/final lease bounds. Start refuses to cross the final ID and never wraps
   or silently allocates another range.
 - Nine store groups, five real key/value-composition groups, the eleven-group
-  consent suite, 100/100 focused repeats, and the complete 103-executable host
+  consent suite, 100/100 focused repeats, and the complete 104-executable host
   matrix pass. ESP-IDF/NVS binding, secure blank-state entropy, authenticated
   integrity/rollback resistance, recovery UX, target boot composition,
   physical interruption, and on-device evidence remain.
@@ -55,7 +72,7 @@ public chronology.
   successful Start, the coordinator attempts Stop and latches the workflow;
   revision exhaustion also fails privacy-safe by stopping.
 - Fourteen deterministic groups plus 100/100 focused repeats and the complete
-  103-executable host matrix pass. The workflow now requires explicit durable
+  104-executable host matrix pass. The workflow now requires explicit durable
   session-range bounds and refuses to cross the inclusive final ID. A parent
   menu/navigation owner, renderer, physical input, target lease composition,
   ESP-IDF binding, concurrent target stress, and on-device evidence remain.
@@ -73,7 +90,7 @@ public chronology.
   explicit hold; uncertain post-operation state consumes it so it cannot be
   reused, and the final lease ID permanently exhausts that controller.
 - Eleven deterministic groups plus 100/100 focused repeats pass within the
-  current 103-executable host matrix. No radio/server/automatic start input,
+  current 104-executable host matrix. No radio/server/automatic start input,
   renderer, physical input, target lease composition, ESP-IDF binding, or
   on-device evidence exists.
 

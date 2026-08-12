@@ -86,7 +86,12 @@ The [complete archive workflow](../location/BREADCRUMB_ARCHIVE_WORKFLOW_COORDINA
 owns the control/confirmation/cancel/action/refresh revision sequence.
 `open_archive_controls` is a parent-navigation request rather than an archive
 operation; re-entry accepts it only after the checked interface resolves it
-against the exact active parent frame.
+against the exact active parent frame. The
+[navigation handoff](../location/BREADCRUMB_ARCHIVE_NAVIGATION_COORDINATOR_V0.md)
+now derives the first workflow revision from that parent action, initializes
+the durable lease bootstrap on first entry, returns a minimum newer parent
+revision on Cancel, and reuses the same boot workflow on later entry. It does
+not create or poll the parent frame.
 
 Unused action slots must remain canonical zero/disabled values. Active actions
 must be known and unique. A frame is committed only after the display sink

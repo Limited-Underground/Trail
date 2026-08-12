@@ -77,7 +77,7 @@ Ten deterministic scenario groups plus 100/100 focused repeats cover:
 9. snapshot lock failure propagating to the writer gate; and
 10. unknown writer acquire/release states failing closed.
 
-The complete 103-executable host matrix and Python evidence checks pass. This
+The complete 104-executable host matrix and Python evidence checks pass. This
 proves common-code object ownership and ordering only. It does not prove a real
 ESP-IDF primitive, preemptive concurrency, task priorities, physical storage,
 network durability, or hardware behavior.
