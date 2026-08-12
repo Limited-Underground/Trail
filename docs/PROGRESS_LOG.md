@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-12
 
+### Single-read breadcrumb archive status snapshot
+
+- Added one target-facing source contract for a complete capture-session,
+  bounded-outbox, and retry-coordinator status tuple; common code performs
+  exactly one source call per presentation capture.
+- Temporary not-ready produces no frame. Failed or unknown source state ignores
+  partial output and emits only the generic action-free archive warning with a
+  redacted zero queue count; revision zero is refused before source access.
+- The tuple is trivially copyable, contains no breadcrumb records or
+  coordinates, measures 200 bytes on the current 64-bit host toolchain, and has
+  a compile-time ceiling of 208 bytes.
+- Ten deterministic groups plus 100/100 focused repeats pass through the
+  checked local-interface boundary. The exact ESP-IDF task/lock, target adapter,
+  concurrent copy proof, renderer, physical display, and archive execution
+  authority remain absent.
+
 ### Privacy-safe breadcrumb archive presentation
 
 - Added a fixed-memory, pure adapter from copied archive session, bounded

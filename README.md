@@ -13,8 +13,8 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, and bounded close-range bench proofs |
-| Latest increment | [Privacy-safe optional-archive presentation](docs/location/BREADCRUMB_ARCHIVE_PRESENTATION_V0.md): stopped/active/queued/waiting/full/failed semantic states with no coordinates or operator actions |
-| Proven so far | A 94-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited transport, soak, burst, and alert/acknowledgement tests |
+| Latest increment | [Single-read optional-archive snapshot](docs/location/BREADCRUMB_ARCHIVE_SNAPSHOT_V0.md): one complete session/outbox/retry status tuple with partial-output redaction and no execution authority |
+| Proven so far | A 95-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited transport, soak, burst, and alert/acknowledgement tests |
 | Planned first release | Up to eight active clients in one group with at most one optional authorized repeater |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, physical GPS/UI, field range, power endurance, or regulatory acceptance |
 

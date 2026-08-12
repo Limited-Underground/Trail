@@ -14,6 +14,12 @@ copied archive-session, RAM-outbox, and checked-time retry status into the
 existing semantic `UiFrame`. It has no capture, upload, discard, export,
 deletion, server, or base-radio authority.
 
+The separate
+[single-read snapshot boundary](BREADCRUMB_ARCHIVE_SNAPSHOT_V0.md) now gives
+target composition one status-source call for the complete three-owner tuple.
+Temporary not-ready state produces no new frame; failed or unknown source state
+ignores partial output and produces only the generic action-free warning.
+
 ## Semantic output
 
 Every presentable result uses the ordinary status screen, contains no action
@@ -71,7 +77,8 @@ accessibility, power, server, or real-coordinate evidence.
 
 ## Next gates
 
-- Define an atomic target snapshot across session, outbox, and retry owners.
+- Implement the defined snapshot source under an exact target task/lock and
+  prove the copy cannot interleave with owner mutation.
 - Add renderer wording and verify the full state set on frozen client hardware.
 - Decide authorized recovery, discard, retention, export, deletion, and
   lost-device workflows before offering any action.

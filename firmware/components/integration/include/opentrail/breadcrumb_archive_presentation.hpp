@@ -13,6 +13,32 @@ enum class BreadcrumbArchivePresentationError : std::uint8_t {
     none = 0,
     invalid_revision,
     incoherent_status,
+    snapshot_not_ready,
+    snapshot_failed,
+    invalid_snapshot_state,
+};
+
+struct BreadcrumbArchiveRuntimeSnapshot {
+    location::BreadcrumbArchiveStatus session{};
+    location::BreadcrumbArchiveOutboxStatus outbox{};
+    location::BreadcrumbArchiveRetryStatus retry{};
+};
+
+enum class BreadcrumbArchiveSnapshotState : std::uint8_t {
+    ready = 0,
+    not_ready,
+    failed,
+};
+
+// A target implementation must copy all three status owners under one
+// serialized read boundary. It must not return a mixture from different
+// cooperative cycles. Common code performs exactly one call per capture.
+class BreadcrumbArchiveSnapshotSource {
+public:
+    virtual ~BreadcrumbArchiveSnapshotSource() = default;
+
+    [[nodiscard]] virtual BreadcrumbArchiveSnapshotState snapshot(
+        BreadcrumbArchiveRuntimeSnapshot& output) = 0;
 };
 
 struct BreadcrumbArchivePresentationResult {
@@ -35,6 +61,15 @@ make_breadcrumb_archive_presentation(
     const location::BreadcrumbArchiveStatus& session,
     const location::BreadcrumbArchiveOutboxStatus& outbox,
     const location::BreadcrumbArchiveRetryStatus& retry,
+    std::uint32_t frame_revision);
+
+// Reads one serialized status tuple and immediately reduces it to the
+// coordinate-free semantic frame. not_ready returns no frame so a caller may
+// retain its prior truthful presentation. Failed or unknown source state
+// produces a generic action-free archive warning and ignores partial output.
+[[nodiscard]] BreadcrumbArchivePresentationResult
+capture_breadcrumb_archive_presentation(
+    BreadcrumbArchiveSnapshotSource& source,
     std::uint32_t frame_revision);
 
 }  // namespace opentrail::integration

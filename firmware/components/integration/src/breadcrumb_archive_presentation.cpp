@@ -114,4 +114,37 @@ BreadcrumbArchivePresentationResult make_breadcrumb_archive_presentation(
     };
 }
 
+BreadcrumbArchivePresentationResult capture_breadcrumb_archive_presentation(
+    BreadcrumbArchiveSnapshotSource& source,
+    std::uint32_t frame_revision) {
+    if (frame_revision == 0) {
+        return {BreadcrumbArchivePresentationError::invalid_revision};
+    }
+
+    BreadcrumbArchiveRuntimeSnapshot snapshot{};
+    const auto state = source.snapshot(snapshot);
+    if (state == BreadcrumbArchiveSnapshotState::ready) {
+        return make_breadcrumb_archive_presentation(
+            snapshot.session,
+            snapshot.outbox,
+            snapshot.retry,
+            frame_revision);
+    }
+    if (state == BreadcrumbArchiveSnapshotState::not_ready) {
+        return {BreadcrumbArchivePresentationError::snapshot_not_ready};
+    }
+    if (state == BreadcrumbArchiveSnapshotState::failed) {
+        return {
+            BreadcrumbArchivePresentationError::snapshot_failed,
+            failure_frame(frame_revision, 0),
+            true,
+        };
+    }
+    return {
+        BreadcrumbArchivePresentationError::invalid_snapshot_state,
+        failure_frame(frame_revision, 0),
+        true,
+    };
+}
+
 }  // namespace opentrail::integration

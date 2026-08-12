@@ -186,6 +186,15 @@ not turn an optional archive failure into a base system-fault claim. Invalid
 owner combinations fail visibly while impossible counts are redacted. See the
 [privacy-safe archive presentation contract](location/BREADCRUMB_ARCHIVE_PRESENTATION_V0.md).
 
+Target-facing capture of that presentation now uses one abstract status-source
+call for the complete session/outbox/retry tuple. Common code never performs
+three independent owner reads, refuses revision zero before source access,
+retains the prior frame on temporary not-ready, and ignores partial data from a
+failed or unknown source before emitting the generic action-free warning. The
+interface requires a target implementation to serialize the copy but does not
+provide an ESP-IDF task or lock. See the
+[single-read archive snapshot contract](location/BREADCRUMB_ARCHIVE_SNAPSHOT_V0.md).
+
 A host-only outbound coordinator now establishes one cooperative service order:
 sample `CheckedMonotonicClock` once, optionally read location only while sharing
 is active, service position scheduling, attempt one priority-to-delivery
