@@ -75,6 +75,11 @@ power measurement, connectivity awareness, a real remote adapter, target
 configuration, rendered operator controls, physical interruption, and
 on-device behavior remain open.
 
+The separate
+[privacy-safe presentation adapter](BREADCRUMB_ARCHIVE_PRESENTATION_V0.md)
+now maps copied retry/session/outbox state into action-free semantic notices.
+It does not add a renderer, recovery authority, or target composition.
+
 ## Next gates
 
 Before real coordinates can use this path: define authenticated transport and

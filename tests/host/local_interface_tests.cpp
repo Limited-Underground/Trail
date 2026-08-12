@@ -168,6 +168,17 @@ void test_frame_validation_and_revision_are_fail_closed() {
     auto duplicate = home_frame(11);
     duplicate.actions[1] = duplicate.actions[0];
     EXPECT(interface.present(duplicate).error == PresentError::invalid_frame);
+
+    auto hidden_archive_count = home_frame(11);
+    hidden_archive_count.status.archive_queue_count = 1;
+    EXPECT(interface.present(hidden_archive_count).error ==
+           PresentError::invalid_frame);
+
+    auto oversized_archive_count = home_frame(11);
+    oversized_archive_count.status.archive_queue_count_valid = true;
+    oversized_archive_count.status.archive_queue_count = 17;
+    EXPECT(interface.present(oversized_archive_count).error ==
+           PresentError::invalid_frame);
     EXPECT(display.present_count() == 1);
     EXPECT(interface.status().active_revision == 10);
 }

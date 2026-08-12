@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-12
 
+### Privacy-safe breadcrumb archive presentation
+
+- Added a fixed-memory, pure adapter from copied archive session, bounded
+  outbox, and checked-time retry status into the existing semantic local-
+  interface frame.
+- Operators can distinguish stopped, active, queued, waiting to retry, full,
+  and failed states with only a bounded 0-through-16 queue count. The frame has
+  no coordinates, record bytes, endpoint, credentials, participant identity,
+  retry deadline, or receipt detail.
+- Every archive frame is action-free. Optional archive failure remains an
+  ordinary warning rather than a base system-fault claim; incoherent copied
+  state fails visibly and an impossible count is redacted to zero.
+- Ten deterministic groups plus 100/100 focused repeats pass through the
+  checked local-interface boundary. Target snapshotting, renderer, physical
+  display, recovery/discard/retention/export/deletion authority, server, and
+  real-coordinate evidence remain absent.
+
 ### Checked-time breadcrumb archive retry boundary
 
 - Added a fixed-memory coordinator that reads the guarded boot-local monotonic

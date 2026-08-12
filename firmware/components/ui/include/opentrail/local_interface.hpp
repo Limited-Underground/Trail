@@ -69,6 +69,12 @@ enum class UiNotice : std::uint8_t {
     position_sharing_waiting_for_fix,
     position_sharing_deferred,
     position_sharing_failed,
+    archive_stopped,
+    archive_active,
+    archive_queued,
+    archive_upload_waiting,
+    archive_queue_full,
+    archive_upload_failed,
 };
 
 // These are semantic application requests, not physical button or touch IDs.
@@ -108,6 +114,8 @@ struct UiStatusSummary {
     bool peer_count_valid{false};
     std::uint8_t peer_count{0};
     std::uint8_t unread_messages{0};
+    bool archive_queue_count_valid{false};
+    std::uint8_t archive_queue_count{0};
 };
 
 struct UiActionBinding {

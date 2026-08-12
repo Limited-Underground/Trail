@@ -60,7 +60,13 @@ bool valid_notice(UiNotice notice) {
            notice == UiNotice::position_sharing_active ||
            notice == UiNotice::position_sharing_waiting_for_fix ||
            notice == UiNotice::position_sharing_deferred ||
-           notice == UiNotice::position_sharing_failed;
+           notice == UiNotice::position_sharing_failed ||
+           notice == UiNotice::archive_stopped ||
+           notice == UiNotice::archive_active ||
+           notice == UiNotice::archive_queued ||
+           notice == UiNotice::archive_upload_waiting ||
+           notice == UiNotice::archive_queue_full ||
+           notice == UiNotice::archive_upload_failed;
 }
 
 bool valid_action(UiAction action) {
@@ -97,6 +103,9 @@ bool valid_frame(const UiFrame& frame, const DisplayCapabilities& capabilities) 
         !valid_indicator(frame.status.position) ||
         !valid_indicator(frame.status.power) ||
         (!frame.status.peer_count_valid && frame.status.peer_count != 0) ||
+        (!frame.status.archive_queue_count_valid &&
+         frame.status.archive_queue_count != 0) ||
+        frame.status.archive_queue_count > 16 ||
         frame.action_count > capabilities.max_action_slots ||
         frame.action_count > frame.actions.size()) {
         return false;

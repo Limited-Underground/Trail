@@ -42,6 +42,7 @@ presentation can exist without expanding the base application contract.
 - attention and notice enums;
 - radio, position, and power indicator states;
 - optional peer count and bounded unread count; and
+- optional bounded breadcrumb-archive queue count from zero through 16;
 - up to four ordered semantic action bindings.
 
 It contains no coordinates, free-form labels, peer identity, message text,
@@ -65,6 +66,14 @@ gains coordinate access nor acquires radio, emergency, or update authority.
 The [position-sharing UI coordinator](POSITION_SHARING_UI_COORDINATOR_V0.md)
 now owns the host-tested revision/poll/action/refresh sequence around that
 adapter; it does not provide an ESP-IDF task, lock, or physical renderer.
+
+Known notices also include archive stopped, active, queued, upload waiting,
+queue full, and upload failed. The separate
+[breadcrumb-archive presentation adapter](../location/BREADCRUMB_ARCHIVE_PRESENTATION_V0.md)
+reduces copied session/outbox/retry status to these coordinate-free tokens and
+a bounded queue count. Archive presentation has no capture, upload, discard,
+export, deletion, server, or base-radio authority and defines no action
+bindings.
 
 Unused action slots must remain canonical zero/disabled values. Active actions
 must be known and unique. A frame is committed only after the display sink

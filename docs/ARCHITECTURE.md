@@ -179,6 +179,13 @@ this optional boot composition closed. It has no base-radio or capture
 authority. See the
 [checked-time retry contract](location/BREADCRUMB_ARCHIVE_RETRY_V0.md).
 
+A pure presentation adapter reduces copied archive session, outbox, and retry
+state to coordinate-free stopped, active, queued, waiting, full, or failed
+semantic UI notices plus a bounded queue count. It offers no actions and does
+not turn an optional archive failure into a base system-fault claim. Invalid
+owner combinations fail visibly while impossible counts are redacted. See the
+[privacy-safe archive presentation contract](location/BREADCRUMB_ARCHIVE_PRESENTATION_V0.md).
+
 A host-only outbound coordinator now establishes one cooperative service order:
 sample `CheckedMonotonicClock` once, optionally read location only while sharing
 is active, service position scheduling, attempt one priority-to-delivery
