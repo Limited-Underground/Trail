@@ -12,5 +12,8 @@
     <None Include="..\..\fixtures\firmware_bundle_signature_vector_v0.json"
           Link="fixtures\firmware_bundle_signature_vector_v0.json"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\tools\windows-loader\OpenTrail.Loader\app.manifest"
+          Link="app.manifest"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

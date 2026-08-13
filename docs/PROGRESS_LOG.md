@@ -6,6 +6,32 @@ public chronology.
 
 ## 2026-08-13
 
+### Explicit per-monitor DPI configuration and scaled-render acceptance
+
+- Added a production application manifest that declares Windows
+  `PerMonitorV2` awareness plus the older `true/pm` fallback. The project now
+  embeds that exact manifest instead of relying on an implicit runtime default.
+- Extended the real-`MainWindow` STA acceptance path with minimum-window
+  renders at 125%, 150%, and 200% pixel density. Each profile preserves the
+  900×620 logical layout, produces the exact scaled bitmap dimensions and DPI,
+  retains nonblank production pixels, and keeps Refresh, firmware selection,
+  and the scroll viewport measurably available.
+- Pixel review accepted all three scaled renders. Header and inspection state,
+  selected-device copy, two reachable device cards, bundle blocker, safe-mode
+  boundary, and disabled Flash label remain readable. This is deterministic
+  high-DPI evidence only; real monitor-to-monitor movement, Windows theme/high-
+  contrast switching, keyboard/Narrator, and clean-machine acceptance remain
+  open.
+- The warning-free Windows suite now passes 50 scenario groups. Its live
+  read-only precheck remains two Heltec companions plus one SenseCAP repeater,
+  three runtime-identified and zero ready to flash; no maintenance or radio
+  mutation occurred.
+- A fresh 464-file self-contained `win-x64` engineering package independently
+  passed manifest/hash and source-free launch verification. It is 72,098,493
+  bytes with SHA-256
+  `DBB746434C8EABF1DE772913091A353502DCE9D8609427A6B51DD117BE4D0EC4`;
+  it remains local, ignored, inspection-only, and not a public release.
+
 ### Production-window repeated refresh/selection state acceptance
 
 - Added an internal dependency seam that preserves the public WPF constructor

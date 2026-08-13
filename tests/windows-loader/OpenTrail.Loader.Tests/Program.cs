@@ -4,6 +4,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 var failures = 0;
 
@@ -15,6 +16,21 @@ void Expect(bool condition, string message)
         failures++;
     }
 }
+
+var applicationManifest = XDocument.Load(
+    Path.Combine(AppContext.BaseDirectory, "app.manifest"));
+var dpiAwarenessValues = applicationManifest
+    .Descendants()
+    .Where(static element => element.Name.LocalName is "dpiAware" or "dpiAwareness")
+    .ToDictionary(
+        static element => element.Name.LocalName,
+        static element => element.Value,
+        StringComparer.Ordinal);
+Expect(
+    dpiAwarenessValues.Count == 2 &&
+    string.Equals(dpiAwarenessValues["dpiAware"], "true/pm", StringComparison.Ordinal) &&
+    string.Equals(dpiAwarenessValues["dpiAwareness"], "PerMonitorV2", StringComparison.Ordinal),
+    "the production application manifest must declare the legacy fallback and PerMonitorV2 DPI awareness");
 
 void ExpectIdentityRejected(
     string parentName,
@@ -958,6 +974,8 @@ try
     var windowAcceptance = LoaderVisualFixtureRenderer.Run();
     Console.WriteLine(
         $"INFO: production Windows loader completed {windowAcceptance.SuccessfulRefreshes} controlled refresh/selection cycles");
+    Console.WriteLine(
+        $"INFO: production Windows loader accepted {windowAcceptance.AcceptedDpiProfiles} deterministic high-DPI profiles");
     foreach (var visualFile in windowAcceptance.RenderedFiles)
     {
         Console.WriteLine($"INFO: rendered Windows loader fixture {visualFile}");
@@ -975,5 +993,5 @@ if (failures != 0)
     return 1;
 }
 
-Console.WriteLine("PASS: 49 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
+Console.WriteLine("PASS: 50 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/high-DPI, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
 return 0;

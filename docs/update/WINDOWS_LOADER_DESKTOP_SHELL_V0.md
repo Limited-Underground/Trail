@@ -11,8 +11,8 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Forty-nine document, identity-safeguard, accessibility,
-production-window refresh/selection, snapshot-binding/device-match,
+Windows host. Fifty document, identity-safeguard, accessibility,
+production-window refresh/selection/high-DPI, snapshot-binding/device-match,
 process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
 packaged-inspection scenario groups pass. The source-free built-in C# path
 reports `3 USB candidates found · 3
@@ -22,8 +22,9 @@ clients and the packaged SenseCAP Solar P1-Pro GPS repeater.
 This is source/build and document-validation evidence. A local self-contained
 package has also passed source-free extraction, manifest/hash verification, and
 launch smoke testing. The real production XAML now also has deterministic
-rendered-layout evidence at desktop and minimum window sizes. Real keyboard,
-Narrator, high-DPI/system-theme, repeated-refresh, and clean-machine acceptance
+rendered-layout evidence at desktop and minimum window sizes plus deterministic
+125%, 150%, and 200% scaled rendering. Real keyboard, Narrator, alternate
+system-theme, repeated-refresh, and clean-machine acceptance
 remain separate gates.
 
 The source now provides F5 refresh through the same bounded command as the
@@ -131,10 +132,19 @@ wraps below; the outer vertical scroll reaches it while the bundle and safe-mode
 footers remain fixed. Selected-state borders, status copy, Refresh, firmware-
 bundle, and both disabled Flash labels are readable in the inspected renders.
 
-This is deterministic rendered-layout and resize evidence on the current host.
-It is not evidence of mouse/keyboard operation, focus traversal, Narrator live
-announcements, Windows scaling above 100%, alternate system themes, repeated
-live refresh behavior, or clean-machine operation.
+The executable now embeds an explicit `PerMonitorV2` DPI-awareness manifest
+with the legacy `true/pm` fallback. The same production window also renders the
+900×620 logical minimum at 125%, 150%, and 200% pixel density. Each bitmap has
+the exact expected pixel dimensions and DPI, remains nonblank, and preserves
+measurable Refresh, firmware-selection, and scroll-viewport surfaces. Pixel
+review accepted the selected state, bundle blocker, safe-mode boundary, and
+disabled Flash label at all three scales.
+
+This is deterministic rendered-layout, resize, and high-DPI evidence on the
+current host. It is not evidence of mouse/keyboard operation, focus traversal,
+Narrator live announcements, real monitor-to-monitor DPI movement, alternate
+system/high-contrast themes, repeated live refresh behavior, or clean-machine
+operation.
 
 ## Production-window refresh state evidence
 
@@ -273,9 +283,9 @@ packaged executable:
 .\tools\Test-WindowsDeviceUtilityPackage.ps1 -ArchivePath <path-to-zip>
 ```
 
-The current retained package has 464 payload files and is 72,098,580 bytes. Its
+The current retained package has 464 payload files and is 72,098,493 bytes. Its
 SHA-256 is
-`A47CAE1B13F99598927FE26D6F5D5EA61BE2950674ABD599FBC9468E6ED3CC60`.
+`DBB746434C8EABF1DE772913091A353502DCE9D8609427A6B51DD117BE4D0EC4`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the
@@ -291,7 +301,8 @@ binary has been published.
 1. Exercise repeated live refresh and explicit selection in the visible app
    with the three connected bench units without starting maintenance mode.
 2. Accept keyboard navigation, focus order, live announcements, labels,
-   contrast, high-DPI/system-theme behavior, and the remaining interactive
+   contrast, alternate system/high-contrast theme behavior, real monitor DPI
+   changes, and the remaining interactive
    resize cases with real Windows UI and assistive-technology review.
 3. Build and lifecycle-test an installer, then repeat package and installer
    acceptance on a clean Windows machine; add code signing before distribution.

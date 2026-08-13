@@ -8,6 +8,7 @@ namespace OpenTrail.Loader;
 
 internal sealed record LoaderWindowAcceptanceResult(
     int SuccessfulRefreshes,
+    int AcceptedDpiProfiles,
     IReadOnlyList<string> RenderedFiles);
 
 internal static class LoaderVisualFixtureRenderer
@@ -24,6 +25,7 @@ internal static class LoaderVisualFixtureRenderer
 
         var renderedFiles = new List<string>();
         var successfulRefreshes = 0;
+        var acceptedDpiProfiles = 0;
         Exception? renderingFailure = null;
         var thread = new Thread(() =>
         {
@@ -46,6 +48,10 @@ internal static class LoaderVisualFixtureRenderer
                 {
                     RunRefreshCycles(window);
                     successfulRefreshes = refreshCalls;
+                    acceptedDpiProfiles = AcceptDpiProfiles(
+                        window,
+                        outputDirectory,
+                        renderedFiles);
 
                     if (outputDirectory is not null)
                     {
@@ -54,13 +60,15 @@ internal static class LoaderVisualFixtureRenderer
                             outputDirectory,
                             "loader-desktop-1600x900.png",
                             1600,
-                            900));
+                            900,
+                            1.0));
                         renderedFiles.Add(Render(
                             window,
                             outputDirectory,
                             "loader-minimum-900x620.png",
                             900,
-                            620));
+                            620,
+                            1.0));
                         window.ContentScroll.ScrollToEnd();
                         window.ContentScroll.UpdateLayout();
                         renderedFiles.Add(Render(
@@ -68,7 +76,8 @@ internal static class LoaderVisualFixtureRenderer
                             outputDirectory,
                             "loader-minimum-scrolled-900x620.png",
                             900,
-                            620));
+                            620,
+                            1.0));
                     }
                 }
                 finally
@@ -92,7 +101,7 @@ internal static class LoaderVisualFixtureRenderer
                 renderingFailure);
         }
 
-        return new(successfulRefreshes, renderedFiles);
+        return new(successfulRefreshes, acceptedDpiProfiles, renderedFiles);
     }
 
     private static void RunRefreshCycles(MainWindow window)
@@ -148,26 +157,124 @@ internal static class LoaderVisualFixtureRenderer
         }
     }
 
+    private static int AcceptDpiProfiles(
+        MainWindow window,
+        string? outputDirectory,
+        ICollection<string> renderedFiles)
+    {
+        var accepted = 0;
+        foreach (var profile in new[]
+        {
+            (Scale: 1.25, Label: "125pct"),
+            (Scale: 1.50, Label: "150pct"),
+            (Scale: 2.00, Label: "200pct"),
+        })
+        {
+            var bitmap = RenderBitmap(window, 900, 620, profile.Scale);
+            var expectedWidth = checked((int)Math.Round(900 * profile.Scale));
+            var expectedHeight = checked((int)Math.Round(620 * profile.Scale));
+            Require(
+                bitmap.PixelWidth == expectedWidth &&
+                bitmap.PixelHeight == expectedHeight &&
+                Math.Abs(bitmap.DpiX - (96 * profile.Scale)) < 0.01 &&
+                Math.Abs(bitmap.DpiY - (96 * profile.Scale)) < 0.01,
+                $"{profile.Label} render did not preserve the minimum logical layout at the expected pixel density");
+            Require(HasVisibleContent(bitmap),
+                $"{profile.Label} production-window render was blank or visually collapsed");
+            Require(
+                window.RefreshButton.ActualWidth > 80 &&
+                window.RefreshButton.ActualHeight > 24 &&
+                window.SelectFirmwareButton.ActualWidth > 120 &&
+                window.SelectFirmwareButton.ActualHeight > 24 &&
+                window.ContentScroll.ViewportWidth > 0 &&
+                window.ContentScroll.ViewportHeight > 0,
+                $"{profile.Label} production controls or scroll viewport collapsed");
+
+            if (outputDirectory is not null)
+            {
+                renderedFiles.Add(SaveBitmap(
+                    bitmap,
+                    outputDirectory,
+                    $"loader-minimum-900x620-{profile.Label}.png"));
+            }
+            accepted++;
+        }
+
+        return accepted;
+    }
+
     private static string Render(
         MainWindow window,
         string outputDirectory,
         string fileName,
         int width,
-        int height)
+        int height,
+        double dpiScale)
     {
+        var bitmap = RenderBitmap(window, width, height, dpiScale);
+        return SaveBitmap(bitmap, outputDirectory, fileName);
+    }
+
+    private static RenderTargetBitmap RenderBitmap(
+        MainWindow window,
+        int logicalWidth,
+        int logicalHeight,
+        double dpiScale)
+    {
+        if (logicalWidth <= 0 || logicalHeight <= 0 ||
+            !double.IsFinite(dpiScale) || dpiScale < 1.0 || dpiScale > 4.0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(dpiScale));
+        }
+
         var content = (FrameworkElement)window.Content;
-        content.Measure(new Size(width, height));
-        content.Arrange(new Rect(0, 0, width, height));
+        content.Measure(new Size(logicalWidth, logicalHeight));
+        content.Arrange(new Rect(0, 0, logicalWidth, logicalHeight));
         content.UpdateLayout();
 
+        var dpi = 96 * dpiScale;
         var bitmap = new RenderTargetBitmap(
-            width,
-            height,
-            96,
-            96,
+            checked((int)Math.Round(logicalWidth * dpiScale)),
+            checked((int)Math.Round(logicalHeight * dpiScale)),
+            dpi,
+            dpi,
             PixelFormats.Pbgra32);
         bitmap.Render(content);
+        return bitmap;
+    }
 
+    private static bool HasVisibleContent(RenderTargetBitmap bitmap)
+    {
+        var stride = checked(bitmap.PixelWidth * 4);
+        var pixels = new byte[checked(stride * bitmap.PixelHeight)];
+        bitmap.CopyPixels(pixels, stride, 0);
+        var first = (B: pixels[0], G: pixels[1], R: pixels[2], A: pixels[3]);
+        var visible = first.A != 0;
+        var distinct = false;
+        for (var offset = 4; offset < pixels.Length; offset += 4)
+        {
+            var alpha = pixels[offset + 3];
+            visible |= alpha != 0;
+            if (pixels[offset] != first.B ||
+                pixels[offset + 1] != first.G ||
+                pixels[offset + 2] != first.R ||
+                alpha != first.A)
+            {
+                distinct = true;
+            }
+            if (visible && distinct)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static string SaveBitmap(
+        BitmapSource bitmap,
+        string outputDirectory,
+        string fileName)
+    {
         var path = Path.GetFullPath(Path.Combine(outputDirectory, fileName));
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));

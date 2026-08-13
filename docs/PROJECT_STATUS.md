@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 49 independent C#
-document/identity/accessibility/production-window-refresh/selection/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
+candidate cards. The application and 50 independent C#
+document/identity/accessibility/production-window-refresh/selection/high-DPI/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -165,16 +165,25 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,098,580 bytes with SHA-256
-`A47CAE1B13F99598927FE26D6F5D5EA61BE2950674ABD599FBC9468E6ED3CC60`.
+The newest verified 464-file archive is 72,098,493 bytes with SHA-256
+`DBB746434C8EABF1DE772913091A353502DCE9D8609427A6B51DD117BE4D0EC4`.
 This is local package evidence only: no installer lifecycle, clean-machine,
 code-signing, distribution, or public-release claim exists.
 Deterministic production-XAML renders have been reviewed at 1600×900 and the
 900×620 minimum, including a scrolled minimum view. That review fixed a
 transparent content root and horizontal card clipping; all three cards remain
 reachable and disabled Flash labels remain readable. Keyboard/Narrator,
-high-DPI/system-theme, repeated live-refresh, installer/clean-machine, and real
+system-theme, repeated live-refresh, installer/clean-machine, and real
 assistive-technology acceptance remain unverified.
+The packaged executable now embeds an explicit `PerMonitorV2` application
+manifest with a legacy per-monitor fallback. Deterministic minimum-window
+production renders at 125%, 150%, and 200% preserve their logical layout,
+expected scaled dimensions/DPI, nonblank pixels, usable scroll viewport, and
+measurable Refresh and firmware-selection controls. Pixel review found the
+selected-device state, bundle blocker, safe-mode boundary, and disabled Flash
+label readable at every profile. Real monitor movement, alternate system or
+high-contrast themes, keyboard/Narrator, and clean-machine operation remain
+separate gates.
 The production window also passes three controlled refresh/selection cycles
 against a validated read-only source. Each cycle clears the previous card and
 bundle state, restores Refresh, republishes all three candidates, and requires
@@ -196,8 +205,9 @@ direction with gray square surfaces, navy headings, classic typography, and an
 application-owned beveled button template. That template fixes the observed
 near-white-on-white disabled labels by explicitly retaining dark disabled
 copy. Deterministic desktop/minimum rendered layout and vertical access to a
-wrapped third card are accepted on the current host; interactive resize,
-high-DPI/system-theme, keyboard, and assistive-technology acceptance remain
+wrapped third card and deterministic 125%/150%/200% scaled renders are accepted
+on the current host; interactive resize, alternate system themes, keyboard,
+and assistive-technology acceptance remain
 open.
 Read-only inspection and flash permission are distinct outcomes: a connected
 board can remain inspectable while incomplete or conflicting processor,
