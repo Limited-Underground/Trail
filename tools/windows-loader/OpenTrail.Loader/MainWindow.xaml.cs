@@ -36,7 +36,10 @@ public partial class MainWindow : Window
 
     private async void SelectFirmwareButton_Click(object sender, RoutedEventArgs e)
     {
-        if (!_bundleAuthority.CanBeginInspection || !_deviceSelection.HasSelection)
+        if (!_bundleAuthority.CanBeginInspection ||
+            !_deviceSelection.HasSelection ||
+            DeviceCards.SelectedItem is not LoaderDeviceCard selectedDevice ||
+            !_deviceSelection.IsSelected(selectedDevice.Candidate))
         {
             ResetBundleDisplay(
                 "Firmware bundle selection unavailable",
@@ -88,9 +91,14 @@ public partial class MainWindow : Window
             {
                 return;
             }
-            BundleSummaryText.Text = result.Summary;
-            BundleDetailsText.Text = result.Details;
-            BundleBlockerText.Text = result.BlockerText;
+            var deviceMatch = LoaderDeviceBundleMatchAuthority.Evaluate(
+                selectedDevice,
+                result);
+            BundleSummaryText.Text = $"{result.Summary}. {deviceMatch.Summary}.";
+            BundleDetailsText.Text =
+                $"{result.Details} Exact matching uses authoritative fields only.";
+            BundleBlockerText.Text =
+                $"{deviceMatch.BlockerText} {result.BlockerText}";
         }
         catch
         {

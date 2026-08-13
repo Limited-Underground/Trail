@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 47 independent C#
-document/identity/accessibility/refresh/selection/snapshot-binding/process-boundary/USB-runtime-probe/
+candidate cards. The application and 48 independent C#
+document/identity/accessibility/refresh/selection/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -119,9 +119,14 @@ selected. Refresh/close clears it, changing it invalidates prior bundle state,
 and the UI says visibly that selection is not Flash permission. No local port,
 hardware identifier, serial number, device identity, or pairing data becomes
 selection state.
-The packaged catalog contains no production signer, so inspection still states
-that trust is not configured; exact-device matching and admission are also
-blocked. It contains no signing private key, protected revocation/generation
+One pure selected-device matcher now compares hardware-profile ID, processor,
+product role, board-revision range, minimum bootloader schema, and image-size
+capacity from the inspected manifest against a separate authoritative
+received-unit profile. Runtime labels and vendor-family candidates cannot
+supply that profile, so all three live cards remain visibly unmatched. A future
+exact match still cannot grant release admission or Flash permission.
+The packaged catalog contains no production signer, so inspection also states
+that trust is not configured and admission remains blocked. It contains no signing private key, protected revocation/generation
 state, writer, erase/reset/DFU/recovery adapter, or mutation path. If the development source
 tree is absent, a built-in Windows
 adapter uses SetupAPI rather than the laptop's access-denied CIM/PnP inventory
@@ -160,8 +165,8 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,094,172 bytes with SHA-256
-`A38946C82CCC8F55A3BEAAE3083DF3EC923E700F0F7798EE45B5F4C90FEC8BDE`.
+The newest verified 464-file archive is 72,098,162 bytes with SHA-256
+`8AB5CA9FF9FE0348AB23E5ACDE84BF2CD84F9F82B9EB5D48338F92BE6F7A3510`.
 This is local package evidence only: no installer lifecycle, clean-machine,
 code-signing, distribution, or public-release claim exists.
 Visible rendered/accessibility evidence, repeated live-refresh acceptance,

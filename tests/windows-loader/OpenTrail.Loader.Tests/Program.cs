@@ -475,9 +475,77 @@ try
         !candidateBundle.AdmissionAllowed &&
         candidateBundle.ProcessorDisplay == "ESP32-S3" &&
         candidateBundle.TargetRoleDisplay == "complete client" &&
+        candidateBundle.HardwareProfileId == 42 &&
+        candidateBundle.Processor == "esp32_s3" &&
+        candidateBundle.TargetRole == "complete_client" &&
+        candidateBundle.MinimumBoardRevision == 1 &&
+        candidateBundle.MaximumBoardRevision == 2 &&
+        candidateBundle.MinimumBootloaderSchema == 1 &&
         candidateBundle.ReleaseGeneration == 7 &&
         candidateBundle.ImageBytes == 1024,
         "candidate bundle inspection verifies RSA-PSS signature and image digest without claiming write admission");
+
+    var authoritativeProfile = new LoaderAuthoritativeDeviceProfile(
+        HardwareProfileId: 42,
+        Processor: "esp32_s3",
+        TargetRole: "complete_client",
+        BoardRevision: 2,
+        BootloaderSchema: 1,
+        MaximumImageBytes: 2 * 1024 * 1024);
+    LoaderDeviceCard DeviceWith(LoaderAuthoritativeDeviceProfile? profile) =>
+        new()
+        {
+            Candidate = "usb_candidate_1",
+            DisplayName = "Test device",
+            InstalledRuntime = "Test runtime",
+            Connection = "USB",
+            InspectionStatus = "Test-only authoritative profile",
+            HardwareProfile = new LoaderHardwareProfileEvidence(),
+            FlashStatus = "Blocked",
+            Blockers = ["Test blocker"],
+            Actions = new LoaderDeviceActions { Inspect = true, Flash = false },
+            AuthoritativeProfile = profile,
+        };
+
+    var exactDeviceMatch = LoaderDeviceBundleMatchAuthority.Evaluate(
+        DeviceWith(authoritativeProfile),
+        candidateBundle);
+    Expect(exactDeviceMatch.AuthoritativeDeviceProfile &&
+        exactDeviceMatch.HardwareProfileMatched &&
+        exactDeviceMatch.ProcessorMatched &&
+        exactDeviceMatch.TargetRoleMatched &&
+        exactDeviceMatch.BoardRevisionMatched &&
+        exactDeviceMatch.BootloaderSchemaMatched &&
+        exactDeviceMatch.ImageSizeMatched &&
+        exactDeviceMatch.ExactDeviceMatch &&
+        !candidateBundle.AdmissionAllowed,
+        "an exact authoritative selected-device match remains separate from release admission");
+
+    var exactMismatchProfiles = new[]
+    {
+        authoritativeProfile with { HardwareProfileId = 43 },
+        authoritativeProfile with { Processor = "nrf52840" },
+        authoritativeProfile with { TargetRole = "bench_client" },
+        authoritativeProfile with { BoardRevision = 3 },
+        authoritativeProfile with { BootloaderSchema = 0 },
+        authoritativeProfile with { MaximumImageBytes = 512 },
+    };
+    var exactMismatchResults = exactMismatchProfiles
+        .Select(profile => LoaderDeviceBundleMatchAuthority.Evaluate(
+            DeviceWith(profile),
+            candidateBundle))
+        .ToArray();
+    Expect(exactMismatchResults.All(static result => !result.ExactDeviceMatch) &&
+        !exactMismatchResults[0].HardwareProfileMatched &&
+        !exactMismatchResults[1].ProcessorMatched &&
+        !exactMismatchResults[2].TargetRoleMatched &&
+        !exactMismatchResults[3].BoardRevisionMatched &&
+        !exactMismatchResults[4].BootloaderSchemaMatched &&
+        !exactMismatchResults[5].ImageSizeMatched &&
+        !LoaderDeviceBundleMatchAuthority.Evaluate(
+            DeviceWith(profile: null),
+            candidateBundle).AuthoritativeDeviceProfile,
+        "runtime-only evidence and every exact authoritative field mismatch fail closed");
 
     var noConfiguredSigner = FirmwareBundleCandidateInspector.Inspect(validBundlePath);
     Expect(noConfiguredSigner.StructureVerified &&
@@ -890,5 +958,5 @@ if (failures != 0)
     return 1;
 }
 
-Console.WriteLine("PASS: 47 Windows loader document, identity-safeguard, accessibility, refresh/selection/snapshot-binding, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
+Console.WriteLine("PASS: 48 Windows loader document, identity-safeguard, accessibility, refresh/selection/snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
 return 0;

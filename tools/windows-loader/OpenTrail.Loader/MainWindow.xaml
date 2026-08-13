@@ -255,7 +255,7 @@
                                Text="Selection performs bounded structural and SHA-256 inspection only."
                                Foreground="#000000" FontSize="11" Margin="0,2,0,0" />
                     <TextBlock x:Name="BundleBlockerText"
-                               Text="BLOCKED: Signature trust and exact-device matching are not implemented."
+                               Text="BLOCKED: Signature trust, an authoritative device profile, and release admission are required."
                                Foreground="#800000" FontWeight="Bold" FontSize="10" Margin="0,2,0,0" />
                 </StackPanel>
             </Grid>

@@ -6,6 +6,29 @@ public chronology.
 
 ## 2026-08-13
 
+### Exact selected-device bundle-match boundary
+
+- Added one pure matcher between the explicitly selected current device and the
+  inspected firmware manifest. It compares only exact hardware-profile ID,
+  processor, product role, received board revision, bootloader schema, and
+  image-size capacity from a separate authoritative device profile.
+- Runtime model names, USB family, installed MeshCore role, vendor-family
+  baseline, and the visible profile-candidate label cannot manufacture that
+  authority. The two Heltec cards and SenseCAP card therefore remain
+  `Exact-device match unavailable`.
+- Exact field mismatches fail independently. A complete match proves only that
+  the selected received-unit profile fits the signed manifest; it does not
+  imply signer approval, release-generation admission, destructive consent,
+  writer availability, or Flash permission.
+- The warning-free Windows suite now passes 48 scenario groups against the live
+  three-device inspection result. No device was reset, erased, written,
+  rebooted, or placed into maintenance mode; V1 progress is unchanged.
+- A fresh 464-file self-contained `win-x64` engineering package independently
+  passed manifest/hash and source-free launch verification. It is 72,098,162
+  bytes with SHA-256
+  `8AB5CA9FF9FE0348AB23E5ACDE84BF2CD84F9F82B9EB5D48338F92BE6F7A3510`;
+  it remains local, ignored, inspection-only, and not a public release.
+
 ### Explicit current-device selection boundary
 
 - Replaced the passive connected-card list with a keyboard-accessible,
@@ -20,8 +43,8 @@ public chronology.
   invalidates an in-flight or displayed bundle result, and local bundle
   selection remains disabled until both the current device snapshot and one
   explicit selection exist.
-- All Flash controls remain disabled, and no exact-device matcher, admission
-  consumer, writer, reset, erase, reboot, or recovery adapter was added. The
+- All Flash controls remain disabled, and no admission consumer, writer, reset,
+  erase, reboot, or recovery adapter was added. The
   warning-free Windows suite now passes 47 scenario groups; V1 progress is
   unchanged.
 - A fresh 464-file self-contained `win-x64` engineering package independently

@@ -172,7 +172,10 @@ select and structurally inspect a bounded local
 candidate firmware bundle and verify its image SHA-256. Its RSA-PSS signature
 verifier remains blocked without a configured production release signer. It
 contains an RSA-PSS-3072/SHA-256 verifier and an immutable public-key catalog
-boundary; the packaged catalog is deliberately empty. The package contains no firmware
+boundary; the packaged catalog is deliberately empty. It also contains an
+exact selected-device manifest matcher, but no connected device has the
+authoritative received-unit profile required to pass it. A match cannot grant
+release admission or Flash permission. The package contains no firmware
 writer, firmware image, erase/reset/DFU/recovery adapter, Python runtime,
 MeshCLI, esptool, private signing key, protected trust/revocation state,
 credential, pairing data,
@@ -204,6 +207,7 @@ or arbitrary serial-command surface.
             firmware_bundle_structural_inspection = $true
             firmware_bundle_image_sha256_verification = $true
             firmware_bundle_rsa_pss_3072_sha256_verifier = $true
+            firmware_bundle_exact_device_match = $true
             production_trusted_signer_configured = $false
             firmware_bundle_signature_admission = $false
             protected_signer_revocation_state = $false
@@ -242,6 +246,7 @@ or arbitrary serial-command surface.
         $extractedManifest.capabilities.firmware_bundle_structural_inspection -ne $true -or
         $extractedManifest.capabilities.firmware_bundle_image_sha256_verification -ne $true -or
         $extractedManifest.capabilities.firmware_bundle_rsa_pss_3072_sha256_verifier -ne $true -or
+        $extractedManifest.capabilities.firmware_bundle_exact_device_match -ne $true -or
         $extractedManifest.capabilities.production_trusted_signer_configured -ne $false -or
         $extractedManifest.capabilities.firmware_bundle_signature_admission -ne $false -or
         $extractedManifest.capabilities.protected_signer_revocation_state -ne $false -or

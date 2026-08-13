@@ -98,6 +98,7 @@ try {
         $manifest.capabilities.firmware_bundle_structural_inspection -ne $true -or
         $manifest.capabilities.firmware_bundle_image_sha256_verification -ne $true -or
         $manifest.capabilities.firmware_bundle_rsa_pss_3072_sha256_verifier -ne $true -or
+        $manifest.capabilities.firmware_bundle_exact_device_match -ne $true -or
         $manifest.capabilities.production_trusted_signer_configured -ne $false -or
         $manifest.capabilities.firmware_bundle_signature_admission -ne $false -or
         $manifest.capabilities.protected_signer_revocation_state -ne $false -or

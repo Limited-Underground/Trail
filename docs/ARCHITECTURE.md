@@ -76,6 +76,15 @@ cannot confirm update health, execute cleanup, request service, or reboot.
 Exact target scheduling, renderer wording, revision ownership, and physical
 recovery behavior remain target gates.
 
+The Windows loader has a separate
+[selected-device bundle matcher](update/WINDOWS_LOADER_DEVICE_BUNDLE_MATCH_V0.md).
+It requires a separately authoritative received-unit profile and compares only
+exact hardware-profile ID, processor, target role, received revision,
+bootloader schema, and image capacity with the inspected manifest. USB/runtime
+labels and vendor-family baselines cannot supply that authority. A match is
+compatibility evidence only and cannot grant release admission or Flash
+permission. No current bench card has an authoritative profile.
+
 The host-tested portable-client composition preflight now collects every
 target-facing dependency required by the first self-contained client and
 rejects missing bindings or incoherent product capabilities before application

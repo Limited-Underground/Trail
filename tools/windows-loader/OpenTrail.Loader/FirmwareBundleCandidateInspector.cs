@@ -13,6 +13,12 @@ internal sealed record FirmwareBundleCandidateResult(
     bool SignerTrusted,
     bool SignatureVerified,
     bool AdmissionAllowed,
+    uint HardwareProfileId,
+    string Processor,
+    string TargetRole,
+    ushort MinimumBoardRevision,
+    ushort MaximumBoardRevision,
+    ushort MinimumBootloaderSchema,
     string ProcessorDisplay,
     string TargetRoleDisplay,
     ulong ReleaseGeneration,
@@ -150,6 +156,12 @@ internal static class FirmwareBundleCandidateInspector
             SignerTrusted: signerTrusted,
             SignatureVerified: signatureVerified,
             AdmissionAllowed: false,
+            HardwareProfileId: manifest.HardwareProfileId,
+            Processor: manifest.Processor,
+            TargetRole: manifest.TargetRole,
+            MinimumBoardRevision: manifest.MinimumBoardRevision,
+            MaximumBoardRevision: manifest.MaximumBoardRevision,
+            MinimumBootloaderSchema: manifest.MinimumBootloaderSchema,
             ProcessorDisplay: ProcessorDisplay(manifest.Processor),
             TargetRoleDisplay: TargetRoleDisplay(manifest.TargetRole),
             ReleaseGeneration: manifest.ReleaseGeneration,
@@ -162,7 +174,7 @@ internal static class FirmwareBundleCandidateInspector
                 $"generation {manifest.ReleaseGeneration} · " +
                 $"{manifest.ImageBytes:N0} bytes · RSA-PSS-3072/SHA-256",
             BlockerText: signatureVerified
-                ? "BLOCKED: Exact-device matching and release policy are not implemented."
+                ? "BLOCKED: Release admission is not connected."
                 : "BLOCKED: No trusted release signer is configured.");
     }
 
@@ -289,8 +301,12 @@ internal static class FirmwareBundleCandidateInspector
             }
 
             return new CandidateManifest(
+                hardwareProfileId,
                 processor,
                 targetRole,
+                minimumBoardRevision,
+                maximumBoardRevision,
+                minimumBootloaderSchema,
                 releaseGeneration,
                 imageBytes,
                 Convert.FromHexString(imageSha256Text),
@@ -390,8 +406,12 @@ internal static class FirmwareBundleCandidateInspector
     };
 
     private sealed record CandidateManifest(
+        uint HardwareProfileId,
         string Processor,
         string TargetRole,
+        ushort MinimumBoardRevision,
+        ushort MaximumBoardRevision,
+        ushort MinimumBootloaderSchema,
         ulong ReleaseGeneration,
         uint ImageBytes,
         byte[] ImageSha256,

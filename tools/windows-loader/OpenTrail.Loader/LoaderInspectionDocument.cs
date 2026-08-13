@@ -206,6 +206,9 @@ public sealed class LoaderDeviceCard
     [JsonIgnore]
     internal string? PrivateDiagnosticCategory { get; init; }
 
+    [JsonIgnore]
+    internal LoaderAuthoritativeDeviceProfile? AuthoritativeProfile { get; init; }
+
     [JsonPropertyName("candidate")]
     public string Candidate { get; init; } = string.Empty;
 
