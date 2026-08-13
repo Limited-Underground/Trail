@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 55 independent C#
-document/identity/accessibility/production-window-refresh/selection/keyboard/automation-peer/high-DPI/resize/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
+candidate cards. The application and 56 independent C#
+document/identity/accessibility/production-window-refresh/selection/keyboard/automation-peer/automation-scroll/high-DPI/resize/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -142,6 +142,15 @@ current visible message rather than a fixed label. UI Automation selection
 reaches the same bounded selection path; it cannot enable a writer. Narrator
 speech, announcement timing/verbosity, Braille, and other assistive-technology
 behavior remain separate gates.
+The minimum-window production peer is now functionally exercised through its
+`ScrollItem` provider, not merely inspected for pattern presence. With the
+third wrapped card initially outside the outer viewport, `ScrollIntoView`
+moves the real content scroll offset and changes the item from offscreen to
+onscreen while Refresh retains focus, device selection stays empty, public
+name/help stays unchanged, and bundle selection plus the footer Flash action
+remain disabled. This is
+in-process WPF provider evidence, not packaged out-of-process scrolling or an
+assistive technology's end-user behavior.
 The same shown minimum-size production window now also survives an in-window
 classic-to-deterministic-high-contrast-to-classic resource transition with the
 same wrapped card selected and keyboard-focused, the same scroll offset and

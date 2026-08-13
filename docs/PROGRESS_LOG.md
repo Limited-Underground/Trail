@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-13
 
+### Functional UI Automation scroll reachability
+
+- Invoked the actual third device item's `ScrollItem` provider in a shown
+  900×620 production window instead of only asserting that the pattern exists.
+  The card begins wholly outside the outer content viewport with its UI
+  Automation peer offscreen; the provider moves the real vertical offset into
+  range, reveals the card, and changes the peer to onscreen.
+- Scrolling leaves Refresh keyboard-focused, device selection empty, the
+  privacy-safe item name/help unchanged, the zero-ready summary intact, and
+  bundle selection plus the footer Flash action disabled. The warning-free suite
+  now passes 56 groups.
+- This is deterministic in-process production-peer invocation. Narrator,
+  Braille/other assistive-technology UX, packaged out-of-process scrolling,
+  physical wheel/touch/mouse input, virtualization or larger candidate sets,
+  and clean-machine operation remain separate gates.
+
 ### Shown-window wide/minimum/wide resize transition
 
 - Added a deterministic transition on the real shown production window from an

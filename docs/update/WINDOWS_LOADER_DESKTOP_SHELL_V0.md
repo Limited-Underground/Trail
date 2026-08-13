@@ -11,8 +11,8 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Fifty-five document, identity-safeguard, accessibility,
-production-window refresh/selection/keyboard/automation-peer/high-DPI/resize/contrast-theme, snapshot-binding/device-match,
+Windows host. Fifty-six document, identity-safeguard, accessibility,
+production-window refresh/selection/keyboard/automation-peer/automation-scroll/high-DPI/resize/contrast-theme, snapshot-binding/device-match,
 process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
 packaged-inspection scenario groups pass. The source-free built-in C# path
 reports `3 USB candidates found · 3
@@ -69,6 +69,16 @@ Summary, safety, selection, bundle, and error peers expose their current visible
 messages instead of fixed labels when live-region events are raised. This is
 automation-peer evidence; Narrator announcement timing, wording, verbosity,
 Braille output, and other assistive technologies remain untested.
+
+The minimum-window runner also invokes the actual final device item's UI
+Automation `ScrollItem` provider. The third wrapped card begins outside the
+outer production viewport and reports offscreen; invoking the provider moves
+the outer scroll offset, reveals the card, and changes the peer to onscreen.
+Refresh keeps keyboard focus, selection remains empty, public name/help does
+not change, and bundle selection plus the footer Flash action stay disabled.
+This is in-process WPF
+provider evidence, not packaged out-of-process scrolling, Narrator/Braille UX,
+physical scrolling input, virtualization, or a larger candidate collection.
 
 When the repository inspection script is unavailable, the same application now
 uses Windows SetupAPI directly instead of the laptop's access-denied CIM/PnP

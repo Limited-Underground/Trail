@@ -20,6 +20,7 @@ internal sealed record LoaderWindowAcceptanceResult(
     int AcceptedResizeTransitions,
     int AcceptedKeyboardPaths,
     int AcceptedAutomationPaths,
+    int AcceptedAutomationScrollPaths,
     IReadOnlyList<string> RenderedFiles);
 
 internal static class LoaderVisualFixtureRenderer
@@ -110,6 +111,7 @@ internal static class LoaderVisualFixtureRenderer
         var acceptedResizeTransitions = 0;
         var acceptedKeyboardPaths = 0;
         var acceptedAutomationPaths = 0;
+        var acceptedAutomationScrollPaths = 0;
         Exception? renderingFailure = null;
         var thread = new Thread(() =>
         {
@@ -148,6 +150,8 @@ internal static class LoaderVisualFixtureRenderer
                         renderedFiles);
                     acceptedKeyboardPaths = AcceptKeyboardNavigation();
                     acceptedAutomationPaths = AcceptAutomationSemantics();
+                    acceptedAutomationScrollPaths =
+                        AcceptAutomationScrollReachability();
 
                     if (outputDirectory is not null)
                     {
@@ -205,6 +209,7 @@ internal static class LoaderVisualFixtureRenderer
             acceptedResizeTransitions,
             acceptedKeyboardPaths,
             acceptedAutomationPaths,
+            acceptedAutomationScrollPaths,
             renderedFiles);
     }
 
@@ -681,6 +686,109 @@ internal static class LoaderVisualFixtureRenderer
         {
             window.Close();
         }
+    }
+
+    private static int AcceptAutomationScrollReachability()
+    {
+        var window = new MainWindow(_ => Task.FromResult(CreateDocument()))
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = SystemParameters.VirtualScreenLeft,
+            Top = SystemParameters.VirtualScreenTop,
+            Width = 900,
+            Height = 620,
+        };
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            window.ContentScroll.ScrollToTop();
+            window.UpdateLayout();
+            Require(window.RefreshButton.Focus(),
+                "automation scrolling could not establish Refresh focus");
+
+            var listPeer = new ListBoxAutomationPeer(window.DeviceCards);
+            var itemPeers = listPeer.GetChildren();
+            Require(itemPeers is { Count: 3 },
+                "automation scrolling did not expose three device-item peers");
+            var lastPeer = itemPeers![2];
+            var scrollItemProvider = lastPeer.GetPattern(
+                PatternInterface.ScrollItem) as IScrollItemProvider;
+            Require(scrollItemProvider is not null,
+                "the final device item did not expose its advertised ScrollItem provider");
+
+            var lastDevice = (LoaderDeviceCard)window.DeviceCards.Items[2];
+            var lastItem = ContainerAt(window, 2);
+            var expectedName = lastPeer.GetName();
+            var expectedHelp = lastPeer.GetHelpText();
+            var initialOffset = window.ContentScroll.VerticalOffset;
+            var initialBounds = BoundsInViewport(window, lastItem);
+            var viewport = ContentViewport(window);
+            Require(
+                initialOffset <= 0.5 &&
+                !initialBounds.IntersectsWith(viewport) &&
+                lastPeer.IsOffscreen() &&
+                window.DeviceCards.SelectedItem is null &&
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton) &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled,
+                "automation scrolling did not establish an offscreen, unselected, fail-closed item");
+
+            scrollItemProvider!.ScrollIntoView();
+            window.Dispatcher.Invoke(
+                DispatcherPriority.ApplicationIdle,
+                new Action(static () => { }));
+            window.UpdateLayout();
+
+            var settledBounds = BoundsInViewport(window, lastItem);
+            Require(
+                window.ContentScroll.VerticalOffset > initialOffset + 0.5 &&
+                window.ContentScroll.VerticalOffset <=
+                    window.ContentScroll.ScrollableHeight + 0.5 &&
+                HasPositiveAreaOverlap(
+                    settledBounds,
+                    ContentViewport(window)) &&
+                !lastPeer.IsOffscreen() &&
+                window.DeviceCards.SelectedItem is null &&
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton) &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled &&
+                window.SummaryText.Text.Contains(
+                    "0 ready to flash",
+                    StringComparison.Ordinal) &&
+                string.Equals(lastPeer.GetName(), expectedName, StringComparison.Ordinal) &&
+                string.Equals(lastPeer.GetHelpText(), expectedHelp, StringComparison.Ordinal) &&
+                string.Equals(expectedName, lastDevice.AccessibleSummary, StringComparison.Ordinal) &&
+                string.Equals(expectedHelp, lastDevice.FlashHelpText, StringComparison.Ordinal),
+                "ScrollItem did not reveal the final card through the outer viewport without changing focus, selection, metadata, or authority");
+            return 1;
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    private static Rect BoundsInViewport(MainWindow window, FrameworkElement element)
+    {
+        return new Rect(
+            element.TranslatePoint(new Point(0, 0), window.ContentScroll),
+            element.RenderSize);
+    }
+
+    private static Rect ContentViewport(MainWindow window)
+    {
+        return new Rect(
+            new Point(0, 0),
+            new Size(
+                window.ContentScroll.ViewportWidth,
+                window.ContentScroll.ViewportHeight));
+    }
+
+    private static bool HasPositiveAreaOverlap(Rect first, Rect second)
+    {
+        var overlap = Rect.Intersect(first, second);
+        return !overlap.IsEmpty && overlap.Width > 1 && overlap.Height > 1;
     }
 
     private static void RequireLiveRegion(
