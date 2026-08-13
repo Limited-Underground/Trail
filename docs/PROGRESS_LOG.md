@@ -6,6 +6,30 @@ public chronology.
 
 ## 2026-08-13
 
+### Explicit current-device selection boundary
+
+- Replaced the passive connected-card list with a keyboard-accessible,
+  single-selection list. The selected Windows 95-style card receives a visible
+  navy border and a live status message that explicitly says selection is not
+  Flash permission.
+- Added a pure selection authority that accepts only reduced generic candidate
+  ordinals from the current validated snapshot. It stores no COM port, hardware
+  identifier, serial number, device identity, or pairing data; unknown or stale
+  ordinals fail closed.
+- Every refresh and window close clears selection. Changing the selected card
+  invalidates an in-flight or displayed bundle result, and local bundle
+  selection remains disabled until both the current device snapshot and one
+  explicit selection exist.
+- All Flash controls remain disabled, and no exact-device matcher, admission
+  consumer, writer, reset, erase, reboot, or recovery adapter was added. The
+  warning-free Windows suite now passes 47 scenario groups; V1 progress is
+  unchanged.
+- A fresh 464-file self-contained `win-x64` engineering package independently
+  passed manifest/hash and source-free launch verification. It is 72,094,172
+  bytes with SHA-256
+  `A38946C82CCC8F55A3BEAAE3083DF3EC923E700F0F7798EE45B5F4C90FEC8BDE`;
+  it remains local, ignored, inspection-only, and not a public release.
+
 ### Device-snapshot-bound bundle inspection
 
 - Added a separate revision authority that binds every local firmware-bundle

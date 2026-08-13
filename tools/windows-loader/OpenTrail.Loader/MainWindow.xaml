@@ -97,15 +97,39 @@
                                AutomationProperties.LiveSetting="Assertive" />
                 </Border>
 
-                <ItemsControl x:Name="DeviceCards">
-                    <ItemsControl.ItemsPanel>
+                <Border Background="#FFFFFF" BorderBrush="#808080" BorderThickness="2"
+                        Padding="10" Margin="0,0,0,16">
+                    <TextBlock x:Name="SelectionText"
+                               Text="Select one connected device to continue. Selection is not Flash permission."
+                               AutomationProperties.Name="Device selection status"
+                               AutomationProperties.LiveSetting="Polite"
+                               Foreground="#000080" FontWeight="Bold" FontSize="12"
+                               TextWrapping="Wrap" />
+                </Border>
+
+                <ListBox x:Name="DeviceCards" SelectionMode="Single"
+                         SelectionChanged="DeviceCards_SelectionChanged"
+                         Background="Transparent" BorderThickness="0" Padding="0"
+                         AutomationProperties.Name="Connected device candidates"
+                         AutomationProperties.HelpText="Choose exactly one current connected candidate. Refresh clears the selection.">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel Orientation="Horizontal" />
                         </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Width="330" MinHeight="570" Margin="0,0,12,12" Padding="16"
+                            <Border x:Name="CardBorder" Width="330" MinHeight="570"
+                                    Margin="0,0,12,12" Padding="16"
                                     AutomationProperties.Name="{Binding AccessibleSummary}"
                                     AutomationProperties.HelpText="{Binding FlashHelpText}"
                                     Background="{StaticResource PanelBrush}"
@@ -195,9 +219,17 @@
                                     </Grid>
                                 </Grid>
                             </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}"
+                                             Value="True">
+                                    <Setter TargetName="CardBorder" Property="Background" Value="#DDEBFF" />
+                                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="#000080" />
+                                    <Setter TargetName="CardBorder" Property="BorderThickness" Value="3" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </StackPanel>
         </ScrollViewer>
 

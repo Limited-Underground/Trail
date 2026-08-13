@@ -782,6 +782,44 @@ Expect(!bundleAuthority.CanBeginInspection &&
     !bundleAuthority.CanPublish(currentBundle),
     "window close invalidates bundle and device-snapshot authority");
 
+var selectionAuthority = new LoaderDeviceSelectionAuthority();
+Expect(!selectionAuthority.HasSelection &&
+    !selectionAuthority.TrySelect("usb_candidate_1"),
+    "device selection requires a current snapshot");
+selectionAuthority.InvalidateForDeviceRefresh();
+selectionAuthority.PublishSnapshot(["usb_candidate_1", "usb_candidate_2"]);
+Expect(selectionAuthority.TrySelect("usb_candidate_2") &&
+    selectionAuthority.HasSelection &&
+    selectionAuthority.IsSelected("usb_candidate_2") &&
+    !selectionAuthority.IsSelected("usb_candidate_1") &&
+    !selectionAuthority.TrySelect("usb_candidate_3") &&
+    !selectionAuthority.TrySelect("private-device"),
+    "selection accepts exactly one candidate from the current reduced snapshot");
+
+bundleAuthority.InvalidateForDeviceRefresh();
+bundleAuthority.PublishCurrentDeviceSnapshot();
+var selectedBundle = bundleAuthority.BeginInspection();
+bundleAuthority.InvalidateForDeviceSelectionChange();
+Expect(!bundleAuthority.CanPublish(selectedBundle) &&
+    bundleAuthority.CanBeginInspection,
+    "changing current device invalidates an in-flight bundle result");
+
+selectionAuthority.InvalidateForDeviceRefresh();
+Expect(!selectionAuthority.HasSelection &&
+    !selectionAuthority.IsSelected("usb_candidate_2"),
+    "device refresh clears the selected candidate");
+try
+{
+    selectionAuthority.PublishSnapshot(["usb_candidate_1", "usb_candidate_1"]);
+    Expect(false, "duplicate selection candidates must fail");
+}
+catch (InvalidDataException)
+{
+}
+selectionAuthority.InvalidateAll();
+Expect(!selectionAuthority.HasSelection,
+    "window close clears selection authority");
+
 var boundedText = BoundedTextReader.ReadAsync(
     new StringReader("safe"), 4).GetAwaiter().GetResult();
 Expect(boundedText == "safe", "bounded reader accepts its exact safe limit");
@@ -852,5 +890,5 @@ if (failures != 0)
     return 1;
 }
 
-Console.WriteLine("PASS: 46 Windows loader document, identity-safeguard, accessibility, refresh/snapshot-binding, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
+Console.WriteLine("PASS: 47 Windows loader document, identity-safeguard, accessibility, refresh/selection/snapshot-binding, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
 return 0;

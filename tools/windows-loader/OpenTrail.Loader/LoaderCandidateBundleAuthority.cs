@@ -38,6 +38,22 @@ internal sealed class LoaderCandidateBundleAuthority
         _deviceSnapshotAvailable = true;
     }
 
+    internal void InvalidateForDeviceSelectionChange()
+    {
+        if (!_deviceSnapshotAvailable)
+        {
+            return;
+        }
+        if (_deviceSnapshotRevision == ulong.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "Device snapshot revision is exhausted.");
+        }
+
+        _deviceSnapshotRevision++;
+        _inspectionActive = false;
+    }
+
     internal LoaderCandidateBundlePermit BeginInspection()
     {
         if (!CanBeginInspection)

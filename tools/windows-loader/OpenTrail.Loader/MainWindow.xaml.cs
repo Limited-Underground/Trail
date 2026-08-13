@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Automation.Peers;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Win32;
 
@@ -10,7 +11,9 @@ public partial class MainWindow : Window
     private readonly LoaderInspectionService _inspection = new();
     private readonly LoaderRefreshAuthority _refreshAuthority = new();
     private readonly LoaderCandidateBundleAuthority _bundleAuthority = new();
+    private readonly LoaderDeviceSelectionAuthority _deviceSelection = new();
     private CancellationTokenSource? _refreshCancellation;
+    private bool _suppressSelectionChanged;
 
     public MainWindow()
     {
@@ -21,6 +24,7 @@ public partial class MainWindow : Window
         {
             _refreshAuthority.InvalidateAll();
             _bundleAuthority.InvalidateAll();
+            _deviceSelection.InvalidateAll();
             _refreshCancellation?.Cancel();
         };
     }
@@ -32,7 +36,7 @@ public partial class MainWindow : Window
 
     private async void SelectFirmwareButton_Click(object sender, RoutedEventArgs e)
     {
-        if (!_bundleAuthority.CanBeginInspection)
+        if (!_bundleAuthority.CanBeginInspection || !_deviceSelection.HasSelection)
         {
             ResetBundleDisplay(
                 "Firmware bundle selection unavailable",
@@ -124,7 +128,15 @@ public partial class MainWindow : Window
     private async Task RefreshAsync()
     {
         var refreshRevision = _refreshAuthority.Begin();
+        _deviceSelection.InvalidateForDeviceRefresh();
         _bundleAuthority.InvalidateForDeviceRefresh();
+        _suppressSelectionChanged = true;
+        DeviceCards.SelectedItem = null;
+        DeviceCards.ItemsSource = null;
+        _suppressSelectionChanged = false;
+        SelectionText.Text =
+            "Device selection cleared. Complete inspection, then select one current device.";
+        RaiseLiveRegionChanged(SelectionText);
         SelectFirmwareButton.Content = "Select firmware bundle";
         SelectFirmwareButton.IsEnabled = false;
         ResetBundleDisplay(
@@ -153,10 +165,16 @@ public partial class MainWindow : Window
             PhaseText.Text = document.Screen.Phase;
             SummaryText.Text = document.Screen.Summary;
             NoticeText.Text = document.Screen.Notice;
+            _deviceSelection.PublishSnapshot(
+                document.Devices.Select(static device => device.Candidate));
             DeviceCards.ItemsSource = document.Devices;
             _bundleAuthority.PublishCurrentDeviceSnapshot();
-            SelectFirmwareButton.IsEnabled = _bundleAuthority.CanBeginInspection;
+            SelectFirmwareButton.IsEnabled = false;
+            SelectionText.Text = document.Devices.Count == 0
+                ? "No connected device is available for selection."
+                : "Select one connected device to continue. Selection is not Flash permission.";
             RaiseLiveRegionChanged(SummaryText);
+            RaiseLiveRegionChanged(SelectionText);
         }
         catch (OperationCanceledException)
         {
@@ -190,6 +208,37 @@ public partial class MainWindow : Window
         ErrorText.Text = message;
         ErrorBanner.Visibility = Visibility.Visible;
         RaiseLiveRegionChanged(ErrorText);
+    }
+
+    private void DeviceCards_SelectionChanged(
+        object sender,
+        SelectionChangedEventArgs e)
+    {
+        if (_suppressSelectionChanged)
+        {
+            return;
+        }
+
+        if (DeviceCards.SelectedItem is not LoaderDeviceCard device ||
+            !_deviceSelection.TrySelect(device.Candidate))
+        {
+            SelectionText.Text =
+                "No current device is selected. Refresh and choose one connected candidate.";
+            SelectFirmwareButton.IsEnabled = false;
+            RaiseLiveRegionChanged(SelectionText);
+            return;
+        }
+
+        _bundleAuthority.InvalidateForDeviceSelectionChange();
+        ResetBundleDisplay(
+            "No firmware bundle selected for the current device",
+            "Changing device selection discarded any earlier candidate result.",
+            "BLOCKED: Bundle inspection, exact-device matching, and Flash permission are separate gates.");
+        SelectionText.Text =
+            $"Selected: {device.DisplayName}. Selection is not Flash permission.";
+        SelectFirmwareButton.IsEnabled =
+            _bundleAuthority.CanBeginInspection && _deviceSelection.HasSelection;
+        RaiseLiveRegionChanged(SelectionText);
     }
 
     private void ResetBundleDisplay(string summary, string details, string blocker)

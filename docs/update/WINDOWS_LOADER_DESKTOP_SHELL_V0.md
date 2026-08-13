@@ -11,8 +11,8 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Forty-six document, identity-safeguard, accessibility,
-refresh/snapshot-binding, process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
+Windows host. Forty-seven document, identity-safeguard, accessibility,
+refresh/selection/snapshot-binding, process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
 packaged-inspection scenario groups pass. The source-free built-in C# path
 reports `3 USB candidates found · 3
 runtime-identified · 0 ready to flash`: two assembled Heltec V4 OLED GPS bench
@@ -77,12 +77,21 @@ not exist. See the
 [candidate bundle format](FIRMWARE_BUNDLE_CANDIDATE_FORMAT_V0.md).
 
 Bundle inspection is revision-bound to the connected-device view. Selection is
-disabled until one valid device snapshot is published. Beginning any refresh
+disabled until one valid device snapshot is published and the operator selects
+exactly one current card. Beginning any refresh
 immediately clears the prior bundle presentation and invalidates an in-flight
 inspection token; an old async result cannot publish after the snapshot
 changes. A failed or timed-out refresh leaves selection disabled, while window
 close invalidates all remaining authority. This prevents stale UI state but
 does not perform exact-device matching or create Flash authority.
+
+The connected-device cards now use a keyboard-accessible single-selection
+list. Selection retains only the reduced generic candidate ordinal already in
+the privacy-safe document. The selected card gets a visible navy border plus a
+live status message stating that selection is not Flash permission. Refresh or
+window close clears the selected ordinal, and changing it invalidates an
+in-flight or previously displayed bundle result. No local port, serial number,
+hardware-instance ID, device identity, or pairing data enters this state.
 
 The owner-selected visual direction is a classic Windows 95-style service
 utility rather than a modern dark dashboard. The compiled XAML now uses square
@@ -197,9 +206,9 @@ packaged executable:
 .\tools\Test-WindowsDeviceUtilityPackage.ps1 -ArchivePath <path-to-zip>
 ```
 
-The current retained package has 464 payload files and is 72,092,522 bytes. Its
+The current retained package has 464 payload files and is 72,094,172 bytes. Its
 SHA-256 is
-`364B32BA1431DC79BDEEF43579817F009C537769A0619C908001F5B9BCD522B9`.
+`A38946C82CCC8F55A3BEAAE3083DF3EC923E700F0F7798EE45B5F4C90FEC8BDE`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the

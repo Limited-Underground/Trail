@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 46 independent C#
-document/identity/accessibility/refresh/snapshot-binding/process-boundary/USB-runtime-probe/
+candidate cards. The application and 47 independent C#
+document/identity/accessibility/refresh/selection/snapshot-binding/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -113,6 +113,12 @@ Every candidate result is bound to the current connected-device snapshot. A
 device refresh immediately discards the prior display, invalidates an
 in-flight result, and blocks selection until a new validated snapshot is
 published; window close invalidates both authorities.
+The connected-card surface is now a keyboard-accessible single-selection list.
+Only a reduced generic candidate ordinal from the current snapshot may become
+selected. Refresh/close clears it, changing it invalidates prior bundle state,
+and the UI says visibly that selection is not Flash permission. No local port,
+hardware identifier, serial number, device identity, or pairing data becomes
+selection state.
 The packaged catalog contains no production signer, so inspection still states
 that trust is not configured; exact-device matching and admission are also
 blocked. It contains no signing private key, protected revocation/generation
@@ -154,8 +160,8 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,092,522 bytes with SHA-256
-`364B32BA1431DC79BDEEF43579817F009C537769A0619C908001F5B9BCD522B9`.
+The newest verified 464-file archive is 72,094,172 bytes with SHA-256
+`A38946C82CCC8F55A3BEAAE3083DF3EC923E700F0F7798EE45B5F4C90FEC8BDE`.
 This is local package evidence only: no installer lifecycle, clean-machine,
 code-signing, distribution, or public-release claim exists.
 Visible rendered/accessibility evidence, repeated live-refresh acceptance,
