@@ -1486,6 +1486,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "MeshCore channel lease tests failed with exit code $LASTEXITCODE."
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\meshcore_gnss_status_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "MeshCore GNSS status tests failed with exit code $LASTEXITCODE."
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\field_test_log_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "Field-test log tests failed with exit code $LASTEXITCODE."

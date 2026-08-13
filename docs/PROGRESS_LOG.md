@@ -6,6 +6,29 @@ public chronology.
 
 ## 2026-08-12
 
+### Privacy-safe three-device GNSS evidence
+
+- Confirmed through official MeshCore source that Heltec V4 USB Companion
+  includes the GNSS pins/sensor manager and exposes its custom `gps` variable
+  only after detecting serial GNSS data. Both connected Heltecs exposed that
+  variable, changed from disabled to enabled under authorized bench testing,
+  verified enabled on readback, and returned a GPS telemetry field.
+- Used the repeater CLI's coordinate-free `gps` status command on the packaged
+  SenseCAP. It began powered off, accepted explicit enablement, progressed from
+  active/no-fix/0 satellites to a live fix, with later checks at 4, 7, and 8
+  satellites.
+- Added a reusable read-only snapshot tool that reduces coordinate-bearing
+  companion telemetry in memory to one boolean and emits only role-labeled
+  detection/active/fix/satellite evidence. Default output omits local ports,
+  raw responses, coordinates, identities, keys, and PINs.
+- Four parser/redaction scenario groups pass, followed by a successful live
+  three-device snapshot. GPS remained enabled; no firmware, radio, repeater,
+  channel, identity, or location-advertising setting was otherwise changed.
+- The result closes basic GNSS detection/activation for the two assembled bench
+  clients and live-fix capability for this packaged repeater. Heltec current
+  fix/satellites, exact modules/wiring, accuracy, cold-start/loss/power behavior,
+  complete-client binding, and field evidence remain open.
+
 ### Fail-closed firmware-install board preflight
 
 - Added one pure loader-facing policy that keeps read-only inspection separate
@@ -24,17 +47,18 @@ public chronology.
 
 ### Connected GPS/GNSS inventory clarification
 
-- The owner reports GPS/GNSS connected to both Heltec clients and the SenseCAP
-  repeater. This is a physical configuration report, not electronic detection,
-  fix-quality evidence, exact module/wiring identification, or OpenTrail target
-  compatibility.
+- The owner's report that GPS/GNSS was connected to both Heltec clients and the
+  SenseCAP repeater established the physical test setup. The redacted electronic
+  detection/activation and SenseCAP live-fix evidence recorded above later
+  strengthened that report without resolving exact module/wiring identity or
+  OpenTrail target compatibility.
 - GNSS is deliberately excluded from flash identity. A board profile and
   post-flash check must handle initialization and no-fix behavior separately.
 - Owner-provided purchase records identify the two clients as the Meshnology
   V4 GPS two-unit bundle (ASIN `B0FS1WQWKF`) and the repeater as SenseCAP Solar
   Node P1-Pro (ASIN `B0FMDHBWX8`). Seeed currently maps its MeshCore P1-Pro to
-  SKU `100023690`. Received-unit labels/minor revisions and functional GPS
-  evidence remain open.
+  SKU `100023690`. Received-unit labels/minor revisions remain open; GNSS
+  performance evidence remains only partial under the bounded result above.
 - The assembled Heltecs are bench clients, not parts for the first complete
   touchscreen build. The integrated solar P1-Pro is the packaged-repeater
   candidate and may be validated physically in that role. The complete client

@@ -71,10 +71,12 @@ a failed boot.
   Unlike the Heltec bench clients, this integrated solar unit is the physical
   packaged-repeater candidate and may be validated in that role.
 
-The owner reports GPS/GNSS connected to both Heltec clients and the SenseCAP.
-That is recorded as an accessory/capability fact, not a flash-identity fact.
-GNSS initialization, configured pins/transport, fix behavior, and no-fix
-degradation belong to post-flash board-profile validation.
+GPS/GNSS is connected to both Heltec clients and the SenseCAP. A later redacted
+USB check proved firmware detection/activation on both Heltecs and a live fix on
+the SenseCAP, but that remains post-flash capability evidence—not
+flash-identity evidence. Exact configured pins/transport, complete-client
+binding, repeatable fix/accuracy/loss behavior, and no-fix degradation belong
+to post-flash board-profile validation.
 
 ## Host evidence
 

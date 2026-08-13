@@ -13,10 +13,10 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, and bounded close-range bench proofs |
-| Latest increment | [Firmware-install preflight](docs/update/FIRMWARE_INSTALL_PREFLIGHT_V0.md): read-only inspection remains available while Flash stays blocked until exact board, memory, bootloader, image, and local authorization evidence agree |
-| Proven so far | A 109-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited transport, soak, burst, and alert/acknowledgement tests |
+| Latest increment | [Redacted three-device GNSS snapshot](tests/hardware/OT-003A-2026-08-12.md): both Heltec bench clients expose active GPS telemetry and the packaged SenseCAP repeater obtained a live fix without publishing coordinates or identity data |
+| Proven so far | A 109-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited GNSS, transport, soak, burst, and alert/acknowledgement tests |
 | Planned first release | Up to eight active clients in one group with at most one optional authorized repeater |
-| Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, physical GPS/UI, field range, power endurance, or regulatory acceptance |
+| Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 
 OpenTrail is not production-ready, and no hardware is currently listed as supported. See the [dated progress log](docs/PROGRESS_LOG.md) for recent work and the [engineering backlog](tasks/BACKLOG.md) for exact acceptance evidence and remaining gates.
 
@@ -76,7 +76,7 @@ These are product goals unless the linked evidence explicitly says otherwise.
 
 ## Hardware status
 
-The current bench contains two assembled Heltec V4 OLED MeshCore companions and one packaged Seeed SenseCAP Solar P1-Pro MeshCore repeater. The owner reports GPS/GNSS connected to all three; exact received revisions, initialization, and fix behavior remain unverified. The Heltec kits are bench clients for USB, recovery, radio, GNSS, and protocol work—not the board-level parts for the first complete touchscreen client. The integrated solar SenseCAP may be evaluated as the optional packaged repeater. A Wio Tracker L1 Pro is reported ordered but not received or tested, and exact complete-client hardware for the four-person pilot remains unfrozen.
+The current bench contains two assembled Heltec V4 OLED MeshCore companions and one packaged Seeed SenseCAP Solar P1-Pro MeshCore repeater. A privacy-safe USB check now shows both Heltecs detect and activate their connected GNSS hardware and emit GPS telemetry; the SenseCAP reached a live fix, with subsequent checks increasing through four, seven, and eight satellites. No coordinates or device identities were published. Heltec fix/satellite status, exact received revisions, accuracy, loss behavior, and field performance remain open. The Heltec kits are bench clients for USB, recovery, radio, GNSS, and protocol work—not the board-level parts for the first complete touchscreen client. The integrated solar SenseCAP may be evaluated as the optional packaged repeater. A Wio Tracker L1 Pro is reported ordered but not received or tested, and exact complete-client hardware for the four-person pilot remains unfrozen.
 
 See the [hardware inventory](hardware/INVENTORY.md), [regulatory reconciliation](hardware/HARDWARE_REGULATORY_INVENTORY_2026-08-10.md), and prepared [Wio Tracker arrival procedure](hardware/WIO_TRACKER_L1_PRO_BRINGUP.md). A radio preset or in-band frequency alone is not proof of legal operation.
 

@@ -76,7 +76,7 @@ Connected directly to the development laptop and queried read-only over native U
 | MeshCore capacity/status | 1/40 channels, 0/350 contacts, storage 0% used (0 KB of 3169 KB) | Connected MeshCore browser application's Device Info, 2026-08-08 |
 | Post-flash USB runtime snapshot | USB serial connection successful; uptime 670 seconds; 0 errors; queue length 0; 0 packets sent/received; 0 transmit/receive airtime | `meshcli` read-only `stats_core`, `stats_radio`, and `stats_packets` queries on `COM6`, 2026-08-08 |
 | Firmware-reported repeater frequency points | 433.000 MHz, 869.495 MHz, and 918.000 MHz | `meshcli get allowed_repeat_freq`, 2026-08-08; firmware-reported permitted repeater points, not proof of antenna suitability, exact RF front end, legal authorization, or full supported band |
-| GPS/GNSS connection | Owner reports GPS/GNSS connected as of 2026-08-12 | Physical configuration report only; exact module, wiring, initialization, fix quality, and loss behavior are not electronically verified |
+| GPS/GNSS bench evidence | Connected GNSS was detected by MeshCore, its setting read disabled, explicit bench enablement read back enabled, and a redacted self-telemetry query contained a GPS field | `meshcli get custom` plus in-memory-reduced self telemetry, 2026-08-12; no coordinates or identity were saved. This proves firmware detection/activation and a telemetry path, not current fix, satellites, accuracy, loss behavior, exact physical module, or wiring |
 
 The device-specific MAC address was observed during the private diagnostic pass
 but is deliberately excluded from this public inventory.
@@ -105,6 +105,7 @@ Official references used for family matching:
 - `meshcore-cli 1.5.7`, `meshcore 2.3.8`, and `bleak 3.0.2` are installed for the current Windows user. BLE discovery works, but direct BLE CLI connections on this laptop failed in the Windows WinRT GATT address-resolution layer before a MeshCore command was sent. USB Companion is now installed so serial CLI validation can be performed after the browser releases the Web Serial port.
 - USB Companion serial validation succeeded on `COM6`: MeshCLI connected, confirmed firmware `v1.16.0-07a3ca9`, and returned read-only configuration/runtime statistics. The browser and MeshCLI cannot own the Web Serial/COM port simultaneously.
 - `tools/Test-MeshCoreUsbNodes.ps1` automatically discovers connected Espressif USB Companion ports and returns a redacted, read-only health snapshot (model/firmware, battery, radio settings, errors, queue, packet counts, and airtime). It deliberately omits node names, public keys, coordinates, PINs, and channel data. Run it only while MeshCore browser tabs are disconnected.
+- `tools/Get-MeshCoreGnssStatus.py` returns a read-only role-labeled GNSS snapshot for USB Companions and a serial repeater. It reduces companion telemetry in memory to GPS-field presence and emits only detection/active/fix/satellite state; default output omits local ports, raw replies, coordinates, identities, keys, and PINs. Its four parser/redaction groups pass, and the three-device live snapshot succeeded on 2026-08-12.
 - `tools/meshcore_channel_lease.py` and the three-node soak harness add a non-secret crash-recovery journal for temporary private-channel tests. A real stopped-session recovery cleared and verified both Heltecs; short traffic/smoke cycles passed; and a 300-minute alternating run delivered 300/300 with zero loss/duplicates/errors, exact +300 repeater flood RX/TX, repeat preserved, and verified channel/journal cleanup. See `tests/hardware/OT-009A-2026-08-09.md`.
 - Windows pairing is required before the browser can open the encrypted MeshCore GATT service. A stale or malfunctioning laptop Bluetooth state can preserve the device record while hiding live advertisements; clearing the pairing and restarting the laptop Bluetooth radio restored discovery during this test.
 - The initial inventory and BLE diagnostic pass performed no flash write or erase. The user then intentionally flashed the official Heltec v4 USB Companion `v1.16.0-07a3ca9` image with erase enabled; the old MeshCore identity/configuration was expected to be replaced.
@@ -130,7 +131,7 @@ Connected independently to the development laptop and queried read-only over USB
 | Runtime snapshot after USB recovery | Uptime 64 seconds; 0 errors; queue length 0; 0 packets sent/received; 0 transmit/receive airtime | `meshcli` core/radio/packet statistics |
 | Firmware-reported repeater frequency points | 433.000 MHz, 869.495 MHz, and 918.000 MHz | `meshcli get allowed_repeat_freq`; not proof of antenna suitability, exact RF front end, legal authorization, or full supported band |
 | Low-level ROM/flash query | Not obtained. The running application port does not implement the ESP32 ROM-reset handshake used by `esptool`; the read-only attempt failed before reaching the chip and temporarily required a USB cable reseat. MeshCore recovered normally and all post-recovery checks passed. | `esptool 5.3.1 chip-id` failure plus successful post-recovery MeshCLI verification |
-| GPS/GNSS connection | Owner reports GPS/GNSS connected as of 2026-08-12 | Physical configuration report only; exact module, wiring, initialization, fix quality, and loss behavior are not electronically verified |
+| GPS/GNSS bench evidence | Connected GNSS was detected by MeshCore, its setting read disabled, explicit bench enablement read back enabled, and a redacted self-telemetry query contained a GPS field | Same privacy-safe method as `OT-DEV-001`, 2026-08-12. This proves firmware detection/activation and a telemetry path, not current fix, satellites, accuracy, loss behavior, exact physical module, or wiring |
 
 Device-specific identity/public-key values returned by MeshCLI were deliberately excluded from this inventory.
 
@@ -162,7 +163,7 @@ and selected the USA region.
 | Clock | Fresh flash initially reported 15-May-2024; synchronized over USB to current UTC and verified remotely from both Heltec companions | Repeater `clock sync`; Companion `req_clock` from `COM6` and `COM11` |
 | Companion discovery | Both Heltec companions independently stored the SenseCAP repeater advert | Redacted contact-list comparison on `COM6` and `COM11` |
 | Close-range forwarding | One temporary private-channel message delivered in each Heltec direction with 0 loss, 0 duplicates, 240.8/276.9 ms latency, and 11.5/12.0 dB SNR; the repeater recorded exactly +2 flood RX/+2 flood TX. Explicit one-hop direct routes then succeeded in both directions (1,121 ms and 880 ms acknowledgement round trips), each with exactly +2 direct RX/+2 direct TX at the repeater. With repeat temporarily off, the repeater recorded +1 direct RX/+0 direct TX, the sender timed out, and the destination received no message. | `tests/hardware/OT-009-2026-08-08.md` |
-| GPS/GNSS connection | Owner reports GPS/GNSS connected as of 2026-08-12 | Physical configuration report only; it does not resolve P1/P1 Pro identity or prove module initialization, wiring, fix quality, or loss behavior |
+| GPS/GNSS bench evidence | The documented status initially reported off; explicit bench enablement produced active/no-fix/0 satellites for the first 27 seconds, followed later by a live fix and checks at 4, 7, and 8 satellites | MeshCore repeater bare `gps` status, 2026-08-12; no coordinates or identity were saved. This proves the installed firmware/GNSS path can obtain a live fix, not exact physical module/wiring, accuracy, repeatable cold-start time, loss/obstruction behavior, or power cost |
 
 The device-specific USB serial number, MeshCore public key, and node identity
 were deliberately excluded from this inventory.
@@ -170,7 +171,9 @@ were deliberately excluded from this inventory.
 ### Still unresolved for OT-DEV-003
 
 - Exact received P1-Pro label/SKU/revision, installed battery revision,
-  GPS/GNSS functional behavior, enclosure revision, and internal board revision
+  physical GPS/GNSS module/wiring, enclosure revision, and internal board revision
+- GNSS accuracy, repeatable cold-start time, stale/loss and obstructed behavior,
+  plus active-GNSS power cost
 - Independent MCU/radio/flash identity and exact antenna/RF characteristics
 - Solar charging performance, sleep/current behavior, weather exposure, and
   battery endurance
