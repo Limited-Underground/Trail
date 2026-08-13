@@ -65,7 +65,7 @@ internal static class LoaderThemeResources
             SuccessText: Color("#006000"),
             SelectedSurface: Color("#DDEBFF"),
             SelectedBorder: Color("#000080"),
-            DisabledText: Color("#5A5A5A"),
+            DisabledText: Color("#404040"),
             Focus: Color("#000000"),
             ButtonFace: Color("#C0C0C0"),
             ButtonText: Color("#000000"),

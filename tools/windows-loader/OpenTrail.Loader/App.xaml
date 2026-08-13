@@ -22,7 +22,7 @@
         <SolidColorBrush x:Key="SuccessTextBrush" Color="#006000" />
         <SolidColorBrush x:Key="SelectedSurfaceBrush" Color="#DDEBFF" />
         <SolidColorBrush x:Key="SelectedBorderBrush" Color="#000080" />
-        <SolidColorBrush x:Key="DisabledTextBrush" Color="#5A5A5A" />
+        <SolidColorBrush x:Key="DisabledTextBrush" Color="#404040" />
         <SolidColorBrush x:Key="FocusBrush" Color="#000000" />
         <SolidColorBrush x:Key="ButtonFaceBrush" Color="#C0C0C0" />
         <SolidColorBrush x:Key="ButtonTextBrush" Color="#000000" />

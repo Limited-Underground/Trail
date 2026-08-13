@@ -6,6 +6,25 @@ public chronology.
 
 ## 2026-08-13
 
+### Focused Windows utility visual and live-refresh follow-up
+
+- Rechecked the production `MainWindow` at 900×620 and 1600×900, its scrolled
+  minimum view, and 125%, 150%, and 200% deterministic DPI profiles. Wrapping,
+  fixed footers, selection state, and scroll access remained intact.
+- The classic disabled-button palette measured only 3.79:1 against its actual
+  button face. Darkening the semantic disabled-text brush from `#5A5A5A` to
+  `#404040` raises that production pairing above 5.5:1; the acceptance runner
+  now enforces at least 4.5:1 on the real disabled Flash control.
+- Added an opt-in production-window live-refresh run. Three consecutive reads
+  through the packaged Windows USB/runtime adapter each republished the three
+  connected bench candidates, kept zero ready to flash, cleared selection,
+  disabled bundle selection, and restored Refresh without exposing private
+  device data or adding mutation authority.
+- The direct Windows interaction bridge could not enumerate windows on this
+  host because of an OS permission error. Source focus semantics and automation
+  properties still pass, but real Tab/arrow traversal, Narrator, live theme
+  switching, and physical monitor-to-monitor DPI acceptance remain open.
+
 ### System-aware contrast palette and deterministic theme acceptance
 
 - Replaced hard-coded production control colors with named dynamic brush

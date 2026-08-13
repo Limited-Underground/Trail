@@ -3,6 +3,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace OpenTrail.Loader;
 
@@ -15,6 +16,74 @@ internal sealed record LoaderWindowAcceptanceResult(
 internal static class LoaderVisualFixtureRenderer
 {
     private const string OutputEnvironmentVariable = "OT_LOADER_VISUAL_OUTPUT";
+
+    internal static int RunLiveRefreshAcceptance()
+    {
+        var successfulRefreshes = 0;
+        Exception? refreshFailure = null;
+        var thread = new Thread(() =>
+        {
+            SynchronizationContext.SetSynchronizationContext(
+                new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
+            var window = new MainWindow(cancellationToken => Task.Run(
+                () => WindowsSerialInspectionProvider.Inspect(cancellationToken),
+                cancellationToken));
+            try
+            {
+                for (var cycle = 0; cycle < 3; cycle++)
+                {
+                    AwaitWithDispatcherPump(window.RefreshForAcceptanceAsync());
+                    Require(window.DeviceCards.Items.Count == 3,
+                        $"live refresh cycle {cycle + 1} did not publish the three connected bench candidates " +
+                        $"(items={window.DeviceCards.Items.Count}, summary={window.SummaryText.Text}, error={window.ErrorText.Text})");
+                    Require(window.DeviceCards.SelectedItem is null &&
+                        !window.SelectFirmwareButton.IsEnabled &&
+                        window.RefreshButton.IsEnabled &&
+                        string.Equals(window.RefreshButton.Content as string,
+                            "Refresh devices", StringComparison.Ordinal),
+                        $"live refresh cycle {cycle + 1} did not settle in the safe unselected state");
+                    Require(window.SummaryText.Text.StartsWith(
+                            "3 USB candidates found · 3 runtime-identified · 0 ready to flash",
+                            StringComparison.Ordinal),
+                        $"live refresh cycle {cycle + 1} published an unexpected summary: {window.SummaryText.Text}");
+                    successfulRefreshes++;
+                }
+            }
+            catch (Exception error)
+            {
+                refreshFailure = error;
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (refreshFailure is not null)
+        {
+            throw new InvalidOperationException(
+                "Could not complete repeated live Windows loader refresh acceptance.",
+                refreshFailure);
+        }
+        return successfulRefreshes;
+    }
+
+    private static void AwaitWithDispatcherPump(Task task)
+    {
+        var dispatcher = Dispatcher.CurrentDispatcher;
+        var frame = new DispatcherFrame();
+        _ = task.ContinueWith(
+            _ => dispatcher.BeginInvoke(
+                new Action(() => frame.Continue = false)),
+            CancellationToken.None,
+            TaskContinuationOptions.None,
+            TaskScheduler.Default);
+        Dispatcher.PushFrame(frame);
+        task.GetAwaiter().GetResult();
+    }
 
     internal static LoaderWindowAcceptanceResult Run()
     {
@@ -220,6 +289,19 @@ internal static class LoaderVisualFixtureRenderer
         string? outputDirectory,
         ICollection<string> renderedFiles)
     {
+        var classicButtonFace = BrushColor(
+            app.Resources["ButtonFaceBrush"] as Brush,
+            "classic button face");
+        var classicDisabledText = BrushColor(
+            app.Resources["DisabledTextBrush"] as Brush,
+            "classic disabled text");
+        Require(
+            ContrastRatio(classicButtonFace, classicDisabledText) >= 4.5 &&
+            BrushColor(
+                window.FlashSelectedButton.Foreground,
+                "classic disabled Flash foreground") == classicDisabledText,
+            "classic disabled-button text did not preserve 4.5:1 contrast on the production button face");
+
         var systemPaletteResources = new ResourceDictionary();
         LoaderThemeResources.Apply(
             systemPaletteResources,

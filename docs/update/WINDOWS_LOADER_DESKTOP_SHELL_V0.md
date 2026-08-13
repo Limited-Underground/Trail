@@ -24,8 +24,10 @@ package has also passed source-free extraction, manifest/hash verification, and
 launch smoke testing. The real production XAML now also has deterministic
 rendered-layout evidence at desktop and minimum window sizes plus deterministic
 125%, 150%, and 200% scaled rendering plus one deterministic contrast profile.
-Real keyboard, Narrator, live Windows contrast-theme switching,
-repeated-refresh, and clean-machine acceptance
+Three consecutive production-window reads through the packaged Windows
+USB/runtime adapter now pass on the current host with all three bench candidates
+and zero ready to flash. Real keyboard, Narrator, live Windows contrast-theme
+switching, visible mouse-driven repeated refresh, and clean-machine acceptance
 remain separate gates.
 
 The source now provides F5 refresh through the same bounded command as the
@@ -112,7 +114,10 @@ gray surfaces, navy section treatment, compact Microsoft Sans Serif text,
 pixel-aligned borders, and an application-owned beveled button template. The
 custom template fixes the observed platform-theme failure that rendered
 disabled action labels nearly white on white; disabled labels are explicitly
-dark gray on the gray button face.
+dark gray on the gray button face. A focused follow-up measured the prior
+classic pairing at 3.79:1, darkened the semantic disabled brush to `#404040`,
+and added a production-control assertion requiring at least 4.5:1; the accepted
+pairing is now above 5.5:1.
 
 ## Rendered layout evidence
 
@@ -189,9 +194,12 @@ successful inspection but before device selection, the bundle footer retained
 the earlier `waiting for device inspection` message. Successful publication now
 sets `No firmware bundle selected` with an explicit current-device-selection
 blocker. Selecting a card then changes to the selection-bound wording. Three
-complete cycles pass. This is deterministic production-window state evidence;
-it does not substitute for visible mouse/keyboard input, real repeated USB
-refresh, Narrator, or clean-machine acceptance.
+complete cycles pass. An opt-in follow-up also runs this production window
+against the packaged Windows USB/runtime adapter. Three consecutive live reads
+each republished the three connected candidates, kept zero ready to flash,
+cleared selection, kept bundle selection disabled, and restored Refresh. This
+does not substitute for visible mouse/keyboard input, Narrator, or clean-machine
+acceptance.
 
 The visible application identity is now composed from one C# boundary rather
 than embedded throughout XAML and inspection copy. Its preliminary working
@@ -324,8 +332,9 @@ binary has been published.
 
 ## Remaining gates
 
-1. Exercise repeated live refresh and explicit selection in the visible app
-   with the three connected bench units without starting maintenance mode.
+1. Exercise repeated refresh and explicit selection through visible mouse and
+   keyboard input with the three connected bench units; the packaged adapter
+   already passes three consecutive production-window reads.
 2. Accept keyboard navigation, focus order, live announcements, labels,
    contrast, live system/high-contrast theme behavior, real monitor DPI
    changes, and the remaining interactive

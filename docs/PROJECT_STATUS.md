@@ -173,8 +173,10 @@ Deterministic production-XAML renders have been reviewed at 1600×900 and the
 900×620 minimum, including a scrolled minimum view. That review fixed a
 transparent content root and horizontal card clipping; all three cards remain
 reachable and disabled Flash labels remain readable. Keyboard/Narrator,
-live system-theme switching, repeated live-refresh, installer/clean-machine, and real
-assistive-technology acceptance remain unverified.
+live system-theme switching, visible input-driven repeated refresh,
+installer/clean-machine, and real assistive-technology acceptance remain
+unverified. The packaged Windows adapter passes three consecutive reads through
+the production window with all three bench candidates and zero ready.
 The packaged executable now embeds an explicit `PerMonitorV2` application
 manifest with a legacy per-monitor fallback. Deterministic minimum-window
 production renders at 125%, 150%, and 200% preserve their logical layout,
@@ -194,7 +196,9 @@ dispatcher. A deterministic black/white/yellow profile passes at least 7:1
 text and disabled-label contrast through the real production window, with its
 selected card, three-card state, scroll viewport, safety boundaries, and
 disabled Flash copy intact. This is source and deterministic-render evidence;
-live switching through every Windows contrast theme remains unverified.
+live switching through every Windows contrast theme remains unverified. A
+focused classic-mode check also found and fixed a 3.79:1 disabled-button pairing;
+the production pairing is now above 5.5:1 and regression-gated at 4.5:1.
 The production window also passes three controlled refresh/selection cycles
 against a validated read-only source. Each cycle clears the previous card and
 bundle state, restores Refresh, republishes all three candidates, and requires

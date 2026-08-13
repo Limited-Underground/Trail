@@ -986,6 +986,16 @@ catch (InvalidDataException)
 
 try
 {
+    if (string.Equals(
+            Environment.GetEnvironmentVariable("OT_LOADER_LIVE_REFRESH_ACCEPTANCE"),
+            "1",
+            StringComparison.Ordinal))
+    {
+        var liveRefreshes = LoaderVisualFixtureRenderer.RunLiveRefreshAcceptance();
+        Console.WriteLine(
+            $"INFO: production Windows loader completed {liveRefreshes} live USB refresh cycles");
+    }
+
     var windowAcceptance = LoaderVisualFixtureRenderer.Run();
     Console.WriteLine(
         $"INFO: production Windows loader completed {windowAcceptance.SuccessfulRefreshes} controlled refresh/selection cycles");
