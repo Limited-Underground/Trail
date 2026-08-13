@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-13
 
+### Production-window Tab focus acceptance
+
+- Opened a second real production `MainWindow` in the STA acceptance runner and
+  exercised WPF keyboard focus traversal after publishing and selecting one of
+  the three validated fixture cards.
+- The first run found that Tab entered noninteractive blocker `ItemsControl`
+  content instead of leaving the device list. The blocker list is now removed
+  from the Tab sequence and the connected-device list is one Tab group.
+- The accepted order is Refresh, the current connected-device list selection,
+  the enabled bounded bundle action, then back to Refresh. Both disabled Flash
+  actions are skipped. The warning-free Windows suite now passes 52 groups.
+- This is production-window focus-manager evidence. Physical Tab/arrow input,
+  focus appearance under every Windows theme, Narrator announcements, and
+  assistive-technology review remain separate gates.
+
 ### Focused Windows utility visual and live-refresh follow-up
 
 - Rechecked the production `MainWindow` at 900×620 and 1600×900, its scrolled
@@ -22,8 +37,9 @@ public chronology.
   device data or adding mutation authority.
 - The direct Windows interaction bridge could not enumerate windows on this
   host because of an OS permission error. Source focus semantics and automation
-  properties still pass, but real Tab/arrow traversal, Narrator, live theme
-  switching, and physical monitor-to-monitor DPI acceptance remain open.
+  properties plus production-window Tab focus-manager traversal now pass, but
+  physical Tab/arrow input, Narrator, live theme switching, and physical
+  monitor-to-monitor DPI acceptance remain open.
 
 ### System-aware contrast palette and deterministic theme acceptance
 

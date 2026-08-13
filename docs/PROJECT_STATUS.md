@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 51 independent C#
-document/identity/accessibility/production-window-refresh/selection/high-DPI/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
+candidate cards. The application and 52 independent C#
+document/identity/accessibility/production-window-refresh/selection/keyboard/high-DPI/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -119,6 +119,11 @@ selected. Refresh/close clears it, changing it invalidates prior bundle state,
 and the UI says visibly that selection is not Flash permission. No local port,
 hardware identifier, serial number, device identity, or pairing data becomes
 selection state.
+Production-window focus traversal now enters that list once between Refresh and
+the enabled bounded bundle action, skips both disabled Flash actions, and cycles
+back to Refresh. The acceptance run found and removed noninteractive blocker
+content from the Tab sequence. Physical key injection, arrow-key selection,
+Narrator, and assistive-technology review remain unverified.
 One pure selected-device matcher now compares hardware-profile ID, processor,
 product role, board-revision range, minimum bootloader schema, and image-size
 capacity from the inspected manifest against a separate authoritative

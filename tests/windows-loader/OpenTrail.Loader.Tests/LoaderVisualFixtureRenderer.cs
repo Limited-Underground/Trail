@@ -1,6 +1,7 @@
 using System.IO;
 using System.Threading;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -11,6 +12,7 @@ internal sealed record LoaderWindowAcceptanceResult(
     int SuccessfulRefreshes,
     int AcceptedDpiProfiles,
     int AcceptedThemeProfiles,
+    int AcceptedKeyboardPaths,
     IReadOnlyList<string> RenderedFiles);
 
 internal static class LoaderVisualFixtureRenderer
@@ -97,6 +99,7 @@ internal static class LoaderVisualFixtureRenderer
         var successfulRefreshes = 0;
         var acceptedDpiProfiles = 0;
         var acceptedThemeProfiles = 0;
+        var acceptedKeyboardPaths = 0;
         Exception? renderingFailure = null;
         var thread = new Thread(() =>
         {
@@ -128,6 +131,7 @@ internal static class LoaderVisualFixtureRenderer
                         window,
                         outputDirectory,
                         renderedFiles);
+                    acceptedKeyboardPaths = AcceptKeyboardNavigation();
 
                     if (outputDirectory is not null)
                     {
@@ -181,7 +185,68 @@ internal static class LoaderVisualFixtureRenderer
             successfulRefreshes,
             acceptedDpiProfiles,
             acceptedThemeProfiles,
+            acceptedKeyboardPaths,
             renderedFiles);
+    }
+
+    private static int AcceptKeyboardNavigation()
+    {
+        var window = new MainWindow(_ => Task.FromResult(CreateDocument()));
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            Require(window.DeviceCards.Items.Count == 3,
+                "keyboard acceptance window did not publish three cards");
+
+            window.DeviceCards.SelectedIndex = 0;
+            Require(window.SelectFirmwareButton.IsEnabled,
+                "keyboard acceptance could not enable the bounded bundle action");
+            Require(window.RefreshButton.Focus(),
+                "keyboard acceptance could not focus Refresh");
+            Require(ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton),
+                "Refresh did not own keyboard focus");
+
+            Require(window.RefreshButton.MoveFocus(
+                    new TraversalRequest(FocusNavigationDirection.Next)),
+                "Tab traversal could not leave Refresh");
+            Require(IsWithin(Keyboard.FocusedElement as DependencyObject, window.DeviceCards),
+                "Tab traversal did not enter the connected-device list after Refresh");
+
+            var listFocus = Keyboard.FocusedElement as UIElement;
+            Require(listFocus is not null && listFocus.MoveFocus(
+                    new TraversalRequest(FocusNavigationDirection.Next)),
+                "Tab traversal could not leave the connected-device list");
+            Require(ReferenceEquals(Keyboard.FocusedElement, window.SelectFirmwareButton),
+                $"the enabled bundle action did not follow the device list in Tab order " +
+                $"(focused={Keyboard.FocusedElement?.GetType().Name})");
+
+            Require(window.SelectFirmwareButton.MoveFocus(
+                    new TraversalRequest(FocusNavigationDirection.Next)),
+                "cycle traversal could not leave the bundle action");
+            Require(ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton),
+                "disabled Flash actions were not skipped before focus cycled to Refresh");
+            return 1;
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    private static bool IsWithin(DependencyObject? element, DependencyObject ancestor)
+    {
+        for (var current = element; current is not null;)
+        {
+            if (ReferenceEquals(current, ancestor))
+            {
+                return true;
+            }
+            current = current is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(current)
+                : LogicalTreeHelper.GetParent(current);
+        }
+        return false;
     }
 
     private static void RunRefreshCycles(MainWindow window)

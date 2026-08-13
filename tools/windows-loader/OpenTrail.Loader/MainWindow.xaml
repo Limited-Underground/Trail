@@ -116,6 +116,7 @@
                          HorizontalAlignment="Left"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                         KeyboardNavigation.TabNavigation="Once"
                          AutomationProperties.Name="Connected device candidates"
                          AutomationProperties.HelpText="Choose exactly one current connected candidate. Refresh clears the selection.">
                     <ListBox.ItemContainerStyle>
@@ -201,7 +202,9 @@
                                         <TextBlock Text="WHY FLASH IS BLOCKED" Foreground="{DynamicResource InfoTextBrush}"
                                                    FontFamily="Microsoft Sans Serif" FontWeight="Bold"
                                                    FontSize="11" Margin="0,0,0,7" />
-                                        <ItemsControl ItemsSource="{Binding Blockers}">
+                                        <ItemsControl ItemsSource="{Binding Blockers}"
+                                                      Focusable="False"
+                                                      KeyboardNavigation.IsTabStop="False">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap"

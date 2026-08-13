@@ -11,8 +11,8 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Fifty-one document, identity-safeguard, accessibility,
-production-window refresh/selection/high-DPI/contrast-theme, snapshot-binding/device-match,
+Windows host. Fifty-two document, identity-safeguard, accessibility,
+production-window refresh/selection/keyboard/high-DPI/contrast-theme, snapshot-binding/device-match,
 process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
 packaged-inspection scenario groups pass. The source-free built-in C# path
 reports `3 USB candidates found · 3
@@ -37,6 +37,14 @@ connection and inspection status are bound to the validated document instead
 of hard-coded presentation copy. Empty, oversized, or control-bearing blocker
 text is rejected. These are compiled/tested source properties, not evidence of
 acceptance with Narrator or another assistive technology.
+
+The production-window runner now opens a second real `MainWindow` and follows
+WPF focus traversal through Refresh, the current connected-device list
+selection, the enabled bounded bundle action, and back to Refresh. The first run
+found noninteractive blocker content in the Tab sequence. That `ItemsControl`
+is now nonfocusable and the device list is one Tab group, so disabled Flash
+actions are skipped. This is focus-manager evidence, not physical key injection,
+arrow-key selection, Narrator, or assistive-technology acceptance.
 
 When the repository inspection script is unavailable, the same application now
 uses Windows SetupAPI directly instead of the laptop's access-denied CIM/PnP
