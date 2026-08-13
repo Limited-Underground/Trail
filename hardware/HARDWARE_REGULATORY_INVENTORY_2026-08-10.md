@@ -13,9 +13,9 @@ approved antenna, or lawful operating mode.
 
 | Device | Confirmed on this unit | Official family information | Still required |
 | --- | --- | --- | --- |
-| `OT-DEV-001` | MeshCore reports `Heltec V4 OLED`; USB Companion `v1.16.0-07a3ca9`; ESP32-S3 ROM evidence; 2 MB PSRAM; 16 MB flash; 910.525 MHz/BW 62.5 kHz/SF7/CR5/10 dBm during recorded bench work | Heltec's WiFi LoRa 32 V4 documentation describes ESP32-S3R2, external 16 MB flash, SX1262, OLED, solar input, an up-to-28 dBm LoRa path, and GNSS connector | Exterior product/revision label, exact frequency variant, FCC ID/grant, installed antenna model/gain/connector, cable loss, pin map, and power-system revision |
-| `OT-DEV-002` | MeshCore reports `Heltec V4 OLED`; USB Companion `v1.16.0-07a3ca9`; same recorded radio settings; clean serial/runtime checks | Same likely WiFi LoRa 32 V4 family match | Everything listed for `OT-DEV-001`, plus independent ROM/flash/security evidence |
-| `OT-DEV-003` | MeshCore reports `Seeed SenseCap Solar`; Repeater `v1.16.0-07a3ca9`; 910.525 MHz/BW 62.5 kHz/SF7/CR5/22 dBm; repeating and bounded bench forwarding proved | Seeed documents the SenseCAP Solar Node family as nRF52840 plus SX1262, 862-930 MHz, up to 22 dBm, 868-915 MHz 2 dBi antenna, USB-C/Grove, solar charging, and P1/P1-Pro variants; GNSS is a P1-Pro feature | Exact P1/P1-Pro SKU and label, FCC ID/grant, GNSS presence, battery/enclosure revision, installed antenna/cable/gain, solar/endurance evidence, and authorization for the exact configuration |
+| `OT-DEV-001` | MeshCore reports `Heltec V4 OLED`; USB Companion `v1.16.0-07a3ca9`; ESP32-S3 ROM evidence; 2 MB PSRAM; 16 MB flash; 910.525 MHz/BW 62.5 kHz/SF7/CR5/10 dBm during recorded bench work; owner purchase record is Meshnology V4 GPS two-unit bundle ASIN `B0FS1WQWKF` | Heltec's WiFi LoRa 32 V4 documentation describes ESP32-S3R2, external 16 MB flash, SX1262, OLED, solar input, an up-to-28 dBm LoRa path, and GNSS connector; the bundle lists L76 GNSS, 3000 mAh battery, N39 case, and 915 MHz antenna | Exterior product/revision label, exact RF power/frequency variant, FCC ID/grant, installed antenna model/gain/connector, cable loss, pin map, GNSS module/wiring/function, and power-system revision |
+| `OT-DEV-002` | MeshCore reports `Heltec V4 OLED`; USB Companion `v1.16.0-07a3ca9`; same recorded radio settings; clean serial/runtime checks; same two-unit purchase record as `OT-DEV-001` | Same likely WiFi LoRa 32 V4 family and bundle match | Everything listed for `OT-DEV-001`, plus independent ROM/flash/security evidence |
+| `OT-DEV-003` | MeshCore reports `Seeed SenseCap Solar`; Repeater `v1.16.0-07a3ca9`; 910.525 MHz/BW 62.5 kHz/SF7/CR5/22 dBm; repeating and bounded bench forwarding proved; owner purchase record is P1-Pro ASIN `B0FMDHBWX8` | Seeed's current MeshCore product identifies P1-Pro SKU `100023690`, XIAO nRF52840 Plus, Wio-SX1262, L76K GNSS, battery, and solar enclosure | Exact received label/revision, FCC ID/grant, GNSS function, battery/enclosure revision, installed antenna/cable/gain, solar/endurance evidence, and authorization for the exact configuration |
 | `OT-CAND-004` Wio Tracker L1 Pro | Ordered; no received-unit evidence | Seeed identifies nRF52840, Wio-SX1262, L76K GNSS, OLED, USB-C, solar input, and an I-PEX-to-SMA antenna path for this family | Preserve shipping state and follow the arrival plan; do not promote vendor specifications to tested compatibility |
 
 The family matches narrow the inspection work but do not close it. The Heltec
@@ -69,7 +69,10 @@ regulatory-approved list.
 ## Official sources
 
 - [Heltec WiFi LoRa 32 V4 documentation](https://docs.heltec.org/en/node/esp32/wifi_lora_32/index.html)
+- [Owner's two-unit V4 GPS bundle purchase listing](https://www.amazon.com/dp/B0FS1WQWKF)
 - [Seeed SenseCAP Solar Node specification](https://wiki.seeedstudio.com/meshtastic_solar_node/)
+- [Owner's SenseCAP P1-Pro purchase listing](https://www.amazon.com/dp/B0FMDHBWX8)
+- [Seeed SenseCAP P1-Pro for MeshCore product](https://www.seeedstudio.com/SenseCAP-Solar-Node-P1-Pro-for-Meshcore-p-6741.html)
 - [Seeed LoRa antenna selection guide](https://wiki.seeedstudio.com/lora_antenna_selection_guide/)
 - [47 CFR 15.5 — General conditions of operation](https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15/subpart-A/section-15.5)
 - [47 CFR 15.247 — spread-spectrum and digital-modulation provisions](https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15/subpart-C/section-15.247)

@@ -6,6 +6,40 @@ public chronology.
 
 ## 2026-08-12
 
+### Fail-closed firmware-install board preflight
+
+- Added one pure loader-facing policy that keeps read-only inspection separate
+  from permission to flash. A connected device may be described even while
+  incomplete or conflicting evidence blocks every install mode.
+- Exact processor, flash, required PSRAM, hardware profile, revision,
+  target role, bootloader schema, and image-size evidence must agree. Runtime
+  board names alone never unlock Flash. A bench-client profile cannot accept a
+  complete-client image, and a packaged repeater cannot accept a client image.
+- Clean install requires explicit destructive-erase confirmation; recovery
+  requires that plus separate physical recovery authorization. The policy
+  performs no USB, signature, erase, write, reboot, or recovery operation.
+- Thirteen focused scenario groups pass. Windows probe adapters, signed bundle
+  verification, approved physical profiles, UI/packaging, and on-device
+  interruption/recovery evidence remain.
+
+### Connected GPS/GNSS inventory clarification
+
+- The owner reports GPS/GNSS connected to both Heltec clients and the SenseCAP
+  repeater. This is a physical configuration report, not electronic detection,
+  fix-quality evidence, exact module/wiring identification, or OpenTrail target
+  compatibility.
+- GNSS is deliberately excluded from flash identity. A board profile and
+  post-flash check must handle initialization and no-fix behavior separately.
+- Owner-provided purchase records identify the two clients as the Meshnology
+  V4 GPS two-unit bundle (ASIN `B0FS1WQWKF`) and the repeater as SenseCAP Solar
+  Node P1-Pro (ASIN `B0FMDHBWX8`). Seeed currently maps its MeshCore P1-Pro to
+  SKU `100023690`. Received-unit labels/minor revisions and functional GPS
+  evidence remain open.
+- The assembled Heltecs are bench clients, not parts for the first complete
+  touchscreen build. The integrated solar P1-Pro is the packaged-repeater
+  candidate and may be validated physically in that role. The complete client
+  remains a separate board/display/control/power/enclosure hardware freeze.
+
 ### Quick-status parent page and restored selection handoff
 
 - Added one narrow semantic status page with exactly Quick status and Back. It
@@ -17,7 +51,7 @@ public chronology.
 - The result means only a local selection after truthful UI restoration. The
   owner has no queue/radio/identity/storage/GPS/archive/server/alert reference
   and cannot claim selected means sent, received, or delivered.
-- Ten groups plus 100/100 focused repeats and the complete 108-executable host
+- Ten groups plus 100/100 focused repeats and the complete 109-executable host
   matrix pass. Broader shell, authenticated outbound/outcome UX, target
   renderer/input, and physical-device evidence remain later gates.
 
@@ -34,7 +68,7 @@ public chronology.
   parent revision. No queue/radio/delivery dependency exists, and no local
   selection is presented as sent or delivered.
 - Ten menu groups and the now-thirteen-group local-interface suite pass 100/100
-  focused repeats and the complete 108-executable matrix. Parent-shell,
+  focused repeats and the complete 109-executable matrix. Parent-shell,
   authenticated outbound, renderer/target, and physical UX remain later gates.
 
 ### Generic quick-status payload
@@ -47,7 +81,7 @@ public chronology.
   data are structurally absent; CRC does not claim authentication.
 - Ten groups plus 100/100 focused repeats cover the independent canonical
   vector, all four round trips, strict failure classes, output preservation,
-  and corruption at every byte. The complete 108-executable matrix passes.
+  and corruption at every byte. The complete 109-executable matrix passes.
 - Authenticated packet-v1 binding, priority/replay/expiry/ACK policy, outbound
   admission, menu/confirmation UI, renderer, target/radio, and physical
   delivery remain explicit later gates.
@@ -64,7 +98,7 @@ public chronology.
   pending revision and does not re-enter navigation/storage. Invalid summary,
   input/display failure, or lease/navigation failure stays inside this
   optional page and cannot directly affect base messaging.
-- Nine groups plus 100/100 focused repeats and the complete 108-executable host
+- Nine groups plus 100/100 focused repeats and the complete 109-executable host
   matrix pass. This is deliberately not a full client home/menu, renderer,
   physical input, target task/backend, or device claim.
 
@@ -80,7 +114,7 @@ public chronology.
 - Invalid/stale/already-active/exhausted entry rejects before storage;
   allocation failure latches before runtime/display access. Open remains only
   navigation and cannot Start capture.
-- Eight groups plus 100/100 focused repeats and the complete 108-executable
+- Eight groups plus 100/100 focused repeats and the complete 109-executable
   host matrix pass. The complete application shell, exact target bindings,
   renderer/physical input, concurrency, recovery UX, and on-device evidence
   remain.
@@ -98,7 +132,7 @@ public chronology.
 - Made the consent controller, workflow coordinator, and bootstrap explicitly
   non-copyable/non-movable so a leased cursor cannot be cloned accidentally.
 - Eight bootstrap groups plus 100/100 focused repeats and the complete
-  108-executable host matrix pass. Exact target backend/seed composition,
+  109-executable host matrix pass. Exact target backend/seed composition,
   recovery UX, parent navigation, renderer/physical input, concurrent stress,
   reset/brownout/endurance, and on-device evidence remain.
 
@@ -116,7 +150,7 @@ public chronology.
   first/final lease bounds. Start refuses to cross the final ID and never wraps
   or silently allocates another range.
 - Nine store groups, five real key/value-composition groups, the eleven-group
-  consent suite, 100/100 focused repeats, and the complete 108-executable host
+  consent suite, 100/100 focused repeats, and the complete 109-executable host
   matrix pass. ESP-IDF/NVS binding, secure blank-state entropy, authenticated
   integrity/rollback resistance, recovery UX, target boot composition,
   physical interruption, and on-device evidence remain.
@@ -134,7 +168,7 @@ public chronology.
   successful Start, the coordinator attempts Stop and latches the workflow;
   revision exhaustion also fails privacy-safe by stopping.
 - Fourteen deterministic groups plus 100/100 focused repeats and the complete
-  108-executable host matrix pass. The workflow now requires explicit durable
+  109-executable host matrix pass. The workflow now requires explicit durable
   session-range bounds and refuses to cross the inclusive final ID. A parent
   menu/navigation owner, renderer, physical input, target lease composition,
   ESP-IDF binding, concurrent target stress, and on-device evidence remain.
@@ -152,7 +186,7 @@ public chronology.
   explicit hold; uncertain post-operation state consumes it so it cannot be
   reused, and the final lease ID permanently exhausts that controller.
 - Eleven deterministic groups plus 100/100 focused repeats pass within the
-  current 108-executable host matrix. No radio/server/automatic start input,
+  current 109-executable host matrix. No radio/server/automatic start input,
   renderer, physical input, target lease composition, ESP-IDF binding, or
   on-device evidence exists.
 

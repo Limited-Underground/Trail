@@ -94,7 +94,7 @@ Eleven deterministic scenario groups plus 100/100 focused repeats cover:
 10. uncertain session consumption and zero-seed rejection; and
 11. inclusive durable-range exhaustion, including invalid range rejection.
 
-The complete 108-executable host matrix and Python evidence checks pass. This is
+The complete 109-executable host matrix and Python evidence checks pass. This is
 not rendered-display, physical button/touch, localization/accessibility,
 distracted-use, target lease/workflow composition, ESP-IDF, or on-device
 evidence.

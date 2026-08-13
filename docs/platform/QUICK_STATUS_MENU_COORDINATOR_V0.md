@@ -71,7 +71,7 @@ Ten deterministic menu groups plus 100/100 focused repeats cover:
 
 The underlying local-interface suite now has thirteen groups, including strict
 canonical page validation and rejection of the older ambiguous generic-submit
-action. Both suites pass 100/100 focused repeats. The complete 108-executable
+action. Both suites pass 100/100 focused repeats. The complete 109-executable
 matrix and Python publication checks pass.
 
 ## Next gates

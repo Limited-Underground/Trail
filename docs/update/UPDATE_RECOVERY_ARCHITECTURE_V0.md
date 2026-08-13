@@ -1,8 +1,9 @@
 # Update and recovery architecture v0
 
-Status: architecture plus a pure host-tested lifecycle guard and canonical
-reboot-state checkpoint; no updater, target partition table, signing key,
-protected target store, or physical recovery result exists.
+Status: architecture plus host-tested lifecycle, reboot-state, and fail-closed
+install-preflight policies; no updater, target partition table, signing key,
+approved board profile, protected target store, or physical recovery result
+exists.
 
 ## Host lifecycle evidence
 
@@ -67,6 +68,15 @@ then removes both generations and writes one canonical 32-bit status through the
 existing logger. It validates the word independently and preserves logger
 filtering/backpressure behavior. Eight groups plus 100 focused repeats pass.
 Target sink binding, retained audit/export, and physical service capture remain.
+
+The separate [firmware-install preflight](FIRMWARE_INSTALL_PREFLIGHT_V0.md)
+defines the first host/loader gate. It allows inspection of a connected device
+without authorizing a write, requires exact processor/memory/profile/revision/
+bootloader/image agreement, and adds explicit destructive and physical-recovery
+confirmation where applicable. Thirteen groups pass. Runtime model strings and
+USB identities remain evidence, never exact compatibility authority. No USB
+adapter, bundle-signature verifier, writer, Windows UI, approved profile, or
+physical recovery claim exists.
 
 ## Safety objective
 

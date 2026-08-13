@@ -1197,6 +1197,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'firmware-install board preflight'
+        Output = Join-Path $buildDirectory 'firmware_install_preflight_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\update\src\firmware_install_preflight.cpp'),
+            (Join-Path $projectRoot 'tests\host\firmware_install_preflight_tests.cpp')
+        )
+    },
+    @{
         Name = 'update state checkpoint'
         Output = Join-Path $buildDirectory 'update_checkpoint_tests.exe'
         Sources = @(

@@ -1,6 +1,6 @@
 # OpenTrail Hardware Inventory
 
-Last updated: 2026-08-09
+Last updated: 2026-08-12
 
 Compatibility states used here:
 
@@ -9,6 +9,18 @@ Compatibility states used here:
 - `validated`: passed defined repeatable compatibility criteria.
 
 No OpenTrail hardware is validated yet.
+
+Current evidence roles are deliberately different:
+
+- `OT-DEV-001` and `OT-DEV-002` are already assembled **bench clients**. They
+  are available for USB detection, flash/recovery, LoRa, GNSS, messaging, and
+  compatibility tests, but are not the board-level parts intended for the first
+  complete touchscreen client.
+- `OT-DEV-003` is an integrated solar **packaged-repeater candidate**. Its
+  enclosure, battery, solar, radio, and GNSS configuration may be evaluated as
+  the actual optional repeater hardware.
+- The first complete client remains a separate hardware freeze covering its
+  board, touchscreen, controls, power, enclosure, GNSS, and antenna system.
 
 See the
 [2026-08-10 hardware and US regulatory reconciliation](HARDWARE_REGULATORY_INVENTORY_2026-08-10.md)
@@ -39,6 +51,8 @@ Connected directly to the development laptop and queried read-only over native U
 | Field | Verified result | Evidence/source |
 | --- | --- | --- |
 | Inventory state | Runtime model and installed firmware identified; the device was changed from BLE Companion to USB Companion and reconnected successfully; exact SKU/RF front end, installed antenna, and pinout remain unresolved | Windows USB/BLE enumeration, Espressif ROM/flash metadata queries, the MeshCore browser application, and the official MeshCore web flasher |
+| Evidence role | Assembled bench client | Authorized for bounded inspection, flash/recovery, radio, GNSS, and protocol evidence; not the board-level first complete-client build |
+| Purchase record | One of two units from Meshnology two-set V4 GPS bundle, Amazon ASIN `B0FS1WQWKF`, selected as `Black-2` | Owner-provided purchase link, 2026-08-12; the listing identifies two V4 boards, two L76 GNSS modules, two 3000 mAh batteries, N39 cases, and 915 MHz antennas, but is not an exact received board-revision label |
 | Product/model | `Heltec V4 OLED` runtime identity; likely Heltec WiFi LoRa 32 V4 family match (not V4.3), exact commercial SKU unconfirmed | MeshCore Device Info reported `Heltec V4 OLED`; official MeshCore runtime code reports V4.3 separately when its KCT8103L power amplifier is detected |
 | USB port during test | `COM3` | Windows Ports-class device enumeration; port assignment can change |
 | USB identity | Espressif `VID 303A`, `PID 1001`; USB Serial/JTAG | Windows Plug-and-Play properties |
@@ -62,13 +76,15 @@ Connected directly to the development laptop and queried read-only over native U
 | MeshCore capacity/status | 1/40 channels, 0/350 contacts, storage 0% used (0 KB of 3169 KB) | Connected MeshCore browser application's Device Info, 2026-08-08 |
 | Post-flash USB runtime snapshot | USB serial connection successful; uptime 670 seconds; 0 errors; queue length 0; 0 packets sent/received; 0 transmit/receive airtime | `meshcli` read-only `stats_core`, `stats_radio`, and `stats_packets` queries on `COM6`, 2026-08-08 |
 | Firmware-reported repeater frequency points | 433.000 MHz, 869.495 MHz, and 918.000 MHz | `meshcli get allowed_repeat_freq`, 2026-08-08; firmware-reported permitted repeater points, not proof of antenna suitability, exact RF front end, legal authorization, or full supported band |
+| GPS/GNSS connection | Owner reports GPS/GNSS connected as of 2026-08-12 | Physical configuration report only; exact module, wiring, initialization, fix quality, and loss behavior are not electronically verified |
 
 The device-specific MAC address was observed during the private diagnostic pass
 but is deliberately excluded from this public inventory.
 
 ### Still unresolved
 
-- Exact commercial SKU and any V4 minor board revision not exposed by the runtime model
+- Exact received V4 minor board revision and high-/low-power RF variant not
+  exposed by the runtime model or fixed by the third-party bundle listing
 - Exact installed RF front end/full supported band; the official Heltec V4 family specification identifies an SX1262 and a nominal 863-928 MHz high-band variant, but this has not been electrically confirmed on this specific enclosed unit
 - Installed antenna type and connector
 - Exact OLED/display wiring, physical GNSS source/module, battery/charger details, sensors, and pin assignments
@@ -101,6 +117,8 @@ Connected independently to the development laptop and queried read-only over USB
 | Field | Verified result | Evidence/source |
 | --- | --- | --- |
 | Inventory state | Runtime board/firmware identity, USB transport, active radio configuration, battery, and clean runtime statistics identified; low-level ROM/flash identity and physical SKU/RF/antenna/pinout remain unresolved | MeshCLI serial queries and Windows USB enumeration |
+| Evidence role | Assembled bench client | Same boundary as `OT-DEV-001`; not the board-level first complete-client build |
+| Purchase record | Second unit from Meshnology two-set V4 GPS bundle, Amazon ASIN `B0FS1WQWKF`, selected as `Black-2` | Owner-provided purchase link, 2026-08-12; same listing boundary as `OT-DEV-001` |
 | Product/model | Heltec V4 OLED (runtime-detected) | `meshcli ver` |
 | Application USB | Espressif application USB `VID 303A`, `PID 0002`, observed as `COM11`; assignment can change | Windows/pySerial enumeration |
 | Installed transport/role | USB Companion | Successful MeshCLI serial connection after the user's clean USB Companion flash |
@@ -112,13 +130,15 @@ Connected independently to the development laptop and queried read-only over USB
 | Runtime snapshot after USB recovery | Uptime 64 seconds; 0 errors; queue length 0; 0 packets sent/received; 0 transmit/receive airtime | `meshcli` core/radio/packet statistics |
 | Firmware-reported repeater frequency points | 433.000 MHz, 869.495 MHz, and 918.000 MHz | `meshcli get allowed_repeat_freq`; not proof of antenna suitability, exact RF front end, legal authorization, or full supported band |
 | Low-level ROM/flash query | Not obtained. The running application port does not implement the ESP32 ROM-reset handshake used by `esptool`; the read-only attempt failed before reaching the chip and temporarily required a USB cable reseat. MeshCore recovered normally and all post-recovery checks passed. | `esptool 5.3.1 chip-id` failure plus successful post-recovery MeshCLI verification |
+| GPS/GNSS connection | Owner reports GPS/GNSS connected as of 2026-08-12 | Physical configuration report only; exact module, wiring, initialization, fix quality, and loss behavior are not electronically verified |
 
 Device-specific identity/public-key values returned by MeshCLI were deliberately excluded from this inventory.
 
 ### Still unresolved for OT-DEV-002
 
 - Independent ROM-level MCU, PSRAM, flash, crystal, and security-fuse confirmation
-- Exact commercial SKU/minor revision and installed RF front end/full supported band
+- Exact received minor revision, high-/low-power RF variant, and installed RF
+  front end/full supported band
 - Installed antenna type/connector, physical GNSS source, battery/charger details, sensors, and pin assignments
 - Regulatory constraints applicable to the selected preset and intended deployment
 
@@ -130,7 +150,9 @@ and selected the USA region.
 
 | Field | Verified result | Evidence/source |
 | --- | --- | --- |
-| Inventory state | Runtime board/firmware identity, USB interface, active radio configuration, battery, repeater role, and close-range forwarding behavior identified; exact commercial P1/P1 Pro SKU and physical internals remain unresolved | MeshCLI repeater console, USB enumeration, and the bounded OT-009 bench experiment |
+| Inventory state | Runtime board/firmware identity, USB interface, active radio configuration, battery, repeater role, and close-range forwarding behavior identified; purchase record identifies P1-Pro while the exact received label/revision and physical internals remain unresolved | MeshCLI repeater console, USB enumeration, owner purchase record, and the bounded OT-009 bench experiment |
+| Evidence role | Integrated solar packaged-repeater candidate | May be evaluated as the actual optional repeater after exact received-profile, recovery, GNSS, power, weather, radio, and regulatory gates |
+| Purchase record | SenseCAP Solar Node **P1-Pro**, Amazon ASIN `B0FMDHBWX8` | Owner-provided purchase link, 2026-08-12. Seeed's current MeshCore P1-Pro product is SKU `100023690` with XIAO nRF52840 Plus, Wio-SX1262, L76K GNSS, and battery; exact received label/revision remains to be transcribed |
 | Runtime board | `Seeed SenseCap Solar` | Repeater `board` command |
 | USB interface during test | `COM17`; USB `VID 2886`, `PID 0059` | pySerial enumeration; port assignment can change |
 | Installed role and firmware | MeshCore Repeater `v1.16.0-07a3ca9`, build 06-Jun-2026 | Repeater `ver` command |
@@ -140,14 +162,15 @@ and selected the USA region.
 | Clock | Fresh flash initially reported 15-May-2024; synchronized over USB to current UTC and verified remotely from both Heltec companions | Repeater `clock sync`; Companion `req_clock` from `COM6` and `COM11` |
 | Companion discovery | Both Heltec companions independently stored the SenseCAP repeater advert | Redacted contact-list comparison on `COM6` and `COM11` |
 | Close-range forwarding | One temporary private-channel message delivered in each Heltec direction with 0 loss, 0 duplicates, 240.8/276.9 ms latency, and 11.5/12.0 dB SNR; the repeater recorded exactly +2 flood RX/+2 flood TX. Explicit one-hop direct routes then succeeded in both directions (1,121 ms and 880 ms acknowledgement round trips), each with exactly +2 direct RX/+2 direct TX at the repeater. With repeat temporarily off, the repeater recorded +1 direct RX/+0 direct TX, the sender timed out, and the destination received no message. | `tests/hardware/OT-009-2026-08-08.md` |
+| GPS/GNSS connection | Owner reports GPS/GNSS connected as of 2026-08-12 | Physical configuration report only; it does not resolve P1/P1 Pro identity or prove module initialization, wiring, fix quality, or loss behavior |
 
 The device-specific USB serial number, MeshCore public key, and node identity
 were deliberately excluded from this inventory.
 
 ### Still unresolved for OT-DEV-003
 
-- Exact SenseCAP commercial SKU (P1 versus P1 Pro), installed battery type,
-  optional GPS presence, enclosure revision, and internal board revision
+- Exact received P1-Pro label/SKU/revision, installed battery revision,
+  GPS/GNSS functional behavior, enclosure revision, and internal board revision
 - Independent MCU/radio/flash identity and exact antenna/RF characteristics
 - Solar charging performance, sleep/current behavior, weather exposure, and
   battery endurance
@@ -168,6 +191,13 @@ Both boards were connected simultaneously to the development laptop on 2026-08-0
 - Both reported 0 errors, empty queues, 0 packets sent/received, 0 receive errors, and 0 transmit/receive airtime.
 
 The user subsequently confirmed both LoRa antennas were attached. OT-007A establishes authenticated bidirectional application delivery. A temporary private-channel sample delivered 5/5 numbered messages in each direction with 0 loss, 0 duplicates, 233.3-247.2 ms observed latency, 11.25-12.25 dB SNR, zero receive/core errors, and empty queues. The temporary channel was erased and verified empty on both devices. Earlier application timeouts were harness false negatives caused by requiring the full MeshCore display text to equal the marker; MeshCore includes sender display text around channel messages. `OT-DEV-002` also had a stale clock, which was synchronized but was not the root cause. See `tests/hardware/OT-007A-2026-08-08.md`.
+
+## Purchase-record references
+
+- [Meshnology two-unit V4 GPS bundle, ASIN B0FS1WQWKF](https://www.amazon.com/dp/B0FS1WQWKF)
+- [Heltec WiFi LoRa 32 V4 family](https://heltec.org/project/wifi-lora-32-v4/)
+- [SenseCAP Solar Node P1-Pro purchase listing, ASIN B0FMDHBWX8](https://www.amazon.com/dp/B0FMDHBWX8)
+- [Seeed SenseCAP Solar Node P1-Pro for MeshCore, SKU 100023690](https://www.seeedstudio.com/SenseCAP-Solar-Node-P1-Pro-for-Meshcore-p-6741.html)
 
 ## Three-node repeater bench proof
 

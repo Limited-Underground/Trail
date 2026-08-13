@@ -68,7 +68,7 @@ Ten deterministic groups plus 100/100 focused repeats cover:
 10. invalid/stale/failed input producing no selection.
 
 Compile-time checks keep the owner non-copyable/non-movable and its status at
-or below 64 host bytes. The complete 108-executable matrix and Python
+or below 64 host bytes. The complete 109-executable matrix and Python
 publication checks pass.
 
 ## Next gates
