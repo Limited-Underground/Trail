@@ -13,7 +13,7 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, and bounded close-range bench proofs |
-| Latest increment | [Privacy-safe Windows USB discovery](tests/hardware/OT-019D-2026-08-12.md): the future loader's first read-only adapter found all three connected bench runtimes while omitting persistent identity and keeping Flash blocked |
+| Latest increment | [Privacy-safe Windows loader inspection](tests/hardware/OT-019D-2026-08-12.md): read-only discovery plus strict runtime queries identify two Heltec companions and one SenseCAP repeater while omitting persistent identity and keeping Flash blocked |
 | Proven so far | A 109-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited GNSS, transport, soak, burst, and alert/acknowledgement tests |
 | Planned first release | Up to eight active clients in one group with at most one optional authorized repeater |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |

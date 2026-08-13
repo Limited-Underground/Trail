@@ -19,9 +19,16 @@ public chronology.
   because low-level processor/memory, exact profile/revision, target role, and
   bootloader evidence remain unresolved. Discovery performs no serial I/O,
   erase, write, reset, DFU, firmware, settings, or recovery action.
-- Four focused privacy/fail-closed scenario groups and the publication-safety
-  scan pass. Low-level probes, approved physical profiles, signed bundle
-  verification, UI/packaging, and physical flash/recovery evidence remain.
+- Added a second read-only layer that strictly reduces MeshCore `ver`, `board`,
+  and runtime-role responses. The live run identified two Heltec V4 OLED
+  MeshCore companions and one Seeed SenseCAP Solar MeshCore repeater on the
+  same firmware build. Raw replies, pairing fields, identity, local ports, and
+  unexpected values are never emitted.
+- Runtime role remains separate from the unresolved OpenTrail target role and
+  is explicitly non-authoritative for Flash. Four discovery groups, four
+  runtime-reduction groups, and the publication-safety scan pass. Low-level
+  probes, approved physical profiles, signed bundle verification, UI/packaging,
+  and physical flash/recovery evidence remain.
 
 ### Privacy-safe three-device GNSS evidence
 

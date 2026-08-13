@@ -54,12 +54,11 @@ def _normalized_usb_id(record: Any) -> tuple[int, int] | None:
     return vid, pid
 
 
-def collect_candidates(
+def select_candidate_records(
     records: Iterable[Any],
     *,
     include_unknown: bool = False,
-    include_local_ports: bool = False,
-) -> dict[str, Any]:
+) -> list[tuple[tuple[int, int], str, Any, dict[str, str] | None]]:
     selected: list[tuple[tuple[int, int], str, Any, dict[str, str] | None]] = []
     for record in records:
         usb_id = _normalized_usb_id(record)
@@ -73,6 +72,16 @@ def collect_candidates(
         selected.append((usb_id, local_sort_key, record, family))
 
     selected.sort(key=lambda item: (item[0][0], item[0][1], item[1]))
+    return selected
+
+
+def collect_candidates(
+    records: Iterable[Any],
+    *,
+    include_unknown: bool = False,
+    include_local_ports: bool = False,
+) -> dict[str, Any]:
+    selected = select_candidate_records(records, include_unknown=include_unknown)
     devices: list[dict[str, Any]] = []
     for index, (usb_id, _sort_key, record, family) in enumerate(selected, start=1):
         candidate = {

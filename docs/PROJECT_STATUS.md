@@ -76,12 +76,16 @@ flash/PSRAM, exact profile/revision, bootloader schema, or image-size evidence
 blocks Flash. Firmware target role must also agree: bench client, complete
 client, and packaged repeater are not interchangeable. Clean install requires explicit destructive-erase confirmation;
 recovery additionally requires separate physical authorization. Thirteen
-preflight groups pass. The USB adapter adds four privacy/fail-closed groups and
-a live default snapshot that found the two Espressif application runtimes and
-one Seeed TinyUSB runtime while omitting local ports and persistent identity;
-all three remained blocked from Flash. No low-level probe, signature
-verification, approved board profile, erase/write/reboot capability, Windows
-UI, or physical recovery evidence exists. See the
+preflight groups pass. The USB adapter adds four privacy/fail-closed discovery
+groups, four strict runtime-reduction groups, and a live default snapshot. It
+found two Espressif application runtimes plus one Seeed TinyUSB runtime, then
+identified two Heltec V4 OLED MeshCore companions and one Seeed SenseCAP Solar
+MeshCore repeater without emitting raw replies, pairing fields, local ports, or
+persistent identity. Installed runtime role remains non-authoritative for the
+unresolved OpenTrail target role, so all three stayed blocked from Flash. No
+low-level probe, signature verification, approved board profile,
+erase/write/reboot capability, Windows UI, or physical recovery evidence
+exists. See the
 [firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md) and
 [Windows USB candidate discovery](update/WINDOWS_USB_CANDIDATE_DISCOVERY_V0.md).
 

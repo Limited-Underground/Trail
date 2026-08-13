@@ -1,20 +1,24 @@
 # Windows USB candidate discovery v0
 
-Status: read-only host adapter with four deterministic privacy/fail-closed
-scenario groups and one successful three-device Windows bench snapshot; no
-exact board profile or flash permission exists.
+Status: read-only discovery plus runtime-evidence host adapters with eight
+deterministic privacy/fail-closed scenario groups and one successful
+three-device Windows bench snapshot; no exact board profile or flash permission
+exists.
 
 ## Purpose
 
 The future Windows loader needs a safe first screen before it can perform any
 low-level probe or firmware write. `tools/Get-OpenTrailUsbCandidates.py`
 enumerates USB serial runtimes and reduces them to non-authoritative candidate
-records. It never treats a USB identifier as proof of an exact board.
+records. `tools/Get-OpenTrailRuntimeEvidence.py` may then issue only MeshCore
+version, board, and runtime-role queries and reduce their replies through strict
+allowlists. Neither tool treats transport or installed runtime identity as
+proof of an exact OpenTrail board/target profile.
 
 Default output omits local COM names, serial numbers, hardware-instance IDs,
-device locations, runtime identity, and every raw Windows enumerator record.
-An explicit `--include-local-ports` option is available only for local
-troubleshooting; it does not change flash permission.
+device locations, device identity, pairing data, raw runtime replies, and every
+raw Windows enumerator record. An explicit `--include-local-ports` option is
+available only for local troubleshooting; it does not change flash permission.
 
 ## Recognized runtime families
 
@@ -39,7 +43,8 @@ and made no state changes. Each candidate has:
   bootloader evidence; and
 - `flashing_allowed: false`.
 
-This is discovery evidence only. It is not the complete
+This is discovery/runtime evidence only. Installed MeshCore companion/repeater
+role is not the unresolved OpenTrail target role. The snapshot is not the complete
 `FirmwareInstallPreflight` decision and has no bundle, signature, partition,
 erase, write, reset, DFU, recovery, or authorization capability.
 
@@ -47,14 +52,23 @@ erase, write, reset, DFU, recovery, or authorization capability.
 
 The default privacy-safe run on 2026-08-12 returned exactly three candidates:
 one Seeed TinyUSB serial runtime and two Espressif application USB runtimes.
-All three were inspectable and all three remained blocked from flashing. See
-the [dated evidence record](../../tests/hardware/OT-019D-2026-08-12.md).
+Strict read-only follow-up identified the former as a Seeed SenseCAP Solar
+MeshCore repeater and the latter two as Heltec V4 OLED MeshCore companions, all
+on `v1.16.0-07a3ca9` built 06-Jun-2026. All three were inspectable and all three
+remained blocked from flashing. See the
+[dated evidence record](../../tests/hardware/OT-019D-2026-08-12.md).
 
 ## Host evidence
 
-Four groups cover deterministic recognition/order, omission of sensitive
-enumerator fields and local ports, explicit local-port inclusion, and bounded
-unknown-device handling. The publication-safety scan also passes.
+Four discovery groups cover deterministic recognition/order, omission of
+sensitive enumerator fields and local ports, explicit local-port inclusion,
+and bounded unknown-device handling. Four runtime groups cover companion-field
+reduction, non-echoing rejection, repeater grammar/role reduction, and
+three-candidate integration with redacted failures. The publication-safety scan
+also passes.
+
+The runtime command grammar was checked against MeshCore's official
+[`CommonCLI.cpp`](https://github.com/meshcore-dev/MeshCore/blob/main/src/helpers/CommonCLI.cpp).
 
 ## What remains
 
