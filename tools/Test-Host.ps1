@@ -1553,3 +1553,5 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw "Publication-safety tracked-content scan failed with exit code $LASTEXITCODE."
 }
+
+& (Join-Path $projectRoot 'tools\Test-WindowsLoader.ps1')

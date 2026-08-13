@@ -13,6 +13,8 @@ venv/
 build/
 dist/
 artifacts/
+bin/
+obj/
 
 # Local configuration and secrets
 .env

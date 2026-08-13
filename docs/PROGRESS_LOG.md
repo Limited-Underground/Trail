@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-12
 
+### First real Windows loader desktop shell
+
+- Added a .NET 8 WPF development application that invokes the existing
+  privacy-safe inspection pipeline, revalidates the reduced document in C#,
+  and renders the connected candidates as familiar device cards.
+- The application and an independent dependency-free console test project
+  build warning-free. Four C# scenario groups reject malformed counts, a
+  nonzero ready-to-flash count, enabled global Flash authority, and private
+  local-port disclosure.
+- Refresh is the only active application action. Firmware selection and every
+  device mutation control remain absent or disabled; no writer, reset, erase,
+  DFU, recovery, or firmware-file path exists.
+- This is source/build evidence only. Visible launch, layout, resize,
+  accessibility, packaged operation, and clean-machine acceptance remain.
+
 ### Live Windows loader inspection view model
 
 - Added the future Windows loader's first presentation model on top of the
@@ -20,9 +35,9 @@ public chronology.
   gates are shown in plain language on each card.
 - Four scenario groups cover the live shape, private-field omission, generic
   failure presentation, and fail-closed schema/permission handling. A rendered
-  Windows framework, accessible controls, refresh ownership/invalidation,
-  signed-bundle selection, writer, packaging, and visual/physical evidence
-  remain.
+  application shell now exists under the separate OT-019H increment, but
+  accessible controls, refresh ownership/invalidation, signed-bundle selection,
+  writer, packaging, and visual/physical evidence remain.
 
 ### Final firmware-write admission composition
 

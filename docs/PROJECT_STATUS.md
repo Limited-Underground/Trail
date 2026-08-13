@@ -87,14 +87,21 @@ runtime snapshot and produces fixed, privacy-safe screen data. Its connected
 bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
-No Windows framework, rendered/accessibility evidence, refresh lifecycle,
-package, or writer exists.
+A real .NET 8 WPF development shell now consumes that document and renders
+candidate cards. The application and four independent C# document scenarios
+build warning-free; malformed counts, any ready-to-flash candidate, enabled
+global Flash authority, and private local-port disclosure fail closed. The
+shell contains no firmware picker, writer, erase/reset/DFU/recovery adapter, or
+mutation path. Visible launch, rendered/accessibility evidence, packaged
+inspection, refresh lifecycle acceptance, installer, and clean-machine
+operation remain unverified.
 Read-only inspection and flash permission are distinct outcomes: a connected
 board can remain inspectable while incomplete or conflicting processor,
 flash/PSRAM, exact profile/revision, bootloader schema, or image-size evidence
 blocks Flash. Firmware target role must also agree: bench client, complete
-client, and packaged repeater are not interchangeable. Clean install requires explicit destructive-erase confirmation;
-recovery additionally requires separate physical authorization. Thirteen
+client, and packaged repeater are not interchangeable. Clean install requires
+explicit destructive-erase confirmation; recovery additionally requires
+separate physical authorization. Thirteen
 preflight groups pass. The USB adapter adds four privacy/fail-closed discovery
 groups, four strict runtime-reduction groups, and a live default snapshot. It
 found two Espressif application runtimes plus one Seeed TinyUSB runtime, then
@@ -103,12 +110,12 @@ MeshCore repeater without emitting raw replies, pairing fields, local ports, or
 persistent identity. Installed runtime role remains non-authoritative for the
 unresolved OpenTrail target role, so all three stayed blocked from Flash. No
 low-level probe, signature verification, approved board profile,
-erase/write/reboot capability, Windows UI, or physical recovery evidence
-exists. See the
+erase/write/reboot capability, accepted rendered UI, or physical recovery
+evidence exists. See the
 [firmware-bundle admission](update/FIRMWARE_BUNDLE_ADMISSION_V0.md),
 [final write admission](update/FIRMWARE_WRITE_ADMISSION_V0.md),
 [firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md), and
-[Windows loader inspection view](update/WINDOWS_LOADER_INSPECTION_VIEW_V0.md).
+[Windows loader desktop shell](update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md).
 
 The optional archive now has a host-tested client-side session boundary rather
 than only a concept. Explicit start/stop controls the existing current-fix-only

@@ -10,6 +10,31 @@ MSYS2 and its UCRT64 GCC package are intentionally installed on the development
 laptop for repeatable native C++ testing. PlatformIO is not required yet because
 OpenTrail has no approved board binding or production firmware target.
 
+The Windows loader development shell additionally uses the .NET 8 SDK. The
+repository `global.json` selects the latest installed compatible .NET 8 feature
+band so newer SDKs do not silently become the build authority.
+
+## Build and test the Windows loader shell
+
+From the repository root:
+
+```powershell
+.\tools\Test-WindowsLoader.ps1
+```
+
+This restores the dependency-free test project, builds the WPF application in
+Release mode with warnings treated as errors, and runs the strict loader
+document scenarios. The complete `Test-Host.ps1` gate calls this script after
+the C++ and Python/publication-safety checks. Restore uses the loader's
+repository-scoped, source-free NuGet configuration and does not read a
+developer's private per-user NuGet settings.
+
+The current application is a development shell: it depends on the repository
+source tree and local Python inspection script, and every firmware-writing
+action is disabled. Read the
+[desktop-shell evidence and remaining gates](update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md)
+before launching it interactively.
+
 ## Run deterministic host tests
 
 From the repository root:
