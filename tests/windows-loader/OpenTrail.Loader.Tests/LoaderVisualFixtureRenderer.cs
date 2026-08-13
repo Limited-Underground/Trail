@@ -331,6 +331,10 @@ internal static class LoaderVisualFixtureRenderer
             Require(
                 windowPeer.GetAutomationControlType() == AutomationControlType.Window &&
                 string.Equals(
+                    windowPeer.GetAutomationId(),
+                    "device-utility-window",
+                    StringComparison.Ordinal) &&
+                string.Equals(
                     windowPeer.GetName(),
                     ProductIdentity.Current.WindowTitle,
                     StringComparison.Ordinal),
@@ -339,6 +343,10 @@ internal static class LoaderVisualFixtureRenderer
             var refreshPeer = new ButtonAutomationPeer(window.RefreshButton);
             Require(
                 refreshPeer.GetAutomationControlType() == AutomationControlType.Button &&
+                string.Equals(
+                    refreshPeer.GetAutomationId(),
+                    "refresh-devices",
+                    StringComparison.Ordinal) &&
                 string.Equals(
                     refreshPeer.GetName(),
                     "Refresh connected devices",
@@ -349,6 +357,10 @@ internal static class LoaderVisualFixtureRenderer
             var listPeer = new ListBoxAutomationPeer(window.DeviceCards);
             Require(
                 listPeer.GetAutomationControlType() == AutomationControlType.List &&
+                string.Equals(
+                    listPeer.GetAutomationId(),
+                    "connected-device-candidates",
+                    StringComparison.Ordinal) &&
                 string.Equals(
                     listPeer.GetName(),
                     "Connected device candidates",
@@ -367,6 +379,8 @@ internal static class LoaderVisualFixtureRenderer
                 PatternInterface.SelectionItem) as ISelectionItemProvider;
             Require(
                 firstCardPeer.GetAutomationControlType() == AutomationControlType.ListItem &&
+                firstCardPeer.GetPositionInSet() == 1 &&
+                firstCardPeer.GetSizeOfSet() == 3 &&
                 string.Equals(
                     firstCardPeer.GetName(),
                     firstDevice.AccessibleSummary,
@@ -391,25 +405,44 @@ internal static class LoaderVisualFixtureRenderer
                 window.SelectFirmwareButton.IsEnabled,
                 "accessible item selection did not reach the bounded current-device workflow");
 
+            var selectBundlePeer = new ButtonAutomationPeer(
+                window.SelectFirmwareButton);
+            Require(
+                selectBundlePeer.IsEnabled() &&
+                string.Equals(
+                    selectBundlePeer.GetAutomationId(),
+                    "select-firmware-bundle",
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    selectBundlePeer.GetName(),
+                    "Select firmware bundle",
+                    StringComparison.Ordinal) &&
+                selectBundlePeer.GetPattern(PatternInterface.Invoke) is IInvokeProvider,
+                "bounded bundle selection did not expose its stable accessible button contract");
+
             RequireLiveRegion(
                 window.SummaryText,
                 AutomationLiveSetting.Polite,
                 window.SummaryText.Text,
+                "inspection-summary",
                 "inspection summary");
             RequireLiveRegion(
                 window.NoticeText,
                 AutomationLiveSetting.Off,
                 window.NoticeText.Text,
+                "safety-notice",
                 "safety notice");
             RequireLiveRegion(
                 window.SelectionText,
                 AutomationLiveSetting.Polite,
                 window.SelectionText.Text,
+                "device-selection-status",
                 "device selection status");
             RequireLiveRegion(
                 window.BundleSummaryText,
                 AutomationLiveSetting.Polite,
                 window.BundleSummaryText.Text,
+                "bundle-summary",
                 "bundle status");
 
             const string acceptanceError =
@@ -419,12 +452,17 @@ internal static class LoaderVisualFixtureRenderer
                 window.ErrorText,
                 AutomationLiveSetting.Assertive,
                 acceptanceError,
+                "inspection-error",
                 "inspection error");
 
             var disabledFlashPeer = new ButtonAutomationPeer(
                 window.FlashSelectedButton);
             Require(
                 !disabledFlashPeer.IsEnabled() &&
+                string.Equals(
+                    disabledFlashPeer.GetAutomationId(),
+                    "flash-selected-device",
+                    StringComparison.Ordinal) &&
                 string.Equals(
                     disabledFlashPeer.GetName(),
                     "Flash selected device",
@@ -443,11 +481,16 @@ internal static class LoaderVisualFixtureRenderer
         TextBlock element,
         AutomationLiveSetting expectedSetting,
         string expectedName,
+        string expectedAutomationId,
         string label)
     {
         var peer = new TextBlockAutomationPeer(element);
         Require(
             AutomationProperties.GetLiveSetting(element) == expectedSetting &&
+            string.Equals(
+                peer.GetAutomationId(),
+                expectedAutomationId,
+                StringComparison.Ordinal) &&
             string.Equals(peer.GetName(), expectedName, StringComparison.Ordinal),
             $"the {label} live region did not expose its current visible message");
     }

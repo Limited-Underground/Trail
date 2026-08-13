@@ -193,15 +193,25 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,102,372 bytes with SHA-256
-`3AF1CDC896D82CDD47DF8A632BE863C7F8F87919BE8FC2A42FAB04BCE318D0C5`.
+The newest verified 464-file archive is 72,102,493 bytes with SHA-256
+`44603E315DB05A9FF37E070507A999D0840B6C83256B65EA7A2BEEC8368F44CF`.
+Native Windows UI Automation then inspected that exact independently extracted
+executable across the process boundary. Stable privacy-safe IDs exposed the
+window, Refresh, dynamic summary/selection/bundle regions, device list,
+bounded bundle action, and disabled Flash action. The three list items exposed
+selection and scroll-item patterns, public summary/blocker help, and positions
+1/3, 2/3, and 3/3 without revealing candidate, COM, or MAC identifiers. Three
+external selection/Refresh cycles each enabled only bounded bundle inspection,
+then cleared selection, republished all three devices, restored zero-ready
+status, and kept Flash disabled. This is native automation-client evidence,
+not Narrator speech, physical input, or a clean-machine result.
 This is local package evidence only: no installer lifecycle, clean-machine,
 code-signing, distribution, or public-release claim exists.
 Deterministic production-XAML renders have been reviewed at 1600×900 and the
 900×620 minimum, including a scrolled minimum view. That review fixed a
 transparent content root and horizontal card clipping; all three cards remain
 reachable and disabled Flash labels remain readable. Physical input/Narrator,
-live system-theme switching, visible input-driven repeated refresh,
+live system-theme switching, visible physical-input refresh,
 installer/clean-machine, and real assistive-technology acceptance remain
 unverified. The packaged Windows adapter passes three consecutive reads through
 the production window with all three bench candidates and zero ready.

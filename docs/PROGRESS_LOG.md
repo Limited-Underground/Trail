@@ -6,6 +6,38 @@ public chronology.
 
 ## 2026-08-13
 
+### Source-free external UI Automation and refresh acceptance
+
+- Added stable privacy-safe Automation IDs for the packaged window, Refresh,
+  dynamic summary/selection/bundle regions, device list, bounded bundle action,
+  and disabled Flash action. The in-process production-peer acceptance locks
+  those IDs to their existing names, help, control types, and patterns.
+- Extended the independent package verifier with an opt-in native Windows UI
+  Automation client. From a unique source-free extraction it found the real
+  packaged window, three ListItem/SelectionItem/ScrollItem device peers, public
+  summary and blocker help, and disabled card/footer Flash actions. Candidate,
+  COM-port, and MAC-like identifiers remained absent.
+- The two same-model Heltec cards have intentionally identical public names,
+  but WPF exposes their privacy-safe set positions as 1/3 and 2/3; the SenseCAP
+  is 3/3. The verifier now requires every position and set size so assistive
+  technology can distinguish otherwise identical peers without a private ID.
+- Three external cycles selected a current item through SelectionItem, enabled
+  only bounded bundle inspection, invoked the read-only Refresh action, then
+  required empty selection, three republished devices, zero ready to flash,
+  bundle selection disabled, and every Flash action still disabled. No file
+  picker or mutation action was invoked. Each refreshed public-name multiset
+  matches the initial privacy-safe roster, and owned process/temp cleanup passed.
+- Windows PowerShell 5.1 compatibility reruns found that its legacy UI
+  Automation client reports the newer WPF live-setting property as unsupported.
+  The external verifier requires the Polite settings when its client exposes
+  them and otherwise relies on the mandatory dynamic-name checks plus the .NET
+  8 in-process live-setting regression; cleanup ran after both failed probes.
+- The exact accepted 464-file package is 72,102,493 bytes with SHA-256
+  `44603E315DB05A9FF37E070507A999D0840B6C83256B65EA7A2BEEC8368F44CF`.
+  This is cross-process Windows UI Automation evidence on the current host,
+  not physical keyboard/mouse, Narrator speech, installer, or clean-machine
+  acceptance.
+
 ### Hardened source-free Windows utility package refresh
 
 - Rebuilt the self-contained `win-x64` engineering ZIP from the source after
@@ -15,8 +47,8 @@ public chronology.
   exact source-free executable.
 - A separate verifier then repeated clean extraction, complete length/SHA-256
   matching, capability-boundary checks, forbidden-payload checks, and hidden
-  launch verification. The retained archive is 72,102,372 bytes with SHA-256
-  `3AF1CDC896D82CDD47DF8A632BE863C7F8F87919BE8FC2A42FAB04BCE318D0C5`.
+  launch verification. The retained archive is 72,102,493 bytes with SHA-256
+  `44603E315DB05A9FF37E070507A999D0840B6C83256B65EA7A2BEEC8368F44CF`.
 - The package remains local and Git-ignored. It is inspection-only, has no
   production signer, firmware, writer, erase/reset/DFU/recovery authority,
   private key, or debug/source payload, and is not an installer, signed build,

@@ -362,9 +362,18 @@ packaged executable:
 .\tools\Test-WindowsDeviceUtilityPackage.ps1 -ArchivePath <path-to-zip>
 ```
 
-The current retained package has 464 payload files and is 72,102,372 bytes. Its
+On an interactive Windows bench with the expected three connected candidates,
+the same verifier can run native cross-process UI Automation selection and
+three read-only Refresh cycles without opening the firmware picker:
+
+```powershell
+.\tools\Test-WindowsDeviceUtilityPackage.ps1 -ArchivePath <path-to-zip> `
+    -RunUiAutomationAcceptance -ExpectedDeviceCount 3 -RefreshCycles 3
+```
+
+The current retained package has 464 payload files and is 72,102,493 bytes. Its
 SHA-256 is
-`3AF1CDC896D82CDD47DF8A632BE863C7F8F87919BE8FC2A42FAB04BCE318D0C5`.
+`44603E315DB05A9FF37E070507A999D0840B6C83256B65EA7A2BEEC8368F44CF`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the
@@ -375,11 +384,24 @@ display name as a working identity pending attorney review. The local
 `artifacts/windows-device-utility` output is intentionally ignored by Git; no
 binary has been published.
 
+The opt-in external acceptance uses stable non-private Automation IDs to find
+the exact packaged Window, Refresh, dynamic status regions, device list,
+bounded bundle action, and disabled Flash action. Each of the three device
+items must expose ListItem, SelectionItem, and ScrollItem semantics, a public
+summary and blocker explanation, and its 1-of-3 position without a candidate,
+COM-port, or MAC-like identifier. Three cycles select one item, verify only the
+bounded bundle action becomes available, invoke Refresh, and require selection
+to clear while all three items, zero-ready status, and disabled Flash return.
+Each refreshed public-name multiset must match the initial privacy-safe roster.
+This proves native automation-client access to the source-free executable on
+this host. It does not prove physical key/mouse input, Narrator wording or
+timing, installer behavior, or clean-machine compatibility.
+
 ## Remaining gates
 
-1. Exercise repeated refresh and explicit selection through visible mouse and
-   keyboard input with the three connected bench units; the packaged adapter
-   already passes three consecutive production-window reads.
+1. Exercise selection and refresh through physical mouse and keyboard input
+   with the three connected bench units; native external UI Automation already
+   passes three source-free selection/Refresh cycles.
 2. Accept keyboard navigation, focus order, live announcements, labels,
    contrast, live system/high-contrast theme behavior, real monitor DPI
    changes, and the remaining interactive

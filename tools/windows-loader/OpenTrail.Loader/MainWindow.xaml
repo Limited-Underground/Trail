@@ -5,6 +5,7 @@
         Width="1120" Height="760" MinWidth="900" MinHeight="620"
         WindowStartupLocation="CenterScreen"
         AutomationProperties.Name="{Binding WindowTitle, Mode=OneTime, FallbackValue=Device Utility}"
+        AutomationProperties.AutomationId="device-utility-window"
         KeyboardNavigation.TabNavigation="Cycle"
         SnapsToDevicePixels="True" UseLayoutRounding="True"
         Background="{DynamicResource BackgroundBrush}">
@@ -42,6 +43,7 @@
                 </StackPanel>
                 <Button x:Name="RefreshButton" Grid.Column="1" Content="Refresh devices"
                         Click="RefreshButton_Click" VerticalAlignment="Center"
+                        AutomationProperties.AutomationId="refresh-devices"
                         AutomationProperties.Name="Refresh connected devices"
                         AutomationProperties.HelpText="Read connected USB candidates again without changing a device. Keyboard shortcut F5."
                         Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource ButtonTextBrush}"
@@ -59,6 +61,7 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock x:Name="SummaryText" Text="Looking for connected devices…"
+                                   AutomationProperties.AutomationId="inspection-summary"
                                    AutomationProperties.Name="{Binding RelativeSource={RelativeSource Self}, Path=Text}"
                                    AutomationProperties.HelpText="Current connected-device inspection summary."
                                    AutomationProperties.LiveSetting="Polite"
@@ -88,6 +91,7 @@
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <TextBlock x:Name="NoticeText" Grid.Column="1" TextWrapping="Wrap"
+                                   AutomationProperties.AutomationId="safety-notice"
                                    AutomationProperties.Name="{Binding RelativeSource={RelativeSource Self}, Path=Text}"
                                    AutomationProperties.HelpText="Current inspection safety notice."
                                    Margin="10,2,0,0" Foreground="{DynamicResource TextBrush}" FontSize="13" />
@@ -98,6 +102,7 @@
                         BorderBrush="{DynamicResource CriticalTextBrush}" BorderThickness="2" CornerRadius="0"
                         Padding="14" Margin="0,0,0,18">
                     <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Foreground="{DynamicResource CriticalTextBrush}"
+                               AutomationProperties.AutomationId="inspection-error"
                                AutomationProperties.Name="{Binding RelativeSource={RelativeSource Self}, Path=Text}"
                                AutomationProperties.HelpText="Current connected-device inspection error."
                                AutomationProperties.LiveSetting="Assertive" />
@@ -107,6 +112,7 @@
                         Padding="10" Margin="0,0,0,16">
                     <TextBlock x:Name="SelectionText"
                                Text="Select one connected device to continue. Selection is not Flash permission."
+                               AutomationProperties.AutomationId="device-selection-status"
                                AutomationProperties.Name="{Binding RelativeSource={RelativeSource Self}, Path=Text}"
                                AutomationProperties.HelpText="Current connected-device selection status."
                                AutomationProperties.LiveSetting="Polite"
@@ -123,6 +129,7 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
                          KeyboardNavigation.TabNavigation="Once"
+                         AutomationProperties.AutomationId="connected-device-candidates"
                          AutomationProperties.Name="Connected device candidates"
                          AutomationProperties.HelpText="Choose exactly one current connected candidate. Refresh clears the selection.">
                     <ListBox.ItemContainerStyle>
@@ -264,6 +271,7 @@
                 </Border>
                 <StackPanel Grid.Column="1">
                     <TextBlock x:Name="BundleSummaryText" Text="No firmware bundle selected"
+                               AutomationProperties.AutomationId="bundle-summary"
                                AutomationProperties.Name="{Binding RelativeSource={RelativeSource Self}, Path=Text}"
                                AutomationProperties.HelpText="Current firmware bundle inspection status."
                                AutomationProperties.LiveSetting="Polite"
@@ -298,9 +306,11 @@
                     <Button x:Name="SelectFirmwareButton" Content="Select firmware bundle"
                             IsEnabled="False"
                             Click="SelectFirmwareButton_Click" Margin="0,0,8,0"
+                            AutomationProperties.AutomationId="select-firmware-bundle"
                             AutomationProperties.HelpText="Select a local candidate bundle for bounded structural and SHA-256 inspection. This does not authorize or write firmware."
                             Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource ButtonTextBrush}" BorderBrush="{DynamicResource ButtonBorderBrush}" Cursor="Arrow" />
                     <Button x:Name="FlashSelectedButton" Content="Flash selected device" IsEnabled="False"
+                            AutomationProperties.AutomationId="flash-selected-device"
                             AutomationProperties.HelpText="Unavailable because no firmware writer is connected."
                             Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource DisabledTextBrush}" BorderBrush="{DynamicResource ButtonBorderBrush}" Cursor="Arrow" />
                 </StackPanel>
