@@ -41,6 +41,14 @@ OpenTrail is in architecture and proof-of-concept planning. Capabilities in the 
 
 Update the backlog status and the project status/open questions whenever a decision is made or evidence changes. Architecture decisions that constrain future work should be added under `docs/decisions/` when that directory is introduced.
 
+## Completion and publication gate
+
+- Follow the workspace-wide completion and publication gate in `D:\ESP32\AGENTS.md`.
+- Once an OpenTrail task is implemented and validated, update every affected canonical record and dated public progress entry, commit and push the relevant public-ready OpenTrail changes, and verify the remote commit before calling the task complete.
+- If accepted evidence changes public project status or V1 progress, synchronize and validate the Limited Underground website projection, commit and push the website update, deploy it, and verify the live OpenTrail status before calling the task complete.
+- If no public website status changed, say so explicitly in the completion report. If any required push, synchronization, deployment, or verification is blocked, report `implementation complete; publication pending` and identify the remaining step.
+- Do not bundle unrelated or unvalidated dirty-worktree changes merely to satisfy this gate, and never publish private or unsafe material.
+
 ## V1 progress completion gate
 
 - `docs/V1_PROGRESS.json` is the canonical OpenTrail V1 progress record. Do not maintain a separate percentage in the README, firmware, or website source.
