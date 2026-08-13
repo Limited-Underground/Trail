@@ -1006,6 +1006,8 @@ try
     Console.WriteLine(
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedThemeTransitions} in-window theme transition");
     Console.WriteLine(
+        $"INFO: production Windows loader accepted {windowAcceptance.AcceptedResizeTransitions} shown resize transition");
+    Console.WriteLine(
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedKeyboardPaths} keyboard focus path");
     Console.WriteLine(
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedAutomationPaths} automation-peer path");
@@ -1026,5 +1028,5 @@ if (failures != 0)
     return 1;
 }
 
-Console.WriteLine("PASS: 54 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/keyboard/automation-peer/high-DPI/contrast-theme-transition, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
+Console.WriteLine("PASS: 55 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/keyboard/automation-peer/high-DPI/resize/contrast-theme-transition, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
 return 0;

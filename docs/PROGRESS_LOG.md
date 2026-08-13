@@ -6,6 +6,33 @@ public chronology.
 
 ## 2026-08-13
 
+### Shown-window wide/minimum/wide resize transition
+
+- Added a deterministic transition on the real shown production window from
+  1120×760 to the 900×620 minimum and back. Three 330-pixel cards move from one
+  row to the expected two-plus-one wrap and then return to one row.
+- The same last-card model, selected index, and generated keyboard-focused
+  `ListBoxItem` must survive both transitions. The stricter unassisted run found
+  minimum-size reflow could leave it below the viewport and drop keyboard
+  focus. Resize now defers until layout settles, verifies the captured selection
+  is unchanged, brings that item into view, and restores its focus. Focus moves
+  to Refresh or a different nonselected card before settlement are preserved;
+  the queued update does not reclaim them, and an inactive, hidden, or
+  minimized utility never restores focus.
+- Selection status, the item's public UI Automation name, bounded bundle-action
+  availability, disabled Flash state, and all three exposed item peers remain
+  intact without test-side scrolling after either resize; the vertical offset
+  remains finite and within the current scrollable range. The warning-free
+  suite now passes 55 groups. This does not prove physical resize input, a real
+  monitor/DPI transition, Narrator behavior, or clean-machine operation.
+- Rebuilt the corrected production source as a 464-file self-contained package.
+  The builder launched an independent extraction, then Windows PowerShell 5.1
+  repeated manifest/hash/capability checks, launch, three external UI Automation
+  selection/Refresh cycles, and native live-region event acceptance. The new
+  local archive is 72,103,016 bytes with SHA-256
+  `6D6A487B23B44E67E8CCBC37F1FD61B001C2514C31600400613FE2609E5AB5F7`;
+  it remains Git-ignored and is not a public release.
+
 ### Cross-process live-region delivery and Refresh focus continuity
 
 - Subscribed a compiled native UI Automation client to the exact packaged
@@ -28,7 +55,7 @@ public chronology.
   empty list, disabled bundle/Flash actions, and enabled focused Refresh.
 - The exact accepted 464-file package is 72,102,589 bytes with SHA-256
   `D065E1259A81803DC2BD535FC066E844E99864176FACCB770EE20C4BD0A5F734`.
-  The warning-free 54-group suite and three live USB refresh cycles pass. This
+  The warning-free 55-group suite and three live USB refresh cycles pass. This
   still is not physical keyboard input or Narrator speech acceptance.
 
 ### Source-free external UI Automation and refresh acceptance

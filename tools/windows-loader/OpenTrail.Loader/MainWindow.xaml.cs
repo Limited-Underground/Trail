@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace OpenTrail.Loader;
@@ -17,6 +18,7 @@ public partial class MainWindow : Window
     private bool _suppressSelectionChanged;
     private bool _restoreRefreshFocusAfterRefresh;
     private bool _hasCompletedRefresh;
+    private bool _selectedItemVisibilityUpdateQueued;
 
     public MainWindow()
         : this(new LoaderInspectionService().RefreshAsync)
@@ -311,6 +313,58 @@ public partial class MainWindow : Window
             _ = targetItem.Focus();
         }
         e.Handled = true;
+    }
+
+    private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!IsLoaded ||
+            !IsActive ||
+            !DeviceCards.IsKeyboardFocusWithin ||
+            DeviceCards.SelectedIndex < 0 ||
+            _selectedItemVisibilityUpdateQueued)
+        {
+            return;
+        }
+
+        var selectedIndex = DeviceCards.SelectedIndex;
+        var selectedDevice = DeviceCards.SelectedItem;
+        var selectedContainer = DeviceCards.ItemContainerGenerator.ContainerFromIndex(
+            selectedIndex) as ListBoxItem;
+        if (selectedContainer is null)
+        {
+            return;
+        }
+        if (!selectedContainer.IsKeyboardFocusWithin)
+        {
+            return;
+        }
+        _selectedItemVisibilityUpdateQueued = true;
+        _ = Dispatcher.BeginInvoke(
+            DispatcherPriority.ApplicationIdle,
+            new Action(() =>
+            {
+                _selectedItemVisibilityUpdateQueued = false;
+                if (!IsLoaded ||
+                    !IsVisible ||
+                    !IsActive ||
+                    WindowState == WindowState.Minimized ||
+                    (!selectedContainer.IsKeyboardFocusWithin &&
+                     Keyboard.FocusedElement is not null &&
+                     !ReferenceEquals(Keyboard.FocusedElement, this)) ||
+                    DeviceCards.SelectedIndex != selectedIndex ||
+                    !ReferenceEquals(DeviceCards.SelectedItem, selectedDevice) ||
+                    !ReferenceEquals(
+                        DeviceCards.ItemContainerGenerator.ContainerFromIndex(
+                            selectedIndex),
+                        selectedContainer))
+                {
+                    return;
+                }
+
+                DeviceCards.UpdateLayout();
+                selectedContainer.BringIntoView();
+                _ = selectedContainer.Focus();
+            }));
     }
 
     private void ResetBundleDisplay(string summary, string details, string blocker)

@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 54 independent C#
-document/identity/accessibility/production-window-refresh/selection/keyboard/automation-peer/high-DPI/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
+candidate cards. The application and 55 independent C#
+document/identity/accessibility/production-window-refresh/selection/keyboard/automation-peer/high-DPI/resize/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -151,6 +151,19 @@ first transition render used yellow for both focus and selection; focus is now
 white while the selected outline remains yellow. This is deterministic WPF
 state and render evidence, not proof of an actual Windows theme-setting change
 or focus appearance under every built-in or customized contrast theme.
+A separate shown-window resize transition starts at 1120×760, moves to the
+900×620 production minimum, and returns to 1120×760. The three current cards
+move from one row to a two-plus-one wrap and back while the same last card and
+generated container remain selected and keyboard-focused. After
+one initial `BringIntoView`, the first stricter run found minimum-size reflow
+could leave that card below the viewport and drop its focus. The window now
+defers until resized layout settles, verifies the selection is still current,
+brings it into view, and restores its keyboard focus. Both transitions then
+keep the selected card intersecting the viewport, scroll state finite and
+bounded, its public automation name and visible selection status current,
+bounded bundle inspection enabled, and Flash disabled. This is deterministic
+WPF layout/state evidence, not physical resize input, a real monitor
+transition, or per-monitor DPI-change acceptance.
 One pure selected-device matcher now compares hardware-profile ID, processor,
 product role, board-revision range, minimum bootloader schema, and image-size
 capacity from the inspected manifest against a separate authoritative
@@ -197,8 +210,8 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,102,589 bytes with SHA-256
-`D065E1259A81803DC2BD535FC066E844E99864176FACCB770EE20C4BD0A5F734`.
+The newest verified 464-file archive is 72,103,016 bytes with SHA-256
+`6D6A487B23B44E67E8CCBC37F1FD61B001C2514C31600400613FE2609E5AB5F7`.
 Native Windows UI Automation then inspected that exact independently extracted
 executable across the process boundary. Stable privacy-safe IDs exposed the
 window, Refresh, dynamic summary/selection/bundle regions, device list,

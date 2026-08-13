@@ -11,8 +11,8 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Fifty-four document, identity-safeguard, accessibility,
-production-window refresh/selection/keyboard/automation-peer/high-DPI/contrast-theme, snapshot-binding/device-match,
+Windows host. Fifty-five document, identity-safeguard, accessibility,
+production-window refresh/selection/keyboard/automation-peer/high-DPI/resize/contrast-theme, snapshot-binding/device-match,
 process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
 packaged-inspection scenario groups pass. The source-free built-in C# path
 reports `3 USB candidates found · 3
@@ -222,6 +222,25 @@ yellow. The fixed minimum-size classic and high-contrast renders were reviewed.
 This proves in-window dynamic-resource and state preservation only; the run did
 not change the Windows theme setting or observe real OS notification timing.
 
+A third shown-window scenario starts at 1120×760, resizes to the 900×620
+production minimum, and returns to 1120×760. The three current 330-pixel cards
+must form one row, then the expected two-plus-one wrap, then one row again. The
+same last-card model, selected index, and generated keyboard-focused
+`ListBoxItem` must survive. After one initial `BringIntoView`, the stricter run
+found minimum reflow could leave the selected card below the viewport and drop
+its keyboard focus. The production window now queues one post-layout update
+only when resize began with focus inside a current selection, verifies that
+exact selection is unchanged, brings its container into view, and restores its
+focus. Two race checks move focus to Refresh and to a different nonselected
+card before the deferred update settles; neither may be reclaimed, and the
+callback rejects an inactive, hidden, or minimized utility. Without any
+post-resize test-side scrolling, the selected rectangle must
+intersect a nonempty viewport and the vertical offset must remain finite and
+within the current scrollable range. The visible selection status, public UI
+Automation item name, three list-item peers, enabled bounded bundle action, and
+disabled Flash action must also remain intact. This is not physical resize
+input, a real monitor/DPI transition, or Narrator acceptance.
+
 ## Production-window refresh state evidence
 
 The public `MainWindow` constructor and packaged inspection source remain
@@ -371,9 +390,9 @@ three read-only Refresh cycles without opening the firmware picker:
     -RunUiAutomationAcceptance -ExpectedDeviceCount 3 -RefreshCycles 3
 ```
 
-The current retained package has 464 payload files and is 72,102,589 bytes. Its
+The current retained package has 464 payload files and is 72,103,016 bytes. Its
 SHA-256 is
-`D065E1259A81803DC2BD535FC066E844E99864176FACCB770EE20C4BD0A5F734`.
+`6D6A487B23B44E67E8CCBC37F1FD61B001C2514C31600400613FE2609E5AB5F7`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the

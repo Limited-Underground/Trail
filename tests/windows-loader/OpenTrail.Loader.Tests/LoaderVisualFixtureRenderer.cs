@@ -17,6 +17,7 @@ internal sealed record LoaderWindowAcceptanceResult(
     int AcceptedDpiProfiles,
     int AcceptedThemeProfiles,
     int AcceptedThemeTransitions,
+    int AcceptedResizeTransitions,
     int AcceptedKeyboardPaths,
     int AcceptedAutomationPaths,
     IReadOnlyList<string> RenderedFiles);
@@ -106,6 +107,7 @@ internal static class LoaderVisualFixtureRenderer
         var acceptedDpiProfiles = 0;
         var acceptedThemeProfiles = 0;
         var acceptedThemeTransitions = 0;
+        var acceptedResizeTransitions = 0;
         var acceptedKeyboardPaths = 0;
         var acceptedAutomationPaths = 0;
         Exception? renderingFailure = null;
@@ -139,6 +141,7 @@ internal static class LoaderVisualFixtureRenderer
                         window,
                         outputDirectory,
                         renderedFiles);
+                    acceptedResizeTransitions = AcceptShownResizeTransition(window);
                     acceptedThemeTransitions = AcceptThemeTransition(
                         app,
                         outputDirectory,
@@ -199,6 +202,7 @@ internal static class LoaderVisualFixtureRenderer
             acceptedDpiProfiles,
             acceptedThemeProfiles,
             acceptedThemeTransitions,
+            acceptedResizeTransitions,
             acceptedKeyboardPaths,
             acceptedAutomationPaths,
             renderedFiles);
@@ -281,6 +285,180 @@ internal static class LoaderVisualFixtureRenderer
                 LoaderThemeResources.CreateClassicPalette());
             window.Close();
         }
+    }
+
+    private static int AcceptShownResizeTransition(MainWindow window)
+    {
+        window.Show();
+        window.Dispatcher.Invoke(
+            DispatcherPriority.ApplicationIdle,
+            new Action(static () => { }));
+        foreach (var otherWindow in Application.Current.Windows
+            .Cast<Window>()
+            .Where(candidate => !ReferenceEquals(candidate, window))
+            .ToArray())
+        {
+            otherWindow.Close();
+        }
+        Application.Current.MainWindow = window;
+        Keyboard.ClearFocus();
+        window.Width = 1120;
+        window.Height = 760;
+        window.UpdateLayout();
+        window.DeviceCards.SelectedIndex = 2;
+        var selectedDevice = (LoaderDeviceCard)window.DeviceCards.SelectedItem;
+        var selectedItem = ContainerAt(window, 2);
+        _ = selectedItem.Focus();
+        selectedItem.BringIntoView();
+        window.UpdateLayout();
+        RequireShownResizeState(
+            window,
+            selectedItem,
+            selectedDevice,
+            expectWrapped: false,
+            "wide resize baseline");
+
+        window.Width = window.MinWidth;
+        window.Height = window.MinHeight;
+        window.UpdateLayout();
+        SettleResizeVisibility(window);
+        RequireShownResizeState(
+            window,
+            selectedItem,
+            selectedDevice,
+            expectWrapped: true,
+            "minimum wrapped resize");
+
+        window.Width = 1120;
+        window.Height = 760;
+        window.UpdateLayout();
+        SettleResizeVisibility(window);
+        RequireShownResizeState(
+            window,
+            selectedItem,
+            selectedDevice,
+            expectWrapped: false,
+            "restored wide resize");
+
+        window.Width = window.MinWidth;
+        window.Height = window.MinHeight;
+        window.UpdateLayout();
+        Require(window.RefreshButton.Focus(),
+            "resize focus-race acceptance could not move focus to Refresh");
+        SettleResizeVisibility(window);
+        Require(
+            ReferenceEquals(
+                Keyboard.FocusedElement,
+                window.RefreshButton) &&
+            ReferenceEquals(
+                window.DeviceCards.SelectedItem,
+                selectedDevice) &&
+            window.DeviceCards.SelectedIndex == 2,
+            "a queued resize visibility update reclaimed focus from Refresh or changed selection");
+
+        Require(selectedItem.Focus(),
+            "resize item-focus race could not refocus the selected card");
+        window.Width = 1120;
+        window.Height = 760;
+        window.UpdateLayout();
+        var nonselectedItem = ContainerAt(window, 0);
+        Require(nonselectedItem.Focus() &&
+            window.DeviceCards.SelectedIndex == 2,
+            "resize item-focus race could not focus a nonselected card without changing selection");
+        SettleResizeVisibility(window);
+        Require(
+            ReferenceEquals(Keyboard.FocusedElement, nonselectedItem) &&
+            ReferenceEquals(
+                window.DeviceCards.SelectedItem,
+                selectedDevice) &&
+            window.DeviceCards.SelectedIndex == 2,
+            "a queued resize visibility update reclaimed focus from a nonselected card or changed selection");
+        Keyboard.ClearFocus();
+        window.ContentScroll.ScrollToTop();
+        window.Hide();
+        window.UpdateLayout();
+        return 1;
+    }
+
+    private static void SettleResizeVisibility(MainWindow window)
+    {
+        window.Dispatcher.Invoke(
+            DispatcherPriority.ApplicationIdle,
+            new Action(static () => { }));
+        window.UpdateLayout();
+    }
+
+    private static void RequireShownResizeState(
+        MainWindow window,
+        ListBoxItem selectedItem,
+        LoaderDeviceCard selectedDevice,
+        bool expectWrapped,
+        string label)
+    {
+        var firstItem = ContainerAt(window, 0);
+        var middleItem = ContainerAt(window, 1);
+        var lastItem = ContainerAt(window, 2);
+        var firstOrigin = firstItem.TranslatePoint(
+            new Point(0, 0),
+            window.DeviceCards);
+        var middleOrigin = middleItem.TranslatePoint(
+            new Point(0, 0),
+            window.DeviceCards);
+        var lastOrigin = lastItem.TranslatePoint(
+            new Point(0, 0),
+            window.DeviceCards);
+        var hasExpectedGeometry = expectWrapped
+            ? Math.Abs(firstOrigin.Y - middleOrigin.Y) <= 1 &&
+              lastOrigin.Y > firstOrigin.Y + 1 &&
+              middleOrigin.X > firstOrigin.X + 1 &&
+              Math.Abs(lastOrigin.X - firstOrigin.X) <= 1
+            : Math.Abs(firstOrigin.Y - middleOrigin.Y) <= 1 &&
+              Math.Abs(firstOrigin.Y - lastOrigin.Y) <= 1 &&
+              middleOrigin.X > firstOrigin.X + 1 &&
+              lastOrigin.X > middleOrigin.X + 1;
+        var itemOrigin = selectedItem.TranslatePoint(
+            new Point(0, 0),
+            window.ContentScroll);
+        var itemBounds = new Rect(
+            itemOrigin,
+            selectedItem.RenderSize);
+        var viewportBounds = new Rect(
+            new Point(0, 0),
+            new Size(
+                window.ContentScroll.ViewportWidth,
+                window.ContentScroll.ViewportHeight));
+        var listPeer = new ListBoxAutomationPeer(window.DeviceCards);
+        var itemPeers = listPeer.GetChildren();
+        Require(
+            hasExpectedGeometry &&
+            ReferenceEquals(window.DeviceCards.SelectedItem, selectedDevice) &&
+            window.DeviceCards.SelectedIndex == 2 &&
+            ReferenceEquals(ContainerAt(window, 2), selectedItem) &&
+            ReferenceEquals(Keyboard.FocusedElement, selectedItem) &&
+            itemBounds.IntersectsWith(viewportBounds) &&
+            window.ContentScroll.ViewportWidth > 0 &&
+            window.ContentScroll.ViewportHeight > 0 &&
+            double.IsFinite(window.ContentScroll.VerticalOffset) &&
+            window.ContentScroll.VerticalOffset >= 0 &&
+            window.ContentScroll.VerticalOffset <=
+                window.ContentScroll.ScrollableHeight + 0.5 &&
+            window.SelectFirmwareButton.IsEnabled &&
+            !window.FlashSelectedButton.IsEnabled &&
+            window.SelectionText.Text.Contains(
+                selectedDevice.DisplayName,
+                StringComparison.Ordinal) &&
+            itemPeers is { Count: 3 } &&
+            string.Equals(
+                itemPeers[2].GetName(),
+                selectedDevice.AccessibleSummary,
+                StringComparison.Ordinal),
+            $"{label} did not preserve wrap geometry, focus, reachability, automation, and safe state " +
+            $"(geometry={hasExpectedGeometry}, selected={ReferenceEquals(window.DeviceCards.SelectedItem, selectedDevice)}, " +
+            $"index={window.DeviceCards.SelectedIndex}, container={ReferenceEquals(ContainerAt(window, 2), selectedItem)}, " +
+            $"focus={ReferenceEquals(Keyboard.FocusedElement, selectedItem)}, focusedType={Keyboard.FocusedElement?.GetType().Name ?? "null"}, " +
+            $"bounds={itemBounds}, viewport={viewportBounds}, " +
+            $"intersects={itemBounds.IntersectsWith(viewportBounds)}, offset={window.ContentScroll.VerticalOffset}, " +
+            $"scrollable={window.ContentScroll.ScrollableHeight})");
     }
 
     private static void RequireThemeState(

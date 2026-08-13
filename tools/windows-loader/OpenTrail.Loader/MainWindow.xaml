@@ -8,6 +8,7 @@
         AutomationProperties.AutomationId="device-utility-window"
         KeyboardNavigation.TabNavigation="Cycle"
         SnapsToDevicePixels="True" UseLayoutRounding="True"
+        SizeChanged="MainWindow_SizeChanged"
         Background="{DynamicResource BackgroundBrush}">
     <Window.CommandBindings>
         <CommandBinding Command="NavigationCommands.Refresh"
