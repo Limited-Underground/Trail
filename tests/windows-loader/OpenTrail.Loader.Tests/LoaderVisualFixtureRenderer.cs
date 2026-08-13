@@ -1,6 +1,10 @@
 using System.IO;
 using System.Threading;
 using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -13,6 +17,7 @@ internal sealed record LoaderWindowAcceptanceResult(
     int AcceptedDpiProfiles,
     int AcceptedThemeProfiles,
     int AcceptedKeyboardPaths,
+    int AcceptedAutomationPaths,
     IReadOnlyList<string> RenderedFiles);
 
 internal static class LoaderVisualFixtureRenderer
@@ -100,6 +105,7 @@ internal static class LoaderVisualFixtureRenderer
         var acceptedDpiProfiles = 0;
         var acceptedThemeProfiles = 0;
         var acceptedKeyboardPaths = 0;
+        var acceptedAutomationPaths = 0;
         Exception? renderingFailure = null;
         var thread = new Thread(() =>
         {
@@ -132,6 +138,7 @@ internal static class LoaderVisualFixtureRenderer
                         outputDirectory,
                         renderedFiles);
                     acceptedKeyboardPaths = AcceptKeyboardNavigation();
+                    acceptedAutomationPaths = AcceptAutomationSemantics();
 
                     if (outputDirectory is not null)
                     {
@@ -186,7 +193,141 @@ internal static class LoaderVisualFixtureRenderer
             acceptedDpiProfiles,
             acceptedThemeProfiles,
             acceptedKeyboardPaths,
+            acceptedAutomationPaths,
             renderedFiles);
+    }
+
+    private static int AcceptAutomationSemantics()
+    {
+        var window = new MainWindow(_ => Task.FromResult(CreateDocument()));
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+
+            var windowPeer = new WindowAutomationPeer(window);
+            Require(
+                windowPeer.GetAutomationControlType() == AutomationControlType.Window &&
+                string.Equals(
+                    windowPeer.GetName(),
+                    ProductIdentity.Current.WindowTitle,
+                    StringComparison.Ordinal),
+                "the production window did not expose its current accessible identity");
+
+            var refreshPeer = new ButtonAutomationPeer(window.RefreshButton);
+            Require(
+                refreshPeer.GetAutomationControlType() == AutomationControlType.Button &&
+                string.Equals(
+                    refreshPeer.GetName(),
+                    "Refresh connected devices",
+                    StringComparison.Ordinal) &&
+                refreshPeer.GetPattern(PatternInterface.Invoke) is IInvokeProvider,
+                "Refresh did not expose the expected accessible button/invoke contract");
+
+            var listPeer = new ListBoxAutomationPeer(window.DeviceCards);
+            Require(
+                listPeer.GetAutomationControlType() == AutomationControlType.List &&
+                string.Equals(
+                    listPeer.GetName(),
+                    "Connected device candidates",
+                    StringComparison.Ordinal) &&
+                listPeer.GetPattern(PatternInterface.Selection) is ISelectionProvider selectionProvider &&
+                !selectionProvider.CanSelectMultiple &&
+                !selectionProvider.IsSelectionRequired,
+                "the connected-device surface did not expose single optional selection");
+
+            var firstDevice = (LoaderDeviceCard)window.DeviceCards.Items[0];
+            var listChildren = listPeer.GetChildren();
+            Require(listChildren is { Count: 3 },
+                "the connected-device list did not expose three item peers");
+            var firstCardPeer = listChildren![0];
+            var selectionItem = firstCardPeer.GetPattern(
+                PatternInterface.SelectionItem) as ISelectionItemProvider;
+            Require(
+                firstCardPeer.GetAutomationControlType() == AutomationControlType.ListItem &&
+                string.Equals(
+                    firstCardPeer.GetName(),
+                    firstDevice.AccessibleSummary,
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    firstCardPeer.GetHelpText(),
+                    firstDevice.FlashHelpText,
+                    StringComparison.Ordinal) &&
+                selectionItem is not null,
+                "the connected-device item did not expose its validated summary, blockers, and selection pattern");
+            Require(
+                !firstCardPeer.GetName().Contains(
+                    firstDevice.Candidate,
+                    StringComparison.Ordinal) &&
+                !firstCardPeer.GetHelpText().Contains(
+                    firstDevice.Candidate,
+                    StringComparison.Ordinal),
+                "the connected-device item exposed its internal candidate ordinal");
+            selectionItem!.Select();
+            Require(
+                window.DeviceCards.SelectedIndex == 0 &&
+                window.SelectFirmwareButton.IsEnabled,
+                "accessible item selection did not reach the bounded current-device workflow");
+
+            RequireLiveRegion(
+                window.SummaryText,
+                AutomationLiveSetting.Polite,
+                window.SummaryText.Text,
+                "inspection summary");
+            RequireLiveRegion(
+                window.NoticeText,
+                AutomationLiveSetting.Off,
+                window.NoticeText.Text,
+                "safety notice");
+            RequireLiveRegion(
+                window.SelectionText,
+                AutomationLiveSetting.Polite,
+                window.SelectionText.Text,
+                "device selection status");
+            RequireLiveRegion(
+                window.BundleSummaryText,
+                AutomationLiveSetting.Polite,
+                window.BundleSummaryText.Text,
+                "bundle status");
+
+            const string acceptanceError =
+                "Acceptance-only inspection error message";
+            window.ErrorText.Text = acceptanceError;
+            RequireLiveRegion(
+                window.ErrorText,
+                AutomationLiveSetting.Assertive,
+                acceptanceError,
+                "inspection error");
+
+            var disabledFlashPeer = new ButtonAutomationPeer(
+                window.FlashSelectedButton);
+            Require(
+                !disabledFlashPeer.IsEnabled() &&
+                string.Equals(
+                    disabledFlashPeer.GetName(),
+                    "Flash selected device",
+                    StringComparison.Ordinal) &&
+                !string.IsNullOrWhiteSpace(disabledFlashPeer.GetHelpText()),
+                "the disabled Flash action did not expose its name and blocker help");
+            return 1;
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    private static void RequireLiveRegion(
+        TextBlock element,
+        AutomationLiveSetting expectedSetting,
+        string expectedName,
+        string label)
+    {
+        var peer = new TextBlockAutomationPeer(element);
+        Require(
+            AutomationProperties.GetLiveSetting(element) == expectedSetting &&
+            string.Equals(peer.GetName(), expectedName, StringComparison.Ordinal),
+            $"the {label} live region did not expose its current visible message");
     }
 
     private static int AcceptKeyboardNavigation()

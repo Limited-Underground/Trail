@@ -6,6 +6,24 @@ public chronology.
 
 ## 2026-08-13
 
+### Production-window automation-peer semantics
+
+- Inspected the actual UI Automation peers exposed by the production WPF
+  window. The first run found device list items announcing the CLR model type
+  with no blocker help, while mutable status regions exposed only fixed labels
+  instead of their current visible messages.
+- Moved validated device summary/help bindings onto each real `ListBoxItem`.
+  The three item peers now expose the expected list-item and selection-item
+  contracts, omit internal candidate ordinals from their name/help, and UI
+  Automation selection reaches only the existing bounded device-selection path.
+- Summary, safety notice, selection, bundle, and error peers now expose their
+  current visible messages with explicit supporting help. Refresh exposes the
+  Button/Invoke contract; the list exposes single optional selection; disabled
+  Flash remains disabled while exposing its name and blocker help.
+- The warning-free Windows suite now passes 53 groups. This is real
+  production-peer evidence, not proof of Narrator wording, timing, verbosity,
+  Braille output, or another assistive technology on a physical desktop.
+
 ### Production-window Tab focus acceptance
 
 - Opened a second real production `MainWindow` in the STA acceptance runner and

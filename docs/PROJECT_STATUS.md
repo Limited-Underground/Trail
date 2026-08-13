@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 52 independent C#
-document/identity/accessibility/production-window-refresh/selection/keyboard/high-DPI/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
+candidate cards. The application and 53 independent C#
+document/identity/accessibility/production-window-refresh/selection/keyboard/automation-peer/high-DPI/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -124,6 +124,14 @@ the enabled bounded bundle action, skips both disabled Flash actions, and cycles
 back to Refresh. The acceptance run found and removed noninteractive blocker
 content from the Tab sequence. Physical key injection, arrow-key selection,
 Narrator, and assistive-technology review remain unverified.
+The actual production UI Automation peers now expose the current public device
+summary and blocker help on each selectable list item, single optional
+selection on the list, Invoke on Refresh, and named/helpful disabled Flash
+controls. Summary, safety, selection, bundle, and error peers report their
+current visible message rather than a fixed label. UI Automation selection
+reaches the same bounded selection path; it cannot enable a writer. Narrator
+speech, announcement timing/verbosity, Braille, and other assistive-technology
+behavior remain separate gates.
 One pure selected-device matcher now compares hardware-profile ID, processor,
 product role, board-revision range, minimum bootloader schema, and image-size
 capacity from the inspected manifest against a separate authoritative

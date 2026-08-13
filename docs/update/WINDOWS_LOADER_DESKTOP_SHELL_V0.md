@@ -11,8 +11,8 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Fifty-two document, identity-safeguard, accessibility,
-production-window refresh/selection/keyboard/high-DPI/contrast-theme, snapshot-binding/device-match,
+Windows host. Fifty-three document, identity-safeguard, accessibility,
+production-window refresh/selection/keyboard/automation-peer/high-DPI/contrast-theme, snapshot-binding/device-match,
 process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
 packaged-inspection scenario groups pass. The source-free built-in C# path
 reports `3 USB candidates found · 3
@@ -45,6 +45,18 @@ found noninteractive blocker content in the Tab sequence. That `ItemsControl`
 is now nonfocusable and the device list is one Tab group, so disabled Flash
 actions are skipped. This is focus-manager evidence, not physical key injection,
 arrow-key selection, Narrator, or assistive-technology acceptance.
+
+The same production window now has direct UI Automation peer acceptance.
+Device metadata is attached to each selectable `ListBoxItem`, not its inner
+visual border. The actual three item peers expose validated public summaries,
+blocker help, list-item control type, and selection-item pattern without putting
+their internal candidate ordinals in the item name or help. Refresh exposes a
+named Button/Invoke contract; the device surface exposes single optional
+selection; disabled Flash exposes its name/help while remaining unavailable.
+Summary, safety, selection, bundle, and error peers expose their current visible
+messages instead of fixed labels when live-region events are raised. This is
+automation-peer evidence; Narrator announcement timing, wording, verbosity,
+Braille output, and other assistive technologies remain untested.
 
 When the repository inspection script is unavailable, the same application now
 uses Windows SetupAPI directly instead of the laptop's access-denied CIM/PnP

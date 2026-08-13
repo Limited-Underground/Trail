@@ -1005,6 +1005,8 @@ try
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedThemeProfiles} deterministic contrast profile");
     Console.WriteLine(
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedKeyboardPaths} keyboard focus path");
+    Console.WriteLine(
+        $"INFO: production Windows loader accepted {windowAcceptance.AcceptedAutomationPaths} automation-peer path");
     foreach (var visualFile in windowAcceptance.RenderedFiles)
     {
         Console.WriteLine($"INFO: rendered Windows loader fixture {visualFile}");
@@ -1022,5 +1024,5 @@ if (failures != 0)
     return 1;
 }
 
-Console.WriteLine("PASS: 52 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/keyboard/high-DPI/contrast-theme, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
+Console.WriteLine("PASS: 53 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/keyboard/automation-peer/high-DPI/contrast-theme, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
 return 0;
