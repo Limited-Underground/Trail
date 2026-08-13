@@ -6,6 +6,29 @@ public chronology.
 
 ## 2026-08-13
 
+### In-window theme-transition state and focus acceptance
+
+- Exercised the shown 900×620 production `MainWindow` through classic →
+  deterministic high contrast → classic using the same dynamic-resource path
+  as the application theme owner. The last wrapped device remained selected
+  and keyboard-focused at the same vertical scroll offset; its UI Automation
+  name, enabled bounded bundle action, disabled Flash action, and zero-ready
+  summary also remained intact.
+- Assigned the explicit accessible focus visual to each selectable device
+  container. Pixel review of the first transition render found that yellow was
+  serving both as the high-contrast focus color and the selected-card outline.
+  Focus is now white while selection remains yellow, preserving two distinct
+  semantic cues in the deterministic palette.
+- The first opt-in live-refresh rerun then found that an eager focus-style
+  resource prevented the supported pre-application fixture window from loading.
+  The item style now resolves that application resource dynamically, retaining
+  the production visual while keeping both construction paths valid.
+- Fixed classic and high-contrast transition renders were reviewed at the
+  minimum layout, and the warning-free Windows suite now passes 54 groups.
+  This is in-window WPF resource/state evidence; no Windows theme setting was
+  changed, so real accessibility notification timing, every system/custom
+  theme, physical input, and Narrator remain separate gates.
+
 ### Wrapped-layout device keyboard navigation
 
 - Exercised routed production-window keyboard events against both the wide

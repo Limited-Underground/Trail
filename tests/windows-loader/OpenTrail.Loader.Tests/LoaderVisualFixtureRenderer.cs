@@ -16,6 +16,7 @@ internal sealed record LoaderWindowAcceptanceResult(
     int SuccessfulRefreshes,
     int AcceptedDpiProfiles,
     int AcceptedThemeProfiles,
+    int AcceptedThemeTransitions,
     int AcceptedKeyboardPaths,
     int AcceptedAutomationPaths,
     IReadOnlyList<string> RenderedFiles);
@@ -104,6 +105,7 @@ internal static class LoaderVisualFixtureRenderer
         var successfulRefreshes = 0;
         var acceptedDpiProfiles = 0;
         var acceptedThemeProfiles = 0;
+        var acceptedThemeTransitions = 0;
         var acceptedKeyboardPaths = 0;
         var acceptedAutomationPaths = 0;
         Exception? renderingFailure = null;
@@ -135,6 +137,10 @@ internal static class LoaderVisualFixtureRenderer
                     acceptedThemeProfiles = AcceptThemeProfiles(
                         app,
                         window,
+                        outputDirectory,
+                        renderedFiles);
+                    acceptedThemeTransitions = AcceptThemeTransition(
+                        app,
                         outputDirectory,
                         renderedFiles);
                     acceptedKeyboardPaths = AcceptKeyboardNavigation();
@@ -192,9 +198,125 @@ internal static class LoaderVisualFixtureRenderer
             successfulRefreshes,
             acceptedDpiProfiles,
             acceptedThemeProfiles,
+            acceptedThemeTransitions,
             acceptedKeyboardPaths,
             acceptedAutomationPaths,
             renderedFiles);
+    }
+
+    private static int AcceptThemeTransition(
+        App app,
+        string? outputDirectory,
+        ICollection<string> renderedFiles)
+    {
+        var window = new MainWindow(_ => Task.FromResult(CreateDocument()));
+        try
+        {
+            app.ApplyThemeForAcceptance(
+                LoaderThemeResources.CreateClassicPalette());
+            window.Show();
+            window.Width = window.MinWidth;
+            window.Height = window.MinHeight;
+            window.UpdateLayout();
+            window.DeviceCards.SelectedIndex = 2;
+            var selectedItem = ContainerAt(window, 2);
+            selectedItem.BringIntoView();
+            _ = selectedItem.Focus();
+            window.ContentScroll.ScrollToEnd();
+            window.UpdateLayout();
+
+            var selectedDevice = (LoaderDeviceCard)window.DeviceCards.SelectedItem;
+            var originalOffset = window.ContentScroll.VerticalOffset;
+            Require(
+                originalOffset > 0 &&
+                ReferenceEquals(Keyboard.FocusedElement, selectedItem) &&
+                selectedItem.FocusVisualStyle is not null &&
+                window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled,
+                "classic theme transition fixture did not establish focused safe state");
+
+            if (outputDirectory is not null)
+            {
+                renderedFiles.Add(SaveBitmap(
+                    RenderBitmap(window, 900, 620, 1.0),
+                    outputDirectory,
+                    "loader-focus-classic-900x620.png"));
+            }
+
+            app.ApplyThemeForAcceptance(
+                LoaderThemeResources.CreateDeterministicHighContrastPalette());
+            window.UpdateLayout();
+            RequireThemeState(
+                app,
+                window,
+                selectedItem,
+                selectedDevice,
+                originalOffset,
+                "deterministic-high-contrast",
+                Colors.White);
+            if (outputDirectory is not null)
+            {
+                renderedFiles.Add(SaveBitmap(
+                    RenderBitmap(window, 900, 620, 1.0),
+                    outputDirectory,
+                    "loader-focus-high-contrast-900x620.png"));
+            }
+
+            app.ApplyThemeForAcceptance(
+                LoaderThemeResources.CreateClassicPalette());
+            window.UpdateLayout();
+            RequireThemeState(
+                app,
+                window,
+                selectedItem,
+                selectedDevice,
+                originalOffset,
+                "classic",
+                Colors.Black);
+            return 1;
+        }
+        finally
+        {
+            app.ApplyThemeForAcceptance(
+                LoaderThemeResources.CreateClassicPalette());
+            window.Close();
+        }
+    }
+
+    private static void RequireThemeState(
+        App app,
+        MainWindow window,
+        ListBoxItem selectedItem,
+        LoaderDeviceCard selectedDevice,
+        double expectedOffset,
+        string expectedMode,
+        Color expectedFocusColor)
+    {
+        var listPeer = new ListBoxAutomationPeer(window.DeviceCards);
+        var itemPeers = listPeer.GetChildren();
+        Require(
+            string.Equals(
+                app.Resources[LoaderThemeResources.ThemeModeResourceKey]
+                    as string,
+                expectedMode,
+                StringComparison.Ordinal) &&
+            BrushColor(
+                app.Resources["FocusBrush"] as Brush,
+                $"{expectedMode} focus brush") == expectedFocusColor &&
+            ReferenceEquals(window.DeviceCards.SelectedItem, selectedDevice) &&
+            ReferenceEquals(Keyboard.FocusedElement, selectedItem) &&
+            Math.Abs(window.ContentScroll.VerticalOffset - expectedOffset) < 0.5 &&
+            window.SelectFirmwareButton.IsEnabled &&
+            !window.FlashSelectedButton.IsEnabled &&
+            window.SummaryText.Text.Contains(
+                "0 ready to flash",
+                StringComparison.Ordinal) &&
+            itemPeers is { Count: 3 } &&
+            string.Equals(
+                itemPeers[2].GetName(),
+                selectedDevice.AccessibleSummary,
+                StringComparison.Ordinal),
+            $"{expectedMode} transition did not preserve focus, selection, scroll, automation, and safe state");
     }
 
     private static int AcceptAutomationSemantics()

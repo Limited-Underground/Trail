@@ -93,7 +93,7 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 53 independent C#
+candidate cards. The application and 54 independent C#
 document/identity/accessibility/production-window-refresh/selection/keyboard/automation-peer/high-DPI/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
@@ -138,6 +138,15 @@ current visible message rather than a fixed label. UI Automation selection
 reaches the same bounded selection path; it cannot enable a writer. Narrator
 speech, announcement timing/verbosity, Braille, and other assistive-technology
 behavior remain separate gates.
+The same shown minimum-size production window now also survives an in-window
+classic-to-deterministic-high-contrast-to-classic resource transition with the
+same wrapped card selected and keyboard-focused, the same scroll offset and
+accessible item name, bundle selection enabled, Flash disabled, and the
+zero-ready summary intact. An explicit list-item focus visual is assigned. The
+first transition render used yellow for both focus and selection; focus is now
+white while the selected outline remains yellow. This is deterministic WPF
+state and render evidence, not proof of an actual Windows theme-setting change
+or focus appearance under every built-in or customized contrast theme.
 One pure selected-device matcher now compares hardware-profile ID, processor,
 product role, board-revision range, minimum bootloader schema, and image-size
 capacity from the inspected manifest against a separate authoritative

@@ -132,6 +132,7 @@
                             <Setter Property="Background" Value="Transparent" />
                             <Setter Property="BorderThickness" Value="0" />
                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="FocusVisualStyle" Value="{DynamicResource AccessibleFocusVisual}" />
                             <Setter Property="AutomationProperties.Name" Value="{Binding AccessibleSummary}" />
                             <Setter Property="AutomationProperties.HelpText" Value="{Binding FlashHelpText}" />
                         </Style>

@@ -130,7 +130,7 @@ internal static class LoaderThemeResources
             SelectedSurface: Brushes.Black,
             SelectedBorder: Brushes.Yellow,
             DisabledText: Brushes.Yellow,
-            Focus: Brushes.Yellow,
+            Focus: Brushes.White,
             ButtonFace: Brushes.Black,
             ButtonText: Brushes.White,
             ButtonBorder: Brushes.White,

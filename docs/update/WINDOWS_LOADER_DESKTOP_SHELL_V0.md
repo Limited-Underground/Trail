@@ -11,7 +11,7 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Fifty-three document, identity-safeguard, accessibility,
+Windows host. Fifty-four document, identity-safeguard, accessibility,
 production-window refresh/selection/keyboard/automation-peer/high-DPI/contrast-theme, snapshot-binding/device-match,
 process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
 packaged-inspection scenario groups pass. The source-free built-in C# path
@@ -26,7 +26,7 @@ rendered-layout evidence at desktop and minimum window sizes plus deterministic
 125%, 150%, and 200% scaled rendering plus one deterministic contrast profile.
 Three consecutive production-window reads through the packaged Windows
 USB/runtime adapter now pass on the current host with all three bench candidates
-and zero ready to flash. Real keyboard, Narrator, live Windows contrast-theme
+and zero ready to flash. Physical keyboard input, Narrator, live Windows contrast-theme
 switching, visible mouse-driven repeated refresh, and clean-machine acceptance
 remain separate gates.
 
@@ -208,6 +208,19 @@ selection, and scroll access, and rejects blank output. Pixel review at 900×620
 accepts the selected yellow border, status/safety copy, bundle blocker,
 safe-mode boundary, and both footer labels. This does not replace live testing
 with every built-in or user-customized Windows contrast theme.
+
+A second shown-window scenario establishes the selected last wrapped card as
+the keyboard-focused item, scrolls it into view, and then applies classic →
+deterministic high contrast → classic without recreating the window. Each
+transition must preserve the exact selected model and focused container,
+vertical scroll offset, accessible item name, enabled bounded bundle action,
+disabled Flash action, and zero-ready summary. Each selectable container now
+uses the explicit accessible focus visual. Review of the first high-contrast
+transition render found focus and selection both using yellow; the
+deterministic focus brush is now white while the selected outline remains
+yellow. The fixed minimum-size classic and high-contrast renders were reviewed.
+This proves in-window dynamic-resource and state preservation only; the run did
+not change the Windows theme setting or observe real OS notification timing.
 
 ## Production-window refresh state evidence
 
