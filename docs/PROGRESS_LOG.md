@@ -6,6 +6,33 @@ public chronology.
 
 ## 2026-08-13
 
+### Production-window repeated refresh/selection state acceptance
+
+- Added an internal dependency seam that preserves the public WPF constructor
+  while allowing the production window to consume a controlled, validated,
+  read-only inspection source during host acceptance. No test-only transport,
+  writer, reset, or device authority enters the application.
+- The real `MainWindow` now completes three refresh/selection cycles in one STA
+  session. Each refresh republishes three cards, clears the prior selection,
+  disables bundle selection until one current card is selected, restores the
+  Refresh control, and preserves the zero-ready-to-flash summary. Each new
+  selection re-enables only bounded local bundle inspection and binds its
+  visible status to that current card.
+- The cycle exposed one stale footer message: after inspection succeeded but
+  before a card was selected, it still said device inspection was pending. The
+  production window now shows `No firmware bundle selected`, then switches to
+  current-device wording only after selection.
+- The warning-free Windows suite now passes 49 scenario groups, and the live
+  read-only precheck still reports two Heltec companions plus one SenseCAP
+  repeater, three runtime-identified and zero ready to flash. Real clicking,
+  keyboard traversal, and live repeated-refresh acceptance remain explicitly
+  open rather than inferred from this deterministic result.
+- A fresh 464-file self-contained `win-x64` engineering package independently
+  passed manifest/hash and source-free launch verification. It is 72,098,580
+  bytes with SHA-256
+  `A47CAE1B13F99598927FE26D6F5D5EA61BE2950674ABD599FBC9468E6ED3CC60`;
+  it remains local, ignored, inspection-only, and not a public release.
+
 ### Deterministic Windows loader rendered-layout acceptance
 
 - Added an opt-in STA WPF renderer to the existing warning-free loader test

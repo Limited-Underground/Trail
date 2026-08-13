@@ -8,7 +8,8 @@ namespace OpenTrail.Loader;
 
 public partial class MainWindow : Window
 {
-    private readonly LoaderInspectionService _inspection = new();
+    private readonly Func<CancellationToken, Task<LoaderInspectionDocument>>
+        _refreshInspection;
     private readonly LoaderRefreshAuthority _refreshAuthority = new();
     private readonly LoaderCandidateBundleAuthority _bundleAuthority = new();
     private readonly LoaderDeviceSelectionAuthority _deviceSelection = new();
@@ -16,7 +17,15 @@ public partial class MainWindow : Window
     private bool _suppressSelectionChanged;
 
     public MainWindow()
+        : this(new LoaderInspectionService().RefreshAsync)
     {
+    }
+
+    internal MainWindow(
+        Func<CancellationToken, Task<LoaderInspectionDocument>> refreshInspection)
+    {
+        _refreshInspection = refreshInspection ??
+            throw new ArgumentNullException(nameof(refreshInspection));
         DataContext = ProductIdentity.Current;
         InitializeComponent();
         Loaded += async (_, _) => await RefreshAsync();
@@ -149,7 +158,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var document = await _inspection.RefreshAsync(_refreshCancellation.Token);
+            var document = await _refreshInspection(_refreshCancellation.Token);
             if (!_refreshAuthority.CanPublish(refreshRevision))
             {
                 return;
@@ -181,6 +190,8 @@ public partial class MainWindow : Window
             }
         }
     }
+
+    internal Task RefreshForAcceptanceAsync() => RefreshAsync();
 
     internal ulong BeginDisplayRefresh()
     {
@@ -220,6 +231,10 @@ public partial class MainWindow : Window
         SelectionText.Text = document.Devices.Count == 0
             ? "No connected device is available for selection."
             : "Select one connected device to continue. Selection is not Flash permission.";
+        ResetBundleDisplay(
+            "No firmware bundle selected",
+            "Select one current connected device before choosing a bundle.",
+            "BLOCKED: One current device selection is required.");
         RaiseLiveRegionChanged(SummaryText);
         RaiseLiveRegionChanged(SelectionText);
     }

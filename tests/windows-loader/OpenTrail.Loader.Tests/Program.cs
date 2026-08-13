@@ -955,7 +955,10 @@ catch (InvalidDataException)
 
 try
 {
-    foreach (var visualFile in LoaderVisualFixtureRenderer.RenderIfRequested())
+    var windowAcceptance = LoaderVisualFixtureRenderer.Run();
+    Console.WriteLine(
+        $"INFO: production Windows loader completed {windowAcceptance.SuccessfulRefreshes} controlled refresh/selection cycles");
+    foreach (var visualFile in windowAcceptance.RenderedFiles)
     {
         Console.WriteLine($"INFO: rendered Windows loader fixture {visualFile}");
     }
@@ -972,5 +975,5 @@ if (failures != 0)
     return 1;
 }
 
-Console.WriteLine("PASS: 48 Windows loader document, identity-safeguard, accessibility, refresh/selection/snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
+Console.WriteLine("PASS: 49 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
 return 0;

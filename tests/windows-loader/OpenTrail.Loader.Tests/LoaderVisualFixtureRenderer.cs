@@ -6,56 +6,70 @@ using System.Windows.Media.Imaging;
 
 namespace OpenTrail.Loader;
 
+internal sealed record LoaderWindowAcceptanceResult(
+    int SuccessfulRefreshes,
+    IReadOnlyList<string> RenderedFiles);
+
 internal static class LoaderVisualFixtureRenderer
 {
     private const string OutputEnvironmentVariable = "OT_LOADER_VISUAL_OUTPUT";
 
-    internal static IReadOnlyList<string> RenderIfRequested()
+    internal static LoaderWindowAcceptanceResult Run()
     {
         var outputDirectory = Environment.GetEnvironmentVariable(
             OutputEnvironmentVariable);
-        if (string.IsNullOrWhiteSpace(outputDirectory))
-        {
-            return [];
-        }
+        outputDirectory = string.IsNullOrWhiteSpace(outputDirectory)
+            ? null
+            : outputDirectory;
 
         var renderedFiles = new List<string>();
+        var successfulRefreshes = 0;
         Exception? renderingFailure = null;
         var thread = new Thread(() =>
         {
             try
             {
-                Directory.CreateDirectory(outputDirectory);
+                if (outputDirectory is not null)
+                {
+                    Directory.CreateDirectory(outputDirectory);
+                }
                 var app = new App();
                 app.InitializeComponent();
 
-                var window = new MainWindow();
+                var refreshCalls = 0;
+                var window = new MainWindow(_ =>
+                {
+                    refreshCalls++;
+                    return Task.FromResult(CreateDocument());
+                });
                 try
                 {
-                    _ = window.BeginDisplayRefresh();
-                    window.PublishInspectionDocumentForDisplay(CreateDocument());
-                    window.DeviceCards.SelectedIndex = 1;
+                    RunRefreshCycles(window);
+                    successfulRefreshes = refreshCalls;
 
-                    renderedFiles.Add(Render(
-                        window,
-                        outputDirectory,
-                        "loader-desktop-1600x900.png",
-                        1600,
-                        900));
-                    renderedFiles.Add(Render(
-                        window,
-                        outputDirectory,
-                        "loader-minimum-900x620.png",
-                        900,
-                        620));
-                    window.ContentScroll.ScrollToEnd();
-                    window.ContentScroll.UpdateLayout();
-                    renderedFiles.Add(Render(
-                        window,
-                        outputDirectory,
-                        "loader-minimum-scrolled-900x620.png",
-                        900,
-                        620));
+                    if (outputDirectory is not null)
+                    {
+                        renderedFiles.Add(Render(
+                            window,
+                            outputDirectory,
+                            "loader-desktop-1600x900.png",
+                            1600,
+                            900));
+                        renderedFiles.Add(Render(
+                            window,
+                            outputDirectory,
+                            "loader-minimum-900x620.png",
+                            900,
+                            620));
+                        window.ContentScroll.ScrollToEnd();
+                        window.ContentScroll.UpdateLayout();
+                        renderedFiles.Add(Render(
+                            window,
+                            outputDirectory,
+                            "loader-minimum-scrolled-900x620.png",
+                            900,
+                            620));
+                    }
                 }
                 finally
                 {
@@ -78,7 +92,60 @@ internal static class LoaderVisualFixtureRenderer
                 renderingFailure);
         }
 
-        return renderedFiles;
+        return new(successfulRefreshes, renderedFiles);
+    }
+
+    private static void RunRefreshCycles(MainWindow window)
+    {
+        for (var cycle = 0; cycle < 3; cycle++)
+        {
+            window.RefreshForAcceptanceAsync().GetAwaiter().GetResult();
+            Require(window.DeviceCards.Items.Count == 3,
+                $"refresh cycle {cycle + 1} did not publish three cards");
+            Require(window.DeviceCards.SelectedItem is null,
+                $"refresh cycle {cycle + 1} retained a stale device selection");
+            Require(!window.SelectFirmwareButton.IsEnabled,
+                $"refresh cycle {cycle + 1} enabled bundle selection without a device");
+            Require(window.RefreshButton.IsEnabled &&
+                string.Equals(
+                    window.RefreshButton.Content as string,
+                    "Refresh devices",
+                    StringComparison.Ordinal),
+                $"refresh cycle {cycle + 1} did not restore Refresh");
+            Require(string.Equals(
+                    window.SummaryText.Text,
+                    "3 found · 3 inspected · 0 ready to flash",
+                    StringComparison.Ordinal),
+                $"refresh cycle {cycle + 1} published the wrong summary");
+            Require(string.Equals(
+                    window.BundleSummaryText.Text,
+                    "No firmware bundle selected",
+                    StringComparison.Ordinal),
+                $"refresh cycle {cycle + 1} retained stale bundle status");
+
+            window.DeviceCards.SelectedIndex = (cycle + 1) % 3;
+            Require(window.DeviceCards.SelectedItem is LoaderDeviceCard,
+                $"refresh cycle {cycle + 1} could not select a current card");
+            Require(window.SelectFirmwareButton.IsEnabled,
+                $"refresh cycle {cycle + 1} did not enable bounded bundle selection");
+            Require(window.SelectionText.Text.StartsWith(
+                    "Selected:",
+                    StringComparison.Ordinal),
+                $"refresh cycle {cycle + 1} did not publish selected status");
+            Require(string.Equals(
+                    window.BundleSummaryText.Text,
+                    "No firmware bundle selected for the current device",
+                    StringComparison.Ordinal),
+                $"refresh cycle {cycle + 1} did not bind bundle status to the selection");
+        }
+    }
+
+    private static void Require(bool condition, string message)
+    {
+        if (!condition)
+        {
+            throw new InvalidOperationException(message);
+        }
     }
 
     private static string Render(

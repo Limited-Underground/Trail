@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 48 independent C#
-document/identity/accessibility/refresh/selection/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
+candidate cards. The application and 49 independent C#
+document/identity/accessibility/production-window-refresh/selection/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -165,8 +165,8 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,098,432 bytes with SHA-256
-`96720DD25C63151F303522A07D93D65315CC2CC0ED380BEF62D159A47B92CDC6`.
+The newest verified 464-file archive is 72,098,580 bytes with SHA-256
+`A47CAE1B13F99598927FE26D6F5D5EA61BE2950674ABD599FBC9468E6ED3CC60`.
 This is local package evidence only: no installer lifecycle, clean-machine,
 code-signing, distribution, or public-release claim exists.
 Deterministic production-XAML renders have been reviewed at 1600×900 and the
@@ -174,7 +174,13 @@ Deterministic production-XAML renders have been reviewed at 1600×900 and the
 transparent content root and horizontal card clipping; all three cards remain
 reachable and disabled Flash labels remain readable. Keyboard/Narrator,
 high-DPI/system-theme, repeated live-refresh, installer/clean-machine, and real
-assistive-technology acceptance remain unverified. The validation workflow now builds every WPF and
+assistive-technology acceptance remain unverified.
+The production window also passes three controlled refresh/selection cycles
+against a validated read-only source. Each cycle clears the previous card and
+bundle state, restores Refresh, republishes all three candidates, and requires
+a new current selection before bounded bundle inspection becomes available.
+This fixed stale post-inspection footer wording but does not prove real Windows
+input or repeated live USB refresh. The validation workflow now builds every WPF and
 test intermediate/output tree under one unique, verified system-temporary
 directory and removes that exact directory afterward. This prevents stale or
 protected development artifacts from blocking the warning-free app build and

@@ -11,8 +11,9 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Forty-eight document, identity-safeguard, accessibility,
-refresh/selection/snapshot-binding/device-match, process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
+Windows host. Forty-nine document, identity-safeguard, accessibility,
+production-window refresh/selection, snapshot-binding/device-match,
+process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
 packaged-inspection scenario groups pass. The source-free built-in C# path
 reports `3 USB candidates found · 3
 runtime-identified · 0 ready to flash`: two assembled Heltec V4 OLED GPS bench
@@ -135,6 +136,27 @@ It is not evidence of mouse/keyboard operation, focus traversal, Narrator live
 announcements, Windows scaling above 100%, alternate system themes, repeated
 live refresh behavior, or clean-machine operation.
 
+## Production-window refresh state evidence
+
+The public `MainWindow` constructor and packaged inspection source remain
+unchanged. An internal constructor can supply a controlled validated read-only
+inspection function to the same production window during host acceptance. The
+acceptance runner performs three refresh/selection cycles in one STA session.
+Every refresh must republish the three cards, clear the previous selection,
+disable bundle selection until a current card is selected, restore the Refresh
+button, preserve the zero-ready summary, and discard the selection-bound bundle
+footer. Every subsequent selection must enable only bounded local bundle
+inspection and publish current-device wording.
+
+That production-window run found one stale presentation state: after a
+successful inspection but before device selection, the bundle footer retained
+the earlier `waiting for device inspection` message. Successful publication now
+sets `No firmware bundle selected` with an explicit current-device-selection
+blocker. Selecting a card then changes to the selection-bound wording. Three
+complete cycles pass. This is deterministic production-window state evidence;
+it does not substitute for visible mouse/keyboard input, real repeated USB
+refresh, Narrator, or clean-machine acceptance.
+
 The visible application identity is now composed from one C# boundary rather
 than embedded throughout XAML and inspection copy. Its preliminary working
 display is `Limited Underground Trail Device Utility`, accompanied by a visible
@@ -251,9 +273,9 @@ packaged executable:
 .\tools\Test-WindowsDeviceUtilityPackage.ps1 -ArchivePath <path-to-zip>
 ```
 
-The current retained package has 464 payload files and is 72,098,432 bytes. Its
+The current retained package has 464 payload files and is 72,098,580 bytes. Its
 SHA-256 is
-`96720DD25C63151F303522A07D93D65315CC2CC0ED380BEF62D159A47B92CDC6`.
+`A47CAE1B13F99598927FE26D6F5D5EA61BE2950674ABD599FBC9468E6ED3CC60`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the
