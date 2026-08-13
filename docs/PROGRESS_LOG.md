@@ -8,9 +8,12 @@ public chronology.
 
 ### Shown-window wide/minimum/wide resize transition
 
-- Added a deterministic transition on the real shown production window from
-  1120×760 to the 900×620 minimum and back. Three 330-pixel cards move from one
-  row to the expected two-plus-one wrap and then return to one row.
+- Added a deterministic transition on the real shown production window from an
+  effective wide size to the 900×620 minimum and back. Geometry must match the
+  realized host capacity, and both window width and content viewport must change
+  materially then restore. On the local 1920×1080 display, the exact
+  1120×760 → 900×620 → 1120×760 run moves three 330-pixel cards from one row to
+  the expected two-plus-one wrap and then returns to one row.
 - The same last-card model, selected index, and generated keyboard-focused
   `ListBoxItem` must survive both transitions. The stricter unassisted run found
   minimum-size reflow could leave it below the viewport and drop keyboard

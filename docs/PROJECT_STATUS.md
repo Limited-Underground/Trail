@@ -151,10 +151,13 @@ first transition render used yellow for both focus and selection; focus is now
 white while the selected outline remains yellow. This is deterministic WPF
 state and render evidence, not proof of an actual Windows theme-setting change
 or focus appearance under every built-in or customized contrast theme.
-A separate shown-window resize transition starts at 1120×760, moves to the
-900×620 production minimum, and returns to 1120×760. The three current cards
-move from one row to a two-plus-one wrap and back while the same last card and
-generated container remain selected and keyboard-focused. After
+A separate shown-window resize transition requests 1120×760, moves to the
+900×620 production minimum, and returns to its effective shown size. Each host
+must expose room for at least two cards; geometry must match the realized
+capacity before and after the material resize. On the local 1920×1080 display,
+the exact 1120×760 → 900×620 → 1120×760 run moves all three cards from one row
+to a two-plus-one wrap and back while the same last card and generated container
+remain selected and keyboard-focused. After
 one initial `BringIntoView`, the first stricter run found minimum-size reflow
 could leave that card below the viewport and drop its focus. The window now
 defers until resized layout settles, verifies the selection is still current,

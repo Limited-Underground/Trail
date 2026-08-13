@@ -222,9 +222,12 @@ yellow. The fixed minimum-size classic and high-contrast renders were reviewed.
 This proves in-window dynamic-resource and state preservation only; the run did
 not change the Windows theme setting or observe real OS notification timing.
 
-A third shown-window scenario starts at 1120×760, resizes to the 900×620
-production minimum, and returns to 1120×760. The three current 330-pixel cards
-must form one row, then the expected two-plus-one wrap, then one row again. The
+A third shown-window scenario requests 1120×760, resizes to the 900×620
+production minimum, and returns to the effective size Windows realized for the
+host work area. At least two 330-pixel cards must fit; each settled geometry must
+match that realized capacity, and the window/viewport must change materially
+then restore. On the local 1920×1080 display, the exact 1120×760 → 900×620 →
+1120×760 observation is one row → two-plus-one → one row. The
 same last-card model, selected index, and generated keyboard-focused
 `ListBoxItem` must survive. After one initial `BringIntoView`, the stricter run
 found minimum reflow could leave the selected card below the viewport and drop

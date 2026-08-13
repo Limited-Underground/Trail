@@ -289,6 +289,11 @@ internal static class LoaderVisualFixtureRenderer
 
     private static int AcceptShownResizeTransition(MainWindow window)
     {
+        window.WindowStartupLocation = WindowStartupLocation.Manual;
+        window.Left = SystemParameters.VirtualScreenLeft;
+        window.Top = SystemParameters.VirtualScreenTop;
+        window.Width = 1120;
+        window.Height = 760;
         window.Show();
         window.Dispatcher.Invoke(
             DispatcherPriority.ApplicationIdle,
@@ -302,12 +307,24 @@ internal static class LoaderVisualFixtureRenderer
         }
         Application.Current.MainWindow = window;
         Keyboard.ClearFocus();
-        window.Width = 1120;
-        window.Height = 760;
         window.UpdateLayout();
         window.DeviceCards.SelectedIndex = 2;
         var selectedDevice = (LoaderDeviceCard)window.DeviceCards.SelectedItem;
         var selectedItem = ContainerAt(window, 2);
+        var firstItem = ContainerAt(window, 0);
+        var middleItem = ContainerAt(window, 1);
+        var requiredOneRowWidth =
+            firstItem.ActualWidth + middleItem.ActualWidth + selectedItem.ActualWidth;
+        var requiredTwoCardWidth = firstItem.ActualWidth + middleItem.ActualWidth;
+        var wideExpectedWrapped =
+            window.DeviceCards.ActualWidth + 1 < requiredOneRowWidth;
+        Require(
+            window.DeviceCards.ActualWidth + 1 >= requiredTwoCardWidth,
+            $"the shown desktop could not fit two device cards " +
+            $"(available={window.DeviceCards.ActualWidth}, required={requiredTwoCardWidth})");
+        var initialActualWidth = window.ActualWidth;
+        var initialActualHeight = window.ActualHeight;
+        var initialViewportHeight = window.ContentScroll.ViewportHeight;
         _ = selectedItem.Focus();
         selectedItem.BringIntoView();
         window.UpdateLayout();
@@ -315,13 +332,19 @@ internal static class LoaderVisualFixtureRenderer
             window,
             selectedItem,
             selectedDevice,
-            expectWrapped: false,
+            expectWrapped: wideExpectedWrapped,
             "wide resize baseline");
 
         window.Width = window.MinWidth;
         window.Height = window.MinHeight;
         window.UpdateLayout();
         SettleResizeVisibility(window);
+        Require(
+            initialActualWidth - window.ActualWidth >= 50 &&
+            initialViewportHeight - window.ContentScroll.ViewportHeight >= 50,
+            $"minimum resize did not materially change the shown window " +
+            $"(width {initialActualWidth}->{window.ActualWidth}, viewport height " +
+            $"{initialViewportHeight}->{window.ContentScroll.ViewportHeight})");
         RequireShownResizeState(
             window,
             selectedItem,
@@ -329,16 +352,21 @@ internal static class LoaderVisualFixtureRenderer
             expectWrapped: true,
             "minimum wrapped resize");
 
-        window.Width = 1120;
-        window.Height = 760;
+        window.Width = initialActualWidth;
+        window.Height = initialActualHeight;
         window.UpdateLayout();
         SettleResizeVisibility(window);
         RequireShownResizeState(
             window,
             selectedItem,
             selectedDevice,
-            expectWrapped: false,
+            expectWrapped: wideExpectedWrapped,
             "restored wide resize");
+        Require(
+            Math.Abs(window.ActualWidth - initialActualWidth) <= 1 &&
+            Math.Abs(
+                window.ContentScroll.ViewportHeight - initialViewportHeight) <= 1,
+            "restored resize did not return to the initial shown dimensions");
 
         window.Width = window.MinWidth;
         window.Height = window.MinHeight;
