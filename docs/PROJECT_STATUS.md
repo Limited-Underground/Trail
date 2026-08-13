@@ -82,6 +82,13 @@ target role, revision range, minimum bootloader schema, maximum image size, and
 signed/candidate length before `ready_to_write`. Eight groups pass. This closes
 the host decision topology only; no result consumer, one-use invalidation,
 writer, target, or physical evidence exists.
+The first loader-facing presentation model now consumes the redacted live
+runtime snapshot and produces fixed, privacy-safe screen data. Its connected
+bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
+Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
+all firmware selection/write/recovery actions are disabled. Four groups pass.
+No Windows framework, rendered/accessibility evidence, refresh lifecycle,
+package, or writer exists.
 Read-only inspection and flash permission are distinct outcomes: a connected
 board can remain inspectable while incomplete or conflicting processor,
 flash/PSRAM, exact profile/revision, bootloader schema, or image-size evidence
@@ -101,7 +108,7 @@ exists. See the
 [firmware-bundle admission](update/FIRMWARE_BUNDLE_ADMISSION_V0.md),
 [final write admission](update/FIRMWARE_WRITE_ADMISSION_V0.md),
 [firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md), and
-[Windows USB candidate discovery](update/WINDOWS_USB_CANDIDATE_DISCOVERY_V0.md).
+[Windows loader inspection view](update/WINDOWS_LOADER_INSPECTION_VIEW_V0.md).
 
 The optional archive now has a host-tested client-side session boundary rather
 than only a concept. Explicit start/stop controls the existing current-fix-only

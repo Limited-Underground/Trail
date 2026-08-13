@@ -6,6 +6,24 @@ public chronology.
 
 ## 2026-08-12
 
+### Live Windows loader inspection view model
+
+- Added the future Windows loader's first presentation model on top of the
+  privacy-safe USB/runtime adapters. It emits fixed screen copy, candidate
+  cards, blocker explanations, action state, and aggregate counts without
+  exposing transport or device identity.
+- The live three-device result reads `3 found · 3 inspected · 0 ready to flash`
+  and presents one SenseCAP Solar MeshCore repeater plus two Heltec V4 OLED
+  MeshCore companions, all on the observed firmware build.
+- Refresh and Inspect are enabled. Select Firmware, Flash, Clean Install, and
+  Recovery are disabled with fixed reasons. The five unresolved board-evidence
+  gates are shown in plain language on each card.
+- Four scenario groups cover the live shape, private-field omission, generic
+  failure presentation, and fail-closed schema/permission handling. A rendered
+  Windows framework, accessible controls, refresh ownership/invalidation,
+  signed-bundle selection, writer, packaging, and visual/physical evidence
+  remain.
+
 ### Final firmware-write admission composition
 
 - Composed independent bundle admission and board/install preflight results
