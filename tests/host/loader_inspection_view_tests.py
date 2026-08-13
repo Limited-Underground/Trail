@@ -81,6 +81,18 @@ def test_three_device_view_is_clear_and_blocked() -> None:
         "known runtime candidates must explain the deliberate maintenance step",
     )
     expect(
+        all(profile["maintenance_attempt_limit"] == 1 for profile in profiles),
+        "maintenance profiling must allow at most one attempt per session",
+    )
+    expect(
+        all(profile["runtime_recovery_required_before_retry"] is True for profile in profiles),
+        "normal runtime recovery must be required before any later attempt",
+    )
+    expect(
+        all("ONE ATTEMPT PER SESSION" in profile["maintenance_caution"] for profile in profiles),
+        "recognized profiles must display the one-attempt recovery warning",
+    )
+    expect(
         not any(profile["authoritative_for_flash"] for profile in profiles),
         "hardware profile hints must never authorize flashing",
     )
@@ -120,6 +132,10 @@ def test_failed_or_unrecognized_runtime_gets_generic_card() -> None:
     expect(
         card["hardware_profile"]["maintenance_restart_required"] is False,
         "unknown hardware must not be offered an automatic maintenance restart",
+    )
+    expect(
+        card["hardware_profile"]["maintenance_attempt_limit"] == 0,
+        "unknown hardware must have no maintenance attempt authority",
     )
 
 

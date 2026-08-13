@@ -22,11 +22,20 @@ public sealed class LoaderHardwareProfileEvidence
     [JsonPropertyName("maintenance_restart_required")]
     public bool MaintenanceRestartRequired { get; init; }
 
+    [JsonPropertyName("maintenance_attempt_limit")]
+    public int MaintenanceAttemptLimit { get; init; }
+
+    [JsonPropertyName("runtime_recovery_required_before_retry")]
+    public bool RuntimeRecoveryRequiredBeforeRetry { get; init; }
+
+    [JsonPropertyName("maintenance_caution")]
+    public string MaintenanceCaution { get; init; } = string.Empty;
+
     [JsonPropertyName("authoritative_for_flash")]
     public bool AuthoritativeForFlash { get; init; }
 
     public string RestartDisplay => MaintenanceRestartRequired
-        ? "MAINTENANCE RESTART REQUIRED"
+        ? "MANUAL MAINTENANCE SESSION REQUIRED"
         : "RUNTIME IDENTIFICATION REQUIRED FIRST";
 }
 
@@ -53,8 +62,12 @@ internal static class LoaderHardwareProfileEvidenceResolver
                     PublishedBaseline =
                         "Heltec's V4 family documentation lists ESP32-S3R2, 16 MB external flash, SX1262, and a 0.96-inch OLED.",
                     NextStep =
-                        "Use a deliberate maintenance restart for processor, memory, and bootloader evidence; confirm the received revision separately.",
+                        "Use one supervised read-only maintenance attempt for processor, memory, and bootloader evidence; confirm the received revision separately.",
                     MaintenanceRestartRequired = true,
+                    MaintenanceAttemptLimit = 1,
+                    RuntimeRecoveryRequiredBeforeRetry = true,
+                    MaintenanceCaution =
+                        "ONE ATTEMPT PER SESSION. If automatic reset fails, stop. Do not try again until the USB cable has been reconnected when needed and normal runtime inspection succeeds.",
                     AuthoritativeForFlash = false,
                 },
             MeshCoreUsbRuntimeFamily.SenseCapSolarRepeater =>
@@ -67,8 +80,12 @@ internal static class LoaderHardwareProfileEvidenceResolver
                     PublishedBaseline =
                         "Seeed's Solar Node documentation lists XIAO nRF52840 Plus and Wio-SX1262; P1-Pro adds L76K GNSS.",
                     NextStep =
-                        "Use a deliberate DFU or bootloader session for low-level evidence; confirm the received P1/P1-Pro revision separately.",
+                        "Use one supervised read-only DFU or bootloader session for low-level evidence; confirm the received P1/P1-Pro revision separately.",
                     MaintenanceRestartRequired = true,
+                    MaintenanceAttemptLimit = 1,
+                    RuntimeRecoveryRequiredBeforeRetry = true,
+                    MaintenanceCaution =
+                        "ONE ATTEMPT PER SESSION. If maintenance entry fails, stop. Do not try again until normal USB enumeration and runtime inspection both succeed.",
                     AuthoritativeForFlash = false,
                 },
             _ => UnknownUsbDevice(),
@@ -85,6 +102,10 @@ internal static class LoaderHardwareProfileEvidenceResolver
             NextStep =
                 "Identify an allowlisted MeshCore runtime before offering any maintenance profiling step.",
             MaintenanceRestartRequired = false,
+            MaintenanceAttemptLimit = 0,
+            RuntimeRecoveryRequiredBeforeRetry = true,
+            MaintenanceCaution =
+                "MAINTENANCE BLOCKED. Runtime identity must succeed before any low-level session is considered.",
             AuthoritativeForFlash = false,
         };
 }

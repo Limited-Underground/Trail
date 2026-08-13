@@ -51,10 +51,17 @@ _HARDWARE_PROFILE_VIEW = {
             "flash, SX1262, and a 0.96-inch OLED."
         ),
         "next_step": (
-            "Use a deliberate maintenance restart for processor, memory, and "
+            "Use one supervised read-only maintenance attempt for processor, memory, and "
             "bootloader evidence; confirm the received revision separately."
         ),
         "maintenance_restart_required": True,
+        "maintenance_attempt_limit": 1,
+        "runtime_recovery_required_before_retry": True,
+        "maintenance_caution": (
+            "ONE ATTEMPT PER SESSION. If automatic reset fails, stop. Do not try "
+            "again until the USB cable has been reconnected when needed and normal "
+            "runtime inspection succeeds."
+        ),
         "authoritative_for_flash": False,
     },
     ("seeed_sensecap_solar", "meshcore_repeater"): {
@@ -68,10 +75,16 @@ _HARDWARE_PROFILE_VIEW = {
             "Wio-SX1262; P1-Pro adds L76K GNSS."
         ),
         "next_step": (
-            "Use a deliberate DFU or bootloader session for low-level evidence; "
+            "Use one supervised read-only DFU or bootloader session for low-level evidence; "
             "confirm the received P1/P1-Pro revision separately."
         ),
         "maintenance_restart_required": True,
+        "maintenance_attempt_limit": 1,
+        "runtime_recovery_required_before_retry": True,
+        "maintenance_caution": (
+            "ONE ATTEMPT PER SESSION. If maintenance entry fails, stop. Do not try "
+            "again until normal USB enumeration and runtime inspection both succeed."
+        ),
         "authoritative_for_flash": False,
     },
 }
@@ -90,6 +103,12 @@ _UNKNOWN_HARDWARE_PROFILE = {
         "profiling step."
     ),
     "maintenance_restart_required": False,
+    "maintenance_attempt_limit": 0,
+    "runtime_recovery_required_before_retry": True,
+    "maintenance_caution": (
+        "MAINTENANCE BLOCKED. Runtime identity must succeed before any low-level "
+        "session is considered."
+    ),
     "authoritative_for_flash": False,
 }
 

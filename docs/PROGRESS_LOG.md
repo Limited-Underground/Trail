@@ -6,6 +6,25 @@ public chronology.
 
 ## 2026-08-13
 
+### Fail-closed maintenance-attempt safety gate
+
+- Added an explicit one-attempt-per-session maintenance policy for the future
+  low-level board profiler. A recognized device cannot enter that future path
+  until the operator confirms disruption, and a consumed attempt can never be
+  retried in the same session. A failed attempt requires normal runtime
+  recovery to be verified before any later session is considered.
+- Updated both inspection producers and the Windows 95-style device cards with
+  a visible recovery warning. Heltec guidance now says to stop after an
+  automatic-reset failure and reconnect USB when needed; SenseCAP guidance
+  similarly requires both normal enumeration and runtime inspection after a
+  failed maintenance entry. Unknown hardware receives zero attempt authority.
+- This is a pure policy and presentation boundary. The utility still has no
+  reset, line-toggle, esptool, DFU, erase, write, reboot, or recovery adapter,
+  and every Flash action remains disabled.
+- Four Python loader-view groups and all 45 warning-free Windows loader groups
+  pass. The canonical V1 percentage is unchanged because no authoritative
+  received-board profile, physical update, rollback, or recovery gate closed.
+
 ### Candidate-only hardware profile guidance
 
 - Added a strict hardware-profile evidence object to both the development and

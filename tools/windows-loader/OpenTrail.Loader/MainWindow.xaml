@@ -158,6 +158,12 @@
                                                            Margin="0,7,0,0" />
                                                 <TextBlock Text="{Binding HardwareProfile.NextStep}"
                                                            TextWrapping="Wrap" FontSize="11" Margin="0,3,0,0" />
+                                                <Border Background="#FFFFE1" BorderBrush="#808000"
+                                                        BorderThickness="1" Padding="6" Margin="0,7,0,0">
+                                                    <TextBlock Text="{Binding HardwareProfile.MaintenanceCaution}"
+                                                               TextWrapping="Wrap" Foreground="#800000"
+                                                               FontWeight="Bold" FontSize="10" />
+                                                </Border>
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>

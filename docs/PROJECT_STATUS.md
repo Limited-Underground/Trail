@@ -129,6 +129,13 @@ family baseline, states that the result cannot authorize Flash, and names the
 deliberate maintenance restart or DFU/bootloader step plus received-revision
 confirmation still required. Unknown USB devices receive no restart offer.
 The live three-device result remains entirely runtime-only; no reset occurred.
+The future maintenance-profiler boundary is now explicitly fail-closed: a
+recognized device permits at most one operator-confirmed attempt per session,
+and a failed attempt blocks every retry until ordinary USB/runtime recovery has
+been verified. Both inspection producers expose that caution, while unknown
+hardware has zero attempt authority. This is pure policy and warning evidence;
+the application still exposes no maintenance action, reset, line toggle,
+esptool, DFU, erase, write, reboot, or recovery adapter.
 The first local `win-x64` self-contained engineering package now builds from a
 runtime-specific restore with no external NuGet source. Its manifest records
 exact payload lengths and SHA-256 hashes, prohibits source, firmware,

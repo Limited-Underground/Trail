@@ -55,6 +55,15 @@ still required. Unknown USB devices receive no restart offer. This adapter is
 tested to keep `authoritative_for_flash` false for every outcome; it neither
 performs nor schedules a reset.
 
+The panel now also carries a strict future-maintenance contract. A recognized
+candidate permits at most one supervised attempt in a session, requires an
+operator disruption confirmation before that attempt, and blocks every retry
+afterward. If maintenance entry or automatic reset fails, the operator must
+stop; normal USB enumeration and runtime inspection must be restored before a
+later session may even be considered. Unknown devices have an attempt limit of
+zero. The pure policy has deterministic C# coverage, but no UI action or device
+adapter consumes it yet.
+
 The `Select firmware bundle` action now opens one local `.fwbundle` read-only.
 The utility requires an exact three-entry ZIP, a bounded canonical manifest,
 the complete declared image length, and a matching streamed image SHA-256. It
@@ -99,6 +108,9 @@ The desktop shell is deliberately inspection-only:
   owner, or release-admission adapter;
 - its physical-board resolver is candidate-only; it has no approved
   authoritative received-board profile or low-level probe;
+- its future maintenance policy permits only one confirmed attempt per session
+  and requires normal runtime recovery after failure, but it exposes no action
+  capable of starting that attempt;
 - it has no esptool, DFU, erase, write, reset, reboot, or recovery adapter;
 - every firmware-writing control is disabled; and
 - raw process errors, local ports, serial numbers, hardware-instance paths,
@@ -199,7 +211,8 @@ binary has been published.
    without weakening the privacy or fail-closed boundary; installed MeshCore
    runtime identity and published vendor-family specifications alone cannot
    close this gate. A maintenance restart remains a separate operator-approved
-   future action.
+   future action. Its pure gate is already limited to one confirmed attempt per
+   session and requires verified normal-runtime recovery after failure.
 5. Independently review the cross-tool RSA-PSS vector, approve offline signer
    custody, pin production public keys, implement protected revocation plus release-
    generation policy, then connect a fully verified bundle to the one-use final

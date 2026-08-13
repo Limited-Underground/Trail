@@ -117,8 +117,14 @@ public sealed class LoaderInspectionDocument
             profile.ObservedNow,
             profile.PublishedBaseline,
             profile.NextStep,
+            profile.MaintenanceCaution,
         };
         return !profile.AuthoritativeForFlash &&
+            profile.MaintenanceAttemptLimit is >= 0 and <= LoaderMaintenanceProbePolicy.MaximumAttemptsPerSession &&
+            profile.RuntimeRecoveryRequiredBeforeRetry &&
+            (profile.MaintenanceRestartRequired
+                ? profile.MaintenanceAttemptLimit == LoaderMaintenanceProbePolicy.MaximumAttemptsPerSession
+                : profile.MaintenanceAttemptLimit == 0) &&
             values.All(static value =>
                 !string.IsNullOrWhiteSpace(value) &&
                 value.Length <= 320 &&

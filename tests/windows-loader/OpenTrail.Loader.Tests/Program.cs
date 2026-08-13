@@ -226,6 +226,9 @@ string ValidDocument(bool flashEnabled = false, string extra = "") => $$"""
       "published_baseline": "Published vendor-family baseline only.",
       "next_step": "Use a deliberate maintenance restart for low-level evidence.",
       "maintenance_restart_required": true,
+      "maintenance_attempt_limit": 1,
+      "runtime_recovery_required_before_retry": true,
+      "maintenance_caution": "ONE ATTEMPT PER SESSION. Stop after failure and verify normal runtime recovery before any later attempt.",
       "authoritative_for_flash": false
     },
     "flash_status": "Blocked",
@@ -316,10 +319,56 @@ Expect(
     heltecHardwareProfile.MaintenanceRestartRequired &&
     senseCapHardwareProfile.MaintenanceRestartRequired &&
     !unknownHardwareProfile.MaintenanceRestartRequired &&
+    heltecHardwareProfile.MaintenanceAttemptLimit == 1 &&
+    senseCapHardwareProfile.MaintenanceAttemptLimit == 1 &&
+    unknownHardwareProfile.MaintenanceAttemptLimit == 0 &&
+    heltecHardwareProfile.RuntimeRecoveryRequiredBeforeRetry &&
+    senseCapHardwareProfile.RuntimeRecoveryRequiredBeforeRetry &&
+    unknownHardwareProfile.RuntimeRecoveryRequiredBeforeRetry &&
+    heltecHardwareProfile.MaintenanceCaution.Contains(
+        "ONE ATTEMPT PER SESSION", StringComparison.Ordinal) &&
     !heltecHardwareProfile.AuthoritativeForFlash &&
     !senseCapHardwareProfile.AuthoritativeForFlash &&
     !unknownHardwareProfile.AuthoritativeForFlash,
     "hardware profile hints distinguish runtime evidence, vendor baseline, and flash authority");
+
+var maintenanceAwaitingConfirmation = LoaderMaintenanceProbePolicy.Evaluate(
+    maintenanceRequired: true,
+    operatorConfirmedDisruption: false,
+    attemptsThisSession: 0,
+    normalRuntimeRecoveredAfterAttempt: false);
+var maintenanceReadyOnce = LoaderMaintenanceProbePolicy.Evaluate(
+    maintenanceRequired: true,
+    operatorConfirmedDisruption: true,
+    attemptsThisSession: 0,
+    normalRuntimeRecoveredAfterAttempt: false);
+var maintenanceRecoveryRequired = LoaderMaintenanceProbePolicy.Evaluate(
+    maintenanceRequired: true,
+    operatorConfirmedDisruption: true,
+    attemptsThisSession: 1,
+    normalRuntimeRecoveredAfterAttempt: false);
+var maintenanceConsumed = LoaderMaintenanceProbePolicy.Evaluate(
+    maintenanceRequired: true,
+    operatorConfirmedDisruption: true,
+    attemptsThisSession: 1,
+    normalRuntimeRecoveredAfterAttempt: true);
+var maintenanceNotOffered = LoaderMaintenanceProbePolicy.Evaluate(
+    maintenanceRequired: false,
+    operatorConfirmedDisruption: true,
+    attemptsThisSession: 0,
+    normalRuntimeRecoveredAfterAttempt: false);
+Expect(
+    maintenanceAwaitingConfirmation.Status == LoaderMaintenanceProbeStatus.AwaitingOperatorConfirmation &&
+    !maintenanceAwaitingConfirmation.CanStartProbe &&
+    maintenanceReadyOnce.Status == LoaderMaintenanceProbeStatus.ReadyForSingleAttempt &&
+    maintenanceReadyOnce.CanStartProbe && maintenanceReadyOnce.RuntimeRecoveryMustBeVerified &&
+    maintenanceRecoveryRequired.Status == LoaderMaintenanceProbeStatus.RuntimeRecoveryRequired &&
+    !maintenanceRecoveryRequired.CanStartProbe && maintenanceRecoveryRequired.RuntimeRecoveryMustBeVerified &&
+    maintenanceConsumed.Status == LoaderMaintenanceProbeStatus.SessionAttemptConsumed &&
+    !maintenanceConsumed.CanStartProbe &&
+    maintenanceNotOffered.Status == LoaderMaintenanceProbeStatus.NotOffered &&
+    !maintenanceNotOffered.CanStartProbe,
+    "maintenance probe policy allows one confirmed attempt and blocks retry pending runtime recovery");
 
 var decoder = new MeshCoreSerialFrameDecoder(300);
 decoder.Feed([0x00, 0x7F, 0x3E, 0x03]);
