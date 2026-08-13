@@ -246,6 +246,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button x:Name="SelectFirmwareButton" Content="Select firmware bundle"
+                            IsEnabled="False"
                             Click="SelectFirmwareButton_Click" Margin="0,0,8,0"
                             AutomationProperties.HelpText="Select a local candidate bundle for bounded structural and SHA-256 inspection. This does not authorize or write firmware."
                             Background="#C0C0C0" Foreground="#000000" BorderBrush="#000000" Cursor="Arrow" />

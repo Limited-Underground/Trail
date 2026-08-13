@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 45 independent C#
-document/identity/accessibility/refresh/process-boundary/USB-runtime-probe/
+candidate cards. The application and 46 independent C#
+document/identity/accessibility/refresh/snapshot-binding/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -109,6 +109,10 @@ bounded; cancellation, timeout, or invalid output triggers best-effort
 termination of the inspection process tree, and raw stderr remains hidden. The
 shell now has one local candidate-bundle picker and a bounded structural/image-
 digest/signature inspector. It never displays or retains the selected path.
+Every candidate result is bound to the current connected-device snapshot. A
+device refresh immediately discards the prior display, invalidates an
+in-flight result, and blocks selection until a new validated snapshot is
+published; window close invalidates both authorities.
 The packaged catalog contains no production signer, so inspection still states
 that trust is not configured; exact-device matching and admission are also
 blocked. It contains no signing private key, protected revocation/generation
@@ -136,6 +140,12 @@ been verified. Both inspection producers expose that caution, while unknown
 hardware has zero attempt authority. This is pure policy and warning evidence;
 the application still exposes no maintenance action, reset, line toggle,
 esptool, DFU, erase, write, reboot, or recovery adapter.
+One bounded physical attempt then exercised that rule on `OT-DEV-002`.
+Automatic ROM entry failed before chip connection, normal MeshCore runtime
+temporarily became unavailable, and no retry occurred. After USB reconnection/
+re-enumeration, the unit returned with unchanged firmware and radio settings,
+zero errors, and an empty queue. This is manual recovery evidence only; the
+low-level profile remains unresolved.
 The first local `win-x64` self-contained engineering package now builds from a
 runtime-specific restore with no external NuGet source. Its manifest records
 exact payload lengths and SHA-256 hashes, prohibits source, firmware,
@@ -144,8 +154,8 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,089,805 bytes with SHA-256
-`49351D2B963BB5E765D8EC20B4D20A5252664193E2C5CF70DBEF029F8419E15D`.
+The newest verified 464-file archive is 72,092,522 bytes with SHA-256
+`364B32BA1431DC79BDEEF43579817F009C537769A0619C908001F5B9BCD522B9`.
 This is local package evidence only: no installer lifecycle, clean-machine,
 code-signing, distribution, or public-release claim exists.
 Visible rendered/accessibility evidence, repeated live-refresh acceptance,

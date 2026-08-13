@@ -744,6 +744,44 @@ Expect(!refreshAuthority.CanPublish(closingRefresh) &&
     !refreshAuthority.CanPublish(0),
     "window close invalidates all refresh publication");
 
+var bundleAuthority = new LoaderCandidateBundleAuthority();
+Expect(!bundleAuthority.CanBeginInspection,
+    "bundle inspection requires a current device snapshot");
+try
+{
+    _ = bundleAuthority.BeginInspection();
+    Expect(false, "bundle inspection without a device snapshot must fail");
+}
+catch (InvalidOperationException)
+{
+}
+
+bundleAuthority.InvalidateForDeviceRefresh();
+bundleAuthority.PublishCurrentDeviceSnapshot();
+Expect(bundleAuthority.CanBeginInspection,
+    "a published device snapshot enables local bundle inspection");
+var staleBundle = bundleAuthority.BeginInspection();
+Expect(bundleAuthority.CanPublish(staleBundle) &&
+    !bundleAuthority.CanBeginInspection,
+    "one active bundle inspection owns its current device snapshot");
+
+bundleAuthority.InvalidateForDeviceRefresh();
+Expect(!bundleAuthority.CanPublish(staleBundle) &&
+    !bundleAuthority.Complete(staleBundle) &&
+    !bundleAuthority.CanBeginInspection,
+    "device refresh invalidates an in-flight bundle result");
+
+bundleAuthority.PublishCurrentDeviceSnapshot();
+var currentBundle = bundleAuthority.BeginInspection();
+Expect(bundleAuthority.Complete(currentBundle) &&
+    !bundleAuthority.Complete(currentBundle) &&
+    bundleAuthority.CanBeginInspection,
+    "only the current bundle result completes once and preserves its snapshot");
+bundleAuthority.InvalidateAll();
+Expect(!bundleAuthority.CanBeginInspection &&
+    !bundleAuthority.CanPublish(currentBundle),
+    "window close invalidates bundle and device-snapshot authority");
+
 var boundedText = BoundedTextReader.ReadAsync(
     new StringReader("safe"), 4).GetAwaiter().GetResult();
 Expect(boundedText == "safe", "bounded reader accepts its exact safe limit");
@@ -814,5 +852,5 @@ if (failures != 0)
     return 1;
 }
 
-Console.WriteLine("PASS: 45 Windows loader document, identity-safeguard, accessibility, refresh, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
+Console.WriteLine("PASS: 46 Windows loader document, identity-safeguard, accessibility, refresh/snapshot-binding, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
 return 0;

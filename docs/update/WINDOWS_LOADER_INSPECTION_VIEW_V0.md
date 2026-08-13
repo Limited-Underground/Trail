@@ -80,7 +80,7 @@ Four Python groups cover the three-device screen and hardware-profile hints,
 sensitive-field omission, generic failed/unrecognized runtime presentation,
 and fail-closed invalid schema or unexpected Flash permission. The independent
 Windows suite includes the same non-authoritative profile boundary and passes
-45 scenario groups warning-free. Publication safety passes.
+46 scenario groups warning-free. Publication safety passes.
 
 ## Vendor baseline sources
 

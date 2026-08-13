@@ -6,6 +6,45 @@ public chronology.
 
 ## 2026-08-13
 
+### Device-snapshot-bound bundle inspection
+
+- Added a separate revision authority that binds every local firmware-bundle
+  inspection to one current connected-device snapshot. Device refresh begins
+  by discarding the prior bundle display and invalidating any in-flight result;
+  only the current inspection can publish and complete once.
+- Bundle selection now starts disabled, becomes available only after a valid
+  device inspection, and remains blocked after a failed/timed-out refresh.
+  Window close invalidates both snapshot and bundle authority.
+- This closes a stale-state UI boundary only. Exact-device matching, firmware
+  admission, signer approval, and every writer/reset/recovery path remain
+  absent. The warning-free Windows suite now passes 46 scenario groups.
+- A fresh 464-file self-contained `win-x64` engineering package independently
+  passed manifest/hash and source-free launch verification. It is 72,092,522
+  bytes with SHA-256
+  `364B32BA1431DC79BDEEF43579817F009C537769A0619C908001F5B9BCD522B9`;
+  it remains local, ignored, inspection-only, and not a public release.
+- The preceding public Windows run passed the complete C++/Python/privacy
+  matrix, then exposed one checkout-only defect: Windows converted the strict
+  public signature-vector fixture to CRLF. A narrow repository attribute now
+  forces that exact fixture to LF on every checkout; the canonical-vector test
+  remains strict rather than accepting changed bytes.
+
+### Heltec maintenance-failure recovery observation
+
+- Performed one supervised `--no-stub` read-only ESP32 `chip-id` attempt on
+  assembled bench client `OT-DEV-002`. Host serial configuration failed before
+  the ROM handshake; no stub, flash read, erase, write, eFuse, or firmware
+  action occurred, and the attempt was not repeated.
+- The selected Heltec temporarily stopped answering its normal MeshCore runtime
+  query. After USB reconnection/re-enumeration, all three bench candidates were
+  again runtime-identified and zero were ready to flash.
+- The recovered unit retained its MeshCore firmware, companion role, repeat
+  setting, and complete radio configuration; it reported 0 errors, an empty
+  queue, and 0 receive errors. This is manual recovery evidence for one unit on
+  this host, not a working automatic ROM-entry or supported-board claim.
+- See [OT-019O](../tests/hardware/OT-019O-2026-08-13.md). Exact low-level
+  hardware identity remains unresolved, and V1 progress is unchanged.
+
 ### Fail-closed maintenance-attempt safety gate
 
 - Added an explicit one-attempt-per-session maintenance policy for the future
