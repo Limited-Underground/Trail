@@ -9,6 +9,7 @@ namespace OpenTrail.Loader;
 internal sealed record LoaderWindowAcceptanceResult(
     int SuccessfulRefreshes,
     int AcceptedDpiProfiles,
+    int AcceptedThemeProfiles,
     IReadOnlyList<string> RenderedFiles);
 
 internal static class LoaderVisualFixtureRenderer
@@ -26,6 +27,7 @@ internal static class LoaderVisualFixtureRenderer
         var renderedFiles = new List<string>();
         var successfulRefreshes = 0;
         var acceptedDpiProfiles = 0;
+        var acceptedThemeProfiles = 0;
         Exception? renderingFailure = null;
         var thread = new Thread(() =>
         {
@@ -49,6 +51,11 @@ internal static class LoaderVisualFixtureRenderer
                     RunRefreshCycles(window);
                     successfulRefreshes = refreshCalls;
                     acceptedDpiProfiles = AcceptDpiProfiles(
+                        window,
+                        outputDirectory,
+                        renderedFiles);
+                    acceptedThemeProfiles = AcceptThemeProfiles(
+                        app,
                         window,
                         outputDirectory,
                         renderedFiles);
@@ -101,7 +108,11 @@ internal static class LoaderVisualFixtureRenderer
                 renderingFailure);
         }
 
-        return new(successfulRefreshes, acceptedDpiProfiles, renderedFiles);
+        return new(
+            successfulRefreshes,
+            acceptedDpiProfiles,
+            acceptedThemeProfiles,
+            renderedFiles);
     }
 
     private static void RunRefreshCycles(MainWindow window)
@@ -201,6 +212,108 @@ internal static class LoaderVisualFixtureRenderer
         }
 
         return accepted;
+    }
+
+    private static int AcceptThemeProfiles(
+        App app,
+        MainWindow window,
+        string? outputDirectory,
+        ICollection<string> renderedFiles)
+    {
+        var systemPaletteResources = new ResourceDictionary();
+        LoaderThemeResources.Apply(
+            systemPaletteResources,
+            LoaderThemeResources.CreateSystemHighContrastPalette());
+        Require(string.Equals(
+                systemPaletteResources[LoaderThemeResources.ThemeModeResourceKey] as string,
+                "system-high-contrast",
+                StringComparison.Ordinal),
+            "the production system high-contrast palette was incomplete");
+
+        var contrastPalette =
+            LoaderThemeResources.CreateDeterministicHighContrastPalette();
+        try
+        {
+            app.ApplyThemeForAcceptance(contrastPalette);
+            var bitmap = RenderBitmap(window, 900, 620, 1.0);
+            Require(HasVisibleContent(bitmap),
+                "the deterministic high-contrast production render was blank");
+            Require(string.Equals(
+                    app.Resources[LoaderThemeResources.ThemeModeResourceKey] as string,
+                    "deterministic-high-contrast",
+                    StringComparison.Ordinal),
+                "the production window did not publish the accepted contrast mode");
+
+            var background = BrushColor(
+                app.Resources["BackgroundBrush"] as Brush,
+                "BackgroundBrush");
+            var text = BrushColor(
+                app.Resources["TextBrush"] as Brush,
+                "TextBrush");
+            var disabled = BrushColor(
+                app.Resources["DisabledTextBrush"] as Brush,
+                "DisabledTextBrush");
+            Require(
+                ContrastRatio(background, text) >= 7.0 &&
+                ContrastRatio(background, disabled) >= 7.0,
+                "the deterministic contrast palette did not preserve strong text contrast");
+            Require(
+                BrushColor(window.RefreshButton.Background, "Refresh background") == background &&
+                BrushColor(window.RefreshButton.Foreground, "Refresh foreground") == text &&
+                BrushColor(window.FlashSelectedButton.Foreground, "disabled Flash foreground") == disabled,
+                "dynamic theme resources did not reach the production controls");
+            Require(
+                window.DeviceCards.Items.Count == 3 &&
+                window.DeviceCards.SelectedItem is LoaderDeviceCard &&
+                window.ContentScroll.ViewportWidth > 0 &&
+                window.ContentScroll.ViewportHeight > 0,
+                "the high-contrast theme collapsed production state or navigation");
+
+            if (outputDirectory is not null)
+            {
+                renderedFiles.Add(SaveBitmap(
+                    bitmap,
+                    outputDirectory,
+                    "loader-minimum-900x620-high-contrast.png"));
+            }
+            return 1;
+        }
+        finally
+        {
+            app.ApplyThemeForAcceptance(
+                LoaderThemeResources.CreateClassicPalette());
+        }
+    }
+
+    private static Color BrushColor(Brush? brush, string name)
+    {
+        if (brush is not SolidColorBrush solid)
+        {
+            throw new InvalidOperationException($"{name} is not a solid color brush.");
+        }
+        return solid.Color;
+    }
+
+    private static double ContrastRatio(Color first, Color second)
+    {
+        static double Luminance(Color color)
+        {
+            static double Channel(byte value)
+            {
+                var normalized = value / 255.0;
+                return normalized <= 0.04045
+                    ? normalized / 12.92
+                    : Math.Pow((normalized + 0.055) / 1.055, 2.4);
+            }
+
+            return (0.2126 * Channel(color.R)) +
+                (0.7152 * Channel(color.G)) +
+                (0.0722 * Channel(color.B));
+        }
+
+        var lighter = Math.Max(Luminance(first), Luminance(second));
+        var darker = Math.Min(Luminance(first), Luminance(second));
+        return (lighter + 0.05) / (darker + 0.05);
     }
 
     private static string Render(

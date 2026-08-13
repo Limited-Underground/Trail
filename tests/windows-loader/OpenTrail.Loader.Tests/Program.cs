@@ -5,6 +5,8 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using System.Windows;
+using System.Windows.Media;
 
 var failures = 0;
 
@@ -31,6 +33,19 @@ Expect(
     string.Equals(dpiAwarenessValues["dpiAware"], "true/pm", StringComparison.Ordinal) &&
     string.Equals(dpiAwarenessValues["dpiAwareness"], "PerMonitorV2", StringComparison.Ordinal),
     "the production application manifest must declare the legacy fallback and PerMonitorV2 DPI awareness");
+
+try
+{
+    LoaderThemeResources.Apply(
+        new ResourceDictionary(),
+        new LoaderThemePalette(
+            "incomplete",
+            new Dictionary<string, Brush>(StringComparer.Ordinal)));
+    Expect(false, "an incomplete production theme palette must fail closed");
+}
+catch (ArgumentException)
+{
+}
 
 void ExpectIdentityRejected(
     string parentName,
@@ -976,6 +991,8 @@ try
         $"INFO: production Windows loader completed {windowAcceptance.SuccessfulRefreshes} controlled refresh/selection cycles");
     Console.WriteLine(
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedDpiProfiles} deterministic high-DPI profiles");
+    Console.WriteLine(
+        $"INFO: production Windows loader accepted {windowAcceptance.AcceptedThemeProfiles} deterministic contrast profile");
     foreach (var visualFile in windowAcceptance.RenderedFiles)
     {
         Console.WriteLine($"INFO: rendered Windows loader fixture {visualFile}");
@@ -993,5 +1010,5 @@ if (failures != 0)
     return 1;
 }
 
-Console.WriteLine("PASS: 50 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/high-DPI, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
+Console.WriteLine("PASS: 51 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/high-DPI/contrast-theme, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
 return 0;

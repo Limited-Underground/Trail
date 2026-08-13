@@ -7,7 +7,7 @@
         AutomationProperties.Name="{Binding WindowTitle, Mode=OneTime, FallbackValue=Device Utility}"
         KeyboardNavigation.TabNavigation="Cycle"
         SnapsToDevicePixels="True" UseLayoutRounding="True"
-        Background="{StaticResource BackgroundBrush}">
+        Background="{DynamicResource BackgroundBrush}">
     <Window.CommandBindings>
         <CommandBinding Command="NavigationCommands.Refresh"
                         CanExecute="RefreshCommand_CanExecute"
@@ -16,7 +16,7 @@
     <Window.InputBindings>
         <KeyBinding Key="F5" Command="NavigationCommands.Refresh" />
     </Window.InputBindings>
-    <Grid Background="{StaticResource BackgroundBrush}">
+    <Grid Background="{DynamicResource BackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -24,7 +24,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="{StaticResource AccentBrush}" BorderBrush="#000000"
+        <Border Grid.Row="0" Background="{DynamicResource AccentBrush}" BorderBrush="{DynamicResource ButtonBorderBrush}"
                 BorderThickness="0,0,0,2" Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -32,20 +32,20 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="{Binding HeaderLine, Mode=OneTime}" Foreground="#FFFFFF"
+                    <TextBlock Text="{Binding HeaderLine, Mode=OneTime}" Foreground="{DynamicResource AccentTextBrush}"
                                FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="11" />
-                    <TextBlock Text="{Binding UtilityRoleName, Mode=OneTime}" Foreground="#FFFFFF"
+                    <TextBlock Text="{Binding UtilityRoleName, Mode=OneTime}" Foreground="{DynamicResource AccentTextBrush}"
                                FontFamily="Microsoft Sans Serif" FontWeight="Bold"
                                FontSize="24" Margin="0,4,0,0" />
                     <TextBlock x:Name="PhaseText" Text="Inspection only"
-                               Foreground="#FFFFFF" FontSize="13" Margin="0,3,0,0" />
+                               Foreground="{DynamicResource AccentTextBrush}" FontSize="13" Margin="0,3,0,0" />
                 </StackPanel>
                 <Button x:Name="RefreshButton" Grid.Column="1" Content="Refresh devices"
                         Click="RefreshButton_Click" VerticalAlignment="Center"
                         AutomationProperties.Name="Refresh connected devices"
                         AutomationProperties.HelpText="Read connected USB candidates again without changing a device. Keyboard shortcut F5."
-                        Background="#C0C0C0" Foreground="#000000"
-                        BorderBrush="#000000" />
+                        Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource ButtonTextBrush}"
+                        BorderBrush="{DynamicResource ButtonBorderBrush}" />
             </Grid>
         </Border>
 
@@ -62,50 +62,50 @@
                                    AutomationProperties.LiveSetting="Polite"
                                    FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="20" />
                         <TextBlock Text="Connected-device inspection is read-only. Device identity and pairing data stay hidden."
-                                   Foreground="{StaticResource MutedTextBrush}" FontSize="14" Margin="0,6,0,0" />
+                                   Foreground="{DynamicResource MutedTextBrush}" FontSize="14" Margin="0,6,0,0" />
                     </StackPanel>
-                    <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#808080"
+                    <Border Grid.Column="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="2" CornerRadius="0" Padding="10,5"
                             VerticalAlignment="Top">
-                        <TextBlock Text="NO WRITER CONNECTED" Foreground="#000080"
+                        <TextBlock Text="NO WRITER CONNECTED" Foreground="{DynamicResource InfoTextBrush}"
                                    FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="11" />
                     </Border>
                 </Grid>
 
                 <Border x:Name="ContentWidthAnchor"
-                        Background="#FFFFFF" BorderBrush="#808080" BorderThickness="2"
+                        Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2"
                         CornerRadius="0" Padding="12" Margin="0,0,0,16">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Border Width="24" Height="24" CornerRadius="0" Background="#000080">
-                            <TextBlock Text="i" Foreground="#FFFFFF" FontFamily="Microsoft Sans Serif"
+                        <Border Width="24" Height="24" CornerRadius="0" Background="{DynamicResource InfoSurfaceBrush}">
+                            <TextBlock Text="i" Foreground="{DynamicResource InfoSurfaceTextBrush}" FontFamily="Microsoft Sans Serif"
                                        FontWeight="Bold" FontSize="15"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <TextBlock x:Name="NoticeText" Grid.Column="1" TextWrapping="Wrap"
                                    AutomationProperties.Name="Safety notice"
-                                   Margin="10,2,0,0" Foreground="#000000" FontSize="13" />
+                                   Margin="10,2,0,0" Foreground="{DynamicResource TextBrush}" FontSize="13" />
                     </Grid>
                 </Border>
 
-                <Border x:Name="ErrorBanner" Visibility="Collapsed" Background="#FFD8D8"
-                        BorderBrush="#800000" BorderThickness="2" CornerRadius="0"
+                <Border x:Name="ErrorBanner" Visibility="Collapsed" Background="{DynamicResource CriticalSurfaceBrush}"
+                        BorderBrush="{DynamicResource CriticalTextBrush}" BorderThickness="2" CornerRadius="0"
                         Padding="14" Margin="0,0,0,18">
-                    <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Foreground="#800000"
+                    <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Foreground="{DynamicResource CriticalTextBrush}"
                                AutomationProperties.Name="Inspection error"
                                AutomationProperties.LiveSetting="Assertive" />
                 </Border>
 
-                <Border Background="#FFFFFF" BorderBrush="#808080" BorderThickness="2"
+                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2"
                         Padding="10" Margin="0,0,0,16">
                     <TextBlock x:Name="SelectionText"
                                Text="Select one connected device to continue. Selection is not Flash permission."
                                AutomationProperties.Name="Device selection status"
                                AutomationProperties.LiveSetting="Polite"
-                               Foreground="#000080" FontWeight="Bold" FontSize="12"
+                               Foreground="{DynamicResource InfoTextBrush}" FontWeight="Bold" FontSize="12"
                                TextWrapping="Wrap" />
                 </Border>
 
@@ -138,8 +138,8 @@
                                     Margin="0,0,12,12" Padding="16"
                                     AutomationProperties.Name="{Binding AccessibleSummary}"
                                     AutomationProperties.HelpText="{Binding FlashHelpText}"
-                                    Background="{StaticResource PanelBrush}"
-                                    BorderBrush="#808080" BorderThickness="2"
+                                    Background="{DynamicResource PanelBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2"
                                     CornerRadius="0">
                                 <Grid>
                                     <Grid.RowDefinitions>
@@ -154,58 +154,58 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding Candidate}" Foreground="#404040"
+                                        <TextBlock Text="{Binding Candidate}" Foreground="{DynamicResource MutedTextBrush}"
                                                    FontFamily="Courier New" FontSize="11" />
-                                        <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#808080"
+                                        <Border Grid.Column="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
                                                 BorderThickness="1" CornerRadius="0" Padding="8,3">
-                                            <TextBlock Text="{Binding Connection}" Foreground="#000080" FontSize="11" />
+                                            <TextBlock Text="{Binding Connection}" Foreground="{DynamicResource InfoTextBrush}" FontSize="11" />
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Text="{Binding DisplayName}"
                                                FontFamily="Microsoft Sans Serif" FontWeight="Bold"
                                                FontSize="19" Margin="0,14,0,0" />
                                     <StackPanel Grid.Row="2" Margin="0,5,0,16">
-                                        <TextBlock Text="{Binding InstalledRuntime}" Foreground="{StaticResource MutedTextBrush}" />
+                                        <TextBlock Text="{Binding InstalledRuntime}" Foreground="{DynamicResource MutedTextBrush}" />
                                         <TextBlock Text="{Binding FirmwareDisplay}" FontFamily="Courier New" FontSize="12"
-                                                   Foreground="#000000" Margin="0,5,0,0" />
-                                        <Border Background="#FFFFFF" BorderBrush="#808080" BorderThickness="2"
+                                                   Foreground="{DynamicResource TextBrush}" Margin="0,5,0,0" />
+                                        <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="2"
                                                 Padding="9" Margin="0,12,0,0">
                                             <StackPanel>
-                                                <TextBlock Text="HARDWARE PROFILE CANDIDATE" Foreground="#000080"
+                                                <TextBlock Text="HARDWARE PROFILE CANDIDATE" Foreground="{DynamicResource InfoTextBrush}"
                                                            FontWeight="Bold" FontSize="10" />
                                                 <TextBlock Text="{Binding HardwareProfile.ProfileCandidate}"
                                                            FontWeight="Bold" TextWrapping="Wrap" Margin="0,5,0,0" />
                                                 <TextBlock Text="{Binding HardwareProfile.EvidenceLevel}"
-                                                           Foreground="#800000" FontWeight="Bold" FontSize="11"
+                                                           Foreground="{DynamicResource CriticalTextBrush}" FontWeight="Bold" FontSize="11"
                                                            Margin="0,3,0,0" />
                                                 <TextBlock Text="{Binding HardwareProfile.ObservedNow}"
                                                            TextWrapping="Wrap" FontSize="11" Margin="0,6,0,0" />
                                                 <TextBlock Text="{Binding HardwareProfile.PublishedBaseline}"
-                                                           TextWrapping="Wrap" Foreground="#404040" FontSize="11"
+                                                           TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}" FontSize="11"
                                                            Margin="0,5,0,0" />
                                                 <TextBlock Text="{Binding HardwareProfile.RestartDisplay}"
-                                                           Foreground="#000080" FontWeight="Bold" FontSize="10"
+                                                           Foreground="{DynamicResource InfoTextBrush}" FontWeight="Bold" FontSize="10"
                                                            Margin="0,7,0,0" />
                                                 <TextBlock Text="{Binding HardwareProfile.NextStep}"
                                                            TextWrapping="Wrap" FontSize="11" Margin="0,3,0,0" />
-                                                <Border Background="#FFFFE1" BorderBrush="#808000"
+                                                <Border Background="{DynamicResource WarningSurfaceBrush}" BorderBrush="{DynamicResource WarningBorderBrush}"
                                                         BorderThickness="1" Padding="6" Margin="0,7,0,0">
                                                     <TextBlock Text="{Binding HardwareProfile.MaintenanceCaution}"
-                                                               TextWrapping="Wrap" Foreground="#800000"
+                                                               TextWrapping="Wrap" Foreground="{DynamicResource CriticalTextBrush}"
                                                                FontWeight="Bold" FontSize="10" />
                                                 </Border>
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
                                     <StackPanel Grid.Row="3">
-                                        <TextBlock Text="WHY FLASH IS BLOCKED" Foreground="#000080"
+                                        <TextBlock Text="WHY FLASH IS BLOCKED" Foreground="{DynamicResource InfoTextBrush}"
                                                    FontFamily="Microsoft Sans Serif" FontWeight="Bold"
                                                    FontSize="11" Margin="0,0,0,7" />
                                         <ItemsControl ItemsSource="{Binding Blockers}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap"
-                                                               Foreground="#000000" FontSize="12" Margin="0,0,0,5" />
+                                                               Foreground="{DynamicResource TextBrush}" FontSize="12" Margin="0,0,0,5" />
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -215,21 +215,21 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding InspectionStatus}" Foreground="#006000"
+                                        <TextBlock Text="{Binding InspectionStatus}" Foreground="{DynamicResource SuccessTextBrush}"
                                                    FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="12"
                                                    VerticalAlignment="Center" />
                                         <Button Grid.Column="1" Content="Flash" IsEnabled="False"
                                                 AutomationProperties.HelpText="{Binding FlashHelpText}"
-                                                Background="#C0C0C0" Foreground="#5A5A5A"
-                                                BorderBrush="#000000" Padding="14,7" Cursor="Arrow" />
+                                                Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource DisabledTextBrush}"
+                                                BorderBrush="{DynamicResource ButtonBorderBrush}" Padding="14,7" Cursor="Arrow" />
                                     </Grid>
                                 </Grid>
                             </Border>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}"
                                              Value="True">
-                                    <Setter TargetName="CardBorder" Property="Background" Value="#DDEBFF" />
-                                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="#000080" />
+                                    <Setter TargetName="CardBorder" Property="Background" Value="{DynamicResource SelectedSurfaceBrush}" />
+                                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="{DynamicResource SelectedBorderBrush}" />
                                     <Setter TargetName="CardBorder" Property="BorderThickness" Value="3" />
                                 </DataTrigger>
                             </DataTemplate.Triggers>
@@ -239,16 +239,16 @@
             </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#808080"
+        <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,2,0,0" Padding="16,10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Border Width="26" Height="26" Background="#000080" BorderBrush="#000000"
+                <Border Width="26" Height="26" Background="{DynamicResource InfoSurfaceBrush}" BorderBrush="{DynamicResource ButtonBorderBrush}"
                         BorderThickness="1" VerticalAlignment="Center" Margin="0,0,10,0">
-                    <TextBlock Text="B" Foreground="#FFFFFF" FontWeight="Bold"
+                    <TextBlock Text="B" Foreground="{DynamicResource InfoSurfaceTextBrush}" FontWeight="Bold"
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
                 <StackPanel Grid.Column="1">
@@ -256,18 +256,18 @@
                                AutomationProperties.Name="Firmware bundle status"
                                AutomationProperties.LiveSetting="Polite"
                                FontFamily="Microsoft Sans Serif" FontWeight="Bold"
-                               Foreground="#000080" FontSize="12" />
+                               Foreground="{DynamicResource InfoTextBrush}" FontSize="12" />
                     <TextBlock x:Name="BundleDetailsText"
                                Text="Selection performs bounded structural and SHA-256 inspection only."
-                               Foreground="#000000" FontSize="11" Margin="0,2,0,0" />
+                               Foreground="{DynamicResource TextBrush}" FontSize="11" Margin="0,2,0,0" />
                     <TextBlock x:Name="BundleBlockerText"
                                Text="BLOCKED: Signature trust, an authoritative device profile, and release admission are required."
-                               Foreground="#800000" FontWeight="Bold" FontSize="10" Margin="0,2,0,0" />
+                               Foreground="{DynamicResource CriticalTextBrush}" FontWeight="Bold" FontSize="10" Margin="0,2,0,0" />
                 </StackPanel>
             </Grid>
         </Border>
 
-        <Border Grid.Row="3" Background="#C0C0C0" BorderBrush="#808080"
+        <Border Grid.Row="3" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,2,0,0" Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -275,22 +275,22 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="SAFE MODE" Foreground="#000080"
+                    <TextBlock Text="SAFE MODE" Foreground="{DynamicResource InfoTextBrush}"
                                FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="11" />
                     <TextBlock Text="Inspect and explain only — no firmware write or device mutation path exists."
-                               Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,3,0,0" />
+                               Foreground="{DynamicResource MutedTextBrush}" FontSize="12" Margin="0,3,0,0" />
                     <TextBlock Text="{Binding ReviewStatus, Mode=OneTime}"
-                               Foreground="#404040" FontSize="10" Margin="0,4,0,0" />
+                               Foreground="{DynamicResource MutedTextBrush}" FontSize="10" Margin="0,4,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button x:Name="SelectFirmwareButton" Content="Select firmware bundle"
                             IsEnabled="False"
                             Click="SelectFirmwareButton_Click" Margin="0,0,8,0"
                             AutomationProperties.HelpText="Select a local candidate bundle for bounded structural and SHA-256 inspection. This does not authorize or write firmware."
-                            Background="#C0C0C0" Foreground="#000000" BorderBrush="#000000" Cursor="Arrow" />
-                    <Button Content="Flash selected device" IsEnabled="False"
+                            Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource ButtonTextBrush}" BorderBrush="{DynamicResource ButtonBorderBrush}" Cursor="Arrow" />
+                    <Button x:Name="FlashSelectedButton" Content="Flash selected device" IsEnabled="False"
                             AutomationProperties.HelpText="Unavailable because no firmware writer is connected."
-                            Background="#C0C0C0" Foreground="#5A5A5A" BorderBrush="#000000" Cursor="Arrow" />
+                            Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource DisabledTextBrush}" BorderBrush="{DynamicResource ButtonBorderBrush}" Cursor="Arrow" />
                 </StackPanel>
             </Grid>
         </Border>

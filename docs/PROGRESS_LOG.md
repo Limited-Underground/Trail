@@ -6,6 +6,35 @@ public chronology.
 
 ## 2026-08-13
 
+### System-aware contrast palette and deterministic theme acceptance
+
+- Replaced hard-coded production control colors with named dynamic brush
+  resources while preserving the approved classic Windows 95 palette as normal
+  mode. Header, information, warning, critical, selection, success, focus,
+  disabled, and button surfaces now have explicit semantic pairings.
+- Added a bounded theme owner that maps high-contrast mode to the current WPF
+  `SystemColors` window/text, control/text, highlight/highlight-text, and
+  disabled-text pairs. Application startup reads `SystemParameters.HighContrast`;
+  accessibility, color, visual-style, window, and general preference changes
+  cause the current system palette to be read again on the UI dispatcher.
+- Added one deterministic black/white/yellow contrast profile through the same
+  production resource-application path. The test requires at least 7:1 text
+  and disabled-label contrast, proves resources reach the real Refresh and
+  disabled Flash controls, retains three cards plus the current selection and
+  scroll viewport, and rejects a blank/collapsed render.
+- Pixel review accepted the 900×620 contrast render: selected state remains
+  visible through a yellow border, every key status/safety line is readable,
+  the bundle and safe-mode boundaries remain intact, and both footer buttons
+  retain legible labels. The classic render is restored afterward.
+- The warning-free Windows suite now passes 51 groups. Live activation of each
+  built-in/custom Windows contrast theme, keyboard/Narrator, and clean-machine
+  acceptance remain open rather than inferred from deterministic rendering.
+- A fresh 464-file self-contained `win-x64` engineering package independently
+  passed manifest/hash and source-free launch verification. It is 72,101,915
+  bytes with SHA-256
+  `CC47BB6BB3BDD952B6717861F71AA1A067ED08D486314FC98888B86614C2395E`;
+  it remains local, ignored, inspection-only, and not a public release.
+
 ### Explicit per-monitor DPI configuration and scaled-render acceptance
 
 - Added a production application manifest that declares Windows

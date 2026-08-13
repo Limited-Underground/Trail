@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 50 independent C#
-document/identity/accessibility/production-window-refresh/selection/high-DPI/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
+candidate cards. The application and 51 independent C#
+document/identity/accessibility/production-window-refresh/selection/high-DPI/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -165,15 +165,15 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,098,493 bytes with SHA-256
-`DBB746434C8EABF1DE772913091A353502DCE9D8609427A6B51DD117BE4D0EC4`.
+The newest verified 464-file archive is 72,101,915 bytes with SHA-256
+`CC47BB6BB3BDD952B6717861F71AA1A067ED08D486314FC98888B86614C2395E`.
 This is local package evidence only: no installer lifecycle, clean-machine,
 code-signing, distribution, or public-release claim exists.
 Deterministic production-XAML renders have been reviewed at 1600×900 and the
 900×620 minimum, including a scrolled minimum view. That review fixed a
 transparent content root and horizontal card clipping; all three cards remain
 reachable and disabled Flash labels remain readable. Keyboard/Narrator,
-system-theme, repeated live-refresh, installer/clean-machine, and real
+live system-theme switching, repeated live-refresh, installer/clean-machine, and real
 assistive-technology acceptance remain unverified.
 The packaged executable now embeds an explicit `PerMonitorV2` application
 manifest with a legacy per-monitor fallback. Deterministic minimum-window
@@ -184,6 +184,17 @@ selected-device state, bundle blocker, safe-mode boundary, and disabled Flash
 label readable at every profile. Real monitor movement, alternate system or
 high-contrast themes, keyboard/Narrator, and clean-machine operation remain
 separate gates.
+The loader's custom Windows 95 presentation now consumes semantic dynamic
+brushes rather than hard-coded control colors. Classic mode retains the same
+gray/navy palette. When `SystemParameters.HighContrast` is active, the runtime
+owner maps window/text, control/text, highlight/highlight-text, and gray-text
+pairs from current WPF `SystemColors`; accessibility, color, visual-style,
+window, and general preference notifications reapply those values on the UI
+dispatcher. A deterministic black/white/yellow profile passes at least 7:1
+text and disabled-label contrast through the real production window, with its
+selected card, three-card state, scroll viewport, safety boundaries, and
+disabled Flash copy intact. This is source and deterministic-render evidence;
+live switching through every Windows contrast theme remains unverified.
 The production window also passes three controlled refresh/selection cycles
 against a validated read-only source. Each cycle clears the previous card and
 bundle state, restores Refresh, republishes all three candidates, and requires
@@ -206,7 +217,7 @@ application-owned beveled button template. That template fixes the observed
 near-white-on-white disabled labels by explicitly retaining dark disabled
 copy. Deterministic desktop/minimum rendered layout and vertical access to a
 wrapped third card and deterministic 125%/150%/200% scaled renders are accepted
-on the current host; interactive resize, alternate system themes, keyboard,
+on the current host; interactive resize, live Windows contrast-theme switching, keyboard,
 and assistive-technology acceptance remain
 open.
 Read-only inspection and flash permission are distinct outcomes: a connected

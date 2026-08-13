@@ -11,8 +11,8 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Fifty document, identity-safeguard, accessibility,
-production-window refresh/selection/high-DPI, snapshot-binding/device-match,
+Windows host. Fifty-one document, identity-safeguard, accessibility,
+production-window refresh/selection/high-DPI/contrast-theme, snapshot-binding/device-match,
 process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
 packaged-inspection scenario groups pass. The source-free built-in C# path
 reports `3 USB candidates found · 3
@@ -23,8 +23,9 @@ This is source/build and document-validation evidence. A local self-contained
 package has also passed source-free extraction, manifest/hash verification, and
 launch smoke testing. The real production XAML now also has deterministic
 rendered-layout evidence at desktop and minimum window sizes plus deterministic
-125%, 150%, and 200% scaled rendering. Real keyboard, Narrator, alternate
-system-theme, repeated-refresh, and clean-machine acceptance
+125%, 150%, and 200% scaled rendering plus one deterministic contrast profile.
+Real keyboard, Narrator, live Windows contrast-theme switching,
+repeated-refresh, and clean-machine acceptance
 remain separate gates.
 
 The source now provides F5 refresh through the same bounded command as the
@@ -145,6 +146,31 @@ current host. It is not evidence of mouse/keyboard operation, focus traversal,
 Narrator live announcements, real monitor-to-monitor DPI movement, alternate
 system/high-contrast themes, repeated live refresh behavior, or clean-machine
 operation.
+
+## System-aware contrast-theme evidence
+
+The custom classic presentation no longer hard-codes colors on production
+controls. Semantic dynamic brushes cover window/panel/surface text, header,
+information, warning, critical, success, selection, focus, disabled copy, and
+the complete beveled-button template. Classic mode supplies the same
+gray/navy/white palette reviewed above.
+
+At application startup, the theme owner reads `SystemParameters.HighContrast`.
+When active, it maps all paired colors from WPF `SystemColors`: window with
+window text, control with control text, highlight with highlight text, and gray
+text only for disabled content. Accessibility, color, general, visual-style,
+and window preference notifications cause the palette to be reread on the UI
+dispatcher, including customized contrast colors, without adding any device or
+file authority.
+
+The production-window harness injects one deterministic black/white/yellow
+palette through that same resource-application path. It requires at least 7:1
+contrast for body and disabled text, confirms the actual Refresh and disabled
+Flash controls receive the dynamic brushes, retains all three cards, current
+selection, and scroll access, and rejects blank output. Pixel review at 900×620
+accepts the selected yellow border, status/safety copy, bundle blocker,
+safe-mode boundary, and both footer labels. This does not replace live testing
+with every built-in or user-customized Windows contrast theme.
 
 ## Production-window refresh state evidence
 
@@ -283,9 +309,9 @@ packaged executable:
 .\tools\Test-WindowsDeviceUtilityPackage.ps1 -ArchivePath <path-to-zip>
 ```
 
-The current retained package has 464 payload files and is 72,098,493 bytes. Its
+The current retained package has 464 payload files and is 72,101,915 bytes. Its
 SHA-256 is
-`DBB746434C8EABF1DE772913091A353502DCE9D8609427A6B51DD117BE4D0EC4`.
+`CC47BB6BB3BDD952B6717861F71AA1A067ED08D486314FC98888B86614C2395E`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the
@@ -301,7 +327,7 @@ binary has been published.
 1. Exercise repeated live refresh and explicit selection in the visible app
    with the three connected bench units without starting maintenance mode.
 2. Accept keyboard navigation, focus order, live announcements, labels,
-   contrast, alternate system/high-contrast theme behavior, real monitor DPI
+   contrast, live system/high-contrast theme behavior, real monitor DPI
    changes, and the remaining interactive
    resize cases with real Windows UI and assistive-technology review.
 3. Build and lifecycle-test an installer, then repeat package and installer

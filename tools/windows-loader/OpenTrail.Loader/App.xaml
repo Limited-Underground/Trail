@@ -10,13 +10,33 @@
         <SolidColorBrush x:Key="TextBrush" Color="#000000" />
         <SolidColorBrush x:Key="MutedTextBrush" Color="#404040" />
         <SolidColorBrush x:Key="AccentBrush" Color="#000080" />
-        <SolidColorBrush x:Key="InfoBrush" Color="#000080" />
+        <SolidColorBrush x:Key="InfoTextBrush" Color="#000080" />
+        <SolidColorBrush x:Key="InfoSurfaceBrush" Color="#000080" />
+        <SolidColorBrush x:Key="InfoSurfaceTextBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="AccentTextBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="CriticalTextBrush" Color="#800000" />
+        <SolidColorBrush x:Key="CriticalSurfaceBrush" Color="#FFD8D8" />
+        <SolidColorBrush x:Key="WarningSurfaceBrush" Color="#FFFFE1" />
+        <SolidColorBrush x:Key="WarningBorderBrush" Color="#808000" />
+        <SolidColorBrush x:Key="SuccessTextBrush" Color="#006000" />
+        <SolidColorBrush x:Key="SelectedSurfaceBrush" Color="#DDEBFF" />
+        <SolidColorBrush x:Key="SelectedBorderBrush" Color="#000080" />
+        <SolidColorBrush x:Key="DisabledTextBrush" Color="#5A5A5A" />
+        <SolidColorBrush x:Key="FocusBrush" Color="#000000" />
+        <SolidColorBrush x:Key="ButtonFaceBrush" Color="#C0C0C0" />
+        <SolidColorBrush x:Key="ButtonTextBrush" Color="#000000" />
+        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#000000" />
+        <SolidColorBrush x:Key="ButtonHighlightBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ButtonShadowBrush" Color="#000000" />
+        <SolidColorBrush x:Key="ButtonHoverBrush" Color="#D4D4D4" />
+        <SolidColorBrush x:Key="ButtonPressedBrush" Color="#B0B0B0" />
 
         <Style x:Key="AccessibleFocusVisual">
             <Setter Property="Control.Template">
                 <Setter.Value>
                     <ControlTemplate>
-                        <Rectangle Margin="2" Stroke="#000000"
+                        <Rectangle Margin="2" Stroke="{DynamicResource FocusBrush}"
                                    StrokeThickness="1" StrokeDashArray="1,1"
                                    SnapsToDevicePixels="True" />
                     </ControlTemplate>
@@ -26,7 +46,7 @@
 
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Microsoft Sans Serif" />
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         </Style>
 
         <Style TargetType="Button">
@@ -34,9 +54,9 @@
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Padding" Value="14,7" />
-            <Setter Property="Background" Value="#C0C0C0" />
-            <Setter Property="Foreground" Value="#000000" />
-            <Setter Property="BorderBrush" Value="#000000" />
+            <Setter Property="Background" Value="{DynamicResource ButtonFaceBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ButtonTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -45,13 +65,13 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="ButtonHighlight" BorderBrush="#FFFFFF"
+                        <Border x:Name="ButtonHighlight" BorderBrush="{DynamicResource ButtonHighlightBrush}"
                                 BorderThickness="2,2,0,0" SnapsToDevicePixels="True">
-                            <Border x:Name="ButtonShadow" BorderBrush="#000000"
+                            <Border x:Name="ButtonShadow" BorderBrush="{DynamicResource ButtonShadowBrush}"
                                     BorderThickness="0,0,2,2">
                                 <Border x:Name="ButtonBorder"
                                         Background="{TemplateBinding Background}"
-                                        BorderBrush="#808080"
+                                        BorderBrush="{DynamicResource BorderBrush}"
                                         BorderThickness="1"
                                         SnapsToDevicePixels="True">
                                     <ContentPresenter Margin="{TemplateBinding Padding}"
@@ -64,18 +84,18 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#D4D4D4" />
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonHighlight" Property="BorderBrush" Value="#000000" />
-                                <Setter TargetName="ButtonShadow" Property="BorderBrush" Value="#FFFFFF" />
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#B0B0B0" />
+                                <Setter TargetName="ButtonHighlight" Property="BorderBrush" Value="{DynamicResource ButtonShadowBrush}" />
+                                <Setter TargetName="ButtonShadow" Property="BorderBrush" Value="{DynamicResource ButtonHighlightBrush}" />
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ButtonPressedBrush}" />
                                 <Setter TargetName="ButtonBorder" Property="Padding" Value="1,1,0,0" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#C0C0C0" />
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#808080" />
-                                <Setter Property="Foreground" Value="#5A5A5A" />
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ButtonFaceBrush}" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
                                 <Setter Property="Cursor" Value="Arrow" />
                             </Trigger>
                         </ControlTemplate.Triggers>
