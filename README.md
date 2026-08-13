@@ -14,7 +14,7 @@ The base design is a self-contained portable client with its own power, display,
 | --- | --- |
 | Phase | Architecture, host-tested components, and bounded close-range bench proofs |
 | Latest increment | [First real Windows loader desktop shell](docs/update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md): a warning-free .NET 8 WPF app renders the privacy-safe three-device inspection model while every firmware-writing action remains absent or disabled; visible UI acceptance is still pending |
-| Proven so far | A 111-executable C++ host matrix, four C# loader document scenarios, and Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited GNSS, transport, soak, burst, and alert/acknowledgement tests |
+| Proven so far | A 111-executable C++ host matrix, eight C# loader document/refresh scenarios, and Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited GNSS, transport, soak, burst, and alert/acknowledgement tests |
 | Planned first release | Up to eight active clients in one group with at most one optional authorized repeater |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 

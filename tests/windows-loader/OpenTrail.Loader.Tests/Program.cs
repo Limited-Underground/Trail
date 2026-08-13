@@ -90,11 +90,32 @@ catch (InvalidDataException)
 {
 }
 
+var refreshAuthority = new LoaderRefreshAuthority();
+var firstRefresh = refreshAuthority.Begin();
+Expect(firstRefresh != 0 && refreshAuthority.CanPublish(firstRefresh),
+    "a newly started refresh owns publication");
+
+var secondRefresh = refreshAuthority.Begin();
+Expect(!refreshAuthority.CanPublish(firstRefresh) &&
+    refreshAuthority.CanPublish(secondRefresh),
+    "a newer refresh invalidates the older result");
+
+Expect(!refreshAuthority.Complete(firstRefresh) &&
+    refreshAuthority.Complete(secondRefresh) &&
+    !refreshAuthority.CanPublish(secondRefresh),
+    "only the current refresh can complete once");
+
+var closingRefresh = refreshAuthority.Begin();
+refreshAuthority.InvalidateAll();
+Expect(!refreshAuthority.CanPublish(closingRefresh) &&
+    !refreshAuthority.CanPublish(0),
+    "window close invalidates all refresh publication");
+
 if (failures != 0)
 {
     Console.Error.WriteLine($"{failures} Windows loader assertion(s) failed");
     return 1;
 }
 
-Console.WriteLine("PASS: 4 Windows loader document scenario groups");
+Console.WriteLine("PASS: 8 Windows loader document and refresh scenario groups");
 return 0;

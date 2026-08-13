@@ -5,13 +5,18 @@ namespace OpenTrail.Loader;
 public partial class MainWindow : Window
 {
     private readonly LoaderInspectionService _inspection = new();
+    private readonly LoaderRefreshAuthority _refreshAuthority = new();
     private CancellationTokenSource? _refreshCancellation;
 
     public MainWindow()
     {
         InitializeComponent();
         Loaded += async (_, _) => await RefreshAsync();
-        Closed += (_, _) => _refreshCancellation?.Cancel();
+        Closed += (_, _) =>
+        {
+            _refreshAuthority.InvalidateAll();
+            _refreshCancellation?.Cancel();
+        };
     }
 
     private async void RefreshButton_Click(object sender, RoutedEventArgs e)
@@ -21,6 +26,7 @@ public partial class MainWindow : Window
 
     private async Task RefreshAsync()
     {
+        var refreshRevision = _refreshAuthority.Begin();
         _refreshCancellation?.Cancel();
         _refreshCancellation?.Dispose();
         _refreshCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -33,6 +39,11 @@ public partial class MainWindow : Window
         try
         {
             var document = await _inspection.RefreshAsync(_refreshCancellation.Token);
+            if (!_refreshAuthority.CanPublish(refreshRevision))
+            {
+                return;
+            }
+
             PhaseText.Text = document.Screen.Phase;
             SummaryText.Text = document.Screen.Summary;
             NoticeText.Text = document.Screen.Notice;
@@ -40,16 +51,25 @@ public partial class MainWindow : Window
         }
         catch (OperationCanceledException)
         {
-            ShowError("Device inspection timed out. Disconnect browser serial sessions and try Refresh again.");
+            if (_refreshAuthority.CanPublish(refreshRevision))
+            {
+                ShowError("Device inspection timed out. Disconnect browser serial sessions and try Refresh again.");
+            }
         }
         catch
         {
-            ShowError("Device inspection could not complete. No device or firmware setting was changed.");
+            if (_refreshAuthority.CanPublish(refreshRevision))
+            {
+                ShowError("Device inspection could not complete. No device or firmware setting was changed.");
+            }
         }
         finally
         {
-            RefreshButton.Content = "Refresh devices";
-            RefreshButton.IsEnabled = true;
+            if (_refreshAuthority.Complete(refreshRevision))
+            {
+                RefreshButton.Content = "Refresh devices";
+                RefreshButton.IsEnabled = true;
+            }
         }
     }
 
