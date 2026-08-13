@@ -116,6 +116,7 @@
 
                 <ListBox x:Name="DeviceCards" SelectionMode="Single"
                          SelectionChanged="DeviceCards_SelectionChanged"
+                         PreviewKeyDown="DeviceCards_PreviewKeyDown"
                          Background="Transparent" BorderThickness="0" Padding="0"
                          Width="{Binding ElementName=ContentWidthAnchor, Path=ActualWidth}"
                          HorizontalAlignment="Left"

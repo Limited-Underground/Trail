@@ -279,6 +279,29 @@ public partial class MainWindow : Window
         RaiseLiveRegionChanged(SelectionText);
     }
 
+    private void DeviceCards_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key is not Key.Home and not Key.End ||
+            DeviceCards.Items.Count == 0)
+        {
+            return;
+        }
+
+        var targetIndex = e.Key == Key.Home
+            ? 0
+            : DeviceCards.Items.Count - 1;
+        DeviceCards.SelectedIndex = targetIndex;
+        DeviceCards.ScrollIntoView(DeviceCards.Items[targetIndex]);
+        DeviceCards.UpdateLayout();
+        if (DeviceCards.ItemContainerGenerator.ContainerFromIndex(targetIndex)
+            is ListBoxItem targetItem)
+        {
+            targetItem.BringIntoView();
+            _ = targetItem.Focus();
+        }
+        e.Handled = true;
+    }
+
     private void ResetBundleDisplay(string summary, string details, string blocker)
     {
         BundleSummaryText.Text = summary;

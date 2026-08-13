@@ -332,7 +332,12 @@ internal static class LoaderVisualFixtureRenderer
 
     private static int AcceptKeyboardNavigation()
     {
-        var window = new MainWindow(_ => Task.FromResult(CreateDocument()));
+        var refreshCalls = 0;
+        var window = new MainWindow(_ =>
+        {
+            refreshCalls++;
+            return Task.FromResult(CreateDocument());
+        });
         try
         {
             window.Show();
@@ -354,6 +359,35 @@ internal static class LoaderVisualFixtureRenderer
             Require(IsWithin(Keyboard.FocusedElement as DependencyObject, window.DeviceCards),
                 "Tab traversal did not enter the connected-device list after Refresh");
 
+            RequireSelectedItem(window, 0, "initial keyboard selection");
+            RaiseRoutedKey(FocusedListItem(window), Key.Right);
+            RequireSelectedItem(window, 1, "wide-layout Right Arrow");
+            RaiseRoutedKey(FocusedListItem(window), Key.Left);
+            RequireSelectedItem(window, 0, "wide-layout Left Arrow");
+            RaiseRoutedKey(FocusedListItem(window), Key.End);
+            RequireSelectedItem(window, 2, "wide-layout End");
+            RaiseRoutedKey(FocusedListItem(window), Key.Home);
+            RequireSelectedItem(window, 0, "wide-layout Home");
+
+            window.Width = window.MinWidth;
+            window.Height = window.MinHeight;
+            window.UpdateLayout();
+            var firstItem = ContainerAt(window, 0);
+            var lastItem = ContainerAt(window, 2);
+            Require(
+                lastItem.TranslatePoint(new Point(0, 0), window.DeviceCards).Y >
+                firstItem.TranslatePoint(new Point(0, 0), window.DeviceCards).Y,
+                "minimum-width keyboard acceptance did not produce a wrapped final card");
+
+            RaiseRoutedKey(FocusedListItem(window), Key.Down);
+            RequireSelectedItem(window, 2, "wrapped-layout Down Arrow");
+            RaiseRoutedKey(FocusedListItem(window), Key.Up);
+            RequireSelectedItem(window, 0, "wrapped-layout Up Arrow");
+            RaiseRoutedKey(FocusedListItem(window), Key.End);
+            RequireSelectedItem(window, 2, "wrapped-layout End");
+            RaiseRoutedKey(FocusedListItem(window), Key.Home);
+            RequireSelectedItem(window, 0, "wrapped-layout Home");
+
             var listFocus = Keyboard.FocusedElement as UIElement;
             Require(listFocus is not null && listFocus.MoveFocus(
                     new TraversalRequest(FocusNavigationDirection.Next)),
@@ -367,12 +401,97 @@ internal static class LoaderVisualFixtureRenderer
                 "cycle traversal could not leave the bundle action");
             Require(ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton),
                 "disabled Flash actions were not skipped before focus cycled to Refresh");
+
+            var refreshCallsBeforeF5 = refreshCalls;
+            RaiseRoutedKey(window.RefreshButton, Key.F5);
+            Require(
+                refreshCalls == refreshCallsBeforeF5 + 1 &&
+                window.DeviceCards.Items.Count == 3 &&
+                window.DeviceCards.SelectedItem is null &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                window.RefreshButton.IsEnabled &&
+                string.Equals(
+                    window.RefreshButton.Content as string,
+                    "Refresh devices",
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    window.BundleSummaryText.Text,
+                    "No firmware bundle selected",
+                    StringComparison.Ordinal),
+                "F5 did not complete the bounded refresh and restore safe unselected state");
             return 1;
         }
         finally
         {
             window.Close();
         }
+    }
+
+    private static ListBoxItem ContainerAt(MainWindow window, int index)
+    {
+        window.DeviceCards.UpdateLayout();
+        return window.DeviceCards.ItemContainerGenerator.ContainerFromIndex(index)
+            as ListBoxItem ?? throw new InvalidOperationException(
+                $"device item container {index} was not generated");
+    }
+
+    private static ListBoxItem FocusedListItem(MainWindow window)
+    {
+        var focused = Keyboard.FocusedElement as DependencyObject;
+        while (focused is not null && focused is not ListBoxItem)
+        {
+            focused = focused is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(focused)
+                : LogicalTreeHelper.GetParent(focused);
+        }
+        return focused as ListBoxItem ?? ContainerAt(
+            window,
+            window.DeviceCards.SelectedIndex);
+    }
+
+    private static void RaiseRoutedKey(UIElement element, Key key)
+    {
+        var source = PresentationSource.FromVisual(element) ??
+            throw new InvalidOperationException(
+                $"{key} routed input had no presentation source");
+        var preview = new KeyEventArgs(
+            Keyboard.PrimaryDevice,
+            source,
+            Environment.TickCount,
+            key)
+        {
+            RoutedEvent = Keyboard.PreviewKeyDownEvent,
+        };
+        element.RaiseEvent(preview);
+        if (!preview.Handled)
+        {
+            var bubble = new KeyEventArgs(
+                Keyboard.PrimaryDevice,
+                source,
+                Environment.TickCount,
+                key)
+            {
+                RoutedEvent = Keyboard.KeyDownEvent,
+            };
+            element.RaiseEvent(bubble);
+        }
+    }
+
+    private static void RequireSelectedItem(
+        MainWindow window,
+        int expectedIndex,
+        string label)
+    {
+        var item = ContainerAt(window, expectedIndex);
+        var device = (LoaderDeviceCard)window.DeviceCards.Items[expectedIndex];
+        Require(
+            window.DeviceCards.SelectedIndex == expectedIndex &&
+            ReferenceEquals(Keyboard.FocusedElement, item) &&
+            window.SelectFirmwareButton.IsEnabled &&
+            window.SelectionText.Text.Contains(
+                device.DisplayName,
+                StringComparison.Ordinal),
+            $"{label} did not keep focus, selection, and bounded bundle state synchronized");
     }
 
     private static bool IsWithin(DependencyObject? element, DependencyObject ancestor)

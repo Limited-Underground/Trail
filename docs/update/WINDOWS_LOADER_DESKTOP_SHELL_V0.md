@@ -44,7 +44,19 @@ selection, the enabled bounded bundle action, and back to Refresh. The first run
 found noninteractive blocker content in the Tab sequence. That `ItemsControl`
 is now nonfocusable and the device list is one Tab group, so disabled Flash
 actions are skipped. This is focus-manager evidence, not physical key injection,
-arrow-key selection, Narrator, or assistive-technology acceptance.
+Narrator, or assistive-technology acceptance.
+
+Routed-key acceptance now covers the real shown device list in both production
+layouts. Native Right/Left traverses the wide row; native Down/Up traverses the
+900×620 two-plus-one wrap. That run found native WPF End could remain on the
+first item at minimum width because the horizontal wrap panel resolved a row
+edge instead of the final candidate. The list now intercepts only Home/End,
+selects the exact first/last current item, brings it into view, and moves focus
+with it. Status text and bounded bundle availability follow every selection.
+Routed F5 also reaches the production refresh command, republishes all three
+cards, clears selection, disables bundle selection, and restores the Refresh
+control. This does not prove physical key injection, keyboard hardware/layout
+variants, or assistive-technology behavior.
 
 The same production window now has direct UI Automation peer acceptance.
 Device metadata is attached to each selectable `ListBoxItem`, not its inner

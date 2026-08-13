@@ -122,8 +122,14 @@ selection state.
 Production-window focus traversal now enters that list once between Refresh and
 the enabled bounded bundle action, skips both disabled Flash actions, and cycles
 back to Refresh. The acceptance run found and removed noninteractive blocker
-content from the Tab sequence. Physical key injection, arrow-key selection,
-Narrator, and assistive-technology review remain unverified.
+content from the Tab sequence. Physical key injection, focus appearance across
+live themes, Narrator, and assistive-technology review remain unverified. Routed production-
+window navigation now covers wide Right/Left, wrapped Down/Up, and Home/End.
+Native End failed on the wrapped layout because it resolved the first row edge;
+the list now handles only Home/End and keeps exact first/last selection, focus,
+scroll access, selection status, and bounded bundle availability synchronized.
+Routed F5 reaches the same production command and restores the safe unselected
+three-card state after refresh.
 The actual production UI Automation peers now expose the current public device
 summary and blocker help on each selectable list item, single optional
 selection on the list, Invoke on Refresh, and named/helpful disabled Flash

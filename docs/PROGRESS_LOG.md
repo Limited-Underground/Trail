@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-13
 
+### Wrapped-layout device keyboard navigation
+
+- Exercised routed production-window keyboard events against both the wide
+  three-card row and the 900×620 two-plus-one wrapped layout. Native Right/Left
+  and Down/Up navigation followed the actual card geometry while keeping focus,
+  selected-device status, and bounded bundle availability synchronized.
+- The first minimum-width run found native WPF End could remain on the first
+  card because the horizontal wrap panel treated End as a row-edge operation.
+  The device list now owns only Home/End: each selects, scrolls to, and focuses
+  the true first or last current candidate. Native spatial arrows are unchanged.
+- Home/End, wide Right/Left, wrapped Down/Up, and the previously accepted Tab
+  cycle pass through the real shown `MainWindow`. Routed F5 then executes the
+  same bounded refresh command, republishes all three cards, clears selection,
+  disables bundle selection, and restores Refresh. This is routed WPF input
+  evidence, not physical keyboard injection or Narrator acceptance.
+
 ### Production-window automation-peer semantics
 
 - Inspected the actual UI Automation peers exposed by the production WPF
