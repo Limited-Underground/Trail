@@ -16,6 +16,11 @@ confirmation deadline, trial-boot exhaustion, boot mismatch plus exact rollback
 completion, explicit health failure, duplicate boot sessions, and monotonic-
 clock regression.
 
+The separate [firmware-bundle admission policy](FIRMWARE_BUNDLE_ADMISSION_V0.md)
+now defines the pure fail-closed evidence gate for a signed candidate before
+board inspection. It has no container parser or cryptographic adapter and does
+not authorize a write.
+
 The fixed 64-byte [`OTU0/v0` checkpoint](UPDATE_STATE_CHECKPOINT_V0.md)
 captures only reboot-relevant lifecycle facts and a caller-owned generation.
 Eight additional groups plus 100 focused repeats cover canonical encoding, corruption, exact policy

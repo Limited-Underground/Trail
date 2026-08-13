@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-12
 
+### Fail-closed signed firmware-bundle admission
+
+- Added a pure pre-device admission policy for the future loader. It keeps
+  container/manifest parsing, manifest digest, signature verification, signer
+  trust, image read/digest, hardware binding, and rollback evidence distinct.
+- Exact hardware profile, processor, target role, board-revision range,
+  minimum bootloader schema, nonzero release generation, image length/capacity,
+  SHA-256 digest, and opaque signer ID must agree with owner-approved policy.
+- A digest or signer ID merely being present never counts as verification.
+  Unknown roles/processors, untrusted/wrong signers, truncated or oversized
+  images, and generations below the trusted floor fail closed.
+- Twelve scenario groups pass. Admission only permits evaluation by the
+  separate board/install preflight; it cannot authorize erase/write. Canonical
+  container parsing, reviewed SHA-256/signature adapters, key custody/rotation,
+  signed release bundles, protected trust storage, and physical update evidence
+  remain.
+
 ### Privacy-safe Windows USB candidate discovery
 
 - Added the future loader's first Windows-facing adapter. It enumerates USB

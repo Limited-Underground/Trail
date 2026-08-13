@@ -18,6 +18,9 @@ therefore separates two outcomes:
 
 A runtime name such as `Heltec V4 OLED`, a USB VID/PID, or an ESP32-S3 ROM
 response is useful evidence, but none is an exact board profile by itself.
+The candidate firmware must first pass the separate
+[bundle-admission policy](FIRMWARE_BUNDLE_ADMISSION_V0.md); that earlier success
+still does not weaken any board or local-authorization gate here.
 
 ## Required evidence
 

@@ -1205,6 +1205,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'firmware-bundle admission'
+        Output = Join-Path $buildDirectory 'firmware_bundle_admission_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\update\src\firmware_bundle_admission.cpp'),
+            (Join-Path $projectRoot 'tests\host\firmware_bundle_admission_tests.cpp')
+        )
+    },
+    @{
         Name = 'update state checkpoint'
         Output = Join-Path $buildDirectory 'update_checkpoint_tests.exe'
         Sources = @(

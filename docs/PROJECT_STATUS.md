@@ -68,8 +68,14 @@ alert reference exists, selected is not sent/delivered, and the complete home/
 messages/critical/position/archive/recovery shell remains. See the
 [quick-status parent-page contract](platform/QUICK_STATUS_PARENT_PAGE_COORDINATOR_V0.md).
 
-The update path now has a separate fail-closed firmware-install preflight plus
-one read-only Windows USB discovery adapter.
+The update path now has separate fail-closed bundle admission and board/install
+preflight policies plus read-only Windows USB/runtime inspection adapters.
+Bundle admission requires externally verified canonical manifest and image
+digests, signature, trusted exact signer ID, hardware/processor/target-role and
+revision binding, minimum bootloader schema, exact image length/capacity, and a
+non-rollback release generation. Twelve groups pass. Admission means only that
+the candidate may reach the board preflight; no parser, crypto adapter, trusted
+signer store, signing key, release bundle, or writer exists.
 Read-only inspection and flash permission are distinct outcomes: a connected
 board can remain inspectable while incomplete or conflicting processor,
 flash/PSRAM, exact profile/revision, bootloader schema, or image-size evidence
@@ -86,7 +92,8 @@ unresolved OpenTrail target role, so all three stayed blocked from Flash. No
 low-level probe, signature verification, approved board profile,
 erase/write/reboot capability, Windows UI, or physical recovery evidence
 exists. See the
-[firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md) and
+[firmware-bundle admission](update/FIRMWARE_BUNDLE_ADMISSION_V0.md),
+[firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md), and
 [Windows USB candidate discovery](update/WINDOWS_USB_CANDIDATE_DISCOVERY_V0.md).
 
 The optional archive now has a host-tested client-side session boundary rather
