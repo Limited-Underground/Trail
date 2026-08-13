@@ -6,6 +6,31 @@ public chronology.
 
 ## 2026-08-13
 
+### Packaged heading hierarchy and reverse focus traversal
+
+- Added semantic headings to the production XAML without changing its visible
+  layout: the full utility title is level 1; current inspection, bundle, and
+  safe-mode status are level 2; and each validated public device name is level
+  3. The exact seven-heading sequence contains no internal candidate or
+  transport identifiers and remains current through selection and refresh.
+- Added an independent 900×620 reverse-focus path. With device three selected,
+  Previous traversal is Refresh → enabled bundle action → the exact selected
+  card → Refresh. With no selection, it skips the disabled bundle action,
+  enters and leaves the list without selecting a device, and returns to
+  Refresh. All three card Flash buttons and the footer Flash action remain
+  disabled. This is deterministic WPF traversal, not physical Shift+Tab.
+- The warning-free suite now passes 58 groups. A new 464-file self-contained
+  package passed independent extraction, manifest/hash checks, launch, and
+  three Windows PowerShell 5.1 external UI Automation selection/Refresh/live-
+  event cycles. The external client also required the exact heading sequence
+  before selection, after selection, and after every refresh. The retained
+  archive is 72,103,101 bytes with SHA-256
+  `0D1E82B978CA33DBAF912448D81936EB98FBBD4F51751F784F91AE9EEC715137`;
+  it remains Git-ignored and is not a public release.
+- Narrator/Braille heading commands, spoken order/verbosity, physical keyboard
+  input, installer lifecycle, and clean-machine operation remain separate
+  gates.
+
 ### Functional UI Automation scroll reachability
 
 - Invoked the actual third device item's `ScrollItem` provider in a shown

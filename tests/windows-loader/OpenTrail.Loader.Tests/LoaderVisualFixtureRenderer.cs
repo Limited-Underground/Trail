@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Automation;
@@ -19,8 +20,10 @@ internal sealed record LoaderWindowAcceptanceResult(
     int AcceptedThemeTransitions,
     int AcceptedResizeTransitions,
     int AcceptedKeyboardPaths,
+    int AcceptedReverseKeyboardPaths,
     int AcceptedAutomationPaths,
     int AcceptedAutomationScrollPaths,
+    int AcceptedHeadingPaths,
     IReadOnlyList<string> RenderedFiles);
 
 internal static class LoaderVisualFixtureRenderer
@@ -110,8 +113,10 @@ internal static class LoaderVisualFixtureRenderer
         var acceptedThemeTransitions = 0;
         var acceptedResizeTransitions = 0;
         var acceptedKeyboardPaths = 0;
+        var acceptedReverseKeyboardPaths = 0;
         var acceptedAutomationPaths = 0;
         var acceptedAutomationScrollPaths = 0;
+        var acceptedHeadingPaths = 0;
         Exception? renderingFailure = null;
         var thread = new Thread(() =>
         {
@@ -149,9 +154,12 @@ internal static class LoaderVisualFixtureRenderer
                         outputDirectory,
                         renderedFiles);
                     acceptedKeyboardPaths = AcceptKeyboardNavigation();
+                    acceptedReverseKeyboardPaths =
+                        AcceptReverseKeyboardNavigation();
                     acceptedAutomationPaths = AcceptAutomationSemantics();
                     acceptedAutomationScrollPaths =
                         AcceptAutomationScrollReachability();
+                    acceptedHeadingPaths = AcceptHeadingSemantics();
 
                     if (outputDirectory is not null)
                     {
@@ -208,8 +216,10 @@ internal static class LoaderVisualFixtureRenderer
             acceptedThemeTransitions,
             acceptedResizeTransitions,
             acceptedKeyboardPaths,
+            acceptedReverseKeyboardPaths,
             acceptedAutomationPaths,
             acceptedAutomationScrollPaths,
+            acceptedHeadingPaths,
             renderedFiles);
     }
 
@@ -769,6 +779,93 @@ internal static class LoaderVisualFixtureRenderer
         }
     }
 
+    private static int AcceptHeadingSemantics()
+    {
+        var window = new MainWindow(_ => Task.FromResult(CreateDocument()));
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            RequireHeadingSequence(window, "initial heading hierarchy");
+
+            window.DeviceCards.SelectedIndex = 1;
+            window.UpdateLayout();
+            Require(
+                window.BundleSummaryText.Text.StartsWith(
+                    "No firmware bundle selected for",
+                    StringComparison.Ordinal),
+                "heading acceptance did not publish selection-bound bundle status");
+            RequireHeadingSequence(window, "selected heading hierarchy");
+
+            window.RefreshForAcceptanceAsync().GetAwaiter().GetResult();
+            window.UpdateLayout();
+            Require(
+                window.DeviceCards.SelectedItem is null &&
+                string.Equals(
+                    window.BundleSummaryText.Text,
+                    "No firmware bundle selected",
+                    StringComparison.Ordinal),
+                "heading acceptance did not restore the safe refreshed state");
+            RequireHeadingSequence(window, "refreshed heading hierarchy");
+            return 1;
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    private static void RequireHeadingSequence(MainWindow window, string label)
+    {
+        var expected = new List<(AutomationHeadingLevel Level, string Name)>
+        {
+            (AutomationHeadingLevel.Level1, ProductIdentity.Current.WindowTitle),
+            (AutomationHeadingLevel.Level2, window.SummaryText.Text),
+        };
+        expected.AddRange(window.DeviceCards.Items
+            .Cast<LoaderDeviceCard>()
+            .Select(device => (
+                AutomationHeadingLevel.Level3,
+                device.DisplayName)));
+        expected.Add((
+            AutomationHeadingLevel.Level2,
+            window.BundleSummaryText.Text));
+        expected.Add((AutomationHeadingLevel.Level2, "SAFE MODE"));
+
+        var actual = VisualDescendants<UIElement>(window)
+            .Where(element =>
+                AutomationProperties.GetHeadingLevel(element) !=
+                    AutomationHeadingLevel.None)
+            .Select(element =>
+            {
+                var peer = UIElementAutomationPeer.FromElement(element) ??
+                    UIElementAutomationPeer.CreatePeerForElement(element);
+                return (
+                    Peer: peer,
+                    Level: peer?.GetHeadingLevel() ?? AutomationHeadingLevel.None,
+                    Name: peer?.GetName() ?? string.Empty);
+            })
+            .ToArray();
+        Require(
+            actual.Length == expected.Count &&
+            actual.Select(item => (item.Level, item.Name))
+                .SequenceEqual(expected) &&
+            actual.All(item =>
+                item.Peer is not null &&
+                item.Peer.GetAutomationControlType() == AutomationControlType.Text &&
+                !ContainsPrivateIdentifier(item.Name)),
+            $"{label} did not expose the exact public level 1/2/3 heading sequence " +
+            $"(actual={string.Join(" | ", actual.Select(item => $"{item.Level}:{item.Name}"))})");
+    }
+
+    private static bool ContainsPrivateIdentifier(string value)
+    {
+        return Regex.IsMatch(
+            value,
+            @"(?i)usb_candidate_|\bCOM\d{1,4}\b|\bVID_[0-9a-f]{4}\b|\bPID_[0-9a-f]{4}\b|USB\\VID_|\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b",
+            RegexOptions.CultureInvariant);
+    }
+
     private static Rect BoundsInViewport(MainWindow window, FrameworkElement element)
     {
         return new Rect(
@@ -938,6 +1035,131 @@ internal static class LoaderVisualFixtureRenderer
         finally
         {
             window.Close();
+        }
+    }
+
+    private static int AcceptReverseKeyboardNavigation()
+    {
+        var window = new MainWindow(_ => Task.FromResult(CreateDocument()))
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = SystemParameters.VirtualScreenLeft,
+            Top = SystemParameters.VirtualScreenTop,
+            Width = 900,
+            Height = 620,
+        };
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            window.DeviceCards.SelectedIndex = 2;
+            window.UpdateLayout();
+
+            var selectedDevice = (LoaderDeviceCard)window.DeviceCards.SelectedItem;
+            var selectedItem = ContainerAt(window, 2);
+            var expectedStatus = window.SelectionText.Text;
+            var cardFlashButtons = VisualDescendants<Button>(window.DeviceCards)
+                .Where(button => string.Equals(
+                    button.Content as string,
+                    "Flash",
+                    StringComparison.Ordinal))
+                .ToArray();
+            Require(
+                cardFlashButtons.Length == 3 &&
+                cardFlashButtons.All(button => !button.IsEnabled) &&
+                window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled &&
+                window.RefreshButton.Focus(),
+                "reverse Tab acceptance could not establish its selected fail-closed state");
+
+            Require(window.RefreshButton.MoveFocus(
+                    new TraversalRequest(FocusNavigationDirection.Previous)) &&
+                ReferenceEquals(
+                    Keyboard.FocusedElement,
+                    window.SelectFirmwareButton),
+                "reverse Tab did not move from Refresh to the enabled bundle action");
+
+            Require(window.SelectFirmwareButton.MoveFocus(
+                    new TraversalRequest(FocusNavigationDirection.Previous)),
+                "reverse Tab could not enter the selected device item");
+            window.UpdateLayout();
+            Require(
+                ReferenceEquals(Keyboard.FocusedElement, selectedItem) &&
+                ReferenceEquals(window.DeviceCards.SelectedItem, selectedDevice) &&
+                window.DeviceCards.SelectedIndex == 2 &&
+                string.Equals(
+                    window.SelectionText.Text,
+                    expectedStatus,
+                    StringComparison.Ordinal) &&
+                window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled &&
+                cardFlashButtons.All(button => !button.IsEnabled),
+                "reverse Tab did not enter the exact selected item without changing selection or authority");
+
+            Require(selectedItem.MoveFocus(
+                    new TraversalRequest(FocusNavigationDirection.Previous)) &&
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton) &&
+                ReferenceEquals(window.DeviceCards.SelectedItem, selectedDevice) &&
+                window.DeviceCards.SelectedIndex == 2 &&
+                string.Equals(
+                    window.SelectionText.Text,
+                    expectedStatus,
+                    StringComparison.Ordinal) &&
+                window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled &&
+                cardFlashButtons.All(button => !button.IsEnabled),
+                "reverse Tab did not skip disabled Flash controls and cycle to Refresh");
+
+            window.DeviceCards.SelectedIndex = -1;
+            window.UpdateLayout();
+            Require(
+                window.DeviceCards.SelectedItem is null &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled &&
+                window.RefreshButton.Focus(),
+                "unselected reverse Tab acceptance could not establish its fail-closed state");
+            Require(window.RefreshButton.MoveFocus(
+                    new TraversalRequest(FocusNavigationDirection.Previous)),
+                "unselected reverse Tab could not leave Refresh");
+            var unselectedListFocus = Keyboard.FocusedElement as UIElement;
+            Require(
+                unselectedListFocus is not null &&
+                IsWithin(unselectedListFocus, window.DeviceCards) &&
+                window.DeviceCards.SelectedItem is null &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled &&
+                cardFlashButtons.All(button => !button.IsEnabled),
+                "unselected reverse Tab did not skip disabled actions and enter the list without selecting a device");
+            Require(unselectedListFocus!.MoveFocus(
+                    new TraversalRequest(FocusNavigationDirection.Previous)) &&
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton) &&
+                window.DeviceCards.SelectedItem is null &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled &&
+                cardFlashButtons.All(button => !button.IsEnabled),
+                "unselected reverse Tab did not cycle from the list to Refresh with all actions blocked");
+            return 1;
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    private static IEnumerable<T> VisualDescendants<T>(DependencyObject root)
+        where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+        {
+            var child = VisualTreeHelper.GetChild(root, index);
+            if (child is T match)
+            {
+                yield return match;
+            }
+            foreach (var descendant in VisualDescendants<T>(child))
+            {
+                yield return descendant;
+            }
         }
     }
 

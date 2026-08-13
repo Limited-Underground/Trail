@@ -93,8 +93,8 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 56 independent C#
-document/identity/accessibility/production-window-refresh/selection/keyboard/automation-peer/automation-scroll/high-DPI/resize/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
+candidate cards. The application and 58 independent C#
+document/identity/accessibility/production-window-refresh/selection/forward-and-reverse-keyboard/automation-peer/automation-scroll/automation-heading/high-DPI/resize/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -130,6 +130,13 @@ the list now handles only Home/End and keeps exact first/last selection, focus,
 scroll access, selection status, and bounded bundle availability synchronized.
 Routed F5 reaches the same production command and restores the safe unselected
 three-card state after refresh.
+Reverse traversal is now independently accepted at 900×620. With a current
+selection it moves from Refresh to the enabled bundle action, the exact same
+selected card, then back to Refresh. With no selection it skips the disabled
+bundle action, enters and leaves the list without implicitly selecting a
+device, and returns to Refresh. All three card Flash controls and the footer
+Flash action remain disabled. This is WPF focus-manager evidence, not physical
+Shift+Tab injection or keyboard-layout acceptance.
 When F5 begins on a focused card, the refresh destroys that item container.
 The window now records that keyboard context and returns focus to Refresh after
 either a successful or failed refresh without stealing focus on initial load;
@@ -148,9 +155,16 @@ third wrapped card initially outside the outer viewport, `ScrollIntoView`
 moves the real content scroll offset and changes the item from offscreen to
 onscreen while Refresh retains focus, device selection stays empty, public
 name/help stays unchanged, and bundle selection plus the footer Flash action
-remain disabled. This is
-in-process WPF provider evidence, not packaged out-of-process scrolling or an
+remain disabled. This is in-process WPF provider evidence, not packaged
+out-of-process scrolling or an
 assistive technology's end-user behavior.
+The production peers now also expose an ordered heading hierarchy: the full
+utility title at level 1; current inspection, bundle, and safe-mode status at
+level 2; and each public device name at level 3. Exact names and levels survive
+selection and refresh without exposing internal candidate or transport data.
+The same sequence passes against the independently extracted package in three
+external UI Automation cycles. Narrator/Braille heading navigation, spoken
+order, verbosity, and other assistive-technology behavior remain untested.
 The same shown minimum-size production window now also survives an in-window
 classic-to-deterministic-high-contrast-to-classic resource transition with the
 same wrapped card selected and keyboard-focused, the same scroll offset and
@@ -222,8 +236,8 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,103,016 bytes with SHA-256
-`6D6A487B23B44E67E8CCBC37F1FD61B001C2514C31600400613FE2609E5AB5F7`.
+The newest verified 464-file archive is 72,103,101 bytes with SHA-256
+`0D1E82B978CA33DBAF912448D81936EB98FBBD4F51751F784F91AE9EEC715137`.
 Native Windows UI Automation then inspected that exact independently extracted
 executable across the process boundary. Stable privacy-safe IDs exposed the
 window, Refresh, dynamic summary/selection/bundle regions, device list,
@@ -234,6 +248,9 @@ external selection/Refresh cycles each enabled only bounded bundle inspection,
 then cleared selection, republished all three devices, restored zero-ready
 status, and kept Flash disabled. This is native automation-client evidence,
 not Narrator speech, physical input, or a clean-machine result.
+The same source-free check requires the exact public level 1/2/3 heading
+sequence before selection, after selection, and after each of the three
+Refresh cycles.
 The same native client now also receives the ordered LiveRegionChanged stream
 for all three selection/Refresh cycles: current bundle and selection status,
 then selection cleared, bundle waiting, inspection busy, bundle reset, final

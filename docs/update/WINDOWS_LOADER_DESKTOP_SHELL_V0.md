@@ -11,8 +11,8 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Fifty-six document, identity-safeguard, accessibility,
-production-window refresh/selection/keyboard/automation-peer/automation-scroll/high-DPI/resize/contrast-theme, snapshot-binding/device-match,
+Windows host. Fifty-eight document, identity-safeguard, accessibility,
+production-window refresh/selection/forward-and-reverse-keyboard/automation-peer/automation-scroll/automation-heading/high-DPI/resize/contrast-theme, snapshot-binding/device-match,
 process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
 packaged-inspection scenario groups pass. The source-free built-in C# path
 reports `3 USB candidates found · 3
@@ -58,6 +58,15 @@ cards, clears selection, disables bundle selection, and restores the Refresh
 control. This does not prove physical key injection, keyboard hardware/layout
 variants, or assistive-technology behavior.
 
+Reverse focus traversal is independently exercised at 900×620. With the third
+device selected, Previous moves from Refresh to the enabled bundle action, the
+exact selected card, and back to Refresh without changing the model or status.
+With no selection it skips the disabled bundle action, enters and leaves the
+device list without creating a selection, and returns to Refresh. The footer
+and all three per-card Flash controls remain disabled. This is WPF
+focus-manager evidence, not physical Shift+Tab injection or keyboard-layout
+acceptance.
+
 The same production window now has direct UI Automation peer acceptance.
 Device metadata is attached to each selectable `ListBoxItem`, not its inner
 visual border. The actual three item peers expose validated public summaries,
@@ -76,9 +85,18 @@ outer production viewport and reports offscreen; invoking the provider moves
 the outer scroll offset, reveals the card, and changes the peer to onscreen.
 Refresh keeps keyboard focus, selection remains empty, public name/help does
 not change, and bundle selection plus the footer Flash action stay disabled.
-This is in-process WPF
-provider evidence, not packaged out-of-process scrolling, Narrator/Braille UX,
+This is in-process WPF provider evidence, not packaged out-of-process
+scrolling, Narrator/Braille UX,
 physical scrolling input, virtualization, or a larger candidate collection.
+
+The production XAML now exposes an explicit heading hierarchy. The full
+utility title is level 1; current inspection, bundle, and safe-mode status are
+level 2; and each public device display name is level 3. In-process acceptance
+requires that exact ordered sequence before selection, after selection, and
+after refresh with no candidate ordinal or transport identifier. The
+source-free package verifier enforces the same sequence across three external
+selection/Refresh cycles. This does not prove Narrator/Braille heading
+commands, spoken order, verbosity, or another assistive technology's UX.
 
 When the repository inspection script is unavailable, the same application now
 uses Windows SetupAPI directly instead of the laptop's access-denied CIM/PnP
@@ -403,9 +421,9 @@ three read-only Refresh cycles without opening the firmware picker:
     -RunUiAutomationAcceptance -ExpectedDeviceCount 3 -RefreshCycles 3
 ```
 
-The current retained package has 464 payload files and is 72,103,016 bytes. Its
+The current retained package has 464 payload files and is 72,103,101 bytes. Its
 SHA-256 is
-`6D6A487B23B44E67E8CCBC37F1FD61B001C2514C31600400613FE2609E5AB5F7`.
+`0D1E82B978CA33DBAF912448D81936EB98FBBD4F51751F784F91AE9EEC715137`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the
@@ -425,6 +443,9 @@ COM-port, or MAC-like identifier. Three cycles select one item, verify only the
 bounded bundle action becomes available, invoke Refresh, and require selection
 to clear while all three items, zero-ready status, and disabled Flash return.
 Each refreshed public-name multiset must match the initial privacy-safe roster.
+The exact level 1/2/3 heading sequence must also match the current summary,
+device roster, and bundle state before selection, after selection, and after
+each refresh.
 This proves native automation-client access to the source-free executable on
 this host. It does not prove physical key/mouse input, Narrator wording or
 timing, installer behavior, or clean-machine compatibility.

@@ -1010,9 +1010,13 @@ try
     Console.WriteLine(
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedKeyboardPaths} keyboard focus path");
     Console.WriteLine(
+        $"INFO: production Windows loader accepted {windowAcceptance.AcceptedReverseKeyboardPaths} reverse keyboard focus path");
+    Console.WriteLine(
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedAutomationPaths} automation-peer path");
     Console.WriteLine(
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedAutomationScrollPaths} automation-scroll path");
+    Console.WriteLine(
+        $"INFO: production Windows loader accepted {windowAcceptance.AcceptedHeadingPaths} automation-heading path");
     foreach (var visualFile in windowAcceptance.RenderedFiles)
     {
         Console.WriteLine($"INFO: rendered Windows loader fixture {visualFile}");
@@ -1030,5 +1034,5 @@ if (failures != 0)
     return 1;
 }
 
-Console.WriteLine("PASS: 56 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/keyboard/automation-peer/automation-scroll/high-DPI/resize/contrast-theme-transition, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
+Console.WriteLine("PASS: 58 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/forward-and-reverse-keyboard/automation-peer/automation-scroll/automation-heading/high-DPI/resize/contrast-theme-transition, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
 return 0;

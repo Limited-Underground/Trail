@@ -232,7 +232,7 @@ function Assert-LiveRegionSequence {
         if ([string]::IsNullOrWhiteSpace($name)) {
             throw "$Context raised '$id' without an accessible name."
         }
-        if ($name -match '(?i)usb_candidate_|\bCOM\d{1,3}\b|\bVID_[0-9a-f]{4}\b|\bPID_[0-9a-f]{4}\b|USB\\VID_|\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b') {
+        if ($name -match '(?i)usb_candidate_|\bCOM\d{1,4}\b|\bVID_[0-9a-f]{4}\b|\bPID_[0-9a-f]{4}\b|USB\\VID_|\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b') {
             throw "$Context exposed a private identifier."
         }
 
@@ -321,6 +321,121 @@ function Get-OptionalUiAutomationLiveSetting {
     }
 }
 
+function Get-UiAutomationHeadingLevel {
+    param(
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$Element
+    )
+
+    $value = $Element.GetCurrentPropertyValue(
+        [System.Windows.Automation.AutomationElementIdentifiers]::HeadingLevelProperty,
+        $true)
+    if ($value -is [System.ArgumentException] -or
+        [object]::ReferenceEquals(
+            $value,
+            [System.Windows.Automation.AutomationElement]::NotSupported)) {
+        return [int][System.Windows.Automation.AutomationHeadingLevel]::None
+    }
+    return [int]$value
+}
+
+function Assert-UiAutomationHeadingSequence {
+    param(
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$Window,
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$Summary,
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$DeviceList,
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$BundleSummary,
+        [Parameter(Mandatory)][int]$ExpectedCount,
+        [Parameter(Mandatory)][string]$Context
+    )
+
+    $expected = @(
+        [pscustomobject]@{
+            Level = [int][System.Windows.Automation.AutomationHeadingLevel]::Level1
+            Name = 'Limited Underground Trail Device Utility'
+        },
+        [pscustomobject]@{
+            Level = [int][System.Windows.Automation.AutomationHeadingLevel]::Level2
+            Name = [string]$Summary.Current.Name
+        }
+    )
+    $items = Get-DeviceListItems -List $DeviceList
+    if ($items.Count -ne $ExpectedCount) {
+        throw "$Context could not derive headings for the expected device roster."
+    }
+    foreach ($item in $items) {
+        $itemElements = $item.FindAll(
+            [System.Windows.Automation.TreeScope]::Descendants,
+            [System.Windows.Automation.Condition]::TrueCondition)
+        $itemHeadings = @($itemElements | Where-Object {
+            (Get-UiAutomationHeadingLevel -Element $_) -eq
+                [int][System.Windows.Automation.AutomationHeadingLevel]::Level3
+        })
+        if ($itemHeadings.Count -ne 1 -or
+            [string]::IsNullOrWhiteSpace([string]$itemHeadings[0].Current.Name)) {
+            throw "$Context device item did not expose exactly one named level 3 heading."
+        }
+        $headingName = [string]$itemHeadings[0].Current.Name
+        $itemName = [string]$item.Current.Name
+        if (-not $itemName.StartsWith(
+                "$headingName.",
+                [System.StringComparison]::Ordinal)) {
+            throw "$Context device heading did not match its enclosing public item summary."
+        }
+        $expected += [pscustomobject]@{
+            Level = [int][System.Windows.Automation.AutomationHeadingLevel]::Level3
+            Name = $headingName
+        }
+    }
+    $expected += @(
+        [pscustomobject]@{
+            Level = [int][System.Windows.Automation.AutomationHeadingLevel]::Level2
+            Name = [string]$BundleSummary.Current.Name
+        },
+        [pscustomobject]@{
+            Level = [int][System.Windows.Automation.AutomationHeadingLevel]::Level2
+            Name = 'SAFE MODE'
+        }
+    )
+
+    $allElements = $Window.FindAll(
+        [System.Windows.Automation.TreeScope]::Descendants,
+        [System.Windows.Automation.Condition]::TrueCondition)
+    $actual = @()
+    foreach ($element in $allElements) {
+        $level = Get-UiAutomationHeadingLevel -Element $element
+        if ($level -eq
+            [int][System.Windows.Automation.AutomationHeadingLevel]::None) {
+            continue
+        }
+        $name = [string]$element.Current.Name
+        if ($element.Current.ControlType -ne
+                [System.Windows.Automation.ControlType]::Text -or
+            [string]::IsNullOrWhiteSpace($name) -or
+            $name -match '(?i)usb_candidate_|\bCOM\d{1,4}\b|\bVID_[0-9a-f]{4}\b|\bPID_[0-9a-f]{4}\b|USB\\VID_|\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b') {
+            throw "$Context exposed an invalid heading."
+        }
+        $actual += [pscustomobject]@{
+            Level = $level
+            Name = $name
+        }
+    }
+
+    if ($actual.Count -ne $expected.Count) {
+        throw "$Context exposed $($actual.Count) headings; expected $($expected.Count)."
+    }
+    for ($index = 0; $index -lt $expected.Count; $index++) {
+        if ($actual[$index].Level -ne $expected[$index].Level -or
+            $actual[$index].Name -ne $expected[$index].Name) {
+            throw "$Context heading $($index + 1) was '$($actual[$index].Level): $($actual[$index].Name)'; expected '$($expected[$index].Level): $($expected[$index].Name)'."
+        }
+    }
+}
+
 function Assert-UiAutomationDeviceItems {
     param(
         [Parameter(Mandatory)]
@@ -356,7 +471,7 @@ function Assert-UiAutomationDeviceItems {
         }
 
         $publicCopy = "$name $help"
-        if ($publicCopy -match '(?i)usb_candidate_|\bCOM\d{1,3}\b|\bVID_[0-9a-f]{4}\b|\bPID_[0-9a-f]{4}\b|USB\\VID_|\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b') {
+        if ($publicCopy -match '(?i)usb_candidate_|\bCOM\d{1,4}\b|\bVID_[0-9a-f]{4}\b|\bPID_[0-9a-f]{4}\b|USB\\VID_|\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b') {
             throw "Packaged device item $($index + 1) exposed a private or internal identifier."
         }
 
@@ -391,7 +506,7 @@ function Assert-NoPrivateUiAutomationCopy {
         [System.Windows.Automation.Condition]::TrueCondition)
     foreach ($element in $elements) {
         $publicCopy = "$($element.Current.Name) $($element.Current.HelpText)"
-        if ($publicCopy -match '(?i)usb_candidate_|\bCOM\d{1,3}\b|\bVID_[0-9a-f]{4}\b|\bPID_[0-9a-f]{4}\b|USB\\VID_|\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b') {
+        if ($publicCopy -match '(?i)usb_candidate_|\bCOM\d{1,4}\b|\bVID_[0-9a-f]{4}\b|\bPID_[0-9a-f]{4}\b|USB\\VID_|\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b') {
             throw 'The packaged accessibility tree exposed a private or internal identifier.'
         }
     }
@@ -524,6 +639,13 @@ function Invoke-PackagedUiAutomationAcceptance {
         [string]$_.Current.Name
     } | Sort-Object)
     Assert-NoPrivateUiAutomationCopy -Window $window
+    Assert-UiAutomationHeadingSequence `
+        -Window $window `
+        -Summary $summary `
+        -DeviceList $deviceList `
+        -BundleSummary $bundleSummary `
+        -ExpectedCount $ExpectedCount `
+        -Context 'Initial packaged heading hierarchy'
 
     $liveRegionSubscribed = $false
     try {
@@ -551,6 +673,13 @@ function Invoke-PackagedUiAutomationAcceptance {
                     $selectionProvider.Current.GetSelection().Count -eq 1
             }
             $settledSelectionName = [string]$selectionStatus.Current.Name
+            Assert-UiAutomationHeadingSequence `
+                -Window $window `
+                -Summary $summary `
+                -DeviceList $deviceList `
+                -BundleSummary $bundleSummary `
+                -ExpectedCount $ExpectedCount `
+                -Context "Selected packaged heading hierarchy cycle $($cycle + 1)"
             Start-Sleep -Milliseconds 250
             Assert-LiveRegionSequence `
                 -Context "Selection cycle $($cycle + 1)" `
@@ -633,6 +762,13 @@ function Invoke-PackagedUiAutomationAcceptance {
                 throw "Packaged refresh changed the public device roster in cycle $($cycle + 1)."
             }
             Assert-NoPrivateUiAutomationCopy -Window $window
+            Assert-UiAutomationHeadingSequence `
+                -Window $window `
+                -Summary $summary `
+                -DeviceList $deviceList `
+                -BundleSummary $bundleSummary `
+                -ExpectedCount $ExpectedCount `
+                -Context "Refreshed packaged heading hierarchy cycle $($cycle + 1)"
         }
     }
     finally {
