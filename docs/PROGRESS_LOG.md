@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-13
 
+### Hardened source-free Windows utility package refresh
+
+- Rebuilt the self-contained `win-x64` engineering ZIP from the source after
+  the resize, scale, contrast, live-refresh, keyboard, automation-peer, and
+  in-window theme-transition fixes. The builder independently extracted its
+  own output, matched all 464 manifest-bound payload files, and launched the
+  exact source-free executable.
+- A separate verifier then repeated clean extraction, complete length/SHA-256
+  matching, capability-boundary checks, forbidden-payload checks, and hidden
+  launch verification. The retained archive is 72,102,372 bytes with SHA-256
+  `3AF1CDC896D82CDD47DF8A632BE863C7F8F87919BE8FC2A42FAB04BCE318D0C5`.
+- The package remains local and Git-ignored. It is inspection-only, has no
+  production signer, firmware, writer, erase/reset/DFU/recovery authority,
+  private key, or debug/source payload, and is not an installer, signed build,
+  clean-machine result, public release, or distribution claim.
+
 ### In-window theme-transition state and focus acceptance
 
 - Exercised the shown 900×620 production `MainWindow` through classic →

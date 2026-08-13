@@ -362,9 +362,9 @@ packaged executable:
 .\tools\Test-WindowsDeviceUtilityPackage.ps1 -ArchivePath <path-to-zip>
 ```
 
-The current retained package has 464 payload files and is 72,101,915 bytes. Its
+The current retained package has 464 payload files and is 72,102,372 bytes. Its
 SHA-256 is
-`CC47BB6BB3BDD952B6717861F71AA1A067ED08D486314FC98888B86614C2395E`.
+`3AF1CDC896D82CDD47DF8A632BE863C7F8F87919BE8FC2A42FAB04BCE318D0C5`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the
