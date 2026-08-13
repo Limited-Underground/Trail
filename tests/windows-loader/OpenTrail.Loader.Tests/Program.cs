@@ -1,4 +1,5 @@
 using OpenTrail.Loader;
+using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -950,6 +951,19 @@ try
 }
 catch (InvalidDataException)
 {
+}
+
+try
+{
+    foreach (var visualFile in LoaderVisualFixtureRenderer.RenderIfRequested())
+    {
+        Console.WriteLine($"INFO: rendered Windows loader fixture {visualFile}");
+    }
+}
+catch (Exception error)
+{
+    Console.Error.WriteLine($"FAIL: Windows loader visual fixture: {error}");
+    failures++;
 }
 
 if (failures != 0)

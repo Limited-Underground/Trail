@@ -165,13 +165,16 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,098,162 bytes with SHA-256
-`8AB5CA9FF9FE0348AB23E5ACDE84BF2CD84F9F82B9EB5D48338F92BE6F7A3510`.
+The newest verified 464-file archive is 72,098,432 bytes with SHA-256
+`96720DD25C63151F303522A07D93D65315CC2CC0ED380BEF62D159A47B92CDC6`.
 This is local package evidence only: no installer lifecycle, clean-machine,
 code-signing, distribution, or public-release claim exists.
-Visible rendered/accessibility evidence, repeated live-refresh acceptance,
-installer/clean-machine lifecycle, and real assistive-technology acceptance
-remain unverified. The validation workflow now builds every WPF and
+Deterministic production-XAML renders have been reviewed at 1600×900 and the
+900×620 minimum, including a scrolled minimum view. That review fixed a
+transparent content root and horizontal card clipping; all three cards remain
+reachable and disabled Flash labels remain readable. Keyboard/Narrator,
+high-DPI/system-theme, repeated live-refresh, installer/clean-machine, and real
+assistive-technology acceptance remain unverified. The validation workflow now builds every WPF and
 test intermediate/output tree under one unique, verified system-temporary
 directory and removes that exact directory afterward. This prevents stale or
 protected development artifacts from blocking the warning-free app build and
@@ -186,8 +189,10 @@ The owner-requested loader presentation now follows a Windows 95-style utility
 direction with gray square surfaces, navy headings, classic typography, and an
 application-owned beveled button template. That template fixes the observed
 near-white-on-white disabled labels by explicitly retaining dark disabled
-copy. A fresh build was launched, but final scale/theme/resize visual
-acceptance remains open.
+copy. Deterministic desktop/minimum rendered layout and vertical access to a
+wrapped third card are accepted on the current host; interactive resize,
+high-DPI/system-theme, keyboard, and assistive-technology acceptance remain
+open.
 Read-only inspection and flash permission are distinct outcomes: a connected
 board can remain inspectable while incomplete or conflicting processor,
 flash/PSRAM, exact profile/revision, bootloader schema, or image-size evidence
@@ -203,7 +208,7 @@ MeshCore repeater without emitting raw replies, pairing fields, local ports, or
 persistent identity. Installed runtime role remains non-authoritative for the
 unresolved OpenTrail target role, so all three stayed blocked from Flash. No
 low-level probe, approved production signer/admission composition, approved board profile,
-erase/write/reboot capability, accepted rendered UI, or physical recovery
+erase/write/reboot capability, accepted interactive UI, or physical recovery
 evidence exists. See the
 [bundle candidate format](update/FIRMWARE_BUNDLE_CANDIDATE_FORMAT_V0.md),
 [firmware-bundle admission](update/FIRMWARE_BUNDLE_ADMISSION_V0.md),

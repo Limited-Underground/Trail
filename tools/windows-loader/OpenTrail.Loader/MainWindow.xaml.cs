@@ -135,22 +135,7 @@ public partial class MainWindow : Window
 
     private async Task RefreshAsync()
     {
-        var refreshRevision = _refreshAuthority.Begin();
-        _deviceSelection.InvalidateForDeviceRefresh();
-        _bundleAuthority.InvalidateForDeviceRefresh();
-        _suppressSelectionChanged = true;
-        DeviceCards.SelectedItem = null;
-        DeviceCards.ItemsSource = null;
-        _suppressSelectionChanged = false;
-        SelectionText.Text =
-            "Device selection cleared. Complete inspection, then select one current device.";
-        RaiseLiveRegionChanged(SelectionText);
-        SelectFirmwareButton.Content = "Select firmware bundle";
-        SelectFirmwareButton.IsEnabled = false;
-        ResetBundleDisplay(
-            "Firmware bundle selection waiting for device inspection",
-            "Any earlier candidate result was discarded before refreshing devices.",
-            "BLOCKED: A current connected-device snapshot is required.");
+        var refreshRevision = BeginDisplayRefresh();
         _refreshCancellation?.Cancel();
         _refreshCancellation?.Dispose();
         _refreshCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -170,19 +155,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            PhaseText.Text = document.Screen.Phase;
-            SummaryText.Text = document.Screen.Summary;
-            NoticeText.Text = document.Screen.Notice;
-            _deviceSelection.PublishSnapshot(
-                document.Devices.Select(static device => device.Candidate));
-            DeviceCards.ItemsSource = document.Devices;
-            _bundleAuthority.PublishCurrentDeviceSnapshot();
-            SelectFirmwareButton.IsEnabled = false;
-            SelectionText.Text = document.Devices.Count == 0
-                ? "No connected device is available for selection."
-                : "Select one connected device to continue. Selection is not Flash permission.";
-            RaiseLiveRegionChanged(SummaryText);
-            RaiseLiveRegionChanged(SelectionText);
+            PublishInspectionDocumentForDisplay(document);
         }
         catch (OperationCanceledException)
         {
@@ -207,6 +180,48 @@ public partial class MainWindow : Window
                 CommandManager.InvalidateRequerySuggested();
             }
         }
+    }
+
+    internal ulong BeginDisplayRefresh()
+    {
+        var refreshRevision = _refreshAuthority.Begin();
+        _deviceSelection.InvalidateForDeviceRefresh();
+        _bundleAuthority.InvalidateForDeviceRefresh();
+        _suppressSelectionChanged = true;
+        DeviceCards.SelectedItem = null;
+        DeviceCards.ItemsSource = null;
+        _suppressSelectionChanged = false;
+        SelectionText.Text =
+            "Device selection cleared. Complete inspection, then select one current device.";
+        RaiseLiveRegionChanged(SelectionText);
+        SelectFirmwareButton.Content = "Select firmware bundle";
+        SelectFirmwareButton.IsEnabled = false;
+        ResetBundleDisplay(
+            "Firmware bundle selection waiting for device inspection",
+            "Any earlier candidate result was discarded before refreshing devices.",
+            "BLOCKED: A current connected-device snapshot is required.");
+        return refreshRevision;
+    }
+
+    internal void PublishInspectionDocumentForDisplay(
+        LoaderInspectionDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        document.Validate();
+
+        PhaseText.Text = document.Screen.Phase;
+        SummaryText.Text = document.Screen.Summary;
+        NoticeText.Text = document.Screen.Notice;
+        _deviceSelection.PublishSnapshot(
+            document.Devices.Select(static device => device.Candidate));
+        DeviceCards.ItemsSource = document.Devices;
+        _bundleAuthority.PublishCurrentDeviceSnapshot();
+        SelectFirmwareButton.IsEnabled = false;
+        SelectionText.Text = document.Devices.Count == 0
+            ? "No connected device is available for selection."
+            : "Select one connected device to continue. Selection is not Flash permission.";
+        RaiseLiveRegionChanged(SummaryText);
+        RaiseLiveRegionChanged(SelectionText);
     }
 
     private void ShowError(string message)

@@ -20,9 +20,10 @@ clients and the packaged SenseCAP Solar P1-Pro GPS repeater.
 
 This is source/build and document-validation evidence. A local self-contained
 package has also passed source-free extraction, manifest/hash verification, and
-launch smoke testing. Visible rendered layout, accessibility, resizing, and
-refresh interaction have not yet been accepted. Those checks require a
-separate interactive Windows review.
+launch smoke testing. The real production XAML now also has deterministic
+rendered-layout evidence at desktop and minimum window sizes. Real keyboard,
+Narrator, high-DPI/system-theme, repeated-refresh, and clean-machine acceptance
+remain separate gates.
 
 The source now provides F5 refresh through the same bounded command as the
 button, an explicit keyboard focus visual, automation live regions for changing
@@ -108,8 +109,31 @@ gray surfaces, navy section treatment, compact Microsoft Sans Serif text,
 pixel-aligned borders, and an application-owned beveled button template. The
 custom template fixes the observed platform-theme failure that rendered
 disabled action labels nearly white on white; disabled labels are explicitly
-dark gray on the gray button face. This is a stylistic direction and compiled
-source result, not final visual acceptance at every scale or system theme.
+dark gray on the gray button face.
+
+## Rendered layout evidence
+
+The test executable has an opt-in WPF renderer that creates the real
+`MainWindow`, publishes a fully validated privacy-safe three-card inspection
+document through the production display path, and captures production XAML.
+It does not connect to, reset, or mutate a radio. On 2026-08-13, the generated
+1600×900 desktop view, 900×620 minimum view, and 900×620 scrolled view were
+inspected pixel-for-pixel.
+
+That review found two defects: the content root could render transparent, which
+hid black summary copy against a black backing surface, and the nested list
+measured device cards as one unbounded horizontal row, clipping the third card
+at minimum width. The production XAML now owns an explicit gray background and
+constrains the device list to the visible content width. At 1600×900 all three
+cards fit in one row. At 900×620 two cards fit in the first row and the third
+wraps below; the outer vertical scroll reaches it while the bundle and safe-mode
+footers remain fixed. Selected-state borders, status copy, Refresh, firmware-
+bundle, and both disabled Flash labels are readable in the inspected renders.
+
+This is deterministic rendered-layout and resize evidence on the current host.
+It is not evidence of mouse/keyboard operation, focus traversal, Narrator live
+announcements, Windows scaling above 100%, alternate system themes, repeated
+live refresh behavior, or clean-machine operation.
 
 The visible application identity is now composed from one C# boundary rather
 than embedded throughout XAML and inspection copy. Its preliminary working
@@ -168,6 +192,18 @@ From the repository root:
 .\tools\Test-WindowsLoader.ps1
 ```
 
+To regenerate the three deterministic production-XAML renders during that
+same warning-free run:
+
+```powershell
+$env:OT_LOADER_VISUAL_OUTPUT = Join-Path $env:TEMP 'OpenTrail.Loader.VisualEvidence'
+.\tools\Test-WindowsLoader.ps1
+```
+
+The renderer writes only the fixed desktop, minimum, and scrolled-minimum PNG
+names beneath that explicitly selected directory. Leaving the environment
+variable unset keeps the ordinary test run headless.
+
 The validation command resolves a unique directory below the system temporary
 directory, gives each .NET project its own intermediate and output subtree,
 and removes only that exact validation tree in a `finally` path. This keeps an
@@ -215,9 +251,9 @@ packaged executable:
 .\tools\Test-WindowsDeviceUtilityPackage.ps1 -ArchivePath <path-to-zip>
 ```
 
-The current retained package has 464 payload files and is 72,098,162 bytes. Its
+The current retained package has 464 payload files and is 72,098,432 bytes. Its
 SHA-256 is
-`8AB5CA9FF9FE0348AB23E5ACDE84BF2CD84F9F82B9EB5D48338F92BE6F7A3510`.
+`96720DD25C63151F303522A07D93D65315CC2CC0ED380BEF62D159A47B92CDC6`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the
@@ -230,11 +266,11 @@ binary has been published.
 
 ## Remaining gates
 
-1. Visually inspect the real application with the three connected bench units,
-   including common window sizes and repeated refresh behavior.
+1. Exercise repeated live refresh and explicit selection in the visible app
+   with the three connected bench units without starting maintenance mode.
 2. Accept keyboard navigation, focus order, live announcements, labels,
-   contrast, resize behavior, and high-DPI behavior with real Windows UI and
-   assistive-technology review.
+   contrast, high-DPI/system-theme behavior, and the remaining interactive
+   resize cases with real Windows UI and assistive-technology review.
 3. Build and lifecycle-test an installer, then repeat package and installer
    acceptance on a clean Windows machine; add code signing before distribution.
 4. Add an approved authoritative received-board profile and low-level probe

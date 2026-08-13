@@ -6,6 +6,34 @@ public chronology.
 
 ## 2026-08-13
 
+### Deterministic Windows loader rendered-layout acceptance
+
+- Added an opt-in STA WPF renderer to the existing warning-free loader test
+  executable. It composes the real production `MainWindow` with a validated,
+  privacy-safe three-device document and captures desktop, minimum-window, and
+  scrolled minimum-window pixels without opening a device transport.
+- Pixel review at 1600×900 and 900×620 exposed and fixed two production-XAML
+  defects: a transparent content root could hide the summary against a black
+  backing surface, and device cards stayed in one clipped horizontal row at
+  minimum width. The root now owns the classic gray surface and cards wrap to
+  the constrained visible width.
+- The accepted renders show all three cards at desktop size, two-plus-one
+  wrapping at minimum size, vertical access to the third card, a clear selected
+  state, fixed bundle/safe-mode footers, and readable disabled Flash labels.
+  This is rendered layout/resize evidence only; Narrator, keyboard traversal,
+  high-DPI/system-theme, repeated live refresh, and clean-machine acceptance
+  remain open.
+- The full 111-executable host matrix, Python/publication-safety checks,
+  cross-tool signature vector, and 48 Windows loader groups pass. The read-only
+  runtime check still reports three inspected, three runtime-identified, and
+  zero ready to flash; no radio was reset, written, or placed in maintenance
+  mode.
+- A fresh 464-file self-contained `win-x64` engineering package independently
+  passed manifest/hash and source-free launch verification. It is 72,098,432
+  bytes with SHA-256
+  `96720DD25C63151F303522A07D93D65315CC2CC0ED380BEF62D159A47B92CDC6`;
+  it remains local, ignored, inspection-only, and not a public release.
+
 ### Exact selected-device bundle-match boundary
 
 - Added one pure matcher between the explicitly selected current device and the

@@ -16,7 +16,7 @@
     <Window.InputBindings>
         <KeyBinding Key="F5" Command="NavigationCommands.Refresh" />
     </Window.InputBindings>
-    <Grid>
+    <Grid Background="{StaticResource BackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -49,7 +49,8 @@
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="ContentScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="16,16,16,20">
                 <Grid Margin="0,0,0,18">
                     <Grid.ColumnDefinitions>
@@ -71,7 +72,8 @@
                     </Border>
                 </Grid>
 
-                <Border Background="#FFFFFF" BorderBrush="#808080" BorderThickness="2"
+                <Border x:Name="ContentWidthAnchor"
+                        Background="#FFFFFF" BorderBrush="#808080" BorderThickness="2"
                         CornerRadius="0" Padding="12" Margin="0,0,0,16">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -110,6 +112,10 @@
                 <ListBox x:Name="DeviceCards" SelectionMode="Single"
                          SelectionChanged="DeviceCards_SelectionChanged"
                          Background="Transparent" BorderThickness="0" Padding="0"
+                         Width="{Binding ElementName=ContentWidthAnchor, Path=ActualWidth}"
+                         HorizontalAlignment="Left"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
                          AutomationProperties.Name="Connected device candidates"
                          AutomationProperties.HelpText="Choose exactly one current connected candidate. Refresh clears the selection.">
                     <ListBox.ItemContainerStyle>
