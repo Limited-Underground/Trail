@@ -21,7 +21,7 @@ This is the organized entry point for OpenTrail design, evidence, and engineerin
 | Follow recent work | [Progress log](PROGRESS_LOG.md) |
 | See what is complete or still planned | [Engineering backlog](../tasks/BACKLOG.md) |
 | Work on a portable client target | [Portable-client composition](platform/PORTABLE_CLIENT_COMPOSITION_V0.md), [development guide](DEVELOPMENT.md), and [hardware inventory](../hardware/INVENTORY.md) |
-| Work on the Windows firmware loader | [WPF desktop shell](update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md), [live inspection model](update/WINDOWS_LOADER_INSPECTION_VIEW_V0.md), [Windows USB/runtime inspection](update/WINDOWS_USB_CANDIDATE_DISCOVERY_V0.md), [final write admission](update/FIRMWARE_WRITE_ADMISSION_V0.md), [firmware-bundle admission](update/FIRMWARE_BUNDLE_ADMISSION_V0.md), [firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md), [update/recovery architecture](update/UPDATE_RECOVERY_ARCHITECTURE_V0.md), and [hardware inventory](../hardware/INVENTORY.md) |
+| Work on the Windows firmware loader | [WPF desktop shell](update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md), [bundle candidate format](update/FIRMWARE_BUNDLE_CANDIDATE_FORMAT_V0.md), [release-signature decision](decisions/0006-firmware-bundle-signature.md), [live inspection model](update/WINDOWS_LOADER_INSPECTION_VIEW_V0.md), [Windows USB/runtime inspection](update/WINDOWS_USB_CANDIDATE_DISCOVERY_V0.md), [final write admission](update/FIRMWARE_WRITE_ADMISSION_V0.md), [firmware-bundle admission](update/FIRMWARE_BUNDLE_ADMISSION_V0.md), [firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md), [update/recovery architecture](update/UPDATE_RECOVERY_ARCHITECTURE_V0.md), and [hardware inventory](../hardware/INVENTORY.md) |
 | Work on radio packets or delivery | [Protocol documents](protocol/), [generic quick-status payload](protocol/QUICK_STATUS_PAYLOAD_V0.md), and [immutable repeater decision](decisions/0004-immutable-first-release-forwarding.md) |
 | Work on local quick-status selection | [Parent-page handoff](platform/QUICK_STATUS_PARENT_PAGE_COORDINATOR_V0.md), [revision-safe menu](platform/QUICK_STATUS_MENU_COORDINATOR_V0.md), [local interface](platform/LOCAL_INTERFACE_V0.md), and [payload contract](protocol/QUICK_STATUS_PAYLOAD_V0.md) |
 | Review identity or security | [Threat model](security/THREAT_MODEL_V0.md), [group lifecycle](security/GROUP_LIFECYCLE_V0.md), and [crypto candidate review](security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md) |
@@ -34,7 +34,7 @@ This is the organized entry point for OpenTrail design, evidence, and engineerin
 
 | Area | Contents | Key entry point |
 | --- | --- | --- |
-| [Architecture decisions](decisions/) | Recorded constraints that future work must preserve | [Immutable first-release forwarding](decisions/0004-immutable-first-release-forwarding.md) |
+| [Architecture decisions](decisions/) | Recorded constraints that future work must preserve | [Firmware bundle signatures](decisions/0006-firmware-bundle-signature.md) |
 | [Protocol](protocol/) | Packet v0, delivery, priority, position, repeater, packet sizing, and reassembly | [Experimental packet v0](protocol/EXPERIMENTAL_PACKET_V0.md) |
 | [Platform](platform/) | Portable-client composition, time, power, UI, position commands, and runtime ordering | [Portable-client composition](platform/PORTABLE_CLIENT_COMPOSITION_V0.md) |
 | [Location and archive](location/) | GPS behavior and opt-in breadcrumb archive boundaries | [GPS abstraction](location/GPS_ABSTRACTION.md) |

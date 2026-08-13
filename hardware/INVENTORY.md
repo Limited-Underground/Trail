@@ -1,6 +1,6 @@
 # OpenTrail Hardware Inventory
 
-Last updated: 2026-08-12
+Last updated: 2026-08-13
 
 Compatibility states used here:
 
@@ -106,6 +106,13 @@ Official references used for family matching:
 - USB Companion serial validation succeeded on `COM6`: MeshCLI connected, confirmed firmware `v1.16.0-07a3ca9`, and returned read-only configuration/runtime statistics. The browser and MeshCLI cannot own the Web Serial/COM port simultaneously.
 - `tools/Test-MeshCoreUsbNodes.ps1` automatically discovers connected Espressif USB Companion ports and returns a redacted, read-only health snapshot (model/firmware, battery, radio settings, errors, queue, packet counts, and airtime). It deliberately omits node names, public keys, coordinates, PINs, and channel data. Run it only while MeshCore browser tabs are disconnected.
 - `tools/Get-MeshCoreGnssStatus.py` returns a read-only role-labeled GNSS snapshot for USB Companions and a serial repeater. It reduces companion telemetry in memory to GPS-field presence and emits only detection/active/fix/satellite state; default output omits local ports, raw replies, coordinates, identities, keys, and PINs. Its four parser/redaction groups pass, and the three-device live snapshot succeeded on 2026-08-12.
+- The source-free Windows device utility now uses SetupAPI plus only fixed
+  MeshCore runtime-identity requests, with no CIM/WMI, Python, MeshCLI, shell, or
+  network dependency. On 2026-08-13 its built-in C# path runtime-identified both
+  attached Heltec V4 OLED companions and the SenseCAP Solar repeater while
+  retaining every exact-hardware/Flash blocker. It does not expose ports,
+  serials, hardware-instance paths, raw replies, BLE PINs, identities, keys, or
+  coordinates; see `tests/hardware/OT-019H-2026-08-13.md`.
 - `tools/meshcore_channel_lease.py` and the three-node soak harness add a non-secret crash-recovery journal for temporary private-channel tests. A real stopped-session recovery cleared and verified both Heltecs; short traffic/smoke cycles passed; and a 300-minute alternating run delivered 300/300 with zero loss/duplicates/errors, exact +300 repeater flood RX/TX, repeat preserved, and verified channel/journal cleanup. See `tests/hardware/OT-009A-2026-08-09.md`.
 - Windows pairing is required before the browser can open the encrypted MeshCore GATT service. A stale or malfunctioning laptop Bluetooth state can preserve the device record while hiding live advertisements; clearing the pairing and restarting the laptop Bluetooth radio restored discovery during this test.
 - The initial inventory and BLE diagnostic pass performed no flash write or erase. The user then intentionally flashed the official Heltec v4 USB Companion `v1.16.0-07a3ca9` image with erase enabled; the old MeshCore identity/configuration was expected to be replaced.

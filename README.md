@@ -6,15 +6,15 @@ OpenTrail is a free and open-source ESP32/LoRa platform for off-grid group commu
 
 The base design is a self-contained portable client with its own power, display, input, radio, and GNSS-aware group status. Repeaters, remote archives, vehicle alerts, larger displays, and offline maps are optional additions—not requirements for basic operation.
 
-> **Naming:** OpenTrail is the repository and engineering name. A final public product name has not been selected.
+> **Naming:** OpenTrail remains the repository and engineering name. The local Windows utility now uses the preliminary, attorney-review-pending working display `Limited Underground Trail`; one replaceable identity boundary keeps that wording out of `OT-*` records, protocols, compatibility identifiers, and namespaces. This is not a clearance or registration claim.
 
 ## Project status
 
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, and bounded close-range bench proofs |
-| Latest increment | [First real Windows loader desktop shell](docs/update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md): a warning-free .NET 8 WPF app renders the privacy-safe three-device inspection model while every firmware-writing action remains absent or disabled; visible UI acceptance is still pending |
-| Proven so far | A 111-executable C++ host matrix, 11 C# loader document/refresh/process-boundary scenarios, and Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited GNSS, transport, soak, burst, and alert/acknowledgement tests |
+| Latest increment | [Firmware-bundle release-signature boundary](docs/decisions/0006-firmware-bundle-signature.md): one public-only fixed manifest vector now passes the Windows loader, OpenSSL 3.5.6, and Espressif `espsecure` 5.3.1 with an explicit 32-byte PSS salt, while tampering is rejected. The packaged signer catalog remains deliberately empty, and signature admission, exact-device matching, and Flash remain blocked |
+| Proven so far | A 111-executable C++ host matrix, 45 C# loader document/identity/accessibility/refresh/process-boundary/USB-runtime/hardware-profile/fixed-vector bundle-signature/packaged-inspection scenarios, cross-tool signature evidence, and Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited GNSS, transport, soak, burst, and alert/acknowledgement tests |
 | Planned first release | Up to eight active clients in one group with at most one optional authorized repeater |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 

@@ -1,41 +1,56 @@
 <Window x:Class="OpenTrail.Loader.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="OpenTrail Firmware Loader"
+        Title="{Binding WindowTitle, Mode=OneTime, FallbackValue=Device Utility}"
         Width="1120" Height="760" MinWidth="900" MinHeight="620"
         WindowStartupLocation="CenterScreen"
+        AutomationProperties.Name="{Binding WindowTitle, Mode=OneTime, FallbackValue=Device Utility}"
+        KeyboardNavigation.TabNavigation="Cycle"
+        SnapsToDevicePixels="True" UseLayoutRounding="True"
         Background="{StaticResource BackgroundBrush}">
+    <Window.CommandBindings>
+        <CommandBinding Command="NavigationCommands.Refresh"
+                        CanExecute="RefreshCommand_CanExecute"
+                        Executed="RefreshCommand_Executed" />
+    </Window.CommandBindings>
+    <Window.InputBindings>
+        <KeyBinding Key="F5" Command="NavigationCommands.Refresh" />
+    </Window.InputBindings>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="#12171D" BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,0,0,1" Padding="30,22">
+        <Border Grid.Row="0" Background="{StaticResource AccentBrush}" BorderBrush="#000000"
+                BorderThickness="0,0,0,2" Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="OPENTRAIL / LOCAL SERVICE" Foreground="{StaticResource AccentBrush}"
-                               FontFamily="Segoe UI Semibold" FontSize="12" />
-                    <TextBlock Text="Firmware Loader" FontFamily="Segoe UI Semibold"
-                               FontSize="30" Margin="0,4,0,0" />
+                    <TextBlock Text="{Binding HeaderLine, Mode=OneTime}" Foreground="#FFFFFF"
+                               FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="11" />
+                    <TextBlock Text="{Binding UtilityRoleName, Mode=OneTime}" Foreground="#FFFFFF"
+                               FontFamily="Microsoft Sans Serif" FontWeight="Bold"
+                               FontSize="24" Margin="0,4,0,0" />
                     <TextBlock x:Name="PhaseText" Text="Inspection only"
-                               Foreground="{StaticResource MutedTextBrush}" FontSize="14" Margin="0,3,0,0" />
+                               Foreground="#FFFFFF" FontSize="13" Margin="0,3,0,0" />
                 </StackPanel>
                 <Button x:Name="RefreshButton" Grid.Column="1" Content="Refresh devices"
                         Click="RefreshButton_Click" VerticalAlignment="Center"
-                        Background="{StaticResource AccentBrush}" Foreground="White"
-                        BorderBrush="{StaticResource AccentBrush}" />
+                        AutomationProperties.Name="Refresh connected devices"
+                        AutomationProperties.HelpText="Read connected USB candidates again without changing a device. Keyboard shortcut F5."
+                        Background="#C0C0C0" Foreground="#000000"
+                        BorderBrush="#000000" />
             </Grid>
         </Border>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="30,26,30,30">
+            <StackPanel Margin="16,16,16,20">
                 <Grid Margin="0,0,0,18">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -43,37 +58,43 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock x:Name="SummaryText" Text="Looking for connected devices…"
-                                   FontFamily="Segoe UI Semibold" FontSize="24" />
-                        <TextBlock Text="USB inspection is read-only. Device identity and pairing data stay hidden."
+                                   AutomationProperties.LiveSetting="Polite"
+                                   FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="20" />
+                        <TextBlock Text="Connected-device inspection is read-only. Device identity and pairing data stay hidden."
                                    Foreground="{StaticResource MutedTextBrush}" FontSize="14" Margin="0,6,0,0" />
                     </StackPanel>
-                    <Border Grid.Column="1" Background="#18314B" CornerRadius="16" Padding="12,7"
+                    <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#808080"
+                            BorderThickness="2" CornerRadius="0" Padding="10,5"
                             VerticalAlignment="Top">
-                        <TextBlock Text="NO WRITER CONNECTED" Foreground="#9CC7FF"
-                                   FontFamily="Segoe UI Semibold" FontSize="11" />
+                        <TextBlock Text="NO WRITER CONNECTED" Foreground="#000080"
+                                   FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="11" />
                     </Border>
                 </Grid>
 
-                <Border Background="#202833" BorderBrush="#3A4654" BorderThickness="1"
-                        CornerRadius="8" Padding="16" Margin="0,0,0,20">
+                <Border Background="#FFFFFF" BorderBrush="#808080" BorderThickness="2"
+                        CornerRadius="0" Padding="12" Margin="0,0,0,16">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Border Width="30" Height="30" CornerRadius="15" Background="#284E75">
-                            <TextBlock Text="i" FontFamily="Segoe UI Semibold" FontSize="17"
+                        <Border Width="24" Height="24" CornerRadius="0" Background="#000080">
+                            <TextBlock Text="i" Foreground="#FFFFFF" FontFamily="Microsoft Sans Serif"
+                                       FontWeight="Bold" FontSize="15"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <TextBlock x:Name="NoticeText" Grid.Column="1" TextWrapping="Wrap"
-                                   Margin="12,2,0,0" Foreground="#D7E5F5" FontSize="14" />
+                                   AutomationProperties.Name="Safety notice"
+                                   Margin="10,2,0,0" Foreground="#000000" FontSize="13" />
                     </Grid>
                 </Border>
 
-                <Border x:Name="ErrorBanner" Visibility="Collapsed" Background="#3A2020"
-                        BorderBrush="#8C4242" BorderThickness="1" CornerRadius="8"
+                <Border x:Name="ErrorBanner" Visibility="Collapsed" Background="#FFD8D8"
+                        BorderBrush="#800000" BorderThickness="2" CornerRadius="0"
                         Padding="14" Margin="0,0,0,18">
-                    <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Foreground="#FFD5D5" />
+                    <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Foreground="#800000"
+                               AutomationProperties.Name="Inspection error"
+                               AutomationProperties.LiveSetting="Assertive" />
                 </Border>
 
                 <ItemsControl x:Name="DeviceCards">
@@ -84,10 +105,12 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Width="330" MinHeight="340" Margin="0,0,16,16" Padding="20"
+                            <Border Width="330" MinHeight="570" Margin="0,0,12,12" Padding="16"
+                                    AutomationProperties.Name="{Binding AccessibleSummary}"
+                                    AutomationProperties.HelpText="{Binding FlashHelpText}"
                                     Background="{StaticResource PanelBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                                    CornerRadius="10">
+                                    BorderBrush="#808080" BorderThickness="2"
+                                    CornerRadius="0">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
@@ -101,27 +124,52 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding Candidate}" Foreground="{StaticResource MutedTextBrush}"
-                                                   FontFamily="Consolas" FontSize="11" />
-                                        <Border Grid.Column="1" Background="#24364A" CornerRadius="12" Padding="9,4">
-                                            <TextBlock Text="USB" Foreground="#9CC7FF" FontSize="11" />
+                                        <TextBlock Text="{Binding Candidate}" Foreground="#404040"
+                                                   FontFamily="Courier New" FontSize="11" />
+                                        <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#808080"
+                                                BorderThickness="1" CornerRadius="0" Padding="8,3">
+                                            <TextBlock Text="{Binding Connection}" Foreground="#000080" FontSize="11" />
                                         </Border>
                                     </Grid>
                                     <TextBlock Grid.Row="1" Text="{Binding DisplayName}"
-                                               FontFamily="Segoe UI Semibold" FontSize="22" Margin="0,16,0,0" />
+                                               FontFamily="Microsoft Sans Serif" FontWeight="Bold"
+                                               FontSize="19" Margin="0,14,0,0" />
                                     <StackPanel Grid.Row="2" Margin="0,5,0,16">
                                         <TextBlock Text="{Binding InstalledRuntime}" Foreground="{StaticResource MutedTextBrush}" />
-                                        <TextBlock Text="{Binding FirmwareDisplay}" FontFamily="Consolas" FontSize="12"
-                                                   Foreground="#C6CDD6" Margin="0,5,0,0" />
+                                        <TextBlock Text="{Binding FirmwareDisplay}" FontFamily="Courier New" FontSize="12"
+                                                   Foreground="#000000" Margin="0,5,0,0" />
+                                        <Border Background="#FFFFFF" BorderBrush="#808080" BorderThickness="2"
+                                                Padding="9" Margin="0,12,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="HARDWARE PROFILE CANDIDATE" Foreground="#000080"
+                                                           FontWeight="Bold" FontSize="10" />
+                                                <TextBlock Text="{Binding HardwareProfile.ProfileCandidate}"
+                                                           FontWeight="Bold" TextWrapping="Wrap" Margin="0,5,0,0" />
+                                                <TextBlock Text="{Binding HardwareProfile.EvidenceLevel}"
+                                                           Foreground="#800000" FontWeight="Bold" FontSize="11"
+                                                           Margin="0,3,0,0" />
+                                                <TextBlock Text="{Binding HardwareProfile.ObservedNow}"
+                                                           TextWrapping="Wrap" FontSize="11" Margin="0,6,0,0" />
+                                                <TextBlock Text="{Binding HardwareProfile.PublishedBaseline}"
+                                                           TextWrapping="Wrap" Foreground="#404040" FontSize="11"
+                                                           Margin="0,5,0,0" />
+                                                <TextBlock Text="{Binding HardwareProfile.RestartDisplay}"
+                                                           Foreground="#000080" FontWeight="Bold" FontSize="10"
+                                                           Margin="0,7,0,0" />
+                                                <TextBlock Text="{Binding HardwareProfile.NextStep}"
+                                                           TextWrapping="Wrap" FontSize="11" Margin="0,3,0,0" />
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
                                     <StackPanel Grid.Row="3">
-                                        <TextBlock Text="WHY FLASH IS BLOCKED" Foreground="{StaticResource AccentBrush}"
-                                                   FontFamily="Segoe UI Semibold" FontSize="11" Margin="0,0,0,7" />
+                                        <TextBlock Text="WHY FLASH IS BLOCKED" Foreground="#000080"
+                                                   FontFamily="Microsoft Sans Serif" FontWeight="Bold"
+                                                   FontSize="11" Margin="0,0,0,7" />
                                         <ItemsControl ItemsSource="{Binding Blockers}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <TextBlock Text="{Binding StringFormat=• {0}}" TextWrapping="Wrap"
-                                                               Foreground="#C8D0DA" FontSize="12" Margin="0,0,0,5" />
+                                                               Foreground="#000000" FontSize="12" Margin="0,0,0,5" />
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -131,12 +179,13 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Connected and inspected" Foreground="#7FD1A5"
-                                                   FontFamily="Segoe UI Semibold" FontSize="12"
+                                        <TextBlock Text="{Binding InspectionStatus}" Foreground="#006000"
+                                                   FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="12"
                                                    VerticalAlignment="Center" />
                                         <Button Grid.Column="1" Content="Flash" IsEnabled="False"
-                                                Background="#242A31" Foreground="#7F8994"
-                                                BorderBrush="#3A424C" Padding="14,7" Cursor="Arrow" />
+                                                AutomationProperties.HelpText="{Binding FlashHelpText}"
+                                                Background="#C0C0C0" Foreground="#5A5A5A"
+                                                BorderBrush="#000000" Padding="14,7" Cursor="Arrow" />
                                     </Grid>
                                 </Grid>
                             </Border>
@@ -146,24 +195,57 @@
             </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Background="#12171D" BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,1,0,0" Padding="30,16">
+        <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#808080"
+                BorderThickness="0,2,0,0" Padding="16,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Width="26" Height="26" Background="#000080" BorderBrush="#000000"
+                        BorderThickness="1" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <TextBlock Text="B" Foreground="#FFFFFF" FontWeight="Bold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="1">
+                    <TextBlock x:Name="BundleSummaryText" Text="No firmware bundle selected"
+                               AutomationProperties.Name="Firmware bundle status"
+                               AutomationProperties.LiveSetting="Polite"
+                               FontFamily="Microsoft Sans Serif" FontWeight="Bold"
+                               Foreground="#000080" FontSize="12" />
+                    <TextBlock x:Name="BundleDetailsText"
+                               Text="Selection performs bounded structural and SHA-256 inspection only."
+                               Foreground="#000000" FontSize="11" Margin="0,2,0,0" />
+                    <TextBlock x:Name="BundleBlockerText"
+                               Text="BLOCKED: Signature trust and exact-device matching are not implemented."
+                               Foreground="#800000" FontWeight="Bold" FontSize="10" Margin="0,2,0,0" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Background="#C0C0C0" BorderBrush="#808080"
+                BorderThickness="0,2,0,0" Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="SAFE MODE" Foreground="{StaticResource AccentBrush}"
-                               FontFamily="Segoe UI Semibold" FontSize="11" />
-                    <TextBlock Text="Inspect and explain only — no firmware file or device mutation path exists."
+                    <TextBlock Text="SAFE MODE" Foreground="#000080"
+                               FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="11" />
+                    <TextBlock Text="Inspect and explain only — no firmware write or device mutation path exists."
                                Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,3,0,0" />
+                    <TextBlock Text="{Binding ReviewStatus, Mode=OneTime}"
+                               Foreground="#404040" FontSize="10" Margin="0,4,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="Select firmware" IsEnabled="False" Margin="0,0,8,0"
-                            Background="#242A31" Foreground="#7F8994" BorderBrush="#3A424C" Cursor="Arrow" />
+                    <Button x:Name="SelectFirmwareButton" Content="Select firmware bundle"
+                            Click="SelectFirmwareButton_Click" Margin="0,0,8,0"
+                            AutomationProperties.HelpText="Select a local candidate bundle for bounded structural and SHA-256 inspection. This does not authorize or write firmware."
+                            Background="#C0C0C0" Foreground="#000000" BorderBrush="#000000" Cursor="Arrow" />
                     <Button Content="Flash selected device" IsEnabled="False"
-                            Background="#242A31" Foreground="#7F8994" BorderBrush="#3A424C" Cursor="Arrow" />
+                            AutomationProperties.HelpText="Unavailable because no firmware writer is connected."
+                            Background="#C0C0C0" Foreground="#5A5A5A" BorderBrush="#000000" Cursor="Arrow" />
                 </StackPanel>
             </Grid>
         </Border>

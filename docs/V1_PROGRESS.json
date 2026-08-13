@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "project_key": "opentrail",
+  "display_name": "OpenTrail",
+  "as_of": "2026-08-13",
+  "v1_definition": "A complete first release means four self-contained field units can be installed, joined, recovered, and tested without depending on a phone, server, or repeater.",
+  "milestones": [
+    {
+      "id": "architecture-safety",
+      "name": "Architecture and safety contracts",
+      "description": "Protocol, recovery, privacy, group-size, and degraded-operation rules are documented and extensively host tested.",
+      "weight": 15,
+      "completion": 85,
+      "evidence_status": "Host tested",
+      "evidence_refs": ["README.md#project-status", "docs/ARCHITECTURE.md", "tasks/BACKLOG.md"],
+      "next_gate": "Close remaining product-firmware architecture gates with target evidence."
+    },
+    {
+      "id": "core-firmware",
+      "name": "Core OpenTrail firmware",
+      "description": "Hardware-neutral communication, status, alert, persistence, update, and recovery components plus a portable-client composition exist; real board bindings remain.",
+      "weight": 20,
+      "completion": 65,
+      "evidence_status": "Component evidence",
+      "evidence_refs": ["firmware/components", "firmware/targets/portable_client", "tests/host"],
+      "next_gate": "Bind the selected client hardware and prove the complete target composition."
+    },
+    {
+      "id": "firmware-loader",
+      "name": "Firmware loading app",
+      "description": "A packaged Windows inspection shell identifies the three bench runtimes, presents non-authoritative vendor-family hardware candidates with explicit maintenance steps, and verifies bounded bundle structure, image SHA-256, and RSA-PSS-3072/SHA-256 when a signer is pinned; production trust, authoritative board matching, writing, and recovery remain absent.",
+      "weight": 15,
+      "completion": 15,
+      "evidence_status": "Inspection shell",
+      "evidence_refs": ["docs/update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md", "docs/update/FIRMWARE_BUNDLE_CANDIDATE_FORMAT_V0.md", "tasks/BACKLOG.md"],
+      "next_gate": "Run separately authorized maintenance probes for received-board evidence, obtain independent trust review, and approve signer custody plus pinned production trust before implementing any writer."
+    },
+    {
+      "id": "heltec-v4-target",
+      "name": "Heltec V4 bench firmware",
+      "description": "Two assembled Heltec V4 units provide limited radio and USB bench evidence through temporary MeshCore firmware; native OpenTrail target firmware has not run on them.",
+      "weight": 15,
+      "completion": 5,
+      "evidence_status": "External firmware only",
+      "evidence_refs": ["README.md#hardware-status", "hardware/INVENTORY.md", "docs/PROGRESS_LOG.md"],
+      "next_gate": "Build, flash, recover, and exercise native OpenTrail firmware on both Heltec units."
+    },
+    {
+      "id": "first-complete-unit",
+      "name": "Firmware for the first complete unit",
+      "description": "The display, internal radio/GNSS module, power path, enclosure, and exact production target still require a frozen build and integration.",
+      "weight": 20,
+      "completion": 0,
+      "evidence_status": "Not started",
+      "evidence_refs": ["hardware/INVENTORY.md", "docs/testing/FOUR_PERSON_PILOT_V0.md"],
+      "next_gate": "Freeze the exact hardware and complete one recoverable end-to-end client."
+    },
+    {
+      "id": "four-person-field-proof",
+      "name": "Four-person V1 field proof",
+      "description": "Four identical standalone clients must pass recovery, range, endurance, usability, and repeatable field trials before V1.",
+      "weight": 15,
+      "completion": 0,
+      "evidence_status": "Not started",
+      "evidence_refs": ["docs/testing/FOUR_PERSON_PILOT_V0.md", "docs/testing/FOUR_PERSON_PILOT_RESULT_V0.md"],
+      "next_gate": "Run the frozen four-unit standalone pilot and accept its evidence."
+    }
+  ],
+  "change_log": [
+    {
+      "date": "2026-08-13",
+      "overall": 29,
+      "reason": "Added packaged three-device runtime inspection, candidate-only hardware guidance, bounded firmware-bundle structure/image-digest/host RSA-PSS, and fixed cross-tool vector verification; production signer trust, board authority, and writing remain absent, so the weighted percentage is unchanged."
+    },
+    {
+      "date": "2026-08-12",
+      "overall": 29,
+      "reason": "Established the first evidence-weighted V1 baseline for public progress reporting."
+    }
+  ]
+}

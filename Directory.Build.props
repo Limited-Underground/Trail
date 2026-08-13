@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup Condition="'$(OpenTrailValidationIntermediateRoot)' != ''">
+    <BaseIntermediateOutputPath>$(OpenTrailValidationIntermediateRoot)\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)\obj\**;$(MSBuildProjectDirectory)\bin\**</DefaultItemExcludes>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(OpenTrailValidationOutputRoot)' != ''">
+    <BaseOutputPath>$(OpenTrailValidationOutputRoot)\$(MSBuildProjectName)\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

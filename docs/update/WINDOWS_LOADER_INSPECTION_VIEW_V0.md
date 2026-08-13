@@ -1,8 +1,8 @@
 # Windows loader inspection view v0
 
-Status: privacy-safe presentation model with four deterministic scenario groups
-and one successful live three-device snapshot; no rendered Windows control,
-firmware selection, write action, or physical update exists.
+Status: privacy-safe presentation model with four deterministic scenario groups,
+one successful live three-device snapshot, and a compiled Windows consumer;
+no device write action or physical update exists.
 
 ## Purpose
 
@@ -16,7 +16,7 @@ summary, notices, blockers, and allowed actions.
 
 The top-level view contains:
 
-- title `OpenTrail Firmware Loader`;
+- brand-neutral role title `Device Utility`;
 - phase `Inspection only`;
 - a bounded count summary for found, inspected, and ready-to-flash devices;
 - one fixed notice that USB/runtime names do not prove an exact supported
@@ -30,7 +30,10 @@ Each successfully inspected card contains only:
 - installed MeshCore runtime role and firmware version;
 - generic USB connection label;
 - fixed inspection/Flash status;
-- fixed human-readable evidence blockers; and
+- fixed human-readable evidence blockers;
+- a vendor-family hardware-profile candidate that separately labels current
+  runtime evidence, published family specifications, and the deliberate
+  maintenance step still required; and
 - Inspect enabled / Flash disabled.
 
 Unrecognized or failed runtime queries become a generic `USB device` card with
@@ -45,37 +48,57 @@ firmware format, blocker token, or Flash permission fails closed rather than
 being displayed.
 
 This view can describe only the current inspection state. It has no file,
-network, bundle-selection, erase, write, reset, recovery, or authorization
-capability. A future rendered UI must not enable an action beyond this model.
+network, erase, write, reset, recovery, or authorization capability. The later
+Windows shell owns a separate bounded local bundle selector, but cannot enable
+an action beyond this model's device authority.
 
 ## Live connected-bench result
 
-The default run on 2026-08-12 produced:
+The default run was repeated on 2026-08-13 and produced:
 
 - `3 found · 3 inspected · 0 ready to flash`;
 - one `SenseCAP Solar / MeshCore repeater` card;
 - two `Heltec V4 OLED / MeshCore companion` cards;
 - installed MeshCore `v1.16.0-07a3ca9` on all three; and
 - the same five fixed blockers on every candidate: low-level processor/memory,
-  exact profile, OpenTrail target role, board revision, and bootloader schema.
+  exact profile, product target role, board revision, and bootloader schema.
 
-Refresh and Inspect were enabled. Select Firmware, Flash, Clean Install, and
-Recovery were disabled.
+The two Heltec cards show `Heltec WiFi LoRa 32 V4 family` and the SenseCAP card
+shows `SenseCAP Solar Node family`, each explicitly at `Runtime candidate only`.
+Heltec's published V4 baseline and Seeed's published Solar Node baseline are
+displayed as references, not received-unit measurements. All three cards state
+that a deliberate maintenance restart or DFU/bootloader session plus received-
+revision confirmation is still required. No restart occurred during this run.
+
+Refresh and Inspect were enabled in this immutable presentation document.
+The later WPF shell owns a separate bounded local bundle-candidate selector;
+Flash, Clean Install, and Recovery remain disabled.
 
 ## Host evidence
 
-Four groups cover the three-device screen, sensitive-field omission, generic
-failed/unrecognized runtime presentation, and fail-closed invalid schema or
-unexpected Flash permission. Publication safety passes.
+Four Python groups cover the three-device screen and hardware-profile hints,
+sensitive-field omission, generic failed/unrecognized runtime presentation,
+and fail-closed invalid schema or unexpected Flash permission. The independent
+Windows suite includes the same non-authoritative profile boundary and passes
+45 scenario groups warning-free. Publication safety passes.
+
+## Vendor baseline sources
+
+- [Heltec WiFi LoRa 32 official documentation](https://github.com/HelTecAutomation/HeltecDocs/blob/master/doc/node/esp32/source/wifi_lora_32/index.rst)
+  supplies the V4 family baseline.
+- [Seeed SenseCAP Solar Node official documentation](https://wiki.seeedstudio.com/meshtastic_solar_node/)
+  supplies the Solar Node/P1-Pro family baseline.
+
+These sources are current family specifications. They do not prove the exact
+revision, memory, RF front end, antenna, or bootloader state of a connected
+received unit.
 
 ## What remains
 
-- select a Windows desktop framework and bind this immutable model to real
-  accessible controls;
-- add refresh ownership, cancellation, timeout, reconnect, and device-change
-  invalidation;
-- render detailed evidence without exposing private/raw fields;
-- connect signed-bundle selection only after the parser/crypto path exists;
+- run deliberate, separately authorized maintenance/bootloader probes and bind
+  the received revisions without turning vendor specifications into evidence;
+- approve signer custody, pinned production public keys, protected revocation,
+  and release-generation policy around the bounded candidate inspector;
 - connect final write admission through a single-use exclusive owner; and
 - visually validate high-DPI, keyboard, screen-reader, disconnected, multiple-
   device, and failure states on a packaged Windows build.

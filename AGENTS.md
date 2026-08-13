@@ -40,3 +40,11 @@ OpenTrail is in architecture and proof-of-concept planning. Capabilities in the 
 ## Change documentation
 
 Update the backlog status and the project status/open questions whenever a decision is made or evidence changes. Architecture decisions that constrain future work should be added under `docs/decisions/` when that directory is introduced.
+
+## V1 progress completion gate
+
+- `docs/V1_PROGRESS.json` is the canonical OpenTrail V1 progress record. Do not maintain a separate percentage in the README, firmware, or website source.
+- Before calling any task complete, compare its accepted evidence with every affected V1 milestone. Planning, code volume, or an unvalidated implementation does not increase completion.
+- When evidence changes a milestone, update its completion, evidence references, next gate, and `as_of` date; append a dated `change_log` entry with the newly calculated weighted overall. Never rewrite prior history.
+- Milestone weights must remain positive and total exactly 100. A regression or newly discovered blocker may lower completion and must be recorded just like an increase.
+- The public website projection is generated separately from this canonical record. After changing it, run the Limited Underground website's V1 sync/check flow and publish the result when website publication is in scope. If publication is not authorized or available, report the pending website synchronization explicitly.

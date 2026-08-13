@@ -8,10 +8,40 @@ public sealed class LoaderInspectionService
     private const int MaximumOutputCharacters = 256 * 1024;
     private const int MaximumErrorCharacters = 16 * 1024;
 
+    private readonly Func<string?> _repositoryRootResolver;
+    private readonly Func<CancellationToken, LoaderInspectionDocument> _packagedInspection;
+
+    public LoaderInspectionService()
+        : this(
+            TryFindRepositoryRoot,
+            WindowsSerialInspectionProvider.Inspect)
+    {
+    }
+
+    public LoaderInspectionService(
+        Func<string?> repositoryRootResolver,
+        Func<CancellationToken, LoaderInspectionDocument> packagedInspection)
+    {
+        _repositoryRootResolver = repositoryRootResolver ??
+            throw new ArgumentNullException(nameof(repositoryRootResolver));
+        _packagedInspection = packagedInspection ??
+            throw new ArgumentNullException(nameof(packagedInspection));
+    }
+
     public async Task<LoaderInspectionDocument> RefreshAsync(
         CancellationToken cancellationToken = default)
     {
-        var repositoryRoot = FindRepositoryRoot();
+        var repositoryRoot = _repositoryRootResolver();
+        if (repositoryRoot is null)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var packagedDocument = await Task.Run(
+                () => _packagedInspection(cancellationToken),
+                cancellationToken);
+            packagedDocument.Validate();
+            return packagedDocument;
+        }
+
         var script = Path.Combine(
             repositoryRoot, "tools", "Get-OpenTrailLoaderInspection.py");
         var startInfo = new ProcessStartInfo
@@ -78,7 +108,7 @@ public sealed class LoaderInspectionService
         }
     }
 
-    private static string FindRepositoryRoot()
+    private static string? TryFindRepositoryRoot()
     {
         foreach (var startingPath in new[] { Environment.CurrentDirectory, AppContext.BaseDirectory })
         {
@@ -96,7 +126,6 @@ public sealed class LoaderInspectionService
             }
         }
 
-        throw new DirectoryNotFoundException(
-            "OpenTrail development files were not found. Packaged inspection is not implemented.");
+        return null;
     }
 }

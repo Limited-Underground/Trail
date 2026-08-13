@@ -93,13 +93,36 @@ public sealed class LoaderInspectionDocument
                 string.IsNullOrWhiteSpace(device.InstalledRuntime) ||
                 string.IsNullOrWhiteSpace(device.Connection) ||
                 string.IsNullOrWhiteSpace(device.InspectionStatus) ||
+                !IsSafeHardwareProfile(device.HardwareProfile) ||
                 device.FlashStatus != "Blocked" ||
                 !device.Actions.Inspect || device.Actions.Flash ||
-                device.Blockers.Count == 0 || device.Blockers.Count > 8)
+                device.Blockers.Count == 0 || device.Blockers.Count > 8 ||
+                device.Blockers.Any(static blocker =>
+                    string.IsNullOrWhiteSpace(blocker) ||
+                    blocker.Length > 240 ||
+                    blocker.Any(char.IsControl)))
             {
                 throw new InvalidDataException("Loader device card failed validation.");
             }
         }
+    }
+
+    private static bool IsSafeHardwareProfile(
+        LoaderHardwareProfileEvidence profile)
+    {
+        var values = new[]
+        {
+            profile.ProfileCandidate,
+            profile.EvidenceLevel,
+            profile.ObservedNow,
+            profile.PublishedBaseline,
+            profile.NextStep,
+        };
+        return !profile.AuthoritativeForFlash &&
+            values.All(static value =>
+                !string.IsNullOrWhiteSpace(value) &&
+                value.Length <= 320 &&
+                !value.Any(char.IsControl));
     }
 }
 
@@ -174,6 +197,9 @@ public sealed class LoaderPrivacy
 
 public sealed class LoaderDeviceCard
 {
+    [JsonIgnore]
+    internal string? PrivateDiagnosticCategory { get; init; }
+
     [JsonPropertyName("candidate")]
     public string Candidate { get; init; } = string.Empty;
 
@@ -192,6 +218,9 @@ public sealed class LoaderDeviceCard
     [JsonPropertyName("inspection_status")]
     public string InspectionStatus { get; init; } = string.Empty;
 
+    [JsonPropertyName("hardware_profile")]
+    public LoaderHardwareProfileEvidence HardwareProfile { get; init; } = new();
+
     [JsonPropertyName("flash_status")]
     public string FlashStatus { get; init; } = string.Empty;
 
@@ -202,6 +231,14 @@ public sealed class LoaderDeviceCard
     public LoaderDeviceActions Actions { get; init; } = new();
 
     public string FirmwareDisplay => Firmware ?? "Not available";
+
+    public string AccessibleSummary =>
+        $"{DisplayName}. {InstalledRuntime}. {Connection}. {InspectionStatus}. " +
+        $"Firmware {FirmwareDisplay}. Hardware profile {HardwareProfile.EvidenceLevel}. " +
+        "Flash blocked.";
+
+    public string FlashHelpText =>
+        $"Flash unavailable. {string.Join(" ", Blockers)}";
 }
 
 public sealed class LoaderDeviceActions

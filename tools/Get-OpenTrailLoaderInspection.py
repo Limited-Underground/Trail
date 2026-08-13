@@ -38,12 +38,67 @@ _FAMILY_VIEW = {
     ),
 }
 
+_HARDWARE_PROFILE_VIEW = {
+    ("heltec_v4_oled", "meshcore_companion"): {
+        "profile_candidate": "Heltec WiFi LoRa 32 V4 family",
+        "evidence_level": "Runtime candidate only",
+        "observed_now": (
+            "Recognized Espressif USB family and allowlisted Heltec V4 OLED "
+            "companion response."
+        ),
+        "published_baseline": (
+            "Heltec's V4 family documentation lists ESP32-S3R2, 16 MB external "
+            "flash, SX1262, and a 0.96-inch OLED."
+        ),
+        "next_step": (
+            "Use a deliberate maintenance restart for processor, memory, and "
+            "bootloader evidence; confirm the received revision separately."
+        ),
+        "maintenance_restart_required": True,
+        "authoritative_for_flash": False,
+    },
+    ("seeed_sensecap_solar", "meshcore_repeater"): {
+        "profile_candidate": "SenseCAP Solar Node family",
+        "evidence_level": "Runtime candidate only",
+        "observed_now": (
+            "Recognized Seeed USB family and allowlisted SenseCAP Solar repeater response."
+        ),
+        "published_baseline": (
+            "Seeed's Solar Node documentation lists XIAO nRF52840 Plus and "
+            "Wio-SX1262; P1-Pro adds L76K GNSS."
+        ),
+        "next_step": (
+            "Use a deliberate DFU or bootloader session for low-level evidence; "
+            "confirm the received P1/P1-Pro revision separately."
+        ),
+        "maintenance_restart_required": True,
+        "authoritative_for_flash": False,
+    },
+}
+
+_UNKNOWN_HARDWARE_PROFILE = {
+    "profile_candidate": "No supported profile candidate",
+    "evidence_level": "USB transport only",
+    "observed_now": (
+        "A bounded USB serial candidate is present; its runtime was not identified."
+    ),
+    "published_baseline": (
+        "No vendor hardware baseline is applied to an unidentified device."
+    ),
+    "next_step": (
+        "Identify an allowlisted MeshCore runtime before offering any maintenance "
+        "profiling step."
+    ),
+    "maintenance_restart_required": False,
+    "authoritative_for_flash": False,
+}
+
 _BLOCKER_VIEW = {
     "low_level_processor_and_memory_probe_required": (
         "Low-level processor and memory probe required"
     ),
     "exact_profile_required": "Exact hardware profile required",
-    "target_role_unresolved": "OpenTrail target role unresolved",
+    "target_role_unresolved": "Product target role unresolved",
     "board_revision_unresolved": "Board revision unresolved",
     "bootloader_schema_unresolved": "Bootloader schema unresolved",
 }
@@ -71,6 +126,7 @@ def _safe_candidate_card(candidate: Any) -> dict[str, Any]:
             "firmware": None,
             "connection": "USB",
             "inspection_status": "Needs attention",
+            "hardware_profile": dict(_UNKNOWN_HARDWARE_PROFILE),
             "status_tone": "warning",
             "flash_status": "Blocked",
             "blockers": ["Recognized runtime evidence required"],
@@ -99,6 +155,7 @@ def _safe_candidate_card(candidate: Any) -> dict[str, Any]:
         "firmware": firmware,
         "connection": "USB",
         "inspection_status": "Connected and inspected",
+        "hardware_profile": dict(_HARDWARE_PROFILE_VIEW[family_key]),
         "status_tone": "information",
         "flash_status": "Blocked",
         "blockers": blockers,
@@ -117,7 +174,7 @@ def build_loader_view(snapshot: Any) -> dict[str, Any]:
     return {
         "schema": "ot_loader_inspection_view_v0",
         "screen": {
-            "title": "OpenTrail Firmware Loader",
+            "title": "Device Utility",
             "eyebrow": "Connected devices",
             "phase": "Inspection only",
             "summary": f"{len(cards)} found · {inspected} inspected · 0 ready to flash",

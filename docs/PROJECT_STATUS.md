@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-12
+Status date: 2026-08-13
 
 ## Conceptual goals
 
@@ -69,13 +69,18 @@ messages/critical/position/archive/recovery shell remains. See the
 [quick-status parent-page contract](platform/QUICK_STATUS_PARENT_PAGE_COORDINATOR_V0.md).
 
 The update path now has separate fail-closed bundle admission and board/install
-preflight policies plus read-only Windows USB/runtime inspection adapters.
+preflight policies, a bounded firmware-bundle candidate inspector, and
+read-only Windows USB/runtime inspection adapters.
 Bundle admission requires externally verified canonical manifest and image
 digests, signature, trusted exact signer ID, hardware/processor/target-role and
 revision binding, minimum bootloader schema, exact image length/capacity, and a
 non-rollback release generation. Twelve groups pass. Admission means only that
-the candidate may reach the board preflight; no parser, crypto adapter, trusted
-signer store, signing key, release bundle, or writer exists.
+the candidate may reach the board preflight. The Windows adapter now enforces
+an exact three-entry `.fwbundle`, canonical bounded manifest, complete image
+length, matching image SHA-256, and RSA-PSS-3072/SHA-256 verification when a
+signer public key is pinned. Its packaged catalog is deliberately empty, and it
+supplies no production signer trust, protected revocation/generation policy,
+release admission, signing key, or writer.
 One final pure composition now requires bundle admission, board/install
 preflight, and exact cross-gate equality for hardware profile, processor,
 target role, revision range, minimum bootloader schema, maximum image size, and
@@ -88,17 +93,73 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 11 independent C#
-document/refresh/process-boundary scenarios build warning-free; malformed
+candidate cards. The application and 45 independent C#
+document/identity/accessibility/refresh/process-boundary/USB-runtime-probe/
+firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
+malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
-private local-port disclosure fail closed. Only the newest active refresh may
+private local-port disclosure fail closed. Device-card accessibility copy is
+derived only from validated public fields, omits the internal candidate
+reference, explains every Flash blocker, and rejects empty, oversized, or
+control-bearing blocker copy. F5 invokes the same bounded refresh path,
+keyboard focus is visible, and summary/error fields are automation live
+regions. Only the newest active refresh may
 publish, and window close invalidates pending output. Helper stdout/stderr are
 bounded; cancellation, timeout, or invalid output triggers best-effort
 termination of the inspection process tree, and raw stderr remains hidden. The
-shell contains no firmware picker, writer, erase/reset/DFU/recovery adapter, or
-mutation path. Visible launch, rendered/accessibility evidence, packaged
-inspection, repeated live-refresh acceptance, installer, and clean-machine
-operation remain unverified.
+shell now has one local candidate-bundle picker and a bounded structural/image-
+digest/signature inspector. It never displays or retains the selected path.
+The packaged catalog contains no production signer, so inspection still states
+that trust is not configured; exact-device matching and admission are also
+blocked. It contains no signing private key, protected revocation/generation
+state, writer, erase/reset/DFU/recovery adapter, or mutation path. If the development source
+tree is absent, a built-in Windows
+adapter uses SetupAPI rather than the laptop's access-denied CIM/PnP inventory
+path. It privately allowlists exact USB families, holds COM names only long
+enough for fixed MeshCore identity requests, and publishes no local transport,
+raw response, BLE PIN, hardware-instance, pairing, identity, key, or coordinate
+data. The companion path permits only app-start/device-info; the repeater path
+permits only `board`, `ver`, and `get role`. The live C# path reports three
+runtime-identified candidates—two Heltec V4 OLED companions and one SenseCAP
+Solar repeater—and zero ready to flash without Python or MeshCLI. These are
+installed-runtime identities, not authoritative received-board profiles.
+Each recognized card now includes a candidate-only hardware-profile panel. It
+separates the allowlisted USB/runtime observation from the published vendor-
+family baseline, states that the result cannot authorize Flash, and names the
+deliberate maintenance restart or DFU/bootloader step plus received-revision
+confirmation still required. Unknown USB devices receive no restart offer.
+The live three-device result remains entirely runtime-only; no reset occurred.
+The first local `win-x64` self-contained engineering package now builds from a
+runtime-specific restore with no external NuGet source. Its manifest records
+exact payload lengths and SHA-256 hashes, prohibits source, firmware,
+writer/recovery tools, keys, and repository engineering names, and declares
+only device inspection plus bounded local bundle-candidate inspection. A
+separate verifier extracted the retained
+ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
+fresh source-free directory, and removed its owned process and temporary tree.
+The newest verified 464-file archive is 72,089,805 bytes with SHA-256
+`49351D2B963BB5E765D8EC20B4D20A5252664193E2C5CF70DBEF029F8419E15D`.
+This is local package evidence only: no installer lifecycle, clean-machine,
+code-signing, distribution, or public-release claim exists.
+Visible rendered/accessibility evidence, repeated live-refresh acceptance,
+installer/clean-machine lifecycle, and real assistive-technology acceptance
+remain unverified. The validation workflow now builds every WPF and
+test intermediate/output tree under one unique, verified system-temporary
+directory and removes that exact directory afterward. This prevents stale or
+protected development artifacts from blocking the warning-free app build and
+45-scenario run; it adds no device-write or firmware-admission authority.
+The visible app title/header is now composed from one replaceable working
+identity: `Limited Underground Trail Device Utility`, with attorney review
+explicitly pending. Presentation JSON stays brand-neutral, and automated
+safeguards reject standalone/prohibited LU structures, TLU/LUT/LUTrail, and
+`®`. Internal repository names, namespaces, script paths, schemas, and `OT-*`
+records remain stable. This is not legal clearance or irreversible adoption.
+The owner-requested loader presentation now follows a Windows 95-style utility
+direction with gray square surfaces, navy headings, classic typography, and an
+application-owned beveled button template. That template fixes the observed
+near-white-on-white disabled labels by explicitly retaining dark disabled
+copy. A fresh build was launched, but final scale/theme/resize visual
+acceptance remains open.
 Read-only inspection and flash permission are distinct outcomes: a connected
 board can remain inspectable while incomplete or conflicting processor,
 flash/PSRAM, exact profile/revision, bootloader schema, or image-size evidence
@@ -113,9 +174,10 @@ identified two Heltec V4 OLED MeshCore companions and one Seeed SenseCAP Solar
 MeshCore repeater without emitting raw replies, pairing fields, local ports, or
 persistent identity. Installed runtime role remains non-authoritative for the
 unresolved OpenTrail target role, so all three stayed blocked from Flash. No
-low-level probe, signature verification, approved board profile,
+low-level probe, approved production signer/admission composition, approved board profile,
 erase/write/reboot capability, accepted rendered UI, or physical recovery
 evidence exists. See the
+[bundle candidate format](update/FIRMWARE_BUNDLE_CANDIDATE_FORMAT_V0.md),
 [firmware-bundle admission](update/FIRMWARE_BUNDLE_ADMISSION_V0.md),
 [final write admission](update/FIRMWARE_WRITE_ADMISSION_V0.md),
 [firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md), and

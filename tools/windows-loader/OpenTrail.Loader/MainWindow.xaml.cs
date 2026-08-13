@@ -1,4 +1,7 @@
 using System.Windows;
+using System.Windows.Automation.Peers;
+using System.Windows.Input;
+using Microsoft.Win32;
 
 namespace OpenTrail.Loader;
 
@@ -10,6 +13,7 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        DataContext = ProductIdentity.Current;
         InitializeComponent();
         Loaded += async (_, _) => await RefreshAsync();
         Closed += (_, _) =>
@@ -24,6 +28,63 @@ public partial class MainWindow : Window
         await RefreshAsync();
     }
 
+    private async void SelectFirmwareButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select candidate firmware bundle",
+            Filter = "Firmware bundle (*.fwbundle)|*.fwbundle",
+            CheckFileExists = true,
+            CheckPathExists = true,
+            Multiselect = false,
+            ValidateNames = true,
+            DereferenceLinks = true,
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        SelectFirmwareButton.IsEnabled = false;
+        SelectFirmwareButton.Content = "Inspecting bundle…";
+        BundleSummaryText.Text = "Inspecting selected candidate bundle…";
+        BundleDetailsText.Text = "No connected device or firmware setting is being changed.";
+        RaiseLiveRegionChanged(BundleSummaryText);
+
+        try
+        {
+            var result = await Task.Run(() =>
+                FirmwareBundleCandidateInspector.Inspect(dialog.FileName));
+            BundleSummaryText.Text = result.Summary;
+            BundleDetailsText.Text = result.Details;
+            BundleBlockerText.Text = result.BlockerText;
+        }
+        catch
+        {
+            BundleSummaryText.Text = "Candidate firmware bundle rejected";
+            BundleDetailsText.Text = "The selected file failed bounded structure or image-digest inspection.";
+            BundleBlockerText.Text = "BLOCKED: No firmware or device setting was changed.";
+        }
+        finally
+        {
+            SelectFirmwareButton.Content = "Select firmware bundle";
+            SelectFirmwareButton.IsEnabled = true;
+            RaiseLiveRegionChanged(BundleSummaryText);
+        }
+    }
+
+    private void RefreshCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+    {
+        e.CanExecute = RefreshButton?.IsEnabled == true;
+        e.Handled = true;
+    }
+
+    private async void RefreshCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        e.Handled = true;
+        await RefreshAsync();
+    }
+
     private async Task RefreshAsync()
     {
         var refreshRevision = _refreshAuthority.Begin();
@@ -34,7 +95,9 @@ public partial class MainWindow : Window
         RefreshButton.IsEnabled = false;
         RefreshButton.Content = "Inspecting…";
         SummaryText.Text = "Looking for connected devices…";
+        RaiseLiveRegionChanged(SummaryText);
         ErrorBanner.Visibility = Visibility.Collapsed;
+        CommandManager.InvalidateRequerySuggested();
 
         try
         {
@@ -48,6 +111,7 @@ public partial class MainWindow : Window
             SummaryText.Text = document.Screen.Summary;
             NoticeText.Text = document.Screen.Notice;
             DeviceCards.ItemsSource = document.Devices;
+            RaiseLiveRegionChanged(SummaryText);
         }
         catch (OperationCanceledException)
         {
@@ -69,6 +133,7 @@ public partial class MainWindow : Window
             {
                 RefreshButton.Content = "Refresh devices";
                 RefreshButton.IsEnabled = true;
+                CommandManager.InvalidateRequerySuggested();
             }
         }
     }
@@ -79,5 +144,13 @@ public partial class MainWindow : Window
         DeviceCards.ItemsSource = null;
         ErrorText.Text = message;
         ErrorBanner.Visibility = Visibility.Visible;
+        RaiseLiveRegionChanged(ErrorText);
+    }
+
+    private static void RaiseLiveRegionChanged(UIElement element)
+    {
+        var peer = UIElementAutomationPeer.FromElement(element) ??
+            UIElementAutomationPeer.CreatePeerForElement(element);
+        peer?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
     }
 }

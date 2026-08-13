@@ -1554,4 +1554,9 @@ if ($LASTEXITCODE -ne 0) {
     throw "Publication-safety tracked-content scan failed with exit code $LASTEXITCODE."
 }
 
+& $python.Source (Join-Path $projectRoot 'tools\Test-FirmwareBundleSignatureVector.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "Cross-tool firmware-bundle signature-vector verification failed with exit code $LASTEXITCODE."
+}
+
 & (Join-Path $projectRoot 'tools\Test-WindowsLoader.ps1')

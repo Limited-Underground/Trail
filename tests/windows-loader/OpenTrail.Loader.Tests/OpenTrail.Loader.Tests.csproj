@@ -8,5 +8,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\tools\windows-loader\OpenTrail.Loader\OpenTrail.Loader.csproj" />
+    <None Include="..\..\fixtures\firmware_bundle_signature_vector_v0.json"
+          Link="fixtures\firmware_bundle_signature_vector_v0.json"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

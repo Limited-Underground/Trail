@@ -1,8 +1,11 @@
 # Firmware bundle admission v0
 
-Status: pure fail-closed host policy with twelve deterministic scenario groups;
-no container parser, SHA-256 adapter, signature implementation, trusted signer
-store, release bundle, writer, or physical update result exists.
+Status: pure fail-closed host policy with twelve deterministic scenario groups.
+A separate Windows candidate parser now verifies bounded container structure,
+canonical manifest bytes, image length, image SHA-256, and—when a signer is
+pinned—RSA-PSS-3072/SHA-256 over the exact manifest. The packaged trust catalog
+is deliberately empty and no rollback-policy, release-admission, writer, or
+physical update evidence exists.
 
 ## Purpose
 
@@ -47,8 +50,9 @@ The admission policy requires separate evidence that:
 - the observed image digest equals the signed digest.
 
 A present digest, key identifier, or signature-shaped field never counts as
-verification. Those adapters do not exist yet, and the host tests use explicit
-fake evidence rather than claiming real cryptography.
+verification. The Windows adapter can now supply real .NET host signature
+evidence to a future composition, but the admission tests continue to inject
+explicit evidence and the packaged app has no approved signer.
 
 ## Fail-closed binding
 
@@ -74,11 +78,16 @@ digest presence versus verification, and unknown enum values.
 
 ## What remains
 
-- freeze a canonical on-disk manifest/container encoding and size;
-- select and implement reviewed SHA-256 and signature-verification adapters;
+- review and freeze the current bounded candidate container as a production
+  format or replace it before signed releases;
+- connect its image/signature result to the admission owner only after approved
+  signer and policy evidence are also available;
+- obtain independent security review of the now-passing fixed RSA-PSS vector,
+  signer fingerprint, explicit salt length, and pinned toolchain;
 - define offline signing, key custody, rotation, revocation, and emergency
   recovery procedures;
-- bind a protected trusted-signer store and release-generation floor;
+- pin approved public signers and bind protected revocation and release-
+  generation state;
 - generate reproducible exact-board bundles in CI without exposing private
   signing keys;
 - compose admitted evidence with the physical board/install preflight; and

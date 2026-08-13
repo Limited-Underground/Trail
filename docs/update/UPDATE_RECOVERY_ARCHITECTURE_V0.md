@@ -18,8 +18,11 @@ clock regression.
 
 The separate [firmware-bundle admission policy](FIRMWARE_BUNDLE_ADMISSION_V0.md)
 now defines the pure fail-closed evidence gate for a signed candidate before
-board inspection. It has no container parser or cryptographic adapter and does
-not authorize a write.
+board inspection. A separate Windows adapter now parses the bounded candidate
+container and verifies its image SHA-256. It also has an RSA-PSS-3072/SHA-256
+manifest verifier with an immutable public-key catalog, but the packaged
+catalog is deliberately empty, no production trust/revocation state feeds the
+policy, and neither component authorizes a write.
 
 The fixed 64-byte [`OTU0/v0` checkpoint](UPDATE_STATE_CHECKPOINT_V0.md)
 captures only reboot-relevant lifecycle facts and a caller-owned generation.
@@ -79,9 +82,10 @@ defines the first host/loader gate. It allows inspection of a connected device
 without authorizing a write, requires exact processor/memory/profile/revision/
 bootloader/image agreement, and adds explicit destructive and physical-recovery
 confirmation where applicable. Thirteen groups pass. Runtime model strings and
-USB identities remain evidence, never exact compatibility authority. No USB
-adapter, bundle-signature verifier, writer, Windows UI, approved profile, or
-physical recovery claim exists.
+USB identities remain evidence, never exact compatibility authority. The
+Windows inspection UI, USB/runtime adapter, and host bundle-signature verifier
+now exist, but no production signer, admission composition, writer, approved
+profile, or physical recovery claim exists.
 
 ## Safety objective
 

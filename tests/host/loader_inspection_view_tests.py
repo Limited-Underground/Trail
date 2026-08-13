@@ -59,9 +59,30 @@ def test_three_device_view_is_clear_and_blocked() -> None:
         "summary must be operator-readable",
     )
     expect(
+        view["screen"]["title"] == "Device Utility",
+        "inspection document must keep its role title brand-neutral",
+    )
+    expect(
+        "OpenTrail" not in json.dumps(view),
+        "public inspection copy must omit the engineering name",
+    )
+    expect(
         [item["display_name"] for item in view["devices"]]
         == ["SenseCAP Solar", "Heltec V4 OLED", "Heltec V4 OLED"],
         "board-family labels must be familiar and bounded",
+    )
+    profiles = [item["hardware_profile"] for item in view["devices"]]
+    expect(
+        all(profile["evidence_level"] == "Runtime candidate only" for profile in profiles),
+        "runtime evidence must remain non-authoritative",
+    )
+    expect(
+        all(profile["maintenance_restart_required"] is True for profile in profiles),
+        "known runtime candidates must explain the deliberate maintenance step",
+    )
+    expect(
+        not any(profile["authoritative_for_flash"] for profile in profiles),
+        "hardware profile hints must never authorize flashing",
     )
 
 
@@ -96,6 +117,10 @@ def test_failed_or_unrecognized_runtime_gets_generic_card() -> None:
     expect(card["display_name"] == "USB device", "failed runtime must stay generic")
     expect(card["flash_status"] == "Blocked", "failed runtime must remain blocked")
     expect("PrivateDetailedError" not in json.dumps(view), "error detail must not leak")
+    expect(
+        card["hardware_profile"]["maintenance_restart_required"] is False,
+        "unknown hardware must not be offered an automatic maintenance restart",
+    )
 
 
 def test_unexpected_shape_or_permissions_fail_closed() -> None:

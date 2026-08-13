@@ -4,6 +4,263 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-13
+
+### Candidate-only hardware profile guidance
+
+- Added a strict hardware-profile evidence object to both the development and
+  source-free Windows inspection paths. A recognized card now separates what
+  the connected runtime proved, the published vendor-family baseline, and the
+  deliberate maintenance step still required.
+- The two live Heltec cards resolve only to the `Heltec WiFi LoRa 32 V4 family`
+  candidate; the SenseCAP resolves only to the `SenseCAP Solar Node family`
+  candidate. Every result is visibly labeled `Runtime candidate only` and
+  `authoritative_for_flash=false`. Unknown USB devices receive no automatic
+  restart offer.
+- Official Heltec documentation supplies the V4 ESP32-S3R2/16 MB/SX1262/OLED
+  family baseline. Official Seeed documentation supplies the Solar Node XIAO
+  nRF52840 Plus/Wio-SX1262 baseline and notes that P1-Pro adds L76K GNSS. These
+  are reference specifications, not measurements of the enclosed received
+  units.
+- Repeated the live privacy-safe run with both Heltec companions and the
+  SenseCAP repeater connected: `3 found · 3 inspected · 0 ready to flash`.
+  No reset, line toggle, bootloader entry, erase, write, identity capture, or
+  coordinate capture occurred. A future low-level probe remains an explicit
+  operator-approved maintenance action.
+- The warning-free Windows suite now passes 45 scenario groups and the four
+  Python loader-view groups pass. The Windows 95-style cards compile with the
+  new profile panel and accessible summary.
+- Fixed the package builder/verifier to run under both Windows PowerShell 5.1
+  and PowerShell 7 by using portable BOM-free UTF-8, relative-path, and process-
+  stop APIs. A fresh source-free package independently passed manifest/hash and
+  launch verification: 464 payload files, 72,089,805 bytes, SHA-256
+  `49351D2B963BB5E765D8EC20B4D20A5252664193E2C5CF70DBEF029F8419E15D`.
+- A direct rendered acceptance attempt was not counted: the Windows app-control
+  helper failed before app selection with `EPERM` on the Codex installation
+  path. Its exact temporary extraction was removed. Final layout, resize, DPI,
+  and assistive-technology acceptance remain open, and V1 progress is
+  unchanged.
+
+### Fixed cross-tool firmware-signature vector
+
+- Added one public-only verification fixture containing an exact 435-byte
+  canonical manifest, RSA-3072 public SubjectPublicKeyInfo, and 384-byte
+  signature. Its private key was generated only in memory and was never written
+  to the repository, package, logs, or retained evidence.
+- The real Windows loader verifies that exact vector through its pinned public-
+  key catalog. The same manifest/signature passes OpenSSL 3.5.6 and Espressif
+  `espsecure` 5.3.1 Secure Boot v2 verification with a 32-byte PSS salt;
+  `cryptography` 50.0.0 supplies the pinned Espressif runtime dependency.
+- Both OpenSSL and Espressif reject a changed manifest. The cross-tool verifier
+  reconstructs only temporary public files and a Secure Boot v2 signature block
+  under one automatically removed system-temporary directory.
+- Added the fixed vector to the warning-free C# loader run, raising that suite
+  to 44 groups. Added pinned cross-tool requirements and the cross-tool command
+  to the complete Windows host-validation workflow. Public CI confirmation
+  still requires a later commit/push and successful Actions run.
+- This closes the initial .NET/OpenSSL/Espressif interoperability and explicit
+  salt-length evidence gate. Independent security review, production signing-
+  key custody, approved public-key pinning, revocation/generation state,
+  authoritative board matching, admission composition, and every write/
+  recovery/target gate remain open. The canonical V1 progress record is
+  unchanged.
+
+### RSA-PSS firmware-bundle verification boundary
+
+- Selected exact RSA-PSS-3072/SHA-256 signatures over the canonical firmware-
+  bundle manifest. The signed manifest already binds image length/SHA-256,
+  hardware profile, processor, target role, revision range, bootloader schema,
+  and release generation; the detached signature is exactly 384 bytes.
+- Added an immutable public-key catalog capped at three RSA-3072 keys with
+  exponent 65537. Its 16-character signer ID is derived from the public-key
+  SubjectPublicKeyInfo for lookup only; verification always uses the complete
+  pinned public key.
+- Kept firmware release, radio identity/group transport, and target Secure Boot
+  key roles explicitly separate. No private signing key is present anywhere in
+  the repository, utility, package, log, or test artifact.
+- The packaged signer catalog is deliberately empty pending approved offline
+  key custody, rotation/revocation, and release procedure. Therefore the app can
+  inspect a candidate but cannot trust, admit, or write it.
+- Ephemeral-key tests prove matching verification plus fail-closed empty/
+  unrelated catalogs, changed signature, changed signed manifest, and wrong
+  RSA key size. The warning-free Windows suite initially passed 43 scenario
+  groups and now passes 44 with the fixed vector. Production key material, admission composition,
+  exact-board authority, and all write/recovery evidence remain open. This does
+  not change the evidence-weighted V1 percentage.
+- Built and independently reverified a new 464-file self-contained Windows ZIP
+  from a fresh extraction. It is 72,087,792 bytes with SHA-256
+  `9B6847E6E2DA1569B499551F3F6E542233BF96CB2338097DDD2656F20B54D754`.
+  Its capability manifest declares the verifier, no configured production
+  signer, no protected revocation state, no signature admission, and no write
+  or recovery authority. The launch smoke test passed; this remains a local
+  engineering package rather than an installer or public release.
+- Strengthened the publication-safety command to scan both tracked content and
+  nonignored untracked content. A newly written document or source file is now
+  checked before its first commit instead of becoming visible to this guard
+  only after Git starts tracking it.
+
+### Bounded Windows firmware-bundle candidate inspection
+
+- Enabled the Windows 95-style shell's `Select firmware bundle` action for
+  local `.fwbundle` files. Selection is inspection-only: the chosen path and
+  filename are not displayed or retained, no archive content is extracted, and
+  every Flash action remains disabled.
+- Added a bounded three-entry ZIP adapter requiring exactly `manifest.json`,
+  `image.bin`, and `manifest.sig`. It caps the archive at 20 MiB, the canonical
+  manifest at 4 KiB, the image at 16 MiB, and the RSA-3072 signature at exactly
+  384 bytes; duplicates, extra entries, alternate names, and all-zero
+  signature bytes fail closed.
+- The manifest uses exact compact UTF-8 bytes, fixed property order/types,
+  strict processor/role values, nonzero profile/release/image fields, lowercase
+  digest/signer hex, and its own exact canonical byte count. The complete image
+  is streamed through SHA-256 and must match both its declared length and
+  manifest digest.
+- A positive packaged result says only that candidate structure and image
+  SHA-256 were verified because no production signer is configured. The
+  subsequent RSA-PSS increment adds verifier/test evidence without production
+  trust, admission, exact-device matching, or device mutation authority.
+- Seven initial candidate-format groups raised the Windows suite to 38 C#
+  scenario groups; the subsequent signature increment raises it to 43. The
+  warning-free live run still identifies both Heltec V4
+  OLED companions and the SenseCAP Solar repeater, with zero ready to flash.
+  This does not change the evidence-weighted V1 percentage.
+
+### Source-free Windows MeshCore runtime identification
+
+- Replaced the packaged utility's generic-only serial-map view with direct
+  Windows SetupAPI Ports-class discovery. This path does not use the laptop's
+  access-denied CIM/PnP inventory query, Python, MeshCLI, a shell, or a network
+  service. Exact allowlisted USB VID/PID pairs and COM names remain private to
+  the probe and are never serialized or shown.
+- Added bounded native 115200-baud inspection for two fixed runtime shapes. The
+  companion path sends only MeshCore app-start and device-info requests and
+  skips the private BLE-PIN bytes without decoding them. The repeater path sends
+  only `board`, `ver`, and `get role`. There is no arbitrary serial command,
+  line-toggle, reset, erase, bootloader, or firmware-write API.
+- The live built-in C# path independently reports three connected candidates,
+  three runtime identities, and zero ready to flash: two `Heltec V4 OLED`
+  MeshCore USB companions and one `SenseCAP Solar` MeshCore repeater. The public
+  result contains no ports, serials, hardware-instance paths, raw replies,
+  pairing data, device identities, keys, PINs, or coordinates.
+- Runtime identity is explicitly non-authoritative for the enclosed received
+  hardware. Exact processor/memory, hardware profile, product target role,
+  board revision, bootloader schema, RF variant, antenna, and regulatory gates
+  remain blocked. The current 45-group C# suite and warning-free build pass.
+
+### Local self-contained Windows utility package
+
+- Added a repeatable `win-x64` package builder that performs the required
+  runtime-specific restore before a self-contained .NET 8 WPF publish. Its
+  repository-scoped NuGet configuration clears external sources, and all build,
+  staging, extraction, and launch work occurs under one exact temporary tree.
+- The retained ZIP contains 464 manifested payload files. The manifest records
+  each exact length and SHA-256 hash, states that the display name is a working
+  identity pending attorney review, and fixes the capability boundary to
+  read-only connected-device inspection plus bounded local bundle-candidate
+  structure/image-SHA-256 inspection. It explicitly denies signature trust,
+  authoritative hardware-profile status, and firmware writes. Package admission
+  rejects source, firmware images, writer/recovery tools, private keys, debug
+  symbols, and filenames containing repository engineering names.
+- A separately runnable verifier extracted the ZIP into a new source-free
+  directory, matched all 464 files to the manifest, found no prohibited entry,
+  launched `DeviceUtility.exe`, and cleaned up its exact process and temporary
+  directory. The current verified archive is 72,085,475 bytes with SHA-256
+  `B9E04B536CA39061B124616E67AC05317CEE4D887A8EB275BFF6DA2AE3E3507F`.
+- This is a local engineering ZIP, not an installer, signed artifact,
+  clean-machine result, supported product, or public release. It adds no
+  signature trust, write, erase, reset, DFU, recovery, or device authority, and
+  does not change the evidence-weighted V1 percentage.
+
+### Replaceable Windows utility identity
+
+- Removed the `OpenTrail` engineering name from the Windows application's
+  visible title/header and from loader presentation/blocker copy. The current
+  local working display is `Limited Underground Trail Device Utility`, with an
+  explicit attorney-review-pending status.
+- Added one replaceable identity object for parent, family, and utility-role
+  copy. Existing `OpenTrail.Loader` namespaces, repository/script paths,
+  protocol schemas, `OT-*` records, board identifiers, and compatibility fields
+  did not change.
+- The identity boundary rejects standalone `LU`, `LU Link`, `LU Studio`, every
+  `LU`-plus-number form, retired `TLU` / `LUT` / `LUTrail` compact names, control
+  characters, oversized values, and `®`. The inspection JSON retains the
+  brand-neutral role title `Device Utility`.
+- Thirty-eight C# scenario groups and four Python loader-view groups pass with a
+  zero-warning/error build. This is local source/test evidence and a working
+  presentation pending attorney review; it does not authorize public-product
+  adoption, repository renaming, public distribution, hardware marking, or a V1
+  progress increase.
+
+### Initial built-in Windows USB inspection fallback
+
+- Added the initial dependency-free inspection path for loader builds that
+  cannot find
+  the OpenTrail source tree. It reads the Windows serial map locally, admits
+  only entries whose private transport label indicates USB, validates and
+  deduplicates their COM values, then discards both the labels and port names.
+- This initial revision emitted only generic candidate cards and could not claim a board,
+  runtime, or firmware identity, and leaves signed-bundle selection, Flash,
+  clean install, and recovery disabled. It does not call Python, CIM, a shell,
+  a device writer, or a network service.
+- At that stage, the laptop exposed seven serial-map entries, three of which met the
+  private USB-only filter. Twenty C# scenario groups now include live registry
+  exercise, port-name omission, deduplication, bounded candidate count, and
+  source-tree-absent backend selection; the application builds with zero
+  warnings and errors.
+- That revision removed Python/source-tree dependence only for generic transport
+  discovery. Exact board probing, public publication, installer and
+  clean-machine lifecycle, and physical write/recovery evidence remain open,
+  so the evidence-weighted V1 percentage is unchanged.
+
+### Windows loader validation isolation
+
+- Reproduced two independent Windows access-denied failures against an old WPF
+  markup cache and a prior loader executable even after the .NET build servers
+  were stopped; source compilation succeeded when those artifacts were not
+  reused.
+- Added conditional, project-specific intermediate and output roots for the
+  loader validation workflow. Each run now uses one unique directory beneath
+  the resolved system temporary directory and deletes only that exact tree in
+  its `finally` path.
+- The isolated workflow restores both projects, builds the WPF application and
+  independent test executable warning-free, and passes all 11 existing loader
+  document, refresh, and process-boundary scenario groups.
+- This is build-reliability evidence only. It adds no firmware picker, writer,
+  device mutation authority, packaging claim, or visible UI acceptance, so the
+  evidence-weighted V1 percentage is unchanged.
+
+### Windows loader keyboard and accessibility boundary
+
+- Added F5 as a second route to the exact existing read-only Refresh command,
+  with a visible orange focus treatment for keyboard users.
+- Marked the changing summary and error copy as automation live regions and
+  raise the corresponding event after inspection progress, success, or
+  failure changes.
+- Device cards now bind their connection and inspection status instead of
+  displaying hard-coded values. Their accessible summaries use only validated
+  public fields, omit the internal candidate reference, and explain why Flash
+  remains unavailable.
+- Blocker text now rejects empty values, more than 240 characters, and control
+  characters before reaching the view. Fifteen C# document, accessibility,
+  refresh, and process-boundary scenario groups pass warning-free.
+- No screen-reader/high-DPI/resize session has been accepted yet, and the
+  controls still have no firmware selection or mutation authority.
+
+### Windows 95-style loader presentation
+
+- Replaced the dark rounded presentation with the owner-requested classic
+  Windows utility direction: gray work surfaces, navy headings, square panels,
+  compact Microsoft Sans Serif typography, pixel-aligned edges, and beveled
+  buttons. No Windows logo or copied system artwork is included.
+- Fixed a user-observed disabled-button defect where the platform template
+  produced nearly white labels on white backgrounds. The application now owns
+  the complete button template and explicitly renders disabled labels in dark
+  gray on the classic gray face while retaining a visible dotted focus cue.
+- The revised application builds warning-free and a fresh connected-device
+  preview was launched. Final layout, resize, DPI, keyboard, screen-reader, and
+  disabled-state visual acceptance remain open until the new window is
+  reviewed; no device or firmware authority changed.
+
 ## 2026-08-12
 
 ### First real Windows loader desktop shell
@@ -41,9 +298,9 @@ public chronology.
   gates are shown in plain language on each card.
 - Four scenario groups cover the live shape, private-field omission, generic
   failure presentation, and fail-closed schema/permission handling. A rendered
-  application shell now exists under the separate OT-019H increment, but
-  accessible controls, refresh ownership/invalidation, signed-bundle selection,
-  writer, packaging, and visual/physical evidence remain.
+  application shell now exists under OT-019H, and OT-019I subsequently adds a
+  separate bounded local bundle-candidate inspector. Signature trust, final
+  admission, a writer, and visual/physical evidence remain.
 
 ### Final firmware-write admission composition
 

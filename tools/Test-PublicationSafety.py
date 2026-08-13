@@ -44,9 +44,18 @@ def scan_text(path: str, text: str) -> list[str]:
     return findings
 
 
-def tracked_files(root: Path) -> list[Path]:
+def publication_files(root: Path) -> list[Path]:
     completed = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "-z"],
+        [
+            "git",
+            "-C",
+            str(root),
+            "ls-files",
+            "-z",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+        ],
         check=True,
         capture_output=True,
     )
@@ -59,7 +68,7 @@ def tracked_files(root: Path) -> list[Path]:
 
 def scan_repository(root: Path) -> list[str]:
     findings: list[str] = []
-    for path in tracked_files(root):
+    for path in publication_files(root):
         data = path.read_bytes()
         if b"\0" in data:
             continue
@@ -79,7 +88,7 @@ def main() -> int:
         for finding in findings:
             print(f"  {finding}", file=sys.stderr)
         return 1
-    print("PASS: publication-safety tracked-content scan")
+    print("PASS: publication-safety tracked-and-untracked-content scan")
     return 0
 
 
