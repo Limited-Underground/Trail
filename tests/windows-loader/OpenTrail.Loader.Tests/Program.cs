@@ -111,11 +111,35 @@ Expect(!refreshAuthority.CanPublish(closingRefresh) &&
     !refreshAuthority.CanPublish(0),
     "window close invalidates all refresh publication");
 
+var boundedText = BoundedTextReader.ReadAsync(
+    new StringReader("safe"), 4).GetAwaiter().GetResult();
+Expect(boundedText == "safe", "bounded reader accepts its exact safe limit");
+
+try
+{
+    _ = BoundedTextReader.ReadAsync(
+        new StringReader("too large"), 4).GetAwaiter().GetResult();
+    Expect(false, "bounded reader must reject excessive helper output");
+}
+catch (InvalidDataException)
+{
+}
+
+try
+{
+    _ = BoundedTextReader.ReadAsync(
+        new StringReader(string.Empty), 0).GetAwaiter().GetResult();
+    Expect(false, "bounded reader must reject an invalid limit");
+}
+catch (ArgumentOutOfRangeException)
+{
+}
+
 if (failures != 0)
 {
     Console.Error.WriteLine($"{failures} Windows loader assertion(s) failed");
     return 1;
 }
 
-Console.WriteLine("PASS: 8 Windows loader document and refresh scenario groups");
+Console.WriteLine("PASS: 11 Windows loader document, refresh, and process-boundary scenario groups");
 return 0;

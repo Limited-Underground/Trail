@@ -10,7 +10,8 @@ inspection pipeline, validates its reduced JSON document again inside the
 application, and renders one card for each connected candidate.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Eight document and refresh scenario groups pass. The live inspection pipeline
+Windows host. Eleven document, refresh, and process-boundary scenario groups
+pass. The live inspection pipeline
 underneath it previously produced `3 found · 3 inspected · 0 ready to flash`
 for the two assembled Heltec V4 GPS bench clients and the packaged SenseCAP
 Solar P1-Pro GPS repeater.
@@ -35,6 +36,11 @@ The desktop shell is deliberately inspection-only:
 One revision authority allows only the newest active refresh to publish. A
 later refresh invalidates an older result, completion is one-use, and closing
 the window invalidates all pending output.
+
+Helper stdout is limited to 256 KiB and discarded stderr to 16 KiB. Timeout,
+cancellation, invalid output, or excessive output triggers best-effort
+termination of the exact helper process tree owned by the inspection. The raw
+failure content is never shown in the UI.
 
 The shell cannot turn USB or installed MeshCore runtime identity into Flash
 permission. The final firmware-write admission remains a separate pure gate,

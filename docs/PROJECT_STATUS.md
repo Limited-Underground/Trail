@@ -88,11 +88,13 @@ bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
 Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and eight independent C# document/refresh
-scenarios build warning-free; malformed counts, any ready-to-flash candidate,
-enabled global Flash authority, and private local-port disclosure fail closed.
-Only the newest active refresh may publish, and window close invalidates pending
-output. The
+candidate cards. The application and 11 independent C#
+document/refresh/process-boundary scenarios build warning-free; malformed
+counts, any ready-to-flash candidate, enabled global Flash authority, and
+private local-port disclosure fail closed. Only the newest active refresh may
+publish, and window close invalidates pending output. Helper stdout/stderr are
+bounded; cancellation, timeout, or invalid output triggers best-effort
+termination of the inspection process tree, and raw stderr remains hidden. The
 shell contains no firmware picker, writer, erase/reset/DFU/recovery adapter, or
 mutation path. Visible launch, rendered/accessibility evidence, packaged
 inspection, repeated live-refresh acceptance, installer, and clean-machine

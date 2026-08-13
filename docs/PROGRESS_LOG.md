@@ -12,10 +12,14 @@ public chronology.
   privacy-safe inspection pipeline, revalidates the reduced document in C#,
   and renders the connected candidates as familiar device cards.
 - The application and an independent dependency-free console test project
-  build warning-free. Eight C# scenario groups reject malformed counts, a
+  build warning-free. Eleven C# scenario groups reject malformed counts, a
   nonzero ready-to-flash count, enabled global Flash authority, and private
   local-port disclosure; they also ensure only the newest active refresh may
-  publish and that window close invalidates pending output.
+  publish, window close invalidates pending output, and helper output remains
+  bounded.
+- Cancellation, timeout, invalid output, or an excessive helper response
+  triggers best-effort termination of the exact process tree owned by that
+  inspection. Raw stderr remains discarded.
 - Refresh is the only active application action. Firmware selection and every
   device mutation control remain absent or disabled; no writer, reset, erase,
   DFU, recovery, or firmware-file path exists.
