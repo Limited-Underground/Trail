@@ -21,6 +21,8 @@ response is useful evidence, but none is an exact board profile by itself.
 The candidate firmware must first pass the separate
 [bundle-admission policy](FIRMWARE_BUNDLE_ADMISSION_V0.md); that earlier success
 still does not weaken any board or local-authorization gate here.
+The [final write-admission composition](FIRMWARE_WRITE_ADMISSION_V0.md) then
+requires both decisions and their shared profile/role/image fields to agree.
 
 ## Required evidence
 

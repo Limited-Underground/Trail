@@ -76,6 +76,12 @@ revision binding, minimum bootloader schema, exact image length/capacity, and a
 non-rollback release generation. Twelve groups pass. Admission means only that
 the candidate may reach the board preflight; no parser, crypto adapter, trusted
 signer store, signing key, release bundle, or writer exists.
+One final pure composition now requires bundle admission, board/install
+preflight, and exact cross-gate equality for hardware profile, processor,
+target role, revision range, minimum bootloader schema, maximum image size, and
+signed/candidate length before `ready_to_write`. Eight groups pass. This closes
+the host decision topology only; no result consumer, one-use invalidation,
+writer, target, or physical evidence exists.
 Read-only inspection and flash permission are distinct outcomes: a connected
 board can remain inspectable while incomplete or conflicting processor,
 flash/PSRAM, exact profile/revision, bootloader schema, or image-size evidence
@@ -93,6 +99,7 @@ low-level probe, signature verification, approved board profile,
 erase/write/reboot capability, Windows UI, or physical recovery evidence
 exists. See the
 [firmware-bundle admission](update/FIRMWARE_BUNDLE_ADMISSION_V0.md),
+[final write admission](update/FIRMWARE_WRITE_ADMISSION_V0.md),
 [firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md), and
 [Windows USB candidate discovery](update/WINDOWS_USB_CANDIDATE_DISCOVERY_V0.md).
 

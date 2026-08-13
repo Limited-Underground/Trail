@@ -1213,6 +1213,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'firmware-write admission composition'
+        Output = Join-Path $buildDirectory 'firmware_write_admission_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\update\src\firmware_install_preflight.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\firmware_bundle_admission.cpp'),
+            (Join-Path $projectRoot 'firmware\components\update\src\firmware_write_admission.cpp'),
+            (Join-Path $projectRoot 'tests\host\firmware_write_admission_tests.cpp')
+        )
+    },
+    @{
         Name = 'update state checkpoint'
         Output = Join-Path $buildDirectory 'update_checkpoint_tests.exe'
         Sources = @(

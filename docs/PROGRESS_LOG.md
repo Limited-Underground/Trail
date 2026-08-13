@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-12
 
+### Final firmware-write admission composition
+
+- Composed independent bundle admission and board/install preflight results
+  into one final pure `ready_to_write` decision. Neither half can authorize the
+  future writer by itself.
+- The bundle policy and install requirements must agree exactly on hardware
+  profile, processor, target role, supported revision range, minimum bootloader
+  schema, and maximum image size. The signed image length must equal the
+  board-preflight candidate length.
+- Bundle failure, disconnected/incompatible board, or any cross-gate mismatch
+  blocks readiness. Clean/recovery erase confirmation and physical recovery
+  authorization remain intact.
+- Eight scenario groups pass. The result performs no I/O; exclusive one-use
+  ownership/invalidation, concrete parsers/probes, writer/readback, target boot,
+  rollback/recovery, Windows UI, and physical evidence remain.
+
 ### Fail-closed signed firmware-bundle admission
 
 - Added a pure pre-device admission policy for the future loader. It keeps

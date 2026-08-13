@@ -13,8 +13,8 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, and bounded close-range bench proofs |
-| Latest increment | [Fail-closed firmware-bundle admission](docs/update/FIRMWARE_BUNDLE_ADMISSION_V0.md): signed manifest, signer, exact image digest/length, board/role binding, and anti-rollback evidence must all pass before a bundle can even reach the separate board preflight |
-| Proven so far | A 110-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited GNSS, transport, soak, burst, and alert/acknowledgement tests |
+| Latest increment | [Final firmware-write admission composition](docs/update/FIRMWARE_WRITE_ADMISSION_V0.md): bundle admission, board/install preflight, and every shared hardware/role/image field must all agree before the future writer can become eligible |
+| Proven so far | A 111-executable C++ host matrix plus Python evidence checks; two Heltec clients and one SenseCAP repeater have completed limited GNSS, transport, soak, burst, and alert/acknowledgement tests |
 | Planned first release | Up to eight active clients in one group with at most one optional authorized repeater |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 

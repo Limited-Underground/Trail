@@ -14,7 +14,9 @@ are coherent.
 
 Admission is not flash permission. A successfully admitted bundle must still
 pass the separate board/install preflight, local authorization, write/readback,
-trial boot, health confirmation, and recovery flow.
+trial boot, health confirmation, and recovery flow. The
+[final write-admission composition](FIRMWARE_WRITE_ADMISSION_V0.md) requires the
+two policy domains and their shared fields to agree.
 
 ## Bound manifest fields
 
