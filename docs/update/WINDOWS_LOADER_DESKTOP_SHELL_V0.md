@@ -371,9 +371,9 @@ three read-only Refresh cycles without opening the firmware picker:
     -RunUiAutomationAcceptance -ExpectedDeviceCount 3 -RefreshCycles 3
 ```
 
-The current retained package has 464 payload files and is 72,102,493 bytes. Its
+The current retained package has 464 payload files and is 72,102,589 bytes. Its
 SHA-256 is
-`44603E315DB05A9FF37E070507A999D0840B6C83256B65EA7A2BEEC8368F44CF`.
+`D065E1259A81803DC2BD535FC066E844E99864176FACCB770EE20C4BD0A5F734`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the
@@ -396,6 +396,21 @@ Each refreshed public-name multiset must match the initial privacy-safe roster.
 This proves native automation-client access to the source-free executable on
 this host. It does not prove physical key/mouse input, Narrator wording or
 timing, installer behavior, or clean-machine compatibility.
+
+The same external run subscribes one compiled native handler to the packaged
+window's LiveRegionChanged subtree. In each selection/Refresh cycle it requires
+current bundle and selection events followed by selection cleared, bundle
+waiting, inspection busy, bundle reset, the settled zero-ready summary, and the
+selection prompt. Adjacent exact duplicates may be collapsed, but missing,
+misordered, unexpected, stale, empty, or privacy-bearing events fail. The exact
+handler is removed before the owned process closes. This demonstrates native
+event delivery to an assistive client, not Narrator speech or announcement UX.
+
+Routed keyboard acceptance now starts F5 from the focused last wrapped card.
+Since refresh replaces that item's container, the production window explicitly
+returns focus to Refresh after success and failure (but not during initial
+load). A successful next Tab enters the fresh list; a failed refresh retains
+focused enabled Refresh with the unavailable error and all actions blocked.
 
 ## Remaining gates
 

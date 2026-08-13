@@ -109,6 +109,154 @@ function Wait-ForUiAutomationCondition {
     throw $FailureMessage
 }
 
+function Initialize-UiAutomationLiveRegionProbe {
+    if ('OtLiveRegionProbe' -as [type]) {
+        return
+    }
+
+    $source = @'
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
+using System.Windows.Automation;
+
+public sealed class OtLiveRegionRecord
+{
+    public long Sequence;
+    public int ThreadId;
+    public string AutomationId;
+    public string Name;
+    public string Error;
+}
+
+public static class OtLiveRegionProbe
+{
+    private static readonly ConcurrentQueue<OtLiveRegionRecord> Records =
+        new ConcurrentQueue<OtLiveRegionRecord>();
+    private static long sequence;
+
+    public static readonly AutomationEventHandler Handler = OnEvent;
+
+    public static void Reset()
+    {
+        OtLiveRegionRecord ignored;
+        while (Records.TryDequeue(out ignored)) { }
+        Interlocked.Exchange(ref sequence, 0);
+    }
+
+    private static void OnEvent(object sender, AutomationEventArgs args)
+    {
+        var record = new OtLiveRegionRecord
+        {
+            Sequence = Interlocked.Increment(ref sequence),
+            ThreadId = Thread.CurrentThread.ManagedThreadId,
+        };
+
+        try
+        {
+            var element = sender as AutomationElement;
+            if (element == null)
+            {
+                record.Error = "sender-not-element";
+            }
+            else
+            {
+                record.AutomationId = Convert.ToString(
+                    element.GetCurrentPropertyValue(
+                        AutomationElement.AutomationIdProperty,
+                        true));
+                record.Name = Convert.ToString(
+                    element.GetCurrentPropertyValue(
+                        AutomationElement.NameProperty,
+                        true));
+            }
+        }
+        catch (Exception error)
+        {
+            record.Error = error.GetType().FullName + ": " + error.Message;
+        }
+
+        Records.Enqueue(record);
+    }
+
+    public static OtLiveRegionRecord[] Drain()
+    {
+        var result = new List<OtLiveRegionRecord>();
+        OtLiveRegionRecord record;
+        while (Records.TryDequeue(out record))
+        {
+            result.Add(record);
+        }
+        return result.ToArray();
+    }
+}
+'@
+
+    $clientAssembly =
+        [System.Windows.Automation.AutomationElement].Assembly.Location
+    $typesAssembly =
+        [System.Windows.Automation.AutomationElementIdentifiers].Assembly.Location
+    Add-Type -TypeDefinition $source -ReferencedAssemblies @(
+        $clientAssembly,
+        $typesAssembly,
+        'System.dll',
+        'System.Core.dll'
+    )
+}
+
+function Assert-LiveRegionSequence {
+    param(
+        [Parameter(Mandatory)][object[]]$Actual,
+        [Parameter(Mandatory)][object[]]$Expected,
+        [Parameter(Mandatory)][string]$Context
+    )
+
+    $allowedIds = @(
+        'inspection-summary',
+        'device-selection-status',
+        'bundle-summary'
+    )
+    $collapsed = New-Object System.Collections.Generic.List[object]
+    $previousSignature = $null
+    foreach ($record in @($Actual | Sort-Object Sequence)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$record.Error)) {
+            throw "$Context callback failed: $($record.Error)"
+        }
+
+        $id = [string]$record.AutomationId
+        $name = [string]$record.Name
+        if ($allowedIds -notcontains $id) {
+            throw "$Context raised unexpected live region '$id'."
+        }
+        if ([string]::IsNullOrWhiteSpace($name)) {
+            throw "$Context raised '$id' without an accessible name."
+        }
+        if ($name -match '(?i)usb_candidate_|\bCOM\d{1,3}\b|\bVID_[0-9a-f]{4}\b|\bPID_[0-9a-f]{4}\b|USB\\VID_|\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b') {
+            throw "$Context exposed a private identifier."
+        }
+
+        $signature = "$id`0$name"
+        if ($signature -ne $previousSignature) {
+            $collapsed.Add([pscustomobject]@{
+                Id = $id
+                Name = $name
+            })
+            $previousSignature = $signature
+        }
+    }
+
+    if ($collapsed.Count -ne $Expected.Count) {
+        throw "$Context produced $($collapsed.Count) live events; expected $($Expected.Count)."
+    }
+    for ($index = 0; $index -lt $Expected.Count; $index++) {
+        if ($collapsed[$index].Id -ne $Expected[$index].Id -or
+            $collapsed[$index].Name -ne $Expected[$index].Name) {
+            throw "$Context live event $($index + 1) was '$($collapsed[$index].Id): $($collapsed[$index].Name)'; expected '$($Expected[$index].Id): $($Expected[$index].Name)'."
+        }
+    }
+}
+
 function Get-UiAutomationElement {
     param(
         [Parameter(Mandatory)]
@@ -256,6 +404,7 @@ function Invoke-PackagedUiAutomationAcceptance {
         [Parameter(Mandatory)][int]$Cycles
     )
 
+    Initialize-UiAutomationLiveRegionProbe
     $windowHolder = @{ Value = $null }
     $processCondition = New-Object System.Windows.Automation.PropertyCondition(
         [System.Windows.Automation.AutomationElement]::ProcessIdProperty,
@@ -369,60 +518,130 @@ function Invoke-PackagedUiAutomationAcceptance {
     $initialItems = Assert-UiAutomationDeviceItems `
         -List $deviceList `
         -ExpectedCount $ExpectedCount
+    $lookingForDevicesName =
+        'Looking for connected devices' + [char]0x2026
     $expectedPublicNames = @($initialItems | ForEach-Object {
         [string]$_.Current.Name
     } | Sort-Object)
     Assert-NoPrivateUiAutomationCopy -Window $window
 
-    for ($cycle = 0; $cycle -lt $Cycles; $cycle++) {
-        $items = Assert-UiAutomationDeviceItems -List $deviceList -ExpectedCount $ExpectedCount
-        $target = $items[$cycle % $items.Count]
-        $selectionItem = $target.GetCurrentPattern(
-            [System.Windows.Automation.SelectionItemPattern]::Pattern) -as
-            [System.Windows.Automation.SelectionItemPattern]
-        $selectionItem.Select()
-        Wait-ForUiAutomationCondition -FailureMessage (
-            "Packaged UI Automation selection did not settle in cycle $($cycle + 1).") -Condition {
-            $selectionStatus.Current.Name -like 'Selected:*' -and
-                $selectBundle.Current.IsEnabled -and
-                -not $flashSelected.Current.IsEnabled -and
-                $selectionProvider.Current.GetSelection().Count -eq 1
-        }
+    $liveRegionSubscribed = $false
+    try {
+        [OtLiveRegionProbe]::Reset()
+        [System.Windows.Automation.Automation]::AddAutomationEventHandler(
+            [System.Windows.Automation.AutomationElementIdentifiers]::LiveRegionChangedEvent,
+            $window,
+            [System.Windows.Automation.TreeScope]::Subtree,
+            [OtLiveRegionProbe]::Handler)
+        $liveRegionSubscribed = $true
 
-        $invoke = $refresh.GetCurrentPattern(
-            [System.Windows.Automation.InvokePattern]::Pattern) -as
-            [System.Windows.Automation.InvokePattern]
-        $invoke.Invoke()
-        Wait-ForUiAutomationCondition -TimeoutMilliseconds 10000 -FailureMessage (
-            "Packaged refresh did not enter its busy state in cycle $($cycle + 1).") -Condition {
-            -not $refresh.Current.IsEnabled -or
-                $summary.Current.Name -eq 'Looking for connected devices…'
+        for ($cycle = 0; $cycle -lt $Cycles; $cycle++) {
+            $items = Assert-UiAutomationDeviceItems -List $deviceList -ExpectedCount $ExpectedCount
+            $target = $items[$cycle % $items.Count]
+            $selectionItem = $target.GetCurrentPattern(
+                [System.Windows.Automation.SelectionItemPattern]::Pattern) -as
+                [System.Windows.Automation.SelectionItemPattern]
+            [OtLiveRegionProbe]::Reset()
+            $selectionItem.Select()
+            Wait-ForUiAutomationCondition -FailureMessage (
+                "Packaged UI Automation selection did not settle in cycle $($cycle + 1).") -Condition {
+                $selectionStatus.Current.Name -like 'Selected:*' -and
+                    $selectBundle.Current.IsEnabled -and
+                    -not $flashSelected.Current.IsEnabled -and
+                    $selectionProvider.Current.GetSelection().Count -eq 1
+            }
+            $settledSelectionName = [string]$selectionStatus.Current.Name
+            Start-Sleep -Milliseconds 250
+            Assert-LiveRegionSequence `
+                -Context "Selection cycle $($cycle + 1)" `
+                -Actual @([OtLiveRegionProbe]::Drain()) `
+                -Expected @(
+                    [pscustomobject]@{
+                        Id = 'bundle-summary'
+                        Name = 'No firmware bundle selected for the current device'
+                    },
+                    [pscustomobject]@{
+                        Id = 'device-selection-status'
+                        Name = $settledSelectionName
+                    }
+                )
+
+            $invoke = $refresh.GetCurrentPattern(
+                [System.Windows.Automation.InvokePattern]::Pattern) -as
+                [System.Windows.Automation.InvokePattern]
+            [OtLiveRegionProbe]::Reset()
+            $invoke.Invoke()
+            Wait-ForUiAutomationCondition -TimeoutMilliseconds 10000 -FailureMessage (
+                "Packaged refresh did not enter its busy state in cycle $($cycle + 1).") -Condition {
+                -not $refresh.Current.IsEnabled -or
+                    $summary.Current.Name -eq $lookingForDevicesName
+            }
+            Wait-ForUiAutomationCondition -FailureMessage (
+                "Packaged refresh did not restore its safe ready state in cycle $($cycle + 1).") -Condition {
+                $refresh.Current.IsEnabled -and
+                    $summary.Current.Name -like '*0 ready to flash*' -and
+                    $selectionStatus.Current.Name -like 'Select one connected device*' -and
+                    $bundleSummary.Current.Name -eq 'No firmware bundle selected' -and
+                    -not $selectBundle.Current.IsEnabled -and
+                    -not $flashSelected.Current.IsEnabled -and
+                    $selectionProvider.Current.GetSelection().Count -eq 0 -and
+                    (Get-DeviceListItems -List $deviceList).Count -eq $ExpectedCount
+            }
+            $settledSummaryName = [string]$summary.Current.Name
+            Start-Sleep -Milliseconds 250
+            Assert-LiveRegionSequence `
+                -Context "Refresh cycle $($cycle + 1)" `
+                -Actual @([OtLiveRegionProbe]::Drain()) `
+                -Expected @(
+                    [pscustomobject]@{
+                        Id = 'device-selection-status'
+                        Name = 'Device selection cleared. Complete inspection, then select one current device.'
+                    },
+                    [pscustomobject]@{
+                        Id = 'bundle-summary'
+                        Name = 'Firmware bundle selection waiting for device inspection'
+                    },
+                    [pscustomobject]@{
+                        Id = 'inspection-summary'
+                        Name = $lookingForDevicesName
+                    },
+                    [pscustomobject]@{
+                        Id = 'bundle-summary'
+                        Name = 'No firmware bundle selected'
+                    },
+                    [pscustomobject]@{
+                        Id = 'inspection-summary'
+                        Name = $settledSummaryName
+                    },
+                    [pscustomobject]@{
+                        Id = 'device-selection-status'
+                        Name = 'Select one connected device to continue. Selection is not Flash permission.'
+                    }
+                )
+
+            $refreshedItems = Assert-UiAutomationDeviceItems `
+                -List $deviceList `
+                -ExpectedCount $ExpectedCount
+            $refreshedPublicNames = @($refreshedItems | ForEach-Object {
+                [string]$_.Current.Name
+            } | Sort-Object)
+            $rosterDifference = @(Compare-Object `
+                -ReferenceObject $expectedPublicNames `
+                -DifferenceObject $refreshedPublicNames `
+                -CaseSensitive)
+            if ($rosterDifference.Count -ne 0) {
+                throw "Packaged refresh changed the public device roster in cycle $($cycle + 1)."
+            }
+            Assert-NoPrivateUiAutomationCopy -Window $window
         }
-        Wait-ForUiAutomationCondition -FailureMessage (
-            "Packaged refresh did not restore its safe ready state in cycle $($cycle + 1).") -Condition {
-            $refresh.Current.IsEnabled -and
-                $summary.Current.Name -like '*0 ready to flash*' -and
-                $selectionStatus.Current.Name -like 'Select one connected device*' -and
-                $bundleSummary.Current.Name -eq 'No firmware bundle selected' -and
-                -not $selectBundle.Current.IsEnabled -and
-                -not $flashSelected.Current.IsEnabled -and
-                $selectionProvider.Current.GetSelection().Count -eq 0 -and
-                (Get-DeviceListItems -List $deviceList).Count -eq $ExpectedCount
+    }
+    finally {
+        if ($liveRegionSubscribed) {
+            [System.Windows.Automation.Automation]::RemoveAutomationEventHandler(
+                [System.Windows.Automation.AutomationElementIdentifiers]::LiveRegionChangedEvent,
+                $window,
+                [OtLiveRegionProbe]::Handler)
         }
-        $refreshedItems = Assert-UiAutomationDeviceItems `
-            -List $deviceList `
-            -ExpectedCount $ExpectedCount
-        $refreshedPublicNames = @($refreshedItems | ForEach-Object {
-            [string]$_.Current.Name
-        } | Sort-Object)
-        $rosterDifference = @(Compare-Object `
-            -ReferenceObject $expectedPublicNames `
-            -DifferenceObject $refreshedPublicNames `
-            -CaseSensitive)
-        if ($rosterDifference.Count -ne 0) {
-            throw "Packaged refresh changed the public device roster in cycle $($cycle + 1)."
-        }
-        Assert-NoPrivateUiAutomationCopy -Window $window
     }
 
     return $Cycles

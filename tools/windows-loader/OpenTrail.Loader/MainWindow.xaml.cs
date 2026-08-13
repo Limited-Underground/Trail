@@ -15,6 +15,8 @@ public partial class MainWindow : Window
     private readonly LoaderDeviceSelectionAuthority _deviceSelection = new();
     private CancellationTokenSource? _refreshCancellation;
     private bool _suppressSelectionChanged;
+    private bool _restoreRefreshFocusAfterRefresh;
+    private bool _hasCompletedRefresh;
 
     public MainWindow()
         : this(new LoaderInspectionService().RefreshAsync)
@@ -144,6 +146,9 @@ public partial class MainWindow : Window
 
     private async Task RefreshAsync()
     {
+        _restoreRefreshFocusAfterRefresh = _hasCompletedRefresh &&
+            (RefreshButton.IsKeyboardFocusWithin ||
+             DeviceCards.IsKeyboardFocusWithin);
         var refreshRevision = BeginDisplayRefresh();
         _refreshCancellation?.Cancel();
         _refreshCancellation?.Dispose();
@@ -187,6 +192,12 @@ public partial class MainWindow : Window
                 RefreshButton.Content = "Refresh devices";
                 RefreshButton.IsEnabled = true;
                 CommandManager.InvalidateRequerySuggested();
+                if (_restoreRefreshFocusAfterRefresh)
+                {
+                    _ = RefreshButton.Focus();
+                }
+                _restoreRefreshFocusAfterRefresh = false;
+                _hasCompletedRefresh = true;
             }
         }
     }

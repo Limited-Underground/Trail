@@ -498,9 +498,17 @@ internal static class LoaderVisualFixtureRenderer
     private static int AcceptKeyboardNavigation()
     {
         var refreshCalls = 0;
+        var failNextRefresh = false;
         var window = new MainWindow(_ =>
         {
             refreshCalls++;
+            if (failNextRefresh)
+            {
+                failNextRefresh = false;
+                return Task.FromException<LoaderInspectionDocument>(
+                    new InvalidOperationException(
+                        "acceptance-only refresh failure"));
+            }
             return Task.FromResult(CreateDocument());
         });
         try
@@ -567,8 +575,10 @@ internal static class LoaderVisualFixtureRenderer
             Require(ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton),
                 "disabled Flash actions were not skipped before focus cycled to Refresh");
 
+            RaiseRoutedKey(FocusedListItem(window), Key.End);
+            RequireSelectedItem(window, 2, "focused-card F5 setup");
             var refreshCallsBeforeF5 = refreshCalls;
-            RaiseRoutedKey(window.RefreshButton, Key.F5);
+            RaiseRoutedKey(FocusedListItem(window), Key.F5);
             Require(
                 refreshCalls == refreshCallsBeforeF5 + 1 &&
                 window.DeviceCards.Items.Count == 3 &&
@@ -582,8 +592,33 @@ internal static class LoaderVisualFixtureRenderer
                 string.Equals(
                     window.BundleSummaryText.Text,
                     "No firmware bundle selected",
-                    StringComparison.Ordinal),
-                "F5 did not complete the bounded refresh and restore safe unselected state");
+                    StringComparison.Ordinal) &&
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton),
+                "focused-card F5 did not complete refresh and hand focus to the safe Refresh action");
+            Require(window.RefreshButton.MoveFocus(
+                    new TraversalRequest(FocusNavigationDirection.Next)) &&
+                IsWithin(Keyboard.FocusedElement as DependencyObject, window.DeviceCards),
+                "focus traversal could not reenter the fresh device list after focused-card F5");
+
+            window.DeviceCards.SelectedIndex = 2;
+            var failureFocus = ContainerAt(window, 2);
+            _ = failureFocus.Focus();
+            failNextRefresh = true;
+            var refreshCallsBeforeFailure = refreshCalls;
+            RaiseRoutedKey(failureFocus, Key.F5);
+            Require(
+                refreshCalls == refreshCallsBeforeFailure + 1 &&
+                window.DeviceCards.Items.Count == 0 &&
+                window.ErrorBanner.Visibility == Visibility.Visible &&
+                string.Equals(
+                    window.SummaryText.Text,
+                    "Inspection unavailable",
+                    StringComparison.Ordinal) &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled &&
+                window.RefreshButton.IsEnabled &&
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton),
+                "failed focused-card F5 did not restore Refresh focus and the safe unavailable state");
             return 1;
         }
         finally

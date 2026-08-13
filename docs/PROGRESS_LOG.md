@@ -6,6 +6,31 @@ public chronology.
 
 ## 2026-08-13
 
+### Cross-process live-region delivery and Refresh focus continuity
+
+- Subscribed a compiled native UI Automation client to the exact packaged
+  window's `LiveRegionChanged` subtree. A compiled handler is required because
+  callbacks arrive on a worker thread without a PowerShell runspace; the exact
+  handler is removed before the owned process is closed.
+- Three source-free cycles delivered the same privacy-safe sequence. Selection
+  raised current bundle then current selection status. Refresh raised selection
+  cleared, bundle waiting, inspection busy, bundle reset, the settled zero-ready
+  summary, then the selection prompt. Event names matched the settled properties;
+  unexpected IDs, missing/wrong order, callback errors, private identifiers, and
+  stale selection events fail the verifier.
+- Windows PowerShell 5.1 exposed one verifier encoding defect: its source-file
+  ellipsis literal did not match the packaged Unicode event. The expectation is
+  now built from code point U+2026, and all three cycles pass on 5.1.
+- Extended routed keyboard acceptance to invoke F5 from the focused last wrapped
+  device rather than from Refresh. Because refresh destroys the focused item,
+  the window now restores focus to Refresh after success or failure. Success
+  permits the next Tab into the newly generated list; failure leaves the error,
+  empty list, disabled bundle/Flash actions, and enabled focused Refresh.
+- The exact accepted 464-file package is 72,102,589 bytes with SHA-256
+  `D065E1259A81803DC2BD535FC066E844E99864176FACCB770EE20C4BD0A5F734`.
+  The warning-free 54-group suite and three live USB refresh cycles pass. This
+  still is not physical keyboard input or Narrator speech acceptance.
+
 ### Source-free external UI Automation and refresh acceptance
 
 - Added stable privacy-safe Automation IDs for the packaged window, Refresh,
@@ -32,8 +57,8 @@ public chronology.
   The external verifier requires the Polite settings when its client exposes
   them and otherwise relies on the mandatory dynamic-name checks plus the .NET
   8 in-process live-setting regression; cleanup ran after both failed probes.
-- The exact accepted 464-file package is 72,102,493 bytes with SHA-256
-  `44603E315DB05A9FF37E070507A999D0840B6C83256B65EA7A2BEEC8368F44CF`.
+- The exact accepted 464-file package is 72,102,589 bytes with SHA-256
+  `D065E1259A81803DC2BD535FC066E844E99864176FACCB770EE20C4BD0A5F734`.
   This is cross-process Windows UI Automation evidence on the current host,
   not physical keyboard/mouse, Narrator speech, installer, or clean-machine
   acceptance.
@@ -47,8 +72,8 @@ public chronology.
   exact source-free executable.
 - A separate verifier then repeated clean extraction, complete length/SHA-256
   matching, capability-boundary checks, forbidden-payload checks, and hidden
-  launch verification. The retained archive is 72,102,493 bytes with SHA-256
-  `44603E315DB05A9FF37E070507A999D0840B6C83256B65EA7A2BEEC8368F44CF`.
+  launch verification. The retained archive is 72,102,589 bytes with SHA-256
+  `D065E1259A81803DC2BD535FC066E844E99864176FACCB770EE20C4BD0A5F734`.
 - The package remains local and Git-ignored. It is inspection-only, has no
   production signer, firmware, writer, erase/reset/DFU/recovery authority,
   private key, or debug/source payload, and is not an installer, signed build,
