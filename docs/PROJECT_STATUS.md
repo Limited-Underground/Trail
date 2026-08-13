@@ -68,17 +68,22 @@ alert reference exists, selected is not sent/delivered, and the complete home/
 messages/critical/position/archive/recovery shell remains. See the
 [quick-status parent-page contract](platform/QUICK_STATUS_PARENT_PAGE_COORDINATOR_V0.md).
 
-The update path now has a separate fail-closed firmware-install preflight.
+The update path now has a separate fail-closed firmware-install preflight plus
+one read-only Windows USB discovery adapter.
 Read-only inspection and flash permission are distinct outcomes: a connected
 board can remain inspectable while incomplete or conflicting processor,
 flash/PSRAM, exact profile/revision, bootloader schema, or image-size evidence
 blocks Flash. Firmware target role must also agree: bench client, complete
 client, and packaged repeater are not interchangeable. Clean install requires explicit destructive-erase confirmation;
-recovery additionally requires separate physical authorization. Thirteen host
-groups pass. This is a pure policy with no USB I/O, signature verification,
-approved board profile, erase/write/reboot capability, Windows UI, or physical
-recovery evidence. See the
-[firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md).
+recovery additionally requires separate physical authorization. Thirteen
+preflight groups pass. The USB adapter adds four privacy/fail-closed groups and
+a live default snapshot that found the two Espressif application runtimes and
+one Seeed TinyUSB runtime while omitting local ports and persistent identity;
+all three remained blocked from Flash. No low-level probe, signature
+verification, approved board profile, erase/write/reboot capability, Windows
+UI, or physical recovery evidence exists. See the
+[firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md) and
+[Windows USB candidate discovery](update/WINDOWS_USB_CANDIDATE_DISCOVERY_V0.md).
 
 The optional archive now has a host-tested client-side session boundary rather
 than only a concept. Explicit start/stop controls the existing current-fix-only

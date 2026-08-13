@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-12
 
+### Privacy-safe Windows USB candidate discovery
+
+- Added the future loader's first Windows-facing adapter. It enumerates USB
+  serial runtimes without opening them, reduces records to coarse transport
+  families, and treats USB VID/PID as non-authoritative for flashing.
+- The default live run found exactly three current bench candidates: two
+  Espressif application USB runtimes and one Seeed TinyUSB serial runtime.
+  It omitted COM names, serial numbers, hardware-instance paths, device
+  locations, runtime identity, and raw enumerator data.
+- All three candidates remained inspectable but explicitly blocked from Flash
+  because low-level processor/memory, exact profile/revision, target role, and
+  bootloader evidence remain unresolved. Discovery performs no serial I/O,
+  erase, write, reset, DFU, firmware, settings, or recovery action.
+- Four focused privacy/fail-closed scenario groups and the publication-safety
+  scan pass. Low-level probes, approved physical profiles, signed bundle
+  verification, UI/packaging, and physical flash/recovery evidence remain.
+
 ### Privacy-safe three-device GNSS evidence
 
 - Confirmed through official MeshCore source that Heltec V4 USB Companion

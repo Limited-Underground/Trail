@@ -1491,6 +1491,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "MeshCore GNSS status tests failed with exit code $LASTEXITCODE."
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\windows_usb_candidate_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "Windows USB candidate tests failed with exit code $LASTEXITCODE."
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\field_test_log_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "Field-test log tests failed with exit code $LASTEXITCODE."

@@ -21,7 +21,7 @@ This is the organized entry point for OpenTrail design, evidence, and engineerin
 | Follow recent work | [Progress log](PROGRESS_LOG.md) |
 | See what is complete or still planned | [Engineering backlog](../tasks/BACKLOG.md) |
 | Work on a portable client target | [Portable-client composition](platform/PORTABLE_CLIENT_COMPOSITION_V0.md), [development guide](DEVELOPMENT.md), and [hardware inventory](../hardware/INVENTORY.md) |
-| Work on the Windows firmware loader | [Firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md), [update/recovery architecture](update/UPDATE_RECOVERY_ARCHITECTURE_V0.md), and [hardware inventory](../hardware/INVENTORY.md) |
+| Work on the Windows firmware loader | [Windows USB candidate discovery](update/WINDOWS_USB_CANDIDATE_DISCOVERY_V0.md), [firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md), [update/recovery architecture](update/UPDATE_RECOVERY_ARCHITECTURE_V0.md), and [hardware inventory](../hardware/INVENTORY.md) |
 | Work on radio packets or delivery | [Protocol documents](protocol/), [generic quick-status payload](protocol/QUICK_STATUS_PAYLOAD_V0.md), and [immutable repeater decision](decisions/0004-immutable-first-release-forwarding.md) |
 | Work on local quick-status selection | [Parent-page handoff](platform/QUICK_STATUS_PARENT_PAGE_COORDINATOR_V0.md), [revision-safe menu](platform/QUICK_STATUS_MENU_COORDINATOR_V0.md), [local interface](platform/LOCAL_INTERFACE_V0.md), and [payload contract](protocol/QUICK_STATUS_PAYLOAD_V0.md) |
 | Review identity or security | [Threat model](security/THREAT_MODEL_V0.md), [group lifecycle](security/GROUP_LIFECYCLE_V0.md), and [crypto candidate review](security/CRYPTO_CANDIDATE_REVIEW_2026-08-10.md) |

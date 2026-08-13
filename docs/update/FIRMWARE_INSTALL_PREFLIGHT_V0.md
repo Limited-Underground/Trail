@@ -1,8 +1,9 @@
 # Firmware install preflight v0
 
 Status: pure fail-closed host policy with thirteen deterministic scenario groups;
-no USB discovery, signed bundle verifier, firmware writer, Windows UI, approved
-board profile, or physical recovery result exists.
+a separate read-only Windows USB candidate adapter now exists, but no low-level
+probe, signed bundle verifier, firmware writer, Windows UI, approved board
+profile, or physical recovery result exists.
 
 ## Purpose
 
@@ -91,7 +92,8 @@ device name.
 ## What remains
 
 - freeze exact, owner-approved Heltec and later SenseCAP hardware profiles;
-- implement privacy-safe Windows USB/serial/DFU probe adapters;
+- extend the privacy-safe Windows USB discovery adapter with non-mutating
+  low-level processor/memory and explicit serial/DFU probes;
 - define and cryptographically verify the signed firmware-bundle manifest;
 - bind exact partition tables, security settings, image lengths, and recovery
   procedures to each profile;
