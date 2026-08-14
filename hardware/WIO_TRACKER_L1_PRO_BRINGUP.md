@@ -143,12 +143,27 @@ owner report and the post-write observations above.
 > coordinator. It requires exact target/policy/GPS-off preconditions, writes
 > recovery authority before enable, uses acknowledgement/readback, observes
 > telemetry presence only, verifies GPS-off restoration and post-restore target
-> binding, uses expected-record journal replacement/deletion, and requires a
-> settled same-boot/zero-pending/no-transmission guard. Its recovery-only path
-> cannot enable GPS. The complete host gate also exits 0 with publication
+> binding, uses expected-record journal replacement/deletion, and requires
+> settled counters with the same session-scoped continuity token, zero pending
+> work, and no transmission. Its recovery-only path cannot enable GPS. The
+> complete host gate also exits 0 with publication
 > safety, all host matrices, and existing read-only loader acceptance. It did
 > not access this Wio or satisfy any Phase D step; the entire live GNSS phase
 > remains open.
+
+> **Windows authority prerequisite:**
+> [OT-020B](../tests/hardware/OT-020B-2026-08-14.md) passes 15 host-only
+> authority groups and the separate OT-020A lifecycle suite remains at 15. A
+> DPAPI CurrentUser-protected 32-byte key supplies domain-separated target and
+> session-scoped continuity tokens; the continuity token is not a device boot
+> identity. A nonblocking per-target named mutex fails closed on busy,
+> abandoned, raced, or uncertain cleanup, while two reduced counter reads span
+> a requested five-second quiet interval and validate transport generation,
+> plausible uptime, zero pending work, and no traffic. The exact authority gap
+> ceiling is 180 seconds inclusive; 180.001 seconds fails. This module has no
+> discovery, command transport, or live-device surface and satisfies no Phase D
+> step. The full host gate's existing read-only loader roster precheck is
+> separate and is not OT-020B hardware evidence.
 
 1. Enable GNSS through the device GPS page or MeshCore position settings.
 2. Move outdoors with a clear sky view; do not judge first-fix performance from

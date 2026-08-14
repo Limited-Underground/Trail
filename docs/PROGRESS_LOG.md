@@ -6,6 +6,34 @@ public chronology.
 
 ## 2026-08-14
 
+### OT-020B host-only Wio GNSS Windows authority
+
+- Added the Windows authority required below a future supervised Wio adapter.
+  A bounded, no-overwrite DPAPI CurrentUser store owns one 32-byte HMAC key;
+  separate HMAC domains derive an opaque target token and a session-scoped
+  continuity token. The latter is not a device boot identity.
+- A nonblocking per-target named mutex covers same-process and cross-process
+  ownership. Busy, abandoned, raced, wait-failed, release-uncertain, or handle-
+  close-uncertain paths fail closed; uncertain cleanup poisons the target for
+  the process rather than permitting a second owner.
+- Two reduced observations span a requested five-second quiet interval and
+  require unchanged transport generation, plausible monotonic uptime, zero
+  pending work, and no packet/airtime/flood/direct change. The prior-window
+  authority gap is exactly bounded: 180 seconds passes and 180.001 seconds
+  fails. Clock/read/wait failures and raw exception tracebacks remain private
+  and latch the authority closed.
+- Exact focused outputs were `PASS: 15 host-only Wio GNSS authority scenario
+  groups` and, separately, `PASS: 15 host-only Wio GNSS lifecycle scenario
+  groups`. The hardened complete host gate exited 0 with publication safety;
+  Windows PowerShell parsing and the final diff check passed.
+- OT-020B contains no serial, PnP, BLE, MeshCore, discovery, live-device, or
+  mutable device-command surface. The complete gate's pre-existing read-only
+  loader precheck separately observed the public one-Heltec/one-SenseCAP/one-
+  Wio roster; it is not OT-020B device evidence.
+- OT-020 remains `partial`, the Wio remains `experimented`, its missing
+  shipping/pre-write state and entire live GNSS phase remain open, and V1 stays
+  at 29%. No hardware compatibility, support, or regulatory claim follows.
+
 ### OT-020A host-only Wio GNSS lifecycle/recovery coordinator
 
 - Added a deterministic host-only coordinator for a future supervised Wio GNSS
@@ -18,10 +46,10 @@ public chronology.
   after off readback and post-restore target rebinding; expected-record
   replacement/deletion rejects journal conflicts.
 - Two settled post-restore counter reads must match the baseline with the same
-  boot binding, zero pending work, and no traffic delta. Reset, reboot, pending
-  work, transmission, or an unsettled read invalidates the guard. An existing
-  journal forces recovery-only handling that can verify/request off but cannot
-  enable GPS.
+  session-scoped continuity token, zero pending work, and no traffic delta. Reset,
+  continuity loss, pending work, transmission, or an unsettled read invalidates
+  the guard. An existing journal forces recovery-only handling that can verify/
+  request off but cannot enable GPS.
 - Exact focused output was `PASS: 15 host-only Wio GNSS lifecycle scenario
   groups`. The complete `tools/Test-Host.ps1` gate then exited 0 with that exact
   result, publication safety, all host matrices, and existing read-only loader

@@ -1515,6 +1515,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "MeshCore GNSS status tests failed with exit code $LASTEXITCODE."
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\wio_tracker_l1_gnss_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "Wio Tracker L1 GNSS authority tests failed with exit code $LASTEXITCODE."
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\wio_tracker_l1_gnss_lifecycle_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "Wio Tracker L1 GNSS lifecycle tests failed with exit code $LASTEXITCODE."

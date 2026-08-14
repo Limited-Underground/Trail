@@ -30,12 +30,31 @@ existing recovery journal before any enable request; journal recovery authority
 is created first. Enable acknowledgement is resolved by readback, telemetry is
 reduced to presence only, and every post-journal path must restore/read back GPS
 off, revalidate the target binding, update/delete the journal against the
-expected record, and pass settled same-boot/no-pending/no-transmission counters.
+expected record, and pass settled counters with the same session-scoped
+continuity token, zero pending work, and no transmission.
 An existing journal permits recovery-only handling that can never enable GPS.
 No live adapter or device I/O occurred. The entire live GNSS phase remains open,
 OT-020 stays `partial`, the unit stays `experimented`, and the missing shipping/
 pre-write state remains explicit. See
 `tests/hardware/OT-020A-2026-08-14.md`.
+
+OT-020B now supplies the missing Windows host authority below any future Wio
+discovery or command adapter. Fifteen authority groups cover a bounded,
+no-overwrite DPAPI CurrentUser 32-byte HMAC key store; domain-separated target
+and session-scoped continuity tokens; nonblocking per-target mutex ownership;
+and two reduced counter observations across a requested five-second quiet
+interval. The continuity token is not a device boot identity: transport
+generation and plausible monotonic uptime remain independently checked. Busy,
+abandoned, raced, release/close-uncertain, private-error, pending, traffic,
+generation, uptime, and timing paths fail closed. A prior-window gap of exactly
+180 seconds passes; 180.001 seconds fails. The separate OT-020A lifecycle suite
+remains at 15 groups, and the hardened full host gate exits 0 with publication
+safety. OT-020B has no serial, PnP, BLE, MeshCore, discovery, live-device, or
+mutable device-command surface. The aggregate gate's pre-existing privacy-safe
+read-only loader precheck separately observed one Heltec, one SenseCAP, and one
+Wio; that is not OT-020B device evidence. OT-020 remains `partial`, the Wio
+remains `experimented`, and the entire live GNSS phase remains open. See
+`tests/hardware/OT-020B-2026-08-14.md`.
 
 The current-tree C# and Python loaders now recognize that Wio family. The
 warning-free 59-group C# suite and three consecutive built-in production
