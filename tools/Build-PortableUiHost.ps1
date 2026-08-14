@@ -7,11 +7,24 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$compilerCandidates = @(
+$compilerCandidates = @()
+if ($env:OPENTRAIL_MSYS2_ROOT) {
+    $compilerCandidates += @(
+        (Join-Path $env:OPENTRAIL_MSYS2_ROOT 'ucrt64\bin\g++.exe'),
+        (Join-Path $env:OPENTRAIL_MSYS2_ROOT 'mingw64\bin\g++.exe')
+    )
+}
+$compilerCandidates += @(
     'C:\msys64\ucrt64\bin\g++.exe',
     'C:\msys64\mingw64\bin\g++.exe'
 )
+$pathCompiler = Get-Command g++.exe -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+if ($pathCompiler) {
+    $compilerCandidates += $pathCompiler.Source
+}
 $compiler = $compilerCandidates |
+    Select-Object -Unique |
     Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
     Select-Object -First 1
 if (-not $compiler) {
