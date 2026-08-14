@@ -4,7 +4,80 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-14
+
+### Wio loader recognition and failed-refresh accessibility recovery
+
+- Extended both current-tree privacy-safe loader paths to recognize the public
+  Wio USB/runtime family without emitting local ports, private identity, raw
+  replies, channel data, PINs, or coordinates. The warning-free C# suite now
+  passes 59 groups.
+- Three consecutive built-in production refreshes returned the expected current
+  roster of one Heltec V4 companion, one SenseCAP Solar repeater, and one Wio
+  Tracker L1 companion. All three were runtime-identified, zero were ready to
+  flash, each refresh cleared selection/action state, and no mutation occurred.
+- The new failure-to-recovery gate found a real accessibility defect: after an
+  inspection failure recovered, the collapsed error peer could retain stale
+  assertive text. Hidden error state now clears its text, Automation ID, and
+  help, sets its live setting Off, and disappears from the recovered automation
+  tree; only an actual current visible failure is assertive.
+- Replaced the second-Heltec visual fixture with the current Wio card and
+  regenerated all nine production-XAML images. Desktop, 900×620 minimum,
+  scrolled/focused, deterministic high-contrast, and 125%/150%/200% review
+  shows the longer Wio profile copy wrapping within its card with no horizontal
+  clipping; at minimum width the third card remains vertically reachable.
+- The complete 111-executable native host matrix, seven fixture-driven Wio
+  preflight scenarios, updated Python loader/runtime/discovery groups,
+  publication-safety scans, cross-tool signature vector, and warning-free
+  59-group Windows suite pass from the integrated tree.
+- RID-restored the accepted source into a replacement 464-file self-contained
+  package. Independent verification matched every payload hash, enforced the
+  inspection-only boundary, launched a fresh extraction, and completed three
+  external UI Automation selection/Refresh/live-event/heading cycles while
+  requiring the exact public roster `Heltec V4 OLED`, `SenseCAP Solar`, and
+  `Wio Tracker L1`. The retained ZIP is 72,103,538 bytes with SHA-256
+  `133A4E133A78D0CE789873B6E43226EAA455B59EDFF81D8DCF4369C172DED2C5`.
+  A non-remediating Windows Defender custom scan inspected the exact archive
+  with exclusions ignored and found no threats.
+- This remains local engineering/package evidence. OT-020 stays
+  `partial`/`experimented`; packaged failure injection, installer/clean-machine,
+  code-signing, distribution, and physical update remain open, and the
+  evidence-weighted V1 percentage is unchanged.
+
 ## 2026-08-13
+
+### First privacy-safe Wio Tracker L1 USB/runtime pass
+
+- Advanced OT-020 from `planned` to `partial` and classified the arrived owner-
+  reported Wio Tracker L1 Pro only as `experimented`. Windows correlated its
+  public USB model as `Seeed Wio Tracker L1`, family `2886:1667`, without
+  retaining a transient COM assignment, device path, serial number, identity,
+  channel value, PIN, BLE address, or coordinate. No `TRACKER L1` DFU volume was
+  present in normal runtime; DFU was not entered.
+- Recorded the owner's boundary that the unit was already flashed as MeshCore
+  USB Companion and configured for a USA frequency plan before inspection.
+  Shipping/pre-write firmware, role, settings, exact flasher target, and erase
+  history therefore were not preserved or independently verified.
+- A fixed read-only MeshCLI pass returned firmware `v1.17.0-727fc05`, build
+  09-Aug-2026, repeat false, 910.525 MHz/BW 62.5 kHz/SF7/CR5/configured and
+  maximum 22 dBm, a transient 4.111 V battery snapshot, and zero errors, queue,
+  packets, airtime, and receive errors. Three additional cycles kept the public
+  model, firmware, profile, and zero error/traffic state stable while uptime
+  increased.
+- GNSS was detected but inactive with no GPS telemetry, and no setting changed.
+  A non-transmitting comparison with the connected Heltec reduced channel 0 to
+  in-memory match booleans, found both default scopes unconfigured, confirmed
+  distinct identities without emitting them, and found clocks within one
+  second. No transmission, BLE, reset, flash, recovery, coordinate capture, or
+  clean-machine validation occurred.
+- Over-air interoperability, GNSS activation/fix/loss, exterior label/SKU/
+  revision, antenna/RF/regulatory, power/endurance, BLE, and DFU/recovery remain
+  open. Current-tree loader recognition subsequently passed locally on
+  2026-08-14; replacement-package/external verification remains open. No
+  supported/validated hardware or field-legality claim follows, and the
+  evidence-weighted V1 percentage is unchanged.
+
+See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
 
 ### Every disabled production button accepted through its rendered surface
 

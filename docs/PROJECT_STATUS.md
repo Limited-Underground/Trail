@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-13
+Status date: 2026-08-14
 
 ## Conceptual goals
 
@@ -10,6 +10,27 @@ Status date: 2026-08-13
 - Offline local maps and a normalized OpenGauge critical-alert input
 
 The close-range MeshCore path now has bounded transport, experimental OpenTrail packet-v0, and three-node MeshCore repeater hardware evidence including a software-forced route with a repeat-off negative control. A privacy-safe USB pass also proved that both Heltec companion builds detect/activate their connected GNSS hardware and emit GPS telemetry, while the SenseCAP repeater obtained a live fix and subsequent checks increased through four, seven, and eight satellites. Two strengthened role-reversed physical cycles carried 2/2 exact `OGA0` alerts and 2/2 correlated `OGK0` ACKs with zero loss/duplicates/errors and exact aggregate +4 SenseCAP flood RX/TX; each returned ACK then passed real OpenGauge peer authorization, session binding, replay/correlation ingress, and completed its exact reconstructed outbox entry. Fixed-capacity C++ radio, codec, identity lifecycle, group-access policy, non-secret configuration persistence, acknowledgement/retry/expiry, duplicate suppression plus canonical `OTD0` checkpoint serialization and the `ODS0` two-slot host storage boundary, controlled forwarding, priority admission, GPS fix validation/age handling, compact position encoding, LoRa airtime calculation, redacted diagnostics, the OpenGauge critical-alert ingress, mirrored `OGK0` acknowledgement codec, final-ingress-to-ACK responder, and commit-last ACK boot-session allocator have deterministic host tests. Cryptographic joining, target/physical/rollback-aware duplicate-checkpoint storage, persistent secret/group/message-counter state, authenticated acknowledgement/priority transport composition, on-device authenticated alert transport, physical field repeater behavior, complete-client GPS binding/performance, position scheduling/hardware transmission, maps, store-forward behavior, a direct SX1262 binding, rendered UI, and field performance remain unvalidated.
+
+An owner-reported Wio Tracker L1 Pro has now completed a privacy-safe first
+USB/runtime/configuration pass. Windows exposed public model `Seeed Wio Tracker
+L1`; four read-only MeshCore cycles kept USB Companion
+`v1.17.0-727fc05`, the 910.525 MHz/BW 62.5 kHz/SF7/CR5/22 dBm profile,
+and zero error/traffic counters stable while uptime increased. GNSS was detected
+but inactive with no GPS telemetry, and a non-transmitting Heltec comparison
+reduced private data to match/distinct booleans only. This is OT-020
+`partial`/`experimented` evidence, not over-air compatibility, exact hardware,
+regulatory, recovery, or support evidence.
+
+The current-tree C# and Python loaders now recognize that Wio family. The
+warning-free 59-group C# suite and three consecutive built-in production
+refreshes pass with one Heltec, one SenseCAP, and one Wio runtime-identified
+and zero ready. A new failure-to-recovery gate found and fixed stale assertive
+content on the collapsed error peer; hidden state now clears its text, ID, help,
+and live setting. The replacement 464-file source-free package passed exact
+manifest/hash/extraction/launch checks plus three native external UI Automation
+selection/Refresh/live-event/heading cycles against the exact one-Heltec, one-
+SenseCAP, one-Wio public roster. A non-remediating Defender archive scan found
+no threats. This remains local engineering evidence, not a public release.
 
 A deterministic group-load model now accounts for the planned four-client
 standalone, four-plus-repeater, and eight-plus-repeater phases using exact LoRa
@@ -90,11 +111,12 @@ writer, target, or physical evidence exists.
 The first loader-facing presentation model now consumes the redacted live
 runtime snapshot and produces fixed, privacy-safe screen data. Its connected
 bench result is `3 found · 3 inspected · 0 ready to flash`, with one SenseCAP
-Solar repeater and two Heltec V4 OLED companions. Refresh/Inspect are enabled;
+Solar repeater, one Heltec V4 OLED companion, and one Wio Tracker L1 companion.
+Refresh/Inspect are enabled;
 all firmware selection/write/recovery actions are disabled. Four groups pass.
 A real .NET 8 WPF development shell now consumes that document and renders
-candidate cards. The application and 58 independent C#
-document/identity/accessibility/production-window-refresh/selection/forward-and-reverse-keyboard/automation-peer/automation-scroll/automation-heading/high-DPI/resize/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
+candidate cards. The application and 59 independent C#
+document/identity/accessibility/production-window-refresh/selection/failure-recovery/forward-and-reverse-keyboard/automation-peer/automation-scroll/automation-heading/high-DPI/resize/contrast-theme/snapshot-binding/device-match/process-boundary/USB-runtime-probe/
 firmware-bundle-candidate/packaged-inspection scenarios build warning-free;
 malformed
 counts, any ready-to-flash candidate, enabled global Flash authority, and
@@ -109,6 +131,18 @@ bounded; cancellation, timeout, or invalid output triggers best-effort
 termination of the inspection process tree, and raw stderr remains hidden. The
 shell now has one local candidate-bundle picker and a bounded structural/image-
 digest/signature inspector. It never displays or retains the selected path.
+
+Three consecutive current-tree built-in refreshes republish the expected one-
+Heltec, one-SenseCAP, one-Wio roster, keep all three runtime-identified and zero
+ready, and clear selection/action state. A failure-to-recovery acceptance group
+found that a collapsed error peer could retain stale assertive content after a
+successful refresh. Hidden error state now clears text, Automation ID, and help
+and sets its live setting Off; only an actual current visible failure is
+assertive. The replacement source-free package now passes independent
+manifest/hash/extraction/launch verification and three external UI Automation
+cycles against the exact current public roster.
+Injected packaged failure/recovery, Narrator, and clean-machine behavior remain
+separate gates.
 Every candidate result is bound to the current connected-device snapshot. A
 device refresh immediately discards the prior display, invalidates an
 in-flight result, and blocks selection until a new validated snapshot is
@@ -206,8 +240,9 @@ enough for fixed MeshCore identity requests, and publishes no local transport,
 raw response, BLE PIN, hardware-instance, pairing, identity, key, or coordinate
 data. The companion path permits only app-start/device-info; the repeater path
 permits only `board`, `ver`, and `get role`. The live C# path reports three
-runtime-identified candidates—two Heltec V4 OLED companions and one SenseCAP
-Solar repeater—and zero ready to flash without Python or MeshCLI. These are
+runtime-identified candidates—one Heltec V4 OLED companion, one SenseCAP Solar
+repeater, and one Wio Tracker L1 companion—and zero ready to flash without
+Python or MeshCLI. These are
 installed-runtime identities, not authoritative received-board profiles.
 Each recognized card now includes a candidate-only hardware-profile panel. It
 separates the allowlisted USB/runtime observation from the published vendor-
@@ -236,8 +271,8 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,103,021 bytes with SHA-256
-`A6D60D0188F5DD7BA51B9792187080EEF4575F0B30653EF6AAC9AFE448CACAC2`.
+The newest verified 464-file archive is 72,103,538 bytes with SHA-256
+`133A4E133A78D0CE789873B6E43226EAA455B59EDFF81D8DCF4369C172DED2C5`.
 Native Windows UI Automation then inspected that exact independently extracted
 executable across the process boundary. Stable privacy-safe IDs exposed the
 window, Refresh, dynamic summary/selection/bundle regions, device list,
@@ -246,8 +281,11 @@ selection and scroll-item patterns, public summary/blocker help, and positions
 1/3, 2/3, and 3/3 without revealing candidate, COM, or MAC identifiers. Three
 external selection/Refresh cycles each enabled only bounded bundle inspection,
 then cleared selection, republished all three devices, restored zero-ready
-status, and kept Flash disabled. This is native automation-client evidence,
-not Narrator speech, physical input, or a clean-machine result.
+status, and kept Flash disabled. The verifier independently required the exact
+public display-name multiset `Heltec V4 OLED`, `SenseCAP Solar`, and
+`Wio Tracker L1`. A non-remediating Windows Defender scan inspected the exact
+ZIP with exclusions ignored and found no threats. This is native automation-
+client evidence, not Narrator speech, physical input, or a clean-machine result.
 The same source-free check requires the exact public level 1/2/3 heading
 sequence before selection, after selection, and after each of the three
 Refresh cycles.
@@ -331,7 +369,8 @@ client, and packaged repeater are not interchangeable. Clean install requires
 explicit destructive-erase confirmation; recovery additionally requires
 separate physical authorization. Thirteen
 preflight groups pass. The USB adapter adds four privacy/fail-closed discovery
-groups, four strict runtime-reduction groups, and a live default snapshot. It
+groups, five strict runtime-reduction groups, and a dated 2026-08-12 live
+snapshot. It
 found two Espressif application runtimes plus one Seeed TinyUSB runtime, then
 identified two Heltec V4 OLED MeshCore companions and one Seeed SenseCAP Solar
 MeshCore repeater without emitting raw replies, pairing fields, local ports, or
@@ -1116,7 +1155,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 | --- | --- | --- |
 | Two Heltec V4 LoRa-capable boards | Both units are runtime-identified as **Heltec V4 OLED** and run MeshCore USB Companion `v1.16.0-07a3ca9` with matching USA/Canada settings (910.525 MHz, BW 62.5 kHz, SF7, CR5, 10 dBm). The owner purchase record is the Meshnology two-unit V4 GPS bundle, ASIN `B0FS1WQWKF`, listing two L76 GNSS modules, 3000 mAh batteries, N39 cases, and 915 MHz antennas. A redacted 2026-08-12 USB pass proved both firmware builds detected GNSS, accepted/read back enablement, and emitted a GPS telemetry field; exact physical modules/wiring and current fix/satellite/accuracy/loss evidence remain open. Raw-RX evidence established channel match, MAC validation, decryption, queue notification, and application retrieval. A temporary private-channel sample delivered 5/5 numbered messages each direction with 0 loss, 0 duplicates, 233.3-247.2 ms latency, 11.25-12.25 dB SNR, and zero receive/core errors. Packet-v0 delivered 3/3 C++-encoded/decoded frames each direction before and again after the five-hour repeater soak, with valid CRC, no loss/duplicates/errors, empty queues, and verified channel/journal cleanup. OT-017D then delivered 2/2 exact `OGA0` alerts and 2/2 correlated `OGK0` ACKs across role-reversed cycles with zero loss/duplicates/errors and verified cleanup. See `tests/hardware/OT-003A-2026-08-12.md`, `tests/hardware/OT-007A-2026-08-08.md`, `tests/hardware/OT-007-2026-08-08.md`, and `tests/hardware/OT-017D-2026-08-09.md`. `OT-DEV-001` has ROM-level ESP32-S3/2 MB PSRAM/16 MB flash evidence; `OT-DEV-002` does not. | OT-004, OT-006, OT-007, and host-mediated OT-017D use this bench evidence. Authenticated on-device alert binding, privacy-safe current fix/satellites, GNSS accuracy/loss/power behavior, usable RSSI, fine-grained airtime, field range/mobility, regulatory constraints, and exact received revision/RF/pinout/power questions remain. |
 | Seeed SenseCAP solar node | Runtime-identified as **Seeed SenseCap Solar**, USB `VID 2886:0059`, running MeshCore Repeater `v1.16.0-07a3ca9` at 910.525 MHz/BW 62.5/SF7/CR5/22 dBm with repeat enabled. The owner purchase record is SenseCAP Solar Node **P1-Pro**, ASIN `B0FMDHBWX8`; Seeed's current MeshCore product maps that variant to SKU `100023690` with XIAO nRF52840 Plus, Wio-SX1262, L76K GNSS, and battery. Its coordinate-free GNSS status progressed from active/no-fix/0 satellites to a live fix, with later checks at 4, 7, and 8 satellites. Both Heltecs received its advert and remotely read its synchronized clock. A temporary private-channel run produced exactly +2 flood RX/+2 flood TX. Explicit one-hop direct routes then succeeded both ways; with repeat off, the same route failed with +1 direct RX/+0 direct TX and no destination message, proving the repeater was required. A non-secret channel lease passed real stopped-session recovery. The 300-minute alternating close-bench run delivered 300/300 (150 each direction), zero loss/duplicates/errors, 229.8-312.1 ms latency, exact +300 repeater flood RX/TX, repeat preserved, empty queues, and verified exact-name channel/journal cleanup. OT-017D added exact aggregate +4 flood RX/+4 flood TX while two role-reversed alert/ACK cycles passed; repeat remained on and errors stayed zero. See `tests/hardware/OT-003A-2026-08-12.md`, `tests/hardware/OT-009-2026-08-08.md`, `tests/hardware/OT-009A-2026-08-09.md`, and `tests/hardware/OT-017D-2026-08-09.md`. | Exact received label/revision and internals, physical GPS/antenna details, GNSS accuracy/cold-start/loss/power behavior, solar endurance, physical field behavior/range, and regulatory validation remain. |
-| Wio Tracker L1 Pro for MeshCore | Owner reports ordered; not received. Vendor MeshCore page identifies SKU `100030144` and Bluetooth Companion shipping firmware, while the package/revision remains unconfirmed | Follow the non-destructive OT-020 arrival plan; exact label, USB/DFU/BLE, firmware, GNSS current/stale behavior, Heltec interoperability, recovery, power, and privacy-safe evidence |
+| Wio Tracker L1 Pro for MeshCore | Owner reports the unit arrived after already being flashed as USB Companion and configured for a USA frequency plan; shipping/pre-write state was not preserved or verified. Windows reported public USB model `Seeed Wio Tracker L1`, family `2886:1667`; fixed read-only MeshCLI returned USB Companion `v1.17.0-727fc05` build 09-Aug-2026, repeat false, 910.525 MHz/BW 62.5 kHz/SF7/CR5/configured and maximum 22 dBm, 4.111 V, and zero errors/queue/packets/airtime/receive errors. Three more cycles kept public model/firmware/profile and zero error/traffic state stable while uptime increased. GNSS was detected but inactive with no GPS telemetry. A non-transmitting comparison matched channel 0 and absent default-scope state only in memory, confirmed distinct identities without emitting them, and found clocks within one second. No transient port, identity, secret, or coordinate is retained. C# and Python loaders now recognize the family; three built-in live refreshes and three exact-roster source-free external UI Automation cycles returned one Heltec, one SenseCAP, and one Wio, all runtime-identified and zero ready. See `tests/hardware/OT-020-2026-08-13.md`. | OT-020 is `partial` and the unit is only `experimented`. Exact label/SKU/revision, pre-write state, antenna/RF/regulatory evidence, over-air interoperability, GNSS activation/fix/loss, power/endurance, BLE, DFU/recovery, and clean-machine evidence remain. The package result is loader recognition evidence only, not hardware compatibility or support |
 | Two Waveshare ESP32-S3 1.75-inch round AMOLED touch boards | Owner reports two ordered; not received or tested. The product family is advertised as 466x466 touch with ESP32-S3R8, 8 MB PSRAM, 16 MB flash, and standard/case/GPS variants; exact ordered and received variant remains unconfirmed | Preserve shipping firmware/recovery evidence; confirm exact labels/variant, display/touch/storage interfaces, usable memory, power/thermal behavior, and map/peer/alert rendering under OT-018 |
 | Two approximately 7-inch touchscreens | Original test intent; no exact hardware identified | Board/display/controller, interface, resolution, memory/storage needs, availability |
 
@@ -1312,8 +1351,8 @@ OT-003 remains partial because no exact ESP-IDF radio/GPS/log/storage/
 entropy/time/power/display/input adapters, target application build, or
 on-device composition evidence exists. Exact adapters, thresholds, and rendered
 behavior wait for frozen client hardware. OT-023 remains blocked at the exact
-four-unit client and firmware freeze. Use the prepared OT-020 procedure when the
-Wio Tracker arrives.
+four-unit client and firmware freeze. Continue the partially executed OT-020
+procedure without reconstructing the Wio's unpreserved shipping state.
 Authenticated on-device transport, protected target state, physical restart and
 power-failure injection, GPS evidence, field performance, and direct-radio
 airtime remain explicit later gates.

@@ -41,21 +41,22 @@ def snapshot(devices: list[dict[str, object]]) -> dict[str, object]:
     return {"schema": "ot_meshcore_runtime_evidence_v0", "devices": devices}
 
 
-def test_three_device_view_is_clear_and_blocked() -> None:
+def test_four_device_view_is_clear_and_blocked() -> None:
     view = MODULE.build_loader_view(
         snapshot(
             [
                 candidate(1, "seeed_sensecap_solar", "meshcore_repeater"),
                 candidate(2, "heltec_v4_oled", "meshcore_companion"),
                 candidate(3, "heltec_v4_oled", "meshcore_companion"),
+                candidate(4, "seeed_wio_tracker_l1", "meshcore_companion"),
             ]
         )
     )
-    expect(view["candidate_count"] == 3, "three candidates required")
-    expect(view["inspected_count"] == 3, "three inspected candidates required")
+    expect(view["candidate_count"] == 4, "four candidates required")
+    expect(view["inspected_count"] == 4, "four inspected candidates required")
     expect(view["ready_to_flash_count"] == 0, "no candidate may be ready")
     expect(
-        view["screen"]["summary"] == "3 found · 3 inspected · 0 ready to flash",
+        view["screen"]["summary"] == "4 found · 4 inspected · 0 ready to flash",
         "summary must be operator-readable",
     )
     expect(
@@ -68,7 +69,12 @@ def test_three_device_view_is_clear_and_blocked() -> None:
     )
     expect(
         [item["display_name"] for item in view["devices"]]
-        == ["SenseCAP Solar", "Heltec V4 OLED", "Heltec V4 OLED"],
+        == [
+            "SenseCAP Solar",
+            "Heltec V4 OLED",
+            "Heltec V4 OLED",
+            "Wio Tracker L1",
+        ],
         "board-family labels must be familiar and bounded",
     )
     profiles = [item["hardware_profile"] for item in view["devices"]]
@@ -95,6 +101,16 @@ def test_three_device_view_is_clear_and_blocked() -> None:
     expect(
         not any(profile["authoritative_for_flash"] for profile in profiles),
         "hardware profile hints must never authorize flashing",
+    )
+    wio_profile = view["devices"][3]["hardware_profile"]
+    expect(
+        wio_profile["profile_candidate"] == "Wio Tracker L1 family",
+        "Wio profile evidence must remain a bounded family candidate",
+    )
+    expect(
+        "exact received model" in wio_profile["next_step"]
+        and "revision" in wio_profile["next_step"],
+        "Wio profile must preserve the received-revision gate",
     )
 
 
@@ -158,7 +174,7 @@ def test_unexpected_shape_or_permissions_fail_closed() -> None:
 
 
 def main() -> None:
-    test_three_device_view_is_clear_and_blocked()
+    test_four_device_view_is_clear_and_blocked()
     test_sensitive_runtime_fields_are_discarded()
     test_failed_or_unrecognized_runtime_gets_generic_card()
     test_unexpected_shape_or_permissions_fail_closed()

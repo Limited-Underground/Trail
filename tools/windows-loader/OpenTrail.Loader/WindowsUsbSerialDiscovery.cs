@@ -10,6 +10,7 @@ internal enum MeshCoreUsbRuntimeFamily
     Unknown = 0,
     HeltecV4Companion = 1,
     SenseCapSolarRepeater = 2,
+    WioTrackerL1Companion = 3,
 }
 
 internal sealed record WindowsUsbSerialCandidate(
@@ -122,21 +123,51 @@ internal static class WindowsUsbSerialDiscovery
 
     internal static MeshCoreUsbRuntimeFamily ClassifyHardwareIds(string value)
     {
-        if (value.Contains(
-                "VID_303A&PID_0002",
-                StringComparison.OrdinalIgnoreCase))
+        if (ContainsExactHardwareIdPair(value, "VID_303A&PID_0002"))
         {
             return MeshCoreUsbRuntimeFamily.HeltecV4Companion;
         }
 
-        if (value.Contains(
-                "VID_2886&PID_0059",
-                StringComparison.OrdinalIgnoreCase))
+        if (ContainsExactHardwareIdPair(value, "VID_2886&PID_0059"))
         {
             return MeshCoreUsbRuntimeFamily.SenseCapSolarRepeater;
         }
 
+        if (ContainsExactHardwareIdPair(value, "VID_2886&PID_1667"))
+        {
+            return MeshCoreUsbRuntimeFamily.WioTrackerL1Companion;
+        }
+
         return MeshCoreUsbRuntimeFamily.Unknown;
+    }
+
+    private static bool ContainsExactHardwareIdPair(string value, string pair)
+    {
+        var searchStart = 0;
+        while (searchStart < value.Length)
+        {
+            var index = value.IndexOf(
+                pair,
+                searchStart,
+                StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            var beforePair = index == 0 || value[index - 1] is '\\' or '\0';
+            var afterIndex = index + pair.Length;
+            var afterPair = afterIndex == value.Length ||
+                value[afterIndex] is '&' or '\0';
+            if (beforePair && afterPair)
+            {
+                return true;
+            }
+
+            searchStart = index + 1;
+        }
+
+        return false;
     }
 
     private static string ReadDeviceProperty(

@@ -1,7 +1,9 @@
 # Wio Tracker L1 Pro Arrival and Bring-up
 
-Status: prepared procedure only, 2026-08-09. The ordered unit has not arrived
-and no OpenTrail or MeshCore compatibility result is claimed.
+Status: partially executed, 2026-08-13; loader follow-up accepted locally
+2026-08-14. The first bounded pass provides USB/runtime/configuration evidence
+only. OT-020 is `partial`, the unit is `experimented`, and no OpenTrail or
+MeshCore compatibility result is claimed.
 
 ## Candidate role
 
@@ -22,6 +24,49 @@ Official references:
 - [Seeed MeshCore bring-up and recovery guide](https://wiki.seeedstudio.com/get_started_with_other_mesh_firmware/)
 - [Wio Tracker L1 Pro datasheet](https://files.seeedstudio.com/Bazaar/product_pdf/114993649.pdf)
 
+## 2026-08-13 bounded execution result
+
+The owner reports that the arrived unit had already been flashed as a MeshCore
+USB Companion and configured for a USA frequency plan before this procedure
+began. Shipping/pre-write firmware, role, settings, exact flasher target, and
+erase history therefore were not preserved or independently verified.
+
+The privacy-safe read-only pass established:
+
+- Windows public model `Seeed Wio Tracker L1`, USB family `2886:1667`, and
+  healthy `TinyUSB Serial` runtime enumeration; the transient COM assignment is
+  intentionally omitted;
+- no mounted `TRACKER L1` volume in normal runtime; DFU was not entered;
+- MeshCore USB Companion `v1.17.0-727fc05`, build 09-Aug-2026, repeat false;
+- 910.525 MHz, 62.5 kHz, SF7, CR5, and configured/max power 22/22 dBm;
+- a 4.111 V battery snapshot and zero errors, queue, packets, airtime, and
+  receive errors;
+- three additional cycles with stable public model/firmware/profile,
+  increasing uptime, and no errors or traffic;
+- GNSS detected true, active false, and no GPS telemetry, with no setting
+  change; and
+- a non-transmitting comparison with the connected Heltec that matched channel
+  0 and unconfigured default-scope state only in memory, confirmed distinct
+  identities without emitting them, and found clocks within one second.
+
+No transmission, BLE, DFU/recovery, reset, flash, coordinate capture, or clean-
+machine validation occurred. See the
+[OT-020 evidence record](../tests/hardware/OT-020-2026-08-13.md). Over-air,
+GNSS fix/loss, exact label/SKU/revision, antenna/RF/regulatory, power/endurance,
+BLE, and recovery remain open.
+
+On 2026-08-14, the current-tree C# and Python loaders accepted the Wio family.
+The warning-free C# suite passed 59 groups, and three consecutive built-in
+production refreshes returned the expected one-Heltec, one-SenseCAP, one-Wio
+roster, all three runtime-identified and zero ready to flash. A failed-refresh
+recovery gate also found and fixed stale assertive content on the collapsed
+error peer: hidden state now clears its text, Automation ID, help, and live
+setting, while only a current visible error is assertive. The replacement
+source-free package then passed independent manifest/hash/extraction/launch
+verification and three external UI Automation cycles that required the exact
+one-Heltec, one-SenseCAP, one-Wio public roster. This remains bounded loader
+evidence, not Wio hardware compatibility, support, or clean-machine evidence.
+
 ## Safety and privacy rules
 
 - Attach the supplied LoRa antenna before intentional transmission.
@@ -37,6 +82,10 @@ Official references:
   confirmed; reboot after changing the region.
 
 ## Phase A: unopened and power inspection
+
+This phase was not completed before the owner-installed USB Companion write.
+Perform the remaining exterior, antenna, cable, screen, and power observations,
+but do not reconstruct or claim a shipping state that was not recorded.
 
 1. Photograph the box label, seals, accessories, and antenna. Keep identity
    labels private; record only model/SKU/revision in the public result.
@@ -55,12 +104,15 @@ From the repository root, run:
 .\tools\Get-WioTrackerL1Preflight.ps1 | Format-List
 ```
 
-The tool reads current serial-port names, matching Windows Plug-and-Play display
-names when Windows permits that query, redacted matching USB registry display
-names as a fallback, and any mounted `TRACKER L1` DFU volume. It performs no
-reset, pairing, serial open, erase, flash, or file write. A PnP query failure is
-reported rather than treated as evidence that the device is absent; registry
-key/instance paths are never output because they may contain serial numbers.
+By default the tool reports only redacted current-device family/status evidence,
+whether exact USB family `2886:1667` is currently present, whether `TRACKER L1`
+DFU storage is mounted, and separately labeled registry history. Serial-port
+names, drive roots, raw errors, registry paths, and device instance IDs are
+omitted. Add `-IncludeLocalPorts` only for explicit local troubleshooting when
+bounded transient COM names or a mounted DFU drive root are needed. The tool
+performs no reset, pairing, serial open, erase, flash, or file write. PnP and
+connected-`pnputil` failures remain explicit; registry history is never treated
+as proof that the device is currently present.
 
 If normal runtime is healthy, do not enter DFU yet. If recovery enumeration
 must be proven, double-press `RST`; the official procedure says the yellow LED
@@ -68,6 +120,10 @@ stays solid and a `TRACKER L1` drive appears after roughly 10-15 seconds. Press
 `User` once to exit DFU without copying or deleting anything.
 
 ## Phase C: preserve and inspect shipping MeshCore
+
+Shipping-state preservation is no longer possible for this unit. Apply the
+steps below to any future untouched unit; for this unit, retain only the dated
+owner report and the post-write observations above.
 
 1. Use the MeshCore browser application over BLE. The pairing passkey must be
    read from the device screen; never paste it into a test record.
@@ -140,3 +196,7 @@ Create `tests/hardware/OT-020-YYYY-MM-DD.md` containing:
 - final evidence classification: identified, experimented, or validated
 
 Do not mark OT-020 done from a successful browser connection alone.
+
+The first partial record now exists at
+`tests/hardware/OT-020-2026-08-13.md`. Continue that evidence chain rather than
+replacing its explicit pre-write-state gap.

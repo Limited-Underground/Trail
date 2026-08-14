@@ -36,6 +36,10 @@ _FAMILY_VIEW = {
         "SenseCAP Solar",
         "MeshCore repeater",
     ),
+    ("seeed_wio_tracker_l1", "meshcore_companion"): (
+        "Wio Tracker L1",
+        "MeshCore companion",
+    ),
 }
 
 _HARDWARE_PROFILE_VIEW = {
@@ -77,6 +81,31 @@ _HARDWARE_PROFILE_VIEW = {
         "next_step": (
             "Use one supervised read-only DFU or bootloader session for low-level evidence; "
             "confirm the received P1/P1-Pro revision separately."
+        ),
+        "maintenance_restart_required": True,
+        "maintenance_attempt_limit": 1,
+        "runtime_recovery_required_before_retry": True,
+        "maintenance_caution": (
+            "ONE ATTEMPT PER SESSION. If maintenance entry fails, stop. Do not try "
+            "again until normal USB enumeration and runtime inspection both succeed."
+        ),
+        "authoritative_for_flash": False,
+    },
+    ("seeed_wio_tracker_l1", "meshcore_companion"): {
+        "profile_candidate": "Wio Tracker L1 family",
+        "evidence_level": "Runtime candidate only",
+        "observed_now": (
+            "Recognized Seeed USB family and allowlisted Wio Tracker L1 "
+            "companion response."
+        ),
+        "published_baseline": (
+            "Seeed's Wio Tracker L1 Pro family documentation lists nRF52840, "
+            "Wio-SX1262, L76K GNSS, and an OLED; the runtime label does not "
+            "establish the exact received Pro model, SKU, or revision."
+        ),
+        "next_step": (
+            "Use one supervised read-only DFU or bootloader session for low-level "
+            "evidence; confirm the exact received model, SKU, and revision separately."
         ),
         "maintenance_restart_required": True,
         "maintenance_attempt_limit": 1,

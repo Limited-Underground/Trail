@@ -11,6 +11,8 @@ param(
     [ValidateRange(1, 10)]
     [int]$ExpectedDeviceCount = 3,
 
+    [string]$ExpectedDeviceDisplayNames = '',
+
     [ValidateRange(1, 10)]
     [int]$RefreshCycles = 3
 )
@@ -20,6 +22,24 @@ $ErrorActionPreference = 'Stop'
 
 if ($RunUiAutomationAcceptance -and $SkipLaunch) {
     throw 'External UI Automation acceptance requires launch verification.'
+}
+$expectedDeviceDisplayNameList = @()
+if (-not [string]::IsNullOrWhiteSpace($ExpectedDeviceDisplayNames)) {
+    if (-not $RunUiAutomationAcceptance) {
+        throw 'Expected device display names require external UI Automation acceptance.'
+    }
+    $expectedDeviceDisplayNameList = @($ExpectedDeviceDisplayNames.Split('|'))
+    if (
+        $expectedDeviceDisplayNameList.Count -ne $ExpectedDeviceCount -or
+        @($expectedDeviceDisplayNameList | Where-Object {
+            [string]::IsNullOrWhiteSpace($_) -or
+            $_ -ne $_.Trim() -or
+            $_.Length -gt 120 -or
+            $_ -match '[\x00-\x1f\x7f]'
+        }).Count -ne 0
+    ) {
+        throw 'ExpectedDeviceDisplayNames must contain one exact public display name per expected device, separated by |.'
+    }
 }
 if ($RunUiAutomationAcceptance) {
     Add-Type -AssemblyName UIAutomationClient
@@ -516,6 +536,7 @@ function Invoke-PackagedUiAutomationAcceptance {
     param(
         [Parameter(Mandatory)][System.Diagnostics.Process]$Process,
         [Parameter(Mandatory)][int]$ExpectedCount,
+        [string[]]$ExpectedDisplayNames = @(),
         [Parameter(Mandatory)][int]$Cycles
     )
 
@@ -638,6 +659,30 @@ function Invoke-PackagedUiAutomationAcceptance {
     $expectedPublicNames = @($initialItems | ForEach-Object {
         [string]$_.Current.Name
     } | Sort-Object)
+    if ($ExpectedDisplayNames.Count -gt 0) {
+        $actualDisplayNames = @(
+            foreach ($item in $initialItems) {
+                $headings = @($item.FindAll(
+                    [System.Windows.Automation.TreeScope]::Descendants,
+                    [System.Windows.Automation.Condition]::TrueCondition) |
+                    Where-Object {
+                        (Get-UiAutomationHeadingLevel -Element $_) -eq
+                            [int][System.Windows.Automation.AutomationHeadingLevel]::Level3
+                    })
+                if ($headings.Count -ne 1) {
+                    throw 'The packaged device roster did not expose one public display-name heading per item.'
+                }
+                [string]$headings[0].Current.Name
+            }
+        )
+        $displayNameDifference = @(Compare-Object `
+            -ReferenceObject @($ExpectedDisplayNames | Sort-Object) `
+            -DifferenceObject @($actualDisplayNames | Sort-Object) `
+            -CaseSensitive)
+        if ($displayNameDifference.Count -ne 0) {
+            throw 'The packaged utility did not expose the expected public device display-name roster.'
+        }
+    }
     Assert-NoPrivateUiAutomationCopy -Window $window
     Assert-UiAutomationHeadingSequence `
         -Window $window `
@@ -873,6 +918,7 @@ try {
             $acceptedCycles = Invoke-PackagedUiAutomationAcceptance `
                 -Process $verificationProcess `
                 -ExpectedCount $ExpectedDeviceCount `
+                -ExpectedDisplayNames $expectedDeviceDisplayNameList `
                 -Cycles $RefreshCycles
             $uiAutomationResult = "passed ($acceptedCycles refresh cycles)"
         }

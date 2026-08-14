@@ -57,9 +57,10 @@ four frozen physical units prove readable output and usable local input.
 
 The two current Heltec USB Companion nodes plus the SenseCAP repeater do not
 satisfy this gate: they are valuable transport evidence, but they are not four
-identical self-contained pilot clients. The ordered Wio Tracker L1 Pro is also
-not selected until arrival testing proves its exact capabilities. No model is
-supported by this document yet.
+identical self-contained pilot clients. The arrived Wio Tracker L1 Pro is also
+not selected: its first USB/runtime/configuration experiment does not prove its
+exact capabilities, over-air behavior, GNSS fix/loss, power/endurance, recovery,
+or regulatory fit. No model is supported by this document yet.
 
 ## Minimum sessions
 

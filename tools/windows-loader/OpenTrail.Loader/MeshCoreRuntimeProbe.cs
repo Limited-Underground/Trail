@@ -55,7 +55,9 @@ internal static partial class MeshCoreRuntimeProbe
             return candidate.RuntimeFamily switch
             {
                 MeshCoreUsbRuntimeFamily.HeltecV4Companion =>
-                    QueryCompanion(candidate.PrivatePortName, cancellationToken),
+                    QueryCompanion(candidate, cancellationToken),
+                MeshCoreUsbRuntimeFamily.WioTrackerL1Companion =>
+                    QueryCompanion(candidate, cancellationToken),
                 MeshCoreUsbRuntimeFamily.SenseCapSolarRepeater =>
                     QueryRepeater(candidate.PrivatePortName, cancellationToken),
                 _ => MeshCoreRuntimeObservation.Unavailable,
@@ -90,11 +92,11 @@ internal static partial class MeshCoreRuntimeProbe
     }
 
     private static MeshCoreRuntimeObservation QueryCompanion(
-        string privatePortName,
+        WindowsUsbSerialCandidate candidate,
         CancellationToken cancellationToken)
     {
         using var connection = WindowsNativeSerialConnection.Open(
-            privatePortName,
+            candidate.PrivatePortName,
             rtsEnabled: false);
         cancellationToken.ThrowIfCancellationRequested();
         Thread.Sleep(150);
@@ -114,7 +116,7 @@ internal static partial class MeshCoreRuntimeProbe
             expectedResponseType: 0x0D,
             decoder,
             cancellationToken);
-        return ParseCompanionDeviceInfo(deviceInfo);
+        return ParseCompanionDeviceInfo(deviceInfo, candidate.RuntimeFamily);
     }
 
     private static byte[] SendCompanionCommand(
@@ -172,6 +174,15 @@ internal static partial class MeshCoreRuntimeProbe
     internal static MeshCoreRuntimeObservation ParseCompanionDeviceInfo(
         ReadOnlySpan<byte> response)
     {
+        return ParseCompanionDeviceInfo(
+            response,
+            MeshCoreUsbRuntimeFamily.HeltecV4Companion);
+    }
+
+    internal static MeshCoreRuntimeObservation ParseCompanionDeviceInfo(
+        ReadOnlySpan<byte> response,
+        MeshCoreUsbRuntimeFamily runtimeFamily)
+    {
         // type + protocol + contacts + channels + private BLE PIN + build/model/version
         if (response.Length < 80 || response[0] != 0x0D)
         {
@@ -189,17 +200,26 @@ internal static partial class MeshCoreRuntimeProbe
         var buildDate = DecodeFixedAscii(response.Slice(8, 12));
         var model = DecodeFixedAscii(response.Slice(20, 40));
         var firmware = DecodeFixedAscii(response.Slice(60, 20));
-        if (model != "Heltec V4 OLED" ||
-            !BuildDatePattern().IsMatch(buildDate) ||
+        if (!BuildDatePattern().IsMatch(buildDate) ||
             !FirmwarePattern().IsMatch(firmware))
         {
             throw new InvalidDataException(
                 "The companion runtime identity is not allowlisted.");
         }
 
+        var displayName = runtimeFamily switch
+        {
+            MeshCoreUsbRuntimeFamily.HeltecV4Companion
+                when model == "Heltec V4 OLED" => "Heltec V4 OLED",
+            MeshCoreUsbRuntimeFamily.WioTrackerL1Companion
+                when model == "Seeed Wio Tracker L1" => "Wio Tracker L1",
+            _ => throw new InvalidDataException(
+                "The companion runtime identity is not allowlisted."),
+        };
+
         return new MeshCoreRuntimeObservation(
             true,
-            "Heltec V4 OLED",
+            displayName,
             "MeshCore USB companion",
             firmware);
     }

@@ -25,6 +25,13 @@ KNOWN_RUNTIME_USB_FAMILIES = {
             "Possible Seeed TinyUSB runtime; exact processor and board remain unresolved."
         ),
     },
+    (0x2886, 0x1667): {
+        "name": "seeed_wio_tracker_l1_usb",
+        "inspection_note": (
+            "Seeed Wio Tracker L1 USB family; exact received revision and target "
+            "role remain unresolved."
+        ),
+    },
 }
 
 DISCOVERY_EVIDENCE_GAPS = [
@@ -131,7 +138,7 @@ def main() -> int:
     parser.add_argument(
         "--include-unknown",
         action="store_true",
-        help="include USB serial devices outside the two observed runtime families",
+        help="include USB serial devices outside the recognized runtime families",
     )
     parser.add_argument(
         "--include-local-ports",

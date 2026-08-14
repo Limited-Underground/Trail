@@ -1,6 +1,9 @@
 # Hardware and US Regulatory Inventory
 
-Date: 2026-08-10  
+Initial reconciliation: 2026-08-10
+
+Last updated: 2026-08-13
+
 Backlog gate: OT-003A (`partial`)
 
 This document reconciles connected-device evidence with current official
@@ -16,7 +19,7 @@ approved antenna, or lawful operating mode.
 | `OT-DEV-001` | MeshCore reports `Heltec V4 OLED`; USB Companion `v1.16.0-07a3ca9`; ESP32-S3 ROM evidence; 2 MB PSRAM; 16 MB flash; 910.525 MHz/BW 62.5 kHz/SF7/CR5/10 dBm during recorded bench work; owner purchase record is Meshnology V4 GPS two-unit bundle ASIN `B0FS1WQWKF`; firmware detected/activated GNSS and emitted a GPS telemetry field | Heltec's WiFi LoRa 32 V4 documentation describes ESP32-S3R2, external 16 MB flash, SX1262, OLED, solar input, an up-to-28 dBm LoRa path, and GNSS connector; the bundle lists L76 GNSS, 3000 mAh battery, N39 case, and 915 MHz antenna | Exterior product/revision label, exact RF power/frequency variant, FCC ID/grant, installed antenna model/gain/connector, cable loss, pin map, physical GNSS module/wiring plus fix/accuracy/loss evidence, and power-system revision |
 | `OT-DEV-002` | MeshCore reports `Heltec V4 OLED`; USB Companion `v1.16.0-07a3ca9`; same recorded radio settings; clean serial/runtime checks; same two-unit purchase record as `OT-DEV-001`; firmware detected/activated GNSS and emitted a GPS telemetry field | Same likely WiFi LoRa 32 V4 family and bundle match | Everything listed for `OT-DEV-001`, plus independent ROM/flash/security evidence |
 | `OT-DEV-003` | MeshCore reports `Seeed SenseCap Solar`; Repeater `v1.16.0-07a3ca9`; 910.525 MHz/BW 62.5 kHz/SF7/CR5/22 dBm; repeating and bounded bench forwarding proved; owner purchase record is P1-Pro ASIN `B0FMDHBWX8`; GNSS became active and reached a live fix, with later checks at 4, 7, and 8 satellites | Seeed's current MeshCore product identifies P1-Pro SKU `100023690`, XIAO nRF52840 Plus, Wio-SX1262, L76K GNSS, battery, and solar enclosure | Exact received label/revision, FCC ID/grant, GNSS accuracy/loss/power behavior, battery/enclosure revision, installed antenna/cable/gain, solar/endurance evidence, and authorization for the exact configuration |
-| `OT-CAND-004` Wio Tracker L1 Pro | Ordered; no received-unit evidence | Seeed identifies nRF52840, Wio-SX1262, L76K GNSS, OLED, USB-C, solar input, and an I-PEX-to-SMA antenna path for this family | Preserve shipping state and follow the arrival plan; do not promote vendor specifications to tested compatibility |
+| `OT-CAND-004` Wio Tracker L1 Pro | Owner-reported Pro unit; Windows public USB model `Seeed Wio Tracker L1`, family `2886:1667`; owner-flashed USB Companion `v1.17.0-727fc05` build 09-Aug-2026; repeat false; read-only 910.525 MHz/BW 62.5 kHz/SF7/CR5/22 dBm configuration; four stable zero-error/zero-traffic cycles; GNSS detected but inactive with no GPS telemetry | Seeed identifies nRF52840, Wio-SX1262, L76K GNSS, OLED, USB-C, solar input, and an I-PEX-to-SMA antenna path for this family | Shipping/pre-write state was not preserved. Record exact label/SKU/revision, RF variant, FCC ID/grant, antenna/cable/gain, GNSS fix/loss, power/endurance, BLE, DFU/recovery, over-air interoperability, and authorization for the exact configuration; do not promote this bounded experiment to compatibility |
 
 The family matches narrow the inspection work but do not close it. The Heltec
 runtime string is consistent with the V4 family; it is not a substitute for the
@@ -28,6 +31,11 @@ product label or equipment grant.
 | --- | ---: | ---: | --- | ---: |
 | Heltec companions | 910.525 MHz | 62.5 kHz | SF7 / CR5 | 10 dBm |
 | SenseCAP repeater | 910.525 MHz | 62.5 kHz | SF7 / CR5 | 22 dBm |
+| Wio candidate, repeat off | 910.525 MHz | 62.5 kHz | SF7 / CR5 | 22 dBm |
+
+The Wio values were read without transmitting. Its reported `USA` setup and
+matching center-frequency/profile comparison are not an over-air or compliance
+result.
 
 The center frequency is inside the US 902-928 MHz ISM band, but that alone is
 insufficient. FCC Part 15 operation is subject to 47 CFR 15.5, including
@@ -73,6 +81,7 @@ regulatory-approved list.
 - [Seeed SenseCAP Solar Node specification](https://wiki.seeedstudio.com/meshtastic_solar_node/)
 - [Owner's SenseCAP P1-Pro purchase listing](https://www.amazon.com/dp/B0FMDHBWX8)
 - [Seeed SenseCAP P1-Pro for MeshCore product](https://www.seeedstudio.com/SenseCAP-Solar-Node-P1-Pro-for-Meshcore-p-6741.html)
+- [Seeed Wio Tracker L1 Pro for MeshCore product](https://www.seeedstudio.com/Wio-Tracker-L1-Pro-for-Meshcore-p-6717.html)
 - [Seeed LoRa antenna selection guide](https://wiki.seeedstudio.com/lora_antenna_selection_guide/)
 - [47 CFR 15.5 — General conditions of operation](https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15/subpart-A/section-15.5)
 - [47 CFR 15.247 — spread-spectrum and digital-modulation provisions](https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15/subpart-C/section-15.247)

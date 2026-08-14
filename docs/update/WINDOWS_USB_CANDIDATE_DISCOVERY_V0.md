@@ -1,9 +1,8 @@
 # Windows USB candidate discovery v0
 
-Status: read-only discovery plus runtime-evidence host adapters with eight
-deterministic privacy/fail-closed scenario groups and one successful
-three-device Windows bench snapshot; no exact board profile or flash permission
-exists.
+Status: read-only discovery plus runtime-evidence host adapters with
+deterministic privacy/fail-closed evidence and a current three-device Windows
+bench snapshot; no exact board profile or flash permission exists.
 
 ## Purpose
 
@@ -26,6 +25,7 @@ available only for local troubleshooting; it does not change flash permission.
 | --- | --- | --- |
 | `303A:0002` | Espressif application USB | ESP32 variant, Heltec model/revision, memory, target role, bootloader, or image compatibility |
 | `2886:0059` | Seeed TinyUSB serial runtime | SenseCAP model/revision, processor, memory, target role, bootloader, or image compatibility |
+| `2886:1667` | Seeed Wio Tracker L1 TinyUSB serial runtime | Exact Pro SKU/revision, processor/memory measurements, RF variant, target role, bootloader, or image compatibility |
 
 Unknown USB serial devices are excluded by default. They may be displayed only
 with `--include-unknown`, and remain equally blocked.
@@ -48,7 +48,24 @@ role is not the unresolved OpenTrail target role. The snapshot is not the comple
 `FirmwareInstallPreflight` decision and has no bundle, signature, partition,
 erase, write, reset, DFU, recovery, or authorization capability.
 
-## Connected-bench result
+## Current connected-bench result
+
+On 2026-08-14, the default privacy-safe discovery/runtime path returned exactly
+three candidates: one Espressif application USB runtime, one Seeed SenseCAP
+TinyUSB runtime, and one Seeed Wio Tracker L1 TinyUSB runtime. Strict read-only
+follow-up identified one Heltec V4 OLED MeshCore companion, one SenseCAP Solar
+MeshCore repeater, and one Wio Tracker L1 MeshCore companion. All three were
+runtime-identified and all three remained blocked from flashing. The Wio
+reported `v1.17.0-727fc05`; the Heltec and SenseCAP retained their independently
+recorded runtime versions. No local port or private identity was emitted.
+
+Three consecutive current-tree built-in refreshes reproduced this exact public
+roster with zero ready. The replacement source-free package then passed three
+external UI Automation cycles that independently required the same exact public
+display-name roster and zero-ready state. This remains runtime/loader evidence,
+not an exact-board or compatibility result.
+
+## Earlier connected-bench result
 
 The default privacy-safe run on 2026-08-12 returned exactly three candidates:
 one Seeed TinyUSB serial runtime and two Espressif application USB runtimes.
@@ -62,10 +79,11 @@ remained blocked from flashing. See the
 
 Four discovery groups cover deterministic recognition/order, omission of
 sensitive enumerator fields and local ports, explicit local-port inclusion,
-and bounded unknown-device handling. Four runtime groups cover companion-field
-reduction, non-echoing rejection, repeater grammar/role reduction, and
-three-candidate integration with redacted failures. The publication-safety scan
-also passes.
+and bounded unknown-device handling, including the Wio family. Five runtime
+groups cover Heltec companion-field reduction, non-echoing rejection, exact
+Wio companion reduction, repeater grammar/role reduction, and four-candidate
+fixture integration with redacted failures.
+The updated Python checks and publication-safety scan pass.
 
 The runtime command grammar was checked against MeshCore's official
 [`CommonCLI.cpp`](https://github.com/meshcore-dev/MeshCore/blob/main/src/helpers/CommonCLI.cpp).
@@ -77,6 +95,7 @@ The runtime command grammar was checked against MeshCore's official
 - bind exact target role, bootloader/partition schema, and signed image;
 - feed independently verified evidence into the pure firmware-install
   preflight;
-- build the Windows UI and require explicit destructive/recovery consent; and
+- retain fail-closed Windows UI authority and require explicit destructive/
+  recovery consent in any future mutation path;
 - validate wrong-target, interruption, reconnect, readback, trial, rollback,
   and physical recovery before any supported-board claim.

@@ -1,6 +1,6 @@
 # Windows loader desktop shell v0
 
-Date: 2026-08-12; updated 2026-08-13
+Date: 2026-08-12; updated 2026-08-14
 
 ## Current evidence
 
@@ -11,24 +11,34 @@ application, renders one card for each connected candidate, and can inspect a
 bounded local firmware-bundle candidate without granting device authority.
 
 The shell and its independent console tests build warning-free on the current
-Windows host. Fifty-eight document, identity-safeguard, accessibility,
-production-window refresh/selection/forward-and-reverse-keyboard/automation-peer/automation-scroll/automation-heading/high-DPI/resize/contrast-theme, snapshot-binding/device-match,
+Windows host. Fifty-nine document, identity-safeguard, accessibility,
+production-window refresh/selection/failure-recovery/forward-and-reverse-keyboard/automation-peer/automation-scroll/automation-heading/high-DPI/resize/contrast-theme, snapshot-binding/device-match,
 process-boundary, USB-runtime/hardware-profile, firmware-bundle-candidate, and
-packaged-inspection scenario groups pass. The source-free built-in C# path
+packaged-inspection scenario groups pass. The built-in C# path
 reports `3 USB candidates found · 3
-runtime-identified · 0 ready to flash`: two assembled Heltec V4 OLED GPS bench
-clients and the packaged SenseCAP Solar P1-Pro GPS repeater.
+runtime-identified · 0 ready to flash`: one assembled Heltec V4 OLED GPS bench
+client, the packaged SenseCAP Solar P1-Pro GPS repeater, and one Wio Tracker L1
+companion.
 
-This is source/build and document-validation evidence. A local self-contained
-package has also passed source-free extraction, manifest/hash verification, and
-launch smoke testing. The real production XAML now also has deterministic
+This is source/build and document-validation evidence. The replacement local
+self-contained package also passes source-free extraction, complete
+manifest/hash verification, launch, and three external UI Automation cycles
+against the exact one-Heltec, one-SenseCAP, one-Wio public roster. The real
+production XAML now also has deterministic
 rendered-layout evidence at desktop and minimum window sizes plus deterministic
 125%, 150%, and 200% scaled rendering plus one deterministic contrast profile.
-Three consecutive production-window reads through the packaged Windows
-USB/runtime adapter now pass on the current host with all three bench candidates
-and zero ready to flash. Physical keyboard input, Narrator, live Windows contrast-theme
+Three consecutive production-window reads through the current-tree built-in
+Windows USB/runtime adapter now pass on the current host with the one-Heltec,
+one-SenseCAP, one-Wio roster and zero ready to flash. Physical keyboard input,
+Narrator, live Windows contrast-theme
 switching, visible mouse-driven repeated refresh, and clean-machine acceptance
 remain separate gates.
+
+The deterministic three-card document now uses that same public roster rather
+than the earlier two-Heltec fixture. Fresh desktop, 900×620 minimum,
+scrolled/focused, classic/high-contrast, and 125%/150%/200% images show the
+longer Wio profile copy wrapping within its card without horizontal clipping;
+the third wrapped card remains reachable through the accepted vertical path.
 
 The source now provides F5 refresh through the same bounded command as the
 button, an explicit keyboard focus visual, automation live regions for changing
@@ -109,8 +119,9 @@ surface exists. The resulting document contains generic ordinals plus
 allowlisted runtime model, role, and firmware; it never contains a COM name,
 transport label, serial number, hardware-instance ID, raw reply, BLE PIN,
 device identity, pairing data, key, or coordinate. The live C# path identifies
-two Heltec V4 OLED MeshCore USB companions and one SenseCAP Solar MeshCore
-repeater. These are installed-runtime identities, not exact received-hardware
+one Heltec V4 OLED MeshCore USB companion, one SenseCAP Solar MeshCore
+repeater, and one Wio Tracker L1 MeshCore USB companion. These are installed-
+runtime identities, not exact received-hardware
 or support claims.
 
 Each recognized card now contains an explicit hardware-profile evidence panel.
@@ -285,8 +296,8 @@ input, a real monitor/DPI transition, or Narrator acceptance.
 
 ## Production-window refresh state evidence
 
-The public `MainWindow` constructor and packaged inspection source remain
-unchanged. An internal constructor can supply a controlled validated read-only
+The public `MainWindow` constructor remains the production path. An internal
+constructor can supply a controlled validated read-only
 inspection function to the same production window during host acceptance. The
 acceptance runner performs three refresh/selection cycles in one STA session.
 Every refresh must republish the three cards, clear the previous selection,
@@ -300,12 +311,19 @@ successful inspection but before device selection, the bundle footer retained
 the earlier `waiting for device inspection` message. Successful publication now
 sets `No firmware bundle selected` with an explicit current-device-selection
 blocker. Selecting a card then changes to the selection-bound wording. Three
-complete cycles pass. An opt-in follow-up also runs this production window
-against the packaged Windows USB/runtime adapter. Three consecutive live reads
-each republished the three connected candidates, kept zero ready to flash,
-cleared selection, kept bundle selection disabled, and restored Refresh. This
-does not substitute for visible mouse/keyboard input, Narrator, or clean-machine
-acceptance.
+complete cycles pass. A current-tree built-in follow-up then performed three
+consecutive live reads. Each republished one Heltec, one SenseCAP, and one Wio,
+kept all three runtime-identified and zero ready to flash, cleared selection,
+kept bundle selection disabled, and restored Refresh.
+
+A separate failure-to-recovery cycle found that the collapsed error peer could
+retain stale assertive text after the live roster recovered. Hidden error state
+now clears text, Automation ID, and help and sets its live setting Off; only an
+actual current visible failure exposes assertive content. The recovered
+automation tree contains no stale error. The replacement package passes its
+normal exact-roster external UI Automation workflow, but packaged failure
+injection, visible mouse/keyboard input, Narrator, and clean-machine acceptance
+remain separate gates.
 
 The visible application identity is now composed from one C# boundary rather
 than embedded throughout XAML and inspection copy. Its preliminary working
@@ -363,6 +381,19 @@ From the repository root:
 ```powershell
 .\tools\Test-WindowsLoader.ps1
 ```
+
+To repeat the current connected-bench gate, require both the exact device count
+and the privacy-safe public-name multiset on every live refresh:
+
+```powershell
+$env:OT_LOADER_LIVE_REFRESH_ACCEPTANCE = '1'
+$env:OT_LOADER_LIVE_EXPECTED_DEVICE_COUNT = '3'
+$env:OT_LOADER_LIVE_EXPECTED_DISPLAY_NAMES = 'Heltec V4 OLED|SenseCAP Solar|Wio Tracker L1'
+.\tools\Test-WindowsLoader.ps1
+```
+
+The display-name comparison is order-independent and duplicate-aware. It does
+not expose local ports or persistent device identity.
 
 To regenerate the three deterministic production-XAML renders during that
 same warning-free run:
@@ -429,12 +460,21 @@ three read-only Refresh cycles without opening the firmware picker:
 
 ```powershell
 .\tools\Test-WindowsDeviceUtilityPackage.ps1 -ArchivePath <path-to-zip> `
-    -RunUiAutomationAcceptance -ExpectedDeviceCount 3 -RefreshCycles 3
+    -RunUiAutomationAcceptance -ExpectedDeviceCount 3 `
+    -ExpectedDeviceDisplayNames 'Heltec V4 OLED|SenseCAP Solar|Wio Tracker L1' `
+    -RefreshCycles 3
 ```
 
-The current retained package has 464 payload files and is 72,103,021 bytes. Its
+The current retained package has 464 payload files and is 72,103,538 bytes. Its
 SHA-256 is
-`A6D60D0188F5DD7BA51B9792187080EEF4575F0B30653EF6AAC9AFE448CACAC2`.
+`133A4E133A78D0CE789873B6E43226EAA455B59EDFF81D8DCF4369C172DED2C5`.
+The builder and independent verifier each passed extraction, exact payload
+length/hash matching, forbidden-payload checks, and source-free launch. Windows
+PowerShell 5.1 then passed three external selection/Refresh/live-event/heading
+cycles while requiring the exact public display-name roster above. A
+non-remediating Windows Defender custom scan inspected the exact ZIP with
+exclusions ignored and found no threats.
+
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the

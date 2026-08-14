@@ -24,14 +24,28 @@ internal sealed record LoaderWindowAcceptanceResult(
     int AcceptedAutomationPaths,
     int AcceptedAutomationScrollPaths,
     int AcceptedHeadingPaths,
+    int AcceptedFailureRecoveryPaths,
     IReadOnlyList<string> RenderedFiles);
 
 internal static class LoaderVisualFixtureRenderer
 {
     private const string OutputEnvironmentVariable = "OT_LOADER_VISUAL_OUTPUT";
 
-    internal static int RunLiveRefreshAcceptance()
+    internal static int RunLiveRefreshAcceptance(
+        IReadOnlyList<string> expectedDisplayNames)
     {
+        ArgumentNullException.ThrowIfNull(expectedDisplayNames);
+        Require(
+            expectedDisplayNames.Count is >= 1 and <= 64 &&
+            expectedDisplayNames.All(static name =>
+                !string.IsNullOrWhiteSpace(name) &&
+                name.Length <= 120 &&
+                !name.Any(char.IsControl)),
+            "live refresh acceptance requires a bounded public display-name roster");
+        var expectedRoster = expectedDisplayNames
+            .OrderBy(static name => name, StringComparer.Ordinal)
+            .ToArray();
+        var expectedDeviceCount = expectedRoster.Length;
         var successfulRefreshes = 0;
         Exception? refreshFailure = null;
         var thread = new Thread(() =>
@@ -46,17 +60,31 @@ internal static class LoaderVisualFixtureRenderer
                 for (var cycle = 0; cycle < 3; cycle++)
                 {
                     AwaitWithDispatcherPump(window.RefreshForAcceptanceAsync());
-                    Require(window.DeviceCards.Items.Count == 3,
-                        $"live refresh cycle {cycle + 1} did not publish the three connected bench candidates " +
+                    var actualRoster = window.DeviceCards.Items
+                        .Cast<LoaderDeviceCard>()
+                        .Select(static device => device.DisplayName)
+                        .OrderBy(static name => name, StringComparer.Ordinal)
+                        .ToArray();
+                    Require(window.DeviceCards.Items.Count == expectedDeviceCount,
+                        $"live refresh cycle {cycle + 1} did not publish the expected connected bench candidates " +
                         $"(items={window.DeviceCards.Items.Count}, summary={window.SummaryText.Text}, error={window.ErrorText.Text})");
+                    Require(
+                        actualRoster.SequenceEqual(
+                            expectedRoster,
+                            StringComparer.Ordinal),
+                        $"live refresh cycle {cycle + 1} published the wrong public roster " +
+                        $"(actual={string.Join(" | ", actualRoster)}, " +
+                        $"expected={string.Join(" | ", expectedRoster)})");
                     Require(window.DeviceCards.SelectedItem is null &&
                         !window.SelectFirmwareButton.IsEnabled &&
                         window.RefreshButton.IsEnabled &&
                         string.Equals(window.RefreshButton.Content as string,
                             "Refresh devices", StringComparison.Ordinal),
                         $"live refresh cycle {cycle + 1} did not settle in the safe unselected state");
+                    var noun = expectedDeviceCount == 1 ? "candidate" : "candidates";
                     Require(window.SummaryText.Text.StartsWith(
-                            "3 USB candidates found · 3 runtime-identified · 0 ready to flash",
+                            $"{expectedDeviceCount} USB {noun} found · " +
+                            $"{expectedDeviceCount} runtime-identified · 0 ready to flash",
                             StringComparison.Ordinal),
                         $"live refresh cycle {cycle + 1} published an unexpected summary: {window.SummaryText.Text}");
                     successfulRefreshes++;
@@ -117,6 +145,7 @@ internal static class LoaderVisualFixtureRenderer
         var acceptedAutomationPaths = 0;
         var acceptedAutomationScrollPaths = 0;
         var acceptedHeadingPaths = 0;
+        var acceptedFailureRecoveryPaths = 0;
         Exception? renderingFailure = null;
         var thread = new Thread(() =>
         {
@@ -187,6 +216,8 @@ internal static class LoaderVisualFixtureRenderer
                     acceptedAutomationScrollPaths =
                         AcceptAutomationScrollReachability();
                     acceptedHeadingPaths = AcceptHeadingSemantics();
+                    acceptedFailureRecoveryPaths =
+                        AcceptFailedRefreshRecovery();
                 }
                 finally
                 {
@@ -221,6 +252,7 @@ internal static class LoaderVisualFixtureRenderer
             acceptedAutomationPaths,
             acceptedAutomationScrollPaths,
             acceptedHeadingPaths,
+            acceptedFailureRecoveryPaths,
             renderedFiles);
     }
 
@@ -667,16 +699,6 @@ internal static class LoaderVisualFixtureRenderer
                 "bundle-summary",
                 "bundle status");
 
-            const string acceptanceError =
-                "Acceptance-only inspection error message";
-            window.ErrorText.Text = acceptanceError;
-            RequireLiveRegion(
-                window.ErrorText,
-                AutomationLiveSetting.Assertive,
-                acceptanceError,
-                "inspection-error",
-                "inspection error");
-
             var disabledFlashPeer = new ButtonAutomationPeer(
                 window.FlashSelectedButton);
             Require(
@@ -814,6 +836,271 @@ internal static class LoaderVisualFixtureRenderer
         {
             window.Close();
         }
+    }
+
+    private static int AcceptFailedRefreshRecovery()
+    {
+        const string expectedError =
+            "Device inspection could not complete. No device or firmware setting was changed.";
+        var refreshCalls = 0;
+        var window = new MainWindow(_ =>
+        {
+            refreshCalls++;
+            return refreshCalls == 2
+                ? Task.FromException<LoaderInspectionDocument>(
+                    new InvalidOperationException(
+                        "acceptance-only inspection failure"))
+                : Task.FromResult(CreateDocument());
+        })
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = SystemParameters.VirtualScreenLeft,
+            Top = SystemParameters.VirtualScreenTop,
+            Width = 900,
+            Height = 620,
+        };
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            Require(
+                refreshCalls == 1 &&
+                window.DeviceCards.Items.Count == 3,
+                "failure-recovery acceptance did not settle its initial inspection");
+
+            window.DeviceCards.SelectedIndex = 2;
+            var failedModel = window.DeviceCards.SelectedItem;
+            var failedItem = ContainerAt(window, 2);
+            Require(
+                failedItem.Focus() &&
+                window.SelectFirmwareButton.IsEnabled,
+                "failure-recovery acceptance could not establish a focused current selection");
+            RaiseRoutedKey(failedItem, Key.F5);
+            window.UpdateLayout();
+
+            var failureWindowPeer = new WindowAutomationPeer(window);
+            var failurePeers = AutomationDescendants(failureWindowPeer);
+            var errorPeers = failurePeers
+                .Where(peer => string.Equals(
+                    peer.GetAutomationId(),
+                    "inspection-error",
+                    StringComparison.Ordinal))
+                .ToArray();
+            var failedListPeer = new ListBoxAutomationPeer(window.DeviceCards);
+            var failedListChildren = failedListPeer.GetChildren();
+            Require(
+                refreshCalls == 2 &&
+                window.ErrorBanner.Visibility == Visibility.Visible &&
+                string.Equals(window.ErrorText.Text, expectedError, StringComparison.Ordinal) &&
+                string.Equals(
+                    window.SummaryText.Text,
+                    "Inspection unavailable",
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    window.BundleSummaryText.Text,
+                    "Firmware bundle selection waiting for device inspection",
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    window.SelectionText.Text,
+                    "Device selection cleared. Complete inspection, then select one current device.",
+                    StringComparison.Ordinal) &&
+                window.DeviceCards.Items.Count == 0 &&
+                window.DeviceCards.SelectedItem is null &&
+                failedListChildren is null or { Count: 0 } &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled &&
+                !VisualDescendants<Button>(window.DeviceCards).Any() &&
+                window.RefreshButton.IsEnabled &&
+                string.Equals(
+                    window.RefreshButton.Content as string,
+                    "Refresh devices",
+                    StringComparison.Ordinal) &&
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton),
+                "failed inspection did not expose the exact focused, empty, fail-closed state");
+            Require(
+                errorPeers.Length == 1 &&
+                errorPeers[0].GetAutomationControlType() ==
+                    AutomationControlType.Text &&
+                errorPeers[0].GetLiveSetting() ==
+                    AutomationLiveSetting.Assertive &&
+                string.Equals(
+                    errorPeers[0].GetName(),
+                    expectedError,
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    errorPeers[0].GetHelpText(),
+                    "Current connected-device inspection error.",
+                    StringComparison.Ordinal) &&
+                !errorPeers[0].IsOffscreen() &&
+                !ContainsPrivateIdentifier(errorPeers[0].GetName()),
+                "the visible inspection error was not one assertive, onscreen, privacy-safe peer");
+            RequireHeadingSequence(window, "failed-inspection heading hierarchy");
+
+            _ = window.RefreshButton.MoveFocus(
+                new TraversalRequest(FocusNavigationDirection.Next));
+            Require(
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton) &&
+                window.DeviceCards.SelectedItem is null &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled,
+                "forward traversal escaped Refresh or created authority in the empty failure state");
+            _ = window.RefreshButton.MoveFocus(
+                new TraversalRequest(FocusNavigationDirection.Previous));
+            Require(
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton) &&
+                window.DeviceCards.SelectedItem is null &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled,
+                "reverse traversal escaped Refresh or created authority in the empty failure state");
+
+            RaiseRoutedKey(window.RefreshButton, Key.F5);
+            window.UpdateLayout();
+            var recoveryWindowPeer = new WindowAutomationPeer(window);
+            var recoveryPeers = AutomationDescendants(recoveryWindowPeer);
+            var recoveredListPeer = new ListBoxAutomationPeer(window.DeviceCards);
+            var recoveredListChildren = recoveredListPeer.GetChildren();
+            var recoveredModels = window.DeviceCards.Items
+                .Cast<LoaderDeviceCard>()
+                .ToArray();
+            var recoveredCardFlashButtons = VisualDescendants<Button>(
+                    window.DeviceCards)
+                .Where(static button => string.Equals(
+                    button.Content as string,
+                    "Flash",
+                    StringComparison.Ordinal))
+                .ToArray();
+            var recoveredErrorPeerCount = recoveryPeers.Count(peer =>
+                string.Equals(
+                    peer.GetAutomationId(),
+                    "inspection-error",
+                    StringComparison.Ordinal));
+            var recoveredFocusType =
+                Keyboard.FocusedElement?.GetType().Name ?? "null";
+            var retainedErrorPeer = errorPeers[0];
+            Require(
+                refreshCalls == 3 &&
+                window.ErrorBanner.Visibility == Visibility.Collapsed &&
+                window.ErrorText.Visibility == Visibility.Collapsed &&
+                window.ErrorText.Text.Length == 0 &&
+                AutomationProperties.GetAutomationId(window.ErrorText).Length == 0 &&
+                AutomationProperties.GetHelpText(window.ErrorText).Length == 0 &&
+                AutomationProperties.GetLiveSetting(window.ErrorText) ==
+                    AutomationLiveSetting.Off &&
+                !string.Equals(
+                    retainedErrorPeer.GetAutomationId(),
+                    "inspection-error",
+                    StringComparison.Ordinal) &&
+                retainedErrorPeer.GetName().Length == 0 &&
+                retainedErrorPeer.GetHelpText().Length == 0 &&
+                retainedErrorPeer.GetLiveSetting() == AutomationLiveSetting.Off &&
+                retainedErrorPeer.IsOffscreen() &&
+                recoveredErrorPeerCount == 0 &&
+                recoveryPeers.All(peer => !string.Equals(
+                    peer.GetName(),
+                    expectedError,
+                    StringComparison.Ordinal)) &&
+                window.DeviceCards.Items.Count == 3 &&
+                recoveredListChildren is { Count: 3 } &&
+                recoveredModels.All(model =>
+                    !ReferenceEquals(model, failedModel)) &&
+                !ReferenceEquals(ContainerAt(window, 2), failedItem) &&
+                window.DeviceCards.SelectedItem is null &&
+                string.Equals(
+                    window.SummaryText.Text,
+                    "3 found · 3 inspected · 0 ready to flash",
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    window.BundleSummaryText.Text,
+                    "No firmware bundle selected",
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    window.SelectionText.Text,
+                    "Select one connected device to continue. Selection is not Flash permission.",
+                    StringComparison.Ordinal) &&
+                recoveredCardFlashButtons.Length == 3 &&
+                recoveredCardFlashButtons.All(static button => !button.IsEnabled) &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled &&
+                window.RefreshButton.IsEnabled &&
+                string.Equals(
+                    window.RefreshButton.Content as string,
+                    "Refresh devices",
+                    StringComparison.Ordinal) &&
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton),
+                "successful recovery retained stale error/device state or changed fail-closed authority " +
+                $"(calls={refreshCalls}, error={window.ErrorBanner.Visibility}, " +
+                $"errorText={window.ErrorText.Visibility}/{window.ErrorText.Text.Length}/" +
+                $"{AutomationProperties.GetAutomationId(window.ErrorText)}/" +
+                $"{AutomationProperties.GetHelpText(window.ErrorText)}/" +
+                $"{AutomationProperties.GetLiveSetting(window.ErrorText)}, " +
+                $"retainedError={retainedErrorPeer.GetAutomationId()}/" +
+                $"{retainedErrorPeer.GetName()}/{retainedErrorPeer.GetHelpText()}/" +
+                $"{retainedErrorPeer.GetLiveSetting()}/{retainedErrorPeer.IsOffscreen()}, " +
+                $"errorPeers={recoveredErrorPeerCount}, " +
+                $"items={window.DeviceCards.Items.Count}, listPeers={recoveredListChildren?.Count ?? -1}, " +
+                $"sameModel={recoveredModels.Any(model => ReferenceEquals(model, failedModel))}, " +
+                $"sameContainer={ReferenceEquals(ContainerAt(window, 2), failedItem)}, " +
+                $"selected={window.DeviceCards.SelectedIndex}, summary={window.SummaryText.Text}, " +
+                $"bundle={window.BundleSummaryText.Text}, selection={window.SelectionText.Text}, " +
+                $"cardFlash={recoveredCardFlashButtons.Length}, " +
+                $"selectEnabled={window.SelectFirmwareButton.IsEnabled}, flashEnabled={window.FlashSelectedButton.IsEnabled}, " +
+                $"refreshEnabled={window.RefreshButton.IsEnabled}, refreshContent={window.RefreshButton.Content}, " +
+                $"focus={recoveredFocusType})");
+            RequireHeadingSequence(window, "recovered heading hierarchy");
+
+            _ = window.RefreshButton.MoveFocus(
+                new TraversalRequest(FocusNavigationDirection.Next));
+            var recoveredListFocus = Keyboard.FocusedElement as UIElement;
+            Require(
+                recoveredListFocus is not null &&
+                IsWithin(recoveredListFocus, window.DeviceCards) &&
+                window.DeviceCards.SelectedItem is null &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled,
+                "recovery traversal did not enter the fresh list without creating authority");
+            _ = recoveredListFocus!.MoveFocus(
+                new TraversalRequest(FocusNavigationDirection.Previous));
+            Require(
+                ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton) &&
+                window.DeviceCards.SelectedItem is null &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled,
+                "recovery reverse traversal did not return to Refresh with authority blocked");
+            return 1;
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    private static AutomationPeer[] AutomationDescendants(AutomationPeer root)
+    {
+        var descendants = new List<AutomationPeer>();
+        var pending = new Stack<AutomationPeer>();
+        var rootChildren = root.GetChildren();
+        if (rootChildren is not null)
+        {
+            for (var index = rootChildren.Count - 1; index >= 0; index--)
+            {
+                pending.Push(rootChildren[index]);
+            }
+        }
+        while (pending.Count > 0)
+        {
+            var current = pending.Pop();
+            descendants.Add(current);
+            var children = current.GetChildren();
+            if (children is null)
+            {
+                continue;
+            }
+            for (var index = children.Count - 1; index >= 0; index--)
+            {
+                pending.Push(children[index]);
+            }
+        }
+        return descendants.ToArray();
     }
 
     private static void RequireHeadingSequence(MainWindow window, string label)
@@ -1006,7 +1293,14 @@ internal static class LoaderVisualFixtureRenderer
                     "No firmware bundle selected",
                     StringComparison.Ordinal) &&
                 ReferenceEquals(Keyboard.FocusedElement, window.RefreshButton),
-                "focused-card F5 did not complete refresh and hand focus to the safe Refresh action");
+                "focused-card F5 did not complete refresh and hand focus to the safe Refresh action " +
+                $"(calls={refreshCalls}, before={refreshCallsBeforeF5}, " +
+                $"items={window.DeviceCards.Items.Count}, selected={window.DeviceCards.SelectedIndex}, " +
+                $"selectEnabled={window.SelectFirmwareButton.IsEnabled}, " +
+                $"refreshEnabled={window.RefreshButton.IsEnabled}, " +
+                $"refreshContent={window.RefreshButton.Content}, " +
+                $"bundle={window.BundleSummaryText.Text}, " +
+                $"focus={Keyboard.FocusedElement?.GetType().Name ?? "null"})");
             Require(window.RefreshButton.MoveFocus(
                     new TraversalRequest(FocusNavigationDirection.Next)) &&
                 IsWithin(Keyboard.FocusedElement as DependencyObject, window.DeviceCards),
@@ -1782,9 +2076,9 @@ internal static class LoaderVisualFixtureRenderer
                     actions),
                 CreateDevice(
                     "usb_candidate_3",
-                    "Heltec V4 OLED",
-                    "MeshCore companion",
-                    MeshCoreUsbRuntimeFamily.HeltecV4Companion,
+                    "Wio Tracker L1",
+                    "MeshCore USB companion",
+                    MeshCoreUsbRuntimeFamily.WioTrackerL1Companion,
                     blockers,
                     actions),
             ],
@@ -1803,7 +2097,9 @@ internal static class LoaderVisualFixtureRenderer
             Candidate = candidate,
             DisplayName = displayName,
             InstalledRuntime = installedRuntime,
-            Firmware = "v1.16.0-07a3ca9",
+            Firmware = runtimeFamily == MeshCoreUsbRuntimeFamily.WioTrackerL1Companion
+                ? "v1.17.0-727fc05"
+                : "v1.16.0-07a3ca9",
             Connection = "USB",
             InspectionStatus = "Connected and inspected",
             HardwareProfile = LoaderHardwareProfileEvidenceResolver.Resolve(

@@ -1,4 +1,5 @@
 using OpenTrail.Loader;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
@@ -331,7 +332,12 @@ Expect(WindowsUsbSerialDiscovery.ClassifyHardwareIds(
         "USB\\VID_2886&PID_0059") ==
         MeshCoreUsbRuntimeFamily.SenseCapSolarRepeater &&
     WindowsUsbSerialDiscovery.ClassifyHardwareIds(
-        "USB\\VID_303A&PID_0003") == MeshCoreUsbRuntimeFamily.Unknown,
+        "USB\\VID_2886&PID_1667&REV_0100") ==
+        MeshCoreUsbRuntimeFamily.WioTrackerL1Companion &&
+    WindowsUsbSerialDiscovery.ClassifyHardwareIds(
+        "USB\\VID_303A&PID_0003") == MeshCoreUsbRuntimeFamily.Unknown &&
+    WindowsUsbSerialDiscovery.ClassifyHardwareIds(
+        "USB\\VID_2886&PID_16670") == MeshCoreUsbRuntimeFamily.Unknown,
     "USB runtime-family discovery uses exact allowlisted VID/PID pairs");
 
 var heltecHardwareProfile = LoaderHardwareProfileEvidenceResolver.Resolve(
@@ -339,6 +345,9 @@ var heltecHardwareProfile = LoaderHardwareProfileEvidenceResolver.Resolve(
     runtimeIdentified: true);
 var senseCapHardwareProfile = LoaderHardwareProfileEvidenceResolver.Resolve(
     MeshCoreUsbRuntimeFamily.SenseCapSolarRepeater,
+    runtimeIdentified: true);
+var wioHardwareProfile = LoaderHardwareProfileEvidenceResolver.Resolve(
+    MeshCoreUsbRuntimeFamily.WioTrackerL1Companion,
     runtimeIdentified: true);
 var unknownHardwareProfile = LoaderHardwareProfileEvidenceResolver.Resolve(
     MeshCoreUsbRuntimeFamily.Unknown,
@@ -348,19 +357,25 @@ Expect(
     heltecHardwareProfile.PublishedBaseline.Contains("ESP32-S3R2", StringComparison.Ordinal) &&
     senseCapHardwareProfile.ProfileCandidate == "SenseCAP Solar Node family" &&
     senseCapHardwareProfile.PublishedBaseline.Contains("nRF52840", StringComparison.Ordinal) &&
+    wioHardwareProfile.ProfileCandidate == "Wio Tracker L1 family" &&
+    wioHardwareProfile.PublishedBaseline.Contains("nRF52840", StringComparison.Ordinal) &&
     heltecHardwareProfile.MaintenanceRestartRequired &&
     senseCapHardwareProfile.MaintenanceRestartRequired &&
+    wioHardwareProfile.MaintenanceRestartRequired &&
     !unknownHardwareProfile.MaintenanceRestartRequired &&
     heltecHardwareProfile.MaintenanceAttemptLimit == 1 &&
     senseCapHardwareProfile.MaintenanceAttemptLimit == 1 &&
+    wioHardwareProfile.MaintenanceAttemptLimit == 1 &&
     unknownHardwareProfile.MaintenanceAttemptLimit == 0 &&
     heltecHardwareProfile.RuntimeRecoveryRequiredBeforeRetry &&
     senseCapHardwareProfile.RuntimeRecoveryRequiredBeforeRetry &&
+    wioHardwareProfile.RuntimeRecoveryRequiredBeforeRetry &&
     unknownHardwareProfile.RuntimeRecoveryRequiredBeforeRetry &&
     heltecHardwareProfile.MaintenanceCaution.Contains(
         "ONE ATTEMPT PER SESSION", StringComparison.Ordinal) &&
     !heltecHardwareProfile.AuthoritativeForFlash &&
     !senseCapHardwareProfile.AuthoritativeForFlash &&
+    !wioHardwareProfile.AuthoritativeForFlash &&
     !unknownHardwareProfile.AuthoritativeForFlash,
     "hardware profile hints distinguish runtime evidence, vendor baseline, and flash authority");
 
@@ -421,11 +436,36 @@ Expect(parsedCompanion.Succeeded &&
     !parsedCompanion.ToString().Contains("11223344", StringComparison.OrdinalIgnoreCase),
     "companion parser retains only allowlisted runtime evidence and skips the private PIN");
 
+var parsedWioCompanion = MeshCoreRuntimeProbe.ParseCompanionDeviceInfo(
+    CompanionDeviceInfo(
+        model: "Seeed Wio Tracker L1",
+        firmware: "v1.17.0-727fc05"),
+    MeshCoreUsbRuntimeFamily.WioTrackerL1Companion);
+Expect(parsedWioCompanion.Succeeded &&
+    parsedWioCompanion.DisplayName == "Wio Tracker L1" &&
+    parsedWioCompanion.InstalledRuntime == "MeshCore USB companion" &&
+    parsedWioCompanion.Firmware == "v1.17.0-727fc05" &&
+    !parsedWioCompanion.ToString().Contains(
+        "11223344",
+        StringComparison.OrdinalIgnoreCase),
+    "Wio companion parser retains only its exact allowlisted runtime evidence");
+
 try
 {
     _ = MeshCoreRuntimeProbe.ParseCompanionDeviceInfo(
         CompanionDeviceInfo(model: "Unrecognized board"));
     Expect(false, "unrecognized companion model must fail closed");
+}
+catch (InvalidDataException)
+{
+}
+
+try
+{
+    _ = MeshCoreRuntimeProbe.ParseCompanionDeviceInfo(
+        CompanionDeviceInfo(model: "Heltec V4 OLED"),
+        MeshCoreUsbRuntimeFamily.WioTrackerL1Companion);
+    Expect(false, "a Heltec runtime must not satisfy the Wio USB family");
 }
 catch (InvalidDataException)
 {
@@ -706,6 +746,8 @@ var runtimeQualifiedDocument = WindowsSerialInspectionProvider.CreateDocument(
             "COM6", MeshCoreUsbRuntimeFamily.HeltecV4Companion),
         new WindowsUsbSerialCandidate(
             "COM17", MeshCoreUsbRuntimeFamily.SenseCapSolarRepeater),
+        new WindowsUsbSerialCandidate(
+            "COM18", MeshCoreUsbRuntimeFamily.WioTrackerL1Companion),
     ],
     static (candidate, _) => candidate.RuntimeFamily switch
     {
@@ -715,11 +757,14 @@ var runtimeQualifiedDocument = WindowsSerialInspectionProvider.CreateDocument(
         MeshCoreUsbRuntimeFamily.SenseCapSolarRepeater =>
             new MeshCoreRuntimeObservation(
                 true, "SenseCAP Solar", "MeshCore repeater", "v1.16.0-07a3ca9"),
+        MeshCoreUsbRuntimeFamily.WioTrackerL1Companion =>
+            new MeshCoreRuntimeObservation(
+                true, "Wio Tracker L1", "MeshCore USB companion", "v1.17.0-727fc05"),
         _ => MeshCoreRuntimeObservation.Unavailable,
     },
     CancellationToken.None);
 var runtimeQualifiedJson = JsonSerializer.Serialize(runtimeQualifiedDocument);
-Expect(runtimeQualifiedDocument.Devices.Count == 2 &&
+Expect(runtimeQualifiedDocument.Devices.Count == 3 &&
     runtimeQualifiedDocument.Devices.All(static device =>
         device.InspectionStatus == "Runtime identified; maintenance profile pending" &&
         device.HardwareProfile.EvidenceLevel == "Runtime candidate only" &&
@@ -729,7 +774,8 @@ Expect(runtimeQualifiedDocument.Devices.Count == 2 &&
         device.Blockers.Contains(
             "Installed runtime is not authoritative for the received hardware profile")) &&
     !runtimeQualifiedJson.Contains("COM6", StringComparison.OrdinalIgnoreCase) &&
-    !runtimeQualifiedJson.Contains("COM17", StringComparison.OrdinalIgnoreCase),
+    !runtimeQualifiedJson.Contains("COM17", StringComparison.OrdinalIgnoreCase) &&
+    !runtimeQualifiedJson.Contains("COM18", StringComparison.OrdinalIgnoreCase),
     "runtime-qualified cards remain privacy-safe and retain exact-hardware blockers");
 
 try
@@ -991,9 +1037,41 @@ try
             "1",
             StringComparison.Ordinal))
     {
-        var liveRefreshes = LoaderVisualFixtureRenderer.RunLiveRefreshAcceptance();
+        var expectedLiveDeviceCountText =
+            Environment.GetEnvironmentVariable("OT_LOADER_LIVE_EXPECTED_DEVICE_COUNT") ??
+            "3";
+        if (!int.TryParse(
+                expectedLiveDeviceCountText,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out var expectedLiveDeviceCount) ||
+            expectedLiveDeviceCount is < 1 or > 64)
+        {
+            throw new InvalidOperationException(
+                "OT_LOADER_LIVE_EXPECTED_DEVICE_COUNT must be an integer from 1 through 64.");
+        }
+        var expectedLiveDisplayNamesText =
+            Environment.GetEnvironmentVariable(
+                "OT_LOADER_LIVE_EXPECTED_DISPLAY_NAMES") ??
+            "Heltec V4 OLED|SenseCAP Solar|Wio Tracker L1";
+        var expectedLiveDisplayNames = expectedLiveDisplayNamesText.Split(
+            '|',
+            StringSplitOptions.None);
+        if (expectedLiveDisplayNames.Length != expectedLiveDeviceCount ||
+            expectedLiveDisplayNames.Any(static name =>
+                string.IsNullOrWhiteSpace(name) ||
+                name.Length > 120 ||
+                !string.Equals(name, name.Trim(), StringComparison.Ordinal) ||
+                name.Any(char.IsControl)))
+        {
+            throw new InvalidOperationException(
+                "OT_LOADER_LIVE_EXPECTED_DISPLAY_NAMES must contain one exact public display name per expected device, separated by |.");
+        }
+        var liveRefreshes = LoaderVisualFixtureRenderer.RunLiveRefreshAcceptance(
+            expectedLiveDisplayNames);
         Console.WriteLine(
-            $"INFO: production Windows loader completed {liveRefreshes} live USB refresh cycles");
+            $"INFO: production Windows loader completed {liveRefreshes} live USB refresh cycles " +
+            $"with the expected {expectedLiveDeviceCount}-device public roster");
     }
 
     var windowAcceptance = LoaderVisualFixtureRenderer.Run();
@@ -1017,6 +1095,8 @@ try
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedAutomationScrollPaths} automation-scroll path");
     Console.WriteLine(
         $"INFO: production Windows loader accepted {windowAcceptance.AcceptedHeadingPaths} automation-heading path");
+    Console.WriteLine(
+        $"INFO: production Windows loader accepted {windowAcceptance.AcceptedFailureRecoveryPaths} failed-refresh recovery path");
     foreach (var visualFile in windowAcceptance.RenderedFiles)
     {
         Console.WriteLine($"INFO: rendered Windows loader fixture {visualFile}");
@@ -1034,5 +1114,5 @@ if (failures != 0)
     return 1;
 }
 
-Console.WriteLine("PASS: 58 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/forward-and-reverse-keyboard/automation-peer/automation-scroll/automation-heading/high-DPI/resize/contrast-theme-transition, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
+Console.WriteLine("PASS: 59 Windows loader document, identity-safeguard, accessibility, production-window refresh/selection/failure-recovery/forward-and-reverse-keyboard/automation-peer/automation-scroll/automation-heading/high-DPI/resize/contrast-theme-transition, snapshot-binding/device-match, process-boundary, USB runtime/hardware-profile, fixed-vector firmware-bundle-signature, and packaged-inspection scenario groups");
 return 0;

@@ -38,6 +38,14 @@ def fixtures() -> list[dict[str, object]]:
             "hwid": "private-hardware-instance-c",
         },
         {
+            "device": "TEST_PORT_WIO",
+            "vid": 0x2886,
+            "pid": 0x1667,
+            "serial_number": "private-unit-wio",
+            "location": "private-location-wio",
+            "hwid": "private-hardware-instance-wio",
+        },
+        {
             "device": "TEST_PORT_A",
             "vid": 0x303A,
             "pid": 0x0002,
@@ -50,14 +58,19 @@ def fixtures() -> list[dict[str, object]]:
     ]
 
 
-def test_default_three_candidate_reduction() -> None:
+def test_default_four_candidate_reduction() -> None:
     result = MODULE.collect_candidates(fixtures())
-    expect(result["candidate_count"] == 3, "known runtime families must be selected")
+    expect(result["candidate_count"] == 4, "known runtime families must be selected")
     expect(result["flashing_allowed_count"] == 0, "discovery must never allow flashing")
     expect(
         [item["usb_id"] for item in result["devices"]]
-        == ["2886:0059", "303A:0002", "303A:0002"],
+        == ["2886:0059", "2886:1667", "303A:0002", "303A:0002"],
         "candidate ordering must be deterministic",
+    )
+    wio = next(item for item in result["devices"] if item["usb_id"] == "2886:1667")
+    expect(
+        wio["runtime_usb_family"] == "seeed_wio_tracker_l1_usb",
+        "exact Wio VID/PID must resolve to its bounded USB family",
     )
     for item in result["devices"]:
         expect(item["inspection_available"] is True, "known USB may be inspected")
@@ -76,11 +89,15 @@ def test_sensitive_enumerator_fields_are_never_emitted() -> None:
         "private-unit-a",
         "private-unit-b",
         "private-unit-c",
+        "private-unit-wio",
         "private-location-a",
+        "private-location-wio",
         "private-hardware-instance-a",
+        "private-hardware-instance-wio",
         "TEST_PORT_A",
         "TEST_PORT_B",
         "TEST_PORT_C",
+        "TEST_PORT_WIO",
     ):
         expect(value not in serialized, f"sensitive enumerator field leaked: {value}")
 
@@ -90,7 +107,7 @@ def test_local_ports_require_explicit_option() -> None:
     expect(result["privacy"]["local_ports_included"] is True, "port flag must be explicit")
     expect(
         sorted(item["local_port"] for item in result["devices"])
-        == ["TEST_PORT_A", "TEST_PORT_B", "TEST_PORT_C"],
+        == ["TEST_PORT_A", "TEST_PORT_B", "TEST_PORT_C", "TEST_PORT_WIO"],
         "explicit local troubleshooting ports must be retained",
     )
 
@@ -102,14 +119,14 @@ def test_unknown_and_invalid_usb_records() -> None:
         "unknown USB must be excluded by default",
     )
     expanded = MODULE.collect_candidates(fixtures(), include_unknown=True)
-    expect(expanded["candidate_count"] == 4, "explicit unknown inclusion must be bounded")
+    expect(expanded["candidate_count"] == 5, "explicit unknown inclusion must be bounded")
     unknown = next(item for item in expanded["devices"] if item["usb_id"] == "1234:5678")
     expect(unknown["runtime_usb_family"] == "unknown_usb_serial", "unknowns stay unknown")
     expect(unknown["flashing_allowed"] is False, "unknown USB must remain blocked")
 
 
 def main() -> None:
-    test_default_three_candidate_reduction()
+    test_default_four_candidate_reduction()
     test_sensitive_enumerator_fields_are_never_emitted()
     test_local_ports_require_explicit_option()
     test_unknown_and_invalid_usb_records()

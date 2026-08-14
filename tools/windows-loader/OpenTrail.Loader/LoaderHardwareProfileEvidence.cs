@@ -88,6 +88,24 @@ internal static class LoaderHardwareProfileEvidenceResolver
                         "ONE ATTEMPT PER SESSION. If maintenance entry fails, stop. Do not try again until normal USB enumeration and runtime inspection both succeed.",
                     AuthoritativeForFlash = false,
                 },
+            MeshCoreUsbRuntimeFamily.WioTrackerL1Companion =>
+                new LoaderHardwareProfileEvidence
+                {
+                    ProfileCandidate = "Wio Tracker L1 family",
+                    EvidenceLevel = "Runtime candidate only",
+                    ObservedNow =
+                        "Recognized Seeed USB family and allowlisted Wio Tracker L1 companion response.",
+                    PublishedBaseline =
+                        "Seeed's Wio Tracker L1 Pro family documentation lists nRF52840, Wio-SX1262, L76K GNSS, and an OLED; the runtime label does not establish the exact received Pro model, SKU, or revision.",
+                    NextStep =
+                        "Use one supervised read-only DFU or bootloader session for low-level evidence; confirm the exact received model, SKU, and revision separately.",
+                    MaintenanceRestartRequired = true,
+                    MaintenanceAttemptLimit = 1,
+                    RuntimeRecoveryRequiredBeforeRetry = true,
+                    MaintenanceCaution =
+                        "ONE ATTEMPT PER SESSION. If maintenance entry fails, stop. Do not try again until normal USB enumeration and runtime inspection both succeed.",
+                    AuthoritativeForFlash = false,
+                },
             _ => UnknownUsbDevice(),
         };
     }

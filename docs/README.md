@@ -63,7 +63,7 @@ The pilot is currently blocked at the hardware/firmware freeze. A complete plan 
 - Begin with the [hardware inventory](../hardware/INVENTORY.md).
 - Reconcile exact labels and operating authorization through the [hardware/regulatory inventory](../hardware/HARDWARE_REGULATORY_INVENTORY_2026-08-10.md).
 - Review the [privacy-safe three-device GNSS snapshot](../tests/hardware/OT-003A-2026-08-12.md) for the current Heltec detection/activation and SenseCAP live-fix boundary.
-- When the Wio Tracker arrives, follow the [recovery-first bring-up procedure](../hardware/WIO_TRACKER_L1_PRO_BRINGUP.md) before any firmware write.
+- Continue the arrived Wio Tracker's [partially executed recovery-first bring-up procedure](../hardware/WIO_TRACKER_L1_PRO_BRINGUP.md), preserving its documented pre-write-state gap and the remaining no-transmit/recovery boundaries.
 - Record physical results under [`tests/hardware/`](../tests/hardware/) with privacy-safe public summaries and local raw captures.
 
 ### Firmware and host validation

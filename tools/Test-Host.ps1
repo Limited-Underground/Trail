@@ -1499,6 +1499,12 @@ $python = Get-Command python -ErrorAction SilentlyContinue
 if ($null -eq $python) {
     throw 'Python was not found for MeshCore channel lease host tests.'
 }
+
+& (Join-Path $projectRoot 'tests\host\wio_tracker_l1_preflight_tests.ps1')
+if (-not $?) {
+    throw 'Wio Tracker L1 preflight host tests failed.'
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\meshcore_channel_lease_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "MeshCore channel lease tests failed with exit code $LASTEXITCODE."

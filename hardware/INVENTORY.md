@@ -1,6 +1,6 @@
 # OpenTrail Hardware Inventory
 
-Last updated: 2026-08-13
+Last updated: 2026-08-14
 
 Compatibility states used here:
 
@@ -19,6 +19,9 @@ Current evidence roles are deliberately different:
 - `OT-DEV-003` is an integrated solar **packaged-repeater candidate**. Its
   enclosure, battery, solar, radio, and GNSS configuration may be evaluated as
   the actual optional repeater hardware.
+- `OT-CAND-004` is an arrived self-contained **Wio Tracker candidate**. Its
+  first USB/runtime/configuration pass is `experimented` evidence only; it is
+  not a validated or supported client.
 - The first complete client remains a separate hardware freeze covering its
   board, touchscreen, controls, power, enclosure, GNSS, and antenna system.
 
@@ -27,22 +30,35 @@ See the
 for the separation between exact-unit evidence, official family information,
 and the fail-closed field gate.
 
-## Incoming candidate OT-CAND-004
+## Candidate OT-CAND-004
 
-The owner reports ordering a **Seeed Studio Wio Tracker L1 Pro for MeshCore**
-with OLED, GNSS, antenna, enclosure, and built-in battery. It has not arrived
-and has no OpenTrail evidence yet.
+The owner identifies the arrived unit as a **Seeed Studio Wio Tracker L1 Pro**.
+It had already been flashed as a MeshCore USB Companion and configured for a
+USA frequency plan before OpenTrail inspection, so its shipping/pre-write state
+was not preserved or independently verified. The first privacy-safe pass is
+classified `experimented` for USB/runtime/configuration evidence only.
 
-| Field | Candidate information | Evidence boundary |
+| Field | Observed result | Evidence boundary |
 | --- | --- | --- |
-| Retail identity | Seeed's MeshCore product page currently lists `Wio Tracker L1 Pro for MeshCore`, SKU `100030144`, pre-flashed as Bluetooth Companion | The Amazon package label/revision must be inspected; a related Meshtastic datasheet uses SKU `114993649`, so the exact received SKU is unresolved |
-| Controller/radio | Vendor datasheet identifies nRF52840 and Wio-SX1262, 862-930 MHz | Specifications only; no physical/electronic confirmation and not an ESP32 OpenTrail firmware target |
-| GNSS/display/power | Vendor datasheet identifies L76K multi-constellation GNSS, 1.3-inch 128x64 OLED, USB-C, solar input, and a built-in 2000 mAh battery | Specifications only; fix performance, screen revision, charging, endurance, and solar behavior are untested |
-| Intended first role | Preserve and evaluate shipping MeshCore Bluetooth Companion firmware; redacted USB/BLE/GNSS and Heltec interoperability checks | No erase or reflash is authorized merely to inventory the device; see `hardware/WIO_TRACKER_L1_PRO_BRINGUP.md` |
-| Recovery candidate | Vendor documents double-`RST` UF2 entry as a `TRACKER L1` volume and single-`User` exit | Procedure only; entry/exit and bootloader recovery remain untested on the received unit |
+| Evidence state | `experimented`; OT-020 `partial` | USB/runtime/configuration evidence only; no compatibility, validation, or support claim |
+| Retail identity | Owner reports Wio Tracker L1 Pro; Windows public USB model is `Seeed Wio Tracker L1`, USB family `2886:1667` | The runtime descriptor does not establish the exact Pro SKU/revision. Exterior label and package evidence remain unrecorded; transient COM assignment is intentionally omitted |
+| Shipping/pre-write state | Not available | The owner had already flashed USB Companion and selected a USA frequency plan; shipping firmware/role/configuration and exact write history were not preserved or verified |
+| Installed firmware/role | MeshCore USB Companion `v1.17.0-727fc05`, build 09-Aug-2026; repeat false | Four fixed read-only cycles returned stable model/firmware/profile values and increasing uptime; no write, reset, reboot, or transmit action was used |
+| Current radio configuration | 910.525 MHz, 62.5 kHz bandwidth, SF7, CR5, configured/max power 22/22 dBm | Configuration only; not proof of exact RF hardware, antenna fit, FCC grant coverage, or authorized operation. No radio packet was sent |
+| Runtime snapshot | 4.111 V; queue, packet, airtime, core-error, and receive-error counters all zero; three more cycles remained error/traffic-free | Transient bounded bench evidence, not power/endurance or load evidence |
+| GNSS | Detected true, active false, no GPS telemetry present | No setting changed; physical module, activation, fix, accuracy, stale/loss/recovery, cadence, and power behavior remain untested |
+| Non-transmitting Heltec comparison | Channel 0 name/hash/secret equality passed only in memory; both default scopes were unconfigured; identities were distinct; clocks were within one second | Values and identities were not emitted. This is configuration comparison only, not over-air interoperability |
+| Recovery candidate | No `TRACKER L1` volume appeared during normal runtime | DFU was not entered; vendor-documented entry/exit and bootloader recovery remain untested |
+| Evidence record | [OT-020 first USB/runtime pass](../tests/hardware/OT-020-2026-08-13.md) | BLE, over-air, GNSS fix/loss, label/SKU/revision, antenna/RF/regulatory, power/endurance, recovery, and clean-machine gates remain open |
 
-This candidate does not change the statement that no OpenTrail hardware is on
-a tested-compatible list.
+On 2026-08-14, the current-tree C# and Python loaders accepted this Wio family.
+The warning-free 59-group C# suite and three consecutive built-in production
+refreshes passed with one Heltec, one SenseCAP, and one Wio runtime-identified
+and zero ready to flash. The replacement source-free package passed independent
+manifest/hash/extraction/launch verification and three exact-roster external UI
+Automation cycles with the same three public devices and zero ready. This is
+loader-recognition evidence only. It does not change the statement that no
+OpenTrail hardware is on a tested-compatible list.
 
 ## Device OT-DEV-001
 

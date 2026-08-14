@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -160,6 +161,13 @@ public partial class MainWindow : Window
         RefreshButton.Content = "Inspecting…";
         SummaryText.Text = "Looking for connected devices…";
         RaiseLiveRegionChanged(SummaryText);
+        ErrorText.Visibility = Visibility.Collapsed;
+        AutomationProperties.SetAutomationId(ErrorText, string.Empty);
+        AutomationProperties.SetHelpText(ErrorText, string.Empty);
+        AutomationProperties.SetLiveSetting(
+            ErrorText,
+            AutomationLiveSetting.Off);
+        ErrorText.Text = string.Empty;
         ErrorBanner.Visibility = Visibility.Collapsed;
         CommandManager.InvalidateRequerySuggested();
 
@@ -257,6 +265,16 @@ public partial class MainWindow : Window
         SummaryText.Text = "Inspection unavailable";
         DeviceCards.ItemsSource = null;
         ErrorText.Text = message;
+        AutomationProperties.SetAutomationId(
+            ErrorText,
+            "inspection-error");
+        AutomationProperties.SetHelpText(
+            ErrorText,
+            "Current connected-device inspection error.");
+        AutomationProperties.SetLiveSetting(
+            ErrorText,
+            AutomationLiveSetting.Assertive);
+        ErrorText.Visibility = Visibility.Visible;
         ErrorBanner.Visibility = Visibility.Visible;
         RaiseLiveRegionChanged(ErrorText);
     }

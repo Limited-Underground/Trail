@@ -83,12 +83,18 @@ Before pairing, entering DFU, or flashing the candidate Wio unit, run:
 .\tools\Get-WioTrackerL1Preflight.ps1 | Format-List
 ```
 
-This is enumeration only. It records serial-port names, public-safe matching
-PnP names when Windows allows the query, redacted USB-registry names as a
-fallback, and a mounted `TRACKER L1` DFU volume. It deliberately does not open
-a serial port, reset, pair, erase, flash, or read files. Follow
-`hardware/WIO_TRACKER_L1_PRO_BRINGUP.md`; normal shipping Bluetooth Companion
-operation should be preserved before recovery is tested.
+This is enumeration only. By default it reports redacted current-device family
+and status evidence, whether exact USB family `2886:1667` is currently present,
+whether `TRACKER L1` DFU storage is mounted, and separately labeled registry
+history. It omits serial-port names, drive roots, registry paths, instance IDs,
+and raw errors. For explicit local troubleshooting only, add
+`-IncludeLocalPorts` to include bounded transient COM names and a mounted DFU
+drive root. It deliberately does not open a serial port, reset, pair, erase,
+flash, or read files. Follow
+`hardware/WIO_TRACKER_L1_PRO_BRINGUP.md`. Preserve normal shipping Bluetooth
+Companion state on any future untouched unit before recovery is tested; for the
+current owner-flashed unit, preserve the explicit record that its pre-write
+state was not captured rather than reconstructing it.
 
 ## Repeat the bounded packet-v0 hardware proof
 

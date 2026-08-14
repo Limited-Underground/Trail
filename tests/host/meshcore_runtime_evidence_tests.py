@@ -59,6 +59,42 @@ def test_companion_rejects_unrecognized_without_echo() -> None:
         raise AssertionError("unrecognized companion model must fail closed")
 
 
+def test_wio_companion_response_reduction_is_exact() -> None:
+    payload = json.dumps(
+        {
+            "fw ver": 13,
+            "fw_build": "06-Jun-2026",
+            "model": "Seeed Wio Tracker L1",
+            "ver": "v1.16.0-07a3ca9",
+            "ble_pin": 123456,
+            "node_name": "private-wio-name",
+            "public_key": "private-wio-key",
+        }
+    )
+    result = MODULE.parse_companion_version_json(
+        payload,
+        expected_model="Seeed Wio Tracker L1",
+    )
+    serialized = json.dumps(result)
+    expect(
+        result["runtime_board_family"] == "seeed_wio_tracker_l1",
+        "exact Wio runtime family required",
+    )
+    expect(result["runtime_role"] == "meshcore_companion", "Wio companion role required")
+    for private in ("123456", "private-wio-name", "private-wio-key", "ble_pin"):
+        expect(private not in serialized, f"Wio private field leaked: {private}")
+
+    try:
+        MODULE.parse_companion_version_json(
+            payload.replace("Seeed Wio Tracker L1", "Seeed Wio Tracker L1 Pro"),
+            expected_model="Seeed Wio Tracker L1",
+        )
+    except ValueError as error:
+        expect("Pro" not in str(error), "near-match model must not be echoed")
+    else:
+        raise AssertionError("near-match Wio model must fail closed")
+
+
 def test_repeater_response_reduction() -> None:
     result = MODULE.reduce_repeater_runtime(
         {
@@ -86,10 +122,11 @@ def test_repeater_response_reduction() -> None:
         raise AssertionError("extra repeater output must fail closed")
 
 
-def test_three_candidate_runtime_integration_and_errors() -> None:
+def test_four_candidate_runtime_integration_and_errors() -> None:
     records = [
         {"device": "TEST_CLIENT_B", "vid": 0x303A, "pid": 0x0002},
         {"device": "TEST_REPEATER", "vid": 0x2886, "pid": 0x0059},
+        {"device": "TEST_WIO", "vid": 0x2886, "pid": 0x1667},
         {"device": "TEST_CLIENT_A", "vid": 0x303A, "pid": 0x0002},
     ]
 
@@ -117,11 +154,26 @@ def test_three_candidate_runtime_integration_and_errors() -> None:
             "runtime_identity_authoritative_for_flash": False,
         }
 
+    def wio_companion_query(port: str) -> dict[str, object]:
+        expect(port == "TEST_WIO", "Wio family must use the Wio companion query")
+        return {
+            "runtime_query_succeeded": True,
+            "runtime_board_family": "seeed_wio_tracker_l1",
+            "runtime_firmware": "v1.16.0-07a3ca9",
+            "runtime_build_date": "06-Jun-2026",
+            "runtime_protocol_version": 13,
+            "runtime_role": "meshcore_companion",
+            "runtime_identity_authoritative_for_flash": False,
+        }
+
     result = MODULE.collect_runtime_evidence(
-        records, companion_query=companion_query, repeater_query=repeater_query
+        records,
+        companion_query=companion_query,
+        wio_companion_query=wio_companion_query,
+        repeater_query=repeater_query,
     )
-    expect(result["candidate_count"] == 3, "three candidates required")
-    expect(result["runtime_query_success_count"] == 2, "one reduced failure required")
+    expect(result["candidate_count"] == 4, "four candidates required")
+    expect(result["runtime_query_success_count"] == 3, "one reduced failure required")
     expect(result["flashing_allowed_count"] == 0, "runtime evidence cannot allow flash")
     serialized = json.dumps(result)
     expect("private failure detail" not in serialized, "runtime failure detail leaked")
@@ -135,9 +187,10 @@ def test_three_candidate_runtime_integration_and_errors() -> None:
 def main() -> None:
     test_companion_response_reduction()
     test_companion_rejects_unrecognized_without_echo()
+    test_wio_companion_response_reduction_is_exact()
     test_repeater_response_reduction()
-    test_three_candidate_runtime_integration_and_errors()
-    print("PASS: 4 redacted MeshCore runtime evidence scenario groups")
+    test_four_candidate_runtime_integration_and_errors()
+    print("PASS: 5 redacted MeshCore runtime evidence scenario groups")
 
 
 if __name__ == "__main__":

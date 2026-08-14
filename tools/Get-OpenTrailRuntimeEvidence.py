@@ -34,6 +34,11 @@ _REPEATER_VERSION = re.compile(
     r"\(Build: (\d{2}-[A-Z][a-z]{2}-\d{4})\)$"
 )
 
+_COMPANION_MODELS = {
+    "Heltec V4 OLED": "heltec_v4_oled",
+    "Seeed Wio Tracker L1": "seeed_wio_tracker_l1",
+}
+
 
 def _validated_firmware(value: Any) -> str:
     if not isinstance(value, str) or _FIRMWARE.fullmatch(value) is None:
@@ -47,21 +52,26 @@ def _validated_build_date(value: Any) -> str:
     return value
 
 
-def parse_companion_version_json(text: str) -> dict[str, Any]:
+def parse_companion_version_json(
+    text: str,
+    *,
+    expected_model: str = "Heltec V4 OLED",
+) -> dict[str, Any]:
     try:
         payload = json.loads(text)
     except (TypeError, json.JSONDecodeError) as error:
         raise ValueError("invalid companion version response") from error
     if not isinstance(payload, dict):
         raise ValueError("invalid companion version response")
-    if payload.get("model") != "Heltec V4 OLED":
+    runtime_family = _COMPANION_MODELS.get(expected_model)
+    if runtime_family is None or payload.get("model") != expected_model:
         raise ValueError("unrecognized companion runtime model")
     protocol = payload.get("fw ver")
     if not isinstance(protocol, int) or isinstance(protocol, bool) or not 0 <= protocol <= 65535:
         raise ValueError("invalid companion runtime protocol")
     return {
         "runtime_query_succeeded": True,
-        "runtime_board_family": "heltec_v4_oled",
+        "runtime_board_family": runtime_family,
         "runtime_firmware": _validated_firmware(payload.get("ver")),
         "runtime_build_date": _validated_build_date(payload.get("fw_build")),
         "runtime_protocol_version": protocol,
@@ -122,7 +132,7 @@ def _resolve_meshcli() -> str:
     raise FileNotFoundError("meshcli unavailable")
 
 
-def query_companion(port: str) -> dict[str, Any]:
+def _query_companion_model(port: str, expected_model: str) -> dict[str, Any]:
     completed = subprocess.run(
         [_resolve_meshcli(), "-j", "-s", port, "ver"],
         capture_output=True,
@@ -133,7 +143,18 @@ def query_companion(port: str) -> dict[str, Any]:
     )
     if completed.returncode != 0:
         raise RuntimeError("companion version query failed")
-    return parse_companion_version_json(completed.stdout)
+    return parse_companion_version_json(
+        completed.stdout,
+        expected_model=expected_model,
+    )
+
+
+def query_companion(port: str) -> dict[str, Any]:
+    return _query_companion_model(port, "Heltec V4 OLED")
+
+
+def query_wio_companion(port: str) -> dict[str, Any]:
+    return _query_companion_model(port, "Seeed Wio Tracker L1")
 
 
 def _serial_cli_command(connection: Any, command: str) -> str:
@@ -170,6 +191,7 @@ def collect_runtime_evidence(
     records: Iterable[Any],
     *,
     companion_query: Callable[[str], dict[str, Any]] = query_companion,
+    wio_companion_query: Callable[[str], dict[str, Any]] = query_wio_companion,
     repeater_query: Callable[[str], dict[str, Any]] = query_repeater,
     include_local_ports: bool = False,
 ) -> dict[str, Any]:
@@ -184,6 +206,8 @@ def collect_runtime_evidence(
         try:
             if family == "espressif_application_usb":
                 runtime = companion_query(port)
+            elif family == "seeed_wio_tracker_l1_usb":
+                runtime = wio_companion_query(port)
             elif family == "seeed_tinyusb_serial":
                 runtime = repeater_query(port)
             else:
