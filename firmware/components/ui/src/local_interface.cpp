@@ -26,7 +26,12 @@ bool valid_screen(UiScreen screen) {
            screen == UiScreen::critical_confirmation ||
            screen == UiScreen::archive_controls ||
            screen == UiScreen::archive_confirmation ||
-           screen == UiScreen::system_fault;
+           screen == UiScreen::system_fault ||
+           screen == UiScreen::message_center ||
+           screen == UiScreen::message_list ||
+           screen == UiScreen::message_detail ||
+           screen == UiScreen::message_compose ||
+           screen == UiScreen::message_compose_confirmation;
 }
 
 bool valid_attention(UiAttention attention) {
@@ -92,7 +97,19 @@ bool valid_action(UiAction action) {
            action == UiAction::request_archive_start ||
            action == UiAction::request_archive_stop ||
            action == UiAction::confirm_archive_start ||
-           action == UiAction::stop_archive;
+           action == UiAction::stop_archive ||
+           action == UiAction::open_messages ||
+           action == UiAction::open_inbox ||
+           action == UiAction::open_outbox ||
+           action == UiAction::open_compose ||
+           action == UiAction::open_message_row_1 ||
+           action == UiAction::open_message_row_2 ||
+           action == UiAction::show_next_message_page ||
+           action == UiAction::select_message_template_1 ||
+           action == UiAction::select_message_template_2 ||
+           action == UiAction::show_next_compose_page ||
+           action == UiAction::send_composed_message ||
+           action == UiAction::acknowledge_inbound_alert;
 }
 
 bool quick_status_action(UiAction action) {
@@ -119,7 +136,7 @@ bool actions_are_unique(const UiFrame& frame) {
     return true;
 }
 
-bool valid_frame(const UiFrame& frame, const DisplayCapabilities& capabilities) {
+bool valid_frame_impl(const UiFrame& frame, const DisplayCapabilities& capabilities) {
     if (frame.revision == 0 || !valid_screen(frame.screen) ||
         !valid_attention(frame.attention) || !valid_notice(frame.notice) ||
         !valid_indicator(frame.status.radio) ||
@@ -217,6 +234,83 @@ bool valid_frame(const UiFrame& frame, const DisplayCapabilities& capabilities) 
                (start_available || stop_available);
     }
 
+    if (frame.screen == UiScreen::message_center) {
+        return frame.attention == UiAttention::information &&
+               frame.notice == UiNotice::none &&
+               frame.action_count == 4 &&
+               frame.actions[0].action == UiAction::open_inbox &&
+               frame.actions[0].enabled &&
+               frame.actions[1].action == UiAction::open_outbox &&
+               frame.actions[1].enabled &&
+               frame.actions[2].action == UiAction::open_compose &&
+               frame.actions[3].action == UiAction::cancel &&
+               frame.actions[3].enabled;
+    }
+
+    if (frame.screen == UiScreen::message_list) {
+        if (frame.attention != UiAttention::information ||
+            frame.notice != UiNotice::none || frame.action_count == 0 ||
+            frame.actions[frame.action_count - 1U].action != UiAction::cancel ||
+            !frame.actions[frame.action_count - 1U].enabled) {
+            return false;
+        }
+        const std::array<UiAction, kMaxUiMessageRows> rows{
+            UiAction::open_message_row_1, UiAction::open_message_row_2};
+        std::size_t row_index = 0;
+        for (std::size_t index = 0; index + 1U < frame.action_count; ++index) {
+            const auto action = frame.actions[index].action;
+            if (action == UiAction::show_next_message_page) {
+                if (index + 2U != frame.action_count) {
+                    return false;
+                }
+            } else if (row_index >= rows.size() || action != rows[row_index++]) {
+                return false;
+            }
+            if (!frame.actions[index].enabled) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    if (frame.screen == UiScreen::message_detail) {
+        const bool acknowledge = frame.action_count == 2;
+        return (!acknowledge || capabilities.supports_hold) &&
+               frame.notice == UiNotice::none &&
+               (frame.attention == UiAttention::information ||
+                frame.attention == UiAttention::critical) &&
+               frame.action_count == (acknowledge ? 2 : 1) &&
+               (!acknowledge ||
+                (frame.actions[0].action ==
+                     UiAction::acknowledge_inbound_alert &&
+                 frame.actions[0].enabled)) &&
+               frame.actions[frame.action_count - 1U].action == UiAction::cancel &&
+               frame.actions[frame.action_count - 1U].enabled;
+    }
+
+    if (frame.screen == UiScreen::message_compose) {
+        return frame.attention == UiAttention::information &&
+               frame.notice == UiNotice::none &&
+               frame.action_count == 4 &&
+               frame.actions[0].action == UiAction::select_message_template_1 &&
+               frame.actions[0].enabled &&
+               frame.actions[1].action == UiAction::select_message_template_2 &&
+               frame.actions[1].enabled &&
+               frame.actions[2].action == UiAction::show_next_compose_page &&
+               frame.actions[2].enabled &&
+               frame.actions[3].action == UiAction::cancel &&
+               frame.actions[3].enabled;
+    }
+
+    if (frame.screen == UiScreen::message_compose_confirmation) {
+        return frame.attention == UiAttention::information &&
+               frame.notice == UiNotice::none &&
+               frame.action_count == 2 &&
+               frame.actions[0].action == UiAction::send_composed_message &&
+               frame.actions[1].action == UiAction::cancel &&
+               frame.actions[1].enabled;
+    }
+
     for (std::size_t index = 0; index < frame.action_count; ++index) {
         if (quick_status_action(frame.actions[index].action)) {
             return false;
@@ -261,6 +355,13 @@ ResolvedAction rejected_action(ActionResolutionError error) {
 
 }  // namespace
 
+bool valid_ui_frame(
+    const UiFrame& frame,
+    const DisplayCapabilities& capabilities) {
+    return valid_display_capabilities(capabilities) &&
+           valid_frame_impl(frame, capabilities);
+}
+
 CheckedLocalInterface::CheckedLocalInterface(DisplaySink& display,
                                              LocalInputSource& input,
                                              DisplayCapabilities capabilities)
@@ -270,17 +371,10 @@ CheckedLocalInterface::CheckedLocalInterface(DisplaySink& display,
 
 PresentResult CheckedLocalInterface::present(const UiFrame& frame) {
     saturating_increment(status_.present_attempts);
-    if (!status_.capabilities_valid) {
+    const auto validation = validate_candidate(frame);
+    if (validation != PresentError::none) {
         saturating_increment(status_.rejected_frames);
-        return {PresentError::invalid_capabilities, frame.revision};
-    }
-    if (!valid_frame(frame, capabilities_)) {
-        saturating_increment(status_.rejected_frames);
-        return {PresentError::invalid_frame, frame.revision};
-    }
-    if (status_.has_active_frame && frame.revision <= status_.active_revision) {
-        saturating_increment(status_.rejected_frames);
-        return {PresentError::revision_not_increasing, frame.revision};
+        return {validation, frame.revision};
     }
 
     const auto display_error = map_display_error(display_.present(frame));
@@ -294,6 +388,20 @@ PresentResult CheckedLocalInterface::present(const UiFrame& frame) {
     status_.active_revision = frame.revision;
     saturating_increment(status_.presented_frames);
     return {PresentError::none, frame.revision};
+}
+
+PresentError CheckedLocalInterface::validate_candidate(
+    const UiFrame& frame) const {
+    if (!status_.capabilities_valid) {
+        return PresentError::invalid_capabilities;
+    }
+    if (!valid_ui_frame(frame, capabilities_)) {
+        return PresentError::invalid_frame;
+    }
+    if (status_.has_active_frame && frame.revision <= status_.active_revision) {
+        return PresentError::revision_not_increasing;
+    }
+    return PresentError::none;
 }
 
 ResolvedAction CheckedLocalInterface::poll_action() {
@@ -336,7 +444,8 @@ ResolvedAction CheckedLocalInterface::poll_action() {
         return rejected_action(ActionResolutionError::disabled_action);
     }
     if (binding.action == UiAction::confirm_critical_alert ||
-        binding.action == UiAction::confirm_archive_start) {
+        binding.action == UiAction::confirm_archive_start ||
+        binding.action == UiAction::acknowledge_inbound_alert) {
         if (event.gesture != InputGesture::hold) {
             saturating_increment(status_.rejected_inputs);
             return rejected_action(ActionResolutionError::hold_required);

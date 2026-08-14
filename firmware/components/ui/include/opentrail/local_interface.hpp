@@ -7,6 +7,10 @@
 namespace opentrail::ui {
 
 constexpr std::size_t kMaxUiActions = 4;
+constexpr std::size_t kMaxUiOwnedTexts = 4;
+constexpr std::size_t kMaxUiOwnedTextBytes = 96;
+constexpr std::size_t kMaxUiMessageRows = 2;
+constexpr std::uint8_t kNoUiOwnedText = 0xFF;
 
 enum class DisplayWriteError : std::uint8_t {
     none = 0,
@@ -33,6 +37,11 @@ enum class UiScreen : std::uint8_t {
     archive_controls,
     archive_confirmation,
     system_fault,
+    message_center,
+    message_list,
+    message_detail,
+    message_compose,
+    message_compose_confirmation,
 };
 
 enum class UiAttention : std::uint8_t {
@@ -105,6 +114,87 @@ enum class UiAction : std::uint8_t {
     request_archive_stop,
     confirm_archive_start,
     stop_archive,
+    open_messages,
+    open_inbox,
+    open_outbox,
+    open_compose,
+    open_message_row_1,
+    open_message_row_2,
+    show_next_message_page,
+    select_message_template_1,
+    select_message_template_2,
+    show_next_compose_page,
+    send_composed_message,
+    acknowledge_inbound_alert,
+};
+
+enum class UiMessageListKind : std::uint8_t {
+    none = 0,
+    inbox,
+    outbox,
+};
+
+enum class UiMessageDeliveryState : std::uint8_t {
+    none = 0,
+    queued,
+    bridge_accepted,
+    bridge_observed,
+    bridge_acknowledgement_observed,
+    failed,
+};
+
+enum class UiMessageKind : std::uint8_t {
+    none = 0,
+    chat,
+    quick_status,
+    alert,
+    acknowledgement,
+};
+
+enum class UiMessagePriority : std::uint8_t {
+    none = 0,
+    normal,
+    important,
+    critical,
+};
+
+struct UiOwnedText {
+    std::uint8_t byte_count{0};
+    bool truncated{false};
+    bool unavailable{false};
+    std::array<char, kMaxUiOwnedTextBytes + 1> bytes{};
+};
+
+struct UiMessageRowPresentation {
+    std::uint8_t text_index{kNoUiOwnedText};
+    UiMessageDeliveryState delivery{UiMessageDeliveryState::none};
+    UiMessageKind kind{UiMessageKind::none};
+    UiMessagePriority priority{UiMessagePriority::none};
+    bool unread{false};
+};
+
+struct UiMessagePresentation {
+    UiMessageListKind list_kind{UiMessageListKind::none};
+    std::uint8_t page_index{0};
+    std::uint8_t page_count{0};
+    std::uint8_t row_count{0};
+    std::array<UiMessageRowPresentation, kMaxUiMessageRows> rows{};
+    bool detail_valid{false};
+    UiMessageDeliveryState detail_delivery{UiMessageDeliveryState::none};
+    UiMessageKind detail_kind{UiMessageKind::none};
+    UiMessagePriority detail_priority{UiMessagePriority::none};
+    bool detail_unread{false};
+    bool detail_acknowledge_available{false};
+    std::uint8_t compose_template_id{0};
+};
+
+// Message copy and pagination remain bounded but are intentionally kept out of
+// UiFrame so legacy presentation/result objects retain their embedded ABI and
+// memory budget. PortableUiShell owns this sidecar for the exact offered frame.
+struct UiPresentationSidecar {
+    std::uint8_t owned_text_count{0};
+    std::array<UiOwnedText, kMaxUiOwnedTexts> owned_texts{};
+    UiMessagePresentation messages{};
 };
 
 struct DisplayCapabilities {
@@ -117,9 +207,18 @@ struct DisplayCapabilities {
     bool supports_hold{false};
 };
 
+struct UiFrame;
+
 // Pure validation is exposed so a target composition can reject impossible
 // display/input metadata before presenting a frame or polling local input.
 [[nodiscard]] bool valid_display_capabilities(
+    const DisplayCapabilities& capabilities);
+
+// Public pure validation lets host and target render-plan adapters reject a
+// candidate before drawing it. CheckedLocalInterface remains the authority
+// that commits a validated frame revision after display success.
+[[nodiscard]] bool valid_ui_frame(
+    const UiFrame& frame,
     const DisplayCapabilities& capabilities);
 
 struct UiStatusSummary {
@@ -147,6 +246,9 @@ struct UiFrame {
     std::uint8_t action_count{0};
     std::array<UiActionBinding, kMaxUiActions> actions{};
 };
+
+static_assert(sizeof(UiFrame) == 24,
+              "UiFrame must preserve the compact embedded presentation ABI.");
 
 class DisplaySink {
 public:
@@ -231,6 +333,7 @@ public:
                           DisplayCapabilities capabilities);
 
     [[nodiscard]] PresentResult present(const UiFrame& frame);
+    [[nodiscard]] PresentError validate_candidate(const UiFrame& frame) const;
     [[nodiscard]] ResolvedAction poll_action();
     [[nodiscard]] LocalInterfaceStatus status() const;
 

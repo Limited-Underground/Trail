@@ -6,6 +6,81 @@ public chronology.
 
 ## 2026-08-14
 
+### OT-030C shared bounded messages, Compose, and critical acknowledgement
+
+- Extended the renderer-neutral C++ `PortableUiShell` and render plan with
+  Message center, Inbox, Outbox, detail, fixed-template Compose, and
+  confirmation screens. The compact `UiFrame` remains exactly 24 bytes; copied
+  message/text presentation lives in a shell-owned `UiPresentationSidecar` for
+  the exact offered frame, preserving the legacy embedded ABI and result-object
+  memory budgets. The shared boundary owns newest-first ordering, selection,
+  epoch-scoped read markers, read-on-successful-detail-presentation, eight fixed
+  templates, and held acknowledgement of an exact active inbound critical
+  alert; WPF remains only a renderer and action-slot adapter.
+- Fixed the presentation snapshot at 12 messages and 96 printable-ASCII bytes
+  per message. Four pointer-free owned-text slots carry visible copies. Text
+  that cannot be represented has an explicit mutually exclusive truncated or
+  unavailable state and canonical C++ presentation rather than an invented or
+  partially trusted host string.
+- Added native UI protocol v2 with a 4096-byte command and 8192-byte reply
+  limit, newline completion, exact fields, uppercase hexadecimal text, one
+  pending offer, and generation/revision/request/session/template/sequence
+  correlation. Version 1, embedded NUL, partial EOF, oversized input, malformed
+  hex or exceptional state, stale input, replayed evidence, and contradictory
+  completion fail without applying portable state.
+- Preserved transport authority below the shared presentation model. Queue
+  admission returns the applied bridge-session epoch and message sequence;
+  fixed-template completion requires exact newer matching evidence. Alert ACK
+  requires an exact newer acknowledgement for the selected active critical
+  message. Local loopback supports both flows. Live USB template chat and
+  acknowledgement requests fail closed. The helper protocol can decode an
+  inbound correlated `OTS0:A` observation, but it can advance only an already-
+  outbound matching critical alert and provides no authentication or
+  authoritative delivery evidence.
+- The accepted warning-free focused gate passes strict C++ shell/render tests, 33
+  Core groups, 23 Windows bridge groups, 15 private USB-helper groups, ten
+  native-protocol groups, and 11 WPF groups. The integrated WPF run includes
+  exact-once request handling and two native LCD sessions crossing one exact
+  fixed-template message over local loopback.
+- The Home, Compose, post-send Client A, and inbound-detail Client B renders
+  passed representative visual review. After message presentation moved to the
+  exact-offer sidecar, the complete expanded 112-executable host matrix and both
+  publication-safety layers passed. Remote publication verification remains
+  pending. OT-030C is `done` for this bounded host/shared-model increment;
+  parent OT-030 remains `partial`, V1 stays at 29%, and no production packet,
+  real LoRa, authenticated peer, physical LCD/input, target-firmware, clean-
+  machine, installer, or supported-hardware result follows.
+
+### OT-030B shared portable UI and bounded companion bridge
+
+- Retired the OT-030A generic WPF application screens and moved portable Home,
+  Status, Quick, Critical, Archive, recovery, and fault behavior into the shared
+  C++ `PortableUiShell` and canonical fixed logical render plan. WPF renders
+  offered primitives inside the 466 x 466 circle and maps input to exact action
+  slots; host connection/evidence controls remain outside that surface.
+- Added two-phase offer/present/commit with one pending offer, strict generation
+  and revision checks, typed request completion, render rejection, recovery/
+  fault arbitration, and close-time service draining. A failed presentation or
+  stale input cannot mutate portable state or emit a request.
+- Added passive VID/PID-only USB-candidate discovery. A recognized candidate is
+  never opened or queried until explicit selection; open rechecks its private
+  binding and exact allowlisted companion runtime. One endpoint cannot belong to
+  both clients, assignment changes publish coherent A/B snapshots, and Forget
+  removes the private association. The SenseCAP repeater role is excluded.
+- Bounded helper/native process input, output, stderr, timeouts, cancellation,
+  teardown, and restart. Ambiguous post-write failure is terminal. The live USB
+  application admits only fixed quick-status and critical-alert requests;
+  acknowledgement, arbitrary chat, archive, and position requests fail closed.
+  The helper can decode an inbound correlated `OTS0:A` observation, which can
+  advance only an already-outbound matching alert. This remains unauthenticated
+  simulator-test evidence.
+- The accepted focused gate passed 32 Core, 23 Windows bridge, 15 private
+  helper, and 11 integrated WPF groups with warning-free Release builds,
+  deterministic scale renders, and visual review. No hardware or serial port
+  was accessed. The result proves shared host presentation and bounded bridge
+  behavior, not a production OpenTrail packet, radio/peer delivery, target
+  firmware, physical LCD/input, or supported hardware.
+
 ### OT-030A isolated dual virtual-LCD simulator shell
 
 - Added one laptop-only .NET 8 WPF simulator process that opens separate

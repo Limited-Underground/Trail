@@ -67,37 +67,61 @@ selection/Refresh/live-event/heading cycles against the exact one-Heltec, one-
 SenseCAP, one-Wio public roster. A non-remediating Defender archive scan found
 no threats. This remains local engineering evidence, not a public release.
 
-OT-030 now tracks a laptop-only dual virtual-LCD simulator. Its first bounded
-increment opens two independent .NET 8 WPF windows over separate Client A and
-Client B state and two allowlisted in-memory simulated companions. Fixed local
-limits cover 32 outgoing commands per client, 128 message-history entries, 32
-alert-history entries, and 64 pending observations per simulated peer. Text is
-bounded and printable, one private endpoint cannot be assigned twice, stale
-state is visible, clock rollback faults, a failed queue retains the draft, and
-closing one LCD releases only its presenter. Seventeen core and ten WPF groups
-pass focused Release runs, including a close-time check that drains an in-flight
-service tick before presenter disposal, with 100/100 core repeats and 100
-serialized Connect/Reconnect races. Explicit Dispatcher marshalling keeps every
-post-await UI update on its owning thread. Deterministic
-100%/125%/150%/200% bitmap checks pass, and the 100% home render received visual
-review. Visible copy distinguishes queued, bridge-accepted,
-peer-simulator-observed, and peer-simulator-acknowledged state and repeatedly
-states that none is radio-delivery evidence.
+OT-030 now tracks a laptop-only dual virtual-LCD simulator. Historical OT-030A
+proved the first isolated two-window WPF shell, but its generic Home/Messages/
+Compose/Alerts workflow was not the firmware model and is retained only as
+historical host evidence. OT-030B replaced it with the renderer-neutral shared
+C++ `PortableUiShell`, canonical `UiFrame`, and fixed 466 x 466 logical render
+plan. Each WPF LCD draws only the native host's offered primitives and returns
+an exact action slot; Windows device/connection/evidence controls remain host
+chrome outside the portable circle. Two-phase offer/present/commit prevents a
+failed render or stale generation/revision input from advancing shared state or
+emitting a typed request.
 
-The complete local `tools/Test-Host.ps1` gate exits 0 with the existing 111 C++
-executables, 59 Windows-loader groups, both publication-safety layers, and the
-new warning-free 17-core/10-WPF simulator gate. The aggregate loader's
-privacy-safe roster observation is pre-existing loader evidence, not simulator
-USB or hardware evidence. Remote CI confirmation remains a per-push gate.
+OT-030B also added a bounded companion bridge. Passive VID/PID discovery lists
+only public candidate labels and never opens or queries hardware. A USB session
+requires explicit selection, exact private binding/runtime recheck, exclusive
+one-client assignment, and generation-bound cleanup. The SenseCAP repeater is
+excluded. Child-process input/output, cancellation, errors, stderr, teardown,
+and restart are bounded. The live USB application admits only fixed quick-
+status and critical-alert requests; acknowledgement, template/arbitrary chat,
+archive, and position requests fail closed. Its unauthenticated `OTS0` helper
+protocol can decode an inbound correlated `OTS0:A` observation, but that can
+advance only an already-outbound matching critical alert. The accepted warning-
+free OT-030B focused gate was 32 Core, 23 Windows bridge, 15 private helper, and
+11 WPF groups. No hardware or serial port was accessed for that acceptance.
 
-This current simulator does not enumerate or open USB, implement MeshCore,
-bind the existing C++ packet/local-interface owners, or exercise a real radio
-or physical LCD. The alert button is explicitly a synthetic injection and does
-not claim the canonical held critical-confirmation workflow. Full real-monitor
-DPI/theme/assistive-technology acceptance, packaging, installer, clean-
-machine operation, live two-device assignment, private assignment persistence,
-reconnect generations, and physical retest remain open. OT-030 is therefore
-`partial`; the focused shell increment is host evidence only.
+OT-030C adds the shared message surface without expanding the compact 24-byte
+`UiFrame`. A shell-owned `UiPresentationSidecar` carries the bounded text and
+message metadata for the exact offered frame, preserving the legacy embedded
+ABI and result-object memory budgets. The surface uses a 12-message snapshot
+boundary, 96-byte printable-ASCII copied text, explicit truncated/unavailable
+presentation, two-row Inbox/Outbox pages, detail read only after successful
+presentation, eight fixed C++ Compose templates, bridge-local delivery evidence,
+and held acknowledgement of an exact active inbound critical alert. Protocol v2
+is newline-delimited, 4096-byte-command/8192-byte-reply bounded, exact-field,
+and uppercase-hex. Generation, revision, request, bridge-session epoch, template
+or message identity, and applied message sequence must all agree. Version 1,
+NUL, partial EOF, oversized input, malformed exceptional text, stale input,
+replayed evidence, and contradictory completion reject without applying state.
+
+The accepted warning-free focused gate passes strict C++ shell/render
+tests, 33 Core groups, 23 Windows bridge groups, 15 private helper groups, ten
+native-protocol groups, and 11 integrated WPF groups. It includes exact-once
+typed request handling and two native LCD sessions crossing one fixed-template
+message over local loopback. Representative Home, Compose, post-send Client A,
+and inbound-detail Client B renders passed visual review. The complete expanded
+112-executable `tools/Test-Host.ps1` matrix and both publication-safety layers
+pass; remote publication verification remains pending. OT-030C is `done` for
+its bounded host/shared-model increment; parent OT-030 remains `partial`.
+
+Queued-local, bridge-accepted, bridge-observed, and bridge-acknowledgement-
+observed remain separate local evidence. None proves a production OpenTrail
+packet, MeshCore application command, LoRa transmission, authenticated peer,
+physical receipt, operator response, target firmware, physical LCD/input, or
+supported hardware. Real monitor/theme/assistive-technology acceptance,
+packaging, installer, signing, clean-machine operation, two-device USB use, and
+physical retest remain open. OT-030 is `partial`, and V1 remains 29%.
 
 The accepted product direction keeps two future presentation tracks in this
 repository over shared versioned behavior: an affordable Android companion

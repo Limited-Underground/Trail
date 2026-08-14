@@ -870,6 +870,19 @@ $builds = @(
         )
     },
     @{
+        Name = 'bounded portable UI shell and logical render plan'
+        Output = Join-Path $buildDirectory 'portable_ui_shell_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\ui\src\local_interface.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\portable_ui_render_plan.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\test_support\fake_local_interface.cpp'),
+            (Join-Path $projectRoot 'firmware\components\diagnostics\src\update_recovery_diagnostics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\update_recovery_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\components\integration\src\portable_ui_shell.cpp'),
+            (Join-Path $projectRoot 'tests\host\portable_ui_shell_tests.cpp')
+        )
+    },
+    @{
         Name = 'quick-status parent page and restored selection handoff'
         Output = Join-Path $buildDirectory 'quick_status_parent_page_coordinator_tests.exe'
         Sources = @(

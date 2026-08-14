@@ -11,13 +11,25 @@ public enum SimulatorDeliveryState
     Queued,
     BridgeAccepted,
     BridgeObserved,
-    Acknowledged,
+    BridgeAcknowledgementObserved,
     Failed,
 }
 public enum SimulatorAlertSeverity { Advisory, Important, Critical }
-public enum SimulatorAlertState { Active, Acknowledged, Cleared }
+public enum SimulatorAlertState
+{
+    Active,
+    LocalAcknowledgementQueued,
+    BridgeAcknowledgementObserved,
+    Cleared,
+}
 public enum SimulatorQuickStatus { ImOk, NeedAssistance, AnyoneOnline, AvailableToHelp }
-public enum CompanionDeviceFamily { Simulated, HeltecV4Companion, WioTrackerL1Companion }
+public enum CompanionDeviceFamily
+{
+    Simulated,
+    Esp32S3UsbCandidate,
+    HeltecV4Companion,
+    WioTrackerL1Companion,
+}
 
 public sealed record MessageSnapshot(
     long LocalSequence,
@@ -36,6 +48,10 @@ public sealed record AlertSnapshot(
     SimulatorAlertState State,
     DateTimeOffset CreatedAt);
 
+public sealed record SimulatorCommandAdmission(
+    long AppliedSessionEpoch,
+    long AppliedMessageSequence);
+
 public sealed record SimulatorClientSnapshot(
     SimulatorClientId ClientId,
     string ClientLabel,
@@ -44,6 +60,7 @@ public sealed record SimulatorClientSnapshot(
     CompanionDeviceFamily? PublicDeviceFamily,
     TimeSpan? LastObservationAge,
     bool IsStale,
+    long ConnectedSessionEpoch,
     IReadOnlyList<MessageSnapshot> Messages,
     IReadOnlyList<AlertSnapshot> Alerts,
     int OutgoingQueueCount,

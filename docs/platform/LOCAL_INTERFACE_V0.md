@@ -1,6 +1,7 @@
 # Local display and input boundary v0
 
-Status: **host-tested semantic contract; no renderer or physical-display claim**
+Status: **host-tested semantic and portable-shell contract; no target-renderer
+or physical-display claim**
 
 ## Purpose
 
@@ -34,20 +35,38 @@ presentation can exist without expanding the base application contract.
 
 ## Semantic frame
 
-`UiFrame` is fixed-size and contains:
+`UiFrame` remains a fixed 24-byte embedded contract and contains:
 
 - a nonzero, strictly increasing boot-local revision;
 - one screen role: home, status, quick-status menu, critical confirmation,
-  archive controls, archive confirmation, or system fault;
+  archive controls, archive confirmation, system fault, message center, message
+  list, message detail, message compose, or message-compose confirmation;
 - attention and notice enums;
 - radio, position, and power indicator states;
 - optional peer count and bounded unread count; and
-- optional bounded breadcrumb-archive queue count from zero through 16;
+- optional bounded breadcrumb-archive queue count from zero through 16; and
 - up to four ordered semantic action bindings.
 
-It contains no coordinates, free-form labels, peer identity, message text,
-radio address, key handle, credential, or other private identifier. Renderers
-choose localized wording and layout for known enum values.
+Message screens add one fixed `UiPresentationSidecar` owned by
+`PortableUiShell` for the exact pending offer. It contains:
+
+- up to four pointer-free, copied owned-text values of at most 96 printable-
+  ASCII bytes each, with explicit truncated or unavailable state; and
+- bounded message-list/detail presentation metadata: list kind, page, at most
+  two rows, delivery/kind/priority/unread state, and acknowledgement
+  availability, plus the exact fixed-template ID on Compose confirmation.
+
+The sidecar is not part of `UiFrame`; this preserves the existing frame ABI and
+legacy result-object memory budgets. The shell validates the exact frame/
+sidecar pair before offering it, retains only that pair while presentation is
+pending, and clears it with the offer lifecycle. Legacy/non-message frames
+require an empty sidecar.
+
+Neither structure contains coordinates, peer identity, radio address, key handle,
+credential, raw transport payload, or other private identifier. Owned text is
+copied presentation data, never a pointer or transport authority. Fixed labels
+and all message templates remain C++-owned; renderers choose layout for known
+enum and owned-text values but cannot invent actions or free-chat state.
 
 Known notices now include coarse update-recovery tokens for trial active,
 transition rejected, reboot required, cleanup required, safe mode, service
@@ -138,6 +157,35 @@ now owns exact entry and restoration, withholding a typed choice until the
 parent frame has been presented successfully. It remains narrower than the
 complete application shell and has no outbound authority.
 
+## Bounded message presentation boundary
+
+The shared `PortableUiShell` composes message screens from a copied
+`PortableUiSnapshot`. That presentation snapshot is limited to 12 messages,
+each with a nonzero strictly increasing sequence, bridge-session epoch, fixed
+direction/kind/priority/delivery enums, and at most 96 printable-ASCII bytes.
+Truncated and unavailable are explicit mutually exclusive states with empty
+raw payload and fixed C++ presentation text. A renderer cannot reinterpret an
+exceptional value as arbitrary text.
+
+Message Center contains exactly Inbox, Outbox, Compose, and Back. Lists use two
+newest-first rows per page plus page-cycle when needed and Back. Detail marks an
+inbound message read only after that exact frame is successfully presented.
+Compose shows two of eight fixed C++ template IDs per page over four pages, then
+requires an exact send/cancel confirmation. It has no arbitrary-text entry.
+
+Only an exact active inbound critical alert may expose
+`acknowledge_inbound_alert`, and that action requires Hold. Template send emits
+only the numeric template ID; alert acknowledgement emits only the selected
+message sequence. The portable shell correlates completion to generation,
+revision, request ID, bridge-session epoch, template/message identity, and
+applied message-sequence evidence. None of these actions is itself queue,
+device, radio, peer-delivery, or operator-response proof.
+
+The Windows simulator exercises this shared boundary through the bundled
+native protocol v2 and local loopback. That is host presentation and local-
+bridge evidence only. A target composition still needs an authenticated
+application transport, target renderer/input adapters, and physical acceptance.
+
 ## Critical-alert boundary
 
 `open_critical_confirmation` only requests the dedicated confirmation screen;
@@ -190,6 +238,15 @@ Thirteen deterministic scenario groups cover:
 The separate ten-group archive-consent suite covers canonical archive frames,
 wrong-screen rejection, hold-only Start, immediate Stop, stale/cancel paths,
 checked-time/session sequencing, and absence of any radio/server action source.
+
+The strict shared portable-shell/render suite additionally covers complete
+Home/Status/Quick/Critical/Archive/recovery routes; exact logical primitives;
+two-phase display commit; stale generation/revision rejection; request failure
+and recovery arbitration; message paging, selection, read markers, exceptional
+text, fixed-template send, bridge-evidence matching, and exact inbound-critical
+acknowledgement. The Windows native-protocol suite separately rejects malformed
+or oversized host input. These results do not add a target renderer or physical
+display/input claim.
 
 The predictable display and input fakes remain under `test_support` only.
 

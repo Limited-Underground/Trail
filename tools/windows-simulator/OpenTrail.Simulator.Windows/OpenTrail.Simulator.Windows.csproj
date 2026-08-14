@@ -1,15 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\OpenTrail.Simulator.Core\OpenTrail.Simulator.Core.csproj" />
-    <ProjectReference Include="..\OpenTrail.Simulator.Windows\OpenTrail.Simulator.Windows.csproj" />
+    <Content Include="..\meshcore_companion_bridge.py"
+             Link="meshcore_companion_bridge.py"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

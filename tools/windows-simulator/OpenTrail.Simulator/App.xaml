@@ -106,6 +106,8 @@
         </Style>
 
         <Style TargetType="ComboBoxItem">
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="Padding" Value="8" />
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
             <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
             <Setter Property="FocusVisualStyle" Value="{StaticResource SimulatorFocusVisual}" />

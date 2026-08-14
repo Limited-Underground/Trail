@@ -38,7 +38,8 @@ public sealed class CompanionCandidate
     public CompanionCandidate(
         CompanionEndpoint endpoint,
         string publicLabel,
-        CompanionDeviceFamily publicFamily)
+        CompanionDeviceFamily publicFamily,
+        bool connectionReady = true)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         var labelAllowed = publicFamily switch
@@ -51,15 +52,62 @@ public sealed class CompanionCandidate
         };
         if (!labelAllowed)
             throw new ArgumentException("The public device label is not allowlisted.", nameof(publicLabel));
+        if (publicFamily != CompanionDeviceFamily.Simulated && connectionReady)
+            throw new ArgumentException(
+                "A live USB companion transport has not passed its connection gate.",
+                nameof(connectionReady));
         Endpoint = endpoint;
         PublicLabel = publicLabel;
         PublicFamily = publicFamily;
+        ConnectionReady = connectionReady;
     }
+
+    private CompanionCandidate(
+        CompanionEndpoint endpoint,
+        string publicLabel,
+        CompanionDeviceFamily publicFamily,
+        bool connectionReady,
+        LiveAdmission admission)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+        if (admission != LiveAdmission.ExplicitConnectCandidate)
+            throw new ArgumentOutOfRangeException(nameof(admission));
+        var labelAllowed = (publicFamily, publicLabel) switch
+        {
+            (CompanionDeviceFamily.Esp32S3UsbCandidate, "ESP32-S3 USB candidate") => true,
+            (CompanionDeviceFamily.WioTrackerL1Companion, "Wio Tracker L1 USB candidate") => true,
+            _ => false,
+        };
+        if (!labelAllowed || !connectionReady)
+            throw new ArgumentException("The USB companion admission is invalid.");
+        Endpoint = endpoint;
+        PublicLabel = publicLabel;
+        PublicFamily = publicFamily;
+        ConnectionReady = true;
+    }
+
+    internal static CompanionCandidate CreateConnectableUsbCandidate(
+        CompanionEndpoint endpoint,
+        string publicLabel,
+        CompanionDeviceFamily publicFamily) =>
+        new(endpoint, publicLabel, publicFamily, connectionReady: true,
+            LiveAdmission.ExplicitConnectCandidate);
 
     internal CompanionEndpoint Endpoint { get; }
     public string PublicLabel { get; }
     public CompanionDeviceFamily PublicFamily { get; }
+    public SimulatorConnectionSource Source => PublicFamily == CompanionDeviceFamily.Simulated
+        ? SimulatorConnectionSource.LocalSimulation
+        : SimulatorConnectionSource.CompatibleUsbCompanion;
+    public bool ConnectionReady { get; }
+    public string PublicStatus => ConnectionReady
+        ? Source == SimulatorConnectionSource.LocalSimulation
+            ? "Local simulation ready"
+            : "USB candidate ready to verify on Connect"
+        : "USB companion recognized; live session adapter not ready";
     public override string ToString() => PublicLabel;
+
+    private enum LiveAdmission { ExplicitConnectCandidate }
 }
 
 public interface ICompanionDeviceDiscovery

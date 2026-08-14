@@ -17,11 +17,44 @@ public sealed class LocalLoopbackSimulator
     public static LocalLoopbackSimulator Create(
         ISimulatorClock? clock = null,
         TimeSpan? staleAfter = null)
+        => CreateCore(null, null, clock, staleAfter);
+
+    public static LocalLoopbackSimulator CreateWithAdditionalDiscovery(
+        ICompanionDeviceDiscovery additionalDiscovery,
+        ISimulatorClock? clock = null,
+        TimeSpan? staleAfter = null)
+    {
+        ArgumentNullException.ThrowIfNull(additionalDiscovery);
+        return CreateCore(additionalDiscovery, null, clock, staleAfter);
+    }
+
+    public static LocalLoopbackSimulator CreateWithAdditionalCompanions(
+        ICompanionDeviceDiscovery additionalDiscovery,
+        ICompanionTransportFactory additionalTransportFactory,
+        ISimulatorClock? clock = null,
+        TimeSpan? staleAfter = null)
+    {
+        ArgumentNullException.ThrowIfNull(additionalDiscovery);
+        ArgumentNullException.ThrowIfNull(additionalTransportFactory);
+        return CreateCore(
+            additionalDiscovery, additionalTransportFactory, clock, staleAfter);
+    }
+
+    private static LocalLoopbackSimulator CreateCore(
+        ICompanionDeviceDiscovery? additionalDiscovery,
+        ICompanionTransportFactory? additionalTransportFactory,
+        ISimulatorClock? clock,
+        TimeSpan? staleAfter)
     {
         var network = new LoopbackNetwork();
         var bridge = new DualClientBridge(
-            network,
-            network,
+            additionalDiscovery is null
+                ? network
+                : new CompositeCompanionDiscovery(network, additionalDiscovery),
+            additionalTransportFactory is null
+                ? network
+                : new SourceRoutedCompanionTransportFactory(
+                    network, additionalTransportFactory),
             clock ?? SystemSimulatorClock.Instance,
             staleAfter ?? TimeSpan.FromSeconds(10));
         return new LocalLoopbackSimulator(network, bridge);
@@ -32,6 +65,51 @@ public sealed class LocalLoopbackSimulator
 
     public void FailNextSend(SimulatorClientId clientId) =>
         _network.FailNextSend(clientId);
+}
+
+internal sealed class SourceRoutedCompanionTransportFactory(
+    ICompanionTransportFactory local,
+    ICompanionTransportFactory usb) : ICompanionTransportFactory
+{
+    public ValueTask<ICompanionTransport> OpenAsync(
+        CompanionCandidate candidate,
+        CancellationToken cancellationToken) => candidate.Source switch
+        {
+            SimulatorConnectionSource.LocalSimulation =>
+                local.OpenAsync(candidate, cancellationToken),
+            SimulatorConnectionSource.CompatibleUsbCompanion =>
+                usb.OpenAsync(candidate, cancellationToken),
+            _ => ValueTask.FromException<ICompanionTransport>(
+                new InvalidOperationException(
+                    "The companion source is not available.")),
+        };
+}
+
+internal sealed class CompositeCompanionDiscovery(
+    ICompanionDeviceDiscovery first,
+    ICompanionDeviceDiscovery second) : ICompanionDeviceDiscovery
+{
+    public async ValueTask<IReadOnlyList<CompanionCandidate>> DiscoverAsync(
+        CancellationToken cancellationToken)
+    {
+        var firstItems = await first.DiscoverAsync(cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<CompanionCandidate> secondItems;
+        try
+        {
+            secondItems = await second.DiscoverAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch
+        {
+            // USB/Python availability is optional. The two local simulator
+            // candidates remain independently usable when that adapter fails.
+            secondItems = [];
+        }
+        if (firstItems.Count + secondItems.Count > 16)
+            throw new InvalidDataException("Combined companion discovery exceeded its fixed bound.");
+        return firstItems.Concat(secondItems).ToArray();
+    }
 }
 
 internal sealed class LoopbackNetwork : ICompanionDeviceDiscovery, ICompanionTransportFactory

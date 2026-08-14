@@ -61,13 +61,33 @@ readability, distracted-driving policy, performance, and physical behavior
 remain target gates.
 
 The laptop-only [dual virtual-LCD simulator](testing/DUAL_VIRTUAL_LCD_SIMULATOR_V0.md)
-is an injected host presentation and test-transport boundary. It owns two
-independent client windows and fixed-capacity local state, while its current
-transport is explicitly synthetic loopback. It does not encode the production
-packet, implement MeshCore, access USB, prove LoRa delivery, or validate a
-physical renderer/input target. Local queue, bridge-acceptance, peer-simulator
-observation, and peer-simulator acknowledgement remain separate evidence
-levels.
+is an injected host presentation and test-transport boundary. Two independent
+WPF windows render only the fixed logical primitives emitted by a bundled native
+host around the shared C++ `PortableUiShell`, compact `UiFrame`, exact-offer
+`UiPresentationSidecar`, and `PortableUiRenderPlan`. Portable screen state,
+fixed text templates, ordered action slots, revisions, read/selection state,
+and typed request correlation therefore have one renderer-neutral C++
+authority; Windows connection and evidence controls remain separate host
+chrome. Keeping copied message/text presentation in the shell-owned sidecar
+preserves the existing 24-byte `UiFrame` embedded ABI and result-object budget.
+Offer/present/commit is two phase, so failed rendering or stale generation/
+revision input cannot advance portable state or emit a request.
+
+Its Core bridge owns bounded session/queue/message snapshots rather than C++
+transport storage. Local-loopback delivery distinguishes queued, bridge-
+accepted, bridge-observed, and bridge-acknowledgement-observed evidence. A
+passive Windows VID/PID adapter can list public candidate labels without opening
+or querying hardware; any USB session requires explicit selection and an exact
+private binding/runtime recheck. The companion helper's current `OTS0` protocol
+frames fixed quick-status and critical-alert traffic and can decode an inbound
+correlated `OTS0:A` observation. The live application admits only the outbound
+fixed quick/critical requests: USB acknowledgement requests, template/arbitrary
+chat, archive, and position requests fail closed. An observed ACK can advance
+only an already-outbound matching critical alert; an unmatched observation
+cannot advance alert state. All of this is unauthenticated simulator test
+traffic. No simulator state proves the production OpenTrail packet, LoRa
+transmission, authenticated peer, physical renderer/input target, target
+firmware, or supported hardware.
 
 [Decision 0007](decisions/0007-shared-client-presentation-tracks.md) keeps the
 planned Android companion and self-contained touchscreen tracks under the same

@@ -1,7 +1,7 @@
 # Decision 0007: Shared Client Presentation Tracks
 
-Status: accepted product direction; implementation and release evidence pending,
-2026-08-14
+Status: accepted product direction; initial host-only shared-shell evidence
+exists, while target and release evidence remain pending, 2026-08-14
 
 ## Decision
 
@@ -54,7 +54,10 @@ laptop part of field operation.
 
 ## Remaining gates
 
-- define the shared application-shell and message/alert outcome contracts;
+- bind the host-tested shared application shell and message/alert outcomes to
+  separately accepted Android and standalone ESP32 target adapters;
+- define renderer-neutral pairing and group-membership state before adding
+  those workflows to any platform;
 - select and approve the Android mesh-device bridge and transport;
 - define Android privacy, permission, lifecycle, accessibility, signing, and
   distribution acceptance;
