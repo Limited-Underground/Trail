@@ -6,6 +6,32 @@ public chronology.
 
 ## 2026-08-14
 
+### OT-020A host-only Wio GNSS lifecycle/recovery coordinator
+
+- Added a deterministic host-only coordinator for a future supervised Wio GNSS
+  pass. It requires an exclusive lease, exactly bound public target/firmware/
+  role, location-safe policy, GPS read back off, zero pending work, and no
+  existing recovery journal before it can request GPS on.
+- The coordinator creates durable no-overwrite recovery authority before
+  enable, resolves enable acknowledgement by readback, exposes only telemetry
+  presence, and always attempts GPS-off restoration. It deletes the journal only
+  after off readback and post-restore target rebinding; expected-record
+  replacement/deletion rejects journal conflicts.
+- Two settled post-restore counter reads must match the baseline with the same
+  boot binding, zero pending work, and no traffic delta. Reset, reboot, pending
+  work, transmission, or an unsettled read invalidates the guard. An existing
+  journal forces recovery-only handling that can verify/request off but cannot
+  enable GPS.
+- Exact focused output was `PASS: 15 host-only Wio GNSS lifecycle scenario
+  groups`. The complete `tools/Test-Host.ps1` gate then exited 0 with that exact
+  result, publication safety, all host matrices, and existing read-only loader
+  acceptance. The tests use synthetic injected adapters only; no live adapter
+  or device I/O, GNSS change, transmission, coordinate capture, BLE/DFU action,
+  reset, or flash occurred.
+- OT-020 remains `partial`, the Wio remains `experimented`, its missing
+  shipping/pre-write state is preserved, and the entire live GNSS phase remains
+  open. This adds no compatibility/support claim and leaves V1 at 29%.
+
 ### OT-019AI source-free minimum-window accessibility probe
 
 - An independent source-free probe passed against the exact retained package

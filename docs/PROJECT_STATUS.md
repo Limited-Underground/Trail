@@ -21,6 +21,22 @@ reduced private data to match/distinct booleans only. This is OT-020
 `partial`/`experimented` evidence, not over-air compatibility, exact hardware,
 regulatory, recovery, or support evidence.
 
+OT-020A now provides a host-only lifecycle/recovery coordinator contract for a
+future supervised GNSS pass. Fifteen synthetic injected-adapter groups pass,
+and the complete `tools/Test-Host.ps1` gate exits 0 with publication safety, all
+host matrices, and existing read-only loader acceptance. The coordinator requires
+the exact target, location-safe policy, GPS-off state, zero pending work, and no
+existing recovery journal before any enable request; journal recovery authority
+is created first. Enable acknowledgement is resolved by readback, telemetry is
+reduced to presence only, and every post-journal path must restore/read back GPS
+off, revalidate the target binding, update/delete the journal against the
+expected record, and pass settled same-boot/no-pending/no-transmission counters.
+An existing journal permits recovery-only handling that can never enable GPS.
+No live adapter or device I/O occurred. The entire live GNSS phase remains open,
+OT-020 stays `partial`, the unit stays `experimented`, and the missing shipping/
+pre-write state remains explicit. See
+`tests/hardware/OT-020A-2026-08-14.md`.
+
 The current-tree C# and Python loaders now recognize that Wio family. The
 warning-free 59-group C# suite and three consecutive built-in production
 refreshes pass with one Heltec, one SenseCAP, and one Wio runtime-identified

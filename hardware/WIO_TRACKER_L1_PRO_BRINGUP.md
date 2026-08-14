@@ -138,6 +138,18 @@ owner report and the post-write observations above.
 
 ## Phase D: GNSS evidence
 
+> **Host-only prerequisite:** [OT-020A](../tests/hardware/OT-020A-2026-08-14.md)
+> passes 15 synthetic injected-adapter groups for the lifecycle/recovery
+> coordinator. It requires exact target/policy/GPS-off preconditions, writes
+> recovery authority before enable, uses acknowledgement/readback, observes
+> telemetry presence only, verifies GPS-off restoration and post-restore target
+> binding, uses expected-record journal replacement/deletion, and requires a
+> settled same-boot/zero-pending/no-transmission guard. Its recovery-only path
+> cannot enable GPS. The complete host gate also exits 0 with publication
+> safety, all host matrices, and existing read-only loader acceptance. It did
+> not access this Wio or satisfy any Phase D step; the entire live GNSS phase
+> remains open.
+
 1. Enable GNSS through the device GPS page or MeshCore position settings.
 2. Move outdoors with a clear sky view; do not judge first-fix performance from
    inside the house or vehicle.
