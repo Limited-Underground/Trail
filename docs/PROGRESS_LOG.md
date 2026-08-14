@@ -6,6 +6,57 @@ public chronology.
 
 ## 2026-08-14
 
+### OT-030A isolated dual virtual-LCD simulator shell
+
+- Added one laptop-only .NET 8 WPF simulator process that opens separate
+  Client A and Client B virtual-LCD windows over independently owned connection,
+  outgoing-queue, message-history, alert-history, freshness, and error state.
+- The current injected transport is explicitly local synthetic loopback. Two
+  allowlisted simulated companions use private opaque endpoints with exclusive
+  assignment; no USB enumeration/open, MeshCore command, reset, flash,
+  configuration, network service, cloud, account, or persistent assignment is
+  present.
+- Fixed limits are 32 outgoing commands per client, 128 message entries, 32
+  alert entries, and 64 pending observations per synthetic peer. Text is
+  bounded/printable, full queues reject, stale state is visible, clock rollback
+  faults, and one client disconnect/reconnect or close does not change the
+  other.
+- The LCD copy separates queued-local, accepted-by-local-bridge, observed-at-
+  peer-simulator, and peer-simulator-acknowledgement evidence. The test-alert
+  action is explicitly synthetic and does not claim the canonical held critical
+  confirmation. A failed message request retains its draft.
+- Focused Release runs pass 17 core groups and ten integrated WPF groups,
+  including two-window construction, real core-presenter traffic, minimum 44 x
+  44 target size at the 560 x 640 window minimum, theme round trip, classic
+  disabled contrast, navigation, failed-draft retention, and one-window close
+  isolation, plus close-time draining of an in-flight periodic service tick.
+  Core repeats pass 100/100; the overlapping-command group passes 100 serialized
+  Connect/Reconnect races with explicit post-await Dispatcher marshalling.
+  Deterministic
+  100%/125%/150%/200% bitmap checks pass; the 100% Client A home render received
+  visual review with no layout blocker. The complete local `tools/Test-Host.ps1`
+  gate exits 0 with the existing 111 C++ executables, 59 loader groups, both
+  publication-safety layers, and this warning-free 17-core/10-WPF simulator
+  gate. The aggregate loader roster is separate, pre-existing loader evidence;
+  remote CI confirmation remains a per-push gate.
+- OT-030 remains `partial`: live two-device USB/MeshCore binding, generation-
+  safe reconnect, private remembered assignments, actual protocol/firmware,
+  real LoRa, physical LCD/touch/readability/power/thermal/boot/recovery, real-
+  monitor DPI/theme/assistive-technology acceptance, packaging, installer,
+  signing, clean-machine, and supported-hardware evidence remain open. V1 stays
+  at 29%.
+
+### Shared Android-companion and standalone-touchscreen direction
+
+- Accepted one-repository, shared-protocol direction for a future affordable
+  Android companion using a separately approved mesh device and the original
+  self-contained touchscreen client. The simulator is a shared behavior
+  reference; platform and hardware adapters retain separate evidence gates.
+- The Android path does not introduce a phone dependency into the existing
+  four-self-contained-unit V1, and no current milestone changes. Android
+  lifecycle/permissions/accessibility/signing/distribution and device approval
+  remain open; iPhone and app-store direction are undecided.
+
 ### OT-020B host-only Wio GNSS Windows authority
 
 - Added the Windows authority required below a future supervised Wio adapter.

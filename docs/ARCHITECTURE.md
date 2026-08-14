@@ -60,6 +60,23 @@ delivery. Exact renderer/input adapters, localization, accessibility,
 readability, distracted-driving policy, performance, and physical behavior
 remain target gates.
 
+The laptop-only [dual virtual-LCD simulator](testing/DUAL_VIRTUAL_LCD_SIMULATOR_V0.md)
+is an injected host presentation and test-transport boundary. It owns two
+independent client windows and fixed-capacity local state, while its current
+transport is explicitly synthetic loopback. It does not encode the production
+packet, implement MeshCore, access USB, prove LoRa delivery, or validate a
+physical renderer/input target. Local queue, bridge-acceptance, peer-simulator
+observation, and peer-simulator acknowledgement remain separate evidence
+levels.
+
+[Decision 0007](decisions/0007-shared-client-presentation-tracks.md) keeps the
+planned Android companion and self-contained touchscreen tracks under the same
+versioned protocol and reusable behavior in this repository. Platform and
+hardware adapters remain separate, and evidence from one track cannot be
+credited to the other. The current four-self-contained-unit first release and
+its no-phone/no-laptop field boundary remain authoritative; the simulator is a
+development reference, not a field dependency.
+
 Update checkpoint persistence now has a backend-neutral
 [key/value target boundary](update/UPDATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md).
 It fixes the `ot_state` partition, `ot_update` namespace, two exact 64-byte

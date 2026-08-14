@@ -67,6 +67,46 @@ selection/Refresh/live-event/heading cycles against the exact one-Heltec, one-
 SenseCAP, one-Wio public roster. A non-remediating Defender archive scan found
 no threats. This remains local engineering evidence, not a public release.
 
+OT-030 now tracks a laptop-only dual virtual-LCD simulator. Its first bounded
+increment opens two independent .NET 8 WPF windows over separate Client A and
+Client B state and two allowlisted in-memory simulated companions. Fixed local
+limits cover 32 outgoing commands per client, 128 message-history entries, 32
+alert-history entries, and 64 pending observations per simulated peer. Text is
+bounded and printable, one private endpoint cannot be assigned twice, stale
+state is visible, clock rollback faults, a failed queue retains the draft, and
+closing one LCD releases only its presenter. Seventeen core and ten WPF groups
+pass focused Release runs, including a close-time check that drains an in-flight
+service tick before presenter disposal, with 100/100 core repeats and 100
+serialized Connect/Reconnect races. Explicit Dispatcher marshalling keeps every
+post-await UI update on its owning thread. Deterministic
+100%/125%/150%/200% bitmap checks pass, and the 100% home render received visual
+review. Visible copy distinguishes queued, bridge-accepted,
+peer-simulator-observed, and peer-simulator-acknowledged state and repeatedly
+states that none is radio-delivery evidence.
+
+The complete local `tools/Test-Host.ps1` gate exits 0 with the existing 111 C++
+executables, 59 Windows-loader groups, both publication-safety layers, and the
+new warning-free 17-core/10-WPF simulator gate. The aggregate loader's
+privacy-safe roster observation is pre-existing loader evidence, not simulator
+USB or hardware evidence. Remote CI confirmation remains a per-push gate.
+
+This current simulator does not enumerate or open USB, implement MeshCore,
+bind the existing C++ packet/local-interface owners, or exercise a real radio
+or physical LCD. The alert button is explicitly a synthetic injection and does
+not claim the canonical held critical-confirmation workflow. Full real-monitor
+DPI/theme/assistive-technology acceptance, packaging, installer, clean-
+machine operation, live two-device assignment, private assignment persistence,
+reconnect generations, and physical retest remain open. OT-030 is therefore
+`partial`; the focused shell increment is host evidence only.
+
+The accepted product direction keeps two future presentation tracks in this
+repository over shared versioned behavior: an affordable Android companion
+using a separately approved mesh device, and the original self-contained
+touchscreen client. The simulator is their shared behavior reference, not a
+production dependency. Android platform/device, signing, accessibility, and
+distribution evidence remain open; iPhone/store direction is undecided. The
+existing self-contained V1 definition remains unchanged.
+
 A deterministic group-load model now accounts for the planned four-client
 standalone, four-plus-repeater, and eight-plus-repeater phases using exact LoRa
 airtime plus explicit source and forwarding transmissions. It is host planning

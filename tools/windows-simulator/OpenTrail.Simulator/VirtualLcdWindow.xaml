@@ -1,0 +1,204 @@
+<Window x:Class="OpenTrail.Simulator.VirtualLcdWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="OpenTrail Simulator"
+        Width="580" Height="720" MinWidth="560" MinHeight="640"
+        WindowStartupLocation="Manual"
+        Background="{DynamicResource WindowBrush}"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        AutomationProperties.AutomationId="virtual-lcd-window"
+        PreviewKeyDown="HandleWindowPreviewKeyDown"
+        Closing="HandleWindowClosing">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Margin="0,0,0,8" Padding="10,7"
+                BorderBrush="{DynamicResource WarningBrush}" BorderThickness="1"
+                Background="{DynamicResource PanelBrush}">
+            <DockPanel LastChildFill="True">
+                <TextBlock DockPanel.Dock="Left" Text="LOCAL SIMULATION" FontWeight="Bold"
+                           Foreground="{DynamicResource WarningBrush}"
+                           AutomationProperties.HeadingLevel="Level2" />
+                <TextBlock Text="Virtual controls are not physical-LCD or radio evidence."
+                           Margin="12,0,0,0" TextWrapping="Wrap"
+                           Foreground="{DynamicResource MutedBrush}" />
+            </DockPanel>
+        </Border>
+
+        <Viewbox Grid.Row="1" Stretch="Uniform">
+            <Border Width="500" Height="500" CornerRadius="42"
+                    Background="{DynamicResource LcdBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="3"
+                    AutomationProperties.Name="Virtual OpenTrail touchscreen">
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="58" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="62" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Padding="10,6" CornerRadius="14"
+                            Background="{DynamicResource PanelBrush}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock x:Name="ClientNameText" FontSize="20" FontWeight="Bold"
+                                           Text="Client" AutomationProperties.HeadingLevel="Level1" />
+                                <TextBlock x:Name="DeviceLabelText" FontSize="12"
+                                           Foreground="{DynamicResource MutedBrush}" Text="No device assigned" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                <TextBlock x:Name="ConnectionStateText" FontSize="14" FontWeight="Bold"
+                                           Text="Disconnected" TextAlignment="Right"
+                                           AutomationProperties.AutomationId="connection-state"
+                                           AutomationProperties.LiveSetting="Assertive" />
+                                <TextBlock x:Name="FreshnessText" FontSize="11" Text="No observation"
+                                           Foreground="{DynamicResource MutedBrush}" TextAlignment="Right" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="1" Margin="0,10">
+                        <Grid x:Name="HomeScreen">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Home" FontSize="26" FontWeight="Bold" Margin="8,0,8,8"
+                                       AutomationProperties.HeadingLevel="Level2" />
+                            <UniformGrid Grid.Row="1" Rows="2" Columns="2">
+                                <Button x:Name="MessagesButton" Content="_Messages" Click="ShowMessages"
+                                        AutomationProperties.HelpText="Open received and sent message history" />
+                                <Button x:Name="ComposeButton" Content="_Compose" Click="ShowCompose"
+                                        AutomationProperties.HelpText="Compose a local simulator message" />
+                                <Button x:Name="AlertsButton" Content="_Alerts" Click="ShowAlerts"
+                                        AutomationProperties.HelpText="Open active alerts and acknowledgements" />
+                                <Button x:Name="StatusButton" Content="_Status" Click="ShowStatus"
+                                        AutomationProperties.HelpText="Open connection and queue status" />
+                            </UniformGrid>
+                        </Grid>
+
+                        <Grid x:Name="MessagesScreen" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Messages" FontSize="26" FontWeight="Bold" Margin="8,0,8,8"
+                                       AutomationProperties.HeadingLevel="Level2" />
+                            <ListBox x:Name="MessagesList" Grid.Row="1" Margin="4"
+                                     Background="{DynamicResource PanelBrush}"
+                                     Foreground="{DynamicResource TextBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     AutomationProperties.Name="Message history" />
+                        </Grid>
+
+                        <Grid x:Name="ComposeScreen" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Compose" FontSize="26" FontWeight="Bold" Margin="8,0,8,8"
+                                       AutomationProperties.HeadingLevel="Level2" />
+                            <TextBox x:Name="ComposeText" Grid.Row="1" MaxLength="160"
+                                     AcceptsReturn="True" TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto"
+                                     AutomationProperties.Name="Message text"
+                                     AutomationProperties.HelpText="Up to 160 characters" />
+                            <ComboBox x:Name="PriorityBox" Grid.Row="2" SelectedIndex="0"
+                                      AutomationProperties.Name="Message priority">
+                                <ComboBoxItem Content="Normal" />
+                                <ComboBoxItem Content="High" />
+                            </ComboBox>
+                            <Button x:Name="QueueMessageButton" Grid.Row="3" Content="_Queue message" Click="QueueMessage"
+                                    AutomationProperties.HelpText="Queue this message for the assigned simulator bridge" />
+                        </Grid>
+
+                        <Grid x:Name="AlertsScreen" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Alerts" FontSize="26" FontWeight="Bold" Margin="8,0,8,8"
+                                       AutomationProperties.HeadingLevel="Level2" />
+                            <ListBox x:Name="AlertsList" Grid.Row="1" Margin="4"
+                                     Background="{DynamicResource PanelBrush}"
+                                     Foreground="{DynamicResource TextBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     SelectionChanged="HandleAlertSelectionChanged"
+                                     AutomationProperties.Name="Alert history" />
+                            <UniformGrid Grid.Row="2" Columns="2">
+                                <Button Content="_Inject test alert" Click="QueueAssistanceAlert"
+                                        AutomationProperties.HelpText="Inject a synthetic simulator alert; this does not exercise the canonical held critical confirmation" />
+                                <Button x:Name="AcknowledgeAlertButton" Content="_Acknowledge selected"
+                                        IsEnabled="False" Click="AcknowledgeSelectedAlert"
+                                        AutomationProperties.HelpText="Acknowledge the selected received alert" />
+                            </UniformGrid>
+                        </Grid>
+
+                        <ScrollViewer x:Name="StatusScreen" Visibility="Collapsed"
+                                      VerticalScrollBarVisibility="Auto" Focusable="False">
+                            <StackPanel>
+                                <TextBlock Text="Status" FontSize="26" FontWeight="Bold" Margin="8,0,8,8"
+                                           AutomationProperties.HeadingLevel="Level2" />
+                                <Border Margin="4" Padding="10" Background="{DynamicResource PanelBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock x:Name="StatusConnectionText" Text="Connection: Disconnected" />
+                                        <TextBlock x:Name="StatusQueueText" Text="Outgoing queue: 0" />
+                                        <TextBlock x:Name="StatusMessagesText" Text="Messages: 0" />
+                                        <TextBlock x:Name="StatusAlertsText" Text="Alerts: 0" />
+                                        <TextBlock x:Name="StatusErrorText" Text="No current bridge error"
+                                                   TextWrapping="Wrap" Foreground="{DynamicResource WarningBrush}"
+                                                   AutomationProperties.AutomationId="bridge-error"
+                                                   AutomationProperties.LiveSetting="Assertive" />
+                                    </StackPanel>
+                                </Border>
+                                <UniformGrid Columns="3">
+                                    <Button x:Name="ConnectButton" Content="_Connect" Click="ConnectClient" />
+                                    <Button x:Name="DisconnectButton" Content="_Disconnect" Click="DisconnectClient" />
+                                    <Button x:Name="ReconnectButton" Content="_Reconnect" Click="ReconnectClient" />
+                                </UniformGrid>
+                                <TextBlock Margin="8,6" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource MutedBrush}"
+                                           Text="Each client owns an isolated connection, queue, message history, and alert state. A bridge-accepted item is not proof of LoRa delivery. Synthetic alert injection does not prove the held critical-confirmation workflow." />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="BackButton" Content="← _Back" Click="GoBack" IsEnabled="False"
+                                AutomationProperties.HelpText="Return to the home screen" />
+                        <TextBlock x:Name="ScreenNoticeText" Grid.Column="1" Margin="8,0"
+                                   Text="Ready for local simulation" TextWrapping="Wrap"
+                                   VerticalAlignment="Center" TextAlignment="Center"
+                                   Foreground="{DynamicResource MutedBrush}"
+                                   AutomationProperties.AutomationId="screen-notice"
+                                   AutomationProperties.LiveSetting="Polite" />
+                        <Button Grid.Column="2" Content="⌂ _Home" Click="GoHome"
+                                AutomationProperties.HelpText="Return to the home screen" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Viewbox>
+
+        <TextBlock Grid.Row="2" Margin="4,8,4,0" TextWrapping="Wrap"
+                   Foreground="{DynamicResource MutedBrush}"
+                   Text="Shortcuts: Ctrl+M messages, Ctrl+N compose, Ctrl+A alerts, Ctrl+S status, Esc home, F5 reconnect." />
+    </Grid>
+</Window>

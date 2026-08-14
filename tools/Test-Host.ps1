@@ -1576,3 +1576,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 & (Join-Path $projectRoot 'tools\Test-WindowsLoader.ps1')
+
+& (Join-Path $projectRoot 'tools\Test-WindowsSimulator.ps1')
+if (-not $?) {
+    throw 'Windows simulator validation failed.'
+}
