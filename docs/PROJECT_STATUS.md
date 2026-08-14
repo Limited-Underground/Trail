@@ -236,8 +236,8 @@ only device inspection plus bounded local bundle-candidate inspection. A
 separate verifier extracted the retained
 ZIP, matched every manifest record, launched `DeviceUtility.exe` from that
 fresh source-free directory, and removed its owned process and temporary tree.
-The newest verified 464-file archive is 72,103,101 bytes with SHA-256
-`0D1E82B978CA33DBAF912448D81936EB98FBBD4F51751F784F91AE9EEC715137`.
+The newest verified 464-file archive is 72,103,021 bytes with SHA-256
+`A6D60D0188F5DD7BA51B9792187080EEF4575F0B30653EF6AAC9AFE448CACAC2`.
 Native Windows UI Automation then inspected that exact independently extracted
 executable across the process boundary. Stable privacy-safe IDs exposed the
 window, Refresh, dynamic summary/selection/bundle regions, device list,
@@ -285,10 +285,19 @@ window, and general preference notifications reapply those values on the UI
 dispatcher. A deterministic black/white/yellow profile passes at least 7:1
 text and disabled-label contrast through the real production window, with its
 selected card, three-card state, scroll viewport, safety boundaries, and
-disabled Flash copy intact. This is source and deterministic-render evidence;
+disabled Flash copy intact. A stricter shown-window matrix found that local
+button color values could override the shared disabled-state trigger even
+while the resource-level check passed. Those values were removed so one
+semantic template owns enabled and disabled colors. The matrix now enumerates
+every disabled production button and measures its resolved text against the
+actual rendered `ButtonBorder` surface in ready/unselected, ready/selected,
+and held busy-refresh states. Classic requires at least 4.5:1; deterministic
+high contrast requires at least 7:1. This is resolved WPF control/template
+evidence, not final pixel-antialiasing or live system-theme evidence;
 live switching through every Windows contrast theme remains unverified. A
 focused classic-mode check also found and fixed a 3.79:1 disabled-button pairing;
-the production pairing is now above 5.5:1 and regression-gated at 4.5:1.
+the production pairing is now above 5.5:1 and every disabled instance is
+regression-gated at 4.5:1.
 The production window also passes three controlled refresh/selection cycles
 against a validated read-only source. Each cycle clears the previous card and
 bundle state, restores Refresh, republishes all three candidates, and requires

@@ -177,7 +177,14 @@ disabled action labels nearly white on white; disabled labels are explicitly
 dark gray on the gray button face. A focused follow-up measured the prior
 classic pairing at 3.79:1, darkened the semantic disabled brush to `#404040`,
 and added a production-control assertion requiring at least 4.5:1; the accepted
-pairing is now above 5.5:1.
+pairing is now above 5.5:1. A later instance-level pass found that local button
+foreground values could outrank the shared disabled trigger. Production buttons
+now inherit enabled and disabled colors from the one semantic template. A shown
+six-state matrix enumerates every disabled instance in classic and deterministic
+high contrast across ready/unselected, ready/selected, and held busy-refresh
+states. It measures each resolved foreground against the actual rendered
+`ButtonBorder` surface, requiring opaque brushes plus at least 4.5:1 in classic
+and 7:1 in deterministic high contrast.
 
 ## Rendered layout evidence
 
@@ -186,7 +193,9 @@ The test executable has an opt-in WPF renderer that creates the real
 document through the production display path, and captures production XAML.
 It does not connect to, reset, or mutate a radio. On 2026-08-13, the generated
 1600×900 desktop view, 900×620 minimum view, and 900×620 scrolled view were
-inspected pixel-for-pixel.
+inspected pixel-for-pixel. Baseline capture runs before the shared fixture is
+first shown; a later review found and removed a harness-ordering artifact that
+could retain the shown 1120-pixel layout inside a 900-pixel bitmap.
 
 That review found two defects: the content root could render transparent, which
 hid black summary copy against a black backing surface, and the nested list
@@ -230,12 +239,14 @@ file authority.
 
 The production-window harness injects one deterministic black/white/yellow
 palette through that same resource-application path. It requires at least 7:1
-contrast for body and disabled text, confirms the actual Refresh and disabled
-Flash controls receive the dynamic brushes, retains all three cards, current
-selection, and scroll access, and rejects blank output. Pixel review at 900×620
+contrast for body and disabled text, confirms every actual disabled button
+receives the semantic text and rendered surface colors in all three authority
+states, retains all three cards, current selection, and scroll access, and
+rejects blank output. Pixel review at 900×620
 accepts the selected yellow border, status/safety copy, bundle blocker,
 safe-mode boundary, and both footer labels. This does not replace live testing
-with every built-in or user-customized Windows contrast theme.
+with every built-in or user-customized Windows contrast theme, nor does the
+resolved-brush measurement prove final pixel antialiasing.
 
 A second shown-window scenario establishes the selected last wrapped card as
 the keyboard-focused item, scrolls it into view, and then applies classic →
@@ -421,9 +432,9 @@ three read-only Refresh cycles without opening the firmware picker:
     -RunUiAutomationAcceptance -ExpectedDeviceCount 3 -RefreshCycles 3
 ```
 
-The current retained package has 464 payload files and is 72,103,101 bytes. Its
+The current retained package has 464 payload files and is 72,103,021 bytes. Its
 SHA-256 is
-`0D1E82B978CA33DBAF912448D81936EB98FBBD4F51751F784F91AE9EEC715137`.
+`A6D60D0188F5DD7BA51B9792187080EEF4575F0B30653EF6AAC9AFE448CACAC2`.
 The manifest fixes the capability boundary to inspection only, explicitly
 permits Windows USB-family discovery and fixed MeshCore runtime-identity
 queries plus bounded local bundle structure/image-SHA-256 inspection and the

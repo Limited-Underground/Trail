@@ -6,6 +6,38 @@ public chronology.
 
 ## 2026-08-13
 
+### Every disabled production button accepted through its rendered surface
+
+- Replaced the palette-only/one-footer sampling with a shown-window six-state
+  matrix: classic and deterministic high contrast, each in ready/unselected,
+  ready/selected, and held busy-refresh states. It enumerates the exact disabled
+  controls—three card Flash actions, footer Flash, conditional bundle selection,
+  and busy Refresh—and measures each resolved foreground against its actual
+  rendered `ButtonBorder` background.
+- The first instance-level run exposed a real style-precedence defect: local
+  button foreground values could outrank the shared disabled-state trigger even
+  though the semantic resource pair passed. Removing those local values leaves
+  one template responsible for enabled and disabled colors. Every measured brush
+  is now opaque and matches the semantic pair at >=4.5:1 classic and >=7:1
+  deterministic high contrast; refresh completion restores three unselected
+  cards and keeps bundle/Flash authority blocked.
+- Regenerating the retained evidence also exposed a harness-ordering artifact:
+  captures taken after the shared fixture had been shown and resized could keep
+  its 1120-pixel layout inside a 900-pixel bitmap. Baseline bitmap capture now
+  occurs before that fixture is shown; fresh classic and high-contrast review
+  again shows the intended two-plus-one minimum-width wrap without clipping.
+- The warning-free suite remains 58 groups because this strengthens the existing
+  contrast group. It proves resolved WPF control/template colors, not final pixel
+  antialiasing, live switching through every Windows contrast theme, Narrator or
+  Braille UX, installer lifecycle, or clean-machine operation.
+- The production-XAML change was RID-restored into a fresh 464-file self-contained
+  package. Its independent extraction, manifest/hash, source-free launch, and
+  three Windows PowerShell 5.1 external UI Automation selection/Refresh/live-
+  event/heading cycles pass. The retained archive is 72,103,021 bytes with
+  SHA-256 `A6D60D0188F5DD7BA51B9792187080EEF4575F0B30653EF6AAC9AFE448CACAC2`;
+  it remains Git-ignored and is not a public release. The contrast matrix itself
+  remains local shown-window/template evidence, not packaged pixel evidence.
+
 ### Packaged heading hierarchy and reverse focus traversal
 
 - Added semantic headings to the production XAML without changing its visible

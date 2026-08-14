@@ -128,6 +128,7 @@ internal static class LoaderVisualFixtureRenderer
                 }
                 var app = new App();
                 app.InitializeComponent();
+                app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
                 var refreshCalls = 0;
                 var window = new MainWindow(_ =>
@@ -148,19 +149,6 @@ internal static class LoaderVisualFixtureRenderer
                         window,
                         outputDirectory,
                         renderedFiles);
-                    acceptedResizeTransitions = AcceptShownResizeTransition(window);
-                    acceptedThemeTransitions = AcceptThemeTransition(
-                        app,
-                        outputDirectory,
-                        renderedFiles);
-                    acceptedKeyboardPaths = AcceptKeyboardNavigation();
-                    acceptedReverseKeyboardPaths =
-                        AcceptReverseKeyboardNavigation();
-                    acceptedAutomationPaths = AcceptAutomationSemantics();
-                    acceptedAutomationScrollPaths =
-                        AcceptAutomationScrollReachability();
-                    acceptedHeadingPaths = AcceptHeadingSemantics();
-
                     if (outputDirectory is not null)
                     {
                         renderedFiles.Add(Render(
@@ -187,10 +175,23 @@ internal static class LoaderVisualFixtureRenderer
                             620,
                             1.0));
                     }
+                    acceptedThemeTransitions = AcceptThemeTransition(
+                        app,
+                        outputDirectory,
+                        renderedFiles);
+                    acceptedResizeTransitions = AcceptShownResizeTransition(window);
+                    acceptedKeyboardPaths = AcceptKeyboardNavigation();
+                    acceptedReverseKeyboardPaths =
+                        AcceptReverseKeyboardNavigation();
+                    acceptedAutomationPaths = AcceptAutomationSemantics();
+                    acceptedAutomationScrollPaths =
+                        AcceptAutomationScrollReachability();
+                    acceptedHeadingPaths = AcceptHeadingSemantics();
                 }
                 finally
                 {
                     window.Close();
+                    app.Shutdown();
                 }
             }
             catch (Exception error)
@@ -1356,12 +1357,11 @@ internal static class LoaderVisualFixtureRenderer
         var classicDisabledText = BrushColor(
             app.Resources["DisabledTextBrush"] as Brush,
             "classic disabled text");
-        Require(
-            ContrastRatio(classicButtonFace, classicDisabledText) >= 4.5 &&
-            BrushColor(
-                window.FlashSelectedButton.Foreground,
-                "classic disabled Flash foreground") == classicDisabledText,
-            "classic disabled-button text did not preserve 4.5:1 contrast on the production button face");
+        RequireShownDisabledButtonContrastMatrix(
+            classicButtonFace,
+            classicDisabledText,
+            4.5,
+            "classic");
 
         var systemPaletteResources = new ResourceDictionary();
         LoaderThemeResources.Apply(
@@ -1378,6 +1378,15 @@ internal static class LoaderVisualFixtureRenderer
         try
         {
             app.ApplyThemeForAcceptance(contrastPalette);
+            window.DeviceCards.SelectedIndex = 0;
+            window.ContentScroll.ScrollToTop();
+            window.UpdateLayout();
+            var selectedContainer = ContainerAt(window, 0);
+            Require(
+                HasPositiveAreaOverlap(
+                    BoundsInViewport(window, selectedContainer),
+                    ContentViewport(window)),
+                "the deterministic high-contrast selected card was outside the rendered viewport");
             var bitmap = RenderBitmap(window, 900, 620, 1.0);
             Require(HasVisibleContent(bitmap),
                 "the deterministic high-contrast production render was blank");
@@ -1412,6 +1421,15 @@ internal static class LoaderVisualFixtureRenderer
                 window.ContentScroll.ViewportHeight > 0,
                 "the high-contrast theme collapsed production state or navigation");
 
+            var highContrastButtonFace = BrushColor(
+                app.Resources["ButtonFaceBrush"] as Brush,
+                "high-contrast button face");
+            RequireShownDisabledButtonContrastMatrix(
+                highContrastButtonFace,
+                disabled,
+                7.0,
+                "deterministic high contrast");
+
             if (outputDirectory is not null)
             {
                 renderedFiles.Add(SaveBitmap(
@@ -1426,6 +1444,174 @@ internal static class LoaderVisualFixtureRenderer
             app.ApplyThemeForAcceptance(
                 LoaderThemeResources.CreateClassicPalette());
         }
+    }
+
+    private static void RequireDisabledButtonContrast(
+        MainWindow window,
+        Color expectedFace,
+        Color expectedText,
+        double minimumRatio,
+        string label,
+        params string[] expectedContents)
+    {
+        var disabledButtons = VisualDescendants<Button>(window)
+            .Where(button => !button.IsEnabled)
+            .ToArray();
+        var actualContents = disabledButtons
+            .Select(button => button.Content?.ToString() ?? string.Empty)
+            .OrderBy(content => content, StringComparer.Ordinal)
+            .ToArray();
+        var orderedExpectedContents = expectedContents
+            .OrderBy(content => content, StringComparer.Ordinal)
+            .ToArray();
+        Require(
+            actualContents.SequenceEqual(
+                orderedExpectedContents,
+                StringComparer.Ordinal),
+            $"{label} disabled-button membership was {string.Join(", ", actualContents)}");
+
+        foreach (var button in disabledButtons)
+        {
+            _ = button.ApplyTemplate();
+            var surface = button.Template.FindName("ButtonBorder", button) as Border;
+            Require(surface is not null,
+                $"{label} could not resolve the rendered {ButtonLabel(button)} surface");
+            var actualFace = OpaqueBrushColor(
+                surface!.Background,
+                $"{label} {ButtonLabel(button)} rendered background");
+            var actualText = OpaqueBrushColor(
+                button.Foreground,
+                $"{label} {ButtonLabel(button)} rendered foreground");
+            var ratio = ContrastRatio(actualFace, actualText);
+            Require(
+                actualFace == expectedFace &&
+                actualText == expectedText &&
+                ratio >= minimumRatio,
+                $"{label} {ButtonLabel(button)} resolved to " +
+                $"{actualText} on {actualFace} ({ratio:F2}:1), expected " +
+                $"{expectedText} on {expectedFace} at >= {minimumRatio:F1}:1");
+        }
+    }
+
+    private static void RequireShownDisabledButtonContrastMatrix(
+        Color expectedFace,
+        Color expectedText,
+        double minimumRatio,
+        string label)
+    {
+        var refreshCalls = 0;
+        TaskCompletionSource<LoaderInspectionDocument>? heldRefresh = null;
+        Task? refreshTask = null;
+        var window = new MainWindow(_ =>
+        {
+            refreshCalls++;
+            if (refreshCalls == 1)
+            {
+                return Task.FromResult(CreateDocument());
+            }
+            heldRefresh = new();
+            return heldRefresh.Task;
+        });
+        try
+        {
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = SystemParameters.VirtualScreenLeft;
+            window.Top = SystemParameters.VirtualScreenTop;
+            window.Width = window.MinWidth;
+            window.Height = window.MinHeight;
+            window.Show();
+            window.Dispatcher.Invoke(
+                DispatcherPriority.ApplicationIdle,
+                new Action(static () => { }));
+            Require(refreshCalls == 1 && window.DeviceCards.Items.Count == 3,
+                $"{label} did not settle the initial inspection");
+            RequireDisabledButtonContrast(
+                window,
+                expectedFace,
+                expectedText,
+                minimumRatio,
+                $"{label} ready unselected",
+                "Flash", "Flash", "Flash", "Flash selected device",
+                "Select firmware bundle");
+
+            window.DeviceCards.SelectedIndex = 2;
+            window.UpdateLayout();
+            Require(
+                window.DeviceCards.SelectedItem is LoaderDeviceCard &&
+                window.SelectFirmwareButton.IsEnabled,
+                $"{label} could not establish the selected state");
+            RequireDisabledButtonContrast(
+                window,
+                expectedFace,
+                expectedText,
+                minimumRatio,
+                $"{label} ready selected",
+                "Flash", "Flash", "Flash", "Flash selected device");
+
+            refreshTask = window.RefreshForAcceptanceAsync();
+            window.UpdateLayout();
+            Require(
+                refreshCalls == 2 &&
+                heldRefresh is not null &&
+                !refreshTask.IsCompleted &&
+                window.DeviceCards.Items.Count == 0,
+                $"{label} did not hold the production inspection in its busy state");
+            RequireDisabledButtonContrast(
+                window,
+                expectedFace,
+                expectedText,
+                minimumRatio,
+                label,
+                "Flash selected device", "Inspecting…",
+                "Select firmware bundle");
+
+            heldRefresh!.SetResult(CreateDocument());
+            AwaitWithDispatcherPump(refreshTask);
+            Require(
+                window.RefreshButton.IsEnabled &&
+                window.DeviceCards.Items.Count == 3 &&
+                window.DeviceCards.SelectedItem is null &&
+                !window.SelectFirmwareButton.IsEnabled &&
+                !window.FlashSelectedButton.IsEnabled,
+                $"{label} did not restore the safe ready state");
+            window.UpdateLayout();
+            RequireDisabledButtonContrast(
+                window,
+                expectedFace,
+                expectedText,
+                minimumRatio,
+                $"{label} restored ready unselected",
+                "Flash", "Flash", "Flash", "Flash selected device",
+                "Select firmware bundle");
+        }
+        finally
+        {
+            window.Close();
+            if (heldRefresh?.TrySetCanceled() == true && refreshTask is not null)
+            {
+                AwaitWithDispatcherPump(refreshTask);
+            }
+        }
+    }
+
+    private static string ButtonLabel(Button button)
+    {
+        var automationId = AutomationProperties.GetAutomationId(button);
+        return string.IsNullOrWhiteSpace(automationId)
+            ? $"button '{button.Content}'"
+            : $"button '{automationId}'";
+    }
+
+    private static Color OpaqueBrushColor(Brush? brush, string name)
+    {
+        Require(
+            brush is SolidColorBrush
+            {
+                Opacity: 1,
+                Color.A: byte.MaxValue,
+            },
+            $"{name} is not an opaque solid color brush");
+        return ((SolidColorBrush)brush!).Color;
     }
 
     private static Color BrushColor(Brush? brush, string name)

@@ -50,9 +50,7 @@
                         Click="RefreshButton_Click" VerticalAlignment="Center"
                         AutomationProperties.AutomationId="refresh-devices"
                         AutomationProperties.Name="Refresh connected devices"
-                        AutomationProperties.HelpText="Read connected USB candidates again without changing a device. Keyboard shortcut F5."
-                        Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource ButtonTextBrush}"
-                        BorderBrush="{DynamicResource ButtonBorderBrush}" />
+                        AutomationProperties.HelpText="Read connected USB candidates again without changing a device. Keyboard shortcut F5." />
             </Grid>
         </Border>
 
@@ -244,9 +242,7 @@
                                                    FontFamily="Microsoft Sans Serif" FontWeight="Bold" FontSize="12"
                                                    VerticalAlignment="Center" />
                                         <Button Grid.Column="1" Content="Flash" IsEnabled="False"
-                                                AutomationProperties.HelpText="{Binding FlashHelpText}"
-                                                Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource DisabledTextBrush}"
-                                                BorderBrush="{DynamicResource ButtonBorderBrush}" Padding="14,7" Cursor="Arrow" />
+                                                AutomationProperties.HelpText="{Binding FlashHelpText}" />
                                     </Grid>
                                 </Grid>
                             </Border>
@@ -317,12 +313,10 @@
                             IsEnabled="False"
                             Click="SelectFirmwareButton_Click" Margin="0,0,8,0"
                             AutomationProperties.AutomationId="select-firmware-bundle"
-                            AutomationProperties.HelpText="Select a local candidate bundle for bounded structural and SHA-256 inspection. This does not authorize or write firmware."
-                            Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource ButtonTextBrush}" BorderBrush="{DynamicResource ButtonBorderBrush}" Cursor="Arrow" />
+                            AutomationProperties.HelpText="Select a local candidate bundle for bounded structural and SHA-256 inspection. This does not authorize or write firmware." />
                     <Button x:Name="FlashSelectedButton" Content="Flash selected device" IsEnabled="False"
                             AutomationProperties.AutomationId="flash-selected-device"
-                            AutomationProperties.HelpText="Unavailable because no firmware writer is connected."
-                            Background="{DynamicResource ButtonFaceBrush}" Foreground="{DynamicResource DisabledTextBrush}" BorderBrush="{DynamicResource ButtonBorderBrush}" Cursor="Arrow" />
+                            AutomationProperties.HelpText="Unavailable because no firmware writer is connected." />
                 </StackPanel>
             </Grid>
         </Border>
