@@ -6,6 +6,33 @@ public chronology.
 
 ## 2026-08-14
 
+### OT-019AI source-free minimum-window accessibility probe
+
+- An independent source-free probe passed against the exact retained package
+  and the public `Heltec V4 OLED`, `SenseCAP Solar`, and `Wio Tracker L1`
+  roster. At 96 DPI, UI Automation Transform resized the packaged production
+  window to exactly 900 x 620.
+- The Wio card began offscreen at x=425, y=1085, width=342, height=635. Its real
+  out-of-process `ScrollItem` provider moved it onscreen to x=425, y=254 without
+  changing its size. Refresh focus, empty selection, disabled bundle/Flash
+  authority, enabled Refresh, and the exact three-found/three-runtime-
+  identified/zero-ready summary held.
+- No `inspection-error` peer was present before or after. Cleanup left zero
+  owned processes and zero owned temporary directories.
+- The first integrated combined assertion exposed a verifier timing race: it
+  could sample post-refresh state before the complete UI had settled. That
+  failure did not establish a product defect. The verifier now waits for the
+  complete roster, summary, selection, action, Refresh, and error state before
+  evaluating the assertions.
+- Three consecutive hardened runs—a two-repeat batch and one final reviewer-
+  hardened run—then each passed exact package/roster verification, three UI
+  Automation Refresh cycles, minimum-window `ScrollItem`, initial/selected/
+  post-refresh no-error checks, privacy, manifest/hash/launch, and zero-residue
+  cleanup. The complete `tools/Test-Host.ps1` gate and Windows PowerShell 5.1
+  parse/publication-safety checks pass. OT-019AI is `done`.
+- This adds no physical-input, Narrator, clean-machine, writer/recovery,
+  hardware-compatibility, or V1-progress claim.
+
 ### Wio loader recognition and failed-refresh accessibility recovery
 
 - Extended both current-tree privacy-safe loader paths to recognize the public

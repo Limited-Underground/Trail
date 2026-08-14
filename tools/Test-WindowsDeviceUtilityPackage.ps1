@@ -225,6 +225,43 @@ public static class OtLiveRegionProbe
     )
 }
 
+function Initialize-WindowDpiProbe {
+    if ('OtWindowDpiProbe' -as [type]) {
+        return
+    }
+
+    $source = @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class OtWindowDpiProbe
+{
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr windowHandle);
+
+    public static uint GetDpi(int nativeWindowHandle)
+    {
+        if (nativeWindowHandle == 0)
+        {
+            throw new ArgumentException(
+                "A nonzero native window handle is required.",
+                "nativeWindowHandle");
+        }
+
+        var dpi = GetDpiForWindow(new IntPtr(nativeWindowHandle));
+        if (dpi < 48 || dpi > 768)
+        {
+            throw new InvalidOperationException(
+                "Windows did not return a usable DPI for the packaged window.");
+        }
+        return dpi;
+    }
+}
+'@
+
+    Add-Type -TypeDefinition $source
+}
+
 function Assert-LiveRegionSequence {
     param(
         [Parameter(Mandatory)][object[]]$Actual,
@@ -338,6 +375,46 @@ function Get-OptionalUiAutomationLiveSetting {
     }
     catch [System.ArgumentException] {
         return $null
+    }
+}
+
+function Assert-NoCurrentInspectionErrorPeer {
+    param(
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$Window,
+        [Parameter(Mandatory)][string]$Context
+    )
+
+    $currentError = Get-UiAutomationElement `
+        -Root $Window `
+        -AutomationId 'inspection-error'
+    if ($null -ne $currentError) {
+        throw "$Context exposed a current inspection-error peer."
+    }
+
+    $staleErrorName =
+        'Device inspection could not complete. No device or firmware setting was changed.'
+    $staleErrorHelp = 'Current connected-device inspection error.'
+    $elements = $Window.FindAll(
+        [System.Windows.Automation.TreeScope]::Descendants,
+        [System.Windows.Automation.Condition]::TrueCondition)
+    foreach ($element in $elements) {
+        $liveSetting = Get-OptionalUiAutomationLiveSetting -Element $element
+        $name = [string]$element.Current.Name
+        $help = [string]$element.Current.HelpText
+        if (($null -ne $liveSetting -and
+                [int]$liveSetting -eq
+                    [int][System.Windows.Automation.AutomationLiveSetting]::Assertive) -or
+            [string]::Equals(
+                $name,
+                $staleErrorName,
+                [System.StringComparison]::Ordinal) -or
+            [string]::Equals(
+                $help,
+                $staleErrorHelp,
+                [System.StringComparison]::Ordinal)) {
+            throw "$Context exposed assertive or stale inspection-error content."
+        }
     }
 }
 
@@ -532,6 +609,366 @@ function Assert-NoPrivateUiAutomationCopy {
     }
 }
 
+function Test-UiAutomationPositiveRectangleOverlap {
+    param(
+        [Parameter(Mandatory)]$First,
+        [Parameter(Mandatory)]$Second
+    )
+
+    if ($First.IsEmpty -or $Second.IsEmpty -or
+        [double]::IsNaN([double]$First.Width) -or
+        [double]::IsNaN([double]$First.Height) -or
+        [double]::IsNaN([double]$Second.Width) -or
+        [double]::IsNaN([double]$Second.Height) -or
+        [double]::IsInfinity([double]$First.Width) -or
+        [double]::IsInfinity([double]$First.Height) -or
+        [double]::IsInfinity([double]$Second.Width) -or
+        [double]::IsInfinity([double]$Second.Height)) {
+        return $false
+    }
+
+    $overlapWidth = [Math]::Min(
+        [double]$First.Right,
+        [double]$Second.Right) - [Math]::Max(
+            [double]$First.Left,
+            [double]$Second.Left)
+    $overlapHeight = [Math]::Min(
+        [double]$First.Bottom,
+        [double]$Second.Bottom) - [Math]::Max(
+            [double]$First.Top,
+            [double]$Second.Top)
+    return $overlapWidth -gt 0.5 -and $overlapHeight -gt 0.5
+}
+
+function Wait-ForPackagedWindowPixelSize {
+    param(
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$Window,
+        [Parameter(Mandatory)][double]$ExpectedWidth,
+        [Parameter(Mandatory)][double]$ExpectedHeight,
+        [Parameter(Mandatory)][double]$Tolerance,
+        [Parameter(Mandatory)][string]$FailureMessage
+    )
+
+    Wait-ForUiAutomationCondition `
+        -TimeoutMilliseconds 10000 `
+        -FailureMessage $FailureMessage `
+        -Condition {
+            $bounds = $Window.Current.BoundingRectangle
+            return -not $bounds.IsEmpty -and
+                [Math]::Abs([double]$bounds.Width - $ExpectedWidth) -le $Tolerance -and
+                [Math]::Abs([double]$bounds.Height - $ExpectedHeight) -le $Tolerance
+        }
+}
+
+function Invoke-PackagedMinimumWindowScrollAcceptance {
+    param(
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$Window,
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$Refresh,
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$Summary,
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$DeviceList,
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.SelectionPattern]$SelectionProvider,
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$SelectBundle,
+        [Parameter(Mandatory)]
+        [System.Windows.Automation.AutomationElement]$FlashSelected,
+        [Parameter(Mandatory)][int]$ExpectedCount
+    )
+
+    Initialize-WindowDpiProbe
+    $windowPattern = $Window.GetCurrentPattern(
+        [System.Windows.Automation.WindowPattern]::Pattern) -as
+        [System.Windows.Automation.WindowPattern]
+    $transformPattern = $Window.GetCurrentPattern(
+        [System.Windows.Automation.TransformPattern]::Pattern) -as
+        [System.Windows.Automation.TransformPattern]
+    if ($null -eq $windowPattern -or
+        $null -eq $transformPattern -or
+        -not $transformPattern.Current.CanResize) {
+        throw 'The packaged window does not expose a resizable Window/Transform contract.'
+    }
+
+    $originalVisualState = $windowPattern.Current.WindowVisualState
+    $restoreBounds = $null
+    $readySummaryName = $null
+    $primaryFailure = $null
+    try {
+        if ($windowPattern.Current.WindowVisualState -ne
+            [System.Windows.Automation.WindowVisualState]::Normal) {
+            $windowPattern.SetWindowVisualState(
+                [System.Windows.Automation.WindowVisualState]::Normal)
+            Wait-ForUiAutomationCondition `
+                -TimeoutMilliseconds 10000 `
+                -FailureMessage 'The packaged window did not enter its normal resizable state.' `
+                -Condition {
+                    $windowPattern.Current.WindowVisualState -eq
+                        [System.Windows.Automation.WindowVisualState]::Normal
+                }
+        }
+
+        $restoreBounds = $Window.Current.BoundingRectangle
+        if ($restoreBounds.IsEmpty -or
+            [double]$restoreBounds.Width -le 0 -or
+            [double]$restoreBounds.Height -le 0) {
+            throw 'The packaged window did not expose restorable bounds.'
+        }
+
+        if ($SelectionProvider.Current.GetSelection().Count -ne 0) {
+            throw 'The minimum-window acceptance did not start with empty device selection.'
+        }
+
+        $nativeWindowHandle = [int]$Window.Current.NativeWindowHandle
+        $resizeDpi = [double][OtWindowDpiProbe]::GetDpi($nativeWindowHandle)
+        $targetPixelWidth = [Math]::Round(900.0 * $resizeDpi / 96.0)
+        $targetPixelHeight = [Math]::Round(620.0 * $resizeDpi / 96.0)
+        $pixelTolerance = [Math]::Max(2.0, $resizeDpi / 48.0)
+        $transformPattern.Resize($targetPixelWidth, $targetPixelHeight)
+        Wait-ForPackagedWindowPixelSize `
+            -Window $Window `
+            -ExpectedWidth $targetPixelWidth `
+            -ExpectedHeight $targetPixelHeight `
+            -Tolerance $pixelTolerance `
+            -FailureMessage 'The packaged window did not reach its DPI-scaled 900 x 620 minimum.'
+
+        $effectiveDpi = [double][OtWindowDpiProbe]::GetDpi(
+            [int]$Window.Current.NativeWindowHandle)
+        $minimumBounds = $Window.Current.BoundingRectangle
+        $effectiveWidth = [double]$minimumBounds.Width * 96.0 / $effectiveDpi
+        $effectiveHeight = [double]$minimumBounds.Height * 96.0 / $effectiveDpi
+        if ([Math]::Abs($effectiveWidth - 900.0) -gt 1.0 -or
+            [Math]::Abs($effectiveHeight - 620.0) -gt 1.0) {
+            throw "The packaged window effective size was $([Math]::Round($effectiveWidth, 2)) x $([Math]::Round($effectiveHeight, 2)) DIP; expected 900 x 620 DIP."
+        }
+
+        $Refresh.SetFocus()
+        Wait-ForUiAutomationCondition `
+            -TimeoutMilliseconds 10000 `
+            -FailureMessage 'The packaged minimum window did not focus Refresh.' `
+            -Condition { $Refresh.Current.HasKeyboardFocus }
+
+        $readySummaryName = [string]$Summary.Current.Name
+        if (-not $Refresh.Current.IsEnabled -or
+            $readySummaryName -notlike '*0 ready to flash*' -or
+            $SelectionProvider.Current.GetSelection().Count -ne 0 -or
+            $SelectBundle.Current.IsEnabled -or
+            $FlashSelected.Current.IsEnabled) {
+            throw 'The packaged minimum window did not begin in its zero-ready fail-closed state.'
+        }
+
+        $items = Assert-UiAutomationDeviceItems `
+            -List $DeviceList `
+            -ExpectedCount $ExpectedCount
+        $target = $items[$items.Count - 1]
+        Wait-ForUiAutomationCondition `
+            -TimeoutMilliseconds 10000 `
+            -FailureMessage 'The final current packaged device item was not genuinely offscreen at 900 x 620 DIP.' `
+            -Condition { $target.Current.IsOffscreen }
+
+        $targetName = [string]$target.Current.Name
+        $targetHelp = [string]$target.Current.HelpText
+        $targetPosition = [int]$target.GetCurrentPropertyValue(
+            [System.Windows.Automation.AutomationElement]::PositionInSetProperty)
+        $targetSetSize = [int]$target.GetCurrentPropertyValue(
+            [System.Windows.Automation.AutomationElement]::SizeOfSetProperty)
+        $scrollItem = $target.GetCurrentPattern(
+            [System.Windows.Automation.ScrollItemPattern]::Pattern) -as
+            [System.Windows.Automation.ScrollItemPattern]
+        if ($null -eq $scrollItem) {
+            throw 'The offscreen current packaged device item did not expose ScrollItem.'
+        }
+
+        Assert-NoPrivateUiAutomationCopy -Window $Window
+        Assert-NoCurrentInspectionErrorPeer `
+            -Window $Window `
+            -Context 'Packaged minimum-window ready state'
+        $scrollItem.ScrollIntoView()
+        Wait-ForUiAutomationCondition `
+            -TimeoutMilliseconds 10000 `
+            -FailureMessage 'The packaged ScrollItem provider did not settle with its item visible and authority unchanged.' `
+            -Condition {
+                $candidateBounds = $target.Current.BoundingRectangle
+                $candidateWindowBounds = $Window.Current.BoundingRectangle
+                return -not $target.Current.IsOffscreen -and
+                    (Test-UiAutomationPositiveRectangleOverlap `
+                        -First $candidateBounds `
+                        -Second $candidateWindowBounds) -and
+                    [string]::Equals(
+                        [string]$target.Current.Name,
+                        $targetName,
+                        [System.StringComparison]::Ordinal) -and
+                    [string]::Equals(
+                        [string]$target.Current.HelpText,
+                        $targetHelp,
+                        [System.StringComparison]::Ordinal) -and
+                    [int]$target.GetCurrentPropertyValue(
+                        [System.Windows.Automation.AutomationElement]::PositionInSetProperty) -eq
+                            $targetPosition -and
+                    [int]$target.GetCurrentPropertyValue(
+                        [System.Windows.Automation.AutomationElement]::SizeOfSetProperty) -eq
+                            $targetSetSize -and
+                    $SelectionProvider.Current.GetSelection().Count -eq 0 -and
+                    $Refresh.Current.IsEnabled -and
+                    $Refresh.Current.HasKeyboardFocus -and
+                    -not $SelectBundle.Current.IsEnabled -and
+                    -not $FlashSelected.Current.IsEnabled -and
+                    [string]::Equals(
+                        [string]$Summary.Current.Name,
+                        $readySummaryName,
+                        [System.StringComparison]::Ordinal)
+            }
+
+        $settledBounds = $target.Current.BoundingRectangle
+        $windowBounds = $Window.Current.BoundingRectangle
+        $scrollStateFailures = @()
+        if ($target.Current.IsOffscreen) {
+            $scrollStateFailures += 'offscreen'
+        }
+        if (-not (Test-UiAutomationPositiveRectangleOverlap `
+                -First $settledBounds `
+                -Second $windowBounds)) {
+            $scrollStateFailures += 'viewport_overlap'
+        }
+        if (-not [string]::Equals(
+                [string]$target.Current.Name,
+                $targetName,
+                [System.StringComparison]::Ordinal)) {
+            $scrollStateFailures += 'public_name'
+        }
+        if (-not [string]::Equals(
+                [string]$target.Current.HelpText,
+                $targetHelp,
+                [System.StringComparison]::Ordinal)) {
+            $scrollStateFailures += 'public_help'
+        }
+        if ([int]$target.GetCurrentPropertyValue(
+                [System.Windows.Automation.AutomationElement]::PositionInSetProperty) -ne
+                $targetPosition) {
+            $scrollStateFailures += 'position_in_set'
+        }
+        if ([int]$target.GetCurrentPropertyValue(
+                [System.Windows.Automation.AutomationElement]::SizeOfSetProperty) -ne
+                $targetSetSize) {
+            $scrollStateFailures += 'size_of_set'
+        }
+        if ($SelectionProvider.Current.GetSelection().Count -ne 0) {
+            $scrollStateFailures += 'selection'
+        }
+        if (-not $Refresh.Current.IsEnabled) {
+            $scrollStateFailures += 'refresh_enabled'
+        }
+        if (-not $Refresh.Current.HasKeyboardFocus) {
+            $scrollStateFailures += 'refresh_focus'
+        }
+        if ($SelectBundle.Current.IsEnabled) {
+            $scrollStateFailures += 'bundle_authority'
+        }
+        if ($FlashSelected.Current.IsEnabled) {
+            $scrollStateFailures += 'flash_authority'
+        }
+        if (-not [string]::Equals(
+                [string]$Summary.Current.Name,
+                $readySummaryName,
+                [System.StringComparison]::Ordinal)) {
+            $scrollStateFailures += 'summary'
+        }
+        if ($scrollStateFailures.Count -ne 0) {
+            throw "Packaged ScrollItem changed: $($scrollStateFailures -join ', ')."
+        }
+
+        [void](Assert-UiAutomationDeviceItems `
+            -List $DeviceList `
+            -ExpectedCount $ExpectedCount)
+        Assert-NoPrivateUiAutomationCopy -Window $Window
+        Assert-NoCurrentInspectionErrorPeer `
+            -Window $Window `
+            -Context 'Packaged minimum-window ScrollItem state'
+    }
+    catch {
+        $primaryFailure = $_
+        throw
+    }
+    finally {
+        if ($null -ne $originalVisualState) {
+            try {
+                if ($windowPattern.Current.WindowVisualState -ne
+                    [System.Windows.Automation.WindowVisualState]::Normal) {
+                    $windowPattern.SetWindowVisualState(
+                        [System.Windows.Automation.WindowVisualState]::Normal)
+                    Wait-ForUiAutomationCondition `
+                        -TimeoutMilliseconds 10000 `
+                        -FailureMessage 'The packaged window could not normalize for size restoration.' `
+                        -Condition {
+                            $windowPattern.Current.WindowVisualState -eq
+                                [System.Windows.Automation.WindowVisualState]::Normal
+                        }
+                }
+                if ($null -ne $restoreBounds) {
+                    $restoreTolerance = 4.0
+                    $transformPattern.Resize(
+                        [double]$restoreBounds.Width,
+                        [double]$restoreBounds.Height)
+                    Wait-ForPackagedWindowPixelSize `
+                        -Window $Window `
+                        -ExpectedWidth ([double]$restoreBounds.Width) `
+                        -ExpectedHeight ([double]$restoreBounds.Height) `
+                        -Tolerance $restoreTolerance `
+                        -FailureMessage 'The packaged window did not restore its original normal bounds.'
+                }
+                if ($originalVisualState -ne
+                    [System.Windows.Automation.WindowVisualState]::Normal) {
+                    $windowPattern.SetWindowVisualState($originalVisualState)
+                    Wait-ForUiAutomationCondition `
+                        -TimeoutMilliseconds 10000 `
+                        -FailureMessage 'The packaged window did not restore its original visual state.' `
+                        -Condition {
+                            $windowPattern.Current.WindowVisualState -eq
+                                $originalVisualState
+                        }
+                }
+            }
+            catch {
+                if ($null -eq $primaryFailure) {
+                    throw
+                }
+                try {
+                    $primaryFailure.Exception.Data['WindowRestoreFailure'] =
+                        $_.Exception.Message
+                }
+                catch {
+                    # Preserve the primary acceptance failure even if annotation fails.
+                }
+            }
+        }
+    }
+
+    Wait-ForUiAutomationCondition `
+        -TimeoutMilliseconds 10000 `
+        -FailureMessage 'Refresh focus was not retained after packaged window restoration.' `
+        -Condition { $Refresh.Current.HasKeyboardFocus }
+    if (-not $Refresh.Current.IsEnabled -or
+        $SelectionProvider.Current.GetSelection().Count -ne 0 -or
+        $SelectBundle.Current.IsEnabled -or
+        $FlashSelected.Current.IsEnabled -or
+        -not [string]::Equals(
+            [string]$Summary.Current.Name,
+            $readySummaryName,
+            [System.StringComparison]::Ordinal)) {
+        throw 'Packaged window restoration changed selection, summary, or fail-closed authority.'
+    }
+    [void](Assert-UiAutomationDeviceItems `
+        -List $DeviceList `
+        -ExpectedCount $ExpectedCount)
+    Assert-NoPrivateUiAutomationCopy -Window $Window
+    Assert-NoCurrentInspectionErrorPeer `
+        -Window $Window `
+        -Context 'Restored packaged ready state'
+}
+
 function Invoke-PackagedUiAutomationAcceptance {
     param(
         [Parameter(Mandatory)][System.Diagnostics.Process]$Process,
@@ -691,6 +1128,18 @@ function Invoke-PackagedUiAutomationAcceptance {
         -BundleSummary $bundleSummary `
         -ExpectedCount $ExpectedCount `
         -Context 'Initial packaged heading hierarchy'
+    Assert-NoCurrentInspectionErrorPeer `
+        -Window $window `
+        -Context 'Initial packaged ready state'
+    Invoke-PackagedMinimumWindowScrollAcceptance `
+        -Window $window `
+        -Refresh $refresh `
+        -Summary $summary `
+        -DeviceList $deviceList `
+        -SelectionProvider $selectionProvider `
+        -SelectBundle $selectBundle `
+        -FlashSelected $flashSelected `
+        -ExpectedCount $ExpectedCount
 
     $liveRegionSubscribed = $false
     try {
@@ -718,6 +1167,10 @@ function Invoke-PackagedUiAutomationAcceptance {
                     $selectionProvider.Current.GetSelection().Count -eq 1
             }
             $settledSelectionName = [string]$selectionStatus.Current.Name
+            Assert-NoPrivateUiAutomationCopy -Window $window
+            Assert-NoCurrentInspectionErrorPeer `
+                -Window $window `
+                -Context "Selected packaged state cycle $($cycle + 1)"
             Assert-UiAutomationHeadingSequence `
                 -Window $window `
                 -Summary $summary `
@@ -807,6 +1260,9 @@ function Invoke-PackagedUiAutomationAcceptance {
                 throw "Packaged refresh changed the public device roster in cycle $($cycle + 1)."
             }
             Assert-NoPrivateUiAutomationCopy -Window $window
+            Assert-NoCurrentInspectionErrorPeer `
+                -Window $window `
+                -Context "Refreshed packaged ready state cycle $($cycle + 1)"
             Assert-UiAutomationHeadingSequence `
                 -Window $window `
                 -Summary $summary `

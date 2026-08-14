@@ -510,6 +510,30 @@ misordered, unexpected, stale, empty, or privacy-bearing events fail. The exact
 handler is removed before the owned process closes. This demonstrates native
 event delivery to an assistive client, not Narrator speech or announcement UX.
 
+An independent OT-019AI source-free probe now passes against that retained
+package and the exact public Heltec/SenseCAP/Wio roster. At 96 DPI, UI
+Automation Transform resized the real packaged window to exactly 900 x 620.
+The Wio card began offscreen at x=425, y=1085, width=342, height=635; invoking
+its actual out-of-process `ScrollItem` provider moved it onscreen to x=425,
+y=254 without changing its size. Refresh focus, empty selection, disabled
+bundle/Flash authority, enabled Refresh, and the exact three-found/three-
+runtime-identified/zero-ready summary held. No `inspection-error` peer was
+present before or after, and cleanup left zero owned processes and temporary
+directories.
+
+The first combined integrated assertion then exposed a verifier timing race:
+the client could sample post-refresh state before the complete UI had settled.
+That failure did not establish a product defect. The verifier now waits for the
+complete roster, summary, selection, action, Refresh, and error state before it
+evaluates them. Three consecutive hardened runs—a two-repeat batch and one
+final reviewer-hardened run—each passed exact manifest/hash/capability checks,
+source-free launch, the duplicate-sensitive exact roster, three Refresh cycles,
+minimum-window `ScrollItem`, no-error checks in initial, selected, and every
+refreshed state, privacy, and zero-residue cleanup. The complete
+`tools/Test-Host.ps1` gate and Windows PowerShell 5.1 parse/publication-safety
+checks also pass. OT-019AI is
+accepted for this bounded source-free gate.
+
 Routed keyboard acceptance now starts F5 from the focused last wrapped card.
 Since refresh replaces that item's container, the production window explicitly
 returns focus to Refresh after success and failure (but not during initial

@@ -143,6 +143,22 @@ manifest/hash/extraction/launch verification and three external UI Automation
 cycles against the exact current public roster.
 Injected packaged failure/recovery, Narrator, and clean-machine behavior remain
 separate gates.
+An independent OT-019AI source-free probe now passes against the exact retained
+package and public Heltec/SenseCAP/Wio roster. At 96 DPI it resized the packaged
+window to exactly 900 x 620 and invoked the real Wio-card `ScrollItem`, moving
+that unchanged 342 x 635 card from offscreen at x=425/y=1085 to onscreen at
+x=425/y=254. Refresh focus, empty selection, disabled bundle/Flash authority,
+enabled Refresh, and the exact three-found/three-runtime-identified/zero-ready
+summary held; `inspection-error` was absent before and after, and cleanup left
+zero owned processes/temp directories. A first integrated combined assertion
+then exposed a verifier timing race while post-refresh UI state was still
+settling; it did not establish a product defect. A complete settled-state wait
+fixed the verifier. Three consecutive hardened runs—a two-repeat batch and one
+reviewer-hardened run—then each passed exact package/roster verification, three
+Refresh cycles, minimum-window `ScrollItem`, initial/selected/post-refresh no-
+error checks, privacy, manifest/hash/launch, and zero-residue cleanup. The
+complete `tools/Test-Host.ps1` gate and Windows PowerShell 5.1 parse/
+publication-safety checks pass. OT-019AI is accepted.
 Every candidate result is bound to the current connected-device snapshot. A
 device refresh immediately discards the prior display, invalidates an
 in-flight result, and blocks selection until a new validated snapshot is
