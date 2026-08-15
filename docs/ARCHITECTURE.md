@@ -202,6 +202,25 @@ leases on stop or destroy, including observer-triggered cleanup. The injected
 application-security authority remains deny-all, so this is production-shaped
 UI/lifecycle evidence rather than a successful device connection.
 
+OT-046 defines the device-owned one-phone authorization policy without binding
+a target. A trusted lower BLE bond authority supplies a stable opaque 128-bit
+token that is neither an address, public/client identifier, nor key material.
+One externally serialized authority instance per boot accepts only encrypted,
+authenticated bonds; binds claims to exact boot/session/controller challenges;
+requires an explicit bounded physical claim, revoke, replace, or reset window;
+and persists only through an injected atomic commit-and-exact-readback boundary
+with a rollback-resistant generation floor. Uncertain persistence latches
+closed. Redacted status exposes no token, challenge, or controller binding.
+
+OT-047 adds the Android presentation/controller half of that future workflow.
+The user explicitly chooses authorize-this-phone or replace-lost-phone, then is
+told to operate the physical device within 30 seconds. Only exact device-issued
+Pending, Accepted, Denied, or Replaced events with the matching opaque token,
+purpose, and generation advance UI state. Timeout or malformed/lost result is
+shown as unknown device authority, never as rollback proof. Tokens are bounded
+before buffering and are never displayed or persisted. The production claim
+client remains disabled; there is still no live bond or authorization result.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

@@ -2,7 +2,8 @@
 
 Status: OT-036/OT-038 fake application foundation, the OT-041 lifecycle-safe
 BLE runtime boundary, the OT-043 Android BluetoothGatt facade, and the OT-045
-explicit local-test/Bluetooth UI binding. This directory contains a buildable
+explicit local-test/Bluetooth UI binding, plus the OT-047 host-tested one-phone
+authorization request state/UX. This directory contains a buildable
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -29,9 +30,10 @@ protocol or package identity.
   honors the peer's payload bound, correlates exact session/action fragments,
   confines callbacks/state publication to its creation thread, and owns bounded,
   cancellable negotiation, action-result, and reconnect timers.
-- State observers are notification-only. Synchronous attempts to call back into
-  the runtime are rejected so presentation code cannot interrupt lease setup or
-  orphan scan, GATT, or timer work.
+- State observers are notification-only. Reentrant lifecycle, disconnect, and
+  close controls are bounded and deferred until delivery ends (final close wins);
+  request, selection, and protocol mutations are rejected. Every post-publication
+  scan, GATT, claim, and timer side effect revalidates its generation and lease.
 - `TrailAppLifecycleBinding` is the sole lifecycle owner. It synchronously
   releases scan, GATT, action, negotiation, and reconnect work at lifecycle stop
   and closes the runtime then facade exactly once at destroy. Reentrant lifecycle
@@ -52,6 +54,17 @@ protocol or package identity.
   granted user can explicitly scan and select a compatible advertisement, but
   no connection can reach Ready until the pairing/application-authorization
   authority is accepted and supplied. There is no silent downgrade to fake mode.
+- Bluetooth selection explicitly asks either to authorize this phone or replace
+  a lost phone. A bounded 30-second state machine accepts only an opaque,
+  device-issued claim token and exact authoritative pending, accepted, denied,
+  or replaced result, plus a local expired/uncertain state. Replacement requires the distinct replaced result;
+  the phone cannot invent ownership, and claim tokens are neither displayed nor
+  persisted. Mode changes, permission loss, lifecycle stop, and destroy cancel the
+  claim and suppress stale results.
+- The production authorization-claim adapter remains disabled. The visible
+  physical-control instructions and deterministic injected tests do not prove a
+  button press, bonding, application authorization, phone replacement, or radio
+  continuity on hardware.
 
 The Activity-owned mode controller does not survive Android configuration change
 or process recreation; destruction closes its session and a recreated Activity
@@ -59,9 +72,9 @@ returns to the explicit mode choice. Platform errors map to fixed typed values;
 raw addresses, names, identifiers, status codes, and exception text do not enter
 UI state.
 
-The concrete gap to a first real Ready session is therefore explicit: accept
-and test the screenless-device pairing/application-authorization workflow,
-inject that accepted authority, and run the exact app against device firmware
+The concrete gap to a first real Ready session is therefore explicit: implement
+and test the device-side physical-control claim/result exchange, inject its Android
+claim client and accepted security authority, and run the exact app against device firmware
 that exposes the secured GATT contract and authoritative initial snapshot. The
 current tests validate the pure mode, lifecycle, permission, admission, token,
 GATT-profile, and operation-order boundaries plus compilation/lint; they do not

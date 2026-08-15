@@ -6,6 +6,46 @@ public chronology.
 
 ## 2026-08-15
 
+### OT-047 device-authoritative Android authorization UX
+
+- Added explicit authorize-this-phone and replace-lost-phone flows to Bluetooth
+  mode. The UI instructs the user to operate the physical device within 30
+  seconds and distinguishes Pending, Accepted, authoritative Denied, Replaced,
+  local invalid-result, expired/unknown, and unavailable outcomes.
+- Device-issued opaque claim tokens are bounded before any callback queue,
+  matched to the exact purpose and controller generation, and never displayed
+  or persisted. Timeout or malformed/lost result reports unknown device
+  authority and requires reconnect/resync; it cannot claim rollback.
+- Permission loss, mode switch, lifecycle stop/close, observer re-entry, stale
+  callbacks, queue pressure, and synchronous timer completion release owned
+  leases. If injected claim cleanup throws, the attempt is contained and local
+  claim authority plus timer/runtime ownership still close independently. The
+  production claim client remains disabled, so no bonding or live authorization
+  occurs.
+- The exact gate passes 66 JVM tests and lint. The 9,611,441-byte debug APK has
+  SHA-256
+  `3EB3986BD17F3DFC918936CF8978E44A36089E38D9CDCD877336BB9A16024C44`.
+  No phone, emulator, ADB, BLE peripheral, or LoRa device was accessed; V1
+  remains 30%.
+
+### OT-046 one-phone authorization authority
+
+- Added a fixed-memory, target-neutral device authority for one bonded phone.
+  A trusted lower layer supplies a stable opaque 128-bit bond token that cannot
+  be an address, public/client identifier, client value, or cryptographic key.
+- Encrypted authenticated claims bind exact boot, strictly increasing session,
+  and private controller challenges. Explicit physical claim, revoke, replace,
+  and reset windows expire after 30 seconds and reject replay, clock rollback,
+  invalid actions, a second controller, and stale sessions.
+- An injected backend owns atomic compare/commit/exact-readback plus a rollback-
+  resistant generation floor. Failed commit guarantees no durable change;
+  uncertain/conflicted/rollback evidence latches closed. Status/results are
+  redacted.
+- Sixteen strict groups, 100/100 repeats, and the complete 118-executable host
+  matrix pass. This is host-only, target-neutral, not build-linked, and has no
+  BLE bond-store, persistence, physical-input, target, or device evidence; V1
+  remains 30%.
+
 ### OT-045 explicit Android Bluetooth mode and lifecycle wiring
 
 - Replaced the fake-only entry point with an explicit choice between Local test

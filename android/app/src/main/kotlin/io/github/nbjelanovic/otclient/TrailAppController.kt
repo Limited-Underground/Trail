@@ -27,6 +27,7 @@ sealed interface TrailAppUiState {
         val permissionState: NearbyDevicesPermissionState,
         val permissionRequestInFlight: Boolean,
         val permissionWasDenied: Boolean,
+        val authorizationState: DeviceAuthorizationUiState,
     ) : TrailAppUiState
 }
 
@@ -38,6 +39,8 @@ class TrailAppController(
     private val localController: CompanionAppController,
     private val bluetoothRuntime: BleCompanionRuntime,
     private val permissionReader: NearbyDevicesPermissionReader,
+    private val authorizationClient: DeviceAuthorizationClaimClient,
+    private val authorizationScheduler: BleRuntimeScheduler,
     private val threadVerifier: BleRuntimeThreadVerifier = CreationThreadBleRuntimeVerifier(),
     private val bluetoothFacadeCloseable: AutoCloseable? = null,
 ) : AutoCloseable {
@@ -53,6 +56,41 @@ class TrailAppController(
     private var closed = false
     private var deferredLifecycleActive: Boolean? = null
     private var closeDeferred = false
+    private var authorizationState: DeviceAuthorizationUiState = DeviceAuthorizationUiState.None
+    private var authorizationGeneration = 0L
+    private var activeAuthorizationGeneration = 0L
+    private var authorizationClaimToken: String? = null
+    private var authorizationLease: DeviceAuthorizationClaimLease? = null
+    private var authorizationTimeoutLease: BleReconnectLease? = null
+    private var authorizationCallbackArmed = false
+    private val deferredAuthorizationEvents = ArrayDeque<DeviceAuthorizationClaimEvent>()
+    private var deferredAuthorizationOverflow = false
+    private var deferredAuthorizationInvalidResult = false
+    private val deferredAuthorizationCallbacks = ArrayDeque<DeferredAuthorizationCallback>()
+
+    private sealed interface DeferredAuthorizationCallback {
+        data class Event(
+            val generation: Long,
+            val candidate: BleDiscoveredCompanion,
+            val purpose: DeviceAuthorizationPurpose,
+            val event: DeviceAuthorizationClaimEvent,
+        ) : DeferredAuthorizationCallback
+
+        data class Expired(
+            val generation: Long,
+            val purpose: DeviceAuthorizationPurpose,
+        ) : DeferredAuthorizationCallback
+
+        data class InvalidResult(
+            val generation: Long,
+            val purpose: DeviceAuthorizationPurpose,
+        ) : DeferredAuthorizationCallback
+
+        data class Overflow(
+            val generation: Long,
+            val purpose: DeviceAuthorizationPurpose,
+        ) : DeferredAuthorizationCallback
+    }
 
     init {
         requireOwnerThread()
@@ -74,6 +112,7 @@ class TrailAppController(
         if (!canMutate()) return
         mode = TrailConnectionMode.LOCAL_TEST
         permissionRequestInFlight = false
+        releaseAuthorization(DeviceAuthorizationUiState.None)
         bluetoothRuntime.disconnect()
         publish(TrailAppUiState.LocalTest(localController.state))
     }
@@ -83,6 +122,7 @@ class TrailAppController(
         if (!canMutate()) return
         mode = TrailConnectionMode.BLUETOOTH_DEVICE
         releaseLocalSession()
+        releaseAuthorization(DeviceAuthorizationUiState.None)
         bluetoothRuntime.disconnect()
         refreshPermissionState()
         publishBluetooth()
@@ -94,6 +134,7 @@ class TrailAppController(
         mode = null
         permissionRequestInFlight = false
         releaseLocalSession()
+        releaseAuthorization(DeviceAuthorizationUiState.None)
         bluetoothRuntime.disconnect()
         publish(TrailAppUiState.ChooseMode)
     }
@@ -150,7 +191,10 @@ class TrailAppController(
         val current = permissionReader.current()
         permissionWasDenied = current != NearbyDevicesPermissionState.GRANTED
         permissionState = current
-        if (current != NearbyDevicesPermissionState.GRANTED) bluetoothRuntime.disconnect()
+        if (current != NearbyDevicesPermissionState.GRANTED) {
+            expirePendingAuthorization()
+            bluetoothRuntime.disconnect()
+        }
         publishBluetooth()
     }
 
@@ -166,6 +210,7 @@ class TrailAppController(
             previous == NearbyDevicesPermissionState.GRANTED &&
             current != NearbyDevicesPermissionState.GRANTED
         ) {
+            expirePendingAuthorization()
             bluetoothRuntime.disconnect()
         }
         if (current == NearbyDevicesPermissionState.GRANTED) permissionWasDenied = false
@@ -179,17 +224,28 @@ class TrailAppController(
             canMutate() &&
             !permissionRequestInFlight &&
             permissionState == NearbyDevicesPermissionState.GRANTED
-        ) bluetoothRuntime.requestScan()
+        ) {
+            releaseAuthorization(DeviceAuthorizationUiState.None)
+            bluetoothRuntime.requestScan()
+        }
     }
 
     fun selectBluetoothDevice(endpointToken: String) {
         requireOwnerThread()
-        if (mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate()) bluetoothRuntime.select(endpointToken)
+        beginDeviceAuthorization(endpointToken, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+    }
+
+    fun replaceLostPhoneWithBluetoothDevice(endpointToken: String) {
+        requireOwnerThread()
+        beginDeviceAuthorization(endpointToken, DeviceAuthorizationPurpose.REPLACE_LOST_PHONE)
     }
 
     fun disconnectBluetoothDevice() {
         requireOwnerThread()
-        if (mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate()) bluetoothRuntime.disconnect()
+        if (mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate()) {
+            releaseAuthorization(DeviceAuthorizationUiState.None)
+            bluetoothRuntime.disconnect()
+        }
     }
 
     fun submitBluetoothAction(request: CompanionActionRequest): Boolean {
@@ -213,6 +269,7 @@ class TrailAppController(
         if (deliveringObserver) {
             deferredLifecycleActive = false
         } else {
+            expirePendingAuthorization()
             bluetoothRuntime.onLifecycleStop()
         }
     }
@@ -235,6 +292,7 @@ class TrailAppController(
         deferredLifecycleActive = null
         closeDeferred = false
         releaseLocalSession()
+        releaseAuthorization(DeviceAuthorizationUiState.None)
         localController.observe(null)
         bluetoothRuntime.observe(null)
         observer = null
@@ -259,6 +317,7 @@ class TrailAppController(
                 permissionState = permissionState,
                 permissionRequestInFlight = permissionRequestInFlight,
                 permissionWasDenied = permissionWasDenied,
+                authorizationState = authorizationState,
             ),
         )
     }
@@ -287,6 +346,7 @@ class TrailAppController(
         } finally {
             deliveringObserver = false
             drainDeferredLifecycle()
+            drainDeferredAuthorizationCallbacks()
         }
     }
 
@@ -306,8 +366,348 @@ class TrailAppController(
         deferredLifecycleActive = null
         when (requestedLifecycleState) {
             true -> bluetoothRuntime.onLifecycleStart()
-            false -> bluetoothRuntime.onLifecycleStop()
+            false -> {
+                expirePendingAuthorization()
+                bluetoothRuntime.onLifecycleStop()
+            }
             null -> Unit
         }
     }
+
+    private fun beginDeviceAuthorization(endpointToken: String, purpose: DeviceAuthorizationPurpose) {
+        if (
+            mode != TrailConnectionMode.BLUETOOTH_DEVICE ||
+            !canMutate() ||
+            permissionState != NearbyDevicesPermissionState.GRANTED
+        ) return
+        val candidate = bluetoothRuntime.beginAuthorization(endpointToken) ?: return
+        releaseAuthorization(DeviceAuthorizationUiState.None, endRuntimeAuthorization = false)
+        val generation = nextAuthorizationGeneration()
+        if (generation == null) {
+            bluetoothRuntime.authorizationEnded()
+            authorizationState = DeviceAuthorizationUiState.Unavailable(purpose)
+            publishBluetooth()
+            return
+        }
+        activeAuthorizationGeneration = generation
+        authorizationState = DeviceAuthorizationUiState.Starting(candidate, purpose)
+        authorizationCallbackArmed = false
+        deferredAuthorizationEvents.clear()
+        deferredAuthorizationOverflow = false
+        deferredAuthorizationInvalidResult = false
+        publishBluetooth()
+        if (!canContinueAuthorizationStart(generation, candidate, purpose)) return
+        val lease = try {
+            authorizationClient.createClaim(candidate.endpointToken, purpose) { event ->
+                onAuthorizationEvent(generation, candidate, purpose, event)
+            }
+        } catch (_: Exception) {
+            null
+        }
+        if (lease == null) {
+            finishAuthorizationUnavailable(purpose)
+            return
+        }
+        if (!canContinueAuthorizationStart(generation, candidate, purpose)) {
+            try {
+                lease.close()
+            } catch (_: Exception) {
+                // The injected adapter cannot retain controller authority by failing cleanup.
+            }
+            return
+        }
+        authorizationLease = lease
+        val started = try {
+            lease.start()
+        } catch (_: Exception) {
+            false
+        }
+        if (!started) {
+            finishAuthorizationUnavailable(purpose)
+            return
+        }
+        if (deferredAuthorizationOverflow || deferredAuthorizationInvalidResult) {
+            finishAuthorizationInvalidResult(purpose)
+            return
+        }
+        if (!canContinueAuthorizationStart(generation, candidate, purpose)) {
+            finishAuthorizationLease()
+            return
+        }
+        authorizationCallbackArmed = true
+        while (deferredAuthorizationEvents.isNotEmpty() && activeAuthorizationGeneration == generation) {
+            processAuthorizationEvent(generation, candidate, purpose, deferredAuthorizationEvents.removeFirst())
+        }
+        if (
+            activeAuthorizationGeneration == generation &&
+            (authorizationState is DeviceAuthorizationUiState.Starting ||
+                authorizationState is DeviceAuthorizationUiState.Pending)
+        ) {
+            val timeoutLease = try {
+                authorizationScheduler.schedule(DEVICE_AUTHORIZATION_CLAIM_TIMEOUT_MILLIS) {
+                    onAuthorizationExpired(generation, purpose)
+                }
+            } catch (_: Exception) {
+                finishAuthorizationUnavailable(purpose)
+                null
+            }
+            if (
+                timeoutLease != null &&
+                !closed &&
+                activeAuthorizationGeneration == generation &&
+                (authorizationState is DeviceAuthorizationUiState.Starting ||
+                    authorizationState is DeviceAuthorizationUiState.Pending)
+            ) {
+                authorizationTimeoutLease = timeoutLease
+            } else {
+                try {
+                    timeoutLease?.close()
+                } catch (_: Exception) {
+                    // The timer no longer has authority even if its adapter reports cleanup failure.
+                }
+            }
+        }
+    }
+
+    private fun onAuthorizationEvent(
+        generation: Long,
+        candidate: BleDiscoveredCompanion,
+        purpose: DeviceAuthorizationPurpose,
+        event: DeviceAuthorizationClaimEvent,
+    ) {
+        requireOwnerThread()
+        if (closed || generation != activeAuthorizationGeneration) return
+        if (!validAuthorizationToken(event.claimToken)) {
+            if (deliveringObserver) {
+                deferAuthorizationCallback(
+                    DeferredAuthorizationCallback.InvalidResult(generation, purpose),
+                    generation,
+                    purpose,
+                )
+            } else if (!authorizationCallbackArmed) {
+                deferredAuthorizationInvalidResult = true
+            } else {
+                finishAuthorizationInvalidResult(purpose)
+            }
+            return
+        }
+        if (deliveringObserver) {
+            deferAuthorizationCallback(
+                DeferredAuthorizationCallback.Event(generation, candidate, purpose, event),
+                generation,
+                purpose,
+            )
+            return
+        }
+        if (!authorizationCallbackArmed) {
+            if (deferredAuthorizationEvents.size >= 4) {
+                deferredAuthorizationOverflow = true
+            } else {
+                deferredAuthorizationEvents.addLast(event)
+            }
+            return
+        }
+        processAuthorizationEvent(generation, candidate, purpose, event)
+    }
+
+    private fun processAuthorizationEvent(
+        generation: Long,
+        candidate: BleDiscoveredCompanion,
+        purpose: DeviceAuthorizationPurpose,
+        event: DeviceAuthorizationClaimEvent,
+    ) {
+        if (closed || mode != TrailConnectionMode.BLUETOOTH_DEVICE || generation != activeAuthorizationGeneration) return
+        when (event) {
+            is DeviceAuthorizationClaimEvent.Pending -> {
+                val token = event.claimToken
+                val current = authorizationState
+                if (!validAuthorizationToken(token)) {
+                    finishAuthorizationInvalidResult(purpose)
+                } else if (current is DeviceAuthorizationUiState.Starting) {
+                    authorizationClaimToken = token
+                    authorizationState = DeviceAuthorizationUiState.Pending(candidate, purpose)
+                    publishBluetooth()
+                } else if (current !is DeviceAuthorizationUiState.Pending || authorizationClaimToken != token) {
+                    finishAuthorizationInvalidResult(purpose)
+                }
+            }
+            is DeviceAuthorizationClaimEvent.Accepted -> {
+                if (
+                    purpose != DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE ||
+                    !matchesActiveAuthorizationToken(event.claimToken)
+                ) {
+                    finishAuthorizationInvalidResult(purpose)
+                    return
+                }
+                finishAuthorizationLease()
+                authorizationState = DeviceAuthorizationUiState.Accepted(candidate, purpose)
+                if (!bluetoothRuntime.authorizationAccepted(candidate.endpointToken)) publishBluetooth()
+            }
+            is DeviceAuthorizationClaimEvent.Denied -> {
+                if (!matchesActiveAuthorizationToken(event.claimToken)) {
+                    finishAuthorizationInvalidResult(purpose)
+                    return
+                }
+                finishAuthorizationDenied(purpose)
+            }
+            is DeviceAuthorizationClaimEvent.Replaced -> {
+                if (
+                    purpose != DeviceAuthorizationPurpose.REPLACE_LOST_PHONE ||
+                    !matchesActiveAuthorizationToken(event.claimToken)
+                ) {
+                    finishAuthorizationInvalidResult(purpose)
+                    return
+                }
+                finishAuthorizationLease()
+                authorizationState = DeviceAuthorizationUiState.Replaced(candidate)
+                if (!bluetoothRuntime.authorizationAccepted(candidate.endpointToken)) publishBluetooth()
+            }
+        }
+    }
+
+    private fun onAuthorizationExpired(generation: Long, purpose: DeviceAuthorizationPurpose) {
+        requireOwnerThread()
+        if (closed || generation != activeAuthorizationGeneration) return
+        if (deliveringObserver) {
+            deferAuthorizationCallback(
+                DeferredAuthorizationCallback.Expired(generation, purpose),
+                generation,
+                purpose,
+            )
+            return
+        }
+        finishAuthorizationLease()
+        authorizationState = DeviceAuthorizationUiState.Expired(purpose)
+        bluetoothRuntime.authorizationEnded()
+    }
+
+    private fun finishAuthorizationDenied(purpose: DeviceAuthorizationPurpose) {
+        finishAuthorizationLease()
+        authorizationState = DeviceAuthorizationUiState.Denied(purpose)
+        bluetoothRuntime.authorizationEnded()
+    }
+
+    private fun finishAuthorizationInvalidResult(purpose: DeviceAuthorizationPurpose) {
+        finishAuthorizationLease()
+        authorizationState = DeviceAuthorizationUiState.InvalidResult(purpose)
+        bluetoothRuntime.authorizationEnded()
+    }
+
+    private fun finishAuthorizationUnavailable(purpose: DeviceAuthorizationPurpose) {
+        finishAuthorizationLease()
+        authorizationState = DeviceAuthorizationUiState.Unavailable(purpose)
+        bluetoothRuntime.authorizationEnded()
+    }
+
+    private fun finishAuthorizationLease() {
+        activeAuthorizationGeneration = 0
+        authorizationClaimToken = null
+        authorizationCallbackArmed = false
+        deferredAuthorizationEvents.clear()
+        deferredAuthorizationOverflow = false
+        deferredAuthorizationInvalidResult = false
+        deferredAuthorizationCallbacks.clear()
+        val claim = authorizationLease
+        authorizationLease = null
+        val timeout = authorizationTimeoutLease
+        authorizationTimeoutLease = null
+        try {
+            claim?.close()
+        } catch (_: Exception) {
+            // Continue releasing the independently owned timer and runtime authorization state.
+        }
+        try {
+            timeout?.close()
+        } catch (_: Exception) {
+            // Local authority is already invalidated before cleanup is attempted.
+        }
+    }
+
+    private fun deferAuthorizationCallback(
+        callback: DeferredAuthorizationCallback,
+        generation: Long,
+        purpose: DeviceAuthorizationPurpose,
+    ) {
+        if (deferredAuthorizationCallbacks.size >= 8) {
+            deferredAuthorizationCallbacks.clear()
+            deferredAuthorizationCallbacks.addLast(DeferredAuthorizationCallback.Overflow(generation, purpose))
+        } else {
+            deferredAuthorizationCallbacks.addLast(callback)
+        }
+    }
+
+    private fun drainDeferredAuthorizationCallbacks() {
+        if (deliveringObserver || closed) return
+        while (!deliveringObserver && !closed && deferredAuthorizationCallbacks.isNotEmpty()) {
+            when (val callback = deferredAuthorizationCallbacks.removeFirst()) {
+                is DeferredAuthorizationCallback.Event -> onAuthorizationEvent(
+                    callback.generation,
+                    callback.candidate,
+                    callback.purpose,
+                    callback.event,
+                )
+                is DeferredAuthorizationCallback.Expired -> onAuthorizationExpired(
+                    callback.generation,
+                    callback.purpose,
+                )
+                is DeferredAuthorizationCallback.InvalidResult -> {
+                    if (callback.generation == activeAuthorizationGeneration) {
+                        finishAuthorizationInvalidResult(callback.purpose)
+                    }
+                }
+                is DeferredAuthorizationCallback.Overflow -> {
+                    if (callback.generation == activeAuthorizationGeneration) {
+                        finishAuthorizationInvalidResult(callback.purpose)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun expirePendingAuthorization() {
+        val pending = authorizationState
+        if (pending is DeviceAuthorizationUiState.Starting || pending is DeviceAuthorizationUiState.Pending) {
+            val purpose = when (pending) {
+                is DeviceAuthorizationUiState.Starting -> pending.purpose
+                is DeviceAuthorizationUiState.Pending -> pending.purpose
+                else -> return
+            }
+            finishAuthorizationLease()
+            authorizationState = DeviceAuthorizationUiState.Expired(purpose)
+            bluetoothRuntime.authorizationEnded()
+        }
+    }
+
+    private fun releaseAuthorization(
+        next: DeviceAuthorizationUiState,
+        endRuntimeAuthorization: Boolean = true,
+    ) {
+        finishAuthorizationLease()
+        authorizationState = next
+        if (endRuntimeAuthorization) bluetoothRuntime.authorizationEnded()
+    }
+
+    private fun nextAuthorizationGeneration(): Long? {
+        if (authorizationGeneration == Long.MAX_VALUE) return null
+        authorizationGeneration += 1
+        return authorizationGeneration
+    }
+
+    private fun validAuthorizationToken(token: String): Boolean =
+        token.isNotBlank() && token.length <= MAX_DEVICE_AUTHORIZATION_TOKEN_CHARS
+
+    private fun canContinueAuthorizationStart(
+        generation: Long,
+        candidate: BleDiscoveredCompanion,
+        purpose: DeviceAuthorizationPurpose,
+    ): Boolean =
+        !closed &&
+            mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            activeAuthorizationGeneration == generation &&
+            authorizationState == DeviceAuthorizationUiState.Starting(candidate, purpose) &&
+            (bluetoothRuntime.state as? BleRuntimeState.AwaitingAuthorization)?.companion?.endpointToken ==
+            candidate.endpointToken
+
+    private fun matchesActiveAuthorizationToken(token: String): Boolean =
+        validAuthorizationToken(token) && token == authorizationClaimToken
 }

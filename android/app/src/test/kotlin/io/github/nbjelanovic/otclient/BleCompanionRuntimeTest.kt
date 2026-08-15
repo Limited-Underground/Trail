@@ -87,7 +87,7 @@ class BleCompanionRuntimeTest {
     fun selectionMustMatchCurrentScanAndNegotiationRunsInAcceptedOrder() {
         val fixture = Fixture()
         fixture.startScanWithCandidate()
-        fixture.runtime.select("not-discovered")
+        assertEquals(null, fixture.runtime.beginAuthorization("not-discovered"))
         assertEquals(0, fixture.facade.connections.size)
 
         val gatt = fixture.selectAndGatt()
@@ -401,28 +401,31 @@ class BleCompanionRuntimeTest {
         runtime.requestScan()
         val scan = facade.scans.single()
         assertTrue(scanCancellationAttempted)
-        assertTrue(scan.started)
-        assertFalse(scan.closed)
-        assertTrue(assertIs<BleRuntimeState.Scanning>(runtime.state).candidates.isEmpty())
-        scan.emit(BleScanEvent.Candidate(CANDIDATE))
+        assertFalse(scan.started)
+        assertTrue(scan.closed)
+        assertIs<BleRuntimeState.Closed>(runtime.state)
 
+        val connectionFacade = TestBluetoothFacade()
+        val connectionRuntime = BleCompanionRuntime(connectionFacade, TestRuntimeScheduler())
+        connectionRuntime.onLifecycleStart()
+        connectionRuntime.requestScan()
+        val connectionScan = connectionFacade.scans.single()
+        connectionScan.emit(BleScanEvent.Candidate(CANDIDATE))
         var connectionCancellationAttempted = false
-        runtime.observe { state ->
+        connectionRuntime.observe { state ->
             if (state is BleRuntimeState.Connecting && !connectionCancellationAttempted) {
                 connectionCancellationAttempted = true
-                runtime.disconnect()
-                runtime.close()
+                connectionRuntime.disconnect()
+                connectionRuntime.close()
             }
         }
-        runtime.select(CANDIDATE.endpointToken)
-        val gatt = facade.connections.single()
+        assertEquals(CANDIDATE, connectionRuntime.beginAuthorization(CANDIDATE.endpointToken))
+        assertTrue(connectionRuntime.authorizationAccepted(CANDIDATE.endpointToken))
+        val gatt = connectionFacade.connections.single()
         assertTrue(connectionCancellationAttempted)
-        assertTrue(gatt.started)
-        assertFalse(gatt.closed)
-
-        runtime.onLifecycleStop()
+        assertFalse(gatt.started)
         assertTrue(gatt.closed)
-        assertIs<BleRuntimeState.Inactive>(runtime.state)
+        assertIs<BleRuntimeState.Closed>(connectionRuntime.state)
     }
 
     @Test
@@ -487,7 +490,8 @@ class BleCompanionRuntimeTest {
         }
 
         fun selectAndGatt(): TestGattLease {
-            runtime.select(CANDIDATE.endpointToken)
+            assertEquals(CANDIDATE, runtime.beginAuthorization(CANDIDATE.endpointToken))
+            assertTrue(runtime.authorizationAccepted(CANDIDATE.endpointToken))
             return facade.connections.last()
         }
 

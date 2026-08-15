@@ -302,6 +302,34 @@ successful live Ready state, phone/device/emulator/ADB/BLE access, install,
 signing, or field evidence exists. OT-044 and OT-045 are bounded `done`
 increments; OT-034 remains `partial` and V1 remains 30%.
 
+OT-046 supplies the host-tested one-phone authorization policy that the live
+GATT path still lacks. A trusted bond authority must provide a stable opaque
+128-bit token that is never an address, public/client identifier, client value,
+or key. One externally serialized authority instance per boot binds encrypted,
+authenticated claims to exact boot, monotonic session, and private controller
+challenges; admits one active controller; and requires an explicit 30-second
+physical claim, revoke, replace, or reset window. Its injected persistence
+backend must atomically compare, commit, advance a trusted generation floor,
+and read back the exact record. Failure, uncertainty, conflict, rollback,
+exhaustion, replay, clock rollback, invalid actions, and callback re-entry fail
+closed. Sixteen strict groups, 100/100 repeats, and the complete 118-executable
+host matrix pass. This authority is not build-linked and has no BLE bond-store,
+persistence, physical-input, target, or device evidence.
+
+OT-047 adds the device-authoritative phone-claim presentation without enabling
+live claims. Android Bluetooth mode explicitly offers authorize-this-phone and
+replace-lost-phone, instructs physical device action within 30 seconds, and
+accepts only bounded device-issued Pending/Accepted/Denied/Replaced events with
+exact token, purpose, and generation correlation. Timeout, malformed, or lost
+results display unknown device authority and require reconnect/resync; the app
+never invents rollback. Lifecycle, permission, mode-switch, callback re-entry,
+queue, timer, and cleanup races fail closed. The combined Android gate passes
+66 tests and lint; the 9,611,441-byte debug APK has SHA-256
+`3EB3986BD17F3DFC918936CF8978E44A36089E38D9CDCD877336BB9A16024C44`.
+The production claim client is disabled; no live bond, phone/device/emulator/
+ADB/BLE access, install, signing, or field evidence exists. OT-046 and OT-047
+are bounded `done` increments; OT-034 remains `partial` and V1 remains 30%.
+
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins
 ESP-IDF v6.0.2 and the `esp32s3` compiler target while marking the received

@@ -1,13 +1,14 @@
 # Android client foundation v0
 
 Status: OT-036 build/test foundation, OT-038 semantic parity, OT-041
-lifecycle-safe BLE runtime boundary, OT-043 Android 12+ platform facade, and
-OT-045 explicit Bluetooth-mode/lifecycle UI wiring, 2026-08-15.
+lifecycle-safe BLE runtime boundary, OT-043 Android 12+ platform facade,
+OT-045 explicit Bluetooth-mode/lifecycle UI wiring, and OT-047 disabled
+device-authorization UX, 2026-08-15.
 This is not live BLE or physical-device evidence.
 
 ## Accepted boundary
 
-The accepted Android foundation has five layers:
+The accepted Android foundation has six layers:
 
 1. A pure Kotlin, brand-neutral `OTB0/v0` and `OTC0/v0` codec that mirrors the
    fixed C++ bounds and consumes shared golden vectors.
@@ -21,6 +22,9 @@ The accepted Android foundation has five layers:
 5. An explicit Local test versus Bluetooth-device mode controller and Compose
    surface. Bluetooth mode owns permission request/settings recovery and
    scan/select/connect/disconnect without silently falling back to Local test.
+6. A disabled-by-default device-authorization claim seam and UI for authorize-
+   this-phone or replace-lost-phone. Only exact bounded device results can
+   advance state; timeout and invalid/lost results remain explicitly uncertain.
 
 The visible working identity is `Limited Underground Trail`. Stable technical
 package/application identifiers do not contain that provisional product name.
@@ -73,13 +77,21 @@ values are deterministic test state only.
   runtime-to-facade final closure, late permission callbacks, and mode changes
   while scanning, connecting, or Ready. Cleanup requested during an observer
   callback is deferred and drained; close wins over queued transitions.
+- OT-047 bounds opaque claim tokens at ingress, correlates exact purpose/token/
+  generation, and separates authoritative Denied/Accepted/Replaced from local
+  invalid-result and expired/unknown state. Claim cleanup is attempted on
+  lifecycle stop, permission loss, mode switch, timeout, observer re-entry, or
+  controller close; if an injected claim close throws, local claim authority and
+  timer/runtime ownership still close independently. No token enters display,
+  persistence, or public error copy.
 
 ## Deliberate exclusions and next gate
 
 The visible application now owns a production-shaped Bluetooth path and a
-separate explicit fake path. The injected production application-authorization
-authority remains deny-all, so Bluetooth cannot reach Ready. An accepted
-physical authorization/revocation workflow, configuration/process recreation,
+separate explicit fake path. Its production claim client remains disabled, so
+Bluetooth cannot complete phone authorization. A target-bound trusted bond
+identity, physical authorization/revocation input, durable owner store,
+configuration/process recreation,
 background policy, and physical one-phone/one-device evidence remain later work
 under the accepted BLE GATT contract.
 
@@ -87,9 +99,9 @@ The current semantic workflow covers only typed status, four fixed quick
 statuses, exact pending-alert acknowledgement, and position-sharing Start/Stop.
 Message/history, peer position, group provisioning, and real device authority
 remain absent. The Android client cannot claim a functional field workflow
-until the lifecycle-safe runtime and concrete facade are wired to an accepted
-security authority and UI, the target exposes a real secured GATT service, and
-physical two-device evidence passes independently.
+until accepted live bond/application-authorization adapters replace the disabled
+claim seam, the target exposes a real secured GATT service, and physical two-
+device evidence passes independently.
 
 ## Local build evidence
 
@@ -104,10 +116,10 @@ All environment changes were process-scoped; no global PATH was changed.
 
 The current focused gate passes six envelope tests, ten semantic tests, six
 Android-platform-policy tests, 17 BLE-runtime tests, eleven fake application-
-state tests, and nine mode/lifecycle tests,
+state tests, and sixteen mode/authorization/lifecycle tests,
 warning-as-error Android lint with no reported issue, and debug APK assembly.
-The exact isolated local debug APK was 9,595,057 bytes with SHA-256
-`0CCD4DECAAAE712A587DB97BC744B515E97008532FAA834BBF3D7BE4C715D76C`.
+The exact isolated local debug APK was 9,611,441 bytes with SHA-256
+`3EB3986BD17F3DFC918936CF8978E44A36089E38D9CDCD877336BB9A16024C44`.
 `aapt` confirms package `io.github.nbjelanovic.otclient`, min SDK 26, target SDK
 35, the expected visible label, optional BLE hardware, Scan with
 `neverForLocation`, Connect, and no location, internet, storage, or management

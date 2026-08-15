@@ -169,6 +169,7 @@ sealed interface BleRuntimeState {
     data object Idle : BleRuntimeState
     data class Blocked(val reason: BleRuntimeBlock) : BleRuntimeState
     data class Scanning(val candidates: List<BleDiscoveredCompanion>) : BleRuntimeState
+    data class AwaitingAuthorization(val companion: BleDiscoveredCompanion) : BleRuntimeState
     data class Connecting(val companion: BleDiscoveredCompanion) : BleRuntimeState
     data class Negotiating(
         val companion: BleDiscoveredCompanion,
@@ -207,6 +208,7 @@ class BleCompanionRuntime(
 
     private var observer: ((BleRuntimeState) -> Unit)? = null
     private var deliveringObserver = false
+    private val deferredControlActions = ArrayDeque<DeferredRuntimeControl>()
     private var lifecycleActive = false
     private var closed = false
     private var generation = 0L
@@ -223,8 +225,12 @@ class BleCompanionRuntime(
     private var nextRequestId = firstRequestId
     private var pendingAction: PendingAction? = null
     private data class PendingAction(val exchangeId: Long, val request: CompanionActionRequest)
+    private enum class DeferredRuntimeControl { START, STOP, DISCONNECT, CLOSE }
 
-    /** State callbacks are notification-only; reentrant runtime mutations are rejected. */
+    /**
+     * State callbacks are notification-only. Reentrant lifecycle/disconnect/close controls are
+     * bounded and deferred (close wins); request, selection, and protocol mutations are rejected.
+     */
     fun observe(observer: ((BleRuntimeState) -> Unit)?) {
         requireOwnerThread()
         if (deliveringObserver) return
@@ -235,7 +241,14 @@ class BleCompanionRuntime(
     @Synchronized
     fun onLifecycleStart() {
         requireOwnerThread()
-        if (deliveringObserver) return
+        if (deliveringObserver) {
+            deferControl(DeferredRuntimeControl.START)
+            return
+        }
+        startNow()
+    }
+
+    private fun startNow() {
         if (closed || lifecycleActive) return
         lifecycleActive = true
         val remembered = selected
@@ -249,7 +262,14 @@ class BleCompanionRuntime(
     @Synchronized
     fun onLifecycleStop() {
         requireOwnerThread()
-        if (deliveringObserver) return
+        if (deliveringObserver) {
+            deferControl(DeferredRuntimeControl.STOP)
+            return
+        }
+        stopNow()
+    }
+
+    private fun stopNow() {
         if (closed || !lifecycleActive) return
         lifecycleActive = false
         invalidateAndRelease()
@@ -278,6 +298,7 @@ class BleCompanionRuntime(
         }
         scanLease = lease
         publish(BleRuntimeState.Scanning(emptyList()))
+        if (!accepts(callbackGeneration) || scanLease !== lease || state !is BleRuntimeState.Scanning) return
         if (!lease.start()) {
             lease.close()
             if (scanLease === lease) scanLease = null
@@ -288,23 +309,50 @@ class BleCompanionRuntime(
     }
 
     @Synchronized
-    fun select(endpointToken: String) {
+    fun beginAuthorization(endpointToken: String): BleDiscoveredCompanion? {
         requireOwnerThread()
-        if (deliveringObserver) return
-        if (!lifecycleActive || closed) return
-        val scanning = state as? BleRuntimeState.Scanning ?: return
-        val candidate = scanning.candidates.singleOrNull { it.endpointToken == endpointToken } ?: return
-        selected = candidate
+        if (deliveringObserver || !lifecycleActive || closed) return null
+        val scanning = state as? BleRuntimeState.Scanning ?: return null
+        val candidate = scanning.candidates.singleOrNull { it.endpointToken == endpointToken } ?: return null
+        selected = null
         reconnectAttempt = 0
         scanLease?.close()
         scanLease = null
-        beginConnection(candidate, isReconnect = false)
+        publish(BleRuntimeState.AwaitingAuthorization(candidate))
+        return candidate.copy()
+    }
+
+    fun authorizationAccepted(endpointToken: String): Boolean {
+        requireOwnerThread()
+        if (deliveringObserver || !lifecycleActive || closed) return false
+        val awaiting = state as? BleRuntimeState.AwaitingAuthorization ?: return false
+        if (awaiting.companion.endpointToken != endpointToken) return false
+        selected = awaiting.companion
+        reconnectAttempt = 0
+        beginConnection(awaiting.companion, isReconnect = false)
+        return true
+    }
+
+    fun authorizationEnded() {
+        requireOwnerThread()
+        if (deliveringObserver || closed || state !is BleRuntimeState.AwaitingAuthorization) return
+        selected = null
+        reconnectAttempt = 0
+        invalidateAndRelease()
+        publish(if (lifecycleActive) BleRuntimeState.Idle else BleRuntimeState.Inactive)
     }
 
     @Synchronized
     fun disconnect() {
         requireOwnerThread()
-        if (deliveringObserver) return
+        if (deliveringObserver) {
+            deferControl(DeferredRuntimeControl.DISCONNECT)
+            return
+        }
+        disconnectNow()
+    }
+
+    private fun disconnectNow() {
         if (closed) return
         selected = null
         reconnectAttempt = 0
@@ -355,7 +403,14 @@ class BleCompanionRuntime(
     @Synchronized
     override fun close() {
         requireOwnerThread()
-        if (deliveringObserver) return
+        if (deliveringObserver) {
+            deferControl(DeferredRuntimeControl.CLOSE)
+            return
+        }
+        closeNow()
+    }
+
+    private fun closeNow() {
         if (closed) return
         closed = true
         lifecycleActive = false
@@ -425,6 +480,7 @@ class BleCompanionRuntime(
                 BleRuntimeState.Connecting(companion)
             },
         )
+        if (!accepts(callbackGeneration) || gattLease !== lease) return
         if (!lease.start()) {
             if (gattLease === lease) {
                 lease.close()
@@ -487,6 +543,7 @@ class BleCompanionRuntime(
         operationTimeoutLease?.close()
         operationTimeoutLease = null
         publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.ATT_MTU))
+        if (!hasActiveGattPhase(BleNegotiationPhase.ATT_MTU)) return
         if (gattLease?.requestMtu(COMPANION_MINIMUM_ATT_MTU) != true) {
             failAndRelease(BleRuntimeFailure.MTU_NEGOTIATION_FAILED)
         } else if (isPhase(BleNegotiationPhase.ATT_MTU)) {
@@ -503,6 +560,7 @@ class BleCompanionRuntime(
         operationTimeoutLease?.close()
         operationTimeoutLease = null
         publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.PROTOCOL_INFO))
+        if (!hasActiveGattPhase(BleNegotiationPhase.PROTOCOL_INFO)) return
         if (gattLease?.readProtocolInfo() != true) {
             failAndRelease(BleRuntimeFailure.PROTOCOL_INFO_FAILED)
         } else if (isPhase(BleNegotiationPhase.PROTOCOL_INFO)) {
@@ -529,6 +587,7 @@ class BleCompanionRuntime(
         operationTimeoutLease?.close()
         operationTimeoutLease = null
         publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.STREAM_SUBSCRIPTION))
+        if (!hasActiveGattPhase(BleNegotiationPhase.STREAM_SUBSCRIPTION)) return
         if (gattLease?.subscribeStreamIndications() != true) {
             failAndRelease(BleRuntimeFailure.STREAM_SUBSCRIPTION_FAILED)
         } else if (isPhase(BleNegotiationPhase.STREAM_SUBSCRIPTION)) {
@@ -544,7 +603,9 @@ class BleCompanionRuntime(
         operationTimeoutLease?.close()
         operationTimeoutLease = null
         publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.INITIAL_SNAPSHOT))
-        armNegotiationTimeout(generation, BleNegotiationPhase.INITIAL_SNAPSHOT)
+        if (hasActiveGattPhase(BleNegotiationPhase.INITIAL_SNAPSHOT)) {
+            armNegotiationTimeout(generation, BleNegotiationPhase.INITIAL_SNAPSHOT)
+        }
     }
 
     private fun onStreamValue(companion: BleDiscoveredCompanion, value: ByteArray) {
@@ -654,6 +715,11 @@ class BleCompanionRuntime(
         val attempt = reconnectAttempt
         val scheduleGeneration = nextGeneration() ?: return
         publish(BleRuntimeState.Reconnecting(companion, attempt, maximumReconnectAttempts))
+        if (
+            !accepts(scheduleGeneration) ||
+            selected?.endpointToken != companion.endpointToken ||
+            state !is BleRuntimeState.Reconnecting
+        ) return
         reconnectLease = scheduler.schedule(reconnectDelayMillis(attempt)) {
             onReconnectTimer(scheduleGeneration, companion, attempt)
         }
@@ -723,6 +789,9 @@ class BleCompanionRuntime(
     private fun isPhase(phase: BleNegotiationPhase): Boolean =
         (state as? BleRuntimeState.Negotiating)?.phase == phase
 
+    private fun hasActiveGattPhase(phase: BleNegotiationPhase): Boolean =
+        !closed && lifecycleActive && gattLease != null && isPhase(phase)
+
     private fun failAndRelease(reason: BleRuntimeFailure) {
         selected = null
         invalidateAndRelease()
@@ -780,6 +849,37 @@ class BleCompanionRuntime(
             if (observer === callback) observer = null
         } finally {
             deliveringObserver = false
+            drainDeferredControls()
+        }
+    }
+
+    private fun deferControl(control: DeferredRuntimeControl) {
+        if (closed) return
+        if (control == DeferredRuntimeControl.CLOSE || deferredControlActions.size >= 8) {
+            deferredControlActions.clear()
+            deferredControlActions.addLast(DeferredRuntimeControl.CLOSE)
+        } else {
+            deferredControlActions.addLast(control)
+        }
+    }
+
+    private fun drainDeferredControls() {
+        if (deliveringObserver || closed || deferredControlActions.isEmpty()) return
+        if (deferredControlActions.contains(DeferredRuntimeControl.CLOSE)) {
+            deferredControlActions.clear()
+            closeNow()
+            return
+        }
+        while (!deliveringObserver && !closed && deferredControlActions.isNotEmpty()) {
+            when (deferredControlActions.removeFirst()) {
+                DeferredRuntimeControl.START -> startNow()
+                DeferredRuntimeControl.STOP -> stopNow()
+                DeferredRuntimeControl.DISCONNECT -> disconnectNow()
+                DeferredRuntimeControl.CLOSE -> {
+                    closeNow()
+                    return
+                }
+            }
         }
     }
 

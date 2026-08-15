@@ -52,18 +52,24 @@ open class MainActivity : ComponentActivity() {
     protected open fun createBluetoothFacade(authority: AndroidBleSecurityAuthority): AndroidBluetoothFacade =
         AndroidBluetoothGattFacade(applicationContext, authority)
 
+    protected open fun createDeviceAuthorizationClaimClient(): DeviceAuthorizationClaimClient =
+        DisabledDeviceAuthorizationClaimClient()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         bluetoothFacade = createBluetoothFacade(createBluetoothSecurityAuthority())
+        val bluetoothScheduler = AndroidMainThreadBleRuntimeScheduler()
         bluetoothRuntime = BleCompanionRuntime(
             facade = bluetoothFacade,
-            scheduler = AndroidMainThreadBleRuntimeScheduler(),
+            scheduler = bluetoothScheduler,
             threadVerifier = AndroidMainThreadBleRuntimeVerifier(),
         )
         appController = TrailAppController(
             localController = CompanionAppController(FakeCompanionTransport()),
             bluetoothRuntime = bluetoothRuntime,
             permissionReader = AndroidNearbyDevicesPermissionReader(applicationContext),
+            authorizationClient = createDeviceAuthorizationClaimClient(),
+            authorizationScheduler = bluetoothScheduler,
             bluetoothFacadeCloseable = bluetoothFacade as? AutoCloseable,
         )
         lifecycleBinding = TrailAppLifecycleBinding(lifecycle, appController)
@@ -243,10 +249,96 @@ private fun BluetoothDevicePanel(
                 }
             }
         }
-        else -> BluetoothRuntimePanel(state.runtimeState, controller, requestNearbyPermissions)
+        else -> BluetoothAuthorizedRuntimePanel(state, controller, requestNearbyPermissions)
     }
     OutlinedButton(onClick = controller::returnToModeChoice, modifier = Modifier.fillMaxWidth()) {
         Text("Disconnect and change mode")
+    }
+}
+
+@Composable
+private fun BluetoothAuthorizedRuntimePanel(
+    state: TrailAppUiState.BluetoothDevice,
+    controller: TrailAppController,
+    requestNearbyPermissions: () -> Unit,
+) {
+    when (val authorization = state.authorizationState) {
+        DeviceAuthorizationUiState.None -> BluetoothRuntimePanel(
+            state.runtimeState,
+            controller,
+            requestNearbyPermissions,
+        )
+        is DeviceAuthorizationUiState.Starting,
+        is DeviceAuthorizationUiState.Pending,
+        -> {
+            val purpose = when (authorization) {
+                is DeviceAuthorizationUiState.Starting -> authorization.purpose
+                is DeviceAuthorizationUiState.Pending -> authorization.purpose
+                else -> return
+            }
+            StatusCard(
+                if (purpose == DeviceAuthorizationPurpose.REPLACE_LOST_PHONE) {
+                    "Replacement request waiting for the device"
+                } else {
+                    "Authorization request waiting for the device"
+                },
+                "On the physical device, press its authorization control within 30 seconds. " +
+                    "The device alone decides. This request is not proof that a control was pressed, " +
+                    "a Bluetooth bond exists, or phone authority changed.",
+            )
+            OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
+                Text("Cancel request")
+            }
+        }
+        is DeviceAuthorizationUiState.Accepted -> {
+            StatusCard(
+                "Device reported request accepted",
+                "The injected device adapter reported this one claim accepted. Bluetooth and application " +
+                    "security checks must still pass; this host-tested build is not physical-device evidence.",
+            )
+            BluetoothRuntimePanel(state.runtimeState, controller, requestNearbyPermissions)
+        }
+        is DeviceAuthorizationUiState.Replaced -> {
+            StatusCard(
+                "Device reported prior phone replaced",
+                "The injected device adapter reported replacement for this claim. The phone did not grant or " +
+                    "revoke authority; security checks must still pass, and host tests are not physical proof.",
+            )
+            BluetoothRuntimePanel(state.runtimeState, controller, requestNearbyPermissions)
+        }
+        is DeviceAuthorizationUiState.Denied -> AuthorizationEndedPanel(
+            "Device reported request denied",
+            "The authoritative denial ended this request without starting a connection.",
+            controller,
+        )
+        is DeviceAuthorizationUiState.InvalidResult -> AuthorizationEndedPanel(
+            "Authorization result rejected",
+            INVALID_AUTHORIZATION_RESULT_PUBLIC_TEXT,
+            controller,
+        )
+        is DeviceAuthorizationUiState.Expired -> AuthorizationEndedPanel(
+            "Authorization request expired",
+            EXPIRED_AUTHORIZATION_PUBLIC_TEXT,
+            controller,
+        )
+        is DeviceAuthorizationUiState.Unavailable -> AuthorizationEndedPanel(
+            "Authorization request unavailable",
+            "No authorization claim or result is available, no connection was started, and this app did not " +
+                "establish device authority.",
+            controller,
+        )
+    }
+}
+
+@Composable
+private fun AuthorizationEndedPanel(
+    title: String,
+    body: String,
+    controller: TrailAppController,
+) {
+    StatusCard(title, body)
+    Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
+        Text("Scan again")
     }
 }
 
@@ -263,6 +355,7 @@ private fun BluetoothRuntimePanel(
         )
         BleRuntimeState.Idle -> {
             StatusCard("Bluetooth disconnected", "No Bluetooth companion session is active.")
+            LostPhoneGuidance()
             Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
                 Text("Scan for compatible devices")
             }
@@ -280,15 +373,17 @@ private fun BluetoothRuntimePanel(
         }
         is BleRuntimeState.Scanning -> {
             StatusCard("Scanning", "Only devices advertising the accepted companion service are listed.")
+            LostPhoneGuidance()
             if (state.candidates.isEmpty()) Text("No compatible device found yet.")
-            CandidateList(
-                candidates = state.candidates.map { it.endpointToken to it.publicLabel },
-                connect = controller::selectBluetoothDevice,
-            )
+            BluetoothCandidateList(state.candidates, controller)
             OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                 Text("Stop scan")
             }
         }
+        is BleRuntimeState.AwaitingAuthorization -> StatusCard(
+            "Waiting for device authority",
+            "The selected device has not yet returned an authoritative claim result.",
+        )
         is BleRuntimeState.Connecting -> {
             StatusCard("Connecting", "Opening ${state.companion.publicLabel}.")
             OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
@@ -318,6 +413,43 @@ private fun BluetoothRuntimePanel(
             }
         }
         BleRuntimeState.Closed -> StatusCard("Bluetooth closed", "This app session cannot open another Bluetooth lease.")
+    }
+}
+
+@Composable
+private fun LostPhoneGuidance() {
+    StatusCard(
+        "Lost or replaced phone",
+        "A lost phone cannot be removed by this phone alone. Choose Replace lost phone, then use the " +
+            "physical device authorization or reset control. The device decides. Replacement is designed not " +
+            "to erase radio configuration, but this host build does not verify radio continuity.",
+    )
+}
+
+@Composable
+private fun BluetoothCandidateList(
+    candidates: List<BleDiscoveredCompanion>,
+    controller: TrailAppController,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        candidates.forEach { candidate ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(candidate.publicLabel)
+                    Button(
+                        onClick = { controller.selectBluetoothDevice(candidate.endpointToken) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Authorize this phone") }
+                    OutlinedButton(
+                        onClick = { controller.replaceLostPhoneWithBluetoothDevice(candidate.endpointToken) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Replace lost phone") }
+                }
+            }
+        }
     }
 }
 

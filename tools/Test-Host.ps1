@@ -160,6 +160,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'one-phone companion application authorization'
+        Output = Join-Path $buildDirectory 'companion_authorization_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_tests.cpp')
+        )
+    },
+    @{
         Name = 'Heltec V4 bench companion coordinator boot self-check'
         Output = Join-Path $buildDirectory 'heltec_v4_bench_companion_self_check_tests.exe'
         Sources = @(

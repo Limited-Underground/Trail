@@ -247,11 +247,13 @@ class TrailAppControllerTest {
         val inheritedScan = facade.scans.single()
         val verifier = MutableThreadVerifier(true)
         val controller = TrailAppController(
-            CompanionAppController(FakeCompanionTransport()),
-            runtime,
-            MutablePermissionReader(NearbyDevicesPermissionState.GRANTED),
-            verifier,
-            facade,
+            localController = CompanionAppController(FakeCompanionTransport()),
+            bluetoothRuntime = runtime,
+            permissionReader = MutablePermissionReader(NearbyDevicesPermissionState.GRANTED),
+            authorizationClient = TestAuthorizationClient(),
+            authorizationScheduler = scheduler,
+            threadVerifier = verifier,
+            bluetoothFacadeCloseable = facade,
         )
         assertTrue(inheritedScan.closed)
         assertEquals(TrailAppUiState.ChooseMode, controller.state)
@@ -270,12 +272,289 @@ class TrailAppControllerTest {
         assertEquals(1, facade.closeCount)
     }
 
+    @Test
+    fun deviceIssuedClaimMustBePendingThenExactAcceptedBeforeGattStarts() {
+        val harness = harness()
+        val claim = beginClaim(harness, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        assertTrue(claim.started)
+        assertTrue(harness.facade.connections.isEmpty())
+        assertIs<DeviceAuthorizationUiState.Starting>(bluetoothState(harness).authorizationState)
+
+        claim.emit(DeviceAuthorizationClaimEvent.Pending("opaque-claim"))
+        assertIs<DeviceAuthorizationUiState.Pending>(bluetoothState(harness).authorizationState)
+        assertFalse(bluetoothState(harness).toString().contains("opaque-claim"))
+        assertEquals(DEVICE_AUTHORIZATION_CLAIM_TIMEOUT_MILLIS, harness.scheduler.leases.last().delayMillis)
+
+        claim.emit(DeviceAuthorizationClaimEvent.Accepted("opaque-claim"))
+        assertTrue(claim.closed)
+        assertIs<DeviceAuthorizationUiState.Accepted>(bluetoothState(harness).authorizationState)
+        assertIs<BleRuntimeState.Connecting>(bluetoothState(harness).runtimeState)
+        assertEquals(1, harness.facade.connections.size)
+        harness.controller.close()
+    }
+
+    @Test
+    fun replacementRequiresExactReplacedOutcomeAndGenericAcceptedFailsClosed() {
+        val rejected = harness()
+        val generic = beginClaim(rejected, DeviceAuthorizationPurpose.REPLACE_LOST_PHONE)
+        generic.emit(DeviceAuthorizationClaimEvent.Pending("replace-1"))
+        generic.emit(DeviceAuthorizationClaimEvent.Accepted("replace-1"))
+        assertIs<DeviceAuthorizationUiState.InvalidResult>(bluetoothState(rejected).authorizationState)
+        assertTrue(rejected.facade.connections.isEmpty())
+        rejected.controller.close()
+
+        val accepted = harness()
+        val replacement = beginClaim(accepted, DeviceAuthorizationPurpose.REPLACE_LOST_PHONE)
+        replacement.emit(DeviceAuthorizationClaimEvent.Pending("replace-2"))
+        replacement.emit(DeviceAuthorizationClaimEvent.Replaced("replace-2"))
+        assertIs<DeviceAuthorizationUiState.Replaced>(bluetoothState(accepted).authorizationState)
+        assertEquals(1, accepted.facade.connections.size)
+        accepted.controller.close()
+    }
+
+    @Test
+    fun deniedMismatchedOversizeAndExpiredClaimsFailClosedWithoutGattOrTokenRetention() {
+        val denied = harness()
+        val deniedClaim = beginClaim(denied, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        deniedClaim.emit(DeviceAuthorizationClaimEvent.Pending("denied-exact"))
+        deniedClaim.emit(DeviceAuthorizationClaimEvent.Denied("denied-exact"))
+        assertIs<DeviceAuthorizationUiState.Denied>(bluetoothState(denied).authorizationState)
+        assertTrue(denied.facade.connections.isEmpty())
+        denied.controller.close()
+
+        val mismatch = harness()
+        val mismatchClaim = beginClaim(mismatch, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        mismatchClaim.emit(DeviceAuthorizationClaimEvent.Pending("claim-a"))
+        mismatchClaim.emit(DeviceAuthorizationClaimEvent.Denied("claim-b"))
+        assertIs<DeviceAuthorizationUiState.InvalidResult>(bluetoothState(mismatch).authorizationState)
+        assertTrue(INVALID_AUTHORIZATION_RESULT_PUBLIC_TEXT.contains("authority is unknown"))
+        assertTrue(mismatch.facade.connections.isEmpty())
+        mismatch.controller.close()
+
+        val oversize = harness()
+        oversize.authorization.eventsOnStart = listOf(
+            DeviceAuthorizationClaimEvent.Pending("x".repeat(MAX_DEVICE_AUTHORIZATION_TOKEN_CHARS + 1)),
+        )
+        beginClaim(oversize, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        assertIs<DeviceAuthorizationUiState.InvalidResult>(bluetoothState(oversize).authorizationState)
+        assertTrue(oversize.authorization.leases.single().closed)
+        assertTrue(oversize.facade.connections.isEmpty())
+        oversize.controller.close()
+
+        val asyncOversize = harness()
+        val asyncClaim = beginClaim(asyncOversize, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        asyncClaim.emit(DeviceAuthorizationClaimEvent.Pending("bounded-first"))
+        asyncClaim.emit(
+            DeviceAuthorizationClaimEvent.Accepted("y".repeat(MAX_DEVICE_AUTHORIZATION_TOKEN_CHARS + 1)),
+        )
+        assertIs<DeviceAuthorizationUiState.InvalidResult>(bluetoothState(asyncOversize).authorizationState)
+        assertTrue(asyncOversize.facade.connections.isEmpty())
+        asyncOversize.controller.close()
+
+        val expired = harness()
+        val expiringClaim = beginClaim(expired, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        expiringClaim.emit(DeviceAuthorizationClaimEvent.Pending("expires"))
+        expired.scheduler.leases.last().run()
+        assertIs<DeviceAuthorizationUiState.Expired>(bluetoothState(expired).authorizationState)
+        assertTrue(EXPIRED_AUTHORIZATION_PUBLIC_TEXT.contains("authority is unknown"))
+        assertFalse(EXPIRED_AUTHORIZATION_PUBLIC_TEXT.contains("No phone authority changed"))
+        expiringClaim.emit(DeviceAuthorizationClaimEvent.Accepted("expires"))
+        assertTrue(expired.facade.connections.isEmpty())
+        expired.controller.close()
+    }
+
+    @Test
+    fun observerStopOrCloseOnStartingCreatesNoClaimLeaseOrTimer() {
+        val stopped = harness()
+        stopped.controller.observe { state ->
+            val authorization = (state as? TrailAppUiState.BluetoothDevice)?.authorizationState
+            if (authorization is DeviceAuthorizationUiState.Starting) stopped.controller.onLifecycleStop()
+        }
+        prepareCandidate(stopped)
+        stopped.controller.selectBluetoothDevice(CANDIDATE.endpointToken)
+        assertEquals(0, stopped.authorization.createCount)
+        assertTrue(stopped.scheduler.leases.isEmpty())
+        assertEquals(BleRuntimeState.Inactive, stopped.runtime.state)
+        stopped.controller.close()
+
+        val closed = harness()
+        closed.controller.observe { state ->
+            val authorization = (state as? TrailAppUiState.BluetoothDevice)?.authorizationState
+            if (authorization is DeviceAuthorizationUiState.Starting) closed.controller.close()
+        }
+        prepareCandidate(closed)
+        closed.controller.selectBluetoothDevice(CANDIDATE.endpointToken)
+        assertEquals(0, closed.authorization.createCount)
+        assertTrue(closed.scheduler.leases.isEmpty())
+        assertEquals(BleRuntimeState.Closed, closed.runtime.state)
+        assertEquals(1, closed.facade.closeCount)
+    }
+
+    @Test
+    fun claimAndTimerCallbacksDuringObserverDeliveryAreDeferredAndBounded() {
+        val accepted = harness()
+        val claim = beginClaim(accepted, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        accepted.controller.observe { state ->
+            if ((state as? TrailAppUiState.BluetoothDevice)?.authorizationState is DeviceAuthorizationUiState.Pending) {
+                claim.emit(DeviceAuthorizationClaimEvent.Accepted("deferred"))
+            }
+        }
+        claim.emit(DeviceAuthorizationClaimEvent.Pending("deferred"))
+        assertIs<DeviceAuthorizationUiState.Accepted>(bluetoothState(accepted).authorizationState)
+        assertEquals(1, accepted.facade.connections.size)
+        accepted.controller.close()
+
+        val timed = harness()
+        val timedClaim = beginClaim(timed, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        timed.controller.observe { state ->
+            if ((state as? TrailAppUiState.BluetoothDevice)?.authorizationState is DeviceAuthorizationUiState.Pending) {
+                timed.scheduler.leases.last().run()
+            }
+        }
+        timedClaim.emit(DeviceAuthorizationClaimEvent.Pending("timed"))
+        assertIs<DeviceAuthorizationUiState.Expired>(bluetoothState(timed).authorizationState)
+        assertTrue(timed.facade.connections.isEmpty())
+        timed.controller.close()
+
+        val oversized = harness()
+        val oversizedClaim = beginClaim(oversized, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        oversized.controller.observe { state ->
+            if ((state as? TrailAppUiState.BluetoothDevice)?.authorizationState is DeviceAuthorizationUiState.Pending) {
+                oversizedClaim.emit(
+                    DeviceAuthorizationClaimEvent.Accepted("z".repeat(MAX_DEVICE_AUTHORIZATION_TOKEN_CHARS + 1)),
+                )
+            }
+        }
+        oversizedClaim.emit(DeviceAuthorizationClaimEvent.Pending("bounded"))
+        assertIs<DeviceAuthorizationUiState.InvalidResult>(bluetoothState(oversized).authorizationState)
+        assertTrue(oversized.facade.connections.isEmpty())
+        oversized.controller.close()
+
+        val synchronousTimeout = harness()
+        synchronousTimeout.scheduler.callbackOnSchedule = true
+        beginClaim(synchronousTimeout, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        assertIs<DeviceAuthorizationUiState.Expired>(bluetoothState(synchronousTimeout).authorizationState)
+        assertTrue(synchronousTimeout.scheduler.leases.last().closed)
+        assertTrue(synchronousTimeout.facade.connections.isEmpty())
+        synchronousTimeout.controller.close()
+
+        val preStartOverflow = harness()
+        preStartOverflow.authorization.eventsOnStart = List(5) {
+            DeviceAuthorizationClaimEvent.Pending("prestart-overflow")
+        }
+        beginClaim(preStartOverflow, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        assertIs<DeviceAuthorizationUiState.InvalidResult>(bluetoothState(preStartOverflow).authorizationState)
+        assertTrue(preStartOverflow.facade.connections.isEmpty())
+        preStartOverflow.controller.close()
+
+        val observerOverflow = harness()
+        val overflowClaim = beginClaim(observerOverflow, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        observerOverflow.controller.observe { state ->
+            if ((state as? TrailAppUiState.BluetoothDevice)?.authorizationState is DeviceAuthorizationUiState.Pending) {
+                repeat(9) { overflowClaim.emit(DeviceAuthorizationClaimEvent.Accepted("observer-overflow")) }
+            }
+        }
+        overflowClaim.emit(DeviceAuthorizationClaimEvent.Pending("observer-overflow"))
+        assertIs<DeviceAuthorizationUiState.InvalidResult>(bluetoothState(observerOverflow).authorizationState)
+        assertTrue(observerOverflow.facade.connections.isEmpty())
+        observerOverflow.controller.close()
+    }
+
+    @Test
+    fun modeSwitchPermissionRevocationAndCloseCancelClaimAndSuppressLateResults() {
+        val switched = harness()
+        val switchedClaim = beginClaim(switched, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        switchedClaim.emit(DeviceAuthorizationClaimEvent.Pending("stale"))
+        switched.controller.chooseLocalTestMode()
+        assertTrue(switchedClaim.closed)
+        switchedClaim.emit(DeviceAuthorizationClaimEvent.Accepted("stale"))
+        assertTrue(switched.facade.connections.isEmpty())
+        assertIs<TrailAppUiState.LocalTest>(switched.controller.state)
+        switched.controller.close()
+
+        val revoked = harness()
+        val revokedClaim = beginClaim(revoked, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        revokedClaim.emit(DeviceAuthorizationClaimEvent.Pending("revoked"))
+        revoked.permission.currentValue = NearbyDevicesPermissionState.MISSING
+        revoked.controller.refreshPermissionState()
+        assertTrue(revokedClaim.closed)
+        revokedClaim.emit(DeviceAuthorizationClaimEvent.Accepted("revoked"))
+        assertTrue(revoked.facade.connections.isEmpty())
+        revoked.controller.close()
+    }
+
+    @Test
+    fun lifecycleStopAndCloseCancelPendingClaimTimerAndSuppressLateAcceptance() {
+        val stopped = harness()
+        val stoppedClaim = beginClaim(stopped, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        stoppedClaim.emit(DeviceAuthorizationClaimEvent.Pending("stop-pending"))
+        val stoppedTimer = stopped.scheduler.leases.last()
+        stopped.controller.onLifecycleStop()
+        assertTrue(stoppedClaim.closed)
+        assertTrue(stoppedTimer.closed)
+        assertEquals(BleRuntimeState.Inactive, stopped.runtime.state)
+        stoppedClaim.emit(DeviceAuthorizationClaimEvent.Accepted("stop-pending"))
+        stoppedTimer.run()
+        assertTrue(stopped.facade.connections.isEmpty())
+        stopped.controller.close()
+
+        val closed = harness()
+        val closedClaim = beginClaim(closed, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        closedClaim.emit(DeviceAuthorizationClaimEvent.Pending("close-pending"))
+        val closedTimer = closed.scheduler.leases.last()
+        closed.controller.close()
+        assertTrue(closedClaim.closed)
+        assertTrue(closedTimer.closed)
+        assertEquals(BleRuntimeState.Closed, closed.runtime.state)
+        assertEquals(1, closed.facade.closeCount)
+        closedClaim.emit(DeviceAuthorizationClaimEvent.Accepted("close-pending"))
+        closedTimer.run()
+        assertTrue(closed.facade.connections.isEmpty())
+
+        val throwing = harness()
+        throwing.authorization.throwOnClose = true
+        val throwingClaim = beginClaim(throwing, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        throwingClaim.emit(DeviceAuthorizationClaimEvent.Pending("throw-close"))
+        val throwingTimer = throwing.scheduler.leases.last()
+        throwing.controller.onLifecycleStop()
+        assertTrue(throwingClaim.closeAttempted)
+        assertTrue(throwingTimer.closed)
+        assertEquals(BleRuntimeState.Inactive, throwing.runtime.state)
+        throwing.controller.close()
+    }
+
+    private fun prepareCandidate(harness: Harness) {
+        harness.controller.chooseBluetoothDeviceMode()
+        harness.controller.scanBluetoothDevices()
+        harness.facade.scans.last().emit(BleScanEvent.Candidate(CANDIDATE))
+    }
+
+    private fun beginClaim(
+        harness: Harness,
+        purpose: DeviceAuthorizationPurpose,
+    ): TestAuthorizationLease {
+        prepareCandidate(harness)
+        when (purpose) {
+            DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE ->
+                harness.controller.selectBluetoothDevice(CANDIDATE.endpointToken)
+            DeviceAuthorizationPurpose.REPLACE_LOST_PHONE ->
+                harness.controller.replaceLostPhoneWithBluetoothDevice(CANDIDATE.endpointToken)
+        }
+        return harness.authorization.leases.last()
+    }
+
+    private fun bluetoothState(harness: Harness): TrailAppUiState.BluetoothDevice =
+        assertIs(harness.controller.state)
+
     private fun beginConnection(harness: Harness): TestGattLease {
         harness.controller.chooseBluetoothDeviceMode()
         harness.controller.scanBluetoothDevices()
         val scan = harness.facade.scans.last()
         scan.emit(BleScanEvent.Candidate(CANDIDATE))
         harness.controller.selectBluetoothDevice(CANDIDATE.endpointToken)
+        val claim = harness.authorization.leases.last()
+        claim.emit(DeviceAuthorizationClaimEvent.Pending("device-claim-1"))
+        claim.emit(DeviceAuthorizationClaimEvent.Accepted("device-claim-1"))
         return harness.facade.connections.last()
     }
 
@@ -296,9 +575,17 @@ class TrailAppControllerTest {
         val runtime = BleCompanionRuntime(facade, scheduler)
         val local = CompanionAppController(FakeCompanionTransport())
         val permissionReader = MutablePermissionReader(permission)
-        val controller = TrailAppController(local, runtime, permissionReader, bluetoothFacadeCloseable = facade)
+        val authorization = TestAuthorizationClient()
+        val controller = TrailAppController(
+            localController = local,
+            bluetoothRuntime = runtime,
+            permissionReader = permissionReader,
+            authorizationClient = authorization,
+            authorizationScheduler = scheduler,
+            bluetoothFacadeCloseable = facade,
+        )
         if (startLifecycle) controller.onLifecycleStart()
-        return Harness(controller, local, runtime, facade, permissionReader, scheduler)
+        return Harness(controller, local, runtime, facade, permissionReader, scheduler, authorization)
     }
 
     private data class Harness(
@@ -308,6 +595,7 @@ class TrailAppControllerTest {
         val facade: TestFacade,
         val permission: MutablePermissionReader,
         val scheduler: TestScheduler,
+        val authorization: TestAuthorizationClient,
     )
 
     private class MutablePermissionReader(var currentValue: NearbyDevicesPermissionState) :
@@ -359,13 +647,56 @@ class TrailAppControllerTest {
 
     private class TestScheduler : BleRuntimeScheduler {
         val leases = mutableListOf<TestTimerLease>()
+        var callbackOnSchedule = false
         override fun schedule(delayMillis: Long, callback: () -> Unit): BleReconnectLease =
-            TestTimerLease().also(leases::add)
+            TestTimerLease(delayMillis, callback).also {
+                leases.add(it)
+                if (callbackOnSchedule) callback()
+            }
     }
 
-    private class TestTimerLease : BleReconnectLease {
+    private class TestTimerLease(val delayMillis: Long, private val callback: () -> Unit) : BleReconnectLease {
         var closed = false
         override fun close() { closed = true }
+        fun run() { if (!closed) callback() }
+    }
+
+    private class TestAuthorizationClient : DeviceAuthorizationClaimClient {
+        val leases = mutableListOf<TestAuthorizationLease>()
+        var createCount = 0
+        var eventsOnStart: List<DeviceAuthorizationClaimEvent> = emptyList()
+        var throwOnClose = false
+        override fun createClaim(
+            endpointToken: String,
+            purpose: DeviceAuthorizationPurpose,
+            observer: (DeviceAuthorizationClaimEvent) -> Unit,
+        ): DeviceAuthorizationClaimLease {
+            createCount += 1
+            return TestAuthorizationLease(endpointToken, purpose, observer, eventsOnStart, throwOnClose).also(leases::add)
+        }
+    }
+
+    private class TestAuthorizationLease(
+        val endpointToken: String,
+        val purpose: DeviceAuthorizationPurpose,
+        private val observer: (DeviceAuthorizationClaimEvent) -> Unit,
+        private val eventsOnStart: List<DeviceAuthorizationClaimEvent>,
+        private val throwOnClose: Boolean,
+    ) : DeviceAuthorizationClaimLease {
+        var started = false
+        var closed = false
+        var closeAttempted = false
+        override fun start(): Boolean {
+            started = true
+            eventsOnStart.forEach(observer)
+            return true
+        }
+        override fun close() {
+            closeAttempted = true
+            if (throwOnClose) throw IllegalStateException("test close failure")
+            closed = true
+        }
+        fun emit(event: DeviceAuthorizationClaimEvent) = observer(event)
     }
 
     private class TestLifecycleOwner : LifecycleOwner {

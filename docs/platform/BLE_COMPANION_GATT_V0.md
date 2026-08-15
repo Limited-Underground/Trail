@@ -1,11 +1,11 @@
 # BLE Companion GATT v0
 
 Status: host-tested codec/session/coordinator foundation, dormant OT-042 NimBLE
-GATT target definition, OT-044 response-safe GATT lifecycle, and OT-045 wired
-but default-deny Android 12+ Bluetooth mode,
-2026-08-15. No GATT registration/controller/advertising, application-
-authorization workflow, radio path, authenticated group packet, or physical-
-device evidence exists.
+GATT target definition, OT-044 response-safe GATT lifecycle, OT-046 host-only
+one-phone authorization, and OT-047 disabled Android authorization UX,
+2026-08-15. No GATT registration/controller/advertising, enabled target-bound
+application-authorization workflow, radio path, authenticated group packet, or
+physical-device evidence exists.
 
 ## Purpose and authority
 
@@ -316,8 +316,20 @@ lifecycle cleanup without silent fallback. The production application-
 authorization authority remains deny-all, so this does not prove a successful
 BLE session or physical peripheral.
 
+OT-046 defines one-phone application authorization above a trusted encrypted,
+authenticated BLE bond. It accepts only a private stable opaque bond token from
+the future target bond store, binds exact boot/session/controller challenges,
+requires bounded physical claim/revoke/replace/reset windows, and uses injected
+atomic verified persistence with a trusted generation floor. It is host-only,
+target-neutral, and not build-linked.
+
+OT-047 adds the matching Android claim/replacement UI and controller seam. It
+accepts only exact bounded device-issued results and labels timeout or invalid/
+lost results as unknown device authority. The production claim client remains
+disabled, so there is still no real application authorization or bond evidence.
+
 This does not implement GATT registration/startup/advertising, pairing/bond
-storage, accepted application authorization, persistent result/history caching,
+storage, target-bound application authorization, persistent result/history caching,
 reassembly, Android background behavior, radio, GNSS, persistence, functional
 target runtime, physical transport, accessibility, packaging, signing, store
 distribution, or support. No BLE/GATT target was accessed and no
