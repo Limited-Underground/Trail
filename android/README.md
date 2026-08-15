@@ -1,7 +1,8 @@
 # Android client foundation
 
-Status: OT-036/OT-038 fake application foundation plus the OT-041 disabled
-real-BLE boundary. This directory contains a buildable Android application
+Status: OT-036/OT-038 fake application foundation, the OT-041 lifecycle-safe
+BLE runtime boundary, and the OT-043 build-integrated but unwired Android
+BluetoothGatt facade. This directory contains a buildable Android application
 shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -33,24 +34,42 @@ protocol or package identity.
 - `BleCompanionLifecycleBinding` releases scan, GATT, action, negotiation, and
   reconnect work at lifecycle stop and permanently closes the owner at destroy.
   It is not connected to `MainActivity`; the visible workflow remains fake.
+- `AndroidBluetoothGattFacade` compiles against SDK 35 and supports Android
+  API 31+ with version-gated API 31/32 compatibility calls. It uses an exact
+  service-UUID scan filter, opaque bounded endpoint tokens, `autoConnect=false`,
+  LE transport, the exact service and three-characteristic GATT profile, write-with-response,
+  and CCCD indications. It serializes callbacks and timers on the Android main
+  thread, owns at most one scan or connection, bounds scans to 15 seconds, and
+  ignores stale callbacks while closing permission-revoked work with typed failures.
+- The concrete facade is not constructed by the activity. The manifest declares
+  only `BLUETOOTH_SCAN` (with `neverForLocation`) and `BLUETOOTH_CONNECT`, but
+  this build contains no permission-request flow, so the shipped activity cannot
+  scan. If the facade is later wired and permissions are granted, its default
+  security authority still denies every connection before the runtime reaches Ready.
 
 The activity-owned fake controller remains a shell fixture. It does not survive
 Android configuration change or process recreation and owns no Bluetooth lease.
 The separate BLE runtime uses typed blockers/failures and can be attached to an
-Android lifecycle, but there is intentionally no `BluetoothGatt` implementation,
-permission request, scanning UI, production timer adapter, or application-
-authorization workflow. A future adapter must map platform errors to those
-typed values and fixed privacy-safe public copy; raw addresses, identifiers,
-and platform exception text must not enter UI state.
+Android lifecycle. The Android facade and main-thread timer adapter exist, but
+there is intentionally no permission request, scanning UI, accepted pairing or
+application-authorization authority, or activity wiring. Platform errors map to
+closed typed values; raw addresses, names, identifiers, status codes, and
+exception text do not enter UI state.
 
 The concrete gap to a first real connection is therefore explicit: accept and
-test the screenless-device pairing/application-authorization workflow, add only
-the exact Android Bluetooth permissions it needs, implement the injectable
-Bluetooth and serialized timer facades against the three accepted GATT v0
-characteristics with callbacks on the Android main thread, then bind the
-runtime to a lifecycle-safe UI owner. Device
-firmware must expose the same secured GATT contract and authoritative initial
-snapshot. None of those gates is claimed by OT-041.
+test the screenless-device pairing/application-authorization workflow, add an
+explicit Nearby Devices permission UX, inject the accepted security authority,
+then bind the facade and runtime to a lifecycle-safe UI owner. Device firmware
+must expose the same secured GATT contract and authoritative initial snapshot.
+The current tests validate the pure admission, permission, token, GATT-profile,
+and operation-order reducers plus compilation/lint; they do not execute Android
+Bluetooth hardware or claim a live connection.
+
+The platform contract follows the official Android documentation for
+[Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),
+[service-UUID scan filters](https://developer.android.com/reference/android/bluetooth/le/ScanFilter.Builder),
+[BluetoothGatt operations](https://developer.android.com/reference/android/bluetooth/BluetoothGatt),
+and [BluetoothGatt callbacks](https://developer.android.com/reference/android/bluetooth/BluetoothGattCallback).
 
 ## Build
 
@@ -68,5 +87,6 @@ warning-as-error Android lint, and debug assembly.
   -AndroidSdkRoot "$env:LOCALAPPDATA\Android\Sdk"
 ```
 
-No signing key, production variant, Play Store configuration, BLE permission,
-concrete BLE adapter, device access, or installation command is present.
+No signing key, production variant, Play Store configuration, BLE permission
+request UX, accepted security authority, live UI binding, device access, or
+installation command is present.

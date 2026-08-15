@@ -157,9 +157,26 @@ authenticated bond plus application-authorization ordering, MTU and Protocol
 Info negotiation, indication-only Stream subscription, authoritative snapshot
 opening, bounded request/result correlation, phase/action timeouts, owner-thread
 callbacks, observer re-entrancy containment, and lifecycle lease release. The
-checked-in app manifest remains permission-free and the visible workflow remains
+At OT-041 acceptance the checked-in app manifest remained permission-free and
+the visible workflow remained
 fake-only, so this is JVM architecture evidence rather than a live Android BLE
 adapter or device connection.
+
+OT-042 build-links the exact GATT v0 service and three characteristic
+definitions plus Secure Connections-only NimBLE configuration into the generic
+ESP32-S3 candidate. The application does not register the service, initialize
+NimBLE/controller state, or advertise. Command writes remain unconditionally
+denied before coordinator mutation until exact registered CCCD handles,
+per-connection indication subscription/disconnect ownership, and application
+authorization exist.
+
+OT-043 supplies the first concrete but unwired Android 12+ platform facade. It
+filters the exact service, uses bounded opaque candidate tokens, supports the
+API 31/32 and API 33+ GATT call shapes, enables the exact indication descriptor,
+and maps platform/permission failures to typed private state on the main thread.
+The manifest declares only Nearby Devices Scan (never for location) and Connect,
+but the shipped fake activity has no permission UX and never constructs the
+facade. This is compile/reducer evidence, not live scanning or connection.
 
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.

@@ -237,11 +237,39 @@ session/action correlation, bounded phase/result timeouts, owner-thread callback
 handling, stale-generation rejection, observer re-entrancy containment, and
 complete stop/destroy cleanup through an injected facade. Six base-protocol,
 ten semantic, 17 BLE-runtime, and 11 controller tests pass with clean lint and
-debug APK assembly. The manifest still requests no Bluetooth, nearby-device,
-location, internet, or storage permission, no Android Bluetooth facade is
-implemented or wired, and no phone/device/emulator/ADB/BLE access occurred.
+debug APK assembly. At OT-041 acceptance the manifest requested no Bluetooth,
+nearby-device, location, internet, or storage permission, no Android Bluetooth
+facade was implemented or wired, and no phone/device/emulator/ADB/BLE access
+occurred.
 OT-040 and OT-041 are bounded `done` increments; OT-034 remains `partial` and
 V1 remains 30%.
+
+OT-042 adds the exact BLE Companion GATT v0 service and three characteristic
+definitions to the generic build-only target. Its NimBLE configuration allows
+one peripheral/GATT-server connection, Secure Connections only, authenticated
+and encrypted characteristic access, and a 16-byte minimum key. The current
+application does not inject authorization/coordinator authority, register the
+service, initialize NimBLE/controller state, or advertise. Command writes are
+denied before mutation until registered CCCD and per-connection indication-
+subscription ownership exists. Static admission passes 100/100, and two pinned
+ESP-IDF v6.0.2 builds reproduce a 155,061-byte generic image and exact hashes.
+Evidence is [OT-042](../tests/hardware/OT-042-2026-08-15.md) and remains
+`BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`, controller `NOT-STARTED`, advertising
+`NOT-IMPLEMENTED`, and authorization `NOT-INJECTED`.
+
+OT-043 adds a concrete but unwired Android 12+ Bluetooth facade behind OT-041.
+It enforces exact service/characteristic/indication profiles, bounded scans and
+opaque tokens, API 31/32 compatibility, main-thread callback ownership,
+operation-specific Scan/Connect permission checks, post-revocation cleanup,
+and typed privacy-safe failure. Six protocol, ten semantic, six Android-policy,
+17 BLE-runtime, and 11 controller tests pass with clean lint. The 9,656,378-byte
+debug APK has SHA-256
+`CAAC3922EBC2BD011F12EE4A334DA98FBA1AE9467228C23174ED658F3F650AFE`.
+Its manifest declares Scan with `neverForLocation` and Connect only, plus the
+generated same-app receiver permission. The shipped activity remains fake-only
+with no Nearby Devices permission UX or facade wiring; no phone/device/emulator/
+ADB/BLE access occurred. OT-042 and OT-043 are bounded `done` increments;
+OT-034 remains `partial` and V1 remains 30%.
 
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins

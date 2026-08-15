@@ -1,10 +1,10 @@
 # BLE Companion GATT v0
 
-Status: host-tested codec/session/coordinator foundation, OT-040 generic-target
-build linkage without execution, and OT-041 unwired lifecycle-safe Android BLE
-runtime boundary, 2026-08-14. No ESP-IDF BLE stack, concrete Android Bluetooth
-facade, pairing method, radio path, authenticated group packet, or
-physical-device evidence exists.
+Status: host-tested codec/session/coordinator foundation, dormant OT-042 NimBLE
+GATT target definition, and unwired OT-043 Android 12+ Bluetooth facade,
+2026-08-15. No GATT registration/controller/advertising, application-
+authorization workflow, radio path, authenticated group packet, or physical-
+device evidence exists.
 
 ## Purpose and authority
 
@@ -277,13 +277,31 @@ the exact four v0 UUIDs and an indication-only Stream API; ordered security,
 MTU, Protocol Info, subscription, and initial-snapshot phases each have bounded
 timeouts. One owner-thread generation rejects stale callbacks and releases all
 scan, GATT, reconnect, negotiation, and action timers on lifecycle shutdown.
-The checked-in app manifest remains permission-free and no Android Bluetooth
-facade is implemented, so this does not yet exercise the GATT contract.
+At OT-041 acceptance the checked-in app manifest was permission-free and no
+Android Bluetooth facade was implemented, so that increment did not exercise
+the GATT contract.
 
-This does not implement the UUIDs in an ESP-IDF BLE stack, pairing/bond storage,
-application authorization, persistent result/history caching, reassembly,
-Android Bluetooth facade/permission UX or background behavior, radio, GNSS,
-persistence, functional target runtime or GATT target binding, physical
+OT-042 adds the exact service and three characteristic definitions plus a
+one-connection Secure Connections-only NimBLE peripheral/GATT-server
+configuration to the generic target. The application does not register the
+service, initialize NimBLE/controller state, or advertise. Command writes are
+denied before coordinator mutation until exact registered CCCD handles,
+per-connection indication-subscription/disconnect ownership, and injected
+application authorization exist.
+
+OT-043 adds a concrete but unwired Android 12+ facade. It filters the exact
+service, validates the complete GATT profile, supports API 31/32 and API 33+
+call shapes, bounds opaque candidates and scan time, and rechecks the exact
+Scan or Connect permission on every active state- or data-bearing queued
+callback; disconnected cleanup remains best-effort. The manifest declares Scan
+with `neverForLocation` and Connect, but the fake-only activity has no permission
+UX and never constructs the facade.
+
+This does not implement GATT registration/startup/advertising, pairing/bond
+storage, application authorization, exact CCCD/subscription ownership,
+persistent result/history caching, reassembly, Android permission UX/UI wiring
+or background behavior, radio, GNSS, persistence, functional target runtime,
+physical
 transport, accessibility, packaging,
 signing, store distribution, or support. No BLE/GATT target was accessed and no
 device was written. The broader full host suite's established read-only

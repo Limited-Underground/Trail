@@ -39,6 +39,28 @@ $competingConsoleSelections = @(
     'CONFIG_ESP_CONSOLE_NONE=y',
     'CONFIG_ESP_CONSOLE_UART_NONE=y'
 )
+$requiredNimbleSelections = @(
+    'CONFIG_BT_ENABLED=y',
+    'CONFIG_BT_CONTROLLER_ENABLED=y',
+    'CONFIG_BT_NIMBLE_ENABLED=y',
+    'CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y',
+    'CONFIG_BT_NIMBLE_GATT_SERVER=y',
+    'CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1',
+    'CONFIG_BT_NIMBLE_SECURITY_ENABLE=y',
+    'CONFIG_BT_NIMBLE_SM_SC=y',
+    'CONFIG_BT_NIMBLE_LL_CFG_FEAT_LE_ENCRYPTION=y',
+    'CONFIG_BT_NIMBLE_SM_LVL=3',
+    'CONFIG_BT_NIMBLE_SM_SC_ONLY=1'
+)
+$forbiddenNimbleSelections = @(
+    'CONFIG_BT_NIMBLE_ROLE_CENTRAL=y',
+    'CONFIG_BT_NIMBLE_ROLE_BROADCASTER=y',
+    'CONFIG_BT_NIMBLE_ROLE_OBSERVER=y',
+    'CONFIG_BT_NIMBLE_GATT_CLIENT=y',
+    'CONFIG_BT_NIMBLE_SM_LEGACY=y',
+    'CONFIG_BT_NIMBLE_SM_SC_DEBUG_KEYS=y',
+    'CONFIG_BT_NIMBLE_NVS_PERSIST=y'
+)
 $requiresTargetSelection = $true
 if (Test-Path -LiteralPath $sdkconfigPath -PathType Leaf) {
     $existingSdkconfigLines = @(Get-Content -LiteralPath $sdkconfigPath)
@@ -49,10 +71,18 @@ if (Test-Path -LiteralPath $sdkconfigPath -PathType Leaf) {
     $existingConsoleCompetes = @($competingConsoleSelections | Where-Object {
         $existingSdkconfigLines -contains $_
     }).Count -ne 0
+    $existingNimbleMatches = @($requiredNimbleSelections | Where-Object {
+        $existingSdkconfigLines -notcontains $_
+    }).Count -eq 0
+    $existingNimbleCompetes = @($forbiddenNimbleSelections | Where-Object {
+        $existingSdkconfigLines -contains $_
+    }).Count -ne 0
     $requiresTargetSelection = -not (
         $existingTargetMatches -and
         $existingConsoleMatches -and
-        -not $existingConsoleCompetes)
+        -not $existingConsoleCompetes -and
+        $existingNimbleMatches -and
+        -not $existingNimbleCompetes)
 }
 
 if ($requiresTargetSelection) {
@@ -91,6 +121,16 @@ foreach ($selection in $competingConsoleSelections) {
         throw "Generated sdkconfig has a competing console selection: $selection"
     }
 }
+foreach ($selection in $requiredNimbleSelections) {
+    if ($generatedSdkconfigLines -notcontains $selection) {
+        throw "Generated sdkconfig is missing required NimBLE selection: $selection"
+    }
+}
+foreach ($selection in $forbiddenNimbleSelections) {
+    if ($generatedSdkconfigLines -contains $selection) {
+        throw "Generated sdkconfig enables forbidden NimBLE selection: $selection"
+    }
+}
 
 & $idfPython.Source $idfTool `
     -C $targetRoot `
@@ -114,7 +154,8 @@ foreach ($requiredObject in @(
     'companion_protocol.cpp.obj',
     'companion_semantics.cpp.obj',
     'companion_request_coordinator.cpp.obj',
-    'companion_boot_self_check.cpp.obj'
+    'companion_boot_self_check.cpp.obj',
+    'companion_nimble_gatt.cpp.obj'
 )) {
     if (-not $linkMap.Contains($requiredObject)) {
         throw "Required companion codec object is absent from the link map: $requiredObject"
@@ -143,6 +184,11 @@ $evidence = [ordered]@{
     application_dynamic_value = 'boot-local elapsed_ms'
     companion_codec_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_request_coordinator_self_check = 'BUILD-LINKED-NOT-RUN'
+    companion_nimble_gatt = 'BUILD-LINKED-DEFINITION-SELF-CHECK-NOT-RUN'
+    companion_command_dispatch = 'DENIED-NO-CCCD-SUBSCRIPTION-OWNER'
+    nimble_controller = 'NOT-STARTED'
+    advertising = 'NOT-IMPLEMENTED'
+    application_authorization = 'NOT-INJECTED'
     framework_log_surface = 'UNREVIEWED-RUNTIME'
     artifacts = $artifactEvidence
 }

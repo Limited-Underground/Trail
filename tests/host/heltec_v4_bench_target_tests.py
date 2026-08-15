@@ -13,6 +13,7 @@ TARGET = ROOT / "firmware" / "targets" / "heltec_v4_bench"
 CONTRACT = TARGET / "target-contract.json"
 SOURCE = TARGET / "main" / "app_main.cpp"
 SELF_CHECK = TARGET / "main" / "companion_boot_self_check.cpp"
+NIMBLE_GATT = TARGET / "main" / "companion_nimble_gatt.cpp"
 MAIN_CMAKE = TARGET / "main" / "CMakeLists.txt"
 COMPANION_SOURCES = (
     ROOT / "firmware" / "components" / "companion" / "src" /
@@ -39,6 +40,8 @@ def test_contract() -> None:
         "main/app_main.cpp",
         "main/companion_boot_self_check.cpp",
         "main/companion_boot_self_check.hpp",
+        "main/companion_nimble_gatt.cpp",
+        "main/companion_nimble_gatt.hpp",
         "sdkconfig.defaults",
         "target-contract.json",
     }
@@ -69,6 +72,7 @@ def test_contract() -> None:
         "bounded_usb_heartbeat",
         "boot_companion_codec_self_check",
         "boot_companion_request_self_check",
+        "nimble_gatt_definition_build_linked",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
             "heartbeat must remain admitted")
@@ -76,6 +80,8 @@ def test_contract() -> None:
             "boot companion-codec self-check must be admitted")
     require(capabilities["boot_companion_request_self_check"] is True,
             "boot companion-request self-check must be admitted")
+    require(capabilities["nimble_gatt_definition_build_linked"] is True,
+            "NimBLE GATT definition build linkage must be admitted")
     for name, enabled in capabilities.items():
         if name not in admitted:
             require(enabled is False, f"capability must remain disabled: {name}")
@@ -89,6 +95,7 @@ def test_contract() -> None:
 def test_application_surface() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     self_check = SELF_CHECK.read_text(encoding="utf-8")
+    nimble_gatt = NIMBLE_GATT.read_text(encoding="utf-8")
     require("run_companion_codec_self_check" in source,
             "missing deterministic boot codec self-check")
     require("kExpectedInfo" in source and
@@ -101,6 +108,10 @@ def test_application_surface() -> None:
             "missing fixed combined FAIL record")
     require("run_companion_request_coordinator_self_check" in source,
             "missing coordinator self-check call")
+    require("companion_nimble_gatt_definition_self_check" in source,
+            "missing NimBLE GATT definition self-check call")
+    require("register_companion_nimble_gatt_service" not in source,
+            "build-only application must not register or start GATT")
     require("FixedSnapshotAuthority" in self_check and
             "FixedActionAuthority" in self_check,
             "coordinator self-check must use fixed injected authorities")
@@ -128,11 +139,60 @@ def test_application_surface() -> None:
     self_check_call = source.index("if (!run_companion_codec_self_check() ||")
     coordinator_call = source.index(
         "run_companion_request_coordinator_self_check()")
+    gatt_definition_call = source.index(
+        "companion_nimble_gatt_definition_self_check()")
     pass_log = source.index("companion boot self-check PASS")
     startup_log = source.index("build-only bench candidate started")
     heartbeat_log = source.index("heartbeat elapsed_ms=%llu")
-    require(self_check_call < coordinator_call < pass_log < startup_log < heartbeat_log,
-            "both self-checks must gate startup and heartbeat")
+    require(self_check_call < coordinator_call < gatt_definition_call < pass_log < startup_log < heartbeat_log,
+            "all self-checks must gate startup and heartbeat")
+
+    for required in (
+        "BLE_GATT_SVC_TYPE_PRIMARY",
+        "BLE_GATT_CHR_F_READ_ENC",
+        "BLE_GATT_CHR_F_READ_AUTHEN",
+        "BLE_GATT_CHR_F_READ_AUTHOR",
+        "BLE_GATT_CHR_F_WRITE_ENC",
+        "BLE_GATT_CHR_F_WRITE_AUTHEN",
+        "BLE_GATT_CHR_F_WRITE_AUTHOR",
+        "BLE_GATT_CHR_F_NOTIFY_INDICATE_ENC",
+        "BLE_GATT_CHR_F_NOTIFY_INDICATE_AUTHEN",
+        "BLE_GATT_CHR_F_NOTIFY_INDICATE_AUTHOR",
+        "ble_gap_conn_find",
+        "ble_gatts_count_cfg",
+        "ble_gatts_add_svcs",
+        "g_application_authorization == nullptr",
+        "g_coordinator == nullptr",
+    ):
+        require(required in nimble_gatt,
+                f"missing fail-closed NimBLE GATT surface: {required}")
+    command_access = nimble_gatt[
+        nimble_gatt.rindex("int command_access(std::uint16_t connection_handle,"):
+        nimble_gatt.rindex("int stream_access(std::uint16_t,")
+    ]
+    require("g_coordinator->service" not in command_access and
+            "ble_gatts_indicate_custom" not in command_access and
+            "no GAP subscribe/disconnect owner" in command_access and
+            "return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;" in command_access,
+            "Command must remain denied before coordinator mutation until exact subscription ownership exists")
+    require("g_stream_handle + 1" not in nimble_gatt and
+            "attribute_handle == g_stream_handle" in nimble_gatt,
+            "Stream CCCD handle must never be inferred from its value handle")
+    command_flags = nimble_gatt[
+        nimble_gatt.index("constexpr ble_gatt_chr_flags kCommandFlags"):
+        nimble_gatt.index("constexpr ble_gatt_chr_flags kStreamFlags")
+    ]
+    require("BLE_GATT_CHR_F_WRITE" in command_flags and
+            "BLE_GATT_CHR_F_WRITE_NO_RSP" not in command_flags,
+            "Command must remain Write With Response only")
+    for uuid_tail in (
+        "0x00, 0x2A, 0x0F, 0x5E",
+        "0x01, 0x2A, 0x0F, 0x5E",
+        "0x02, 0x2A, 0x0F, 0x5E",
+        "0x03, 0x2A, 0x0F, 0x5E",
+    ):
+        require(uuid_tail in nimble_gatt,
+                f"missing exact v0 UUID tail: {uuid_tail}")
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     for required in (
@@ -140,19 +200,24 @@ def test_application_surface() -> None:
         "companion/src/companion_semantics.cpp",
         "companion/src/companion_request_coordinator.cpp",
         "companion_boot_self_check.cpp",
+        "companion_nimble_gatt.cpp",
         "companion/include",
         "protocol/include",
         "radio/include",
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 5,
-            "target source set must remain app, self-check, and three accepted companion files")
+    require(cmake.count('.cpp"') == 6,
+            "target source set must remain app, two self-check/adapter files, and three accepted companion files")
+    require("REQUIRES" in cmake and "bt" in cmake,
+            "target must declare the pinned ESP-IDF Bluetooth dependency")
 
-    linked_source = self_check + "\n" + "\n".join(
+    linked_source = self_check + "\n" + nimble_gatt + "\n" + "\n".join(
         path.read_text(encoding="utf-8") for path in COMPANION_SOURCES)
     forbidden_initializers = (
         "esp_ble_", "esp_bt_controller", "nimble_port_init",
+        "esp_nimble_hci_init", "ble_gap_adv_start",
+        "ble_gap_ext_adv_start",
         "esp_wifi_init", "nvs_flash_init", "gpio_config",
         "spi_bus_initialize", "uart_driver_install", "radiolib",
         "sx126", "gnss_init", "gps_init", "gnss.begin", "gps.begin",
@@ -162,7 +227,7 @@ def test_application_surface() -> None:
                 f"linked codec source contains forbidden initializer: {token}")
 
     forbidden = (
-        "WiFi", "Bluetooth", "NimBLE", "esp_ble", "esp_bt", "RadioLib",
+        "WiFi", "RadioLib",
         "SX126", "LoRa", "GNSS", "GPS", "NVS", "nvs_", "SPIFFS", "FATFS",
         "OTA", "gpio_", "efuse", "MAC", "secret", "private_key", "identity",
     )
@@ -187,6 +252,34 @@ def test_build_only_tooling() -> None:
                 f"competing or deprecated console selection present: {option}")
     require("CONFIG_APP_COMPILE_TIME_DATE=n" in defaults,
             "compile time must not be embedded")
+    required_nimble = (
+        "CONFIG_BT_ENABLED=y",
+        "CONFIG_BT_CONTROLLER_ENABLED=y",
+        "CONFIG_BT_NIMBLE_ENABLED=y",
+        "CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y",
+        "CONFIG_BT_NIMBLE_GATT_SERVER=y",
+        "CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1",
+        "CONFIG_BT_NIMBLE_SECURITY_ENABLE=y",
+        "CONFIG_BT_NIMBLE_SM_SC=y",
+        "CONFIG_BT_NIMBLE_LL_CFG_FEAT_LE_ENCRYPTION=y",
+        "CONFIG_BT_NIMBLE_SM_LVL=3",
+        "CONFIG_BT_NIMBLE_SM_SC_ONLY=1",
+    )
+    forbidden_nimble = (
+        "CONFIG_BT_NIMBLE_ROLE_CENTRAL=y",
+        "CONFIG_BT_NIMBLE_ROLE_BROADCASTER=y",
+        "CONFIG_BT_NIMBLE_ROLE_OBSERVER=y",
+        "CONFIG_BT_NIMBLE_GATT_CLIENT=y",
+        "CONFIG_BT_NIMBLE_SM_LEGACY=y",
+        "CONFIG_BT_NIMBLE_SM_SC_DEBUG_KEYS=y",
+        "CONFIG_BT_NIMBLE_NVS_PERSIST=y",
+    )
+    for option in required_nimble:
+        require(option in defaults,
+                f"missing required NimBLE security selection: {option}")
+    for option in forbidden_nimble:
+        require(option not in defaults,
+                f"forbidden NimBLE selection enabled: {option}")
 
     script = BUILD_SCRIPT.read_text(encoding="utf-8")
     require("ESP-IDF v6.0.2" in script, "build script must pin ESP-IDF")
@@ -216,10 +309,17 @@ def test_build_only_tooling() -> None:
             "build evidence must deny runtime self-check evidence")
     require("companion_request_coordinator_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny runtime coordinator evidence")
+    require("companion_nimble_gatt = 'BUILD-LINKED-DEFINITION-SELF-CHECK-NOT-RUN'" in script,
+            "build evidence must deny GATT runtime evidence")
+    require("nimble_controller = 'NOT-STARTED'" in script and
+            "advertising = 'NOT-IMPLEMENTED'" in script and
+            "application_authorization = 'NOT-INJECTED'" in script,
+            "build evidence must preserve the closed runtime boundary")
     require("companion_protocol.cpp.obj" in script and
             "companion_semantics.cpp.obj" in script and
             "companion_request_coordinator.cpp.obj" in script and
-            "companion_boot_self_check.cpp.obj" in script,
+            "companion_boot_self_check.cpp.obj" in script and
+            "companion_nimble_gatt.cpp.obj" in script,
             "build helper must verify all companion/self-check objects in the link map")
     require("Generated sdkconfig did not select USB Serial/JTAG" in script,
             "build helper must inspect the generated console selection")

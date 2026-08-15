@@ -4,6 +4,48 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-15
+
+### OT-043 unwired Android BluetoothGatt facade
+
+- Added a concrete Android 12+ Bluetooth facade behind the accepted lifecycle
+  owner. It filters the exact service, bounds scan duration/results and opaque
+  tokens, keeps callbacks on the main thread, validates the complete GATT
+  profile, and uses indication-only Stream subscription.
+- API 31/32 legacy and API 33+ value-safe GATT calls are version-gated. Every
+  active state- or data-bearing queued scan/GATT callback rechecks its
+  operation-specific Nearby Devices permission; disconnected cleanup remains
+  best-effort. Revocation and contained `SecurityException` clear local
+  ownership and emit typed privacy-safe failure without leaking an address or
+  platform exception.
+- Six base-protocol, ten semantic, six Android-policy, 17 BLE-runtime, and 11
+  controller tests pass with clean lint. The 9,656,378-byte debug APK has
+  SHA-256
+  `CAAC3922EBC2BD011F12EE4A334DA98FBA1AE9467228C23174ED658F3F650AFE`
+  and declares only Scan with `neverForLocation`, Connect, and AndroidX's
+  generated same-app permission. The activity remains fake-only/unwired and
+  cannot request Nearby Devices access; no emulator, ADB, or BLE device was
+  accessed. V1 remains 30%.
+
+### OT-042 dormant NimBLE GATT definition linked into the target
+
+- Added the exact BLE Companion GATT v0 service and three characteristics plus
+  one-connection Secure Connections-only NimBLE peripheral/GATT-server
+  configuration to the generic ESP32-S3 target candidate.
+- Registration requires injected application authorization and coordinator
+  authority. The application does not register the service, start NimBLE or the
+  controller, or advertise. Command writes are denied before coordinator
+  mutation until exact registered CCCD handles and per-connection indication
+  subscription/disconnect ownership exist.
+- Static admission passes 3/3 and 100/100 repeats. Two pinned ESP-IDF v6.0.2
+  builds reproduce a 155,061-byte image and retain all five companion/GATT/self-
+  check objects. Exact hashes are recorded in
+  [OT-042 evidence](../tests/hardware/OT-042-2026-08-15.md).
+- The result remains generic 2 MB, `BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`,
+  controller `NOT-STARTED`, advertising `NOT-IMPLEMENTED`, authorization
+  `NOT-INJECTED`, and runtime logging `UNREVIEWED`. No device or port was
+  accessed; V1 remains 30%.
+
 ## 2026-08-14
 
 ### OT-041 lifecycle-safe unwired Android BLE runtime boundary

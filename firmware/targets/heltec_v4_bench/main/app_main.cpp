@@ -6,6 +6,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "companion_boot_self_check.hpp"
+#include "companion_nimble_gatt.hpp"
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_semantics.hpp"
 
@@ -120,7 +121,9 @@ bool run_companion_codec_self_check() {
 extern "C" void app_main() {
     if (!run_companion_codec_self_check() ||
         !opentrail::target::heltec_v4_bench::
-             run_companion_request_coordinator_self_check()) {
+             run_companion_request_coordinator_self_check() ||
+        !opentrail::target::heltec_v4_bench::
+             companion_nimble_gatt_definition_self_check()) {
         contain_self_check_failure();
     }
     ESP_LOGI(kLogTag, "companion boot self-check PASS");
