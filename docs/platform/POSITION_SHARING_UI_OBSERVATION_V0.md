@@ -87,6 +87,18 @@ Ten deterministic groups cover:
 The focused executable passes 100/100 repeats. The complete 58-executable
 OpenTrail host matrix plus all Python and publication-safety checks pass.
 
+## Android Group / Location presentation boundary
+
+OT-057 adds a separate renderer-neutral Android presentation model above the
+companion controller. It does not consume this target UI coordinator as a
+coordinate source. Real Bluetooth cards report coordinates unavailable because
+no accepted BLE coordinate feed exists; Local mode uses separately labeled
+deterministic synthetic cards. No phone GPS, map, tiles, network, location
+permission, storage, identity authority, or private device correlation was
+added. The current Android gate passes 134 JVM tests across thirteen suites,
+clean lint, manifest inspection, and debug assembly; no phone/device/install or
+live-location proof exists.
+
 ## Remaining gates
 
 - serialize outbound and UI service with one exact ESP-IDF task/lock and prove

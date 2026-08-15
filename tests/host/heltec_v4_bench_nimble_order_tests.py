@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pin the NimBLE teardown ordering OT-052 relies on for exact indications."""
+"""Pin NimBLE teardown and synchronous-stop ordering used by the target."""
 
 from __future__ import annotations
 
@@ -37,13 +37,18 @@ def main() -> int:
     gap_path = host_source / "ble_gap.c"
     gatts_path = host_source / "ble_gatts.c"
     gattc_path = host_source / "ble_gattc.c"
-    for path in (gap_path, gatts_path, gattc_path, TARGET_ADAPTER):
+    port_path = (
+        arguments.idf_path / "components" / "bt" / "host" / "nimble" /
+        "nimble" / "porting" / "nimble" / "src" / "nimble_port.c"
+    )
+    for path in (gap_path, gatts_path, gattc_path, port_path, TARGET_ADAPTER):
         require(path.is_file(), f"required pinned source is missing: {path.name}")
 
     gap = gap_path.read_text(encoding="utf-8")
     gatts = gatts_path.read_text(encoding="utf-8")
     gattc = gattc_path.read_text(encoding="utf-8")
     adapter = TARGET_ADAPTER.read_text(encoding="utf-8")
+    port = port_path.read_text(encoding="utf-8")
 
     broken = function_body(
         gap,
@@ -78,7 +83,18 @@ def main() -> int:
             "exchange_id_ = exchange_id" in adapter,
             "real indication port must retain generation and exchange")
 
-    print("PASS: pinned NimBLE indication teardown ordering")
+    stop = function_body(port, "nimble_port_stop(void)", "nimble_port_run(void)")
+    stop_request = stop.index("ble_hs_stop(&stop_listener")
+    completion_wait = stop.index(
+        "ble_npl_sem_pend(&ble_hs_stop_sem, BLE_NPL_TIME_FOREVER);")
+    stop_event = stop.index("ble_npl_eventq_put(&g_eventq_dflt, &ble_hs_ev_stop);")
+    event_wait = stop.index(
+        "ble_npl_sem_pend(&ble_hs_stop_sem, BLE_NPL_TIME_FOREVER);",
+        completion_wait + 1)
+    require(stop_request < completion_wait < stop_event < event_wait,
+            "pinned nimble_port_stop must synchronously await host completion and stop event")
+
+    print("PASS: pinned NimBLE indication and synchronous-stop ordering")
     return 0
 
 

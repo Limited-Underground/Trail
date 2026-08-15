@@ -27,6 +27,7 @@ data class CompanionConnection(
     val publicLabel: String,
     val status: String,
     val snapshot: CompanionStatusSnapshot,
+    val groupLocation: GroupLocationSnapshot,
 )
 
 sealed interface ConnectionAttempt {
@@ -38,6 +39,7 @@ sealed interface SemanticActionAttempt {
     data class Applied(
         val result: CompanionActionResult,
         val snapshot: CompanionStatusSnapshot,
+        val groupLocation: GroupLocationSnapshot,
         val sessionNonce: Long,
         val exchangeId: Long,
         val responseKind: CompanionFrameKind,
@@ -78,6 +80,7 @@ internal class FakeCompanionTransport(
     ),
     private val failingEndpoint: String? = null,
     initialSnapshots: Map<String, CompanionStatusSnapshot> = emptyMap(),
+    initialGroupLocations: Map<String, GroupLocationSnapshot> = emptyMap(),
     initialSessionNonce: Long = 0,
     private val firstExchangeId: Long = 1,
 ) : CompanionTransport {
@@ -96,6 +99,11 @@ internal class FakeCompanionTransport(
             pendingCriticalAlertId = if (candidate.endpointToken == "fake-a") 0x1001uL else 0x2001uL,
         ))
     }.toMutableMap()
+    private val groupLocations = available.mapNotNull { candidate ->
+        val location = initialGroupLocations[candidate.endpointToken]
+            ?: DeterministicGroupLocationFixtures.forEndpoint(candidate.endpointToken)
+        if (location == null) null else candidate.endpointToken to location
+    }.toMap().toMutableMap()
 
     override fun candidates(): List<CompanionCandidate> = available.toList()
 
@@ -116,6 +124,11 @@ internal class FakeCompanionTransport(
         if (CompanionSemanticCodec.encodeStatusSnapshot(initialSnapshot).value == null) {
             return ConnectionAttempt.Failed("The fake device state failed protocol validation.")
         }
+        val groupLocation = groupLocations[endpointToken]
+            ?.takeIf { it.provenance == GroupLocationProvenance.LOCAL_TEST_FIXTURE }
+            ?.withFakeStatus(initialSnapshot.revision, initialSnapshot.positionSharing)
+            ?: return ConnectionAttempt.Failed("The deterministic fake location fixture is unavailable.")
+        groupLocations[endpointToken] = groupLocation
         lastSessionNonce += 1
         activeSessionNonce = lastSessionNonce
         nextExchangeId = firstExchangeId
@@ -126,6 +139,7 @@ internal class FakeCompanionTransport(
                 publicLabel = candidate.publicLabel,
                 status = "Fake transport connected — no Bluetooth or radio evidence",
                 snapshot = initialSnapshot,
+                groupLocation = groupLocation,
             ),
         )
     }
@@ -193,10 +207,15 @@ internal class FakeCompanionTransport(
             ?: return SemanticActionAttempt.Failed("The fake device state failed protocol validation.")
         val decodedNextSnapshot = CompanionSemanticCodec.decodeStatusSnapshot(encodedNextSnapshot).value
             ?: return SemanticActionAttempt.Failed("The fake device state failed protocol validation.")
+        val nextGroupLocation = groupLocations[endpointToken]
+            ?.withFakeStatus(decodedNextSnapshot.revision, decodedNextSnapshot.positionSharing)
+            ?: return SemanticActionAttempt.Failed("The deterministic fake location fixture is unavailable.")
         snapshots[endpointToken] = decodedNextSnapshot
+        groupLocations[endpointToken] = nextGroupLocation
         return SemanticActionAttempt.Applied(
             decodedResult,
             decodedNextSnapshot,
+            nextGroupLocation,
             decodedResultFragment.sessionNonce,
             decodedResultFragment.exchangeId,
             decodedResultFragment.kind,

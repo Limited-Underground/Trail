@@ -186,6 +186,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'bounded companion BLE runtime owner'
+        Output = Join-Path $buildDirectory 'companion_ble_runtime_owner_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_ble_runtime_owner.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_ble_runtime_owner_tests.cpp')
+        )
+    },
+    @{
         Name = 'restricted companion GATT authorization lifecycle'
         Output = Join-Path $buildDirectory 'companion_gatt_authorization_tests.exe'
         Sources = @(
@@ -225,6 +233,7 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_authorization_adapter.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_persistence.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_ble_runtime_owner.cpp'),
             (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_boot_self_check.cpp'),
             (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_authorization_storage.cpp'),
             (Join-Path $projectRoot 'tests\host\heltec_v4_bench_companion_self_check_tests.cpp')

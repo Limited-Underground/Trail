@@ -205,6 +205,19 @@ executable host matrix and both publication-safety layers pass. Remote
 publication remains pending. OT-030C is `done` for the bounded host/shared-model
 increment; parent OT-030 remains `partial` throughout.
 
+OT-058 subsequently fixes the refresh starvation exposed when the two-LCD
+local-bridge test timed out under load. Each native session permits at most one
+active refresh plus one coalesced latest pending refresh; refreshes remain
+serialized, semantically unchanged firmware snapshots are suppressed, and
+current input is not starved behind redundant work. Stale or duplicate captured
+actions reject locally without automatic retry, and close cancels pending work
+before serialized native-session disposal. The accepted fix does not increase
+the existing five-second failure timeout. The current focused gate passes the
+same 33 Core, 23 Windows
+bridge, 15 private helper, and 10 native-protocol groups plus 13 integrated WPF
+groups; full Test-Host exits 0. This remains local simulator evidence, not
+physical LCD, Android, BLE-device, radio, or field evidence.
+
 ## Remaining gates
 
 - Verify the exact published remote commit.

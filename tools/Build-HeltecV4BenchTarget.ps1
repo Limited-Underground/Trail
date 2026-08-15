@@ -36,7 +36,7 @@ if ($LASTEXITCODE -ne 0 -or $reportedVersion -ne $requiredVersion) {
     (Join-Path $projectRoot 'tests\host\heltec_v4_bench_nimble_order_tests.py') `
     --idf-path $env:IDF_PATH
 if ($LASTEXITCODE -ne 0) {
-    throw "Pinned NimBLE indication-order admission failed with exit code $LASTEXITCODE."
+    throw "Pinned NimBLE indication/stop-order admission failed with exit code $LASTEXITCODE."
 }
 
 $competingConsoleSelections = @(
@@ -169,7 +169,9 @@ foreach ($requiredObject in @(
     'companion_authorization_persistence.cpp.obj',
     'companion_boot_self_check.cpp.obj',
     'companion_nimble_gatt.cpp.obj',
-    'companion_authorization_storage.cpp.obj'
+    'companion_nimble_runtime.cpp.obj',
+    'companion_authorization_storage.cpp.obj',
+    'companion_ble_runtime_owner.cpp.obj'
 )) {
     if (-not $linkMap.Contains($requiredObject)) {
         throw "Required companion codec object is absent from the link map: $requiredObject"
@@ -202,12 +204,14 @@ $evidence = [ordered]@{
     companion_gatt_authorization_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_gatt_authorization_adapter_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_authorization_storage_self_check = 'BUILD-LINKED-NOT-RUN'
+    companion_ble_runtime_owner_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_authorization_persistence = 'BUILD-LINKED-PROTECTED-BACKEND-NOT-INJECTED'
     companion_authorization_storage_preflight = 'DENIED-NVS-ENCRYPTION-NOT-CONFIGURED'
-    companion_nimble_gatt = 'BUILD-LINKED-CALLBACK-SELF-CHECK-NOT-RUN'
-    companion_command_dispatch = 'BUILD-LINKED-NOT-REGISTERED'
-    nimble_controller = 'NOT-STARTED'
-    advertising = 'NOT-IMPLEMENTED'
+    companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'
+    companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'
+    companion_command_dispatch = 'BUILD-LINKED-PREFLIGHT-DENIED-NOT-RUN'
+    nimble_controller = 'CODED-BUILD-LINKED-NOT-RUN'
+    advertising = 'CODED-PRIVATE-SERVICE-ONLY-NOT-RUN'
     application_authorization = 'NOT-INJECTED'
     protected_nvs = 'NOT-INITIALIZED-NOT-VERIFIED'
     private_bond_store = 'NOT-IMPLEMENTED'

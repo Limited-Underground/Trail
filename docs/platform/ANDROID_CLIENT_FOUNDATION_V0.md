@@ -149,17 +149,20 @@ security-path evidence and never upgrades Android bond state into invented
 encryption or authentication evidence.
 
 The corresponding target adapter and OT-054 persistence prerequisite are
-compiled and link-retained, but the service is not registered, the controller
-is not started, advertising is absent, and target persistence admission is
-denied because protected NVS/key/private-bond/rollback-floor prerequisites are
-unavailable. Consequently the production app cannot reach a live claim or
-Ready state against the current target. A write failure or timeout remains
-local uncertainty and cannot be shown as authoritative Unsupported or Denied.
+compiled and link-retained. OT-056 now codes `app_main` to initialize NimBLE,
+register the protected service, and advertise after its boot checks, but this
+path is `BUILD-LINKED-NOT-RUN` and was not flashed or exercised. Target
+persistence admission remains denied because protected
+NVS/key/private-bond/rollback-floor prerequisites are unavailable; the coded
+runtime immediately terminates every connection and never admits claims or
+normal commands. Consequently the production app still cannot reach a live
+claim or Ready state. A write failure or timeout remains local uncertainty and
+cannot be shown as authoritative Unsupported or Denied.
 
 The current semantic workflow covers only typed status, four fixed quick
 statuses, exact pending-alert acknowledgement, and position-sharing Start/Stop.
-Message/history, peer position, group provisioning, and real device authority
-remain absent. The Android client cannot claim a functional field workflow
+Real device message/history payloads, an accepted real-device peer-position feed, group
+provisioning, and real device authority remain absent. The Android client cannot claim a functional field workflow
 until the target starts the accepted secured service with trusted bond,
 persistence, physical-input, and application-authority adapters, and physical
 two-device evidence passes independently.
@@ -175,15 +178,15 @@ command-line-tools bootstrap archive `11076708` had observed SHA-256
 `4d6931209eebb1bfb7c7e8b240a6a3cb3ab24479ea294f3539429574b1eec862`.
 All environment changes were process-scoped; no global PATH was changed.
 
-The current focused gate passes 124 JVM tests across twelve suites (protocol
-suites 3, 10, 6, and 10; application suites 8, 15, 17, 11, 2, 21, 1, and 20),
+The current focused gate passes 134 JVM tests across thirteen suites (protocol
+29; application 105),
 including the frozen authorization-wire vectors, provisional tracker, v0.1
 decoder, protected-read composition, explicit no-fallback Bluetooth routing,
 foreground-service admission/ownership, binder generation, and manifest
 policy, with zero failures, errors, or skips. Warning-as-error Android lint
 reports no issue, and debug APK assembly passes. The exact isolated local debug
-APK was 9,660,781 bytes with SHA-256
-`33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
+APK was 9,677,165 bytes with SHA-256
+`697D73A6E48F1850A2756FB0886A8201C653804FB5A2B9628DD26790C8EC65B1`.
 `aapt` confirms package `io.github.nbjelanovic.otclient`, min SDK 26, target SDK
 35, the expected visible label, optional BLE hardware, Scan with
 `neverForLocation`, Connect, base and connected-device foreground service, and
@@ -194,3 +197,10 @@ evidence, not a release APK. No Android OS foreground-service lifecycle or
 notification surface was exercised, and no emulator, phone, BLE peripheral,
 serial port, or LoRa device was enumerated, opened, installed to, or otherwise
 accessed by the Android gate.
+
+OT-057 adds Group / Location presentation above this ownership graph. Real
+Bluetooth mode reports coordinates unavailable because no accepted device
+coordinate feed exists. Local mode uses separately labeled deterministic
+synthetic cards. The presentation layer adds no phone GPS, map, tile, network,
+location permission, storage, identity authority, or private correlation
+surface.

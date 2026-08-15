@@ -23,9 +23,11 @@ internal static class Program
         Run("deterministic circular LCD scales", DeterministicCircularLcdScales);
         Run("core presenter copy remains bridge-local", CorePresenterCopyRemainsBridgeLocal);
         Run("request completion sends exactly once", RequestCompletionSendsExactlyOnce);
+        Run("snapshot during blocked start reaches native UI", SnapshotDuringBlockedStartReachesNativeUi);
+        Run("snapshot refresh burst is bounded and touch remains live", SnapshotRefreshBurstIsBoundedAndTouchRemainsLive);
         Run("dual LCD native request crosses local bridge", DualLcdNativeRequestCrossesLocalBridge);
         Run("second native session failure rolls startup back", SecondNativeSessionFailureRollsStartupBack);
-        Console.WriteLine($"OpenTrail simulator UI tests passed: {passed}/11");
+        Console.WriteLine($"OpenTrail simulator UI tests passed: {passed}/13");
         return 0;
     }
 
@@ -394,6 +396,119 @@ internal static class Program
             "The exact request was not completed exactly once.");
     }
 
+    private static void SnapshotDuringBlockedStartReachesNativeUi()
+    {
+        var presenter = new FakePresenter(Snapshot(
+            "Client A", "Simulated device A", connectedEpoch: 42));
+        var session = new BlockingRefreshSession(NativePath);
+        session.BlockNextStart();
+        var window = new VirtualLcdWindow(presenter, session);
+        try
+        {
+            ShowOffscreen(window);
+            PumpUntil(() => session.BlockedStartCount == 1);
+            presenter.Publish(Snapshot(
+                "Client A", "Simulated device A", connectedEpoch: 42,
+                messages: [UiMessage(1, "Arrived during startup")]));
+            PumpDispatcher();
+            Require(session.RefreshCount == 0,
+                "A snapshot bypassed the in-flight native START command.");
+
+            session.ReleaseStart();
+            PumpUntil(() => session.CompletedRefreshCount == 1);
+            Require(session.LastRefreshState?.Messages.Single().Text == "Arrived during startup",
+                "The latest snapshot was lost while native START was in flight.");
+        }
+        finally
+        {
+            window.Close();
+            PumpUntil(() => !window.IsVisible);
+        }
+    }
+
+    private static void SnapshotRefreshBurstIsBoundedAndTouchRemainsLive()
+    {
+        var presenter = new FakePresenter(Snapshot(
+            "Client A", "Simulated device A", connectedEpoch: 42));
+        var session = new BlockingRefreshSession(NativePath);
+        var window = new VirtualLcdWindow(presenter, session);
+        try
+        {
+            ShowOffscreen(window);
+            PumpUntil(() => window.CurrentOffer is not null);
+            for (var index = 0; index < 20; ++index)
+                presenter.Publish(presenter.Snapshot);
+            PumpDispatcher();
+            Require(session.RefreshCount == 0,
+                "Semantically identical snapshot events reached native REFRESH.");
+
+            var staleMessagesButton = window.ActionButtons[1];
+            session.BlockNextRefresh();
+            presenter.Publish(Snapshot(
+                "Client A", "Simulated device A", connectedEpoch: 42,
+                messages: [UiMessage(1, "First burst state")]));
+            PumpUntil(() => session.BlockedRefreshCount == 1);
+
+            for (var sequence = 2; sequence <= 20; ++sequence)
+            {
+                presenter.Publish(Snapshot(
+                    "Client A", "Simulated device A", connectedEpoch: 42,
+                    messages: [UiMessage(sequence, $"Burst state {sequence}")]));
+            }
+            staleMessagesButton.RaiseEvent(new RoutedEventArgs(
+                System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            staleMessagesButton.RaiseEvent(new RoutedEventArgs(
+                System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            session.ReleaseRefresh();
+            PumpUntil(() => session.CompletedRefreshCount == 2 &&
+                session.LastCompletedRefreshOffer is { } lastOffer &&
+                window.CurrentOffer?.Generation == lastOffer.Generation &&
+                window.CurrentOffer?.Revision == lastOffer.Revision);
+
+            Require(session.RefreshCount == 2,
+                "A snapshot burst queued more than one latest pending native refresh.");
+            Require(session.InputCount == 0,
+                "An action captured from a replaced native frame was replayed.");
+            Require(session.LastRefreshState?.Messages.Single().Text == "Burst state 20",
+                "The coalesced refresh did not retain the latest firmware snapshot.");
+
+            var liveMessagesButton = window.ActionButtons[1];
+            liveMessagesButton.RaiseEvent(new RoutedEventArgs(
+                System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            liveMessagesButton.RaiseEvent(new RoutedEventArgs(
+                System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            PumpUntil(() => window.CurrentOffer?.Screen == 7);
+            Require(session.InputCount == 1,
+                "Duplicate touch input created more than one pending native command.");
+            window.ActionButtons[2].RaiseEvent(new RoutedEventArgs(
+                System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            PumpUntil(() => window.CurrentOffer?.Screen == 10);
+            Require(session.InputCount == 2,
+                "Current native actions did not remain live after the bounded refresh burst.");
+
+            var priorBlockedRefreshes = session.BlockedRefreshCount;
+            session.BlockNextRefresh();
+            presenter.Publish(Snapshot(
+                "Client A", "Simulated device A", connectedEpoch: 42,
+                messages: [UiMessage(21, "Close active refresh")]));
+            PumpUntil(() => session.BlockedRefreshCount == priorBlockedRefreshes + 1);
+            presenter.Publish(Snapshot(
+                "Client A", "Simulated device A", connectedEpoch: 42,
+                messages: [UiMessage(22, "Close pending refresh")]));
+            window.ActionButtons[0].RaiseEvent(new RoutedEventArgs(
+                System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        }
+        finally
+        {
+            window.Close();
+            PumpUntil(() => !window.IsVisible);
+            Require(session.DisposeCount == 1,
+                "Close did not dispose the blocked native session exactly once.");
+            Require(session.InputCount == 2,
+                "Close allowed a pending interactive command to reach native INPUT.");
+        }
+    }
+
     private static void DualLcdNativeRequestCrossesLocalBridge()
     {
         var simulator = OpenTrail.Simulator.Core.LocalLoopbackSimulator.Create();
@@ -505,6 +620,16 @@ internal static class Program
         client, device, "local loopback", SimulatorUiConnectionState.Disconnected,
         "No observation", messages ?? [], [], connectedEpoch, 0, 32, null);
 
+    private static SimulatorUiMessage UiMessage(long sequence, string text) => new(
+        sequence,
+        SimulatorUiMessageDirection.Inbound,
+        SimulatorUiMessageKind.Chat,
+        SimulatorUiMessagePriority.Normal,
+        text,
+        SimulatorUiDeliveryState.BridgeObserved,
+        DateTimeOffset.UnixEpoch,
+        false);
+
     private static PortableUiSnapshotState ConnectedMessageState() =>
         PortableUiSnapshotState.Initial with
         {
@@ -595,5 +720,139 @@ internal static class Program
         public Task<PortableUiProtocolResult> NotReadyAsync(uint generation, uint revision, CancellationToken token) => throw new NotSupportedException();
         public Task<PortableUiProtocolResult> RenderFailedAsync(uint generation, uint revision, CancellationToken token) => throw new NotSupportedException();
         public ValueTask DisposeAsync() { ++DisposeCount; return ValueTask.CompletedTask; }
+    }
+
+    private sealed class BlockingRefreshSession : IPortableUiSession
+    {
+        private readonly NativePortableUiSession inner;
+        private TaskCompletionSource<bool>? refreshEntered;
+        private TaskCompletionSource<bool>? refreshRelease;
+        private TaskCompletionSource<bool>? startEntered;
+        private TaskCompletionSource<bool>? startRelease;
+        private int refreshCount;
+        private int completedRefreshCount;
+        private int blockedRefreshCount;
+        private int inputCount;
+        private int blockedStartCount;
+        private int disposeCount;
+        private int blockNextRefresh;
+        private int blockNextStart;
+
+        internal BlockingRefreshSession(string executablePath) =>
+            inner = new NativePortableUiSession(executablePath);
+
+        internal int RefreshCount => Volatile.Read(ref refreshCount);
+        internal int CompletedRefreshCount => Volatile.Read(ref completedRefreshCount);
+        internal int BlockedRefreshCount => Volatile.Read(ref blockedRefreshCount);
+        internal int InputCount => Volatile.Read(ref inputCount);
+        internal int BlockedStartCount => Volatile.Read(ref blockedStartCount);
+        internal int DisposeCount => Volatile.Read(ref disposeCount);
+        internal PortableUiSnapshotState? LastRefreshState { get; private set; }
+        internal PortableUiOffer? LastCompletedRefreshOffer { get; private set; }
+
+        internal void BlockNextRefresh()
+        {
+            refreshEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            refreshRelease = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            Interlocked.Exchange(ref blockNextRefresh, 1);
+        }
+
+        internal void ReleaseRefresh() => refreshRelease?.TrySetResult(true);
+
+        internal void BlockNextStart()
+        {
+            startEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            startRelease = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            Interlocked.Exchange(ref blockNextStart, 1);
+        }
+
+        internal void ReleaseStart() => startRelease?.TrySetResult(true);
+
+        public async Task<PortableUiProtocolResult> StartAsync(
+            PortableUiSnapshotState state,
+            CancellationToken token)
+        {
+            var entered = startEntered;
+            var release = startRelease;
+            if (entered is not null && release is not null &&
+                Interlocked.Exchange(ref blockNextStart, 0) == 1)
+            {
+                Interlocked.Increment(ref blockedStartCount);
+                entered.TrySetResult(true);
+                await release.Task.WaitAsync(token);
+            }
+            return await inner.StartAsync(state, token);
+        }
+
+        public async Task<PortableUiProtocolResult> InputAsync(
+            uint generation,
+            uint revision,
+            int slot,
+            PortableUiGesture gesture,
+            CancellationToken token)
+        {
+            Interlocked.Increment(ref inputCount);
+            return await inner.InputAsync(generation, revision, slot, gesture, token);
+        }
+
+        public async Task<PortableUiProtocolResult> RefreshAsync(
+            uint generation,
+            uint revision,
+            PortableUiSnapshotState state,
+            CancellationToken token)
+        {
+            Interlocked.Increment(ref refreshCount);
+            LastRefreshState = state;
+            var entered = refreshEntered;
+            var release = refreshRelease;
+            if (entered is not null && release is not null &&
+                Interlocked.Exchange(ref blockNextRefresh, 0) == 1)
+            {
+                Interlocked.Increment(ref blockedRefreshCount);
+                entered.TrySetResult(true);
+                await release.Task.WaitAsync(token);
+            }
+            var result = await inner.RefreshAsync(generation, revision, state, token);
+            LastCompletedRefreshOffer = result.Offer;
+            Interlocked.Increment(ref completedRefreshCount);
+            return result;
+        }
+
+        public Task<PortableUiProtocolResult> CompleteAsync(
+            uint generation,
+            uint revision,
+            uint requestId,
+            int requestKind,
+            bool succeeded,
+            ulong appliedBridgeSessionEpoch,
+            ulong appliedMessageSequence,
+            int requestTemplateId,
+            ulong requestMessageSequence,
+            PortableUiSnapshotState state,
+            CancellationToken token) => inner.CompleteAsync(
+                generation, revision, requestId, requestKind, succeeded,
+                appliedBridgeSessionEpoch, appliedMessageSequence,
+                requestTemplateId, requestMessageSequence, state, token);
+
+        public Task<PortableUiProtocolResult> PresentedAsync(
+            uint generation,
+            uint revision,
+            CancellationToken token) => inner.PresentedAsync(generation, revision, token);
+
+        public Task<PortableUiProtocolResult> NotReadyAsync(
+            uint generation,
+            uint revision,
+            CancellationToken token) => inner.NotReadyAsync(generation, revision, token);
+
+        public Task<PortableUiProtocolResult> RenderFailedAsync(
+            uint generation,
+            uint revision,
+            CancellationToken token) => inner.RenderFailedAsync(generation, revision, token);
+
+        public ValueTask DisposeAsync()
+        {
+            Interlocked.Increment(ref disposeCount);
+            return inner.DisposeAsync();
+        }
     }
 }

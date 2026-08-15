@@ -463,13 +463,45 @@ across twelve suites (protocol 29; application 95), clean warning-as-error lint,
 manifest inspection, and debug assembly. The 9,660,781-byte APK has SHA-256
 `33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
 
-These increments remain non-live: `app_main` never registers the service or
-starts NimBLE/controller, advertising is absent, admitted target persistence
-and physical-input authorities are unavailable, and nothing was flashed. The
-APK was not installed on an emulator or phone, and no Android OS service,
-notification, pairing, authorization, Ready, target-runtime, or physical BLE
-proof exists. OT-052 through OT-055 are bounded `done` increments; OT-034
-remains `partial` and V1 remains 30%.
+OT-056 codes the smallest one-connection NimBLE boot/runtime owner. After all
+deterministic self-checks and the exact denied OT-054 preflight, `app_main` is
+coded to initialize the host/controller, register the protected service, and
+advertise standard flags plus the public service UUID under a privacy-capable
+address policy. Its advertising-data payload contains no name, manufacturer
+data, address field, or device/user/group identifier. Host callbacks cross a
+fixed eight-entry queue into one owner context; disconnect cleanup precedes a
+bounded tokenized restart, and startup/queue/reset/retry/stop errors contain.
+Because protected storage/private bond/PRF/floor admission remains denied,
+configured SC/MITM/bonding is not usable-bond proof, every connection is
+immediately terminated, and claim plus normal-command authority remains closed.
+Thirteen strict groups pass at 100/100, target self-check passes 100/100, all
+123 native entries and full Test-Host pass, static admission passes 3/3, pinned
+NimBLE teardown/stop ordering passes, and two builds reproduce a 433,104-byte
+BIN with SHA-256
+`8A25508B50B29FE2A09CF3390AE53473BBA0BF04F60AE9A6366B930D516FCE2A`.
+Exact evidence is in [OT-056](../tests/hardware/OT-056-2026-08-15.md).
+
+OT-057 adds a renderer-neutral Android Group / Location presentation model.
+Real Bluetooth cards report coordinates unavailable because no accepted BLE
+coordinate source exists; Local mode uses separately labeled deterministic
+synthetic cards. It adds no phone GPS, map, tiles, network, location, or storage
+permission. The gate passes 134 JVM tests across thirteen suites (protocol 29;
+application 105), clean lint, manifest inspection, and debug assembly. The
+9,677,165-byte APK has SHA-256
+`697D73A6E48F1850A2756FB0886A8201C653804FB5A2B9628DD26790C8EC65B1`.
+
+OT-058 bounds and coalesces simulator native-session notifications without
+weakening the five-second failure timeout. Focused validation passes 33 Core,
+23 Windows bridge, 15 private helper, 10 native-protocol, and 13 integrated WPF
+groups; full Test-Host exits 0.
+
+These increments remain non-live. The target runtime path is
+`CODED-BUILD-LINKED-NOT-RUN`, nothing was flashed or accessed, and no protected
+storage/bond authority is admitted. The APK was not installed on an emulator or
+phone, and no Android OS service, notification, pairing, authorization, Ready,
+real location, target-runtime, or physical BLE proof exists. OT-052 through
+OT-058 are bounded `done` increments; OT-034 remains `partial` and V1 remains
+30%.
 
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins

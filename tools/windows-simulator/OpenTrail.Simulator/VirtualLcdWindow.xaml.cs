@@ -15,6 +15,7 @@ public partial class VirtualLcdWindow : Window
     private readonly CancellationTokenSource lifetime = new();
     private readonly SemaphoreSlim commandGate = new(1, 1);
     private readonly SemaphoreSlim hostCommandGate = new(1, 1);
+    private readonly object snapshotRefreshSync = new();
     private readonly List<Button> actionButtons = [];
     private PortableUiSnapshotState firmwareState = PortableUiSnapshotState.Initial;
     private PortableUiOffer? currentOffer;
@@ -23,6 +24,10 @@ public partial class VirtualLcdWindow : Window
     private volatile bool closeStarted;
     private volatile bool closeCommitted;
     private volatile bool firmwareSessionFaulted;
+    private PendingSnapshotRefresh? pendingSnapshotRefresh;
+    private ulong nextSnapshotRefreshGeneration;
+    private bool snapshotRefreshDrainScheduled;
+    private bool interactiveCommandPending;
 
     internal VirtualLcdWindow(
         ISimulatorClientPresenter presenter,
@@ -45,6 +50,7 @@ public partial class VirtualLcdWindow : Window
     internal Task DispatchCommittedRequestForTestAsync(PortableUiProtocolResult result) =>
         DispatchCommittedRequestAsync(result);
     private sealed record RenderedAction(PortableUiPrimitive Primitive, uint Generation, uint Revision);
+    private sealed record PendingSnapshotRefresh(ulong Generation, SimulatorUiSnapshot Snapshot);
 
     private async void HandleLoaded(object sender, RoutedEventArgs e)
     {
@@ -56,18 +62,82 @@ public partial class VirtualLcdWindow : Window
     private void HandleSnapshotChanged(object? sender, EventArgs e)
     {
         if (closeStarted || firmwareSessionFaulted) return;
-        _ = Dispatcher.BeginInvoke(async () =>
+        lock (snapshotRefreshSync)
         {
             if (closeStarted || firmwareSessionFaulted) return;
-            RenderHostSnapshot(presenter.Snapshot);
-            firmwareState = BuildFirmwareState(presenter.Snapshot, firmwareState);
-            if (currentOffer is not null)
+            if (nextSnapshotRefreshGeneration == ulong.MaxValue)
             {
-                await RunFirmwareCommandAsync(token => uiSession.RefreshAsync(
-                    currentOffer.Generation, currentOffer.Revision, firmwareState, token));
+                pendingSnapshotRefresh = null;
+                firmwareSessionFaulted = true;
+                _ = Dispatcher.BeginInvoke(new Action(() =>
+                    FailUi("The bounded native refresh generation was exhausted.")));
+                return;
             }
-        });
+            ++nextSnapshotRefreshGeneration;
+            pendingSnapshotRefresh = new(nextSnapshotRefreshGeneration, presenter.Snapshot);
+        }
+        ScheduleSnapshotRefreshDrain();
     }
+
+    private void ScheduleSnapshotRefreshDrain()
+    {
+        lock (snapshotRefreshSync)
+        {
+            if (closeStarted || firmwareSessionFaulted || pendingSnapshotRefresh is null ||
+                currentOffer is null || snapshotRefreshDrainScheduled ||
+                interactiveCommandPending) return;
+            snapshotRefreshDrainScheduled = true;
+        }
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Background,
+            new Action(DrainSnapshotRefreshesAsync));
+    }
+
+    private async void DrainSnapshotRefreshesAsync()
+    {
+        try
+        {
+            while (!closeStarted && !firmwareSessionFaulted)
+            {
+                PendingSnapshotRefresh nextRefresh;
+                lock (snapshotRefreshSync)
+                {
+                    // START owns an immutable snapshot. Retain the latest event
+                    // until that first offer commits so it cannot be consumed
+                    // without ever reaching the native presenter.
+                    if (interactiveCommandPending || pendingSnapshotRefresh is null ||
+                        currentOffer is null) break;
+                    nextRefresh = pendingSnapshotRefresh;
+                    pendingSnapshotRefresh = null;
+                }
+
+                RenderHostSnapshot(nextRefresh.Snapshot);
+                var nextFirmwareState = BuildFirmwareState(nextRefresh.Snapshot, firmwareState);
+                if (FirmwareStateEquals(firmwareState, nextFirmwareState)) continue;
+                firmwareState = nextFirmwareState;
+                var offer = currentOffer;
+                if (offer is not null)
+                {
+                    await RunFirmwareCommandAsync(token => uiSession.RefreshAsync(
+                        offer.Generation, offer.Revision, nextFirmwareState, token));
+                }
+            }
+        }
+        catch (Exception)
+        {
+            firmwareSessionFaulted = true;
+            FailUi("Native portable UI refresh failed; this LCD is disabled.");
+        }
+        finally
+        {
+            lock (snapshotRefreshSync) snapshotRefreshDrainScheduled = false;
+            ScheduleSnapshotRefreshDrain();
+        }
+    }
+
+    private static bool FirmwareStateEquals(
+        PortableUiSnapshotState left,
+        PortableUiSnapshotState right) =>
+        string.Equals(left.Serialize(), right.Serialize(), StringComparison.Ordinal);
 
     private void RenderHostSnapshot(SimulatorUiSnapshot snapshot)
     {
@@ -147,7 +217,8 @@ public partial class VirtualLcdWindow : Window
     }
 
     private async Task RunFirmwareCommandAsync(
-        Func<CancellationToken, Task<PortableUiProtocolResult>> command)
+        Func<CancellationToken, Task<PortableUiProtocolResult>> command,
+        RenderedAction? expectedAction = null)
     {
         if (closeStarted || firmwareSessionFaulted) return;
         var entered = false;
@@ -156,6 +227,15 @@ public partial class VirtualLcdWindow : Window
             await commandGate.WaitAsync(lifetime.Token);
             entered = true;
             if (closeStarted || firmwareSessionFaulted) return;
+            if (expectedAction is not null &&
+                (currentOffer is null ||
+                 currentOffer.Generation != expectedAction.Generation ||
+                 currentOffer.Revision != expectedAction.Revision))
+            {
+                await InvokeUiAsync(() => HostNoticeText.Text =
+                    "Portable UI ignored an action from a replaced frame; activate the current control again.");
+                return;
+            }
             var result = await command(lifetime.Token).ConfigureAwait(false);
             await ProcessProtocolResultAsync(result).ConfigureAwait(false);
         }
@@ -168,6 +248,36 @@ public partial class VirtualLcdWindow : Window
         finally
         {
             if (entered) commandGate.Release();
+        }
+    }
+
+    private async Task RunInteractiveFirmwareCommandAsync(
+        RenderedAction action,
+        PortableUiGesture gesture)
+    {
+        lock (snapshotRefreshSync)
+        {
+            if (closeStarted || firmwareSessionFaulted) return;
+            if (interactiveCommandPending)
+            {
+                HostNoticeText.Text =
+                    "Portable UI ignored duplicate input while the current action is pending.";
+                return;
+            }
+            interactiveCommandPending = true;
+        }
+        try
+        {
+            await RunFirmwareCommandAsync(
+                token => uiSession.InputAsync(
+                    action.Generation, action.Revision, action.Primitive.ActionSlot,
+                    gesture, token),
+                action);
+        }
+        finally
+        {
+            lock (snapshotRefreshSync) interactiveCommandPending = false;
+            ScheduleSnapshotRefreshDrain();
         }
     }
 
@@ -417,6 +527,7 @@ public partial class VirtualLcdWindow : Window
         foreach (var button in actionButtons)
             if (button.Tag is RenderedAction action) button.IsEnabled = action.Primitive.Enabled;
         HostNoticeText.Text = $"Native frame {generation}:{revision} committed locally";
+        ScheduleSnapshotRefreshDrain();
         return true;
     }
 
@@ -424,9 +535,7 @@ public partial class VirtualLcdWindow : Window
     {
         if (sender is not Button { Tag: RenderedAction action } ||
             action.Primitive.RequiresHold) return;
-        await RunFirmwareCommandAsync(token => uiSession.InputAsync(
-            action.Generation, action.Revision, action.Primitive.ActionSlot,
-            PortableUiGesture.Activate, token));
+        await RunInteractiveFirmwareCommandAsync(action, PortableUiGesture.Activate);
     }
 
     private void HandleHoldStarted(object sender, MouseButtonEventArgs e)
@@ -449,9 +558,7 @@ public partial class VirtualLcdWindow : Window
             timer.Stop();
             button.Resources.Remove("hold-timer");
             if (!button.IsPressed && !button.IsKeyboardFocused) return;
-            await RunFirmwareCommandAsync(token => uiSession.InputAsync(
-                action.Generation, action.Revision, action.Primitive.ActionSlot,
-                PortableUiGesture.Hold, token));
+            await RunInteractiveFirmwareCommandAsync(action, PortableUiGesture.Hold);
         };
         button.Resources["hold-timer"] = timer;
         timer.Start();
@@ -758,6 +865,7 @@ public partial class VirtualLcdWindow : Window
         closeStarted = true;
         IsEnabled = false;
         presenter.SnapshotChanged -= HandleSnapshotChanged;
+        lock (snapshotRefreshSync) pendingSnapshotRefresh = null;
         lifetime.Cancel();
         CancelAllHolds();
         var firmwareEntered = false;

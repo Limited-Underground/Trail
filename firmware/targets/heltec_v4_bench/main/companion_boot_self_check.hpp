@@ -20,4 +20,9 @@ namespace opentrail::target::heltec_v4_bench {
 // NimBLE host/controller is registered or started.
 [[nodiscard]] bool run_companion_gatt_authorization_adapter_self_check();
 
+// Deterministic target-neutral runtime-owner check. It exercises exact startup,
+// one connection, cleanup, and bounded re-advertising through an in-memory port;
+// it initializes no controller, host, service, advertiser, or device storage.
+[[nodiscard]] bool run_companion_ble_runtime_owner_self_check();
+
 }  // namespace opentrail::target::heltec_v4_bench

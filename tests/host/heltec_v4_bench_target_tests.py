@@ -14,6 +14,11 @@ CONTRACT = TARGET / "target-contract.json"
 SOURCE = TARGET / "main" / "app_main.cpp"
 SELF_CHECK = TARGET / "main" / "companion_boot_self_check.cpp"
 NIMBLE_GATT = TARGET / "main" / "companion_nimble_gatt.cpp"
+NIMBLE_RUNTIME = TARGET / "main" / "companion_nimble_runtime.cpp"
+BLE_RUNTIME_OWNER = (
+    ROOT / "firmware" / "components" / "companion" / "src" /
+    "companion_ble_runtime_owner.cpp"
+)
 GATT_SESSION = (
     ROOT / "firmware" / "components" / "companion" / "src" /
     "companion_gatt_session.cpp"
@@ -61,6 +66,8 @@ def test_contract() -> None:
         "main/companion_authorization_storage.hpp",
         "main/companion_nimble_gatt.cpp",
         "main/companion_nimble_gatt.hpp",
+        "main/companion_nimble_runtime.cpp",
+        "main/companion_nimble_runtime.hpp",
         "sdkconfig.defaults",
         "target-contract.json",
     }
@@ -95,10 +102,14 @@ def test_contract() -> None:
         "boot_companion_gatt_authorization_self_check",
         "boot_companion_gatt_authorization_adapter_self_check",
         "boot_companion_authorization_storage_self_check",
+        "boot_companion_ble_runtime_owner_self_check",
         "nimble_gatt_definition_build_linked",
         "nimble_gatt_callback_adapter_build_linked",
         "companion_authorization_persistence_build_linked",
         "companion_authorization_storage_preflight_build_linked",
+        "nimble_runtime_owner_build_linked",
+        "nimble_runtime_startup_coded",
+        "private_service_advertising_coded",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
             "heartbeat must remain admitted")
@@ -114,6 +125,8 @@ def test_contract() -> None:
             "boot callback-adapter self-check must be admitted")
     require(capabilities["boot_companion_authorization_storage_self_check"] is True,
             "boot authorization-storage self-check must be admitted")
+    require(capabilities["boot_companion_ble_runtime_owner_self_check"] is True,
+            "boot BLE-runtime-owner self-check must be admitted")
     require(capabilities["nimble_gatt_definition_build_linked"] is True,
             "NimBLE GATT definition build linkage must be admitted")
     require(capabilities["nimble_gatt_callback_adapter_build_linked"] is True,
@@ -122,6 +135,10 @@ def test_contract() -> None:
             "authorization persistence build linkage must be admitted")
     require(capabilities["companion_authorization_storage_preflight_build_linked"] is True,
             "authorization storage preflight build linkage must be admitted")
+    require(capabilities["nimble_runtime_owner_build_linked"] is True and
+            capabilities["nimble_runtime_startup_coded"] is True and
+            capabilities["private_service_advertising_coded"] is True,
+            "bounded NimBLE runtime code must be explicitly admitted")
     for name, enabled in capabilities.items():
         if name not in admitted:
             require(enabled is False, f"capability must remain disabled: {name}")
@@ -136,6 +153,8 @@ def test_application_surface() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     self_check = SELF_CHECK.read_text(encoding="utf-8")
     nimble_gatt = NIMBLE_GATT.read_text(encoding="utf-8")
+    nimble_runtime = NIMBLE_RUNTIME.read_text(encoding="utf-8")
+    runtime_owner = BLE_RUNTIME_OWNER.read_text(encoding="utf-8")
     require("run_companion_codec_self_check" in source,
             "missing deterministic boot codec self-check")
     require("kExpectedInfo" in source and
@@ -156,10 +175,13 @@ def test_application_surface() -> None:
             "missing callback-adapter self-check call")
     require("run_companion_authorization_storage_self_check" in source,
             "missing authorization-storage self-check call")
+    require("run_companion_ble_runtime_owner_self_check" in source,
+            "missing BLE-runtime-owner self-check call")
     require("companion_nimble_gatt_definition_self_check" in source,
             "missing NimBLE GATT definition self-check call")
-    require("register_companion_nimble_gatt_service" not in source,
-            "build-only application must not register or start GATT")
+    require("start_companion_nimble_runtime" in source and
+            "service_companion_nimble_runtime" in source,
+            "application must own the bounded NimBLE runtime")
     require("FixedSnapshotAuthority" in self_check and
             "FixedActionAuthority" in self_check,
             "coordinator self-check must use fixed injected authorities")
@@ -178,8 +200,9 @@ def test_application_surface() -> None:
     require("contain_self_check_failure" in source and
             "vTaskSuspend(nullptr)" in source,
             "codec failure must suspend before heartbeat")
-    require("build-only bench candidate started" in source,
-            "missing bounded startup record")
+    require("companion runtime started" in source and
+            "companion runtime FAIL" in source,
+            "missing fixed runtime startup/containment records")
     require("heartbeat elapsed_ms=%llu" in source,
             "missing privacy-safe heartbeat")
     require("esp_timer_get_time" in source,
@@ -195,13 +218,21 @@ def test_application_surface() -> None:
         "run_companion_gatt_authorization_adapter_self_check()")
     authorization_storage_call = source.index(
         "run_companion_authorization_storage_self_check()")
+    runtime_owner_check_call = source.index(
+        "run_companion_ble_runtime_owner_self_check()")
     gatt_definition_call = source.index(
         "companion_nimble_gatt_definition_self_check()")
     pass_log = source.index("companion boot self-check PASS")
-    startup_log = source.index("build-only bench candidate started")
+    runtime_start = source.index("start_companion_nimble_runtime(started_at_ms)")
+    startup_log = source.index("companion runtime started")
     heartbeat_log = source.index("heartbeat elapsed_ms=%llu")
-    require(self_check_call < coordinator_call < gatt_session_call < gatt_authorization_call < gatt_adapter_call < authorization_storage_call < gatt_definition_call < pass_log < startup_log < heartbeat_log,
-            "all self-checks must gate startup and heartbeat")
+    require(self_check_call < coordinator_call < gatt_session_call < gatt_authorization_call < gatt_adapter_call < authorization_storage_call < runtime_owner_check_call < gatt_definition_call < pass_log < runtime_start < startup_log < heartbeat_log,
+            "all self-checks must gate runtime startup and heartbeat")
+    require("FixedBleRuntimePort" in self_check and
+            "CompanionBleRuntimeOwner owner" in self_check and
+            "authorization_claims_closed" in self_check and
+            "normal_commands_closed" in self_check,
+            "boot runtime-owner self-check must remain deterministic and denied")
 
     for vector in (
         "kAuthorizationProtocolInfo", "kAuthorizationClaimStart",
@@ -240,6 +271,55 @@ def test_application_surface() -> None:
     authorization_persistence = AUTHORIZATION_PERSISTENCE.read_text(
         encoding="utf-8")
     authorization_storage = AUTHORIZATION_STORAGE.read_text(encoding="utf-8")
+    for required in (
+        "nimble_port_init", "register_companion_nimble_gatt_service",
+        "xTaskCreatePinnedToCore", "ble_gap_adv_start",
+        "BLE_HS_IO_NO_INPUT_OUTPUT", "sm_bonding = 1", "sm_mitm = 1",
+        "sm_sc = 1", "StaticQueue_t", "std::atomic<bool>",
+        "nvs_encryption_not_configured", "BLE_HS_ENOTCONN",
+        "connection_termination_failed", "ble_gap_terminate",
+        "observe_host_run_exit", "host_started_ && !host_run_exited_",
+    ):
+        require(required in nimble_runtime,
+                f"missing bounded NimBLE runtime gate: {required}")
+    require("fields.name" not in nimble_runtime and
+            "fields.mfg_data" not in nimble_runtime and
+            "ble_hs_id_copy_addr" not in nimble_runtime and
+            "ESP_LOG" not in nimble_runtime,
+            "advertising/runtime must not expose or log identity")
+    require(nimble_runtime.index("companion_authorization_storage_preflight") <
+            nimble_runtime.index("g_runtime_owner.start"),
+            "denied protected-storage preflight must precede host start")
+    exited_service = nimble_runtime[
+        nimble_runtime.index("g_host_exited.exchange"):
+        nimble_runtime.index("g_event_overflow.exchange")
+    ]
+    require(exited_service.index("observe_host_run_exit") <
+            exited_service.index("g_runtime_owner.host_reset"),
+            "confirmed host exit must suppress stop before containment")
+    contain_port = nimble_runtime[
+        nimble_runtime.index("bool contain_stack() override"):
+        nimble_runtime.index("void observe_host_run_exit()")
+    ]
+    require(contain_port.index("host_started_ && !host_run_exited_") <
+            contain_port.index("vTaskDelete(host_task_)") <
+            contain_port.index("nimble_port_deinit()"),
+            "both normal and already-exited cleanup must delete before deinit")
+    connect_case = nimble_runtime[
+        nimble_runtime.index("case BLE_GAP_EVENT_CONNECT"):
+        nimble_runtime.index("case BLE_GAP_EVENT_DISCONNECT")
+    ]
+    require("ble_gap_terminate" in connect_case and
+            "termination == BLE_HS_ENOTCONN" in connect_case and
+            "RuntimeEventKind::connection_termination_failed" in connect_case,
+            "denied-storage connect must close or contain on terminate failure")
+    for required in (
+        "operation_active_", "reentry_observed_", "callback_overflow",
+        "max_restart_attempts", "restart_token", "contain_stack",
+        "connection_termination_failed",
+    ):
+        require(required in runtime_owner,
+                f"missing serialized runtime-owner invariant: {required}")
     for required in (
         "kCompanionMaxResponseRecordBytes",
         "indication_sink_.reserve",
@@ -359,17 +439,19 @@ def test_application_surface() -> None:
         "companion/src/companion_gatt_authorization_adapter.cpp",
         "companion/src/companion_authorization.cpp",
         "companion/src/companion_authorization_persistence.cpp",
+        "companion/src/companion_ble_runtime_owner.cpp",
         "companion_authorization_storage.cpp",
         "companion_boot_self_check.cpp",
         "companion_nimble_gatt.cpp",
+        "companion_nimble_runtime.cpp",
         "companion/include",
         "protocol/include",
         "radio/include",
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 13,
-            "target source set must remain app, three target helpers, and nine accepted companion files")
+    require(cmake.count('.cpp"') == 15,
+            "target source set must remain five target and ten accepted companion sources")
     require("REQUIRES" in cmake and "bt" in cmake,
             "target must declare the pinned ESP-IDF Bluetooth dependency")
 
@@ -478,16 +560,19 @@ def test_build_only_tooling() -> None:
             "build evidence must deny runtime callback-adapter evidence")
     require("companion_authorization_storage_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny runtime storage self-check evidence")
+    require("companion_ble_runtime_owner_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
+            "build evidence must deny runtime-owner self-check evidence")
     require("companion_authorization_persistence = 'BUILD-LINKED-PROTECTED-BACKEND-NOT-INJECTED'" in script and
             "companion_authorization_storage_preflight = 'DENIED-NVS-ENCRYPTION-NOT-CONFIGURED'" in script,
             "build evidence must preserve closed protected-storage admission")
-    require("companion_nimble_gatt = 'BUILD-LINKED-CALLBACK-SELF-CHECK-NOT-RUN'" in script,
-            "build evidence must deny GATT runtime evidence")
+    require("companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'" in script and
+            "companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'" in script,
+            "build evidence must deny GATT/runtime execution evidence")
     require("heltec_v4_bench_nimble_order_tests.py" in script and
             "--idf-path $env:IDF_PATH" in script,
             "build helper must enforce pinned NimBLE disconnect ordering")
-    require("nimble_controller = 'NOT-STARTED'" in script and
-            "advertising = 'NOT-IMPLEMENTED'" in script and
+    require("nimble_controller = 'CODED-BUILD-LINKED-NOT-RUN'" in script and
+            "advertising = 'CODED-PRIVATE-SERVICE-ONLY-NOT-RUN'" in script and
             "application_authorization = 'NOT-INJECTED'" in script,
             "build evidence must preserve the closed runtime boundary")
     require("companion_protocol.cpp.obj" in script and
@@ -503,6 +588,9 @@ def test_build_only_tooling() -> None:
             "companion_nimble_gatt.cpp.obj" in script and
             "companion_authorization_storage.cpp.obj" in script,
             "build helper must verify all companion/self-check objects in the link map")
+    require("companion_nimble_runtime.cpp.obj" in script and
+            "companion_ble_runtime_owner.cpp.obj" in script,
+            "build helper must verify runtime objects in the link map")
     require("protected_nvs = 'NOT-INITIALIZED-NOT-VERIFIED'" in script and
             "private_bond_store = 'NOT-IMPLEMENTED'" in script and
             "binding_prf_key = 'NOT-PROVISIONED-NOT-VERIFIED'" in script and

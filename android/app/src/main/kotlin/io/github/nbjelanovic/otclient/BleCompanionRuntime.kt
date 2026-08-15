@@ -184,6 +184,7 @@ data class BleActiveSession(
     val sessionNonce: Long,
     val snapshot: CompanionStatusSnapshot,
     val protocolInfo: CompanionProtocolInfo,
+    val groupLocation: GroupLocationSnapshot,
     val lastActionResult: CompanionActionResult? = null,
 )
 
@@ -1091,7 +1092,15 @@ class BleCompanionRuntime(
         pendingSnapshotExchangeId = 0
         authorizationClaim = null
         reconnectAttempt = 0
-        publish(BleRuntimeState.Ready(BleActiveSession(companion, fragment.sessionNonce, snapshot, info)))
+        val groupLocation = GroupLocationSnapshot.authoritativeUnavailable(
+            snapshot.revision,
+            snapshot.positionSharing,
+        ) ?: return failAndRelease(BleRuntimeFailure.INITIAL_SNAPSHOT_FAILED)
+        publish(
+            BleRuntimeState.Ready(
+                BleActiveSession(companion, fragment.sessionNonce, snapshot, info, groupLocation),
+            ),
+        )
     }
 
     private fun acceptSnapshotUpdate(ready: BleRuntimeState.Ready, fragment: CompanionFragment) {
@@ -1105,7 +1114,11 @@ class BleCompanionRuntime(
             return
         }
         lastDeviceEventId = fragment.exchangeId
-        publish(BleRuntimeState.Ready(ready.session.copy(snapshot = snapshot)))
+        val groupLocation = ready.session.groupLocation.withAuthoritativeStatus(
+            snapshot.revision,
+            snapshot.positionSharing,
+        ) ?: return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+        publish(BleRuntimeState.Ready(ready.session.copy(snapshot = snapshot, groupLocation = groupLocation)))
     }
 
     private fun acceptActionResult(ready: BleRuntimeState.Ready, fragment: CompanionFragment) {

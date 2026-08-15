@@ -10,7 +10,8 @@ write.
 
 ## Allowed behavior
 
-The application may initialize the ESP-IDF runtime, run deterministic
+The application is coded to initialize the ESP-IDF and NimBLE runtimes after
+all deterministic
 boot-time companion codec and request-coordinator self-checks, emit one fixed
 PASS or FAIL line for the combined gate, emit one
 fixed startup line after PASS, and emit a recurring USB Serial/JTAG heartbeat.
@@ -33,8 +34,10 @@ that adapter, then proves one normal action response is admitted only after
 promotion. A fifth fixed in-memory check encodes one exact protected-store
 owner record, reconstructs the persistence adapter to model reboot, verifies
 the owner, commits an advancing unowned tombstone, reconstructs again, and
-verifies the tombstone and stable private bond binding. It opens no storage or
-transport.
+verifies the tombstone and stable private bond binding. A sixth in-memory
+check exercises exact runtime-owner startup ordering, one connection, cleanup,
+bounded delayed re-advertising, and permanently closed claim/normal-command
+status. These checks open no storage or transport.
 Failure suspends the
 application before startup or heartbeat. A queued result is only a local queue
 disposition; it does not claim radio send or delivery. The only dynamic value
@@ -57,7 +60,7 @@ bond, key-size, and ATT-MTU evidence before the target-neutral lifecycle may
 proceed. A successful exact 20-byte Protocol Info read is therefore the
 device-enforced provisional-path evidence; bond state by itself is not enough.
 
-The dormant registration path owns NimBLE registration, connection,
+The target registration path owns NimBLE registration, connection,
 security/MTU, subscription, authorization, indication-completion, timeout, and
 disconnect callbacks. It discovers and binds the real generated Stream CCCD
 handle through `ble_gatts_find_dsc`; it never infers `value_handle + 1`.
@@ -76,14 +79,14 @@ late old completion from being relabeled after connection-handle reuse. Wrong
 or stale completion, timeout, security loss, unsubscribe, or disconnect fails
 closed.
 
-The target now also build-links the target-neutral lifecycle used by that
+The target also build-links the target-neutral lifecycle used by that
 in-memory boot check. It owns one exact registered Command/Stream/CCCD tuple,
 one connection, negotiated MTU, link/application authorization state, one
 indication subscription, one response reservation, one outstanding indication,
 opaque delivery-token correlation, timeout containment, and disconnect cleanup.
-The callback adapter now supplies those event bindings, but only in dormant
-code: `app_main` never installs or starts it. The deterministic self-check uses
-fixed in-memory evidence instead of calling NimBLE.
+The callback adapter supplies those event bindings. The deterministic boot
+self-check uses fixed in-memory evidence instead of calling NimBLE; only after
+that check passes is the real runtime startup path reached.
 
 The restricted authorization lifecycle and real callback composition are
 build-linked and exercised only by deterministic in-memory boot checks. If a
@@ -93,12 +96,24 @@ Claim Start; there is no v0.0 reconnect shortcut. The injected trusted binding,
 authorization/persistence authority, physical-presence decision source, and
 timer owner remain outside this increment, so no live claim path exists yet.
 
-The build-only application deliberately never calls the registration function,
-initializes NimBLE/controller state, installs the GATT/GAP callbacks, or
-advertises. Thus the service is compiled and link-checked but not discoverable
-or usable. This preserves rejection as the default until the pairing,
-authorization, exact-board, persistence, CCCD/subscription, and runtime-owner
-gates are designed.
+If executed, the application is coded to initialize NimBLE, install the exact
+GATT/GAP callbacks, register the protected service, and advertise only the
+stable public 128-bit service UUID and standard discoverability flags using a
+privacy-capable own-address policy. Its advertising-data payload supplies no
+device name, manufacturer data, address field, or device/user/group identifier.
+All host callbacks are copied
+into a fixed eight-entry queue and consumed by the single `app_main` runtime
+owner; queue overflow, startup timeout, host reset, or restart exhaustion
+contains the stack without an unbounded retry loop.
+
+Protected authorization storage remains denied by the exact current preflight.
+The configured Secure Connections, MITM, bonding, no-input/no-output, and
+no-store settings therefore do not provide a usable pairing or secure bond in
+this increment. Every successful connection is immediately terminated. An
+already-disconnected result releases the exact adapter state and schedules the
+bounded advertising restart; any other termination-initiation error contains
+the runtime so an unauthenticated peer cannot monopolize the sole connection.
+Claims and normal commands remain closed for the lifetime of this composition.
 
 The image also build-links the target-neutral durable authorization adapter and
 a target-local security admission preflight. The fixed 32-byte `OAP0/v0`
@@ -129,9 +144,9 @@ redundant NVS cannot supply the independent rollback floor required here.
 ## Deliberately absent
 
 - SX1262 or other radio initialization and transmission
-- Bluetooth controller/host initialization, advertising, scanning, connection,
-  or live GATT registration; only the exact dormant NimBLE definition and
-  fail-closed registration/access callbacks are compiled
+- any evidence that Bluetooth controller/host initialization, advertising,
+  connection, or GATT registration has run; the startup path is coded and
+  build-linked only, and scanning is absent
 - GNSS access
 - application access to NVS, filesystem, OTA, or other persistence; only the
   fail-closed security preflight and in-memory persistence self-check exist. The
@@ -139,9 +154,8 @@ redundant NVS cannot supply the independent rollback floor required here.
   surface
 - identity, pairing, provisioning, keys, or secrets; no HMAC/eFuse or protected
   NVS operation executes
-- a running Bluetooth stack, registered GATT service, controller session, or
-  device transport; the fixed coordinator session and fake authorities are
-  local computation only
+- a proven running Bluetooth stack, registered live GATT service, controller
+  session, usable secure bond, or device transport; no hardware was accessed
 - board GPIO, OLED, battery, charger, or power-control bindings
 - the complete `PortableClientComposition`
 - device-write, port-selection, erase, or recovery commands

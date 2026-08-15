@@ -66,7 +66,10 @@ class CompanionAppController(private val transport: CompanionTransport) {
         when (val result = transport.submitAction(connected.connection.endpointToken, request)) {
             is SemanticActionAttempt.Applied -> publish(
                 connected.copy(
-                    connection = connected.connection.copy(snapshot = result.snapshot),
+                    connection = connected.connection.copy(
+                        snapshot = result.snapshot,
+                        groupLocation = result.groupLocation,
+                    ),
                     lastActionResult = result.result,
                     publicNotice = null,
                 ),

@@ -148,9 +148,11 @@ OT-053 wires the runtime-backed client into explicit Android Bluetooth mode
 with no fake fallback. It consumes that protected read, requests the advertised
 MTU, enables Stream indications, performs the exact claim sequence, and sends
 one explicit Snapshot Request only after confirmed Accepted/Replaced promotion.
-The target still does not register the service, start the controller, advertise,
-or inject trusted persistence and physical-input authority, so this remains
-build-linked composition rather than a live transport.
+At OT-053 acceptance the target still did not register the service, start the
+controller, advertise, or inject trusted persistence and physical-input
+authority, so that increment remained build-linked composition rather than a
+live transport. OT-056 subsequently codes the startup path while retaining the
+denied-authority boundary described below.
 
 OT-054 supplies the next persistence prerequisite without enabling that target.
 The fixed `OAP0/v0` owner/tombstone record is adapted to a protected-store seam
@@ -171,6 +173,16 @@ solely owns the real BLE/runtime/authorization graph while running. It is
 and does not automatically retry an authorization claim. The firmware remains
 dormant and the APK was not installed, so this adds no live claim result or
 authority evidence.
+
+OT-056 changes target startup ownership without enabling authorization. The
+real NimBLE service/advertising path is coded and build-linked, but OT-054
+protected storage/private-bond admission remains denied. Every connection is
+immediately terminated and both claim and normal-command authorities remain
+closed. Thirteen owner groups at 100/100, target self-check 100/100, all 123
+native entries, static 3/3, pinned teardown/stop ordering, and two reproducible
+builds pass. The 433,104-byte BIN has SHA-256
+`8A25508B50B29FE2A09CF3390AE53473BBA0BF04F60AE9A6366B930D516FCE2A`;
+this is `BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`, no-device evidence.
 
 ## Accepted evidence and exclusions
 
@@ -226,7 +238,7 @@ has SHA-256
 
 OT-054 adds seventeen strict persistence/private-binding/composed-authority
 groups at 100/100, target self-check 100/100, static admission 3/3, and the
-complete current 122-executable host matrix. Two pinned ESP-IDF v6.0.2 builds
+complete OT-054-era 122-executable host matrix. Two pinned ESP-IDF v6.0.2 builds
 reproduce a 175,701-byte image and 175,824-byte BIN with SHA-256
 `D39430096B7BEDD0F69D9ECCDE2424EDCD635C0BEA904EB2E4FCA3EEED307080`.
 See [OT-054 target evidence](../../tests/hardware/OT-054-2026-08-15.md).
@@ -237,8 +249,15 @@ failures, errors, or skips and clean warning-as-error lint. The 9,660,781-byte
 debug APK has SHA-256
 `33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
 
-This evidence does not provide a started NimBLE controller, registered or
-advertised service, admitted protected NVS/key/bond backend, physical-input
+OT-057 raises the current Android gate to 134 JVM tests across thirteen suites
+(protocol 29; application 105), with clean lint and debug assembly. Its
+9,677,165-byte APK has SHA-256
+`697D73A6E48F1850A2756FB0886A8201C653804FB5A2B9628DD26790C8EC65B1`.
+The new Group / Location presentation has no authorization role and does not
+expose private correlation; real BLE coordinates remain unavailable.
+
+This evidence does not provide an observed started NimBLE controller,
+registered or advertised live service, admitted protected NVS/key/bond backend, physical-input
 binding, phone bond, live authorization or Ready state, device runtime,
 lost-phone field recovery, Android OS foreground-service execution, or support
 claim. The target was not accessed or flashed, and the APK was not installed on

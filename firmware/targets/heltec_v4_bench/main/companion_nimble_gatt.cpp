@@ -483,6 +483,11 @@ CompanionGattIndicationPort& companion_nimble_gatt_indication_port() {
     return g_indication_port;
 }
 
+CompanionGattAdapterStatus companion_nimble_gatt_adapter_status() {
+    return g_adapter == nullptr ? CompanionGattAdapterStatus{}
+                                : g_adapter->status();
+}
+
 int register_companion_nimble_gatt_service(
     CompanionGattAuthorizationCallbackAdapter* adapter) {
     if (adapter == nullptr) {

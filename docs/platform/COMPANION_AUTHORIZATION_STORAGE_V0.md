@@ -79,15 +79,18 @@ Admission requires all of the following:
 The current target satisfies none of the runtime proof gates and has NVS
 encryption disabled. Preflight therefore returns
 `nvs_encryption_not_configured`. Production code does not open NVS, access
-eFuse/HMAC state, resolve a real bond, or start BLE. The target-local reboot
-self-check uses deterministic in-memory fakes only.
+eFuse/HMAC state, or resolve a real bond. OT-056 separately codes NimBLE
+startup/registration/advertising, but this denied preflight is latched before
+host start, every connection is immediately terminated, and no claim or normal
+command is admitted. The target-local reboot self-check uses deterministic
+in-memory fakes only.
 
 ## Evidence and exclusions
 
 Seventeen strict host groups pass at 100/100, including exact vectors,
 corruption/coherence, power-loss ambiguity, rollback, reentry, private-binding,
 re-pair, owner restore, second-controller denial, replacement, revoke, reset,
-and faulted publication. The complete current native matrix passes 122 enabled
+and faulted publication. The complete OT-054-era native matrix passes 122 enabled
 executables. Two pinned ESP-IDF v6.0.2 builds reproduce a 175,701-byte image and
 175,824-byte BIN with SHA-256
 `D39430096B7BEDD0F69D9ECCDE2424EDCD635C0BEA904EB2E4FCA3EEED307080`.
@@ -98,3 +101,9 @@ eFuse provisioning, physical-presence input, live bonding, application
 authorization, BLE startup, persistence across a physical power loss, device
 runtime, or support. No target was selected, opened, written, or flashed by
 OT-054.
+
+OT-056 raises only the surrounding build/runtime-owner evidence: all 123 native
+entries, 13 owner groups at 100/100, target self-check 100/100, static 3/3,
+pinned NimBLE teardown/stop ordering, and two reproducible builds pass. It does
+not change any storage admission result or provide physical runtime evidence;
+see [OT-056 evidence](../../tests/hardware/OT-056-2026-08-15.md).

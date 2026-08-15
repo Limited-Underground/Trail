@@ -6,6 +6,48 @@ public chronology.
 
 ## 2026-08-15
 
+### OT-058 bounded simulator native-session pump
+
+- Replaced the simulator UI's unbounded native-session notification behavior
+  with bounded coalescing while preserving exact request ordering and the
+  existing five-second failure timeout.
+- The focused simulator gate passes 33 Core, 23 Windows bridge, 15 private
+  helper, 10 native-protocol, and 13 integrated WPF groups. Full Test-Host exits
+  0. This is local simulator evidence, not physical LCD, phone, BLE-device, or
+  radio evidence. V1 remains 30%.
+
+### OT-057 Android Group / Location presentation
+
+- Added a renderer-neutral Group / Location presentation model with one card
+  per bounded peer observation. Production Bluetooth truthfully reports
+  coordinates unavailable because no accepted real BLE coordinate feed exists.
+  Local test mode uses separate, visibly synthetic deterministic card data.
+- No phone GPS, map, tile, network, location permission, or storage permission
+  was added, and private device correlation remains outside presentation.
+- The accepted gate passes 134 JVM tests across thirteen suites (protocol 29;
+  application 105), lint with `No issues found.`, and debug assembly. The
+  9,677,165-byte APK has SHA-256
+  `697D73A6E48F1850A2756FB0886A8201C653804FB5A2B9628DD26790C8EC65B1`.
+  No phone/device/install/live-location proof exists. V1 remains 30%.
+
+### OT-056 bounded NimBLE runtime owner
+
+- Added a fixed-memory one-connection runtime owner and real ESP-IDF v6.0.2
+  adapter for exact startup ordering, protected GATT registration, service-only
+  advertising-data fields, queued host callbacks, disconnect cleanup, bounded
+  delayed re-advertising, watchdog containment, and exact host stop/deinit.
+- OT-054 protected authorization storage remains denied. SC/MITM/bonding
+  configuration is not usable-bond evidence; claims and normal commands remain
+  closed, and every connection is immediately terminated so an unauthenticated
+  peer cannot monopolize the sole connection.
+- Thirteen strict owner groups pass at 100/100, target self-check passes
+  100/100, static admission passes 3/3, pinned NimBLE indication/stop ordering
+  passes, and two builds reproduce the 433,104-byte BIN with SHA-256
+  `8A25508B50B29FE2A09CF3390AE53473BBA0BF04F60AE9A6366B930D516FCE2A`.
+  All 123 native entries and full Test-Host pass. This is
+  `CODED-BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`, no-device evidence. See
+  [OT-056 evidence](../tests/hardware/OT-056-2026-08-15.md). V1 remains 30%.
+
 ### OT-055 Android connected-device foreground-service owner
 
 - Moved the production BLE facade, runtime, authorization controller, GATT

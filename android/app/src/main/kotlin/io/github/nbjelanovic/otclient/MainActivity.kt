@@ -33,6 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.nbjelanovic.otprotocol.CompanionActionDisposition
@@ -41,6 +43,7 @@ import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 import io.github.nbjelanovic.otprotocol.CompanionActionResult
 import io.github.nbjelanovic.otprotocol.CompanionQuickStatus
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
+import java.util.Locale
 
 open class MainActivity : ComponentActivity() {
     private lateinit var lifecycleBinding: TrailAppLifecycleBinding
@@ -204,6 +207,7 @@ private fun LocalConnectedPanel(state: CompanionUiState.Connected, controller: T
     StatusCard("Connected to fake ${state.connection.publicLabel}", state.connection.status)
     val snapshot = state.connection.snapshot
     SnapshotSummary("Fake device status", snapshot)
+    GroupLocationSection(state.connection.groupLocation)
     ActionControls(controller::submitLocalAction)
     if (snapshot.pendingCriticalAlertId != 0uL) {
         AcknowledgeAlertButton(snapshot.pendingCriticalAlertId, controller::submitLocalAction)
@@ -522,6 +526,7 @@ private fun BluetoothReadyPanel(session: BleActiveSession, controller: TrailUiCo
         "Authenticated companion session. Device state remains authoritative.",
     )
     SnapshotSummary("Device status", session.snapshot)
+    GroupLocationSection(session.groupLocation)
     ActionControls { controller.submitBluetoothAction(it) }
     if (session.snapshot.pendingCriticalAlertId != 0uL) {
         AcknowledgeAlertButton(session.snapshot.pendingCriticalAlertId) { controller.submitBluetoothAction(it) }
@@ -555,6 +560,97 @@ private fun SnapshotSummary(title: String, snapshot: CompanionStatusSnapshot) {
         style = MaterialTheme.typography.bodyMedium,
     )
 }
+
+@Composable
+private fun GroupLocationSection(snapshot: GroupLocationSnapshot) {
+    var expanded by remember { mutableStateOf(false) }
+    val isFake = snapshot.provenance == GroupLocationProvenance.LOCAL_TEST_FIXTURE
+    val sourceLabel = if (isFake) "Fake fixture" else "Device-reported"
+    OutlinedButton(
+        onClick = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(if (expanded) "Close Group / Location" else "Open Group / Location")
+    }
+    if (!expanded) return
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                "Group / Location",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(
+                when (snapshot.provenance) {
+                    GroupLocationProvenance.LOCAL_TEST_FIXTURE ->
+                        "Deterministic fake location fixture. This is not phone GPS, device, radio, or map evidence."
+                    GroupLocationProvenance.DEVICE_AUTHORITATIVE_SNAPSHOT ->
+                        "Device-authoritative snapshot only. This app does not substitute phone GPS."
+                },
+            )
+            Text("$sourceLabel position sharing: ${snapshot.sharingState.publicLabel()}.")
+            GroupPositionCard("This device", snapshot.selfPosition, snapshot.provenance)
+            Text(
+                "Group peers (${snapshot.peers.size})",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+            if (snapshot.peers.isEmpty()) {
+                Text("No peer positions or public display aliases were supplied in this snapshot.")
+            } else {
+                snapshot.peers.forEach { peer ->
+                    GroupPositionCard(peer.displayAlias.value, peer.position, snapshot.provenance)
+                }
+            }
+            Text("Map rendering and offline map packages are deferred; this screen uses no network tiles.")
+        }
+    }
+}
+
+@Composable
+private fun GroupPositionCard(
+    label: String,
+    position: GroupLocationPosition,
+    provenance: GroupLocationProvenance,
+) {
+    val isFake = provenance == GroupLocationProvenance.LOCAL_TEST_FIXTURE
+    val sourceLabel = if (isFake) "Fake fixture" else "Device-reported"
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(if (isFake) "Fake $label" else label, style = MaterialTheme.typography.titleMedium)
+            when (position.state) {
+                GroupPositionState.UNAVAILABLE -> Text(
+                    "$sourceLabel position unavailable. No coordinates, age, or accuracy were supplied.",
+                )
+                GroupPositionState.CURRENT,
+                GroupPositionState.STALE,
+                -> {
+                    val coordinate = requireNotNull(position.coordinate)
+                    Text("$sourceLabel position ${position.state.publicLabel()}.")
+                    Text(
+                        "$sourceLabel latitude ${coordinate.latitudeDegrees().fixedCoordinate()}, " +
+                            "longitude ${coordinate.longitudeDegrees().fixedCoordinate()}.",
+                    )
+                    Text("$sourceLabel age: ${position.ageSeconds} seconds.")
+                    Text(
+                        position.accuracyMeters?.let { "$sourceLabel accuracy: $it meters." }
+                            ?: "$sourceLabel accuracy: not supplied.",
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun Double.fixedCoordinate(): String = String.format(Locale.US, "%.5f", this)
 
 @Composable
 private fun ActionControls(submit: (CompanionActionRequest) -> Unit) {

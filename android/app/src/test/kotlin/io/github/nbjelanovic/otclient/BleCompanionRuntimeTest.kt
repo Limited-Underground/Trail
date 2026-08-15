@@ -112,6 +112,9 @@ class BleCompanionRuntimeTest {
         assertEquals(7, ready.session.sessionNonce)
         assertEquals(9, ready.session.snapshot.revision)
         assertEquals(CANDIDATE, ready.session.companion)
+        assertEquals(GroupLocationProvenance.DEVICE_AUTHORITATIVE_SNAPSHOT, ready.session.groupLocation.provenance)
+        assertEquals(GroupPositionState.UNAVAILABLE, ready.session.groupLocation.selfPosition.state)
+        assertTrue(ready.session.groupLocation.peers.isEmpty())
     }
 
     @Test
@@ -241,7 +244,10 @@ class BleCompanionRuntimeTest {
         val fixture = Fixture()
         val gatt = fixture.readyGatt(sessionNonce = 21, initialEventId = 5)
         gatt.emit(BleGattEvent.StreamIndication(snapshotEnvelope(21, 6, snapshot(revision = 10))))
-        assertEquals(10, assertIs<BleRuntimeState.Ready>(fixture.runtime.state).session.snapshot.revision)
+        val updated = assertIs<BleRuntimeState.Ready>(fixture.runtime.state).session
+        assertEquals(10, updated.snapshot.revision)
+        assertEquals(10, updated.groupLocation.sourceSnapshotRevision)
+        assertEquals(GroupPositionState.UNAVAILABLE, updated.groupLocation.selfPosition.state)
         gatt.emit(BleGattEvent.StreamIndication(snapshotEnvelope(21, 6, snapshot(revision = 11))))
         assertEquals(
             BleRuntimeFailure.PROTOCOL_VIOLATION,

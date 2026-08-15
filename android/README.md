@@ -106,9 +106,12 @@ protocol or package identity.
   action. Exact v0.0, missing claim capability, bond/security/authorization errors,
   and an unreachable device produce bounded unsupported/unavailable states; a
   post-Pending connection loss is authority-unknown and requires checking the
-  physical device. The current firmware target still keeps the accepted service,
-  controller, advertising, physical-control, and persistence composition dormant,
-  so this source checkpoint provides no live claim or device evidence.
+  physical device. OT-056 now codes and build-links firmware startup,
+  registration, and advertising, but that path was not run or flashed;
+  protected storage/private-bond and physical-control admission remains denied,
+  every connection is coded for immediate termination, and no claim or normal
+  command is admitted. This source checkpoint therefore provides no live claim
+  or device evidence.
 
 The Activity-owned Local/mode controller does not persist state across process
 recreation and returns conservatively to the explicit mode choice. A service
@@ -130,11 +133,31 @@ provisional orchestration, GATT-profile, and operation-order boundaries plus com
 execute an Android OS service lifecycle, notification drawer, Bluetooth hardware,
 or claim a live connection.
 
-The accepted OT-055 gate passes 124 JVM tests across twelve suites (protocol
-suites 3, 10, 6, and 10; application suites 8, 15, 17, 11, 2, 21, 1, and 20) with zero
+OT-057 adds a renderer-neutral Group / Location presentation model and a
+scrollable, screen-reader-readable panel reachable from both Local test and
+Bluetooth Ready views. Position state is explicit current, stale, or unavailable;
+the model accepts only fixed-point coordinates, bounded source-reported age,
+optional bounded accuracy, exact sharing state, and at most eight peers with
+separately validated public display aliases. The Android presentation policy
+accepts current ages from 0 through 300 seconds and stale ages from 301 through
+604800 seconds. A status-only device revision degrades every retained coordinate
+to unavailable instead of refreshing or freezing an old fix.
+
+The production path creates only an unavailable device-authoritative location
+view because the accepted device status payload does not yet carry position or
+peer-location records. It never substitutes phone GPS. Local test mode uses fixed
+deterministic coordinates and marks the section and every position/age/accuracy
+card as fake. Coordinates and public aliases are redacted from normal model
+`toString` surfaces. No phone-location API or permission, network permission, map
+SDK, tile request, cache, or offline-map package renderer was added. This is a
+host-tested model and UI-source foundation, not device location, map, emulator,
+accessibility-service, or physical-screen evidence.
+
+The accepted OT-057 gate passes 134 JVM tests across thirteen suites (protocol
+suites 3, 10, 6, and 10; application suites 8, 15, 17, 11, 2, 21, 1, 10, and 20) with zero
 failures, errors, or skips, plus warning-as-error lint with `No issues found.`
-The isolated debug APK is 9,660,781 bytes with SHA-256
-`33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
+The isolated debug APK is 9,677,165 bytes with SHA-256
+`697D73A6E48F1850A2756FB0886A8201C653804FB5A2B9628DD26790C8EC65B1`.
 It is local debug evidence only, not a release-signed, installed, emulated, or
 physical-device result.
 

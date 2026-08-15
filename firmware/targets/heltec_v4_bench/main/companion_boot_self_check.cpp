@@ -6,6 +6,7 @@
 
 #include "opentrail/companion_gatt_authorization.hpp"
 #include "opentrail/companion_gatt_authorization_adapter.hpp"
+#include "opentrail/companion_ble_runtime_owner.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
@@ -499,6 +500,46 @@ static_assert(kSnapshotRequest.size() ==
               kCompanionFragmentHeaderBytes + kCompanionSnapshotRequestBytes);
 static_assert(kSnapshotResponse.size() == kCompanionMaxResponseRecordBytes);
 
+class FixedBleRuntimePort final : public CompanionBleRuntimePort {
+public:
+    bool initialize_stack() override {
+        ++step_;
+        return step_ == 1;
+    }
+    bool configure_secure_connections_bonding() override {
+        ++step_;
+        return step_ == 2;
+    }
+    bool register_protected_service() override {
+        ++step_;
+        return step_ == 3;
+    }
+    bool start_host_task() override {
+        ++step_;
+        return step_ == 4;
+    }
+    bool configure_public_service_advertising() override {
+        ++step_;
+        return step_ == 5;
+    }
+    bool start_advertising() override {
+        ++advertise_calls_;
+        return step_ == 5;
+    }
+    void terminate_connection(std::uint16_t) override {
+        ++terminate_calls_;
+    }
+    bool contain_stack() override {
+        ++contain_calls_;
+        return true;
+    }
+
+    std::uint8_t step_{0};
+    std::uint8_t advertise_calls_{0};
+    std::uint8_t terminate_calls_{0};
+    std::uint8_t contain_calls_{0};
+};
+
 }  // namespace
 
 bool run_companion_request_coordinator_self_check() {
@@ -833,6 +874,36 @@ bool run_companion_gatt_authorization_adapter_self_check() {
            observation.prepare_calls == 1 &&
            observation.commit_calls == 1 &&
            observation.applied_calls == 1;
+}
+
+bool run_companion_ble_runtime_owner_self_check() {
+    FixedBleRuntimePort port;
+    CompanionBleRuntimeOwner owner(port, {10, 5, 3});
+    if (owner.start(1, true) != CompanionBleRuntimeError::none ||
+        owner.host_synced(2) != CompanionBleRuntimeError::none ||
+        owner.connection_opened(7) != CompanionBleRuntimeError::none ||
+        owner.connection_closed(7, 3) != CompanionBleRuntimeError::none) {
+        return false;
+    }
+    const auto restart = owner.status();
+    if (restart.phase != CompanionBleRuntimePhase::restart_wait ||
+        restart.restart_token == 0 || port.advertise_calls_ != 1 ||
+        !restart.authorization_claims_closed ||
+        !restart.normal_commands_closed) {
+        return false;
+    }
+    if (owner.service_restart(restart.restart_token, 7) !=
+            CompanionBleRuntimeError::restart_not_due ||
+        owner.service_restart(restart.restart_token, 8) !=
+            CompanionBleRuntimeError::none) {
+        return false;
+    }
+    const auto restored = owner.status();
+    return restored.phase == CompanionBleRuntimePhase::advertising &&
+           restored.restart_token == 0 &&
+           restored.restart_attempts == 0 &&
+           port.advertise_calls_ == 2 && port.terminate_calls_ == 0 &&
+           port.contain_calls_ == 0;
 }
 
 }  // namespace opentrail::target::heltec_v4_bench

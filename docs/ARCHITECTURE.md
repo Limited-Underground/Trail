@@ -295,14 +295,17 @@ protected 20-byte Protocol Info read is evidence enforced by the device, while
 Android bond state alone is not. Normal requests remain denied until exact
 Accepted/Replaced indication confirmation.
 
-The generated Stream CCCD is resolved with `ble_gatts_find_dsc`, never inferred
+At OT-052 acceptance, the generated Stream CCCD was resolved with
+`ble_gatts_find_dsc`, never inferred
 from the Stream value handle. Response memory is reserved before lifecycle or
 authority mutation. Completion binds exact connection, generation, session,
 exchange, value handle, and delivery token. Pinned NimBLE teardown ordering
 ensures an old indication is failed before the application disconnect callback,
-so connection-handle reuse cannot relabel it. The target build retains this
-adapter, but `app_main` does not register the service, start NimBLE/controller,
-advertise, or inject bond persistence or physical-input authority.
+so connection-handle reuse cannot relabel it. That target build retained this
+adapter, but OT-052 itself did not register the service, start
+NimBLE/controller, advertise, or inject bond persistence or physical-input
+authority. OT-056 subsequently adds the still-unrun startup owner described
+below.
 
 OT-053 wires the frozen protected-read claim client into the Android production
 composition selected by explicit Bluetooth mode. There is no fake/local
@@ -339,6 +342,31 @@ claim. Explicit Bluetooth-mode exit stops the service. This is source, JVM,
 lint, manifest, and APK evidence only: the APK was not installed, no Android OS
 service lifecycle ran, and the dormant target prevents a live claim or Ready
 session.
+
+OT-056 adds the target boot/runtime owner above the accepted OT-052 callback
+adapter. The owner evaluates the exact denied protected-storage preflight before
+host startup, runs NimBLE registration and advertising only after deterministic
+boot checks, and serializes host callbacks through a fixed eight-entry queue
+onto the `app_main` context. The application advertising-data payload carries
+only standard flags and the stable public service UUID; it carries no name,
+manufacturer data, address field, or device/user/group identifier. Disconnect
+cleanup precedes one token-bound delayed advertising restart, retries are
+capped, and startup timeout, callback overflow, host reset, reentry, and stop
+failure contain. Current storage/private-bond admission remains denied, so
+SC/MITM/bonding configuration is not usable-bond evidence, every connection is
+terminated immediately, and no claim or normal command can run.
+
+OT-057 adds only renderer-neutral Android presentation above the existing
+controller. Real Bluetooth Group / Location cards represent bounded peer state
+but report coordinates unavailable until an accepted device coordinate feed
+exists. Local test cards are separately labeled deterministic synthetic data.
+This layer does not add phone GPS, maps, tiles, network, location permission,
+storage, identity authority, or device correlation exposure.
+
+OT-058 changes only the laptop simulator pump: native notifications are
+coalesced within a bounded owner while exact request ordering and the existing
+five-second timeout remain intact. It does not change the firmware, Android
+transport, physical-display contract, or radio path.
 
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.

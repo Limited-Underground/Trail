@@ -8,6 +8,7 @@
 #include "companion_boot_self_check.hpp"
 #include "companion_authorization_storage.hpp"
 #include "companion_nimble_gatt.hpp"
+#include "companion_nimble_runtime.hpp"
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_semantics.hpp"
 
@@ -117,6 +118,13 @@ bool run_companion_codec_self_check() {
     }
 }
 
+[[noreturn]] void contain_runtime_failure() {
+    ESP_LOGE(kLogTag, "companion runtime FAIL");
+    while (true) {
+        vTaskSuspend(nullptr);
+    }
+}
+
 }  // namespace
 
 extern "C" void app_main() {
@@ -132,17 +140,37 @@ extern "C" void app_main() {
         !opentrail::target::heltec_v4_bench::
              run_companion_authorization_storage_self_check() ||
         !opentrail::target::heltec_v4_bench::
+             run_companion_ble_runtime_owner_self_check() ||
+        !opentrail::target::heltec_v4_bench::
              companion_nimble_gatt_definition_self_check()) {
         contain_self_check_failure();
     }
     ESP_LOGI(kLogTag, "companion boot self-check PASS");
-    ESP_LOGI(kLogTag, "build-only bench candidate started");
+    const auto started_at_ms =
+        static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+    if (opentrail::target::heltec_v4_bench::
+            start_companion_nimble_runtime(started_at_ms) !=
+        opentrail::companion::CompanionBleRuntimeError::none) {
+        contain_runtime_failure();
+    }
+    ESP_LOGI(kLogTag, "companion runtime started");
 
+    std::uint64_t next_heartbeat_ms = started_at_ms;
     while (true) {
         const auto elapsed_ms =
             static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
-        ESP_LOGI(kLogTag, "heartbeat elapsed_ms=%llu",
-                 static_cast<unsigned long long>(elapsed_ms));
-        vTaskDelay(pdMS_TO_TICKS(kHeartbeatPeriodMs));
+        const auto runtime_result =
+            opentrail::target::heltec_v4_bench::
+                service_companion_nimble_runtime(elapsed_ms);
+        if (runtime_result !=
+            opentrail::companion::CompanionBleRuntimeError::none) {
+            contain_runtime_failure();
+        }
+        if (elapsed_ms >= next_heartbeat_ms) {
+            ESP_LOGI(kLogTag, "heartbeat elapsed_ms=%llu",
+                     static_cast<unsigned long long>(elapsed_ms));
+            next_heartbeat_ms = elapsed_ms + kHeartbeatPeriodMs;
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }

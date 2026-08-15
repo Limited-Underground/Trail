@@ -15,6 +15,9 @@ namespace opentrail::target::heltec_v4_bench {
 [[nodiscard]] companion::CompanionGattIndicationPort&
 companion_nimble_gatt_indication_port();
 
+[[nodiscard]] companion::CompanionGattAdapterStatus
+companion_nimble_gatt_adapter_status();
+
 // Attaches the exact callback adapter and service definitions before
 // ble_gatts_start(). The current build-only target never calls this function.
 // Protocol Info and Command use NimBLE ENC+AUTHEN+AUTHOR permissions. Their

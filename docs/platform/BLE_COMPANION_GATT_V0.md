@@ -1,13 +1,15 @@
 # BLE Companion GATT v0
 
-Status: host-tested codec/session/coordinator foundation, dormant OT-042 NimBLE
+Status: host-tested codec/session/coordinator foundation, historical OT-042 NimBLE
 GATT target definition, OT-044 response-safe GATT lifecycle, OT-046 host-only
 one-phone authorization, OT-047 Android authorization UX, OT-048/049 fixed
 authorization-wire codec/tracker parity, OT-050/051 restricted provisional
 orchestration, OT-052 real NimBLE callback composition, and OT-053 Android
-protected-read production composition, 2026-08-15. The target service remains
-unregistered, its controller is not started, advertising is absent, and no
-physical-device evidence exists.
+protected-read production composition, OT-056 coded/build-linked runtime owner,
+and OT-057 renderer-neutral Android presentation, 2026-08-15. The startup path
+has not run or been flashed; protected storage admission remains denied, every
+connection is coded for immediate termination, and no physical-device evidence
+exists.
 
 ## Purpose and authority
 
@@ -436,13 +438,20 @@ gate passes 124 JVM tests across twelve suites, clean lint, manifest inspection,
 and a 9,660,781-byte debug APK with SHA-256
 `33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
 
-The callback code is build-linked but the target never registers the service,
-starts the controller, advertises, or injects trusted bond persistence and
-physical-input authority. Its persistence preflight is explicitly denied.
-Nothing was flashed or accessed by these increments, and the APK was not
-installed or exercised by Android. Thus this evidence does not prove pairing,
-application authorization, Ready, target runtime, Android foreground-service
+OT-056 codes the real target boot owner to initialize NimBLE, register this
+service, and advertise standard flags plus the public service UUID after all
+boot checks. Host callbacks cross a fixed eight-entry queue into one serialized
+owner; disconnect cleanup precedes bounded tokenized re-advertising, and exact
+host stop/deinit is pinned to ESP-IDF v6.0.2 ordering. The application
+advertising-data payload carries no name, manufacturer data, address field, or
+device/user/group identifier; actual link-layer address behavior remains
+unobserved.
+
+The protected persistence preflight is still explicitly denied. Configured
+SC/MITM/bonding is not usable-bond proof; the fixed authorities deny, every
+connection is immediately terminated, and no claim or normal command is
+admitted. The runtime is `CODED-BUILD-LINKED-NOT-RUN`, nothing was flashed or
+accessed, and the APK was not installed. Thus this evidence does not prove
+pairing, application authorization, Ready, target runtime, Android service
 lifecycle, notification visibility, radio, GNSS, physical transport,
-accessibility, packaging, signing, store distribution, or support. The broader
-full host suite's established read-only USB-loader enumeration is not BLE/GATT
-runtime evidence.
+accessibility, packaging, signing, distribution, or support.
