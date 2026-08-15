@@ -16,6 +16,9 @@ std::size_t required_response_bytes(CompanionFrameKind request_kind) {
         case CompanionFrameKind::snapshot:
         case CompanionFrameKind::action_result:
         case CompanionFrameKind::event:
+        case CompanionFrameKind::authorization_claim_start:
+        case CompanionFrameKind::authorization_claim_status:
+        case CompanionFrameKind::authorization_claim_result:
             return 0;
     }
     return 0;

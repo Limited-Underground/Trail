@@ -35,9 +35,12 @@ inline constexpr std::uint8_t kCompanionKnownCapabilityMask = 0x0FU;
 enum class CompanionFrameKind : std::uint8_t {
     snapshot_request = 1,
     action_request = 2,
+    authorization_claim_start = 3,
     snapshot = 0x81,
     action_result = 0x82,
     event = 0x83,
+    authorization_claim_status = 0x84,
+    authorization_claim_result = 0x85,
 };
 
 enum class CompanionCodecError : std::uint8_t {

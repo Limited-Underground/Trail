@@ -248,7 +248,11 @@ object CompanionSemanticCodec {
             CompanionFrameKind.ACTION_REQUEST -> decodeActionRequest(fragment.payload).error
             CompanionFrameKind.SNAPSHOT -> decodeStatusSnapshot(fragment.payload).error
             CompanionFrameKind.ACTION_RESULT -> decodeActionResult(fragment.payload).error
-            CompanionFrameKind.EVENT -> CompanionSemanticCodecError.UNSUPPORTED_FRAME_KIND
+            CompanionFrameKind.EVENT,
+            CompanionFrameKind.AUTHORIZATION_CLAIM_START,
+            CompanionFrameKind.AUTHORIZATION_CLAIM_STATUS,
+            CompanionFrameKind.AUTHORIZATION_CLAIM_RESULT,
+            -> CompanionSemanticCodecError.UNSUPPORTED_FRAME_KIND
         }
     }
 

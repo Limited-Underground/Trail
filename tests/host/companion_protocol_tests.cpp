@@ -165,9 +165,12 @@ void test_all_frame_kinds_and_fragment_boundaries_round_trip() {
     for (const auto kind : {
              CompanionFrameKind::snapshot_request,
              CompanionFrameKind::action_request,
+             CompanionFrameKind::authorization_claim_start,
              CompanionFrameKind::snapshot,
              CompanionFrameKind::action_result,
              CompanionFrameKind::event,
+             CompanionFrameKind::authorization_claim_status,
+             CompanionFrameKind::authorization_claim_result,
          }) {
         CompanionFragment fragment{};
         fragment.kind = kind;
@@ -312,6 +315,12 @@ void test_request_admission_rejects_server_and_fragmented_frames() {
                evidence(),
                request(10, 1, CompanionFrameKind::snapshot)).error ==
            CompanionSessionError::wrong_direction);
+    EXPECT(guard.admit_request(
+               evidence(),
+               request(10, 1,
+                       CompanionFrameKind::authorization_claim_start)).error ==
+           CompanionSessionError::wrong_direction);
+    EXPECT(guard.status().last_request_id == 0);
     auto fragmented = request(10, 1);
     fragmented.fragment_count = 2;
     EXPECT(guard.admit_request(evidence(), fragmented).error ==

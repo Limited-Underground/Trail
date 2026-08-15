@@ -168,6 +168,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'companion authorization wire contract'
+        Output = Join-Path $buildDirectory 'companion_authorization_wire_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_wire.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_wire_tests.cpp')
+        )
+    },
+    @{
         Name = 'Heltec V4 bench companion coordinator boot self-check'
         Output = Join-Path $buildDirectory 'heltec_v4_bench_companion_self_check_tests.exe'
         Sources = @(

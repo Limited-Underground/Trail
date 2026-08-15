@@ -3,7 +3,8 @@
 Status: OT-036/OT-038 fake application foundation, the OT-041 lifecycle-safe
 BLE runtime boundary, the OT-043 Android BluetoothGatt facade, and the OT-045
 explicit local-test/Bluetooth UI binding, plus the OT-047 host-tested one-phone
-authorization request state/UX. This directory contains a buildable
+authorization request state/UX and the OT-049 authorization wire-codec/tracker
+mirror. This directory contains a buildable
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -65,6 +66,19 @@ protocol or package identity.
   physical-control instructions and deterministic injected tests do not prove a
   button press, bonding, application authorization, phone replacement, or radio
   continuity on hardware.
+- OT-049 mirrors the frozen C++ `OTL0`, `OTP0`, and `OTF0` authorization records
+  plus their dedicated `OTC0` frame kinds from the same ten-row fixture. Its pure
+  Kotlin provisional-response tracker requires explicit future capability,
+  encrypted-link, authenticated-bond, transport-generation, device-session,
+  exchange, purpose, and opaque-correlation evidence before it can report a
+  client-observed accepted/replaced terminal. It performs no I/O and grants no
+  device authority.
+- The tracker is not wired to `MainActivity`, `BleCompanionRuntime`, or the
+  Android GATT facade. Current Protocol Info has no authorization capability bit,
+  and current firmware denies protocol-info/command access before application
+  authorization, so a live claim path would be circular. A later coordinated
+  firmware/Android increment must add a restricted encrypted, bonded provisional
+  transport and device-issued session bootstrap before enabling the client seam.
 
 The Activity-owned mode controller does not survive Android configuration change
 or process recreation; destruction closes its session and a recreated Activity
@@ -73,12 +87,22 @@ raw addresses, names, identifiers, status codes, and exception text do not enter
 UI state.
 
 The concrete gap to a first real Ready session is therefore explicit: implement
-and test the device-side physical-control claim/result exchange, inject its Android
-claim client and accepted security authority, and run the exact app against device firmware
+and test the restricted provisional authorization transport/session bootstrap,
+bind the tracker into the Android claim client, separately implement the
+device-side authority/persistence/promotion, and run the exact app against device firmware
 that exposes the secured GATT contract and authoritative initial snapshot. The
 current tests validate the pure mode, lifecycle, permission, admission, token,
+authorization codec/tracker,
 GATT-profile, and operation-order boundaries plus compilation/lint; they do not
 execute Android Bluetooth hardware or claim a live connection.
+
+The accepted OT-049 gate passes 77 JVM tests across eight suites (protocol
+suites 6, 10, and 10; application suites 6, 17, 11, 1, and 16) with zero failures, errors, or
+skips, plus warning-as-error lint with `No issues found.`
+The isolated debug APK is 9,627,825 bytes with SHA-256
+`967FCD7A032ECED63789378F5B3C0F6AC86D06CE9CF3B6B16205E7C49B8093A3`.
+It is local debug evidence only, not a release-signed, installed, emulated, or
+physical-device result.
 
 The platform contract follows the official Android documentation for
 [Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),

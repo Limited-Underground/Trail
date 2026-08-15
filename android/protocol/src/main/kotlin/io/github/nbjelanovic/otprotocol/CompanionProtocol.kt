@@ -23,9 +23,12 @@ enum class CompanionDeviceRole(val wireValue: Int) {
 enum class CompanionFrameKind(val wireValue: Int) {
     SNAPSHOT_REQUEST(0x01),
     ACTION_REQUEST(0x02),
+    AUTHORIZATION_CLAIM_START(0x03),
     SNAPSHOT(0x81),
     ACTION_RESULT(0x82),
-    EVENT(0x83);
+    EVENT(0x83),
+    AUTHORIZATION_CLAIM_STATUS(0x84),
+    AUTHORIZATION_CLAIM_RESULT(0x85);
 
     companion object {
         fun fromWire(value: Int): CompanionFrameKind? = entries.firstOrNull { it.wireValue == value }

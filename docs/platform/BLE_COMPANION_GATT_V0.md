@@ -2,7 +2,8 @@
 
 Status: host-tested codec/session/coordinator foundation, dormant OT-042 NimBLE
 GATT target definition, OT-044 response-safe GATT lifecycle, OT-046 host-only
-one-phone authorization, and OT-047 disabled Android authorization UX,
+one-phone authorization, OT-047 disabled Android authorization UX, and
+OT-048/049 fixed authorization-wire codec/tracker parity,
 2026-08-15. No GATT registration/controller/advertising, enabled target-bound
 application-authorization workflow, radio path, authenticated group packet, or
 physical-device evidence exists.
@@ -86,9 +87,12 @@ Every Command or Stream value is one canonical fragment.
 | 18 | 2 | Fragment payload bytes, 0 through 128 |
 | 20 | variable | Exact payload bytes |
 
-Known phone-to-device kinds are `1` snapshot request and `2` action request.
-Known device-to-phone kinds are `0x81` snapshot, `0x82` action result, and
-`0x83` event. Unknown kinds and versions are rejected rather than guessed.
+Normal application-authorized phone-to-device kinds are `1` snapshot request
+and `2` action request. Normal device-to-phone kinds are `0x81` snapshot,
+`0x82` action result, and `0x83` event. OT-048 reserves provisional
+authorization kinds `0x03` Claim Start, `0x84` Pending, and `0x85` terminal,
+but the current GATT/session path does not admit or transport them. Unknown
+kinds and versions are rejected rather than guessed.
 
 The client assigns a strictly increasing exchange ID to each request. An action
 result echoes that request ID. Device-originated snapshots/events use a boot-
@@ -328,7 +332,42 @@ accepts only exact bounded device-issued results and labels timeout or invalid/
 lost results as unknown device authority. The production claim client remains
 disabled, so there is still no real application authorization or bond evidence.
 
-This does not implement GATT registration/startup/advertising, pairing/bond
+OT-048 fixes exact 8-byte `OTL0/v0` Claim Start, 24-byte `OTP0/v0` Pending,
+and 28-byte `OTF0/v0` terminal payloads under the three reserved authorization
+kinds. One nonzero opaque 128-bit device correlation is bound to exact
+provisional session/exchange/purpose and is never an ID, address, secret,
+physical token, displayed value, log field, or persisted record. A fixed C++
+tracker requires explicit future negotiated support, encrypted/authenticated
+bond evidence, Pending before one terminal, exact context, and exact close as
+the sole release of a connection generation when called by its transport owner.
+Fourteen strict groups, ten shared
+vectors, 100/100 repeats, and the current 119-executable host matrix pass.
+
+OT-049 mirrors the bytes and tracker in pure Kotlin. The Android gate passes 77
+JVM tests across eight suites (protocol suites 6, 10, and 10; application
+suites 6, 17, 11, 1, and 16) and lint; the 9,627,825-byte debug APK has SHA-256
+`967FCD7A032ECED63789378F5B3C0F6AC86D06CE9CF3B6B16205E7C49B8093A3`.
+The production claim client remains disabled and is not wired to the activity,
+runtime, or Android GATT facade.
+
+Current Protocol Info has no authorization-claim capability bit, and the
+current GATT contract requires application authorization before Protocol Info
+and session negotiation. No provisional GATT phase or negotiated live claim
+capability therefore exists. A later coordinated transport must admit only the
+three authorization kinds on an encrypted, authenticated-bond provisional
+connection and promote that exact connection/session only after an
+authoritative Accepted or Replaced result. Failure or timeout cannot be
+reported as authoritative Unsupported or Denied.
+
+The generic target already links the shared protocol, semantic-dispatcher, and
+coordinator sources touched by OT-048. Two pinned ESP-IDF v6.0.2 rebuilds
+reproduce a 157,957-byte image and 158,080-byte BIN after exact authorization-
+kind recognition and normal-path rejection were added. The link map excludes
+the authorization wire/tracker source, and no target path admits the new kinds.
+See [OT-048 target evidence](../../tests/hardware/OT-048-2026-08-15.md).
+
+This does not implement GATT registration/startup/advertising, a provisional
+authorization GATT phase or negotiated claim capability, pairing/bond
 storage, target-bound application authorization, persistent result/history caching,
 reassembly, Android background behavior, radio, GNSS, persistence, functional
 target runtime, physical transport, accessibility, packaging, signing, store

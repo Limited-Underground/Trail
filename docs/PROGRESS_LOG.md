@@ -6,6 +6,53 @@ public chronology.
 
 ## 2026-08-15
 
+### OT-049 Android authorization-wire parity
+
+- Added pure Kotlin parity for the frozen `OTL0/v0` claim Start,
+  `OTP0/v0` correlated Pending, and `OTF0/v0` terminal authorization records
+  plus their dedicated `OTC0` kinds. Ten shared C++ vectors fix exact payload
+  and envelope bytes.
+- The externally serialized Kotlin tracker mirrors encrypted/authenticated and
+  explicitly negotiated provisional evidence, exact transport generation,
+  session, exchange, purpose, and correlation checks, pending-before-terminal,
+  one terminal maximum, and exact-close-only connection release. Accepted or
+  Replaced is only a client observation of an exact device result; it is not
+  device authority or live transport evidence.
+- The combined gate passes 77 JVM tests across eight suites (protocol suites 6,
+  10, and 10; application suites 6, 17, 11, 1, and 16) and lint with no issues. The
+  9,627,825-byte debug APK has SHA-256
+  `967FCD7A032ECED63789378F5B3C0F6AC86D06CE9CF3B6B16205E7C49B8093A3`.
+  The production claim client remains disabled. No MainActivity/BLE-runtime/
+  GATT transport integration, emulator, phone, peripheral, ADB, install,
+  signing, or field evidence exists; V1 remains 30%.
+
+### OT-048 fixed authorization wire and response tracker
+
+- Added exact fixed `OTL0/v0` (8-byte Start), `OTP0/v0` (24-byte Pending),
+  and `OTF0/v0` (28-byte terminal) records under dedicated `OTC0` kinds
+  `0x03`, `0x84`, and `0x85`. The device-issued 128-bit correlation is
+  nonzero, boot-privately bound to the exact session/exchange/purpose, and is
+  never an identity, address, credential, secret, display value, log value, or
+  persisted value.
+- A fixed-memory C++ tracker requires explicit future negotiated-support evidence
+  plus an encrypted authenticated bond before provisional admission. It
+  requires Pending before one exact Accepted/Denied/Replaced terminal result,
+  rejects stale/wrong/duplicate/out-of-order input, keeps timeout as a local
+  unknown-authority state rather than the wire Unknown denial enum, and requires
+  its owner to call exact connection close before another transport generation
+  may open.
+- Fourteen strict groups, 100/100 repeats, ten shared vectors, and the complete
+  119-executable host matrix pass. Current `OTB0/v0` has no claim capability,
+  current GATT requires application authorization before negotiation, and no
+  provisional GATT, authorization target/runtime integration, device access,
+  or physical evidence exists. Because three shared sources are already target-
+  linked, two pinned ESP-IDF v6.0.2 builds also reproduced the generic
+  157,957-byte image (158,080-byte BIN) after adding exact kind recognition and
+  normal-path rejection. The new wire/tracker source is absent from the link
+  map and remains host-only; see
+  [OT-048 target evidence](../tests/hardware/OT-048-2026-08-15.md). V1 remains
+  30%.
+
 ### OT-047 device-authoritative Android authorization UX
 
 - Added explicit authorize-this-phone and replace-lost-phone flows to Bluetooth

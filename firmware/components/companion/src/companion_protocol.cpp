@@ -52,9 +52,12 @@ bool known_kind(CompanionFrameKind kind) {
     switch (kind) {
         case CompanionFrameKind::snapshot_request:
         case CompanionFrameKind::action_request:
+        case CompanionFrameKind::authorization_claim_start:
         case CompanionFrameKind::snapshot:
         case CompanionFrameKind::action_result:
         case CompanionFrameKind::event:
+        case CompanionFrameKind::authorization_claim_status:
+        case CompanionFrameKind::authorization_claim_result:
             return true;
     }
     return false;

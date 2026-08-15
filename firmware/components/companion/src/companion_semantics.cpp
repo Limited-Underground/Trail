@@ -442,6 +442,9 @@ CompanionSemanticCodecError validate_companion_semantic_fragment(
         case CompanionFrameKind::action_result:
             return decode_companion_action_result(payload).error;
         case CompanionFrameKind::event:
+        case CompanionFrameKind::authorization_claim_start:
+        case CompanionFrameKind::authorization_claim_status:
+        case CompanionFrameKind::authorization_claim_result:
             return CompanionSemanticCodecError::unsupported_frame_kind;
     }
     return CompanionSemanticCodecError::unsupported_frame_kind;

@@ -3,12 +3,13 @@
 Status: OT-036 build/test foundation, OT-038 semantic parity, OT-041
 lifecycle-safe BLE runtime boundary, OT-043 Android 12+ platform facade,
 OT-045 explicit Bluetooth-mode/lifecycle UI wiring, and OT-047 disabled
-device-authorization UX, 2026-08-15.
+device-authorization UX, plus OT-049 authorization-wire codec/tracker parity,
+2026-08-15.
 This is not live BLE or physical-device evidence.
 
 ## Accepted boundary
 
-The accepted Android foundation has six layers:
+The accepted Android foundation has seven layers:
 
 1. A pure Kotlin, brand-neutral `OTB0/v0` and `OTC0/v0` codec that mirrors the
    fixed C++ bounds and consumes shared golden vectors.
@@ -25,6 +26,9 @@ The accepted Android foundation has six layers:
 6. A disabled-by-default device-authorization claim seam and UI for authorize-
    this-phone or replace-lost-phone. Only exact bounded device results can
    advance state; timeout and invalid/lost results remain explicitly uncertain.
+7. A pure fixed-size authorization-wire codec and externally serialized
+   provisional-response tracker mirrored from the accepted C++ records and ten
+   shared vectors. It is not wired to the activity, BLE runtime, or GATT facade.
 
 The visible working identity is `Limited Underground Trail`. Stable technical
 package/application identifiers do not contain that provisional product name.
@@ -84,6 +88,16 @@ values are deterministic test state only.
   controller close; if an injected claim close throws, local claim authority and
   timer/runtime ownership still close independently. No token enters display,
   persistence, or public error copy.
+- OT-049 mirrors exact 8-byte `OTL0/v0`, 24-byte `OTP0/v0`, and 28-byte
+  `OTF0/v0` records under dedicated `OTC0/v0` kinds `0x03`, `0x84`, and
+  `0x85`. Closed purpose/outcome/reason coherence and ten shared rows prevent a
+  separate Kotlin dialect. The tracker requires explicit future negotiated
+  support, encrypted/authenticated bond evidence, exact transport generation/
+  session/exchange/purpose/correlation, Pending before one terminal, and exact
+  close, called by the transport owner on disconnect, as the sole generation
+  release. This slice supplies no disconnect callback wiring. Accepted/Replaced is a client
+  observation only; it does not grant device authority. The opaque correlation
+  is never displayed, logged, or persisted.
 
 ## Deliberate exclusions and next gate
 
@@ -94,6 +108,15 @@ identity, physical authorization/revocation input, durable owner store,
 configuration/process recreation,
 background policy, and physical one-phone/one-device evidence remain later work
 under the accepted BLE GATT contract.
+
+Current Protocol Info has no authorization-claim support bit, and the current
+runtime requires application authorization before Protocol Info and session
+negotiation. It therefore cannot carry the provisional authorization phase
+without a circular dependency. No negotiated live capability or provisional
+GATT session exists. A later coordinated firmware/Android increment must add
+the restricted encrypted, authenticated-bond transport and explicit capability
+evidence before the OT-049 client seam can be enabled; write failure or timeout
+cannot be shown as authoritative Unsupported or Denied.
 
 The current semantic workflow covers only typed status, four fixed quick
 statuses, exact pending-alert acknowledgement, and position-sharing Start/Stop.
@@ -114,12 +137,12 @@ command-line-tools bootstrap archive `11076708` had observed SHA-256
 `4d6931209eebb1bfb7c7e8b240a6a3cb3ab24479ea294f3539429574b1eec862`.
 All environment changes were process-scoped; no global PATH was changed.
 
-The current focused gate passes six envelope tests, ten semantic tests, six
-Android-platform-policy tests, 17 BLE-runtime tests, eleven fake application-
-state tests, and sixteen mode/authorization/lifecycle tests,
-warning-as-error Android lint with no reported issue, and debug APK assembly.
-The exact isolated local debug APK was 9,611,441 bytes with SHA-256
-`3EB3986BD17F3DFC918936CF8978E44A36089E38D9CDCD877336BB9A16024C44`.
+The current focused gate passes 77 JVM tests across eight suites (protocol
+suites 6, 10, and 10; application suites 6, 17, 11, 1, and 16), including the frozen
+authorization-wire vectors and provisional tracker, warning-as-error
+Android lint with no reported issue, and debug APK assembly. The exact isolated
+local debug APK was 9,627,825 bytes with SHA-256
+`967FCD7A032ECED63789378F5B3C0F6AC86D06CE9CF3B6B16205E7C49B8093A3`.
 `aapt` confirms package `io.github.nbjelanovic.otclient`, min SDK 26, target SDK
 35, the expected visible label, optional BLE hardware, Scan with
 `neverForLocation`, Connect, and no location, internet, storage, or management

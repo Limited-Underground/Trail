@@ -221,6 +221,38 @@ shown as unknown device authority, never as rollback proof. Tokens are bounded
 before buffering and are never displayed or persisted. The production claim
 client remains disabled; there is still no live bond or authorization result.
 
+OT-048 freezes the smallest brand-neutral authorization wire above `OTC0/v0`.
+Exact `OTL0/v0` Claim Start, `OTP0/v0` Pending, and `OTF0/v0` terminal
+records occupy 8, 24, and 28 payload bytes under dedicated kinds `0x03`,
+`0x84`, and `0x85`. One nonzero device-issued opaque 128-bit correlation is
+privately boot-bound to the exact provisional session, exchange, and purpose;
+it is not an identity, address, key, secret, physical token, or persistable or
+displayable value. A fixed client-side response tracker requires explicit
+future negotiated support plus encrypted/authenticated bond evidence, admits
+Pending before exactly one terminal result, rejects stale or mismatched
+generation/session/exchange/purpose/correlation, and retains one connection
+generation until its owner calls exact transport close. Accepted or Replaced is only the
+client's observation of a device result; the device authority remains separate.
+
+OT-049 mirrors those exact bytes, shared vectors, enums, coherence rules, and
+tracker transitions in pure Kotlin. The production claim client remains
+default-disabled and the tracker is not wired into the activity, BLE runtime,
+or Android GATT facade. Current `OTB0/v0` has no authorization-claim capability
+bit, while the current GATT path requires application authorization before
+Protocol Info and session negotiation. A later coordinated device/Android
+increment must add explicit negotiated claim support and a restricted bonded,
+encrypted provisional transport; write failure or timeout cannot be promoted
+to authoritative Unsupported or Denied evidence.
+
+The generic build-only ESP32-S3 candidate already links the shared protocol,
+semantic dispatcher, and coordinator sources touched by OT-048. It was rebuilt
+to prove the three known-kind additions compile while the normal authorized
+session/coordinator path continues rejecting them. The link map excludes the
+new authorization wire/tracker source. This is `BUILD-LINKED-NOT-RUN`
+recognition/rejection evidence only; no provisional admission, application-
+authorization transition, controller/GATT startup, or physical device path
+exists.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

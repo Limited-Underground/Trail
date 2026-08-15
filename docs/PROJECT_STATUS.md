@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-14
+Status date: 2026-08-15
 
 ## Conceptual goals
 
@@ -329,6 +329,42 @@ queue, timer, and cleanup races fail closed. The combined Android gate passes
 The production claim client is disabled; no live bond, phone/device/emulator/
 ADB/BLE access, install, signing, or field evidence exists. OT-046 and OT-047
 are bounded `done` increments; OT-034 remains `partial` and V1 remains 30%.
+
+OT-048 freezes fixed brand-neutral authorization payloads and their client-side
+response tracker. Exact 8-byte `OTL0/v0` Claim Start, 24-byte `OTP0/v0`
+Pending, and 28-byte `OTF0/v0` terminal records bind to dedicated `OTC0/v0`
+kinds `0x03`, `0x84`, and `0x85`. The device issues one nonzero opaque 128-bit
+correlation privately bound to the exact provisional session, exchange, and
+authorize-or-replace purpose. It is not an identity, address, key, secret,
+physical token, or value that may be displayed, logged, or persisted. The
+fixed tracker requires explicit future negotiated support plus encrypted and
+authenticated bond evidence, enforces Pending before one terminal result,
+rejects mismatched or replayed context, and makes exact transport close the
+sole release of a connection generation when called by its owner. Fourteen strict groups, ten shared
+vectors, 100/100 repeats, and the complete 119-executable C++ host matrix pass.
+
+The generic target already links the shared protocol, semantic-dispatcher, and
+coordinator sources touched by OT-048. Two pinned ESP-IDF v6.0.2 rebuilds
+reproduced a 157,957-byte image and 158,080-byte BIN; those sources remain in
+the link map while the new authorization wire/tracker source is absent. Exact
+artifacts are in [OT-048](../tests/hardware/OT-048-2026-08-15.md). This is
+build-linked-not-run kind recognition and normal-path rejection only, not a
+provisional authorization transport or runtime.
+
+OT-049 mirrors the three records, dedicated envelope kinds, shared vectors,
+closed enums/coherence, and exact-close tracker behavior in pure Kotlin. The
+combined Android gate passes 77 JVM tests across eight suites (protocol suites
+6, 10, and 10; application suites 6, 17, 11, 1, and 16) and warning-as-error lint. The isolated
+debug APK is 9,627,825 bytes with SHA-256
+`967FCD7A032ECED63789378F5B3C0F6AC86D06CE9CF3B6B16205E7C49B8093A3`.
+The production claim client remains disabled and no activity, BLE runtime, or
+GATT transport wiring was added. Current `OTB0/v0` has no claim-support bit and
+the current GATT path requires application authorization before Protocol Info
+and session negotiation, so there is no live provisional session or negotiated
+claim capability. No authorization target/runtime, phone, emulator, peripheral,
+ADB, install, signing, device-authority, or physical evidence exists. OT-048 and OT-049 are
+bounded `done` codec/tracker increments; OT-034 remains `partial` and V1 remains
+30%.
 
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins
@@ -1470,7 +1506,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 - OT-017AE records the target-shaped cross-project recovery boundary as implemented host plumbing rather than a plan-only gap. The backend-neutral `ORS0` key/value adapter and real boot/save composition pass thirteen groups, 100/100 repeats, and the complete public 43-executable matrix. OpenTrail still has no exact ESP-IDF backend, protected key/trust source, physical interruption, or on-device composition.
 - OpenTrail has its own GitHub Actions validation on `main` pushes and
   pull requests. The commit-pinned Windows 2025/Python 3.13/UCRT64 job builds
-  six verifier/planning/operator CLIs and runs all 109 C++ executables plus the
+  six verifier/planning/operator CLIs and runs all 119 C++ executables plus the
   Python MeshCore lease, privacy-safe field/pilot, and crypto-benchmark evidence
   suites. The matrix includes position scheduling/privacy control,
   experimental packet/priority admission, the quick-status payload/menu/parent,
