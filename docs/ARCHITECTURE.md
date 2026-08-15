@@ -133,6 +133,17 @@ compile, link-map, size, and artifact reproducibility only: the self-check is
 `BUILD-LINKED-NOT-RUN`, the image is `NOT-FLASHED`, and there is still no BLE
 stack, GATT adapter, runtime session owner, radio path, or physical result.
 
+OT-038 mirrors the fixed semantic records and their envelope-kind binding in
+pure Kotlin. The Android shell uses them only through a deterministic fake
+transport and test-owned status/action state; fake correlation and queue
+results are not device, BLE, or radio evidence. OT-039 supplies the matching
+target-neutral C++ request owner. It combines session admission, semantic
+dispatch, injected device authority, exact response encoding, and one
+byte-exact cached response. A duplicate can replay only that exact response and
+never reapplies authority. Device adapters must implement pure preparation and
+atomic commit with no mutation on error. The coordinator is host-tested only;
+an ESP-IDF GATT/session adapter and real device authority remain open.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

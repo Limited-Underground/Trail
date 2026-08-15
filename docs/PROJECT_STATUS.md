@@ -197,6 +197,26 @@ is explicitly `BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`, and
 storage, recovery, physical runtime, or supported-hardware evidence exists.
 OT-034 remains `partial`, and V1 remains 30%.
 
+OT-038 extends the Android foundation with exact Kotlin semantic payload parity
+and a typed fake-only workflow. Nine shared C++ golden rows cover status,
+actions, and results; strict Kotlin validation preserves the exact `OTC0` kind,
+closed enums, reserves, bounds, and result coherence. The fake UI exposes four
+quick statuses, exact pending-alert acknowledgement, and position-sharing
+Start/Stop with monotonic correlated test envelopes. Six base protocol, ten
+semantic, and eleven app-state tests plus lint/APK inspection pass. All visible
+outcomes remain explicitly fake/test state. No Bluetooth permission, adapter,
+device, emulator, lifecycle-safe owner, install, or radio evidence exists.
+
+OT-039 adds the target-neutral fixed-memory request coordinator needed behind a
+future GATT adapter. It preflights exact response capacity and bytes, uses a
+pure prepare plus atomic action commit, and caches only the last completed
+request/response. An exact duplicate replays byte-identically without another
+authority call; a conflicting, stale, old-session, exhausted, or terminally
+failed request cannot apply. Sixteen strict groups and 100/100 repeats pass,
+raising the complete host matrix to 115 C++ executables. The authority adapters,
+BLE/GATT runtime, persistence, radio path, and physical evidence remain absent.
+OT-038 and OT-039 are bounded `done` increments; V1 remains 30%.
+
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins
 ESP-IDF v6.0.2 and the `esp32s3` compiler target while marking the received

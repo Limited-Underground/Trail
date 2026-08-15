@@ -6,6 +6,40 @@ public chronology.
 
 ## 2026-08-14
 
+### OT-039 duplicate-safe device companion request coordinator
+
+- Added one fixed-memory C++ owner above the accepted session guard and
+  semantic codecs. It accepts only one complete client request, invokes
+  injected snapshot/action authority, and returns an exactly correlated
+  snapshot or action-result envelope.
+- Actions use a pure prepare followed by one atomic commit. Output capacity and
+  exact semantic/envelope response bytes are established before commit;
+  non-successful commit guarantees no action was applied. Exact duplicate
+  requests replay the cached response without calling authority again, while
+  same-ID byte conflicts, stale/old sessions, and exhausted IDs fail closed.
+- Sixteen strict groups plus 100/100 repeats cover response vectors, aliasing,
+  duplicates/conflicts, queue-full/stale-alert results, terminal authority
+  failures, unchanged output, and close/reopen isolation. The complete host
+  matrix is now 115 executed C++ test binaries. No BLE stack, target adapter,
+  radio delivery, hardware access, or physical result exists; V1 remains 30%.
+
+### OT-038 Android semantic parity and typed fake workflow
+
+- Added strict Kotlin `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0`
+  codecs using nine shared C++ golden rows and exact single-fragment `OTC0`
+  kind binding.
+- The connected fake-only Compose surface now presents typed test status and
+  submits all four quick statuses, an exact pending-alert acknowledgement, and
+  explicit position-sharing Start/Stop. Fake session/exchange IDs are bounded
+  and monotonic; result envelopes are correlated and round-tripped; queue,
+  revision, session, and exchange exhaustion reject before mutation.
+- Six envelope, ten semantic, and eleven app-state tests pass with clean lint
+  and debug APK assembly. The current local APK is 9,914,201 bytes with SHA-256
+  `8ED7B6C4789160CB7AD6BBC8BC43E914F73CB1F928BE23EE42D7D10A4A840F75`.
+  UI outcome copy is explicitly fake/test-only and the main surface scrolls.
+  No Bluetooth permission, adapter, device/emulator access, lifecycle-safe
+  session, install, signing, or field evidence exists; V1 remains 30%.
+
 ### OT-037 companion codecs linked into the build-only target
 
 - Linked the accepted `OTB0/v0`, `OTC0/v0`, `OTX0/v0`, `OTN0/v0`,

@@ -255,9 +255,19 @@ status enum space, four canonical quick-status IDs, exact alert correlation,
 explicit position Start/Stop, result coherence, atomic failure, and one real
 `OTC0` envelope composition.
 
+OT-039 adds a fixed-memory target-neutral request coordinator above those
+layers. It admits one complete client request through the session guard,
+dispatches the exact semantic record, obtains state or a prepared action from
+injected device authority, constructs the complete response, and only then
+atomically commits an action. The authority contract requires pure preparation
+and no mutation on commit error. One exact completed request/response is cached
+for byte-identical duplicate replay without reapplying authority; conflicting,
+stale, old-session, exhausted, and terminally failed requests remain closed.
+Sixteen strict groups and 100/100 repeats pass. See the
+[request coordinator contract](COMPANION_REQUEST_COORDINATOR_V0.md).
+
 This does not implement the UUIDs in a BLE stack, pairing/bond storage,
-application authorization, target session allocation, result caching, request-
-conflict comparison, reassembly,
+application authorization, persistent result/history caching, reassembly,
 Android BLE binding or background behavior, radio, GNSS,
 persistence, functional target runtime or GATT target binding, physical
 transport, accessibility, packaging,

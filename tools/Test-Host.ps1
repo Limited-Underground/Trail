@@ -139,6 +139,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'device-side companion request coordinator'
+        Output = Join-Path $buildDirectory 'companion_request_coordinator_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_request_coordinator_tests.cpp')
+        )
+    },
+    @{
         Name = 'protected packet budget'
         Output = Join-Path $buildDirectory 'protected_packet_budget_tests.exe'
         Sources = @(

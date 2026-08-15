@@ -1,10 +1,17 @@
 package io.github.nbjelanovic.otclient
 
+import io.github.nbjelanovic.otprotocol.CompanionActionRequest
+import io.github.nbjelanovic.otprotocol.CompanionActionResult
+
 sealed interface CompanionUiState {
     data class Disconnected(val candidates: List<CompanionCandidate>) : CompanionUiState
     data class Selecting(val candidates: List<CompanionCandidate>) : CompanionUiState
     data class Connecting(val candidate: CompanionCandidate) : CompanionUiState
-    data class Connected(val connection: CompanionConnection) : CompanionUiState
+    data class Connected(
+        val connection: CompanionConnection,
+        val lastActionResult: CompanionActionResult? = null,
+        val publicNotice: String? = null,
+    ) : CompanionUiState
     data class Failed(
         val publicReason: String,
         val candidates: List<CompanionCandidate>,
@@ -52,6 +59,20 @@ class CompanionAppController(private val transport: CompanionTransport) {
         val connection = (state as? CompanionUiState.Connected)?.connection ?: return
         transport.disconnect(connection.endpointToken)
         publish(CompanionUiState.Disconnected(transport.candidates()))
+    }
+
+    fun submitAction(request: CompanionActionRequest) {
+        val connected = state as? CompanionUiState.Connected ?: return
+        when (val result = transport.submitAction(connected.connection.endpointToken, request)) {
+            is SemanticActionAttempt.Applied -> publish(
+                connected.copy(
+                    connection = connected.connection.copy(snapshot = result.snapshot),
+                    lastActionResult = result.result,
+                    publicNotice = null,
+                ),
+            )
+            is SemanticActionAttempt.Failed -> publish(connected.copy(publicNotice = result.publicReason))
+        }
     }
 
     fun retrySelection() = chooseDevice()

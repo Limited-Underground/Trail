@@ -10,10 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.nbjelanovic.otprotocol.CompanionActionDisposition
+import io.github.nbjelanovic.otprotocol.CompanionActionKind
+import io.github.nbjelanovic.otprotocol.CompanionActionRequest
+import io.github.nbjelanovic.otprotocol.CompanionActionResult
+import io.github.nbjelanovic.otprotocol.CompanionQuickStatus
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,7 +56,7 @@ fun CompanionApp(controller: CompanionAppController) {
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("Limited Underground", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
@@ -82,8 +86,8 @@ private fun DisconnectedPanel(state: CompanionUiState.Disconnected, controller: 
 private fun SelectionPanel(state: CompanionUiState.Selecting, controller: CompanionAppController) {
     Text("Choose one device", style = MaterialTheme.typography.titleLarge)
     Text("A production phone will connect to one LoRa device. These entries are local fakes and do not scan Bluetooth.")
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp)) {
-        items(state.candidates, key = { it.endpointToken }) { candidate ->
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        state.candidates.forEach { candidate ->
             Card(modifier = Modifier.fillMaxWidth()) {
                 Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(candidate.publicLabel, modifier = Modifier.weight(1f))
@@ -98,9 +102,76 @@ private fun SelectionPanel(state: CompanionUiState.Selecting, controller: Compan
 @Composable
 private fun ConnectedPanel(state: CompanionUiState.Connected, controller: CompanionAppController) {
     StatusCard("Connected to ${state.connection.publicLabel}", state.connection.status)
-    Text("Android action and device-state binding arrives in a later increment; this build still uses only the fake transport.")
+    val snapshot = state.connection.snapshot
+    Text(
+        "Fake device status · radio ${snapshot.radio.publicLabel()} · GNSS ${snapshot.gnss.publicLabel()} · " +
+            "power ${snapshot.power.publicLabel()} · position ${snapshot.positionSharing.publicLabel()} · " +
+            "queued ${snapshot.queuedActionCount}",
+        style = MaterialTheme.typography.bodyMedium,
+    )
+    Text("Quick status", style = MaterialTheme.typography.titleMedium)
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ActionButton("OK", Modifier.weight(1f)) {
+            controller.submitAction(CompanionActionRequest(CompanionActionKind.QUICK_STATUS, CompanionQuickStatus.OK))
+        }
+        ActionButton("Need help", Modifier.weight(1f)) {
+            controller.submitAction(
+                CompanionActionRequest(CompanionActionKind.QUICK_STATUS, CompanionQuickStatus.NEED_ASSISTANCE),
+            )
+        }
+    }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ActionButton("Anyone online?", Modifier.weight(1f)) {
+            controller.submitAction(
+                CompanionActionRequest(CompanionActionKind.QUICK_STATUS, CompanionQuickStatus.ANYONE_ONLINE),
+            )
+        }
+        ActionButton("Available", Modifier.weight(1f)) {
+            controller.submitAction(
+                CompanionActionRequest(CompanionActionKind.QUICK_STATUS, CompanionQuickStatus.AVAILABLE_TO_HELP),
+            )
+        }
+    }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(
+            onClick = { controller.submitAction(CompanionActionRequest(CompanionActionKind.START_POSITION_SHARING)) },
+            modifier = Modifier.weight(1f),
+        ) { Text("Start position") }
+        OutlinedButton(
+            onClick = { controller.submitAction(CompanionActionRequest(CompanionActionKind.STOP_POSITION_SHARING)) },
+            modifier = Modifier.weight(1f),
+        ) { Text("Stop position") }
+    }
+    if (snapshot.pendingCriticalAlertId != 0uL) {
+        Button(
+            onClick = {
+                controller.submitAction(
+                    CompanionActionRequest(
+                        kind = CompanionActionKind.ACKNOWLEDGE_CRITICAL_ALERT,
+                        criticalAlertId = snapshot.pendingCriticalAlertId,
+                    ),
+                )
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Acknowledge pending critical alert") }
+    }
+    state.lastActionResult?.let { StatusCard("Last action", it.publicOutcome()) }
+    state.publicNotice?.let { StatusCard("Action unavailable", it) }
     OutlinedButton(onClick = controller::disconnect, modifier = Modifier.fillMaxWidth()) { Text("Disconnect") }
 }
+
+@Composable
+private fun ActionButton(label: String, modifier: Modifier, action: () -> Unit) {
+    Button(onClick = action, modifier = modifier) { Text(label) }
+}
+
+private fun CompanionActionResult.publicOutcome(): String = when (disposition) {
+    CompanionActionDisposition.QUEUED -> "Queued in the fake device. This is not sent or delivered evidence."
+    CompanionActionDisposition.ADMITTED -> "Applied in deterministic test state."
+    CompanionActionDisposition.REJECTED -> "The fake device rejected the request: ${rejectReason.publicLabel()}."
+}
+
+private fun Enum<*>.publicLabel(): String = name.lowercase().replace('_', ' ')
 
 @Composable
 private fun FailedPanel(state: CompanionUiState.Failed, controller: CompanionAppController) {

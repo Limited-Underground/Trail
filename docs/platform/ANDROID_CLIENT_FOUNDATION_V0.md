@@ -1,7 +1,7 @@
 # Android client foundation v0
 
-Status: OT-036 build/test foundation, 2026-08-14. This is not live BLE or
-physical-device evidence.
+Status: OT-036 build/test foundation plus OT-038 semantic parity, 2026-08-14.
+This is not live BLE or physical-device evidence.
 
 ## Accepted boundary
 
@@ -17,7 +17,8 @@ The visible working identity is `Limited Underground Trail`. Stable technical
 package/application identifiers do not contain that provisional product name.
 The manifest requests no Bluetooth, nearby-device, location, internet, storage,
 or device-management permission. The fake transport provides no discovery,
-security, session, GATT, LoRa, GNSS, queue, or delivery evidence.
+security, GATT, LoRa, GNSS, or delivery evidence. Its session, status, and queue
+values are deterministic test state only.
 
 ## Fail-closed behavior
 
@@ -32,6 +33,12 @@ security, session, GATT, LoRa, GNSS, queue, or delivery evidence.
   cannot replace or strand an active fake connection; disconnect is explicit.
 - User copy labels all connection evidence as fake and denies Bluetooth/radio
   proof.
+- OT-038 mirrors the exact `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0`
+  layouts and validates their allowed `OTC0` kinds. Nine shared C++ golden rows
+  prevent a separate Kotlin wire dialect.
+- Fake actions use bounded monotonic session/exchange IDs and round-trip the
+  exact correlated result envelope. Queue/revision/session/exchange exhaustion,
+  stale alerts, and invalid actions reject without changing fake state.
 
 ## Deliberate exclusions and next gate
 
@@ -42,9 +49,11 @@ discovery, MTU negotiation, authenticated/bonded/application-authorized session,
 Stream subscription, reconnect, background policy, and physical one-phone/
 one-device evidence remain later work under the accepted BLE GATT contract.
 
-No semantic quick-status, alert, position, message/history payload is invented
-here. The Android client cannot claim a functional field workflow until those
-typed device-authoritative payloads, a real target adapter, and physical two-
+The current semantic workflow covers only typed status, four fixed quick
+statuses, exact pending-alert acknowledgement, and position-sharing Start/Stop.
+Message/history, peer position, group provisioning, and real device authority
+remain absent. The Android client cannot claim a functional field workflow
+until a lifecycle-safe BLE adapter, real target authority, and physical two-
 device evidence pass independently.
 
 ## 2026-08-14 local build evidence
@@ -58,10 +67,11 @@ command-line-tools bootstrap archive `11076708` had observed SHA-256
 `4d6931209eebb1bfb7c7e8b240a6a3cb3ab24479ea294f3539429574b1eec862`.
 All environment changes were process-scoped; no global PATH was changed.
 
-The focused gate passed six protocol tests, four application-state tests,
+The current focused gate passes six envelope tests, ten semantic tests, and
+eleven application-state tests,
 warning-as-error Android lint with no reported issue, and debug APK assembly.
 The exact local debug APK was 9,914,201 bytes with SHA-256
-`9DD61C05A0724001AAD32D3F82C39B255F73489D0161E85EE0125110DC495608`.
+`8ED7B6C4789160CB7AD6BBC8BC43E914F73CB1F928BE23EE42D7D10A4A840F75`.
 `aapt` confirms package `io.github.nbjelanovic.otclient`, min SDK 26, target SDK
 35, the expected visible label, and no Bluetooth, nearby-device, location,
 internet, storage, or management permission. AndroidX adds only its same-app
