@@ -6,6 +6,45 @@ public chronology.
 
 ## 2026-08-15
 
+### OT-045 explicit Android Bluetooth mode and lifecycle wiring
+
+- Replaced the fake-only entry point with an explicit choice between Local test
+  mode and Bluetooth-device mode. Bluetooth mode requests Android 12+ Nearby
+  Devices permission, provides settings recovery, scans, selects one candidate,
+  connects/disconnects, and exposes the accepted typed actions. It never falls
+  back silently to local simulation.
+- One controller/lifecycle binding owns runtime and facade startup, stop,
+  resume, destruction, late permission callbacks, mode switches, observer re-
+  entry, and exactly-once final cleanup. The production application-security
+  authority remains deny-all, so the real path cannot reach Ready yet.
+- Six envelope, ten semantic, six Android-policy, 17 BLE-runtime, 11 fake-
+  controller, and nine new mode/lifecycle tests pass with clean lint. The
+  9,595,057-byte debug APK has SHA-256
+  `0CCD4DECAAAE712A587DB97BC744B515E97008532FAA834BBF3D7BE4C715D76C`
+  and declares only Scan with `neverForLocation`, Connect, and AndroidX's
+  generated same-app permission. No phone, emulator, ADB, BLE peripheral, or
+  LoRa device was accessed; V1 remains 30%.
+
+### OT-044 response-safe GATT session lifecycle
+
+- Added a fixed-memory, target-neutral one-connection session owner with exact
+  Command, Stream, and registered CCCD handles; ATT MTU; encrypted,
+  authenticated, and application-authorized evidence; indication-only
+  subscription; exact coordinator session; and one outstanding response token.
+- The indication sink reserves the complete response before coordinator
+  mutation. Congestion and guarded callback re-entry reject without mutation or
+  state advance; wrong/stale completion preserves the exact pending response.
+  Unsubscribe, security loss, submit failure, negative exact completion, or
+  timeout contain and block; exact disconnect clears the terminal tombstone.
+- Fifteen strict groups and 100/100 repeats pass. Target boot self-check and
+  static admission pass 100/100; two pinned ESP-IDF v6.0.2 builds reproduce a
+  157,957-byte generic image with a 158,080-byte BIN. Exact hashes are recorded
+  in [OT-044 evidence](../tests/hardware/OT-044-2026-08-15.md).
+- The result remains generic 2 MB, `BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`,
+  controller `NOT-STARTED`, advertising `NOT-IMPLEMENTED`, authorization
+  `NOT-INJECTED`, and real NimBLE Command dispatch denied. No device or port was
+  accessed; V1 remains 30%.
+
 ### OT-043 unwired Android BluetoothGatt facade
 
 - Added a concrete Android 12+ Bluetooth facade behind the accepted lifecycle

@@ -1,7 +1,8 @@
 # BLE Companion GATT v0
 
 Status: host-tested codec/session/coordinator foundation, dormant OT-042 NimBLE
-GATT target definition, and unwired OT-043 Android 12+ Bluetooth facade,
+GATT target definition, OT-044 response-safe GATT lifecycle, and OT-045 wired
+but default-deny Android 12+ Bluetooth mode,
 2026-08-15. No GATT registration/controller/advertising, application-
 authorization workflow, radio path, authenticated group packet, or physical-
 device evidence exists.
@@ -293,17 +294,33 @@ OT-043 adds a concrete but unwired Android 12+ facade. It filters the exact
 service, validates the complete GATT profile, supports API 31/32 and API 33+
 call shapes, bounds opaque candidates and scan time, and rechecks the exact
 Scan or Connect permission on every active state- or data-bearing queued
-callback; disconnected cleanup remains best-effort. The manifest declares Scan
-with `neverForLocation` and Connect, but the fake-only activity has no permission
-UX and never constructs the facade.
+callback; disconnected cleanup remains best-effort. At OT-043 acceptance the
+manifest declared Scan with `neverForLocation` and Connect, but the fake-only
+activity had no permission UX and never constructed the facade.
+
+OT-044 adds the exact per-connection response lifecycle required before command
+mutation. It binds registered Command, Stream, and CCCD handles; security and
+application-authorization evidence; indication subscription; coordinator
+session; and one outstanding delivery token. The sink reserves the full
+response before coordinator mutation. Congestion and guarded re-entry reject
+without mutation; wrong/stale completion preserves the pending response;
+actual submit failure, negative exact completion, timeout, unsubscribe, or
+security loss contain and block until exact disconnect. The target build links
+and self-checks this owner but still does not register/start NimBLE or advertise, and
+real NimBLE Command dispatch remains denied.
+
+OT-045 wires the Android runtime and facade into an explicit Bluetooth-device
+mode beside the separately labeled Local test mode. It owns Nearby Devices
+permission request/settings recovery plus scan/select/connect/disconnect and
+lifecycle cleanup without silent fallback. The production application-
+authorization authority remains deny-all, so this does not prove a successful
+BLE session or physical peripheral.
 
 This does not implement GATT registration/startup/advertising, pairing/bond
-storage, application authorization, exact CCCD/subscription ownership,
-persistent result/history caching, reassembly, Android permission UX/UI wiring
-or background behavior, radio, GNSS, persistence, functional target runtime,
-physical
-transport, accessibility, packaging,
-signing, store distribution, or support. No BLE/GATT target was accessed and no
+storage, accepted application authorization, persistent result/history caching,
+reassembly, Android background behavior, radio, GNSS, persistence, functional
+target runtime, physical transport, accessibility, packaging, signing, store
+distribution, or support. No BLE/GATT target was accessed and no
 device was written. The broader full host suite's established read-only
 USB-loader enumeration is documented separately in the OT-040 evidence record
 and is not BLE/GATT runtime evidence.

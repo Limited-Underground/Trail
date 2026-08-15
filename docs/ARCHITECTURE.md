@@ -148,16 +148,17 @@ OT-040 links that coordinator into the generic build-only ESP32-S3 candidate.
 A target-local fixed-authority boot self-check proves exact request/response
 bytes, one action application, and byte-identical duplicate replay before the
 heartbeat path. This is `BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`, and
-`UNREVIEWED-RUNTIME` evidence; the generated profile remains generic 2 MB and
-there is no NimBLE/GATT service or real authority adapter.
+`UNREVIEWED-RUNTIME` evidence; at OT-040 acceptance the generated profile
+remained generic 2 MB and there was no NimBLE/GATT service or real authority
+adapter.
 
 OT-041 adds an unwired lifecycle-safe Android BLE runtime boundary. It owns one
 scan/GATT/reconnect generation, exact v0 GATT identifiers, encrypted and
 authenticated bond plus application-authorization ordering, MTU and Protocol
 Info negotiation, indication-only Stream subscription, authoritative snapshot
 opening, bounded request/result correlation, phase/action timeouts, owner-thread
-callbacks, observer re-entrancy containment, and lifecycle lease release. The
-At OT-041 acceptance the checked-in app manifest remained permission-free and
+callbacks, observer re-entrancy containment, and lifecycle lease release. At
+OT-041 acceptance the checked-in app manifest remained permission-free and
 the visible workflow remained
 fake-only, so this is JVM architecture evidence rather than a live Android BLE
 adapter or device connection.
@@ -174,9 +175,32 @@ OT-043 supplies the first concrete but unwired Android 12+ platform facade. It
 filters the exact service, uses bounded opaque candidate tokens, supports the
 API 31/32 and API 33+ GATT call shapes, enables the exact indication descriptor,
 and maps platform/permission failures to typed private state on the main thread.
-The manifest declares only Nearby Devices Scan (never for location) and Connect,
-but the shipped fake activity has no permission UX and never constructs the
-facade. This is compile/reducer evidence, not live scanning or connection.
+At OT-043 acceptance the manifest declared only Nearby Devices Scan (never for
+location) and Connect, but the shipped fake activity had no permission UX and
+never constructed the facade. That increment was compile/reducer evidence, not
+live scanning or connection.
+
+OT-044 adds a target-neutral one-connection GATT session owner between the
+dormant NimBLE definition and the request coordinator. It binds exact registered
+Command, Stream, and CCCD handles; ATT MTU; encrypted/authenticated/application-
+authorized evidence; one indication subscription; one coordinator session; and
+one outstanding response token. The indication sink must reserve the complete
+maximum response before the coordinator can mutate authority. Congestion and
+guarded callback re-entry reject before mutation or state advance; wrong or
+stale completion preserves the exact pending response. Unsubscribe, security
+loss, submission failure, negative exact completion, or timeout contain and
+block the session until the exact connection disconnects. The generic target
+links and boot-self-checks this owner
+but still does not start NimBLE, register GATT, advertise, or admit real writes.
+
+OT-045 wires the Android runtime and concrete facade behind an explicit initial
+choice between Local test mode and Bluetooth-device mode. Bluetooth mode owns
+Android 12+ Nearby Devices permission request/settings recovery, explicit scan,
+selection, connect/disconnect, and the accepted typed actions. There is no silent
+fallback to the fake transport. One lifecycle binding releases runtime/facade
+leases on stop or destroy, including observer-triggered cleanup. The injected
+application-security authority remains deny-all, so this is production-shaped
+UI/lifecycle evidence rather than a successful device connection.
 
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.

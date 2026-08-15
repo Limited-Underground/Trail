@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
 
-    <!-- OT-043 declares only API-31+ nearby-device permissions. The unwired app never requests them. -->
+    <!-- OT-045 requests only these API-31+ Nearby Devices permissions after an explicit user request in Bluetooth mode. -->
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation"

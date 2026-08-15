@@ -1,24 +1,26 @@
 # Android client foundation v0
 
 Status: OT-036 build/test foundation, OT-038 semantic parity, OT-041
-lifecycle-safe BLE runtime boundary, and OT-043 unwired Android 12+ platform
-facade, 2026-08-15.
+lifecycle-safe BLE runtime boundary, OT-043 Android 12+ platform facade, and
+OT-045 explicit Bluetooth-mode/lifecycle UI wiring, 2026-08-15.
 This is not live BLE or physical-device evidence.
 
 ## Accepted boundary
 
-The accepted Android foundation has four layers:
+The accepted Android foundation has five layers:
 
 1. A pure Kotlin, brand-neutral `OTB0/v0` and `OTC0/v0` codec that mirrors the
    fixed C++ bounds and consumes shared golden vectors.
 2. A native Kotlin/Jetpack Compose application shell with explicit
    Disconnected, Selecting, Connecting, Connected, and Failed states over a
    deterministic fake transport.
-3. An unwired lifecycle-safe BLE runtime owner behind injected Android
-   Bluetooth and scheduler facades. It is not selected by the visible
-   application.
-4. A concrete but unwired Android 12+ Bluetooth facade with exact UUID/profile,
+3. A lifecycle-safe BLE runtime owner behind injected Android Bluetooth and
+   scheduler facades.
+4. A concrete Android 12+ Bluetooth facade with exact UUID/profile,
    permission, API-version, main-thread, and privacy-safe failure policy.
+5. An explicit Local test versus Bluetooth-device mode controller and Compose
+   surface. Bluetooth mode owns permission request/settings recovery and
+   scan/select/connect/disconnect without silently falling back to Local test.
 
 The visible working identity is `Limited Underground Trail`. Stable technical
 package/application identifiers do not contain that provisional product name.
@@ -66,15 +68,20 @@ values are deterministic test state only.
   Revocation and contained `SecurityException` clear local ownership and
   surface only a typed privacy-safe failure. Raw addresses and platform
   exception text never enter the runtime state.
+- OT-045 admits Bluetooth work only after explicit mode selection and current
+  Nearby Devices permission. One lifecycle binding owns stop/resume/destroy,
+  runtime-to-facade final closure, late permission callbacks, and mode changes
+  while scanning, connecting, or Ready. Cleanup requested during an observer
+  callback is deferred and drained; close wins over queued transitions.
 
 ## Deliberate exclusions and next gate
 
-The existing activity-scoped fake controller still does not own a production
-BLE lease. OT-043 supplies the concrete platform facade, but the shipped
-activity never constructs it and has no Nearby Devices permission UX. An
-accepted application-authorization authority, lifecycle-safe UI integration,
-configuration/process recreation, background policy, and physical one-phone/
-one-device evidence remain later work under the accepted BLE GATT contract.
+The visible application now owns a production-shaped Bluetooth path and a
+separate explicit fake path. The injected production application-authorization
+authority remains deny-all, so Bluetooth cannot reach Ready. An accepted
+physical authorization/revocation workflow, configuration/process recreation,
+background policy, and physical one-phone/one-device evidence remain later work
+under the accepted BLE GATT contract.
 
 The current semantic workflow covers only typed status, four fixed quick
 statuses, exact pending-alert acknowledgement, and position-sharing Start/Stop.
@@ -96,11 +103,11 @@ command-line-tools bootstrap archive `11076708` had observed SHA-256
 All environment changes were process-scoped; no global PATH was changed.
 
 The current focused gate passes six envelope tests, ten semantic tests, six
-Android-platform-policy tests, 17 BLE-runtime tests, and eleven application-
-state tests,
+Android-platform-policy tests, 17 BLE-runtime tests, eleven fake application-
+state tests, and nine mode/lifecycle tests,
 warning-as-error Android lint with no reported issue, and debug APK assembly.
-The exact isolated local debug APK was 9,656,378 bytes with SHA-256
-`CAAC3922EBC2BD011F12EE4A334DA98FBA1AE9467228C23174ED658F3F650AFE`.
+The exact isolated local debug APK was 9,595,057 bytes with SHA-256
+`0CCD4DECAAAE712A587DB97BC744B515E97008532FAA834BBF3D7BE4C715D76C`.
 `aapt` confirms package `io.github.nbjelanovic.otclient`, min SDK 26, target SDK
 35, the expected visible label, optional BLE hardware, Scan with
 `neverForLocation`, Connect, and no location, internet, storage, or management

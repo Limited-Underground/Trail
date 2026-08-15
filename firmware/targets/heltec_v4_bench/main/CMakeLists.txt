@@ -8,6 +8,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_protocol.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_semantics.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_request_coordinator.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_gatt_session.cpp"
     INCLUDE_DIRS
         "."
         "${OPENTRAIL_COMPONENT_ROOT}/companion/include"

@@ -1,9 +1,9 @@
 # Android client foundation
 
 Status: OT-036/OT-038 fake application foundation, the OT-041 lifecycle-safe
-BLE runtime boundary, and the OT-043 build-integrated but unwired Android
-BluetoothGatt facade. This directory contains a buildable Android application
-shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
+BLE runtime boundary, the OT-043 Android BluetoothGatt facade, and the OT-045
+explicit local-test/Bluetooth UI binding. This directory contains a buildable
+Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
 The visible working product name is `Limited Underground Trail`. The stable,
@@ -16,13 +16,14 @@ protocol or package identity.
 - `protocol` encodes and strictly decodes the 16-byte protocol-info record and
   bounded fragment envelope. Tests consume the same golden bytes recorded for
   the C++ codec in `tests/fixtures/companion_protocol_v0_vectors.csv`.
-- `app` renders explicit Disconnected, Selecting, Connecting, Connected, and
-  Failed states in Jetpack Compose.
-- The only transport is `FakeCompanionTransport`. It exposes two deterministic
+- `app` first requires an explicit Local test or Bluetooth device choice. It
+  never substitutes fake data after a Bluetooth failure. Each mode renders its
+  own disconnected, selection/scanning, connecting, connected, and failed states.
+- Local test mode uses `FakeCompanionTransport`. It exposes two deterministic
   local choices and permits one active fake connection. It performs no scan,
   opens no Bluetooth or USB device, and proves no radio behavior.
-- `BleCompanionRuntime` is an unwired, fail-closed boundary for a future real
-  Android BLE adapter. It owns one scan or GATT lease, rejects stale callbacks,
+- Bluetooth device mode binds `BleCompanionRuntime` to the concrete Android
+  facade. The runtime owns one scan or GATT lease, rejects stale callbacks,
   enforces the accepted security/MTU/protocol-info/Stream/initial-snapshot
   order, requires Stream indications for authoritative snapshots/results,
   honors the peer's payload bound, correlates exact session/action fragments,
@@ -31,9 +32,10 @@ protocol or package identity.
 - State observers are notification-only. Synchronous attempts to call back into
   the runtime are rejected so presentation code cannot interrupt lease setup or
   orphan scan, GATT, or timer work.
-- `BleCompanionLifecycleBinding` releases scan, GATT, action, negotiation, and
-  reconnect work at lifecycle stop and permanently closes the owner at destroy.
-  It is not connected to `MainActivity`; the visible workflow remains fake.
+- `TrailAppLifecycleBinding` is the sole lifecycle owner. It synchronously
+  releases scan, GATT, action, negotiation, and reconnect work at lifecycle stop
+  and closes the runtime then facade exactly once at destroy. Reentrant lifecycle
+  requests are deferred and drained after observer delivery; final close wins.
 - `AndroidBluetoothGattFacade` compiles against SDK 35 and supports Android
   API 31+ with version-gated API 31/32 compatibility calls. It uses an exact
   service-UUID scan filter, opaque bounded endpoint tokens, `autoConnect=false`,
@@ -41,29 +43,29 @@ protocol or package identity.
   and CCCD indications. It serializes callbacks and timers on the Android main
   thread, owns at most one scan or connection, bounds scans to 15 seconds, and
   ignores stale callbacks while closing permission-revoked work with typed failures.
-- The concrete facade is not constructed by the activity. The manifest declares
-  only `BLUETOOTH_SCAN` (with `neverForLocation`) and `BLUETOOTH_CONNECT`, but
-  this build contains no permission-request flow, so the shipped activity cannot
-  scan. If the facade is later wired and permissions are granted, its default
-  security authority still denies every connection before the runtime reaches Ready.
+- The activity constructs the concrete facade but exposes it only through
+  Bluetooth device mode, and requests the two Android 12+ Nearby Devices
+  permissions only after an explicit user action. Denial remains in Bluetooth mode with fixed public copy
+  and a route to app settings. The manifest declares only `BLUETOOTH_SCAN` (with
+  `neverForLocation`) and `BLUETOOTH_CONNECT`.
+- The injected production security authority still defaults to deny-all. A
+  granted user can explicitly scan and select a compatible advertisement, but
+  no connection can reach Ready until the pairing/application-authorization
+  authority is accepted and supplied. There is no silent downgrade to fake mode.
 
-The activity-owned fake controller remains a shell fixture. It does not survive
-Android configuration change or process recreation and owns no Bluetooth lease.
-The separate BLE runtime uses typed blockers/failures and can be attached to an
-Android lifecycle. The Android facade and main-thread timer adapter exist, but
-there is intentionally no permission request, scanning UI, accepted pairing or
-application-authorization authority, or activity wiring. Platform errors map to
-closed typed values; raw addresses, names, identifiers, status codes, and
-exception text do not enter UI state.
+The Activity-owned mode controller does not survive Android configuration change
+or process recreation; destruction closes its session and a recreated Activity
+returns to the explicit mode choice. Platform errors map to fixed typed values;
+raw addresses, names, identifiers, status codes, and exception text do not enter
+UI state.
 
-The concrete gap to a first real connection is therefore explicit: accept and
-test the screenless-device pairing/application-authorization workflow, add an
-explicit Nearby Devices permission UX, inject the accepted security authority,
-then bind the facade and runtime to a lifecycle-safe UI owner. Device firmware
-must expose the same secured GATT contract and authoritative initial snapshot.
-The current tests validate the pure admission, permission, token, GATT-profile,
-and operation-order reducers plus compilation/lint; they do not execute Android
-Bluetooth hardware or claim a live connection.
+The concrete gap to a first real Ready session is therefore explicit: accept
+and test the screenless-device pairing/application-authorization workflow,
+inject that accepted authority, and run the exact app against device firmware
+that exposes the secured GATT contract and authoritative initial snapshot. The
+current tests validate the pure mode, lifecycle, permission, admission, token,
+GATT-profile, and operation-order boundaries plus compilation/lint; they do not
+execute Android Bluetooth hardware or claim a live connection.
 
 The platform contract follows the official Android documentation for
 [Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),
@@ -87,6 +89,6 @@ warning-as-error Android lint, and debug assembly.
   -AndroidSdkRoot "$env:LOCALAPPDATA\Android\Sdk"
 ```
 
-No signing key, production variant, Play Store configuration, BLE permission
-request UX, accepted security authority, live UI binding, device access, or
-installation command is present.
+No signing key, production variant, Play Store configuration, accepted security
+authority, device access, live Bluetooth evidence, or installation command is
+present.

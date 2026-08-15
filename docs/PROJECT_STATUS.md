@@ -266,10 +266,41 @@ and typed privacy-safe failure. Six protocol, ten semantic, six Android-policy,
 debug APK has SHA-256
 `CAAC3922EBC2BD011F12EE4A334DA98FBA1AE9467228C23174ED658F3F650AFE`.
 Its manifest declares Scan with `neverForLocation` and Connect only, plus the
-generated same-app receiver permission. The shipped activity remains fake-only
-with no Nearby Devices permission UX or facade wiring; no phone/device/emulator/
-ADB/BLE access occurred. OT-042 and OT-043 are bounded `done` increments;
+generated same-app receiver permission. At OT-043 acceptance the shipped
+activity remained fake-only with no Nearby Devices permission UX or facade
+wiring; no phone/device/emulator/ADB/BLE access occurred. OT-042 and OT-043 are bounded `done` increments;
 OT-034 remains `partial` and V1 remains 30%.
+
+OT-044 adds the response-safe GATT lifecycle missing from OT-042. One fixed-
+memory owner binds exact registered Command, Stream, and CCCD handles, one
+connection, ATT MTU, encrypted/authenticated/application-authorized evidence,
+indication subscription, coordinator session, and one outstanding response
+token. The complete maximum response is reserved before coordinator mutation.
+Congestion and guarded callback re-entry reject without mutation or state
+advance; wrong/stale completion preserves the exact pending response.
+Unsubscribe, security loss, submit failure, negative exact completion, or
+timeout contain and block until exact disconnect. Fifteen strict groups and 100/100
+repeats pass. Target boot self-check, static admission, and two identical ESP-
+IDF v6.0.2 builds pass; the 157,957-byte generic image and exact artifacts are
+recorded in [OT-044](../tests/hardware/OT-044-2026-08-15.md). The owner is only
+build-linked/self-checked: the controller is not started, advertising is absent,
+authorization is not injected, real NimBLE Command dispatch remains denied,
+and no device was accessed or flashed.
+
+OT-045 replaces the fake-only Android entry point with an explicit Local test
+or Bluetooth-device mode choice. Bluetooth mode owns Android 12+ Nearby Devices
+permission request/settings recovery, explicit scan/select/connect/disconnect,
+typed public errors, and the accepted actions through one lifecycle-safe
+controller/runtime/facade composition. There is no silent fake fallback. Nine
+new controller/lifecycle tests cover stop/resume, mode switching while scanning,
+connecting, or Ready, late permission callbacks, revocation, observer re-entry,
+off-owner rejection, and exactly-once cleanup. The combined Android gate passes
+59 tests and lint; the 9,595,057-byte debug APK has SHA-256
+`0CCD4DECAAAE712A587DB97BC744B515E97008532FAA834BBF3D7BE4C715D76C`.
+The injected production application-security authority remains deny-all, so no
+successful live Ready state, phone/device/emulator/ADB/BLE access, install,
+signing, or field evidence exists. OT-044 and OT-045 are bounded `done`
+increments; OT-034 remains `partial` and V1 remains 30%.
 
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins

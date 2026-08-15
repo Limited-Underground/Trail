@@ -17,7 +17,11 @@ fixed startup line after PASS, and emit a recurring USB Serial/JTAG heartbeat.
 The self-check exercises exact `OTB0`, `OTC0`, and `OTA0` vectors plus semantic
 dispatch, then uses fixed fake snapshot/action authorities to verify exact
 snapshot and queued-action responses plus byte-identical duplicate replay
-without a second authority call. It opens no transport. Failure suspends the
+without a second authority call. A second fixed in-memory sink checks the
+one-connection GATT lifecycle's exact handle registration, secure/subscribed
+session opening, maximum-size response reservation before action mutation,
+indication submission, exact completion token, and duplicate no-reapply path.
+It opens no transport. Failure suspends the
 application before startup or heartbeat. A queued result is only a local queue
 disposition; it does not claim radio send or delivery. The only dynamic value
 owned and read by the application
@@ -46,6 +50,14 @@ state, or disconnect cleanup. Inferring a CCCD as `value_handle + 1` is not an
 accepted substitute. A later runtime increment must establish those facts
 before any coordinator call, so device authority cannot mutate without a
 verified response path.
+
+The target now also build-links the target-neutral lifecycle used by that
+in-memory boot check. It owns one exact registered Command/Stream/CCCD tuple,
+one connection, negotiated MTU, link/application authorization state, one
+indication subscription, one response reservation, one outstanding indication,
+opaque delivery-token correlation, timeout containment, and disconnect cleanup.
+This is not NimBLE event wiring: the real target adapter still supplies none of
+those events and the callable Command path remains denied.
 
 The build-only application deliberately never calls the registration function,
 initializes NimBLE/controller state, installs a GAP authorization callback, or

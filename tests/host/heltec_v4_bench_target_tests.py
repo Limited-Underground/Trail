@@ -14,6 +14,10 @@ CONTRACT = TARGET / "target-contract.json"
 SOURCE = TARGET / "main" / "app_main.cpp"
 SELF_CHECK = TARGET / "main" / "companion_boot_self_check.cpp"
 NIMBLE_GATT = TARGET / "main" / "companion_nimble_gatt.cpp"
+GATT_SESSION = (
+    ROOT / "firmware" / "components" / "companion" / "src" /
+    "companion_gatt_session.cpp"
+)
 MAIN_CMAKE = TARGET / "main" / "CMakeLists.txt"
 COMPANION_SOURCES = (
     ROOT / "firmware" / "components" / "companion" / "src" /
@@ -72,6 +76,7 @@ def test_contract() -> None:
         "bounded_usb_heartbeat",
         "boot_companion_codec_self_check",
         "boot_companion_request_self_check",
+        "boot_companion_gatt_session_self_check",
         "nimble_gatt_definition_build_linked",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
@@ -80,6 +85,8 @@ def test_contract() -> None:
             "boot companion-codec self-check must be admitted")
     require(capabilities["boot_companion_request_self_check"] is True,
             "boot companion-request self-check must be admitted")
+    require(capabilities["boot_companion_gatt_session_self_check"] is True,
+            "boot companion GATT-session self-check must be admitted")
     require(capabilities["nimble_gatt_definition_build_linked"] is True,
             "NimBLE GATT definition build linkage must be admitted")
     for name, enabled in capabilities.items():
@@ -108,6 +115,8 @@ def test_application_surface() -> None:
             "missing fixed combined FAIL record")
     require("run_companion_request_coordinator_self_check" in source,
             "missing coordinator self-check call")
+    require("run_companion_gatt_session_self_check" in source,
+            "missing GATT-session lifecycle self-check call")
     require("companion_nimble_gatt_definition_self_check" in source,
             "missing NimBLE GATT definition self-check call")
     require("register_companion_nimble_gatt_service" not in source,
@@ -139,13 +148,32 @@ def test_application_surface() -> None:
     self_check_call = source.index("if (!run_companion_codec_self_check() ||")
     coordinator_call = source.index(
         "run_companion_request_coordinator_self_check()")
+    gatt_session_call = source.index(
+        "run_companion_gatt_session_self_check()")
     gatt_definition_call = source.index(
         "companion_nimble_gatt_definition_self_check()")
     pass_log = source.index("companion boot self-check PASS")
     startup_log = source.index("build-only bench candidate started")
     heartbeat_log = source.index("heartbeat elapsed_ms=%llu")
-    require(self_check_call < coordinator_call < gatt_definition_call < pass_log < startup_log < heartbeat_log,
+    require(self_check_call < coordinator_call < gatt_session_call < gatt_definition_call < pass_log < startup_log < heartbeat_log,
             "all self-checks must gate startup and heartbeat")
+
+    gatt_session = GATT_SESSION.read_text(encoding="utf-8")
+    for required in (
+        "kCompanionMaxResponseRecordBytes",
+        "indication_sink_.reserve",
+        "coordinator_.service",
+        "indication_sink_.submit_reserved",
+        "blocked_until_disconnect_",
+        "pending_delivery_token_",
+        "ScopedOperation operation(operation_active_)",
+    ):
+        require(required in gatt_session,
+                f"missing fixed GATT lifecycle gate: {required}")
+    require(gatt_session.index("indication_sink_.reserve") <
+            gatt_session.index("coordinator_.service") <
+            gatt_session.index("indication_sink_.submit_reserved"),
+            "response reservation must precede coordinator mutation and submission")
 
     for required in (
         "BLE_GATT_SVC_TYPE_PRIMARY",
@@ -199,6 +227,7 @@ def test_application_surface() -> None:
         "companion/src/companion_protocol.cpp",
         "companion/src/companion_semantics.cpp",
         "companion/src/companion_request_coordinator.cpp",
+        "companion/src/companion_gatt_session.cpp",
         "companion_boot_self_check.cpp",
         "companion_nimble_gatt.cpp",
         "companion/include",
@@ -207,12 +236,12 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 6,
-            "target source set must remain app, two self-check/adapter files, and three accepted companion files")
+    require(cmake.count('.cpp"') == 7,
+            "target source set must remain app, two target helpers, and four accepted companion files")
     require("REQUIRES" in cmake and "bt" in cmake,
             "target must declare the pinned ESP-IDF Bluetooth dependency")
 
-    linked_source = self_check + "\n" + nimble_gatt + "\n" + "\n".join(
+    linked_source = self_check + "\n" + nimble_gatt + "\n" + gatt_session + "\n" + "\n".join(
         path.read_text(encoding="utf-8") for path in COMPANION_SOURCES)
     forbidden_initializers = (
         "esp_ble_", "esp_bt_controller", "nimble_port_init",
@@ -309,6 +338,8 @@ def test_build_only_tooling() -> None:
             "build evidence must deny runtime self-check evidence")
     require("companion_request_coordinator_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny runtime coordinator evidence")
+    require("companion_gatt_session_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
+            "build evidence must deny runtime GATT-session evidence")
     require("companion_nimble_gatt = 'BUILD-LINKED-DEFINITION-SELF-CHECK-NOT-RUN'" in script,
             "build evidence must deny GATT runtime evidence")
     require("nimble_controller = 'NOT-STARTED'" in script and
@@ -318,6 +349,7 @@ def test_build_only_tooling() -> None:
     require("companion_protocol.cpp.obj" in script and
             "companion_semantics.cpp.obj" in script and
             "companion_request_coordinator.cpp.obj" in script and
+            "companion_gatt_session.cpp.obj" in script and
             "companion_boot_self_check.cpp.obj" in script and
             "companion_nimble_gatt.cpp.obj" in script,
             "build helper must verify all companion/self-check objects in the link map")

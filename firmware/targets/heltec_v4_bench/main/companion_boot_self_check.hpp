@@ -6,4 +6,8 @@ namespace opentrail::target::heltec_v4_bench {
 // touches no device authority, persistent state, radio, or peripheral.
 [[nodiscard]] bool run_companion_request_coordinator_self_check();
 
+// Deterministic target-neutral GATT lifecycle check. This reserves and submits
+// fixed bytes only to an in-memory sink; it starts no Bluetooth runtime.
+[[nodiscard]] bool run_companion_gatt_session_self_check();
+
 }  // namespace opentrail::target::heltec_v4_bench
