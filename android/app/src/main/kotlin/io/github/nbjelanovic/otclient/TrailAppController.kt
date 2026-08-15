@@ -28,6 +28,9 @@ sealed interface TrailAppUiState {
         val permissionRequestInFlight: Boolean,
         val permissionWasDenied: Boolean,
         val authorizationState: DeviceAuthorizationUiState,
+        val serviceState: ConnectedDeviceServiceUiState = ConnectedDeviceServiceUiState.START_REQUIRED,
+        val notificationPermissionState: NotificationPermissionState = NotificationPermissionState.NOT_REQUIRED,
+        val serviceFailure: ConnectedDeviceServiceStartFailure? = null,
     ) : TrailAppUiState
 }
 
@@ -43,8 +46,8 @@ class TrailAppController(
     private val authorizationScheduler: BleRuntimeScheduler,
     private val threadVerifier: BleRuntimeThreadVerifier = CreationThreadBleRuntimeVerifier(),
     private val bluetoothFacadeCloseable: AutoCloseable? = null,
-) : AutoCloseable {
-    var state: TrailAppUiState = TrailAppUiState.ChooseMode
+) : TrailServiceController {
+    override var state: TrailAppUiState = TrailAppUiState.ChooseMode
         private set
 
     private var mode: TrailConnectionMode? = null
@@ -100,14 +103,14 @@ class TrailAppController(
         bluetoothRuntime.disconnect()
     }
 
-    fun observe(observer: ((TrailAppUiState) -> Unit)?) {
+    override fun observe(observer: ((TrailAppUiState) -> Unit)?) {
         requireOwnerThread()
         if (deliveringObserver || closed) return
         this.observer = observer
         deliver(observer, state)
     }
 
-    fun chooseLocalTestMode() {
+    override fun chooseLocalTestMode() {
         requireOwnerThread()
         if (!canMutate()) return
         mode = TrailConnectionMode.LOCAL_TEST
@@ -117,7 +120,7 @@ class TrailAppController(
         publish(TrailAppUiState.LocalTest(localController.state))
     }
 
-    fun chooseBluetoothDeviceMode() {
+    override fun chooseBluetoothDeviceMode() {
         requireOwnerThread()
         if (!canMutate()) return
         mode = TrailConnectionMode.BLUETOOTH_DEVICE
@@ -128,7 +131,7 @@ class TrailAppController(
         publishBluetooth()
     }
 
-    fun returnToModeChoice() {
+    override fun returnToModeChoice() {
         requireOwnerThread()
         if (!canMutate()) return
         mode = null
@@ -139,37 +142,37 @@ class TrailAppController(
         publish(TrailAppUiState.ChooseMode)
     }
 
-    fun chooseLocalDevice() {
+    override fun chooseLocalDevice() {
         requireOwnerThread()
         if (mode == TrailConnectionMode.LOCAL_TEST && canMutate()) localController.chooseDevice()
     }
 
-    fun cancelLocalSelection() {
+    override fun cancelLocalSelection() {
         requireOwnerThread()
         if (mode == TrailConnectionMode.LOCAL_TEST && canMutate()) localController.cancelSelection()
     }
 
-    fun connectLocalDevice(endpointToken: String) {
+    override fun connectLocalDevice(endpointToken: String) {
         requireOwnerThread()
         if (mode == TrailConnectionMode.LOCAL_TEST && canMutate()) localController.connect(endpointToken)
     }
 
-    fun disconnectLocalDevice() {
+    override fun disconnectLocalDevice() {
         requireOwnerThread()
         if (mode == TrailConnectionMode.LOCAL_TEST && canMutate()) localController.disconnect()
     }
 
-    fun retryLocalSelection() {
+    override fun retryLocalSelection() {
         requireOwnerThread()
         if (mode == TrailConnectionMode.LOCAL_TEST && canMutate()) localController.retrySelection()
     }
 
-    fun submitLocalAction(request: CompanionActionRequest) {
+    override fun submitLocalAction(request: CompanionActionRequest) {
         requireOwnerThread()
         if (mode == TrailConnectionMode.LOCAL_TEST && canMutate()) localController.submitAction(request)
     }
 
-    fun beginNearbyDevicesPermissionRequest(): Boolean {
+    override fun beginNearbyDevicesPermissionRequest(): Boolean {
         requireOwnerThread()
         if (
             mode != TrailConnectionMode.BLUETOOTH_DEVICE ||
@@ -184,7 +187,7 @@ class TrailAppController(
     }
 
     /** Re-reads platform authority; callback result maps are never treated as the permission source of truth. */
-    fun onNearbyDevicesPermissionResult() {
+    override fun onNearbyDevicesPermissionResult() {
         requireOwnerThread()
         if (mode != TrailConnectionMode.BLUETOOTH_DEVICE || !canMutate() || !permissionRequestInFlight) return
         permissionRequestInFlight = false
@@ -199,7 +202,7 @@ class TrailAppController(
     }
 
     /** Used after returning from system settings and when the Activity resumes. */
-    fun refreshPermissionState() {
+    override fun refreshPermissionState() {
         requireOwnerThread()
         if (!canMutate()) return
         val current = permissionReader.current()
@@ -217,7 +220,9 @@ class TrailAppController(
         if (mode == TrailConnectionMode.BLUETOOTH_DEVICE) publishBluetooth()
     }
 
-    fun scanBluetoothDevices() {
+    override fun startBluetoothService() = Unit
+
+    override fun scanBluetoothDevices() {
         requireOwnerThread()
         if (
             mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
@@ -230,17 +235,17 @@ class TrailAppController(
         }
     }
 
-    fun selectBluetoothDevice(endpointToken: String) {
+    override fun selectBluetoothDevice(endpointToken: String) {
         requireOwnerThread()
         beginDeviceAuthorization(endpointToken, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
     }
 
-    fun replaceLostPhoneWithBluetoothDevice(endpointToken: String) {
+    override fun replaceLostPhoneWithBluetoothDevice(endpointToken: String) {
         requireOwnerThread()
         beginDeviceAuthorization(endpointToken, DeviceAuthorizationPurpose.REPLACE_LOST_PHONE)
     }
 
-    fun disconnectBluetoothDevice() {
+    override fun disconnectBluetoothDevice() {
         requireOwnerThread()
         if (mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate()) {
             releaseAuthorization(DeviceAuthorizationUiState.None)
@@ -248,12 +253,12 @@ class TrailAppController(
         }
     }
 
-    fun submitBluetoothAction(request: CompanionActionRequest): Boolean {
+    override fun submitBluetoothAction(request: CompanionActionRequest): Boolean {
         requireOwnerThread()
         return mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.submitAction(request)
     }
 
-    fun onLifecycleStart() {
+    override fun onLifecycleStart() {
         requireOwnerThread()
         if (closed) return
         if (deliveringObserver) {
@@ -263,7 +268,7 @@ class TrailAppController(
         }
     }
 
-    fun onLifecycleStop() {
+    override fun onLifecycleStop() {
         requireOwnerThread()
         if (closed) return
         if (deliveringObserver) {

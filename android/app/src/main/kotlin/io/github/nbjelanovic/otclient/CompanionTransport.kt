@@ -58,6 +58,19 @@ interface CompanionTransport {
     fun submitAction(endpointToken: String, request: CompanionActionRequest): SemanticActionAttempt
 }
 
+/** Production service placeholder: structurally incapable of providing local or fake candidates. */
+internal object UnavailableProductionLocalTransport : CompanionTransport {
+    override fun candidates(): List<CompanionCandidate> = emptyList()
+
+    override fun connect(endpointToken: String): ConnectionAttempt =
+        ConnectionAttempt.Failed("Local test transport is not available in the Bluetooth service.")
+
+    override fun disconnect(endpointToken: String) = Unit
+
+    override fun submitAction(endpointToken: String, request: CompanionActionRequest): SemanticActionAttempt =
+        SemanticActionAttempt.Failed("Local test transport is not available in the Bluetooth service.")
+}
+
 internal class FakeCompanionTransport(
     private val available: List<CompanionCandidate> = listOf(
         CompanionCandidate("fake-a", "Bench candidate A"),

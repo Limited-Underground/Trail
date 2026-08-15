@@ -313,6 +313,33 @@ sends an explicit Snapshot Request only after Accepted/Replaced. Because the
 target service remains unregistered and dormant, this is production source and
 test evidence—not live pairing, authorization, Ready, or physical-device proof.
 
+OT-054 adds the durable device-authority prerequisite below that callback
+composition. A fixed `OAP0/v0` owner/tombstone record carries one nonzero
+generation and one opaque 128-bit owner token. Its CRC detects format
+corruption only. An injected protected store must fresh-compare the prior
+generation, atomically publish the complete record with an independently
+rollback-resistant floor, and return exact readback; every post-write ambiguity
+is uncertain and latches authorization closed. A separate protected PRF maps a
+private bond-store reference plus bond generation to the opaque owner token.
+Public BLE address, public identity, peer name/value, and raw key material are
+outside that seam. The target build-links and self-checks the composition with
+in-memory fakes, but its real admission denies because protected NVS runtime
+verification, usable protected keys, private bond storage, atomic floor backend,
+and independent rollback floor are not provisioned. See the
+[protected-storage contract](platform/COMPANION_AUTHORIZATION_STORAGE_V0.md).
+
+OT-055 moves Android's real BLE graph out of the Activity into one explicit,
+user-started, non-exported `connectedDevice` foreground service. The service is
+`START_NOT_STICKY`, calls `startForeground` before constructing the BLE owner,
+has no boot receiver or background auto-start, and owns the facade, runtime,
+authorization controller, GATT leases, and timers exactly once. The Activity
+owns Local test state separately and observes the service through a bounded
+binder lease; stop/rotation/unbind cannot create a second BLE owner or retry a
+claim. Explicit Bluetooth-mode exit stops the service. This is source, JVM,
+lint, manifest, and APK evidence only: the APK was not installed, no Android OS
+service lifecycle ran, and the dormant target prevents a live claim or Ready
+session.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

@@ -3,12 +3,15 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
 
-    <!-- OT-045 requests only these API-31+ Nearby Devices permissions after an explicit user request in Bluetooth mode. -->
+    <!-- Nearby permissions are requested only from explicit Bluetooth UI; OT-055 adds the bounded connected-device FGS declarations. -->
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="s" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="false"
@@ -27,5 +30,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service
+            android:name=".TrailConnectedDeviceService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
     </application>
 </manifest>

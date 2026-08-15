@@ -5,13 +5,14 @@ lifecycle-safe BLE runtime boundary, OT-043 Android 12+ platform facade,
 OT-045 explicit Bluetooth-mode/lifecycle UI wiring, OT-047 device-
 authorization UX, OT-049 authorization-wire codec/tracker parity, OT-051
 default-disabled provisional-authorization orchestration, and OT-053
-protected-read production composition,
+protected-read production composition, plus OT-055 explicit user-started
+connected-device foreground-service ownership,
 2026-08-15.
 This is not live BLE or physical-device evidence.
 
 ## Accepted boundary
 
-The accepted Android foundation has nine layers:
+The accepted Android foundation has ten layers:
 
 1. A pure Kotlin, brand-neutral `OTB0/v0` and `OTC0/v0` codec that mirrors the
    fixed C++ bounds and consumes shared golden vectors.
@@ -41,12 +42,19 @@ The accepted Android foundation has nine layers:
    facade in explicit Bluetooth mode only. A successful device-protected
    Protocol Info read is the security-path evidence; Android bond state alone
    is only a prerequisite. Failure never falls back to Local test mode.
+10. OT-055 places that real facade/runtime/authorization graph under one
+    explicit user-started, non-exported `connectedDevice` foreground service.
+    Activity lifecycle owns only Local test state and a bounded observation of
+    the service; it cannot create a second BLE owner or automatically retry a
+    claim.
 
 The visible working identity is `Limited Underground Trail`. Stable technical
 package/application identifiers do not contain that provisional product name.
-The manifest declares only `BLUETOOTH_SCAN` with `neverForLocation` and
-`BLUETOOTH_CONNECT`; AndroidX adds its generated same-app receiver permission.
-It declares no location, internet, storage, or device-management permission.
+The manifest declares `BLUETOOTH_SCAN` with `neverForLocation`,
+`BLUETOOTH_CONNECT`, base and `connectedDevice` foreground-service permission,
+and `POST_NOTIFICATIONS`; AndroidX adds its generated same-app receiver
+permission. It declares no location, internet, storage, or device-management
+permission.
 The fake visible transport provides no discovery,
 security, GATT, LoRa, GNSS, or delivery evidence. Its session, status, and queue
 values are deterministic test state only.
@@ -120,6 +128,16 @@ values are deterministic test state only.
   Accepted/Replaced permits one explicit Snapshot Request. Denial, timeout,
   permission loss, disconnect, malformed/stale input, and lifecycle release
   close without automatic retry; transport timeout remains local uncertainty.
+- OT-055 admits a real service start only from the visible explicit Bluetooth
+  action after re-reading both Nearby permissions. The non-exported service
+  calls `startForeground` before constructing its single BLE owner, returns
+  `START_NOT_STICKY`, has no boot receiver/background auto-start, and creates
+  no owner from a null or stale intent. Stop, rotation, and unbind release only
+  the Activity observation; explicit mode exit stops the service and service
+  destruction closes the graph once. Android 13+ notification denial is
+  reported as reduced drawer visibility while Android's Task Manager disclosure
+  remains available; it is not treated as proof the service is hidden or
+  stopped.
 
 ## Deliberate exclusions and next gate
 
@@ -130,12 +148,13 @@ access to the device-protected exact v0.1 Protocol Info value as current-link
 security-path evidence and never upgrades Android bond state into invented
 encryption or authentication evidence.
 
-The corresponding OT-052 target adapter is compiled and link-retained, but the
-service is not registered, the controller is not started, advertising is
-absent, and no trusted target persistence or physical-input authority is
-injected. Consequently the production app cannot reach a live claim or Ready
-state against the current target. A write failure or timeout remains local
-uncertainty and cannot be shown as authoritative Unsupported or Denied.
+The corresponding target adapter and OT-054 persistence prerequisite are
+compiled and link-retained, but the service is not registered, the controller
+is not started, advertising is absent, and target persistence admission is
+denied because protected NVS/key/private-bond/rollback-floor prerequisites are
+unavailable. Consequently the production app cannot reach a live claim or
+Ready state against the current target. A write failure or timeout remains
+local uncertainty and cannot be shown as authoritative Unsupported or Denied.
 
 The current semantic workflow covers only typed status, four fixed quick
 statuses, exact pending-alert acknowledgement, and position-sharing Start/Stop.
@@ -156,18 +175,22 @@ command-line-tools bootstrap archive `11076708` had observed SHA-256
 `4d6931209eebb1bfb7c7e8b240a6a3cb3ab24479ea294f3539429574b1eec862`.
 All environment changes were process-scoped; no global PATH was changed.
 
-The current focused gate passes 101 JVM tests across ten suites (protocol
-suites 6, 10, 10, and 3; application suites 8, 15, 17, 11, 1, and 20), including
-the frozen authorization-wire vectors, provisional tracker, v0.1 decoder,
-protected-read composition, and explicit no-fallback Bluetooth routing, with
-zero failures, errors, or skips. Warning-as-error
-Android lint with no reported issue, and debug APK assembly. The exact isolated
-local debug APK was 9,644,209 bytes with SHA-256
-`BE385FEB8966210C4C09027388C3F560745F6A075B9CBB1ABF25DC0893C0033C`.
+The current focused gate passes 124 JVM tests across twelve suites (protocol
+suites 3, 10, 6, and 10; application suites 8, 15, 17, 11, 2, 21, 1, and 20),
+including the frozen authorization-wire vectors, provisional tracker, v0.1
+decoder, protected-read composition, explicit no-fallback Bluetooth routing,
+foreground-service admission/ownership, binder generation, and manifest
+policy, with zero failures, errors, or skips. Warning-as-error Android lint
+reports no issue, and debug APK assembly passes. The exact isolated local debug
+APK was 9,660,781 bytes with SHA-256
+`33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
 `aapt` confirms package `io.github.nbjelanovic.otclient`, min SDK 26, target SDK
 35, the expected visible label, optional BLE hardware, Scan with
-`neverForLocation`, Connect, and no location, internet, storage, or management
+`neverForLocation`, Connect, base and connected-device foreground service, and
+notification permissions, with no location, internet, storage, or management
 permission. AndroidX adds only its same-app
 `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. The artifact is debug-signed local
-evidence, not a release APK. No emulator, phone, BLE peripheral, serial port, or
-LoRa device was enumerated, opened, installed to, or otherwise accessed.
+evidence, not a release APK. No Android OS foreground-service lifecycle or
+notification surface was exercised, and no emulator, phone, BLE peripheral,
+serial port, or LoRa device was enumerated, opened, installed to, or otherwise
+accessed by the Android gate.

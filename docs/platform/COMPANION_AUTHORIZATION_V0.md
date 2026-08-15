@@ -152,6 +152,26 @@ The target still does not register the service, start the controller, advertise,
 or inject trusted persistence and physical-input authority, so this remains
 build-linked composition rather than a live transport.
 
+OT-054 supplies the next persistence prerequisite without enabling that target.
+The fixed `OAP0/v0` owner/tombstone record is adapted to a protected-store seam
+that requires fresh generation comparison, atomic complete-record plus
+independent rollback-floor publication, and exact readback. CRC is format
+corruption detection only. A separate protected PRF maps one private bond-store
+reference and generation to the opaque 128-bit authority token; public BLE
+address/ID/name, peer value, and raw key material remain outside the seam. The
+generic target self-check uses in-memory fakes and its real preflight denies
+because protected NVS, protected usable keys, private bond storage, atomic floor
+commit, and an independent rollback floor are not provisioned. See the
+[protected-storage contract](COMPANION_AUTHORIZATION_STORAGE_V0.md).
+
+OT-055 changes Android ownership, not device authority. One explicit visible
+Bluetooth action starts a non-exported connected-device foreground service that
+solely owns the real BLE/runtime/authorization graph while running. It is
+`START_NOT_STICKY`, has no background auto-start, keeps Local test separate,
+and does not automatically retry an authorization claim. The firmware remains
+dormant and the APK was not installed, so this adds no live claim result or
+authority evidence.
+
 ## Accepted evidence and exclusions
 
 Sixteen strict C++17 scenario groups and 100/100 focused repeats pass, including
@@ -193,7 +213,7 @@ has SHA-256
 
 OT-052 adds ten strict callback-adapter groups at 100/100, target self-check
 100/100, static admission 3/3, a pinned NimBLE teardown-order check, and the
-complete current 121-executable host matrix. Two pinned ESP-IDF v6.0.2 builds
+complete OT-052-era 121-executable host matrix. Two pinned ESP-IDF v6.0.2 builds
 reproduce a 170,313-byte image and 170,432-byte BIN with SHA-256
 `22CAE43F7AEA9D980602C41E1ACEB49CA1174315EE87598D15E6717A27A1E4D4`.
 See [OT-052 target evidence](../../tests/hardware/OT-052-2026-08-15.md).
@@ -204,9 +224,23 @@ errors, or skips and clean warning-as-error lint. The 9,644,209-byte debug APK
 has SHA-256
 `BE385FEB8966210C4C09027388C3F560745F6A075B9CBB1ABF25DC0893C0033C`.
 
+OT-054 adds seventeen strict persistence/private-binding/composed-authority
+groups at 100/100, target self-check 100/100, static admission 3/3, and the
+complete current 122-executable host matrix. Two pinned ESP-IDF v6.0.2 builds
+reproduce a 175,701-byte image and 175,824-byte BIN with SHA-256
+`D39430096B7BEDD0F69D9ECCDE2424EDCD635C0BEA904EB2E4FCA3EEED307080`.
+See [OT-054 target evidence](../../tests/hardware/OT-054-2026-08-15.md).
+
+OT-055 raises the Android gate to 124 JVM tests across twelve suites (protocol
+3, 10, 6, and 10; application 8, 15, 17, 11, 2, 21, 1, and 20), with zero
+failures, errors, or skips and clean warning-as-error lint. The 9,660,781-byte
+debug APK has SHA-256
+`33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
+
 This evidence does not provide a started NimBLE controller, registered or
-advertised service, protected NVS backend, physical-input binding, phone bond,
-live authorization or Ready state, device runtime, lost-phone field recovery,
-or support claim. The target was not accessed or flashed, and the APK was not
-installed on a phone or emulator. Those gates remain required before a live
-one-phone authorization claim.
+advertised service, admitted protected NVS/key/bond backend, physical-input
+binding, phone bond, live authorization or Ready state, device runtime,
+lost-phone field recovery, Android OS foreground-service execution, or support
+claim. The target was not accessed or flashed, and the APK was not installed on
+a phone or emulator. Those gates remain required before a live one-phone
+authorization claim.

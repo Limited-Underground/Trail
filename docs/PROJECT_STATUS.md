@@ -437,12 +437,39 @@ across ten suites (protocol 29; application 8 + 15 + 17 + 11 + 1 + 20), lint
 reports no issues, and the 9,644,209-byte debug APK has SHA-256
 `BE385FEB8966210C4C09027388C3F560745F6A075B9CBB1ABF25DC0893C0033C`.
 
+OT-054 adds the fixed 32-byte durable owner/tombstone record, protected-store
+compare/commit/readback contract, independently rollback-resistant floor
+requirement, and private bond-reference/device-secret PRF boundary. Seventeen
+strict persistence and composed-authority groups pass at 100/100; target
+self-check passes 100/100; static admission passes 3/3; and all 122 enabled
+native executables pass. Two pinned ESP-IDF v6.0.2 builds reproduce a
+175,701-byte image and 175,824-byte BIN with SHA-256
+`D39430096B7BEDD0F69D9ECCDE2424EDCD635C0BEA904EB2E4FCA3EEED307080`.
+The target preflight remains denied: NVS encryption is not configured, and no
+protected-NVS runtime proof, usable protected key, private bond store, separate
+PRF key, atomic protected record/floor backend, or independent rollback floor
+exists. No target production path calls NVS or eFuse/HMAC APIs. Exact evidence
+is in [OT-054](../tests/hardware/OT-054-2026-08-15.md).
+
+OT-055 gives the production Android BLE graph one explicit user-started,
+non-exported `connectedDevice` foreground-service owner. It uses
+`START_NOT_STICKY`, starts foreground disclosure before constructing BLE,
+contains no boot receiver/background auto-start, separates Local test ownership,
+and never automatically retries a claim. Manifest admission is limited to
+Bluetooth Scan/Connect, base and connected-device foreground service, Android
+13+ notifications, and AndroidX's generated same-app permission; no network,
+location, or storage permission is present. The gate passes 124 JVM tests
+across twelve suites (protocol 29; application 95), clean warning-as-error lint,
+manifest inspection, and debug assembly. The 9,660,781-byte APK has SHA-256
+`33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
+
 These increments remain non-live: `app_main` never registers the service or
-starts NimBLE/controller, advertising is absent, target persistence and
-physical-input authorities are not injected, and nothing was flashed. The
-dormant target means there is still no phone/peripheral pairing,
-authorization, Ready, target-runtime, or physical BLE proof. OT-052 and OT-053
-are bounded `done` increments; OT-034 remains `partial` and V1 remains 30%.
+starts NimBLE/controller, advertising is absent, admitted target persistence
+and physical-input authorities are unavailable, and nothing was flashed. The
+APK was not installed on an emulator or phone, and no Android OS service,
+notification, pairing, authorization, Ready, target-runtime, or physical BLE
+proof exists. OT-052 through OT-055 are bounded `done` increments; OT-034
+remains `partial` and V1 remains 30%.
 
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins

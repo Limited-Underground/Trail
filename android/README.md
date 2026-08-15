@@ -5,7 +5,8 @@ BLE runtime boundary, the OT-043 Android BluetoothGatt facade, and the OT-045
 explicit local-test/Bluetooth UI binding, plus the OT-047 host-tested one-phone
 authorization request state/UX and the OT-049 authorization wire-codec/tracker
 mirror, plus the OT-051 provisional-authorization runtime
-orchestration and the OT-053 protected-read production composition. This directory contains a buildable
+orchestration, the OT-053 protected-read production composition, and the OT-055
+user-started connected-device foreground-service ownership boundary. This directory contains a buildable
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -36,10 +37,12 @@ protocol or package identity.
   close controls are bounded and deferred until delivery ends (final close wins);
   request, selection, and protocol mutations are rejected. Every post-publication
   scan, GATT, claim, and timer side effect revalidates its generation and lease.
-- `TrailAppLifecycleBinding` is the sole lifecycle owner. It synchronously
-  releases scan, GATT, action, negotiation, and reconnect work at lifecycle stop
-  and closes the runtime then facade exactly once at destroy. Reentrant lifecycle
-  requests are deferred and drained after observer delivery; final close wins.
+- `TrailConnectedDeviceService` is the sole owner of the real facade, runtime,
+  authorization controller, GATT leases, and timers. The Activity owns only Local
+  test state plus a bounded binder observation. Activity stop, rotation, and
+  unbind release only that observation; they never create a second runtime, stop
+  the service, or retry a claim. Explicit mode exit stops the service, while
+  service destruction closes the controller/runtime/facade graph exactly once.
 - `AndroidBluetoothGattFacade` compiles against SDK 35 and supports Android
   API 31+ with version-gated API 31/32 compatibility calls. It uses an exact
   service-UUID scan filter, opaque bounded endpoint tokens, `autoConnect=false`,
@@ -47,11 +50,21 @@ protocol or package identity.
   and CCCD indications. It serializes callbacks and timers on the Android main
   thread, owns at most one scan or connection, bounds scans to 15 seconds, and
   ignores stale callbacks while closing permission-revoked work with typed failures.
-- The activity constructs the concrete facade but exposes it only through
-  Bluetooth device mode, and requests the two Android 12+ Nearby Devices
-  permissions only after an explicit user action. Denial remains in Bluetooth mode with fixed public copy
-  and a route to app settings. The manifest declares only `BLUETOOTH_SCAN` (with
-  `neverForLocation`) and `BLUETOOTH_CONNECT`.
+- The Activity can start the service only from the visible, explicit Bluetooth
+  action after re-reading both Android 12+ Nearby Devices permissions. Lifecycle,
+  restore, binding, and permission callbacks cannot start it. The manifest adds
+  only the base and `connectedDevice` foreground-service permissions plus
+  `POST_NOTIFICATIONS`; it retains `BLUETOOTH_SCAN` with `neverForLocation` and
+  `BLUETOOTH_CONNECT`, and adds no location, network, or storage permission.
+  Android 8-11 can run Local test mode, but real BLE remains explicitly
+  unsupported below API 31 despite the app's minSdk 26.
+- The service is non-exported, uses `START_NOT_STICKY`, has no boot receiver or
+  background auto-start, and calls `startForeground` before constructing the BLE
+  owner. Its fixed low-importance notification contains only the public product
+  and service-running labels—no device name/address, message, token, or wire
+  correlation. On Android 13+, notification denial does not block foreground-
+  service start: the UI reports reduced drawer visibility and preserves Android's
+  Task Manager disclosure rather than claiming the service is hidden or stopped.
 - The explicit Bluetooth mode now composes the concrete facade with
   `RuntimeDeviceAuthorizationClaimClient`. Android `BOND_BONDED` is only a
   prerequisite; it is never represented as Android-measured encryption or MITM
@@ -88,17 +101,21 @@ protocol or package identity.
   before promotion. Denial, timeout, permission loss, disconnect, malformed or
   stale frames, and lifecycle release close the exact generation without automatic
   claim retry; transport timeout is local uncertainty, never an invented denial.
-- `MainActivity` wires the runtime-backed claim client only in explicit Bluetooth
-  mode. Exact v0.0, missing claim capability, bond/security/authorization errors,
+- `MainActivity` reaches the service-owned runtime-backed claim client only after
+  explicit Bluetooth mode, Nearby permission, and a second visible service-start
+  action. Exact v0.0, missing claim capability, bond/security/authorization errors,
   and an unreachable device produce bounded unsupported/unavailable states; a
   post-Pending connection loss is authority-unknown and requires checking the
   physical device. The current firmware target still keeps the accepted service,
   controller, advertising, physical-control, and persistence composition dormant,
   so this source checkpoint provides no live claim or device evidence.
 
-The Activity-owned mode controller does not survive Android configuration change
-or process recreation; destruction closes its session and a recreated Activity
-returns to the explicit mode choice. Platform errors map to fixed typed values;
+The Activity-owned Local/mode controller does not persist state across process
+recreation and returns conservatively to the explicit mode choice. A service
+process recreation is `START_NOT_STICKY`, creates no owner from a null/stale
+intent, restores no Ready/claim state, and performs no automatic reconnect or
+claim resend. A configuration-change unbind does not destroy an already started
+service; rebinding only observes its current bounded public state. Platform errors map to fixed typed values;
 raw addresses, names, identifiers, status codes, and exception text do not enter
 UI state.
 
@@ -106,16 +123,18 @@ The concrete gap to a first real Ready session is therefore explicit: start and
 advertise the accepted target service/controller, bind the provisional lifecycle
 to exact target security, physical-control, private-binding, and persistence
 events, then run the exact app against that device firmware. The
-current tests validate the pure mode, lifecycle, permission, admission, token,
+current tests validate the pure mode, foreground-service admission/ownership,
+lifecycle, permission, notification-visibility, binder generation, token,
 authorization codec/tracker,
 provisional orchestration, GATT-profile, and operation-order boundaries plus compilation/lint; they do not
-execute Android Bluetooth hardware or claim a live connection.
+execute an Android OS service lifecycle, notification drawer, Bluetooth hardware,
+or claim a live connection.
 
-The accepted OT-053 gate passes 101 JVM tests across ten suites (protocol
-suites 6, 10, 10, and 3; application suites 8, 15, 17, 11, 1, and 20) with zero
+The accepted OT-055 gate passes 124 JVM tests across twelve suites (protocol
+suites 3, 10, 6, and 10; application suites 8, 15, 17, 11, 2, 21, 1, and 20) with zero
 failures, errors, or skips, plus warning-as-error lint with `No issues found.`
-The isolated debug APK is 9,644,209 bytes with SHA-256
-`BE385FEB8966210C4C09027388C3F560745F6A075B9CBB1ABF25DC0893C0033C`.
+The isolated debug APK is 9,660,781 bytes with SHA-256
+`33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
 It is local debug evidence only, not a release-signed, installed, emulated, or
 physical-device result.
 
@@ -124,6 +143,10 @@ The platform contract follows the official Android documentation for
 [service-UUID scan filters](https://developer.android.com/reference/android/bluetooth/le/ScanFilter.Builder),
 [BluetoothGatt operations](https://developer.android.com/reference/android/bluetooth/BluetoothGatt),
 and [BluetoothGatt callbacks](https://developer.android.com/reference/android/bluetooth/BluetoothGattCallback).
+The OT-055 foreground boundary also follows the official Android guidance for
+[launching foreground services](https://developer.android.com/develop/background-work/services/fgs/launch),
+[connected-device service types](https://developer.android.com/develop/background-work/services/fgs/service-types),
+and [notification permission behavior](https://developer.android.com/develop/ui/compose/notifications/notification-permission).
 
 ## Build
 

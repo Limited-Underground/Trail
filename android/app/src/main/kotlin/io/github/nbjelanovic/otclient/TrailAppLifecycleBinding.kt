@@ -4,10 +4,10 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 
-/** Sole Android lifecycle owner for the mode controller and its nested BLE runtime. */
+/** Activity lifecycle binding for Local/mode presentation and service observation only. */
 class TrailAppLifecycleBinding(
     private val lifecycle: Lifecycle,
-    private val controller: TrailAppController,
+    private val controller: TrailLifecycleController,
 ) : DefaultLifecycleObserver, AutoCloseable {
     private var closed = false
 

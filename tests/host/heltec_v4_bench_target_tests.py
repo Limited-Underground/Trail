@@ -26,6 +26,11 @@ GATT_AUTHORIZATION_ADAPTER = (
     ROOT / "firmware" / "components" / "companion" / "src" /
     "companion_gatt_authorization_adapter.cpp"
 )
+AUTHORIZATION_PERSISTENCE = (
+    ROOT / "firmware" / "components" / "companion" / "src" /
+    "companion_authorization_persistence.cpp"
+)
+AUTHORIZATION_STORAGE = TARGET / "main" / "companion_authorization_storage.cpp"
 MAIN_CMAKE = TARGET / "main" / "CMakeLists.txt"
 COMPANION_SOURCES = (
     ROOT / "firmware" / "components" / "companion" / "src" /
@@ -52,6 +57,8 @@ def test_contract() -> None:
         "main/app_main.cpp",
         "main/companion_boot_self_check.cpp",
         "main/companion_boot_self_check.hpp",
+        "main/companion_authorization_storage.cpp",
+        "main/companion_authorization_storage.hpp",
         "main/companion_nimble_gatt.cpp",
         "main/companion_nimble_gatt.hpp",
         "sdkconfig.defaults",
@@ -87,8 +94,11 @@ def test_contract() -> None:
         "boot_companion_gatt_session_self_check",
         "boot_companion_gatt_authorization_self_check",
         "boot_companion_gatt_authorization_adapter_self_check",
+        "boot_companion_authorization_storage_self_check",
         "nimble_gatt_definition_build_linked",
         "nimble_gatt_callback_adapter_build_linked",
+        "companion_authorization_persistence_build_linked",
+        "companion_authorization_storage_preflight_build_linked",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
             "heartbeat must remain admitted")
@@ -102,10 +112,16 @@ def test_contract() -> None:
             "boot restricted authorization self-check must be admitted")
     require(capabilities["boot_companion_gatt_authorization_adapter_self_check"] is True,
             "boot callback-adapter self-check must be admitted")
+    require(capabilities["boot_companion_authorization_storage_self_check"] is True,
+            "boot authorization-storage self-check must be admitted")
     require(capabilities["nimble_gatt_definition_build_linked"] is True,
             "NimBLE GATT definition build linkage must be admitted")
     require(capabilities["nimble_gatt_callback_adapter_build_linked"] is True,
             "NimBLE callback adapter build linkage must be admitted")
+    require(capabilities["companion_authorization_persistence_build_linked"] is True,
+            "authorization persistence build linkage must be admitted")
+    require(capabilities["companion_authorization_storage_preflight_build_linked"] is True,
+            "authorization storage preflight build linkage must be admitted")
     for name, enabled in capabilities.items():
         if name not in admitted:
             require(enabled is False, f"capability must remain disabled: {name}")
@@ -138,6 +154,8 @@ def test_application_surface() -> None:
             "missing restricted authorization lifecycle self-check call")
     require("run_companion_gatt_authorization_adapter_self_check" in source,
             "missing callback-adapter self-check call")
+    require("run_companion_authorization_storage_self_check" in source,
+            "missing authorization-storage self-check call")
     require("companion_nimble_gatt_definition_self_check" in source,
             "missing NimBLE GATT definition self-check call")
     require("register_companion_nimble_gatt_service" not in source,
@@ -175,12 +193,14 @@ def test_application_surface() -> None:
         "run_companion_gatt_authorization_self_check()")
     gatt_adapter_call = source.index(
         "run_companion_gatt_authorization_adapter_self_check()")
+    authorization_storage_call = source.index(
+        "run_companion_authorization_storage_self_check()")
     gatt_definition_call = source.index(
         "companion_nimble_gatt_definition_self_check()")
     pass_log = source.index("companion boot self-check PASS")
     startup_log = source.index("build-only bench candidate started")
     heartbeat_log = source.index("heartbeat elapsed_ms=%llu")
-    require(self_check_call < coordinator_call < gatt_session_call < gatt_authorization_call < gatt_adapter_call < gatt_definition_call < pass_log < startup_log < heartbeat_log,
+    require(self_check_call < coordinator_call < gatt_session_call < gatt_authorization_call < gatt_adapter_call < authorization_storage_call < gatt_definition_call < pass_log < startup_log < heartbeat_log,
             "all self-checks must gate startup and heartbeat")
 
     for vector in (
@@ -217,6 +237,9 @@ def test_application_surface() -> None:
 
     gatt_session = GATT_SESSION.read_text(encoding="utf-8")
     gatt_adapter = GATT_AUTHORIZATION_ADAPTER.read_text(encoding="utf-8")
+    authorization_persistence = AUTHORIZATION_PERSISTENCE.read_text(
+        encoding="utf-8")
+    authorization_storage = AUTHORIZATION_STORAGE.read_text(encoding="utf-8")
     for required in (
         "kCompanionMaxResponseRecordBytes",
         "indication_sink_.reserve",
@@ -286,6 +309,29 @@ def test_application_surface() -> None:
     ):
         require(required in gatt_adapter,
                 f"missing callback-adapter fail-closed gate: {required}")
+    for required in (
+        "CONFIG_NVS_ENCRYPTION",
+        "CONFIG_NVS_SEC_KEY_PROTECT_USING_HMAC",
+        "protected_nvs_initialized_and_verified",
+        "kPrivateBondStoreImplemented = false",
+        "kSeparateBindingPrfKeyProvisioned = false",
+        "kAtomicRecordAndFloorBackendImplemented = false",
+        "kIndependentRollbackFloorImplemented = false",
+        "nvs_encryption_not_configured",
+    ):
+        require(required in authorization_storage,
+                f"missing closed authorization-storage preflight: {required}")
+    for forbidden in (
+        "nvs_flash_init", "nvs_open", "nvs_set_", "nvs_commit",
+        "esp_hmac_calculate", "esp_efuse_write", "esp_efuse_batch_write",
+    ):
+        require(forbidden not in authorization_storage,
+                f"dormant storage preflight must not access target state: {forbidden}")
+    require("secure_zero(message.data(), message.size())" in
+            authorization_persistence and
+            "secure_zero(derived.data(), derived.size())" in
+            authorization_persistence,
+            "private bond reference and PRF scratch must be explicitly wiped")
     command_flags = nimble_gatt[
         nimble_gatt.index("constexpr ble_gatt_chr_flags kCommandFlags"):
         nimble_gatt.index("constexpr ble_gatt_chr_flags kStreamFlags")
@@ -311,6 +357,9 @@ def test_application_surface() -> None:
         "companion/src/companion_authorization_wire.cpp",
         "companion/src/companion_gatt_authorization.cpp",
         "companion/src/companion_gatt_authorization_adapter.cpp",
+        "companion/src/companion_authorization.cpp",
+        "companion/src/companion_authorization_persistence.cpp",
+        "companion_authorization_storage.cpp",
         "companion_boot_self_check.cpp",
         "companion_nimble_gatt.cpp",
         "companion/include",
@@ -319,12 +368,12 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 10,
-            "target source set must remain app, two target helpers, and seven accepted companion files")
+    require(cmake.count('.cpp"') == 13,
+            "target source set must remain app, three target helpers, and nine accepted companion files")
     require("REQUIRES" in cmake and "bt" in cmake,
             "target must declare the pinned ESP-IDF Bluetooth dependency")
 
-    linked_source = self_check + "\n" + nimble_gatt + "\n" + gatt_session + "\n" + gatt_authorization + "\n" + gatt_adapter + "\n" + "\n".join(
+    linked_source = self_check + "\n" + nimble_gatt + "\n" + gatt_session + "\n" + gatt_authorization + "\n" + gatt_adapter + "\n" + authorization_persistence + "\n" + authorization_storage + "\n" + "\n".join(
         path.read_text(encoding="utf-8") for path in COMPANION_SOURCES)
     forbidden_initializers = (
         "esp_ble_", "esp_bt_controller", "nimble_port_init",
@@ -427,6 +476,11 @@ def test_build_only_tooling() -> None:
             "build evidence must deny runtime authorization evidence")
     require("companion_gatt_authorization_adapter_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny runtime callback-adapter evidence")
+    require("companion_authorization_storage_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
+            "build evidence must deny runtime storage self-check evidence")
+    require("companion_authorization_persistence = 'BUILD-LINKED-PROTECTED-BACKEND-NOT-INJECTED'" in script and
+            "companion_authorization_storage_preflight = 'DENIED-NVS-ENCRYPTION-NOT-CONFIGURED'" in script,
+            "build evidence must preserve closed protected-storage admission")
     require("companion_nimble_gatt = 'BUILD-LINKED-CALLBACK-SELF-CHECK-NOT-RUN'" in script,
             "build evidence must deny GATT runtime evidence")
     require("heltec_v4_bench_nimble_order_tests.py" in script and
@@ -443,9 +497,17 @@ def test_build_only_tooling() -> None:
             "companion_authorization_wire.cpp.obj" in script and
             "companion_gatt_authorization.cpp.obj" in script and
             "companion_gatt_authorization_adapter.cpp.obj" in script and
+            "companion_authorization.cpp.obj" in script and
+            "companion_authorization_persistence.cpp.obj" in script and
             "companion_boot_self_check.cpp.obj" in script and
-            "companion_nimble_gatt.cpp.obj" in script,
+            "companion_nimble_gatt.cpp.obj" in script and
+            "companion_authorization_storage.cpp.obj" in script,
             "build helper must verify all companion/self-check objects in the link map")
+    require("protected_nvs = 'NOT-INITIALIZED-NOT-VERIFIED'" in script and
+            "private_bond_store = 'NOT-IMPLEMENTED'" in script and
+            "binding_prf_key = 'NOT-PROVISIONED-NOT-VERIFIED'" in script and
+            "rollback_floor = 'NOT-IMPLEMENTED'" in script,
+            "build evidence must preserve exact security-provisioning gaps")
     require("Generated sdkconfig did not select USB Serial/JTAG" in script,
             "build helper must inspect the generated console selection")
 

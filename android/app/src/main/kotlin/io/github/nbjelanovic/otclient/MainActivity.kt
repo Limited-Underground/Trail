@@ -1,7 +1,9 @@
 package io.github.nbjelanovic.otclient
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -41,33 +43,20 @@ import io.github.nbjelanovic.otprotocol.CompanionQuickStatus
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
 
 open class MainActivity : ComponentActivity() {
-    private lateinit var bluetoothFacade: AndroidBluetoothFacade
-    private lateinit var bluetoothRuntime: BleCompanionRuntime
     private lateinit var lifecycleBinding: TrailAppLifecycleBinding
-    private lateinit var appController: TrailAppController
+    private lateinit var appController: TrailActivityController
 
-    protected open fun createBluetoothFacade(): AndroidBluetoothFacade =
-        AndroidBluetoothGattFacade(applicationContext)
-
-    protected open fun createDeviceAuthorizationClaimClient(runtime: BleCompanionRuntime): DeviceAuthorizationClaimClient =
-        RuntimeDeviceAuthorizationClaimClient(runtime)
+    protected open fun createConnectedDeviceServiceConnector(): ConnectedDeviceServiceConnector =
+        AndroidConnectedDeviceServiceConnector(applicationContext)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        bluetoothFacade = createBluetoothFacade()
-        val bluetoothScheduler = AndroidMainThreadBleRuntimeScheduler()
-        bluetoothRuntime = BleCompanionRuntime(
-            facade = bluetoothFacade,
-            scheduler = bluetoothScheduler,
-            threadVerifier = AndroidMainThreadBleRuntimeVerifier(),
-        )
-        appController = TrailAppController(
+        appController = TrailActivityController(
             localController = CompanionAppController(FakeCompanionTransport()),
-            bluetoothRuntime = bluetoothRuntime,
             permissionReader = AndroidNearbyDevicesPermissionReader(applicationContext),
-            authorizationClient = createDeviceAuthorizationClaimClient(bluetoothRuntime),
-            authorizationScheduler = bluetoothScheduler,
-            bluetoothFacadeCloseable = bluetoothFacade as? AutoCloseable,
+            notificationPermissionReader = AndroidNotificationPermissionReader(applicationContext),
+            serviceConnector = createConnectedDeviceServiceConnector(),
+            serviceStartupScheduler = AndroidMainThreadBleRuntimeScheduler(),
         )
         lifecycleBinding = TrailAppLifecycleBinding(lifecycle, appController)
 
@@ -86,12 +75,15 @@ open class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun TrailApp(controller: TrailAppController) {
+fun TrailApp(controller: TrailUiController) {
     var state by remember { mutableStateOf(controller.state) }
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { controller.onNearbyDevicesPermissionResult() }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { controller.refreshPermissionState() }
     DisposableEffect(controller) {
         controller.observe { state = it }
         onDispose { controller.observe(null) }
@@ -110,6 +102,13 @@ fun TrailApp(controller: TrailAppController) {
             ),
         )
     }
+    val requestNotificationPermission = {
+        if (Build.VERSION.SDK_INT >= 33) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            controller.refreshPermissionState()
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -125,6 +124,7 @@ fun TrailApp(controller: TrailAppController) {
                     state = current,
                     controller = controller,
                     requestNearbyPermissions = requestNearbyPermissions,
+                    requestNotificationPermission = requestNotificationPermission,
                     openAppSettings = openAppSettings,
                 )
             }
@@ -133,7 +133,7 @@ fun TrailApp(controller: TrailAppController) {
 }
 
 @Composable
-private fun ModeChoicePanel(controller: TrailAppController) {
+private fun ModeChoicePanel(controller: TrailUiController) {
     Text("Choose connection mode", style = MaterialTheme.typography.titleLarge)
     Text("The modes are separate. Bluetooth never falls back to local test data.")
     ModeCard(
@@ -162,7 +162,7 @@ private fun ModeCard(title: String, body: String, button: String, select: () -> 
 }
 
 @Composable
-private fun LocalTestPanel(state: CompanionUiState, controller: TrailAppController) {
+private fun LocalTestPanel(state: CompanionUiState, controller: TrailUiController) {
     Text("Local test mode · deterministic fake transport", style = MaterialTheme.typography.bodySmall)
     when (state) {
         is CompanionUiState.Disconnected -> {
@@ -200,7 +200,7 @@ private fun LocalTestPanel(state: CompanionUiState, controller: TrailAppControll
 }
 
 @Composable
-private fun LocalConnectedPanel(state: CompanionUiState.Connected, controller: TrailAppController) {
+private fun LocalConnectedPanel(state: CompanionUiState.Connected, controller: TrailUiController) {
     StatusCard("Connected to fake ${state.connection.publicLabel}", state.connection.status)
     val snapshot = state.connection.snapshot
     SnapshotSummary("Fake device status", snapshot)
@@ -218,8 +218,9 @@ private fun LocalConnectedPanel(state: CompanionUiState.Connected, controller: T
 @Composable
 private fun BluetoothDevicePanel(
     state: TrailAppUiState.BluetoothDevice,
-    controller: TrailAppController,
+    controller: TrailUiController,
     requestNearbyPermissions: () -> Unit,
+    requestNotificationPermission: () -> Unit,
     openAppSettings: () -> Unit,
 ) {
     Text("Bluetooth device mode · no local fallback", style = MaterialTheme.typography.bodySmall)
@@ -246,7 +247,49 @@ private fun BluetoothDevicePanel(
                 }
             }
         }
-        else -> BluetoothAuthorizedRuntimePanel(state, controller, requestNearbyPermissions)
+        state.serviceState == ConnectedDeviceServiceUiState.START_REQUIRED -> {
+            StatusCard(
+                "Bluetooth service ready to start",
+                "Start the connected-device service from this visible screen. It owns at most one Bluetooth session " +
+                    "while running; you or Android may stop it, and no device connection or claim starts automatically.",
+            )
+            if (state.notificationPermissionState == NotificationPermissionState.DENIED) {
+                StatusCard(
+                    "Notification visibility is reduced",
+                    "Android can still run the foreground service and shows its disclosure in Task Manager, but " +
+                        "the service notification may not appear in the notification drawer.",
+                )
+                OutlinedButton(onClick = requestNotificationPermission, modifier = Modifier.fillMaxWidth()) {
+                    Text("Allow service notifications")
+                }
+            }
+            Button(onClick = controller::startBluetoothService, modifier = Modifier.fillMaxWidth()) {
+                Text("Start Bluetooth device service")
+            }
+        }
+        state.serviceState == ConnectedDeviceServiceUiState.STARTING -> StatusCard(
+            "Starting Bluetooth service",
+            "Android is starting the user-requested connected-device service. No device claim is retried automatically.",
+        )
+        state.serviceState == ConnectedDeviceServiceUiState.START_FAILED -> {
+            StatusCard("Bluetooth service unavailable", state.serviceFailure.publicText())
+            Button(onClick = controller::startBluetoothService, modifier = Modifier.fillMaxWidth()) {
+                Text("Try starting service again")
+            }
+        }
+        else -> {
+            if (state.notificationPermissionState == NotificationPermissionState.DENIED) {
+                StatusCard(
+                    "Service running · reduced notification visibility",
+                    "Notification permission is not granted. Android still discloses the foreground service in Task " +
+                        "Manager, but its notification may be absent from the notification drawer.",
+                )
+                OutlinedButton(onClick = requestNotificationPermission, modifier = Modifier.fillMaxWidth()) {
+                    Text("Allow service notifications")
+                }
+            }
+            BluetoothAuthorizedRuntimePanel(state, controller, requestNearbyPermissions)
+        }
     }
     OutlinedButton(onClick = controller::returnToModeChoice, modifier = Modifier.fillMaxWidth()) {
         Text("Disconnect and change mode")
@@ -256,7 +299,7 @@ private fun BluetoothDevicePanel(
 @Composable
 private fun BluetoothAuthorizedRuntimePanel(
     state: TrailAppUiState.BluetoothDevice,
-    controller: TrailAppController,
+    controller: TrailUiController,
     requestNearbyPermissions: () -> Unit,
 ) {
     when (val authorization = state.authorizationState) {
@@ -353,7 +396,7 @@ private fun BluetoothAuthorizedRuntimePanel(
 private fun AuthorizationEndedPanel(
     title: String,
     body: String,
-    controller: TrailAppController,
+    controller: TrailUiController,
 ) {
     StatusCard(title, body)
     Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
@@ -364,7 +407,7 @@ private fun AuthorizationEndedPanel(
 @Composable
 private fun BluetoothRuntimePanel(
     state: BleRuntimeState,
-    controller: TrailAppController,
+    controller: TrailUiController,
     requestNearbyPermissions: () -> Unit,
 ) {
     when (state) {
@@ -448,7 +491,7 @@ private fun LostPhoneGuidance() {
 @Composable
 private fun BluetoothCandidateList(
     candidates: List<BleDiscoveredCompanion>,
-    controller: TrailAppController,
+    controller: TrailUiController,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
         candidates.forEach { candidate ->
@@ -473,7 +516,7 @@ private fun BluetoothCandidateList(
 }
 
 @Composable
-private fun BluetoothReadyPanel(session: BleActiveSession, controller: TrailAppController) {
+private fun BluetoothReadyPanel(session: BleActiveSession, controller: TrailUiController) {
     StatusCard(
         "Connected to ${session.companion.publicLabel}",
         "Authenticated companion session. Device state remains authoritative.",
@@ -606,6 +649,18 @@ private fun BleRuntimeFailure.publicText(): String = when (this) {
         "The selected device does not expose the accepted protected authorization contract."
     BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE ->
         "The protected authorization path is unavailable. This app did not establish device authority."
+}
+
+private fun ConnectedDeviceServiceStartFailure?.publicText(): String = when (this) {
+    ConnectedDeviceServiceStartFailure.NOT_VISIBLE_USER_ACTION ->
+        "Start the Bluetooth service again from the visible app screen."
+    ConnectedDeviceServiceStartFailure.NEARBY_PERMISSION_MISSING ->
+        "Nearby Devices permission was not available when the service start was requested."
+    ConnectedDeviceServiceStartFailure.PLATFORM_REJECTED ->
+        "Android did not allow the foreground service to start from the current app state."
+    ConnectedDeviceServiceStartFailure.SERVICE_UNAVAILABLE,
+    null,
+    -> "The connected-device service did not become available. No local test data was substituted."
 }
 
 private fun BleNegotiationPhase.publicText(): String = when (this) {

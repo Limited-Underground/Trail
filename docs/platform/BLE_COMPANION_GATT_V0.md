@@ -408,18 +408,41 @@ only after promotion. The gate passes 101 JVM tests across ten suites (protocol
 assembly. The 9,644,209-byte debug APK has SHA-256
 `BE385FEB8966210C4C09027388C3F560745F6A075B9CBB1ABF25DC0893C0033C`.
 
-The current 121-executable native matrix, OT-052 callback-adapter ten groups at
+At OT-052 acceptance the 121-executable native matrix, callback-adapter ten groups at
 100/100, target self-check 100/100, static admission 3/3, and pinned teardown-
 order admission pass. Two pinned ESP-IDF v6.0.2 builds reproduce a 170,313-byte
 image and 170,432-byte BIN with SHA-256
 `22CAE43F7AEA9D980602C41E1ACEB49CA1174315EE87598D15E6717A27A1E4D4`.
 See [OT-052 target evidence](../../tests/hardware/OT-052-2026-08-15.md).
 
+OT-054 adds the durable authority prerequisite below this dormant callback
+path. The target link now retains a fixed owner/tombstone codec, a protected
+compare/commit/readback seam with an independent rollback-floor requirement,
+and a private bond-reference/device-secret PRF resolver. Seventeen strict
+groups at 100/100, target self-check 100/100, static admission 3/3, all 122
+native entries, and two identical pinned builds pass. The 175,824-byte BIN has
+SHA-256
+`D39430096B7BEDD0F69D9ECCDE2424EDCD635C0BEA904EB2E4FCA3EEED307080`.
+Real target admission remains denied because the protected NVS, usable
+protected-key, private-bond, separate-PRF-key, atomic-floor, and rollback-floor
+proofs are unavailable; production code performs no NVS/eFuse/HMAC call.
+
+OT-055 moves the Android real-GATT graph into one explicit user-started,
+non-exported `connectedDevice` foreground service. It owns the facade, runtime,
+authorization controller, GATT leases, and timers while running, returns
+`START_NOT_STICKY`, has no boot/background auto-start, and never automatically
+retries a claim. Local test remains Activity-owned and separate. The Android
+gate passes 124 JVM tests across twelve suites, clean lint, manifest inspection,
+and a 9,660,781-byte debug APK with SHA-256
+`33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
+
 The callback code is build-linked but the target never registers the service,
 starts the controller, advertises, or injects trusted bond persistence and
-physical-input authority. Nothing was flashed or accessed. Thus this evidence
-does not prove pairing, application authorization, Ready, target runtime,
-radio, GNSS, physical transport, accessibility, packaging, signing, store
-distribution, or support. The broader full host suite's established read-only
-USB-loader enumeration is documented separately in the OT-040 evidence record
-and is not BLE/GATT runtime evidence.
+physical-input authority. Its persistence preflight is explicitly denied.
+Nothing was flashed or accessed by these increments, and the APK was not
+installed or exercised by Android. Thus this evidence does not prove pairing,
+application authorization, Ready, target runtime, Android foreground-service
+lifecycle, notification visibility, radio, GNSS, physical transport,
+accessibility, packaging, signing, store distribution, or support. The broader
+full host suite's established read-only USB-loader enumeration is not BLE/GATT
+runtime evidence.

@@ -165,8 +165,11 @@ foreach ($requiredObject in @(
     'companion_authorization_wire.cpp.obj',
     'companion_gatt_authorization.cpp.obj',
     'companion_gatt_authorization_adapter.cpp.obj',
+    'companion_authorization.cpp.obj',
+    'companion_authorization_persistence.cpp.obj',
     'companion_boot_self_check.cpp.obj',
-    'companion_nimble_gatt.cpp.obj'
+    'companion_nimble_gatt.cpp.obj',
+    'companion_authorization_storage.cpp.obj'
 )) {
     if (-not $linkMap.Contains($requiredObject)) {
         throw "Required companion codec object is absent from the link map: $requiredObject"
@@ -198,11 +201,18 @@ $evidence = [ordered]@{
     companion_gatt_session_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_gatt_authorization_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_gatt_authorization_adapter_self_check = 'BUILD-LINKED-NOT-RUN'
+    companion_authorization_storage_self_check = 'BUILD-LINKED-NOT-RUN'
+    companion_authorization_persistence = 'BUILD-LINKED-PROTECTED-BACKEND-NOT-INJECTED'
+    companion_authorization_storage_preflight = 'DENIED-NVS-ENCRYPTION-NOT-CONFIGURED'
     companion_nimble_gatt = 'BUILD-LINKED-CALLBACK-SELF-CHECK-NOT-RUN'
     companion_command_dispatch = 'BUILD-LINKED-NOT-REGISTERED'
     nimble_controller = 'NOT-STARTED'
     advertising = 'NOT-IMPLEMENTED'
     application_authorization = 'NOT-INJECTED'
+    protected_nvs = 'NOT-INITIALIZED-NOT-VERIFIED'
+    private_bond_store = 'NOT-IMPLEMENTED'
+    binding_prf_key = 'NOT-PROVISIONED-NOT-VERIFIED'
+    rollback_floor = 'NOT-IMPLEMENTED'
     framework_log_surface = 'UNREVIEWED-RUNTIME'
     artifacts = $artifactEvidence
 }

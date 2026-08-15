@@ -6,6 +6,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "companion_boot_self_check.hpp"
+#include "companion_authorization_storage.hpp"
 #include "companion_nimble_gatt.hpp"
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_semantics.hpp"
@@ -128,6 +129,8 @@ extern "C" void app_main() {
              run_companion_gatt_authorization_self_check() ||
         !opentrail::target::heltec_v4_bench::
              run_companion_gatt_authorization_adapter_self_check() ||
+        !opentrail::target::heltec_v4_bench::
+             run_companion_authorization_storage_self_check() ||
         !opentrail::target::heltec_v4_bench::
              companion_nimble_gatt_definition_self_check()) {
         contain_self_check_failure();

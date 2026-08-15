@@ -6,6 +6,50 @@ public chronology.
 
 ## 2026-08-15
 
+### OT-055 Android connected-device foreground-service owner
+
+- Moved the production BLE facade, runtime, authorization controller, GATT
+  leases, and timers into one non-exported `connectedDevice` foreground
+  service. Only a visible explicit Bluetooth action can start it; it calls
+  foreground disclosure before constructing BLE, returns `START_NOT_STICKY`,
+  has no boot receiver/background auto-start, and never retries a claim
+  automatically.
+- The Activity now owns Local test state separately and observes the service
+  through a bounded binder generation. Stop, rotation, and unbind release only
+  that observation; explicit Bluetooth-mode exit stops the service, and service
+  destruction closes the production graph exactly once. Notification denial on
+  Android 13+ is reported as reduced drawer visibility rather than invented
+  service failure or invisibility.
+- The accepted gate passes 124 JVM tests across twelve suites (protocol 3, 10,
+  6, and 10; application 8, 15, 17, 11, 2, 21, 1, and 20), lint with `No issues
+  found.`, manifest inspection, and debug assembly. The 9,660,781-byte APK has
+  SHA-256
+  `33174B72792E2AFC0D03AB52DFAC6613BAE48618BF268C3197D7E04105897722`.
+  It was not installed or run on Android, and the firmware service remains
+  dormant, so no OS-service, notification, pairing, authorization, Ready, or
+  live BLE evidence exists. V1 remains 30%.
+
+### OT-054 protected authorization persistence prerequisite
+
+- Added the exact fixed 32-byte `OAP0/v0` owner/tombstone record and an injected
+  protected-store contract requiring fresh expected-generation comparison,
+  atomic complete-record plus independently rollback-resistant floor commit,
+  and exact readback. CRC is corruption detection only; post-write ambiguity is
+  uncertain and keeps authorization faulted closed.
+- Added an opaque private bond-reference plus generation boundary and a separate
+  device-secret PRF seam for the 128-bit controller token. Public BLE address,
+  public ID, peer name/value, and raw key material do not enter this path;
+  re-pairing must allocate a new private reference or generation.
+- Seventeen strict groups pass at 100/100, the deterministic target reboot
+  self-check passes 100/100, static admission passes 3/3, all 122 native host
+  executables pass, and two pinned builds are identical. The image is 175,701
+  bytes; the 175,824-byte BIN has SHA-256
+  `D39430096B7BEDD0F69D9ECCDE2424EDCD635C0BEA904EB2E4FCA3EEED307080`.
+  Current target preflight denies because protected NVS/key/private-bond/PRF/
+  rollback-floor prerequisites are unavailable. No target production code opens
+  NVS or accesses eFuse/HMAC state, and nothing was flashed. See
+  [OT-054 evidence](../tests/hardware/OT-054-2026-08-15.md). V1 remains 30%.
+
 ### OT-053 Android protected-read production composition
 
 - Wired the accepted provisional authorization client into the explicit

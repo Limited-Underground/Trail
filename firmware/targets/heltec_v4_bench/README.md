@@ -30,7 +30,11 @@ promotion only after exact terminal confirmation. A fourth fixed in-memory
 check composes the real callback adapter with fixed trusted-binding and
 indication-port seams, proves the exact v0.1/Pending/Accepted vectors through
 that adapter, then proves one normal action response is admitted only after
-promotion. It opens no transport.
+promotion. A fifth fixed in-memory check encodes one exact protected-store
+owner record, reconstructs the persistence adapter to model reboot, verifies
+the owner, commits an advancing unowned tombstone, reconstructs again, and
+verifies the tombstone and stable private bond binding. It opens no storage or
+transport.
 Failure suspends the
 application before startup or heartbeat. A queued result is only a local queue
 disposition; it does not claim radio send or delivery. The only dynamic value
@@ -96,6 +100,32 @@ or usable. This preserves rejection as the default until the pairing,
 authorization, exact-board, persistence, CCCD/subscription, and runtime-owner
 gates are designed.
 
+The image also build-links the target-neutral durable authorization adapter and
+a target-local security admission preflight. The fixed 32-byte `OAP0/v0`
+record carries only state, generation, an opaque 128-bit owner token, reserved
+zeroes, and a corruption-detection CRC. The CRC is not authentication or
+rollback protection. The injected protected-store contract must compare fresh
+state, atomically commit the complete owner or unowned tombstone together with
+an independently rollback-resistant generation floor, and return exact
+readback. A pre-write failure guarantees no durable change; any possible
+post-write failure is uncertain and latches authorization closed.
+
+Private bond binding accepts only a protected bond-store reference and bond
+generation, never a public address, peer value, raw bond key, or logged value.
+A separately provisioned device-secret PRF must produce the opaque owner token;
+re-pairing must allocate a new private reference or generation. The current
+candidate has none of those live adapters. Its compile-time preflight reports
+NVS encryption not configured. Even a future configuration selection will not
+count as runtime proof that protected NVS initialized or that an HMAC eFuse key
+is provisioned, read-protected, usable, and distinct from the binding PRF key.
+
+The pinned ESP-IDF v6.0.2 audit identified the applicable future primitives:
+HMAC-protected NVS uses `CONFIG_NVS_ENCRYPTION`, the HMAC security provider,
+and verified `nvs_flash_read_security_cfg_v2`/secure initialization; a separate
+HMAC_UP eFuse key may serve `esp_hmac_calculate` without exposing raw key
+material. These APIs are not called by this target. Ordinary or merely
+redundant NVS cannot supply the independent rollback floor required here.
+
 ## Deliberately absent
 
 - SX1262 or other radio initialization and transmission
@@ -103,10 +133,12 @@ gates are designed.
   or live GATT registration; only the exact dormant NimBLE definition and
   fail-closed registration/access callbacks are compiled
 - GNSS access
-- application access to NVS, filesystem, OTA, or other persistence; the
+- application access to NVS, filesystem, OTA, or other persistence; only the
+  fail-closed security preflight and in-memory persistence self-check exist. The
   framework's generated default partition table remains a separate build-review
   surface
-- identity, pairing, provisioning, keys, or secrets
+- identity, pairing, provisioning, keys, or secrets; no HMAC/eFuse or protected
+  NVS operation executes
 - a running Bluetooth stack, registered GATT service, controller session, or
   device transport; the fixed coordinator session and fake authorities are
   local computation only

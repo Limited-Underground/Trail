@@ -177,6 +177,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'companion authorization durable persistence and bond binding'
+        Output = Join-Path $buildDirectory 'companion_authorization_persistence_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_persistence.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_persistence_tests.cpp')
+        )
+    },
+    @{
         Name = 'restricted companion GATT authorization lifecycle'
         Output = Join-Path $buildDirectory 'companion_gatt_authorization_tests.exe'
         Sources = @(
@@ -214,7 +223,10 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_wire.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_authorization.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_authorization_adapter.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_persistence.cpp'),
             (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_boot_self_check.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_authorization_storage.cpp'),
             (Join-Path $projectRoot 'tests\host\heltec_v4_bench_companion_self_check_tests.cpp')
         )
     },
