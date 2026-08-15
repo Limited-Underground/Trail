@@ -453,7 +453,7 @@ function Assert-UiAutomationHeadingSequence {
     $expected = @(
         [pscustomobject]@{
             Level = [int][System.Windows.Automation.AutomationHeadingLevel]::Level1
-            Name = 'Limited Underground Trail Device Utility'
+            Name = 'Limited Underground Firmware Loader — Preview'
         },
         [pscustomobject]@{
             Level = [int][System.Windows.Automation.AutomationHeadingLevel]::Level2
@@ -1021,7 +1021,7 @@ function Invoke-PackagedUiAutomationAcceptance {
     $contractFailures = @()
     if ($window.Current.ControlType -ne [System.Windows.Automation.ControlType]::Window -or
         $window.Current.AutomationId -ne 'device-utility-window' -or
-        $window.Current.Name -ne 'Limited Underground Trail Device Utility' -or
+        $window.Current.Name -ne 'Limited Underground Firmware Loader — Preview' -or
         -not (Test-UiAutomationPattern -Element $window -Pattern (
             [System.Windows.Automation.WindowPattern]::Pattern))) {
         $contractFailures += 'window identity/type/pattern'
@@ -1300,8 +1300,8 @@ try {
 
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
     if ($manifest.schema -ne 'ot_windows_device_utility_package_v0' -or
-        $manifest.display_name -ne 'Limited Underground Trail Device Utility' -or
-        $manifest.legal_status -ne 'working name - attorney review pending' -or
+        $manifest.display_name -ne 'Limited Underground Firmware Loader — Preview' -or
+        $manifest.legal_status -ne 'preview - inspection only - working name - attorney review pending' -or
         $manifest.runtime -ne 'win-x64' -or
         $manifest.framework -ne 'net8.0-windows' -or
         $manifest.self_contained -ne $true -or

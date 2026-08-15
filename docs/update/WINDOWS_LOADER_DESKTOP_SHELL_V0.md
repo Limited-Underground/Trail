@@ -325,18 +325,20 @@ normal exact-roster external UI Automation workflow, but packaged failure
 injection, visible mouse/keyboard input, Narrator, and clean-machine acceptance
 remain separate gates.
 
-The visible application identity is now composed from one C# boundary rather
-than embedded throughout XAML and inspection copy. Its preliminary working
-display is `Limited Underground Trail Device Utility`, accompanied by a visible
-`ATTORNEY REVIEW PENDING` status. The presentation document itself uses the
-brand-neutral role `Device Utility`, and public blocker copy says `Product
-target role` rather than the repository name. Tests reject standalone `LU`,
+The visible application identity is composed from one C# boundary rather than
+embedded throughout XAML and inspection copy. Decision 0008 sets its working
+display to `Limited Underground Firmware Loader — Preview`, accompanied by
+visible `PREVIEW`, `INSPECTION ONLY`, and `ATTORNEY REVIEW PENDING` status. The
+presentation document remains a non-authoritative input to this identity, and
+public blocker copy says `Product target role` rather than the repository name.
+Tests reject standalone `LU`,
 `LU Link`, `LU Studio`, `LU` plus a model number, retired `TLU` / `LUT` /
 `LUTrail` compact names, and every use of `®`. Internal `OpenTrail.Loader`
 namespaces, script paths, repository links, `OT-*` records, and schemas remain
-stable engineering identifiers. This is a replaceability and policy safeguard,
-not attorney clearance or adoption for public distribution, sales, or hardware
-marking.
+stable engineering identifiers. Preview/inspection-only may be removed only
+after the applicable real write and recovery gates pass. This is a
+replaceability and policy safeguard, not attorney clearance or adoption for
+public distribution, sales, or hardware marking.
 
 ## Safety boundary
 

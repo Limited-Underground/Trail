@@ -8,8 +8,8 @@ exists, while target and release evidence remain pending, 2026-08-14
 OpenTrail will develop two client presentation tracks over the same versioned
 protocol and reusable, hardware-independent behavior in this repository:
 
-1. an affordable Android companion that uses a separately approved mesh device
-   for radio access; and
+1. an affordable Android companion paired one-to-one over BLE with a separately
+   approved screenless LoRa device running the product firmware; and
 2. the original self-contained touchscreen client with its own display, local
    input, power, GNSS, and radio hardware.
 
@@ -58,7 +58,7 @@ laptop part of field operation.
   separately accepted Android and standalone ESP32 target adapters;
 - define renderer-neutral pairing and group-membership state before adding
   those workflows to any platform;
-- select and approve the Android mesh-device bridge and transport;
+- select and approve the Android LoRa companion target and BLE transport;
 - define Android privacy, permission, lifecycle, accessibility, signing, and
   distribution acceptance;
 - bind and validate the standalone ESP32 renderer, input, radio, GNSS, storage,

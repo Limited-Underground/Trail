@@ -159,7 +159,8 @@ try {
     Copy-Item -Path (Join-Path $publishRoot '*') -Destination $stageRoot -Recurse
 
     $guide = @'
-LIMITED UNDERGROUND TRAIL - DEVICE UTILITY
+LIMITED UNDERGROUND FIRMWARE LOADER - PREVIEW
+INSPECTION ONLY
 WORKING NAME - ATTORNEY REVIEW PENDING
 
 This is a local engineering package, not a public release or supported product.
@@ -192,8 +193,8 @@ or arbitrary serial-command surface.
     $manifest = [ordered]@{
         schema = 'ot_windows_device_utility_package_v0'
         generated_utc = [DateTime]::UtcNow.ToString('o')
-        display_name = 'Limited Underground Trail Device Utility'
-        legal_status = 'working name - attorney review pending'
+        display_name = 'Limited Underground Firmware Loader — Preview'
+        legal_status = 'preview - inspection only - working name - attorney review pending'
         runtime = $runtime
         framework = $framework
         self_contained = $true
@@ -223,7 +224,7 @@ or arbitrary serial-command surface.
         $manifestJson,
         $utf8NoBom)
 
-    $archiveName = "Limited-Underground-Trail-Device-Utility-WORKING-$timestamp-$runtime.zip"
+    $archiveName = "Limited-Underground-Firmware-Loader-PREVIEW-WORKING-$timestamp-$runtime.zip"
     $archivePath = Join-Path $OutputDirectory $archiveName
     Compress-Archive -Path (Join-Path $stageRoot '*') `
         -DestinationPath $archivePath -CompressionLevel Optimal

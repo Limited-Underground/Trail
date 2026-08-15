@@ -33,44 +33,48 @@ public sealed class ProductIdentity
 
     private ProductIdentity(
         string parentName,
-        string familyName,
-        string utilityRoleName)
+        string productName,
+        string releaseStage)
     {
         ParentName = parentName;
-        FamilyName = familyName;
-        UtilityRoleName = utilityRoleName;
+        ProductName = productName;
+        ReleaseStage = releaseStage;
     }
 
     public static ProductIdentity Current { get; } = CreateWorking(
         parentName: "Limited Underground",
-        familyName: "Trail",
-        utilityRoleName: "Device Utility");
+        productName: "Firmware Loader",
+        releaseStage: "Preview");
 
     public string ParentName { get; }
 
-    public string FamilyName { get; }
+    public string ProductName { get; }
 
-    public string UtilityRoleName { get; }
+    public string ReleaseStage { get; }
 
-    public string FamilyDisplayName => $"{ParentName} {FamilyName}";
+    public string ProductDisplayName => $"{ParentName} {ProductName}";
 
-    public string WindowTitle => $"{FamilyDisplayName} {UtilityRoleName}";
+    // Retained as the presentation binding name so the naming change does not
+    // affect schemas, automation IDs, namespaces, or loader contracts.
+    public string UtilityRoleName => ProductName;
 
-    public string HeaderLine =>
-        $"{ParentName.ToUpperInvariant()} / {FamilyName.ToUpperInvariant()}";
+    public string WindowTitle => $"{ProductDisplayName} — {ReleaseStage}";
 
-    public string ReviewStatus => "WORKING NAME — ATTORNEY REVIEW PENDING";
+    public string HeaderLine => ParentName.ToUpperInvariant();
+
+    public string ReviewStatus =>
+        "PREVIEW — INSPECTION ONLY · WORKING NAME — ATTORNEY REVIEW PENDING";
 
     public static ProductIdentity CreateWorking(
         string parentName,
-        string familyName,
-        string utilityRoleName)
+        string productName,
+        string releaseStage)
     {
         var validatedParent = ValidateSegment(parentName, nameof(parentName));
-        var validatedFamily = ValidateSegment(familyName, nameof(familyName));
-        var validatedRole = ValidateSegment(utilityRoleName, nameof(utilityRoleName));
+        var validatedProduct = ValidateSegment(productName, nameof(productName));
+        var validatedStage = ValidateSegment(releaseStage, nameof(releaseStage));
         var publicIdentity =
-            $"{validatedParent} {validatedFamily} {validatedRole}";
+            $"{validatedParent} {validatedProduct} {validatedStage}";
 
         if (StandaloneLu.IsMatch(publicIdentity) ||
             LuNumber.IsMatch(publicIdentity) ||
@@ -82,8 +86,8 @@ public sealed class ProductIdentity
 
         return new ProductIdentity(
             validatedParent,
-            validatedFamily,
-            validatedRole);
+            validatedProduct,
+            validatedStage);
     }
 
     private static string ValidateSegment(string value, string parameterName)

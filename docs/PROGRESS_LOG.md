@@ -6,6 +6,26 @@ public chronology.
 
 ## 2026-08-14
 
+### Provisional Limited Underground Trail product-family names
+
+- Accepted `Limited Underground` as the parent working identity and `Limited
+  Underground Trail` as both the Android application and umbrella family.
+  Essential identifies the screenless phone-required LoRa companion; Gold the
+  one-touchscreen client; Platinum the two-display client; and `Limited
+  Underground Trail Repeater` the optional repeater.
+- Accepted `Limited Underground Firmware Loader` for the shared desktop utility.
+  It remains visibly `Preview` and `Inspection only` until real firmware writing
+  and recovery have passed their applicable physical acceptance gates.
+- Decision 0008 keeps all names provisional pending professional clearance,
+  prohibits `®`, and preserves the existing OpenTrail repository/folders,
+  namespaces, `OT-*` records, protocols, GATT/schema/crypto/compatibility/board
+  identifiers, and device IDs. No V1 evidence, support, firmware, hardware, or
+  release claim changes.
+- The warning-free 59-scenario Windows loader suite passed with the new title.
+  A temporary self-contained 464-file package then built under the new archive
+  and manifest identity, passed independent inspection-only verification, and
+  was removed; no public release artifact was created.
+
 ### OT-030C shared bounded messages, Compose, and critical acknowledgement
 
 - Extended the renderer-neutral C++ `PortableUiShell` and render plan with

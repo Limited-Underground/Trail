@@ -21,6 +21,24 @@ internet connection, phone, laptop, map display, vehicle connection, or cloud
 account. GNSS loss must not stop messaging; it removes or visibly stales only
 position-dependent behavior.
 
+## Working product-family forms
+
+The owner-approved, provisional names in
+[Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
+map onto these boundaries without changing the protocol:
+
+| Working form | Required presentation boundary |
+| --- | --- |
+| `Limited Underground Trail Essential` | Screenless LoRa companion; one paired Android phone is required for normal user interaction, while authoritative radio/security/queue state remains on the device |
+| `Limited Underground Trail Gold` | One local touchscreen; self-contained field operation without a phone or laptop |
+| `Limited Underground Trail Platinum` | Two local displays; self-contained field operation without a phone or laptop |
+| `Limited Underground Trail Repeater` | Optional repeater; never a base-client dependency |
+
+`Limited Underground Trail` is both the Android application name and umbrella
+family. `Limited Underground Firmware Loader` is shared maintenance tooling,
+not a field client; it remains Preview/inspection-only until real firmware
+writing and recovery are verified.
+
 ## Optional capability map
 
 | Optional role | Adds | Allowed boundary data | Failure behavior |

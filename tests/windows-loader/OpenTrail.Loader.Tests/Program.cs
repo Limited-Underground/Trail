@@ -287,12 +287,16 @@ Expect(valid.Devices[0].FlashHelpText ==
     "disabled Flash help explains the validated blocker");
 
 var currentIdentity = ProductIdentity.Current;
-Expect(currentIdentity.FamilyDisplayName == "Limited Underground Trail" &&
-    currentIdentity.UtilityRoleName == "Device Utility" &&
-    currentIdentity.WindowTitle == "Limited Underground Trail Device Utility",
+Expect(currentIdentity.ProductDisplayName == "Limited Underground Firmware Loader" &&
+    currentIdentity.UtilityRoleName == "Firmware Loader" &&
+    currentIdentity.ReleaseStage == "Preview" &&
+    currentIdentity.WindowTitle == "Limited Underground Firmware Loader — Preview",
     "working public identity is composed from one replaceable boundary");
 Expect(!currentIdentity.WindowTitle.Contains("OpenTrail", StringComparison.OrdinalIgnoreCase) &&
     !currentIdentity.WindowTitle.Contains('®') &&
+    currentIdentity.ReviewStatus.Contains(
+        "INSPECTION ONLY",
+        StringComparison.Ordinal) &&
     currentIdentity.ReviewStatus.Contains(
         "ATTORNEY REVIEW PENDING",
         StringComparison.Ordinal),

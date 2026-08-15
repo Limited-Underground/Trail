@@ -131,6 +131,18 @@ production dependency. Android platform/device, signing, accessibility, and
 distribution evidence remain open; iPhone/store direction is undecided. The
 existing self-contained V1 definition remains unchanged.
 
+The owner has also accepted the provisional working-name hierarchy in Decision
+0008. `Limited Underground` is the parent; `Limited Underground Trail` is the
+Android application and umbrella family; Essential is the screenless,
+phone-required LoRa companion; Gold is the one-touchscreen client; Platinum is
+the two-display client; and `Limited Underground Trail Repeater` is the
+optional repeater. The shared desktop tool is `Limited Underground Firmware
+Loader`; it remains visibly Preview and inspection-only until real writing and
+recovery pass. These names remain pending professional clearance and do not
+change OpenTrail repository/folder/namespace names, `OT-*` records, protocol or
+GATT identifiers, schemas, cryptographic domains, compatibility/board IDs, or
+device IDs.
+
 A deterministic group-load model now accounts for the planned four-client
 standalone, four-plus-repeater, and eight-plus-repeater phases using exact LoRa
 airtime plus explicit source and forwarding transmissions. It is host planning
@@ -462,11 +474,13 @@ directory and removes that exact directory afterward. This prevents stale or
 protected development artifacts from blocking the warning-free app build and
 45-scenario run; it adds no device-write or firmware-admission authority.
 The visible app title/header is now composed from one replaceable working
-identity: `Limited Underground Trail Device Utility`, with attorney review
-explicitly pending. Presentation JSON stays brand-neutral, and automated
-safeguards reject standalone/prohibited LU structures, TLU/LUT/LUTrail, and
-`®`. Internal repository names, namespaces, script paths, schemas, and `OT-*`
-records remain stable. This is not legal clearance or irreversible adoption.
+identity: `Limited Underground Firmware Loader — Preview`. The UI also states
+`Inspection only` and attorney review pending; Preview/inspection-only cannot be
+removed until physical firmware writing and recovery pass. Presentation JSON
+stays non-authoritative for branding, and automated safeguards reject
+standalone/prohibited LU structures, TLU/LUT/LUTrail, and `®`. Internal
+repository names, namespaces, script paths, schemas, and `OT-*` records remain
+stable. This is not legal clearance or irreversible adoption.
 The owner-requested loader presentation now follows a Windows 95-style utility
 direction with gray square surfaces, navy headings, classic typography, and an
 application-owned beveled button template. That template fixes the observed
@@ -1029,10 +1043,13 @@ only; the raw capture remains in ignored local build state.
 ## Decisions captured
 
 - OpenTrail and OpenGauge are separate projects and must remain independently operable.
-- No public product name is selected. OpenTrail remains the repository and
-  engineering name, while funding material uses a replaceable public-name field.
-  ECLU is not assumed in protocols, stored identifiers, device identity, URLs,
-  hardware markings, or applications.
+- The owner-approved working hierarchy is `Limited Underground` as parent;
+  `Limited Underground Trail` as Android application and family; Essential,
+  Gold, Platinum, and Trail Repeater as the provisional hardware/role names;
+  and `Limited Underground Firmware Loader` as shared desktop tooling. All
+  remain provisional pending professional clearance, use no `®`, and stay out
+  of protocol/GATT fields, stored schemas, cryptographic domains, compatibility
+  and board identifiers, device identity, and repository engineering names.
 - A reusable funding-readiness packet now exists, but it is planning material,
   not an application or award. All cash, hardware, discount, loan, sponsorship,
   and service-credit activity is on owner-directed hold, including opportunity
@@ -1449,7 +1466,8 @@ not treated as proof of authorization.
 
 ### Governance
 
-- Final public product naming and professional clearance
+- Professional clearance and final adoption of the provisional Limited
+  Underground Trail family and Firmware Loader working names
 - Legal applicant/payee, funding bookkeeping, award authority, and application-
   specific eligibility/terms
 - Public privacy policy, location-data retention/deletion, authentication,

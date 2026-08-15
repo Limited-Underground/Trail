@@ -6,7 +6,7 @@ OpenTrail is a free and open-source ESP32/LoRa platform for off-grid group commu
 
 The base design is a self-contained portable client with its own power, display, input, radio, and GNSS-aware group status. Repeaters, remote archives, vehicle alerts, larger displays, and offline maps are optional additions—not requirements for basic operation.
 
-> **Naming:** OpenTrail remains the repository and engineering name. The local Windows utility now uses the preliminary, attorney-review-pending working display `Limited Underground Trail`; one replaceable identity boundary keeps that wording out of `OT-*` records, protocols, compatibility identifiers, and namespaces. This is not a clearance or registration claim.
+> **Working names:** `Limited Underground` is the parent identity and `Limited Underground Trail` is the Android application and product family. The provisional tiers are `Trail Essential` (screenless, phone-required LoRa companion), `Trail Gold` (one touchscreen), `Trail Platinum` (two displays), and `Trail Repeater`. The shared desktop utility is `Limited Underground Firmware Loader`, visibly marked `Preview` and `Inspection only` until real writing and recovery pass. All names await professional clearance; no `®` is used. `OpenTrail` remains the repository/engineering name, and existing folders, namespaces, `OT-*` records, protocols, GATT/schema/crypto identifiers, and device IDs remain stable. See [Decision 0008](docs/decisions/0008-limited-underground-trail-working-product-family.md).
 
 ## Project status
 

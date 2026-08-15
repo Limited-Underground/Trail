@@ -97,6 +97,16 @@ credited to the other. The current four-self-contained-unit first release and
 its no-phone/no-laptop field boundary remain authoritative; the simulator is a
 development reference, not a field dependency.
 
+[Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
+places replaceable customer-facing working names above those technical tracks.
+`Limited Underground Trail Essential` is the screenless one-phone companion;
+Gold is the one-touchscreen client; Platinum is the two-display client; and the
+Trail Repeater remains optional infrastructure. `Limited Underground Firmware
+Loader` is shared maintenance tooling and must remain visibly Preview and
+inspection-only until physical write and recovery acceptance passes. These
+working names do not enter packet/GATT fields, schemas, cryptographic domains,
+compatibility or board identifiers, device IDs, namespaces, or `OT-*` records.
+
 Update checkpoint persistence now has a backend-neutral
 [key/value target boundary](update/UPDATE_CHECKPOINT_KV_TARGET_ADAPTER_V0.md).
 It fixes the `ot_state` partition, `ot_update` namespace, two exact 64-byte

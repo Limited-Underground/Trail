@@ -2040,7 +2040,7 @@ internal static class LoaderVisualFixtureRenderer
             Schema = "ot_loader_inspection_view_v0",
             Screen = new LoaderScreen
             {
-                Title = "Limited Underground Trail Device Utility",
+                Title = "Limited Underground Firmware Loader — Preview",
                 Eyebrow = "Connected devices",
                 Phase = "Inspection only",
                 Summary = "3 found · 3 inspected · 0 ready to flash",
