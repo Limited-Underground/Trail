@@ -21,7 +21,13 @@ without a second authority call. A second fixed in-memory sink checks the
 one-connection GATT lifecycle's exact handle registration, secure/subscribed
 session opening, maximum-size response reservation before action mutation,
 indication submission, exact completion token, and duplicate no-reapply path.
-It opens no transport. Failure suspends the
+An additional fixed in-memory check exercises the restricted authorization
+lifecycle: exact 20-byte `OTB0` v0.1 claim-capability evidence, bonded and
+encrypted provisional admission, exact 44-byte Pending and 48-byte Accepted
+records, distinct delivery tokens, no authority call before Pending
+confirmation, terminal reservation before the fixed authority call, and
+promotion only after exact terminal confirmation. It opens no transport.
+Failure suspends the
 application before startup or heartbeat. A queued result is only a local queue
 disposition; it does not claim radio send or delivery. The only dynamic value
 owned and read by the application
@@ -58,6 +64,13 @@ indication subscription, one response reservation, one outstanding indication,
 opaque delivery-token correlation, timeout containment, and disconnect cleanup.
 This is not NimBLE event wiring: the real target adapter still supplies none of
 those events and the callable Command path remains denied.
+
+The restricted authorization lifecycle is likewise build-linked and exercised
+only by the deterministic in-memory boot check. The live NimBLE definition
+still exposes the baseline v0.0 Protocol Info and its AUTHOR callbacks still
+deny every application-unauthorized access. Therefore this target does not yet
+offer a live provisional claim path, even though the target-neutral v0.1 wire
+and lifecycle compose and link successfully.
 
 The build-only application deliberately never calls the registration function,
 initializes NimBLE/controller state, installs a GAP authorization callback, or

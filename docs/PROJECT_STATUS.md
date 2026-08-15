@@ -357,14 +357,55 @@ combined Android gate passes 77 JVM tests across eight suites (protocol suites
 6, 10, and 10; application suites 6, 17, 11, 1, and 16) and warning-as-error lint. The isolated
 debug APK is 9,627,825 bytes with SHA-256
 `967FCD7A032ECED63789378F5B3C0F6AC86D06CE9CF3B6B16205E7C49B8093A3`.
-The production claim client remains disabled and no activity, BLE runtime, or
-GATT transport wiring was added. Current `OTB0/v0` has no claim-support bit and
-the current GATT path requires application authorization before Protocol Info
-and session negotiation, so there is no live provisional session or negotiated
-claim capability. No authorization target/runtime, phone, emulator, peripheral,
-ADB, install, signing, device-authority, or physical evidence exists. OT-048 and OT-049 are
+OT-049 added no activity, BLE-runtime, or GATT-transport wiring, and its
+production claim client remained disabled. At that increment's acceptance,
+`OTB0/v0` had no claim-support bit and GATT required application authorization
+before Protocol Info and session negotiation, so it provided no live
+provisional session or negotiated claim capability. OT-048 and OT-049 remain
 bounded `done` codec/tracker increments; OT-034 remains `partial` and V1 remains
 30%.
+
+OT-050 adds the restricted device-side provisional authorization lifecycle and
+explicit negotiated capability missing above. Its exact 20-byte `OTB0/v0.1`
+Protocol Info carries claim capability `0x10`, the existing bounds, and one
+device-issued provisional session nonce; claim-capable payload capacity is
+strictly 28 through 128 bytes. Protocol Info is available only with trusted
+encrypted/authenticated-bond evidence. Claim admission additionally binds the
+exact connection/generation/session/exchange/purpose/correlation and registered
+Command/Stream/CCCD handles, requires indication subscription and MTU at least
+51, confirms Pending before later physical authority resolution, reserves each
+response before authority work, and promotes only after exact Accepted/Replaced
+terminal indication confirmation. Normal traffic still requires MTU 151 and an
+explicit Snapshot Request. Failure, timeout, unsubscribe, security loss,
+disconnect, or stale callbacks fail closed without inventing a denial.
+
+Twenty strict groups and 100/100 repeats, the complete 120-executable host
+matrix, the deterministic target self-check at 100/100, and static admission
+3/3 pass. Two pinned ESP-IDF v6.0.2 builds reproduce a 165,349-byte image and
+165,472-byte BIN with SHA-256
+`E2ACF6672925D2FF298BD58E7C7BCBA564D46F1B7A6853D67865CE62F09D12B9`;
+the link map retains the authorization wire and restricted lifecycle. Exact
+evidence is in [OT-050](../tests/hardware/OT-050-2026-08-15.md).
+
+OT-051 mirrors the v0.1 record and provisional operation order in Android. The
+runtime-backed client reads Protocol Info before requesting its advertised MTU,
+enables exact Stream indications, writes one Claim Start, requires correlated
+Pending and terminal frames, and permits the explicit normal Snapshot Request
+only after Accepted/Replaced. Exact lease and generation checks contain denial,
+timeout, permission loss, disconnect, malformed/stale input, and lifecycle
+release without automatic retry. The combined gate passes 90 JVM tests across
+ten suites (protocol 6, 10, 10, and 3; application 7, 9, 17, 11, 1, and 16),
+lint reports no issues, and the 9,644,209-byte debug APK has SHA-256
+`28ED3014ACE420F8C531625211D26BD3FB9D522F1349BACA0878F94726534D8A`.
+
+Both increments remain non-live. The real target NimBLE AUTHOR path is still
+baseline v0.0 and denied, controller/service/advertising startup is absent, and
+no trusted target bond, physical-input, persistence, or device authority is
+injected. `MainActivity` still constructs the disabled claim client and the
+default Android security authority remains deny-all. No phone, emulator,
+peripheral, ADB, install, signing, successful authorization, target runtime, or
+physical BLE evidence exists. OT-050 and OT-051 are bounded `done` increments;
+OT-034 remains `partial` and V1 remains 30%.
 
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins

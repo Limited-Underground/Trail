@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "opentrail/companion_gatt_session.hpp"
+#include "opentrail/companion_gatt_authorization.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
@@ -19,6 +19,7 @@ struct SelfCheckObservation {
     std::uint32_t prepare_calls{0};
     std::uint32_t commit_calls{0};
     std::uint32_t applied_calls{0};
+    std::uint32_t authorization_calls{0};
 };
 
 template <std::size_t Size>
@@ -117,7 +118,9 @@ public:
             session_nonce != kSessionNonce ||
             stream_value_handle != kStreamValueHandle ||
             delivery_token == 0 ||
-            max_response_bytes != kCompanionMaxResponseRecordBytes) {
+            (max_response_bytes != kCompanionMaxResponseRecordBytes &&
+             max_response_bytes !=
+                 kCompanionAuthorizationMaxResponseBytes)) {
             return CompanionGattSinkError::failed;
         }
         reserved_ = true;
@@ -179,6 +182,10 @@ public:
         pending_ = false;
     }
 
+    [[nodiscard]] bool reserved() const {
+        return reserved_;
+    }
+
     static constexpr std::uint16_t kConnectionHandle = 7;
     static constexpr std::uint16_t kCommandValueHandle = 11;
     static constexpr std::uint16_t kStreamValueHandle = 13;
@@ -193,7 +200,99 @@ private:
     std::array<std::uint8_t, kCompanionMaxResponseRecordBytes> response_{};
 };
 
+class FixedCorrelationIssuer final
+    : public CompanionGattAuthorizationCorrelationIssuer {
+public:
+    CompanionGattAuthorizationCorrelationResult issue(
+        const CompanionGattAuthorizationCorrelationContext& context) override {
+        if (context.transport_generation != 1 ||
+            context.session_nonce != FixedIndicationSink::kSessionNonce ||
+            context.exchange_id != 1 ||
+            context.purpose !=
+                CompanionAuthorizationPurpose::authorize_controller) {
+            return {CompanionGattAuthorizationCorrelationError::failed, {}};
+        }
+        CompanionAuthorizationCorrelation correlation{};
+        for (std::size_t index = 0; index < correlation.bytes.size(); ++index) {
+            correlation.bytes[index] =
+                static_cast<std::uint8_t>(0xA0U + index);
+        }
+        return {CompanionGattAuthorizationCorrelationError::none,
+                correlation};
+    }
+};
+
+class FixedAuthorizationAuthority final
+    : public CompanionGattAuthorizationAuthority {
+public:
+    FixedAuthorizationAuthority(SelfCheckObservation& observation,
+                                FixedIndicationSink& sink)
+        : observation_(observation), sink_(sink) {}
+
+    CompanionGattAuthorizationDecision apply_claim(
+        CompanionAuthorizationPurpose purpose,
+        const CompanionControllerClaim& claim,
+        std::uint64_t now_ms) override {
+        if (!sink_.reserved() ||
+            purpose != CompanionAuthorizationPurpose::authorize_controller ||
+            claim.controller_binding != kControllerBinding ||
+            !claim.link_encrypted || !claim.authenticated_bond ||
+            now_ms != 2) {
+            return {CompanionGattAuthorizationAuthorityError::failed};
+        }
+        ++observation_.authorization_calls;
+        return {
+            CompanionGattAuthorizationAuthorityError::none,
+            CompanionAuthorizationClaimOutcome::accepted,
+            CompanionAuthorizationDenyReason::none,
+            kControllerBinding,
+        };
+    }
+
+    CompanionGattAuthorizationAuthorityError release_connection(
+        std::uint64_t) override {
+        return CompanionGattAuthorizationAuthorityError::failed;
+    }
+
+    static constexpr std::uint64_t kControllerBinding = 0xA5;
+
+private:
+    SelfCheckObservation& observation_;
+    FixedIndicationSink& sink_;
+};
+
 constexpr CompanionSessionEvidence kEvidence{0xA5, true, true, true};
+
+constexpr std::array<std::uint8_t, 20> kAuthorizationProtocolInfo{
+    0x4F, 0x54, 0x42, 0x30, 0x00, 0x01, 0x01, 0x1F,
+    0x80, 0x00, 0x97, 0x00, 0x10, 0x01, 0x01, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+};
+
+constexpr std::array<std::uint8_t, 28> kAuthorizationClaimStart{
+    0x4F, 0x54, 0x43, 0x30, 0x00, 0x00, 0x03, 0x00,
+    0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+    0x00, 0x01, 0x08, 0x00, 0x4F, 0x54, 0x4C, 0x30,
+    0x00, 0x00, 0x01, 0x00,
+};
+
+constexpr std::array<std::uint8_t, 44> kAuthorizationPending{
+    0x4F, 0x54, 0x43, 0x30, 0x00, 0x00, 0x84, 0x00,
+    0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+    0x00, 0x01, 0x18, 0x00, 0x4F, 0x54, 0x50, 0x30,
+    0x00, 0x00, 0x01, 0x01, 0xA0, 0xA1, 0xA2, 0xA3,
+    0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB,
+    0xAC, 0xAD, 0xAE, 0xAF,
+};
+
+constexpr std::array<std::uint8_t, 48> kAuthorizationAccepted{
+    0x4F, 0x54, 0x43, 0x30, 0x00, 0x00, 0x85, 0x00,
+    0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+    0x00, 0x01, 0x1C, 0x00, 0x4F, 0x54, 0x46, 0x30,
+    0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00,
+    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
+    0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
+};
 
 constexpr std::array<std::uint8_t, 40> kActionRequest{
     0x4F, 0x54, 0x43, 0x30, 0x00, 0x00, 0x02, 0x00,
@@ -366,6 +465,110 @@ bool run_companion_gatt_session_self_check() {
            observation.prepare_calls == 1 &&
            observation.commit_calls == 1 &&
            observation.applied_calls == 1;
+}
+
+bool run_companion_gatt_authorization_self_check() {
+    SelfCheckObservation observation{};
+    FixedSnapshotAuthority snapshots(observation);
+    FixedActionAuthority actions(observation);
+    CompanionRequestCoordinator coordinator(snapshots, actions);
+    FixedIndicationSink sink;
+    FixedCorrelationIssuer issuer;
+    FixedAuthorizationAuthority authority(observation, sink);
+    CompanionGattAuthorizationLifecycle lifecycle(
+        coordinator, sink, issuer, authority);
+    constexpr CompanionGattAuthorizationHandles handles{
+        10,
+        FixedIndicationSink::kCommandValueHandle,
+        FixedIndicationSink::kStreamValueHandle,
+        FixedIndicationSink::kStreamCccdHandle,
+    };
+    constexpr CompanionGattAuthorizationConnectionEvidence evidence{
+        kCompanionMinimumAttMtu,
+        {
+            {0x0102030405060708ULL, 0x1112131415161718ULL},
+            0x2122232425262728ULL,
+            1,
+            FixedAuthorizationAuthority::kControllerBinding,
+            true,
+            true,
+        },
+    };
+    if (lifecycle.register_handles(handles) !=
+            CompanionGattAuthorizationError::none ||
+        lifecycle.connect(FixedIndicationSink::kConnectionHandle, 1) !=
+            CompanionGattAuthorizationError::none ||
+        lifecycle.update_connection_evidence(
+            FixedIndicationSink::kConnectionHandle, 1, evidence) !=
+            CompanionGattAuthorizationError::none ||
+        lifecycle.open_provisional_session(
+            FixedIndicationSink::kConnectionHandle, 1,
+            FixedIndicationSink::kSessionNonce) !=
+            CompanionGattAuthorizationError::none) {
+        return false;
+    }
+
+    std::array<std::uint8_t,
+               kCompanionAuthorizationProtocolInfoBytes> protocol_info{};
+    const auto read = lifecycle.read_protocol_info(
+        FixedIndicationSink::kConnectionHandle, 1,
+        handles.protocol_info_value,
+        {protocol_info.data(), protocol_info.size()});
+    if (read.error != CompanionGattAuthorizationError::none ||
+        protocol_info != kAuthorizationProtocolInfo ||
+        lifecycle.update_indication_subscription(
+            FixedIndicationSink::kConnectionHandle, 1,
+            FixedIndicationSink::kStreamCccdHandle, true) !=
+            CompanionGattAuthorizationError::none) {
+        return false;
+    }
+
+    const auto pending = lifecycle.service_command(
+        FixedIndicationSink::kConnectionHandle, 1,
+        FixedIndicationSink::kCommandValueHandle,
+        {kAuthorizationClaimStart.data(), kAuthorizationClaimStart.size()}, 0);
+    if (!pending.pending() ||
+        pending.delivery_token !=
+            kCompanionAuthorizationPendingDeliveryToken ||
+        !sink.response_is(kAuthorizationPending) ||
+        observation.authorization_calls != 0) {
+        return false;
+    }
+    sink.observe_completion();
+    if (lifecycle.complete_indication(
+            FixedIndicationSink::kConnectionHandle, 1,
+            FixedIndicationSink::kSessionNonce,
+            FixedIndicationSink::kStreamValueHandle,
+            pending.delivery_token, true, 1) !=
+            CompanionGattAuthorizationError::none ||
+        observation.authorization_calls != 0) {
+        return false;
+    }
+
+    const auto terminal = lifecycle.resolve_claim(
+        FixedIndicationSink::kConnectionHandle, 1,
+        FixedIndicationSink::kSessionNonce, 1, 2);
+    if (!terminal.pending() ||
+        terminal.delivery_token !=
+            kCompanionAuthorizationTerminalDeliveryToken ||
+        !sink.response_is(kAuthorizationAccepted) ||
+        observation.authorization_calls != 1 ||
+        lifecycle.status().application_authorized) {
+        return false;
+    }
+    sink.observe_completion();
+    if (lifecycle.complete_indication(
+            FixedIndicationSink::kConnectionHandle, 1,
+            FixedIndicationSink::kSessionNonce,
+            FixedIndicationSink::kStreamValueHandle,
+            terminal.delivery_token, true, 3) !=
+        CompanionGattAuthorizationError::none) {
+        return false;
+    }
+    const auto status = lifecycle.status();
+    return status.application_authorized && status.normal_session_active &&
+           !status.response_pending && status.exchange_id == 0 &&
+           observation.authorization_calls == 1;
 }
 
 }  // namespace opentrail::target::heltec_v4_bench

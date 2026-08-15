@@ -155,6 +155,8 @@ foreach ($requiredObject in @(
     'companion_semantics.cpp.obj',
     'companion_request_coordinator.cpp.obj',
     'companion_gatt_session.cpp.obj',
+    'companion_authorization_wire.cpp.obj',
+    'companion_gatt_authorization.cpp.obj',
     'companion_boot_self_check.cpp.obj',
     'companion_nimble_gatt.cpp.obj'
 )) {
@@ -186,6 +188,7 @@ $evidence = [ordered]@{
     companion_codec_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_request_coordinator_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_gatt_session_self_check = 'BUILD-LINKED-NOT-RUN'
+    companion_gatt_authorization_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_nimble_gatt = 'BUILD-LINKED-DEFINITION-SELF-CHECK-NOT-RUN'
     companion_command_dispatch = 'DENIED-NO-CCCD-SUBSCRIPTION-OWNER'
     nimble_controller = 'NOT-STARTED'

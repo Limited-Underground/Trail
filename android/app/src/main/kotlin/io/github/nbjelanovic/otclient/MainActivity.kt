@@ -268,14 +268,23 @@ private fun BluetoothAuthorizedRuntimePanel(
             controller,
             requestNearbyPermissions,
         )
-        is DeviceAuthorizationUiState.Starting,
-        is DeviceAuthorizationUiState.Pending,
-        -> {
-            val purpose = when (authorization) {
-                is DeviceAuthorizationUiState.Starting -> authorization.purpose
-                is DeviceAuthorizationUiState.Pending -> authorization.purpose
-                else -> return
+        is DeviceAuthorizationUiState.Starting -> {
+            val purpose = authorization.purpose
+            StatusCard(
+                if (purpose == DeviceAuthorizationPurpose.REPLACE_LOST_PHONE) {
+                    "Preparing replacement request"
+                } else {
+                    "Preparing authorization request"
+                },
+                "The app is preparing the encrypted, authenticated device path. Do not press the physical " +
+                    "authorization control yet; the 30-second device window has not started.",
+            )
+            OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
+                Text("Cancel request")
             }
+        }
+        is DeviceAuthorizationUiState.Pending -> {
+            val purpose = authorization.purpose
             StatusCard(
                 if (purpose == DeviceAuthorizationPurpose.REPLACE_LOST_PHONE) {
                     "Replacement request waiting for the device"
@@ -581,6 +590,8 @@ private fun BleRuntimeFailure.publicText(): String = when (this) {
     BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED -> "The session counter was exhausted; reconnect before retrying."
     BleRuntimeFailure.ACTION_WRITE_FAILED -> "The action was not accepted for Bluetooth write."
     BleRuntimeFailure.ACTION_RESULT_TIMEOUT -> "The device did not return an action result in time."
+    BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST ->
+        "The authorization connection ended. Device authority may have changed; reconnect and check the device."
 }
 
 private fun BleNegotiationPhase.publicText(): String = when (this) {
@@ -588,6 +599,7 @@ private fun BleNegotiationPhase.publicText(): String = when (this) {
     BleNegotiationPhase.ATT_MTU -> "Negotiating the required Bluetooth message size."
     BleNegotiationPhase.PROTOCOL_INFO -> "Checking the companion protocol and capabilities."
     BleNegotiationPhase.STREAM_SUBSCRIPTION -> "Enabling authoritative device indications."
+    BleNegotiationPhase.AUTHORIZATION_CLAIM -> "Waiting for an exact device authorization result."
     BleNegotiationPhase.INITIAL_SNAPSHOT -> "Waiting for the initial authoritative device status."
 }
 

@@ -51,6 +51,20 @@ class DisabledDeviceAuthorizationClaimClient : DeviceAuthorizationClaimClient {
     ): DeviceAuthorizationClaimLease? = null
 }
 
+/**
+ * Explicit OT-051 runtime adapter. It is intentionally not used by [MainActivity]; the shipped
+ * activity keeps [DisabledDeviceAuthorizationClaimClient] until the physical target binding is admitted.
+ */
+class RuntimeDeviceAuthorizationClaimClient(
+    private val runtime: BleCompanionRuntime,
+) : DeviceAuthorizationClaimClient {
+    override fun createClaim(
+        endpointToken: String,
+        purpose: DeviceAuthorizationPurpose,
+        observer: (DeviceAuthorizationClaimEvent) -> Unit,
+    ): DeviceAuthorizationClaimLease? = runtime.createAuthorizationClaim(endpointToken, purpose, observer)
+}
+
 sealed interface DeviceAuthorizationUiState {
     data object None : DeviceAuthorizationUiState
     data class Starting(

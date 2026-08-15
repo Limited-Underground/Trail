@@ -8,7 +8,9 @@ int main() {
         if (!opentrail::target::heltec_v4_bench::
                  run_companion_request_coordinator_self_check() ||
             !opentrail::target::heltec_v4_bench::
-                 run_companion_gatt_session_self_check()) {
+                 run_companion_gatt_session_self_check() ||
+            !opentrail::target::heltec_v4_bench::
+                 run_companion_gatt_authorization_self_check()) {
             std::cerr << "FAIL: deterministic companion boot self-check"
                       << '\n';
             return EXIT_FAILURE;

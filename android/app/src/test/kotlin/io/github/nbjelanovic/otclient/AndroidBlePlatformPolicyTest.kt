@@ -143,4 +143,21 @@ class AndroidBlePlatformPolicyTest {
         assertFalse(gate.beginConnection())
         assertFalse(gate.acceptsStreamIndication())
     }
+
+    @Test
+    fun provisionalProtocolInfoMayPrecedeMtuButCccdStillRequiresBoth() {
+        val gate = AndroidGattOperationGate()
+        assertTrue(gate.beginConnection())
+        assertTrue(gate.beginDiscovery())
+        assertTrue(gate.acceptProfileAndSecurity())
+        assertTrue(gate.beginProtocolInfoRead())
+        assertTrue(gate.acceptProtocolInfo())
+        assertFalse(gate.beginIndicationSubscription())
+        assertTrue(gate.beginMtuRequest())
+        assertTrue(gate.acceptMtu())
+        assertTrue(gate.beginIndicationSubscription())
+        assertTrue(gate.acceptIndicationSubscription())
+        assertTrue(gate.beginCommandWrite())
+        assertTrue(gate.acceptCommandWrite())
+    }
 }

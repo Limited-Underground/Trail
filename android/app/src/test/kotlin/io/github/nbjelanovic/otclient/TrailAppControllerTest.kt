@@ -279,6 +279,7 @@ class TrailAppControllerTest {
         assertTrue(claim.started)
         assertTrue(harness.facade.connections.isEmpty())
         assertIs<DeviceAuthorizationUiState.Starting>(bluetoothState(harness).authorizationState)
+        assertTrue(harness.scheduler.leases.isEmpty())
 
         claim.emit(DeviceAuthorizationClaimEvent.Pending("opaque-claim"))
         assertIs<DeviceAuthorizationUiState.Pending>(bluetoothState(harness).authorizationState)
@@ -432,7 +433,9 @@ class TrailAppControllerTest {
 
         val synchronousTimeout = harness()
         synchronousTimeout.scheduler.callbackOnSchedule = true
-        beginClaim(synchronousTimeout, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        val synchronousClaim = beginClaim(synchronousTimeout, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        assertTrue(synchronousTimeout.scheduler.leases.isEmpty())
+        synchronousClaim.emit(DeviceAuthorizationClaimEvent.Pending("synchronous"))
         assertIs<DeviceAuthorizationUiState.Expired>(bluetoothState(synchronousTimeout).authorizationState)
         assertTrue(synchronousTimeout.scheduler.leases.last().closed)
         assertTrue(synchronousTimeout.facade.connections.isEmpty())

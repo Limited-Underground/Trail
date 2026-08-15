@@ -4,12 +4,13 @@ Status: OT-036 build/test foundation, OT-038 semantic parity, OT-041
 lifecycle-safe BLE runtime boundary, OT-043 Android 12+ platform facade,
 OT-045 explicit Bluetooth-mode/lifecycle UI wiring, and OT-047 disabled
 device-authorization UX, plus OT-049 authorization-wire codec/tracker parity,
+and OT-051 default-disabled provisional-authorization orchestration,
 2026-08-15.
 This is not live BLE or physical-device evidence.
 
 ## Accepted boundary
 
-The accepted Android foundation has seven layers:
+The accepted Android foundation has eight layers:
 
 1. A pure Kotlin, brand-neutral `OTB0/v0` and `OTC0/v0` codec that mirrors the
    fixed C++ bounds and consumes shared golden vectors.
@@ -28,7 +29,13 @@ The accepted Android foundation has seven layers:
    advance state; timeout and invalid/lost results remain explicitly uncertain.
 7. A pure fixed-size authorization-wire codec and externally serialized
    provisional-response tracker mirrored from the accepted C++ records and ten
-   shared vectors. It is not wired to the activity, BLE runtime, or GATT facade.
+   shared vectors. OT-049 alone left it unwired; OT-051 uses it inside the
+   injectable runtime-backed client, while the shipped activity still injects
+   the disabled claim client.
+8. A strict `OTB0/v0.1` authorization-capability decoder and runtime-backed
+   claim client that can execute the restricted Protocol Info, MTU, Stream
+   subscription, Claim Start, Pending, terminal, and explicit Snapshot Request
+   order when injected. The shipped activity does not inject it.
 
 The visible working identity is `Limited Underground Trail`. Stable technical
 package/application identifiers do not contain that provisional product name.
@@ -98,6 +105,16 @@ values are deterministic test state only.
   release. This slice supplies no disconnect callback wiring. Accepted/Replaced is a client
   observation only; it does not grant device authority. The opaque correlation
   is never displayed, logged, or persisted.
+- OT-051 decodes only the exact 20-byte `OTB0/v0.1` claim record with capability
+  bit `0x10`, one nonzero provisional nonce, an advertised normal MTU of at
+  least 151, and a claim-capable payload limit from 28 through 128 bytes. The
+  current device lifecycle advertises exactly 151. The client requires encrypted and
+  authenticated bond evidence, reads Protocol Info before MTU negotiation,
+  requests the advertised normal MTU, enables exact Stream indications, writes
+  one Start, and accepts only exact Pending then terminal records for its lease.
+  Accepted/Replaced permits one explicit Snapshot Request. Denial, timeout,
+  permission loss, disconnect, malformed/stale input, and lifecycle release
+  close without automatic retry; transport timeout remains local uncertainty.
 
 ## Deliberate exclusions and next gate
 
@@ -109,14 +126,15 @@ configuration/process recreation,
 background policy, and physical one-phone/one-device evidence remain later work
 under the accepted BLE GATT contract.
 
-Current Protocol Info has no authorization-claim support bit, and the current
-runtime requires application authorization before Protocol Info and session
-negotiation. It therefore cannot carry the provisional authorization phase
-without a circular dependency. No negotiated live capability or provisional
-GATT session exists. A later coordinated firmware/Android increment must add
-the restricted encrypted, authenticated-bond transport and explicit capability
-evidence before the OT-049 client seam can be enabled; write failure or timeout
-cannot be shown as authoritative Unsupported or Denied.
+The OT-051 client can express the accepted restricted flow, but `MainActivity`
+still constructs `DisabledDeviceAuthorizationClaimClient` and the default
+security authority remains deny-all. The target lifecycle is only build-linked
+to an in-memory self-check; its live NimBLE definition remains baseline v0.0
+and AUTHOR-denied, with no controller/service/advertising startup. Thus no live
+negotiated capability or provisional GATT session exists. Enabling the client
+requires exact target event wiring plus trusted bond, physical-input,
+persistence, and device-authority adapters; write failure or timeout cannot be
+shown as authoritative Unsupported or Denied.
 
 The current semantic workflow covers only typed status, four fixed quick
 statuses, exact pending-alert acknowledgement, and position-sharing Start/Stop.
@@ -137,12 +155,13 @@ command-line-tools bootstrap archive `11076708` had observed SHA-256
 `4d6931209eebb1bfb7c7e8b240a6a3cb3ab24479ea294f3539429574b1eec862`.
 All environment changes were process-scoped; no global PATH was changed.
 
-The current focused gate passes 77 JVM tests across eight suites (protocol
-suites 6, 10, and 10; application suites 6, 17, 11, 1, and 16), including the frozen
-authorization-wire vectors and provisional tracker, warning-as-error
+The current focused gate passes 90 JVM tests across ten suites (protocol
+suites 6, 10, 10, and 3; application suites 7, 9, 17, 11, 1, and 16), including
+the frozen authorization-wire vectors, provisional tracker, v0.1 decoder, and
+default-disabled orchestration, with zero failures, errors, or skips. Warning-as-error
 Android lint with no reported issue, and debug APK assembly. The exact isolated
-local debug APK was 9,627,825 bytes with SHA-256
-`967FCD7A032ECED63789378F5B3C0F6AC86D06CE9CF3B6B16205E7C49B8093A3`.
+local debug APK was 9,644,209 bytes with SHA-256
+`28ED3014ACE420F8C531625211D26BD3FB9D522F1349BACA0878F94726534D8A`.
 `aapt` confirms package `io.github.nbjelanovic.otclient`, min SDK 26, target SDK
 35, the expected visible label, optional BLE hardware, Scan with
 `neverForLocation`, Connect, and no location, internet, storage, or management

@@ -438,35 +438,6 @@ class TrailAppController(
         while (deferredAuthorizationEvents.isNotEmpty() && activeAuthorizationGeneration == generation) {
             processAuthorizationEvent(generation, candidate, purpose, deferredAuthorizationEvents.removeFirst())
         }
-        if (
-            activeAuthorizationGeneration == generation &&
-            (authorizationState is DeviceAuthorizationUiState.Starting ||
-                authorizationState is DeviceAuthorizationUiState.Pending)
-        ) {
-            val timeoutLease = try {
-                authorizationScheduler.schedule(DEVICE_AUTHORIZATION_CLAIM_TIMEOUT_MILLIS) {
-                    onAuthorizationExpired(generation, purpose)
-                }
-            } catch (_: Exception) {
-                finishAuthorizationUnavailable(purpose)
-                null
-            }
-            if (
-                timeoutLease != null &&
-                !closed &&
-                activeAuthorizationGeneration == generation &&
-                (authorizationState is DeviceAuthorizationUiState.Starting ||
-                    authorizationState is DeviceAuthorizationUiState.Pending)
-            ) {
-                authorizationTimeoutLease = timeoutLease
-            } else {
-                try {
-                    timeoutLease?.close()
-                } catch (_: Exception) {
-                    // The timer no longer has authority even if its adapter reports cleanup failure.
-                }
-            }
-        }
     }
 
     private fun onAuthorizationEvent(
@@ -526,7 +497,20 @@ class TrailAppController(
                 } else if (current is DeviceAuthorizationUiState.Starting) {
                     authorizationClaimToken = token
                     authorizationState = DeviceAuthorizationUiState.Pending(candidate, purpose)
-                    publishBluetooth()
+                    if (
+                        !closed &&
+                        activeAuthorizationGeneration == generation &&
+                        authorizationState is DeviceAuthorizationUiState.Pending
+                    ) {
+                        armAuthorizationTimeout(generation, purpose)
+                    }
+                    if (
+                        !closed &&
+                        activeAuthorizationGeneration == generation &&
+                        authorizationState is DeviceAuthorizationUiState.Pending
+                    ) {
+                        publishBluetooth()
+                    }
                 } else if (current !is DeviceAuthorizationUiState.Pending || authorizationClaimToken != token) {
                     finishAuthorizationInvalidResult(purpose)
                 }
@@ -579,6 +563,32 @@ class TrailAppController(
         finishAuthorizationLease()
         authorizationState = DeviceAuthorizationUiState.Expired(purpose)
         bluetoothRuntime.authorizationEnded()
+    }
+
+    private fun armAuthorizationTimeout(generation: Long, purpose: DeviceAuthorizationPurpose) {
+        if (authorizationTimeoutLease != null) return
+        val timeoutLease = try {
+            authorizationScheduler.schedule(DEVICE_AUTHORIZATION_CLAIM_TIMEOUT_MILLIS) {
+                onAuthorizationExpired(generation, purpose)
+            }
+        } catch (_: Exception) {
+            finishAuthorizationUnavailable(purpose)
+            null
+        }
+        if (
+            timeoutLease != null &&
+            !closed &&
+            activeAuthorizationGeneration == generation &&
+            authorizationState is DeviceAuthorizationUiState.Pending
+        ) {
+            authorizationTimeoutLease = timeoutLease
+        } else {
+            try {
+                timeoutLease?.close()
+            } catch (_: Exception) {
+                // The timer no longer has authority even if its adapter reports cleanup failure.
+            }
+        }
     }
 
     private fun finishAuthorizationDenied(purpose: DeviceAuthorizationPurpose) {

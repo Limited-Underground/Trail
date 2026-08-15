@@ -2,6 +2,16 @@ package io.github.nbjelanovic.otclient
 
 import io.github.nbjelanovic.otprotocol.COMPANION_MINIMUM_ATT_MTU
 import io.github.nbjelanovic.otprotocol.COMPANION_STATUS_SNAPSHOT_BYTES
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimOutcome
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimStart
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationProtocolInfo
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationProtocolInfoCodec
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationProvisionalEvidence
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationPurpose
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationResponsePhase
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationResponseTracker
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationWireCodec
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationWireError
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 import io.github.nbjelanovic.otprotocol.CompanionActionResult
 import io.github.nbjelanovic.otprotocol.CompanionFragment
@@ -19,6 +29,7 @@ internal const val MAX_ENDPOINT_TOKEN_CHARS = 256
 internal const val DEFAULT_MAX_RECONNECT_ATTEMPTS = 3
 internal const val NEGOTIATION_STEP_TIMEOUT_MILLIS = 15_000L
 internal const val ACTION_RESULT_TIMEOUT_MILLIS = 10_000L
+internal const val AUTHORIZATION_RESULT_TIMEOUT_MILLIS = 30_000L
 
 object CompanionGattV0Contract {
     const val SERVICE_UUID = "5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d0"
@@ -50,6 +61,7 @@ enum class BleRuntimeFailure {
     SESSION_COUNTER_EXHAUSTED,
     ACTION_WRITE_FAILED,
     ACTION_RESULT_TIMEOUT,
+    AUTHORIZATION_CONNECTION_LOST,
 }
 
 data class BlePreflight(
@@ -112,9 +124,11 @@ interface BleGattLease : BleLease {
 /**
  * Injectable seam around Android Bluetooth APIs. Implementations must keep endpoint tokens opaque,
  * invoke callbacks serially on the runtime owner thread, and must not emit a successful security
- * event until the platform link is encrypted, the bond is authenticated, and separate application
- * authorization is confirmed. Scans expose only the exact [CompanionGattV0Contract.SERVICE_UUID],
- * and connections use only that service and its three fixed characteristics.
+ * event until the platform link is encrypted and the bond is authenticated. The evidence must keep
+ * application authorization separate: false may enter only the restricted v0.1 claim path, while
+ * true may enter the normal v0.0 path. Scans expose only the exact
+ * [CompanionGattV0Contract.SERVICE_UUID], and connections use only that service and its three fixed
+ * characteristics.
  */
 interface AndroidBluetoothFacade {
     fun preflight(): BlePreflight
@@ -153,6 +167,7 @@ enum class BleNegotiationPhase {
     ATT_MTU,
     PROTOCOL_INFO,
     STREAM_SUBSCRIPTION,
+    AUTHORIZATION_CLAIM,
     INITIAL_SNAPSHOT,
 }
 
@@ -224,7 +239,25 @@ class BleCompanionRuntime(
     private var lastDeviceEventId = 0L
     private var nextRequestId = firstRequestId
     private var pendingAction: PendingAction? = null
+    private var authorizationProtocolInfo: CompanionAuthorizationProtocolInfo? = null
+    private var authorizationSecurityEvidence: BleSecurityEvidence? = null
+    private var authorizationTransportGeneration = 0L
+    private var authorizationOperationCounter = 0L
+    private var deliveringAuthorizationObserver = false
+    private var pendingSnapshotExchangeId = 0L
+    private val authorizationTracker = CompanionAuthorizationResponseTracker()
+    private var authorizationClaim: RuntimeAuthorizationClaim? = null
     private data class PendingAction(val exchangeId: Long, val request: CompanionActionRequest)
+    private data class RuntimeAuthorizationClaim(
+        val operationId: Long,
+        val companion: BleDiscoveredCompanion,
+        val purpose: DeviceAuthorizationPurpose,
+        val publicOperationToken: String,
+        val observer: (DeviceAuthorizationClaimEvent) -> Unit,
+        var started: Boolean = false,
+        var terminal: Boolean = false,
+        var promoted: Boolean = false,
+    )
     private enum class DeferredRuntimeControl { START, STOP, DISCONNECT, CLOSE }
 
     /**
@@ -273,6 +306,7 @@ class BleCompanionRuntime(
         if (closed || !lifecycleActive) return
         lifecycleActive = false
         invalidateAndRelease()
+        authorizationClaim = null
         publish(BleRuntimeState.Inactive)
     }
 
@@ -284,6 +318,7 @@ class BleCompanionRuntime(
         selected = null
         reconnectAttempt = 0
         invalidateAndRelease()
+        authorizationClaim = null
         val preflight = facade.preflight()
         if (!preflight.isReady) {
             publish(BleRuntimeState.Blocked(preflight.blocker!!))
@@ -325,6 +360,14 @@ class BleCompanionRuntime(
     fun authorizationAccepted(endpointToken: String): Boolean {
         requireOwnerThread()
         if (deliveringObserver || !lifecycleActive || closed) return false
+        val activeClaim = authorizationClaim
+        if (
+            activeClaim != null &&
+            activeClaim.companion.endpointToken == endpointToken &&
+            activeClaim.terminal &&
+            activeClaim.promoted &&
+            authorizationTracker.allowsNormalCompanionTraffic(authorizationTransportGeneration.toULong())
+        ) return true
         val awaiting = state as? BleRuntimeState.AwaitingAuthorization ?: return false
         if (awaiting.companion.endpointToken != endpointToken) return false
         selected = awaiting.companion
@@ -335,10 +378,83 @@ class BleCompanionRuntime(
 
     fun authorizationEnded() {
         requireOwnerThread()
-        if (deliveringObserver || closed || state !is BleRuntimeState.AwaitingAuthorization) return
+        if (deliveringObserver || closed) return
+        if (authorizationClaim != null) {
+            selected = null
+            invalidateAndRelease()
+            authorizationClaim = null
+            publish(if (lifecycleActive) BleRuntimeState.Idle else BleRuntimeState.Inactive)
+            return
+        }
+        if (state !is BleRuntimeState.AwaitingAuthorization) return
         selected = null
         reconnectAttempt = 0
         invalidateAndRelease()
+        publish(if (lifecycleActive) BleRuntimeState.Idle else BleRuntimeState.Inactive)
+    }
+
+    /**
+     * Dormant OT-051 seam. MainActivity does not construct this client; tests or a later admitted
+     * production composition may bind it only to this exact runtime owner thread.
+     */
+    fun createAuthorizationClaim(
+        endpointToken: String,
+        purpose: DeviceAuthorizationPurpose,
+        observer: (DeviceAuthorizationClaimEvent) -> Unit,
+    ): DeviceAuthorizationClaimLease? {
+        requireOwnerThread()
+        if (deliveringObserver || closed || !lifecycleActive || authorizationClaim != null) return null
+        val awaiting = state as? BleRuntimeState.AwaitingAuthorization ?: return null
+        if (awaiting.companion.endpointToken != endpointToken) return null
+        if (authorizationOperationCounter == Long.MAX_VALUE) return null
+        authorizationOperationCounter += 1
+        val operationId = authorizationOperationCounter
+        val claim = RuntimeAuthorizationClaim(
+            operationId,
+            awaiting.companion,
+            purpose,
+            "wire-claim-$operationId",
+            observer,
+        )
+        authorizationClaim = claim
+        return object : DeviceAuthorizationClaimLease {
+            private var closed = false
+
+            override fun start(): Boolean {
+                requireOwnerThread()
+                if (closed) return false
+                return startAuthorizationClaim(operationId)
+            }
+
+            override fun close() {
+                requireOwnerThread()
+                if (closed) return
+                closed = true
+                closeAuthorizationClaim(operationId)
+            }
+        }
+    }
+
+    private fun startAuthorizationClaim(operationId: Long): Boolean {
+        val claim = authorizationClaim
+        if (
+            claim == null || claim.operationId != operationId || claim.started || claim.terminal ||
+            state !is BleRuntimeState.AwaitingAuthorization
+        ) return false
+        claim.started = true
+        selected = claim.companion
+        reconnectAttempt = 0
+        beginConnection(claim.companion, isReconnect = false)
+        return authorizationClaim?.operationId == operationId &&
+            (state is BleRuntimeState.Connecting || state is BleRuntimeState.Negotiating)
+    }
+
+    private fun closeAuthorizationClaim(operationId: Long) {
+        val claim = authorizationClaim ?: return
+        if (claim.operationId != operationId || claim.terminal) return
+        selected = null
+        invalidateAndRelease()
+        authorizationClaim = null
         publish(if (lifecycleActive) BleRuntimeState.Idle else BleRuntimeState.Inactive)
     }
 
@@ -357,6 +473,7 @@ class BleCompanionRuntime(
         selected = null
         reconnectAttempt = 0
         invalidateAndRelease()
+        authorizationClaim = null
         publish(if (lifecycleActive) BleRuntimeState.Idle else BleRuntimeState.Inactive)
     }
 
@@ -416,6 +533,7 @@ class BleCompanionRuntime(
         lifecycleActive = false
         selected = null
         invalidateAndRelease()
+        authorizationClaim = null
         observer = null
         state = BleRuntimeState.Closed
     }
@@ -505,8 +623,12 @@ class BleCompanionRuntime(
         event: BleGattEvent,
     ) {
         requireOwnerThread()
-        if (deliveringObserver) return
         if (!accepts(callbackGeneration) || gattLease == null) return
+        if (deliveringAuthorizationObserver) {
+            failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            return
+        }
+        if (deliveringObserver) return
         when (event) {
             is BleGattEvent.SecurityEstablished -> onSecurity(companion, event.evidence)
             is BleGattEvent.MtuChanged -> onMtu(companion, event.mtu)
@@ -515,18 +637,24 @@ class BleCompanionRuntime(
             is BleGattEvent.StreamIndication -> onStreamValue(companion, event.value)
             is BleGattEvent.Failed -> handleConnectionFailure(
                 companion,
-                when (event.failure) {
+                if (authorizationClaim != null) {
+                    BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST
+                } else when (event.failure) {
                     BleGattFailure.SECURITY_REJECTED -> BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED
                     BleGattFailure.PERMISSION_REVOKED -> BleRuntimeFailure.CONNECTION_START_FAILED
                     BleGattFailure.PLATFORM_FAILURE -> BleRuntimeFailure.CONNECTION_START_FAILED
                     BleGattFailure.TRANSIENT_LINK -> BleRuntimeFailure.CONNECTION_START_FAILED
                 },
-                transient = event.failure == BleGattFailure.TRANSIENT_LINK,
+                transient = authorizationClaim == null && event.failure == BleGattFailure.TRANSIENT_LINK,
             )
             BleGattEvent.Disconnected -> handleConnectionFailure(
                 companion,
-                BleRuntimeFailure.CONNECTION_START_FAILED,
-                transient = true,
+                if (authorizationClaim != null) {
+                    BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST
+                } else {
+                    BleRuntimeFailure.CONNECTION_START_FAILED
+                },
+                transient = authorizationClaim == null,
             )
         }
     }
@@ -536,12 +664,27 @@ class BleCompanionRuntime(
             failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
             return
         }
-        if (!evidence.encrypted || !evidence.authenticatedBond || !evidence.applicationAuthorized) {
+        if (!evidence.encrypted || !evidence.authenticatedBond) {
             failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
             return
         }
         operationTimeoutLease?.close()
         operationTimeoutLease = null
+        if (authorizationClaim != null) {
+            authorizationSecurityEvidence = evidence
+            publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.PROTOCOL_INFO))
+            if (!hasActiveGattPhase(BleNegotiationPhase.PROTOCOL_INFO)) return
+            if (gattLease?.readProtocolInfo() != true) {
+                failAndRelease(BleRuntimeFailure.PROTOCOL_INFO_FAILED)
+            } else if (isPhase(BleNegotiationPhase.PROTOCOL_INFO)) {
+                armNegotiationTimeout(generation, BleNegotiationPhase.PROTOCOL_INFO)
+            }
+            return
+        }
+        if (!evidence.applicationAuthorized) {
+            failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+            return
+        }
         publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.ATT_MTU))
         if (!hasActiveGattPhase(BleNegotiationPhase.ATT_MTU)) return
         if (gattLease?.requestMtu(COMPANION_MINIMUM_ATT_MTU) != true) {
@@ -552,13 +695,24 @@ class BleCompanionRuntime(
     }
 
     private fun onMtu(companion: BleDiscoveredCompanion, mtu: Int) {
-        if (!isPhase(BleNegotiationPhase.ATT_MTU) || mtu < COMPANION_MINIMUM_ATT_MTU) {
+        val minimumMtu = authorizationProtocolInfo?.minimumNormalAttMtu ?: COMPANION_MINIMUM_ATT_MTU
+        if (!isPhase(BleNegotiationPhase.ATT_MTU) || mtu < minimumMtu) {
             failAndRelease(BleRuntimeFailure.MTU_NEGOTIATION_FAILED)
             return
         }
         negotiatedMtu = mtu
         operationTimeoutLease?.close()
         operationTimeoutLease = null
+        if (authorizationClaim != null) {
+            publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.STREAM_SUBSCRIPTION))
+            if (!hasActiveGattPhase(BleNegotiationPhase.STREAM_SUBSCRIPTION)) return
+            if (gattLease?.subscribeStreamIndications() != true) {
+                failAndRelease(BleRuntimeFailure.STREAM_SUBSCRIPTION_FAILED)
+            } else if (isPhase(BleNegotiationPhase.STREAM_SUBSCRIPTION)) {
+                armNegotiationTimeout(generation, BleNegotiationPhase.STREAM_SUBSCRIPTION)
+            }
+            return
+        }
         publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.PROTOCOL_INFO))
         if (!hasActiveGattPhase(BleNegotiationPhase.PROTOCOL_INFO)) return
         if (gattLease?.readProtocolInfo() != true) {
@@ -571,6 +725,10 @@ class BleCompanionRuntime(
     private fun onProtocolInfo(companion: BleDiscoveredCompanion, value: ByteArray) {
         if (!isPhase(BleNegotiationPhase.PROTOCOL_INFO)) {
             failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            return
+        }
+        if (authorizationClaim != null) {
+            acceptAuthorizationProtocolInfo(companion, value)
             return
         }
         val decoded = CompanionProtocolCodec.decodeProtocolInfo(value).value
@@ -595,6 +753,46 @@ class BleCompanionRuntime(
         }
     }
 
+    private fun acceptAuthorizationProtocolInfo(companion: BleDiscoveredCompanion, value: ByteArray) {
+        val decoded = CompanionAuthorizationProtocolInfoCodec.decode(value).value
+        val evidence = authorizationSecurityEvidence
+        if (decoded == null || evidence == null || decoded.minimumNormalAttMtu < COMPANION_MINIMUM_ATT_MTU) {
+            failAndRelease(BleRuntimeFailure.PROTOCOL_INFO_FAILED)
+            return
+        }
+        val trackerError = authorizationTracker.openProvisionalSession(
+            CompanionAuthorizationProvisionalEvidence(
+                transportGeneration = generation.toULong(),
+                linkEncrypted = evidence.encrypted,
+                authenticatedBond = evidence.authenticatedBond,
+                claimWireSupported = true,
+            ),
+            decoded.provisionalSessionNonce,
+        )
+        if (trackerError != CompanionAuthorizationWireError.NONE) {
+            failAndRelease(BleRuntimeFailure.PROTOCOL_INFO_FAILED)
+            return
+        }
+        authorizationTransportGeneration = generation
+        authorizationProtocolInfo = decoded
+        protocolInfo = CompanionProtocolInfo(
+            capabilities = decoded.capabilities and 0x0f,
+            maxFragmentPayloadBytes = decoded.maxFragmentPayloadBytes,
+            minimumAttMtu = decoded.minimumNormalAttMtu,
+            maxFragmentCount = decoded.maxFragmentCount,
+            maxActiveControllers = decoded.maxActiveControllers,
+        )
+        operationTimeoutLease?.close()
+        operationTimeoutLease = null
+        publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.ATT_MTU))
+        if (!hasActiveGattPhase(BleNegotiationPhase.ATT_MTU)) return
+        if (gattLease?.requestMtu(decoded.minimumNormalAttMtu) != true) {
+            failAndRelease(BleRuntimeFailure.MTU_NEGOTIATION_FAILED)
+        } else if (isPhase(BleNegotiationPhase.ATT_MTU)) {
+            armNegotiationTimeout(generation, BleNegotiationPhase.ATT_MTU)
+        }
+    }
+
     private fun onStreamSubscribed(companion: BleDiscoveredCompanion) {
         if (!isPhase(BleNegotiationPhase.STREAM_SUBSCRIPTION)) {
             failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
@@ -602,14 +800,51 @@ class BleCompanionRuntime(
         }
         operationTimeoutLease?.close()
         operationTimeoutLease = null
+        if (authorizationClaim != null) {
+            beginAuthorizationWireClaim(companion)
+            return
+        }
         publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.INITIAL_SNAPSHOT))
         if (hasActiveGattPhase(BleNegotiationPhase.INITIAL_SNAPSHOT)) {
             armNegotiationTimeout(generation, BleNegotiationPhase.INITIAL_SNAPSHOT)
         }
     }
 
+    private fun beginAuthorizationWireClaim(companion: BleDiscoveredCompanion) {
+        val claim = authorizationClaim ?: return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+        val info = authorizationProtocolInfo ?: return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+        val exchangeId = firstRequestId
+        val purpose = when (claim.purpose) {
+            DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE -> CompanionAuthorizationPurpose.AUTHORIZE_CONTROLLER
+            DeviceAuthorizationPurpose.REPLACE_LOST_PHONE -> CompanionAuthorizationPurpose.REPLACE_CONTROLLER
+        }
+        val fragment = CompanionFragment(
+            kind = CompanionFrameKind.AUTHORIZATION_CLAIM_START,
+            sessionNonce = info.provisionalSessionNonce,
+            exchangeId = exchangeId,
+            payload = CompanionAuthorizationWireCodec.encodeClaimStart(CompanionAuthorizationClaimStart(purpose)),
+        )
+        if (authorizationTracker.begin(generation.toULong(), fragment) != CompanionAuthorizationWireError.NONE) {
+            failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            return
+        }
+        val encoded = CompanionProtocolCodec.encodeFragment(fragment).value
+            ?: return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+        publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.AUTHORIZATION_CLAIM))
+        if (!hasActiveGattPhase(BleNegotiationPhase.AUTHORIZATION_CLAIM)) return
+        if (gattLease?.writeCommandWithResponse(encoded) != true) {
+            failAndRelease(BleRuntimeFailure.ACTION_WRITE_FAILED)
+        } else if (isPhase(BleNegotiationPhase.AUTHORIZATION_CLAIM)) {
+            armNegotiationTimeout(generation, BleNegotiationPhase.AUTHORIZATION_CLAIM)
+        }
+    }
+
     private fun onStreamValue(companion: BleDiscoveredCompanion, value: ByteArray) {
         val fragment = CompanionProtocolCodec.decodeFragment(value).value
+        if (authorizationClaim != null && isPhase(BleNegotiationPhase.AUTHORIZATION_CLAIM)) {
+            acceptAuthorizationStreamValue(companion, fragment)
+            return
+        }
         if (
             fragment == null ||
             fragment.payload.size > (protocolInfo?.maxFragmentPayloadBytes ?: 0) ||
@@ -638,21 +873,142 @@ class BleCompanionRuntime(
         }
     }
 
+    private fun acceptAuthorizationStreamValue(companion: BleDiscoveredCompanion, fragment: CompanionFragment?) {
+        val claim = authorizationClaim
+        val info = authorizationProtocolInfo
+        if (claim == null || info == null || fragment == null || fragment.payload.size > info.maxFragmentPayloadBytes) {
+            failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            return
+        }
+        val observation = authorizationTracker.observe(generation.toULong(), fragment)
+        if (!observation.accepted) {
+            failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            return
+        }
+        when (observation.phase) {
+            CompanionAuthorizationResponsePhase.PENDING -> emitAuthorizationEvent(
+                claim,
+                DeviceAuthorizationClaimEvent.Pending(claim.publicOperationToken),
+            ).also {
+                if (
+                    authorizationClaim?.operationId == claim.operationId &&
+                    isPhase(BleNegotiationPhase.AUTHORIZATION_CLAIM)
+                ) {
+                    armNegotiationTimeout(
+                        generation,
+                        BleNegotiationPhase.AUTHORIZATION_CLAIM,
+                        AUTHORIZATION_RESULT_TIMEOUT_MILLIS,
+                    )
+                }
+            }
+            CompanionAuthorizationResponsePhase.TERMINAL -> {
+                operationTimeoutLease?.close()
+                operationTimeoutLease = null
+                claim.terminal = true
+                when (observation.outcome) {
+                    CompanionAuthorizationClaimOutcome.ACCEPTED -> {
+                        claim.promoted = true
+                        emitAuthorizationEvent(
+                            claim,
+                            DeviceAuthorizationClaimEvent.Accepted(claim.publicOperationToken),
+                        )
+                        continueAfterAuthorizationPromotion(companion, claim)
+                    }
+                    CompanionAuthorizationClaimOutcome.REPLACED -> {
+                        claim.promoted = true
+                        emitAuthorizationEvent(
+                            claim,
+                            DeviceAuthorizationClaimEvent.Replaced(claim.publicOperationToken),
+                        )
+                        continueAfterAuthorizationPromotion(companion, claim)
+                    }
+                    CompanionAuthorizationClaimOutcome.DENIED -> {
+                        emitAuthorizationEvent(claim, DeviceAuthorizationClaimEvent.Denied(claim.publicOperationToken))
+                        if (authorizationClaim?.operationId == claim.operationId) authorizationEnded()
+                    }
+                }
+            }
+            else -> failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+        }
+    }
+
+    private fun emitAuthorizationEvent(claim: RuntimeAuthorizationClaim, event: DeviceAuthorizationClaimEvent) {
+        if (authorizationClaim?.operationId != claim.operationId) return
+        if (deliveringAuthorizationObserver) {
+            failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            return
+        }
+        deliveringAuthorizationObserver = true
+        try {
+            claim.observer(event)
+        } catch (_: Exception) {
+            failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+        } finally {
+            deliveringAuthorizationObserver = false
+        }
+    }
+
+    private fun continueAfterAuthorizationPromotion(
+        companion: BleDiscoveredCompanion,
+        claim: RuntimeAuthorizationClaim,
+    ) {
+        val info = authorizationProtocolInfo
+        if (
+            authorizationClaim?.operationId != claim.operationId || !claim.promoted || info == null ||
+            !authorizationTracker.allowsNormalCompanionTraffic(generation.toULong()) || gattLease == null
+        ) return
+        activeSessionNonce = info.provisionalSessionNonce
+        val exchangeId = firstRequestId
+        if (exchangeId == 0xffff_ffffL) {
+            failAndRelease(BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED)
+            return
+        }
+        val payload = CompanionSemanticCodec.encodeSnapshotRequest()
+        val encoded = CompanionProtocolCodec.encodeFragment(
+            CompanionFragment(
+                kind = CompanionFrameKind.SNAPSHOT_REQUEST,
+                sessionNonce = activeSessionNonce,
+                exchangeId = exchangeId,
+                payload = payload,
+            ),
+        ).value ?: return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+        pendingSnapshotExchangeId = exchangeId
+        publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.INITIAL_SNAPSHOT))
+        if (!hasActiveGattPhase(BleNegotiationPhase.INITIAL_SNAPSHOT)) return
+        if (gattLease?.writeCommandWithResponse(encoded) != true) {
+            failAndRelease(BleRuntimeFailure.INITIAL_SNAPSHOT_FAILED)
+        } else if (isPhase(BleNegotiationPhase.INITIAL_SNAPSHOT)) {
+            armNegotiationTimeout(generation, BleNegotiationPhase.INITIAL_SNAPSHOT)
+        }
+    }
+
     private fun acceptInitialSnapshot(companion: BleDiscoveredCompanion, fragment: CompanionFragment) {
         val info = protocolInfo
         val snapshot = if (fragment.kind == CompanionFrameKind.SNAPSHOT) {
             CompanionSemanticCodec.decodeStatusSnapshot(fragment.payload).value
         } else null
-        if (info == null || snapshot == null) {
+        if (
+            info == null || snapshot == null ||
+            (
+                pendingSnapshotExchangeId != 0L &&
+                    (fragment.exchangeId != pendingSnapshotExchangeId || fragment.sessionNonce != activeSessionNonce)
+                )
+        ) {
             failAndRelease(BleRuntimeFailure.INITIAL_SNAPSHOT_FAILED)
             return
         }
         operationTimeoutLease?.close()
         operationTimeoutLease = null
-        activeSessionNonce = fragment.sessionNonce
+        if (pendingSnapshotExchangeId == 0L) activeSessionNonce = fragment.sessionNonce
         lastDeviceEventId = fragment.exchangeId
-        nextRequestId = firstRequestId
+        nextRequestId = if (pendingSnapshotExchangeId == 0L) {
+            firstRequestId
+        } else {
+            pendingSnapshotExchangeId + 1
+        }
         pendingAction = null
+        pendingSnapshotExchangeId = 0
+        authorizationClaim = null
         reconnectAttempt = 0
         publish(BleRuntimeState.Ready(BleActiveSession(companion, fragment.sessionNonce, snapshot, info)))
     }
@@ -696,6 +1052,14 @@ class BleCompanionRuntime(
         reason: BleRuntimeFailure,
         transient: Boolean,
     ) {
+        val authorizationWasActive = authorizationClaim != null
+        if (authorizationWasActive) {
+            selected = null
+            invalidateAndRelease()
+            authorizationClaim = null
+            publish(BleRuntimeState.Failed(reason))
+            return
+        }
         operationTimeoutLease?.close()
         operationTimeoutLease = null
         gattLease?.close()
@@ -745,9 +1109,13 @@ class BleCompanionRuntime(
 
     private fun reconnectDelayMillis(attempt: Int): Long = 1_000L shl (attempt - 1).coerceAtMost(3)
 
-    private fun armNegotiationTimeout(callbackGeneration: Long, expectedPhase: BleNegotiationPhase?) {
+    private fun armNegotiationTimeout(
+        callbackGeneration: Long,
+        expectedPhase: BleNegotiationPhase?,
+        delayMillis: Long = NEGOTIATION_STEP_TIMEOUT_MILLIS,
+    ) {
         operationTimeoutLease?.close()
-        operationTimeoutLease = scheduler.schedule(NEGOTIATION_STEP_TIMEOUT_MILLIS) {
+        operationTimeoutLease = scheduler.schedule(delayMillis) {
             onNegotiationTimeout(callbackGeneration, expectedPhase)
         }
     }
@@ -795,6 +1163,7 @@ class BleCompanionRuntime(
     private fun failAndRelease(reason: BleRuntimeFailure) {
         selected = null
         invalidateAndRelease()
+        authorizationClaim = null
         publish(BleRuntimeState.Failed(reason))
     }
 
@@ -813,6 +1182,7 @@ class BleCompanionRuntime(
         !closed && lifecycleActive && callbackGeneration == generation
 
     private fun invalidateAndRelease(incrementGeneration: Boolean = true) {
+        closeAuthorizationTransport()
         if (incrementGeneration && generation < Long.MAX_VALUE) generation += 1
         reconnectLease?.close()
         reconnectLease = null
@@ -832,6 +1202,17 @@ class BleCompanionRuntime(
         lastDeviceEventId = 0
         nextRequestId = firstRequestId
         pendingAction = null
+        pendingSnapshotExchangeId = 0
+        authorizationProtocolInfo = null
+        authorizationSecurityEvidence = null
+    }
+
+    private fun closeAuthorizationTransport() {
+        val ownedGeneration = authorizationTransportGeneration
+        authorizationTransportGeneration = 0
+        if (ownedGeneration != 0L) {
+            authorizationTracker.closeTransportGeneration(ownedGeneration.toULong())
+        }
     }
 
     private fun publish(next: BleRuntimeState) {

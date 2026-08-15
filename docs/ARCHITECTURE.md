@@ -234,24 +234,53 @@ generation/session/exchange/purpose/correlation, and retains one connection
 generation until its owner calls exact transport close. Accepted or Replaced is only the
 client's observation of a device result; the device authority remains separate.
 
-OT-049 mirrors those exact bytes, shared vectors, enums, coherence rules, and
-tracker transitions in pure Kotlin. The production claim client remains
-default-disabled and the tracker is not wired into the activity, BLE runtime,
-or Android GATT facade. Current `OTB0/v0` has no authorization-claim capability
-bit, while the current GATT path requires application authorization before
-Protocol Info and session negotiation. A later coordinated device/Android
-increment must add explicit negotiated claim support and a restricted bonded,
-encrypted provisional transport; write failure or timeout cannot be promoted
+OT-049 mirrored those exact bytes, shared vectors, enums, coherence rules, and
+tracker transitions in pure Kotlin. At OT-049 acceptance the production claim
+client remained default-disabled, the tracker was not wired into the activity,
+BLE runtime, or Android GATT facade, `OTB0/v0` had no authorization-claim
+capability bit, and the GATT path required application authorization before
+Protocol Info and session negotiation. That increment therefore required later
+coordinated device/Android work; write failure or timeout could not be promoted
 to authoritative Unsupported or Denied evidence.
 
-The generic build-only ESP32-S3 candidate already links the shared protocol,
-semantic dispatcher, and coordinator sources touched by OT-048. It was rebuilt
-to prove the three known-kind additions compile while the normal authorized
-session/coordinator path continues rejecting them. The link map excludes the
-new authorization wire/tracker source. This is `BUILD-LINKED-NOT-RUN`
-recognition/rejection evidence only; no provisional admission, application-
-authorization transition, controller/GATT startup, or physical device path
-exists.
+OT-050 resolves that circular dependency at the target-neutral boundary. A
+separate exact 20-byte `OTB0/v0.1` record adds capability bit `0x10` and a
+nonzero device-issued provisional session nonce while retaining the existing
+role, 128-byte payload ceiling, 16-fragment ceiling, one-controller limit, and
+151-byte normal-session ATT MTU. A claim-capable record must advertise at least
+28 payload bytes because the fixed terminal authorization payload is 28 bytes.
+The provisional record itself fits the default ATT MTU; claim admission then
+requires MTU at least 51 so one complete 48-byte terminal envelope can be
+indicated. The current lifecycle advertises MTU 151, which clients should
+request immediately.
+
+One fixed-memory lifecycle binds the exact connection, transport generation,
+trusted encrypted/authenticated bond evidence, private controller claim,
+session, exchange, purpose, correlation, Protocol Info handle, Command handle,
+Stream value handle, Stream CCCD handle, and indication subscription. It
+reserves the complete response before sending Pending, waits for exact Pending
+confirmation before later physical/device-authority resolution, reserves again
+before authoritative mutation, and promotes only after the exact Accepted or
+Replaced terminal indication is confirmed. MTU 51 through 150 can observe the
+promotion but cannot open the normal session until the same connection reaches
+151. Denial, local timeout, security loss, unsubscribe, congestion, negative
+confirmation, submission failure, disconnect, or stale callbacks cannot
+promote. Transport loss remains local unknown authority rather than an invented
+wire denial.
+
+OT-051 mirrors the v0.1 decoder and this operation order in production-shaped
+Kotlin orchestration. After terminal promotion it issues an explicit Snapshot
+Request; no unsolicited snapshot is assumed. The shipped Android composition
+still injects the disabled claim client, so this orchestration is unreachable
+from `MainActivity`.
+
+The generic ESP32-S3 target now links the authorization wire and restricted
+lifecycle and runs only a deterministic in-memory boot self-check with fixed
+fake evidence. The real NimBLE definition still exposes baseline v0.0 and its
+AUTHOR callback denies provisional traffic; the application does not register
+or start the controller, service, or advertiser. Thus OT-050 is
+`BUILD-LINKED-NOT-RUN` composition evidence, not a live provisional transport,
+application-authorization result, or physical device path.
 
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.

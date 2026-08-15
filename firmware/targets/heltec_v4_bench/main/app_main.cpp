@@ -125,6 +125,8 @@ extern "C" void app_main() {
         !opentrail::target::heltec_v4_bench::
              run_companion_gatt_session_self_check() ||
         !opentrail::target::heltec_v4_bench::
+             run_companion_gatt_authorization_self_check() ||
+        !opentrail::target::heltec_v4_bench::
              companion_nimble_gatt_definition_self_check()) {
         contain_self_check_failure();
     }

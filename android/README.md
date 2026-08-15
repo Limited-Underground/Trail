@@ -4,7 +4,8 @@ Status: OT-036/OT-038 fake application foundation, the OT-041 lifecycle-safe
 BLE runtime boundary, the OT-043 Android BluetoothGatt facade, and the OT-045
 explicit local-test/Bluetooth UI binding, plus the OT-047 host-tested one-phone
 authorization request state/UX and the OT-049 authorization wire-codec/tracker
-mirror. This directory contains a buildable
+mirror, plus the OT-051 default-disabled provisional-authorization runtime
+orchestration. This directory contains a buildable
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -56,11 +57,13 @@ protocol or package identity.
   no connection can reach Ready until the pairing/application-authorization
   authority is accepted and supplied. There is no silent downgrade to fake mode.
 - Bluetooth selection explicitly asks either to authorize this phone or replace
-  a lost phone. A bounded 30-second state machine accepts only an opaque,
-  device-issued claim token and exact authoritative pending, accepted, denied,
-  or replaced result, plus a local expired/uncertain state. Replacement requires the distinct replaced result;
-  the phone cannot invent ownership, and claim tokens are neither displayed nor
-  persisted. Mode changes, permission loss, lifecycle stop, and destroy cancel the
+  a lost phone. A bounded 30-second state machine accepts only a bounded,
+  lease-local event token and an exact authoritative pending, accepted, denied,
+  or replaced result, plus a local expired/uncertain state. The device-issued
+  128-bit wire correlation remains private inside the strict response tracker; it
+  never enters controller/UI state and is neither displayed nor persisted.
+  Replacement requires the distinct replaced result, and the phone cannot invent
+  ownership. Mode changes, permission loss, lifecycle stop, and destroy cancel the
   claim and suppress stale results.
 - The production authorization-claim adapter remains disabled. The visible
   physical-control instructions and deterministic injected tests do not prove a
@@ -73,12 +76,21 @@ protocol or package identity.
   exchange, purpose, and opaque-correlation evidence before it can report a
   client-observed accepted/replaced terminal. It performs no I/O and grants no
   device authority.
-- The tracker is not wired to `MainActivity`, `BleCompanionRuntime`, or the
-  Android GATT facade. Current Protocol Info has no authorization capability bit,
-  and current firmware denies protocol-info/command access before application
-  authorization, so a live claim path would be circular. A later coordinated
-  firmware/Android increment must add a restricted encrypted, bonded provisional
-  transport and device-issued session bootstrap before enabling the client seam.
+- OT-051 adds a strict separate 20-byte `OTB0/v0.1` decoder for the explicit
+  claim capability and device-issued provisional session nonce. The runtime-backed
+  claim client can, only when explicitly injected, require an encrypted authenticated
+  bond, read that exact record at the default MTU, request the decoded normal MTU,
+  enable Stream indications, write one exact claim Start, track exact Pending and
+  terminal frames, and send an explicit Snapshot Request only after an exact
+  Accepted/Replaced terminal. Normal snapshot/action state remains unavailable
+  before promotion. Denial, timeout, permission loss, disconnect, malformed or
+  stale frames, and lifecycle release close the exact generation without automatic
+  claim retry; transport timeout is local uncertainty, never an invented denial.
+- `MainActivity` still constructs `DisabledDeviceAuthorizationClaimClient`, and
+  the default security authority remains deny-all. The new runtime client is not
+  reachable from the shipped UI. The current firmware target keeps the provisional
+  lifecycle dormant behind self-check/build admission and does not bind it to live
+  NimBLE events, physical control, persistent owner authority, or a device session.
 
 The Activity-owned mode controller does not survive Android configuration change
 or process recreation; destruction closes its session and a recreated Activity
@@ -86,21 +98,20 @@ returns to the explicit mode choice. Platform errors map to fixed typed values;
 raw addresses, names, identifiers, status codes, and exception text do not enter
 UI state.
 
-The concrete gap to a first real Ready session is therefore explicit: implement
-and test the restricted provisional authorization transport/session bootstrap,
-bind the tracker into the Android claim client, separately implement the
-device-side authority/persistence/promotion, and run the exact app against device firmware
-that exposes the secured GATT contract and authoritative initial snapshot. The
+The concrete gap to a first real Ready session is therefore explicit: bind the
+accepted provisional lifecycle to exact live target NimBLE/security/physical-control/
+persistence events, admit an enabled Android security and claim composition, and run
+the exact app against that device firmware. The
 current tests validate the pure mode, lifecycle, permission, admission, token,
 authorization codec/tracker,
-GATT-profile, and operation-order boundaries plus compilation/lint; they do not
+provisional orchestration, GATT-profile, and operation-order boundaries plus compilation/lint; they do not
 execute Android Bluetooth hardware or claim a live connection.
 
-The accepted OT-049 gate passes 77 JVM tests across eight suites (protocol
-suites 6, 10, and 10; application suites 6, 17, 11, 1, and 16) with zero failures, errors, or
-skips, plus warning-as-error lint with `No issues found.`
-The isolated debug APK is 9,627,825 bytes with SHA-256
-`967FCD7A032ECED63789378F5B3C0F6AC86D06CE9CF3B6B16205E7C49B8093A3`.
+The accepted OT-051 gate passes 90 JVM tests across ten suites (protocol
+suites 6, 10, 10, and 3; application suites 7, 9, 17, 11, 1, and 16) with zero
+failures, errors, or skips, plus warning-as-error lint with `No issues found.`
+The isolated debug APK is 9,644,209 bytes with SHA-256
+`28ED3014ACE420F8C531625211D26BD3FB9D522F1349BACA0878F94726534D8A`.
 It is local debug evidence only, not a release-signed, installed, emulated, or
 physical-device result.
 

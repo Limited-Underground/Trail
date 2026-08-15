@@ -18,6 +18,10 @@ GATT_SESSION = (
     ROOT / "firmware" / "components" / "companion" / "src" /
     "companion_gatt_session.cpp"
 )
+GATT_AUTHORIZATION = (
+    ROOT / "firmware" / "components" / "companion" / "src" /
+    "companion_gatt_authorization.cpp"
+)
 MAIN_CMAKE = TARGET / "main" / "CMakeLists.txt"
 COMPANION_SOURCES = (
     ROOT / "firmware" / "components" / "companion" / "src" /
@@ -77,6 +81,7 @@ def test_contract() -> None:
         "boot_companion_codec_self_check",
         "boot_companion_request_self_check",
         "boot_companion_gatt_session_self_check",
+        "boot_companion_gatt_authorization_self_check",
         "nimble_gatt_definition_build_linked",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
@@ -87,6 +92,8 @@ def test_contract() -> None:
             "boot companion-request self-check must be admitted")
     require(capabilities["boot_companion_gatt_session_self_check"] is True,
             "boot companion GATT-session self-check must be admitted")
+    require(capabilities["boot_companion_gatt_authorization_self_check"] is True,
+            "boot restricted authorization self-check must be admitted")
     require(capabilities["nimble_gatt_definition_build_linked"] is True,
             "NimBLE GATT definition build linkage must be admitted")
     for name, enabled in capabilities.items():
@@ -117,6 +124,8 @@ def test_application_surface() -> None:
             "missing coordinator self-check call")
     require("run_companion_gatt_session_self_check" in source,
             "missing GATT-session lifecycle self-check call")
+    require("run_companion_gatt_authorization_self_check" in source,
+            "missing restricted authorization lifecycle self-check call")
     require("companion_nimble_gatt_definition_self_check" in source,
             "missing NimBLE GATT definition self-check call")
     require("register_companion_nimble_gatt_service" not in source,
@@ -150,13 +159,42 @@ def test_application_surface() -> None:
         "run_companion_request_coordinator_self_check()")
     gatt_session_call = source.index(
         "run_companion_gatt_session_self_check()")
+    gatt_authorization_call = source.index(
+        "run_companion_gatt_authorization_self_check()")
     gatt_definition_call = source.index(
         "companion_nimble_gatt_definition_self_check()")
     pass_log = source.index("companion boot self-check PASS")
     startup_log = source.index("build-only bench candidate started")
     heartbeat_log = source.index("heartbeat elapsed_ms=%llu")
-    require(self_check_call < coordinator_call < gatt_session_call < gatt_definition_call < pass_log < startup_log < heartbeat_log,
+    require(self_check_call < coordinator_call < gatt_session_call < gatt_authorization_call < gatt_definition_call < pass_log < startup_log < heartbeat_log,
             "all self-checks must gate startup and heartbeat")
+
+    for vector in (
+        "kAuthorizationProtocolInfo", "kAuthorizationClaimStart",
+        "kAuthorizationPending", "kAuthorizationAccepted",
+    ):
+        require(vector in self_check,
+                f"authorization self-check missing exact vector: {vector}")
+    require("observation.authorization_calls != 0" in self_check and
+            "observation.authorization_calls != 1" in self_check,
+            "authorization check must prove no early and exactly one authority call")
+
+    gatt_authorization = GATT_AUTHORIZATION.read_text(encoding="utf-8")
+    for required in (
+        "kCompanionAuthorizationMinimumAttMtu",
+        "kCompanionAuthorizationPendingDeliveryToken",
+        "kCompanionAuthorizationTerminalDeliveryToken",
+        "indication_sink_.reserve",
+        "authority_.apply_claim",
+        "CompanionGattAuthorizationPhase::awaiting_authority",
+        "transport_generation",
+        "ScopedOperation operation(operation_active_)",
+    ):
+        require(required in gatt_authorization,
+                f"missing restricted authorization lifecycle gate: {required}")
+    require(gatt_authorization.index("indication_sink_.reserve") <
+            gatt_authorization.index("authority_.apply_claim"),
+            "terminal capacity reservation must precede authorization mutation")
 
     gatt_session = GATT_SESSION.read_text(encoding="utf-8")
     for required in (
@@ -228,6 +266,8 @@ def test_application_surface() -> None:
         "companion/src/companion_semantics.cpp",
         "companion/src/companion_request_coordinator.cpp",
         "companion/src/companion_gatt_session.cpp",
+        "companion/src/companion_authorization_wire.cpp",
+        "companion/src/companion_gatt_authorization.cpp",
         "companion_boot_self_check.cpp",
         "companion_nimble_gatt.cpp",
         "companion/include",
@@ -236,12 +276,12 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 7,
-            "target source set must remain app, two target helpers, and four accepted companion files")
+    require(cmake.count('.cpp"') == 9,
+            "target source set must remain app, two target helpers, and six accepted companion files")
     require("REQUIRES" in cmake and "bt" in cmake,
             "target must declare the pinned ESP-IDF Bluetooth dependency")
 
-    linked_source = self_check + "\n" + nimble_gatt + "\n" + gatt_session + "\n" + "\n".join(
+    linked_source = self_check + "\n" + nimble_gatt + "\n" + gatt_session + "\n" + gatt_authorization + "\n" + "\n".join(
         path.read_text(encoding="utf-8") for path in COMPANION_SOURCES)
     forbidden_initializers = (
         "esp_ble_", "esp_bt_controller", "nimble_port_init",
@@ -340,6 +380,8 @@ def test_build_only_tooling() -> None:
             "build evidence must deny runtime coordinator evidence")
     require("companion_gatt_session_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny runtime GATT-session evidence")
+    require("companion_gatt_authorization_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
+            "build evidence must deny runtime authorization evidence")
     require("companion_nimble_gatt = 'BUILD-LINKED-DEFINITION-SELF-CHECK-NOT-RUN'" in script,
             "build evidence must deny GATT runtime evidence")
     require("nimble_controller = 'NOT-STARTED'" in script and
@@ -350,6 +392,8 @@ def test_build_only_tooling() -> None:
             "companion_semantics.cpp.obj" in script and
             "companion_request_coordinator.cpp.obj" in script and
             "companion_gatt_session.cpp.obj" in script and
+            "companion_authorization_wire.cpp.obj" in script and
+            "companion_gatt_authorization.cpp.obj" in script and
             "companion_boot_self_check.cpp.obj" in script and
             "companion_nimble_gatt.cpp.obj" in script,
             "build helper must verify all companion/self-check objects in the link map")

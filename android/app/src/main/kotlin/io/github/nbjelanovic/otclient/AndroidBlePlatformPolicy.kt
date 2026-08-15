@@ -132,16 +132,44 @@ internal enum class AndroidGattStage {
 internal class AndroidGattOperationGate {
     var stage: AndroidGattStage = AndroidGattStage.NEW
         private set
+    private var mtuReady = false
+    private var protocolInfoReady = false
 
     fun beginConnection() = move(AndroidGattStage.NEW, AndroidGattStage.CONNECTING)
     fun beginDiscovery() = move(AndroidGattStage.CONNECTING, AndroidGattStage.DISCOVERING)
     fun acceptProfileAndSecurity() = move(AndroidGattStage.DISCOVERING, AndroidGattStage.SECURED)
-    fun beginMtuRequest() = move(AndroidGattStage.SECURED, AndroidGattStage.MTU_PENDING)
-    fun acceptMtu() = move(AndroidGattStage.MTU_PENDING, AndroidGattStage.MTU_READY)
-    fun beginProtocolInfoRead() = move(AndroidGattStage.MTU_READY, AndroidGattStage.PROTOCOL_INFO_PENDING)
-    fun acceptProtocolInfo() = move(AndroidGattStage.PROTOCOL_INFO_PENDING, AndroidGattStage.PROTOCOL_INFO_READY)
-    fun beginIndicationSubscription() =
-        move(AndroidGattStage.PROTOCOL_INFO_READY, AndroidGattStage.INDICATION_SUBSCRIPTION_PENDING)
+    fun beginMtuRequest(): Boolean {
+        if (stage != AndroidGattStage.SECURED && stage != AndroidGattStage.PROTOCOL_INFO_READY) return false
+        stage = AndroidGattStage.MTU_PENDING
+        return true
+    }
+
+    fun acceptMtu(): Boolean {
+        if (stage != AndroidGattStage.MTU_PENDING) return false
+        mtuReady = true
+        stage = AndroidGattStage.MTU_READY
+        return true
+    }
+
+    fun beginProtocolInfoRead(): Boolean {
+        if (stage != AndroidGattStage.SECURED && stage != AndroidGattStage.MTU_READY) return false
+        stage = AndroidGattStage.PROTOCOL_INFO_PENDING
+        return true
+    }
+
+    fun acceptProtocolInfo(): Boolean {
+        if (stage != AndroidGattStage.PROTOCOL_INFO_PENDING) return false
+        protocolInfoReady = true
+        stage = AndroidGattStage.PROTOCOL_INFO_READY
+        return true
+    }
+
+    fun beginIndicationSubscription(): Boolean {
+        if (!mtuReady || !protocolInfoReady) return false
+        if (stage != AndroidGattStage.MTU_READY && stage != AndroidGattStage.PROTOCOL_INFO_READY) return false
+        stage = AndroidGattStage.INDICATION_SUBSCRIPTION_PENDING
+        return true
+    }
     fun acceptIndicationSubscription() = move(AndroidGattStage.INDICATION_SUBSCRIPTION_PENDING, AndroidGattStage.READY)
     fun beginCommandWrite() = move(AndroidGattStage.READY, AndroidGattStage.COMMAND_WRITE_PENDING)
     fun acceptCommandWrite() = move(AndroidGattStage.COMMAND_WRITE_PENDING, AndroidGattStage.READY)

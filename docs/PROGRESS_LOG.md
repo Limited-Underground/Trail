@@ -6,6 +6,50 @@ public chronology.
 
 ## 2026-08-15
 
+### OT-051 Android provisional-authorization orchestration
+
+- Added the separate exact 20-byte `OTB0/v0.1` decoder and a production-shaped
+  runtime claim client. It requires encrypted/authenticated-bond evidence, reads
+  Protocol Info at the default MTU, requests the advertised normal MTU, enables
+  exact Stream indications, writes one Claim Start, and accepts only correlated
+  Pending then terminal authorization frames. A claim-capable payload limit must
+  be 28 through 128 bytes.
+- Accepted/Replaced permits an explicit Snapshot Request; normal state is never
+  inferred before promotion. Denial, timeout, permission loss, disconnect,
+  malformed/stale input, and lifecycle release close the exact lease without
+  automatic claim retry. Transport timeout remains local uncertainty, not an
+  invented device denial.
+- The combined gate passes 90 JVM tests across ten suites (protocol 6, 10, 10,
+  and 3; application 7, 9, 17, 11, 1, and 16), with zero failures, errors, or
+  skips. Lint reports `No issues found.` The 9,644,209-byte debug APK has
+  SHA-256
+  `28ED3014ACE420F8C531625211D26BD3FB9D522F1349BACA0878F94726534D8A`.
+  `MainActivity` still injects the disabled claim client and the default
+  security authority remains deny-all. No emulator, phone, peripheral, ADB,
+  install, signing, or live authorization evidence exists; V1 remains 30%.
+
+### OT-050 restricted device provisional authorization lifecycle
+
+- Added exact `OTB0/v0.1` claim-capability evidence and a fixed-memory
+  one-connection lifecycle binding trusted encrypted/authenticated-bond state,
+  exact registered Protocol Info/Command/Stream/CCCD handles, MTU, provisional
+  session, exchange, purpose, correlation, and distinct delivery tokens.
+- Claim admission requires MTU at least 51 for the fixed 48-byte terminal
+  envelope. Pending is reserved and confirmed before later physical/device-
+  authority resolution; terminal capacity is reserved before authority
+  mutation, and Accepted/Replaced promotes only after exact terminal indication
+  confirmation. Normal traffic requires MTU 151. Exact 27-reject/28-accept
+  payload-limit boundaries close Protocol Info coherence.
+- Twenty strict groups and 100/100 repeats, the complete 120-executable host
+  matrix, target self-check 100/100, static admission 3/3, and two pinned ESP-IDF
+  v6.0.2 builds pass. The image is 165,349 bytes; the 165,472-byte BIN has
+  SHA-256
+  `E2ACF6672925D2FF298BD58E7C7BCBA564D46F1B7A6853D67865CE62F09D12B9`.
+  The lifecycle is `BUILD-LINKED-NOT-RUN`; real NimBLE provisional access stays
+  AUTHOR-denied, the controller/service/advertiser never starts, and nothing was
+  flashed. See [OT-050 evidence](../tests/hardware/OT-050-2026-08-15.md). V1
+  remains 30%.
+
 ### OT-049 Android authorization-wire parity
 
 - Added pure Kotlin parity for the frozen `OTL0/v0` claim Start,
@@ -42,8 +86,9 @@ public chronology.
   its owner to call exact connection close before another transport generation
   may open.
 - Fourteen strict groups, 100/100 repeats, ten shared vectors, and the complete
-  119-executable host matrix pass. Current `OTB0/v0` has no claim capability,
-  current GATT requires application authorization before negotiation, and no
+  119-executable host matrix pass. At OT-048 acceptance `OTB0/v0` had no claim
+  capability, the GATT path required application authorization before
+  negotiation, and no
   provisional GATT, authorization target/runtime integration, device access,
   or physical evidence exists. Because three shared sources are already target-
   linked, two pinned ESP-IDF v6.0.2 builds also reproduced the generic

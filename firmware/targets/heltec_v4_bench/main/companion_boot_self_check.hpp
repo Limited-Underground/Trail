@@ -10,4 +10,9 @@ namespace opentrail::target::heltec_v4_bench {
 // fixed bytes only to an in-memory sink; it starts no Bluetooth runtime.
 [[nodiscard]] bool run_companion_gatt_session_self_check();
 
+// Deterministic restricted authorization lifecycle check. This uses only
+// fixed fake bond/authority evidence and an in-memory indication sink; it does
+// not register or start a Bluetooth controller, GATT server, or advertiser.
+[[nodiscard]] bool run_companion_gatt_authorization_self_check();
+
 }  // namespace opentrail::target::heltec_v4_bench

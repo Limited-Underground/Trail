@@ -3,7 +3,8 @@
 Status: host-tested codec/session/coordinator foundation, dormant OT-042 NimBLE
 GATT target definition, OT-044 response-safe GATT lifecycle, OT-046 host-only
 one-phone authorization, OT-047 disabled Android authorization UX, and
-OT-048/049 fixed authorization-wire codec/tracker parity,
+OT-048/049 fixed authorization-wire codec/tracker parity, plus OT-050/051
+build-linked/default-disabled restricted provisional orchestration,
 2026-08-15. No GATT registration/controller/advertising, enabled target-bound
 application-authorization workflow, radio path, authenticated group packet, or
 physical-device evidence exists.
@@ -341,33 +342,51 @@ tracker requires explicit future negotiated support, encrypted/authenticated
 bond evidence, Pending before one terminal, exact context, and exact close as
 the sole release of a connection generation when called by its transport owner.
 Fourteen strict groups, ten shared
-vectors, 100/100 repeats, and the current 119-executable host matrix pass.
+vectors, 100/100 repeats, and the 119-executable OT-048-era host matrix pass.
 
-OT-049 mirrors the bytes and tracker in pure Kotlin. The Android gate passes 77
-JVM tests across eight suites (protocol suites 6, 10, and 10; application
-suites 6, 17, 11, 1, and 16) and lint; the 9,627,825-byte debug APK has SHA-256
+OT-049 mirrored the bytes and tracker in pure Kotlin. Its Android gate passed
+77 JVM tests across eight suites (protocol suites 6, 10, and 10; application
+suites 6, 17, 11, 1, and 16) and lint; its 9,627,825-byte debug APK has SHA-256
 `967FCD7A032ECED63789378F5B3C0F6AC86D06CE9CF3B6B16205E7C49B8093A3`.
-The production claim client remains disabled and is not wired to the activity,
-runtime, or Android GATT facade.
+At OT-049 acceptance the production claim client remained disabled and was not
+wired to the activity, runtime, or Android GATT facade.
 
-Current Protocol Info has no authorization-claim capability bit, and the
-current GATT contract requires application authorization before Protocol Info
-and session negotiation. No provisional GATT phase or negotiated live claim
-capability therefore exists. A later coordinated transport must admit only the
-three authorization kinds on an encrypted, authenticated-bond provisional
-connection and promote that exact connection/session only after an
-authoritative Accepted or Replaced result. Failure or timeout cannot be
-reported as authoritative Unsupported or Denied.
+OT-050 adds a separate exact 20-byte `OTB0/v0.1` record for the restricted
+phase. Capability bit `0x10`, a nonzero provisional session nonce, payload
+capacity 28 through 128, a normal ATT MTU minimum of at least 151, and a
+fragment-count limit from 1 through 16 provide explicit negotiated evidence.
+The current lifecycle advertises exactly MTU 151 and 16 fragments. The record
+fits default MTU 23; the client should then request the advertised normal MTU,
+while claim admission hard-requires at least 51 for the complete 48-byte
+terminal indication. Only exact registered Protocol Info/Command/Stream/CCCD
+handles, trusted encrypted/authenticated-bond evidence, and current Stream
+indication subscription may open the path.
 
-The generic target already links the shared protocol, semantic-dispatcher, and
-coordinator sources touched by OT-048. Two pinned ESP-IDF v6.0.2 rebuilds
-reproduce a 157,957-byte image and 158,080-byte BIN after exact authorization-
-kind recognition and normal-path rejection were added. The link map excludes
-the authorization wire/tracker source, and no target path admits the new kinds.
-See [OT-048 target evidence](../../tests/hardware/OT-048-2026-08-15.md).
+The device reserves before Pending, confirms Pending before later local
+physical/authority resolution, reserves terminal capacity before authority
+mutation, and promotes only after exact Accepted/Replaced terminal indication
+confirmation. MTU below 151 leaves normal traffic closed after promotion until
+the same connection reaches the advertised bound. Denied, local timeout,
+security loss, unsubscribe, disconnect, congestion, negative confirmation,
+submission failure, or stale callback cannot promote. OT-051 mirrors this order
+and sends an explicit Snapshot Request after promotion.
 
-This does not implement GATT registration/startup/advertising, a provisional
-authorization GATT phase or negotiated claim capability, pairing/bond
+The current 120-executable host matrix, OT-050's twenty strict groups at 100/100,
+target self-check 100/100, and static admission 3/3 pass. Two pinned ESP-IDF
+v6.0.2 builds reproduce a 165,349-byte image and 165,472-byte BIN with SHA-256
+`E2ACF6672925D2FF298BD58E7C7BCBA564D46F1B7A6853D67865CE62F09D12B9`;
+the authorization wire and lifecycle are retained in the link map. See
+[OT-050 target evidence](../../tests/hardware/OT-050-2026-08-15.md).
+
+The Android gate now passes 90 JVM tests across ten suites (protocol 6, 10, 10,
+and 3; application 7, 9, 17, 11, 1, and 16) and clean lint. The 9,644,209-byte
+debug APK has SHA-256
+`28ED3014ACE420F8C531625211D26BD3FB9D522F1349BACA0878F94726534D8A`.
+`MainActivity` still injects the disabled claim client.
+
+This does not implement live GATT registration/startup/advertising or bind the
+restricted lifecycle to NimBLE events. The real AUTHOR path remains baseline
+v0.0 and denied; controller/service/advertiser startup is absent. Pairing/bond
 storage, target-bound application authorization, persistent result/history caching,
 reassembly, Android background behavior, radio, GNSS, persistence, functional
 target runtime, physical transport, accessibility, packaging, signing, store
