@@ -144,10 +144,58 @@ an action, stale/wrong-controller/wrong-session/server-direction/fragmented
 requests reject, and public status omits the controller binding. Fifteen focused
 host groups, 100/100 repeats, and the complete 113-executable host/publication-
 safety gate pass warning-free. This is codec/session-admission evidence only:
-there is no BLE stack, pairing/OOB workflow, Android application, semantic
-snapshot/action payload, reassembly/result cache, radio/GNSS/persistence
+OT-033 itself includes no BLE stack, pairing/OOB workflow, Android application,
+semantic snapshot/action payload, reassembly/result cache, radio/GNSS/persistence
 binding, target build, or physical-device result. No hardware was accessed or
 written, and V1 is unchanged.
+
+OT-035 now supplies the first production-neutral semantic payloads above that
+framing. Exact fixed-capacity `OTX0/v0` snapshot request, `OTN0/v0` typed status,
+`OTA0/v0` user intent, and `OTR0/v0` action result records occupy 8, 32, 20,
+and 20 bytes and fit one v0 fragment. The snapshot exposes only device-owned
+typed radio/GNSS/power/position-sharing state, a queue count, a nonzero revision,
+and an optional exact critical-alert ID. Actions are limited to the four
+canonical quick-status IDs, acknowledgement of that exact alert ID, and
+distinct position-sharing Start/Stop. A strict dispatcher rejects every
+payload under the wrong `OTC0` kind. Results distinguish local admission,
+device-owned queue admission, and typed rejection; queued never means sent or
+delivered. Thirteen warning-free focused groups and 100/100 repeats cover exact
+vectors, closed enums, strict lengths/version/reserves, action/result coherence,
+atomic failure, and envelope-kind binding. The complete 114-executable host/
+publication-safety gate passes. There is still no BLE stack, target runtime,
+request fingerprint/result cache, Android binding, coordinates, message
+history, radio/GNSS integration, or physical result. No hardware was accessed
+or written, and V1 remains 30%.
+
+OT-036 adds the first buildable native Android foundation without claiming a
+functional device connection. A pure Kotlin module strictly encodes/decodes
+`OTB0/v0` protocol info and `OTC0/v0` fragments against the shared C++ golden
+bytes. A Jetpack Compose shell exposes Disconnected, Selecting, Connecting,
+Connected, and Failed states over a deterministic fake-only transport with two
+local choices and one active fake connection. Six protocol tests, four
+application-state tests, warning-as-error lint, debug assembly, and an
+independent APK/manifest audit pass. The debug artifact uses stable technical
+package `io.github.nbjelanovic.otclient`, displays the current working product
+name, and requests no Bluetooth, nearby-device, location, internet, storage, or
+management permission. The activity-owned controller is not lifecycle-safe and
+the fake adapter's free-form errors are not a production boundary. Live BLE,
+typed adapter errors, configuration/process recovery, accessibility/rendered
+acceptance, signing, installation, distribution, and physical one-phone/
+one-device evidence remain open. No emulator, phone, serial port, or LoRa device
+was accessed; V1 remains 30%.
+
+OT-037 links the accepted C++ companion envelope and semantic payload sources
+into the generic build-only Heltec candidate. Its boot-path self-check compares
+exact fixed `OTB0`, `OTA0`, and combined `OTC0` plus `OTA0` vectors, then
+decodes and semantically dispatches the action request before allowing the
+heartbeat path. Static admission passes 3/3 and 100/100 repeats. ESP-IDF v6.0.2
+produces a hash-stable 145,657-byte application image, 3,692 bytes above the
+OT-034 baseline, and the link map contains both companion objects. The evidence
+is explicitly `BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`, and
+`UNREVIEWED-RUNTIME`; no hardware was accessed. The image still has the generic
+2 MB/DIO/80 MHz profile, and no BLE stack, GATT/session owner, radio, GNSS,
+storage, recovery, physical runtime, or supported-hardware evidence exists.
+OT-034 remains `partial`, and V1 remains 30%.
 
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins

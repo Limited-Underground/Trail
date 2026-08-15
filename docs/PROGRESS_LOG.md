@@ -6,6 +6,67 @@ public chronology.
 
 ## 2026-08-14
 
+### OT-037 companion codecs linked into the build-only target
+
+- Linked the accepted `OTB0/v0`, `OTC0/v0`, `OTX0/v0`, `OTN0/v0`,
+  `OTA0/v0`, and `OTR0/v0` C++ sources into the generic
+  `heltec_v4_bench` ESP-IDF candidate.
+- Added a boot-path self-check that compares exact fixed Protocol Info,
+  action, and full envelope-plus-action vectors, decodes them, and requires the
+  semantic dispatcher to accept the exact action-request binding. Success and
+  failure logs are fixed; failure suspends before startup or heartbeat.
+- Static admission passes 3/3 and 100/100 repeats. The pinned ESP-IDF v6.0.2
+  build and a hash-stable incremental rebuild pass. The application image is
+  145,657 bytes, 3,692 bytes larger than OT-034, and both companion source
+  objects are present in the link map. Exact artifacts are recorded in
+  [OT-037 evidence](../tests/hardware/OT-037-2026-08-14.md).
+- The result remains `BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`, and
+  `UNREVIEWED-RUNTIME`. No device was accessed. The generic 2 MB/DIO/80 MHz
+  profile, exact-board authority, recovery, BLE/GATT runtime, radio, GNSS,
+  storage, and physical evidence remain open. OT-034 stays `partial`; V1
+  remains 30%.
+
+### OT-036 buildable Android client foundation
+
+- Added a native Kotlin/Jetpack Compose Android project with a stable technical
+  application/package identity and the visible working name `Limited
+  Underground Trail`. The shell presents explicit Disconnected, Selecting,
+  Connecting, Connected, and Failed states over a deterministic fake transport;
+  it performs no Bluetooth discovery or device I/O.
+- Added a pure Kotlin strict `OTB0/v0` and `OTC0/v0` codec. Its six tests consume
+  the shared C++ golden bytes and cover exact vectors, every known frame kind,
+  maximum fragmentation, malformed/version/reserve/enum rejection, invalid
+  limits and identifiers, and rejection of payloads over 128 bytes before copy.
+  Four application-state tests cover selection, connection, failure,
+  disconnect, single-active-connection, and invalid-transition containment.
+- Pinned Java 17, Gradle 8.11.1 with checksum, Android platform 35/build-tools
+  35.0.0, AGP 8.7.3, and Kotlin/Compose 2.0.21. The focused gate passes all 10
+  JVM tests, warning-as-error lint with no issue, and debug APK assembly. An
+  independent audit confirmed the package/label/SDK bounds and no Bluetooth,
+  nearby-device, location, internet, storage, or management permission.
+- The controller is not Android lifecycle-safe, errors are fake-only strings,
+  and there is no live BLE, real GATT/security session, semantic device binding,
+  install, signing, store package, or physical evidence. No device was accessed,
+  and V1 remains 30%.
+
+### OT-035 fixed companion semantic payloads
+
+- Added four exact brand-neutral, fixed-capacity semantic records above OT-033:
+  the 8-byte `OTX0/v0` snapshot request, 32-byte `OTN0/v0` status snapshot,
+  20-byte `OTA0/v0` user intent, and 20-byte `OTR0/v0` action result. A strict
+  dispatcher rejects every record under the wrong `OTC0` frame kind.
+- The snapshot carries only typed device-owned radio/GNSS/power/position state,
+  queue count, revision, and optional exact pending critical-alert ID. Actions
+  admit the four canonical quick-status IDs, exact-alert acknowledgement, and
+  distinct position-sharing Start/Stop. Results separate local admission,
+  device queue admission, and rejection; queued is never radio-delivery proof.
+- Thirteen focused warning-free groups, 100/100 repeats, and the complete
+  114-executable host/publication-safety gate pass. OT-035 itself contains no
+  BLE stack, Android binding, target runtime owner, result cache, coordinates,
+  text, message history, group secret, or device evidence. OT-037 later links
+  these codecs into a build-only target without executing them. No hardware was
+  accessed or written, and V1 remains 30%.
+
 ### OT-033 one-controller BLE companion protocol foundation
 
 - Added brand-neutral `OTB0/v0` Protocol Info and `OTC0/v0` fragment codecs for

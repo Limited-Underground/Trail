@@ -12,6 +12,13 @@ ROOT = Path(__file__).resolve().parents[2]
 TARGET = ROOT / "firmware" / "targets" / "heltec_v4_bench"
 CONTRACT = TARGET / "target-contract.json"
 SOURCE = TARGET / "main" / "app_main.cpp"
+MAIN_CMAKE = TARGET / "main" / "CMakeLists.txt"
+COMPANION_SOURCES = (
+    ROOT / "firmware" / "components" / "companion" / "src" /
+    "companion_protocol.cpp",
+    ROOT / "firmware" / "components" / "companion" / "src" /
+    "companion_semantics.cpp",
+)
 DEFAULTS = TARGET / "sdkconfig.defaults"
 BUILD_SCRIPT = ROOT / "tools" / "Build-HeltecV4BenchTarget.ps1"
 
@@ -53,10 +60,16 @@ def test_contract() -> None:
             "candidate must not claim support")
 
     capabilities = document["capabilities"]
+    admitted = {
+        "bounded_usb_heartbeat",
+        "boot_companion_codec_self_check",
+    }
     require(capabilities["bounded_usb_heartbeat"] is True,
-            "heartbeat is the only admitted capability")
+            "heartbeat must remain admitted")
+    require(capabilities["boot_companion_codec_self_check"] is True,
+            "boot companion-codec self-check must be admitted")
     for name, enabled in capabilities.items():
-        if name != "bounded_usb_heartbeat":
+        if name not in admitted:
             require(enabled is False, f"capability must remain disabled: {name}")
 
     require(document["write_policy"] == {
@@ -67,12 +80,56 @@ def test_contract() -> None:
 
 def test_application_surface() -> None:
     source = SOURCE.read_text(encoding="utf-8")
+    require("run_companion_codec_self_check" in source,
+            "missing deterministic boot codec self-check")
+    require("kExpectedInfo" in source and
+            "kExpectedAction" in source and
+            "kExpectedFragment" in source,
+            "self-check must compare exact OTB0, OTA0, and OTC0 vectors")
+    require("companion codec self-check PASS" in source,
+            "missing fixed codec PASS record")
+    require("companion codec self-check FAIL" in source,
+            "missing fixed codec FAIL record")
+    require("contain_self_check_failure" in source and
+            "vTaskSuspend(nullptr)" in source,
+            "codec failure must suspend before heartbeat")
     require("build-only bench candidate started" in source,
             "missing bounded startup record")
     require("heartbeat elapsed_ms=%llu" in source,
             "missing privacy-safe heartbeat")
     require("esp_timer_get_time" in source,
             "heartbeat must use boot-local monotonic time")
+    self_check_call = source.index("if (!run_companion_codec_self_check())")
+    pass_log = source.index("companion codec self-check PASS")
+    startup_log = source.index("build-only bench candidate started")
+    heartbeat_log = source.index("heartbeat elapsed_ms=%llu")
+    require(self_check_call < pass_log < startup_log < heartbeat_log,
+            "codec self-check must gate startup and heartbeat")
+
+    cmake = MAIN_CMAKE.read_text(encoding="utf-8")
+    for required in (
+        "companion/src/companion_protocol.cpp",
+        "companion/src/companion_semantics.cpp",
+        "companion/include",
+        "protocol/include",
+        "radio/include",
+    ):
+        require(required in cmake,
+                f"target must link accepted companion surface: {required}")
+    require(cmake.count('.cpp"') == 3,
+            "target source set must remain app plus two accepted codec files")
+
+    linked_source = "\n".join(
+        path.read_text(encoding="utf-8") for path in COMPANION_SOURCES)
+    forbidden_initializers = (
+        "esp_ble_", "esp_bt_controller", "nimble_port_init",
+        "esp_wifi_init", "nvs_flash_init", "gpio_config",
+        "spi_bus_initialize", "uart_driver_install", "radiolib",
+        "sx126", "gnss_init", "gps_init", "gnss.begin", "gps.begin",
+    )
+    for token in forbidden_initializers:
+        require(token not in linked_source.lower(),
+                f"linked codec source contains forbidden initializer: {token}")
 
     forbidden = (
         "WiFi", "Bluetooth", "NimBLE", "esp_ble", "esp_bt", "RadioLib",
@@ -125,6 +182,11 @@ def test_build_only_tooling() -> None:
             "build evidence must record the inspected primary console")
     require("framework_log_surface = 'UNREVIEWED-RUNTIME'" in script,
             "build evidence must preserve the runtime log-review gap")
+    require("companion_codec_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
+            "build evidence must deny runtime self-check evidence")
+    require("companion_protocol.cpp.obj" in script and
+            "companion_semantics.cpp.obj" in script,
+            "build helper must verify both companion objects in the link map")
     require("Generated sdkconfig did not select USB Serial/JTAG" in script,
             "build helper must inspect the generated console selection")
 

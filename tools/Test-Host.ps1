@@ -130,6 +130,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'BLE companion semantic payload codecs'
+        Output = Join-Path $buildDirectory 'companion_semantics_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_semantics_tests.cpp')
+        )
+    },
+    @{
         Name = 'protected packet budget'
         Output = Join-Path $buildDirectory 'protected_packet_budget_tests.exe'
         Sources = @(

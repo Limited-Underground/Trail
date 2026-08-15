@@ -37,3 +37,12 @@ captures/
 *.swp
 Thumbs.db
 .DS_Store
+
+# Android/Gradle local state
+.gradle/
+**/.gradle/
+**/local.properties
+**/.kotlin/
+**/build/
+*.jks
+*.keystore

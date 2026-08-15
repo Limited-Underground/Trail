@@ -1,9 +1,10 @@
 # BLE Companion GATT v0
 
 Status: host-tested fragment codec and one-controller session-admission
-foundation, 2026-08-14. No BLE stack, Android application, target binding,
-pairing method, radio path, authenticated group packet, or physical-device
-evidence exists.
+foundation, 2026-08-14. OT-036 adds a buildable fake-only Android shell and
+matching pure Kotlin envelope codec, but no BLE stack, Android BLE adapter,
+target binding, pairing method, radio path, authenticated group packet, or
+physical-device evidence exists.
 
 ## Purpose and authority
 
@@ -145,8 +146,71 @@ an authoritative snapshot, and resumes by device-owned history/event cursors.
 
 ## State and action sequencing
 
-The next semantic payload increment should bind existing typed behavior rather
-than reproduce presentation objects. The minimum order is:
+OT-035 binds the first fixed semantic payloads to the OT-033 envelope. These
+records remain presentation-neutral and brand-neutral; none contains text,
+coordinates, group material, a persistent device identity, `OTS0`, or the
+embedded `UiFrame`.
+
+| Payload | Bytes | Allowed envelope kind | Purpose |
+| --- | ---: | --- | --- |
+| `OTX0/v0` | 8 | `snapshot_request` | Exact semantic-version request after validating Protocol Info |
+| `OTN0/v0` | 32 | `snapshot` | Device-owned status revision, typed radio/GNSS/power/position-sharing states, queued-action count, and optional exact pending critical-alert ID |
+| `OTA0/v0` | 20 | `action_request` | One fixed quick status, exact-alert acknowledgement, or explicit position-sharing Start/Stop intent |
+| `OTR0/v0` | 20 | `action_result` | Echoed typed intent and local `admitted`, device-queue `queued`, or `rejected` result |
+
+Every record starts with its four-byte magic, exact semantic major/minor zero,
+and zero reserves. The snapshot revision is a nonzero device-owned boot-local
+value. Radio, GNSS, power, and position-sharing values are closed enums. The
+snapshot may expose a zero pending-alert ID for none or one exact nonzero
+device-owned alert ID for acknowledgement correlation; it carries no alert
+text or producer identity.
+
+`OTX0` is magic at bytes 0-3, semantic major/minor at 4-5, and two reserved-zero
+bytes at 6-7. `OTN0` uses the following exact layout:
+
+| Offset | Bytes | Meaning |
+| ---: | ---: | --- |
+| 0 | 4 | ASCII `OTN0` |
+| 4 | 2 | Exact semantic major/minor zero |
+| 6 | 1 | Radio state |
+| 7 | 1 | GNSS state |
+| 8 | 1 | Power state |
+| 9 | 1 | Position-sharing state |
+| 10 | 2 | Device-owned queued-action count, little-endian |
+| 12 | 4 | Nonzero boot-local snapshot revision, little-endian |
+| 16 | 8 | Pending device-owned critical-alert ID or zero, little-endian |
+| 24 | 8 | Reserved zero |
+
+`OTA0` uses magic/version at bytes 0-5, action kind at byte 6, quick-status
+detail or zero at byte 7, the critical-alert ID or zero at bytes 8-15, and four
+reserved-zero bytes. `OTR0` uses magic/version at 0-5, disposition at 6,
+rejection reason at 7, echoed action kind at 8, echoed quick-status detail or
+zero at 9, two reserved-zero bytes, and the echoed critical-alert ID or zero at
+12-19. Every multibyte integer is little-endian.
+
+`OTA0` action IDs are fixed: 1 quick status, 2 acknowledge critical alert, 3
+start position sharing, and 4 stop position sharing. Quick-status detail IDs
+reuse the existing canonical wire values: 1 OK, 2 need assistance, 3 anyone
+online, and 4 available to help. Only quick status may carry that detail. Only
+critical acknowledgement may carry a nonzero exact device-owned alert ID.
+Position sharing is two distinct intents rather than a toggle.
+
+The semantic dispatcher rejects every record under the wrong `OTC0` frame kind;
+v0 defines no event payload yet. `OTR0` is correlated by the enclosing `OTC0`
+exchange ID and echoes the typed
+intent. `admitted` means that a position-sharing intent was accepted locally.
+`queued` means only that a quick-status or critical-acknowledgement item entered
+device-owned outbound work; it is not sent, received, delivered, acknowledged,
+or operator-response evidence. `rejected` always includes one closed reason:
+unsupported action, stale alert, unavailable, queue full, policy denied, or
+internal failure. Stale alert is valid only for exact-alert acknowledgement;
+queue full is valid only for the two outbound action kinds. The remaining
+reasons are intentionally generic across action kinds. Successful results carry
+no rejection reason. The codec
+rejects `admitted` for outbound actions and `queued` for local position actions
+so no caller can use the typed result to manufacture radio-delivery evidence.
+
+The minimum order is:
 
 1. connect to one explicitly selected allowlisted service;
 2. establish the approved encrypted/authenticated/authorized controller link;
@@ -159,12 +223,10 @@ than reproduce presentation objects. The minimum order is:
 7. recover notification loss or reconnect through a fresh snapshot plus bounded
    device-owned history cursors.
 
-Initial action payloads should cover only the existing fixed quick statuses,
-critical-alert acknowledgement, and explicit Start/Stop position sharing.
-Snapshots/events should expose typed radio/GNSS/power state, queue summary,
-message/alert records, self position, and peer position with validity and age.
-Their exact binary payload schemas are intentionally not claimed by this
-foundation.
+The first payload set deliberately stops at one coarse status snapshot and
+three bounded intent families. Message/history records, request fingerprint and
+result caching, event payloads, alert detail, self/peer position coordinates and
+freshness, reassembly, and target runtime ownership remain later increments.
 
 ## Maps sequence
 
@@ -187,9 +249,16 @@ commands, monotonic IDs, duplicate classification, stale rejection, close/
 reopen, non-adjacent nonce reuse, session/request exhaustion without wrap, and
 redacted public status.
 
+OT-035 adds 13 deterministic semantic-codec groups and 100/100 focused repeats
+covering exact vectors, strict lengths/version/reserves, the complete closed
+status enum space, four canonical quick-status IDs, exact alert correlation,
+explicit position Start/Stop, result coherence, atomic failure, and one real
+`OTC0` envelope composition.
+
 This does not implement the UUIDs in a BLE stack, pairing/bond storage,
 application authorization, target session allocation, result caching, request-
 conflict comparison, reassembly,
-semantic state/action payloads, Android, background behavior, radio, GNSS,
-persistence, target build, physical transport, accessibility, packaging,
+Android BLE binding or background behavior, radio, GNSS,
+persistence, functional target runtime or GATT target binding, physical
+transport, accessibility, packaging,
 signing, store distribution, or support. No device was accessed or written.

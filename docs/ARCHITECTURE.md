@@ -107,6 +107,32 @@ reject incompatible versions, second controllers, wrong sessions, stale or
 wrapped IDs, and fragmented v0 actions. This is host-only framing/admission
 evidence, not a BLE stack, Android app, target binding, or physical result.
 
+OT-035 layers fixed semantic records onto that envelope without serializing
+presentation state. Exact `OTX0` snapshot requests, `OTN0` typed status,
+`OTA0` fixed user intents, and `OTR0` typed local/queue/rejection results fit one
+v0 fragment. A strict dispatcher binds each record to its allowed `OTC0` kind.
+The action surface is limited to the four canonical quick statuses, an exact
+device-owned critical-alert ID acknowledgement, and explicit position-sharing
+Start/Stop. Queued is not sent or delivered evidence. No text, coordinates,
+group secret, BLE stack, Android runtime, or device binding is included.
+
+OT-036 adds a separately buildable Android consumer foundation. Its pure Kotlin
+codec mirrors the exact `OTB0/v0` and `OTC0/v0` bounds and shared golden bytes;
+the Compose application renders explicit connection states over a deterministic
+fake transport. The visible working identity remains above a stable technical
+package namespace. No Bluetooth permission or adapter exists in this increment,
+and the activity-scoped controller is not allowed to own a future BLE lease.
+Production requires a lifecycle-aware session owner and typed privacy-safe
+error mapping before the accepted GATT/security contract can be bound.
+
+OT-037 links the accepted C++ companion framing and semantic codecs into the
+generic build-only `heltec_v4_bench` ESP-IDF candidate. A fixed boot-path
+self-check compares and decodes exact Protocol Info, action, and combined
+envelope/action vectors before the heartbeat path. The accepted evidence is
+compile, link-map, size, and artifact reproducibility only: the self-check is
+`BUILD-LINKED-NOT-RUN`, the image is `NOT-FLASHED`, and there is still no BLE
+stack, GATT adapter, runtime session owner, radio path, or physical result.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

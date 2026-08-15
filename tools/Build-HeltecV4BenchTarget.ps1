@@ -108,6 +108,16 @@ $artifactPaths = @(
     (Join-Path $buildRoot 'partition_table\partition-table.bin'),
     $sdkconfigPath
 )
+$linkMapPath = Join-Path $buildRoot 'opentrail_heltec_v4_bench.map'
+$linkMap = Get-Content -LiteralPath $linkMapPath -Raw
+foreach ($requiredObject in @(
+    'companion_protocol.cpp.obj',
+    'companion_semantics.cpp.obj'
+)) {
+    if (-not $linkMap.Contains($requiredObject)) {
+        throw "Required companion codec object is absent from the link map: $requiredObject"
+    }
+}
 $artifactEvidence = @(
     foreach ($artifactPath in $artifactPaths) {
         if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
@@ -129,6 +139,7 @@ $evidence = [ordered]@{
     target = 'esp32s3'
     console_primary = 'USB_SERIAL_JTAG'
     application_dynamic_value = 'boot-local elapsed_ms'
+    companion_codec_self_check = 'BUILD-LINKED-NOT-RUN'
     framework_log_surface = 'UNREVIEWED-RUNTIME'
     artifacts = $artifactEvidence
 }
