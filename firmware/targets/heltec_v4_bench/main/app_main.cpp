@@ -5,6 +5,7 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "companion_boot_self_check.hpp"
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_semantics.hpp"
 
@@ -108,7 +109,7 @@ bool run_companion_codec_self_check() {
 }
 
 [[noreturn]] void contain_self_check_failure() {
-    ESP_LOGE(kLogTag, "companion codec self-check FAIL");
+    ESP_LOGE(kLogTag, "companion boot self-check FAIL");
     while (true) {
         vTaskSuspend(nullptr);
     }
@@ -117,10 +118,12 @@ bool run_companion_codec_self_check() {
 }  // namespace
 
 extern "C" void app_main() {
-    if (!run_companion_codec_self_check()) {
+    if (!run_companion_codec_self_check() ||
+        !opentrail::target::heltec_v4_bench::
+             run_companion_request_coordinator_self_check()) {
         contain_self_check_failure();
     }
-    ESP_LOGI(kLogTag, "companion codec self-check PASS");
+    ESP_LOGI(kLogTag, "companion boot self-check PASS");
     ESP_LOGI(kLogTag, "build-only bench candidate started");
 
     while (true) {

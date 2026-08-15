@@ -6,6 +6,47 @@ public chronology.
 
 ## 2026-08-14
 
+### OT-041 lifecycle-safe unwired Android BLE runtime boundary
+
+- Added a pure Kotlin owner for one scan/GATT/reconnect generation behind
+  injected Android Bluetooth and timer facades. It fixes the four v0 GATT
+  identifiers and orders encrypted/authenticated bond plus application
+  authorization before MTU, Protocol Info, indication-only Stream subscription,
+  and the initial authoritative snapshot.
+- Global and negotiated fragment bounds, active session/action correlation,
+  owner-thread callbacks, phase and result timeouts, reconnect exhaustion,
+  stale generations, observer re-entrancy, and lifecycle stop/destroy fail
+  closed; stop/destroy releases every scan, GATT, reconnect, and timer lease.
+  A throwing presentation observer is detached without interrupting or
+  orphaning the coherently owned transport.
+- Six base-protocol, ten semantic, 17 BLE-runtime, and eleven controller tests
+  pass in a clean isolated build; lint reports zero issues. The 9,545,745-byte
+  debug APK has SHA-256
+  `54C79FA4773A25704D1D33619B0AA93EED3CB7EA78E8B921A2D31FADEDD072BB`.
+  The visible app remains fake-only and the manifest remains Bluetooth,
+  location, internet, and storage permission-free. No Android Bluetooth facade,
+  phone/device/emulator/ADB/BLE access, install, signing, or field evidence
+  exists; V1 remains 30%.
+
+### OT-040 companion coordinator linked into the build-only target
+
+- Linked the accepted fixed-memory request coordinator into the generic
+  `heltec_v4_bench` candidate and added a deterministic target-local boot
+  self-check over fixed fake authorities.
+- Exact action/result and snapshot/status envelopes, one prepare/commit
+  application, response correlation, and byte-identical duplicate replay
+  without a second authority call pass strict native checks and 100/100 repeats.
+  Static target admission and the complete 116-executable host matrix pass.
+- ESP-IDF v6.0.2 reproducibly builds a 148,949-byte application image with the
+  protocol, semantics, coordinator, and boot-self-check objects retained. Exact
+  artifacts are recorded in
+  [OT-040 evidence](../tests/hardware/OT-040-2026-08-14.md).
+- The result remains generic 2 MB, `BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`, and
+  `UNREVIEWED-RUNTIME`. The target path did not open or write a device; fixed
+  fake authorities provide no NimBLE/GATT, real authority, radio, GNSS,
+  storage, delivery, or physical evidence. OT-034 stays `partial`; V1 remains
+  30%.
+
 ### OT-039 duplicate-safe device companion request coordinator
 
 - Added one fixed-memory C++ owner above the accepted session guard and

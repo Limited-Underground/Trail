@@ -1,9 +1,9 @@
 # BLE Companion GATT v0
 
-Status: host-tested fragment codec and one-controller session-admission
-foundation, 2026-08-14. OT-036 adds a buildable fake-only Android shell and
-matching pure Kotlin envelope codec, but no BLE stack, Android BLE adapter,
-target binding, pairing method, radio path, authenticated group packet, or
+Status: host-tested codec/session/coordinator foundation, OT-040 generic-target
+build linkage without execution, and OT-041 unwired lifecycle-safe Android BLE
+runtime boundary, 2026-08-14. No ESP-IDF BLE stack, concrete Android Bluetooth
+facade, pairing method, radio path, authenticated group packet, or
 physical-device evidence exists.
 
 ## Purpose and authority
@@ -266,9 +266,26 @@ stale, old-session, exhausted, and terminally failed requests remain closed.
 Sixteen strict groups and 100/100 repeats pass. See the
 [request coordinator contract](COMPANION_REQUEST_COORDINATOR_V0.md).
 
-This does not implement the UUIDs in a BLE stack, pairing/bond storage,
+OT-040 build-links that coordinator into the generic ESP32-S3 candidate and
+gates its heartbeat path on a fixed-authority boot self-check. The exact request
+and response bytes, single action application, and duplicate replay path are
+compiled into the image, but remain `BUILD-LINKED-NOT-RUN` and `NOT-FLASHED`.
+No GATT service or real device authority is implied.
+
+OT-041 adds the corresponding unwired Android runtime owner. Its facade uses
+the exact four v0 UUIDs and an indication-only Stream API; ordered security,
+MTU, Protocol Info, subscription, and initial-snapshot phases each have bounded
+timeouts. One owner-thread generation rejects stale callbacks and releases all
+scan, GATT, reconnect, negotiation, and action timers on lifecycle shutdown.
+The checked-in app manifest remains permission-free and no Android Bluetooth
+facade is implemented, so this does not yet exercise the GATT contract.
+
+This does not implement the UUIDs in an ESP-IDF BLE stack, pairing/bond storage,
 application authorization, persistent result/history caching, reassembly,
-Android BLE binding or background behavior, radio, GNSS,
+Android Bluetooth facade/permission UX or background behavior, radio, GNSS,
 persistence, functional target runtime or GATT target binding, physical
 transport, accessibility, packaging,
-signing, store distribution, or support. No device was accessed or written.
+signing, store distribution, or support. No BLE/GATT target was accessed and no
+device was written. The broader full host suite's established read-only
+USB-loader enumeration is documented separately in the OT-040 evidence record
+and is not BLE/GATT runtime evidence.

@@ -204,8 +204,8 @@ closed enums, reserves, bounds, and result coherence. The fake UI exposes four
 quick statuses, exact pending-alert acknowledgement, and position-sharing
 Start/Stop with monotonic correlated test envelopes. Six base protocol, ten
 semantic, and eleven app-state tests plus lint/APK inspection pass. All visible
-outcomes remain explicitly fake/test state. No Bluetooth permission, adapter,
-device, emulator, lifecycle-safe owner, install, or radio evidence exists.
+outcomes remain explicitly fake/test state. No Bluetooth permission, Android
+Bluetooth facade, device, emulator, install, or radio evidence exists.
 
 OT-039 adds the target-neutral fixed-memory request coordinator needed behind a
 future GATT adapter. It preflights exact response capacity and bytes, uses a
@@ -216,6 +216,32 @@ failed request cannot apply. Sixteen strict groups and 100/100 repeats pass,
 raising the complete host matrix to 115 C++ executables. The authority adapters,
 BLE/GATT runtime, persistence, radio path, and physical evidence remain absent.
 OT-038 and OT-039 are bounded `done` increments; V1 remains 30%.
+
+OT-040 links the accepted request coordinator into the generic build-only
+Heltec candidate and adds one target-local deterministic boot self-check. Exact
+action/result and snapshot/status requests pass through full `OTC0` framing;
+one prepared action commits once, and an exact duplicate replays the identical
+response without another authority call. Strict native checks, 100/100 repeats,
+static admission, the complete 116-executable host matrix, and a reproducible
+ESP-IDF v6.0.2 build pass. The 148,949-byte application remains generic 2 MB,
+`BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`, and `UNREVIEWED-RUNTIME`; fixed fake
+authorities are not a real adapter, GATT service, device runtime, or delivery
+result. Exact evidence is recorded in
+[OT-040](../tests/hardware/OT-040-2026-08-14.md).
+
+OT-041 adds the lifecycle-safe Android BLE runtime boundary below the still
+fake-only visible application. One owner coordinates scan, GATT, reconnect,
+security/application-authorization evidence, MTU and Protocol Info negotiation,
+indication-only Stream subscription, authoritative snapshot opening, exact
+session/action correlation, bounded phase/result timeouts, owner-thread callback
+handling, stale-generation rejection, observer re-entrancy containment, and
+complete stop/destroy cleanup through an injected facade. Six base-protocol,
+ten semantic, 17 BLE-runtime, and 11 controller tests pass with clean lint and
+debug APK assembly. The manifest still requests no Bluetooth, nearby-device,
+location, internet, or storage permission, no Android Bluetooth facade is
+implemented or wired, and no phone/device/emulator/ADB/BLE access occurred.
+OT-040 and OT-041 are bounded `done` increments; OT-034 remains `partial` and
+V1 remains 30%.
 
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins

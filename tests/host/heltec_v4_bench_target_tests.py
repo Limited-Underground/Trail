@@ -12,12 +12,15 @@ ROOT = Path(__file__).resolve().parents[2]
 TARGET = ROOT / "firmware" / "targets" / "heltec_v4_bench"
 CONTRACT = TARGET / "target-contract.json"
 SOURCE = TARGET / "main" / "app_main.cpp"
+SELF_CHECK = TARGET / "main" / "companion_boot_self_check.cpp"
 MAIN_CMAKE = TARGET / "main" / "CMakeLists.txt"
 COMPANION_SOURCES = (
     ROOT / "firmware" / "components" / "companion" / "src" /
     "companion_protocol.cpp",
     ROOT / "firmware" / "components" / "companion" / "src" /
     "companion_semantics.cpp",
+    ROOT / "firmware" / "components" / "companion" / "src" /
+    "companion_request_coordinator.cpp",
 )
 DEFAULTS = TARGET / "sdkconfig.defaults"
 BUILD_SCRIPT = ROOT / "tools" / "Build-HeltecV4BenchTarget.ps1"
@@ -34,6 +37,8 @@ def test_contract() -> None:
         "README.md",
         "main/CMakeLists.txt",
         "main/app_main.cpp",
+        "main/companion_boot_self_check.cpp",
+        "main/companion_boot_self_check.hpp",
         "sdkconfig.defaults",
         "target-contract.json",
     }
@@ -63,11 +68,14 @@ def test_contract() -> None:
     admitted = {
         "bounded_usb_heartbeat",
         "boot_companion_codec_self_check",
+        "boot_companion_request_self_check",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
             "heartbeat must remain admitted")
     require(capabilities["boot_companion_codec_self_check"] is True,
             "boot companion-codec self-check must be admitted")
+    require(capabilities["boot_companion_request_self_check"] is True,
+            "boot companion-request self-check must be admitted")
     for name, enabled in capabilities.items():
         if name not in admitted:
             require(enabled is False, f"capability must remain disabled: {name}")
@@ -80,16 +88,34 @@ def test_contract() -> None:
 
 def test_application_surface() -> None:
     source = SOURCE.read_text(encoding="utf-8")
+    self_check = SELF_CHECK.read_text(encoding="utf-8")
     require("run_companion_codec_self_check" in source,
             "missing deterministic boot codec self-check")
     require("kExpectedInfo" in source and
             "kExpectedAction" in source and
             "kExpectedFragment" in source,
             "self-check must compare exact OTB0, OTA0, and OTC0 vectors")
-    require("companion codec self-check PASS" in source,
-            "missing fixed codec PASS record")
-    require("companion codec self-check FAIL" in source,
-            "missing fixed codec FAIL record")
+    require("companion boot self-check PASS" in source,
+            "missing fixed combined PASS record")
+    require("companion boot self-check FAIL" in source,
+            "missing fixed combined FAIL record")
+    require("run_companion_request_coordinator_self_check" in source,
+            "missing coordinator self-check call")
+    require("FixedSnapshotAuthority" in self_check and
+            "FixedActionAuthority" in self_check,
+            "coordinator self-check must use fixed injected authorities")
+    for vector in (
+        "kActionRequest", "kActionResponse",
+        "kSnapshotRequest", "kSnapshotResponse",
+    ):
+        require(vector in self_check,
+                f"coordinator self-check missing exact vector: {vector}")
+    require("replayed_cached_response" in self_check,
+            "coordinator self-check must prove cached duplicate replay")
+    require("observation.prepare_calls != 1" in self_check and
+            "observation.commit_calls != 1" in self_check and
+            "observation.applied_calls != 1" in self_check,
+            "coordinator self-check must reject duplicate authority reapply")
     require("contain_self_check_failure" in source and
             "vTaskSuspend(nullptr)" in source,
             "codec failure must suspend before heartbeat")
@@ -99,27 +125,31 @@ def test_application_surface() -> None:
             "missing privacy-safe heartbeat")
     require("esp_timer_get_time" in source,
             "heartbeat must use boot-local monotonic time")
-    self_check_call = source.index("if (!run_companion_codec_self_check())")
-    pass_log = source.index("companion codec self-check PASS")
+    self_check_call = source.index("if (!run_companion_codec_self_check() ||")
+    coordinator_call = source.index(
+        "run_companion_request_coordinator_self_check()")
+    pass_log = source.index("companion boot self-check PASS")
     startup_log = source.index("build-only bench candidate started")
     heartbeat_log = source.index("heartbeat elapsed_ms=%llu")
-    require(self_check_call < pass_log < startup_log < heartbeat_log,
-            "codec self-check must gate startup and heartbeat")
+    require(self_check_call < coordinator_call < pass_log < startup_log < heartbeat_log,
+            "both self-checks must gate startup and heartbeat")
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     for required in (
         "companion/src/companion_protocol.cpp",
         "companion/src/companion_semantics.cpp",
+        "companion/src/companion_request_coordinator.cpp",
+        "companion_boot_self_check.cpp",
         "companion/include",
         "protocol/include",
         "radio/include",
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 3,
-            "target source set must remain app plus two accepted codec files")
+    require(cmake.count('.cpp"') == 5,
+            "target source set must remain app, self-check, and three accepted companion files")
 
-    linked_source = "\n".join(
+    linked_source = self_check + "\n" + "\n".join(
         path.read_text(encoding="utf-8") for path in COMPANION_SOURCES)
     forbidden_initializers = (
         "esp_ble_", "esp_bt_controller", "nimble_port_init",
@@ -184,9 +214,13 @@ def test_build_only_tooling() -> None:
             "build evidence must preserve the runtime log-review gap")
     require("companion_codec_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny runtime self-check evidence")
+    require("companion_request_coordinator_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
+            "build evidence must deny runtime coordinator evidence")
     require("companion_protocol.cpp.obj" in script and
-            "companion_semantics.cpp.obj" in script,
-            "build helper must verify both companion objects in the link map")
+            "companion_semantics.cpp.obj" in script and
+            "companion_request_coordinator.cpp.obj" in script and
+            "companion_boot_self_check.cpp.obj" in script,
+            "build helper must verify all companion/self-check objects in the link map")
     require("Generated sdkconfig did not select USB Serial/JTAG" in script,
             "build helper must inspect the generated console selection")
 

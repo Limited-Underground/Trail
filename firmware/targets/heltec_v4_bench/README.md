@@ -10,12 +10,17 @@ write.
 
 ## Allowed behavior
 
-The application may initialize the ESP-IDF runtime, run one deterministic
-boot-time companion-codec self-check, emit its fixed PASS or FAIL line, emit one
+The application may initialize the ESP-IDF runtime, run deterministic
+boot-time companion codec and request-coordinator self-checks, emit one fixed
+PASS or FAIL line for the combined gate, emit one
 fixed startup line after PASS, and emit a recurring USB Serial/JTAG heartbeat.
 The self-check exercises exact `OTB0`, `OTC0`, and `OTA0` vectors plus semantic
-dispatch without opening a transport. Failure suspends the application before
-startup or heartbeat. The only dynamic value owned and read by the application
+dispatch, then uses fixed fake snapshot/action authorities to verify exact
+snapshot and queued-action responses plus byte-identical duplicate replay
+without a second authority call. It opens no transport. Failure suspends the
+application before startup or heartbeat. A queued result is only a local queue
+disposition; it does not claim radio send or delivery. The only dynamic value
+owned and read by the application
 is boot-local elapsed milliseconds. The application does not read or print chip
 IDs, MAC addresses, serial numbers, coordinates, keys, identities, channel
 data, or other device-specific values. ESP-IDF boot/runtime logging shares the
@@ -32,7 +37,7 @@ evidence exists.
   surface
 - identity, pairing, provisioning, keys, or secrets
 - a Bluetooth stack, GATT service, controller session, or device transport; the
-  codec self-check is local computation only
+  fixed coordinator session and fake authorities are local computation only
 - board GPIO, OLED, battery, charger, or power-control bindings
 - the complete `PortableClientComposition`
 - device-write, port-selection, erase, or recovery commands

@@ -112,7 +112,9 @@ $linkMapPath = Join-Path $buildRoot 'opentrail_heltec_v4_bench.map'
 $linkMap = Get-Content -LiteralPath $linkMapPath -Raw
 foreach ($requiredObject in @(
     'companion_protocol.cpp.obj',
-    'companion_semantics.cpp.obj'
+    'companion_semantics.cpp.obj',
+    'companion_request_coordinator.cpp.obj',
+    'companion_boot_self_check.cpp.obj'
 )) {
     if (-not $linkMap.Contains($requiredObject)) {
         throw "Required companion codec object is absent from the link map: $requiredObject"
@@ -140,6 +142,7 @@ $evidence = [ordered]@{
     console_primary = 'USB_SERIAL_JTAG'
     application_dynamic_value = 'boot-local elapsed_ms'
     companion_codec_self_check = 'BUILD-LINKED-NOT-RUN'
+    companion_request_coordinator_self_check = 'BUILD-LINKED-NOT-RUN'
     framework_log_surface = 'UNREVIEWED-RUNTIME'
     artifacts = $artifactEvidence
 }

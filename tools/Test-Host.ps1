@@ -149,6 +149,17 @@ $builds = @(
         )
     },
     @{
+        Name = 'Heltec V4 bench companion coordinator boot self-check'
+        Output = Join-Path $buildDirectory 'heltec_v4_bench_companion_self_check_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_boot_self_check.cpp'),
+            (Join-Path $projectRoot 'tests\host\heltec_v4_bench_companion_self_check_tests.cpp')
+        )
+    },
+    @{
         Name = 'protected packet budget'
         Output = Join-Path $buildDirectory 'protected_packet_budget_tests.exe'
         Sources = @(

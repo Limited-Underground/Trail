@@ -16,6 +16,7 @@
   "capabilities": {
     "bounded_usb_heartbeat": true,
     "boot_companion_codec_self_check": true,
+    "boot_companion_request_self_check": true,
     "radio": false,
     "ble": false,
     "gnss": false,

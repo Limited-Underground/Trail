@@ -144,6 +144,23 @@ never reapplies authority. Device adapters must implement pure preparation and
 atomic commit with no mutation on error. The coordinator is host-tested only;
 an ESP-IDF GATT/session adapter and real device authority remain open.
 
+OT-040 links that coordinator into the generic build-only ESP32-S3 candidate.
+A target-local fixed-authority boot self-check proves exact request/response
+bytes, one action application, and byte-identical duplicate replay before the
+heartbeat path. This is `BUILD-LINKED-NOT-RUN`, `NOT-FLASHED`, and
+`UNREVIEWED-RUNTIME` evidence; the generated profile remains generic 2 MB and
+there is no NimBLE/GATT service or real authority adapter.
+
+OT-041 adds an unwired lifecycle-safe Android BLE runtime boundary. It owns one
+scan/GATT/reconnect generation, exact v0 GATT identifiers, encrypted and
+authenticated bond plus application-authorization ordering, MTU and Protocol
+Info negotiation, indication-only Stream subscription, authoritative snapshot
+opening, bounded request/result correlation, phase/action timeouts, owner-thread
+callbacks, observer re-entrancy containment, and lifecycle lease release. The
+checked-in app manifest remains permission-free and the visible workflow remains
+fake-only, so this is JVM architecture evidence rather than a live Android BLE
+adapter or device connection.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;
