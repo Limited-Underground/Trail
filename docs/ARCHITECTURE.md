@@ -97,6 +97,16 @@ credited to the other. The current four-self-contained-unit first release and
 its no-phone/no-laptop field boundary remain authoritative; the simulator is a
 development reference, not a field dependency.
 
+[Decision 0009](decisions/0009-one-phone-companion-authority.md) and the
+[BLE Companion GATT v0](platform/BLE_COMPANION_GATT_V0.md) now bound the first
+production-facing phone/device seam. One phone may hold one encrypted,
+authenticated, application-authorized controller session; the device remains
+authoritative for security, queues, delivery, location, and history. Fixed
+`OTB0/v0` capability and `OTC0/v0` fragment codecs plus a host session guard
+reject incompatible versions, second controllers, wrong sessions, stale or
+wrapped IDs, and fragmented v0 actions. This is host-only framing/admission
+evidence, not a BLE stack, Android app, target binding, or physical result.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

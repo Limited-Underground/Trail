@@ -71,6 +71,7 @@ $commonArguments = @(
     '-O2',
     '-I', (Join-Path $projectRoot 'firmware\components\radio\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\radio\test_support'),
+    '-I', (Join-Path $projectRoot 'firmware\components\companion\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\protocol\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\identity\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\delivery\include'),
@@ -118,6 +119,14 @@ $builds = @(
         Sources = @(
             (Join-Path $projectRoot 'firmware\components\protocol\src\quick_status_codec.cpp'),
             (Join-Path $projectRoot 'tests\host\quick_status_codec_tests.cpp')
+        )
+    },
+    @{
+        Name = 'BLE companion protocol and session admission'
+        Output = Join-Path $buildDirectory 'companion_protocol_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_protocol_tests.cpp')
         )
     },
     @{
@@ -1511,6 +1520,11 @@ if ($malformedUnified.ExitCode -eq 0 -or
 $python = Get-Command python -ErrorAction SilentlyContinue
 if ($null -eq $python) {
     throw 'Python was not found for MeshCore channel lease host tests.'
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_bench_target_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Heltec V4 bench target admission tests failed.'
 }
 
 & (Join-Path $projectRoot 'tests\host\wio_tracker_l1_preflight_tests.ps1')

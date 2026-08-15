@@ -1,0 +1,30 @@
+{
+  "schema": "OTTB0",
+  "schema_version": 0,
+  "target_id": "heltec-v4-bench-candidate",
+  "evidence_state": "candidate",
+  "framework": {
+    "name": "esp-idf",
+    "version": "v6.0.2",
+    "target": "esp32s3"
+  },
+  "hardware": {
+    "family_candidate": "Heltec WiFi LoRa 32 V4",
+    "exact_received_revision": null,
+    "supported": false
+  },
+  "capabilities": {
+    "bounded_usb_heartbeat": true,
+    "radio": false,
+    "ble": false,
+    "gnss": false,
+    "storage": false,
+    "identity": false,
+    "secrets": false,
+    "portable_client_composition": false
+  },
+  "write_policy": {
+    "build_only": true,
+    "flashing_authorized": false
+  }
+}

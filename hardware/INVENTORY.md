@@ -116,6 +116,20 @@ Official references used for family matching:
 
 ## Development laptop tooling
 
+- OT-034 adds a repository-local, build-only ESP-IDF v6.0.2 `esp32s3`
+  candidate under `firmware/targets/heltec_v4_bench`. Its exact contract admits
+  one fixed application startup line and a recurring USB Serial/JTAG heartbeat;
+  only the application-owned boot-local elapsed-millisecond value is dynamic.
+  The application does not initialize, access, or bind board I/O, radio, BLE,
+  Wi-Fi, GNSS, storage, identity, or secrets. Framework boot/runtime logs remain
+  unreviewed. Three host admission groups and source parsing pass. The pinned
+  native build and size analysis also pass, recording exact artifact hashes and
+  a hash-stable 8.05-second incremental rerun with status `NOT-FLASHED`; see
+  `tests/hardware/OT-034-2026-08-14.md`. No device was discovered, opened, or
+  changed. Its generic 2 MB/DIO/80 MHz image header and NVS/PHY/factory table do
+  not match an authoritative 16 MB/2 MB-PSRAM received-board profile. This is
+  native candidate-build evidence, not compatibility, recovery, runtime, or
+  support evidence.
 - Windows enumerated the native USB Serial/JTAG interface using the Microsoft `usbser.inf` driver.
 - `esptool 5.3.1` is installed for the current Windows user and is available as `python -m esptool`.
 - `meshcore-cli 1.5.7`, `meshcore 2.3.8`, and `bleak 3.0.2` are installed for the current Windows user. BLE discovery works, but direct BLE CLI connections on this laptop failed in the Windows WinRT GATT address-resolution layer before a MeshCore command was sent. USB Companion is now installed so serial CLI validation can be performed after the browser releases the Web Serial port.

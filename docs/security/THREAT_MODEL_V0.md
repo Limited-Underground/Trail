@@ -29,11 +29,21 @@ are labels or routing conveniences. They are never proof of identity.
 | Malicious current member | Treat membership as access to current group traffic, not proof of an individual sender or administrator authority. Require separate source authentication for named-origin claims; rate-limit and support removal/key rotation |
 | Lost or stolen node | Revoke it, advance the group epoch, distribute a new traffic key only to retained members, and disclose that old captured traffic/secrets cannot be remotely erased |
 | Compromised setup phone/computer | Minimize secret exposure, require human confirmation for privileged operations, expire invitations, and provide a direct physical recovery/reset path |
+| Nearby second controller or lost previously authorized phone | Admit only one active controller over an encrypted, authenticated bond plus separate application authorization; require an explicit physical owner-authorization window, bond/application revocation, and lost-phone recovery that cannot alter device-owned radio queues or group security implicitly |
 | Identity/alias collision | Compare authoritative full fingerprints; never merge peers solely because a short alias or display name matches |
 | Partitioned/offline group | Carry explicit epochs and tolerate delayed key updates without silently accepting stale-epoch traffic |
 | Radio denial/jamming | Fail visibly and safely; cryptography cannot guarantee availability or emergency delivery |
 | Physical flash extraction | Current development evidence shows secure boot and flash encryption disabled on `OT-DEV-001`; do not claim protection against a physical attacker on these boards |
 | Downgrade or corrupt update | Require signed/versioned updates, anti-rollback policy, interruption recovery, and a physical recovery path under OT-019 |
+
+OT-033 host-tests only the brand-neutral fragment codec and a one-controller
+session guard against injected encrypted-link, authenticated-bond, application-
+authorization, controller-binding, session, and request evidence. It does not
+implement or prove the BLE stack, secure pairing/OOB method, physical owner-
+authorization control, protected bond storage, revocation, lost-phone recovery,
+or resistance to a nearby attacker on a real device. Those remain required
+production gates; unauthenticated "Just Works" pairing alone does not satisfy
+the guard's authenticated-bond obligation.
 
 ## Identity boundaries
 

@@ -131,6 +131,48 @@ production dependency. Android platform/device, signing, accessibility, and
 distribution evidence remain open; iPhone/store direction is undecided. The
 existing self-contained V1 definition remains unchanged.
 
+OT-033 now fixes the first production-facing Android/device seam without adding
+an Android project or BLE target. A brand-neutral three-characteristic GATT v0
+contract separates Protocol Info, Write-With-Response Command, and indicated/
+notified Stream traffic. Exact fixed-capacity `OTB0/v0` capability records and
+`OTC0/v0` fragments are bounded to 16 and 148 bytes; unknown versions, roles,
+capabilities, kinds, reserves, lengths, sessions, and fragments fail closed.
+The one-controller guard admits only an opaque private binding backed by an
+encrypted link, authenticated bond, and separate application authorization.
+Session nonces and request IDs increase without wrap; duplicates cannot reapply
+an action, stale/wrong-controller/wrong-session/server-direction/fragmented
+requests reject, and public status omits the controller binding. Fifteen focused
+host groups, 100/100 repeats, and the complete 113-executable host/publication-
+safety gate pass warning-free. This is codec/session-admission evidence only:
+there is no BLE stack, pairing/OOB workflow, Android application, semantic
+snapshot/action payload, reassembly/result cache, radio/GNSS/persistence
+binding, target build, or physical-device result. No hardware was accessed or
+written, and V1 is unchanged.
+
+OT-034 introduces the first repository-native ESP-IDF target surface as a
+strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins
+ESP-IDF v6.0.2 and the `esp32s3` compiler target while marking the received
+revision unknown, supported hardware false, and device writing unauthorized.
+The application emits one fixed startup line plus a recurring heartbeat over
+the USB Serial/JTAG console. Its only application-owned dynamic value is
+boot-local elapsed milliseconds, and it reads no device-specific identifier.
+ESP-IDF boot/runtime logs and the generated default partition table remain
+unreviewed build/runtime surfaces. The application does not initialize, access,
+or bind radio, BLE, Wi-Fi, GNSS, storage, identity, secrets, GPIO, OLED,
+battery/power, or `PortableClientComposition`.
+Three host admission groups plus PowerShell/Python/JSON parsing pass. The pinned
+ESP-IDF v6.0.2 native build and size analysis now pass for `esp32s3`: 141,965
+application bytes and 86% of the application partition free. Exact hashes for
+the 142,080-byte BIN, ELF, map, bootloader, partition table, and generated
+sdkconfig plus a hash-stable 8.05-second incremental rerun are recorded in
+`tests/hardware/OT-034-2026-08-14.md`. No device was discovered, opened, or
+flashed. The valid image still has a generic 2 MB/DIO/80 MHz header, and its
+NVS/PHY/factory partition table is not an authoritative received-Heltec profile.
+Exact-board authority, 16 MB flash/2 MB PSRAM profile rebuild,
+sacrificial-first ROM recovery, physical runtime/log review, and every physical
+capability remain open. The two Heltec units remain bench candidates, no
+hardware support claim follows, and V1 is 30%.
+
 The owner has also accepted the provisional working-name hierarchy in Decision
 0008. `Limited Underground` is the parent; `Limited Underground Trail` is the
 Android application and umbrella family; Essential is the screenless,

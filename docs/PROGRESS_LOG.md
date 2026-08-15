@@ -6,6 +6,47 @@ public chronology.
 
 ## 2026-08-14
 
+### OT-033 one-controller BLE companion protocol foundation
+
+- Added brand-neutral `OTB0/v0` Protocol Info and `OTC0/v0` fragment codecs for
+  a three-characteristic production GATT boundary. Fixed arrays, exact lengths,
+  a 128-byte fragment payload, 16-fragment ceiling, and strict version/role/
+  capability/kind/reserve validation keep the surface bounded.
+- Added a one-controller session guard that requires injected encrypted-link,
+  authenticated-bond, and application-authorization evidence. Exact private
+  controller/session binding, monotonic non-wrapping session/request IDs,
+  duplicate classification, stale rejection, and direction/single-fragment
+  action rules fail closed.
+- Fifteen focused warning-free host groups, 100/100 repeats, and the complete
+  113-executable host/publication-safety gate pass. This is not a BLE stack,
+  pairing method, Android app, state/action payload, target binding, radio/GNSS
+  path, or physical-device result. No device was accessed or written, and V1 is
+  unchanged.
+
+### OT-034 build-only Heltec V4 ESP32-S3 target candidate
+
+- Added a separate `firmware/targets/heltec_v4_bench` ESP-IDF candidate with a
+  machine-readable `OTTB0` contract pinned to ESP-IDF v6.0.2 and `esp32s3`.
+  The exact received revision remains unknown, support is false, and device
+  writing is explicitly unauthorized.
+- The application emits one fixed startup line plus a recurring USB
+  Serial/JTAG heartbeat. Its only application-owned dynamic value is boot-local
+  elapsed milliseconds, and it reads no device-specific identifier. ESP-IDF
+  boot/runtime logs and the generated default partition table remain unreviewed
+  build/runtime surfaces. The application does not initialize, access, or bind
+  radio, BLE, Wi-Fi, GNSS, persistence, identity, secrets, GPIO, display,
+  power, or the complete portable-client composition.
+- Three host admission groups enforce those boundaries and reject device-write
+  tooling. PowerShell, Python, JSON, and publication-safety checks pass. The
+  pinned ESP-IDF v6.0.2 native build/size gate also passes: 141,965 application
+  bytes, 86% of the application partition free, exact artifact hashes, and a
+  hash-stable 8.05-second incremental rerun. The result is explicitly
+  `NOT-FLASHED`; no device was discovered, opened, or changed. Its generic
+  2 MB/DIO/80 MHz image header and NVS/PHY/factory table are not the observed
+  16 MB/2 MB-PSRAM Heltec profile. Exact-board authority, profile rebuild,
+  runtime-log review, manual ROM recovery, physical behavior, and support remain
+  open. OT-034 is `partial`; V1 is 30%.
+
 ### Provisional Limited Underground Trail product-family names
 
 - Accepted `Limited Underground` as the parent working identity and `Limited
