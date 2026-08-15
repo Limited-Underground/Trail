@@ -6,6 +6,24 @@ public chronology.
 
 ## 2026-08-15
 
+### OT-059 exact Heltec memory and recovery-layout build profile
+
+- Replaced the stale generic 2 MiB/single-app/no-PSRAM build profile with an
+  OT-DEV-001-bound configuration selecting 16 MiB flash, QIO/80 MHz, embedded
+  2 MiB quad PSRAM at 80 MHz, boot initialization/memory test, and explicit
+  capability allocation.
+- Added an exact five-row partition layout: otadata, a 5,177,344-byte factory
+  slot, two 5,242,880-byte OTA slots, and a 1 MiB application-owned state row
+  ending at 16 MiB. This does not implement storage, OTA, updater, or recovery
+  authority.
+- Target-only admission passes 4/4. Two pinned ESP-IDF v6.0.2 builds reproduce
+  exact configuration, partition binary, and artifacts. The 437,552-byte BIN
+  has SHA-256
+  `F0E81310C62CA0C17CA2531AF9B0D5BD5E6E115E1649F84C97514F72D51D6A3A`.
+- No simulator gate was run, and no hardware, port, or flash was accessed.
+  Physical profile behavior, recovery, authorization, and runtime remain open.
+  OT-059 is `done`, OT-034 remains `partial`, and V1 remains 30%.
+
 ### OT-058 bounded simulator native-session pump
 
 - Replaced the simulator UI's unbounded native-session notification behavior

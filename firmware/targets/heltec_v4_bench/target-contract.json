@@ -10,8 +10,52 @@
   },
   "hardware": {
     "family_candidate": "Heltec WiFi LoRa 32 V4",
+    "evidence_unit": "OT-DEV-001",
+    "processor": {
+      "observed_family": "esp32s3",
+      "observed_revision": "v0.2",
+      "family_profile_part": "ESP32-S3R2"
+    },
+    "flash": {
+      "observed_bytes": 16777216,
+      "observed_io_capability": "quad",
+      "build_mode": "qio",
+      "build_frequency_mhz": 80,
+      "physical_frequency_verified": false
+    },
+    "psram": {
+      "observed_bytes": 2097152,
+      "observed_voltage": "AP_3v3",
+      "build_mode": "quad",
+      "build_frequency_mhz": 80,
+      "physical_interface_and_frequency_verified": false
+    },
     "exact_received_revision": null,
+    "rf_variant": null,
     "supported": false
+  },
+  "partition_layout": {
+    "schema": "OTHP0",
+    "schema_version": 0,
+    "file": "partitions.csv",
+    "flash_bytes": 16777216,
+    "factory_slot_bytes": 5177344,
+    "ota_slot_bytes": 5242880,
+    "ota_slot_count": 2,
+    "reserved_state_partition": "ot_state",
+    "reserved_state_bytes": 1048576,
+    "ends_at_flash_boundary": true,
+    "updater_authority": false,
+    "ota_authority": false,
+    "storage_authority": false,
+    "recovery_authority": false
+  },
+  "recovery": {
+    "sacrificial_first_candidate": "OT-DEV-001",
+    "sacrificial_first_unit": null,
+    "prior_rom_entry_and_restore_recorded": true,
+    "manual_rom_recovery_proven_for_profile": false,
+    "physical_write_authorized": false
   },
   "capabilities": {
     "bounded_usb_heartbeat": true,
@@ -29,6 +73,8 @@
     "nimble_runtime_owner_build_linked": true,
     "nimble_runtime_startup_coded": true,
     "private_service_advertising_coded": true,
+    "evidence_bound_memory_profile_build_configured": true,
+    "recovery_partition_layout_build_configured": true,
     "radio": false,
     "ble": false,
     "gnss": false,

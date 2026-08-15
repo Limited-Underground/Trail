@@ -495,37 +495,56 @@ weakening the five-second failure timeout. Focused validation passes 33 Core,
 23 Windows bridge, 15 private helper, 10 native-protocol, and 13 integrated WPF
 groups; full Test-Host exits 0.
 
+OT-059 freezes the first evidence-bound Heltec memory and recovery-layout build
+profile for OT-DEV-001. The pinned ESP-IDF v6.0.2 configuration selects 16 MiB
+flash, QIO/80 MHz operation, embedded 2 MiB quad PSRAM at 80 MHz with boot
+initialization and memory testing, and explicit allocation through capability
+APIs. Its exact partition table contains otadata, a 5,177,344-byte factory
+slot, two 5,242,880-byte OTA slots, and a 1 MiB application-owned state row;
+the last row ends exactly at the 16 MiB boundary. No updater, OTA workflow,
+state storage, recovery authority, or physical write is implemented.
+
+Four target-only admission groups pass. Two pinned builds reproduce the exact
+configuration, partition binary, and artifacts; the 437,552-byte BIN has
+SHA-256
+`F0E81310C62CA0C17CA2531AF9B0D5BD5E6E115E1649F84C97514F72D51D6A3A`.
+The image header truthfully remains DIO bootstrap while the generated
+configuration selects QIO. No device, port, or flash was accessed. Exact
+physical memory behavior, recovery, runtime, radio/GNSS/GPIO use, and support
+remain open. Exact evidence is in
+[OT-059](../tests/hardware/OT-059-2026-08-15.md).
+
 These increments remain non-live. The target runtime path is
 `CODED-BUILD-LINKED-NOT-RUN`, nothing was flashed or accessed, and no protected
 storage/bond authority is admitted. The APK was not installed on an emulator or
 phone, and no Android OS service, notification, pairing, authorization, Ready,
 real location, target-runtime, or physical BLE proof exists. OT-052 through
-OT-058 are bounded `done` increments; OT-034 remains `partial` and V1 remains
+OT-059 are bounded `done` increments; OT-034 remains `partial` and V1 remains
 30%.
 
-OT-034 introduces the first repository-native ESP-IDF target surface as a
-strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins
-ESP-IDF v6.0.2 and the `esp32s3` compiler target while marking the received
-revision unknown, supported hardware false, and device writing unauthorized.
-The application emits one fixed startup line plus a recurring heartbeat over
-the USB Serial/JTAG console. Its only application-owned dynamic value is
-boot-local elapsed milliseconds, and it reads no device-specific identifier.
-ESP-IDF boot/runtime logs and the generated default partition table remain
-unreviewed build/runtime surfaces. The application does not initialize, access,
-or bind radio, BLE, Wi-Fi, GNSS, storage, identity, secrets, GPIO, OLED,
-battery/power, or `PortableClientComposition`.
-Three host admission groups plus PowerShell/Python/JSON parsing pass. The pinned
-ESP-IDF v6.0.2 native build and size analysis now pass for `esp32s3`: 141,965
-application bytes and 86% of the application partition free. Exact hashes for
-the 142,080-byte BIN, ELF, map, bootloader, partition table, and generated
-sdkconfig plus a hash-stable 8.05-second incremental rerun are recorded in
-`tests/hardware/OT-034-2026-08-14.md`. No device was discovered, opened, or
-flashed. The valid image still has a generic 2 MB/DIO/80 MHz header, and its
-NVS/PHY/factory partition table is not an authoritative received-Heltec profile.
-Exact-board authority, 16 MB flash/2 MB PSRAM profile rebuild,
-sacrificial-first ROM recovery, physical runtime/log review, and every physical
-capability remain open. The two Heltec units remain bench candidates, no
-hardware support claim follows, and V1 is 30%.
+At OT-034 acceptance, the first repository-native ESP-IDF target surface was a
+strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract
+pinned ESP-IDF v6.0.2 and the `esp32s3` compiler target while marking the
+received revision unknown, supported hardware false, and device writing
+unauthorized. The application emitted one fixed startup line plus a recurring
+heartbeat over the USB Serial/JTAG console. Its only application-owned dynamic
+value was boot-local elapsed milliseconds, and it read no device-specific
+identifier. The application did not initialize, access, or bind radio, BLE,
+Wi-Fi, GNSS, storage, identity, secrets, GPIO, OLED, battery/power, or
+`PortableClientComposition`.
+
+That historical gate passed three host admission groups plus
+PowerShell/Python/JSON parsing. The pinned build reported 141,965 application
+bytes, 86% of its application partition free, a 142,080-byte BIN, and exact
+artifact hashes with a hash-stable incremental rerun, recorded in
+`tests/hardware/OT-034-2026-08-14.md`. Its generic 2 MiB/DIO/80 MHz header and
+default NVS/PHY/factory partition table were not an authoritative received-
+Heltec profile. OT-059 supersedes those build-profile, generated-configuration,
+partition, size, and artifact facts; it does not supersede OT-034's physical
+boundaries. Exact-board authority, sacrificial-first recovery, physical
+runtime/log review, and every physical capability remain open. The two Heltec
+units remain bench candidates, no hardware support claim follows, and V1 is
+30%.
 
 The owner has also accepted the provisional working-name hierarchy in Decision
 0008. `Limited Underground` is the parent; `Limited Underground Trail` is the

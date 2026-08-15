@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import re
 from pathlib import Path
@@ -46,6 +47,7 @@ COMPANION_SOURCES = (
     "companion_request_coordinator.cpp",
 )
 DEFAULTS = TARGET / "sdkconfig.defaults"
+PARTITIONS = TARGET / "partitions.csv"
 BUILD_SCRIPT = ROOT / "tools" / "Build-HeltecV4BenchTarget.ps1"
 
 
@@ -68,6 +70,7 @@ def test_contract() -> None:
         "main/companion_nimble_gatt.hpp",
         "main/companion_nimble_runtime.cpp",
         "main/companion_nimble_runtime.hpp",
+        "partitions.csv",
         "sdkconfig.defaults",
         "target-contract.json",
     }
@@ -90,8 +93,57 @@ def test_contract() -> None:
     }, "framework must be exactly pinned")
     require(document["hardware"]["exact_received_revision"] is None,
             "received revision must not be invented")
+    require(document["hardware"] == {
+        "family_candidate": "Heltec WiFi LoRa 32 V4",
+        "evidence_unit": "OT-DEV-001",
+        "processor": {
+            "observed_family": "esp32s3",
+            "observed_revision": "v0.2",
+            "family_profile_part": "ESP32-S3R2",
+        },
+        "flash": {
+            "observed_bytes": 16777216,
+            "observed_io_capability": "quad",
+            "build_mode": "qio",
+            "build_frequency_mhz": 80,
+            "physical_frequency_verified": False,
+        },
+        "psram": {
+            "observed_bytes": 2097152,
+            "observed_voltage": "AP_3v3",
+            "build_mode": "quad",
+            "build_frequency_mhz": 80,
+            "physical_interface_and_frequency_verified": False,
+        },
+        "exact_received_revision": None,
+        "rf_variant": None,
+        "supported": False,
+    }, "hardware profile must match only recorded OT-DEV-001 evidence")
     require(document["hardware"]["supported"] is False,
             "candidate must not claim support")
+    require(document["partition_layout"] == {
+        "schema": "OTHP0",
+        "schema_version": 0,
+        "file": "partitions.csv",
+        "flash_bytes": 16777216,
+        "factory_slot_bytes": 5177344,
+        "ota_slot_bytes": 5242880,
+        "ota_slot_count": 2,
+        "reserved_state_partition": "ot_state",
+        "reserved_state_bytes": 1048576,
+        "ends_at_flash_boundary": True,
+        "updater_authority": False,
+        "ota_authority": False,
+        "storage_authority": False,
+        "recovery_authority": False,
+    }, "unexpected recovery partition contract")
+    require(document["recovery"] == {
+        "sacrificial_first_candidate": "OT-DEV-001",
+        "sacrificial_first_unit": None,
+        "prior_rom_entry_and_restore_recorded": True,
+        "manual_rom_recovery_proven_for_profile": False,
+        "physical_write_authorized": False,
+    }, "physical recovery/write authority must remain absent")
 
     capabilities = document["capabilities"]
     admitted = {
@@ -110,6 +162,8 @@ def test_contract() -> None:
         "nimble_runtime_owner_build_linked",
         "nimble_runtime_startup_coded",
         "private_service_advertising_coded",
+        "evidence_bound_memory_profile_build_configured",
+        "recovery_partition_layout_build_configured",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
             "heartbeat must remain admitted")
@@ -139,6 +193,9 @@ def test_contract() -> None:
             capabilities["nimble_runtime_startup_coded"] is True and
             capabilities["private_service_advertising_coded"] is True,
             "bounded NimBLE runtime code must be explicitly admitted")
+    require(capabilities["evidence_bound_memory_profile_build_configured"] is True and
+            capabilities["recovery_partition_layout_build_configured"] is True,
+            "memory profile and recovery layout must be build-configured")
     for name, enabled in capabilities.items():
         if name not in admitted:
             require(enabled is False, f"capability must remain disabled: {name}")
@@ -147,6 +204,34 @@ def test_contract() -> None:
         "build_only": True,
         "flashing_authorized": False,
     }, "write policy must remain build-only")
+
+
+def test_recovery_partition_layout() -> None:
+    lines = PARTITIONS.read_text(encoding="utf-8").splitlines()
+    require(lines[:4] == [
+        "# OpenTrail Heltec V4 bench recovery layout OTHP0/v0.",
+        "# Build-only layout: no updater, OTA, storage, or recovery authority is implemented.",
+        "# The application-owned 0x40 partition type avoids ESP-IDF-reserved data subtypes.",
+        "# Name, Type, SubType, Offset, Size, Flags",
+    ], "partition layout must retain its exact version and denied-authority boundary")
+    rows = list(csv.reader(line for line in lines if line and not line.startswith("#")))
+    require(rows == [
+        ["otadata", "data", "ota", "0x9000", "0x2000", ""],
+        ["factory", "app", "factory", "0x10000", "0x4f0000", ""],
+        ["ota_0", "app", "ota_0", "0x500000", "0x500000", ""],
+        ["ota_1", "app", "ota_1", "0xa00000", "0x500000", ""],
+        ["ot_state", "0x40", "0x00", "0xf00000", "0x100000", ""],
+    ], "unexpected recovery partition rows")
+    regions = [(int(row[3], 0), int(row[4], 0), row[0]) for row in rows]
+    for (offset, size, name), (next_offset, _, _) in zip(regions, regions[1:]):
+        require(offset + size <= next_offset, f"partition overlap after {name}")
+    require(regions[-1][0] + regions[-1][1] <= 16777216,
+            "partition layout exceeds the recorded 16 MB flash")
+    app_sizes = {name: size for _, size, name in regions if name in {"factory", "ota_0", "ota_1"}}
+    require(app_sizes == {"factory": 5177344, "ota_0": 5242880, "ota_1": 5242880},
+            "factory and both equal OTA-capable slots must retain exact sizes")
+    require(regions[-1][0] + regions[-1][1] == 16777216,
+            "ot_state must end exactly at the 16 MB flash boundary")
 
 
 def test_application_surface() -> None:
@@ -495,6 +580,37 @@ def test_build_only_tooling() -> None:
                 f"competing or deprecated console selection present: {option}")
     require("CONFIG_APP_COMPILE_TIME_DATE=n" in defaults,
             "compile time must not be embedded")
+    required_profile = (
+        "CONFIG_ESPTOOLPY_OCT_FLASH=n",
+        "CONFIG_ESPTOOLPY_FLASH_MODE_AUTO_DETECT=n",
+        "CONFIG_ESPTOOLPY_FLASHMODE_QIO=y",
+        "CONFIG_ESPTOOLPY_FLASH_SAMPLE_MODE_STR=y",
+        "CONFIG_ESPTOOLPY_FLASHFREQ_80M=y",
+        "CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y",
+        "CONFIG_ESPTOOLPY_HEADER_FLASHSIZE_UPDATE=n",
+        "CONFIG_PARTITION_TABLE_CUSTOM=y",
+        'CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"',
+        "CONFIG_SPIRAM=y",
+        "CONFIG_SPIRAM_MODE_QUAD=y",
+        "CONFIG_SPIRAM_TYPE_ESPPSRAM16=y",
+        "CONFIG_SPIRAM_SPEED_80M=y",
+        "CONFIG_SPIRAM_BOOT_HW_INIT=y",
+        "CONFIG_SPIRAM_BOOT_INIT=y",
+        "CONFIG_SPIRAM_IGNORE_NOTFOUND=n",
+        "CONFIG_SPIRAM_MEMTEST=y",
+        "CONFIG_SPIRAM_USE_CAPS_ALLOC=y",
+    )
+    forbidden_profile = (
+        "CONFIG_ESPTOOLPY_FLASHMODE_DIO=y",
+        "CONFIG_ESPTOOLPY_FLASHSIZE_2MB=y",
+        "CONFIG_PARTITION_TABLE_SINGLE_APP=y",
+        "CONFIG_SPIRAM_MODE_OCT=y",
+        "CONFIG_SPIRAM_IGNORE_NOTFOUND=y",
+    )
+    for option in required_profile:
+        require(option in defaults, f"missing exact OT-DEV-001 profile selection: {option}")
+    for option in forbidden_profile:
+        require(option not in defaults, f"generic or unsafe profile selection present: {option}")
     required_nimble = (
         "CONFIG_BT_ENABLED=y",
         "CONFIG_BT_CONTROLLER_ENABLED=y",
@@ -548,6 +664,24 @@ def test_build_only_tooling() -> None:
             "build evidence must record the inspected primary console")
     require("framework_log_surface = 'UNREVIEWED-RUNTIME'" in script,
             "build evidence must preserve the runtime log-review gap")
+    require("$requiredGeneratedProfileSelections" in script and
+            "$requiredDisabledGeneratedProfileSelections" in script and
+            'CONFIG_ESPTOOLPY_FLASHMODE="dio"' in script and
+            'CONFIG_ESPTOOLPY_FLASHSIZE="16MB"' in script and
+            'CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"' in script,
+            "build helper must reject or regenerate a stale generated profile")
+    require("observed_flash_size_bytes = 16777216" in script and
+            "observed_psram_size_bytes = 2097152" in script and
+            "partition_layout = 'OTHP0/v0'" in script,
+            "build evidence must record the exact memory/layout profile")
+    require("image_header_flash_mode = 'DIO-bootstrap'" in script and
+            "image_header_flash_size = '16MB'" in script and
+            "image_header_flash_frequency = '80MHz'" in script,
+            "build helper must verify and record the exact image header")
+    require("partition_binary_verified = $partitionBinaryVerified" in script and
+            "factory_slot_bytes = 5177344" in script and
+            "ota_slot_bytes = 5242880" in script,
+            "build helper must verify the recovery partition binary")
     require("companion_codec_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny runtime self-check evidence")
     require("companion_request_coordinator_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
@@ -630,7 +764,8 @@ def test_build_only_tooling() -> None:
 
 
 def main() -> int:
-    tests = (test_contract, test_application_surface, test_build_only_tooling)
+    tests = (test_contract, test_recovery_partition_layout,
+             test_application_surface, test_build_only_tooling)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

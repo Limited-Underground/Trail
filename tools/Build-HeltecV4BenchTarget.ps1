@@ -9,6 +9,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $targetRoot = Join-Path $projectRoot 'firmware\targets\heltec_v4_bench'
 $buildRoot = Join-Path $projectRoot 'build\targets\heltec_v4_bench'
 $defaultsPath = Join-Path $targetRoot 'sdkconfig.defaults'
+$partitionCsvPath = Join-Path $targetRoot 'partitions.csv'
 $sdkconfigPath = Join-Path $buildRoot 'sdkconfig'
 
 if (-not $env:IDF_PATH) {
@@ -46,6 +47,70 @@ $competingConsoleSelections = @(
     'CONFIG_ESP_CONSOLE_NONE=y',
     'CONFIG_ESP_CONSOLE_UART_NONE=y'
 )
+$requiredProfileDefaultSelections = @(
+    'CONFIG_ESPTOOLPY_OCT_FLASH=n',
+    'CONFIG_ESPTOOLPY_FLASH_MODE_AUTO_DETECT=n',
+    'CONFIG_ESPTOOLPY_FLASHMODE_QIO=y',
+    'CONFIG_ESPTOOLPY_FLASH_SAMPLE_MODE_STR=y',
+    'CONFIG_ESPTOOLPY_FLASHFREQ_80M=y',
+    'CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y',
+    'CONFIG_ESPTOOLPY_HEADER_FLASHSIZE_UPDATE=n',
+    'CONFIG_PARTITION_TABLE_CUSTOM=y',
+    'CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"',
+    'CONFIG_SPIRAM=y',
+    'CONFIG_SPIRAM_MODE_QUAD=y',
+    'CONFIG_SPIRAM_TYPE_ESPPSRAM16=y',
+    'CONFIG_SPIRAM_SPEED_80M=y',
+    'CONFIG_SPIRAM_BOOT_HW_INIT=y',
+    'CONFIG_SPIRAM_BOOT_INIT=y',
+    'CONFIG_SPIRAM_IGNORE_NOTFOUND=n',
+    'CONFIG_SPIRAM_MEMTEST=y',
+    'CONFIG_SPIRAM_USE_CAPS_ALLOC=y'
+)
+$requiredGeneratedProfileSelections = @(
+    'CONFIG_ESPTOOLPY_FLASHMODE_QIO=y',
+    'CONFIG_ESPTOOLPY_FLASHMODE="dio"',
+    'CONFIG_ESPTOOLPY_FLASH_SAMPLE_MODE_STR=y',
+    'CONFIG_ESPTOOLPY_FLASHFREQ_80M=y',
+    'CONFIG_ESPTOOLPY_FLASHFREQ="80m"',
+    'CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y',
+    'CONFIG_ESPTOOLPY_FLASHSIZE="16MB"',
+    'CONFIG_PARTITION_TABLE_CUSTOM=y',
+    'CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"',
+    'CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"',
+    'CONFIG_SPIRAM=y',
+    'CONFIG_SPIRAM_MODE_QUAD=y',
+    'CONFIG_SPIRAM_TYPE_ESPPSRAM16=y',
+    'CONFIG_SPIRAM_SPEED_80M=y',
+    'CONFIG_SPIRAM_BOOT_HW_INIT=y',
+    'CONFIG_SPIRAM_BOOT_INIT=y',
+    'CONFIG_SPIRAM_MEMTEST=y',
+    'CONFIG_SPIRAM_USE_CAPS_ALLOC=y'
+)
+$requiredDisabledGeneratedProfileSelections = @(
+    '# CONFIG_ESPTOOLPY_OCT_FLASH is not set',
+    '# CONFIG_ESPTOOLPY_FLASH_MODE_AUTO_DETECT is not set',
+    '# CONFIG_ESPTOOLPY_HEADER_FLASHSIZE_UPDATE is not set',
+    '# CONFIG_SPIRAM_IGNORE_NOTFOUND is not set'
+)
+$forbiddenProfileSelections = @(
+    'CONFIG_ESPTOOLPY_FLASHMODE_DIO=y',
+    'CONFIG_ESPTOOLPY_FLASHSIZE_2MB=y',
+    'CONFIG_PARTITION_TABLE_SINGLE_APP=y',
+    'CONFIG_SPIRAM_MODE_OCT=y',
+    'CONFIG_SPIRAM_IGNORE_NOTFOUND=y'
+)
+$profileDefaultLines = @(Get-Content -LiteralPath $defaultsPath)
+foreach ($selection in $requiredProfileDefaultSelections) {
+    if ($profileDefaultLines -notcontains $selection) {
+        throw "sdkconfig.defaults is missing exact OT-DEV-001 profile selection: $selection"
+    }
+}
+foreach ($selection in $forbiddenProfileSelections) {
+    if ($profileDefaultLines -contains $selection) {
+        throw "sdkconfig.defaults enables a generic or unsafe profile selection: $selection"
+    }
+}
 $requiredNimbleSelections = @(
     'CONFIG_BT_ENABLED=y',
     'CONFIG_BT_CONTROLLER_ENABLED=y',
@@ -78,6 +143,16 @@ if (Test-Path -LiteralPath $sdkconfigPath -PathType Leaf) {
     $existingConsoleCompetes = @($competingConsoleSelections | Where-Object {
         $existingSdkconfigLines -contains $_
     }).Count -ne 0
+    $existingProfileMatches =
+        @($requiredGeneratedProfileSelections | Where-Object {
+            $existingSdkconfigLines -notcontains $_
+        }).Count -eq 0 -and
+        @($requiredDisabledGeneratedProfileSelections | Where-Object {
+            $existingSdkconfigLines -notcontains $_
+        }).Count -eq 0
+    $existingProfileCompetes = @($forbiddenProfileSelections | Where-Object {
+        $existingSdkconfigLines -contains $_
+    }).Count -ne 0
     $existingNimbleMatches = @($requiredNimbleSelections | Where-Object {
         $existingSdkconfigLines -notcontains $_
     }).Count -eq 0
@@ -88,6 +163,8 @@ if (Test-Path -LiteralPath $sdkconfigPath -PathType Leaf) {
         $existingTargetMatches -and
         $existingConsoleMatches -and
         -not $existingConsoleCompetes -and
+        $existingProfileMatches -and
+        -not $existingProfileCompetes -and
         $existingNimbleMatches -and
         -not $existingNimbleCompetes)
 }
@@ -128,6 +205,21 @@ foreach ($selection in $competingConsoleSelections) {
         throw "Generated sdkconfig has a competing console selection: $selection"
     }
 }
+foreach ($selection in $requiredGeneratedProfileSelections) {
+    if ($generatedSdkconfigLines -notcontains $selection) {
+        throw "Generated sdkconfig is missing exact OT-DEV-001 profile selection: $selection"
+    }
+}
+foreach ($selection in $requiredDisabledGeneratedProfileSelections) {
+    if ($generatedSdkconfigLines -notcontains $selection) {
+        throw "Generated sdkconfig did not keep the required profile option disabled: $selection"
+    }
+}
+foreach ($selection in $forbiddenProfileSelections) {
+    if ($generatedSdkconfigLines -contains $selection) {
+        throw "Generated sdkconfig enables a generic or unsafe profile selection: $selection"
+    }
+}
 foreach ($selection in $requiredNimbleSelections) {
     if ($generatedSdkconfigLines -notcontains $selection) {
         throw "Generated sdkconfig is missing required NimBLE selection: $selection"
@@ -147,14 +239,80 @@ if ($LASTEXITCODE -ne 0) {
     throw "Heltec V4 bench candidate size analysis failed with exit code $LASTEXITCODE."
 }
 
+$applicationBinPath = Join-Path $buildRoot 'opentrail_heltec_v4_bench.bin'
+$partitionBinPath = Join-Path $buildRoot 'partition_table\partition-table.bin'
 $artifactPaths = @(
-    (Join-Path $buildRoot 'opentrail_heltec_v4_bench.bin'),
+    $applicationBinPath,
     (Join-Path $buildRoot 'opentrail_heltec_v4_bench.elf'),
     (Join-Path $buildRoot 'opentrail_heltec_v4_bench.map'),
     (Join-Path $buildRoot 'bootloader\bootloader.bin'),
-    (Join-Path $buildRoot 'partition_table\partition-table.bin'),
-    $sdkconfigPath
+    $partitionBinPath,
+    $sdkconfigPath,
+    $partitionCsvPath
 )
+
+$imageBytes = [System.IO.File]::ReadAllBytes($applicationBinPath)
+if ($imageBytes.Length -lt 4 -or $imageBytes[0] -ne 0xE9) {
+    throw 'Application image does not contain a valid ESP image header.'
+}
+# ESP-IDF v6.0.2 deliberately emits the bootstrap header in DIO even when
+# QIO is frozen in sdkconfig; the bootloader enables quad access during init.
+if ($imageBytes[2] -ne 0x02) {
+    throw ('Application image header flash mode mismatch: expected DIO bootstrap byte 0x02 for the frozen QIO profile; received 0x{0:X2}.' -f $imageBytes[2])
+}
+if ($imageBytes[3] -ne 0x4F) {
+    throw ('Application image header size/frequency mismatch: expected 16MB/80MHz byte 0x4F; received 0x{0:X2}.' -f $imageBytes[3])
+}
+
+$partitionTool = Join-Path $env:IDF_PATH 'components\partition_table\gen_esp32part.py'
+if (-not (Test-Path -LiteralPath $partitionTool -PathType Leaf)) {
+    throw "Partition-table verifier was not found below IDF_PATH: $partitionTool"
+}
+$decodedPartitionLines = @(& $idfPython.Source $partitionTool `
+    --flash-size 16MB --quiet $partitionBinPath 2>&1 |
+    ForEach-Object { $_.ToString().Trim() } |
+    Where-Object { $_ -and -not $_.StartsWith('#') })
+if ($LASTEXITCODE -ne 0) {
+    throw "Partition-table binary validation failed with exit code $LASTEXITCODE."
+}
+$expectedPartitionRows = @(
+    @{ Name = 'otadata'; Type = 'data'; SubType = 'ota'; Offset = 0x9000; Size = 0x2000 },
+    @{ Name = 'factory'; Type = 'app'; SubType = 'factory'; Offset = 0x10000; Size = 0x4F0000 },
+    @{ Name = 'ota_0'; Type = 'app'; SubType = 'ota_0'; Offset = 0x500000; Size = 0x500000 },
+    @{ Name = 'ota_1'; Type = 'app'; SubType = 'ota_1'; Offset = 0xA00000; Size = 0x500000 },
+    @{ Name = 'ot_state'; Type = '64'; SubType = '0'; Offset = 0xF00000; Size = 0x100000 }
+)
+function Convert-PartitionValue([string]$Value) {
+    if ($Value -match '^0x[0-9a-fA-F]+$') {
+        return [Convert]::ToInt64($Value.Substring(2), 16)
+    }
+    if ($Value -match '^(\d+)(K|M)$') {
+        $multiplier = if ($Matches[2] -eq 'M') { 1024 * 1024 } else { 1024 }
+        return [int64]$Matches[1] * $multiplier
+    }
+    throw "Unrecognized partition numeric value: $Value"
+}
+if ($decodedPartitionLines.Count -ne $expectedPartitionRows.Count) {
+    throw "Decoded partition row count mismatch: expected $($expectedPartitionRows.Count); received $($decodedPartitionLines.Count)."
+}
+for ($index = 0; $index -lt $expectedPartitionRows.Count; $index++) {
+    $fields = @($decodedPartitionLines[$index].Split(',') | ForEach-Object { $_.Trim() })
+    $expected = $expectedPartitionRows[$index]
+    if ($fields.Count -lt 5 -or
+        $fields[0] -ne $expected.Name -or
+        $fields[1] -ne $expected.Type -or
+        $fields[2] -ne $expected.SubType -or
+        (Convert-PartitionValue $fields[3]) -ne $expected.Offset -or
+        (Convert-PartitionValue $fields[4]) -ne $expected.Size) {
+        throw "Decoded partition mismatch at row ${index}: $($decodedPartitionLines[$index])"
+    }
+}
+$lastPartition = $expectedPartitionRows[-1]
+if (($lastPartition.Offset + $lastPartition.Size) -ne 16777216) {
+    throw 'Recovery partition layout does not end at the exact 16 MB flash boundary.'
+}
+$partitionBinaryVerified = $true
+
 $linkMapPath = Join-Path $buildRoot 'opentrail_heltec_v4_bench.map'
 $linkMap = Get-Content -LiteralPath $linkMapPath -Raw
 foreach ($requiredObject in @(
@@ -196,6 +354,33 @@ $evidence = [ordered]@{
     status = 'NOT-FLASHED'
     framework = $requiredVersion
     target = 'esp32s3'
+    evidence_unit = 'OT-DEV-001'
+    family_profile_part = 'ESP32-S3R2'
+    observed_processor_family = 'esp32s3'
+    observed_processor_revision = 'v0.2'
+    exact_received_revision = 'UNRESOLVED'
+    rf_variant = 'UNRESOLVED'
+    observed_flash_size_bytes = 16777216
+    observed_flash_io_capability = 'QUAD'
+    configured_flash_mode = 'QIO'
+    configured_flash_frequency_mhz = 80
+    physical_flash_frequency_verified = $false
+    observed_psram_size_bytes = 2097152
+    configured_psram_mode = 'QUAD'
+    configured_psram_frequency_mhz = 80
+    physical_psram_interface_and_frequency_verified = $false
+    partition_layout = 'OTHP0/v0'
+    factory_slot_bytes = 5177344
+    ota_slot_bytes = 5242880
+    reserved_ot_state_bytes = 1048576
+    partition_binary_verified = $partitionBinaryVerified
+    image_header_flash_mode = 'DIO-bootstrap'
+    image_header_flash_size = '16MB'
+    image_header_flash_frequency = '80MHz'
+    updater_authority = 'NOT-IMPLEMENTED'
+    ota_authority = 'NOT-IMPLEMENTED'
+    storage_authority = 'NOT-IMPLEMENTED'
+    recovery_authority = 'NOT-GRANTED'
     console_primary = 'USB_SERIAL_JTAG'
     application_dynamic_value = 'boot-local elapsed_ms'
     companion_codec_self_check = 'BUILD-LINKED-NOT-RUN'

@@ -1,12 +1,16 @@
 # Heltec V4 bench candidate target
 
-Status: build-only candidate; not flashed; not supported hardware.
+Status: evidence-bound memory-profile build candidate; not flashed; not supported hardware.
 
 This bounded ESP-IDF target is the first native OpenTrail build surface for the
-ESP32-S3 family used by the two assembled Heltec V4 bench clients. It proves
-only that a minimal application can be compiled with the pinned toolchain. It
-does not establish the exact received board revision or authorize a device
-write.
+ESP32-S3 family used by the two assembled Heltec V4 bench clients. OT-059 binds
+the build configuration to the recorded `OT-DEV-001` evidence: observed
+ESP32-S3 revision v0.2, external 16 MB quad-capable flash, and embedded 2 MB
+PSRAM. The `ESP32-S3R2` family-profile part plus QIO/80 MHz flash and quad/80 MHz
+PSRAM are build selections, not verified physical clock/interface behavior. It
+does not establish the exact received minor board
+revision or RF variant, transfer this profile to `OT-DEV-002`, claim support,
+or authorize a device write.
 
 ## Allowed behavior
 
@@ -148,10 +152,10 @@ redundant NVS cannot supply the independent rollback floor required here.
   connection, or GATT registration has run; the startup path is coded and
   build-linked only, and scanning is absent
 - GNSS access
-- application access to NVS, filesystem, OTA, or other persistence; only the
-  fail-closed security preflight and in-memory persistence self-check exist. The
-  framework's generated default partition table remains a separate build-review
-  surface
+- application access to NVS, `ot_state`, filesystem, OTA, or other persistence;
+  only the fail-closed security preflight and in-memory persistence self-check
+  exist. `OTHP0/v0` reserves recovery-shaped flash regions but grants no updater,
+  boot-selection, storage, rollback, or recovery authority
 - identity, pairing, provisioning, keys, or secrets; no HMAC/eFuse or protected
   NVS operation executes
 - a proven running Bluetooth stack, registered live GATT service, controller
@@ -159,6 +163,15 @@ redundant NVS cannot supply the independent rollback floor required here.
 - board GPIO, OLED, battery, charger, or power-control bindings
 - the complete `PortableClientComposition`
 - device-write, port-selection, erase, or recovery commands
+
+The versioned `OTHP0/v0` [partition layout](partitions.csv) is an explicit
+bench recovery boundary for the recorded 16 MB flash. It provides a 5,177,344-byte factory fallback slot, two equal 5,242,880-byte
+OTA-capable application slots, and a final 1,048,576-byte application-defined
+type `0x40` `ot_state` reservation ending exactly at the 16 MB boundary. It
+contains no ordinary NVS or PHY-data partition. No updater, OTA selection,
+checkpoint store, target storage owner, rollback, or recovery executor is
+implemented, and no code opens `ot_state`. No NVS partition exists in this
+layout, and the reservation cannot satisfy the denied OT-054 security preflight.
 
 The machine-readable [target contract](target-contract.json) is enforced by a
 host admission test. The build helper contains compile commands only.
@@ -168,16 +181,30 @@ host admission test. The build helper contains compile commands only.
 Use `tools/Build-HeltecV4BenchTarget.ps1` from an already installed and exported
 ESP-IDF v6.0.2 environment. The helper fails closed on a different reported
 ESP-IDF version, selects only the `esp32s3` compile target, and writes build
-outputs beneath the repository's ignored `build/targets` directory. After a
-successful build it runs ESP-IDF size analysis and writes byte counts plus
-SHA-256 hashes for the application BIN, ELF, and map to an ignored
-`build-evidence.json` explicitly marked `NOT-FLASHED`.
+outputs beneath the repository's ignored `build/targets` directory. After a successful build it fails closed unless generated configuration selects
+the exact 16 MB QIO/80 MHz flash selection, 2 MB quad/80 MHz PSRAM selection,
+and `OTHP0/v0` custom partition profile. ESP-IDF v6.0.2 intentionally leaves
+the image bootstrap header in DIO mode and enables quad flash during boot; the
+helper checks that expected DIO header rather than misreporting it as QIO. It
+checks the application image header directly,
+decodes and verifies the generated partition binary with the pinned ESP-IDF
+tool, runs size analysis, and writes exact byte counts plus SHA-256 hashes for
+the application BIN, ELF, map, partition table, generated configuration, and
+source partition CSV to ignored `build-evidence.json`, explicitly marked
+`NOT-FLASHED`.
 
 ESP-IDF's own successful-build output may print suggested follow-up commands
 for flashing. Those informational suggestions are not executed by this helper;
 the helper contains no port, erase, write, or flash action.
 
-No hardware action is part of this increment. Before any later write, the
-separate bring-up procedure must record exact-unit authority, preserve or
-replace the current firmware intentionally, and prove manual ROM recovery on a
-sacrificial-first device.
+No hardware action is part of this increment. Exact received minor board and RF
+revision remain unresolved, no sacrificial-first unit is selected, and physical
+write authority remains false. Before any later write, the separate bring-up
+procedure must explicitly select OT-DEV-001 as the sacrificial-first unit,
+record acceptance of the still-unresolved minor/RF variant while radio and GPIO
+use remain disabled, rehearse manual ESP32-S3 ROM entry/exit plus the known-good
+restore path, independently verify the candidate artifact and partition
+identity, and obtain owner authorization to replace the current firmware. Only
+after that recovery admission
+may a separately authorized flash/runtime review occur; the second unit remains
+out of scope until the first unit recovers and its bounded runtime is accepted.

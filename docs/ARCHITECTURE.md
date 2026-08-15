@@ -368,6 +368,18 @@ coalesced within a bounded owner while exact request ordering and the existing
 five-second timeout remain intact. It does not change the firmware, Android
 transport, physical-display contract, or radio path.
 
+OT-059 replaces the target's generic build profile with an evidence-bound
+OT-DEV-001 candidate profile. Build configuration selects 16 MiB flash,
+QIO/80 MHz, embedded 2 MiB quad PSRAM at 80 MHz with boot initialization and
+memory test, plus an exact factory/dual-OTA/application-state partition layout
+that ends at the 16 MiB boundary. The application-state row uses an
+application-owned partition type and does not imply a storage implementation.
+ESP-IDF's image header remains the expected DIO bootstrap while the bootloader
+enables configured quad operation. These are build selections only: exact
+physical mode/frequency/PSRAM behavior, the unresolved minor/RF variant,
+recovery, flashing, and runtime remain unproven. The target remains unsupported,
+build-only, and write-denied.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

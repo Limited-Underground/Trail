@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-08-14",
+  "as_of": "2026-08-15",
   "v1_definition": "A complete first release means four self-contained field units can be installed, joined, recovered, and tested without depending on a phone, server, or repeater.",
   "milestones": [
     {
@@ -38,12 +38,12 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units provide limited radio and USB bench evidence through temporary MeshCore firmware. A bounded native OpenTrail ESP-IDF v6.0.2 ESP32-S3 candidate now builds with exact size and artifact evidence, but its generic image profile has not run on either unit.",
+      "description": "Two assembled Heltec V4 units provide limited radio and USB bench evidence through temporary MeshCore firmware. The bounded native OpenTrail ESP-IDF v6.0.2 candidate now has an OT-DEV-001-bound 16 MiB flash and configured 2 MiB quad-PSRAM build profile plus an exact recovery-oriented partition layout, but it has not run on either unit.",
       "weight": 15,
       "completion": 10,
-      "evidence_status": "Native build candidate",
-      "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-034-2026-08-14.md", "hardware/INVENTORY.md"],
-      "next_gate": "Freeze the exact 16 MB flash and 2 MB PSRAM Heltec profile, authorize one sacrificial-first unit, prove manual ROM recovery, then flash and review the bounded native runtime before adding radio or a second unit."
+      "evidence_status": "Exact-profile native build candidate",
+      "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-059-2026-08-15.md", "tests/hardware/OT-034-2026-08-14.md", "hardware/INVENTORY.md"],
+      "next_gate": "Select OT-DEV-001 as sacrificial-first, accept the unresolved minor/RF variant with radio and GPIO disabled, rehearse manual ROM entry and known-good restore, verify exact artifact and partition identity, obtain owner write authorization, then flash and review the bounded runtime before radio or unit 2."
     },
     {
       "id": "first-complete-unit",
@@ -81,6 +81,11 @@
       "date": "2026-08-14",
       "overall": 30,
       "reason": "Accepted the first pinned native ESP-IDF v6.0.2 ESP32-S3 build candidate with exact configuration, size, artifact, and incremental-build evidence. No device was accessed or flashed, and the generic image profile still requires an exact Heltec rebuild, recovery, and physical runtime evidence."
+    },
+    {
+      "date": "2026-08-15",
+      "overall": 30,
+      "reason": "Accepted the OT-DEV-001-bound 16 MiB flash and configured 2 MiB quad-PSRAM build profile plus exact partition evidence. No unit was selected, recovery-rehearsed, authorized, flashed, or run, so the evidence-weighted percentage is unchanged."
     }
   ]
 }
