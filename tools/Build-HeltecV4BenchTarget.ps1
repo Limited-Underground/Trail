@@ -32,6 +32,13 @@ if ($LASTEXITCODE -ne 0 -or $reportedVersion -ne $requiredVersion) {
     throw "Expected $requiredVersion; received '$reportedVersion'."
 }
 
+& $idfPython.Source `
+    (Join-Path $projectRoot 'tests\host\heltec_v4_bench_nimble_order_tests.py') `
+    --idf-path $env:IDF_PATH
+if ($LASTEXITCODE -ne 0) {
+    throw "Pinned NimBLE indication-order admission failed with exit code $LASTEXITCODE."
+}
+
 $competingConsoleSelections = @(
     'CONFIG_ESP_CONSOLE_UART_DEFAULT=y',
     'CONFIG_ESP_CONSOLE_UART_CUSTOM=y',
@@ -157,6 +164,7 @@ foreach ($requiredObject in @(
     'companion_gatt_session.cpp.obj',
     'companion_authorization_wire.cpp.obj',
     'companion_gatt_authorization.cpp.obj',
+    'companion_gatt_authorization_adapter.cpp.obj',
     'companion_boot_self_check.cpp.obj',
     'companion_nimble_gatt.cpp.obj'
 )) {
@@ -189,8 +197,9 @@ $evidence = [ordered]@{
     companion_request_coordinator_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_gatt_session_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_gatt_authorization_self_check = 'BUILD-LINKED-NOT-RUN'
-    companion_nimble_gatt = 'BUILD-LINKED-DEFINITION-SELF-CHECK-NOT-RUN'
-    companion_command_dispatch = 'DENIED-NO-CCCD-SUBSCRIPTION-OWNER'
+    companion_gatt_authorization_adapter_self_check = 'BUILD-LINKED-NOT-RUN'
+    companion_nimble_gatt = 'BUILD-LINKED-CALLBACK-SELF-CHECK-NOT-RUN'
+    companion_command_dispatch = 'BUILD-LINKED-NOT-REGISTERED'
     nimble_controller = 'NOT-STARTED'
     advertising = 'NOT-IMPLEMENTED'
     application_authorization = 'NOT-INJECTED'

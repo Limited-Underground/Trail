@@ -4,8 +4,8 @@ Status: OT-036/OT-038 fake application foundation, the OT-041 lifecycle-safe
 BLE runtime boundary, the OT-043 Android BluetoothGatt facade, and the OT-045
 explicit local-test/Bluetooth UI binding, plus the OT-047 host-tested one-phone
 authorization request state/UX and the OT-049 authorization wire-codec/tracker
-mirror, plus the OT-051 default-disabled provisional-authorization runtime
-orchestration. This directory contains a buildable
+mirror, plus the OT-051 provisional-authorization runtime
+orchestration and the OT-053 protected-read production composition. This directory contains a buildable
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -52,10 +52,12 @@ protocol or package identity.
   permissions only after an explicit user action. Denial remains in Bluetooth mode with fixed public copy
   and a route to app settings. The manifest declares only `BLUETOOTH_SCAN` (with
   `neverForLocation`) and `BLUETOOTH_CONNECT`.
-- The injected production security authority still defaults to deny-all. A
-  granted user can explicitly scan and select a compatible advertisement, but
-  no connection can reach Ready until the pairing/application-authorization
-  authority is accepted and supplied. There is no silent downgrade to fake mode.
+- The explicit Bluetooth mode now composes the concrete facade with
+  `RuntimeDeviceAuthorizationClaimClient`. Android `BOND_BONDED` is only a
+  prerequisite; it is never represented as Android-measured encryption or MITM
+  authentication. Only a successful read of the exact current ProtocolInfo
+  characteristic, protected by the device's ATT access rules, can admit the
+  provisional v0.1 claim path. There is no silent downgrade to fake mode.
 - Bluetooth selection explicitly asks either to authorize this phone or replace
   a lost phone. A bounded 30-second state machine accepts only a bounded,
   lease-local event token and an exact authoritative pending, accepted, denied,
@@ -65,10 +67,10 @@ protocol or package identity.
   Replacement requires the distinct replaced result, and the phone cannot invent
   ownership. Mode changes, permission loss, lifecycle stop, and destroy cancel the
   claim and suppress stale results.
-- The production authorization-claim adapter remains disabled. The visible
-  physical-control instructions and deterministic injected tests do not prove a
-  button press, bonding, application authorization, phone replacement, or radio
-  continuity on hardware.
+- Protected-read, claim, and lifecycle tests remain host-only. The visible
+  physical-control instructions and deterministic tests do not prove a button
+  press, bonding, application authorization, phone replacement, radio continuity,
+  or a live Bluetooth connection on hardware.
 - OT-049 mirrors the frozen C++ `OTL0`, `OTP0`, and `OTF0` authorization records
   plus their dedicated `OTC0` frame kinds from the same ten-row fixture. Its pure
   Kotlin provisional-response tracker requires explicit future capability,
@@ -78,19 +80,21 @@ protocol or package identity.
   device authority.
 - OT-051 adds a strict separate 20-byte `OTB0/v0.1` decoder for the explicit
   claim capability and device-issued provisional session nonce. The runtime-backed
-  claim client can, only when explicitly injected, require an encrypted authenticated
-  bond, read that exact record at the default MTU, request the decoded normal MTU,
+  claim client requires an exact device-protected record read after the bonded-device
+  prerequisite, requests the decoded normal MTU,
   enable Stream indications, write one exact claim Start, track exact Pending and
   terminal frames, and send an explicit Snapshot Request only after an exact
   Accepted/Replaced terminal. Normal snapshot/action state remains unavailable
   before promotion. Denial, timeout, permission loss, disconnect, malformed or
   stale frames, and lifecycle release close the exact generation without automatic
   claim retry; transport timeout is local uncertainty, never an invented denial.
-- `MainActivity` still constructs `DisabledDeviceAuthorizationClaimClient`, and
-  the default security authority remains deny-all. The new runtime client is not
-  reachable from the shipped UI. The current firmware target keeps the provisional
-  lifecycle dormant behind self-check/build admission and does not bind it to live
-  NimBLE events, physical control, persistent owner authority, or a device session.
+- `MainActivity` wires the runtime-backed claim client only in explicit Bluetooth
+  mode. Exact v0.0, missing claim capability, bond/security/authorization errors,
+  and an unreachable device produce bounded unsupported/unavailable states; a
+  post-Pending connection loss is authority-unknown and requires checking the
+  physical device. The current firmware target still keeps the accepted service,
+  controller, advertising, physical-control, and persistence composition dormant,
+  so this source checkpoint provides no live claim or device evidence.
 
 The Activity-owned mode controller does not survive Android configuration change
 or process recreation; destruction closes its session and a recreated Activity
@@ -98,20 +102,20 @@ returns to the explicit mode choice. Platform errors map to fixed typed values;
 raw addresses, names, identifiers, status codes, and exception text do not enter
 UI state.
 
-The concrete gap to a first real Ready session is therefore explicit: bind the
-accepted provisional lifecycle to exact live target NimBLE/security/physical-control/
-persistence events, admit an enabled Android security and claim composition, and run
-the exact app against that device firmware. The
+The concrete gap to a first real Ready session is therefore explicit: start and
+advertise the accepted target service/controller, bind the provisional lifecycle
+to exact target security, physical-control, private-binding, and persistence
+events, then run the exact app against that device firmware. The
 current tests validate the pure mode, lifecycle, permission, admission, token,
 authorization codec/tracker,
 provisional orchestration, GATT-profile, and operation-order boundaries plus compilation/lint; they do not
 execute Android Bluetooth hardware or claim a live connection.
 
-The accepted OT-051 gate passes 90 JVM tests across ten suites (protocol
-suites 6, 10, 10, and 3; application suites 7, 9, 17, 11, 1, and 16) with zero
+The accepted OT-053 gate passes 101 JVM tests across ten suites (protocol
+suites 6, 10, 10, and 3; application suites 8, 15, 17, 11, 1, and 20) with zero
 failures, errors, or skips, plus warning-as-error lint with `No issues found.`
 The isolated debug APK is 9,644,209 bytes with SHA-256
-`28ED3014ACE420F8C531625211D26BD3FB9D522F1349BACA0878F94726534D8A`.
+`BE385FEB8966210C4C09027388C3F560745F6A075B9CBB1ABF25DC0893C0033C`.
 It is local debug evidence only, not a release-signed, installed, emulated, or
 physical-device result.
 
@@ -137,6 +141,5 @@ warning-as-error Android lint, and debug assembly.
   -AndroidSdkRoot "$env:LOCALAPPDATA\Android\Sdk"
 ```
 
-No signing key, production variant, Play Store configuration, accepted security
-authority, device access, live Bluetooth evidence, or installation command is
-present.
+No signing key, production variant, Play Store configuration, device access,
+live Bluetooth evidence, or installation command is present.

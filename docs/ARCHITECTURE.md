@@ -198,8 +198,8 @@ choice between Local test mode and Bluetooth-device mode. Bluetooth mode owns
 Android 12+ Nearby Devices permission request/settings recovery, explicit scan,
 selection, connect/disconnect, and the accepted typed actions. There is no silent
 fallback to the fake transport. One lifecycle binding releases runtime/facade
-leases on stop or destroy, including observer-triggered cleanup. The injected
-application-security authority remains deny-all, so this is production-shaped
+leases on stop or destroy, including observer-triggered cleanup. At OT-045
+acceptance the injected application-security authority remained deny-all, so this was production-shaped
 UI/lifecycle evidence rather than a successful device connection.
 
 OT-046 defines the device-owned one-phone authorization policy without binding
@@ -270,17 +270,48 @@ wire denial.
 
 OT-051 mirrors the v0.1 decoder and this operation order in production-shaped
 Kotlin orchestration. After terminal promotion it issues an explicit Snapshot
-Request; no unsolicited snapshot is assumed. The shipped Android composition
-still injects the disabled claim client, so this orchestration is unreachable
-from `MainActivity`.
+Request; no unsolicited snapshot is assumed. At OT-051 acceptance the shipped
+Android composition still injected the disabled claim client, so that
+orchestration was unreachable from `MainActivity`.
 
-The generic ESP32-S3 target now links the authorization wire and restricted
-lifecycle and runs only a deterministic in-memory boot self-check with fixed
-fake evidence. The real NimBLE definition still exposes baseline v0.0 and its
-AUTHOR callback denies provisional traffic; the application does not register
-or start the controller, service, or advertiser. Thus OT-050 is
+At OT-050/051 acceptance the generic ESP32-S3 target linked the authorization
+wire and restricted lifecycle and ran only a deterministic in-memory boot
+self-check with fixed fake evidence. Its real NimBLE definition still exposed
+baseline v0.0 and denied provisional traffic; the application did not register
+or start the controller, service, or advertiser. Thus OT-050 was
 `BUILD-LINKED-NOT-RUN` composition evidence, not a live provisional transport,
 application-authorization result, or physical device path.
+
+OT-052 closes the next device-side composition gap without starting hardware.
+A fixed-memory callback adapter binds the exact registered Protocol Info,
+Command, Stream value, and independently discovered Stream CCCD handles; one
+connection and monotonic transport generation; current encrypted,
+authenticated, bonded, key-size, and MTU evidence; one private trusted
+controller binding; and one immutable submission-era indication tuple. The
+real ESP-IDF v6.0.2 callbacks now expose protected v0.1 Protocol Info and route
+only Claim Start before application authorization. Both AUTHOR and actual
+Protocol Info/Command access re-read device-side security; a successful
+protected 20-byte Protocol Info read is evidence enforced by the device, while
+Android bond state alone is not. Normal requests remain denied until exact
+Accepted/Replaced indication confirmation.
+
+The generated Stream CCCD is resolved with `ble_gatts_find_dsc`, never inferred
+from the Stream value handle. Response memory is reserved before lifecycle or
+authority mutation. Completion binds exact connection, generation, session,
+exchange, value handle, and delivery token. Pinned NimBLE teardown ordering
+ensures an old indication is failed before the application disconnect callback,
+so connection-handle reuse cannot relabel it. The target build retains this
+adapter, but `app_main` does not register the service, start NimBLE/controller,
+advertise, or inject bond persistence or physical-input authority.
+
+OT-053 wires the frozen protected-read claim client into the Android production
+composition selected by explicit Bluetooth mode. There is no fake/local
+fallback. Bluetooth mode treats successful protected v0.1 Protocol Info access
+as server-enforced security-path evidence, requests the advertised current MTU
+151, enables exact Stream indications, runs Claim Start/Pending/terminal, and
+sends an explicit Snapshot Request only after Accepted/Replaced. Because the
+target service remains unregistered and dormant, this is production source and
+test evidence—not live pairing, authorization, Ready, or physical-device proof.
 
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.

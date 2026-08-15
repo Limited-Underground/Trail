@@ -126,7 +126,7 @@ class AndroidBlePlatformPolicyTest {
         assertTrue(gate.beginConnection())
         assertFalse(gate.beginConnection())
         assertTrue(gate.beginDiscovery())
-        assertTrue(gate.acceptProfileAndSecurity())
+        assertTrue(gate.acceptProfile())
         assertTrue(gate.beginMtuRequest())
         assertFalse(gate.beginProtocolInfoRead())
         assertTrue(gate.acceptMtu())
@@ -149,7 +149,7 @@ class AndroidBlePlatformPolicyTest {
         val gate = AndroidGattOperationGate()
         assertTrue(gate.beginConnection())
         assertTrue(gate.beginDiscovery())
-        assertTrue(gate.acceptProfileAndSecurity())
+        assertTrue(gate.acceptProfile())
         assertTrue(gate.beginProtocolInfoRead())
         assertTrue(gate.acceptProtocolInfo())
         assertFalse(gate.beginIndicationSubscription())
@@ -159,5 +159,59 @@ class AndroidBlePlatformPolicyTest {
         assertTrue(gate.acceptIndicationSubscription())
         assertTrue(gate.beginCommandWrite())
         assertTrue(gate.acceptCommandWrite())
+    }
+
+    @Test
+    fun protectedProtocolInfoNeedsCurrentPermissionBondExactObjectSuccessAndBoundedValue() {
+        fun admission(
+            active: Boolean = true,
+            permission: Boolean = true,
+            bonded: Boolean = true,
+            exact: Boolean = true,
+            status: Int = ANDROID_GATT_SUCCESS_STATUS,
+            bytes: Int = 20,
+        ) = AndroidProtectedProtocolInfoReadPolicy.evaluate(active, permission, bonded, exact, status, bytes)
+
+        assertEquals(AndroidProtectedReadAdmission.ACCEPT, admission())
+        assertEquals(AndroidProtectedReadAdmission.ACCEPT, admission(bytes = 16))
+        assertEquals(AndroidProtectedReadAdmission.IGNORE, admission(active = false))
+        assertEquals(AndroidProtectedReadAdmission.PERMISSION_REVOKED, admission(permission = false))
+        assertEquals(AndroidProtectedReadAdmission.BOND_REQUIRED, admission(bonded = false))
+        assertEquals(AndroidProtectedReadAdmission.PLATFORM_FAILURE, admission(exact = false))
+        assertEquals(
+            AndroidProtectedReadAdmission.SECURITY_REQUIRED,
+            admission(status = ANDROID_GATT_INSUFFICIENT_AUTHENTICATION_STATUS),
+        )
+        assertEquals(
+            AndroidProtectedReadAdmission.SECURITY_REQUIRED,
+            admission(status = ANDROID_GATT_INSUFFICIENT_ENCRYPTION_STATUS),
+        )
+        assertEquals(
+            AndroidProtectedReadAdmission.AUTHORIZATION_REJECTED,
+            admission(status = ANDROID_GATT_INSUFFICIENT_AUTHORIZATION_STATUS),
+        )
+        assertEquals(AndroidProtectedReadAdmission.PLATFORM_FAILURE, admission(status = 257))
+        assertEquals(AndroidProtectedReadAdmission.PLATFORM_FAILURE, admission(bytes = 15))
+        assertEquals(AndroidProtectedReadAdmission.PLATFORM_FAILURE, admission(bytes = 21))
+
+        val current = Any()
+        val distinctSameUuidStandIn = Any()
+        assertTrue(AndroidGattCharacteristicOwnershipPolicy.owns(current, current))
+        assertFalse(AndroidGattCharacteristicOwnershipPolicy.owns(current, distinctSameUuidStandIn))
+        assertFalse(AndroidGattCharacteristicOwnershipPolicy.owns(null, current))
+        assertEquals(null, AndroidGattStatusPolicy.failure(ANDROID_GATT_SUCCESS_STATUS))
+        assertEquals(
+            BleGattFailure.SECURITY_REJECTED,
+            AndroidGattStatusPolicy.failure(ANDROID_GATT_INSUFFICIENT_AUTHENTICATION_STATUS),
+        )
+        assertEquals(
+            BleGattFailure.SECURITY_REJECTED,
+            AndroidGattStatusPolicy.failure(ANDROID_GATT_INSUFFICIENT_ENCRYPTION_STATUS),
+        )
+        assertEquals(
+            BleGattFailure.AUTHORIZATION_REJECTED,
+            AndroidGattStatusPolicy.failure(ANDROID_GATT_INSUFFICIENT_AUTHORIZATION_STATUS),
+        )
+        assertEquals(BleGattFailure.PLATFORM_FAILURE, AndroidGattStatusPolicy.failure(257))
     }
 }

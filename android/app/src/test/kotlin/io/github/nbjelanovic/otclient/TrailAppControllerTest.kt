@@ -4,6 +4,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import io.github.nbjelanovic.otprotocol.CompanionFrameKind
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimState
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimStatus
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationCorrelation
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationProtocolInfo
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationProtocolInfoCodec
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationPurpose
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationWireCodec
 import io.github.nbjelanovic.otprotocol.CompanionGnssState
 import io.github.nbjelanovic.otprotocol.CompanionPositionSharingState
 import io.github.nbjelanovic.otprotocol.CompanionPowerState
@@ -292,6 +299,153 @@ class TrailAppControllerTest {
         assertIs<BleRuntimeState.Connecting>(bluetoothState(harness).runtimeState)
         assertEquals(1, harness.facade.connections.size)
         harness.controller.close()
+    }
+
+    @Test
+    fun synchronousStartCallbacksPreserveAuthoritativeTerminalOutcomes() {
+        run {
+            val harness = harness()
+            harness.authorization.eventsOnStart = listOf(
+                DeviceAuthorizationClaimEvent.Pending("sync-denied"),
+                DeviceAuthorizationClaimEvent.Denied("sync-denied"),
+            )
+            beginClaim(harness, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+            assertIs<DeviceAuthorizationUiState.Denied>(bluetoothState(harness).authorizationState)
+            assertTrue(harness.facade.connections.isEmpty())
+            harness.controller.close()
+        }
+        run {
+            val harness = harness()
+            harness.authorization.eventsOnStart = listOf(
+                DeviceAuthorizationClaimEvent.Pending("sync-accepted"),
+                DeviceAuthorizationClaimEvent.Accepted("sync-accepted"),
+            )
+            beginClaim(harness, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+            assertIs<DeviceAuthorizationUiState.Accepted>(bluetoothState(harness).authorizationState)
+            assertEquals(1, harness.facade.connections.size)
+            harness.controller.close()
+        }
+        run {
+            val harness = harness()
+            harness.authorization.eventsOnStart = listOf(
+                DeviceAuthorizationClaimEvent.Pending("sync-replaced"),
+                DeviceAuthorizationClaimEvent.Replaced("sync-replaced"),
+            )
+            beginClaim(harness, DeviceAuthorizationPurpose.REPLACE_LOST_PHONE)
+            assertIs<DeviceAuthorizationUiState.Replaced>(bluetoothState(harness).authorizationState)
+            assertEquals(1, harness.facade.connections.size)
+            harness.controller.close()
+        }
+        run {
+            val harness = harness()
+            harness.authorization.eventsOnStart = listOf(DeviceAuthorizationClaimEvent.Unavailable("sync-local"))
+            beginClaim(harness, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+            assertIs<DeviceAuthorizationUiState.Unavailable>(bluetoothState(harness).authorizationState)
+            assertTrue(harness.facade.connections.isEmpty())
+            harness.controller.close()
+        }
+    }
+
+    @Test
+    fun localTransportOutcomesAreVisibleAndNeverFallBackToFakeMode() {
+        val observed = mutableListOf<TrailAppUiState>()
+        val unavailable = harness()
+        unavailable.controller.observe(observed::add)
+        val unavailableClaim = beginClaim(unavailable, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        unavailableClaim.emit(DeviceAuthorizationClaimEvent.Unavailable("local-unavailable"))
+        assertIs<DeviceAuthorizationUiState.Unavailable>(bluetoothState(unavailable).authorizationState)
+        assertTrue(observed.any {
+            (it as? TrailAppUiState.BluetoothDevice)?.authorizationState is DeviceAuthorizationUiState.Unavailable
+        })
+        assertFalse(unavailable.controller.state is TrailAppUiState.LocalTest)
+        unavailable.controller.close()
+
+        val unsupported = harness()
+        val unsupportedClaim = beginClaim(unsupported, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        unsupportedClaim.emit(DeviceAuthorizationClaimEvent.Unsupported("local-unsupported"))
+        assertIs<DeviceAuthorizationUiState.Unsupported>(bluetoothState(unsupported).authorizationState)
+        assertFalse(unsupported.controller.state is TrailAppUiState.LocalTest)
+        unsupported.controller.close()
+
+        val unknown = harness()
+        val unknownClaim = beginClaim(unknown, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        unknownClaim.emit(DeviceAuthorizationClaimEvent.Pending("local-unknown"))
+        unknownClaim.emit(DeviceAuthorizationClaimEvent.AuthorityUnknown("local-unknown"))
+        assertIs<DeviceAuthorizationUiState.AuthorityUnknown>(bluetoothState(unknown).authorizationState)
+        assertFalse(unknown.controller.state is TrailAppUiState.LocalTest)
+        unknown.controller.close()
+    }
+
+    @Test
+    fun runtimeBackedProtectedFailuresReachExplicitControllerStates() {
+        run {
+            val harness = runtimeBackedHarness()
+            val gatt = beginRuntimeClaim(harness)
+            gatt.emit(BleGattEvent.ProfileReady)
+            gatt.emit(BleGattEvent.Failed(BleGattFailure.SECURITY_REJECTED))
+            assertIs<DeviceAuthorizationUiState.Unavailable>(runtimeBluetoothState(harness).authorizationState)
+            assertFalse(harness.controller.state is TrailAppUiState.LocalTest)
+            harness.controller.close()
+        }
+        run {
+            val harness = runtimeBackedHarness()
+            val gatt = beginRuntimeClaim(harness)
+            gatt.emit(BleGattEvent.ProfileReady)
+            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfoBytes()))
+            assertIs<DeviceAuthorizationUiState.Unsupported>(runtimeBluetoothState(harness).authorizationState)
+            assertFalse(harness.controller.state is TrailAppUiState.LocalTest)
+            harness.controller.close()
+        }
+        run {
+            val harness = runtimeBackedHarness()
+            val observed = mutableListOf<TrailAppUiState>()
+            harness.controller.observe(observed::add)
+            val gatt = beginRuntimeClaim(harness)
+            gatt.emit(BleGattEvent.ProfileReady)
+            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes()))
+            gatt.emit(BleGattEvent.MtuChanged(151))
+            gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+            gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope()))
+            gatt.emit(BleGattEvent.Disconnected)
+            assertIs<DeviceAuthorizationUiState.AuthorityUnknown>(runtimeBluetoothState(harness).authorizationState)
+            assertTrue(observed.any {
+                (it as? TrailAppUiState.BluetoothDevice)?.authorizationState is
+                    DeviceAuthorizationUiState.AuthorityUnknown
+            })
+            assertEquals(1, harness.facade.connections.size)
+            assertFalse(harness.controller.state is TrailAppUiState.LocalTest)
+            harness.controller.close()
+        }
+    }
+
+    @Test
+    fun permissionAndLifecycleLossMapStartingUnavailableAndPendingUnknownWithLateCallbacksSuppressed() {
+        val starting = harness()
+        val startingClaim = beginClaim(starting, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        starting.permission.currentValue = NearbyDevicesPermissionState.MISSING
+        starting.controller.refreshPermissionState()
+        assertIs<DeviceAuthorizationUiState.Unavailable>(bluetoothState(starting).authorizationState)
+        startingClaim.emit(DeviceAuthorizationClaimEvent.Pending("late-starting"))
+        assertIs<DeviceAuthorizationUiState.Unavailable>(bluetoothState(starting).authorizationState)
+        starting.controller.close()
+
+        val pending = harness()
+        val pendingClaim = beginClaim(pending, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        pendingClaim.emit(DeviceAuthorizationClaimEvent.Pending("pending-loss"))
+        pending.permission.currentValue = NearbyDevicesPermissionState.MISSING
+        pending.controller.refreshPermissionState()
+        assertIs<DeviceAuthorizationUiState.AuthorityUnknown>(bluetoothState(pending).authorizationState)
+        pendingClaim.emit(DeviceAuthorizationClaimEvent.Accepted("pending-loss"))
+        assertIs<DeviceAuthorizationUiState.AuthorityUnknown>(bluetoothState(pending).authorizationState)
+        pending.controller.close()
+
+        val stopped = harness()
+        val stoppedClaim = beginClaim(stopped, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        stopped.controller.onLifecycleStop()
+        assertEquals(BleRuntimeState.Inactive, stopped.runtime.state)
+        stoppedClaim.emit(DeviceAuthorizationClaimEvent.Unavailable("late-stop"))
+        assertEquals(BleRuntimeState.Inactive, stopped.runtime.state)
+        stopped.controller.close()
     }
 
     @Test
@@ -591,6 +745,34 @@ class TrailAppControllerTest {
         return Harness(controller, local, runtime, facade, permissionReader, scheduler, authorization)
     }
 
+    private fun runtimeBackedHarness(): RuntimeHarness {
+        val facade = TestFacade()
+        val scheduler = TestScheduler()
+        val runtime = BleCompanionRuntime(facade, scheduler)
+        val permission = MutablePermissionReader(NearbyDevicesPermissionState.GRANTED)
+        val controller = TrailAppController(
+            localController = CompanionAppController(FakeCompanionTransport()),
+            bluetoothRuntime = runtime,
+            permissionReader = permission,
+            authorizationClient = RuntimeDeviceAuthorizationClaimClient(runtime),
+            authorizationScheduler = scheduler,
+            bluetoothFacadeCloseable = facade,
+        )
+        controller.onLifecycleStart()
+        return RuntimeHarness(controller, runtime, facade)
+    }
+
+    private fun beginRuntimeClaim(harness: RuntimeHarness): TestGattLease {
+        harness.controller.chooseBluetoothDeviceMode()
+        harness.controller.scanBluetoothDevices()
+        harness.facade.scans.last().emit(BleScanEvent.Candidate(CANDIDATE))
+        harness.controller.selectBluetoothDevice(CANDIDATE.endpointToken)
+        return harness.facade.connections.single()
+    }
+
+    private fun runtimeBluetoothState(harness: RuntimeHarness): TrailAppUiState.BluetoothDevice =
+        assertIs(harness.controller.state)
+
     private data class Harness(
         val controller: TrailAppController,
         val local: CompanionAppController,
@@ -599,6 +781,12 @@ class TrailAppControllerTest {
         val permission: MutablePermissionReader,
         val scheduler: TestScheduler,
         val authorization: TestAuthorizationClient,
+    )
+
+    private data class RuntimeHarness(
+        val controller: TrailAppController,
+        val runtime: BleCompanionRuntime,
+        val facade: TestFacade,
     )
 
     private class MutablePermissionReader(var currentValue: NearbyDevicesPermissionState) :
@@ -713,6 +901,25 @@ class TrailAppControllerTest {
 
         private fun protocolInfoBytes(): ByteArray = CompanionProtocolCodec.encodeProtocolInfo(
             CompanionProtocolInfo(capabilities = REQUIRED_ACTION_CAPABILITIES),
+        ).value!!
+
+        private fun authorizationProtocolInfoBytes(): ByteArray = CompanionAuthorizationProtocolInfoCodec.encode(
+            CompanionAuthorizationProtocolInfo(provisionalSessionNonce = 0x11223344),
+        ).value!!
+
+        private fun authorizationPendingEnvelope(): ByteArray = CompanionProtocolCodec.encodeFragment(
+            CompanionFragment(
+                kind = CompanionFrameKind.AUTHORIZATION_CLAIM_STATUS,
+                sessionNonce = 0x11223344,
+                exchangeId = 1,
+                payload = CompanionAuthorizationWireCodec.encodeClaimStatus(
+                    CompanionAuthorizationClaimStatus(
+                        purpose = CompanionAuthorizationPurpose.AUTHORIZE_CONTROLLER,
+                        state = CompanionAuthorizationClaimState.PENDING,
+                        correlation = CompanionAuthorizationCorrelation(ByteArray(16) { (it + 1).toByte() }),
+                    ),
+                ).value!!,
+            ),
         ).value!!
 
         private fun snapshotEnvelope(sessionNonce: Long, eventId: Long): ByteArray = CompanionProtocolCodec.encodeFragment(

@@ -1,9 +1,10 @@
 # Companion one-phone authorization v0
 
 Status: host-tested target-neutral policy, fixed C++/Kotlin authorization wire
-and trackers, plus a build-linked restricted device lifecycle and
-production-shaped Android orchestration; both live paths remain disabled, with
-no running provisional GATT or physical BLE evidence,
+and trackers, plus a build-linked restricted device lifecycle, a real NimBLE
+callback adapter, and Android protected-read production composition. The target
+service remains unregistered and no live provisional GATT or physical BLE
+evidence exists,
 2026-08-15.
 
 ## Authority boundary
@@ -135,12 +136,21 @@ controller lease and tombstones the transport until exact disconnect; it does
 not claim rollback or delivery. Timeout or transport failure remains local
 unknown authority, never an invented authoritative Unsupported or Denied.
 
-The target build links this lifecycle only into a deterministic fake-authority
-self-check. Its live NimBLE definition still exposes baseline v0.0 and its
-AUTHOR callbacks deny provisional traffic; controller/service/advertising
-startup is absent. Android mirrors the operation order, but `MainActivity`
-still injects the disabled claim client and its default security authority is
-deny-all. These are integration-ready boundaries, not a live transport.
+OT-052 binds this lifecycle to the real ESP-IDF NimBLE callback surface while
+keeping it dormant. Exact registered characteristic handles and the separately
+discovered Stream CCCD are authoritative; security and private bond binding are
+freshly rechecked on the device; response capacity precedes authority mutation;
+and indication completion carries its immutable submission-era tuple. An exact
+successful protected v0.1 Protocol Info read is device-enforced security-path
+evidence. Bond state alone is not.
+
+OT-053 wires the runtime-backed client into explicit Android Bluetooth mode
+with no fake fallback. It consumes that protected read, requests the advertised
+MTU, enables Stream indications, performs the exact claim sequence, and sends
+one explicit Snapshot Request only after confirmed Accepted/Replaced promotion.
+The target still does not register the service, start the controller, advertise,
+or inject trusted persistence and physical-input authority, so this remains
+build-linked composition rather than a live transport.
 
 ## Accepted evidence and exclusions
 
@@ -167,7 +177,7 @@ not-run recognition/rejection evidence only; see
 [OT-048 target evidence](../../tests/hardware/OT-048-2026-08-15.md).
 
 OT-050 adds twenty strict provisional-lifecycle groups with exact 27/28 payload
-boundary coverage and 100/100 repeats. The complete current 120-executable host
+boundary coverage and 100/100 repeats. The OT-050-era 120-executable host
 matrix, target-local self-check 100/100, and static admission 3/3 pass. Two
 pinned ESP-IDF v6.0.2 builds reproduce a 165,349-byte image and 165,472-byte BIN
 with SHA-256
@@ -181,8 +191,22 @@ errors, or skips and clean warning-as-error lint. The 9,644,209-byte debug APK
 has SHA-256
 `28ED3014ACE420F8C531625211D26BD3FB9D522F1349BACA0878F94726534D8A`.
 
-This evidence does not provide a live NimBLE bond identity adapter, protected
-NVS backend, physical-input binding, live provisional GATT event integration,
-enabled Android claim composition, phone bond,
-device runtime, lost-phone field recovery, or support claim. Those remain
-required before enabling the Android production claim client.
+OT-052 adds ten strict callback-adapter groups at 100/100, target self-check
+100/100, static admission 3/3, a pinned NimBLE teardown-order check, and the
+complete current 121-executable host matrix. Two pinned ESP-IDF v6.0.2 builds
+reproduce a 170,313-byte image and 170,432-byte BIN with SHA-256
+`22CAE43F7AEA9D980602C41E1ACEB49CA1174315EE87598D15E6717A27A1E4D4`.
+See [OT-052 target evidence](../../tests/hardware/OT-052-2026-08-15.md).
+
+OT-053 raises the Android gate to 101 JVM tests across ten suites (protocol 6,
+10, 10, and 3; application 8, 15, 17, 11, 1, and 20), with zero failures,
+errors, or skips and clean warning-as-error lint. The 9,644,209-byte debug APK
+has SHA-256
+`BE385FEB8966210C4C09027388C3F560745F6A075B9CBB1ABF25DC0893C0033C`.
+
+This evidence does not provide a started NimBLE controller, registered or
+advertised service, protected NVS backend, physical-input binding, phone bond,
+live authorization or Ready state, device runtime, lost-phone field recovery,
+or support claim. The target was not accessed or flashed, and the APK was not
+installed on a phone or emulator. Those gates remain required before a live
+one-phone authorization claim.

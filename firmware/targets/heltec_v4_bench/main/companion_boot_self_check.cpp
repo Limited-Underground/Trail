@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include "opentrail/companion_gatt_authorization.hpp"
+#include "opentrail/companion_gatt_authorization_adapter.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
@@ -259,6 +260,168 @@ public:
 private:
     SelfCheckObservation& observation_;
     FixedIndicationSink& sink_;
+};
+
+class FixedAdapterIndicationPort final : public CompanionGattIndicationPort {
+public:
+    CompanionGattSinkError reserve(
+        std::uint16_t connection_handle,
+        std::uint64_t transport_generation,
+        std::uint32_t session_nonce,
+        std::uint16_t stream_value_handle,
+        std::uint64_t delivery_token,
+        std::size_t max_response_bytes) override {
+        if (reserved_ || pending_ || connection_handle != kConnectionHandle ||
+            transport_generation != 1 || session_nonce != kSessionNonce ||
+            stream_value_handle != kStreamValueHandle || delivery_token == 0 ||
+            max_response_bytes > response_.size()) {
+            return CompanionGattSinkError::failed;
+        }
+        reserved_ = true;
+        token_ = delivery_token;
+        return CompanionGattSinkError::none;
+    }
+
+    CompanionGattSinkError submit_reserved(
+        std::uint16_t connection_handle,
+        std::uint64_t transport_generation,
+        std::uint32_t session_nonce,
+        std::uint16_t stream_value_handle,
+        std::uint64_t delivery_token,
+        opentrail::radio::ByteView response) override {
+        if (!reserved_ || pending_ ||
+            connection_handle != kConnectionHandle ||
+            transport_generation != 1 || session_nonce != kSessionNonce ||
+            stream_value_handle != kStreamValueHandle ||
+            delivery_token != token_ || response.data == nullptr ||
+            response.size > response_.size()) {
+            return CompanionGattSinkError::failed;
+        }
+        reserved_ = false;
+        pending_ = true;
+        response_bytes_ = response.size;
+        response_.fill(0);
+        for (std::size_t index = 0; index < response.size; ++index) {
+            response_[index] = response.data[index];
+        }
+        return CompanionGattSinkError::none;
+    }
+
+    void cancel_reservation(std::uint64_t delivery_token) override {
+        if (reserved_ && delivery_token == token_) {
+            reserved_ = false;
+        }
+    }
+
+    void abandon_indication(std::uint64_t delivery_token) override {
+        if (pending_ && delivery_token == token_) {
+            pending_ = false;
+        }
+    }
+
+    void bind_exchange(
+        std::uint64_t delivery_token,
+        std::uint32_t exchange_id) override {
+        if (pending_ && delivery_token == token_) {
+            exchange_id_ = exchange_id;
+        }
+    }
+
+    void observe_completion(std::uint64_t delivery_token) override {
+        if (pending_ && delivery_token == token_) {
+            pending_ = false;
+        }
+    }
+
+    template <std::size_t Size>
+    [[nodiscard]] bool response_is(
+        const std::array<std::uint8_t, Size>& expected) const {
+        return pending_ && response_bytes_ == expected.size() &&
+               bytes_equal(expected, response_, response_bytes_);
+    }
+
+    [[nodiscard]] bool reserved() const {
+        return reserved_;
+    }
+
+    [[nodiscard]] std::uint32_t exchange_id() const {
+        return exchange_id_;
+    }
+
+    static constexpr std::uint16_t kConnectionHandle = 7;
+    static constexpr std::uint16_t kStreamValueHandle = 13;
+    static constexpr std::uint32_t kSessionNonce = 1;
+
+private:
+    bool reserved_{false};
+    bool pending_{false};
+    std::uint64_t token_{0};
+    std::uint32_t exchange_id_{0};
+    std::size_t response_bytes_{0};
+    std::array<std::uint8_t, kCompanionMaxResponseRecordBytes> response_{};
+};
+
+class FixedTrustedBindingAuthority final
+    : public CompanionGattTrustedBindingAuthority {
+public:
+    CompanionGattTrustedBindingResult resolve(
+        std::uint16_t connection_handle,
+        std::uint64_t transport_generation) override {
+        if (connection_handle != FixedAdapterIndicationPort::kConnectionHandle ||
+            transport_generation != 1) {
+            return {CompanionGattTrustedBindingError::failed, {}, 0};
+        }
+        return {
+            CompanionGattTrustedBindingError::none,
+            {
+                {0x0102030405060708ULL, 0x1112131415161718ULL},
+                0x2122232425262728ULL,
+                1,
+                FixedAuthorizationAuthority::kControllerBinding,
+                false,
+                false,
+            },
+            FixedAdapterIndicationPort::kSessionNonce,
+        };
+    }
+};
+
+class FixedAdapterAuthorizationAuthority final
+    : public CompanionGattAuthorizationAuthority {
+public:
+    FixedAdapterAuthorizationAuthority(
+        SelfCheckObservation& observation,
+        FixedAdapterIndicationPort& port)
+        : observation_(observation), port_(port) {}
+
+    CompanionGattAuthorizationDecision apply_claim(
+        CompanionAuthorizationPurpose purpose,
+        const CompanionControllerClaim& claim,
+        std::uint64_t now_ms) override {
+        if (!port_.reserved() ||
+            purpose != CompanionAuthorizationPurpose::authorize_controller ||
+            claim.controller_binding !=
+                FixedAuthorizationAuthority::kControllerBinding ||
+            !claim.link_encrypted || !claim.authenticated_bond || now_ms != 2) {
+            return {CompanionGattAuthorizationAuthorityError::failed};
+        }
+        ++observation_.authorization_calls;
+        return {
+            CompanionGattAuthorizationAuthorityError::none,
+            CompanionAuthorizationClaimOutcome::accepted,
+            CompanionAuthorizationDenyReason::none,
+            FixedAuthorizationAuthority::kControllerBinding,
+        };
+    }
+
+    CompanionGattAuthorizationAuthorityError release_connection(
+        std::uint64_t) override {
+        return CompanionGattAuthorizationAuthorityError::failed;
+    }
+
+private:
+    SelfCheckObservation& observation_;
+    FixedAdapterIndicationPort& port_;
 };
 
 constexpr CompanionSessionEvidence kEvidence{0xA5, true, true, true};
@@ -569,6 +732,107 @@ bool run_companion_gatt_authorization_self_check() {
     return status.application_authorized && status.normal_session_active &&
            !status.response_pending && status.exchange_id == 0 &&
            observation.authorization_calls == 1;
+}
+
+bool run_companion_gatt_authorization_adapter_self_check() {
+    SelfCheckObservation observation{};
+    FixedSnapshotAuthority snapshots(observation);
+    FixedActionAuthority actions(observation);
+    CompanionRequestCoordinator coordinator(snapshots, actions);
+    FixedAdapterIndicationPort port;
+    FixedTrustedBindingAuthority binding;
+    FixedCorrelationIssuer issuer;
+    FixedAdapterAuthorizationAuthority authority(observation, port);
+    CompanionGattAuthorizationCallbackAdapter adapter(
+        coordinator, port, binding, issuer, authority);
+    constexpr CompanionGattAuthorizationHandles handles{
+        10,
+        FixedIndicationSink::kCommandValueHandle,
+        FixedAdapterIndicationPort::kStreamValueHandle,
+        FixedIndicationSink::kStreamCccdHandle,
+    };
+    constexpr CompanionGattAdapterLinkSecurity security{
+        true,
+        true,
+        true,
+        kCompanionGattMinimumSecurityKeyBytes,
+        kCompanionMinimumAttMtu,
+    };
+
+    const auto connected = adapter.connect(
+        FixedAdapterIndicationPort::kConnectionHandle);
+    if (connected.error != CompanionGattAdapterError::not_registered ||
+        adapter.register_handles(handles) != CompanionGattAdapterError::none) {
+        return false;
+    }
+    const auto opened = adapter.connect(
+        FixedAdapterIndicationPort::kConnectionHandle);
+    if (!opened.connected() || opened.transport_generation != 1 ||
+        adapter.refresh_security(
+            FixedAdapterIndicationPort::kConnectionHandle, security) !=
+            CompanionGattAdapterError::none) {
+        return false;
+    }
+
+    std::array<std::uint8_t,
+               kCompanionAuthorizationProtocolInfoBytes> protocol_info{};
+    const auto read = adapter.read_protocol_info(
+        FixedAdapterIndicationPort::kConnectionHandle,
+        handles.protocol_info_value,
+        {protocol_info.data(), protocol_info.size()});
+    if (read.error != CompanionGattAuthorizationError::none ||
+        protocol_info != kAuthorizationProtocolInfo ||
+        adapter.update_stream_subscription(
+            FixedAdapterIndicationPort::kConnectionHandle,
+            handles.stream_value, true) != CompanionGattAdapterError::none) {
+        return false;
+    }
+
+    const auto pending = adapter.service_command(
+        FixedAdapterIndicationPort::kConnectionHandle,
+        handles.command_value,
+        {kAuthorizationClaimStart.data(), kAuthorizationClaimStart.size()}, 0);
+    auto pending_tuple = adapter.status().pending;
+    if (!pending.pending() || !pending_tuple.valid ||
+        pending_tuple.transport_generation != 1 ||
+        pending_tuple.session_nonce !=
+            FixedAdapterIndicationPort::kSessionNonce ||
+        pending_tuple.exchange_id != 1 || port.exchange_id() != 1 ||
+        !port.response_is(kAuthorizationPending) ||
+        adapter.complete_indication(pending_tuple, true, 1) !=
+            CompanionGattAdapterError::none) {
+        return false;
+    }
+
+    const auto terminal = adapter.resolve_claim(
+        FixedAdapterIndicationPort::kConnectionHandle,
+        opened.transport_generation,
+        FixedAdapterIndicationPort::kSessionNonce,
+        1,
+        security,
+        2);
+    pending_tuple = adapter.status().pending;
+    if (!terminal.pending() || !pending_tuple.valid ||
+        !port.response_is(kAuthorizationAccepted) ||
+        observation.authorization_calls != 1 ||
+        adapter.complete_indication(pending_tuple, true, 3) !=
+            CompanionGattAdapterError::none) {
+        return false;
+    }
+
+    const auto normal = adapter.service_command(
+        FixedAdapterIndicationPort::kConnectionHandle,
+        handles.command_value,
+        {kActionRequest.data(), kActionRequest.size()}, 4);
+    pending_tuple = adapter.status().pending;
+    return normal.pending() && pending_tuple.valid &&
+           pending_tuple.delivery_token >=
+               kCompanionAuthorizationFirstNormalDeliveryToken &&
+           port.response_is(kActionResponse) &&
+           observation.authorization_calls == 1 &&
+           observation.prepare_calls == 1 &&
+           observation.commit_calls == 1 &&
+           observation.applied_calls == 1;
 }
 
 }  // namespace opentrail::target::heltec_v4_bench

@@ -2,11 +2,11 @@
 
 Status: host-tested codec/session/coordinator foundation, dormant OT-042 NimBLE
 GATT target definition, OT-044 response-safe GATT lifecycle, OT-046 host-only
-one-phone authorization, OT-047 disabled Android authorization UX, and
-OT-048/049 fixed authorization-wire codec/tracker parity, plus OT-050/051
-build-linked/default-disabled restricted provisional orchestration,
-2026-08-15. No GATT registration/controller/advertising, enabled target-bound
-application-authorization workflow, radio path, authenticated group packet, or
+one-phone authorization, OT-047 Android authorization UX, OT-048/049 fixed
+authorization-wire codec/tracker parity, OT-050/051 restricted provisional
+orchestration, OT-052 real NimBLE callback composition, and OT-053 Android
+protected-read production composition, 2026-08-15. The target service remains
+unregistered, its controller is not started, advertising is absent, and no
 physical-device evidence exists.
 
 ## Purpose and authority
@@ -38,11 +38,15 @@ name.
 | Command | `5e0f2a02-7c6b-4ea3-a210-0c4f1f43b7d0` | Write With Response only | Phone-to-device snapshot or action request |
 | Stream | `5e0f2a03-7c6b-4ea3-a210-0c4f1f43b7d0` | Indicate and Notify | Device-to-phone snapshots, action results, and events |
 
-All three characteristics require an encrypted, authenticated, application-
-authorized connection. Advertising or service discovery is never authorization.
-The target must refuse the Command and Stream session if the negotiated ATT MTU
-is below the Protocol-info requirement. v0's maximum 148-byte value requires
-ATT MTU 151 because an ATT notification/indication has three bytes of overhead.
+Normal v0 session traffic on all three characteristics requires an encrypted,
+authenticated, application-authorized connection. The restricted v0.1 claim
+phase is the sole exception: an exact bonded, encrypted, authenticated link may
+read protected Protocol Info and use only claim kinds on Command/Stream before
+application authorization. Advertising, discovery, or Android bond state alone
+is never authorization or current-link security evidence. The target must
+refuse normal Command and Stream traffic if the negotiated ATT MTU is below the
+Protocol-info requirement. v0's maximum 148-byte value requires ATT MTU 151
+because an ATT notification/indication has three bytes of overhead.
 
 Action results, session-opening snapshots, critical alerts, and critical
 acknowledgement outcomes use Indicate. Replaceable status/position refreshes may
@@ -371,26 +375,51 @@ security loss, unsubscribe, disconnect, congestion, negative confirmation,
 submission failure, or stale callback cannot promote. OT-051 mirrors this order
 and sends an explicit Snapshot Request after promotion.
 
-The current 120-executable host matrix, OT-050's twenty strict groups at 100/100,
+At OT-050 acceptance the 120-executable host matrix, twenty strict groups at 100/100,
 target self-check 100/100, and static admission 3/3 pass. Two pinned ESP-IDF
 v6.0.2 builds reproduce a 165,349-byte image and 165,472-byte BIN with SHA-256
 `E2ACF6672925D2FF298BD58E7C7BCBA564D46F1B7A6853D67865CE62F09D12B9`;
 the authorization wire and lifecycle are retained in the link map. See
 [OT-050 target evidence](../../tests/hardware/OT-050-2026-08-15.md).
 
-The Android gate now passes 90 JVM tests across ten suites (protocol 6, 10, 10,
+At OT-051 acceptance the Android gate passed 90 JVM tests across ten suites (protocol 6, 10, 10,
 and 3; application 7, 9, 17, 11, 1, and 16) and clean lint. The 9,644,209-byte
 debug APK has SHA-256
 `28ED3014ACE420F8C531625211D26BD3FB9D522F1349BACA0878F94726534D8A`.
-`MainActivity` still injects the disabled claim client.
+`MainActivity` still injected the disabled claim client at that checkpoint.
 
-This does not implement live GATT registration/startup/advertising or bind the
-restricted lifecycle to NimBLE events. The real AUTHOR path remains baseline
-v0.0 and denied; controller/service/advertiser startup is absent. Pairing/bond
-storage, target-bound application authorization, persistent result/history caching,
-reassembly, Android background behavior, radio, GNSS, persistence, functional
-target runtime, physical transport, accessibility, packaging, signing, store
-distribution, or support. No BLE/GATT target was accessed and no
-device was written. The broader full host suite's established read-only
+OT-052 now binds the frozen lifecycle to the real ESP-IDF NimBLE callback
+surface. It captures registered value handles and separately discovers the
+Stream CCCD, rechecks device-side encryption, authentication, bond, key size,
+private binding, and MTU, reserves before mutation, and carries an immutable
+submission-era connection/generation/session/exchange/value/token tuple through
+indication completion. The pinned NimBLE teardown order prevents a stale
+completion from being relabeled after connection-handle reuse. Protected
+Protocol Info access is therefore device-enforced path evidence; bond state
+alone is not. Normal commands remain denied until exact Accepted/Replaced
+terminal indication confirmation.
+
+OT-053 composes the runtime-backed claim client with the Android GATT facade in
+explicit Bluetooth mode, with no fake fallback. It consumes the protected
+v0.1 read, requests MTU 151, enables exact Stream indications, performs Claim
+Start/Pending/terminal correlation, and sends one explicit Snapshot Request
+only after promotion. The gate passes 101 JVM tests across ten suites (protocol
+6, 10, 10, and 3; application 8, 15, 17, 11, 1, and 20), clean lint, and debug
+assembly. The 9,644,209-byte debug APK has SHA-256
+`BE385FEB8966210C4C09027388C3F560745F6A075B9CBB1ABF25DC0893C0033C`.
+
+The current 121-executable native matrix, OT-052 callback-adapter ten groups at
+100/100, target self-check 100/100, static admission 3/3, and pinned teardown-
+order admission pass. Two pinned ESP-IDF v6.0.2 builds reproduce a 170,313-byte
+image and 170,432-byte BIN with SHA-256
+`22CAE43F7AEA9D980602C41E1ACEB49CA1174315EE87598D15E6717A27A1E4D4`.
+See [OT-052 target evidence](../../tests/hardware/OT-052-2026-08-15.md).
+
+The callback code is build-linked but the target never registers the service,
+starts the controller, advertises, or injects trusted bond persistence and
+physical-input authority. Nothing was flashed or accessed. Thus this evidence
+does not prove pairing, application authorization, Ready, target runtime,
+radio, GNSS, physical transport, accessibility, packaging, signing, store
+distribution, or support. The broader full host suite's established read-only
 USB-loader enumeration is documented separately in the OT-040 evidence record
 and is not BLE/GATT runtime evidence.

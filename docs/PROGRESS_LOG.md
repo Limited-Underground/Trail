@@ -6,6 +6,48 @@ public chronology.
 
 ## 2026-08-15
 
+### OT-053 Android protected-read production composition
+
+- Wired the accepted provisional authorization client into the explicit
+  Bluetooth-mode production composition. There is no fake/local fallback.
+  Android bond state remains only a prerequisite; successful protected exact
+  20-byte `OTB0/v0.1` Protocol Info access is the device-enforced current-link
+  security evidence.
+- The composed path performs Protocol Info, advertised MTU 151, exact Stream
+  indication subscription, one Claim Start, correlated Pending/terminal, and
+  an explicit Snapshot Request only after Accepted/Replaced. Permission,
+  disconnect, malformed/stale result, or lifecycle loss closes without
+  manufacturing security or authorization success.
+- The combined gate passes 101 JVM tests across ten suites (protocol 29;
+  application 8, 15, 17, 11, 1, and 20), with zero failures, errors, or skips.
+  Lint reports `No issues found.` The 9,644,209-byte debug APK has SHA-256
+  `BE385FEB8966210C4C09027388C3F560745F6A075B9CBB1ABF25DC0893C0033C`.
+  The target service remains dormant and unregistered, so no phone/device
+  pairing, authorization, Ready, install, signing, or live BLE evidence exists;
+  V1 remains 30%.
+
+### OT-052 real NimBLE provisional callback adapter
+
+- Added a fixed-memory callback owner and wired the real ESP-IDF v6.0.2 GATT
+  registration, connection, security/MTU, exact Stream subscription, AUTHOR,
+  indication completion/timeout, disconnect, and physical-decision seams to
+  the accepted provisional lifecycle. The generated CCCD is discovered
+  independently; no handle arithmetic is used.
+- Protected Protocol Info and Command access re-read current device-side
+  encryption, authentication, bond, 16-byte key, MTU, and private trusted
+  binding evidence. Only authorization claims pass before promotion. Response
+  capacity precedes mutation, and immutable connection/generation/session/
+  exchange/value/token correlation plus pinned NimBLE teardown ordering closes
+  stale completion after handle reuse.
+- Ten strict callback-adapter groups at 100/100, target self-check 100/100,
+  static admission 3/3, the pinned teardown-order test, all 121 native host
+  executables, and two identical pinned builds pass. The image is 170,313
+  bytes; the 170,432-byte BIN has SHA-256
+  `22CAE43F7AEA9D980602C41E1ACEB49CA1174315EE87598D15E6717A27A1E4D4`.
+  The service is `NOT-REGISTERED`, controller `NOT-STARTED`, advertising absent,
+  and nothing was flashed. See
+  [OT-052 evidence](../tests/hardware/OT-052-2026-08-15.md). V1 remains 30%.
+
 ### OT-051 Android provisional-authorization orchestration
 
 - Added the separate exact 20-byte `OTB0/v0.1` decoder and a production-shaped

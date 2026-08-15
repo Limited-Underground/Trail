@@ -26,7 +26,11 @@ lifecycle: exact 20-byte `OTB0` v0.1 claim-capability evidence, bonded and
 encrypted provisional admission, exact 44-byte Pending and 48-byte Accepted
 records, distinct delivery tokens, no authority call before Pending
 confirmation, terminal reservation before the fixed authority call, and
-promotion only after exact terminal confirmation. It opens no transport.
+promotion only after exact terminal confirmation. A fourth fixed in-memory
+check composes the real callback adapter with fixed trusted-binding and
+indication-port seams, proves the exact v0.1/Pending/Accepted vectors through
+that adapter, then proves one normal action response is admitted only after
+promotion. It opens no transport.
 Failure suspends the
 application before startup or heartbeat. A queued result is only a local queue
 disposition; it does not claim radio send or delivery. The only dynamic value
@@ -37,43 +41,56 @@ data, or other device-specific values. ESP-IDF boot/runtime logging shares the
 console and remains an unreviewed surface until target build and runtime
 evidence exists.
 
-The image also compiles one real ESP-IDF v6.0.2 NimBLE GATT definition for the
-exact companion service, Protocol Info, Command, and Stream UUIDs. The fixed
-definition self-check verifies their exact bytes, properties, 128-bit key-size
-requirement, and Protocol Info value. Protocol Info is encrypted,
-authenticated, and authorized Read; Command is encrypted, authenticated, and
-authorized Write With Response only; Stream is Notify and Indicate with an
-encrypted, authenticated, and authorized CCCD. The registration function
-requires injected persistent application authorization and a constructed
-device-authority coordinator. Protocol Info retains per-access live link
-security and application-authorization checks.
+The image also compiles one real ESP-IDF v6.0.2 NimBLE GATT definition and
+callback adapter for the exact companion service, Protocol Info, Command, and
+Stream UUIDs. The fixed definition self-check verifies their exact bytes,
+properties, 128-bit key-size requirement, and v0.1 Protocol Info capability
+shape. Protocol Info is encrypted, authenticated, and authorized Read;
+Command is encrypted, authenticated, and authorized Write With Response only;
+Stream is Indicate-only with encrypted, authenticated, and authorized access.
+Every protected access re-reads current NimBLE encryption, authentication,
+bond, key-size, and ATT-MTU evidence before the target-neutral lifecycle may
+proceed. A successful exact 20-byte Protocol Info read is therefore the
+device-enforced provisional-path evidence; bond state by itself is not enough.
 
-Command access remains unconditionally denied after those checks in this
-build-only increment. No code dispatches a request to the coordinator or emits
-a Stream indication. That is intentional: the target does not yet own NimBLE
-registration events, the exact generated CCCD handle, per-connection subscribe
-state, or disconnect cleanup. Inferring a CCCD as `value_handle + 1` is not an
-accepted substitute. A later runtime increment must establish those facts
-before any coordinator call, so device authority cannot mutate without a
-verified response path.
+The dormant registration path owns NimBLE registration, connection,
+security/MTU, subscription, authorization, indication-completion, timeout, and
+disconnect callbacks. It discovers and binds the real generated Stream CCCD
+handle through `ble_gatts_find_dsc`; it never infers `value_handle + 1`.
+Before application authorization, the adapter admits only Protocol Info and
+the authorization claim kinds. Normal snapshot/action requests remain denied
+until the exact Pending response has completed, a fresh trusted private bond
+binding has been resolved at the authority-decision point, and an exact
+Accepted/Replaced terminal indication has been confirmed. Response capacity is
+reserved before any authority mutation.
+
+Each real indication retains its immutable submission-era connection,
+transport generation, session, exchange, value handle, and delivery token.
+The pinned ESP-IDF v6.0.2 source-order admission proves active indication
+failure is delivered before the application disconnect callback, preventing a
+late old completion from being relabeled after connection-handle reuse. Wrong
+or stale completion, timeout, security loss, unsubscribe, or disconnect fails
+closed.
 
 The target now also build-links the target-neutral lifecycle used by that
 in-memory boot check. It owns one exact registered Command/Stream/CCCD tuple,
 one connection, negotiated MTU, link/application authorization state, one
 indication subscription, one response reservation, one outstanding indication,
 opaque delivery-token correlation, timeout containment, and disconnect cleanup.
-This is not NimBLE event wiring: the real target adapter still supplies none of
-those events and the callable Command path remains denied.
+The callback adapter now supplies those event bindings, but only in dormant
+code: `app_main` never installs or starts it. The deterministic self-check uses
+fixed in-memory evidence instead of calling NimBLE.
 
-The restricted authorization lifecycle is likewise build-linked and exercised
-only by the deterministic in-memory boot check. The live NimBLE definition
-still exposes the baseline v0.0 Protocol Info and its AUTHOR callbacks still
-deny every application-unauthorized access. Therefore this target does not yet
-offer a live provisional claim path, even though the target-neutral v0.1 wire
-and lifecycle compose and link successfully.
+The restricted authorization lifecycle and real callback composition are
+build-linked and exercised only by deterministic in-memory boot checks. If a
+future application installs this exact path, both a new secure bond and a
+secure reconnect by an existing owner use protected v0.1 Protocol Info and
+Claim Start; there is no v0.0 reconnect shortcut. The injected trusted binding,
+authorization/persistence authority, physical-presence decision source, and
+timer owner remain outside this increment, so no live claim path exists yet.
 
 The build-only application deliberately never calls the registration function,
-initializes NimBLE/controller state, installs a GAP authorization callback, or
+initializes NimBLE/controller state, installs the GATT/GAP callbacks, or
 advertises. Thus the service is compiled and link-checked but not discoverable
 or usable. This preserves rejection as the default until the pairing,
 authorization, exact-board, persistence, CCCD/subscription, and runtime-owner

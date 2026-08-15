@@ -35,22 +35,6 @@ object AndroidBlePermissionContract {
     )
 }
 
-/**
- * Supplies already-verified security evidence without exposing an address to the runtime or UI.
- * A normal Android bond state alone is not authenticated-bond or application-authorization proof.
- */
-fun interface AndroidBleSecurityAuthority {
-    fun evidenceFor(endpointToken: String): BleSecurityEvidence
-}
-
-class DenyAllAndroidBleSecurityAuthority : AndroidBleSecurityAuthority {
-    override fun evidenceFor(endpointToken: String) = BleSecurityEvidence(
-        encrypted = false,
-        authenticatedBond = false,
-        applicationAuthorized = false,
-    )
-}
-
 class AndroidMainThreadBleRuntimeVerifier : BleRuntimeThreadVerifier {
     override fun isOwnerThread(): Boolean = Looper.myLooper() === Looper.getMainLooper()
 }
@@ -86,12 +70,12 @@ class AndroidMainThreadBleRuntimeScheduler(
 }
 
 /**
- * Concrete API-31+ Android BLE central facade. The app does not construct or wire this class yet.
- * Permissions are never requested here; absent explicit grants, [preflight] blocks all scan/connect work.
+ * Concrete API-31+ Android BLE central facade. Permissions are never requested here; absent explicit
+ * grants, [preflight] blocks all scan/connect work. Android bond state is only a prerequisite. The
+ * exact successful device-protected ProtocolInfo read is the provisional protected-path evidence.
  */
 class AndroidBluetoothGattFacade(
     context: Context,
-    private val securityAuthority: AndroidBleSecurityAuthority = DenyAllAndroidBleSecurityAuthority(),
     private val mainHandler: Handler = Handler(Looper.getMainLooper()),
     private val tokenFactory: () -> String = { UUID.randomUUID().toString() },
 ) : AndroidBluetoothFacade, AutoCloseable {
@@ -335,9 +319,10 @@ class AndroidBluetoothGattFacade(
             override fun onMtuChanged(callbackGatt: BluetoothGatt, mtu: Int, status: Int) {
                 postToMain {
                     if (!owns(callbackGatt)) return@postToMain
-                    if (!requireConnectCallbackPermission()) return@postToMain
-                    if (status != BluetoothGatt.GATT_SUCCESS || !operations.acceptMtu()) {
-                        fail(BleGattFailure.PLATFORM_FAILURE)
+                    if (!requireProtectedCallbackPrerequisites()) return@postToMain
+                    val statusFailure = AndroidGattStatusPolicy.failure(status)
+                    if (statusFailure != null || !operations.acceptMtu()) {
+                        fail(statusFailure ?: BleGattFailure.PLATFORM_FAILURE)
                     } else observer(BleGattEvent.MtuChanged(mtu))
                 }
             }
@@ -348,17 +333,7 @@ class AndroidBluetoothGattFacade(
                 value: ByteArray,
                 status: Int,
             ) {
-                postToMain {
-                    if (!owns(callbackGatt)) return@postToMain
-                    if (!requireConnectCallbackPermission()) return@postToMain
-                    if (
-                        characteristic.uuid != protocolInfoUuid ||
-                        status != BluetoothGatt.GATT_SUCCESS ||
-                        !operations.acceptProtocolInfo()
-                    ) {
-                        fail(BleGattFailure.PLATFORM_FAILURE)
-                    } else observer(BleGattEvent.ProtocolInfoRead(value.copyOf()))
-                }
+                handleProtocolInfoRead(callbackGatt, characteristic, value, status)
             }
 
             @Suppress("DEPRECATION")
@@ -379,14 +354,15 @@ class AndroidBluetoothGattFacade(
             ) {
                 postToMain {
                     if (!owns(callbackGatt)) return@postToMain
-                    if (!requireConnectCallbackPermission()) return@postToMain
+                    if (!requireProtectedCallbackPrerequisites()) return@postToMain
+                    val statusFailure = AndroidGattStatusPolicy.failure(status)
                     if (
-                        descriptor.uuid != cccdUuid ||
-                        descriptor.characteristic.uuid != streamUuid ||
-                        status != BluetoothGatt.GATT_SUCCESS ||
+                        !AndroidGattCharacteristicOwnershipPolicy.owns(streamCccd, descriptor) ||
+                        !AndroidGattCharacteristicOwnershipPolicy.owns(stream, descriptor.characteristic) ||
+                        statusFailure != null ||
                         !operations.acceptIndicationSubscription()
                     ) {
-                        fail(BleGattFailure.PLATFORM_FAILURE)
+                        fail(statusFailure ?: BleGattFailure.PLATFORM_FAILURE)
                     } else observer(BleGattEvent.StreamIndicationsSubscribed)
                 }
             }
@@ -415,12 +391,13 @@ class AndroidBluetoothGattFacade(
             ) {
                 postToMain {
                     if (!owns(callbackGatt)) return@postToMain
-                    if (!requireConnectCallbackPermission()) return@postToMain
+                    if (!requireProtectedCallbackPrerequisites()) return@postToMain
+                    val statusFailure = AndroidGattStatusPolicy.failure(status)
                     if (
-                        characteristic.uuid != commandUuid ||
-                        status != BluetoothGatt.GATT_SUCCESS ||
+                        !AndroidGattCharacteristicOwnershipPolicy.owns(command, characteristic) ||
+                        statusFailure != null ||
                         !operations.acceptCommandWrite()
-                    ) fail(BleGattFailure.TRANSIENT_LINK)
+                    ) fail(statusFailure ?: BleGattFailure.TRANSIENT_LINK)
                 }
             }
 
@@ -594,7 +571,7 @@ class AndroidBluetoothGattFacade(
                 streamIndicate = streamCharacteristic.hasProperty(BluetoothGattCharacteristic.PROPERTY_INDICATE),
                 streamHasClientConfigurationDescriptor = cccd != null,
             )
-            if (!AndroidGattProfilePolicy.accepts(profile) || !operations.acceptProfileAndSecurity()) {
+            if (!AndroidGattProfilePolicy.accepts(profile) || !operations.acceptProfile()) {
                 fail(BleGattFailure.PLATFORM_FAILURE)
                 return
             }
@@ -602,12 +579,11 @@ class AndroidBluetoothGattFacade(
             command = commandCharacteristic
             stream = streamCharacteristic
             streamCccd = cccd
-            val evidence = try {
-                securityAuthority.evidenceFor(endpointToken)
-            } catch (_: Exception) {
-                BleSecurityEvidence(false, false, false)
+            if (!bondedPrerequisiteSatisfied()) {
+                fail(BleGattFailure.BOND_REQUIRED)
+                return
             }
-            observer(BleGattEvent.SecurityEstablished(evidence))
+            observer(BleGattEvent.ProfileReady)
         }
 
         private fun handleProtocolInfoRead(
@@ -618,14 +594,31 @@ class AndroidBluetoothGattFacade(
         ) {
             postToMain {
                 if (!owns(callbackGatt)) return@postToMain
-                if (!requireConnectCallbackPermission()) return@postToMain
-                if (
-                    characteristic.uuid != protocolInfoUuid ||
-                    status != BluetoothGatt.GATT_SUCCESS ||
-                    !operations.acceptProtocolInfo()
+                when (
+                    AndroidProtectedProtocolInfoReadPolicy.evaluate(
+                        active = owns(callbackGatt),
+                        connectPermissionGranted = operationAllowed(AndroidBlePlatformOperation.READ_PROTOCOL_INFO),
+                        bondedPrerequisite = bondedPrerequisiteSatisfied(),
+                        exactCharacteristic = AndroidGattCharacteristicOwnershipPolicy.owns(protocolInfo, characteristic),
+                        status = status,
+                        valueBytes = value.size,
+                    )
                 ) {
-                    fail(BleGattFailure.PLATFORM_FAILURE)
-                } else observer(BleGattEvent.ProtocolInfoRead(value.copyOf()))
+                    AndroidProtectedReadAdmission.IGNORE -> Unit
+                    AndroidProtectedReadAdmission.ACCEPT -> {
+                        if (!operations.acceptProtocolInfo()) {
+                            fail(BleGattFailure.PLATFORM_FAILURE)
+                        } else {
+                            observer(BleGattEvent.ProtectedProtocolInfoRead(value.copyOf()))
+                        }
+                    }
+                    AndroidProtectedReadAdmission.PERMISSION_REVOKED -> fail(BleGattFailure.PERMISSION_REVOKED)
+                    AndroidProtectedReadAdmission.BOND_REQUIRED -> fail(BleGattFailure.BOND_REQUIRED)
+                    AndroidProtectedReadAdmission.SECURITY_REQUIRED -> fail(BleGattFailure.SECURITY_REJECTED)
+                    AndroidProtectedReadAdmission.AUTHORIZATION_REJECTED ->
+                        fail(BleGattFailure.AUTHORIZATION_REJECTED)
+                    AndroidProtectedReadAdmission.PLATFORM_FAILURE -> fail(BleGattFailure.PLATFORM_FAILURE)
+                }
             }
         }
 
@@ -636,8 +629,11 @@ class AndroidBluetoothGattFacade(
         ) {
             postToMain {
                 if (!owns(callbackGatt)) return@postToMain
-                if (!requireConnectCallbackPermission()) return@postToMain
-                if (characteristic.uuid != streamUuid || !operations.acceptsStreamIndication()) {
+                if (!requireProtectedCallbackPrerequisites()) return@postToMain
+                if (
+                    !AndroidGattCharacteristicOwnershipPolicy.owns(stream, characteristic) ||
+                    !operations.acceptsStreamIndication()
+                ) {
                     fail(BleGattFailure.PLATFORM_FAILURE)
                 } else observer(BleGattEvent.StreamIndication(value.copyOf()))
             }
@@ -681,7 +677,8 @@ class AndroidBluetoothGattFacade(
                 !onMainThread() ||
                 leaseClosed ||
                 Build.VERSION.SDK_INT < ANDROID_BLE_MINIMUM_API ||
-                !operationAllowed(platformOperation)
+                !operationAllowed(platformOperation) ||
+                !bondedPrerequisiteSatisfied()
             ) return false
             val current = gatt ?: return false
             if (!advance()) return false
@@ -700,6 +697,23 @@ class AndroidBluetoothGattFacade(
         private fun requireConnectCallbackPermission(): Boolean {
             if (operationAllowed(AndroidBlePlatformOperation.CONNECT)) return true
             fail(BleGattFailure.PERMISSION_REVOKED)
+            return false
+        }
+
+        @SuppressLint("MissingPermission")
+        private fun bondedPrerequisiteSatisfied(): Boolean {
+            if (!operationAllowed(AndroidBlePlatformOperation.CONNECT)) return false
+            return try {
+                device.bondState == BluetoothDevice.BOND_BONDED
+            } catch (_: SecurityException) {
+                false
+            }
+        }
+
+        private fun requireProtectedCallbackPrerequisites(): Boolean {
+            if (!requireConnectCallbackPermission()) return false
+            if (bondedPrerequisiteSatisfied()) return true
+            fail(BleGattFailure.BOND_REQUIRED)
             return false
         }
 

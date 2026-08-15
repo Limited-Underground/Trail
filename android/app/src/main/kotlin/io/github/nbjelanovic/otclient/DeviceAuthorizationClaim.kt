@@ -17,11 +17,17 @@ enum class DeviceAuthorizationPurpose {
 sealed interface DeviceAuthorizationClaimEvent {
     val claimToken: String
 
-    /** First authoritative event. The opaque token is device-issued and never displayed or persisted. */
+    /** First authoritative event. The token is lease-local; private wire correlation stays in the tracker. */
     data class Pending(override val claimToken: String) : DeviceAuthorizationClaimEvent
     data class Accepted(override val claimToken: String) : DeviceAuthorizationClaimEvent
     data class Denied(override val claimToken: String) : DeviceAuthorizationClaimEvent
     data class Replaced(override val claimToken: String) : DeviceAuthorizationClaimEvent
+    /** Local transport outcome before an authoritative Pending; never a device denial. */
+    data class Unavailable(override val claimToken: String) : DeviceAuthorizationClaimEvent
+    /** Exact protected ProtocolInfo did not advertise the accepted claim contract. */
+    data class Unsupported(override val claimToken: String) : DeviceAuthorizationClaimEvent
+    /** Transport ended after Pending; device authority may have changed and must be checked. */
+    data class AuthorityUnknown(override val claimToken: String) : DeviceAuthorizationClaimEvent
 }
 
 interface DeviceAuthorizationClaimLease : AutoCloseable {
@@ -42,7 +48,7 @@ fun interface DeviceAuthorizationClaimClient {
     ): DeviceAuthorizationClaimLease?
 }
 
-/** Production default until the physical control, firmware result, and security workflow exist. */
+/** Explicit disabled seam for tests or builds that intentionally omit the production composition. */
 class DisabledDeviceAuthorizationClaimClient : DeviceAuthorizationClaimClient {
     override fun createClaim(
         endpointToken: String,
@@ -52,8 +58,8 @@ class DisabledDeviceAuthorizationClaimClient : DeviceAuthorizationClaimClient {
 }
 
 /**
- * Explicit OT-051 runtime adapter. It is intentionally not used by [MainActivity]; the shipped
- * activity keeps [DisabledDeviceAuthorizationClaimClient] until the physical target binding is admitted.
+ * Runtime-backed claim adapter. The device-issued 128-bit wire correlation never leaves the runtime
+ * tracker; controller/UI events use only a bounded lease-local operation token.
  */
 class RuntimeDeviceAuthorizationClaimClient(
     private val runtime: BleCompanionRuntime,
@@ -85,4 +91,6 @@ sealed interface DeviceAuthorizationUiState {
     data class Expired(val purpose: DeviceAuthorizationPurpose) : DeviceAuthorizationUiState
     data class Replaced(val companion: BleDiscoveredCompanion) : DeviceAuthorizationUiState
     data class Unavailable(val purpose: DeviceAuthorizationPurpose) : DeviceAuthorizationUiState
+    data class Unsupported(val purpose: DeviceAuthorizationPurpose) : DeviceAuthorizationUiState
+    data class AuthorityUnknown(val purpose: DeviceAuthorizationPurpose) : DeviceAuthorizationUiState
 }

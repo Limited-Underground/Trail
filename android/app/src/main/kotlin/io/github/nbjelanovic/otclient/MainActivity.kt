@@ -46,18 +46,15 @@ open class MainActivity : ComponentActivity() {
     private lateinit var lifecycleBinding: TrailAppLifecycleBinding
     private lateinit var appController: TrailAppController
 
-    protected open fun createBluetoothSecurityAuthority(): AndroidBleSecurityAuthority =
-        DenyAllAndroidBleSecurityAuthority()
+    protected open fun createBluetoothFacade(): AndroidBluetoothFacade =
+        AndroidBluetoothGattFacade(applicationContext)
 
-    protected open fun createBluetoothFacade(authority: AndroidBleSecurityAuthority): AndroidBluetoothFacade =
-        AndroidBluetoothGattFacade(applicationContext, authority)
-
-    protected open fun createDeviceAuthorizationClaimClient(): DeviceAuthorizationClaimClient =
-        DisabledDeviceAuthorizationClaimClient()
+    protected open fun createDeviceAuthorizationClaimClient(runtime: BleCompanionRuntime): DeviceAuthorizationClaimClient =
+        RuntimeDeviceAuthorizationClaimClient(runtime)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        bluetoothFacade = createBluetoothFacade(createBluetoothSecurityAuthority())
+        bluetoothFacade = createBluetoothFacade()
         val bluetoothScheduler = AndroidMainThreadBleRuntimeScheduler()
         bluetoothRuntime = BleCompanionRuntime(
             facade = bluetoothFacade,
@@ -68,7 +65,7 @@ open class MainActivity : ComponentActivity() {
             localController = CompanionAppController(FakeCompanionTransport()),
             bluetoothRuntime = bluetoothRuntime,
             permissionReader = AndroidNearbyDevicesPermissionReader(applicationContext),
-            authorizationClient = createDeviceAuthorizationClaimClient(),
+            authorizationClient = createDeviceAuthorizationClaimClient(bluetoothRuntime),
             authorizationScheduler = bluetoothScheduler,
             bluetoothFacadeCloseable = bluetoothFacade as? AutoCloseable,
         )
@@ -302,22 +299,23 @@ private fun BluetoothAuthorizedRuntimePanel(
         is DeviceAuthorizationUiState.Accepted -> {
             StatusCard(
                 "Device reported request accepted",
-                "The injected device adapter reported this one claim accepted. Bluetooth and application " +
-                    "security checks must still pass; this host-tested build is not physical-device evidence.",
+                "The exact protected device response reported this one claim accepted. Normal use still awaits the " +
+                    "exact initial device snapshot/session gate; this host-tested build is not physical-device evidence.",
             )
             BluetoothRuntimePanel(state.runtimeState, controller, requestNearbyPermissions)
         }
         is DeviceAuthorizationUiState.Replaced -> {
             StatusCard(
                 "Device reported prior phone replaced",
-                "The injected device adapter reported replacement for this claim. The phone did not grant or " +
-                    "revoke authority; security checks must still pass, and host tests are not physical proof.",
+                "The exact protected device response reported replacement for this claim. The phone did not grant or " +
+                    "revoke authority; normal use still awaits the exact initial snapshot/session gate, and host tests " +
+                    "are not physical proof.",
             )
             BluetoothRuntimePanel(state.runtimeState, controller, requestNearbyPermissions)
         }
         is DeviceAuthorizationUiState.Denied -> AuthorizationEndedPanel(
             "Device reported request denied",
-            "The authoritative denial ended this request without starting a connection.",
+            "The authoritative denial ended this request; no normal authorized companion session was established.",
             controller,
         )
         is DeviceAuthorizationUiState.InvalidResult -> AuthorizationEndedPanel(
@@ -332,8 +330,20 @@ private fun BluetoothAuthorizedRuntimePanel(
         )
         is DeviceAuthorizationUiState.Unavailable -> AuthorizationEndedPanel(
             "Authorization request unavailable",
-            "No authorization claim or result is available, no connection was started, and this app did not " +
-                "establish device authority.",
+            "No authorization claim or result is available. No normal authorized companion session was established, " +
+                "and this app did not establish device authority.",
+            controller,
+        )
+        is DeviceAuthorizationUiState.Unsupported -> AuthorizationEndedPanel(
+            "Authorization not supported",
+            "This device did not expose the accepted protected authorization contract. The app did not " +
+                "fall back to local test mode or establish device authority.",
+            controller,
+        )
+        is DeviceAuthorizationUiState.AuthorityUnknown -> AuthorizationEndedPanel(
+            "Authorization result unknown",
+            "The protected connection ended after the device reported the request pending. Device authority " +
+                "may have changed; reconnect and check the physical device before retrying.",
             controller,
         )
     }
@@ -592,6 +602,10 @@ private fun BleRuntimeFailure.publicText(): String = when (this) {
     BleRuntimeFailure.ACTION_RESULT_TIMEOUT -> "The device did not return an action result in time."
     BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST ->
         "The authorization connection ended. Device authority may have changed; reconnect and check the device."
+    BleRuntimeFailure.AUTHORIZATION_UNSUPPORTED ->
+        "The selected device does not expose the accepted protected authorization contract."
+    BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE ->
+        "The protected authorization path is unavailable. This app did not establish device authority."
 }
 
 private fun BleNegotiationPhase.publicText(): String = when (this) {

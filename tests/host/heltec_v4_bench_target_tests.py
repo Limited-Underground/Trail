@@ -22,6 +22,10 @@ GATT_AUTHORIZATION = (
     ROOT / "firmware" / "components" / "companion" / "src" /
     "companion_gatt_authorization.cpp"
 )
+GATT_AUTHORIZATION_ADAPTER = (
+    ROOT / "firmware" / "components" / "companion" / "src" /
+    "companion_gatt_authorization_adapter.cpp"
+)
 MAIN_CMAKE = TARGET / "main" / "CMakeLists.txt"
 COMPANION_SOURCES = (
     ROOT / "firmware" / "components" / "companion" / "src" /
@@ -82,7 +86,9 @@ def test_contract() -> None:
         "boot_companion_request_self_check",
         "boot_companion_gatt_session_self_check",
         "boot_companion_gatt_authorization_self_check",
+        "boot_companion_gatt_authorization_adapter_self_check",
         "nimble_gatt_definition_build_linked",
+        "nimble_gatt_callback_adapter_build_linked",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
             "heartbeat must remain admitted")
@@ -94,8 +100,12 @@ def test_contract() -> None:
             "boot companion GATT-session self-check must be admitted")
     require(capabilities["boot_companion_gatt_authorization_self_check"] is True,
             "boot restricted authorization self-check must be admitted")
+    require(capabilities["boot_companion_gatt_authorization_adapter_self_check"] is True,
+            "boot callback-adapter self-check must be admitted")
     require(capabilities["nimble_gatt_definition_build_linked"] is True,
             "NimBLE GATT definition build linkage must be admitted")
+    require(capabilities["nimble_gatt_callback_adapter_build_linked"] is True,
+            "NimBLE callback adapter build linkage must be admitted")
     for name, enabled in capabilities.items():
         if name not in admitted:
             require(enabled is False, f"capability must remain disabled: {name}")
@@ -126,6 +136,8 @@ def test_application_surface() -> None:
             "missing GATT-session lifecycle self-check call")
     require("run_companion_gatt_authorization_self_check" in source,
             "missing restricted authorization lifecycle self-check call")
+    require("run_companion_gatt_authorization_adapter_self_check" in source,
+            "missing callback-adapter self-check call")
     require("companion_nimble_gatt_definition_self_check" in source,
             "missing NimBLE GATT definition self-check call")
     require("register_companion_nimble_gatt_service" not in source,
@@ -161,12 +173,14 @@ def test_application_surface() -> None:
         "run_companion_gatt_session_self_check()")
     gatt_authorization_call = source.index(
         "run_companion_gatt_authorization_self_check()")
+    gatt_adapter_call = source.index(
+        "run_companion_gatt_authorization_adapter_self_check()")
     gatt_definition_call = source.index(
         "companion_nimble_gatt_definition_self_check()")
     pass_log = source.index("companion boot self-check PASS")
     startup_log = source.index("build-only bench candidate started")
     heartbeat_log = source.index("heartbeat elapsed_ms=%llu")
-    require(self_check_call < coordinator_call < gatt_session_call < gatt_authorization_call < gatt_definition_call < pass_log < startup_log < heartbeat_log,
+    require(self_check_call < coordinator_call < gatt_session_call < gatt_authorization_call < gatt_adapter_call < gatt_definition_call < pass_log < startup_log < heartbeat_log,
             "all self-checks must gate startup and heartbeat")
 
     for vector in (
@@ -178,6 +192,11 @@ def test_application_surface() -> None:
     require("observation.authorization_calls != 0" in self_check and
             "observation.authorization_calls != 1" in self_check,
             "authorization check must prove no early and exactly one authority call")
+    require("CompanionGattAuthorizationCallbackAdapter adapter" in self_check and
+            "port.response_is(kAuthorizationPending)" in self_check and
+            "port.response_is(kAuthorizationAccepted)" in self_check and
+            "port.response_is(kActionResponse)" in self_check,
+            "callback-adapter self-check must prove exact provisional promotion and normal response")
 
     gatt_authorization = GATT_AUTHORIZATION.read_text(encoding="utf-8")
     for required in (
@@ -197,6 +216,7 @@ def test_application_surface() -> None:
             "terminal capacity reservation must precede authorization mutation")
 
     gatt_session = GATT_SESSION.read_text(encoding="utf-8")
+    gatt_adapter = GATT_AUTHORIZATION_ADAPTER.read_text(encoding="utf-8")
     for required in (
         "kCompanionMaxResponseRecordBytes",
         "indication_sink_.reserve",
@@ -227,8 +247,16 @@ def test_application_surface() -> None:
         "ble_gap_conn_find",
         "ble_gatts_count_cfg",
         "ble_gatts_add_svcs",
-        "g_application_authorization == nullptr",
-        "g_coordinator == nullptr",
+        "register_companion_nimble_gatt_service",
+        "ensure_exact_registered_handles",
+        "BLE_GAP_EVENT_CONNECT",
+        "BLE_GAP_EVENT_DISCONNECT",
+        "BLE_GAP_EVENT_ENC_CHANGE",
+        "BLE_GAP_EVENT_MTU",
+        "BLE_GAP_EVENT_SUBSCRIBE",
+        "BLE_GAP_EVENT_NOTIFY_TX",
+        "BLE_GAP_EVENT_AUTHORIZE",
+        "g_indication_port.pending_tuple()",
     ):
         require(required in nimble_gatt,
                 f"missing fail-closed NimBLE GATT surface: {required}")
@@ -236,14 +264,28 @@ def test_application_surface() -> None:
         nimble_gatt.rindex("int command_access(std::uint16_t connection_handle,"):
         nimble_gatt.rindex("int stream_access(std::uint16_t,")
     ]
-    require("g_coordinator->service" not in command_access and
-            "ble_gatts_indicate_custom" not in command_access and
-            "no GAP subscribe/disconnect owner" in command_access and
-            "return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;" in command_access,
-            "Command must remain denied before coordinator mutation until exact subscription ownership exists")
+    require("g_adapter->service_command" in command_access and
+            "refresh_security(connection_handle)" in command_access and
+            "BLE_ATT_ERR_INSUFFICIENT_AUTHOR" in command_access,
+            "Command callback must refresh security and route only through the fail-closed adapter")
     require("g_stream_handle + 1" not in nimble_gatt and
-            "attribute_handle == g_stream_handle" in nimble_gatt,
+            "ble_gatts_find_dsc" in nimble_gatt and
+            "BLE_GATT_DSC_CLT_CFG_UUID16" in nimble_gatt and
+            "cccd == 0 || cccd == stream" in nimble_gatt,
             "Stream CCCD handle must never be inferred from its value handle")
+    require("g_adapter->status().pending" not in nimble_gatt and
+            "g_indication_port.pending_tuple()" in nimble_gatt,
+            "NOTIFY_TX must consume the immutable submission-era tuple")
+    for required in (
+        "transport_generation_",
+        "binding_authority_.resolve",
+        "refresh_security_impl",
+        "indication_port_.bind_exchange",
+        "exact_pending(expected)",
+        "ScopedOperation operation(operation_active_)",
+    ):
+        require(required in gatt_adapter,
+                f"missing callback-adapter fail-closed gate: {required}")
     command_flags = nimble_gatt[
         nimble_gatt.index("constexpr ble_gatt_chr_flags kCommandFlags"):
         nimble_gatt.index("constexpr ble_gatt_chr_flags kStreamFlags")
@@ -268,6 +310,7 @@ def test_application_surface() -> None:
         "companion/src/companion_gatt_session.cpp",
         "companion/src/companion_authorization_wire.cpp",
         "companion/src/companion_gatt_authorization.cpp",
+        "companion/src/companion_gatt_authorization_adapter.cpp",
         "companion_boot_self_check.cpp",
         "companion_nimble_gatt.cpp",
         "companion/include",
@@ -276,12 +319,12 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 9,
-            "target source set must remain app, two target helpers, and six accepted companion files")
+    require(cmake.count('.cpp"') == 10,
+            "target source set must remain app, two target helpers, and seven accepted companion files")
     require("REQUIRES" in cmake and "bt" in cmake,
             "target must declare the pinned ESP-IDF Bluetooth dependency")
 
-    linked_source = self_check + "\n" + nimble_gatt + "\n" + gatt_session + "\n" + gatt_authorization + "\n" + "\n".join(
+    linked_source = self_check + "\n" + nimble_gatt + "\n" + gatt_session + "\n" + gatt_authorization + "\n" + gatt_adapter + "\n" + "\n".join(
         path.read_text(encoding="utf-8") for path in COMPANION_SOURCES)
     forbidden_initializers = (
         "esp_ble_", "esp_bt_controller", "nimble_port_init",
@@ -382,8 +425,13 @@ def test_build_only_tooling() -> None:
             "build evidence must deny runtime GATT-session evidence")
     require("companion_gatt_authorization_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny runtime authorization evidence")
-    require("companion_nimble_gatt = 'BUILD-LINKED-DEFINITION-SELF-CHECK-NOT-RUN'" in script,
+    require("companion_gatt_authorization_adapter_self_check = 'BUILD-LINKED-NOT-RUN'" in script,
+            "build evidence must deny runtime callback-adapter evidence")
+    require("companion_nimble_gatt = 'BUILD-LINKED-CALLBACK-SELF-CHECK-NOT-RUN'" in script,
             "build evidence must deny GATT runtime evidence")
+    require("heltec_v4_bench_nimble_order_tests.py" in script and
+            "--idf-path $env:IDF_PATH" in script,
+            "build helper must enforce pinned NimBLE disconnect ordering")
     require("nimble_controller = 'NOT-STARTED'" in script and
             "advertising = 'NOT-IMPLEMENTED'" in script and
             "application_authorization = 'NOT-INJECTED'" in script,
@@ -394,6 +442,7 @@ def test_build_only_tooling() -> None:
             "companion_gatt_session.cpp.obj" in script and
             "companion_authorization_wire.cpp.obj" in script and
             "companion_gatt_authorization.cpp.obj" in script and
+            "companion_gatt_authorization_adapter.cpp.obj" in script and
             "companion_boot_self_check.cpp.obj" in script and
             "companion_nimble_gatt.cpp.obj" in script,
             "build helper must verify all companion/self-check objects in the link map")

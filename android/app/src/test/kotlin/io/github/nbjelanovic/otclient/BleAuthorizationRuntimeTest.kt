@@ -30,6 +30,203 @@ import kotlin.test.assertTrue
 
 class BleAuthorizationRuntimeTest {
     @Test
+    fun concreteProtectedReadPathRequiresExactReadAndNeverNeedsSyntheticSecurityEvidence() {
+        val fixture = Fixture()
+        val events = mutableListOf<DeviceAuthorizationClaimEvent>()
+        val lease = fixture.createClaim(DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE, events::add)
+        assertTrue(lease.start())
+        val gatt = fixture.facade.connections.single()
+
+        gatt.emit(BleGattEvent.ProfileReady)
+        assertEquals(1, gatt.protocolInfoReads)
+        assertTrue(gatt.requestedMtus.isEmpty())
+        assertTrue(events.isEmpty())
+
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfo()))
+        assertEquals(listOf(151), gatt.requestedMtus)
+        gatt.emit(BleGattEvent.MtuChanged(151))
+        gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+        assertEquals(1, gatt.commands.size)
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun profileAndBondPrerequisiteAloneNeverOpenClaimAndLegacyV0IsExplicitlyUnsupported() {
+        run {
+            val fixture = Fixture()
+            val events = mutableListOf<DeviceAuthorizationClaimEvent>()
+            assertTrue(fixture.createClaim(DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE, events::add).start())
+            val gatt = fixture.facade.connections.single()
+            gatt.emit(BleGattEvent.ProfileReady)
+            fixture.scheduler.runNext()
+            assertIs<DeviceAuthorizationClaimEvent.Unavailable>(events.single())
+            assertEquals(
+                BleRuntimeFailure.NEGOTIATION_TIMEOUT,
+                assertIs<BleRuntimeState.Failed>(fixture.runtime.state).reason,
+            )
+            assertEquals(1, gatt.closeCount)
+        }
+
+        run {
+            val fixture = Fixture()
+            val events = mutableListOf<DeviceAuthorizationClaimEvent>()
+            assertTrue(fixture.createClaim(DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE, events::add).start())
+            val gatt = fixture.facade.connections.single()
+            gatt.emit(BleGattEvent.ProfileReady)
+            val legacy = CompanionProtocolCodec.encodeProtocolInfo(
+                io.github.nbjelanovic.otprotocol.CompanionProtocolInfo(capabilities = 0x0f),
+            ).value!!
+            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(legacy))
+            assertIs<DeviceAuthorizationClaimEvent.Unsupported>(events.single())
+            assertEquals(
+                BleRuntimeFailure.AUTHORIZATION_UNSUPPORTED,
+                assertIs<BleRuntimeState.Failed>(fixture.runtime.state).reason,
+            )
+            assertTrue(gatt.requestedMtus.isEmpty())
+            assertEquals(1, gatt.closeCount)
+        }
+    }
+
+    @Test
+    fun protectedPathFailuresAreUnavailableBeforePendingAndUnknownAfterPending() {
+        run {
+            val fixture = Fixture()
+            val events = mutableListOf<DeviceAuthorizationClaimEvent>()
+            assertTrue(fixture.createClaim(DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE, events::add).start())
+            val gatt = fixture.facade.connections.single()
+            gatt.emit(BleGattEvent.ProfileReady)
+            gatt.emit(BleGattEvent.Failed(BleGattFailure.SECURITY_REJECTED))
+            assertIs<DeviceAuthorizationClaimEvent.Unavailable>(events.single())
+            assertEquals(1, gatt.closeCount)
+        }
+
+        run {
+            val fixture = Fixture()
+            val events = mutableListOf<DeviceAuthorizationClaimEvent>()
+            assertTrue(fixture.createClaim(DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE, events::add).start())
+            val gatt = fixture.facade.connections.single()
+            fixture.advanceProtectedToClaim(gatt)
+            gatt.emit(BleGattEvent.StreamIndication(pendingEnvelope()))
+            gatt.emit(BleGattEvent.Failed(BleGattFailure.PERMISSION_REVOKED))
+            assertIs<DeviceAuthorizationClaimEvent.Pending>(events.first())
+            assertIs<DeviceAuthorizationClaimEvent.AuthorityUnknown>(events.last())
+            assertEquals(1, gatt.closeCount)
+            assertEquals(1, fixture.facade.connections.size)
+        }
+    }
+
+    @Test
+    fun staleProtectedCallbackAfterLifecycleStopCannotMutateOrReopen() {
+        val fixture = Fixture()
+        val events = mutableListOf<DeviceAuthorizationClaimEvent>()
+        assertTrue(fixture.createClaim(DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE, events::add).start())
+        val gatt = fixture.facade.connections.single()
+        gatt.emit(BleGattEvent.ProfileReady)
+        fixture.runtime.onLifecycleStop()
+        assertIs<BleRuntimeState.Inactive>(fixture.runtime.state)
+        assertEquals(1, gatt.closeCount)
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfo()))
+        assertIs<BleRuntimeState.Inactive>(fixture.runtime.state)
+        assertTrue(gatt.requestedMtus.isEmpty())
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun preflightAndGenerationExhaustionAfterClaimCreationEmitUnavailable() {
+        run {
+            val fixture = Fixture()
+            val events = mutableListOf<DeviceAuthorizationClaimEvent>()
+            val lease = fixture.createClaim(DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE, events::add)
+            fixture.facade.preflight = BlePreflight(BleRuntimeBlock.CONNECT_PERMISSION_MISSING)
+            assertTrue(lease.start())
+            assertIs<DeviceAuthorizationClaimEvent.Unavailable>(events.single())
+            assertEquals(BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE, assertIs<BleRuntimeState.Failed>(fixture.runtime.state).reason)
+            assertTrue(fixture.facade.connections.isEmpty())
+        }
+
+        run {
+            val fixture = Fixture(initialGeneration = Long.MAX_VALUE - 2)
+            val events = mutableListOf<DeviceAuthorizationClaimEvent>()
+            val lease = fixture.createClaim(DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE, events::add)
+            assertTrue(lease.start())
+            assertIs<DeviceAuthorizationClaimEvent.Unavailable>(events.single())
+            assertEquals(BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED, assertIs<BleRuntimeState.Failed>(fixture.runtime.state).reason)
+            assertTrue(fixture.facade.connections.isEmpty())
+        }
+    }
+
+    @Test
+    fun synchronousLeaseStartPreservesPendingAndEveryTerminalOutcomeOrLocalFailure() {
+        data class Case(
+            val purpose: DeviceAuthorizationPurpose,
+            val wirePurpose: CompanionAuthorizationPurpose,
+            val outcome: CompanionAuthorizationClaimOutcome,
+        )
+        val cases = listOf(
+            Case(
+                DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE,
+                CompanionAuthorizationPurpose.AUTHORIZE_CONTROLLER,
+                CompanionAuthorizationClaimOutcome.ACCEPTED,
+            ),
+            Case(
+                DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE,
+                CompanionAuthorizationPurpose.AUTHORIZE_CONTROLLER,
+                CompanionAuthorizationClaimOutcome.DENIED,
+            ),
+            Case(
+                DeviceAuthorizationPurpose.REPLACE_LOST_PHONE,
+                CompanionAuthorizationPurpose.REPLACE_CONTROLLER,
+                CompanionAuthorizationClaimOutcome.REPLACED,
+            ),
+        )
+        cases.forEach { case ->
+            val fixture = Fixture()
+            val events = mutableListOf<DeviceAuthorizationClaimEvent>()
+            val lease = fixture.createClaim(case.purpose, events::add)
+            fixture.facade.onConnectionStart = { gatt ->
+                gatt.emit(BleGattEvent.ProfileReady)
+                gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfo()))
+                gatt.emit(BleGattEvent.MtuChanged(151))
+                gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+                gatt.emit(BleGattEvent.StreamIndication(pendingEnvelope(case.wirePurpose)))
+                gatt.emit(
+                    BleGattEvent.StreamIndication(
+                        resultEnvelope(
+                            case.outcome,
+                            reason = if (case.outcome == CompanionAuthorizationClaimOutcome.DENIED) {
+                                CompanionAuthorizationDenyReason.POLICY_DENIED
+                            } else {
+                                CompanionAuthorizationDenyReason.NONE
+                            },
+                            purpose = case.wirePurpose,
+                        ),
+                    ),
+                )
+            }
+            assertTrue(lease.start())
+            assertIs<DeviceAuthorizationClaimEvent.Pending>(events.first())
+            when (case.outcome) {
+                CompanionAuthorizationClaimOutcome.ACCEPTED ->
+                    assertIs<DeviceAuthorizationClaimEvent.Accepted>(events.last())
+                CompanionAuthorizationClaimOutcome.DENIED ->
+                    assertIs<DeviceAuthorizationClaimEvent.Denied>(events.last())
+                CompanionAuthorizationClaimOutcome.REPLACED ->
+                    assertIs<DeviceAuthorizationClaimEvent.Replaced>(events.last())
+            }
+            assertFalse(events.last() is DeviceAuthorizationClaimEvent.Unavailable)
+        }
+
+        val failed = Fixture()
+        val events = mutableListOf<DeviceAuthorizationClaimEvent>()
+        val lease = failed.createClaim(DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE, events::add)
+        failed.facade.onConnectionStart = { gatt ->
+            gatt.emit(BleGattEvent.ProfileReady)
+            gatt.emit(BleGattEvent.Failed(BleGattFailure.SECURITY_REJECTED))
+        }
+        assertTrue(lease.start())
+        assertIs<DeviceAuthorizationClaimEvent.Unavailable>(events.single())
+    }
+    @Test
     fun exactAuthorizeFlowPromotesThenRequestsSnapshotOnSameSession() {
         val fixture = Fixture()
         lateinit var lease: DeviceAuthorizationClaimLease
@@ -43,7 +240,7 @@ class BleAuthorizationRuntimeTest {
         }
         assertTrue(lease.start())
         val gatt = fixture.facade.connections.single()
-        fixture.advanceToClaim(gatt)
+        fixture.advanceProtectedToClaim(gatt)
 
         val start = CompanionProtocolCodec.decodeFragment(gatt.commands.single()).value!!
         assertEquals(CompanionFrameKind.AUTHORIZATION_CLAIM_START, start.kind)
@@ -117,8 +314,9 @@ class BleAuthorizationRuntimeTest {
             gatt.emit(BleGattEvent.StreamIndication(pendingEnvelope()))
             assertEquals(AUTHORIZATION_RESULT_TIMEOUT_MILLIS, fixture.scheduler.nextOpen().delayMillis)
             fixture.scheduler.runNext()
-            assertEquals(1, events.size)
-            assertIs<DeviceAuthorizationClaimEvent.Pending>(events.single())
+            assertEquals(2, events.size)
+            assertIs<DeviceAuthorizationClaimEvent.Pending>(events.first())
+            assertIs<DeviceAuthorizationClaimEvent.AuthorityUnknown>(events.last())
             assertIs<BleRuntimeState.Failed>(fixture.runtime.state)
             assertTrue(gatt.closed)
         }
@@ -133,7 +331,7 @@ class BleAuthorizationRuntimeTest {
         val gatt = fixture.facade.connections.single()
         fixture.advanceToClaim(gatt)
         gatt.emit(BleGattEvent.StreamIndication(resultEnvelope(CompanionAuthorizationClaimOutcome.ACCEPTED)))
-        assertTrue(events.isEmpty())
+        assertIs<DeviceAuthorizationClaimEvent.Unavailable>(events.single())
         assertEquals(
             BleRuntimeFailure.PROTOCOL_VIOLATION,
             assertIs<BleRuntimeState.Failed>(fixture.runtime.state).reason,
@@ -394,10 +592,15 @@ class BleAuthorizationRuntimeTest {
         }
     }
 
-    private class Fixture(firstRequestId: Long = 1) {
+    private class Fixture(firstRequestId: Long = 1, initialGeneration: Long = 0) {
         val facade = TestFacade()
         val scheduler = TestScheduler()
-        val runtime = BleCompanionRuntime(facade, scheduler, firstRequestId = firstRequestId)
+        val runtime = BleCompanionRuntime(
+            facade,
+            scheduler,
+            firstRequestId = firstRequestId,
+            initialGeneration = initialGeneration,
+        )
 
         init {
             runtime.onLifecycleStart()
@@ -425,15 +628,29 @@ class BleAuthorizationRuntimeTest {
             assertEquals(1, gatt.commands.size)
             assertEquals(BleNegotiationPhase.AUTHORIZATION_CLAIM, assertIs<BleRuntimeState.Negotiating>(runtime.state).phase)
         }
+
+
+        fun advanceProtectedToClaim(gatt: TestGatt) {
+            gatt.emit(BleGattEvent.ProfileReady)
+            assertEquals(1, gatt.protocolInfoReads)
+            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfo()))
+            assertEquals(listOf(151), gatt.requestedMtus)
+            gatt.emit(BleGattEvent.MtuChanged(151))
+            assertEquals(1, gatt.subscriptions)
+            gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+            assertEquals(1, gatt.commands.size)
+        }
     }
 
     private class TestFacade : AndroidBluetoothFacade {
+        var preflight = BlePreflight()
+        var onConnectionStart: ((TestGatt) -> Unit)? = null
         var scan: TestScan? = null
         val connections = mutableListOf<TestGatt>()
-        override fun preflight() = BlePreflight()
+        override fun preflight() = preflight
         override fun createScan(observer: (BleScanEvent) -> Unit) = TestScan(observer).also { scan = it }
         override fun createConnection(endpointToken: String, observer: (BleGattEvent) -> Unit) =
-            TestGatt(observer).also(connections::add)
+            TestGatt(observer) { gatt -> onConnectionStart?.invoke(gatt) }.also(connections::add)
     }
 
     private class TestScan(private val observer: (BleScanEvent) -> Unit) : BleScanLease {
@@ -442,14 +659,17 @@ class BleAuthorizationRuntimeTest {
         fun emit(event: BleScanEvent) = observer(event)
     }
 
-    private class TestGatt(private val observer: (BleGattEvent) -> Unit) : BleGattLease {
+    private class TestGatt(
+        private val observer: (BleGattEvent) -> Unit,
+        private val onStart: (TestGatt) -> Unit,
+    ) : BleGattLease {
         var closeCount = 0
         val requestedMtus = mutableListOf<Int>()
         var protocolInfoReads = 0
         var subscriptions = 0
         val commands = mutableListOf<ByteArray>()
         val closed: Boolean get() = closeCount > 0
-        override fun start() = true
+        override fun start() = true.also { onStart(this) }
         override fun requestMtu(mtu: Int) = true.also { requestedMtus += mtu }
         override fun readProtocolInfo() = true.also { protocolInfoReads += 1 }
         override fun subscribeStreamIndications() = true.also { subscriptions += 1 }

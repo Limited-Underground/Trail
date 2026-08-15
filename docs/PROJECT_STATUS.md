@@ -297,7 +297,8 @@ connecting, or Ready, late permission callbacks, revocation, observer re-entry,
 off-owner rejection, and exactly-once cleanup. The combined Android gate passes
 59 tests and lint; the 9,595,057-byte debug APK has SHA-256
 `0CCD4DECAAAE712A587DB97BC744B515E97008532FAA834BBF3D7BE4C715D76C`.
-The injected production application-security authority remains deny-all, so no
+At OT-045 acceptance the injected production application-security authority
+remained deny-all, so no
 successful live Ready state, phone/device/emulator/ADB/BLE access, install,
 signing, or field evidence exists. OT-044 and OT-045 are bounded `done`
 increments; OT-034 remains `partial` and V1 remains 30%.
@@ -398,14 +399,50 @@ ten suites (protocol 6, 10, 10, and 3; application 7, 9, 17, 11, 1, and 16),
 lint reports no issues, and the 9,644,209-byte debug APK has SHA-256
 `28ED3014ACE420F8C531625211D26BD3FB9D522F1349BACA0878F94726534D8A`.
 
-Both increments remain non-live. The real target NimBLE AUTHOR path is still
-baseline v0.0 and denied, controller/service/advertising startup is absent, and
-no trusted target bond, physical-input, persistence, or device authority is
-injected. `MainActivity` still constructs the disabled claim client and the
-default Android security authority remains deny-all. No phone, emulator,
+At OT-050/051 acceptance both increments remained non-live. The real target
+NimBLE AUTHOR path was baseline v0.0 and denied,
+controller/service/advertising startup was absent, no trusted target bond,
+physical-input, persistence, or device authority was injected, and
+`MainActivity` still constructed the disabled claim client. No phone, emulator,
 peripheral, ADB, install, signing, successful authorization, target runtime, or
-physical BLE evidence exists. OT-050 and OT-051 are bounded `done` increments;
-OT-034 remains `partial` and V1 remains 30%.
+physical BLE evidence existed. OT-050 and OT-051 remain bounded `done`
+increments.
+
+OT-052 now build-links the real ESP-IDF NimBLE callback adapter for the frozen
+restricted lifecycle. It binds exact registered characteristic handles and the
+separately discovered Stream CCCD; refreshes encryption, authentication, bond,
+16-byte key, MTU, and private trusted-binding evidence on protected access and
+again at physical authority resolution; permits only protected Protocol Info
+plus authorization claims before promotion; reserves response storage before
+mutation; and accepts indication completion only for the immutable connection,
+transport-generation, session, exchange, Stream-handle, and token tuple. A
+successful exact protected 20-byte v0.1 Protocol Info read is device-enforced
+security evidence; Android bond state alone is not.
+
+Ten strict callback-adapter groups pass at 100/100, the composed target boot
+self-check passes 100/100, static admission passes 3/3, the pinned NimBLE
+teardown-order gate passes, and the full native matrix passes 121 enabled
+executables. Two pinned ESP-IDF v6.0.2 builds reproduce a 170,313-byte image and
+170,432-byte BIN with SHA-256
+`22CAE43F7AEA9D980602C41E1ACEB49CA1174315EE87598D15E6717A27A1E4D4`.
+Exact evidence is in [OT-052](../tests/hardware/OT-052-2026-08-15.md).
+
+OT-053 wires the frozen protected-read flow into the Android production
+composition selected by explicit Bluetooth mode, with no fake fallback. The
+client uses successful protected Protocol Info access—not bond state alone—as
+the device-enforced security-path evidence, then performs advertised MTU,
+Stream indication subscription, Claim Start, correlated Pending/terminal, and
+explicit post-promotion Snapshot Request. The Android gate passes 101 JVM tests
+across ten suites (protocol 29; application 8 + 15 + 17 + 11 + 1 + 20), lint
+reports no issues, and the 9,644,209-byte debug APK has SHA-256
+`BE385FEB8966210C4C09027388C3F560745F6A075B9CBB1ABF25DC0893C0033C`.
+
+These increments remain non-live: `app_main` never registers the service or
+starts NimBLE/controller, advertising is absent, target persistence and
+physical-input authorities are not injected, and nothing was flashed. The
+dormant target means there is still no phone/peripheral pairing,
+authorization, Ready, target-runtime, or physical BLE proof. OT-052 and OT-053
+are bounded `done` increments; OT-034 remains `partial` and V1 remains 30%.
 
 OT-034 introduces the first repository-native ESP-IDF target surface as a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract pins

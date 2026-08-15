@@ -2,42 +2,49 @@
 
 #include <cstdint>
 
-#include "opentrail/companion_request_coordinator.hpp"
+#include "opentrail/companion_gatt_authorization_adapter.hpp"
+
+struct ble_gap_event;
 
 namespace opentrail::target::heltec_v4_bench {
 
-struct CompanionGattAuthorizationResult {
-    bool authorized{false};
-    std::uint64_t controller_binding{0};
-};
-
-// Injected application policy only. The adapter separately rechecks the live
-// NimBLE encrypted, authenticated, and bonded connection state on every access.
-class CompanionGattApplicationAuthorization {
-public:
-    virtual ~CompanionGattApplicationAuthorization() = default;
-    [[nodiscard]] virtual CompanionGattAuthorizationResult authorize(
-        std::uint16_t connection_handle) const = 0;
-};
-
-// Pure definition check. It does not initialize NimBLE, register a service,
-// start a controller, advertise, access a device, or open a transport.
 [[nodiscard]] bool companion_nimble_gatt_definition_self_check();
 
-// Future host-owner seam. Call only after NimBLE host initialization and from
-// its serialized owner context. Registration fails unless both the persistent
-// application-authorization authority and the already-constructed device
-// coordinator are injected. This target does not call this function.
-[[nodiscard]] int register_companion_nimble_gatt_service(
-    CompanionGattApplicationAuthorization* application_authorization,
-    companion::CompanionRequestCoordinator* coordinator);
+// Obtaining the real port performs no controller, GATT, advertising, or device
+// I/O. A future serialized host owner uses it to construct the callback adapter.
+[[nodiscard]] companion::CompanionGattIndicationPort&
+companion_nimble_gatt_indication_port();
 
-// Future BLE_GAP_EVENT_AUTHORIZE seam for known characteristic value handles.
-// It deliberately does not infer a Stream CCCD handle from value_handle + 1.
-// The current target installs no registration, subscription, disconnect, or
-// authorization callback, so NimBLE's default for AUTHOR remains rejection.
-[[nodiscard]] bool companion_nimble_gatt_attribute_authorized(
+// Attaches the exact callback adapter and service definitions before
+// ble_gatts_start(). The current build-only target never calls this function.
+// Protocol Info and Command use NimBLE ENC+AUTHEN+AUTHOR permissions. Their
+// AUTHOR callback and actual access callback each re-read the current link;
+// encryption/key-size failure maps to INSUFFICIENT_ENC, authentication/bond
+// failure to INSUFFICIENT_AUTHEN, and private-binding/lifecycle denial to
+// INSUFFICIENT_AUTHOR. A successful exact v0.1 Protocol Info read is the
+// client-visible device-enforced proof for this restricted path.
+[[nodiscard]] int register_companion_nimble_gatt_service(
+    companion::CompanionGattAuthorizationCallbackAdapter* adapter);
+
+// Exact serialized GAP callback for a future peripheral owner. It never starts
+// or resumes advertising. Both a new bonded controller and a secure reconnect
+// use v0.1 plus Claim Start; this adapter has no v0.0 owner shortcut.
+[[nodiscard]] int companion_nimble_gatt_gap_event(
+    ble_gap_event* event,
+    void* argument);
+
+// Exact device-local physical-decision and timer seams. Callers retain the full
+// tuple from status(); stale generations/tokens fail closed.
+[[nodiscard]] companion::CompanionGattAuthorizationRequestResult
+companion_nimble_gatt_resolve_claim(
     std::uint16_t connection_handle,
-    std::uint16_t attribute_handle);
+    std::uint64_t transport_generation,
+    std::uint32_t session_nonce,
+    std::uint32_t exchange_id,
+    std::uint64_t now_ms);
+[[nodiscard]] companion::CompanionGattAdapterError
+companion_nimble_gatt_service_timeout(
+    const companion::CompanionGattAdapterPendingIndication& expected,
+    std::uint64_t now_ms);
 
 }  // namespace opentrail::target::heltec_v4_bench

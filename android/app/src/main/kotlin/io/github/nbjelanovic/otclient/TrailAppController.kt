@@ -430,7 +430,7 @@ class TrailAppController(
             finishAuthorizationInvalidResult(purpose)
             return
         }
-        if (!canContinueAuthorizationStart(generation, candidate, purpose)) {
+        if (!canRetainAuthorizationCallback(generation, candidate, purpose)) {
             finishAuthorizationLease()
             return
         }
@@ -545,6 +545,36 @@ class TrailAppController(
                 finishAuthorizationLease()
                 authorizationState = DeviceAuthorizationUiState.Replaced(candidate)
                 if (!bluetoothRuntime.authorizationAccepted(candidate.endpointToken)) publishBluetooth()
+            }
+            is DeviceAuthorizationClaimEvent.Unavailable -> {
+                if (authorizationState !is DeviceAuthorizationUiState.Starting) {
+                    finishAuthorizationInvalidResult(purpose)
+                } else {
+                    finishAuthorizationLease()
+                    authorizationState = DeviceAuthorizationUiState.Unavailable(purpose)
+                    bluetoothRuntime.authorizationEnded()
+                    publishBluetooth()
+                }
+            }
+            is DeviceAuthorizationClaimEvent.Unsupported -> {
+                if (authorizationState !is DeviceAuthorizationUiState.Starting) {
+                    finishAuthorizationInvalidResult(purpose)
+                } else {
+                    finishAuthorizationLease()
+                    authorizationState = DeviceAuthorizationUiState.Unsupported(purpose)
+                    bluetoothRuntime.authorizationEnded()
+                    publishBluetooth()
+                }
+            }
+            is DeviceAuthorizationClaimEvent.AuthorityUnknown -> {
+                if (!matchesActiveAuthorizationToken(event.claimToken)) {
+                    finishAuthorizationInvalidResult(purpose)
+                } else {
+                    finishAuthorizationLease()
+                    authorizationState = DeviceAuthorizationUiState.AuthorityUnknown(purpose)
+                    bluetoothRuntime.authorizationEnded()
+                    publishBluetooth()
+                }
             }
         }
     }
@@ -683,7 +713,11 @@ class TrailAppController(
                 else -> return
             }
             finishAuthorizationLease()
-            authorizationState = DeviceAuthorizationUiState.Expired(purpose)
+            authorizationState = if (pending is DeviceAuthorizationUiState.Pending) {
+                DeviceAuthorizationUiState.AuthorityUnknown(purpose)
+            } else {
+                DeviceAuthorizationUiState.Unavailable(purpose)
+            }
             bluetoothRuntime.authorizationEnded()
         }
     }
@@ -717,6 +751,16 @@ class TrailAppController(
             authorizationState == DeviceAuthorizationUiState.Starting(candidate, purpose) &&
             (bluetoothRuntime.state as? BleRuntimeState.AwaitingAuthorization)?.companion?.endpointToken ==
             candidate.endpointToken
+
+    private fun canRetainAuthorizationCallback(
+        generation: Long,
+        candidate: BleDiscoveredCompanion,
+        purpose: DeviceAuthorizationPurpose,
+    ): Boolean =
+        !closed &&
+            mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            activeAuthorizationGeneration == generation &&
+            authorizationState == DeviceAuthorizationUiState.Starting(candidate, purpose)
 
     private fun matchesActiveAuthorizationToken(token: String): Boolean =
         validAuthorizationToken(token) && token == authorizationClaimToken

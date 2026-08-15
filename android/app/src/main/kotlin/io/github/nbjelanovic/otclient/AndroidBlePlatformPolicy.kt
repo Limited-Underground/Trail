@@ -1,5 +1,8 @@
 package io.github.nbjelanovic.otclient
 
+import io.github.nbjelanovic.otprotocol.COMPANION_AUTHORIZATION_PROTOCOL_INFO_BYTES
+import io.github.nbjelanovic.otprotocol.COMPANION_PROTOCOL_INFO_BYTES
+
 internal const val ANDROID_BLE_MINIMUM_API = 31
 
 data object AndroidBlePlatformPlan {
@@ -117,7 +120,7 @@ internal enum class AndroidGattStage {
     NEW,
     CONNECTING,
     DISCOVERING,
-    SECURED,
+    PROFILE_READY,
     MTU_PENDING,
     MTU_READY,
     PROTOCOL_INFO_PENDING,
@@ -137,9 +140,9 @@ internal class AndroidGattOperationGate {
 
     fun beginConnection() = move(AndroidGattStage.NEW, AndroidGattStage.CONNECTING)
     fun beginDiscovery() = move(AndroidGattStage.CONNECTING, AndroidGattStage.DISCOVERING)
-    fun acceptProfileAndSecurity() = move(AndroidGattStage.DISCOVERING, AndroidGattStage.SECURED)
+    fun acceptProfile() = move(AndroidGattStage.DISCOVERING, AndroidGattStage.PROFILE_READY)
     fun beginMtuRequest(): Boolean {
-        if (stage != AndroidGattStage.SECURED && stage != AndroidGattStage.PROTOCOL_INFO_READY) return false
+        if (stage != AndroidGattStage.PROFILE_READY && stage != AndroidGattStage.PROTOCOL_INFO_READY) return false
         stage = AndroidGattStage.MTU_PENDING
         return true
     }
@@ -152,7 +155,7 @@ internal class AndroidGattOperationGate {
     }
 
     fun beginProtocolInfoRead(): Boolean {
-        if (stage != AndroidGattStage.SECURED && stage != AndroidGattStage.MTU_READY) return false
+        if (stage != AndroidGattStage.PROFILE_READY && stage != AndroidGattStage.MTU_READY) return false
         stage = AndroidGattStage.PROTOCOL_INFO_PENDING
         return true
     }
@@ -185,5 +188,64 @@ internal class AndroidGattOperationGate {
         if (stage != expected) return false
         stage = next
         return true
+    }
+}
+
+internal const val ANDROID_GATT_SUCCESS_STATUS = 0
+internal const val ANDROID_GATT_INSUFFICIENT_AUTHENTICATION_STATUS = 5
+internal const val ANDROID_GATT_INSUFFICIENT_AUTHORIZATION_STATUS = 8
+internal const val ANDROID_GATT_INSUFFICIENT_ENCRYPTION_STATUS = 15
+
+internal enum class AndroidProtectedReadAdmission {
+    IGNORE,
+    ACCEPT,
+    PERMISSION_REVOKED,
+    BOND_REQUIRED,
+    SECURITY_REQUIRED,
+    AUTHORIZATION_REJECTED,
+    PLATFORM_FAILURE,
+}
+
+/**
+ * Pure callback admission for the device-protected ProtocolInfo read. A bonded OS record is only a
+ * prerequisite. ACCEPT means the exact characteristic returned one bounded supported-length value;
+ * the device-side ATT access checks, not Android bond state, establish protected-path evidence.
+ */
+internal object AndroidProtectedProtocolInfoReadPolicy {
+    fun evaluate(
+        active: Boolean,
+        connectPermissionGranted: Boolean,
+        bondedPrerequisite: Boolean,
+        exactCharacteristic: Boolean,
+        status: Int,
+        valueBytes: Int,
+    ): AndroidProtectedReadAdmission = when {
+        !active -> AndroidProtectedReadAdmission.IGNORE
+        !connectPermissionGranted -> AndroidProtectedReadAdmission.PERMISSION_REVOKED
+        !bondedPrerequisite -> AndroidProtectedReadAdmission.BOND_REQUIRED
+        !exactCharacteristic -> AndroidProtectedReadAdmission.PLATFORM_FAILURE
+        status == ANDROID_GATT_INSUFFICIENT_AUTHENTICATION_STATUS ||
+            status == ANDROID_GATT_INSUFFICIENT_ENCRYPTION_STATUS -> AndroidProtectedReadAdmission.SECURITY_REQUIRED
+        status == ANDROID_GATT_INSUFFICIENT_AUTHORIZATION_STATUS ->
+            AndroidProtectedReadAdmission.AUTHORIZATION_REJECTED
+        status != ANDROID_GATT_SUCCESS_STATUS -> AndroidProtectedReadAdmission.PLATFORM_FAILURE
+        valueBytes != COMPANION_PROTOCOL_INFO_BYTES &&
+            valueBytes != COMPANION_AUTHORIZATION_PROTOCOL_INFO_BYTES -> AndroidProtectedReadAdmission.PLATFORM_FAILURE
+        else -> AndroidProtectedReadAdmission.ACCEPT
+    }
+}
+
+internal object AndroidGattCharacteristicOwnershipPolicy {
+    fun owns(expected: Any?, callbackValue: Any?): Boolean = expected != null && expected === callbackValue
+}
+
+internal object AndroidGattStatusPolicy {
+    fun failure(status: Int): BleGattFailure? = when (status) {
+        ANDROID_GATT_SUCCESS_STATUS -> null
+        ANDROID_GATT_INSUFFICIENT_AUTHENTICATION_STATUS,
+        ANDROID_GATT_INSUFFICIENT_ENCRYPTION_STATUS,
+        -> BleGattFailure.SECURITY_REJECTED
+        ANDROID_GATT_INSUFFICIENT_AUTHORIZATION_STATUS -> BleGattFailure.AUTHORIZATION_REJECTED
+        else -> BleGattFailure.PLATFORM_FAILURE
     }
 }

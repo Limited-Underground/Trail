@@ -15,4 +15,9 @@ namespace opentrail::target::heltec_v4_bench {
 // not register or start a Bluetooth controller, GATT server, or advertiser.
 [[nodiscard]] bool run_companion_gatt_authorization_self_check();
 
+// Deterministic callback-adapter composition check. All connection, security,
+// binding, subscription, and indication evidence is fixed and in memory; no
+// NimBLE host/controller is registered or started.
+[[nodiscard]] bool run_companion_gatt_authorization_adapter_self_check();
+
 }  // namespace opentrail::target::heltec_v4_bench
