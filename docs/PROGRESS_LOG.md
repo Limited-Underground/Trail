@@ -6,6 +6,27 @@ public chronology.
 
 ## 2026-08-16
 
+### OT-063 read-only protected-storage admission probe
+
+- Replaced target placeholder security booleans with a typed, ordered,
+  target-linked probe for configuration, named NVS-partition presence, selected
+  HMAC_UP purpose, key read protection, and a private operational HMAC
+  self-test.
+- The current configuration short-circuits at
+  `nvs_encryption_not_configured` before any partition, eFuse, or HMAC read.
+  The probe contains no NVS initialization/open/write, key generation, eFuse
+  programming, pairing, bonding, or GATT-admission path.
+- Six strict host groups, the deterministic companion boot self-check at
+  100/100, five target-only static admission groups, and two pinned ESP-IDF
+  v6.0.2 builds pass. The builds reproduce a 440,240-byte BIN with SHA-256
+  `0D064045D44D7F4D1120D164912CEAE9E1103ECE159E226B1CEEE2B11489B650`.
+- This is `BUILD-LINKED-NOT-RUN` evidence. No build was flashed and no device,
+  phone, port, emulator, or simulator was accessed. The physical OT-DEV-001
+  remains on the accepted OT-061 image; secure GATT, protected storage, keys,
+  bonds, authorization, and Ready remain denied. Historical V1 remains 31%;
+  current V1 Companion and V2 Integrated remain unmeasured. See
+  [OT-063 evidence](../tests/hardware/OT-063-2026-08-16.md).
+
 ### OT-062 exact Trail artwork and physical Android visual acceptance
 
 - Added the owner-supplied 1774 x 887 Limited Underground Trail PNG

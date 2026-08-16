@@ -79,6 +79,7 @@
     "nimble_gatt_callback_adapter_build_linked": true,
     "companion_authorization_persistence_build_linked": true,
     "companion_authorization_storage_preflight_build_linked": true,
+    "companion_authorization_storage_read_only_probe_build_linked": true,
     "nimble_runtime_owner_build_linked": true,
     "nimble_runtime_startup_coded": true,
     "private_service_advertising_coded": true,

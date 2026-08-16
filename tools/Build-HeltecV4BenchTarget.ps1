@@ -392,6 +392,7 @@ $evidence = [ordered]@{
     companion_ble_runtime_owner_self_check = 'BUILD-LINKED-NOT-RUN'
     companion_authorization_persistence = 'BUILD-LINKED-PROTECTED-BACKEND-NOT-INJECTED'
     companion_authorization_storage_preflight = 'DENIED-NVS-ENCRYPTION-NOT-CONFIGURED'
+    companion_authorization_storage_read_only_probe = 'BUILD-LINKED-NOT-RUN-CURRENT-CONFIGURATION-SHORT-CIRCUITS-BEFORE-TARGET-READS'
     companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'
     companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'
     companion_command_dispatch = 'BUILD-LINKED-PREFLIGHT-DENIED-NOT-RUN'

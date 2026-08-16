@@ -171,6 +171,7 @@ def test_contract() -> None:
         "nimble_gatt_callback_adapter_build_linked",
         "companion_authorization_persistence_build_linked",
         "companion_authorization_storage_preflight_build_linked",
+        "companion_authorization_storage_read_only_probe_build_linked",
         "nimble_runtime_owner_build_linked",
         "nimble_runtime_startup_coded",
         "private_service_advertising_coded",
@@ -204,6 +205,9 @@ def test_contract() -> None:
             "authorization persistence build linkage must be admitted")
     require(capabilities["companion_authorization_storage_preflight_build_linked"] is True,
             "authorization storage preflight build linkage must be admitted")
+    require(capabilities[
+        "companion_authorization_storage_read_only_probe_build_linked"] is True,
+            "read-only storage probe build linkage must be admitted")
     require(capabilities["nimble_runtime_owner_build_linked"] is True and
             capabilities["nimble_runtime_startup_coded"] is True and
             capabilities["private_service_advertising_coded"] is True,
@@ -591,12 +595,21 @@ def test_application_surface() -> None:
     ):
         require(required in authorization_storage,
                 f"missing closed authorization-storage preflight: {required}")
+    for required in (
+        "esp_partition_find_first", "esp_efuse_get_key_purpose",
+        "esp_efuse_get_key_dis_read", "esp_hmac_calculate",
+        "secure_zero(message.data(), message.size())",
+        "secure_zero(output.data(), output.size())",
+    ):
+        require(required in authorization_storage,
+                f"missing read-only authorization-storage probe: {required}")
     for forbidden in (
-        "nvs_flash_init", "nvs_open", "nvs_set_", "nvs_commit",
-        "esp_hmac_calculate", "esp_efuse_write", "esp_efuse_batch_write",
+        "nvs_flash_init", "nvs_flash_secure_init", "nvs_flash_generate_keys",
+        "nvs_open", "nvs_set_", "nvs_commit", "nvs_erase",
+        "esp_efuse_write", "esp_efuse_batch_write",
     ):
         require(forbidden not in authorization_storage,
-                f"dormant storage preflight must not access target state: {forbidden}")
+                f"read-only storage probe must not mutate target state: {forbidden}")
     require("secure_zero(message.data(), message.size())" in
             authorization_persistence and
             "secure_zero(derived.data(), derived.size())" in
@@ -642,8 +655,10 @@ def test_application_surface() -> None:
                 f"target must link accepted companion surface: {required}")
     require(cmake.count('.cpp"') == 15,
             "target source set must remain five target and ten accepted companion sources")
-    require("REQUIRES" in cmake and "bt" in cmake,
-            "target must declare the pinned ESP-IDF Bluetooth dependency")
+    require("REQUIRES" in cmake and all(
+        dependency in cmake for dependency in (
+            "bt", "efuse", "esp_partition", "esp_security")),
+            "target must declare pinned Bluetooth and security dependencies")
 
     linked_source = self_check + "\n" + nimble_gatt + "\n" + gatt_session + "\n" + gatt_authorization + "\n" + gatt_adapter + "\n" + authorization_persistence + "\n" + authorization_storage + "\n" + "\n".join(
         path.read_text(encoding="utf-8") for path in COMPANION_SOURCES)

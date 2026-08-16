@@ -1,7 +1,7 @@
 # Companion authorization protected storage v0
 
-Status: OT-054 host-tested and build-linked prerequisite; target admission
-denied; 2026-08-15.
+Status: OT-054 host-tested persistence prerequisite plus OT-063 target-linked
+read-only admission probe; target admission denied; 2026-08-16.
 
 This contract defines the smallest durable boundary required for the one-phone
 authorization authority to survive reboot. It does not claim that ordinary NVS
@@ -78,13 +78,16 @@ Admission requires all of the following:
 
 The current target satisfies none of the runtime proof gates and has NVS
 encryption disabled. Preflight therefore returns
-`nvs_encryption_not_configured`. Production code does not open NVS, access
-eFuse/HMAC state, or resolve a real bond. OT-056 separately codes NimBLE
-startup/registration/advertising, but this denied preflight is latched before
-host start, every connection is immediately terminated, and no claim or normal
-command is admitted. The target-local reboot self-check uses deterministic
-in-memory fakes only.
-
+`nvs_encryption_not_configured`. OT-063 adds a target-linked read-only probe,
+but the current configuration short-circuits before any partition, eFuse, or
+HMAC read. A future reviewed configuration can only inspect the named NVS
+partition and a separately selected HMAC_UP key's purpose, read protection, and
+private operational self-test. The probe has no NVS initialization/open/write,
+key-generation, eFuse-programming, bond-resolution, or GATT-admission surface.
+OT-056 separately codes NimBLE startup/registration/advertising, but the denied
+preflight remains latched before host start, every connection is immediately
+terminated, and no claim or normal command is admitted. The target-local reboot
+self-check continues to use deterministic in-memory fakes only.
 ## Evidence and exclusions
 
 Seventeen strict host groups pass at 100/100, including exact vectors,
@@ -107,3 +110,21 @@ entries, 13 owner groups at 100/100, target self-check 100/100, static 3/3,
 pinned NimBLE teardown/stop ordering, and two reproducible builds pass. It does
 not change any storage admission result or provide physical runtime evidence;
 see [OT-056 evidence](../../tests/hardware/OT-056-2026-08-15.md).
+
+## OT-063 read-only admission probe
+
+OT-063 adds typed, ordered observations for the prerequisite configuration,
+named NVS partition, selected HMAC_UP key purpose, key read protection, and one
+bounded operational HMAC self-test. Six strict host groups cover every missing
+or invalid stage, exact short-circuit ordering, the successful observation-only
+path, and the still-denied target admission. The deterministic target boot
+self-check remains green at 100/100; target-only static admission passes five
+groups; and two pinned ESP-IDF v6.0.2 builds reproduce identical artifacts.
+
+This is `BUILD-LINKED-NOT-RUN` evidence. The build is not flashed. The accepted
+OT-061 device still runs the prior experimental image. No partition layout,
+sdkconfig selection, HMAC key ID, eFuse, NVS contents, bond, authorization, GATT
+exchange, or device state changed. The current first denial remains
+`nvs_encryption_not_configured`; private bond storage, a distinct binding-PRF
+key, protected atomic record/floor storage, and an independent rollback floor
+remain absent. See [OT-063 evidence](../../tests/hardware/OT-063-2026-08-16.md).

@@ -24,5 +24,8 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/radio/include"
     REQUIRES
         bt
+        efuse
+        esp_partition
+        esp_security
         esp_timer
 )

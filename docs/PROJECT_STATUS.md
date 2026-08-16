@@ -9,6 +9,22 @@ Status date: 2026-08-16
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-063 adds a target-linked, read-only protected-storage admission probe without
+changing the accepted OT-061 device image. It observes only coarse
+configuration, named NVS-partition presence, selected HMAC_UP purpose, key read
+protection, and one private operational HMAC self-test. The current target
+configuration still returns `nvs_encryption_not_configured` before any
+partition, eFuse, or HMAC read. Six strict host groups, the deterministic boot
+self-check at 100/100, five target-only static groups, and two reproducible
+pinned builds pass; the 440,240-byte BIN has SHA-256
+`0D064045D44D7F4D1120D164912CEAE9E1103ECE159E226B1CEEE2B11489B650`.
+The build is not flashed. The probe cannot initialize/open/write NVS, generate
+keys, program eFuses, resolve bonds, or enable GATT. Protected NVS, private bond
+storage, a distinct binding-PRF key, atomic record/floor storage, an independent
+rollback floor, authorization, and Ready remain absent. Historical V1 stays
+31%; current V1 Companion and V2 Integrated remain unmeasured. See
+[OT-063](../tests/hardware/OT-063-2026-08-16.md).
+
 OT-062 adds the exact owner-supplied Limited Underground Trail artwork to the
 real Android Compose entry surface with no timed splash or artificial delay.
 The isolated gate passes 136 JVM tests across thirteen suites, warning-as-error

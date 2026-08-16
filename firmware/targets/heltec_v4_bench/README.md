@@ -133,10 +133,16 @@ Private bond binding accepts only a protected bond-store reference and bond
 generation, never a public address, peer value, raw bond key, or logged value.
 A separately provisioned device-secret PRF must produce the opaque owner token;
 re-pairing must allocate a new private reference or generation. The current
-candidate has none of those live adapters. Its compile-time preflight reports
-NVS encryption not configured. Even a future configuration selection will not
-count as runtime proof that protected NVS initialized or that an HMAC eFuse key
-is provisioned, read-protected, usable, and distinct from the binding PRF key.
+candidate has none of those live adapters. OT-063 replaces placeholder
+configuration booleans with a target-linked read-only admission probe. Under the
+current configuration it returns `nvs_encryption_not_configured` before any
+partition, eFuse, or HMAC read. If a later reviewed configuration enables the
+path, it can only check for the named NVS partition and verify a separately
+selected HMAC_UP key's purpose, read protection, and one private operational
+self-test. It cannot initialize or open NVS, generate keys, program eFuses, or
+change GATT admission. Partition presence and a usable key still do not prove
+that protected NVS initialized or that the HMAC key is distinct from the future
+binding-PRF key.
 
 The pinned ESP-IDF v6.0.2 audit identified the applicable future primitives:
 HMAC-protected NVS uses `CONFIG_NVS_ENCRYPTION`, the HMAC security provider,
@@ -153,9 +159,9 @@ redundant NVS cannot supply the independent rollback floor required here.
   advertising visibility were observed only through the bounded OT-061 gate
 - GNSS access
 - application access to NVS, `ot_state`, filesystem, OTA, or other persistence;
-  only the fail-closed security preflight and in-memory persistence self-check
-  exist. `OTHP0/v0` reserves recovery-shaped flash regions but grants no updater,
-  boot-selection, storage, rollback, or recovery authority
+  only the fail-closed read-only security probe and in-memory persistence
+  self-check exist. The probe does not initialize/open NVS or mutate eFuses.
+  `OTHP0/v0` reserves recovery-shaped flash regions but grants no updater, boot-selection, storage, rollback, or recovery authority
 - identity, pairing, provisioning, keys, or secrets; no HMAC/eFuse or protected
   NVS operation executes
 - a proven Bluetooth controller session, usable secure bond, authorized device

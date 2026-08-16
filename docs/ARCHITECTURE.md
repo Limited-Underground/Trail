@@ -392,6 +392,19 @@ protected storage or bond authority, GATT exchange, application authorization,
 Ready, normal commands, LoRa, GNSS, display, GPIO, recovery-after-loss, or
 support. Every additional write and the second unit remain unauthorized.
 
+OT-063 advances only the storage-admission observation boundary. A target-linked
+read-only probe can inspect coarse configuration, the named NVS partition, and a
+separately selected HMAC_UP key's purpose, read protection, and one private
+operational self-test. Ordered host tests prove every missing stage
+short-circuits later reads. The current configuration stops first at
+`nvs_encryption_not_configured`, so the accepted build performs no target reads.
+The probe has no NVS initialization/open/write, key generation, eFuse
+programming, bond resolution, or GATT-admission authority. Even an all-positive
+probe result still leaves protected NVS initialization, private bond storage, a
+distinct binding-PRF key, atomic record/floor storage, and independent rollback
+floor unproved. OT-063 is build-linked and not flashed; OT-DEV-001 still runs the
+OT-061 image.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;
