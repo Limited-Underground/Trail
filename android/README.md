@@ -5,8 +5,9 @@ BLE runtime boundary, the OT-043 Android BluetoothGatt facade, and the OT-045
 explicit local-test/Bluetooth UI binding, plus the OT-047 host-tested one-phone
 authorization request state/UX and the OT-049 authorization wire-codec/tracker
 mirror, plus the OT-051 provisional-authorization runtime
-orchestration, the OT-053 protected-read production composition, and the OT-055
-user-started connected-device foreground-service ownership boundary. This directory contains a buildable
+orchestration, the OT-053 protected-read production composition, the OT-055
+user-started connected-device foreground-service ownership boundary, and the
+OT-060 foreground-only screen-retention contract. This directory contains a buildable
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -153,13 +154,22 @@ SDK, tile request, cache, or offline-map package renderer was added. This is a
 host-tested model and UI-source foundation, not device location, map, emulator,
 accessibility-service, or physical-screen evidence.
 
-The accepted OT-057 gate passes 134 JVM tests across thirteen suites (protocol
-suites 3, 10, 6, and 10; application suites 8, 15, 17, 11, 2, 21, 1, 10, and 20) with zero
-failures, errors, or skips, plus warning-as-error lint with `No issues found.`
-The isolated debug APK is 9,677,165 bytes with SHA-256
-`697D73A6E48F1850A2756FB0886A8201C653804FB5A2B9628DD26790C8EC65B1`.
-It is local debug evidence only, not a release-signed, installed, emulated, or
-physical-device result.
+The accepted OT-060 Android-only gate passes 135 JVM tests across thirteen
+suites (protocol 29; application 106) with zero failures, errors, or skips, plus
+warning-as-error lint with `No issues found.` The isolated debug APK is
+9,677,165 bytes with SHA-256
+`9CE206EEEAE2B13FC5C1092CEF41C226607FD3A9905A5797D4EBE31F3DC7F01C`.
+It adds no wake-lock permission or other manifest surface.
+
+One owner-authorized physical Android 16/API 36 handset installed and launched
+that exact APK. With the handset's original USB stay-awake value restored and
+its normal 30-second timeout active, the untouched visible Trail Activity
+remained awake, interactive, and at normal active brightness for 40 seconds.
+Backgrounding released focus and reopening succeeded. The exact APK also
+reached visibly fake Local test mode without a Bluetooth permission prompt or
+the real BLE service. This is physical install and foreground-display evidence,
+not release signing, battery/heat/endurance, accessibility-service, live BLE,
+authorization, Ready, LoRa/GNSS, or field evidence.
 
 The platform contract follows the official Android documentation for
 [Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),
@@ -169,7 +179,7 @@ and [BluetoothGatt callbacks](https://developer.android.com/reference/android/bl
 The OT-055 foreground boundary also follows the official Android guidance for
 [launching foreground services](https://developer.android.com/develop/background-work/services/fgs/launch),
 [connected-device service types](https://developer.android.com/develop/background-work/services/fgs/service-types),
-and [notification permission behavior](https://developer.android.com/develop/ui/compose/notifications/notification-permission).
+and [notification permission behavior](https://developer.android.com/develop/ui/compose/notifications/notification-permission), and [keeping an Activity screen on](https://developer.android.com/develop/background-work/background-tasks/awake/screen-on).
 
 ## Build
 

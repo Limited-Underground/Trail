@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-08-15",
+  "as_of": "2026-08-16",
   "v1_definition": "A complete first release means four self-contained field units can be installed, joined, recovered, and tested without depending on a phone, server, or repeater.",
   "milestones": [
     {
@@ -86,6 +86,11 @@
       "date": "2026-08-15",
       "overall": 30,
       "reason": "Accepted the OT-DEV-001-bound 16 MiB flash and configured 2 MiB quad-PSRAM build profile plus exact partition evidence. No unit was selected, recovery-rehearsed, authorized, flashed, or run, so the evidence-weighted percentage is unchanged."
+    },
+    {
+      "date": "2026-08-16",
+      "overall": 30,
+      "reason": "Accepted one physical Android debug-APK install plus foreground screen-retention evidence. Canonical V1 remains phone-independent and no OpenTrail target firmware was flashed or run, so the evidence-weighted percentage is unchanged."
     }
   ]
 }

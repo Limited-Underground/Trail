@@ -56,6 +56,39 @@ class ConnectedDeviceManifestPolicyTest {
         assertTrue(source.contains("CONNECTED_DEVICE_NOTIFICATION_TEXT"))
     }
 
+    @Test
+    fun activityKeepsScreenOnOnlyThroughItsVisibleWindow() {
+        val activitySource = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/MainActivity.kt",
+        ).readText()
+        val keepScreenOn =
+            "window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)"
+        val superOnCreate = activitySource.indexOf("super.onCreate(savedInstanceState)")
+        val keepScreenOnIndex = activitySource.indexOf(keepScreenOn)
+        val controllerCreation = activitySource.indexOf("appController =")
+        assertTrue(superOnCreate >= 0)
+        assertTrue(keepScreenOnIndex > superOnCreate)
+        assertTrue(controllerCreation > keepScreenOnIndex)
+        assertEquals(1, Regex(Regex.escape(keepScreenOn)).findAll(activitySource).count())
+        listOf(
+            "PowerManager",
+            "WakeLock",
+            "WAKE_LOCK",
+            "setTurnScreenOn",
+            "FLAG_TURN_SCREEN_ON",
+            "setShowWhenLocked",
+            "FLAG_SHOW_WHEN_LOCKED",
+            "screenBrightness",
+        ).forEach {
+            assertFalse(activitySource.contains(it))
+        }
+
+        val serviceSource = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/TrailConnectedDeviceService.kt",
+        ).readText()
+        assertFalse(serviceSource.contains("FLAG_KEEP_SCREEN_ON"))
+    }
+
     private fun projectFile(path: String): File {
         val direct = File(path)
         if (direct.isFile) return direct

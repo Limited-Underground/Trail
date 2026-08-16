@@ -5,10 +5,10 @@ lifecycle-safe BLE runtime boundary, OT-043 Android 12+ platform facade,
 OT-045 explicit Bluetooth-mode/lifecycle UI wiring, OT-047 device-
 authorization UX, OT-049 authorization-wire codec/tracker parity, OT-051
 default-disabled provisional-authorization orchestration, and OT-053
-protected-read production composition, plus OT-055 explicit user-started
-connected-device foreground-service ownership,
-2026-08-15.
-This is not live BLE or physical-device evidence.
+protected-read production composition, OT-055 explicit user-started
+connected-device foreground-service ownership, and OT-060 foreground-screen
+retention plus physical Android install acceptance, 2026-08-16.
+This is not live BLE, LoRa, or OpenTrail target-firmware evidence.
 
 ## Accepted boundary
 
@@ -47,6 +47,10 @@ The accepted Android foundation has ten layers:
     Activity lifecycle owns only Local test state and a bounded observation of
     the service; it cannot create a second BLE owner or automatically retry a
     claim.
+11. OT-060 adds Activity-window `FLAG_KEEP_SCREEN_ON` immediately after
+    superclass creation. Android owns its visible-window lifecycle: it prevents
+    timeout/dimming only while Trail is visible, releases on background, and
+    adds no wake lock, permission, service, lock-screen, or brightness behavior.
 
 The visible working identity is `Limited Underground Trail`. Stable technical
 package/application identifiers do not contain that provisional product name.
@@ -178,25 +182,26 @@ command-line-tools bootstrap archive `11076708` had observed SHA-256
 `4d6931209eebb1bfb7c7e8b240a6a3cb3ab24479ea294f3539429574b1eec862`.
 All environment changes were process-scoped; no global PATH was changed.
 
-The current focused gate passes 134 JVM tests across thirteen suites (protocol
-29; application 105),
-including the frozen authorization-wire vectors, provisional tracker, v0.1
-decoder, protected-read composition, explicit no-fallback Bluetooth routing,
-foreground-service admission/ownership, binder generation, and manifest
-policy, with zero failures, errors, or skips. Warning-as-error Android lint
-reports no issue, and debug APK assembly passes. The exact isolated local debug
-APK was 9,677,165 bytes with SHA-256
-`697D73A6E48F1850A2756FB0886A8201C653804FB5A2B9628DD26790C8EC65B1`.
-`aapt` confirms package `io.github.nbjelanovic.otclient`, min SDK 26, target SDK
-35, the expected visible label, optional BLE hardware, Scan with
-`neverForLocation`, Connect, base and connected-device foreground service, and
-notification permissions, with no location, internet, storage, or management
-permission. AndroidX adds only its same-app
-`DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. The artifact is debug-signed local
-evidence, not a release APK. No Android OS foreground-service lifecycle or
-notification surface was exercised, and no emulator, phone, BLE peripheral,
-serial port, or LoRa device was enumerated, opened, installed to, or otherwise
-accessed by the Android gate.
+The current Android-only gate passes 135 JVM tests across thirteen suites
+(protocol 29; application 106), including the foreground-only screen policy,
+with zero failures, errors, or skips. Warning-as-error Android lint reports
+`No issues found.`, and debug APK assembly passes. The exact isolated local
+debug APK is 9,677,165 bytes with SHA-256
+`9CE206EEEAE2B13FC5C1092CEF41C226607FD3A9905A5797D4EBE31F3DC7F01C`.
+`aapt2` confirms package `io.github.nbjelanovic.otclient`, min SDK 26, target
+SDK 35, the expected visible label, optional BLE hardware, and the previously
+accepted permission surface, with no `WAKE_LOCK`, location, internet, storage,
+or management permission.
+
+One owner-authorized physical Android 16/API 36 handset installed and launched
+that exact debug APK. With its original USB stay-awake value restored and its
+normal 30-second timeout active, Trail retained the Activity screen-on flag,
+awake/interactive state, and normal active brightness through an untouched
+40-second interval. Backgrounding removed Trail from focus and reopening
+succeeded. The exact APK reached visibly fake Local test mode without a
+Bluetooth permission prompt or real BLE service. This does not prove release
+signing, notification lifecycle, Bluetooth scan/pair/connect, device
+authorization, Ready, LoRa/GNSS, endurance, or field behavior.
 
 OT-057 adds Group / Location presentation above this ownership graph. Real
 Bluetooth mode reports coordinates unavailable because no accepted device

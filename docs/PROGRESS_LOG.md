@@ -4,6 +4,27 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-16
+
+### OT-060 Android foreground screen retention and physical install
+
+- Added Activity-window `FLAG_KEEP_SCREEN_ON` immediately after
+  `MainActivity` superclass creation. It is active only while the Trail window
+  is visible and adds no wake lock, permission, lock-screen behavior, brightness
+  override, or foreground-service coupling.
+- The Android-only gate passes 135 JVM tests across thirteen suites, lint with
+  `No issues found.`, manifest inspection, and debug assembly. The 9,677,165-byte
+  APK has SHA-256
+  `9CE206EEEAE2B13FC5C1092CEF41C226607FD3A9905A5797D4EBE31F3DC7F01C`.
+- One owner-authorized physical Android 16/API 36 handset installed and launched
+  that exact APK. With the original USB stay-awake setting restored and a
+  30-second timeout, the untouched visible Trail Activity remained awake,
+  interactive, and at normal active brightness for 40 seconds. Backgrounding
+  released focus and reopening succeeded.
+- The same APK reached visibly fake Local test mode without a Bluetooth prompt
+  or real BLE service. This is not BLE, LoRa, target-firmware, authorization,
+  Ready, release, endurance, or field evidence. V1 remains 30%.
+  See [OT-060 evidence](../tests/hardware/OT-060-2026-08-16.md).
 ## 2026-08-15
 
 ### OT-059 exact Heltec memory and recovery-layout build profile

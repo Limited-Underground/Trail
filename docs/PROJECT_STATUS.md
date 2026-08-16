@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-15
+Status date: 2026-08-16
 
 ## Conceptual goals
 
@@ -9,6 +9,17 @@ Status date: 2026-08-15
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-060 adds foreground-only screen retention and the first physical Android
+install evidence for the Trail debug app. One owner-authorized Android 16/API 36
+handset installed and launched the exact 9,677,165-byte APK with SHA-256
+`9CE206EEEAE2B13FC5C1092CEF41C226607FD3A9905A5797D4EBE31F3DC7F01C`.
+With the original USB stay-awake setting restored and the device's 30-second
+timeout active, the visible untouched Activity retained its screen-on flag and
+normal active brightness for 40 seconds; backgrounding released focus and
+reopening succeeded. Local test remained visibly fake and started neither a
+Bluetooth permission prompt nor the real BLE service. This does not prove live
+BLE, OpenTrail target firmware, LoRa, authorization, Ready, release, endurance,
+or field behavior. V1 remains 30%.
 The close-range MeshCore path now has bounded transport, experimental OpenTrail packet-v0, and three-node MeshCore repeater hardware evidence including a software-forced route with a repeat-off negative control. A privacy-safe USB pass also proved that both Heltec companion builds detect/activate their connected GNSS hardware and emit GPS telemetry, while the SenseCAP repeater obtained a live fix and subsequent checks increased through four, seven, and eight satellites. Two strengthened role-reversed physical cycles carried 2/2 exact `OGA0` alerts and 2/2 correlated `OGK0` ACKs with zero loss/duplicates/errors and exact aggregate +4 SenseCAP flood RX/TX; each returned ACK then passed real OpenGauge peer authorization, session binding, replay/correlation ingress, and completed its exact reconstructed outbox entry. Fixed-capacity C++ radio, codec, identity lifecycle, group-access policy, non-secret configuration persistence, acknowledgement/retry/expiry, duplicate suppression plus canonical `OTD0` checkpoint serialization and the `ODS0` two-slot host storage boundary, controlled forwarding, priority admission, GPS fix validation/age handling, compact position encoding, LoRa airtime calculation, redacted diagnostics, the OpenGauge critical-alert ingress, mirrored `OGK0` acknowledgement codec, final-ingress-to-ACK responder, and commit-last ACK boot-session allocator have deterministic host tests. Cryptographic joining, target/physical/rollback-aware duplicate-checkpoint storage, persistent secret/group/message-counter state, authenticated acknowledgement/priority transport composition, on-device authenticated alert transport, physical field repeater behavior, complete-client GPS binding/performance, position scheduling/hardware transmission, maps, store-forward behavior, a direct SX1262 binding, rendered UI, and field performance remain unvalidated.
 
 An owner-reported Wio Tracker L1 Pro has now completed a privacy-safe first
