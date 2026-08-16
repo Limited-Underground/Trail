@@ -9,6 +9,22 @@ Status date: 2026-08-16
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-062 adds the exact owner-supplied Limited Underground Trail artwork to the
+real Android Compose entry surface with no timed splash or artificial delay.
+The isolated gate passes 136 JVM tests across thirteen suites, warning-as-error
+lint, manifest inspection, and debug assembly. The 12,236,702-byte APK has
+SHA-256
+`0E3A9C91E4AB68F0D6C45FB1D5A613CED7EE33154155AB2D0E76CE453F52918E`;
+its packaged 2,559,044-byte artwork remains byte-identical to the approved
+source. That APK replaced the prior debug build in place on the authorized
+physical Android 13/API 33 phone, cold-launched successfully, and the owner
+visually accepted the artwork and framing. Home/background and reopen also
+succeeded. No screenshot or device identifier was retained. This is Android
+entry-artwork evidence—not an Android system splash, clean install, broad
+accessibility acceptance, secure GATT/Ready, Heltec OLED, touchscreen, release,
+endurance, or field evidence. OT-061 and the historical 31% calculation remain
+unchanged; current V1 Companion and V2 Integrated scores remain unmeasured. See
+[OT-062](../tests/hardware/OT-062-2026-08-16.md).
 OT-061 closes the first bounded physical OpenTrail target gate on only
 `OT-DEV-001`; `OT-DEV-002` remained disconnected and untouched. Manual
 ESP32-S3 ROM entry/exit returned to the unchanged public MeshCore runtime before

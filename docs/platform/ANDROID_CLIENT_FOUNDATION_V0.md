@@ -7,14 +7,16 @@ authorization UX, OT-049 authorization-wire codec/tracker parity, OT-051
 default-disabled provisional-authorization orchestration, and OT-053
 protected-read production composition, OT-055 explicit user-started
 connected-device foreground-service ownership, OT-060 foreground-screen
-retention plus physical Android install acceptance, and OT-061 physical
-OpenTrail service-advertisement discovery, 2026-08-16. This is advertisement
-visibility only—not GATT, authorization, Ready, LoRa, or supported-hardware
-evidence.
+retention plus physical Android install acceptance, OT-061 physical
+OpenTrail service-advertisement discovery, and OT-062 exact Trail entry-artwork
+integration plus physical visual acceptance, 2026-08-16. OT-061 is
+advertisement-visibility evidence only—not GATT, authorization, Ready, LoRa, or
+supported-hardware evidence. OT-062 adds only exact artwork packaging and one
+owner-accepted physical visual observation.
 
 ## Accepted boundary
 
-The accepted Android foundation has ten layers:
+The accepted Android foundation has twelve layers:
 
 1. A pure Kotlin, brand-neutral `OTB0/v0` and `OTC0/v0` codec that mirrors the
    fixed C++ bounds and consumes shared golden vectors.
@@ -53,6 +55,10 @@ The accepted Android foundation has ten layers:
     superclass creation. Android owns its visible-window lifecycle: it prevents
     timeout/dimming only while Trail is visible, releases on background, and
     adds no wake lock, permission, service, lock-screen, or brightness behavior.
+12. OT-062 renders the exact owner-approved Trail PNG as a fitted decorative
+    image above the existing accessible brand text. It uses the real Compose
+    entry surface with no timed splash, delay, new navigation state, permission,
+    service, or Bluetooth behavior.
 
 The visible working identity is `Limited Underground Trail`. Stable technical
 package/application identifiers do not contain that provisional product name.
@@ -187,12 +193,13 @@ command-line-tools bootstrap archive `11076708` had observed SHA-256
 `4d6931209eebb1bfb7c7e8b240a6a3cb3ab24479ea294f3539429574b1eec862`.
 All environment changes were process-scoped; no global PATH was changed.
 
-The current Android-only gate passes 135 JVM tests across thirteen suites
-(protocol 29; application 106), including the foreground-only screen policy,
+The current Android-only gate passes 136 JVM tests across thirteen suites
+(protocol 29; application 107), including the foreground-only screen and exact
+artwork/no-delay policies,
 with zero failures, errors, or skips. Warning-as-error Android lint reports
 `No issues found.`, and debug APK assembly passes. The exact isolated local
-debug APK is 9,677,165 bytes with SHA-256
-`9CE206EEEAE2B13FC5C1092CEF41C226607FD3A9905A5797D4EBE31F3DC7F01C`.
+debug APK is 12,236,702 bytes with SHA-256
+`0E3A9C91E4AB68F0D6C45FB1D5A613CED7EE33154155AB2D0E76CE453F52918E`.
 `aapt2` confirms package `io.github.nbjelanovic.otclient`, min SDK 26, target
 SDK 35, the expected visible label, optional BLE hardware, and the previously
 accepted permission surface, with no `WAKE_LOCK`, location, internet, storage,
@@ -210,6 +217,15 @@ observed exactly one compatible OpenTrail service advertisement. Nothing was
 selected, connected, paired, or identified. This does not prove release
 signing, notification lifecycle, GATT exchange, device authorization, Ready,
 LoRa/GNSS, endurance, or field behavior.
+
+OT-062 installed the new exact APK over the prior debug build on that physical
+API 33 phone. Cold launch succeeded, the owner visually accepted the complete
+artwork and framing, and a Home/reopen check succeeded. The packaged 2,559,044-
+byte PNG has SHA-256
+`A3024504BA261ADDAFD2A85F49F6BCE630D1E9AB994EEA348D5842A6D2AB7422`,
+matching the approved source exactly. This is Android entry-artwork evidence,
+not an Android system splash, Heltec OLED render, touchscreen render, release,
+accessibility-service, endurance, or field evidence.
 
 OT-057 adds Group / Location presentation above this ownership graph. Real
 Bluetooth mode reports coordinates unavailable because no accepted device

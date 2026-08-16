@@ -7,8 +7,9 @@ authorization request state/UX and the OT-049 authorization wire-codec/tracker
 mirror, plus the OT-051 provisional-authorization runtime
 orchestration, the OT-053 protected-read production composition, the OT-055
 user-started connected-device foreground-service ownership boundary, and the
-OT-060 foreground-only screen-retention contract and the OT-061 one-candidate
-physical BLE discovery result. This directory contains a buildable
+OT-060 foreground-only screen-retention contract, the OT-061 one-candidate
+physical BLE discovery result, and the OT-062 exact Trail entry-artwork
+integration and physical visual acceptance. This directory contains a buildable
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -175,6 +176,21 @@ connected, paired, or identified. This is physical install, foreground-display,
 and BLE-advertisement visibility evidence—not release signing, battery/heat/
 endurance, accessibility-service, GATT exchange, authorization, Ready, LoRa/
 GNSS, or field evidence.
+
+OT-062 adds the owner-supplied 1774 x 887 Limited Underground Trail PNG
+byte-for-byte as a fitted decorative image above the existing accessible brand
+text. It is part of the real Compose entry surface, not a timed splash screen,
+and introduces no delay, navigation state, permission, service, or Bluetooth
+behavior. The exact isolated gate passes 136 JVM tests across thirteen suites
+(protocol 29; application 107), lint with `No issues found.`, and produces a
+12,236,702-byte APK with SHA-256
+`0E3A9C91E4AB68F0D6C45FB1D5A613CED7EE33154155AB2D0E76CE453F52918E`.
+The packaged artwork remains byte-identical to the approved source. That APK
+was installed over the prior debug build on the physical Android 13/API 33
+phone, cold-launched successfully, and the owner visually accepted the artwork
+and framing; a Home/reopen check also succeeded. No screenshot or device
+identifier was retained. Heltec OLED and future touchscreen rendering remain
+separate hardware gates.
 
 The platform contract follows the official Android documentation for
 [Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),

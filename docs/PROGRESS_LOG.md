@@ -6,6 +6,28 @@ public chronology.
 
 ## 2026-08-16
 
+### OT-062 exact Trail artwork and physical Android visual acceptance
+
+- Added the owner-supplied 1774 x 887 Limited Underground Trail PNG
+  byte-for-byte to the real Compose entry surface above the existing accessible
+  brand text. It is fitted without a timed splash, sleep, delayed post, new
+  navigation state, permission, service, or Bluetooth behavior.
+- The isolated Android gate passes 136 JVM tests across thirteen suites
+  (protocol 29; application 107), lint with `No issues found.`, manifest
+  inspection, and debug assembly. The 12,236,702-byte APK has SHA-256
+  `0E3A9C91E4AB68F0D6C45FB1D5A613CED7EE33154155AB2D0E76CE453F52918E`;
+  the packaged 2,559,044-byte artwork matches the approved source SHA-256
+  `A3024504BA261ADDAFD2A85F49F6BCE630D1E9AB994EEA348D5842A6D2AB7422`.
+- That APK replaced the prior debug build in place on the physical Android
+  13/API 33 phone. Cold launch succeeded, the owner visually accepted the
+  artwork and framing, and Home/background plus reopen succeeded. No screenshot
+  or device identifier was retained.
+- This is Android entry-artwork evidence only—not an Android system splash,
+  clean install, broad accessibility, secure GATT/Ready, Heltec OLED,
+  touchscreen, release, endurance, or field proof. The historical V1
+  calculation remains 31%; current V1 Companion and V2 Integrated scores remain
+  unmeasured. See [OT-062 evidence](../tests/hardware/OT-062-2026-08-16.md).
+
 ### OT-061 first physical OpenTrail target and BLE advertisement
 
 - Selected only `OT-DEV-001`; `OT-DEV-002` remained disconnected and

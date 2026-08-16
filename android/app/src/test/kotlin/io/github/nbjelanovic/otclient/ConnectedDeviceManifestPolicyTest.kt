@@ -1,6 +1,7 @@
 package io.github.nbjelanovic.otclient
 
 import java.io.File
+import java.security.MessageDigest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -87,6 +88,33 @@ class ConnectedDeviceManifestPolicyTest {
             "src/main/kotlin/io/github/nbjelanovic/otclient/TrailConnectedDeviceService.kt",
         ).readText()
         assertFalse(serviceSource.contains("FLAG_KEEP_SCREEN_ON"))
+    }
+
+    @Test
+    fun activityRendersTheExactTrailArtworkWithoutAStartupDelay() {
+        val activitySource = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/MainActivity.kt",
+        ).readText()
+        val artwork = projectFile(
+            "src/main/res/drawable-nodpi/limited_underground_trail.png",
+        )
+
+        assertEquals(2_559_044L, artwork.length())
+        val artworkSha256 = MessageDigest.getInstance("SHA-256")
+            .digest(artwork.readBytes())
+            .joinToString("") { byte -> "%02X".format(byte) }
+        assertEquals(
+            "A3024504BA261ADDAFD2A85F49F6BCE630D1E9AB994EEA348D5842A6D2AB7422",
+            artworkSha256,
+        )
+        assertTrue(activitySource.contains("R.drawable.limited_underground_trail"))
+        assertTrue(activitySource.contains("contentDescription = null"))
+        assertTrue(activitySource.contains("contentScale = ContentScale.Fit"))
+        assertTrue(activitySource.contains("Text(\"Limited Underground\""))
+        assertTrue(activitySource.contains("Text(\"Trail\""))
+        listOf("Thread.sleep", "delay(", "postDelayed", "SplashScreen").forEach {
+            assertFalse(activitySource.contains(it))
+        }
     }
 
     private fun projectFile(path: String): File {
