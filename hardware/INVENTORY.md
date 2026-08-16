@@ -62,12 +62,12 @@ OpenTrail hardware is on a tested-compatible list.
 
 ## Device OT-DEV-001
 
-Connected directly to the development laptop and queried read-only over native USB on 2026-08-08.
+Connected directly to the development laptop for bounded inventory beginning 2026-08-08; selected as the first experimental OpenTrail target on 2026-08-16.
 
 | Field | Verified result | Evidence/source |
 | --- | --- | --- |
-| Inventory state | Runtime model and installed firmware identified; the device was changed from BLE Companion to USB Companion and reconnected successfully; exact SKU/RF front end, installed antenna, and pinout remain unresolved | Windows USB/BLE enumeration, Espressif ROM/flash metadata queries, the MeshCore browser application, and the official MeshCore web flasher |
-| Evidence role | Assembled bench client | Authorized for bounded inspection, flash/recovery, radio, GNSS, and protocol evidence; not the board-level first complete-client build |
+| Inventory state | First experimentally flashed OpenTrail target; exact profile write, post-write verification, boot/self-check/USB heartbeat, and service-advertisement visibility passed. Exact SKU/RF front end, installed antenna, pinout, protected storage, GATT authorization, LoRa/GNSS/display runtime, recovery-after-loss, and support remain unresolved | [OT-061 evidence](../tests/hardware/OT-061-2026-08-16.md) |
+| Evidence role | Experimented OpenTrail bench target; not validated or supported hardware | One consumed OT-061 erase/write authorization; no standing write, recovery, unit-2, or support authority |
 | Purchase record | One of two units from Meshnology two-set V4 GPS bundle, Amazon ASIN `B0FS1WQWKF`, selected as `Black-2` | Owner-provided purchase link, 2026-08-12; the listing identifies two V4 boards, two L76 GNSS modules, two 3000 mAh batteries, N39 cases, and 915 MHz antennas, but is not an exact received board-revision label |
 | Product/model | `Heltec V4 OLED` runtime identity; likely Heltec WiFi LoRa 32 V4 family match (not V4.3), exact commercial SKU unconfirmed | MeshCore Device Info reported `Heltec V4 OLED`; official MeshCore runtime code reports V4.3 separately when its KCT8103L power amplifier is detected |
 | USB port during test | `COM3` | Windows Ports-class device enumeration; port assignment can change |
@@ -81,16 +81,18 @@ Connected directly to the development laptop and queried read-only over native U
 | Flash encryption | Disabled | `esptool 5.3.1 get-security-info` |
 | State during query | ROM USB/UART download bootloader | ROM serial banner and query connection |
 | Normal application USB | Espressif application USB `VID 303A`, `PID 0002`, observed as `COM6` | Windows enumeration after normal boot; COM assignment can change |
-| Installed application | MeshCore `v1.16.0-07a3ca9` | Compiled application strings read from the application metadata page |
+| Current installed application | Experimental OpenTrail `heltec_v4_bench` image; 437,552-byte factory app, SHA-256 `F0E81310C62CA0C17CA2531AF9B0D5BD5E6E115E1649F84C97514F72D51D6A3A` | OT-061 exact write manifest and post-write verification |
+| Current bounded runtime | Deterministic boot self-checks reached the NimBLE runtime and at least two five-second USB heartbeat records; one exact-service-filtered Android scan reported one compatible candidate | [OT-061 evidence](../tests/hardware/OT-061-2026-08-16.md); no selection, connection, pairing, address, or identifier retained |
+| Prior installed application | MeshCore `v1.16.0-07a3ca9` | Historical application strings and pre-OT-061 public runtime evidence |
 | Firmware date reported by MeshCore | 06-Jun-2026 | Connected MeshCore browser application's Device Info |
-| Installed MeshCore transport/role | **USB Companion** (current); BLE Companion was installed during the initial inventory | Official MeshCore web flasher selected Heltec v4 / Companion USB `v1.16.0`; the post-flash MeshCore app connected over Web Serial and displayed the fresh Device Setup wizard |
+| Prior MeshCore transport/role | **USB Companion** before OT-061; BLE Companion was installed during the initial inventory | Historical official MeshCore web-flasher and Web Serial evidence; MeshCore was intentionally erased by OT-061 |
 | USB Companion flash result | Successful clean flash using `heltec_v4_companion_radio_usb` `v1.16.0-07a3ca9`; erase enabled | Post-flash application boot and first-run Device Setup observed in the connected MeshCore browser app, 2026-08-08 |
 | Framework/build | Arduino on ESP-IDF 4.4.7; build date March 5, 2024 | ESP application descriptor in OTA slot `app0` |
-| Flash layout | NVS, OTA metadata, two 6.25 MB app slots, 3.38 MB SPIFFS, 64 KB coredump; `app1` currently empty | Partition table and application descriptor pages; NVS and SPIFFS contents were not read |
-| Radio configuration snapshots | **Current user-applied USA/Canada preset:** 910.525 MHz, 62.5 kHz bandwidth, spreading factor 7, coding rate 5, transmit power 10 dBm (maximum reported 22 dBm). The clean-flash default had been 869.618 MHz, 62.5 kHz, SF8, CR5, 10 dBm. | Post-apply `meshcli infos`, 2026-08-08. Packet and airtime counters remained zero after verification. Preset selection records configuration but is not proof of antenna suitability, exact RF front end, or regulatory authorization. |
+| Prior MeshCore flash layout | NVS, OTA metadata, two 6.25 MB app slots, 3.38 MB SPIFFS, 64 KB coredump; `app1` was empty | Historical partition-table/application-descriptor evidence before OT-061; private contents were never read |
+| Prior MeshCore radio configuration snapshots | USA/Canada preset 910.525 MHz, 62.5 kHz bandwidth, spreading factor 7, coding rate 5, transmit power 10 dBm; clean-flash default 869.618 MHz, 62.5 kHz, SF8, CR5, 10 dBm | Historical pre-OT-061 MeshCore configuration evidence only; OpenTrail LoRa was not enabled or tested |
 | Battery snapshots | 48%, 3.58 V before charging; 97%, 4.17 V after charging; 4.226 V after the USB Companion flash | Connected MeshCore browser telemetry and `meshcli get stats_core`, 2026-08-08; transient observations only |
 | MeshCore capacity/status | 1/40 channels, 0/350 contacts, storage 0% used (0 KB of 3169 KB) | Connected MeshCore browser application's Device Info, 2026-08-08 |
-| Post-flash USB runtime snapshot | USB serial connection successful; uptime 670 seconds; 0 errors; queue length 0; 0 packets sent/received; 0 transmit/receive airtime | `meshcli` read-only `stats_core`, `stats_radio`, and `stats_packets` queries on `COM6`, 2026-08-08 |
+| Prior MeshCore post-flash USB runtime snapshot | USB serial connection successful; uptime 670 seconds; 0 errors; queue length 0; 0 packets sent/received; 0 transmit/receive airtime | Historical 2026-08-08 read-only MeshCore evidence |
 | Firmware-reported repeater frequency points | 433.000 MHz, 869.495 MHz, and 918.000 MHz | `meshcli get allowed_repeat_freq`, 2026-08-08; firmware-reported permitted repeater points, not proof of antenna suitability, exact RF front end, legal authorization, or full supported band |
 | GPS/GNSS bench evidence | Connected GNSS was detected by MeshCore, its setting read disabled, explicit bench enablement read back enabled, and a redacted self-telemetry query contained a GPS field | `meshcli get custom` plus in-memory-reduced self telemetry, 2026-08-12; no coordinates or identity were saved. This proves firmware detection/activation and a telemetry path, not current fix, satellites, accuracy, loss behavior, exact physical module, or wiring |
 
@@ -132,8 +134,17 @@ Official references used for family matching:
   support evidence.
 - Windows enumerated the native USB Serial/JTAG interface using the Microsoft `usbser.inf` driver.
 - `esptool 5.3.1` is installed for the current Windows user and is available as `python -m esptool`.
-- `meshcore-cli 1.5.7`, `meshcore 2.3.8`, and `bleak 3.0.2` are installed for the current Windows user. BLE discovery works, but direct BLE CLI connections on this laptop failed in the Windows WinRT GATT address-resolution layer before a MeshCore command was sent. USB Companion is now installed so serial CLI validation can be performed after the browser releases the Web Serial port.
-- USB Companion serial validation succeeded on `COM6`: MeshCLI connected, confirmed firmware `v1.16.0-07a3ca9`, and returned read-only configuration/runtime statistics. The browser and MeshCLI cannot own the Web Serial/COM port simultaneously.
+- At the pre-OT-061 MeshCore acceptance checkpoint, `meshcore-cli 1.5.7`,
+  `meshcore 2.3.8`, and `bleak 3.0.2` were installed for the current Windows
+  user. BLE discovery worked, but direct BLE CLI connections on this laptop
+  failed in the Windows WinRT GATT address-resolution layer before a MeshCore
+  command was sent. OT-DEV-001 then ran USB Companion so serial CLI validation
+  could proceed after the browser released the Web Serial port; OT-061 later
+  replaced that installation with the experimental OpenTrail image.
+- Historical pre-OT-061 USB Companion serial validation succeeded on `COM6`:
+  MeshCLI connected, confirmed firmware `v1.16.0-07a3ca9`, and returned
+  read-only configuration/runtime statistics. The browser and MeshCLI could
+  not own the Web Serial/COM port simultaneously.
 - `tools/Test-MeshCoreUsbNodes.ps1` automatically discovers connected Espressif USB Companion ports and returns a redacted, read-only health snapshot (model/firmware, battery, radio settings, errors, queue, packet counts, and airtime). It deliberately omits node names, public keys, coordinates, PINs, and channel data. Run it only while MeshCore browser tabs are disconnected.
 - `tools/Get-MeshCoreGnssStatus.py` returns a read-only role-labeled GNSS snapshot for USB Companions and a serial repeater. It reduces companion telemetry in memory to GPS-field presence and emits only detection/active/fix/satellite state; default output omits local ports, raw replies, coordinates, identities, keys, and PINs. Its four parser/redaction groups pass, and the three-device live snapshot succeeded on 2026-08-12.
 - The source-free Windows device utility now uses SetupAPI plus only fixed

@@ -375,18 +375,32 @@ memory test, plus an exact factory/dual-OTA/application-state partition layout
 that ends at the 16 MiB boundary. The application-state row uses an
 application-owned partition type and does not imply a storage implementation.
 ESP-IDF's image header remains the expected DIO bootstrap while the bootloader
-enables configured quad operation. These are build selections only: exact
-physical mode/frequency/PSRAM behavior, the unresolved minor/RF variant,
-recovery, flashing, and runtime remain unproven. The target remains unsupported,
-build-only, and write-denied.
+enables configured quad operation. At OT-059 acceptance these were build selections only: exact physical
+mode/frequency/PSRAM behavior, the unresolved minor/RF variant, recovery,
+flashing, and runtime remained unproven. The target was unsupported, build-only,
+and write-denied.
+
+OT-061 supplies the first physical execution evidence for that exact-profile
+target. Only `OT-DEV-001` was selected. One owner-authorized erase/write of the
+four frozen public regions passed exact post-write verification, then one manual
+reset reached the deterministic self-checks, NimBLE runtime, and bounded USB
+heartbeat. One exact-service-filtered Android scan physically observed one
+compatible OpenTrail service advertisement without selecting, connecting,
+pairing, or retaining an address or identifier. The runtime advertisement
+contains only standard flags and the stable service UUID. This does not admit
+protected storage or bond authority, GATT exchange, application authorization,
+Ready, normal commands, LoRa, GNSS, display, GPIO, recovery-after-loss, or
+support. Every additional write and the second unit remain unauthorized.
 
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;
 Gold is the one-touchscreen client; Platinum is the two-display client; and the
 Trail Repeater remains optional infrastructure. `Limited Underground Firmware
-Loader` is shared maintenance tooling and must remain visibly Preview and
-inspection-only until physical write and recovery acceptance passes. These
+Loader` is shared maintenance tooling and remains visibly Preview and
+inspection-only. OT-061 used manual pinned esptool under one owner authorization
+and is not loader write/recovery evidence; authoritative board matching, trusted
+bundle admission, supervised writing, and recovery remain separate loader gates. These
 working names do not enter packet/GATT fields, schemas, cryptographic domains,
 compatibility or board identifiers, device IDs, namespaces, or `OT-*` records.
 

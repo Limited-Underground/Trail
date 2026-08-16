@@ -1,0 +1,95 @@
+{
+  "schema": "OTFP0",
+  "schema_version": 0,
+  "status": "EXECUTED-POSTWRITE-VERIFIED-RUNTIME-AND-BLE-ADVERTISEMENT-ACCEPTED",
+  "target_id": "heltec-v4-bench-candidate",
+  "selection": {
+    "candidate_unit": "OT-DEV-001",
+    "selected_unit": "OT-DEV-001",
+    "excluded_units": ["OT-DEV-002"],
+    "exact_received_revision": null,
+    "rf_variant": null,
+    "require_only_selected_unit_connected": true,
+    "require_manual_rom_identity_check": true
+  },
+  "owner_decisions": {
+    "recorded_on": "2026-08-16",
+    "preserve_existing_meshcore_state": false,
+    "private_flash_backup": false,
+    "restore_route": "owner-operated official MeshCore web flasher"
+  },
+  "write_policy": {
+    "physical_write_authorized": false,
+    "full_chip_erase_authorized": false,
+    "authorized_execution_consumed": true,
+    "executed_attempts": 1,
+    "additional_attempts_authorized": false,
+    "attempt_limit": 1,
+    "require_exact_input_hash_recheck": true,
+    "require_public_region_verification": true,
+    "require_unchanged_second_unit": true
+  },
+  "open_trail_image": {
+    "framework": "ESP-IDF v6.0.2",
+    "chip": "esp32s3",
+    "generated_before": "default-reset",
+    "generated_after": "hard-reset",
+    "execution_before": "no-reset",
+    "execution_after": "no-reset",
+    "manual_reset_after_verified": true,
+    "stub": true,
+    "flash_mode": "dio",
+    "flash_size": "16MB",
+    "flash_frequency": "80m",
+    "full_chip_erase_before_write": true,
+    "files": [
+      {"role": "bootloader", "offset": "0x000000", "file": "bootloader/bootloader.bin", "bytes": 22528, "sha256": "E5C6CDDD63E974220360B7F110727B3D7A8B425CF8C3CAE23497D8588A9E8B62"},
+      {"role": "partition-table", "offset": "0x008000", "file": "partition_table/partition-table.bin", "bytes": 3072, "sha256": "84569AA2BADF3F7294042129B19D0B480784A93A550ADA3253B57BC92A0671AB"},
+      {"role": "otadata", "offset": "0x009000", "file": "ota_data_initial.bin", "bytes": 8192, "sha256": "7D2C7AC4888BFD75CD5F56E8D61F69595121183AFC81556C876732FD3782C62F"},
+      {"role": "factory-app", "offset": "0x010000", "file": "opentrail_heltec_v4_bench.bin", "bytes": 437552, "sha256": "F0E81310C62CA0C17CA2531AF9B0D5BD5E6E115E1649F84C97514F72D51D6A3A"}
+    ]
+  },
+  "first_boot_acceptance": {
+    "bounded_runtime_and_ble_advertisement_only": true,
+    "boot_self_checks_required": true,
+    "lora_enabled": false,
+    "ble_service_advertising_expected": true,
+    "gnss_enabled": false,
+    "display_enabled": false,
+    "gpio_sensitive_behavior_enabled": false,
+    "protected_storage_expected": "DENIED",
+    "supported_hardware_claim": false,
+    "result": "PASS"
+  },
+  "execution_result": {
+    "date": "2026-08-16",
+    "esptool_version": "5.3.1",
+    "manual_rom_entry_exit_rehearsed": true,
+    "full_chip_erase": "PASS",
+    "write": "PASS",
+    "public_region_verify": "PASS",
+    "manual_reset_boot": "PASS",
+    "ble_service_advertising_observed": true,
+    "android_compatible_candidate_count": 1,
+    "ble_connection_attempted": false,
+    "ble_pairing_attempted": false,
+    "android_api_level": 33,
+    "android_apk_sha256": "9CE206EEEAE2B13FC5C1092CEF41C226607FD3A9905A5797D4EBE31F3DC7F01C",
+    "heartbeat_period_ms": 5000,
+    "heartbeat_count_observed_minimum": 2,
+    "self_check_failure_observed": false,
+    "runtime_failure_observed": false,
+    "panic_observed": false,
+    "unit2_touched": false
+  },
+  "recovery_reference": {
+    "execution_authorized": false,
+    "owner_operated": true,
+    "source": "https://github.com/meshcore-dev/MeshCore/releases/tag/companion-v1.16.0",
+    "asset": "heltec_v4_companion_radio_usb-v1.16.0-07a3ca9-merged.bin",
+    "bytes": 724976,
+    "sha256": "91A7AE8AABBF6DCDEE41880719FCAD849327C24CEC84CD23AFFAB1EF38CAA334",
+    "offset": "0x000000",
+    "erase_before_write": true
+  }
+}

@@ -7,7 +7,8 @@ authorization request state/UX and the OT-049 authorization wire-codec/tracker
 mirror, plus the OT-051 provisional-authorization runtime
 orchestration, the OT-053 protected-read production composition, the OT-055
 user-started connected-device foreground-service ownership boundary, and the
-OT-060 foreground-only screen-retention contract. This directory contains a buildable
+OT-060 foreground-only screen-retention contract and the OT-061 one-candidate
+physical BLE discovery result. This directory contains a buildable
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -167,9 +168,13 @@ its normal 30-second timeout active, the untouched visible Trail Activity
 remained awake, interactive, and at normal active brightness for 40 seconds.
 Backgrounding released focus and reopening succeeded. The exact APK also
 reached visibly fake Local test mode without a Bluetooth permission prompt or
-the real BLE service. This is physical install and foreground-display evidence,
-not release signing, battery/heat/endurance, accessibility-service, live BLE,
-authorization, Ready, LoRa/GNSS, or field evidence.
+the real BLE service. Under OT-061, the same exact APK was rebuilt byte-for-byte,
+installed on one physical Android 13/API 33 phone, and reported exactly one
+compatible OpenTrail service advertisement. No candidate was selected,
+connected, paired, or identified. This is physical install, foreground-display,
+and BLE-advertisement visibility evidence—not release signing, battery/heat/
+endurance, accessibility-service, GATT exchange, authorization, Ready, LoRa/
+GNSS, or field evidence.
 
 The platform contract follows the official Android documentation for
 [Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),

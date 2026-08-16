@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed source admission for the build-only Heltec V4 candidate."""
+"""Fail-closed source admission for the experimental Heltec V4 target."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TARGET = ROOT / "firmware" / "targets" / "heltec_v4_bench"
 CONTRACT = TARGET / "target-contract.json"
+PHYSICAL_FLASH_PLAN = TARGET / "physical-flash-plan.json"
 SOURCE = TARGET / "main" / "app_main.cpp"
 SELF_CHECK = TARGET / "main" / "companion_boot_self_check.cpp"
 NIMBLE_GATT = TARGET / "main" / "companion_nimble_gatt.cpp"
@@ -71,6 +72,7 @@ def test_contract() -> None:
         "main/companion_nimble_runtime.cpp",
         "main/companion_nimble_runtime.hpp",
         "partitions.csv",
+        "physical-flash-plan.json",
         "sdkconfig.defaults",
         "target-contract.json",
     }
@@ -85,7 +87,7 @@ def test_contract() -> None:
     document = json.loads(CONTRACT.read_text(encoding="utf-8"))
     require(document["schema"] == "OTTB0", "unexpected contract schema")
     require(document["schema_version"] == 0, "unexpected schema version")
-    require(document["evidence_state"] == "candidate", "must remain candidate")
+    require(document["evidence_state"] == "experimented", "must remain experimental")
     require(document["framework"] == {
         "name": "esp-idf",
         "version": "v6.0.2",
@@ -139,11 +141,21 @@ def test_contract() -> None:
     }, "unexpected recovery partition contract")
     require(document["recovery"] == {
         "sacrificial_first_candidate": "OT-DEV-001",
-        "sacrificial_first_unit": None,
+        "sacrificial_first_unit": "OT-DEV-001",
+        "physical_flash_plan": "physical-flash-plan.json",
+        "meshcore_state_preservation_required": False,
+        "meshcore_restore_route": "owner-operated official MeshCore web flasher",
         "prior_rom_entry_and_restore_recorded": True,
-        "manual_rom_recovery_proven_for_profile": False,
+        "manual_rom_entry_exit_rehearsed": True,
+        "meshcore_restore_executed": False,
         "physical_write_authorized": False,
-    }, "physical recovery/write authority must remain absent")
+        "authorized_physical_write_completed": True,
+        "additional_physical_write_authorized": False,
+        "public_region_verification_passed": True,
+        "bounded_runtime_accepted": True,
+        "write_attempts": 1,
+    }, "physical execution evidence must remain exact and further authority absent")
+
 
     capabilities = document["capabilities"]
     admitted = {
@@ -164,6 +176,9 @@ def test_contract() -> None:
         "private_service_advertising_coded",
         "evidence_bound_memory_profile_build_configured",
         "recovery_partition_layout_build_configured",
+        "bounded_usb_heartbeat_physically_observed",
+        "nimble_runtime_startup_physically_reached",
+        "ble_service_advertising_physically_observed",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
             "heartbeat must remain admitted")
@@ -196,15 +211,105 @@ def test_contract() -> None:
     require(capabilities["evidence_bound_memory_profile_build_configured"] is True and
             capabilities["recovery_partition_layout_build_configured"] is True,
             "memory profile and recovery layout must be build-configured")
+    require(capabilities["bounded_usb_heartbeat_physically_observed"] is True and
+            capabilities["nimble_runtime_startup_physically_reached"] is True and
+            capabilities["ble_service_advertising_physically_observed"] is True,
+            "physical heartbeat, runtime start, and BLE advertisement must be admitted")
     for name, enabled in capabilities.items():
         if name not in admitted:
             require(enabled is False, f"capability must remain disabled: {name}")
 
     require(document["write_policy"] == {
-        "build_only": True,
+        "build_only": False,
         "flashing_authorized": False,
-    }, "write policy must remain build-only")
+        "physical_flash_completed": True,
+        "additional_flashing_authorized": False,
+    }, "completed physical write must not grant further authority")
 
+
+def test_physical_flash_plan() -> None:
+    document = json.loads(PHYSICAL_FLASH_PLAN.read_text(encoding="utf-8"))
+    require(document["schema"] == "OTFP0", "unexpected physical flash-plan schema")
+    require(document["schema_version"] == 0, "unexpected flash-plan version")
+    require(document["status"] == "EXECUTED-POSTWRITE-VERIFIED-RUNTIME-AND-BLE-ADVERTISEMENT-ACCEPTED",
+            "physical plan must retain the exact accepted execution state")
+    require(document["target_id"] == "heltec-v4-bench-candidate",
+            "physical plan must bind the exact target")
+    require(document["selection"] == {
+        "candidate_unit": "OT-DEV-001", "selected_unit": "OT-DEV-001",
+        "excluded_units": ["OT-DEV-002"], "exact_received_revision": None,
+        "rf_variant": None, "require_only_selected_unit_connected": True,
+        "require_manual_rom_identity_check": True,
+    }, "physical plan must isolate the sacrificial-first candidate")
+    require(document["owner_decisions"] == {
+        "recorded_on": "2026-08-16", "preserve_existing_meshcore_state": False,
+        "private_flash_backup": False,
+        "restore_route": "owner-operated official MeshCore web flasher",
+    }, "MeshCore preservation choice must remain explicit and privacy-safe")
+    require(document["write_policy"] == {
+        "physical_write_authorized": False, "full_chip_erase_authorized": False,
+        "authorized_execution_consumed": True, "executed_attempts": 1,
+        "additional_attempts_authorized": False, "attempt_limit": 1,
+        "require_exact_input_hash_recheck": True,
+        "require_public_region_verification": True,
+        "require_unchanged_second_unit": True,
+    }, "completed plan must not grant additional physical write authority")
+    image = document["open_trail_image"]
+    require({key: image[key] for key in (
+        "framework", "chip", "generated_before", "generated_after",
+        "execution_before", "execution_after", "manual_reset_after_verified",
+        "stub", "flash_mode",
+        "flash_size", "flash_frequency", "full_chip_erase_before_write",
+    )} == {
+        "framework": "ESP-IDF v6.0.2", "chip": "esp32s3",
+        "generated_before": "default-reset", "generated_after": "hard-reset",
+        "execution_before": "no-reset", "execution_after": "no-reset",
+        "manual_reset_after_verified": True, "stub": True,
+        "flash_mode": "dio", "flash_size": "16MB", "flash_frequency": "80m",
+        "full_chip_erase_before_write": True,
+    }, "physical plan must mirror the pinned ESP-IDF flash settings")
+    require([
+        (entry["role"], entry["offset"], entry["file"], entry["bytes"], entry["sha256"])
+        for entry in image["files"]
+    ] == [
+        ("bootloader", "0x000000", "bootloader/bootloader.bin", 22528, "E5C6CDDD63E974220360B7F110727B3D7A8B425CF8C3CAE23497D8588A9E8B62"),
+        ("partition-table", "0x008000", "partition_table/partition-table.bin", 3072, "84569AA2BADF3F7294042129B19D0B480784A93A550ADA3253B57BC92A0671AB"),
+        ("otadata", "0x009000", "ota_data_initial.bin", 8192, "7D2C7AC4888BFD75CD5F56E8D61F69595121183AFC81556C876732FD3782C62F"),
+        ("factory-app", "0x010000", "opentrail_heltec_v4_bench.bin", 437552, "F0E81310C62CA0C17CA2531AF9B0D5BD5E6E115E1649F84C97514F72D51D6A3A"),
+    ], "physical plan must mirror the exact pinned file/offset/hash manifest")
+    require(document["first_boot_acceptance"] == {
+        "bounded_runtime_and_ble_advertisement_only": True, "boot_self_checks_required": True,
+        "lora_enabled": False, "ble_service_advertising_expected": True,
+        "gnss_enabled": False, "display_enabled": False,
+        "gpio_sensitive_behavior_enabled": False,
+        "protected_storage_expected": "DENIED", "supported_hardware_claim": False,
+        "result": "PASS",
+    }, "first physical boot must remain narrowly bounded")
+    require(document["execution_result"] == {
+        "date": "2026-08-16", "esptool_version": "5.3.1",
+        "manual_rom_entry_exit_rehearsed": True,
+        "full_chip_erase": "PASS", "write": "PASS",
+        "public_region_verify": "PASS", "manual_reset_boot": "PASS",
+        "ble_service_advertising_observed": True,
+        "android_compatible_candidate_count": 1,
+        "ble_connection_attempted": False, "ble_pairing_attempted": False,
+        "android_api_level": 33,
+        "android_apk_sha256": "9CE206EEEAE2B13FC5C1092CEF41C226607FD3A9905A5797D4EBE31F3DC7F01C",
+        "heartbeat_period_ms": 5000,
+        "heartbeat_count_observed_minimum": 2,
+        "self_check_failure_observed": False,
+        "runtime_failure_observed": False, "panic_observed": False,
+        "unit2_touched": False,
+    }, "physical execution receipt must remain exact and privacy-safe")
+
+    require(document["recovery_reference"] == {
+        "execution_authorized": False, "owner_operated": True,
+        "source": "https://github.com/meshcore-dev/MeshCore/releases/tag/companion-v1.16.0",
+        "asset": "heltec_v4_companion_radio_usb-v1.16.0-07a3ca9-merged.bin",
+        "bytes": 724976,
+        "sha256": "91A7AE8AABBF6DCDEE41880719FCAD849327C24CEC84CD23AFFAB1EF38CAA334",
+        "offset": "0x000000", "erase_before_write": True,
+    }, "recovery reference must stay exact and separately unauthorized")
 
 def test_recovery_partition_layout() -> None:
     lines = PARTITIONS.read_text(encoding="utf-8").splitlines()
@@ -764,7 +869,8 @@ def test_build_only_tooling() -> None:
 
 
 def main() -> int:
-    tests = (test_contract, test_recovery_partition_layout,
+    tests = (test_contract, test_physical_flash_plan,
+             test_recovery_partition_layout,
              test_application_surface, test_build_only_tooling)
     for test in tests:
         test()

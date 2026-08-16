@@ -12,7 +12,11 @@
       "weight": 15,
       "completion": 85,
       "evidence_status": "Host tested",
-      "evidence_refs": ["README.md#project-status", "docs/ARCHITECTURE.md", "tasks/BACKLOG.md"],
+      "evidence_refs": [
+        "README.md#project-status",
+        "docs/ARCHITECTURE.md",
+        "tasks/BACKLOG.md"
+      ],
       "next_gate": "Close remaining product-firmware architecture gates with target evidence."
     },
     {
@@ -22,7 +26,11 @@
       "weight": 20,
       "completion": 65,
       "evidence_status": "Component evidence",
-      "evidence_refs": ["firmware/components", "firmware/targets/portable_client", "tests/host"],
+      "evidence_refs": [
+        "firmware/components",
+        "firmware/targets/portable_client",
+        "tests/host"
+      ],
       "next_gate": "Bind the selected client hardware and prove the complete target composition."
     },
     {
@@ -32,18 +40,27 @@
       "weight": 15,
       "completion": 15,
       "evidence_status": "Inspection shell",
-      "evidence_refs": ["docs/update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md", "docs/update/FIRMWARE_BUNDLE_CANDIDATE_FORMAT_V0.md", "tasks/BACKLOG.md"],
+      "evidence_refs": [
+        "docs/update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md",
+        "docs/update/FIRMWARE_BUNDLE_CANDIDATE_FORMAT_V0.md",
+        "tasks/BACKLOG.md"
+      ],
       "next_gate": "Run separately authorized maintenance probes for received-board evidence, obtain independent trust review, and approve signer custody plus pinned production trust before implementing any writer."
     },
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units provide limited radio and USB bench evidence through temporary MeshCore firmware. The bounded native OpenTrail ESP-IDF v6.0.2 candidate now has an OT-DEV-001-bound 16 MiB flash and configured 2 MiB quad-PSRAM build profile plus an exact recovery-oriented partition layout, but it has not run on either unit.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is now the first experimentally flashed OpenTrail target: its exact-profile image passed one authorized erase/write, post-write public-region verification, deterministic boot self-checks, bounded USB heartbeat, and one privacy-safe Android observation of the OpenTrail BLE service advertisement.",
       "weight": 15,
-      "completion": 10,
-      "evidence_status": "Exact-profile native build candidate",
-      "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-059-2026-08-15.md", "tests/hardware/OT-034-2026-08-14.md", "hardware/INVENTORY.md"],
-      "next_gate": "Select OT-DEV-001 as sacrificial-first, accept the unresolved minor/RF variant with radio and GPIO disabled, rehearse manual ROM entry and known-good restore, verify exact artifact and partition identity, obtain owner write authorization, then flash and review the bounded runtime before radio or unit 2."
+      "completion": 20,
+      "evidence_status": "Experimental physical target",
+      "evidence_refs": [
+        "firmware/targets/heltec_v4_bench",
+        "tests/hardware/OT-061-2026-08-16.md",
+        "tests/hardware/OT-059-2026-08-15.md",
+        "hardware/INVENTORY.md"
+      ],
+      "next_gate": "Admit protected owner storage and private bond authority, then prove one bounded GATT authorization and Ready session before LoRa, GNSS, display, or unit 2."
     },
     {
       "id": "first-complete-unit",
@@ -52,7 +69,10 @@
       "weight": 20,
       "completion": 0,
       "evidence_status": "Not started",
-      "evidence_refs": ["hardware/INVENTORY.md", "docs/testing/FOUR_PERSON_PILOT_V0.md"],
+      "evidence_refs": [
+        "hardware/INVENTORY.md",
+        "docs/testing/FOUR_PERSON_PILOT_V0.md"
+      ],
       "next_gate": "Freeze the exact hardware and complete one recoverable end-to-end client."
     },
     {
@@ -62,7 +82,10 @@
       "weight": 15,
       "completion": 0,
       "evidence_status": "Not started",
-      "evidence_refs": ["docs/testing/FOUR_PERSON_PILOT_V0.md", "docs/testing/FOUR_PERSON_PILOT_RESULT_V0.md"],
+      "evidence_refs": [
+        "docs/testing/FOUR_PERSON_PILOT_V0.md",
+        "docs/testing/FOUR_PERSON_PILOT_RESULT_V0.md"
+      ],
       "next_gate": "Run the frozen four-unit standalone pilot and accept its evidence."
     }
   ],
@@ -91,6 +114,11 @@
       "date": "2026-08-16",
       "overall": 30,
       "reason": "Accepted one physical Android debug-APK install plus foreground screen-retention evidence. Canonical V1 remains phone-independent and no OpenTrail target firmware was flashed or run, so the evidence-weighted percentage is unchanged."
+    },
+    {
+      "date": "2026-08-16",
+      "overall": 31,
+      "reason": "Accepted one owner-authorized OT-DEV-001 erase/write with exact post-write verification, physical boot self-check/USB heartbeat, and one privacy-safe Android observation of the OpenTrail BLE service advertisement. This closes the prior first-target physical gate but does not prove protected storage, GATT authorization, Ready, LoRa, GNSS, display, recovery-after-loss, support, or field use."
     }
   ]
 }

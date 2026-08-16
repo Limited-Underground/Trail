@@ -1,6 +1,6 @@
 # Heltec V4 bench candidate target
 
-Status: evidence-bound memory-profile build candidate; not flashed; not supported hardware.
+Status: experimentally flashed, public-region post-write verified, and bounded USB runtime plus BLE service advertising observed on `OT-DEV-001`; not supported hardware.
 
 This bounded ESP-IDF target is the first native OpenTrail build surface for the
 ESP32-S3 family used by the two assembled Heltec V4 bench clients. OT-059 binds
@@ -148,9 +148,9 @@ redundant NVS cannot supply the independent rollback floor required here.
 ## Deliberately absent
 
 - SX1262 or other radio initialization and transmission
-- any evidence that Bluetooth controller/host initialization, advertising,
-  connection, or GATT registration has run; the startup path is coded and
-  build-linked only, and scanning is absent
+- any evidence of Bluetooth connection, GATT exchange, link security, bonding,
+  authorization, or Ready state; physical controller/host startup and service
+  advertising visibility were observed only through the bounded OT-061 gate
 - GNSS access
 - application access to NVS, `ot_state`, filesystem, OTA, or other persistence;
   only the fail-closed security preflight and in-memory persistence self-check
@@ -158,8 +158,9 @@ redundant NVS cannot supply the independent rollback floor required here.
   boot-selection, storage, rollback, or recovery authority
 - identity, pairing, provisioning, keys, or secrets; no HMAC/eFuse or protected
   NVS operation executes
-- a proven running Bluetooth stack, registered live GATT service, controller
-  session, usable secure bond, or device transport; no hardware was accessed
+- a proven Bluetooth controller session, usable secure bond, authorized device
+  transport, or normal command path; the observed stack and advertisement do
+  not establish any of these
 - board GPIO, OLED, battery, charger, or power-control bindings
 - the complete `PortableClientComposition`
 - device-write, port-selection, erase, or recovery commands
@@ -190,21 +191,33 @@ checks the application image header directly,
 decodes and verifies the generated partition binary with the pinned ESP-IDF
 tool, runs size analysis, and writes exact byte counts plus SHA-256 hashes for
 the application BIN, ELF, map, partition table, generated configuration, and
-source partition CSV to ignored `build-evidence.json`, explicitly marked
-`NOT-FLASHED`.
+source partition CSV to ignored `build-evidence.json`. That helper-generated
+receipt remains explicitly marked `NOT-FLASHED` because the helper itself never
+accesses hardware; OT-061 physical execution is recorded separately in
+`physical-flash-plan.json` and the dated hardware evidence.
 
 ESP-IDF's own successful-build output may print suggested follow-up commands
 for flashing. Those informational suggestions are not executed by this helper;
 the helper contains no port, erase, write, or flash action.
 
-No hardware action is part of this increment. Exact received minor board and RF
-revision remain unresolved, no sacrificial-first unit is selected, and physical
-write authority remains false. Before any later write, the separate bring-up
-procedure must explicitly select OT-DEV-001 as the sacrificial-first unit,
-record acceptance of the still-unresolved minor/RF variant while radio and GPIO
-use remain disabled, rehearse manual ESP32-S3 ROM entry/exit plus the known-good
-restore path, independently verify the candidate artifact and partition
-identity, and obtain owner authorization to replace the current firmware. Only
-after that recovery admission
-may a separately authorized flash/runtime review occur; the second unit remains
-out of scope until the first unit recovers and its bounded runtime is accepted.
+OT-061 selected only `OT-DEV-001`, kept `OT-DEV-002` disconnected, and
+rehearsed manual ESP32-S3 ROM entry plus return to the unchanged public MeshCore
+runtime. The owner then authorized one full-chip erase and one write of the
+four frozen OpenTrail regions. Every input hash matched, the single write
+completed, a separate public-region verification passed, and the board stayed
+in ROM until verification succeeded. After one manual reset, a privacy-safe
+twelve-second observation found at least two five-second heartbeat records and
+no self-check, runtime, panic, abort, or assertion failure.
+
+That result proves the boot self-check gate completed and the NimBLE runtime
+startup call returned on this experimental unit. One owner-observed Android
+scan using the exact accepted Trail APK found one compatible OpenTrail service
+candidate. It did not select, connect, or pair, and no address or identifier was
+retained. This proves physical BLE service advertising visibility, not GATT
+exchange, authorization, Ready state, protected storage, LoRa, GNSS, display,
+GPIO, power/endurance, regulatory fit, or support. The OLED is expected to
+remain blank. The exact result and consumed one-attempt authority are recorded
+in `physical-flash-plan.json` and
+`tests/hardware/OT-061-2026-08-16.md`. No additional erase, write, recovery, or
+unit-2 authority remains. Any later MeshCore recovery stays owner-operated
+through the official MeshCore web flasher.

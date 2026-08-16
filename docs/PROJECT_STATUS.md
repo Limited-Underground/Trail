@@ -9,6 +9,22 @@ Status date: 2026-08-16
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-061 closes the first bounded physical OpenTrail target gate on only
+`OT-DEV-001`; `OT-DEV-002` remained disconnected and untouched. Manual
+ESP32-S3 ROM entry/exit returned to the unchanged public MeshCore runtime before
+the owner authorized one full-chip erase and one write of the four frozen
+OpenTrail regions. Exact input rehash, the single write, and post-write
+`verify-flash` all passed. A manual reset then reached the deterministic boot
+self-checks, NimBLE runtime, and at least two five-second USB heartbeat records
+without a self-check/runtime/panic/assertion failure. The exact accepted Android
+APK subsequently reported one compatible OpenTrail service advertisement on one
+physical Android 13/API 33 phone; no candidate was selected, connected, paired,
+or identified. This is experimental target and BLE-advertisement visibility
+evidence, not GATT, application authorization, Ready, protected storage, LoRa,
+GNSS, display, GPIO, power, recovery-after-loss, regulatory, support, or field
+evidence. The historical phone-independent evidence calculation advances to
+31%; current V1 Companion and V2 Integrated release scores remain unmeasured.
+See [OT-061](../tests/hardware/OT-061-2026-08-16.md).
 OT-060 adds foreground-only screen retention and the first physical Android
 install evidence for the Trail debug app. One owner-authorized Android 16/API 36
 handset installed and launched the exact 9,677,165-byte APK with SHA-256
@@ -19,7 +35,7 @@ normal active brightness for 40 seconds; backgrounding released focus and
 reopening succeeded. Local test remained visibly fake and started neither a
 Bluetooth permission prompt nor the real BLE service. This does not prove live
 BLE, OpenTrail target firmware, LoRa, authorization, Ready, release, endurance,
-or field behavior. V1 remains 30%.
+or field behavior. At OT-060 acceptance, V1 remained 30%.
 The close-range MeshCore path now has bounded transport, experimental OpenTrail packet-v0, and three-node MeshCore repeater hardware evidence including a software-forced route with a repeat-off negative control. A privacy-safe USB pass also proved that both Heltec companion builds detect/activate their connected GNSS hardware and emit GPS telemetry, while the SenseCAP repeater obtained a live fix and subsequent checks increased through four, seven, and eight satellites. Two strengthened role-reversed physical cycles carried 2/2 exact `OGA0` alerts and 2/2 correlated `OGK0` ACKs with zero loss/duplicates/errors and exact aggregate +4 SenseCAP flood RX/TX; each returned ACK then passed real OpenGauge peer authorization, session binding, replay/correlation ingress, and completed its exact reconstructed outbox entry. Fixed-capacity C++ radio, codec, identity lifecycle, group-access policy, non-secret configuration persistence, acknowledgement/retry/expiry, duplicate suppression plus canonical `OTD0` checkpoint serialization and the `ODS0` two-slot host storage boundary, controlled forwarding, priority admission, GPS fix validation/age handling, compact position encoding, LoRa airtime calculation, redacted diagnostics, the OpenGauge critical-alert ingress, mirrored `OGK0` acknowledgement codec, final-ingress-to-ACK responder, and commit-last ACK boot-session allocator have deterministic host tests. Cryptographic joining, target/physical/rollback-aware duplicate-checkpoint storage, persistent secret/group/message-counter state, authenticated acknowledgement/priority transport composition, on-device authenticated alert transport, physical field repeater behavior, complete-client GPS binding/performance, position scheduling/hardware transmission, maps, store-forward behavior, a direct SX1262 binding, rendered UI, and field performance remain unvalidated.
 
 An owner-reported Wio Tracker L1 Pro has now completed a privacy-safe first
@@ -525,13 +541,12 @@ physical memory behavior, recovery, runtime, radio/GNSS/GPIO use, and support
 remain open. Exact evidence is in
 [OT-059](../tests/hardware/OT-059-2026-08-15.md).
 
-These increments remain non-live. The target runtime path is
-`CODED-BUILD-LINKED-NOT-RUN`, nothing was flashed or accessed, and no protected
-storage/bond authority is admitted. The APK was not installed on an emulator or
-phone, and no Android OS service, notification, pairing, authorization, Ready,
-real location, target-runtime, or physical BLE proof exists. OT-052 through
-OT-059 are bounded `done` increments; OT-034 remains `partial` and V1 remains
-30%.
+At OT-059 acceptance these increments remained non-live: the target runtime was
+`CODED-BUILD-LINKED-NOT-RUN`, nothing was flashed, and no protected storage or
+bond authority was admitted. OT-061 supersedes only that no-flash/no-runtime
+boundary with one experimental target write, verified boot/heartbeat, and one
+service-advertisement observation. Protected storage, pairing, authorization,
+Ready, normal commands, LoRa, GNSS, display, and support remain open.
 
 At OT-034 acceptance, the first repository-native ESP-IDF target surface was a
 strictly build-only `heltec_v4_bench` candidate. Its exact `OTTB0` contract
@@ -553,9 +568,9 @@ default NVS/PHY/factory partition table were not an authoritative received-
 Heltec profile. OT-059 supersedes those build-profile, generated-configuration,
 partition, size, and artifact facts; it does not supersede OT-034's physical
 boundaries. Exact-board authority, sacrificial-first recovery, physical
-runtime/log review, and every physical capability remain open. The two Heltec
-units remain bench candidates, no hardware support claim follows, and V1 is
-30%.
+runtime/log review, and every physical capability remain open. At that historical checkpoint the two Heltec units remained bench candidates,
+no hardware support claim followed, and V1 was 30%. OT-061 later supplied the
+first experimental physical target evidence without creating a support claim.
 
 The owner has also accepted the provisional working-name hierarchy in Decision
 0008. `Limited Underground` is the parent; `Limited Underground Trail` is the
@@ -1711,7 +1726,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 
 | Item | Current status | Required evidence |
 | --- | --- | --- |
-| Two Heltec V4 LoRa-capable boards | Both units are runtime-identified as **Heltec V4 OLED** and run MeshCore USB Companion `v1.16.0-07a3ca9` with matching USA/Canada settings (910.525 MHz, BW 62.5 kHz, SF7, CR5, 10 dBm). The owner purchase record is the Meshnology two-unit V4 GPS bundle, ASIN `B0FS1WQWKF`, listing two L76 GNSS modules, 3000 mAh batteries, N39 cases, and 915 MHz antennas. A redacted 2026-08-12 USB pass proved both firmware builds detected GNSS, accepted/read back enablement, and emitted a GPS telemetry field; exact physical modules/wiring and current fix/satellite/accuracy/loss evidence remain open. Raw-RX evidence established channel match, MAC validation, decryption, queue notification, and application retrieval. A temporary private-channel sample delivered 5/5 numbered messages each direction with 0 loss, 0 duplicates, 233.3-247.2 ms latency, 11.25-12.25 dB SNR, and zero receive/core errors. Packet-v0 delivered 3/3 C++-encoded/decoded frames each direction before and again after the five-hour repeater soak, with valid CRC, no loss/duplicates/errors, empty queues, and verified channel/journal cleanup. OT-017D then delivered 2/2 exact `OGA0` alerts and 2/2 correlated `OGK0` ACKs across role-reversed cycles with zero loss/duplicates/errors and verified cleanup. See `tests/hardware/OT-003A-2026-08-12.md`, `tests/hardware/OT-007A-2026-08-08.md`, `tests/hardware/OT-007-2026-08-08.md`, and `tests/hardware/OT-017D-2026-08-09.md`. `OT-DEV-001` has ROM-level ESP32-S3/2 MB PSRAM/16 MB flash evidence; `OT-DEV-002` does not. | OT-004, OT-006, OT-007, and host-mediated OT-017D use this bench evidence. Authenticated on-device alert binding, privacy-safe current fix/satellites, GNSS accuracy/loss/power behavior, usable RSSI, fine-grained airtime, field range/mobility, regulatory constraints, and exact received revision/RF/pinout/power questions remain. |
+| Two Heltec V4 LoRa-capable boards | `OT-DEV-001` is now the first experimentally flashed OpenTrail target: one owner-authorized full erase/write passed exact post-write verification, deterministic boot self-checks reached the NimBLE runtime, bounded USB heartbeat was observed, and one physical Android scan found one compatible OpenTrail service advertisement without selection, connection, pairing, or identifier retention. `OT-DEV-002` remains untouched by OpenTrail and continues to run MeshCore USB Companion `v1.16.0-07a3ca9`. Historical MeshCore bench evidence established matching USA/Canada configuration, bounded bidirectional delivery, repeater transport, alert/ACK behavior, and GNSS detection on the two assembled units. `OT-DEV-001` has ROM-level ESP32-S3/2 MB PSRAM/16 MB flash evidence; `OT-DEV-002` does not. | OT-061 closes only the first target flash/runtime/advertisement gate. Protected storage, GATT authorization, Ready, LoRa/GNSS/display runtime, exact received revision/RF/pinout/power, recovery-after-loss, field range/endurance, regulatory acceptance, and support remain open. See `tests/hardware/OT-061-2026-08-16.md`, `hardware/INVENTORY.md`, and the historical MeshCore evidence records. |
 | Seeed SenseCAP solar node | Runtime-identified as **Seeed SenseCap Solar**, USB `VID 2886:0059`, running MeshCore Repeater `v1.16.0-07a3ca9` at 910.525 MHz/BW 62.5/SF7/CR5/22 dBm with repeat enabled. The owner purchase record is SenseCAP Solar Node **P1-Pro**, ASIN `B0FMDHBWX8`; Seeed's current MeshCore product maps that variant to SKU `100023690` with XIAO nRF52840 Plus, Wio-SX1262, L76K GNSS, and battery. Its coordinate-free GNSS status progressed from active/no-fix/0 satellites to a live fix, with later checks at 4, 7, and 8 satellites. Both Heltecs received its advert and remotely read its synchronized clock. A temporary private-channel run produced exactly +2 flood RX/+2 flood TX. Explicit one-hop direct routes then succeeded both ways; with repeat off, the same route failed with +1 direct RX/+0 direct TX and no destination message, proving the repeater was required. A non-secret channel lease passed real stopped-session recovery. The 300-minute alternating close-bench run delivered 300/300 (150 each direction), zero loss/duplicates/errors, 229.8-312.1 ms latency, exact +300 repeater flood RX/TX, repeat preserved, empty queues, and verified exact-name channel/journal cleanup. OT-017D added exact aggregate +4 flood RX/+4 flood TX while two role-reversed alert/ACK cycles passed; repeat remained on and errors stayed zero. See `tests/hardware/OT-003A-2026-08-12.md`, `tests/hardware/OT-009-2026-08-08.md`, `tests/hardware/OT-009A-2026-08-09.md`, and `tests/hardware/OT-017D-2026-08-09.md`. | Exact received label/revision and internals, physical GPS/antenna details, GNSS accuracy/cold-start/loss/power behavior, solar endurance, physical field behavior/range, and regulatory validation remain. |
 | Wio Tracker L1 Pro for MeshCore | Owner reports the unit arrived after already being flashed as USB Companion and configured for a USA frequency plan; shipping/pre-write state was not preserved or verified. Windows reported public USB model `Seeed Wio Tracker L1`, family `2886:1667`; fixed read-only MeshCLI returned USB Companion `v1.17.0-727fc05` build 09-Aug-2026, repeat false, 910.525 MHz/BW 62.5 kHz/SF7/CR5/configured and maximum 22 dBm, 4.111 V, and zero errors/queue/packets/airtime/receive errors. Three more cycles kept public model/firmware/profile and zero error/traffic state stable while uptime increased. GNSS was detected but inactive with no GPS telemetry. A non-transmitting comparison matched channel 0 and absent default-scope state only in memory, confirmed distinct identities without emitting them, and found clocks within one second. No transient port, identity, secret, or coordinate is retained. C# and Python loaders now recognize the family; three built-in live refreshes and three exact-roster source-free external UI Automation cycles returned one Heltec, one SenseCAP, and one Wio, all runtime-identified and zero ready. See `tests/hardware/OT-020-2026-08-13.md`. | OT-020 is `partial` and the unit is only `experimented`. Exact label/SKU/revision, pre-write state, antenna/RF/regulatory evidence, over-air interoperability, GNSS activation/fix/loss, power/endurance, BLE, DFU/recovery, and clean-machine evidence remain. The package result is loader recognition evidence only, not hardware compatibility or support |
 | Two Waveshare ESP32-S3 1.75-inch round AMOLED touch boards | Owner reports two ordered; not received or tested. The product family is advertised as 466x466 touch with ESP32-S3R8, 8 MB PSRAM, 16 MB flash, and standard/case/GPS variants; exact ordered and received variant remains unconfirmed | Preserve shipping firmware/recovery evidence; confirm exact labels/variant, display/touch/storage interfaces, usable memory, power/thermal behavior, and map/peer/alert rendering under OT-018 |

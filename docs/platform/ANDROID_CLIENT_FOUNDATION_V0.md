@@ -6,9 +6,11 @@ OT-045 explicit Bluetooth-mode/lifecycle UI wiring, OT-047 device-
 authorization UX, OT-049 authorization-wire codec/tracker parity, OT-051
 default-disabled provisional-authorization orchestration, and OT-053
 protected-read production composition, OT-055 explicit user-started
-connected-device foreground-service ownership, and OT-060 foreground-screen
-retention plus physical Android install acceptance, 2026-08-16.
-This is not live BLE, LoRa, or OpenTrail target-firmware evidence.
+connected-device foreground-service ownership, OT-060 foreground-screen
+retention plus physical Android install acceptance, and OT-061 physical
+OpenTrail service-advertisement discovery, 2026-08-16. This is advertisement
+visibility only—not GATT, authorization, Ready, LoRa, or supported-hardware
+evidence.
 
 ## Accepted boundary
 
@@ -153,10 +155,13 @@ security-path evidence and never upgrades Android bond state into invented
 encryption or authentication evidence.
 
 The corresponding target adapter and OT-054 persistence prerequisite are
-compiled and link-retained. OT-056 now codes `app_main` to initialize NimBLE,
-register the protected service, and advertise after its boot checks, but this
-path is `BUILD-LINKED-NOT-RUN` and was not flashed or exercised. Target
-persistence admission remains denied because protected
+compiled and link-retained. At OT-056 acceptance, `app_main` was coded to
+initialize NimBLE, register the protected service, and advertise after its boot
+checks, but that path remained `BUILD-LINKED-NOT-RUN` and was not flashed or
+exercised. OT-061 supersedes only that physical flash, runtime, and advertising
+boundary: one experimental target booted and one physical Android phone found
+one compatible service advertisement without selection, connection, or
+pairing. Target persistence admission remains denied because protected
 NVS/key/private-bond/rollback-floor prerequisites are unavailable; the coded
 runtime immediately terminates every connection and never admits claims or
 normal commands. Consequently the production app still cannot reach a live
@@ -199,9 +204,12 @@ normal 30-second timeout active, Trail retained the Activity screen-on flag,
 awake/interactive state, and normal active brightness through an untouched
 40-second interval. Backgrounding removed Trail from focus and reopening
 succeeded. The exact APK reached visibly fake Local test mode without a
-Bluetooth permission prompt or real BLE service. This does not prove release
-signing, notification lifecycle, Bluetooth scan/pair/connect, device
-authorization, Ready, LoRa/GNSS, endurance, or field behavior.
+Bluetooth permission prompt or real BLE service. OT-061 then rebuilt that APK
+byte-for-byte, installed it on one physical Android 13/API 33 phone, and
+observed exactly one compatible OpenTrail service advertisement. Nothing was
+selected, connected, paired, or identified. This does not prove release
+signing, notification lifecycle, GATT exchange, device authorization, Ready,
+LoRa/GNSS, endurance, or field behavior.
 
 OT-057 adds Group / Location presentation above this ownership graph. Real
 Bluetooth mode reports coordinates unavailable because no accepted device

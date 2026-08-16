@@ -6,6 +6,32 @@ public chronology.
 
 ## 2026-08-16
 
+### OT-061 first physical OpenTrail target and BLE advertisement
+
+- Selected only `OT-DEV-001`; `OT-DEV-002` remained disconnected and
+  untouched. Manual ESP32-S3 ROM entry/exit returned to the unchanged public
+  MeshCore runtime before the owner authorized one full-chip erase and one
+  write of the four frozen OpenTrail regions. No private flash backup was
+  requested.
+- Exact input hashes matched. The single erase/write completed, a separate
+  `verify-flash` pass compared the four public written regions successfully,
+  and the board remained in ROM until verification finished. No retry occurred
+  and no additional write or recovery authority remains.
+- One manual reset reached the deterministic boot self-checks, NimBLE runtime,
+  and at least two five-second USB heartbeat records with no self-check, runtime,
+  panic, abort, or assertion failure. The blank OLED is expected.
+- The exact 9,677,165-byte Android APK (SHA-256
+  `9CE206EEEAE2B13FC5C1092CEF41C226607FD3A9905A5797D4EBE31F3DC7F01C`)
+  was rebuilt with 135/135 JVM tests and clean lint, installed on one physical
+  Android 13/API 33 phone, and reported exactly one nearby compatible OpenTrail
+  service. No candidate was selected, connected, paired, or identified.
+- This is experimental physical target, bounded runtime, and BLE advertisement
+  visibility evidence—not protected storage, GATT exchange, authorization,
+  Ready, LoRa, GNSS, display, GPIO, support, or field evidence. The historical
+  phone-independent evidence calculation advances to 31%; current V1 Companion
+  and V2 Integrated release scores remain unmeasured. See
+  [OT-061 evidence](../tests/hardware/OT-061-2026-08-16.md).
+
 ### OT-060 Android foreground screen retention and physical install
 
 - Added Activity-window `FLAG_KEEP_SCREEN_ON` immediately after

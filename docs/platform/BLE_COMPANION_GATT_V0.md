@@ -4,12 +4,15 @@ Status: host-tested codec/session/coordinator foundation, historical OT-042 NimB
 GATT target definition, OT-044 response-safe GATT lifecycle, OT-046 host-only
 one-phone authorization, OT-047 Android authorization UX, OT-048/049 fixed
 authorization-wire codec/tracker parity, OT-050/051 restricted provisional
-orchestration, OT-052 real NimBLE callback composition, and OT-053 Android
-protected-read production composition, OT-056 coded/build-linked runtime owner,
-and OT-057 renderer-neutral Android presentation, 2026-08-15. The startup path
-has not run or been flashed; protected storage admission remains denied, every
-connection is coded for immediate termination, and no physical-device evidence
-exists.
+orchestration, OT-052 real NimBLE callback composition, OT-053 Android
+protected-read production composition, OT-056 runtime owner, OT-057
+renderer-neutral Android presentation, and OT-061 experimental physical boot
+and BLE service-advertisement visibility, 2026-08-16. One target was flashed,
+post-write verified, and observed through boot/self-check/USB heartbeat; one
+physical Android phone found one compatible advertisement without selection,
+connection, or pairing. Protected storage admission remains denied, every
+connection is coded for immediate termination, and no GATT exchange,
+authorization, or Ready evidence exists.
 
 ## Purpose and authority
 
@@ -450,8 +453,13 @@ unobserved.
 The protected persistence preflight is still explicitly denied. Configured
 SC/MITM/bonding is not usable-bond proof; the fixed authorities deny, every
 connection is immediately terminated, and no claim or normal command is
-admitted. The runtime is `CODED-BUILD-LINKED-NOT-RUN`, nothing was flashed or
-accessed, and the APK was not installed. Thus this evidence does not prove
-pairing, application authorization, Ready, target runtime, Android service
-lifecycle, notification visibility, radio, GNSS, physical transport,
-accessibility, packaging, signing, distribution, or support.
+admitted. At OT-056 acceptance the runtime was
+`CODED-BUILD-LINKED-NOT-RUN`, nothing was flashed, and the APK was not installed.
+OT-061 later flashed the exact profile on one experimental target, observed its
+boot/self-check/USB heartbeat, and used the exact accepted APK on one physical
+Android phone to find one compatible service advertisement without selection,
+connection, pairing, or identifier retention. That proves target runtime and
+advertisement visibility only; it does not prove GATT exchange, pairing,
+application authorization, Ready, protected storage, notification lifecycle,
+LoRa, GNSS, display, accessibility, packaging, signing, distribution, or
+support.
