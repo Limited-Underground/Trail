@@ -197,6 +197,23 @@ $builds = @(
         )
     },
     @{
+        Name = 'private bond GATT authority composition'
+        Output = Join-Path $buildDirectory 'companion_gatt_authority_composition_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_session.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_wire.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_authorization.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_authorization_adapter.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_persistence.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_authority_composition.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_gatt_authority_composition_tests.cpp')
+        )
+    },
+    @{
         Name = 'bounded companion BLE runtime owner'
         Output = Join-Path $buildDirectory 'companion_ble_runtime_owner_tests.exe'
         Sources = @(

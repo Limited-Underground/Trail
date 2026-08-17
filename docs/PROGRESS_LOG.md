@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-066 trusted phone GATT authority composition
+
+- Added one target-neutral composition from an exact private bond reference and
+  device-secret binding resolver to the durable one-phone and GATT authorities.
+- Eight strict groups prove exact-tuple caching, changed-reference and stale-
+  generation denial, re-pair identity separation, physical-gated first claim,
+  exact-owner reconnect, wrong-phone denial, explicit replacement, release,
+  reentry containment, and persistence uncertainty.
+- The target still injects denied authorities. No private target bond store,
+  keys, physical control, pairing, GATT exchange, Ready state, image, or device
+  changed. Historical V1 remains 32%. See
+  [OT-066 evidence](../tests/hardware/OT-066-2026-08-17.md).
+
 ### OT-065 reversible protected authorization-store foundation
 
 - Added a target-neutral two-slot store that accepts only the exact record at a

@@ -163,6 +163,16 @@ Twelve strict host groups prove the fail-closed ordering. See
 [Decision 0010](../../../docs/decisions/0010-reversible-companion-protected-storage-foundation.md)
 and [OT-065 evidence](../../../tests/hardware/OT-065-2026-08-17.md).
 
+OT-066 adds a host-only production composition for the private bond-reference,
+device-secret binding, durable one-phone, and GATT authorization seams. It
+proves first claim, reconnect, replacement, lease release, re-pair separation,
+and fail-closed private evidence in eight strict groups. The target runtime is
+unchanged and continues to inject denied binding and authorization authorities;
+no target bond source, private session issuer, physical gesture, GATT admission,
+or Ready state is enabled. See
+[Decision 0011](../../../docs/decisions/0011-host-trusted-gatt-authority-composition.md)
+and [OT-066 evidence](../../../tests/hardware/OT-066-2026-08-17.md).
+
 ## Deliberately absent
 
 - SX1262 or other radio initialization and transmission

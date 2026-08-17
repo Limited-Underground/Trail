@@ -433,6 +433,21 @@ uses this component. See
 This proves recovery ordering in host code, not target encryption, secrets,
 anti-rollback hardware, GATT authorization, Ready, or physical durability.
 
+OT-066 composes the accepted private bond-reference resolver and durable
+one-phone authority into the existing trusted-binding and GATT authorization
+seams. A private source pins the first valid opaque reference to one exact
+connection generation; a separate issuer provides device-minted boot, session,
+controller-binding, and provisional-session values. Successful same-tuple
+binding is cached exactly, while changed references, stale generations,
+ambiguous handles, reentry, and malformed private state fail closed. First
+claim remains physical-gated, retained-owner reconnect does not rewrite
+ownership, replacement requires its own exact physical window, and disconnect
+releases only the live lease. See
+[Decision 0011](decisions/0011-host-trusted-gatt-authority-composition.md).
+The Heltec runtime still injects denied authorities; this is host composition
+evidence, not a real bond store, pairing, GATT exchange, authorization, Ready,
+or physical-control result.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

@@ -463,3 +463,26 @@ advertisement visibility only; it does not prove GATT exchange, pairing,
 application authorization, Ready, protected storage, notification lifecycle,
 LoRa, GNSS, display, accessibility, packaging, signing, distribution, or
 support.
+
+## OT-066 host trusted-authority composition
+
+OT-066 supplies the production composition behind the previously injected
+trusted-binding and authorization seams. One exact connection generation is
+resolved through an opaque private bond reference, the existing device-secret
+binding resolver, and a separate private session issuer. The first valid
+reference is pinned even while a downstream dependency is not ready; changed
+same-generation evidence and older generations fail closed. One successful
+binding is cached exactly for callback security refreshes.
+
+The GATT authority adapter maps an empty durable owner to physical-gated claim,
+a retained owner to reconnect without ownership rewrite, and an exact physical
+replacement window to replacement. Disconnect releases only the active
+controller lease. Incoherent success, reentry, wrong-phone evidence, and
+persistence uncertainty never publish a controller.
+
+This composition is not injected into the Heltec runtime. Its denied binding
+and authorization authorities remain active. No target bond store, key,
+physical gesture, pairing, application authorization, GATT exchange, or Ready
+state is claimed. See
+[Decision 0011](../decisions/0011-host-trusted-gatt-authority-composition.md)
+and [OT-066 evidence](../../tests/hardware/OT-066-2026-08-17.md).

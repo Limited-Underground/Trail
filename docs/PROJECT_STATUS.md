@@ -9,6 +9,19 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-066 adds the missing host production composition between private bond
+evidence, device-secret owner derivation, durable one-phone ownership, and the
+existing GATT claim authority. Eight strict groups prove exact connection-
+generation binding, cached refresh, changed-reference and stale-generation
+denial, re-pair identity separation, physical-gated first claim, owner reconnect
+without durable rewrite, wrong-phone denial, explicit replacement, exact lease
+release, reentry, malformed private sessions, and persistence uncertainty. The
+Heltec target remains wired to its denied binding and authorization authorities;
+no target storage, keys, pairing, GATT exchange, physical control, Ready state,
+image, or device changes. Historical V1 stays 31.75% and displays as 32%; V1
+Companion and V2 Integrated remain unmeasured. See
+[OT-066](../tests/hardware/OT-066-2026-08-17.md).
+
 OT-065 adds a concrete two-slot protected authorization-store coordinator over
 injected record media and an independent monotonic-generation authority.
 Twelve strict host groups prove empty boot, exact-current restore, inactive-slot
