@@ -9,6 +9,20 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-072 establishes the first canonical V1 Companion release measurement.
+The six weights total 100: architecture/safety 15 at 85%, core firmware 20 at
+65%, loader 15 at 15%, Heltec/Trail Essential target 15 at 25%, Android
+Companion 20 at 40%, and four-person Companion field proof 15 at 0%. The exact
+weighted result is 39.75% and public display rounds to 40%. Android's 40%
+records two of five equal accepted gates: tested application plus bounded
+physical install/lifecycle/artwork observations, and exact-service discovery.
+Physical GATT connection/negotiation, protected one-phone authorization and
+Ready, operational release acceptance, and Companion field proof remain open.
+The historical standalone baseline remains exact 31.75%/displayed 32%; V2
+Integrated remains unmeasured. No firmware, app package, target, device, or
+field evidence changed. See [Decision 0017](decisions/0017-v1-companion-release-measurement.md)
+and [OT-072](../tests/hardware/OT-072-2026-08-17.md).
+
 OT-071 adds a streaming offline verifier and a separate denied read-only plan
 for the exact OT-070 source-evidence prerequisite. Eight focused verifier
 groups, six transition-manifest groups, and the existing 9/9 Heltec admission

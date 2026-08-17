@@ -1,10 +1,11 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
   "as_of": "2026-08-17",
-  "v1_definition": "A complete first release means four self-contained field units can be installed, joined, recovered, and tested without depending on a phone, server, or repeater.",
-  "milestones": [
+  "baseline_name": "Historical standalone evidence baseline",
+  "baseline_definition": "The historical standalone evidence baseline measures progress toward four self-contained field units that do not depend on a phone, server, or repeater; it is retained for continuity and is not the current V1 Companion release total.",
+  "baseline_milestones": [
     {
       "id": "architecture-safety",
       "name": "Architecture and safety contracts",
@@ -90,7 +91,98 @@
       "next_gate": "Run the frozen four-unit standalone pilot and accept its evidence."
     }
   ],
-  "change_log": [
+  "primary_release_track": "v1-companion",
+  "release_tracks": [
+    {
+      "id": "v1-companion",
+      "name": "V1 Companion",
+      "status": "measured",
+      "as_of": "2026-08-17",
+      "definition": "A complete V1 Companion release means four Trail Essential device-and-Android-phone pairs can be installed, privately authorized, used for direct group communication and location awareness, recovered, and field tested without depending on a server or internet connection.",
+      "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
+      "milestones": [
+        {
+          "id": "architecture-safety",
+          "name": "Architecture and safety contracts",
+          "description": "Protocol, recovery, privacy, group-size, and degraded-operation rules are documented and extensively host tested.",
+          "weight": 15,
+          "completion": 85,
+          "evidence_status": "Host tested",
+          "evidence_refs": ["README.md#project-status", "docs/ARCHITECTURE.md", "tasks/BACKLOG.md"],
+          "next_gate": "Close remaining product-firmware architecture gates with target evidence."
+        },
+        {
+          "id": "core-firmware",
+          "name": "Core OpenTrail firmware",
+          "description": "Hardware-neutral communication, status, alert, persistence, update, and recovery components exist, while authenticated complete-target composition remains open.",
+          "weight": 20,
+          "completion": 65,
+          "evidence_status": "Component evidence",
+          "evidence_refs": ["firmware/components", "firmware/targets/portable_client", "tests/host"],
+          "next_gate": "Bind the accepted security, radio, GNSS, and persistence components into the selected Companion target."
+        },
+        {
+          "id": "firmware-loader",
+          "name": "Firmware loading app",
+          "description": "The shared desktop loader provides bounded offline inspection, while production trust, authoritative board matching, writing, and recovery remain absent.",
+          "weight": 15,
+          "completion": 15,
+          "evidence_status": "Inspection shell",
+          "evidence_refs": ["docs/update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md", "docs/update/FIRMWARE_BUNDLE_CANDIDATE_FORMAT_V0.md", "tasks/BACKLOG.md"],
+          "next_gate": "Accept production signing and board authority, then prove bounded writing, verification, and recovery."
+        },
+        {
+          "id": "heltec-companion-target",
+          "name": "Heltec V4 / Trail Essential target",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, and privacy-safe BLE-advertisement evidence.",
+          "weight": 15,
+          "completion": 25,
+          "evidence_status": "Experimental physical target",
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "hardware/INVENTORY.md"],
+          "next_gate": "Admit protected storage and private bond authority, prove physical GATT authorization and Ready, then bind LoRa and GNSS."
+        },
+        {
+          "id": "android-companion",
+          "name": "Android companion application",
+          "description": "Two of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance and exact-service discovery; connection, protected authorization, and operational release acceptance remain open.",
+          "weight": 20,
+          "completion": 40,
+          "evidence_status": "Build tested with bounded physical observations",
+          "evidence_refs": ["android/README.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md"],
+          "next_gate": "Prove physical GATT connection and negotiation, protected one-phone authorization and Ready, then operational and release acceptance."
+        },
+        {
+          "id": "four-person-companion-field-proof",
+          "name": "Four-person Companion field proof",
+          "description": "Four frozen Trail Essential and supported Android pairs must pass recovery, range, endurance, usability, and repeatable field trials before V1 Companion.",
+          "weight": 15,
+          "completion": 0,
+          "evidence_status": "Not started",
+          "evidence_refs": ["docs/testing/FOUR_PERSON_PILOT_V0.md", "docs/testing/FOUR_PERSON_PILOT_RESULT_V0.md"],
+          "next_gate": "Approve the Companion pilot amendment, freeze four device-phone pairs, and run the accepted field sequence."
+        }
+      ],
+      "change_log": [
+        {
+          "date": "2026-08-17",
+          "overall_exact": 39.75,
+          "overall": 40,
+          "reason": "Established the first evidence-weighted V1 Companion baseline. Shared architecture, core firmware, loader, and Heltec evidence are counted once; Android receives two of five equal gates for physical install/lifecycle/artwork and exact-service discovery, while live GATT, protected authorization and Ready, operational release acceptance, and four-person field proof remain open."
+        }
+      ]
+    },
+    {
+      "id": "v2-integrated",
+      "name": "V2 Integrated",
+      "status": "unmeasured",
+      "as_of": "2026-08-17",
+      "definition": "A future V2 Integrated release moves the user interface onto a dedicated touchscreen client while retaining the shared Trail protocol and safety foundation.",
+      "measurement_gate": "Approve V2-specific touchscreen, input, power, enclosure, recovery, and field milestones before publishing a percentage.",
+      "milestones": [],
+      "change_log": []
+    }
+  ],
+  "baseline_change_log": [
     {
       "date": "2026-08-12",
       "overall": 29,

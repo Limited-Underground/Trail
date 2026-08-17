@@ -13,9 +13,9 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-071 adds a streaming offline verifier and a denied read-only plan for the exact OT-070 source proof. Eight verifier groups, six transition-manifest groups, and the existing 9/9 target admission pass. The verifier emits only a fixed sanitized result; the plan contains no command or executable hardware reader, no hardware read occurred, and source proof alone cannot authorize a transition |
-| Proven so far | The 124-executable C++ host matrix passes; OT-065 through OT-071 add protected-store, trusted-authority composition, KV slot-media, target NVS-backend/context, transition admission, and privacy-safe source-evidence tooling. The Heltec target-only admission suite passes nine groups, while the active layout, target build inputs, runtime, installed image, and device remain unchanged by OT-071. `OT-DEV-001` still runs the 470,928-byte OT-064 app (SHA-256 `A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B`) with experimentally observed startup/status OLED and privacy-safe BLE advertising. Android passes 136 JVM tests across thirteen suites, clean lint, debug assembly, and manifest inspection. There is still no captured physical source proof, active protected partition, runtime storage/key/bond backend, independent physical rollback floor, GATT exchange, successful app/device authorization or Ready state, real LoRa/GNSS path, interactive display/input, release signing/store package, power/endurance, field, regulatory, or support evidence |
-| Planned first release | Up to eight active clients in one group with at most one optional authorized repeater |
+| Latest increment | OT-072 establishes the first distinct, canonical V1 Companion measurement while preserving the historical standalone evidence baseline and leaving V2 Integrated unmeasured |
+| Proven so far | The 124-executable C++ host matrix passes; OT-065 through OT-071 add protected-store, trusted-authority composition, KV slot-media, target NVS-backend/context, transition admission, and privacy-safe source-evidence tooling. The Heltec target-only admission suite passes nine groups, while the active layout, target build inputs, runtime, installed image, and device remain unchanged by OT-071. `OT-DEV-001` still runs the 470,928-byte OT-064 app (SHA-256 `A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B`) with experimentally observed startup/status OLED and privacy-safe BLE advertising. Android passes 136 JVM tests across thirteen suites, clean lint, debug assembly, manifest inspection, bounded physical install/lifecycle/artwork observations, and exact-service discovery. V1 Companion now has an evidence-weighted canonical release track. There is still no captured physical source proof, active protected partition, runtime storage/key/bond backend, independent physical rollback floor, GATT exchange, successful app/device authorization or Ready state, real LoRa/GNSS path, release signing/store package, power/endurance, field, regulatory, or support evidence |
+| Planned first release | Four Trail Essential device-and-Android-phone pairs, with later capacity evidence up to eight active clients and at most one optional authorized repeater |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 
 OpenTrail is not production-ready, and no hardware is currently listed as supported. See the [dated progress log](docs/PROGRESS_LOG.md) for recent work and the [engineering backlog](tasks/BACKLOG.md) for exact acceptance evidence and remaining gates.
@@ -31,17 +31,24 @@ OpenTrail is not production-ready, and no hardware is currently listed as suppor
 - [Hardware inventory](hardware/INVENTORY.md) — available, ordered, missing, and unverified equipment
 - [Contributing](CONTRIBUTING.md) and [security reporting](SECURITY.md)
 
-## Planned first-release boundary
+## Release boundary
 
-The v0 target is intentionally small and staged:
+The current release goal is V1 Companion: a Trail Essential LoRa device uses
+one privately authorized Android phone as its interface. The first release must
+prove four frozen device-phone pairs, direct group operation, recovery, range,
+endurance, and usability without depending on a server or internet connection.
+The phone is an intentional V1 interface dependency; a repeater remains
+optional.
 
-1. Four identical standalone clients with no repeater or infrastructure dependency.
-2. Four clients plus one optional authorized repeater.
-3. Eight clients plus one optional authorized repeater.
+The future V2 Integrated goal moves the interface onto a dedicated touchscreen
+client. Its standalone no-phone acceptance path and the later four-plus-
+repeater and eight-plus-repeater capacity steps remain separate evidence gates.
 
-Each stage must pass on frozen hardware and firmware before the next stage becomes a support claim. A client must remain useful without a server, internet connection, phone, laptop, vehicle connection, or repeater.
-
-Read the [capacity policy](docs/testing/FIRST_RELEASE_CAPACITY_V0.md), [four-person pilot plan](docs/testing/FOUR_PERSON_PILOT_V0.md), and [result evaluator](docs/testing/FOUR_PERSON_PILOT_RESULT_V0.md) for the exact evidence sequence. The first pilot remains blocked until four complete client units satisfy the hardware and recovery freeze.
+The existing [capacity policy](docs/testing/FIRST_RELEASE_CAPACITY_V0.md),
+[four-person pilot plan](docs/testing/FOUR_PERSON_PILOT_V0.md), and
+[result evaluator](docs/testing/FOUR_PERSON_PILOT_RESULT_V0.md) still govern the
+standalone path. A Companion-specific pilot amendment remains required before
+V1 field evidence can be accepted.
 
 ## How it fits together
 

@@ -6,6 +6,18 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-072 V1 Companion release measurement
+
+- Established a distinct six-milestone V1 Companion track whose weights total
+  100. The exact evidence-weighted result is 39.75% and displays as 40%.
+- Android Companion is 40% because two of five equal gates are accepted:
+  tested application plus physical install/lifecycle/artwork observations, and
+  exact-service discovery. Physical GATT, protected authorization and Ready,
+  operational release acceptance, and four-person field proof remain open.
+- The historical standalone baseline remains exact 31.75%/displayed 32%, V2
+  Integrated remains unmeasured, and no implementation or physical evidence
+  changed. See [OT-072 evidence](../tests/hardware/OT-072-2026-08-17.md).
+
 ### OT-071 read-only protected-storage transition evidence
 
 - Added a streaming offline verifier for the exact installed partition table

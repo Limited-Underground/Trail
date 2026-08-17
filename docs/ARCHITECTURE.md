@@ -93,9 +93,14 @@ firmware, or supported hardware.
 planned Android companion and self-contained touchscreen tracks under the same
 versioned protocol and reusable behavior in this repository. Platform and
 hardware adapters remain separate, and evidence from one track cannot be
-credited to the other. The current four-self-contained-unit first release and
-its no-phone/no-laptop field boundary remain authoritative; the simulator is a
-development reference, not a field dependency.
+credited to the other.
+
+[Decision 0017](decisions/0017-v1-companion-release-measurement.md) establishes
+V1 Companion as the current measured release goal and retains the earlier
+phone-independent calculation as a historical standalone evidence baseline.
+The Companion track counts shared evidence once, adds its Android milestone,
+and requires a distinct four-pair field proof. V2 Integrated remains
+unmeasured until its own hardware and acceptance milestones are approved.
 
 [Decision 0009](decisions/0009-one-phone-companion-authority.md) and the
 [BLE Companion GATT v0](platform/BLE_COMPANION_GATT_V0.md) now bound the first
