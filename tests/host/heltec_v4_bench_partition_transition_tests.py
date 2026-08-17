@@ -16,6 +16,7 @@ ACTIVE_TABLE = TARGET / "partitions.csv"
 CANDIDATE_TABLE = TARGET / "protected-storage-partitions.candidate.csv"
 TRANSITION_PLAN = TARGET / "protected-storage-transition-plan.json"
 PROVISIONING_PLAN = TARGET / "protected-storage-provisioning-plan.json"
+GIT_ATTRIBUTES = ROOT / ".gitattributes"
 
 
 def require(condition: bool, message: str) -> None:
@@ -70,6 +71,15 @@ def test_exact_layout_transition() -> None:
             "transition plan must remain dated, target-bound, and closed")
     require(plan["active_target_configuration_changed"] is False,
             "transition plan must not claim an active target change")
+
+    attributes = GIT_ATTRIBUTES.read_text(encoding="utf-8").splitlines()
+    require(
+        "firmware/targets/heltec_v4_bench/partitions.csv text eol=crlf" in
+        attributes and
+        "firmware/targets/heltec_v4_bench/"
+        "protected-storage-partitions.candidate.csv text eol=lf" in
+        attributes,
+        "partition-table artifact line endings must remain deterministic")
 
     source = plan["transition"]["source_layout"]
     candidate = plan["transition"]["candidate_layout"]

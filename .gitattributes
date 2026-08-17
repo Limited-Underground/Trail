@@ -1,1 +1,3 @@
 tests/fixtures/firmware_bundle_signature_vector_v0.json text eol=lf
+firmware/targets/heltec_v4_bench/partitions.csv text eol=crlf
+firmware/targets/heltec_v4_bench/protected-storage-partitions.candidate.csv text eol=lf
