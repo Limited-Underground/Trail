@@ -51,7 +51,7 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target: its exact profile, physical boot and BLE advertisement, and target-local 128 x 64 startup/status OLED passed bounded write, verification, runtime, visual, and Android discovery gates.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target: its exact profile, physical boot and BLE advertisement, and target-local 128 x 64 startup/status OLED passed bounded write, verification, runtime, visual, and Android discovery gates. After one later protected-storage source-read attempt was denied without proof, the owner-observed startup/status display sequence returned.",
       "weight": 15,
       "completion": 25,
       "evidence_status": "Experimental physical target with startup/status OLED",
@@ -59,10 +59,11 @@
         "firmware/targets/heltec_v4_bench",
         "tests/hardware/OT-061-2026-08-16.md",
         "tests/hardware/OT-064-2026-08-17.md",
+        "tests/hardware/OT-073-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Admit protected owner storage and private bond authority, prove one bounded GATT authorization and Ready session, then bind real LoRa/GNSS and interactive display/input before unit 2."
+      "next_gate": "Review the denied OT-073 read before any separately designed and authorized source-proof attempt; then admit protected owner storage and private bond authority, prove one bounded GATT authorization and Ready session, and bind real LoRa/GNSS and interactive display/input before unit 2."
     },
     {
       "id": "first-complete-unit",
@@ -134,12 +135,12 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, and privacy-safe BLE-advertisement evidence.",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, and privacy-safe BLE-advertisement evidence. After a later source-read attempt was denied without proof, the owner-observed startup/status display sequence returned.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Experimental physical target",
-          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "hardware/INVENTORY.md"],
-          "next_gate": "Admit protected storage and private bond authority, prove physical GATT authorization and Ready, then bind LoRa and GNSS."
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "hardware/INVENTORY.md"],
+          "next_gate": "Review the denied OT-073 read before any new source-proof attempt; then admit protected storage and private bond authority, prove physical GATT authorization and Ready, and bind LoRa and GNSS."
         },
         {
           "id": "android-companion",
@@ -168,6 +169,12 @@
           "overall_exact": 39.75,
           "overall": 40,
           "reason": "Established the first evidence-weighted V1 Companion baseline. Shared architecture, core firmware, loader, and Heltec evidence are counted once; Android receives two of five equal gates for physical install/lifecycle/artwork and exact-service discovery, while live GATT, protected authorization and Ready, operational release acceptance, and four-person field proof remain open."
+        },
+        {
+          "date": "2026-08-17",
+          "overall_exact": 39.75,
+          "overall": 40,
+          "reason": "Recorded one consumed, sanitized OT-DEV-001 source-read denial and owner-observed startup/status return. Source proof remains absent, so no milestone completion changed."
         }
       ]
     },
@@ -217,6 +224,11 @@
       "date": "2026-08-17",
       "overall": 32,
       "reason": "Accepted one bounded OT-DEV-001 factory-app update with exact read-only verification, owner-observed Trail startup logo and BLE ADVERTISING status, four USB heartbeats, and one privacy-safe Android observation of the exact OpenTrail service. This advances only the Heltec bench-target milestone; protected storage, GATT authorization, Ready, LoRa, GNSS, interactive display/input, complete-unit, recovery, support, and field evidence remain open."
+    },
+    {
+      "date": "2026-08-17",
+      "overall": 32,
+      "reason": "Recorded one consumed, sanitized OT-DEV-001 source-read denial and owner-observed startup/status return. Source proof remains absent, so the historical baseline is unchanged."
     }
   ]
 }

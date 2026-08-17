@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-073 protected-storage source-read attempt
+
+- Consumed one owner-authorized, one-use OT-DEV-001 read-only attempt using
+  esptool 5.3.1, one no-reset ROM connection attempt, no RAM stub, and only the
+  two OT-071 allowlisted ranges.
+- The attempt returned only `OTPSTE0/v0` / `DENY-READ-FAILURE`; it was not
+  repeated. No raw bytes, paths, port, device identifier, private operation
+  identity, or detailed transport output was retained, and the ephemeral
+  executor files were deleted with cleanup verified.
+- After manual RST, the owner observed the Trail logo followed by
+  `BLE ADVERTISING` status.
+  Source proof remains absent; no partition transition or protected-runtime
+  authority is added, and V1 Companion remains 40%. See
+  [OT-073 evidence](../tests/hardware/OT-073-2026-08-17.md).
+
 ### OT-072 V1 Companion release measurement
 
 - Established a distinct six-milestone V1 Companion track whose weights total

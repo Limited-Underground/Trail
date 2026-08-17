@@ -9,6 +9,20 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-073 records one owner-authorized, one-use read-only source-proof attempt on
+`OT-DEV-001`. The audited executor used esptool 5.3.1, one no-reset ROM
+connection attempt, no RAM stub, and only the two OT-071 allowlisted ranges.
+It returned only `OTPSTE0/v0` / `DENY-READ-FAILURE`; the authorization was
+consumed and no retry occurred. No raw bytes, paths, port, identifier, private
+operation identity, or detailed transport output was retained, and both
+ephemeral executor files plus bytecode were deleted. The owner then pressed RST
+with PRG released and observed the Trail logo followed by `BLE ADVERTISING`.
+Source proof remains absent, so no partition transition, protected storage,
+key, rollback-floor, bond, GATT, Ready, LoRa, or GNSS authority or evidence is
+added. Historical standalone progress remains exact 31.75%/displayed 32%; V1
+Companion remains exact 39.75%/displayed 40%. See
+[OT-073](../tests/hardware/OT-073-2026-08-17.md).
+
 OT-072 establishes the first canonical V1 Companion release measurement.
 The six weights total 100: architecture/safety 15 at 85%, core firmware 20 at
 65%, loader 15 at 15%, Heltec/Trail Essential target 15 at 25%, Android
