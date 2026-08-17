@@ -173,6 +173,15 @@ or Ready state is enabled. See
 [Decision 0011](../../../docs/decisions/0011-host-trusted-gatt-authority-composition.md)
 and [OT-066 evidence](../../../tests/hardware/OT-066-2026-08-17.md).
 
+OT-067 adds a target-neutral exact key/value slot-media adapter for the inactive
+`ot_auth` candidate. It is host-tested only and is not linked or instantiated
+by this target. The adapter owns neither NVS initialization nor a native handle,
+and it provides no erase, repair, provisioning, rollback-floor, bond, or GATT
+authority. The active partition table, sdkconfig, runtime, image, and physical
+device remain unchanged. See
+[Decision 0012](../../../docs/decisions/0012-protected-authorization-kv-slot-media.md)
+and [OT-067 evidence](../../../tests/hardware/OT-067-2026-08-17.md).
+
 ## Deliberately absent
 
 - SX1262 or other radio initialization and transmission

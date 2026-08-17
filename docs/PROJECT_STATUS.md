@@ -9,6 +9,18 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-067 adds the reversible key/value media layer beneath the accepted two-slot
+authorization coordinator. Ten strict groups prove exact `ot_auth` partition,
+`ot_owner` namespace, and `oap_slot_a|b` key binding; exact 32-byte values;
+missing-key handling; typed read/write failures; explicit durable commit;
+post-write uncertainty; reentry containment; alternating-slot rotation; reboot
+restore; and refusal of rolled-back, prepared-ahead, and ambiguous media. The
+backend remains injected and target-neutral. No active partition, sdkconfig,
+Heltec runtime, image, device, storage initialization, key, rollback authority,
+bond, pairing, authorization, or Ready state changed. Historical V1 stays
+31.75% and displays as 32%; V1 Companion and V2 Integrated remain unmeasured.
+See [OT-067](../tests/hardware/OT-067-2026-08-17.md).
+
 OT-066 adds the missing host production composition between private bond
 evidence, device-secret owner derivation, durable one-phone ownership, and the
 existing GATT claim authority. Eight strict groups prove exact connection-

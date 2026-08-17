@@ -448,6 +448,19 @@ The Heltec runtime still injects denied authorities; this is host composition
 evidence, not a real bond store, pairing, GATT exchange, authorization, Ready,
 or physical-control result.
 
+OT-067 adds the exact key/value record-media boundary beneath OT-065's two-slot
+coordinator. It binds only `ot_auth` / `ot_owner` / `oap_slot_a|b`, accepts one
+exact 32-byte `OAP0/v0` value per present slot, treats a missing key as absent,
+and requires a separate durable commit after staging a complete value. Inexact
+values, callback reentry, and every post-write ambiguity fail closed without
+publishing record bytes. The existing coordinator still owns exact reread,
+alternating-slot recovery, and the separately injected rollback-floor ordering.
+See [Decision 0012](decisions/0012-protected-authorization-kv-slot-media.md).
+The backend is injected and not target-wired; this adds no storage
+initialization, erase/reset/repair path, encryption key, rollback provider,
+partition migration, private bond store, GATT authorization, Ready state, or
+physical evidence.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

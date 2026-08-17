@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-067 protected authorization KV slot media
+
+- Added one exact key/value record-media adapter for the two accepted
+  authorization slots, with fixed private binding names and exact 32-byte
+  values.
+- Ten strict groups prove missing and malformed values, typed backend failures,
+  commit durability, reentry containment, alternating-slot rotation, reboot
+  restore, and fail-closed rollback, prepared-ahead, and ambiguous media.
+- The backend remains injected. No target partition/config/runtime/image/device,
+  key, rollback authority, bond, pairing, GATT authorization, or Ready state
+  changed. Historical V1 remains 32%. See
+  [OT-067 evidence](../tests/hardware/OT-067-2026-08-17.md).
+
 ### OT-066 trusted phone GATT authority composition
 
 - Added one target-neutral composition from an exact private bond reference and

@@ -197,6 +197,17 @@ $builds = @(
         )
     },
     @{
+        Name = 'companion authorization protected KV slot media'
+        Output = Join-Path $buildDirectory 'companion_authorization_protected_kv_media_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_persistence.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_protected_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_protected_kv_media.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_protected_kv_media_tests.cpp')
+        )
+    },
+    @{
         Name = 'private bond GATT authority composition'
         Output = Join-Path $buildDirectory 'companion_gatt_authority_composition_tests.exe'
         Sources = @(

@@ -486,3 +486,18 @@ physical gesture, pairing, application authorization, GATT exchange, or Ready
 state is claimed. See
 [Decision 0011](../decisions/0011-host-trusted-gatt-authority-composition.md)
 and [OT-066 evidence](../../tests/hardware/OT-066-2026-08-17.md).
+
+## OT-067 protected authorization KV slot media
+
+OT-067 binds the accepted authorization record slots to an injected exact-blob
+backend using only `ot_auth` / `ot_owner` / `oap_slot_a|b`. Missing keys are
+absent slots; every present value must be the exact 32-byte `OAP0/v0` record.
+Writes require a separate durable commit, and inexact reads, callback reentry,
+or any post-write ambiguity publish no record. OT-065 continues to own exact
+post-write reread and the independent rollback-floor transition.
+
+The adapter does not initialize or open NVS, erase or repair state, provision
+keys, implement the rollback floor, or enter the Heltec runtime. Pairing,
+authorization, and Ready remain denied. See
+[Decision 0012](../decisions/0012-protected-authorization-kv-slot-media.md)
+and [OT-067 evidence](../../tests/hardware/OT-067-2026-08-17.md).
