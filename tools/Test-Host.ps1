@@ -187,6 +187,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'two-slot companion authorization protected store'
+        Output = Join-Path $buildDirectory 'companion_authorization_protected_store_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_persistence.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_protected_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_protected_store_tests.cpp')
+        )
+    },
+    @{
         Name = 'bounded companion BLE runtime owner'
         Output = Join-Path $buildDirectory 'companion_ble_runtime_owner_tests.exe'
         Sources = @(

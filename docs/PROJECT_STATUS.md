@@ -9,6 +9,23 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-065 adds a concrete two-slot protected authorization-store coordinator over
+injected record media and an independent monotonic-generation authority.
+Twelve strict host groups prove empty boot, exact-current restore, inactive-slot
+rotation, prepare-before-floor ordering, exact readback, reboot reconciliation,
+and fail-closed prepared-ahead, stale-only, duplicate-current, corrupt,
+missing, conflicting, and ambiguous states. An exact `OTPS0/v0` Heltec
+candidate layout reserves a 64 KiB `ot_auth` NVS partition while retaining the
+remaining 960 KiB as `ot_state`; the accompanying plan selects no keys or
+rollback provider and grants no authority. The active partition table,
+sdkconfig, target contract, runtime, and physical device are unchanged. No NVS
+initialization, persistent write, eFuse operation, bonding, GATT authorization,
+or Ready state is added. Target encryption, two distinct protected key roles,
+private bond-reference lifecycle, an independent physical rollback floor,
+migration, power-loss, and recovery evidence remain open. Historical V1 stays
+31.75% and displays as 32%; V1 Companion and V2 Integrated remain unmeasured.
+See [OT-065](../tests/hardware/OT-065-2026-08-17.md).
+
 OT-064 adds the first physically accepted target-local peripheral binding on
 only `OT-DEV-001`. A 128 x 64 one-bit display owner, fail-contained
 SSD1315-compatible Heltec adapter, and deterministic Limited Underground Trail

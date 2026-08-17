@@ -6,6 +6,23 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-065 reversible protected authorization-store foundation
+
+- Added a target-neutral two-slot store that accepts only the exact record at a
+  freshly read independent generation floor. New records are written and
+  exactly verified in the inactive slot before the floor advances, then both
+  authorities are reread before publication.
+- Twelve strict host groups cover rotation, reboot, corrupt/stale/conflicting
+  media, prepared-ahead state, safe pre-write failure, ambiguous writes, floor
+  conflicts, and post-advance uncertainty.
+- Added an exact inactive Heltec candidate partition/provisioning plan. It
+  selects no key or rollback provider, grants no physical authority, and does
+  not alter the active partition table, sdkconfig, runtime, or device.
+- This is host/build planning evidence, not target encryption, eFuse or key
+  provisioning, physical rollback protection, durable bond storage, GATT
+  authorization, Ready, or device-write evidence. Historical V1 remains 32%.
+  See [OT-065 evidence](../tests/hardware/OT-065-2026-08-17.md).
+
 ### OT-064 physical Trail OLED startup and BLE status
 
 - Added a target-local 128 x 64 one-bit startup/status display owner, a

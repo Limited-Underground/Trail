@@ -151,6 +151,18 @@ HMAC_UP eFuse key may serve `esp_hmac_calculate` without exposing raw key
 material. These APIs are not called by this target. Ordinary or merely
 redundant NVS cannot supply the independent rollback floor required here.
 
+OT-065 adds a backend-neutral two-slot record/floor coordinator plus an exact
+inactive candidate layout and provisioning plan. The candidate would split the
+final 1 MiB into a 64 KiB encrypted-flagged `ot_auth` NVS partition and a
+960 KiB `ot_state` reservation. It is not active: the accepted partition table,
+sdkconfig, target contract, and runtime composition are unchanged, and no key,
+rollback-floor provider, migration, or physical authority is selected. The
+coordinator remains unlinked from this target until protected media, a distinct
+binding PRF, an independent floor, migration, and recovery are accepted.
+Twelve strict host groups prove the fail-closed ordering. See
+[Decision 0010](../../../docs/decisions/0010-reversible-companion-protected-storage-foundation.md)
+and [OT-065 evidence](../../../tests/hardware/OT-065-2026-08-17.md).
+
 ## Deliberately absent
 
 - SX1262 or other radio initialization and transmission

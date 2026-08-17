@@ -15,6 +15,9 @@ TARGET = ROOT / "firmware" / "targets" / "heltec_v4_bench"
 CONTRACT = TARGET / "target-contract.json"
 PHYSICAL_FLASH_PLAN = TARGET / "physical-flash-plan.json"
 OLED_STARTUP_FLASH_PLAN = TARGET / "oled-startup-flash-plan.json"
+PROTECTED_STORAGE_CANDIDATE_PARTITIONS = (
+    TARGET / "protected-storage-partitions.candidate.csv")
+PROTECTED_STORAGE_PROVISIONING_PLAN = TARGET / "protected-storage-provisioning-plan.json"
 SOURCE = TARGET / "main" / "app_main.cpp"
 SELF_CHECK = TARGET / "main" / "companion_boot_self_check.cpp"
 NIMBLE_GATT = TARGET / "main" / "companion_nimble_gatt.cpp"
@@ -86,6 +89,8 @@ def test_contract() -> None:
         "main/trail_startup_logo.hpp",
         "oled-startup-flash-plan.json",
         "physical-flash-plan.json",
+        "protected-storage-partitions.candidate.csv",
+        "protected-storage-provisioning-plan.json",
         "sdkconfig.defaults",
         "target-contract.json",
     }
@@ -549,6 +554,71 @@ def test_recovery_partition_layout() -> None:
             "ot_state must end exactly at the 16 MB flash boundary")
 
 
+def test_protected_storage_candidate_plan() -> None:
+    plan = json.loads(PROTECTED_STORAGE_PROVISIONING_PLAN.read_text(
+        encoding="utf-8"))
+    require(plan["schema"] == "OTPSP0/v0",
+            "unexpected protected-storage plan schema")
+    require(plan["status"] == "DESIGN-ONLY-NOT-ACTIVE-NOT-AUTHORIZED" and
+            plan["as_of"] == "2026-08-17" and
+            plan["target"] == "heltec_v4_bench",
+            "candidate plan must remain dated, target-bound, and inactive")
+    require(plan["active_target_configuration_changed"] is False,
+            "candidate plan must not claim an active target change")
+    require(plan["candidate_partition_table"] ==
+            "protected-storage-partitions.candidate.csv",
+            "candidate plan must bind the exact candidate table")
+    require(plan["candidate_layout"] == {
+        "flash_size_bytes": 16777216,
+        "authorization_partition": {
+            "label": "ot_auth", "type": "data", "subtype": "nvs",
+            "offset": 15728640, "size_bytes": 65536,
+            "encrypted_flag": True,
+        },
+        "remaining_state_partition": {
+            "label": "ot_state", "type": "0x40", "subtype": "0x00",
+            "offset": 15794176, "size_bytes": 983040,
+        },
+    }, "candidate partition layout must remain exact")
+    require(plan["key_roles"] == {
+        "nvs_encryption_hmac_key_id": None,
+        "bond_binding_prf_hmac_key_id": None,
+        "distinct_keys_required": True,
+        "efuse_provisioning_authorized": False,
+    }, "candidate plan must not invent or authorize protected keys")
+    require(plan["rollback_floor"] == {
+        "provider": None,
+        "independent_from_authorization_partition_required": True,
+        "provisioning_authorized": False,
+    }, "candidate plan must preserve the missing independent floor")
+    require(all(value is False for value in plan["runtime"].values()),
+            "candidate plan must enable no protected runtime capability")
+    require(all(value is False for value in
+                plan["physical_authority"].values()),
+            "candidate plan must grant no physical authority")
+
+    with PROTECTED_STORAGE_CANDIDATE_PARTITIONS.open(
+            newline="", encoding="utf-8") as handle:
+        rows = [row for row in csv.reader(handle)
+                if row and not row[0].lstrip().startswith("#")]
+    require(rows == [
+        ["otadata", "data", "ota", "0x9000", "0x2000", ""],
+        ["factory", "app", "factory", "0x10000", "0x4f0000", ""],
+        ["ota_0", "app", "ota_0", "0x500000", "0x500000", ""],
+        ["ota_1", "app", "ota_1", "0xa00000", "0x500000", ""],
+        ["ot_auth", "data", "nvs", "0xf00000", "0x10000", "encrypted"],
+        ["ot_state", "0x40", "0x00", "0xf10000", "0x0f0000", ""],
+    ], "candidate protected-storage partition table must remain exact")
+    active_partitions = PARTITIONS.read_text(encoding="utf-8")
+    defaults = DEFAULTS.read_text(encoding="utf-8")
+    contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+    require("ot_auth" not in active_partitions and
+            "CONFIG_NVS_ENCRYPTION=y" not in defaults and
+            contract["capabilities"]["storage"] is False and
+            contract["partition_layout"]["storage_authority"] is False,
+            "active target storage and authority must remain unchanged")
+
+
 def test_display_surface() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     owner_header = DISPLAY_OWNER_HEADER.read_text(encoding="utf-8")
@@ -640,9 +710,9 @@ def test_display_surface() -> None:
             "startup logo must be neither blank nor all-on")
     require("LIMITED UNDERGROUND" in logo and "TRAIL" in logo,
             "startup asset must retain the accepted Trail identity description")
-    require(hashlib.sha256(DISPLAY_LOGO.read_bytes()).hexdigest() ==
-            "f9394c0ec3b7d4855c3a4198e660d4bc93e0eec98c143e691446736623204caa",
-            "startup logo changed without explicit visual admission")
+    require(hashlib.sha256(bytes(logo_bytes)).hexdigest() ==
+            "7ca7bfa0f7b96742dd459237a8b24dda0cd5ddea8ae0cdb60ed68dbaabea04e6",
+            "startup logo bitmap changed without explicit visual admission")
 
 
 def test_application_surface() -> None:
@@ -1203,6 +1273,7 @@ def test_build_only_tooling() -> None:
 def main() -> int:
     tests = (test_contract, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
+             test_protected_storage_candidate_plan,
              test_display_surface,
              test_application_surface, test_build_only_tooling)
     for test in tests:

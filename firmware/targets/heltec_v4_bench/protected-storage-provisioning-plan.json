@@ -1,0 +1,59 @@
+{
+  "schema": "OTPSP0/v0",
+  "status": "DESIGN-ONLY-NOT-ACTIVE-NOT-AUTHORIZED",
+  "as_of": "2026-08-17",
+  "target": "heltec_v4_bench",
+  "decision": "docs/decisions/0010-reversible-companion-protected-storage-foundation.md",
+  "active_target_configuration_changed": false,
+  "candidate_partition_table": "protected-storage-partitions.candidate.csv",
+  "candidate_layout": {
+    "flash_size_bytes": 16777216,
+    "authorization_partition": {
+      "label": "ot_auth",
+      "type": "data",
+      "subtype": "nvs",
+      "offset": 15728640,
+      "size_bytes": 65536,
+      "encrypted_flag": true
+    },
+    "remaining_state_partition": {
+      "label": "ot_state",
+      "type": "0x40",
+      "subtype": "0x00",
+      "offset": 15794176,
+      "size_bytes": 983040
+    }
+  },
+  "key_roles": {
+    "nvs_encryption_hmac_key_id": null,
+    "bond_binding_prf_hmac_key_id": null,
+    "distinct_keys_required": true,
+    "efuse_provisioning_authorized": false
+  },
+  "rollback_floor": {
+    "provider": null,
+    "independent_from_authorization_partition_required": true,
+    "provisioning_authorized": false
+  },
+  "runtime": {
+    "nvs_initialization_enabled": false,
+    "private_bond_store_enabled": false,
+    "authorization_persistence_enabled": false,
+    "gatt_authorization_enabled": false,
+    "ready_state_enabled": false
+  },
+  "physical_authority": {
+    "partition_table_write_authorized": false,
+    "application_write_authorized": false,
+    "full_erase_authorized": false,
+    "device_write_authorized": false
+  },
+  "remaining_gates": [
+    "select and provision two distinct protected key roles",
+    "select an independent non-rollbackable generation authority",
+    "define private bond-reference creation rotation deletion and reset",
+    "validate partition migration and recovery on the exact selected unit",
+    "run power-loss and reboot reconciliation evidence",
+    "obtain separate physical-write authorization"
+  ]
+}

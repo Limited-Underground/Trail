@@ -419,6 +419,20 @@ protected storage, GATT authorization, Ready, LoRa, GNSS, support, or field use.
 The app-only authority is consumed, every further write remains unauthorized,
 and `OT-DEV-002` remains untouched.
 
+OT-065 adds the concrete backend-neutral protected-store composition behind the
+existing authorization persistence boundary. It reads an injected independent
+generation floor before media, publishes only one exact slot at that floor,
+prepares and exactly verifies the inactive slot, compare-advances the floor,
+then rereads both authorities before success. Prepared-ahead, stale-only,
+duplicate-current, corrupt, missing, conflicting, and ambiguous states remain
+closed. The associated Heltec `OTPS0/v0` partition and provisioning documents
+are inactive candidates only: the accepted partition table and sdkconfig are
+unchanged, no key or rollback-floor provider is selected, and no target runtime
+uses this component. See
+[Decision 0010](decisions/0010-reversible-companion-protected-storage-foundation.md).
+This proves recovery ordering in host code, not target encryption, secrets,
+anti-rollback hardware, GATT authorization, Ready, or physical durability.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

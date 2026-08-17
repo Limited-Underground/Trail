@@ -128,3 +128,29 @@ exchange, or device state changed. The current first denial remains
 `nvs_encryption_not_configured`; private bond storage, a distinct binding-PRF
 key, protected atomic record/floor storage, and an independent rollback floor
 remain absent. See [OT-063 evidence](../../tests/hardware/OT-063-2026-08-16.md).
+
+## OT-065 reversible two-slot composition
+
+OT-065 adds a concrete implementation of the existing protected-store
+interface over two injected authorities: slot media and an independent
+monotonic generation floor. Load reads the floor before media and admits only
+one exact current slot with the other absent or older. Commit prepares the
+inactive slot, reads and decodes it back exactly, compare-advances the floor,
+then rereads the floor and both slots before reporting success. A failure after
+the prepared write is treated as uncertain; the implementation does not erase,
+repair, retry, or silently select a record.
+
+Twelve strict host groups cover empty media, exact load, stale-only,
+prepared-ahead, duplicate-current, corrupt, conflicting and ambiguous states,
+inactive-slot selection, write/readback faults, compare-advance rejection, and
+final reconciliation. The Heltec target also carries an exact inactive
+`OTPS0/v0` candidate layout plus a design-only provisioning plan. Neither file
+changes the accepted `partitions.csv`, `sdkconfig.defaults`, target contract,
+or runtime composition.
+
+This is reversible build/host evidence only. No protected NVS backend,
+encryption key, distinct binding-PRF key, independent rollback-floor provider,
+migration path, reset/recovery procedure, eFuse operation, physical write,
+GATT authorization, or Ready state is selected or authorized. See
+[Decision 0010](../decisions/0010-reversible-companion-protected-storage-foundation.md)
+and [OT-065 evidence](../../tests/hardware/OT-065-2026-08-17.md).
