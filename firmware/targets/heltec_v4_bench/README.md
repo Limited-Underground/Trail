@@ -314,3 +314,14 @@ startup/status OLED path. Both write authorizations are consumed; no additional
 erase, write, recovery, or unit-2 authority remains. Any later MeshCore recovery
 stays owner-operated through the official MeshCore web flasher. See
 [OT-061 evidence](../../../tests/hardware/OT-061-2026-08-16.md) and [OT-064 evidence](../../../tests/hardware/OT-064-2026-08-17.md).
+
+OT-075 adds an offline-only generator for the exact `OTPS0/v0` candidate
+partition binary and a denied recovery-bundle plan. The pinned ESP-IDF v6.0.2
+partition tool produces a 3,072-byte artifact with the fixed encrypted
+`ot_auth` and retained `ot_state` rows; generated output remains ignored and
+grants no write authority. A source-commit rebuild did not match the exact
+application currently installed by OT-064, so no substitute recovery image is
+accepted. Active `partitions.csv`, `sdkconfig.defaults`, runtime composition,
+and device bytes remain unchanged. See
+[Decision 0018](../../../docs/decisions/0018-offline-heltec-protected-storage-recovery-bundle.md)
+and [OT-075 evidence](../../../tests/hardware/OT-075-2026-08-17.md).

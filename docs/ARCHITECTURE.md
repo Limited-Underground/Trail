@@ -520,6 +520,18 @@ See [Decision 0016](decisions/0016-read-only-protected-storage-transition-eviden
 No physical read occurred in OT-071, and even a satisfied source proof grants
 no partition transition, key, eFuse, runtime, GATT, or Ready authority.
 
+OT-075 freezes the exact candidate partition binary through a pinned,
+offline-only generator and validates its complete decoded table, entry
+checksum, and erased padding before publishing an ignored build artifact. A
+separate denied recovery-bundle plan requires the exact application already
+installed on the selected unit plus source/candidate tables and an accepted
+ROM recovery route. A source-commit rebuild that does not match the installed
+application is not recovery evidence. Historical source proof is only a
+prerequisite: a later transition must bind fresh installed-table,
+source-region, and recovery evidence to one nonzero operation/evidence set and
+separate physical-write authority. Active target configuration and runtime are
+unchanged. See [Decision 0018](decisions/0018-offline-heltec-protected-storage-recovery-bundle.md).
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

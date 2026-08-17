@@ -1745,6 +1745,11 @@ if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 protected-storage transition admission tests failed.'
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_protected_storage_recovery_bundle_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Heltec V4 protected-storage recovery-bundle tests failed.'
+}
+
 & (Join-Path $projectRoot 'tests\host\wio_tracker_l1_preflight_tests.ps1')
 if (-not $?) {
     throw 'Wio Tracker L1 preflight host tests failed.'

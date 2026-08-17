@@ -5,6 +5,7 @@
   "target": "heltec_v4_bench",
   "active_target_configuration_changed": false,
   "read_evidence_plan": "protected-storage-transition-read-plan.json",
+  "recovery_bundle_plan": "protected-storage-recovery-bundle-plan.json",
   "transition": {
     "source_layout": {
       "schema": "OTHP0/v0",
@@ -25,6 +26,13 @@
       "table": "protected-storage-partitions.candidate.csv",
       "sha256": "310FD207687C6D9964F8C1BF83031ACFD5EAFD837E7DBFCFF429A5CEE168C3CA",
       "byte_length": 411,
+      "partition_binary": {
+        "byte_length": 3072,
+        "sha256": "F83EDE6D0F206D6032147A2AF0B526700BCB888A6C0CADDF6DD17724E5600E72",
+        "entry_md5": "2D318DA9C2F0566688277C3BA110A8E9",
+        "flash_offset": 32768,
+        "status": "OFFLINE-FROZEN-NOT-AUTHORIZED"
+      },
       "flash_size_bytes": 16777216,
       "rows": [
         {"name": "otadata", "type": "data", "subtype": "ota", "offset": 36864, "size_bytes": 8192, "flags": []},
@@ -62,6 +70,10 @@
     },
     "current_result": "DENY"
   },
+  "historical_source_prerequisite": {
+    "status": "ACCEPTED-PREREQUISITE-ONLY-NOT-CURRENT-EXECUTION-EVIDENCE",
+    "evidence": "tests/hardware/OT-074-2026-08-17.md"
+  },
   "source_region_evidence": {
     "required_before_promotion": true,
     "evidence_status": "NOT-CAPTURED",
@@ -80,7 +92,7 @@
     "source_proof_alone_authorizes_transition": false,
     "partition_table_promotion_authorized": false,
     "remaining_requirements": [
-      "capture the exact full-region read-only ALL-FF proof",
+      "obtain the exact installed application recovery artifact and accept an exact recovery route then bind fresh installed-table source-region and recovery evidence to one later nonzero operation and evidence set",
       "select and provision protected key roles under separate authority",
       "select an independent non-rollbackable generation authority",
       "complete exact-unit recovery validation",

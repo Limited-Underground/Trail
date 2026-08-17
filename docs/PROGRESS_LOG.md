@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-075 offline candidate partition and recovery gate
+
+- Pinned ESP-IDF v6.0.2 generated and decoded the exact 3,072-byte `OTPS0/v0`
+  candidate partition artifact; focused tests reject any source, row, checksum,
+  length, padding, toolchain, or physical-surface mismatch.
+- A clean rebuild from the recorded OT-064 source commit did not match the
+  application installed on the unit. The rebuild was rejected and its
+  temporary worktree removed, leaving the exact recovery application absent.
+- The recovery bundle and transition remain denied. Active target/runtime and
+  device state are unchanged; no device access or physical action occurred.
+  V1 Companion remains 40%. See
+  [OT-075 evidence](../tests/hardware/OT-075-2026-08-17.md).
+
 ### OT-074 protected-storage source proof
 
 - A bounded read-only operation matched the exact installed 3,072-byte

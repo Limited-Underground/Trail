@@ -1,0 +1,91 @@
+{
+  "schema": "OTPRB0/v0",
+  "status": "OFFLINE-CANDIDATE-FROZEN-RECOVERY-INCOMPLETE-AUTHORITY-ABSENT",
+  "as_of": "2026-08-17",
+  "target": "heltec_v4_bench",
+  "decision": "docs/decisions/0018-offline-heltec-protected-storage-recovery-bundle.md",
+  "transition_plan": "protected-storage-transition-plan.json",
+  "active_target_configuration_changed": false,
+  "candidate_partition_artifact": {
+    "layout_schema": "OTPS0/v0",
+    "source": "protected-storage-partitions.candidate.csv",
+    "source_bytes": 411,
+    "source_sha256": "310FD207687C6D9964F8C1BF83031ACFD5EAFD837E7DBFCFF429A5CEE168C3CA",
+    "binary_bytes": 3072,
+    "binary_sha256": "F83EDE6D0F206D6032147A2AF0B526700BCB888A6C0CADDF6DD17724E5600E72",
+    "entry_md5": "2D318DA9C2F0566688277C3BA110A8E9",
+    "flash_offset": 32768,
+    "offline_builder": "tools/build_heltec_v4_protected_storage_recovery_bundle.py",
+    "deterministically_buildable": true,
+    "physical_write_authorized": false
+  },
+  "source_recovery_partition_artifact": {
+    "layout_schema": "OTHP0/v0",
+    "source": "partitions.csv",
+    "source_bytes": 452,
+    "source_sha256": "4F064C125AA641697E0539EAF9EDA9D1CDECAB46DD8FF387988B900F3EFE2389",
+    "binary_bytes": 3072,
+    "binary_sha256": "84569AA2BADF3F7294042129B19D0B480784A93A550ADA3253B57BC92A0671AB",
+    "flash_offset": 32768,
+    "exact_installed_identity_physically_proved_by": "tests/hardware/OT-074-2026-08-17.md",
+    "recovery_write_authorized": false
+  },
+  "installed_application_recovery_artifact": {
+    "flash_offset": 65536,
+    "bytes": 470928,
+    "required_sha256": "A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B",
+    "artifact_available": false,
+    "recovery_write_authorized": false,
+    "reconstruction_check": {
+      "source_commit": "a327104ac67a3f5918a8b0191c96dceb05b5399b",
+      "framework": "ESP-IDF v6.0.2",
+      "result": "NONMATCH-NOT-ACCEPTED-NOT-RETAINED",
+      "produced_bytes": 470928,
+      "produced_sha256": "2B76593D5B797299DBB1A163C0152E0D463828C0B671887DA4AFAE11AFFE1D37"
+    }
+  },
+  "fresh_execution_binding": {
+    "required": true,
+    "historical_source_proof_is_not_execution_authority": true,
+    "same_nonzero_operation_id_required": true,
+    "same_nonzero_evidence_set_id_required": true,
+    "fresh_installed_table_readback_required": true,
+    "fresh_complete_source_region_proof_required": true,
+    "fresh_recovery_artifact_verification_required": true,
+    "operation_id": null,
+    "evidence_set_id": null,
+    "current_result": "DENY"
+  },
+  "recovery_route": {
+    "exact_rom_route_id": null,
+    "partition_table_restore_physically_proved": false,
+    "application_restore_physically_proved": false,
+    "post_restore_boot_physically_proved": false,
+    "current_result": "DENY"
+  },
+  "bundle_admission": {
+    "candidate_partition_artifact_frozen": true,
+    "exact_installed_application_artifact_present": false,
+    "exact_recovery_route_accepted": false,
+    "fresh_execution_evidence_present": false,
+    "bundle_complete": false,
+    "partition_transition_authorized": false,
+    "current_result": "DENY"
+  },
+  "execution_surface": {
+    "device_port": null,
+    "commands": [],
+    "attempts": 0,
+    "device_access_authorized": false
+  },
+  "authorities": {
+    "partition_table_write_authorized": false,
+    "application_write_authorized": false,
+    "authorization_partition_write_authorized": false,
+    "state_partition_write_authorized": false,
+    "full_erase_authorized": false,
+    "recovery_authorized": false,
+    "device_write_authorized": false,
+    "key_or_efuse_provisioning_authorized": false
+  }
+}

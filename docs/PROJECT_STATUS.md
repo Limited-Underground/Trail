@@ -9,6 +9,21 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-075 freezes the exact offline `OTPS0/v0` candidate partition artifact. The
+pinned ESP-IDF v6.0.2 generator produces one 3,072-byte table whose decoded
+rows preserve boot and OTA regions, add encrypted 64 KiB `ot_auth`, retain
+960 KiB `ot_state`, and end at exactly 16 MiB. The exact application installed
+by OT-064 is not available as a recovery artifact. A clean rebuild from its
+recorded source commit completed but did not match the installed digest, so it
+was rejected and not retained. The recovery bundle and transition therefore
+remain denied. Active partitions, configuration, runtime, and device bytes are
+unchanged. A later operation must first obtain the exact installed application
+artifact and accepted recovery route, then bind fresh installed-table,
+source-region, and recovery evidence under separate physical-write authority.
+V1 Companion remains exact 39.75%/displayed 40%. See
+[OT-075](../tests/hardware/OT-075-2026-08-17.md) and
+[Decision 0018](decisions/0018-offline-heltec-protected-storage-recovery-bundle.md).
+
 OT-074 accepts the exact protected-storage source prerequisite on
 `OT-DEV-001`. One bounded read-only operation matched the installed 3,072-byte
 partition table and verified that the complete 1 MiB source region was all
