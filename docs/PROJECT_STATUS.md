@@ -9,6 +9,23 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-070 adds a pure target-neutral admission guard and exact design-only Heltec
+manifest for the `OTHP0/v0` to `OTPS0/v0` partition split. Thirteen strict C++
+groups pass with warnings treated as errors and across 100 repeated runs; five
+manifest groups, the existing 9/9 Heltec admission, and the complete host gate
+also pass. The guard requires exact installed-layout readback, blank source
+media or a separately implemented and verified semantic migration, exact
+recovery artifacts and ROM route, no runtime/key/eFuse/other-flash operation,
+and one operation-scoped partition-only authority. It performs no I/O.
+The current target manifest remains denied: source evidence is not captured,
+all capabilities and authorities are false, and the active partition table,
+sdkconfig, target contract, CMake, runtime, installed image, and physical device
+are unchanged. No transition, migration, rollback floor, key, eFuse, pairing,
+GATT authorization, or Ready state is accepted. Historical V1 remains 31.75%
+and displays as 32%; current release tracks remain unmeasured. See
+[Decision 0015](decisions/0015-safe-heltec-protected-storage-partition-transition.md)
+and [OT-070](../tests/hardware/OT-070-2026-08-17.md).
+
 OT-069 adds one inactive target-local owner for the exact candidate encrypted
 NVS context. Ten strict lifecycle groups plus a separate disabled-configuration
 executable prove exact partition/config/open order, single-attempt behavior,

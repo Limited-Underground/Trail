@@ -197,6 +197,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'companion authorization storage transition admission'
+        Output = Join-Path $buildDirectory 'companion_authorization_storage_transition_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_storage_transition.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_storage_transition_tests.cpp')
+        )
+    },
+    @{
         Name = 'companion authorization protected KV slot media'
         Output = Join-Path $buildDirectory 'companion_authorization_protected_kv_media_tests.exe'
         Sources = @(
@@ -1725,6 +1733,11 @@ if ($null -eq $python) {
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_bench_target_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 bench target admission tests failed.'
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_bench_partition_transition_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Heltec V4 protected-storage transition admission tests failed.'
 }
 
 & (Join-Path $projectRoot 'tests\host\wio_tracker_l1_preflight_tests.ps1')

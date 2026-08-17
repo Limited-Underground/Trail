@@ -6,6 +6,20 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-070 protected-storage partition transition admission
+
+- Added a pure host guard for the exact `OTHP0/v0` to `OTPS0/v0` transition.
+  It requires fresh installed-layout evidence, verified blank media or a
+  separately verified migration, recovery artifacts, isolated operation scope,
+  and exact operation authority; it performs no I/O.
+- Added a design-only Heltec manifest that binds both table hashes and requires
+  a future all-`0xFF` proof across the complete 1 MiB source region without
+  retaining bytes. It remains denied and grants no read or write authority.
+- Thirteen strict C++ groups, 100 repeated runs, five manifest groups, the
+  existing 9/9 target admission, and the complete host gate pass. Active target
+  configuration, runtime, image, and device remain unchanged. Historical V1
+  remains 32%. See [OT-070 evidence](../tests/hardware/OT-070-2026-08-17.md).
+
 ### OT-069 inactive Heltec authorization NVS context
 
 - Added one target-local owner for the exact candidate encrypted NVS context.

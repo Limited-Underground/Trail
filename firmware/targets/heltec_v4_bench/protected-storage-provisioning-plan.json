@@ -6,6 +6,7 @@
   "decision": "docs/decisions/0010-reversible-companion-protected-storage-foundation.md",
   "active_target_configuration_changed": false,
   "candidate_partition_table": "protected-storage-partitions.candidate.csv",
+  "partition_transition_plan": "protected-storage-transition-plan.json",
   "candidate_layout": {
     "flash_size_bytes": 16777216,
     "authorization_partition": {

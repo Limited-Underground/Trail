@@ -197,3 +197,24 @@ preconditions, and no key, floor, bond, pairing, authorization, Ready, device
 write, or physical storage evidence is added. See
 [Decision 0014](../decisions/0014-inactive-heltec-authorization-nvs-context.md)
 and [OT-069 evidence](../../tests/hardware/OT-069-2026-08-17.md).
+
+## OT-070 partition-transition admission
+
+OT-070 adds a pure target-neutral evaluator for the exact protected-storage
+layout transition. It requires fresh installed-layout readback, verified blank
+source media or a separately implemented and verified semantic migration,
+exact recovery evidence, no runtime/key/eFuse/other-flash request, and one
+operation-scoped partition-only authority. It performs no I/O, retains no
+source bytes, and publishes only the first ordered denial.
+
+The Heltec `OTPST0/v0` manifest requires a future exact all-`0xFF` proof over
+the complete 1 MiB source region with zero retained bytes. That proof alone
+does not authorize promotion. Before any authorization commit, restoration of
+the old table is conditional and separately authorized; after a commit it is
+forbidden. Partition recovery is not the independent generation floor.
+
+Thirteen strict C++ groups pass across 100 repeats; five manifest groups, the
+existing target admission, and the complete host gate pass. No active target,
+runtime, image, device, key, eFuse, storage, GATT, or Ready state changes. See
+[Decision 0015](../decisions/0015-safe-heltec-protected-storage-partition-transition.md)
+and [OT-070 evidence](../../tests/hardware/OT-070-2026-08-17.md).

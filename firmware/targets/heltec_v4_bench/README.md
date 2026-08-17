@@ -205,6 +205,20 @@ state remain unchanged. See
 [Decision 0014](../../../docs/decisions/0014-inactive-heltec-authorization-nvs-context.md)
 and [OT-069 evidence](../../../tests/hardware/OT-069-2026-08-17.md).
 
+OT-070 adds a pure host transition guard and an exact design-only
+`OTPST0/v0` manifest for splitting the final `OTHP0/v0` state region into the
+candidate `ot_auth` plus smaller `ot_state` regions. The guard requires fresh
+installed-layout readback, verified blank media or separately verified
+migration, exact recovery evidence, no runtime/key/eFuse/other-flash request,
+and one exact partition-only operation authority. It performs no I/O.
+Thirteen strict C++ groups pass across 100 repeats; five manifest groups, the
+existing 9/9 target admission, and the complete host gate pass. The manifest
+remains denied and every capability/authority is false. Active partitions,
+sdkconfig, target contract, CMake, runtime, installed firmware, and device are
+unchanged. See
+[Decision 0015](../../../docs/decisions/0015-safe-heltec-protected-storage-partition-transition.md)
+and [OT-070 evidence](../../../tests/hardware/OT-070-2026-08-17.md).
+
 ## Deliberately absent
 
 - SX1262 or other radio initialization and transmission

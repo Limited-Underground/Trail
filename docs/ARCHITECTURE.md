@@ -487,6 +487,21 @@ It is build-compiled but absent from runtime composition. Current configuration
 has neither the partition nor encryption/key selection and therefore returns
 before native I/O; denied authorities remain unchanged.
 
+OT-070 adds a pure host admission guard for the exact `OTHP0/v0` to
+`OTPS0/v0` partition-table transition plus a design-only Heltec manifest. The
+guard requires fresh installed-layout readback, verified-blank source media or
+a separately implemented and verified semantic migration, exact recovery
+artifacts and ROM route, no runtime/key/eFuse/other-flash request, and one
+operation-scoped partition-only authority bound to both layouts. It performs
+no I/O and publishes only the first ordered denial. See
+[Decision 0015](decisions/0015-safe-heltec-protected-storage-partition-transition.md).
+The current manifest remains denied: installed-table and blank-region evidence
+are absent and every execution authority is false. Before any authorization
+commit, old-table restoration is only conditionally recoverable under a later
+accepted plan; after a commit it is forbidden because the old layout would
+reinterpret protected bytes. Partition restoration is not the independent
+authorization rollback floor.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

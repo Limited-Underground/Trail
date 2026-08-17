@@ -1,0 +1,127 @@
+{
+  "schema": "OTPST0/v0",
+  "status": "DESIGN-ONLY-ADMISSION-CLOSED",
+  "as_of": "2026-08-17",
+  "target": "heltec_v4_bench",
+  "active_target_configuration_changed": false,
+  "transition": {
+    "source_layout": {
+      "schema": "OTHP0/v0",
+      "table": "partitions.csv",
+      "sha256": "4F064C125AA641697E0539EAF9EDA9D1CDECAB46DD8FF387988B900F3EFE2389",
+      "byte_length": 452,
+      "flash_size_bytes": 16777216,
+      "rows": [
+        {"name": "otadata", "type": "data", "subtype": "ota", "offset": 36864, "size_bytes": 8192, "flags": []},
+        {"name": "factory", "type": "app", "subtype": "factory", "offset": 65536, "size_bytes": 5177344, "flags": []},
+        {"name": "ota_0", "type": "app", "subtype": "ota_0", "offset": 5242880, "size_bytes": 5242880, "flags": []},
+        {"name": "ota_1", "type": "app", "subtype": "ota_1", "offset": 10485760, "size_bytes": 5242880, "flags": []},
+        {"name": "ot_state", "type": "0x40", "subtype": "0x00", "offset": 15728640, "size_bytes": 1048576, "flags": []}
+      ]
+    },
+    "candidate_layout": {
+      "schema": "OTPS0/v0",
+      "table": "protected-storage-partitions.candidate.csv",
+      "sha256": "310FD207687C6D9964F8C1BF83031ACFD5EAFD837E7DBFCFF429A5CEE168C3CA",
+      "byte_length": 411,
+      "flash_size_bytes": 16777216,
+      "rows": [
+        {"name": "otadata", "type": "data", "subtype": "ota", "offset": 36864, "size_bytes": 8192, "flags": []},
+        {"name": "factory", "type": "app", "subtype": "factory", "offset": 65536, "size_bytes": 5177344, "flags": []},
+        {"name": "ota_0", "type": "app", "subtype": "ota_0", "offset": 5242880, "size_bytes": 5242880, "flags": []},
+        {"name": "ota_1", "type": "app", "subtype": "ota_1", "offset": 10485760, "size_bytes": 5242880, "flags": []},
+        {"name": "ot_auth", "type": "data", "subtype": "nvs", "offset": 15728640, "size_bytes": 65536, "flags": ["encrypted"]},
+        {"name": "ot_state", "type": "0x40", "subtype": "0x00", "offset": 15794176, "size_bytes": 983040, "flags": []}
+      ]
+    }
+  },
+  "evidence_binding": {
+    "requirements": {
+      "same_nonzero_operation_id": true,
+      "same_nonzero_evidence_set_id": true,
+      "nonzero_installed_generation": true,
+      "nonzero_source_generation": true,
+      "nonzero_recovery_generation": true,
+      "source_layout_sha256": "4F064C125AA641697E0539EAF9EDA9D1CDECAB46DD8FF387988B900F3EFE2389",
+      "candidate_layout_sha256": "310FD207687C6D9964F8C1BF83031ACFD5EAFD837E7DBFCFF429A5CEE168C3CA",
+      "blank_source_region_sha256": "F5FB04AA5B882706B9309E885F19477261336EF76A150C3B4D3489DFAC3953EC",
+      "recovery_partition_table_sha256": "4F064C125AA641697E0539EAF9EDA9D1CDECAB46DD8FF387988B900F3EFE2389",
+      "nonzero_recovery_application_sha256": true,
+      "nonzero_rom_recovery_route_id": true,
+      "authority_binds_all_generations_and_digests": true
+    },
+    "current": {
+      "operation_id": null,
+      "evidence_set_id": null,
+      "installed_generation": null,
+      "source_generation": null,
+      "recovery_generation": null,
+      "recovery_application_sha256": null,
+      "rom_recovery_route_id": null
+    },
+    "current_result": "DENY"
+  },
+  "source_region_evidence": {
+    "required_before_promotion": true,
+    "evidence_status": "NOT-CAPTURED",
+    "region": {"source_partition": "ot_state", "offset": 15728640, "size_bytes": 1048576},
+    "required_pattern": {"name": "ALL-FF", "byte_value": 255, "byte_count": 1048576},
+    "retained_bytes_allowed": 0,
+    "results": {
+      "unknown": "DENY",
+      "size_mismatch": "DENY",
+      "non_ff": "DENY",
+      "all_ff": "SOURCE-PROOF-SATISFIED-ONLY"
+    }
+  },
+  "promotion_admission": {
+    "current_result": "DENY",
+    "source_proof_alone_authorizes_transition": false,
+    "partition_table_promotion_authorized": false,
+    "remaining_requirements": [
+      "capture the exact full-region read-only ALL-FF proof",
+      "select and provision protected key roles under separate authority",
+      "select an independent non-rollbackable generation authority",
+      "complete exact-unit recovery validation",
+      "obtain separate physical-write authorization"
+    ]
+  },
+  "rollback_policy": {
+    "pre_authorization_commit": {
+      "othp0_restoration": "CONDITIONAL",
+      "conditions_all_required": [
+        "the exact source and candidate layout hashes still match",
+        "no authorization-partition initialization or authorization record has occurred",
+        "the complete 1048576-byte source region still proves ALL-FF",
+        "a separately accepted recovery plan and physical-write authorization exist"
+      ],
+      "restoration_authorized": false
+    },
+    "post_authorization_commit": {
+      "othp0_restoration": "DENY",
+      "reason": "OTHP0 would reinterpret or overwrite committed authorization-partition bytes",
+      "requires_forward_recovery_contract": true,
+      "restoration_authorized": false
+    }
+  },
+  "execution_surface": {"device_port": null, "commands": [], "device_access_authorized": false},
+  "capabilities": {
+    "source_region_read": false,
+    "source_region_validation": false,
+    "partition_table_write": false,
+    "authorization_partition_initialization": false,
+    "state_migration": false,
+    "othp0_restoration": false,
+    "device_execution": false
+  },
+  "authorities": {
+    "source_region_read_authorized": false,
+    "partition_table_write_authorized": false,
+    "authorization_partition_write_authorized": false,
+    "state_partition_write_authorized": false,
+    "application_write_authorized": false,
+    "full_erase_authorized": false,
+    "device_write_authorized": false,
+    "rollback_authorized": false
+  }
+}
