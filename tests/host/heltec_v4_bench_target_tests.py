@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -13,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TARGET = ROOT / "firmware" / "targets" / "heltec_v4_bench"
 CONTRACT = TARGET / "target-contract.json"
 PHYSICAL_FLASH_PLAN = TARGET / "physical-flash-plan.json"
+OLED_STARTUP_FLASH_PLAN = TARGET / "oled-startup-flash-plan.json"
 SOURCE = TARGET / "main" / "app_main.cpp"
 SELF_CHECK = TARGET / "main" / "companion_boot_self_check.cpp"
 NIMBLE_GATT = TARGET / "main" / "companion_nimble_gatt.cpp"
@@ -50,6 +52,11 @@ COMPANION_SOURCES = (
 DEFAULTS = TARGET / "sdkconfig.defaults"
 PARTITIONS = TARGET / "partitions.csv"
 BUILD_SCRIPT = ROOT / "tools" / "Build-HeltecV4BenchTarget.ps1"
+DISPLAY_OWNER_HEADER = TARGET / "main" / "heltec_startup_display.hpp"
+DISPLAY_OWNER = TARGET / "main" / "heltec_startup_display.cpp"
+DISPLAY_ADAPTER_HEADER = TARGET / "main" / "heltec_v4_oled.hpp"
+DISPLAY_ADAPTER = TARGET / "main" / "heltec_v4_oled.cpp"
+DISPLAY_LOGO = TARGET / "main" / "trail_startup_logo.hpp"
 
 
 def require(condition: bool, message: str) -> None:
@@ -72,6 +79,12 @@ def test_contract() -> None:
         "main/companion_nimble_runtime.cpp",
         "main/companion_nimble_runtime.hpp",
         "partitions.csv",
+        "main/heltec_startup_display.cpp",
+        "main/heltec_startup_display.hpp",
+        "main/heltec_v4_oled.cpp",
+        "main/heltec_v4_oled.hpp",
+        "main/trail_startup_logo.hpp",
+        "oled-startup-flash-plan.json",
         "physical-flash-plan.json",
         "sdkconfig.defaults",
         "target-contract.json",
@@ -119,6 +132,20 @@ def test_contract() -> None:
         },
         "exact_received_revision": None,
         "rf_variant": None,
+        "display_candidate": {
+            "controller": "SSD1315-compatible",
+            "width": 128,
+            "height": 64,
+            "bits_per_pixel": 1,
+            "i2c_address": "0x3c",
+            "i2c_clock_hz": 400000,
+            "sda_gpio": 17,
+            "scl_gpio": 18,
+            "reset_gpio": 21,
+            "vext_control_gpio": 36,
+            "vext_enable_level": 0,
+            "exact_binding_physically_verified": True,
+        },
         "supported": False,
     }, "hardware profile must match only recorded OT-DEV-001 evidence")
     require(document["hardware"]["supported"] is False,
@@ -143,6 +170,7 @@ def test_contract() -> None:
         "sacrificial_first_candidate": "OT-DEV-001",
         "sacrificial_first_unit": "OT-DEV-001",
         "physical_flash_plan": "physical-flash-plan.json",
+        "oled_startup_flash_plan": "oled-startup-flash-plan.json",
         "meshcore_state_preservation_required": False,
         "meshcore_restore_route": "owner-operated official MeshCore web flasher",
         "prior_rom_entry_and_restore_recorded": True,
@@ -153,7 +181,8 @@ def test_contract() -> None:
         "additional_physical_write_authorized": False,
         "public_region_verification_passed": True,
         "bounded_runtime_accepted": True,
-        "write_attempts": 1,
+        "oled_factory_app_write_completed": True,
+        "write_attempts": 2,
     }, "physical execution evidence must remain exact and further authority absent")
 
 
@@ -180,6 +209,11 @@ def test_contract() -> None:
         "bounded_usb_heartbeat_physically_observed",
         "nimble_runtime_startup_physically_reached",
         "ble_service_advertising_physically_observed",
+        "oled_startup_display_owner_host_tested",
+        "oled_startup_display_build_linked",
+        "oled_startup_logo_coded",
+        "oled_ble_phase_status_coded",
+        "oled_startup_display_physically_observed",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
             "heartbeat must remain admitted")
@@ -219,6 +253,15 @@ def test_contract() -> None:
             capabilities["nimble_runtime_startup_physically_reached"] is True and
             capabilities["ble_service_advertising_physically_observed"] is True,
             "physical heartbeat, runtime start, and BLE advertisement must be admitted")
+    require(capabilities["oled_startup_display_owner_host_tested"] is True and
+            capabilities["oled_startup_display_build_linked"] is True and
+            capabilities["oled_startup_logo_coded"] is True and
+            capabilities["oled_ble_phase_status_coded"] is True,
+            "host-tested, build-linked OLED startup/status surface must be admitted")
+    require(capabilities["oled_startup_display_physically_observed"] is True and
+            capabilities["display"] is False,
+            "OLED startup display observation must not claim general display support")
+
     for name, enabled in capabilities.items():
         if name not in admitted:
             require(enabled is False, f"capability must remain disabled: {name}")
@@ -229,6 +272,169 @@ def test_contract() -> None:
         "physical_flash_completed": True,
         "additional_flashing_authorized": False,
     }, "completed physical write must not grant further authority")
+
+
+def test_executed_oled_startup_flash_plan() -> None:
+    document = json.loads(OLED_STARTUP_FLASH_PLAN.read_text(encoding="utf-8"))
+    require(document["schema"] == "OTOD0", "unexpected OLED flash-plan schema")
+    require(document["schema_version"] == 0,
+            "unexpected OLED flash-plan version")
+    require(document["status"] == "EXECUTED-POSTWRITE-VERIFIED-OLED-RUNTIME-AND-BLE-ADVERTISEMENT-ACCEPTED",
+            "OLED plan must retain the exact accepted runtime and BLE execution state")
+    require(document["purpose"] ==
+            "One bounded OT-DEV-001 factory-app update for the Trail startup logo and truthful BLE phase status on the candidate Heltec V4 OLED",
+            "OLED plan purpose must remain exactly bounded")
+    require(document["recorded_on"] == "2026-08-16" and
+            document["target_id"] == "heltec-v4-bench-candidate" and
+            document["base_commit"] ==
+            "04cb2795d0a15a3a5101eafbc2aad0d6ec015118",
+            "OLED plan must retain its recorded target and base commit")
+
+    require(document["authorization"] == {
+        "owner_intent_recorded": True,
+        "exact_physical_write_authorized": False,
+        "selected_unit": "OT-DEV-001",
+        "authorized_execution_consumed": True,
+        "excluded_units": ["OT-DEV-002"],
+        "factory_app_write_authorized": False,
+        "full_chip_erase_authorized": False,
+        "other_partition_write_authorized": False,
+        "recovery_write_authorized": False,
+        "attempt_limit": 1,
+        "executed_attempts": 1,
+        "additional_attempts_authorized": False,
+    }, "executed OLED plan must consume authority and preserve Unit 2 isolation")
+    require(document["installed_state_precondition"] == {
+        "required_receipt": "OT-061",
+        "required_runtime": "accepted OpenTrail boot self-check, USB heartbeat, and BLE service advertisement",
+        "repository_record_has_no_intervening_flash": True,
+        "stop_if_current_state_is_not_confirmed": True,
+    }, "OLED execution must fail closed unless the accepted OT-061 state is confirmed")
+    require(document["candidate_binding"] == {
+        "display_controller": "SSD1315-compatible",
+        "width": 128,
+        "height": 64,
+        "i2c_address": "0x3c",
+        "sda_gpio": 17,
+        "scl_gpio": 18,
+        "reset_gpio": 21,
+        "vext_control_gpio": 36,
+        "vext_enable_level": 0,
+        "exact_received_revision": None,
+        "binding_physically_verified": True,
+    }, "OLED plan must retain the accepted candidate display binding")
+    require(document["build_evidence"] == {
+        "framework": "ESP-IDF v6.0.2",
+        "build_evidence_bytes": 4131,
+        "build_evidence_sha256":
+            "45E4A4359E8014EA75AF0C7D026F615523EC9A755CC04558A5EEC1D843B3D249",
+        "two_builds_byte_identical": True,
+        "logo_source_bytes": 7422,
+        "logo_source_sha256":
+            "F9394C0EC3B7D4855C3A4198E660D4BC93E0EEC98C143E691446736623204CAA",
+        "host_display_groups_passed": 3,
+        "target_admission_groups_passed": 6,
+        "status_before_execution": "NOT-FLASHED",
+    }, "OLED plan must retain the exact accepted build-only evidence")
+    require(document["unchanged_profile_evidence"] == {
+        "bootloader_bytes": 22528,
+        "bootloader_sha256":
+            "E5C6CDDD63E974220360B7F110727B3D7A8B425CF8C3CAE23497D8588A9E8B62",
+        "partition_table_bytes": 3072,
+        "partition_table_sha256":
+            "84569AA2BADF3F7294042129B19D0B480784A93A550ADA3253B57BC92A0671AB",
+        "otadata_bytes": 8192,
+        "otadata_sha256":
+            "7D2C7AC4888BFD75CD5F56E8D61F69595121183AFC81556C876732FD3782C62F",
+        "partitions_csv_bytes": 452,
+        "partitions_csv_sha256":
+            "4F064C125AA641697E0539EAF9EDA9D1CDECAB46DD8FF387988B900F3EFE2389",
+        "sdkconfig_bytes": 107030,
+        "sdkconfig_sha256":
+            "878CB11FE8EF47BDACF548BA4DF9EE671BE21E9FD27900F312A3F5CD3AD1023F",
+    }, "bootloader, partition table, OTA data, and profile must remain unchanged")
+    require(document["factory_app"] == {
+        "file": "build/targets/heltec_v4_bench/opentrail_heltec_v4_bench.bin",
+        "offset": "0x010000",
+        "bytes": 470928,
+        "sha256":
+            "A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B",
+        "logical_end_exclusive": "0x082f90",
+        "automatic_sector_erase_start": "0x010000",
+        "automatic_sector_erase_end_exclusive": "0x083000",
+        "partition_capacity_bytes": 5177344,
+    }, "OLED plan must bind one exact factory-app image at 0x010000")
+    require(document["execution_policy"] == {
+        "tool": "esptool",
+        "version": "5.3.1",
+        "chip": "esp32s3",
+        "baud": 115200,
+        "before": "no-reset",
+        "after": "no-reset",
+        "flash_mode": "dio",
+        "flash_size": "16MB",
+        "flash_frequency": "80m",
+        "manual_rom_entry_required": True,
+        "only_one_fresh_unambiguous_rom_port": True,
+        "exact_input_hash_recheck_required": True,
+        "erase_all": False,
+        "write_offsets": ["0x010000"],
+        "verify_flash_before_boot_required": True,
+        "manual_reset_after_verified": True,
+        "stop_on_mismatch_or_failure": True,
+        "operator_retry_without_new_authorization": False,
+        "esptool_config_file": "build/targets/heltec_v4_bench/esptool-one-attempt.cfg",
+        "esptool_config_bytes": 79,
+        "esptool_config_sha256":
+            "66672EFECB18272FA72C18EBD9198DE684D3A3DE97D9421CDD0D1A3F50AB233D",
+        "write_block_attempts": 1,
+        "open_port_attempts": 1,
+        "connect_attempts": 1,
+    }, "OLED execution must remain one app-only attempt verified before reset")
+    require(document["physical_acceptance"] == {
+        "startup_logo_readable": True,
+        "startup_logo_orientation_correct": True,
+        "limited_underground_trail_identity_recognizable": True,
+        "ble_advertising_status_observed": True,
+        "boot_self_checks_passed": True,
+        "usb_heartbeat_count_minimum": 2,
+        "usb_heartbeat_observed": 4,
+        "android_exact_service_candidate_count": 1,
+        "ble_connection_attempted": False,
+        "ble_pairing_attempted": False,
+        "android_scan_no_selection_connection_or_pairing": True,
+        "android_scan_identifier_retained": False,
+        "lora_started": False,
+        "gnss_started": False,
+        "panic_observed": False,
+        "runtime_failure_observed": False,
+        "unit2_touched": False,
+    }, "OLED acceptance must remain exact, bounded, and privacy-safe")
+    require(document["completion_policy"] == {
+        "authority_consumed_after_first_write_invocation": True,
+        "no_standing_write_authority_after_execution": True,
+        "support_claim_allowed": False,
+        "exact_board_binding_claim_allowed_only_after_visual_acceptance": True,
+        "recovery_remains_owner_operated": True,
+    }, "OLED completion must consume authority and preserve unsupported status")
+    require(document["execution_result"] == {
+        "executed_on": "2026-08-17",
+        "write_invocations": 1,
+        "additional_write_invocations": 0,
+        "factory_app_write": "PASS",
+        "verify_flash": "PASS",
+        "verification_invocations": 2,
+        "verification_note": "The first read-only verification completed without retained raw output but its success wording was rejected by the wrapper; an offline esptool 5.3.1 source check identified the parser mismatch, and one corrected read-only verification then passed.",
+        "manual_reset_performed": True,
+        "owner_visual_acceptance":
+            "PASS: recognizable Trail startup logo followed by BLE ADVERTISING",
+        "runtime_observation_seconds": 16,
+        "runtime_heartbeat_count": 4,
+        "boot_self_check_observed": True,
+        "panic_or_runtime_failure_observed": False,
+        "raw_device_identifiers_retained": False,
+        "execution_complete": True,
+    }, "OLED execution receipt must remain exact and retain no raw identifiers")
 
 
 def test_physical_flash_plan() -> None:
@@ -343,9 +549,106 @@ def test_recovery_partition_layout() -> None:
             "ot_state must end exactly at the 16 MB flash boundary")
 
 
+def test_display_surface() -> None:
+    source = SOURCE.read_text(encoding="utf-8")
+    owner_header = DISPLAY_OWNER_HEADER.read_text(encoding="utf-8")
+    owner = DISPLAY_OWNER.read_text(encoding="utf-8")
+    adapter_header = DISPLAY_ADAPTER_HEADER.read_text(encoding="utf-8")
+    adapter = DISPLAY_ADAPTER.read_text(encoding="utf-8")
+    logo = DISPLAY_LOGO.read_text(encoding="utf-8")
+
+    exact_constants = (
+        "kHeltecV4OledSdaGpio = 17",
+        "kHeltecV4OledSclGpio = 18",
+        "kHeltecV4OledResetGpio = 21",
+        "kHeltecV4VextControlGpio = 36",
+        "kHeltecV4VextEnableLevel = 0",
+        "kHeltecV4OledAddress = 0x3C",
+        "kHeltecV4OledClockHz = 400000",
+    )
+    for constant in exact_constants:
+        require(constant in adapter_header,
+                f"missing exact Heltec OLED candidate binding: {constant}")
+    for required in (
+        "kDisplayWidth = 128", "kDisplayHeight = 64",
+        "esp_lcd_new_panel_ssd1306", "vendor_config.height = kDisplayHeight",
+        "panel_config.bits_per_pixel = 1", "esp_lcd_panel_reset",
+        "esp_lcd_panel_init", "esp_lcd_panel_mirror(panel_, true, true)",
+        "esp_lcd_panel_disp_on_off(panel_, true)",
+        "esp_lcd_panel_draw_bitmap",
+    ):
+        require(required in adapter,
+                f"missing bounded SSD1315-compatible OLED adapter gate: {required}")
+    require("kHeltecV4VextEnableLevel" in adapter and
+            "gpio_set_level" in adapter,
+            "documented Vext LOW-on candidate must be explicitly driven")
+    require("record_failure" in adapter and
+            "display unavailable step=%s code=%d" in adapter,
+            "OLED adapter failures must become privacy-safe unavailability")
+
+    require("display failure is latched unavailable" in owner_header and
+            "never controls BLE or heartbeat" in owner_header,
+            "display owner must document its fail-independent boundary")
+    require("status_.available = false" in owner and
+            "if (!started_ || !status_.available)" in owner,
+            "display owner must latch initialization/render failure unavailable")
+    require("start_companion_nimble_runtime" not in owner and
+            "service_companion_nimble_runtime" not in owner,
+            "display owner must not own BLE runtime authority")
+    phase_frames = {
+        "advertising": "StartupDisplayFrame::ble_advertising",
+        "connected": "StartupDisplayFrame::ble_connected",
+        "restart_wait": "StartupDisplayFrame::ble_retrying",
+        "contained": "StartupDisplayFrame::ble_error",
+    }
+    for phase, frame in phase_frames.items():
+        pattern = rf"CompanionBleRuntimePhase::{phase}.*?return {re.escape(frame)};"
+        require(re.search(pattern, owner, re.DOTALL) is not None,
+                f"typed BLE runtime phase lacks display mapping: {phase}")
+    require('return "BLE ADVERTISING"' in owner,
+            "advertising text must be available only through the typed frame")
+
+    display_start = source.index("observe_display_result(g_startup_display.start())")
+    self_check_start = source.index("if (!run_companion_codec_self_check() ||")
+    pass_log = source.index("companion boot self-check PASS")
+    runtime_start = source.index("start_companion_nimble_runtime(started_at_ms)")
+    runtime_service = source.index("service_companion_nimble_runtime(elapsed_ms)")
+    typed_status = source.index("companion_nimble_runtime_status().phase")
+    require(display_start < self_check_start < pass_log < runtime_start <
+            runtime_service < typed_status,
+            "logo, self-check, runtime, and typed status order changed")
+    require("kMinimumLogoPeriodMs = 1200" in source and
+            "elapsed_ms - boot_started_at_ms >= kMinimumLogoPeriodMs" in source,
+            "startup logo must remain visible before typed BLE status replaces it")
+    require("startup display unavailable; runtime continues" in source,
+            "display failure must explicitly preserve runtime progress")
+
+    require("kTrailStartupLogoWidth = 128" in logo and
+            "kTrailStartupLogoHeight = 64" in logo and
+            "static_assert(kTrailStartupLogoSsd1306.size() == 1024)" in logo,
+            "startup logo must remain an exact 128x64 one-bit asset")
+    logo_array = re.search(
+        r"kTrailStartupLogoSsd1306\s*=\s*\{(.*?)\};", logo, re.DOTALL)
+    require(logo_array is not None, "startup logo byte array is missing")
+    logo_bytes = [
+        int(value, 16)
+        for value in re.findall(r"0x([0-9A-Fa-f]{2})", logo_array.group(1))
+    ]
+    require(len(logo_bytes) == 1024, "startup logo must contain exactly 1024 bytes")
+    require(any(value != 0 for value in logo_bytes) and
+            any(value != 0xFF for value in logo_bytes),
+            "startup logo must be neither blank nor all-on")
+    require("LIMITED UNDERGROUND" in logo and "TRAIL" in logo,
+            "startup asset must retain the accepted Trail identity description")
+    require(hashlib.sha256(DISPLAY_LOGO.read_bytes()).hexdigest() ==
+            "f9394c0ec3b7d4855c3a4198e660d4bc93e0eec98c143e691446736623204caa",
+            "startup logo changed without explicit visual admission")
+
+
 def test_application_surface() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     self_check = SELF_CHECK.read_text(encoding="utf-8")
+
     nimble_gatt = NIMBLE_GATT.read_text(encoding="utf-8")
     nimble_runtime = NIMBLE_RUNTIME.read_text(encoding="utf-8")
     runtime_owner = BLE_RUNTIME_OWNER.read_text(encoding="utf-8")
@@ -648,16 +951,19 @@ def test_application_surface() -> None:
         "companion_nimble_gatt.cpp",
         "companion_nimble_runtime.cpp",
         "companion/include",
+        "heltec_startup_display.cpp",
+        "heltec_v4_oled.cpp",
         "protocol/include",
         "radio/include",
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 15,
-            "target source set must remain five target and ten accepted companion sources")
+    require(cmake.count('.cpp"') == 17,
+            "target source set must remain seven target and ten accepted companion sources")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
-            "bt", "efuse", "esp_partition", "esp_security")),
+            "bt", "efuse", "esp_partition", "esp_security",
+            "esp_driver_gpio", "esp_driver_i2c", "esp_lcd")),
             "target must declare pinned Bluetooth and security dependencies")
 
     linked_source = self_check + "\n" + nimble_gatt + "\n" + gatt_session + "\n" + gatt_authorization + "\n" + gatt_adapter + "\n" + authorization_persistence + "\n" + authorization_storage + "\n" + "\n".join(
@@ -825,6 +1131,13 @@ def test_build_only_tooling() -> None:
     require("heltec_v4_bench_nimble_order_tests.py" in script and
             "--idf-path $env:IDF_PATH" in script,
             "build helper must enforce pinned NimBLE disconnect ordering")
+    require("oled_startup_display = 'CODED-BUILD-LINKED-NOT-RUN'" in script and
+            "oled_controller_candidate = 'SSD1315-COMPATIBLE-128X64-NOT-PHYSICALLY-VERIFIED'" in script and
+            "oled_ble_phase_status = 'HOST-TESTED-BUILD-LINKED-NOT-RUN'" in script,
+            "build evidence must preserve the OLED execution and binding gap")
+    require("oled_logo_source_sha256 = (Get-FileHash" in script and
+            "$logoPath" in script,
+            "build evidence must hash the exact admitted startup logo source")
     require("nimble_controller = 'CODED-BUILD-LINKED-NOT-RUN'" in script and
             "advertising = 'CODED-PRIVATE-SERVICE-ONLY-NOT-RUN'" in script and
             "application_authorization = 'NOT-INJECTED'" in script,
@@ -850,6 +1163,10 @@ def test_build_only_tooling() -> None:
             "binding_prf_key = 'NOT-PROVISIONED-NOT-VERIFIED'" in script and
             "rollback_floor = 'NOT-IMPLEMENTED'" in script,
             "build evidence must preserve exact security-provisioning gaps")
+    require("heltec_startup_display.cpp.obj" in script and
+            "heltec_v4_oled.cpp.obj" in script,
+            "build helper must verify OLED owner and adapter objects in the link map")
+
     require("Generated sdkconfig did not select USB Serial/JTAG" in script,
             "build helper must inspect the generated console selection")
 
@@ -884,8 +1201,9 @@ def test_build_only_tooling() -> None:
 
 
 def main() -> int:
-    tests = (test_contract, test_physical_flash_plan,
-             test_recovery_partition_layout,
+    tests = (test_contract, test_executed_oled_startup_flash_plan,
+             test_physical_flash_plan, test_recovery_partition_layout,
+             test_display_surface,
              test_application_surface, test_build_only_tooling)
     for test in tests:
         test()

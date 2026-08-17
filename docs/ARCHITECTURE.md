@@ -402,8 +402,22 @@ The probe has no NVS initialization/open/write, key generation, eFuse
 programming, bond resolution, or GATT-admission authority. Even an all-positive
 probe result still leaves protected NVS initialization, private bond storage, a
 distinct binding-PRF key, atomic record/floor storage, and independent rollback
-floor unproved. OT-063 is build-linked and not flashed; OT-DEV-001 still runs the
-OT-061 image.
+floor unproved. At OT-063 acceptance that build was not flashed and OT-DEV-001
+still ran the OT-061 image.
+
+OT-064 supplies the first physically accepted target-local peripheral binding.
+A fail-contained SSD1315-compatible adapter owns only the candidate 128 x 64
+startup/status OLED, while a pure display owner maps typed NimBLE runtime phases
+without controlling BLE or heartbeat. One owner-authorized `OT-DEV-001`
+factory-app update passed exact read-only verification before reset. The owner
+observed the recognizable Trail logo followed by `BLE ADVERTISING`; boot
+self-check PASS, four USB heartbeats, and one exact-service Android candidate
+were observed without failure, selection, connection, pairing, or identifier
+retention. This physically admits only the selected unit's startup/status path,
+not exact controller silicon/revision, a complete display UI, local input,
+protected storage, GATT authorization, Ready, LoRa, GNSS, support, or field use.
+The app-only authority is consumed, every further write remains unauthorized,
+and `OT-DEV-002` remains untouched.
 
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.

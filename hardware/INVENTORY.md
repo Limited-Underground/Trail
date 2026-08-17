@@ -66,8 +66,8 @@ Connected directly to the development laptop for bounded inventory beginning 202
 
 | Field | Verified result | Evidence/source |
 | --- | --- | --- |
-| Inventory state | First experimentally flashed OpenTrail target; exact profile write, post-write verification, boot/self-check/USB heartbeat, and service-advertisement visibility passed. Exact SKU/RF front end, installed antenna, pinout, protected storage, GATT authorization, LoRa/GNSS/display runtime, recovery-after-loss, and support remain unresolved | [OT-061 evidence](../tests/hardware/OT-061-2026-08-16.md) |
-| Evidence role | Experimented OpenTrail bench target; not validated or supported hardware | One consumed OT-061 erase/write authorization; no standing write, recovery, unit-2, or support authority |
+| Inventory state | Experimentally flashed OpenTrail target; exact profile, boot/self-check/USB heartbeat, service-advertisement visibility, and target-local Trail startup/status OLED passed. Exact SKU/RF front end, installed antenna, full pinout, protected storage, GATT authorization, LoRa/GNSS, interactive UI/input, recovery-after-loss, and support remain unresolved | [OT-061 evidence](../tests/hardware/OT-061-2026-08-16.md) and [OT-064 evidence](../tests/hardware/OT-064-2026-08-17.md) |
+| Evidence role | Experimented OpenTrail bench target with physically accepted startup/status OLED; not validated or supported hardware | OT-061 full-image and OT-064 app-only write authorizations are consumed; no standing write, recovery, unit-2, or support authority |
 | Purchase record | One of two units from Meshnology two-set V4 GPS bundle, Amazon ASIN `B0FS1WQWKF`, selected as `Black-2` | Owner-provided purchase link, 2026-08-12; the listing identifies two V4 boards, two L76 GNSS modules, two 3000 mAh batteries, N39 cases, and 915 MHz antennas, but is not an exact received board-revision label |
 | Product/model | `Heltec V4 OLED` runtime identity; likely Heltec WiFi LoRa 32 V4 family match (not V4.3), exact commercial SKU unconfirmed | MeshCore Device Info reported `Heltec V4 OLED`; official MeshCore runtime code reports V4.3 separately when its KCT8103L power amplifier is detected |
 | USB port during test | `COM3` | Windows Ports-class device enumeration; port assignment can change |
@@ -81,8 +81,8 @@ Connected directly to the development laptop for bounded inventory beginning 202
 | Flash encryption | Disabled | `esptool 5.3.1 get-security-info` |
 | State during query | ROM USB/UART download bootloader | ROM serial banner and query connection |
 | Normal application USB | Espressif application USB `VID 303A`, `PID 0002`, observed as `COM6` | Windows enumeration after normal boot; COM assignment can change |
-| Current installed application | Experimental OpenTrail `heltec_v4_bench` image; 437,552-byte factory app, SHA-256 `F0E81310C62CA0C17CA2531AF9B0D5BD5E6E115E1649F84C97514F72D51D6A3A` | OT-061 exact write manifest and post-write verification |
-| Current bounded runtime | Deterministic boot self-checks reached the NimBLE runtime and at least two five-second USB heartbeat records; one exact-service-filtered Android scan reported one compatible candidate | [OT-061 evidence](../tests/hardware/OT-061-2026-08-16.md); no selection, connection, pairing, address, or identifier retained |
+| Current installed application | Experimental OpenTrail `heltec_v4_bench` OT-064 image; 470,928-byte factory app, SHA-256 `A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B` | OT-064 app-only write manifest and exact read-only verification |
+| Current bounded runtime | Deterministic boot self-check PASS, four heartbeat records in 16 seconds, recognizable Trail startup logo followed by `BLE ADVERTISING`, and one exact-service Android candidate | [OT-064 evidence](../tests/hardware/OT-064-2026-08-17.md); no selection, connection, pairing, address, or identifier retained |
 | Prior installed application | MeshCore `v1.16.0-07a3ca9` | Historical application strings and pre-OT-061 public runtime evidence |
 | Firmware date reported by MeshCore | 06-Jun-2026 | Connected MeshCore browser application's Device Info |
 | Prior MeshCore transport/role | **USB Companion** before OT-061; BLE Companion was installed during the initial inventory | Historical official MeshCore web-flasher and Web Serial evidence; MeshCore was intentionally erased by OT-061 |
@@ -105,7 +105,7 @@ but is deliberately excluded from this public inventory.
   exposed by the runtime model or fixed by the third-party bundle listing
 - Exact installed RF front end/full supported band; the official Heltec V4 family specification identifies an SX1262 and a nominal 863-928 MHz high-band variant, but this has not been electrically confirmed on this specific enclosed unit
 - Installed antenna type and connector
-- Exact OLED/display wiring, physical GNSS source/module, battery/charger details, sensors, and pin assignments
+- Complete board pinout, exact OLED controller silicon/board revision, interactive display/input behavior, physical GNSS source/module, battery/charger details, sensors, and other pin assignments; only the selected-unit OLED startup/status binding is physically accepted
 - Regional regulatory/legal operating constraints (the current USA/Canada preset is now recorded)
 
 MeshCore's official runtime code reports `Heltec V4.3 OLED` when it detects the KCT8103L power amplifier and `Heltec V4 OLED` otherwise. This device reported `Heltec V4 OLED`, resolving that runtime distinction without opening the case. Radio silicon, full supported band, and full SKU may still require a label, purchase record, authoritative hardware record, or controlled radio inspection.

@@ -10,6 +10,7 @@ $targetRoot = Join-Path $projectRoot 'firmware\targets\heltec_v4_bench'
 $buildRoot = Join-Path $projectRoot 'build\targets\heltec_v4_bench'
 $defaultsPath = Join-Path $targetRoot 'sdkconfig.defaults'
 $partitionCsvPath = Join-Path $targetRoot 'partitions.csv'
+$logoPath = Join-Path $targetRoot 'main\trail_startup_logo.hpp'
 $sdkconfigPath = Join-Path $buildRoot 'sdkconfig'
 
 if (-not $env:IDF_PATH) {
@@ -329,7 +330,9 @@ foreach ($requiredObject in @(
     'companion_nimble_gatt.cpp.obj',
     'companion_nimble_runtime.cpp.obj',
     'companion_authorization_storage.cpp.obj',
-    'companion_ble_runtime_owner.cpp.obj'
+    'companion_ble_runtime_owner.cpp.obj',
+    'heltec_startup_display.cpp.obj',
+    'heltec_v4_oled.cpp.obj'
 )) {
     if (-not $linkMap.Contains($requiredObject)) {
         throw "Required companion codec object is absent from the link map: $requiredObject"
@@ -399,6 +402,10 @@ $evidence = [ordered]@{
     nimble_controller = 'CODED-BUILD-LINKED-NOT-RUN'
     advertising = 'CODED-PRIVATE-SERVICE-ONLY-NOT-RUN'
     application_authorization = 'NOT-INJECTED'
+    oled_startup_display = 'CODED-BUILD-LINKED-NOT-RUN'
+    oled_controller_candidate = 'SSD1315-COMPATIBLE-128X64-NOT-PHYSICALLY-VERIFIED'
+    oled_logo_source_sha256 = (Get-FileHash -LiteralPath $logoPath -Algorithm SHA256).Hash
+    oled_ble_phase_status = 'HOST-TESTED-BUILD-LINKED-NOT-RUN'
     protected_nvs = 'NOT-INITIALIZED-NOT-VERIFIED'
     private_bond_store = 'NOT-IMPLEMENTED'
     binding_prf_key = 'NOT-PROVISIONED-NOT-VERIFIED'

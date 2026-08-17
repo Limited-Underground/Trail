@@ -30,6 +30,20 @@
       "build_frequency_mhz": 80,
       "physical_interface_and_frequency_verified": false
     },
+    "display_candidate": {
+      "controller": "SSD1315-compatible",
+      "width": 128,
+      "height": 64,
+      "bits_per_pixel": 1,
+      "i2c_address": "0x3c",
+      "i2c_clock_hz": 400000,
+      "sda_gpio": 17,
+      "scl_gpio": 18,
+      "reset_gpio": 21,
+      "vext_control_gpio": 36,
+      "vext_enable_level": 0,
+      "exact_binding_physically_verified": true
+    },
     "exact_received_revision": null,
     "rf_variant": null,
     "supported": false
@@ -54,6 +68,7 @@
     "sacrificial_first_candidate": "OT-DEV-001",
     "sacrificial_first_unit": "OT-DEV-001",
     "physical_flash_plan": "physical-flash-plan.json",
+    "oled_startup_flash_plan": "oled-startup-flash-plan.json",
     "meshcore_state_preservation_required": false,
     "meshcore_restore_route": "owner-operated official MeshCore web flasher",
     "prior_rom_entry_and_restore_recorded": true,
@@ -64,7 +79,8 @@
     "additional_physical_write_authorized": false,
     "public_region_verification_passed": true,
     "bounded_runtime_accepted": true,
-    "write_attempts": 1
+    "oled_factory_app_write_completed": true,
+    "write_attempts": 2
   },
   "capabilities": {
     "bounded_usb_heartbeat": true,
@@ -85,12 +101,18 @@
     "private_service_advertising_coded": true,
     "evidence_bound_memory_profile_build_configured": true,
     "recovery_partition_layout_build_configured": true,
+    "oled_startup_display_owner_host_tested": true,
+    "oled_startup_display_build_linked": true,
+    "oled_startup_logo_coded": true,
+    "oled_ble_phase_status_coded": true,
+    "oled_startup_display_physically_observed": true,
     "bounded_usb_heartbeat_physically_observed": true,
     "nimble_runtime_startup_physically_reached": true,
     "ble_service_advertising_physically_observed": true,
     "radio": false,
     "ble": false,
     "gnss": false,
+    "display": false,
     "storage": false,
     "identity": false,
     "secrets": false,

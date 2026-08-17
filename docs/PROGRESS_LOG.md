@@ -4,6 +4,27 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-17
+
+### OT-064 physical Trail OLED startup and BLE status
+
+- Added a target-local 128 x 64 one-bit startup/status display owner, a
+  fail-contained SSD1315-compatible Heltec V4 adapter, and a deterministic
+  Limited Underground Trail bitmap.
+- Two pinned ESP-IDF v6.0.2 builds were byte-identical. One owner-authorized
+  factory-app-only update wrote the exact 470,928-byte image at `0x010000`;
+  no full erase or other partition write occurred. Exact read-only verification
+  passed before reset.
+- The owner observed the recognizable Trail logo followed by `BLE ADVERTISING`.
+  A 16-second privacy-safe USB observation found boot self-check PASS, four
+  heartbeats, and no failure/panic marker. Android found exactly one compatible
+  service candidate without selection, connection, pairing, or identifier retention.
+- This advances only the Heltec target milestone from 20% to 25%. Exact
+  evidence-weighted V1 is 31.75% and displays as 32%; protected storage, secure
+  GATT/Ready, LoRa, GNSS, interactive display/input, complete-unit, and field
+  evidence remain open. See
+  [OT-064 evidence](../tests/hardware/OT-064-2026-08-17.md).
+
 ## 2026-08-16
 
 ### OT-063 read-only protected-storage admission probe

@@ -1,6 +1,6 @@
 # Heltec V4 bench candidate target
 
-Status: experimentally flashed, public-region post-write verified, and bounded USB runtime plus BLE service advertising observed on `OT-DEV-001`; not supported hardware.
+Status: experimentally flashed with bounded USB runtime, BLE service advertising, and a physically accepted startup/status OLED on `OT-DEV-001`; not supported hardware.
 
 This bounded ESP-IDF target is the first native OpenTrail build surface for the
 ESP32-S3 family used by the two assembled Heltec V4 bench clients. OT-059 binds
@@ -167,7 +167,8 @@ redundant NVS cannot supply the independent rollback floor required here.
 - a proven Bluetooth controller session, usable secure bond, authorized device
   transport, or normal command path; the observed stack and advertisement do
   not establish any of these
-- board GPIO, OLED, battery, charger, or power-control bindings
+- board GPIO, battery, charger, or general power-control bindings beyond the
+  physically accepted target-local OLED Vext/reset/I2C startup/status path
 - the complete `PortableClientComposition`
 - device-write, port-selection, erase, or recovery commands
 
@@ -199,8 +200,9 @@ tool, runs size analysis, and writes exact byte counts plus SHA-256 hashes for
 the application BIN, ELF, map, partition table, generated configuration, and
 source partition CSV to ignored `build-evidence.json`. That helper-generated
 receipt remains explicitly marked `NOT-FLASHED` because the helper itself never
-accesses hardware; OT-061 physical execution is recorded separately in
-`physical-flash-plan.json` and the dated hardware evidence.
+accesses hardware; OT-061 physical execution is recorded in
+`physical-flash-plan.json`, and OT-064's app-only OLED execution is recorded in
+`oled-startup-flash-plan.json` plus their dated hardware evidence.
 
 ESP-IDF's own successful-build output may print suggested follow-up commands
 for flashing. Those informational suggestions are not executed by this helper;
@@ -220,10 +222,15 @@ startup call returned on this experimental unit. One owner-observed Android
 scan using the exact accepted Trail APK found one compatible OpenTrail service
 candidate. It did not select, connect, or pair, and no address or identifier was
 retained. This proves physical BLE service advertising visibility, not GATT
-exchange, authorization, Ready state, protected storage, LoRa, GNSS, display,
-GPIO, power/endurance, regulatory fit, or support. The OLED is expected to
-remain blank. The exact result and consumed one-attempt authority are recorded
-in `physical-flash-plan.json` and
-`tests/hardware/OT-061-2026-08-16.md`. No additional erase, write, recovery, or
-unit-2 authority remains. Any later MeshCore recovery stays owner-operated
-through the official MeshCore web flasher.
+exchange, authorization, Ready state, protected storage, LoRa, GNSS, interactive
+display/input, power/endurance, regulatory fit, or support.
+
+OT-064 later updated only the factory app on `OT-DEV-001`. Exact read-only
+verification passed before reset; the owner observed the recognizable Trail
+logo followed by `BLE ADVERTISING`; boot self-check PASS, four heartbeats, and
+one exact-service Android candidate were observed without selection, connection,
+pairing, or identifier retention. This proves only the selected unit's
+startup/status OLED path. Both write authorizations are consumed; no additional
+erase, write, recovery, or unit-2 authority remains. Any later MeshCore recovery
+stays owner-operated through the official MeshCore web flasher. See
+[OT-061 evidence](../../../tests/hardware/OT-061-2026-08-16.md) and [OT-064 evidence](../../../tests/hardware/OT-064-2026-08-17.md).

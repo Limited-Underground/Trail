@@ -93,7 +93,8 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'firmware\components\ui\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\ui\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\update\include'),
-    '-I', (Join-Path $projectRoot 'firmware\targets\portable_client\include')
+    '-I', (Join-Path $projectRoot 'firmware\targets\portable_client\include'),
+    '-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main')
 )
 
 $builds = @(
@@ -191,6 +192,14 @@ $builds = @(
         Sources = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_ble_runtime_owner.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_ble_runtime_owner_tests.cpp')
+        )
+    },
+    @{
+        Name = 'Heltec V4 startup display state owner'
+        Output = Join-Path $buildDirectory 'heltec_startup_display_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_startup_display.cpp'),
+            (Join-Path $projectRoot 'tests\host\heltec_startup_display_tests.cpp')
         )
     },
     @{

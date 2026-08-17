@@ -7,6 +7,8 @@ idf_component_register(
         "companion_nimble_gatt.cpp"
         "companion_nimble_runtime.cpp"
         "companion_authorization_storage.cpp"
+        "heltec_startup_display.cpp"
+        "heltec_v4_oled.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_protocol.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_semantics.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_request_coordinator.cpp"
@@ -28,4 +30,7 @@ idf_component_register(
         esp_partition
         esp_security
         esp_timer
+        esp_driver_gpio
+        esp_driver_i2c
+        esp_lcd
 )

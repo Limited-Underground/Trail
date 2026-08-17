@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-08-16",
+  "as_of": "2026-08-17",
   "v1_definition": "A complete first release means four self-contained field units can be installed, joined, recovered, and tested without depending on a phone, server, or repeater.",
   "milestones": [
     {
@@ -50,17 +50,18 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is now the first experimentally flashed OpenTrail target: its exact-profile image passed one authorized erase/write, post-write public-region verification, deterministic boot self-checks, bounded USB heartbeat, and one privacy-safe Android observation of the OpenTrail BLE service advertisement.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target: its exact profile, physical boot and BLE advertisement, and target-local 128 x 64 startup/status OLED passed bounded write, verification, runtime, visual, and Android discovery gates.",
       "weight": 15,
-      "completion": 20,
-      "evidence_status": "Experimental physical target",
+      "completion": 25,
+      "evidence_status": "Experimental physical target with startup/status OLED",
       "evidence_refs": [
         "firmware/targets/heltec_v4_bench",
         "tests/hardware/OT-061-2026-08-16.md",
+        "tests/hardware/OT-064-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Admit protected owner storage and private bond authority, then prove one bounded GATT authorization and Ready session before LoRa, GNSS, display, or unit 2."
+      "next_gate": "Admit protected owner storage and private bond authority, prove one bounded GATT authorization and Ready session, then bind real LoRa/GNSS and interactive display/input before unit 2."
     },
     {
       "id": "first-complete-unit",
@@ -119,6 +120,11 @@
       "date": "2026-08-16",
       "overall": 31,
       "reason": "Accepted one owner-authorized OT-DEV-001 erase/write with exact post-write verification, physical boot self-check/USB heartbeat, and one privacy-safe Android observation of the OpenTrail BLE service advertisement. This closes the prior first-target physical gate but does not prove protected storage, GATT authorization, Ready, LoRa, GNSS, display, recovery-after-loss, support, or field use."
+    },
+    {
+      "date": "2026-08-17",
+      "overall": 32,
+      "reason": "Accepted one bounded OT-DEV-001 factory-app update with exact read-only verification, owner-observed Trail startup logo and BLE ADVERTISING status, four USB heartbeats, and one privacy-safe Android observation of the exact OpenTrail service. This advances only the Heltec bench-target milestone; protected storage, GATT authorization, Ready, LoRa, GNSS, interactive display/input, complete-unit, recovery, support, and field evidence remain open."
     }
   ]
 }

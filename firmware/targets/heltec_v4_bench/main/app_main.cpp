@@ -9,13 +9,31 @@
 #include "companion_authorization_storage.hpp"
 #include "companion_nimble_gatt.hpp"
 #include "companion_nimble_runtime.hpp"
+#include "heltec_startup_display.hpp"
+#include "heltec_v4_oled.hpp"
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_semantics.hpp"
 
 namespace {
+using opentrail::target::heltec_v4_bench::HeltecV4Oled;
+using opentrail::target::heltec_v4_bench::StartupDisplayFrame;
+using opentrail::target::heltec_v4_bench::StartupDisplayOwner;
+using opentrail::target::heltec_v4_bench::startup_display_frame_for_ble_phase;
+using opentrail::target::heltec_v4_bench::companion_nimble_runtime_status;
 
 constexpr char kLogTag[] = "ot_bench";
 constexpr std::uint32_t kHeartbeatPeriodMs = 5000;
+constexpr std::uint32_t kMinimumLogoPeriodMs = 1200;
+HeltecV4Oled g_oled_port;
+StartupDisplayOwner g_startup_display{g_oled_port};
+bool g_display_failure_logged{false};
+
+void observe_display_result(bool succeeded) {
+    if (!succeeded && !g_display_failure_logged) {
+        ESP_LOGW(kLogTag, "startup display unavailable; runtime continues");
+        g_display_failure_logged = true;
+    }
+}
 
 bool run_companion_codec_self_check() {
     using namespace opentrail::companion;
@@ -112,6 +130,8 @@ bool run_companion_codec_self_check() {
 }
 
 [[noreturn]] void contain_self_check_failure() {
+    observe_display_result(
+        g_startup_display.show(StartupDisplayFrame::self_check_failed));
     ESP_LOGE(kLogTag, "companion boot self-check FAIL");
     while (true) {
         vTaskSuspend(nullptr);
@@ -119,6 +139,8 @@ bool run_companion_codec_self_check() {
 }
 
 [[noreturn]] void contain_runtime_failure() {
+    observe_display_result(
+        g_startup_display.show(StartupDisplayFrame::ble_error));
     ESP_LOGE(kLogTag, "companion runtime FAIL");
     while (true) {
         vTaskSuspend(nullptr);
@@ -128,6 +150,10 @@ bool run_companion_codec_self_check() {
 }  // namespace
 
 extern "C" void app_main() {
+    const auto boot_started_at_ms =
+        static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+    observe_display_result(g_startup_display.start());
+
     if (!run_companion_codec_self_check() ||
         !opentrail::target::heltec_v4_bench::
              run_companion_request_coordinator_self_check() ||
@@ -165,6 +191,11 @@ extern "C" void app_main() {
         if (runtime_result !=
             opentrail::companion::CompanionBleRuntimeError::none) {
             contain_runtime_failure();
+        }
+        if (elapsed_ms - boot_started_at_ms >= kMinimumLogoPeriodMs) {
+            observe_display_result(g_startup_display.show(
+                startup_display_frame_for_ble_phase(
+                    companion_nimble_runtime_status().phase)));
         }
         if (elapsed_ms >= next_heartbeat_ms) {
             ESP_LOGI(kLogTag, "heartbeat elapsed_ms=%llu",
