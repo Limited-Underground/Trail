@@ -4,6 +4,7 @@
   "as_of": "2026-08-17",
   "target": "heltec_v4_bench",
   "active_target_configuration_changed": false,
+  "read_evidence_plan": "protected-storage-transition-read-plan.json",
   "transition": {
     "source_layout": {
       "schema": "OTHP0/v0",

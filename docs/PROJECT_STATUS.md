@@ -9,6 +9,23 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-071 adds a streaming offline verifier and a separate denied read-only plan
+for the exact OT-070 source-evidence prerequisite. Eight focused verifier
+groups, six transition-manifest groups, and the existing 9/9 Heltec admission
+pass. The verifier accepts only the exact 3,072-byte installed partition table
+and complete 1 MiB all-`0xFF` source region, bound to nonzero operation and
+evidence-set identities. It emits only a fixed schema and sanitized outcome;
+raw bytes, paths, ports, device identifiers, identities, nonblank digests, and
+nonblank locations are not retained. The read plan is design-only, selects no
+unit, contains no command or executable hardware reader, and grants no
+authority. No hardware read occurred;
+active target/build/runtime/installed-device state is unchanged. A later
+physical read requires a new exact owner authorization, and success can satisfy
+only the source-proof prerequisite, never the partition transition. Historical
+V1 remains 31.75% and displays as 32%; release tracks remain unmeasured. See
+[Decision 0016](decisions/0016-read-only-protected-storage-transition-evidence.md)
+and [OT-071](../tests/hardware/OT-071-2026-08-17.md).
+
 OT-070 adds a pure target-neutral admission guard and exact design-only Heltec
 manifest for the `OTHP0/v0` to `OTPS0/v0` partition split. Thirteen strict C++
 groups pass with warnings treated as errors and across 100 repeated runs; five

@@ -1,0 +1,81 @@
+{
+  "schema": "OTPSTR0/v0",
+  "status": "DESIGN-ONLY-READ-AUTHORITY-ABSENT",
+  "as_of": "2026-08-17",
+  "target": "heltec_v4_bench",
+  "transition_plan": "protected-storage-transition-plan.json",
+  "eligible_unit": "OT-DEV-001",
+  "selected_unit": null,
+  "execution": {
+    "authorized": false,
+    "authorization_consumed": false,
+    "attempt_limit": 1,
+    "attempts_executed": 0,
+    "operation_id": null,
+    "evidence_set_id": null,
+    "private_port": null,
+    "commands": [],
+    "result": null
+  },
+  "tooling": {
+    "python_module": "esptool",
+    "exact_version": "5.3.1",
+    "chip": "esp32s3",
+    "baud": 115200,
+    "before": "no-reset",
+    "after": "no-reset",
+    "no_stub": true,
+    "connect_attempts": 1,
+    "open_port_attempts": 1,
+    "operator_retry_without_new_authorization": false
+  },
+  "reads": [
+    {
+      "name": "installed_partition_table",
+      "offset": 32768,
+      "size_bytes": 3072,
+      "expected_sha256": "84569AA2BADF3F7294042129B19D0B480784A93A550ADA3253B57BC92A0671AB"
+    },
+    {
+      "name": "source_transition_region",
+      "offset": 15728640,
+      "size_bytes": 1048576,
+      "required_byte": 255,
+      "expected_sha256": "F5FB04AA5B882706B9309E885F19477261336EF76A150C3B4D3489DFAC3953EC"
+    }
+  ],
+  "evidence_policy": {
+    "same_nonzero_operation_and_evidence_set_required": true,
+    "success_result": "SOURCE-PROOF-SATISFIED-ONLY",
+    "source_proof_authorizes_transition": false,
+    "raw_bytes_retained": false,
+    "raw_paths_retained": false,
+    "device_port_retained": false,
+    "device_identifiers_retained": false,
+    "nonblank_digest_retained": false,
+    "nonblank_byte_location_retained": false,
+    "temporary_cleanup_required_before_result": true,
+    "failure_output": "DENY"
+  },
+  "capabilities": {
+    "offline_validation_available": true,
+    "device_read": false,
+    "partition_table_write": false,
+    "source_region_write": false,
+    "erase": false,
+    "reset": false,
+    "key_operation": false,
+    "efuse_operation": false,
+    "runtime_activation": false
+  },
+  "authorities": {
+    "device_read_authorized": false,
+    "partition_table_write_authorized": false,
+    "source_region_write_authorized": false,
+    "erase_authorized": false,
+    "reset_authorized": false,
+    "key_operation_authorized": false,
+    "efuse_operation_authorized": false,
+    "runtime_activation_authorized": false
+  }
+}

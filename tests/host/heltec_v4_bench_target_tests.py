@@ -103,6 +103,7 @@ def test_contract() -> None:
         "physical-flash-plan.json",
         "protected-storage-partitions.candidate.csv",
         "protected-storage-provisioning-plan.json",
+        "protected-storage-transition-read-plan.json",
         "protected-storage-transition-plan.json",
         "sdkconfig.defaults",
         "target-contract.json",

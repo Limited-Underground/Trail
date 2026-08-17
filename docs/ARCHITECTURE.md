@@ -502,6 +502,19 @@ accepted plan; after a commit it is forbidden because the old layout would
 reinterpret protected bytes. Partition restoration is not the independent
 authorization rollback floor.
 
+OT-071 adds the offline evidence boundary needed by that guard. A streaming
+verifier accepts only the exact 3,072-byte installed partition table and the
+complete 1 MiB all-`0xFF` source region, bound to one nonzero operation and
+evidence-set identity. It emits only a fixed schema and sanitized category;
+paths, raw bytes, device identifiers, identities, and nonblank details never
+enter the result. The associated Heltec read plan remains denied and selects no
+unit or port. It contains no command or reusable physical executor. A later
+increment must implement a one-use executor bound privately to the exact unit,
+operation, evidence set, and port before any separately authorized read.
+See [Decision 0016](decisions/0016-read-only-protected-storage-transition-evidence.md).
+No physical read occurred in OT-071, and even a satisfied source proof grants
+no partition transition, key, eFuse, runtime, GATT, or Ready authority.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

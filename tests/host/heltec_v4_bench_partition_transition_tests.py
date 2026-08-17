@@ -15,7 +15,9 @@ TARGET = ROOT / "firmware" / "targets" / "heltec_v4_bench"
 ACTIVE_TABLE = TARGET / "partitions.csv"
 CANDIDATE_TABLE = TARGET / "protected-storage-partitions.candidate.csv"
 TRANSITION_PLAN = TARGET / "protected-storage-transition-plan.json"
+READ_PLAN = TARGET / "protected-storage-transition-read-plan.json"
 PROVISIONING_PLAN = TARGET / "protected-storage-provisioning-plan.json"
+READ_TOOL = ROOT / "tools" / "Get-HeltecV4ProtectedStorageEvidence.ps1"
 GIT_ATTRIBUTES = ROOT / ".gitattributes"
 
 
@@ -258,6 +260,8 @@ def test_plan_has_no_device_execution_or_authority() -> None:
             "transition plan must grant no authority")
     require(provisioning["partition_transition_plan"] == TRANSITION_PLAN.name,
             "provisioning plan must reference the exact transition contract")
+    require(plan["read_evidence_plan"] == READ_PLAN.name,
+            "transition plan must reference the exact read-evidence plan")
     require(all(value is False for value in provisioning["runtime"].values()) and
             all(value is False for value in
                 provisioning["physical_authority"].values()) and
@@ -279,6 +283,65 @@ def test_plan_has_no_device_execution_or_authority() -> None:
                 f"transition plan contains forbidden execution surface: {pattern}")
 
 
+def test_read_evidence_plan_is_bounded_and_denied() -> None:
+    plan = load_json(READ_PLAN)
+    require(plan["schema"] == "OTPSTR0/v0" and
+            plan["status"] == "DESIGN-ONLY-READ-AUTHORITY-ABSENT" and
+            plan["as_of"] == "2026-08-17" and
+            plan["target"] == "heltec_v4_bench" and
+            plan["transition_plan"] == TRANSITION_PLAN.name and
+            plan["eligible_unit"] == "OT-DEV-001" and
+            plan["selected_unit"] is None,
+            "read plan must remain exact, unit-bounded, and unauthorized")
+    require(plan["execution"] == {
+        "authorized": False, "authorization_consumed": False,
+        "attempt_limit": 1, "attempts_executed": 0,
+        "operation_id": None, "evidence_set_id": None,
+        "private_port": None, "commands": [], "result": None,
+    }, "read execution must remain absent")
+    require(plan["tooling"] == {
+        "python_module": "esptool", "exact_version": "5.3.1",
+        "chip": "esp32s3", "baud": 115200,
+        "before": "no-reset", "after": "no-reset", "no_stub": True,
+        "connect_attempts": 1, "open_port_attempts": 1,
+        "operator_retry_without_new_authorization": False,
+    }, "read tooling boundary changed")
+    require(plan["reads"] == [
+        {
+            "name": "installed_partition_table", "offset": 32768,
+            "size_bytes": 3072,
+            "expected_sha256":
+                "84569AA2BADF3F7294042129B19D0B480784A93A550ADA3253B57BC92A0671AB",
+        },
+        {
+            "name": "source_transition_region", "offset": 15728640,
+            "size_bytes": 1048576, "required_byte": 255,
+            "expected_sha256":
+                "F5FB04AA5B882706B9309E885F19477261336EF76A150C3B4D3489DFAC3953EC",
+        },
+    ], "read plan must bind exactly two accepted public regions")
+    require(plan["evidence_policy"] == {
+        "same_nonzero_operation_and_evidence_set_required": True,
+        "success_result": "SOURCE-PROOF-SATISFIED-ONLY",
+        "source_proof_authorizes_transition": False,
+        "raw_bytes_retained": False, "raw_paths_retained": False,
+        "device_port_retained": False,
+        "device_identifiers_retained": False,
+        "nonblank_digest_retained": False,
+        "nonblank_byte_location_retained": False,
+        "temporary_cleanup_required_before_result": True,
+        "failure_output": "DENY",
+    }, "read evidence privacy policy changed")
+    require(plan["capabilities"]["offline_validation_available"] is True and
+            all(value is False for key, value in plan["capabilities"].items()
+                if key != "offline_validation_available"),
+            "only offline validation may be available")
+    require(all(value is False for value in plan["authorities"].values()),
+            "read plan must grant no authority")
+    require(not READ_TOOL.exists(),
+            "no reusable physical executor may ship with a denied plan")
+
+
 def main() -> int:
     tests = (
         test_exact_layout_transition,
@@ -286,6 +349,7 @@ def main() -> int:
         test_blank_source_proof_is_required_and_nonauthorizing,
         test_rollback_boundary_is_phase_specific,
         test_plan_has_no_device_execution_or_authority,
+        test_read_evidence_plan_is_bounded_and_denied,
     )
     for test in tests:
         test()

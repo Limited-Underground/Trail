@@ -1735,6 +1735,11 @@ if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 bench target admission tests failed.'
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\protected_storage_transition_evidence_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Protected-storage transition evidence verifier tests failed.'
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_bench_partition_transition_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 protected-storage transition admission tests failed.'

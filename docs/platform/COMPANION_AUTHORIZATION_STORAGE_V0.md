@@ -218,3 +218,23 @@ existing target admission, and the complete host gate pass. No active target,
 runtime, image, device, key, eFuse, storage, GATT, or Ready state changes. See
 [Decision 0015](../decisions/0015-safe-heltec-protected-storage-partition-transition.md)
 and [OT-070 evidence](../../tests/hardware/OT-070-2026-08-17.md).
+
+## OT-071 read-only transition evidence
+
+OT-071 adds a streaming offline verifier for the two exact physical artifacts
+needed by the OT-070 source-proof gate: the 3,072-byte installed partition
+table and the complete 1 MiB source region. The table must match the accepted
+OTHP0 binary, and every source byte must be `0xFF`. Both observations are bound
+to nonzero operation and evidence-set identities, but output is reduced to a
+fixed schema and sanitized outcome. Raw bytes, paths, ports, identities, and
+nonblank details are not retained.
+
+The associated physical-read plan remains denied, selects no unit, and grants
+no read or mutation authority. It contains no executable hardware reader. A
+later executor must be one-use, privately bound to the exact unit, operation,
+evidence set, and port, and must remove task-private temporary artifacts before
+emitting a result. No physical read occurred in
+OT-071, and a satisfied result proves only the source prerequisite; it cannot
+authorize partition promotion, protected-storage activation, keys, eFuses,
+GATT authorization, or Ready. See [Decision 0016](../decisions/0016-read-only-protected-storage-transition-evidence.md)
+and [OT-071 evidence](../../tests/hardware/OT-071-2026-08-17.md).

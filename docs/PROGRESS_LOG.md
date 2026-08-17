@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-071 read-only protected-storage transition evidence
+
+- Added a streaming offline verifier for the exact installed partition table
+  and complete 1 MiB all-`0xFF` source region. It emits only a fixed sanitized
+  result and does not retain raw bytes, paths, identities, or nonblank details.
+- Added a separate denied Heltec read plan for a future exact owner-authorized
+  session. It contains no executable hardware reader; no unit, port, command,
+  or authority is selected now, and no hardware read occurred.
+- Eight verifier groups, six transition-manifest groups, and the existing 9/9
+  target admission pass. Active target, runtime, image, and device state remain
+  unchanged; source proof is still absent and V1 remains 32%. See
+  [OT-071 evidence](../tests/hardware/OT-071-2026-08-17.md).
+
 ### OT-070 protected-storage partition transition admission
 
 - Added a pure host guard for the exact `OTHP0/v0` to `OTPS0/v0` transition.

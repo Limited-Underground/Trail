@@ -219,6 +219,18 @@ unchanged. See
 [Decision 0015](../../../docs/decisions/0015-safe-heltec-protected-storage-partition-transition.md)
 and [OT-070 evidence](../../../tests/hardware/OT-070-2026-08-17.md).
 
+OT-071 adds a streaming offline verifier and a separate denied read plan for
+the exact installed partition table and complete 1 MiB all-`0xFF` source
+region required by OT-070. The verifier emits only a fixed sanitized result;
+the denied plan contains no executable hardware reader and requires a future
+one-use, exact-unit-bound executor. Eight verifier groups, six
+transition-manifest groups, and the existing 9/9 target admission
+pass. No device read occurred, the read plan selects no unit and grants no
+authority, and the active target/build/runtime/installed-device state remains
+unchanged. Source proof alone cannot authorize the transition. See
+[Decision 0016](../../../docs/decisions/0016-read-only-protected-storage-transition-evidence.md)
+and [OT-071 evidence](../../../tests/hardware/OT-071-2026-08-17.md).
+
 ## Deliberately absent
 
 - SX1262 or other radio initialization and transmission
