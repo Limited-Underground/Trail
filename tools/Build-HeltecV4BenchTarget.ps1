@@ -342,10 +342,11 @@ $compiledAuthorizationBackendObjects = @(
     Get-ChildItem -LiteralPath $buildRoot -Recurse -File |
         Where-Object {
             $_.Name -eq 'companion_authorization_nvs_backend.cpp.obj' -or
-            $_.Name -eq 'companion_authorization_protected_kv_media.cpp.obj'
+            $_.Name -eq 'companion_authorization_protected_kv_media.cpp.obj' -or
+            $_.Name -eq 'companion_authorization_nvs_context.cpp.obj'
         })
-if (@($compiledAuthorizationBackendObjects | Select-Object -ExpandProperty Name -Unique).Count -ne 2) {
-    throw 'Inactive protected-KV and ESP-IDF NVS backend objects were not both build-compiled.'
+if (@($compiledAuthorizationBackendObjects | Select-Object -ExpandProperty Name -Unique).Count -ne 3) {
+    throw 'Inactive protected-KV, ESP-IDF NVS backend, and existing-context owner objects were not all build-compiled.'
 }
 $artifactEvidence = @(
     foreach ($artifactPath in $artifactPaths) {
@@ -406,6 +407,7 @@ $evidence = [ordered]@{
     companion_authorization_storage_preflight = 'DENIED-NVS-ENCRYPTION-NOT-CONFIGURED'
     companion_authorization_storage_read_only_probe = 'BUILD-LINKED-NOT-RUN-CURRENT-CONFIGURATION-SHORT-CIRCUITS-BEFORE-TARGET-READS'
     companion_authorization_nvs_backend = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'
+    companion_authorization_nvs_context = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'
     companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'
     companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'
     companion_command_dispatch = 'BUILD-LINKED-PREFLIGHT-DENIED-NOT-RUN'

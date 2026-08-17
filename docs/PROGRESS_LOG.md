@@ -6,6 +6,20 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-069 inactive Heltec authorization NVS context
+
+- Added one target-local owner for the exact candidate encrypted NVS context.
+  It consumes existing security configuration only, performs one exact open,
+  zeroes temporary configuration, and contains native ambiguity and reentry.
+- Ten strict lifecycle groups, a separate disabled-configuration zero-I/O
+  check, and nine target-admission groups pass. Two pinned ESP-IDF v6.0.2
+  builds reproduce the same 470,928-byte BIN with SHA-256
+  `9D4EBCD8BB68183798BF47267252A1B2A94A114FACD16E8CF975AEBE43314EEF`.
+- The owner is build-compiled but not runtime-injected. Active partition,
+  configuration, denied authorities, installed firmware, and devices remain
+  unchanged. Historical V1 remains 32%. See
+  [OT-069 evidence](../tests/hardware/OT-069-2026-08-17.md).
+
 ### OT-068 inactive Heltec authorization NVS backend
 
 - Added one target-local ESP-IDF NVS adapter for the exact OT-067 protected-KV

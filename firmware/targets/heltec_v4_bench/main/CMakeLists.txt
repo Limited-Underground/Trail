@@ -8,6 +8,7 @@ idf_component_register(
         "companion_nimble_runtime.cpp"
         "companion_authorization_storage.cpp"
         "companion_authorization_nvs_backend.cpp"
+        "companion_authorization_nvs_context.cpp"
         "heltec_startup_display.cpp"
         "heltec_v4_oled.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_protocol.cpp"

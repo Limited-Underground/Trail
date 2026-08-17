@@ -474,6 +474,19 @@ runtime source includes or constructs it. The active layout has no `ot_auth`,
 NVS encryption remains disabled, and denied storage/GATT authorities remain
 unchanged.
 
+OT-069 adds the inactive owner for an exact, already provisioned context around
+that backend. It requires the fixed encrypted candidate partition, reads only
+existing security configuration, zeroes the temporary native configuration,
+secure-initializes only that partition, and opens only the fixed namespace.
+Any initialization/open ambiguity or reentry closes acquired resources in
+reverse order and publishes no backend. The owner has one attempt and no key
+generation/provisioning, default-NVS init, erase/reset/repair, retry, migration,
+eFuse, or logging surface. See
+[Decision 0014](decisions/0014-inactive-heltec-authorization-nvs-context.md).
+It is build-compiled but absent from runtime composition. Current configuration
+has neither the partition nor encryption/key selection and therefore returns
+before native I/O; denied authorities remain unchanged.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

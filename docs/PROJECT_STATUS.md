@@ -9,6 +9,24 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-069 adds one inactive target-local owner for the exact candidate encrypted
+NVS context. Ten strict lifecycle groups plus a separate disabled-configuration
+executable prove exact partition/config/open order, single-attempt behavior,
+temporary security-configuration zeroing, reverse cleanup, destructor cleanup,
+native ambiguity containment, reentry containment, and zero native I/O under
+the current configuration. Heltec target admission passes 9/9. Two pinned
+ESP-IDF v6.0.2 builds reproduce a 470,928-byte BIN with SHA-256
+`9D4EBCD8BB68183798BF47267252A1B2A94A114FACD16E8CF975AEBE43314EEF`.
+The owner and backend are build-compiled but no runtime source includes,
+constructs, opens, or injects them. The active partition table still has no
+`ot_auth`, encryption/key selection remains absent, and storage admission stays
+denied before native I/O. No provisioning, eFuse operation, rollback-floor
+selection, migration, bond persistence, pairing, GATT authorization, Ready,
+firmware write, or physical device change occurred. Historical V1 remains
+31.75% and displays as 32%; current release tracks remain unmeasured. See
+[Decision 0014](decisions/0014-inactive-heltec-authorization-nvs-context.md)
+and [OT-069](../tests/hardware/OT-069-2026-08-17.md).
+
 OT-068 adds one inactive target-local ESP-IDF NVS implementation of OT-067's
 exact protected-KV backend. It accepts only an already-opened `nvs_handle_t`,
 revalidates `ot_auth` / `ot_owner` / `oap_slot_a|b` and exact 32-byte values,

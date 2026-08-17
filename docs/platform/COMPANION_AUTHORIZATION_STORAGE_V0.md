@@ -180,3 +180,20 @@ floor, bond, pairing, authorization, Ready, device write, or physical storage
 evidence is added. See
 [Decision 0013](../decisions/0013-inactive-heltec-authorization-nvs-backend.md)
 and [OT-068 evidence](../../tests/hardware/OT-068-2026-08-17.md).
+
+## OT-069 inactive existing-context owner
+
+OT-069 adds the target-local lifecycle above OT-068. It admits only the fixed
+encrypted candidate partition and namespace, consumes an existing security
+configuration, zeroes the temporary native structure immediately after secure
+initialization is invoked, and exposes the backend only after exact success.
+Native ambiguity or reentry releases acquired resources and latches closed.
+Normal destruction closes the handle before partition deinitialization.
+
+Ten strict groups plus a disabled-configuration zero-I/O executable pass, as
+do nine target-admission groups and two reproducible target builds. This owner
+is not runtime-injected. The active layout/configuration cannot satisfy its
+preconditions, and no key, floor, bond, pairing, authorization, Ready, device
+write, or physical storage evidence is added. See
+[Decision 0014](../decisions/0014-inactive-heltec-authorization-nvs-context.md)
+and [OT-069 evidence](../../tests/hardware/OT-069-2026-08-17.md).

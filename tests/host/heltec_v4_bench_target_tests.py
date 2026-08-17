@@ -47,6 +47,10 @@ AUTHORIZATION_NVS_BACKEND_HEADER = (
     TARGET / "main" / "companion_authorization_nvs_backend.hpp")
 AUTHORIZATION_NVS_BACKEND = (
     TARGET / "main" / "companion_authorization_nvs_backend.cpp")
+AUTHORIZATION_NVS_CONTEXT_HEADER = (
+    TARGET / "main" / "companion_authorization_nvs_context.hpp")
+AUTHORIZATION_NVS_CONTEXT = (
+    TARGET / "main" / "companion_authorization_nvs_context.cpp")
 MAIN_CMAKE = TARGET / "main" / "CMakeLists.txt"
 COMPANION_SOURCES = (
     ROOT / "firmware" / "components" / "companion" / "src" /
@@ -83,6 +87,8 @@ def test_contract() -> None:
         "main/companion_authorization_storage.hpp",
         "main/companion_authorization_nvs_backend.cpp",
         "main/companion_authorization_nvs_backend.hpp",
+        "main/companion_authorization_nvs_context.cpp",
+        "main/companion_authorization_nvs_context.hpp",
         "main/companion_nimble_gatt.cpp",
         "main/companion_nimble_gatt.hpp",
         "main/companion_nimble_runtime.cpp",
@@ -213,6 +219,7 @@ def test_contract() -> None:
         "companion_authorization_storage_preflight_build_linked",
         "companion_authorization_storage_read_only_probe_build_linked",
         "companion_authorization_nvs_backend_build_compiled",
+        "companion_authorization_nvs_context_build_compiled",
         "nimble_runtime_owner_build_linked",
         "nimble_runtime_startup_coded",
         "private_service_advertising_coded",
@@ -257,6 +264,9 @@ def test_contract() -> None:
     require(capabilities[
         "companion_authorization_nvs_backend_build_compiled"] is True,
             "dormant authorization NVS backend compilation must be admitted")
+    require(capabilities[
+        "companion_authorization_nvs_context_build_compiled"] is True,
+            "dormant authorization NVS context compilation must be admitted")
     require(capabilities["nimble_runtime_owner_build_linked"] is True and
             capabilities["nimble_runtime_startup_coded"] is True and
             capabilities["private_service_advertising_coded"] is True,
@@ -697,6 +707,52 @@ def test_authorization_nvs_backend_surface() -> None:
             "nvs_flash" in cmake,
             "inactive NVS backend and protected-KV media must be build-compiled")
 
+    context_header = AUTHORIZATION_NVS_CONTEXT_HEADER.read_text(encoding="utf-8")
+    context_source = AUTHORIZATION_NVS_CONTEXT.read_text(encoding="utf-8")
+    for required in (
+        "EspIdfCompanionAuthorizationNvsContext",
+        "open_existing", "close", "backend", "snapshot",
+        "kAuthorizationPartition[] = \"ot_auth\"",
+        "kAuthorizationNamespace[] = \"ot_owner\"",
+        "kAuthorizationOffset = 0x00F00000U",
+        "kAuthorizationSize = 0x00010000U",
+        "NVS_READWRITE", "exact_security_configuration_selected",
+        "nvs_flash_get_default_security_scheme",
+        "nvs_flash_read_security_cfg_v2",
+        "nvs_flash_secure_init_partition",
+        "nvs_open_from_partition",
+        "secure_zero(&security_configuration",
+        "return fail_uncertain()",
+    ):
+        require(required in context_header + "\n" + context_source,
+                f"missing fail-closed authorization NVS context: {required}")
+    for forbidden in (
+        "nvs_flash_init(", "nvs_flash_generate_keys", "nvs_erase_",
+        "esp_efuse", "esp_hmac", "provision", "ESP_LOG", "printf(",
+        "puts(", "std::cout", "Serial.",
+    ):
+        require(forbidden not in context_source,
+                f"inactive NVS context gained forbidden authority: {forbidden}")
+    public_context = context_header.split(
+        "class EspIdfCompanionAuthorizationNvsContext", 1)[1]
+    require("erase" not in public_context and "reset" not in public_context and
+            "retry" not in public_context,
+            "public NVS context must expose no erase/reset/retry authority")
+    configured_gate = context_source.index(
+        "if (!exact_security_configuration_selected())")
+    partition_find = context_source.index("esp_partition_find_first(")
+    security_read = context_source.index("nvs_flash_read_security_cfg_v2(")
+    secure_init = context_source.index("nvs_flash_secure_init_partition(")
+    zero_after_init = context_source.index(
+        "secure_zero(&security_configuration", secure_init)
+    namespace_open = context_source.index("nvs_open_from_partition(")
+    require(configured_gate < partition_find < security_read < secure_init <
+            zero_after_init < namespace_open,
+            "context must gate, read existing config, zero it, then open exactly")
+    require("EspIdfCompanionAuthorizationNvsContext" not in runtime_sources and
+            "companion_authorization_nvs_context.hpp" not in runtime_sources,
+            "inactive NVS context must not enter target runtime composition")
+
 
 def test_display_surface() -> None:
     source = SOURCE.read_text(encoding="utf-8")
@@ -1096,6 +1152,7 @@ def test_application_surface() -> None:
         "companion/src/companion_authorization_persistence.cpp",
         "companion/src/companion_authorization_protected_kv_media.cpp",
         "companion_authorization_nvs_backend.cpp",
+        "companion_authorization_nvs_context.cpp",
         "companion/src/companion_ble_runtime_owner.cpp",
         "companion_authorization_storage.cpp",
         "companion_boot_self_check.cpp",
@@ -1109,8 +1166,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 19,
-            "target source set must remain eight target and eleven companion sources")
+    require(cmake.count('.cpp"') == 20,
+            "target source set must remain nine target and eleven companion sources")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "efuse", "esp_partition", "esp_security",
@@ -1278,6 +1335,8 @@ def test_build_only_tooling() -> None:
             "build evidence must preserve closed protected-storage admission")
     require("companion_authorization_nvs_backend = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'" in script,
             "build evidence must distinguish compilation from runtime injection")
+    require("companion_authorization_nvs_context = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'" in script,
+            "build evidence must keep the context owner outside runtime")
     require("companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'" in script and
             "companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny GATT/runtime execution evidence")
@@ -1312,8 +1371,9 @@ def test_build_only_tooling() -> None:
             "companion_ble_runtime_owner.cpp.obj" in script,
             "build helper must verify runtime objects in the link map")
     require("companion_authorization_nvs_backend.cpp.obj" in script and
-            "companion_authorization_protected_kv_media.cpp.obj" in script,
-            "build helper must verify both inactive backend objects were compiled")
+            "companion_authorization_protected_kv_media.cpp.obj" in script and
+            "companion_authorization_nvs_context.cpp.obj" in script,
+            "build helper must verify all inactive storage objects were compiled")
     require("protected_nvs = 'NOT-INITIALIZED-NOT-VERIFIED'" in script and
             "private_bond_store = 'NOT-IMPLEMENTED'" in script and
             "binding_prf_key = 'NOT-PROVISIONED-NOT-VERIFIED'" in script and

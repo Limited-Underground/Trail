@@ -218,6 +218,29 @@ $builds = @(
         )
     },
     @{
+        Name = 'Heltec companion authorization NVS context owner'
+        Output = Join-Path $buildDirectory 'companion_authorization_nvs_context_tests.exe'
+        Sources = @(
+            '-I',
+            (Join-Path $projectRoot 'tests\host\ot069_esp_idf'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_authorization_nvs_backend.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_authorization_nvs_context.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_nvs_context_tests.cpp')
+        )
+    },
+    @{
+        Name = 'Heltec companion authorization NVS disabled preflight'
+        Output = Join-Path $buildDirectory 'companion_authorization_nvs_context_disabled_tests.exe'
+        Sources = @(
+            '-DOT069_SECURITY_CONFIG_DISABLED=1',
+            '-I',
+            (Join-Path $projectRoot 'tests\host\ot069_esp_idf'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_authorization_nvs_backend.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_authorization_nvs_context.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_nvs_context_disabled_tests.cpp')
+        )
+    },
+    @{
         Name = 'private bond GATT authority composition'
         Output = Join-Path $buildDirectory 'companion_gatt_authority_composition_tests.exe'
         Sources = @(

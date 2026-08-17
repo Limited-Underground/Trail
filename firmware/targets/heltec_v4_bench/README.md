@@ -192,6 +192,19 @@ it was not flashed. See
 [Decision 0013](../../../docs/decisions/0013-inactive-heltec-authorization-nvs-backend.md)
 and [OT-068 evidence](../../../tests/hardware/OT-068-2026-08-17.md).
 
+OT-069 adds an inactive target-local owner for opening the exact candidate
+protected-NVS context around that backend. It consumes existing configuration
+only, zeroes its temporary native configuration, performs one exact open
+attempt, and fail-closes ambiguous initialization/open/cleanup and reentry.
+Ten strict lifecycle groups, the disabled-configuration zero-I/O check, nine
+target-admission groups, and two reproducible target builds pass. The new
+build-only BIN is 470,928 bytes with SHA-256
+`9D4EBCD8BB68183798BF47267252A1B2A94A114FACD16E8CF975AEBE43314EEF`.
+The owner is not runtime-injected; active partitions/sdkconfig/runtime/device
+state remain unchanged. See
+[Decision 0014](../../../docs/decisions/0014-inactive-heltec-authorization-nvs-context.md)
+and [OT-069 evidence](../../../tests/hardware/OT-069-2026-08-17.md).
+
 ## Deliberately absent
 
 - SX1262 or other radio initialization and transmission

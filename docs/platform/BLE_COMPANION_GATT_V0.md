@@ -516,3 +516,17 @@ the denied storage preflight continues to close connection attempts before
 normal GATT operation. No bond, authorization, or Ready state is added. See
 [Decision 0013](../decisions/0013-inactive-heltec-authorization-nvs-backend.md)
 and [OT-068 evidence](../../tests/hardware/OT-068-2026-08-17.md).
+
+## OT-069 inactive protected-NVS context owner
+
+OT-069 build-compiles the exact lifecycle needed to consume an already
+provisioned encrypted `ot_auth` context and open `ot_owner` around OT-068. The
+owner has a single attempt, zeroes temporary security configuration, closes
+ambiguous resources in reverse order, and exposes no backend on failure.
+
+No runtime source includes or constructs it. Active configuration still fails
+before native storage I/O; denied binding and authorization authorities and
+immediate connection containment remain unchanged. This is not bond, pairing,
+GATT authorization, Ready, or physical storage evidence. See
+[Decision 0014](../decisions/0014-inactive-heltec-authorization-nvs-context.md)
+and [OT-069 evidence](../../tests/hardware/OT-069-2026-08-17.md).
