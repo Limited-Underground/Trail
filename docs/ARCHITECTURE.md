@@ -461,6 +461,19 @@ initialization, erase/reset/repair path, encryption key, rollback provider,
 partition migration, private bond store, GATT authorization, Ready state, or
 physical evidence.
 
+OT-068 adds the target-local ESP-IDF implementation of that exact blob backend.
+It receives an already-opened NVS handle, repeats the fixed partition/namespace/
+key and 32-byte checks, queries size before an exact read, stages one exact
+value, and commits separately. Missing keys remain absent; malformed sizes and
+native ambiguity publish no record. The adapter exposes no initialization,
+open/close, erase/reset/repair, retry, provisioning, eFuse, device, or logging
+surface. See
+[Decision 0013](decisions/0013-inactive-heltec-authorization-nvs-backend.md).
+The real target toolchain compiles the adapter and OT-067 media object, but no
+runtime source includes or constructs it. The active layout has no `ot_auth`,
+NVS encryption remains disabled, and denied storage/GATT authorities remain
+unchanged.
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

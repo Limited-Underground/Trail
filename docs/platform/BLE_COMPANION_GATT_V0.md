@@ -501,3 +501,18 @@ keys, implement the rollback floor, or enter the Heltec runtime. Pairing,
 authorization, and Ready remain denied. See
 [Decision 0012](../decisions/0012-protected-authorization-kv-slot-media.md)
 and [OT-067 evidence](../../tests/hardware/OT-067-2026-08-17.md).
+
+## OT-068 inactive Heltec authorization NVS backend
+
+OT-068 implements the exact OT-067 blob API against ESP-IDF NVS for the Heltec
+target. The adapter receives an already-opened handle, validates the fixed
+candidate names and exact 32-byte size, queries size before one exact read,
+and treats every invoked write/commit failure as uncertain.
+
+The target component compiles the backend and common slot media against
+`nvs_flash`, but the runtime neither includes nor constructs the backend. The
+active partition table has no `ot_auth`, NVS encryption remains disabled, and
+the denied storage preflight continues to close connection attempts before
+normal GATT operation. No bond, authorization, or Ready state is added. See
+[Decision 0013](../decisions/0013-inactive-heltec-authorization-nvs-backend.md)
+and [OT-068 evidence](../../tests/hardware/OT-068-2026-08-17.md).

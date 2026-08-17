@@ -208,6 +208,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'Heltec companion authorization NVS backend'
+        Output = Join-Path $buildDirectory 'companion_authorization_nvs_backend_tests.exe'
+        Sources = @(
+            '-I',
+            (Join-Path $projectRoot 'tests\host\ot068_esp_idf'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_authorization_nvs_backend.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_nvs_backend_tests.cpp')
+        )
+    },
+    @{
         Name = 'private bond GATT authority composition'
         Output = Join-Path $buildDirectory 'companion_gatt_authority_composition_tests.exe'
         Sources = @(

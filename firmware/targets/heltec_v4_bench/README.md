@@ -174,13 +174,23 @@ or Ready state is enabled. See
 and [OT-066 evidence](../../../tests/hardware/OT-066-2026-08-17.md).
 
 OT-067 adds a target-neutral exact key/value slot-media adapter for the inactive
-`ot_auth` candidate. It is host-tested only and is not linked or instantiated
-by this target. The adapter owns neither NVS initialization nor a native handle,
-and it provides no erase, repair, provisioning, rollback-floor, bond, or GATT
-authority. The active partition table, sdkconfig, runtime, image, and physical
-device remain unchanged. See
+`ot_auth` candidate. OT-068 now compiles that common adapter plus a target-local
+ESP-IDF NVS backend into the Heltec component, but neither is instantiated by
+the runtime. The target adapter accepts only an already-opened handle and owns
+neither NVS initialization/open/close nor erase, repair, retry, provisioning,
+rollback-floor, bond, or GATT authority. The active partition table, sdkconfig,
+runtime behavior, installed image, and physical device remain unchanged. See
 [Decision 0012](../../../docs/decisions/0012-protected-authorization-kv-slot-media.md)
 and [OT-067 evidence](../../../tests/hardware/OT-067-2026-08-17.md).
+
+Eight strict target-backend groups, the ten-group KV-media regression, nine
+target-admission groups, and two reproducible pinned builds pass. The generated
+evidence records `BUILD-COMPILED-NOT-RUNTIME-INJECTED`. The new build-only BIN
+is 470,928 bytes with SHA-256
+`9F5AFB320A015E3BFFD866A9EE31F76198739521FA7519845ACDA12B9B52BAE5`;
+it was not flashed. See
+[Decision 0013](../../../docs/decisions/0013-inactive-heltec-authorization-nvs-backend.md)
+and [OT-068 evidence](../../../tests/hardware/OT-068-2026-08-17.md).
 
 ## Deliberately absent
 

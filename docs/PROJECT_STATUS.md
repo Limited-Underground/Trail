@@ -9,6 +9,23 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-068 adds one inactive target-local ESP-IDF NVS implementation of OT-067's
+exact protected-KV backend. It accepts only an already-opened `nvs_handle_t`,
+revalidates `ot_auth` / `ot_owner` / `oap_slot_a|b` and exact 32-byte values,
+and exposes only size-query/read, set, and commit. Eight strict backend groups,
+the unchanged ten-group slot-media regression, and nine target-admission groups
+pass. Two pinned ESP-IDF v6.0.2 builds reproduce a 470,928-byte BIN with SHA-256
+`9F5AFB320A015E3BFFD866A9EE31F76198739521FA7519845ACDA12B9B52BAE5`.
+Both inactive backend objects are build-compiled, but no runtime source includes
+or constructs the adapter. The active partition table still has no `ot_auth`,
+NVS encryption remains disabled, and storage admission stays denied before any
+backend operation. No initialization/open, key provisioning, eFuse operation,
+rollback-floor selection, bond persistence, pairing, GATT authorization, Ready,
+firmware write, or physical device change occurred. Historical V1 stays 31.75%
+and displays as 32%; V1 Companion and V2 Integrated remain unmeasured. See
+[Decision 0013](decisions/0013-inactive-heltec-authorization-nvs-backend.md)
+and [OT-068](../tests/hardware/OT-068-2026-08-17.md).
+
 OT-067 adds the reversible key/value media layer beneath the accepted two-slot
 authorization coordinator. Ten strict groups prove exact `ot_auth` partition,
 `ot_owner` namespace, and `oap_slot_a|b` key binding; exact 32-byte values;

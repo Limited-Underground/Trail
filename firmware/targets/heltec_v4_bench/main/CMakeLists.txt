@@ -7,6 +7,7 @@ idf_component_register(
         "companion_nimble_gatt.cpp"
         "companion_nimble_runtime.cpp"
         "companion_authorization_storage.cpp"
+        "companion_authorization_nvs_backend.cpp"
         "heltec_startup_display.cpp"
         "heltec_v4_oled.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_protocol.cpp"
@@ -18,6 +19,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_gatt_authorization_adapter.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_authorization.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_authorization_persistence.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_authorization_protected_kv_media.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_ble_runtime_owner.cpp"
     INCLUDE_DIRS
         "."
@@ -33,4 +35,5 @@ idf_component_register(
         esp_driver_gpio
         esp_driver_i2c
         esp_lcd
+        nvs_flash
 )

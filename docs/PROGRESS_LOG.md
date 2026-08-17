@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-068 inactive Heltec authorization NVS backend
+
+- Added one target-local ESP-IDF NVS adapter for the exact OT-067 protected-KV
+  slot contract. It accepts only an already-opened handle and exposes exact
+  get/set/commit behavior; it cannot initialize, open, erase, reset, retry,
+  provision, or log.
+- Eight strict backend groups, the unchanged ten-group slot-media regression,
+  and nine target-admission groups pass. Two pinned ESP-IDF v6.0.2 builds
+  reproduce the same 470,928-byte BIN with SHA-256
+  `9F5AFB320A015E3BFFD866A9EE31F76198739521FA7519845ACDA12B9B52BAE5`.
+- The adapter is build-compiled but not runtime-injected. The active partition,
+  sdkconfig, denied authorities, installed firmware, and physical device remain
+  unchanged. Historical V1 remains 32%. See
+  [OT-068 evidence](../tests/hardware/OT-068-2026-08-17.md).
+
 ### OT-067 protected authorization KV slot media
 
 - Added one exact key/value record-media adapter for the two accepted

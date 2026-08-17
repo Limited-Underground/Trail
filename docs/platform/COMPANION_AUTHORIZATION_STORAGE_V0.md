@@ -154,3 +154,29 @@ migration path, reset/recovery procedure, eFuse operation, physical write,
 GATT authorization, or Ready state is selected or authorized. See
 [Decision 0010](../decisions/0010-reversible-companion-protected-storage-foundation.md)
 and [OT-065 evidence](../../tests/hardware/OT-065-2026-08-17.md).
+
+## OT-067 exact protected KV slot media
+
+OT-067 binds the two record slots to injected exact key/value operations using
+only `ot_auth` / `ot_owner` / `oap_slot_a|b`. Present values are exactly 32
+bytes, missing values are absent, and staging requires a separate commit. The
+adapter publishes no bytes after malformed reads, reentry, or ambiguous writes.
+The existing two-slot coordinator retains reread and rollback-floor authority.
+See [Decision 0012](../decisions/0012-protected-authorization-kv-slot-media.md)
+and [OT-067 evidence](../../tests/hardware/OT-067-2026-08-17.md).
+
+## OT-068 inactive ESP-IDF NVS binding
+
+OT-068 adds a target-local ESP-IDF implementation of that exact blob backend.
+It accepts an already-opened handle and exposes only get/set/commit. Eight
+strict groups prove exact binding, size, missing-value, error, write, commit,
+and ambiguity behavior; the ten-group slot-media regression remains green.
+Two target builds reproduce the same 470,928-byte BIN with SHA-256
+`9F5AFB320A015E3BFFD866A9EE31F76198739521FA7519845ACDA12B9B52BAE5`.
+
+This is compilation evidence only. No runtime source constructs the backend;
+the active target still has no `ot_auth` partition or NVS encryption. No key,
+floor, bond, pairing, authorization, Ready, device write, or physical storage
+evidence is added. See
+[Decision 0013](../decisions/0013-inactive-heltec-authorization-nvs-backend.md)
+and [OT-068 evidence](../../tests/hardware/OT-068-2026-08-17.md).
