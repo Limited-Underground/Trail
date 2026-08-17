@@ -9,6 +9,21 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-074 accepts the exact protected-storage source prerequisite on
+`OT-DEV-001`. One bounded read-only operation matched the installed 3,072-byte
+partition table and verified that the complete 1 MiB source region was all
+`0xFF`, returning only `OTPSTE1/v0` / `SOURCE-PROOF-SATISFIED-ONLY`. No raw
+bytes, paths, port, device identifier, private operation/evidence identity, or
+detailed transport output was retained, and the temporary executor and
+bytecode were deleted with cleanup verified. After manual RST, the owner
+observed the Trail logo followed by `BLE ADVERTISING`. This satisfies only the
+OT-070 source prerequisite; it does not authorize a partition transition or
+prove protected NVS, key roles, an independent rollback floor, bond
+persistence, GATT authorization, Ready, LoRa, or GNSS. Historical standalone
+progress remains exact 31.75%/displayed 32%; V1 Companion remains exact
+39.75%/displayed 40%. See
+[OT-074](../tests/hardware/OT-074-2026-08-17.md).
+
 OT-073 records one owner-authorized, one-use read-only source-proof attempt on
 `OT-DEV-001`. The audited executor used esptool 5.3.1, one no-reset ROM
 connection attempt, no RAM stub, and only the two OT-071 allowlisted ranges.
@@ -62,7 +77,7 @@ also pass. The guard requires exact installed-layout readback, blank source
 media or a separately implemented and verified semantic migration, exact
 recovery artifacts and ROM route, no runtime/key/eFuse/other-flash operation,
 and one operation-scoped partition-only authority. It performs no I/O.
-The current target manifest remains denied: source evidence is not captured,
+At OT-070, the target manifest remained denied because source evidence had not been captured;
 all capabilities and authorities are false, and the active partition table,
 sdkconfig, target contract, CMake, runtime, installed image, and physical device
 are unchanged. No transition, migration, rollback floor, key, eFuse, pairing,

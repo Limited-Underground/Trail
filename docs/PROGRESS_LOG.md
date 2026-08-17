@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-074 protected-storage source proof
+
+- A bounded read-only operation matched the exact installed 3,072-byte
+  partition table and verified that the complete 1 MiB protected-storage
+  source region was all `0xFF`.
+- The fixed result was `OTPSTE1/v0` / `SOURCE-PROOF-SATISFIED-ONLY`. No raw
+  bytes, paths, port, device identifier, private operation/evidence identity,
+  or detailed transport output was retained; the temporary executor and
+  bytecode were deleted with cleanup verified.
+- After manual RST, the owner observed the Trail logo followed by
+  `BLE ADVERTISING`. This satisfies only OT-070's source prerequisite and does
+  not authorize a partition transition or protected runtime. V1 Companion
+  remains 40%. See
+  [OT-074 evidence](../tests/hardware/OT-074-2026-08-17.md).
+
 ### OT-073 protected-storage source-read attempt
 
 - Consumed one owner-authorized, one-use OT-DEV-001 read-only attempt using
