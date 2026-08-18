@@ -275,3 +275,16 @@ no device access, allocation, provider admission, provisioning, eFuse write, or
 runtime authority. OT-079 includes no device reader. See
 [Decision 0022](../decisions/0022-read-only-protected-root-inventory-admission.md)
 and [OT-079 evidence](../../tests/hardware/OT-079-2026-08-18.md).
+## OT-080 offline protected-root reader route
+
+OT-080 rejects the reviewed host Python eFuse route because it materializes raw
+key blocks. The accepted pure route contract pins ESP-IDF 6.0.2 and permits only
+five decoded key-purpose, protection, and unused-state APIs in a future audited
+target-side adapter. Raw key/block reads, HMAC operations, writes, burns,
+protection changes, and unlisted APIs fail closed.
+
+No adapter exists and no floor descriptor has been selected, so device execution
+and floor reads remain unavailable. The route grants no device, deployment,
+read, write, provisioning, provider, or runtime authority. See
+[Decision 0023](../decisions/0023-offline-protected-root-inventory-reader-route.md)
+and [OT-080 evidence](../../tests/hardware/OT-080-2026-08-18.md).

@@ -9,6 +9,18 @@ Status date: 2026-08-18
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-080 rejects host-side Python eFuse inventory because the reviewed path
+materializes raw key blocks in host memory. It accepts only a pure offline
+contract for a future audited target-side ESP-IDF 6.0.2 metadata adapter using
+five decoded key-purpose, protection, and unused-state APIs. Raw key/block
+reads, HMAC operations, writes, burns, protection changes, and every unlisted
+API remain denied. No adapter exists, the rollback-floor descriptor and
+physical read remain unavailable, no hardware was accessed, and every
+deployment, device-read, provisioning, provider, and runtime authority remains
+false. Milestone completion is unchanged. See
+[OT-080](../tests/hardware/OT-080-2026-08-18.md) and
+[Decision 0023](decisions/0023-offline-protected-root-inventory-reader-route.md).
+
 OT-079 accepts an offline-only protected-root inventory plan and pure supplied-
 evidence verifier. A future inventory must supply one fresh, privately bound,
 complete six-slot key roster, configured-NVS conflict state, complete candidate

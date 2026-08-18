@@ -374,3 +374,10 @@ allocations remain absent, and every physical/read/write/eFuse/runtime authority
 remains false. See
 [Decision 0022](../../../docs/decisions/0022-read-only-protected-root-inventory-admission.md)
 and [OT-079 evidence](../../../tests/hardware/OT-079-2026-08-18.md).
+OT-080 rejects host-side Python eFuse inventory because it materializes raw key
+blocks, then accepts only an offline contract for a future target-side ESP-IDF
+decoded-metadata adapter. No adapter exists, the rollback-floor descriptor and
+read remain unavailable, no device was accessed, and every deployment/read/
+write/eFuse/provisioning/runtime authority remains false. See
+[Decision 0023](../../../docs/decisions/0023-offline-protected-root-inventory-reader-route.md)
+and [OT-080 evidence](../../../tests/hardware/OT-080-2026-08-18.md).

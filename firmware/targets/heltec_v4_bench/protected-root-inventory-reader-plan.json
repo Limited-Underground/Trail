@@ -1,0 +1,247 @@
+{
+  "schema": "OTPRR0/v0",
+  "route_id": "OTPRR0/v0/esp32s3-esp-idf-6.0.2-metadata-adapter",
+  "plan_id": "OT-080",
+  "target": "heltec_v4_bench",
+  "device_family": "ESP32-S3",
+  "status": "OFFLINE_ROUTE_ACCEPTED",
+  "execution_status": "UNAUTHORIZED",
+  "reader_present": false,
+  "purpose": "Reject unsafe host-side eFuse materialization and freeze a target-side decoded-metadata adapter boundary without providing a reader or authority to access a device.",
+  "accepted_target_side_route": {
+    "execution_model": "TARGET_SIDE_ESP_IDF_IN_PROCESS_METADATA_ADAPTER",
+    "esp_idf_version": "6.0.2",
+    "implementation_present": false,
+    "direct_in_process_only": true,
+    "shell_permitted": false,
+    "subprocess_permitted": false,
+    "external_command_permitted": false,
+    "accepted_source_files": [
+      {
+        "logical_path": "components/efuse/src/efuse_controller/keys/with_key_purposes/esp_efuse_api_key.c",
+        "sha256": "CD6C5462CB1B2ADFE7735915810461EDE96ECF0B830A0761E4CAF2E6CB982C73"
+      },
+      {
+        "logical_path": "components/efuse/src/esp_efuse_api.c",
+        "sha256": "66A12FA28B11642385C54A249CEC8EBEE139BF7A5BF562B9D5AFF29A3B8CF3F4"
+      },
+      {
+        "logical_path": "components/efuse/esp32s3/esp_efuse_table.csv",
+        "sha256": "0B22F89D2B0F7EE315046DE5108C1DDDA8F46BB451985C7F66EB753301BFA69E"
+      },
+      {
+        "logical_path": "components/efuse/include/esp_efuse.h",
+        "sha256": "4D488D3F2A75F0E55B903410987E08DCBAA550E11344032E93B315BEC87648A7"
+      },
+      {
+        "logical_path": "components/efuse/esp32s3/include/esp_efuse_chip.h",
+        "sha256": "B5299EE67627C912C5E7A0E4A908D1678FD0D2F12D5AFD7A58D849FC1BADAA30"
+      }
+    ],
+    "allowed_decoded_read_only_apis": [
+      "esp_efuse_get_key_purpose",
+      "esp_efuse_get_key_dis_read",
+      "esp_efuse_get_key_dis_write",
+      "esp_efuse_get_keypurpose_dis_write",
+      "esp_efuse_key_block_unused"
+    ]
+  },
+  "rejected_host_routes": [
+    {
+      "route": "PYTHON_ESPEFUSE_ESPEFUSES",
+      "esp_idf_version": "6.0.2",
+      "esptool_espefuse_version": "5.3.1",
+      "status": "REJECTED",
+      "reason": "Official EspEfuses reads and materializes all eFuse blocks, including KEY0 through KEY5 raw bytes, in host memory and can emit raw values; this violates the bounded normalized-metadata and key-custody boundary.",
+      "audited_source_files": [
+        {
+          "logical_path": "components/esptool_py/esptool/espefuse.py",
+          "sha256": "25699BEB3CB85893BA3E64CD77509AA54DCA9133FC10A40187FB91612DE6620A"
+        },
+        {
+          "logical_path": "esptool/loader.py",
+          "sha256": "76DD375F208B0FE142DEEF06C5FED8CFA462E194296988E404C9ED5F9CB656EF"
+        },
+        {
+          "logical_path": "esptool/targets/esp32s3.py",
+          "sha256": "322E93876291369CDA9275FFCF207D32EE9C0F5DC1F4BBA1159291C5F2B106F8"
+        },
+        {
+          "logical_path": "espefuse/efuse/base_fields.py",
+          "sha256": "23A6ED6415CDC8EF9AF366B1BE08B26EF3C94514DDECA3D14AA5DAD9B5A5FF97"
+        },
+        {
+          "logical_path": "espefuse/efuse/esp32s3/fields.py",
+          "sha256": "7F0C4F18444028D39E0F715BC418A34040DD67441418094D847F943B401541D7"
+        },
+        {
+          "logical_path": "espefuse/efuse/esp32s3/mem_definition.py",
+          "sha256": "5C65BBC0ED6629F1C74AB08E1035DA8114A5DEAF14698FE188E74A7B03FF8EAE"
+        }
+      ]
+    }
+  ],
+  "forbidden_surfaces": {
+    "host_python_espefuse": true,
+    "host_espefuse_full_summary": true,
+    "host_espefuse_json": true,
+    "host_raw_value": true,
+    "hmac_self_test": true,
+    "esp_efuse_get_key": true,
+    "esp_efuse_read_block_for_key_blocks": true,
+    "esp_efuse_read_field_blob_for_key_blocks": true,
+    "all_efuse_write_burn_or_protection_apis": true,
+    "raw_key_material": true,
+    "raw_block_content": true,
+    "raw_floor_bitmap": true
+  },
+  "future_connection_policy": {
+    "maximum_connections": 1,
+    "maximum_attempts": 1,
+    "connect_mode": "detecting",
+    "before_reset": "no_reset",
+    "after_reset": "no_reset",
+    "stub_permitted": false,
+    "retry_permitted": false,
+    "automatic_reset_permitted": false,
+    "manual_reset_permitted": false,
+    "boot_permitted": false,
+    "close_transport_on_every_exit": true,
+    "cleanup_may_mutate_device": false,
+    "policy_is_execution_authority": false
+  },
+  "normalized_private_metadata": {
+    "six_key_slots": {
+      "slot_count": 6,
+      "allowed_fields": [
+        "purpose_category",
+        "provisioned_state",
+        "unused_state",
+        "read_protection_state",
+        "write_protection_state",
+        "keypurpose_write_protection_state",
+        "reservation_state",
+        "conflict_category"
+      ],
+      "raw_key_material_permitted": false,
+      "raw_block_content_permitted": false
+    },
+    "nvs_protection": {
+      "allowed_fields": [
+        "provider_category",
+        "key_purpose_category",
+        "read_protection_state",
+        "write_protection_state",
+        "conflict_category"
+      ]
+    },
+    "rollback_floor": {
+      "allowed_fields": [
+        "provider_class",
+        "coding_scheme_category",
+        "availability_category",
+        "capacity_category",
+        "protection_category",
+        "conflict_category"
+      ],
+      "device_read_available": false,
+      "raw_bitmap_permitted": false,
+      "exact_descriptor_selected": false,
+      "efuse_block": null,
+      "first_bit": null,
+      "capacity_bits": null
+    },
+    "security_state": {
+      "allowed_fields": [
+        "secure_boot_state",
+        "flash_encryption_state",
+        "secure_download_state",
+        "download_restriction_category",
+        "debug_restriction_category",
+        "chip_family_category",
+        "chip_revision_category",
+        "coding_scheme_category",
+        "secure_version_category"
+      ],
+      "required_expected_state": {
+        "secure_boot_enabled": false,
+        "flash_encryption_enabled": false,
+        "secure_download_enabled": false
+      }
+    }
+  },
+  "privacy": {
+    "private_operation_evidence_required_for_future_execution": true,
+    "public_raw_key_material_permitted": false,
+    "public_raw_block_content_permitted": false,
+    "public_raw_bitmap_permitted": false,
+    "public_device_identifier_permitted": false,
+    "public_port_or_transport_identifier_permitted": false,
+    "public_operation_identifier_permitted": false,
+    "public_path_permitted": false,
+    "fixed_public_results": [
+      "OT-080 OFFLINE TARGET-SIDE READER ROUTE PASS — EXECUTION UNAUTHORIZED",
+      "PROTECTED-ROOT INVENTORY PENDING PRIVATE AUTHORIZATION",
+      "PROTECTED-ROOT INVENTORY DENIED"
+    ],
+    "route_sanitizer_results": [
+      "OFFLINE-METADATA-INTERFACE-ACCEPTED-EXECUTION-NOT-AUTHORIZED",
+      "DENY-READER-ROUTE"
+    ],
+    "sanitizer_is_fixed_and_fail_closed": true
+  },
+  "authority": {
+    "owner_authorized": false,
+    "reader_implementation_authorized": false,
+    "execution_authorized": false,
+    "device_access_authorized": false,
+    "connect_authorized": false,
+    "port_detection_authorized": false,
+    "reset_authorized": false,
+    "bootloader_entry_authorized": false,
+    "rom_command_authorized": false,
+    "security_metadata_read_authorized": false,
+    "key_metadata_read_authorized": false,
+    "efuse_read_authorized": false,
+    "raw_dump_authorized": false,
+    "key_material_read_authorized": false,
+    "efuse_write_authorized": false,
+    "efuse_burn_authorized": false,
+    "protection_change_authorized": false,
+    "field_selection_authorized": false,
+    "provider_admission_authorized": false,
+    "provisioning_authorized": false,
+    "runtime_integration_authorized": false
+  },
+  "operation_state": {
+    "commands_defined": false,
+    "attempts": 0,
+    "connections": 0,
+    "device_observed": false,
+    "unit_identifier": null,
+    "port_identifier": null,
+    "operation_identifier": null,
+    "private_output_path": null,
+    "public_output": "OT-080 OFFLINE TARGET-SIDE READER ROUTE PASS — EXECUTION UNAUTHORIZED"
+  },
+  "cleanup_contract": {
+    "close_transport_on_success": true,
+    "close_transport_on_denial": true,
+    "close_transport_on_error": true,
+    "reset_on_close": false,
+    "retry_on_close": false,
+    "delete_private_evidence_automatically": false,
+    "publish_private_evidence": false
+  },
+  "offline_assertions": {
+    "route_schema_accepted": true,
+    "accepted_source_identity_frozen": true,
+    "unsafe_host_route_rejected": true,
+    "reader_exists": false,
+    "execution_authorized": false,
+    "hardware_observed": false,
+    "runtime_changed": false,
+    "score_change_supported": false
+  },
+  "next_gate": "Implement and host-test a target-side adapter against synthetic metadata only; do not add device execution authority."
+}

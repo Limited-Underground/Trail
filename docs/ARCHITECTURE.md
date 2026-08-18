@@ -562,6 +562,14 @@ security-state expectation without calling a device or platform API. Complete
 unfavorable inventory remains valid for private review; the result cannot select
 an allocation, admit a provider, provision an eFuse, or activate runtime. See
 [Decision 0022](decisions/0022-read-only-protected-root-inventory-admission.md).
+OT-080 rejects host-side Python eFuse inventory because that route materializes
+raw key blocks in host memory. The accepted offline boundary instead requires a
+future audited target-side ESP-IDF metadata adapter restricted to five decoded
+key-purpose, protection, and unused-state APIs. It has no device, deployment,
+read, write, provisioning, provider, or runtime authority. No floor read is
+available until a separate exact non-secret descriptor is selected. See
+[Decision 0023](decisions/0023-offline-protected-root-inventory-reader-route.md).
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

@@ -104,6 +104,7 @@ def test_contract() -> None:
         "protected-storage-partitions.candidate.csv",
         "protected-storage-provider-plan.json",
         "protected-root-inventory-plan.json",
+        "protected-root-inventory-reader-plan.json",
         "protected-storage-provisioning-plan.json",
         "protected-storage-recovery-bundle-plan.json",
         "protected-storage-transition-read-plan.json",

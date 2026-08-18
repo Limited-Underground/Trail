@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-18
 
+### OT-080 offline protected-root reader-route admission
+
+- Rejected the host Python eFuse inventory path because it materializes raw key
+  blocks in host memory.
+- Accepted a pure target-side metadata-interface contract pinned to ESP-IDF
+  6.0.2 and five decoded key-purpose/protection/unused APIs. Raw key/block
+  reads, HMAC, writes, burns, protection changes, and unlisted APIs remain
+  denied.
+- No adapter was created, the floor descriptor and physical read remain
+  unavailable, no hardware was accessed, and every deployment/read/write/
+  provisioning/provider/runtime authority stays false. V1 completion is
+  unchanged. See [OT-080 evidence](../tests/hardware/OT-080-2026-08-18.md).
+
 ### OT-079 offline protected-root inventory admission
 
 - Accepted a pure, supplied-evidence inventory verifier and an exact offline

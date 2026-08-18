@@ -41,6 +41,11 @@ def test_exact_offline_boundary() -> None:
     require(plan["public_result"] ==
             "OTPRI0/v0/OFFLINE-PLAN-VERIFIER-PASS",
             "unexpected fixed offline public result")
+    require(plan["reader_route_plan"] ==
+            "protected-root-inventory-reader-plan.json" and
+            plan["reader_route_status"] ==
+            "OFFLINE_METADATA_INTERFACE_ACCEPTED_EXECUTION_UNAUTHORIZED",
+            "OT-080 reader route must be linked without execution authority")
     candidate = plan["candidate_provider"]
     require(candidate["provider_class"] ==
             "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
