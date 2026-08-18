@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-18
 
+### OT-079 offline protected-root inventory admission
+
+- Accepted a pure, supplied-evidence inventory verifier and an exact offline
+  plan for a possible later read-only ESP32-S3 protected-root inventory.
+- A complete future inventory must cover all six key slots, configured-NVS
+  conflict state, complete floor-candidate facts, cleanup, and the disabled
+  security-feature state required by OT-077. Complete unfavorable evidence is
+  reviewable but cannot select or admit a provider.
+- No reader was created, no device was accessed, all allocation fields remain
+  absent, and every read/write/eFuse/provisioning/runtime authority stays false.
+  V1 Companion remains 40%. See
+  [OT-079 evidence](../tests/hardware/OT-079-2026-08-18.md).
+
 ### OT-078 offline protected-root provider selection
 
 - Selected distinct ESP32-S3 `HMAC_UP` provider types for `ot_auth` NVS

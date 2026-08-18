@@ -51,7 +51,7 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target: its exact profile, physical boot and BLE advertisement, and target-local 128 x 64 startup/status OLED passed bounded write, verification, runtime, visual, and Android discovery gates. The exact installed partition table and complete blank protected-storage source region passed a bounded physical read-only proof, the exact installed application is privately retained as a verified recovery artifact, and one exact recovery route plus the protected-root provider classes are accepted offline without physical authority.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target: its exact profile, physical boot and BLE advertisement, and target-local 128 x 64 startup/status OLED passed bounded write, verification, runtime, visual, and Android discovery gates. The exact installed partition table and complete blank protected-storage source region passed a bounded physical read-only proof, the exact installed application is privately retained as a verified recovery artifact, and one exact recovery route, protected-root provider classes, and an offline-only complete-inventory verifier are accepted without physical allocation or authority.",
       "weight": 15,
       "completion": 25,
       "evidence_status": "Experimental physical target with startup/status OLED",
@@ -63,11 +63,12 @@
         "tests/hardware/OT-076-2026-08-17.md",
         "tests/hardware/OT-077-2026-08-18.md",
         "tests/hardware/OT-078-2026-08-18.md",
+        "tests/hardware/OT-079-2026-08-18.md",
         "tests/hardware/OT-074-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Privately inventory and select exact physical allocations for the two protected-key roles and conditional rollback floor, prove redundant private recovery-artifact custody, then obtain fresh unified evidence and separate physical-write authority before any transition; afterward prove physical recovery, protected owner storage, private bond authority, one bounded GATT authorization and Ready session, and real LoRa/GNSS plus interactive display/input before unit 2."
+      "next_gate": "Execute one separately authorized private read-only inventory, then review and select exact physical allocations for the two protected-key roles and conditional rollback floor; prove redundant private recovery-artifact custody, obtain fresh unified evidence and separate physical-write authority before any transition, then prove physical recovery, protected owner storage, private bond authority, one bounded GATT authorization and Ready session, and real LoRa/GNSS plus interactive display/input before unit 2."
     },
     {
       "id": "first-complete-unit",
@@ -139,12 +140,12 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical proof of the exact installed partition table plus complete blank protected-storage source region, a privately retained exact installed-application recovery artifact, and one exact recovery route plus the protected-root provider classes accepted offline without physical authority.",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical proof of the exact installed partition table plus complete blank protected-storage source region, a privately retained exact installed-application recovery artifact, and one exact recovery route, protected-root provider classes, and an offline-only complete-inventory verifier accepted without physical allocation or authority.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Experimental physical target",
-          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "hardware/INVENTORY.md"],
-          "next_gate": "Privately inventory and select exact physical allocations for the two protected-key roles and conditional rollback floor, prove redundant private recovery-artifact custody, then obtain fresh unified evidence and separate physical-write authority before any transition; afterward prove physical recovery, protected storage, private bond authority, GATT authorization and Ready, and bind LoRa and GNSS."
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "hardware/INVENTORY.md"],
+          "next_gate": "Execute one separately authorized private read-only inventory, then review and select exact physical allocations for the two protected-key roles and conditional rollback floor; prove redundant private recovery-artifact custody, obtain fresh unified evidence and separate physical-write authority before any transition, then prove physical recovery, protected storage, private bond authority, GATT authorization and Ready, and bind LoRa and GNSS."
         },
         {
           "id": "android-companion",
@@ -203,6 +204,12 @@
           "overall_exact": 39.75,
           "overall": 40,
           "reason": "Selected the two protected-key provider roles and a conditional custom user-eFuse thermometer floor class offline. Exact physical allocations, inventory, provisioning, recovery, fresh unified evidence, and every transition authority remain open, so no milestone completion changed."
+        },
+        {
+          "date": "2026-08-18",
+          "overall_exact": 39.75,
+          "overall": 40,
+          "reason": "Accepted the offline protected-root inventory plan and pure supplied-evidence verifier. No reader exists, no device inventory or allocation was observed, and every physical, provisioning, runtime, and transition authority remains closed, so no milestone completion changed."
         }
       ]
     },
@@ -277,6 +284,11 @@
       "date": "2026-08-18",
       "overall": 32,
       "reason": "Selected the two protected-key provider roles and a conditional custom user-eFuse thermometer floor class offline. Exact physical allocations, inventory, provisioning, recovery, fresh unified evidence, and every transition authority remain open, so the historical baseline is unchanged."
+    },
+    {
+      "date": "2026-08-18",
+      "overall": 32,
+      "reason": "Accepted the offline protected-root inventory plan and pure supplied-evidence verifier. No reader exists, no device inventory or allocation was observed, and every physical, provisioning, runtime, and transition authority remains closed, so the historical baseline is unchanged."
     }
   ]
 }

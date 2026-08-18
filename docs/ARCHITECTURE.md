@@ -554,6 +554,14 @@ reconciliation. Exact physical allocation, provisioning, runtime use, and
 production anti-tamper remain unproved. See
 [Decision 0020](decisions/0020-offline-exact-rom-recovery-route.md) and
 [Decision 0021](decisions/0021-offline-protected-root-provider-selection.md).
+
+OT-079 adds a target-neutral, supplied-evidence inventory boundary above those
+provider classes. It verifies completeness, freshness, one-operation binding,
+six-slot metadata, floor-candidate facts, cleanup, privacy, and the exact OT-077
+security-state expectation without calling a device or platform API. Complete
+unfavorable inventory remains valid for private review; the result cannot select
+an allocation, admit a provider, provision an eFuse, or activate runtime. See
+[Decision 0022](decisions/0022-read-only-protected-root-inventory-admission.md).
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

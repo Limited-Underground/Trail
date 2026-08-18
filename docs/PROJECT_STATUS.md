@@ -9,6 +9,18 @@ Status date: 2026-08-18
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-079 accepts an offline-only protected-root inventory plan and pure supplied-
+evidence verifier. A future inventory must supply one fresh, privately bound,
+complete six-slot key roster, configured-NVS conflict state, complete candidate
+floor map, and the exact disabled secure-boot, flash-encryption, and secure-
+download state expected by OT-077. Missing, contradictory, stale, mixed, or
+secret-bearing evidence denies. A complete but unfavorable inventory remains
+reviewable; it does not select or admit a provider. No reader exists, no device
+was accessed, all allocations remain absent, every physical/write/eFuse/runtime
+authority remains false, and milestone completion is unchanged. See
+[OT-079](../tests/hardware/OT-079-2026-08-18.md) and
+[Decision 0022](decisions/0022-read-only-protected-root-inventory-admission.md).
+
 OT-078 selects the protected-root provider classes offline. The NVS-encryption
 and private bond-binding roles each require a distinct ESP32-S3 `HMAC_UP` eFuse
 block; a future admission must prove exact provisioning, purpose, read

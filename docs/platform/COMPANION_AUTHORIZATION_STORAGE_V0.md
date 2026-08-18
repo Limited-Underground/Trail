@@ -258,3 +258,20 @@ Exact physical blocks, floor field, capacity, inventory, provisioning, runtime
 injection, and every key/eFuse/device authority remain absent. See
 [Decision 0021](../decisions/0021-offline-protected-root-provider-selection.md)
 and [OT-078 evidence](../../tests/hardware/OT-078-2026-08-18.md).
+
+## OT-079 offline protected-root inventory admission
+
+OT-079 defines the supplied-evidence boundary for a possible later private
+read-only inventory. The pure evaluator requires one fresh operation/evidence
+binding, a complete six-slot key roster with provisioning and protection facts,
+configured-NVS conflict state, complete candidate-floor facts, cleanup, and the
+disabled secure-boot, flash-encryption, and secure-download state required by
+OT-077. Unknown, incomplete, contradictory, stale, mixed, or secret-bearing
+evidence denies.
+
+A complete inventory may truthfully show that no viable allocation exists and
+still pass for private review. That result remains selection-pending and grants
+no device access, allocation, provider admission, provisioning, eFuse write, or
+runtime authority. OT-079 includes no device reader. See
+[Decision 0022](../decisions/0022-read-only-protected-root-inventory-admission.md)
+and [OT-079 evidence](../../tests/hardware/OT-079-2026-08-18.md).

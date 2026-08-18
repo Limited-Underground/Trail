@@ -4,6 +4,7 @@
   "as_of": "2026-08-18",
   "target": "heltec_v4_bench",
   "decision": "docs/decisions/0021-offline-protected-root-provider-selection.md",
+  "protected_root_inventory_plan": "protected-root-inventory-plan.json",
   "provider_type_selection": {
     "accepted_offline": true,
     "physical_provider_admitted": false,
@@ -71,6 +72,12 @@
     "esp32s3_secure_version": true,
     "ordinary_nvs_or_flash_counter": true,
     "external_secure_element": true
+  },
+  "protected_root_inventory": {
+    "offline_plan_and_verifier_accepted": true,
+    "device_inventory_observed": false,
+    "exact_allocations_selected": false,
+    "current_result": "DENY-DEVICE-INVENTORY-ABSENT"
   },
   "remaining_physical_gates": [
     "capture a private read-only eFuse inventory on the exact selected unit",

@@ -1,0 +1,127 @@
+{
+  "schema": "OTPRI0/v0",
+  "plan_id": "OT-079",
+  "target": "heltec_v4_bench",
+  "device_family": "ESP32-S3",
+  "status": "OFFLINE-PLAN-AND-VERIFIER-ACCEPTED-DEVICE-READ-AUTHORITY-ABSENT",
+  "public_result": "OTPRI0/v0/OFFLINE-PLAN-VERIFIER-PASS",
+  "purpose": "Define the evidence envelope and fail-closed rules for a possible future read-only protected-root inventory without granting authority to access a device.",
+  "candidate_provider": {
+    "provider_class": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
+    "efuse_block": null,
+    "first_bit": null,
+    "capacity_bits": null,
+    "inventory_observed": false,
+    "field_selected": false,
+    "provider_admitted": false,
+    "provider_active": false
+  },
+  "authority": {
+    "owner_authorized": false,
+    "device_access_authorized": false,
+    "connect_authorized": false,
+    "port_discovery_authorized": false,
+    "reset_authorized": false,
+    "bootloader_entry_authorized": false,
+    "rom_command_authorized": false,
+    "security_metadata_read_authorized": false,
+    "key_metadata_read_authorized": false,
+    "efuse_read_authorized": false,
+    "raw_dump_authorized": false,
+    "key_material_read_authorized": false,
+    "efuse_write_authorized": false,
+    "efuse_burn_authorized": false,
+    "protection_change_authorized": false,
+    "provider_admission_authorized": false,
+    "provisioning_authorized": false,
+    "runtime_integration_authorized": false
+  },
+  "execution_surface": {
+    "port": null,
+    "commands": [],
+    "attempts": 0,
+    "reader_present": false
+  },
+  "future_observation_envelope": {
+    "requires_fresh_owner_authorization": true,
+    "requires_single_operation_binding": true,
+    "requires_private_exact_unit_binding": true,
+    "requires_private_connection_binding": true,
+    "requires_tool_name_version_and_digest": true,
+    "requires_observation_time": true,
+    "requires_read_only_tooling": true,
+    "rejects_stale_or_cross_operation_evidence": true,
+    "required_facts": [
+      "chip_family_and_revision",
+      "efuse_coding_scheme",
+      "secure_boot_state",
+      "flash_encryption_state",
+      "secure_download_state",
+      "download_and_debug_restrictions",
+      "secure_version_state_and_capacity",
+      "efuse_block_purposes_and_coding",
+      "efuse_read_and_write_protections",
+      "hmac_and_key_block_purpose_metadata",
+      "custom_user_region_availability_and_conflicts",
+      "all_six_key_slots_purpose_provisioned_unused_and_protection_metadata",
+      "configured_nvs_binding_and_conflict_state",
+      "complete_floor_candidate_map_with_known_suitability_facts",
+      "reader_close_cleanup_and_single_attempt_evidence"
+    ],
+    "forbidden_collection": [
+      "secret_key_material",
+      "ble_pin",
+      "private_pairing_identity",
+      "authorization_secret",
+      "unbounded_raw_device_dump"
+    ]
+  },
+  "expected_security_state": {
+    "secure_boot_enabled": false,
+    "flash_encryption_enabled": false,
+    "secure_download_enabled": false,
+    "source": "OT-077 recovery-route admission",
+    "fresh_same_operation_observation_required_before_any_later_admission": true,
+    "unknown_or_mismatch_result": "DENY_AND_REQUIRE_NEW_DECISION"
+  },
+  "offline_verifier_contract": {
+    "input_is_supplied_evidence_only": true,
+    "device_io_permitted": false,
+    "command_execution_permitted": false,
+    "logging_api_permitted": false,
+    "missing_unknown_stale_or_mismatched_evidence_denies": true,
+    "raw_secret_presence_denies": true,
+    "complete_unfavorable_inventory_is_reviewable": true,
+    "pass_result": "PRIVATE-INVENTORY-CAPTURED-SELECTION-PENDING",
+    "deny_result": "DENY-INVENTORY",
+    "pass_does_not_select_field": true,
+    "pass_does_not_admit_provider": true,
+    "pass_does_not_authorize_write_or_provisioning": true
+  },
+  "privacy": {
+    "private_only": [
+      "port_or_transport_identity",
+      "chip_mac_or_unique_identifier",
+      "raw_efuse_output_or_bitmap",
+      "exact_unit_block_mapping",
+      "operation_journal"
+    ],
+    "public_output": [
+      "plan_id",
+      "offline_plan_result",
+      "fixed_sanitized_denial_or_admission_category"
+    ],
+    "public_exact_device_identifiers_permitted": false,
+    "public_raw_inventory_permitted": false
+  },
+  "initial_assertions": {
+    "hardware_observed": false,
+    "device_state_known": false,
+    "factory_state_known": false,
+    "allocation_known": false,
+    "irreversible_action_taken": false,
+    "runtime_changed": false,
+    "score_change_supported": false
+  },
+  "next_gate": "Obtain separate owner authorization for one bounded read-only inventory operation; keep all write, provider-admission, provisioning, and runtime authority false."
+}

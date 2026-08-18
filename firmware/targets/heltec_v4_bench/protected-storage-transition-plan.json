@@ -7,6 +7,7 @@
   "read_evidence_plan": "protected-storage-transition-read-plan.json",
   "recovery_bundle_plan": "protected-storage-recovery-bundle-plan.json",
   "provider_plan": "protected-storage-provider-plan.json",
+  "protected_root_inventory_plan": "protected-root-inventory-plan.json",
   "recovery_route_decision": "docs/decisions/0020-offline-exact-rom-recovery-route.md",
   "transition": {
     "source_layout": {

@@ -7,6 +7,7 @@
   "application_capture_decision": "docs/decisions/0019-retain-exact-installed-application-for-recovery.md",
   "recovery_route_decision": "docs/decisions/0020-offline-exact-rom-recovery-route.md",
   "transition_plan": "protected-storage-transition-plan.json",
+  "protected_root_inventory_plan": "protected-root-inventory-plan.json",
   "active_target_configuration_changed": false,
   "candidate_partition_artifact": {
     "layout_schema": "OTPS0/v0",
@@ -90,6 +91,7 @@
     "automatic_retry_allowed": false,
     "application_restore_policy": "UNCONDITIONAL",
     "security_state_preflight": {
+      "ot079_inventory_cannot_mutate_or_requalify_security_state": true,
       "expected": {
         "secure_boot_enabled": false,
         "flash_encryption_enabled": false,

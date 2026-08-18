@@ -9,6 +9,7 @@
   "partition_transition_plan": "protected-storage-transition-plan.json",
   "recovery_bundle_plan": "protected-storage-recovery-bundle-plan.json",
   "provider_plan": "protected-storage-provider-plan.json",
+  "protected_root_inventory_plan": "protected-root-inventory-plan.json",
   "candidate_layout": {
     "flash_size_bytes": 16777216,
     "authorization_partition": {

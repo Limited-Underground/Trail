@@ -229,6 +229,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'companion protected-root inventory'
+        Output = Join-Path $buildDirectory 'companion_protected_root_inventory_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protected_root_inventory.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_protected_root_inventory_tests.cpp')
+        )
+    },
+    @{
         Name = 'companion authorization protected KV slot media'
         Output = Join-Path $buildDirectory 'companion_authorization_protected_kv_media_tests.exe'
         Sources = @(
@@ -1778,6 +1786,11 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 protected-storage provider-plan tests failed.'
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_protected_root_inventory_plan_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Heltec V4 protected-root inventory-plan tests failed.'
+}
+
 
 & (Join-Path $projectRoot 'tests\host\wio_tracker_l1_preflight_tests.ps1')
 if (-not $?) {

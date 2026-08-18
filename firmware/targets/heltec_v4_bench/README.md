@@ -364,3 +364,13 @@ No physical block, field, capacity, key, inventory, provision, runtime injection
 or device authority exists. See
 [Decision 0021](../../../docs/decisions/0021-offline-protected-root-provider-selection.md)
 and [OT-078 evidence](../../../tests/hardware/OT-078-2026-08-18.md).
+
+OT-079 adds only an offline inventory plan and pure supplied-evidence verifier.
+A later complete private inventory must cover all six key slots, configured-NVS
+conflict state, floor-candidate facts, cleanup, and the disabled security state
+required by OT-077. Complete unfavorable facts remain reviewable without
+selecting or admitting a provider. No reader exists, no device was accessed,
+allocations remain absent, and every physical/read/write/eFuse/runtime authority
+remains false. See
+[Decision 0022](../../../docs/decisions/0022-read-only-protected-root-inventory-admission.md)
+and [OT-079 evidence](../../../tests/hardware/OT-079-2026-08-18.md).
