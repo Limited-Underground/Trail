@@ -600,6 +600,17 @@ different independent monotonic provider before protected-root composition can
 continue. See
 [Decision 0026](decisions/0026-reject-esp32s3-user-data-rollback-floor.md).
 
+OT-084 closes the remaining on-chip `SECURE_VERSION` branch. Although that
+BLK0 field is technically monotonic, it has only 16 advances and is the same
+namespace ESP-IDF consumes for application-firmware anti-rollback. Its native
+partition model excludes factory/test applications, conflicting with the
+accepted OpenTrail factory layout and recovery route. Sharing the field would
+couple authorization recovery to firmware versioning rather than provide an
+independent floor. No external monotonic part is selected or present; that
+branch requires an owner-approved hardware revision with authenticated binding,
+power-loss, replacement, recovery, and provisioning semantics. See
+[Decision 0027](decisions/0027-reject-esp32s3-secure-version-authorization-floor.md).
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

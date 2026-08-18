@@ -51,7 +51,7 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. The exact installed partition table and blank protected-storage source region passed a bounded physical proof, the installed application is privately retained for recovery, and one exact recovery route plus protected-root provider/inventory contracts are accepted. OT-081 adds a build-compiled six-slot coarse key-roster leaf; OT-082 adds a separate build-compiled default NVS-configuration and decoded security-state leaf. OT-083 rejects the conditional custom USER_DATA rollback-floor candidate because its Reed-Solomon coding unit cannot support repeated writes. No viable floor provider is selected. The two target leaves are host-tested, have no runtime call path, were not device-executed, cannot prove complete inventory or provider suitability, and grant no physical allocation or authority.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. The exact installed partition table and blank protected-storage source region passed a bounded physical proof, the installed application is privately retained for recovery, and one exact recovery route plus protected-root provider/inventory contracts are accepted. OT-081 adds a build-compiled six-slot coarse key-roster leaf; OT-082 adds a separate build-compiled default NVS-configuration and decoded security-state leaf. OT-083 rejects the conditional custom USER_DATA rollback-floor candidate because its Reed-Solomon coding unit cannot support repeated writes. OT-084 also rejects SECURE_VERSION because its 16-step application-firmware anti-rollback role and OTA-only native model conflict with an independent authorization floor and the accepted factory recovery route. No viable on-chip floor provider is selected; external monotonic hardware would require a future hardware revision. The two target leaves are host-tested, have no runtime call path, were not device-executed, cannot prove complete inventory or provider suitability, and grant no physical allocation or authority.",
       "weight": 15,
       "completion": 25,
       "evidence_status": "Experimental physical target with startup/status OLED",
@@ -68,11 +68,12 @@
         "tests/hardware/OT-081-2026-08-18.md",
         "tests/hardware/OT-082-2026-08-18.md",
         "tests/hardware/OT-083-2026-08-18.md",
+        "tests/hardware/OT-084-2026-08-18.md",
         "tests/hardware/OT-074-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Choose between a separate architecture and recovery review of the limited SECURE_VERSION primitive and external monotonic hardware. Only after selecting a viable independent rollback-floor provider should the protected-root compositor, physical inventory, exact allocations, transition, or protected runtime proceed."
+      "next_gate": "Make the owner product-direction decision: approve a future authenticated external monotonic-hardware revision, defer rollback-protected authorization beyond current V1, or explicitly revise the rollback threat requirement."
     },
     {
       "id": "first-complete-unit",
@@ -144,12 +145,12 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical partition/source proof, a privately retained exact application recovery artifact, and accepted recovery/protected-root contracts. OT-081 adds a build-compiled six-slot coarse key-roster leaf; OT-082 adds a separate build-compiled default NVS-configuration and decoded security-state leaf. OT-083 rejects the conditional custom USER_DATA rollback-floor candidate because its Reed-Solomon coding unit cannot support repeated writes, leaving no viable floor provider selected. Both target leaves are host-tested, have no runtime call path, were not device-executed, and provide no complete-inventory output, physical allocation, or authority.",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical partition/source proof, a privately retained exact application recovery artifact, and accepted recovery/protected-root contracts. OT-081 adds a build-compiled six-slot coarse key-roster leaf; OT-082 adds a separate build-compiled default NVS-configuration and decoded security-state leaf. OT-083 rejects the custom USER_DATA rollback-floor candidate, and OT-084 rejects SECURE_VERSION because its 16-step firmware anti-rollback role and OTA-only native model conflict with the independent authorization floor and accepted factory recovery route. No viable on-chip floor provider is selected; external monotonic hardware would require a future hardware revision. Both target leaves are host-tested, have no runtime call path, were not device-executed, and provide no complete-inventory output, physical allocation, or authority.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Experimental physical target",
-          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "hardware/INVENTORY.md"],
-          "next_gate": "Choose between a separate architecture and recovery review of the limited SECURE_VERSION primitive and external monotonic hardware. Only after selecting a viable independent rollback-floor provider should the protected-root compositor, physical inventory, exact allocations, transition, protected storage, private bond authority, GATT authorization and Ready, LoRa, or GNSS work proceed."
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "tests/hardware/OT-084-2026-08-18.md", "hardware/INVENTORY.md"],
+          "next_gate": "Make the owner product-direction decision between a future authenticated external monotonic-hardware revision, deferring rollback-protected authorization beyond current V1, or explicitly revising the rollback threat requirement."
         },
         {
           "id": "android-companion",
@@ -238,6 +239,12 @@
           "overall_exact": 39.75,
           "overall": 40,
           "reason": "Rejected the conditional custom USER_DATA eFuse rollback-floor candidate after pinned ESP-IDF evidence proved its Reed-Solomon coding unit cannot support repeated independent writes. The two protected HMAC roles remain selected by type, but no viable floor provider is selected and no device or runtime changed, so no milestone completion changed."
+        },
+        {
+          "date": "2026-08-18",
+          "overall_exact": 39.75,
+          "overall": 40,
+          "reason": "Rejected ESP32-S3 SECURE_VERSION as the independent companion-authorization floor after pinned ESP-IDF evidence proved its 16-step firmware anti-rollback role and OTA-only native model conflict with the accepted factory recovery route. External monotonic hardware remains a future hardware-revision option with no part selected, and no device or runtime changed, so no milestone completion changed."
         }
       ]
     },
@@ -337,6 +344,11 @@
       "date": "2026-08-18",
       "overall": 32,
       "reason": "Rejected the conditional custom USER_DATA eFuse rollback-floor candidate after pinned ESP-IDF evidence proved its Reed-Solomon coding unit cannot support repeated independent writes. No viable floor provider is selected and no device or runtime changed, so the historical baseline is unchanged."
+    },
+    {
+      "date": "2026-08-18",
+      "overall": 32,
+      "reason": "Rejected ESP32-S3 SECURE_VERSION as the independent companion-authorization floor after pinned ESP-IDF evidence proved its 16-step firmware anti-rollback role and OTA-only native model conflict with the accepted factory recovery route. No external part is selected and no device or runtime changed, so the historical baseline is unchanged."
     }
   ]
 }

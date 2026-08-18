@@ -9,6 +9,18 @@ Status date: 2026-08-18
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-084 rejects ESP32-S3 `SECURE_VERSION` as the independent companion-
+authorization floor. Pinned ESP-IDF 6.0.2 sources prove it is a 16-step
+application-firmware anti-rollback field whose native model requires OTA slots
+without a factory application. That role conflicts with OpenTrail's accepted
+factory layout and exact factory-restore route, and sharing it would consume
+the firmware version budget rather than provide an independent authorization
+domain. The strict source-bound evaluator and six plan groups pass. No external
+part is selected or present on the current target; no device, eFuse, target
+build input, or runtime changed. V1 remains exact 39.75%/displayed 40%. See
+[OT-084](../tests/hardware/OT-084-2026-08-18.md) and
+[Decision 0027](decisions/0027-reject-esp32s3-secure-version-authorization-floor.md).
+
 OT-083 rejects the conditional ESP32-S3 custom USER_DATA eFuse thermometer
 from Decision 0021. Pinned ESP-IDF 6.0.2 sources prove the USER_DATA block uses
 Reed-Solomon coding and an already nonempty coding unit cannot be written

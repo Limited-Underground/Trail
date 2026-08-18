@@ -11,6 +11,7 @@
   "provider_plan": "protected-storage-provider-plan.json",
   "protected_root_inventory_plan": "protected-root-inventory-plan.json",
   "rollback_floor_descriptor_plan": "protected-root-rollback-floor-descriptor-plan.json",
+  "secure_version_floor_plan": "protected-root-secure-version-floor-plan.json",
   "candidate_layout": {
     "flash_size_bytes": 16777216,
     "authorization_partition": {
@@ -42,6 +43,8 @@
     "provider": null,
     "provider_class_selected_offline_conditionally": false,
     "reviewed_custom_user_efuse_candidate": "REJECTED-RS-CODING-UNIT-SUPPORTS-ONE-WRITE-NOT-REPEATED-ADVANCES",
+    "reviewed_secure_version_candidate": "REJECTED-FIRMWARE-COUPLED-NOT-INDEPENDENT",
+    "external_monotonic_hardware": "NOT-SELECTED-OR-PRESENT",
     "exact_field_selected": false,
     "independent_from_authorization_partition_required": true,
     "provisioning_authorized": false
@@ -61,7 +64,7 @@
   },
   "remaining_gates": [
     "inventory select and provision two distinct protected HMAC_UP blocks",
-    "select and admit a viable independent rollback-floor provider",
+    "approve a hardware-direction change or revise the rollback threat requirement",
     "define private bond-reference creation rotation deletion and reset",
     "validate partition migration and recovery on the exact selected unit",
     "run power-loss and reboot reconciliation evidence",

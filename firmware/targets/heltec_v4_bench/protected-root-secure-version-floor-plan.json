@@ -1,0 +1,88 @@
+{
+  "schema": "OTSVF0/v0",
+  "plan_id": "OT-084",
+  "status": "OFFLINE-REVIEWED-SECURE-VERSION-NOT-ADMITTED",
+  "as_of": "2026-08-18",
+  "target": "heltec_v4_bench",
+  "device_family": "ESP32-S3",
+  "decision": "docs/decisions/0027-reject-esp32s3-secure-version-authorization-floor.md",
+  "evidence": "tests/hardware/OT-084-2026-08-18.md",
+  "reviewed_sources": {
+    "esp_idf_version": "6.0.2",
+    "files": [
+      {"path": "components/bootloader/Kconfig.app_rollback", "byte_length": 3725, "sha256": "718AE775CE4FEB58A5EB4A0BBAF85E91D4DB9DA1E636F5121FA430AFC2DA9D38"},
+      {"path": "components/esp_app_format/esp_app_desc.c", "byte_length": 5541, "sha256": "6CB345372D4C5786BF023B4D076B62B63BC86CC084242B6B9984F49E2D86A45D"},
+      {"path": "components/efuse/src/esp_efuse_fields.c", "byte_length": 8879, "sha256": "E7C04ACDF54CDA0EFF2F2AC7551D6B25CB782E62A2F221C0E4B31DDC37D57AB5"},
+      {"path": "components/bootloader_support/src/bootloader_utility.c", "byte_length": 55388, "sha256": "A61F5FFF38616B9A6650C7675F149855B0E39B00D2E83651CC5C5ACAE67AE861"},
+      {"path": "components/app_update/esp_ota_ops.c", "byte_length": 52230, "sha256": "AFE45475F68C5952BFAEA73E8DC200E963DF4B9036E67EC17418CC4EA2986290"},
+      {"path": "components/efuse/esp32s3/esp_efuse_table.csv", "byte_length": 26976, "sha256": "0B22F89D2B0F7EE315046DE5108C1DDDA8F46BB451985C7F66EB753301BFA69E"},
+      {"path": "docs/en/api-reference/system/ota.rst", "byte_length": 24209, "sha256": "9DD27882AE44E1286DDC58967DF906523602A6381A6C39F21B788A5D9EB59303"}
+    ]
+  },
+  "reviewed_primitive": {
+    "provider_class": "ESP32S3_SECURE_VERSION",
+    "field": {"block": "EFUSE_BLK0", "first_bit": 142, "bit_count": 16, "coding_scheme": "NONE"},
+    "encoding": "POPCOUNT-OF-IRREVERSIBLY-BURNED-LOW-BITS",
+    "maximum_advances": 16,
+    "exhaustion": "PERMANENT",
+    "native_role": "APPLICATION-FIRMWARE-ANTI-ROLLBACK",
+    "native_partition_requirement": "OTA_0-PLUS-OTA_1-WITHOUT-FACTORY-OR-TEST",
+    "current_layout_contains_factory": true,
+    "accepted_recovery_route_restores_factory": true,
+    "authorization_floor_must_be_independent_from_firmware_version": true,
+    "shared_firmware_version_budget_accepted": false,
+    "sixteen_transition_budget_accepted": false,
+    "factory_recovery_redesign_accepted": false,
+    "trusted_firmware_policy_accepted": false,
+    "result": "REJECTED-COUPLED-NOT-INDEPENDENT"
+  },
+  "external_monotonic_hardware": {
+    "provider_class": "EXTERNAL-AUTHENTICATED-MONOTONIC-HARDWARE",
+    "status": "FUTURE-HARDWARE-REVISION-OPTION-ONLY",
+    "selected": false,
+    "part_selected": false,
+    "present_on_current_target": false,
+    "current_target_supported": false,
+    "required_later_decisions": [
+      "owner_product_direction",
+      "exact_schematic_and_bom",
+      "authenticated_device_to_counter_binding",
+      "counter_increment_and_skipped-value_semantics",
+      "power-loss_and_uncertainty_recovery",
+      "replacement_and_anti-substitution_policy",
+      "capacity_endurance_and_environmental_acceptance",
+      "private_provisioning_and_access-control",
+      "sacrificial_hardware_validation"
+    ]
+  },
+  "current_selection": {
+    "provider_class": null,
+    "part": null,
+    "descriptor": null,
+    "capacity": null,
+    "provider_selected": false,
+    "provider_admitted": false,
+    "provider_active": false
+  },
+  "execution_surface": {"device_port": null, "commands": [], "attempts": 0},
+  "authorities": {
+    "owner_hardware_direction_accepted": false,
+    "device_access_authorized": false,
+    "efuse_read_authorized": false,
+    "efuse_write_authorized": false,
+    "external_counter_read_authorized": false,
+    "external_counter_increment_authorized": false,
+    "board_redesign_authorized": false,
+    "descriptor_selection_authorized": false,
+    "provider_admission_authorized": false,
+    "provisioning_authorized": false,
+    "runtime_activation_authorized": false
+  },
+  "privacy": {"raw_device_data_present": false, "private_identity_or_path_present": false},
+  "fixed_public_results": [
+    "REVIEWED-SECURE-VERSION-COUPLED-NOT-ADMITTED",
+    "DENY-SECURE-VERSION-VIABILITY"
+  ],
+  "current_result": "REVIEWED-SECURE-VERSION-COUPLED-NOT-ADMITTED",
+  "next_gate": "Owner product-direction decision: approve a future authenticated external monotonic-hardware revision, defer rollback-protected authorization beyond current V1, or explicitly revise the rollback threat requirement."
+}

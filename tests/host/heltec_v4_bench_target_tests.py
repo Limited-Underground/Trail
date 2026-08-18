@@ -121,6 +121,7 @@ def test_contract() -> None:
         "protected-root-inventory-reader-plan.json",
         "protected-root-configuration-security-plan.json",
         "protected-root-rollback-floor-descriptor-plan.json",
+        "protected-root-secure-version-floor-plan.json",
         "protected-storage-provisioning-plan.json",
         "protected-storage-recovery-bundle-plan.json",
         "protected-storage-transition-read-plan.json",
@@ -664,6 +665,9 @@ def test_protected_storage_candidate_plan() -> None:
         "provider_class_selected_offline_conditionally": False,
         "reviewed_custom_user_efuse_candidate":
             "REJECTED-RS-CODING-UNIT-SUPPORTS-ONE-WRITE-NOT-REPEATED-ADVANCES",
+        "reviewed_secure_version_candidate":
+            "REJECTED-FIRMWARE-COUPLED-NOT-INDEPENDENT",
+        "external_monotonic_hardware": "NOT-SELECTED-OR-PRESENT",
         "exact_field_selected": False,
         "independent_from_authorization_partition_required": True,
         "provisioning_authorized": False,

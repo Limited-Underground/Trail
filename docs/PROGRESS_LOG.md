@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-18
 
+### OT-084 SECURE_VERSION rollback-floor viability review
+
+- Rechecked ESP32-S3 `SECURE_VERSION` against seven pinned ESP-IDF 6.0.2
+  sources. It is a 16-step firmware anti-rollback field, not an independent
+  companion-authorization namespace.
+- The native anti-rollback layout requires OTA slots without factory/test,
+  while OpenTrail's accepted layout and recovery route retain and restore the
+  exact factory application.
+- A pure source-bound evaluator, fixed sanitized outcome, and six plan groups
+  pass. No provider or external part is selected, no device or target build
+  input changed, and V1 completion is unchanged. See
+  [OT-084 evidence](../tests/hardware/OT-084-2026-08-18.md).
+
 ### OT-083 rollback-floor descriptor viability review
 
 - Rechecked the conditional custom USER_DATA eFuse thermometer against pinned

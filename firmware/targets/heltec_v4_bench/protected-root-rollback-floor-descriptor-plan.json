@@ -7,6 +7,7 @@
   "device_family": "ESP32-S3",
   "decision": "docs/decisions/0026-reject-esp32s3-user-data-rollback-floor.md",
   "evidence": "tests/hardware/OT-083-2026-08-18.md",
+  "secure_version_floor_plan": "protected-root-secure-version-floor-plan.json",
   "reviewed_sources": {
     "esp_idf_version": "6.0.2",
     "files": [
@@ -36,8 +37,8 @@
     "provider_active": false
   },
   "alternatives": {
-    "secure_version": {"selected": false, "capacity_bits": 16, "status": "REQUIRES-SEPARATE-ARCHITECTURE-AND-RECOVERY-REVIEW"},
-    "external_monotonic_hardware": {"selected": false, "present_on_current_target": false, "status": "HARDWARE-REDESIGN-REQUIRED"},
+    "secure_version": {"selected": false, "capacity_bits": 16, "status": "REJECTED-FIRMWARE-COUPLED-NOT-INDEPENDENT", "review": "protected-root-secure-version-floor-plan.json"},
+    "external_monotonic_hardware": {"selected": false, "present_on_current_target": false, "status": "FUTURE-HARDWARE-REVISION-OPTION-ONLY"},
     "rewritable_flash_counter": {"selected": false, "status": "REJECTED-NOT-INDEPENDENTLY-NONROLLBACKABLE"}
   },
   "execution_surface": {"device_port": null, "commands": [], "attempts": 0},
@@ -53,5 +54,5 @@
   "privacy": {"raw_device_data_present": false, "private_identity_or_path_present": false},
   "fixed_public_results": ["REVIEWED-NO-VIABLE-CUSTOM-THERMOMETER", "DENY-DESCRIPTOR-VIABILITY"],
   "current_result": "REVIEWED-NO-VIABLE-CUSTOM-THERMOMETER",
-  "next_gate": "Choose whether to perform a separate architecture and recovery review of the limited SECURE_VERSION primitive or require external monotonic hardware; do not build an inventory compositor until a viable rollback-floor provider exists."
+  "next_gate": "Owner product-direction decision: approve future authenticated external monotonic hardware, defer rollback-protected authorization beyond current V1, or explicitly revise the rollback threat requirement."
 }

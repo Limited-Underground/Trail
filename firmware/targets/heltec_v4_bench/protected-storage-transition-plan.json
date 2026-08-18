@@ -9,6 +9,7 @@
   "provider_plan": "protected-storage-provider-plan.json",
   "protected_root_inventory_plan": "protected-root-inventory-plan.json",
   "rollback_floor_descriptor_plan": "protected-root-rollback-floor-descriptor-plan.json",
+  "secure_version_floor_plan": "protected-root-secure-version-floor-plan.json",
   "recovery_route_decision": "docs/decisions/0020-offline-exact-rom-recovery-route.md",
   "transition": {
     "source_layout": {
@@ -67,7 +68,7 @@
   },
   "rollback_floor_requirements": {
     "requirements_defined": true, "independent_from_all_rewritable_flash": true, "monotonic_non_rollbackable": true, "fresh_read_compare_advance_and_post_advance_reread_required": true, "exhaustion_and_uncertain_result_policy_required": true,
-    "provider_class": null, "provider_selected_offline_conditionally": false, "reviewed_custom_user_efuse_candidate": "REJECTED-RS-CODING-UNIT-SUPPORTS-ONE-WRITE-NOT-REPEATED-ADVANCES", "exact_field_selected": false, "provisioned": false, "current_result": "DENY"
+    "provider_class": null, "provider_selected_offline_conditionally": false, "reviewed_custom_user_efuse_candidate": "REJECTED-RS-CODING-UNIT-SUPPORTS-ONE-WRITE-NOT-REPEATED-ADVANCES", "reviewed_secure_version_candidate": "REJECTED-FIRMWARE-COUPLED-NOT-INDEPENDENT", "external_monotonic_hardware": "NOT-SELECTED-OR-PRESENT", "exact_field_selected": false, "provisioned": false, "current_result": "DENY"
   },
   "promotion_admission": {
     "current_result": "DENY", "source_proof_alone_authorizes_transition": false, "partition_table_promotion_authorized": false,
@@ -75,7 +76,7 @@
       "bind fresh installed-table source-region and recovery evidence to one later nonzero operation and evidence set",
       "prove two independently hashed private application copies before device access",
       "inventory select and provision two distinct HMAC_UP blocks under separate authority",
-      "select and admit a viable independent rollback-floor provider",
+      "approve an external monotonic-hardware architecture or revise the rollback threat requirement",
       "complete exact-unit candidate-transition and recovery validation",
       "obtain separate physical-write authorization"
     ]

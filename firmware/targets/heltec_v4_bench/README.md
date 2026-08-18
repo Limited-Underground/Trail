@@ -414,3 +414,14 @@ selects no replacement provider, block, range, or capacity. The active target
 build and installed application are unchanged. See
 [Decision 0026](../../../docs/decisions/0026-reject-esp32s3-user-data-rollback-floor.md)
 and [OT-083 evidence](../../../tests/hardware/OT-083-2026-08-18.md).
+
+OT-084 also rejects ESP32-S3 `SECURE_VERSION` as the independent companion-
+authorization floor. The field has only 16 irreversible advances and is
+already the application-firmware anti-rollback namespace; its native ESP-IDF
+model excludes factory/test applications, while this target's accepted layout
+and recovery route depend on the factory application. External authenticated
+monotonic hardware is a future hardware-revision option only: no part is
+selected or present, and no target source, build input, device/eFuse state, or
+runtime changed. See
+[Decision 0027](../../../docs/decisions/0027-reject-esp32s3-secure-version-authorization-floor.md)
+and [OT-084 evidence](../../../tests/hardware/OT-084-2026-08-18.md).

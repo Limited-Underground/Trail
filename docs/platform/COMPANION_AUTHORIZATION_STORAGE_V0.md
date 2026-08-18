@@ -340,3 +340,22 @@ No descriptor or compositor is added. The next decision must review the limited
 `SECURE_VERSION` primitive and its firmware/recovery coupling or require
 external monotonic hardware. Rewritable flash remains insufficient as an
 independent floor.
+
+## OT-084 SECURE_VERSION viability review
+
+OT-084 binds seven official ESP-IDF 6.0.2 sources and rejects ESP32-S3
+`SECURE_VERSION` as this storage contract's independent generation floor. The
+field is a 16-bit irreversible population-count counter, but it is also the
+application-firmware anti-rollback version consumed by application headers,
+boot selection, OTA validation, and confirmation. Its native
+partition model excludes factory/test applications, while the accepted
+OpenTrail layout and recovery route retain and restore a factory application.
+
+The fixed public result is
+`REVIEWED-SECURE-VERSION-COUPLED-NOT-ADMITTED`. No descriptor, provider,
+external part, device access, eFuse operation, provisioning, or runtime edge is
+admitted. External authenticated monotonic hardware remains a future
+hardware-revision option requiring separate transaction and recovery semantics.
+See
+[Decision 0027](../decisions/0027-reject-esp32s3-secure-version-authorization-floor.md)
+and [OT-084 evidence](../../tests/hardware/OT-084-2026-08-18.md).
