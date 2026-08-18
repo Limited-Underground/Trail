@@ -4,6 +4,27 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-18
+
+### OT-077 offline exact recovery-route acceptance
+
+- Accepted one exact ESP32-S3 ROM source-restore contract: unconditional exact
+  OT-064 application first, exact `OTHP0/v0` source partition table last, then
+  closed-connection independent readback and separately bounded boot evidence.
+- The source-table recipe, no-stub 115,200-baud/no-reset tooling, strict denial
+  cases, two distinct protected-key roles, and independent monotonic rollback-
+  floor requirements are frozen offline. One private application copy is
+  retained; a second independently hashed staged copy remains a physical gate.
+- Future admission also requires a fresh same-operation/evidence-set read-only
+  proof that secure boot, flash encryption, and secure download are disabled.
+  Unknown or mismatch denies. Any failure after the first write stays in ROM as
+  `RECOVERY-UNCERTAIN`, preserves private evidence before transient cleanup,
+  makes no boot-success claim, never auto-retries, and needs fresh authority.
+- No device was accessed and no physical recovery, write, erase, reset, key,
+  eFuse, rollback, or partition-transition authority was added. V1 Companion
+  remains 40%. See
+  [OT-077 evidence](../tests/hardware/OT-077-2026-08-18.md).
+
 ## 2026-08-17
 
 ### OT-076 exact installed application recovery capture

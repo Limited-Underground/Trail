@@ -1,10 +1,11 @@
 {
   "schema": "OTPRB0/v0",
-  "status": "OFFLINE-CANDIDATE-AND-EXACT-APPLICATION-FROZEN-RECOVERY-INCOMPLETE-AUTHORITY-ABSENT",
-  "as_of": "2026-08-17",
+  "status": "OFFLINE-CANDIDATE-APPLICATION-AND-ROUTE-FROZEN-PHYSICAL-ADMISSION-CLOSED",
+  "as_of": "2026-08-18",
   "target": "heltec_v4_bench",
   "decision": "docs/decisions/0018-offline-heltec-protected-storage-recovery-bundle.md",
   "application_capture_decision": "docs/decisions/0019-retain-exact-installed-application-for-recovery.md",
+  "recovery_route_decision": "docs/decisions/0020-offline-exact-rom-recovery-route.md",
   "transition_plan": "protected-storage-transition-plan.json",
   "active_target_configuration_changed": false,
   "candidate_partition_artifact": {
@@ -28,6 +29,9 @@
     "binary_bytes": 3072,
     "binary_sha256": "84569AA2BADF3F7294042129B19D0B480784A93A550ADA3253B57BC92A0671AB",
     "flash_offset": 32768,
+    "builder": "ESP-IDF v6.0.2/components/partition_table/gen_esp32part.py",
+    "deterministically_buildable_from_public_source": true,
+    "retained_binary_required": false,
     "exact_installed_identity_physically_proved_by": "tests/hardware/OT-074-2026-08-17.md",
     "recovery_write_authorized": false
   },
@@ -40,6 +44,13 @@
     "capture_result": "OTPRBE1/v0/RECOVERY-APPLICATION-CAPTURED-ONLY",
     "captured_by": "tests/hardware/OT-076-2026-08-17.md",
     "recovery_write_authorized": false,
+    "physical_admission_custody": {
+      "proved_retained_copy_count": 1,
+      "independently_hashed_copy_count_required": 2,
+      "second_copy_must_be_separately_staged": true,
+      "redundant_custody_currently_proved": false,
+      "current_result": "DENY"
+    },
     "reconstruction_check": {
       "source_commit": "a327104ac67a3f5918a8b0191c96dceb05b5399b",
       "framework": "ESP-IDF v6.0.2",
@@ -61,27 +72,94 @@
     "current_result": "DENY"
   },
   "recovery_route": {
-    "exact_rom_route_id": null,
+    "schema": "OTRR0/v0",
+    "exact_rom_route_id": "OTRR0/v0/heltec-v4-ot064-source-restore",
+    "accepted_offline": true,
+    "accepted_by": "docs/decisions/0020-offline-exact-rom-recovery-route.md",
+    "validated_by": "tests/hardware/OT-077-2026-08-18.md",
+    "target_chip": "ESP32-S3",
+    "flash_size_bytes": 16777216,
+    "transport": "ESP32-S3-ROM-SERIAL",
+    "tool": "esptool",
+    "tool_version": "5.3.1",
+    "baud": 115200,
+    "before": "no-reset",
+    "after": "no-reset",
+    "ram_stub_allowed": false,
+    "connection_attempt_limit": 1,
+    "automatic_retry_allowed": false,
+    "application_restore_policy": "UNCONDITIONAL",
+    "security_state_preflight": {
+      "expected": {
+        "secure_boot_enabled": false,
+        "flash_encryption_enabled": false,
+        "secure_download_mode_enabled": false
+      },
+      "fresh_read_only_observation_required": true,
+      "same_nonzero_operation_id_required": true,
+      "same_nonzero_evidence_set_id_required": true,
+      "current_observation": {
+        "secure_boot_enabled": null,
+        "flash_encryption_enabled": null,
+        "secure_download_mode_enabled": null
+      },
+      "unknown_result": "DENY",
+      "mismatch_result": "DENY",
+      "current_result": "DENY"
+    },
+    "ordered_restore_regions": [
+      {"order": 1, "role": "installed-application", "offset": 65536, "bytes": 470928, "sha256": "A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B"},
+      {"order": 2, "role": "source-partition-table", "offset": 32768, "bytes": 3072, "sha256": "84569AA2BADF3F7294042129B19D0B480784A93A550ADA3253B57BC92A0671AB"}
+    ],
+    "post_write_verification": {
+      "connection_closed_before_independent_readback": true,
+      "complete_region_readback_required": true,
+      "manual_reset_required": true,
+      "observation_window_seconds": 12,
+      "boot_self_check_pass_required": true,
+      "trail_logo_required": true,
+      "ble_advertising_status_required": true,
+      "usb_heartbeat_count_minimum": 2
+    },
+    "post_first_write_failure_policy": {
+      "applies_after_any_first_write_invocation": true,
+      "close_connection_required": true,
+      "remain_in_rom_required": true,
+      "software_reset_allowed": false,
+      "boot_success_claim_allowed": false,
+      "recovery_state": "RECOVERY-UNCERTAIN",
+      "retain_private_artifacts_required": true,
+      "minimum_private_journal_fields": [
+        "private_unit_binding",
+        "operation_id",
+        "evidence_set_id",
+        "last_attempted_restore_region",
+        "artifact_and_security_preflight_identities",
+        "connection_close_and_failure_category"
+      ],
+      "sanitized_public_result": "OTRR0/v0/RECOVERY-UNCERTAIN",
+      "transient_cleanup_only_after_evidence_preservation": true,
+      "automatic_retry_allowed": false,
+      "fresh_authorization_required": true,
+      "current_result": "NOT-EXECUTED"
+    },
     "partition_table_restore_physically_proved": false,
     "application_restore_physically_proved": false,
     "post_restore_boot_physically_proved": false,
-    "current_result": "DENY"
+    "offline_validation_result": "ACCEPT",
+    "physical_execution_result": "DENY"
   },
   "bundle_admission": {
     "candidate_partition_artifact_frozen": true,
     "exact_installed_application_artifact_present": true,
-    "exact_recovery_route_accepted": false,
+    "exact_recovery_route_accepted": true,
+    "redundant_private_application_custody_proved": false,
     "fresh_execution_evidence_present": false,
     "bundle_complete": false,
     "partition_transition_authorized": false,
     "current_result": "DENY"
   },
-  "execution_surface": {
-    "device_port": null,
-    "commands": [],
-    "attempts": 0,
-    "device_access_authorized": false
-  },
+  "execution_surface": {"device_port": null, "commands": [], "attempts": 0, "device_access_authorized": false},
   "authorities": {
     "partition_table_write_authorized": false,
     "application_write_authorized": false,

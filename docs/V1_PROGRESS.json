@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-08-17",
+  "as_of": "2026-08-18",
   "baseline_name": "Historical standalone evidence baseline",
   "baseline_definition": "The historical standalone evidence baseline measures progress toward four self-contained field units that do not depend on a phone, server, or repeater; it is retained for continuity and is not the current V1 Companion release total.",
   "baseline_milestones": [
@@ -51,7 +51,7 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target: its exact profile, physical boot and BLE advertisement, and target-local 128 x 64 startup/status OLED passed bounded write, verification, runtime, visual, and Android discovery gates. The exact installed partition table and complete blank protected-storage source region passed a bounded physical read-only proof, and the exact installed application is privately retained as a verified recovery artifact.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target: its exact profile, physical boot and BLE advertisement, and target-local 128 x 64 startup/status OLED passed bounded write, verification, runtime, visual, and Android discovery gates. The exact installed partition table and complete blank protected-storage source region passed a bounded physical read-only proof, the exact installed application is privately retained as a verified recovery artifact, and one exact recovery route is accepted offline without physical authority.",
       "weight": 15,
       "completion": 25,
       "evidence_status": "Experimental physical target with startup/status OLED",
@@ -61,11 +61,12 @@
         "tests/hardware/OT-064-2026-08-17.md",
         "tests/hardware/OT-073-2026-08-17.md",
         "tests/hardware/OT-076-2026-08-17.md",
+        "tests/hardware/OT-077-2026-08-18.md",
         "tests/hardware/OT-074-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Accept the exact recovery route, protected key roles, an independent rollback floor, and separate physical-write authority before any partition transition; then admit protected owner storage and private bond authority, prove one bounded GATT authorization and Ready session, and bind real LoRa/GNSS and interactive display/input before unit 2."
+      "next_gate": "Select and review concrete providers for the two defined protected-key roles and independent rollback floor, prove redundant private recovery-artifact custody, then obtain fresh unified evidence and separate physical-write authority before any transition; afterward prove physical recovery, protected owner storage, private bond authority, one bounded GATT authorization and Ready session, and real LoRa/GNSS plus interactive display/input before unit 2."
     },
     {
       "id": "first-complete-unit",
@@ -100,7 +101,7 @@
       "id": "v1-companion",
       "name": "V1 Companion",
       "status": "measured",
-      "as_of": "2026-08-17",
+      "as_of": "2026-08-18",
       "definition": "A complete V1 Companion release means four Trail Essential device-and-Android-phone pairs can be installed, privately authorized, used for direct group communication and location awareness, recovered, and field tested without depending on a server or internet connection.",
       "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
       "milestones": [
@@ -137,12 +138,12 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical proof of the exact installed partition table plus complete blank protected-storage source region, and a privately retained exact installed-application recovery artifact.",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical proof of the exact installed partition table plus complete blank protected-storage source region, a privately retained exact installed-application recovery artifact, and one exact recovery route accepted offline without physical authority.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Experimental physical target",
-          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "hardware/INVENTORY.md"],
-          "next_gate": "Accept the exact recovery route, protected key roles, an independent rollback floor, and separate physical-write authority before any partition transition; then admit protected storage and private bond authority, prove physical GATT authorization and Ready, and bind LoRa and GNSS."
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "hardware/INVENTORY.md"],
+          "next_gate": "Select and review concrete providers for the two defined protected-key roles and independent rollback floor, prove redundant private recovery-artifact custody, then obtain fresh unified evidence and separate physical-write authority before any transition; afterward prove physical recovery, protected storage, private bond authority, GATT authorization and Ready, and bind LoRa and GNSS."
         },
         {
           "id": "android-companion",
@@ -189,6 +190,12 @@
           "overall_exact": 39.75,
           "overall": 40,
           "reason": "Accepted a private exact capture of the installed OT-064 application as recovery input. The recovery route and every transition authority remain open, so no milestone completion changed."
+        },
+        {
+          "date": "2026-08-18",
+          "overall_exact": 39.75,
+          "overall": 40,
+          "reason": "Accepted the exact source-restore route, expected disabled security-state preflight, post-first-write recovery-uncertain policy, and protected-key/rollback-floor requirements offline. Physical recovery, concrete providers, fresh unified evidence, and every transition authority remain open, so no milestone completion changed."
         }
       ]
     },
@@ -196,7 +203,7 @@
       "id": "v2-integrated",
       "name": "V2 Integrated",
       "status": "unmeasured",
-      "as_of": "2026-08-17",
+      "as_of": "2026-08-18",
       "definition": "A future V2 Integrated release moves the user interface onto a dedicated touchscreen client while retaining the shared Trail protocol and safety foundation.",
       "measurement_gate": "Approve V2-specific touchscreen, input, power, enclosure, recovery, and field milestones before publishing a percentage.",
       "milestones": [],
@@ -253,6 +260,11 @@
       "date": "2026-08-17",
       "overall": 32,
       "reason": "Accepted a private exact capture of the installed OT-064 application as recovery input. The recovery route and every transition authority remain open, so the historical baseline is unchanged."
+    },
+    {
+      "date": "2026-08-18",
+      "overall": 32,
+      "reason": "Accepted the exact source-restore route, expected disabled security-state preflight, post-first-write recovery-uncertain policy, and protected-key/rollback-floor requirements offline. Physical recovery, concrete providers, fresh unified evidence, and every transition authority remain open, so the historical baseline is unchanged."
     }
   ]
 }

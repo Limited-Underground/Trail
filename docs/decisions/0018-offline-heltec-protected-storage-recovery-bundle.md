@@ -44,13 +44,15 @@ not authorized.
   disabled.
 
 Decision 0019 later accepted a private exact capture of the installed
-application. The recovery route, fresh operation-bound evidence, keys,
-rollback floor, exact-unit recovery validation, and write authority remain
-open, so the recovery bundle and partition transition remain denied.
+application. Decision 0020 later accepted the exact recovery route offline and
+defined the distinct protected-key roles and independent rollback-floor
+requirements. Fresh operation-bound evidence, redundant private application
+custody, concrete key/floor providers, exact-unit recovery validation, and
+write authority remain open, so the recovery bundle and transition stay denied.
 
 ## Next gate
 
-Decision 0019 closes the exact installed-application artifact prerequisite.
-Define and validate the exact recovery route. Only after that passes may a
-separate operation request fresh transition evidence and physical-write
-authority.
+Select and independently review the two concrete protected-key providers and
+one rollback-floor provider. A later operation must also prove redundant
+private application custody and bind fresh unified evidence before separately
+requesting separate physical-write authority.

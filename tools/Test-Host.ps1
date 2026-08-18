@@ -205,6 +205,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'companion authorization storage recovery route'
+        Output = Join-Path $buildDirectory 'companion_authorization_storage_recovery_route_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_storage_recovery_route.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_storage_recovery_route_tests.cpp')
+        )
+    },
+    @{
         Name = 'companion authorization protected KV slot media'
         Output = Join-Path $buildDirectory 'companion_authorization_protected_kv_media_tests.exe'
         Sources = @(

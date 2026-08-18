@@ -22,13 +22,16 @@ binary, a local path, port, device identifier, or private operation identity.
 - No persistent flash/eFuse write, erase, reset, RAM stub, key operation, or
   partition transition is part of the capture.
 - The private artifact grants no restore or write authority.
-- Recovery remains denied until an exact route is accepted and a later
-  operation binds fresh installed-table, source-region, and recovery evidence.
-- Protected key roles, an independent rollback floor, exact-unit recovery
-  validation, and separate physical-write authority remain open.
+- Decision 0020 accepts the exact route offline, but physical recovery remains
+  denied until redundant private custody, fresh unified evidence, and separate
+  physical authority are accepted.
+- The protected-key role and rollback-floor requirements are defined, while
+  concrete providers, provisioning, exact-unit validation, and physical-write
+  authority remain open.
 
 ## Next gate
 
-Define and validate the exact recovery route without performing a write. Only
-after that gate, protected-key and rollback-floor decisions, and fresh unified
-evidence may a separate operation request physical partition-write authority.
+Select and review concrete providers for both protected-key roles and the
+independent rollback floor. Then prove redundant private application custody
+and collect fresh unified evidence before a separately authorized physical
+candidate-transition/recovery rehearsal may be requested.

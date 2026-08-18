@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-17
+Status date: 2026-08-18
 
 ## Conceptual goals
 
@@ -8,6 +8,29 @@ Status date: 2026-08-17
 - Portable, vehicle, repeater, and larger touchscreen configurations
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
+
+OT-077 accepts the exact `OTRR0/v0/heltec-v4-ot064-source-restore` route as an
+offline contract. It fixes ESP32-S3 ROM serial tooling at esptool 5.3.1,
+115,200 baud, `no-reset` before/after, and no RAM stub; restores the exact
+application unconditionally before writing the exact source partition table;
+and requires closed-connection independent readback before a bounded manual
+reset observation of boot self-check PASS, Trail logo, `BLE ADVERTISING`, and
+at least two expected heartbeats within 12 seconds. The public source-table
+recipe is deterministic. One private application copy is proved retained, but
+a second independently hashed staged copy is required before any physical
+operation. Two distinct protected HMAC roles and an independent monotonic
+rollback-floor requirement are defined without selecting or provisioning a
+Future admission also requires a fresh same-operation/evidence-set read-only
+observation proving secure boot, flash encryption, and secure download mode are
+disabled; unknown or mismatch denies. Any failure after the first write closes
+the connection, remains in ROM as `RECOVERY-UNCERTAIN`, preserves private
+artifacts and a minimum private journal before transient cleanup, makes no boot-
+success claim, never auto-retries, and requires fresh owner authorization.
+provider. No hardware was accessed; every physical recovery, write, key/eFuse,
+rollback, and transition authority remains false. V1 Companion remains exact
+39.75%/displayed 40%. See
+[OT-077](../tests/hardware/OT-077-2026-08-18.md) and
+[Decision 0020](decisions/0020-offline-exact-rom-recovery-route.md).
 
 OT-076 closes the missing exact installed-application artifact prerequisite.
 One owner-authorized, one-use read-only operation captured the 470,928-byte
@@ -17,9 +40,10 @@ independently reread the staged artifact before accepting SHA-256
 The binary remains a private ignored recovery artifact; the temporary reader,
 tests, and bytecode were deleted. No port, device identifier, private operation
 identity, or detailed transport output is retained publicly. This grants no
-restore or write authority: the exact recovery route, fresh same-operation
-evidence, protected key roles, rollback floor, exact-unit recovery validation,
-and separate physical-write authorization remain open. After manual RST, the
+restore or write authority. OT-077 later accepts the exact route offline and
+defines the key-role/floor requirements; fresh same-operation evidence,
+redundant custody, concrete providers, exact-unit physical validation, and
+separate physical-write authorization remain open. After manual RST, the
 owner observed the Trail logo followed by `BLE ADVERTISING`. The transition
 stays denied and V1 Companion remains exact 39.75%/displayed 40%. See
 [OT-076](../tests/hardware/OT-076-2026-08-17.md) and
@@ -34,9 +58,9 @@ OT-076 later captured it exactly. A clean rebuild from its
 recorded source commit completed but did not match the installed digest, so it
 was rejected and not retained. The recovery bundle and transition therefore
 remain denied. Active partitions, configuration, runtime, and device bytes are
-unchanged. A later operation must first obtain the exact installed application
-artifact and accepted recovery route, then bind fresh installed-table,
-source-region, and recovery evidence under separate physical-write authority.
+unchanged. OT-076 and OT-077 later closed the artifact and offline-route
+prerequisites. A future operation still requires redundant custody, concrete
+key/floor providers, fresh unified evidence, and separate physical authority.
 V1 Companion remains exact 39.75%/displayed 40%. See
 [OT-075](../tests/hardware/OT-075-2026-08-17.md) and
 [Decision 0018](decisions/0018-offline-heltec-protected-storage-recovery-bundle.md).

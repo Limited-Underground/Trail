@@ -336,3 +336,22 @@ write, erase, protected storage, key/eFuse, rollback floor, bond, GATT, Ready,
 LoRa, or GNSS authority follows. See
 [Decision 0019](../../../docs/decisions/0019-retain-exact-installed-application-for-recovery.md)
 and [OT-076 evidence](../../../tests/hardware/OT-076-2026-08-17.md).
+
+OT-077 accepts only the offline `OTRR0/v0` source-restore contract. It fixes a
+no-stub ESP32-S3 ROM route at 115,200 baud with `no-reset` before/after,
+unconditionally restores the exact application first and exact source table
+last, then requires closed-connection independent readback plus bounded manual
+boot evidence. The source-table recipe is deterministic; one private
+application copy is retained, while a second independently hashed staged copy
+remains a physical gate. Two distinct protected HMAC roles and an independent
+monotonic rollback-floor requirement are defined without selecting a provider.
+Future physical admission also requires one fresh same-operation/evidence-set
+read-only observation proving secure boot, flash encryption, and secure download
+mode are disabled; unknown or mismatch denies. After the first write invocation,
+any incomplete result closes the connection, stays in ROM without reset or boot
+claim, preserves private artifacts plus the minimum private journal, publishes
+only `OTRR0/v0/RECOVERY-UNCERTAIN`, and requires fresh authorization to retry.
+No device was accessed and no command, write, reset, recovery, key/eFuse, or
+transition authority was added. See
+[Decision 0020](../../../docs/decisions/0020-offline-exact-rom-recovery-route.md)
+and [OT-077 evidence](../../../tests/hardware/OT-077-2026-08-18.md).

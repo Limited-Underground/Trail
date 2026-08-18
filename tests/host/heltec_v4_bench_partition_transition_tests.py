@@ -68,7 +68,7 @@ def test_exact_layout_transition() -> None:
     require(plan["schema"] == "OTPST0/v0",
             "unexpected transition-plan schema")
     require(plan["status"] == "DESIGN-ONLY-ADMISSION-CLOSED" and
-            plan["as_of"] == "2026-08-17" and
+            plan["as_of"] == "2026-08-18" and
             plan["target"] == "heltec_v4_bench",
             "transition plan must remain dated, target-bound, and closed")
     require(plan["active_target_configuration_changed"] is False,
@@ -152,7 +152,7 @@ def test_evidence_identity_and_digest_binding() -> None:
         "blank_source_region_sha256":
             "F5FB04AA5B882706B9309E885F19477261336EF76A150C3B4D3489DFAC3953EC",
         "recovery_partition_table_sha256":
-            "4F064C125AA641697E0539EAF9EDA9D1CDECAB46DD8FF387988B900F3EFE2389",
+            "84569AA2BADF3F7294042129B19D0B480784A93A550ADA3253B57BC92A0671AB",
         "nonzero_recovery_application_sha256": True,
         "nonzero_rom_recovery_route_id": True,
         "authority_binds_all_generations_and_digests": True,
@@ -219,7 +219,7 @@ def test_blank_source_proof_is_required_and_nonauthorizing() -> None:
     require(admission["current_result"] == "DENY" and
             admission["source_proof_alone_authorizes_transition"] is False and
             admission["partition_table_promotion_authorized"] is False and
-            len(admission["remaining_requirements"]) == 5,
+            len(admission["remaining_requirements"]) == 6,
             "source proof must never become transition authority")
 
 

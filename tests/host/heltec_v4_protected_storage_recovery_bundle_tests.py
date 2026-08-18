@@ -188,11 +188,14 @@ def test_denied_recovery_plan_is_exact_and_coherent() -> None:
 
     require(recovery["schema"] == "OTPRB0/v0" and
             recovery["status"] ==
-            "OFFLINE-CANDIDATE-AND-EXACT-APPLICATION-FROZEN-RECOVERY-INCOMPLETE-AUTHORITY-ABSENT",
+            "OFFLINE-CANDIDATE-APPLICATION-AND-ROUTE-FROZEN-PHYSICAL-ADMISSION-CLOSED",
             "recovery plan must remain incomplete and denied")
     require(recovery["application_capture_decision"] ==
             "docs/decisions/0019-retain-exact-installed-application-for-recovery.md",
             "recovery plan must bind the exact application capture decision")
+    require(recovery["recovery_route_decision"] ==
+            "docs/decisions/0020-offline-exact-rom-recovery-route.md",
+            "recovery plan must bind the accepted offline route decision")
     candidate = recovery["candidate_partition_artifact"]
     require(candidate["binary_bytes"] == 3072 and
             candidate["binary_sha256"] == EXPECTED_BINARY_SHA256 and
@@ -201,6 +204,18 @@ def test_denied_recovery_plan_is_exact_and_coherent() -> None:
             candidate["flash_offset"] == 32768 and
             candidate["physical_write_authorized"] is False,
             "recovery plan candidate artifact identity or authority changed")
+    source = recovery["source_recovery_partition_artifact"]
+    require(source["source_bytes"] == 452 and
+            source["source_sha256"] ==
+            "4F064C125AA641697E0539EAF9EDA9D1CDECAB46DD8FF387988B900F3EFE2389" and
+            source["binary_bytes"] == 3072 and
+            source["binary_sha256"] ==
+            "84569AA2BADF3F7294042129B19D0B480784A93A550ADA3253B57BC92A0671AB" and
+            source["builder"].endswith("gen_esp32part.py") and
+            source["deterministically_buildable_from_public_source"] is True and
+            source["retained_binary_required"] is False and
+            source["recovery_write_authorized"] is False,
+            "source recovery table must remain exact and reproducible offline")
 
     application = recovery["installed_application_recovery_artifact"]
     reconstruction = application["reconstruction_check"]
@@ -220,6 +235,14 @@ def test_denied_recovery_plan_is_exact_and_coherent() -> None:
             reconstruction["produced_sha256"] != application["required_sha256"],
             "captured installed application must remain distinct from the rejected rebuild")
 
+    custody = application["physical_admission_custody"]
+    require(custody["proved_retained_copy_count"] == 1 and
+            custody["independently_hashed_copy_count_required"] == 2 and
+            custody["second_copy_must_be_separately_staged"] is True and
+            custody["redundant_custody_currently_proved"] is False and
+            custody["current_result"] == "DENY",
+            "one private copy must not satisfy redundant physical custody")
+
     binding = recovery["fresh_execution_binding"]
     route = recovery["recovery_route"]
     admission = recovery["bundle_admission"]
@@ -227,14 +250,70 @@ def test_denied_recovery_plan_is_exact_and_coherent() -> None:
             binding["evidence_set_id"] is None and
             binding["current_result"] == "DENY",
             "fresh operation/evidence binding must remain absent")
-    require(route["exact_rom_route_id"] is None and
-            route["current_result"] == "DENY" and
+    require(route["schema"] == "OTRR0/v0" and
+            route["exact_rom_route_id"] ==
+            "OTRR0/v0/heltec-v4-ot064-source-restore" and
+            route["accepted_offline"] is True and
+            route["target_chip"] == "ESP32-S3" and
+            route["flash_size_bytes"] == 16777216 and
+            route["transport"] == "ESP32-S3-ROM-SERIAL" and
+            route["tool"] == "esptool" and
+            route["tool_version"] == "5.3.1" and
+            route["baud"] == 115200 and
+            route["before"] == "no-reset" and route["after"] == "no-reset" and
+            route["ram_stub_allowed"] is False and
+            route["connection_attempt_limit"] == 1 and
+            route["automatic_retry_allowed"] is False and
+            route["application_restore_policy"] == "UNCONDITIONAL" and
+            route["offline_validation_result"] == "ACCEPT" and
+            route["physical_execution_result"] == "DENY" and
             not route["partition_table_restore_physically_proved"] and
             not route["application_restore_physically_proved"] and
             not route["post_restore_boot_physically_proved"],
-            "unproved recovery route must remain denied")
+            "offline route identity/tooling must be exact while physical proof stays denied")
+    security = route["security_state_preflight"]
+    expected_security = security["expected"]
+    observed_security = security["current_observation"]
+    require(expected_security == {
+                "secure_boot_enabled": False,
+                "flash_encryption_enabled": False,
+                "secure_download_mode_enabled": False,
+            } and
+            security["fresh_read_only_observation_required"] is True and
+            security["same_nonzero_operation_id_required"] is True and
+            security["same_nonzero_evidence_set_id_required"] is True and
+            all(value is None for value in observed_security.values()) and
+            security["unknown_result"] == "DENY" and
+            security["mismatch_result"] == "DENY" and
+            security["current_result"] == "DENY",
+            "future security state must be fresh exact and currently denied")
+    failure = route["post_first_write_failure_policy"]
+    require(failure["applies_after_any_first_write_invocation"] is True and
+            failure["close_connection_required"] is True and
+            failure["remain_in_rom_required"] is True and
+            failure["software_reset_allowed"] is False and
+            failure["boot_success_claim_allowed"] is False and
+            failure["recovery_state"] == "RECOVERY-UNCERTAIN" and
+            failure["retain_private_artifacts_required"] is True and
+            len(failure["minimum_private_journal_fields"]) == 6 and
+            failure["sanitized_public_result"] ==
+            "OTRR0/v0/RECOVERY-UNCERTAIN" and
+            failure["transient_cleanup_only_after_evidence_preservation"] is True and
+            failure["automatic_retry_allowed"] is False and
+            failure["fresh_authorization_required"] is True and
+            failure["current_result"] == "NOT-EXECUTED",
+            "post-first-write failure must preserve uncertain recovery evidence")
+
+    regions = route["ordered_restore_regions"]
+    require([region["role"] for region in regions] ==
+            ["installed-application", "source-partition-table"] and
+            [region["offset"] for region in regions] == [65536, 32768] and
+            [region["bytes"] for region in regions] == [470928, 3072],
+            "recovery regions must remain application-first and source-table-last")
     require(admission["current_result"] == "DENY" and
             admission["exact_installed_application_artifact_present"] is True and
+            admission["exact_recovery_route_accepted"] is True and
+            admission["redundant_private_application_custody_proved"] is False and
             admission["bundle_complete"] is False and
             admission["partition_transition_authorized"] is False,
             "incomplete bundle must not authorize transition")
@@ -257,6 +336,34 @@ def test_denied_recovery_plan_is_exact_and_coherent() -> None:
             provisioning["status"] == "DESIGN-ONLY-NOT-ACTIVE-NOT-AUTHORIZED" and
             not any(provisioning["physical_authority"].values()),
             "provisioning plan must reference the denied recovery bundle")
+
+    offline_route = transition["accepted_offline_recovery_route"]
+    key_roles = transition["protected_key_role_requirements"]
+    floor = transition["rollback_floor_requirements"]
+    require(offline_route["route_id"] == route["exact_rom_route_id"] and
+            offline_route["accepted_offline"] is True and
+            offline_route["physically_executed"] is False and
+            offline_route["physical_recovery_admitted"] is False and
+            offline_route["expected_security_state"] == expected_security and
+            offline_route["fresh_read_only_security_observation_required"] is True and
+            offline_route["security_observation_requires_same_operation_and_evidence_set"] is True and
+            offline_route["unknown_or_mismatched_security_state_result"] == "DENY" and
+            offline_route["post_first_write_failure_policy"].endswith(
+                "#recovery_route/post_first_write_failure_policy") and
+            offline_route["current_result"] == "DENY-PHYSICAL-EXECUTION",
+            "transition must consume only the accepted offline route")
+    require(key_roles["requirements_defined"] is True and
+            key_roles["distinct_keys_required"] is True and
+            key_roles["nvs_encryption_hmac_key"]["provider_selected"] is False and
+            key_roles["bond_binding_prf_hmac_key"]["provider_selected"] is False and
+            key_roles["current_result"] == "DENY",
+            "protected key roles must be defined without selected providers")
+    require(floor["requirements_defined"] is True and
+            floor["independent_from_all_rewritable_flash"] is True and
+            floor["monotonic_non_rollbackable"] is True and
+            floor["provider_selected"] is False and floor["provisioned"] is False and
+            floor["current_result"] == "DENY",
+            "rollback floor must be defined without provisioning authority")
 
 
 def test_no_physical_surface_and_registered_host_gate() -> None:
