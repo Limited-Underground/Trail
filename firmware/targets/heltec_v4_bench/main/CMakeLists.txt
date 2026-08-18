@@ -10,6 +10,7 @@ idf_component_register(
         "companion_authorization_nvs_backend.cpp"
         "companion_authorization_nvs_context.cpp"
         "companion_protected_root_key_roster_adapter.cpp"
+        "companion_protected_root_configuration_security_adapter.cpp"
         "heltec_startup_display.cpp"
         "heltec_v4_oled.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_protocol.cpp"
@@ -30,6 +31,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/radio/include"
     REQUIRES
         bt
+        bootloader_support
         efuse
         esp_partition
         esp_security

@@ -579,6 +579,17 @@ inventory evidence or provider admission. Configured-NVS, security-state, and
 rollback-floor sources remain separate missing boundaries. See
 [Decision 0024](decisions/0024-build-only-target-side-protected-root-key-roster-adapter.md).
 
+OT-082 adds a separate build-only target leaf for the default NVS build
+configuration and decoded secure-boot, flash-encryption, secure-download, and
+download-mode-disablement values. The one-use source publishes atomically only
+after four ordered calls and has no dependency edge from startup, runtime, BLE,
+storage, command, or transport composition. Its NVS output describes build
+defaults only, and its security fields are an unexecuted source schema rather
+than device observations. It cannot resolve a runtime NVS override,
+configured-key conflict, complete inventory, provider suitability, or the
+rollback-floor descriptor. See
+[Decision 0025](decisions/0025-build-only-protected-root-configuration-security-adapter.md).
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

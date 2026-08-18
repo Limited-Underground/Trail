@@ -9,6 +9,20 @@ Status date: 2026-08-18
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-082 adds a Heltec-local, one-use, all-or-none source for the default build's
+normalized NVS protection configuration and four decoded security-state values.
+It keeps secure boot, flash encryption, secure download, and download-mode
+disablement distinct, and fails closed on invalid build configuration, re-entry,
+or reuse. Strict host tests, eleven target-admission groups, the complete
+145-executable host gate, and two identical pinned target builds pass. The
+source is build-compiled but has no runtime call path and was not executed on a
+device. It proves no current security state, runtime NVS scheme, configured-key
+conflict, complete inventory, provider suitability, or physical allocation.
+All device/read/reset/provisioning/write/runtime authority remains false and
+milestone completion is unchanged. See
+[OT-082](../tests/hardware/OT-082-2026-08-18.md) and
+[Decision 0025](decisions/0025-build-only-protected-root-configuration-security-adapter.md).
+
 OT-081 implements the OT-080 target-side boundary as a Heltec-local, one-use
 coarse key-roster adapter. It calls only the five admitted decoded ESP-IDF
 6.0.2 APIs for six logical key slots, publishes only after all calls and

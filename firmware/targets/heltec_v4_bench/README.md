@@ -392,3 +392,16 @@ admission. The complete inventory reader/orchestrator remains absent, operation 
 device/read/write/provisioning/runtime authority remains false. See
 [Decision 0024](../../../docs/decisions/0024-build-only-target-side-protected-root-key-roster-adapter.md)
 and [OT-081 evidence](../../../tests/hardware/OT-081-2026-08-18.md).
+
+OT-082 adds a second build-only target leaf for the default NVS build
+configuration and four decoded security-state values. It is one-use,
+all-or-none, and re-entry poisoned; strict host tests cover all configuration
+and security-value combinations. The source is compiled exactly once and the
+build receipt binds its header, source, and object, but no startup/runtime
+source includes or constructs it and it was not executed on hardware. The
+values expected by the recovery contract remain expectations rather than
+device observations. Runtime NVS overrides, configured-key conflict, complete
+inventory, provider admission, and the rollback-floor descriptor remain open;
+all device/read/write/provisioning/runtime authority remains false. See
+[Decision 0025](../../../docs/decisions/0025-build-only-protected-root-configuration-security-adapter.md)
+and [OT-082 evidence](../../../tests/hardware/OT-082-2026-08-18.md).

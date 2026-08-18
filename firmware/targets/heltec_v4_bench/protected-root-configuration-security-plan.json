@@ -1,0 +1,158 @@
+{
+  "schema": "OTPRCS0/v0",
+  "increment": "OT-082",
+  "target": "heltec_v4_bench",
+  "device_family": "ESP32-S3",
+  "status": "BUILD-COMPILED-NOT-RUNTIME-INJECTED",
+  "public_result": "OT-082 BUILD-ONLY CONFIGURATION-SECURITY SOURCE PASS — EXECUTION UNAUTHORIZED",
+  "purpose": "Freeze the bounded target-side source for normalized default-build NVS configuration and security-state metadata without granting device access or inventory authority.",
+  "implementation": {
+    "header": "main/companion_protected_root_configuration_security_adapter.hpp",
+    "source": "main/companion_protected_root_configuration_security_adapter.cpp",
+    "host_test": "tests/host/companion_protected_root_configuration_security_adapter_tests.cpp",
+    "esp_idf_version": "6.0.2",
+    "build_compiled": true,
+    "runtime_injected": false,
+    "executed": false,
+    "one_use": true,
+    "all_or_none": true,
+    "reentry_poisoned": true
+  },
+  "default_build_nvs_configuration": {
+    "scope": "DEFAULT-BUILD-CONFIGURATION-ONLY",
+    "symbols": [
+      "CONFIG_NVS_ENCRYPTION",
+      "CONFIG_NVS_SEC_KEY_PROTECT_USING_HMAC",
+      "CONFIG_NVS_SEC_KEY_PROTECT_USING_FLASH_ENC",
+      "CONFIG_NVS_SEC_KEY_PROTECT_NONE",
+      "CONFIG_NVS_SEC_HMAC_EFUSE_KEY_ID"
+    ],
+    "normalized_modes": [
+      "disabled",
+      "hmac",
+      "flash_encryption",
+      "external"
+    ],
+    "current_target_build": {
+      "nvs_encryption_enabled": false,
+      "protection_mode": "disabled",
+      "configured_hmac_key_slot_known": false,
+      "configured_hmac_key_slot": null
+    },
+    "runtime_scheme_override_observed": false,
+    "configured_binding_conflict_resolved": false,
+    "complete_inventory_output": false
+  },
+  "security_state_source": {
+    "exact_order": [
+      "esp_secure_boot_enabled",
+      "esp_efuse_is_flash_encryption_enabled",
+      "esp_efuse_read_field_bit:ESP_EFUSE_ENABLE_SECURITY_DOWNLOAD",
+      "esp_efuse_read_field_bit:ESP_EFUSE_DIS_DOWNLOAD_MODE"
+    ],
+    "normalized_fields": [
+      "secure_boot_enabled",
+      "flash_encryption_enabled",
+      "secure_download_enabled",
+      "download_mode_disabled"
+    ],
+    "current_device_observation": {
+      "secure_boot_enabled": null,
+      "flash_encryption_enabled": null,
+      "secure_download_enabled": null,
+      "download_mode_disabled": null
+    },
+    "expected_recovery_compatible_values_are_not_observations": true
+  },
+  "source_pins": [
+    {
+      "path": "components/bootloader_support/include/esp_secure_boot.h",
+      "sha256": "2589E0573A1F32C3CBF69D07AB1CF591A5A55935FBDCD76E12A59DA1DACA8B3D"
+    },
+    {
+      "path": "components/efuse/include/esp_efuse.h",
+      "sha256": "4D488D3F2A75F0E55B903410987E08DCBAA550E11344032E93B315BEC87648A7"
+    },
+    {
+      "path": "components/efuse/src/esp_efuse_api.c",
+      "sha256": "66A12FA28B11642385C54A249CEC8EBEE139BF7A5BF562B9D5AFF29A3B8CF3F4"
+    },
+    {
+      "path": "components/efuse/src/esp_efuse_fields.c",
+      "sha256": "E7C04ACDF54CDA0EFF2F2AC7551D6B25CB782E62A2F221C0E4B31DDC37D57AB5"
+    },
+    {
+      "path": "components/efuse/esp32s3/include/esp_efuse_table.h",
+      "sha256": "B83AE97309A1AF3A7AE114C30033FDC88AB55842B0CF54ABBF64717C3AE9B8F7"
+    },
+    {
+      "path": "components/efuse/esp32s3/esp_efuse_table.c",
+      "sha256": "DA8BA0B51CEA533541E139D88F612ABECA447ACEB73F822A70C1A7A4D43E3234"
+    },
+    {
+      "path": "components/efuse/esp32s3/esp_efuse_table.csv",
+      "sha256": "0B22F89D2B0F7EE315046DE5108C1DDDA8F46BB451985C7F66EB753301BFA69E"
+    },
+    {
+      "path": "components/hal/esp32s3/include/hal/efuse_ll.h",
+      "sha256": "28C92CF756E98CDBDC31FBBE0A4C7C23E0415E620CB51323D06B66939B33EEFB"
+    },
+    {
+      "path": "components/hal/efuse_hal.c",
+      "sha256": "B73B8946370A4815391F90067C2A760466C60B68E67EB69FA725C14668430FDA"
+    },
+    {
+      "path": "components/nvs_flash/Kconfig",
+      "sha256": "ED0199B6407A1E920C9FC6169FB6E0EBA97241D01320FC52255E2AB16E1BDB06"
+    },
+    {
+      "path": "components/nvs_sec_provider/Kconfig",
+      "sha256": "60C5EA67B4B957DEDF74477C3B618BE1C9B311099974EFD373E1500A58D181F9"
+    }
+  ],
+  "forbidden_surfaces": [
+    "nvs_flash_read_security_cfg",
+    "nvs_flash_read_security_cfg_v2",
+    "nvs_flash_generate_keys",
+    "nvs_flash_generate_keys_v2",
+    "esp_hmac_calculate",
+    "esp_efuse_get_key",
+    "esp_efuse_read_block",
+    "esp_efuse_read_field_blob",
+    "esp_efuse_write",
+    "esp_efuse_batch_write",
+    "erase",
+    "reset",
+    "logging",
+    "serialization",
+    "transport"
+  ],
+  "execution_surface": {
+    "commands": [],
+    "attempts": 0,
+    "selected_unit": null,
+    "port": null,
+    "operation_id": null,
+    "evidence_set_id": null,
+    "device_access_authorized": false,
+    "device_read_authorized": false,
+    "efuse_read_authorized": false,
+    "nvs_read_authorized": false,
+    "security_state_read_authorized": false,
+    "reset_authorized": false,
+    "write_authorized": false,
+    "provisioning_authorized": false,
+    "provider_admission_authorized": false,
+    "runtime_activation_authorized": false
+  },
+  "current_result": {
+    "adapter_build_evidence_accepted": true,
+    "device_metadata_observed": false,
+    "configured_nvs_conflict_known": false,
+    "security_context_complete": false,
+    "inventory_admissible": false,
+    "provider_admitted": false,
+    "score_change_supported": false
+  },
+  "next_gate": "Accept the exact build and host/static evidence, then select and review an exact non-secret rollback-floor descriptor before defining any complete inventory composition or physical-read operation."
+}

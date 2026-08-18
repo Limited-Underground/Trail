@@ -305,3 +305,22 @@ path and has not executed on a device. Configured-NVS conflict, security state,
 and rollback-floor facts remain unavailable. See
 [Decision 0024](../decisions/0024-build-only-target-side-protected-root-key-roster-adapter.md)
 and [OT-081 evidence](../../tests/hardware/OT-081-2026-08-18.md).
+
+## OT-082 build-only configuration/security metadata source
+
+OT-082 adds a separate target-local source for the default NVS build
+configuration and four decoded security-state values. It retains secure boot,
+flash encryption, secure download, and download-mode disablement as distinct
+facts and calls the four admitted ESP-IDF accessors in one exact order. Invalid
+build configuration, re-entry, or reuse denies without partial output.
+
+The NVS result describes only compile-time defaults. It does not prove that a
+runtime security scheme was not selected, resolve a configured key against the
+coarse roster, or show a current device state. Expected recovery-compatible
+security values are not observations. The source is build-compiled with no
+runtime call path and has not executed on a device. No raw field, block, blob,
+key, bitmap, identifier, path, reader/orchestrator, or authority is exposed.
+Complete inventory composition and an exact non-secret rollback-floor
+descriptor remain missing. See
+[Decision 0025](../decisions/0025-build-only-protected-root-configuration-security-adapter.md)
+and [OT-082 evidence](../../tests/hardware/OT-082-2026-08-18.md).

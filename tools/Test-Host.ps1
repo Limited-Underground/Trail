@@ -255,6 +255,18 @@ $builds = @(
         )
     },
     @{
+        Name = 'Heltec protected-root configuration-security adapter'
+        Output = Join-Path $buildDirectory 'companion_protected_root_configuration_security_adapter_tests.exe'
+        Sources = @(
+            '-I',
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main'),
+            '-I',
+            (Join-Path $projectRoot 'tests\host\ot082_esp_idf'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_protected_root_configuration_security_adapter.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_protected_root_configuration_security_adapter_tests.cpp')
+        )
+    },
+    @{
         Name = 'companion authorization protected KV slot media'
         Output = Join-Path $buildDirectory 'companion_authorization_protected_kv_media_tests.exe'
         Sources = @(
@@ -1812,6 +1824,11 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\protected_root_inventory_reader_plan_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 protected-root inventory reader-route plan tests failed.'
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\protected_root_configuration_security_plan_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Heltec V4 protected-root configuration/security plan tests failed.'
 }
 
 

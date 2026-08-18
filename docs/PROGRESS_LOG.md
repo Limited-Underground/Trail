@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-18
 
+### OT-082 build-only configuration/security metadata source
+
+- Added a target-local, one-use source for the default NVS build configuration
+  and four distinct decoded ESP32-S3 security-state values.
+- Strict synthetic tests cover NVS configuration permutations, all 16 security-
+  state combinations, exact call order, all-or-nothing publication, re-entry,
+  reuse, and deterministic fresh instances. The complete 145-executable host
+  gate, eleven target-admission groups, and two identical pinned target builds
+  pass.
+- The source is build-compiled but has no runtime call path and was not executed
+  on a device. It grants no read or inventory authority and cannot resolve
+  runtime NVS overrides, configured-key conflict, or the rollback-floor
+  descriptor. V1 completion is unchanged. See
+  [OT-082 evidence](../tests/hardware/OT-082-2026-08-18.md).
+
 ### OT-081 build-only protected-root key-roster adapter
 
 - Implemented the target-local one-use six-slot adapter using only the five

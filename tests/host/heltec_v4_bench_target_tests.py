@@ -55,6 +55,12 @@ PROTECTED_ROOT_KEY_ROSTER_HEADER = (
     TARGET / "main" / "companion_protected_root_key_roster_adapter.hpp")
 PROTECTED_ROOT_KEY_ROSTER = (
     TARGET / "main" / "companion_protected_root_key_roster_adapter.cpp")
+PROTECTED_ROOT_CONFIGURATION_SECURITY_HEADER = (
+    TARGET / "main" /
+    "companion_protected_root_configuration_security_adapter.hpp")
+PROTECTED_ROOT_CONFIGURATION_SECURITY = (
+    TARGET / "main" /
+    "companion_protected_root_configuration_security_adapter.cpp")
 MAIN_CMAKE = TARGET / "main" / "CMakeLists.txt"
 COMPANION_SOURCES = (
     ROOT / "firmware" / "components" / "companion" / "src" /
@@ -95,6 +101,8 @@ def test_contract() -> None:
         "main/companion_authorization_nvs_context.hpp",
         "main/companion_protected_root_key_roster_adapter.cpp",
         "main/companion_protected_root_key_roster_adapter.hpp",
+        "main/companion_protected_root_configuration_security_adapter.cpp",
+        "main/companion_protected_root_configuration_security_adapter.hpp",
         "main/companion_nimble_gatt.cpp",
         "main/companion_nimble_gatt.hpp",
         "main/companion_nimble_runtime.cpp",
@@ -111,6 +119,7 @@ def test_contract() -> None:
         "protected-storage-provider-plan.json",
         "protected-root-inventory-plan.json",
         "protected-root-inventory-reader-plan.json",
+        "protected-root-configuration-security-plan.json",
         "protected-storage-provisioning-plan.json",
         "protected-storage-recovery-bundle-plan.json",
         "protected-storage-transition-read-plan.json",
@@ -233,6 +242,7 @@ def test_contract() -> None:
         "companion_authorization_nvs_backend_build_compiled",
         "companion_authorization_nvs_context_build_compiled",
         "protected_root_key_roster_adapter_build_compiled",
+        "protected_root_configuration_security_adapter_build_compiled",
         "nimble_runtime_owner_build_linked",
         "nimble_runtime_startup_coded",
         "private_service_advertising_coded",
@@ -292,6 +302,18 @@ def test_contract() -> None:
             capabilities[
                 "protected_root_key_roster_complete_inventory"] is False,
             "key-roster build evidence must not grant runtime, read, or inventory authority")
+    require(capabilities[
+        "protected_root_configuration_security_adapter_build_compiled"] is True,
+            "configuration/security adapter must be build-compiled")
+    require(capabilities[
+        "protected_root_configuration_security_adapter_runtime_injected"] is False and
+            capabilities[
+                "protected_root_configuration_security_adapter_executed"] is False and
+            capabilities[
+                "protected_root_nvs_metadata_device_read_authorized"] is False and
+            capabilities[
+                "protected_root_security_state_device_read_authorized"] is False,
+            "configuration/security build evidence must not grant runtime or read authority")
     require(capabilities["nimble_runtime_owner_build_linked"] is True and
             capabilities["nimble_runtime_startup_coded"] is True and
             capabilities["private_service_advertising_coded"] is True,
@@ -840,8 +862,8 @@ def test_protected_root_key_roster_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 21,
-            "non-injection gate must cover the exact 21-source target build")
+    require(len(linked_source_tokens) == 22,
+            "non-injection gate must cover the exact 22-source target build")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -853,7 +875,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 20,
+    require(len(other_linked_sources) == 21,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -861,6 +883,82 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             "companion_protected_root_key_roster_adapter.hpp" not in
             runtime_sources,
             "build-only key-roster adapter must have no runtime call path")
+
+
+def test_protected_root_configuration_security_adapter_surface() -> None:
+    header = PROTECTED_ROOT_CONFIGURATION_SECURITY_HEADER.read_text(
+        encoding="utf-8")
+    source = PROTECTED_ROOT_CONFIGURATION_SECURITY.read_text(encoding="utf-8")
+    combined = header + "\n" + source
+
+    for required in (
+        "EspIdfProtectedRootConfigurationSecurityAdapter",
+        "ProtectedRootConfigurationSecurityReadResult",
+        "normalize_protected_root_nvs_build_configuration",
+        "CONFIG_NVS_ENCRYPTION",
+        "CONFIG_NVS_SEC_KEY_PROTECT_USING_HMAC",
+        "CONFIG_NVS_SEC_KEY_PROTECT_USING_FLASH_ENC",
+        "CONFIG_NVS_SEC_KEY_PROTECT_NONE",
+        "CONFIG_NVS_SEC_HMAC_EFUSE_KEY_ID",
+        "esp_secure_boot_enabled()",
+        "esp_efuse_is_flash_encryption_enabled()",
+        "esp_efuse_read_field_bit(ESP_EFUSE_ENABLE_SECURITY_DOWNLOAD)",
+        "esp_efuse_read_field_bit(ESP_EFUSE_DIS_DOWNLOAD_MODE)",
+        "attempted_", "active_", "poisoned_",
+    ):
+        require(required in combined,
+                f"missing configuration/security boundary: {required}")
+
+    require(source.count("esp_secure_boot_enabled()") == 1 and
+            source.count("esp_efuse_is_flash_encryption_enabled()") == 1 and
+            source.count("esp_efuse_read_field_bit(") == 2,
+            "configuration/security source must retain four exact call sites")
+    secure_boot = source.index("esp_secure_boot_enabled()")
+    flash_encryption = source.index(
+        "esp_efuse_is_flash_encryption_enabled()")
+    secure_download = source.index(
+        "esp_efuse_read_field_bit(ESP_EFUSE_ENABLE_SECURITY_DOWNLOAD)")
+    download_disabled = source.index(
+        "esp_efuse_read_field_bit(ESP_EFUSE_DIS_DOWNLOAD_MODE)")
+    require(secure_boot < flash_encryption < secure_download < download_disabled,
+            "configuration/security metadata call order drifted")
+
+    for forbidden in (
+        "nvs_flash_read_security_cfg", "nvs_flash_generate_keys",
+        "esp_hmac", "esp_efuse_get_key", "esp_efuse_read_block",
+        "esp_efuse_read_field_blob", "esp_efuse_write",
+        "esp_efuse_set_", "esp_efuse_batch", "ESP_LOG", "printf(",
+        "puts(", "std::cout", "std::cerr", "fstream", "filesystem",
+        "subprocess", "SerialPort", "serial_", "uart_", "usb_",
+        "reset", "erase",
+    ):
+        require(forbidden not in combined,
+                f"configuration/security adapter gained forbidden surface: {forbidden}")
+
+    cmake = MAIN_CMAKE.read_text(encoding="utf-8")
+    linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
+    require(len(linked_source_tokens) == 22,
+            "configuration/security non-injection gate must cover 22 sources")
+    other_linked_sources = []
+    for token in linked_source_tokens:
+        if token == "companion_protected_root_configuration_security_adapter.cpp":
+            continue
+        if token.startswith("${OPENTRAIL_COMPONENT_ROOT}/"):
+            suffix = token.removeprefix("${OPENTRAIL_COMPONENT_ROOT}/")
+            path = ROOT / "firmware" / "components" / Path(suffix)
+        else:
+            path = TARGET / "main" / token
+        require(path.is_file(), f"linked source is missing: {token}")
+        other_linked_sources.append(path)
+    require(len(other_linked_sources) == 21,
+            "configuration/security gate must scan every other linked source")
+    runtime_sources = "\n".join(
+        path.read_text(encoding="utf-8") for path in other_linked_sources)
+    require("EspIdfProtectedRootConfigurationSecurityAdapter" not in
+            runtime_sources and
+            "companion_protected_root_configuration_security_adapter.hpp" not in
+            runtime_sources,
+            "build-only configuration/security adapter gained a runtime path")
 
 
 def test_display_surface() -> None:
@@ -1263,6 +1361,7 @@ def test_application_surface() -> None:
         "companion_authorization_nvs_backend.cpp",
         "companion_authorization_nvs_context.cpp",
         "companion_protected_root_key_roster_adapter.cpp",
+        "companion_protected_root_configuration_security_adapter.cpp",
         "companion/src/companion_ble_runtime_owner.cpp",
         "companion_authorization_storage.cpp",
         "companion_boot_self_check.cpp",
@@ -1276,11 +1375,11 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 21,
-            "target source set must remain ten target and eleven companion sources")
+    require(cmake.count('.cpp"') == 22,
+            "target source set must remain eleven target and eleven companion sources")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
-            "bt", "efuse", "esp_partition", "esp_security",
+            "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
             "esp_driver_gpio", "esp_driver_i2c", "esp_lcd", "nvs_flash")),
             "target must declare pinned Bluetooth and security dependencies")
 
@@ -1462,6 +1561,21 @@ def test_build_only_tooling() -> None:
     ):
         require(required_receipt_field in script,
                 f"build receipt is missing roster revision evidence: {required_receipt_field}")
+    require("protected_root_configuration_security_adapter = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'" in script and
+            "protected_root_configuration_security_execution = 'NOT-AUTHORIZED-NOT-RUN'" in script,
+            "build evidence must keep the configuration/security adapter inactive")
+    require("$configurationSecurityHeaderPath" in script and
+            "$configurationSecuritySourcePath" in script and
+            "protected_root_configuration_security_build_evidence = $configurationSecurityBuildEvidence" in script,
+            "build receipt must bind the exact configuration/security sources")
+    for required_receipt_field in (
+        "name = Split-Path -Leaf $configurationSecurityHeaderPath",
+        "name = Split-Path -Leaf $configurationSecuritySourcePath",
+        "name = $configurationSecurityObject.Name",
+        "sha256 = (Get-FileHash -LiteralPath $configurationSecurityObject.FullName",
+    ):
+        require(required_receipt_field in script,
+                f"build receipt is missing configuration/security evidence: {required_receipt_field}")
     for expected_hash in (
         "CD6C5462CB1B2ADFE7735915810461EDE96ECF0B830A0761E4CAF2E6CB982C73",
         "66A12FA28B11642385C54A249CEC8EBEE139BF7A5BF562B9D5AFF29A3B8CF3F4",
@@ -1471,6 +1585,21 @@ def test_build_only_tooling() -> None:
     ):
         require(expected_hash in script,
                 f"build helper must pin OT-080 metadata source: {expected_hash}")
+    for expected_hash in (
+        "2589E0573A1F32C3CBF69D07AB1CF591A5A55935FBDCD76E12A59DA1DACA8B3D",
+        "4D488D3F2A75F0E55B903410987E08DCBAA550E11344032E93B315BEC87648A7",
+        "66A12FA28B11642385C54A249CEC8EBEE139BF7A5BF562B9D5AFF29A3B8CF3F4",
+        "E7C04ACDF54CDA0EFF2F2AC7551D6B25CB782E62A2F221C0E4B31DDC37D57AB5",
+        "B83AE97309A1AF3A7AE114C30033FDC88AB55842B0CF54ABBF64717C3AE9B8F7",
+        "DA8BA0B51CEA533541E139D88F612ABECA447ACEB73F822A70C1A7A4D43E3234",
+        "0B22F89D2B0F7EE315046DE5108C1DDDA8F46BB451985C7F66EB753301BFA69E",
+        "28C92CF756E98CDBDC31FBBE0A4C7C23E0415E620CB51323D06B66939B33EEFB",
+        "B73B8946370A4815391F90067C2A760466C60B68E67EB69FA725C14668430FDA",
+        "ED0199B6407A1E920C9FC6169FB6E0EBA97241D01320FC52255E2AB16E1BDB06",
+        "60C5EA67B4B957DEDF74477C3B618BE1C9B311099974EFD373E1500A58D181F9",
+    ):
+        require(expected_hash in script,
+                f"build helper must pin OT-082 configuration/security source: {expected_hash}")
     require("companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'" in script and
             "companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny GATT/runtime execution evidence")
@@ -1510,6 +1639,8 @@ def test_build_only_tooling() -> None:
             "build helper must verify all inactive storage objects were compiled")
     require("companion_protected_root_key_roster_adapter.cpp.obj" in script,
             "build helper must verify the inactive key-roster adapter object")
+    require("companion_protected_root_configuration_security_adapter.cpp.obj" in script,
+            "build helper must verify the inactive configuration/security object")
     require("protected_nvs = 'NOT-INITIALIZED-NOT-VERIFIED'" in script and
             "private_bond_store = 'NOT-IMPLEMENTED'" in script and
             "binding_prf_key = 'NOT-PROVISIONED-NOT-VERIFIED'" in script and
@@ -1558,6 +1689,7 @@ def main() -> int:
              test_protected_storage_candidate_plan,
              test_authorization_nvs_backend_surface,
              test_protected_root_key_roster_adapter_surface,
+             test_protected_root_configuration_security_adapter_surface,
              test_display_surface,
              test_application_surface, test_build_only_tooling)
     for test in tests:

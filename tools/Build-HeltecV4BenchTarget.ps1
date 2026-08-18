@@ -13,11 +13,18 @@ $partitionCsvPath = Join-Path $targetRoot 'partitions.csv'
 $logoPath = Join-Path $targetRoot 'main\trail_startup_logo.hpp'
 $protectedRootRosterHeaderPath = Join-Path $targetRoot 'main\companion_protected_root_key_roster_adapter.hpp'
 $protectedRootRosterSourcePath = Join-Path $targetRoot 'main\companion_protected_root_key_roster_adapter.cpp'
+$configurationSecurityHeaderPath = Join-Path $targetRoot 'main\companion_protected_root_configuration_security_adapter.hpp'
+$configurationSecuritySourcePath = Join-Path $targetRoot 'main\companion_protected_root_configuration_security_adapter.cpp'
 $sdkconfigPath = Join-Path $buildRoot 'sdkconfig'
 
 foreach ($rosterSourcePath in @($protectedRootRosterHeaderPath, $protectedRootRosterSourcePath)) {
     if (-not (Test-Path -LiteralPath $rosterSourcePath -PathType Leaf)) {
         throw "Protected-root key-roster source is missing: $(Split-Path -Leaf $rosterSourcePath)"
+    }
+}
+foreach ($configurationSecurityPath in @($configurationSecurityHeaderPath, $configurationSecuritySourcePath)) {
+    if (-not (Test-Path -LiteralPath $configurationSecurityPath -PathType Leaf)) {
+        throw "Protected-root configuration/security source is missing: $(Split-Path -Leaf $configurationSecurityPath)"
     }
 }
 
@@ -72,6 +79,30 @@ foreach ($source in $protectedRootMetadataSources) {
     $actualHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
     if ($actualHash -ne $source.Sha256) {
         throw "Pinned protected-root metadata source changed: $($source.Path)"
+    }
+}
+
+$configurationSecuritySources = @(
+    @{ Path = 'components\bootloader_support\include\esp_secure_boot.h'; Sha256 = '2589E0573A1F32C3CBF69D07AB1CF591A5A55935FBDCD76E12A59DA1DACA8B3D' },
+    @{ Path = 'components\efuse\include\esp_efuse.h'; Sha256 = '4D488D3F2A75F0E55B903410987E08DCBAA550E11344032E93B315BEC87648A7' },
+    @{ Path = 'components\efuse\src\esp_efuse_api.c'; Sha256 = '66A12FA28B11642385C54A249CEC8EBEE139BF7A5BF562B9D5AFF29A3B8CF3F4' },
+    @{ Path = 'components\efuse\src\esp_efuse_fields.c'; Sha256 = 'E7C04ACDF54CDA0EFF2F2AC7551D6B25CB782E62A2F221C0E4B31DDC37D57AB5' },
+    @{ Path = 'components\efuse\esp32s3\include\esp_efuse_table.h'; Sha256 = 'B83AE97309A1AF3A7AE114C30033FDC88AB55842B0CF54ABBF64717C3AE9B8F7' },
+    @{ Path = 'components\efuse\esp32s3\esp_efuse_table.c'; Sha256 = 'DA8BA0B51CEA533541E139D88F612ABECA447ACEB73F822A70C1A7A4D43E3234' },
+    @{ Path = 'components\efuse\esp32s3\esp_efuse_table.csv'; Sha256 = '0B22F89D2B0F7EE315046DE5108C1DDDA8F46BB451985C7F66EB753301BFA69E' },
+    @{ Path = 'components\hal\esp32s3\include\hal\efuse_ll.h'; Sha256 = '28C92CF756E98CDBDC31FBBE0A4C7C23E0415E620CB51323D06B66939B33EEFB' },
+    @{ Path = 'components\hal\efuse_hal.c'; Sha256 = 'B73B8946370A4815391F90067C2A760466C60B68E67EB69FA725C14668430FDA' },
+    @{ Path = 'components\nvs_flash\Kconfig'; Sha256 = 'ED0199B6407A1E920C9FC6169FB6E0EBA97241D01320FC52255E2AB16E1BDB06' },
+    @{ Path = 'components\nvs_sec_provider\Kconfig'; Sha256 = '60C5EA67B4B957DEDF74477C3B618BE1C9B311099974EFD373E1500A58D181F9' }
+)
+foreach ($source in $configurationSecuritySources) {
+    $sourcePath = Join-Path $env:IDF_PATH $source.Path
+    if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+        throw "Pinned configuration/security source is missing: $($source.Path)"
+    }
+    $actualHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
+    if ($actualHash -ne $source.Sha256) {
+        throw "Pinned configuration/security source changed: $($source.Path)"
     }
 }
 
@@ -415,6 +446,32 @@ $protectedRootRosterBuildEvidence = [ordered]@{
         sha256 = (Get-FileHash -LiteralPath $protectedRootRosterObject.FullName -Algorithm SHA256).Hash
     }
 }
+$compiledConfigurationSecurityObject = @(
+    Get-ChildItem -LiteralPath $buildRoot -Recurse -File |
+        Where-Object {
+            $_.Name -eq 'companion_protected_root_configuration_security_adapter.cpp.obj'
+        })
+if (@($compiledConfigurationSecurityObject).Count -ne 1) {
+    throw 'Protected-root configuration/security adapter was not build-compiled exactly once.'
+}
+$configurationSecurityObject = @($compiledConfigurationSecurityObject)[0]
+$configurationSecurityBuildEvidence = [ordered]@{
+    header = [ordered]@{
+        name = Split-Path -Leaf $configurationSecurityHeaderPath
+        bytes = (Get-Item -LiteralPath $configurationSecurityHeaderPath).Length
+        sha256 = (Get-FileHash -LiteralPath $configurationSecurityHeaderPath -Algorithm SHA256).Hash
+    }
+    source = [ordered]@{
+        name = Split-Path -Leaf $configurationSecuritySourcePath
+        bytes = (Get-Item -LiteralPath $configurationSecuritySourcePath).Length
+        sha256 = (Get-FileHash -LiteralPath $configurationSecuritySourcePath -Algorithm SHA256).Hash
+    }
+    object = [ordered]@{
+        name = $configurationSecurityObject.Name
+        bytes = $configurationSecurityObject.Length
+        sha256 = (Get-FileHash -LiteralPath $configurationSecurityObject.FullName -Algorithm SHA256).Hash
+    }
+}
 $artifactEvidence = @(
     foreach ($artifactPath in $artifactPaths) {
         if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
@@ -478,6 +535,9 @@ $evidence = [ordered]@{
     protected_root_key_roster_adapter = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'
     protected_root_key_roster_execution = 'NOT-AUTHORIZED-NOT-RUN'
     protected_root_key_roster_build_evidence = $protectedRootRosterBuildEvidence
+    protected_root_configuration_security_adapter = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'
+    protected_root_configuration_security_execution = 'NOT-AUTHORIZED-NOT-RUN'
+    protected_root_configuration_security_build_evidence = $configurationSecurityBuildEvidence
     companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'
     companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'
     companion_command_dispatch = 'BUILD-LINKED-PREFLIGHT-DENIED-NOT-RUN'
