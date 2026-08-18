@@ -10,6 +10,7 @@ venv/
 
 # PlatformIO and firmware build output
 .pio/
+.private/
 build/
 dist/
 artifacts/

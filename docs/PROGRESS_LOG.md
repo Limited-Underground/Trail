@@ -6,6 +6,20 @@ public chronology.
 
 ## 2026-08-17
 
+### OT-076 exact installed application recovery capture
+
+- One owner-authorized, one-use read-only operation captured the exact
+  470,928-byte OT-064 factory application and independently reread it after
+  closing the device connection; its SHA-256 matches the accepted installed
+  application identity.
+- The exact binary is retained only as a private ignored recovery artifact.
+  The temporary reader/tests/bytecode were deleted, and no private device or
+  operation identity or detailed transport output is retained publicly.
+- No recovery route or write authority was accepted. The partition transition
+  remains denied. After manual RST, the owner observed the Trail logo followed
+  by `BLE ADVERTISING`. V1 Companion remains 40%. See
+  [OT-076 evidence](../tests/hardware/OT-076-2026-08-17.md).
+
 ### OT-075 offline candidate partition and recovery gate
 
 - Pinned ESP-IDF v6.0.2 generated and decoded the exact 3,072-byte `OTPS0/v0`

@@ -43,9 +43,14 @@ not authorized.
 - Protected NVS, bond persistence, GATT authorization, and Ready remain
   disabled.
 
+Decision 0019 later accepted a private exact capture of the installed
+application. The recovery route, fresh operation-bound evidence, keys,
+rollback floor, exact-unit recovery validation, and write authority remain
+open, so the recovery bundle and partition transition remain denied.
+
 ## Next gate
 
-Obtain the exact installed application as a private, read-only recovery
-artifact or recover an independently verified identical artifact. Then define
-and validate the exact recovery route. Only after those pass may a separate
-operation request fresh transition evidence and physical-write authority.
+Decision 0019 closes the exact installed-application artifact prerequisite.
+Define and validate the exact recovery route. Only after that passes may a
+separate operation request fresh transition evidence and physical-write
+authority.

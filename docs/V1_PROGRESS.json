@@ -51,7 +51,7 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target: its exact profile, physical boot and BLE advertisement, and target-local 128 x 64 startup/status OLED passed bounded write, verification, runtime, visual, and Android discovery gates. The exact installed partition table and complete blank protected-storage source region also passed a bounded physical read-only proof.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target: its exact profile, physical boot and BLE advertisement, and target-local 128 x 64 startup/status OLED passed bounded write, verification, runtime, visual, and Android discovery gates. The exact installed partition table and complete blank protected-storage source region passed a bounded physical read-only proof, and the exact installed application is privately retained as a verified recovery artifact.",
       "weight": 15,
       "completion": 25,
       "evidence_status": "Experimental physical target with startup/status OLED",
@@ -60,11 +60,12 @@
         "tests/hardware/OT-061-2026-08-16.md",
         "tests/hardware/OT-064-2026-08-17.md",
         "tests/hardware/OT-073-2026-08-17.md",
+        "tests/hardware/OT-076-2026-08-17.md",
         "tests/hardware/OT-074-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Accept exact-unit recovery evidence, protected key roles, an independent rollback floor, and separate physical-write authority before any partition transition; then admit protected owner storage and private bond authority, prove one bounded GATT authorization and Ready session, and bind real LoRa/GNSS and interactive display/input before unit 2."
+      "next_gate": "Accept the exact recovery route, protected key roles, an independent rollback floor, and separate physical-write authority before any partition transition; then admit protected owner storage and private bond authority, prove one bounded GATT authorization and Ready session, and bind real LoRa/GNSS and interactive display/input before unit 2."
     },
     {
       "id": "first-complete-unit",
@@ -136,12 +137,12 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, and a bounded physical proof of the exact installed partition table plus complete blank protected-storage source region.",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical proof of the exact installed partition table plus complete blank protected-storage source region, and a privately retained exact installed-application recovery artifact.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Experimental physical target",
-          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "hardware/INVENTORY.md"],
-          "next_gate": "Accept exact-unit recovery evidence, protected key roles, an independent rollback floor, and separate physical-write authority before any partition transition; then admit protected storage and private bond authority, prove physical GATT authorization and Ready, and bind LoRa and GNSS."
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "hardware/INVENTORY.md"],
+          "next_gate": "Accept the exact recovery route, protected key roles, an independent rollback floor, and separate physical-write authority before any partition transition; then admit protected storage and private bond authority, prove physical GATT authorization and Ready, and bind LoRa and GNSS."
         },
         {
           "id": "android-companion",
@@ -182,6 +183,12 @@
           "overall_exact": 39.75,
           "overall": 40,
           "reason": "Accepted the exact installed partition-table and complete blank protected-storage source-region proof on OT-DEV-001, followed by the owner-observed startup/status return. This satisfies only the source prerequisite, so no milestone completion changed."
+        },
+        {
+          "date": "2026-08-17",
+          "overall_exact": 39.75,
+          "overall": 40,
+          "reason": "Accepted a private exact capture of the installed OT-064 application as recovery input. The recovery route and every transition authority remain open, so no milestone completion changed."
         }
       ]
     },
@@ -241,6 +248,11 @@
       "date": "2026-08-17",
       "overall": 32,
       "reason": "Accepted the exact installed partition-table and complete blank protected-storage source-region proof on OT-DEV-001, followed by the owner-observed startup/status return. This satisfies only the source prerequisite, so the historical baseline is unchanged."
+    },
+    {
+      "date": "2026-08-17",
+      "overall": 32,
+      "reason": "Accepted a private exact capture of the installed OT-064 application as recovery input. The recovery route and every transition authority remain open, so the historical baseline is unchanged."
     }
   ]
 }

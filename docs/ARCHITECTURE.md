@@ -532,6 +532,17 @@ source-region, and recovery evidence to one nonzero operation/evidence set and
 separate physical-write authority. Active target configuration and runtime are
 unchanged. See [Decision 0018](decisions/0018-offline-heltec-protected-storage-recovery-bundle.md).
 
+OT-076 retains the exact 470,928-byte OT-064 factory application read from the
+selected unit only as a private ignored recovery artifact. Admission requires
+an independent post-close reread matching SHA-256
+`A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B`.
+The artifact is recovery input, not recovery authority: a later transition
+must still accept an exact ROM recovery route and bind fresh installed-table,
+source-region, and recovery evidence to one nonzero operation/evidence set.
+No binary path, port, device identity, or private evidence identity enters the
+public contract. See
+[Decision 0019](decisions/0019-retain-exact-installed-application-for-recovery.md).
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

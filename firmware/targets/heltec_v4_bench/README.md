@@ -325,3 +325,14 @@ accepted. Active `partitions.csv`, `sdkconfig.defaults`, runtime composition,
 and device bytes remain unchanged. See
 [Decision 0018](../../../docs/decisions/0018-offline-heltec-protected-storage-recovery-bundle.md)
 and [OT-075 evidence](../../../tests/hardware/OT-075-2026-08-17.md).
+
+OT-076 uses one owner-authorized, one-use read-only ROM session to retain the
+exact 470,928-byte OT-064 factory application as a private ignored recovery
+artifact. After the connection closed, an independent reread matched SHA-256
+`A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B`.
+The temporary reader/tests/bytecode were deleted. This closes only the missing
+application-artifact prerequisite: no restore route, partition transition,
+write, erase, protected storage, key/eFuse, rollback floor, bond, GATT, Ready,
+LoRa, or GNSS authority follows. See
+[Decision 0019](../../../docs/decisions/0019-retain-exact-installed-application-for-recovery.md)
+and [OT-076 evidence](../../../tests/hardware/OT-076-2026-08-17.md).

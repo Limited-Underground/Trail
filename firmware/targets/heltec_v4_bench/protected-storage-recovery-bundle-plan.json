@@ -1,9 +1,10 @@
 {
   "schema": "OTPRB0/v0",
-  "status": "OFFLINE-CANDIDATE-FROZEN-RECOVERY-INCOMPLETE-AUTHORITY-ABSENT",
+  "status": "OFFLINE-CANDIDATE-AND-EXACT-APPLICATION-FROZEN-RECOVERY-INCOMPLETE-AUTHORITY-ABSENT",
   "as_of": "2026-08-17",
   "target": "heltec_v4_bench",
   "decision": "docs/decisions/0018-offline-heltec-protected-storage-recovery-bundle.md",
+  "application_capture_decision": "docs/decisions/0019-retain-exact-installed-application-for-recovery.md",
   "transition_plan": "protected-storage-transition-plan.json",
   "active_target_configuration_changed": false,
   "candidate_partition_artifact": {
@@ -34,7 +35,10 @@
     "flash_offset": 65536,
     "bytes": 470928,
     "required_sha256": "A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B",
-    "artifact_available": false,
+    "artifact_available": true,
+    "artifact_retention": "PRIVATE-IGNORED-RECOVERY-ARTIFACT",
+    "capture_result": "OTPRBE1/v0/RECOVERY-APPLICATION-CAPTURED-ONLY",
+    "captured_by": "tests/hardware/OT-076-2026-08-17.md",
     "recovery_write_authorized": false,
     "reconstruction_check": {
       "source_commit": "a327104ac67a3f5918a8b0191c96dceb05b5399b",
@@ -65,7 +69,7 @@
   },
   "bundle_admission": {
     "candidate_partition_artifact_frozen": true,
-    "exact_installed_application_artifact_present": false,
+    "exact_installed_application_artifact_present": true,
     "exact_recovery_route_accepted": false,
     "fresh_execution_evidence_present": false,
     "bundle_complete": false,

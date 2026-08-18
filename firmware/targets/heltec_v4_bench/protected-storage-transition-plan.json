@@ -92,7 +92,7 @@
     "source_proof_alone_authorizes_transition": false,
     "partition_table_promotion_authorized": false,
     "remaining_requirements": [
-      "obtain the exact installed application recovery artifact and accept an exact recovery route then bind fresh installed-table source-region and recovery evidence to one later nonzero operation and evidence set",
+      "accept an exact recovery route then bind fresh installed-table source-region and recovery evidence to one later nonzero operation and evidence set",
       "select and provision protected key roles under separate authority",
       "select an independent non-rollbackable generation authority",
       "complete exact-unit recovery validation",

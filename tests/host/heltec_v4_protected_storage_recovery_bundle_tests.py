@@ -188,8 +188,11 @@ def test_denied_recovery_plan_is_exact_and_coherent() -> None:
 
     require(recovery["schema"] == "OTPRB0/v0" and
             recovery["status"] ==
-            "OFFLINE-CANDIDATE-FROZEN-RECOVERY-INCOMPLETE-AUTHORITY-ABSENT",
+            "OFFLINE-CANDIDATE-AND-EXACT-APPLICATION-FROZEN-RECOVERY-INCOMPLETE-AUTHORITY-ABSENT",
             "recovery plan must remain incomplete and denied")
+    require(recovery["application_capture_decision"] ==
+            "docs/decisions/0019-retain-exact-installed-application-for-recovery.md",
+            "recovery plan must bind the exact application capture decision")
     candidate = recovery["candidate_partition_artifact"]
     require(candidate["binary_bytes"] == 3072 and
             candidate["binary_sha256"] == EXPECTED_BINARY_SHA256 and
@@ -203,13 +206,19 @@ def test_denied_recovery_plan_is_exact_and_coherent() -> None:
     reconstruction = application["reconstruction_check"]
     require(application["required_sha256"] ==
             "A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B" and
-            application["artifact_available"] is False and
+            application["artifact_available"] is True and
+            application["artifact_retention"] ==
+            "PRIVATE-IGNORED-RECOVERY-ARTIFACT" and
+            application["capture_result"] ==
+            "OTPRBE1/v0/RECOVERY-APPLICATION-CAPTURED-ONLY" and
+            application["captured_by"] ==
+            "tests/hardware/OT-076-2026-08-17.md" and
             application["recovery_write_authorized"] is False and
             reconstruction["result"] == "NONMATCH-NOT-ACCEPTED-NOT-RETAINED" and
             reconstruction["produced_sha256"] ==
             "2B76593D5B797299DBB1A163C0152E0D463828C0B671887DA4AFAE11AFFE1D37" and
             reconstruction["produced_sha256"] != application["required_sha256"],
-            "missing installed application must not be replaced by the rebuild")
+            "captured installed application must remain distinct from the rejected rebuild")
 
     binding = recovery["fresh_execution_binding"]
     route = recovery["recovery_route"]
@@ -225,6 +234,7 @@ def test_denied_recovery_plan_is_exact_and_coherent() -> None:
             not route["post_restore_boot_physically_proved"],
             "unproved recovery route must remain denied")
     require(admission["current_result"] == "DENY" and
+            admission["exact_installed_application_artifact_present"] is True and
             admission["bundle_complete"] is False and
             admission["partition_transition_authorized"] is False,
             "incomplete bundle must not authorize transition")

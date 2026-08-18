@@ -9,11 +9,28 @@ Status date: 2026-08-17
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-076 closes the missing exact installed-application artifact prerequisite.
+One owner-authorized, one-use read-only operation captured the 470,928-byte
+OT-064 factory application from `OT-DEV-001`, closed the connection, and
+independently reread the staged artifact before accepting SHA-256
+`A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B`.
+The binary remains a private ignored recovery artifact; the temporary reader,
+tests, and bytecode were deleted. No port, device identifier, private operation
+identity, or detailed transport output is retained publicly. This grants no
+restore or write authority: the exact recovery route, fresh same-operation
+evidence, protected key roles, rollback floor, exact-unit recovery validation,
+and separate physical-write authorization remain open. After manual RST, the
+owner observed the Trail logo followed by `BLE ADVERTISING`. The transition
+stays denied and V1 Companion remains exact 39.75%/displayed 40%. See
+[OT-076](../tests/hardware/OT-076-2026-08-17.md) and
+[Decision 0019](decisions/0019-retain-exact-installed-application-for-recovery.md).
+
 OT-075 freezes the exact offline `OTPS0/v0` candidate partition artifact. The
 pinned ESP-IDF v6.0.2 generator produces one 3,072-byte table whose decoded
 rows preserve boot and OTA regions, add encrypted 64 KiB `ot_auth`, retain
-960 KiB `ot_state`, and end at exactly 16 MiB. The exact application installed
-by OT-064 is not available as a recovery artifact. A clean rebuild from its
+960 KiB `ot_state`, and end at exactly 16 MiB. At OT-075 acceptance, the exact
+application installed by OT-064 was not available as a recovery artifact;
+OT-076 later captured it exactly. A clean rebuild from its
 recorded source commit completed but did not match the installed digest, so it
 was rejected and not retained. The recovery bundle and transition therefore
 remain denied. Active partitions, configuration, runtime, and device bytes are
