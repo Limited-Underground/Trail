@@ -69,7 +69,8 @@ def test_zero_authority_and_execution_surface() -> None:
         "port": None,
         "commands": [],
         "attempts": 0,
-        "reader_present": False,
+        "coarse_key_roster_leaf_present": True,
+        "complete_inventory_reader_orchestrator_present": False,
     }, "offline plan must expose no device execution surface")
     initial = plan["initial_assertions"]
     require(all(value is False for value in initial.values()),

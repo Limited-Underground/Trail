@@ -6,12 +6,23 @@
   "device_family": "ESP32-S3",
   "status": "OFFLINE_ROUTE_ACCEPTED",
   "execution_status": "UNAUTHORIZED",
-  "reader_present": false,
-  "purpose": "Reject unsafe host-side eFuse materialization and freeze a target-side decoded-metadata adapter boundary without providing a reader or authority to access a device.",
+  "complete_inventory_reader_orchestrator_present": false,
+  "coarse_key_roster_leaf_present": true,
+  "purpose": "Reject unsafe host-side eFuse materialization and freeze a target-side decoded-metadata adapter boundary without providing a complete inventory reader/orchestrator or authority to access a device.",
   "accepted_target_side_route": {
     "execution_model": "TARGET_SIDE_ESP_IDF_IN_PROCESS_METADATA_ADAPTER",
     "esp_idf_version": "6.0.2",
-    "implementation_present": false,
+    "implementation_present": true,
+    "implementation_evidence": {
+      "increment": "OT-081",
+      "adapter_header": "firmware/targets/heltec_v4_bench/main/companion_protected_root_key_roster_adapter.hpp",
+      "adapter_source": "firmware/targets/heltec_v4_bench/main/companion_protected_root_key_roster_adapter.cpp",
+      "host_test": "tests/host/companion_protected_root_key_roster_adapter_tests.cpp",
+      "evidence": "tests/hardware/OT-081-2026-08-18.md",
+      "build_status": "BUILD-COMPILED-NOT-RUNTIME-INJECTED",
+      "execution_status": "NOT-AUTHORIZED-NOT-RUN",
+      "complete_inventory_output": false
+    },
     "direct_in_process_only": true,
     "shell_permitted": false,
     "subprocess_permitted": false,
@@ -237,11 +248,12 @@
     "route_schema_accepted": true,
     "accepted_source_identity_frozen": true,
     "unsafe_host_route_rejected": true,
-    "reader_exists": false,
+    "target_side_key_roster_adapter_build_compiled": true,
+    "complete_inventory_reader_orchestrator_exists": false,
     "execution_authorized": false,
     "hardware_observed": false,
     "runtime_changed": false,
     "score_change_supported": false
   },
-  "next_gate": "Implement and host-test a target-side adapter against synthetic metadata only; do not add device execution authority."
+  "next_gate": "Define and host-test equally bounded decoded sources for the remaining configured-NVS and security-state facts; select and review an exact non-secret rollback-floor descriptor separately before any physical-read design."
 }

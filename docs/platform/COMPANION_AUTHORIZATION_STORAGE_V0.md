@@ -283,8 +283,25 @@ five decoded key-purpose, protection, and unused-state APIs in a future audited
 target-side adapter. Raw key/block reads, HMAC operations, writes, burns,
 protection changes, and unlisted APIs fail closed.
 
-No adapter exists and no floor descriptor has been selected, so device execution
+At OT-080 acceptance no adapter existed and no floor descriptor had been selected, so device execution
 and floor reads remain unavailable. The route grants no device, deployment,
 read, write, provisioning, provider, or runtime authority. See
 [Decision 0023](../decisions/0023-offline-protected-root-inventory-reader-route.md)
 and [OT-080 evidence](../../tests/hardware/OT-080-2026-08-18.md).
+
+## OT-081 build-only coarse key roster
+
+OT-081 implements only the target-local six-slot key-roster leaf. The source
+calls the five OT-080 decoded APIs exactly once per slot on a successful pass,
+normalizes purpose plus unused/protection states, and publishes nothing until
+the complete roster is coherent. Invalid purpose, contradictory unused state,
+re-entry, and reuse deny without partial output.
+
+A false result from `esp_efuse_key_block_unused` is retained only as “not
+proven unused.” It does not prove provisioning, and reservation is not
+inferred. The adapter cannot populate complete `ProtectedRootInventoryEvidence`
+and grants no selection or authority. It is build-compiled with no runtime call
+path and has not executed on a device. Configured-NVS conflict, security state,
+and rollback-floor facts remain unavailable. See
+[Decision 0024](../decisions/0024-build-only-target-side-protected-root-key-roster-adapter.md)
+and [OT-081 evidence](../../tests/hardware/OT-081-2026-08-18.md).

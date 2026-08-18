@@ -564,11 +564,20 @@ an allocation, admit a provider, provision an eFuse, or activate runtime. See
 [Decision 0022](decisions/0022-read-only-protected-root-inventory-admission.md).
 OT-080 rejects host-side Python eFuse inventory because that route materializes
 raw key blocks in host memory. The accepted offline boundary instead requires a
-future audited target-side ESP-IDF metadata adapter restricted to five decoded
+then-future audited target-side ESP-IDF metadata adapter restricted to five decoded
 key-purpose, protection, and unused-state APIs. It has no device, deployment,
 read, write, provisioning, provider, or runtime authority. No floor read is
 available until a separate exact non-secret descriptor is selected. See
 [Decision 0023](decisions/0023-offline-protected-root-inventory-reader-route.md).
+OT-081 implements that five-API boundary as a target-local coarse key-roster
+leaf. It is build-compiled but has no dependency edge from startup, runtime,
+BLE, storage, command, or transport composition. Its one-use result is
+all-or-nothing and contains only purpose category, proven-unused state, and
+three protection states for six logical slots. Because the admitted APIs do
+not prove provisioning or reservation, the output cannot become complete
+inventory evidence or provider admission. Configured-NVS, security-state, and
+rollback-floor sources remain separate missing boundaries. See
+[Decision 0024](decisions/0024-build-only-target-side-protected-root-key-roster-adapter.md).
 
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.

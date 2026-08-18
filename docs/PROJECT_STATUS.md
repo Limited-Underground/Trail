@@ -9,12 +9,27 @@ Status date: 2026-08-18
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-081 implements the OT-080 target-side boundary as a Heltec-local, one-use
+coarse key-roster adapter. It calls only the five admitted decoded ESP-IDF
+6.0.2 APIs for six logical key slots, publishes only after all calls and
+invariants pass, and fails closed on invalid purpose, contradictory unused
+evidence, re-entry, or reuse. Strict host tests, ten target-admission groups,
+the complete 144-executable host gate, and two identical pinned target builds
+pass. The compiled source has no runtime call path and was not executed on a
+device. A false unused result is not treated as proof of provisioning, and
+reservation is not inferred, so the adapter cannot produce complete OT-079
+inventory evidence or select a provider. Device/eFuse read, key access,
+allocation, provisioning, protection, write, runtime, GATT, and Ready authority
+remain false. Milestone completion is unchanged. See
+[OT-081](../tests/hardware/OT-081-2026-08-18.md) and
+[Decision 0024](decisions/0024-build-only-target-side-protected-root-key-roster-adapter.md).
+
 OT-080 rejects host-side Python eFuse inventory because the reviewed path
 materializes raw key blocks in host memory. It accepts only a pure offline
-contract for a future audited target-side ESP-IDF 6.0.2 metadata adapter using
+contract for a then-future audited target-side ESP-IDF 6.0.2 metadata adapter using
 five decoded key-purpose, protection, and unused-state APIs. Raw key/block
 reads, HMAC operations, writes, burns, protection changes, and every unlisted
-API remain denied. No adapter exists, the rollback-floor descriptor and
+API remain denied. At OT-080 acceptance no adapter existed; the rollback-floor descriptor and
 physical read remain unavailable, no hardware was accessed, and every
 deployment, device-read, provisioning, provider, and runtime authority remains
 false. Milestone completion is unchanged. See
@@ -27,8 +42,8 @@ complete six-slot key roster, configured-NVS conflict state, complete candidate
 floor map, and the exact disabled secure-boot, flash-encryption, and secure-
 download state expected by OT-077. Missing, contradictory, stale, mixed, or
 secret-bearing evidence denies. A complete but unfavorable inventory remains
-reviewable; it does not select or admit a provider. No reader exists, no device
-was accessed, all allocations remain absent, every physical/write/eFuse/runtime
+reviewable; it does not select or admit a provider. At OT-079 acceptance no
+complete inventory reader/orchestrator existed; no device was accessed, all allocations remain absent, every physical/write/eFuse/runtime
 authority remains false, and milestone completion is unchanged. See
 [OT-079](../tests/hardware/OT-079-2026-08-18.md) and
 [Decision 0022](decisions/0022-read-only-protected-root-inventory-admission.md).

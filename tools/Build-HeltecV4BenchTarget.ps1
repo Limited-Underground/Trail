@@ -11,7 +11,15 @@ $buildRoot = Join-Path $projectRoot 'build\targets\heltec_v4_bench'
 $defaultsPath = Join-Path $targetRoot 'sdkconfig.defaults'
 $partitionCsvPath = Join-Path $targetRoot 'partitions.csv'
 $logoPath = Join-Path $targetRoot 'main\trail_startup_logo.hpp'
+$protectedRootRosterHeaderPath = Join-Path $targetRoot 'main\companion_protected_root_key_roster_adapter.hpp'
+$protectedRootRosterSourcePath = Join-Path $targetRoot 'main\companion_protected_root_key_roster_adapter.cpp'
 $sdkconfigPath = Join-Path $buildRoot 'sdkconfig'
+
+foreach ($rosterSourcePath in @($protectedRootRosterHeaderPath, $protectedRootRosterSourcePath)) {
+    if (-not (Test-Path -LiteralPath $rosterSourcePath -PathType Leaf)) {
+        throw "Protected-root key-roster source is missing: $(Split-Path -Leaf $rosterSourcePath)"
+    }
+}
 
 if (-not $env:IDF_PATH) {
     throw 'IDF_PATH is not set. Export an ESP-IDF v6.0.2 environment first.'
@@ -32,6 +40,39 @@ $reportedVersion = (& $idfPython.Source $idfTool --version 2>&1 |
     ForEach-Object { $_.ToString().Trim() }) -join ' '
 if ($LASTEXITCODE -ne 0 -or $reportedVersion -ne $requiredVersion) {
     throw "Expected $requiredVersion; received '$reportedVersion'."
+}
+
+$protectedRootMetadataSources = @(
+    @{
+        Path = 'components\efuse\src\efuse_controller\keys\with_key_purposes\esp_efuse_api_key.c'
+        Sha256 = 'CD6C5462CB1B2ADFE7735915810461EDE96ECF0B830A0761E4CAF2E6CB982C73'
+    },
+    @{
+        Path = 'components\efuse\src\esp_efuse_api.c'
+        Sha256 = '66A12FA28B11642385C54A249CEC8EBEE139BF7A5BF562B9D5AFF29A3B8CF3F4'
+    },
+    @{
+        Path = 'components\efuse\esp32s3\esp_efuse_table.csv'
+        Sha256 = '0B22F89D2B0F7EE315046DE5108C1DDDA8F46BB451985C7F66EB753301BFA69E'
+    },
+    @{
+        Path = 'components\efuse\include\esp_efuse.h'
+        Sha256 = '4D488D3F2A75F0E55B903410987E08DCBAA550E11344032E93B315BEC87648A7'
+    },
+    @{
+        Path = 'components\efuse\esp32s3\include\esp_efuse_chip.h'
+        Sha256 = 'B5299EE67627C912C5E7A0E4A908D1678FD0D2F12D5AFD7A58D849FC1BADAA30'
+    }
+)
+foreach ($source in $protectedRootMetadataSources) {
+    $sourcePath = Join-Path $env:IDF_PATH $source.Path
+    if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+        throw "Pinned protected-root metadata source is missing: $($source.Path)"
+    }
+    $actualHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
+    if ($actualHash -ne $source.Sha256) {
+        throw "Pinned protected-root metadata source changed: $($source.Path)"
+    }
 }
 
 & $idfPython.Source `
@@ -348,6 +389,32 @@ $compiledAuthorizationBackendObjects = @(
 if (@($compiledAuthorizationBackendObjects | Select-Object -ExpandProperty Name -Unique).Count -ne 3) {
     throw 'Inactive protected-KV, ESP-IDF NVS backend, and existing-context owner objects were not all build-compiled.'
 }
+$compiledProtectedRootRosterObject = @(
+    Get-ChildItem -LiteralPath $buildRoot -Recurse -File |
+        Where-Object {
+            $_.Name -eq 'companion_protected_root_key_roster_adapter.cpp.obj'
+        })
+if (@($compiledProtectedRootRosterObject).Count -ne 1) {
+    throw 'Protected-root key-roster adapter was not build-compiled exactly once.'
+}
+$protectedRootRosterObject = @($compiledProtectedRootRosterObject)[0]
+$protectedRootRosterBuildEvidence = [ordered]@{
+    header = [ordered]@{
+        name = Split-Path -Leaf $protectedRootRosterHeaderPath
+        bytes = (Get-Item -LiteralPath $protectedRootRosterHeaderPath).Length
+        sha256 = (Get-FileHash -LiteralPath $protectedRootRosterHeaderPath -Algorithm SHA256).Hash
+    }
+    source = [ordered]@{
+        name = Split-Path -Leaf $protectedRootRosterSourcePath
+        bytes = (Get-Item -LiteralPath $protectedRootRosterSourcePath).Length
+        sha256 = (Get-FileHash -LiteralPath $protectedRootRosterSourcePath -Algorithm SHA256).Hash
+    }
+    object = [ordered]@{
+        name = $protectedRootRosterObject.Name
+        bytes = $protectedRootRosterObject.Length
+        sha256 = (Get-FileHash -LiteralPath $protectedRootRosterObject.FullName -Algorithm SHA256).Hash
+    }
+}
 $artifactEvidence = @(
     foreach ($artifactPath in $artifactPaths) {
         if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
@@ -408,6 +475,9 @@ $evidence = [ordered]@{
     companion_authorization_storage_read_only_probe = 'BUILD-LINKED-NOT-RUN-CURRENT-CONFIGURATION-SHORT-CIRCUITS-BEFORE-TARGET-READS'
     companion_authorization_nvs_backend = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'
     companion_authorization_nvs_context = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'
+    protected_root_key_roster_adapter = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'
+    protected_root_key_roster_execution = 'NOT-AUTHORIZED-NOT-RUN'
+    protected_root_key_roster_build_evidence = $protectedRootRosterBuildEvidence
     companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'
     companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'
     companion_command_dispatch = 'BUILD-LINKED-PREFLIGHT-DENIED-NOT-RUN'

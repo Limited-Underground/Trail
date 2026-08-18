@@ -51,6 +51,10 @@ AUTHORIZATION_NVS_CONTEXT_HEADER = (
     TARGET / "main" / "companion_authorization_nvs_context.hpp")
 AUTHORIZATION_NVS_CONTEXT = (
     TARGET / "main" / "companion_authorization_nvs_context.cpp")
+PROTECTED_ROOT_KEY_ROSTER_HEADER = (
+    TARGET / "main" / "companion_protected_root_key_roster_adapter.hpp")
+PROTECTED_ROOT_KEY_ROSTER = (
+    TARGET / "main" / "companion_protected_root_key_roster_adapter.cpp")
 MAIN_CMAKE = TARGET / "main" / "CMakeLists.txt"
 COMPANION_SOURCES = (
     ROOT / "firmware" / "components" / "companion" / "src" /
@@ -89,6 +93,8 @@ def test_contract() -> None:
         "main/companion_authorization_nvs_backend.hpp",
         "main/companion_authorization_nvs_context.cpp",
         "main/companion_authorization_nvs_context.hpp",
+        "main/companion_protected_root_key_roster_adapter.cpp",
+        "main/companion_protected_root_key_roster_adapter.hpp",
         "main/companion_nimble_gatt.cpp",
         "main/companion_nimble_gatt.hpp",
         "main/companion_nimble_runtime.cpp",
@@ -226,6 +232,7 @@ def test_contract() -> None:
         "companion_authorization_storage_read_only_probe_build_linked",
         "companion_authorization_nvs_backend_build_compiled",
         "companion_authorization_nvs_context_build_compiled",
+        "protected_root_key_roster_adapter_build_compiled",
         "nimble_runtime_owner_build_linked",
         "nimble_runtime_startup_coded",
         "private_service_advertising_coded",
@@ -273,6 +280,18 @@ def test_contract() -> None:
     require(capabilities[
         "companion_authorization_nvs_context_build_compiled"] is True,
             "dormant authorization NVS context compilation must be admitted")
+    require(capabilities[
+        "protected_root_key_roster_adapter_build_compiled"] is True,
+            "dormant protected-root key-roster adapter must be build-compiled")
+    require(capabilities[
+        "protected_root_key_roster_adapter_runtime_injected"] is False and
+            capabilities[
+                "protected_root_key_roster_adapter_executed"] is False and
+            capabilities[
+                "protected_root_key_metadata_device_read_authorized"] is False and
+            capabilities[
+                "protected_root_key_roster_complete_inventory"] is False,
+            "key-roster build evidence must not grant runtime, read, or inventory authority")
     require(capabilities["nimble_runtime_owner_build_linked"] is True and
             capabilities["nimble_runtime_startup_coded"] is True and
             capabilities["private_service_advertising_coded"] is True,
@@ -767,6 +786,83 @@ def test_authorization_nvs_backend_surface() -> None:
             "inactive NVS context must not enter target runtime composition")
 
 
+def test_protected_root_key_roster_adapter_surface() -> None:
+    header = PROTECTED_ROOT_KEY_ROSTER_HEADER.read_text(encoding="utf-8")
+    source = PROTECTED_ROOT_KEY_ROSTER.read_text(encoding="utf-8")
+    combined = header + "\n" + source
+
+    for required in (
+        "EspIdfProtectedRootKeyRosterAdapter",
+        "ProtectedRootKeyRosterReadResult",
+        "kProtectedRootKeyRosterSlotCount = 6U",
+        "EFUSE_BLK_KEY0", "EFUSE_BLK_KEY1", "EFUSE_BLK_KEY2",
+        "EFUSE_BLK_KEY3", "EFUSE_BLK_KEY4", "EFUSE_BLK_KEY5",
+        "attempted_", "active_", "poisoned_", "proven_unused",
+        "if (!normalize_purpose(raw_purpose, slot.purpose))",
+        "proven_unused &&",
+    ):
+        require(required in combined,
+                f"missing fail-closed key-roster boundary: {required}")
+
+    allowed_apis = {
+        "esp_efuse_get_key_purpose",
+        "esp_efuse_get_key_dis_read",
+        "esp_efuse_get_key_dis_write",
+        "esp_efuse_get_keypurpose_dis_write",
+        "esp_efuse_key_block_unused",
+    }
+    called_apis = set(re.findall(
+        r"\b(esp_efuse_[a-z0-9_]+)\s*\(", source))
+    require(called_apis == allowed_apis,
+            "adapter must call exactly the five admitted decoded APIs")
+    for api in allowed_apis:
+        require(source.count(f"{api}(") == 1,
+                f"adapter source must contain exactly one call site: {api}")
+
+    purpose_gate = source.index(
+        "if (!normalize_purpose(raw_purpose, slot.purpose))")
+    first_following_read = source.index("esp_efuse_get_key_dis_read(")
+    require(purpose_gate < first_following_read,
+            "invalid purpose must deny before any other slot metadata read")
+
+    for forbidden in (
+        "esp_efuse_get_key(", "esp_efuse_read_block(",
+        "esp_efuse_read_field_blob(", "esp_efuse_write",
+        "esp_efuse_set_", "esp_efuse_batch", "esp_hmac",
+        "nvs_", "ESP_LOG", "printf(", "puts(", "std::cout",
+        "std::cerr", "fstream", "filesystem", "subprocess", "serial",
+        "uart", "usb", "provisioned{", "reserved{",
+    ):
+        require(forbidden not in combined,
+                f"key-roster adapter gained forbidden surface: {forbidden}")
+    require("companion_protected_root_inventory" not in combined,
+            "coarse roster must not publish complete inventory evidence")
+
+    cmake = MAIN_CMAKE.read_text(encoding="utf-8")
+    linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
+    require(len(linked_source_tokens) == 21,
+            "non-injection gate must cover the exact 21-source target build")
+    other_linked_sources = []
+    for token in linked_source_tokens:
+        if token == "companion_protected_root_key_roster_adapter.cpp":
+            continue
+        if token.startswith("${OPENTRAIL_COMPONENT_ROOT}/"):
+            suffix = token.removeprefix("${OPENTRAIL_COMPONENT_ROOT}/")
+            path = ROOT / "firmware" / "components" / Path(suffix)
+        else:
+            path = TARGET / "main" / token
+        require(path.is_file(), f"linked source is missing: {token}")
+        other_linked_sources.append(path)
+    require(len(other_linked_sources) == 20,
+            "non-injection gate must scan every other linked source")
+    runtime_sources = "\n".join(
+        path.read_text(encoding="utf-8") for path in other_linked_sources)
+    require("EspIdfProtectedRootKeyRosterAdapter" not in runtime_sources and
+            "companion_protected_root_key_roster_adapter.hpp" not in
+            runtime_sources,
+            "build-only key-roster adapter must have no runtime call path")
+
+
 def test_display_surface() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     owner_header = DISPLAY_OWNER_HEADER.read_text(encoding="utf-8")
@@ -1166,6 +1262,7 @@ def test_application_surface() -> None:
         "companion/src/companion_authorization_protected_kv_media.cpp",
         "companion_authorization_nvs_backend.cpp",
         "companion_authorization_nvs_context.cpp",
+        "companion_protected_root_key_roster_adapter.cpp",
         "companion/src/companion_ble_runtime_owner.cpp",
         "companion_authorization_storage.cpp",
         "companion_boot_self_check.cpp",
@@ -1179,8 +1276,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 20,
-            "target source set must remain nine target and eleven companion sources")
+    require(cmake.count('.cpp"') == 21,
+            "target source set must remain ten target and eleven companion sources")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "efuse", "esp_partition", "esp_security",
@@ -1350,6 +1447,30 @@ def test_build_only_tooling() -> None:
             "build evidence must distinguish compilation from runtime injection")
     require("companion_authorization_nvs_context = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'" in script,
             "build evidence must keep the context owner outside runtime")
+    require("protected_root_key_roster_adapter = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'" in script and
+            "protected_root_key_roster_execution = 'NOT-AUTHORIZED-NOT-RUN'" in script,
+            "build evidence must keep the key-roster adapter inactive")
+    require("$protectedRootRosterHeaderPath" in script and
+            "$protectedRootRosterSourcePath" in script and
+            "protected_root_key_roster_build_evidence = $protectedRootRosterBuildEvidence" in script,
+            "build receipt must bind the exact adapter header and source")
+    for required_receipt_field in (
+        "name = Split-Path -Leaf $protectedRootRosterHeaderPath",
+        "name = Split-Path -Leaf $protectedRootRosterSourcePath",
+        "name = $protectedRootRosterObject.Name",
+        "sha256 = (Get-FileHash -LiteralPath $protectedRootRosterObject.FullName",
+    ):
+        require(required_receipt_field in script,
+                f"build receipt is missing roster revision evidence: {required_receipt_field}")
+    for expected_hash in (
+        "CD6C5462CB1B2ADFE7735915810461EDE96ECF0B830A0761E4CAF2E6CB982C73",
+        "66A12FA28B11642385C54A249CEC8EBEE139BF7A5BF562B9D5AFF29A3B8CF3F4",
+        "0B22F89D2B0F7EE315046DE5108C1DDDA8F46BB451985C7F66EB753301BFA69E",
+        "4D488D3F2A75F0E55B903410987E08DCBAA550E11344032E93B315BEC87648A7",
+        "B5299EE67627C912C5E7A0E4A908D1678FD0D2F12D5AFD7A58D849FC1BADAA30",
+    ):
+        require(expected_hash in script,
+                f"build helper must pin OT-080 metadata source: {expected_hash}")
     require("companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'" in script and
             "companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny GATT/runtime execution evidence")
@@ -1387,6 +1508,8 @@ def test_build_only_tooling() -> None:
             "companion_authorization_protected_kv_media.cpp.obj" in script and
             "companion_authorization_nvs_context.cpp.obj" in script,
             "build helper must verify all inactive storage objects were compiled")
+    require("companion_protected_root_key_roster_adapter.cpp.obj" in script,
+            "build helper must verify the inactive key-roster adapter object")
     require("protected_nvs = 'NOT-INITIALIZED-NOT-VERIFIED'" in script and
             "private_bond_store = 'NOT-IMPLEMENTED'" in script and
             "binding_prf_key = 'NOT-PROVISIONED-NOT-VERIFIED'" in script and
@@ -1434,6 +1557,7 @@ def main() -> int:
              test_physical_flash_plan, test_recovery_partition_layout,
              test_protected_storage_candidate_plan,
              test_authorization_nvs_backend_surface,
+             test_protected_root_key_roster_adapter_surface,
              test_display_surface,
              test_application_surface, test_build_only_tooling)
     for test in tests:

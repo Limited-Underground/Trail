@@ -369,15 +369,26 @@ OT-079 adds only an offline inventory plan and pure supplied-evidence verifier.
 A later complete private inventory must cover all six key slots, configured-NVS
 conflict state, floor-candidate facts, cleanup, and the disabled security state
 required by OT-077. Complete unfavorable facts remain reviewable without
-selecting or admitting a provider. No reader exists, no device was accessed,
-allocations remain absent, and every physical/read/write/eFuse/runtime authority
+selecting or admitting a provider. At OT-079 acceptance no complete inventory
+reader/orchestrator existed; no device was accessed, allocations remain absent, and every physical/read/write/eFuse/runtime authority
 remains false. See
 [Decision 0022](../../../docs/decisions/0022-read-only-protected-root-inventory-admission.md)
 and [OT-079 evidence](../../../tests/hardware/OT-079-2026-08-18.md).
 OT-080 rejects host-side Python eFuse inventory because it materializes raw key
 blocks, then accepts only an offline contract for a future target-side ESP-IDF
-decoded-metadata adapter. No adapter exists, the rollback-floor descriptor and
+decoded-metadata adapter. At OT-080 acceptance no adapter existed; the rollback-
+floor descriptor and
 read remain unavailable, no device was accessed, and every deployment/read/
 write/eFuse/provisioning/runtime authority remains false. See
 [Decision 0023](../../../docs/decisions/0023-offline-protected-root-inventory-reader-route.md)
 and [OT-080 evidence](../../../tests/hardware/OT-080-2026-08-18.md).
+
+OT-081 adds the target-local one-use six-slot coarse key-roster adapter. It is
+compiled into the target configuration and passes strict synthetic host/static
+tests, but no startup/runtime source includes or constructs it and it was not
+executed on hardware. It emits no raw data and does not infer provisioning or
+reservation, so it cannot produce complete inventory evidence or provider
+admission. The complete inventory reader/orchestrator remains absent, operation attempts remain zero, and all
+device/read/write/provisioning/runtime authority remains false. See
+[Decision 0024](../../../docs/decisions/0024-build-only-target-side-protected-root-key-roster-adapter.md)
+and [OT-081 evidence](../../../tests/hardware/OT-081-2026-08-18.md).

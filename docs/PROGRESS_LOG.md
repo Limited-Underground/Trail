@@ -6,6 +6,19 @@ public chronology.
 
 ## 2026-08-18
 
+### OT-081 build-only protected-root key-roster adapter
+
+- Implemented the target-local one-use six-slot adapter using only the five
+  decoded read-only ESP-IDF APIs accepted by OT-080.
+- Strict synthetic tests prove exact call ordering, fail-fast invalid-purpose
+  handling, all-or-nothing publication, contradiction denial, and re-entry/
+  reuse containment. The complete 144-executable host gate, ten target-
+  admission groups, and two identical pinned target builds pass.
+- The adapter is build-compiled but not runtime-injected or device-executed. It
+  does not infer provisioning or reservation and cannot produce complete
+  inventory evidence or provider authority. V1 completion is unchanged. See
+  [OT-081 evidence](../tests/hardware/OT-081-2026-08-18.md).
+
 ### OT-080 offline protected-root reader-route admission
 
 - Rejected the host Python eFuse inventory path because it materializes raw key
@@ -27,7 +40,7 @@ public chronology.
   conflict state, complete floor-candidate facts, cleanup, and the disabled
   security-feature state required by OT-077. Complete unfavorable evidence is
   reviewable but cannot select or admit a provider.
-- No reader was created, no device was accessed, all allocation fields remain
+- At OT-079 acceptance no complete inventory reader/orchestrator was created, no device was accessed, all allocation fields remain
   absent, and every read/write/eFuse/provisioning/runtime authority stays false.
   V1 Companion remains 40%. See
   [OT-079 evidence](../tests/hardware/OT-079-2026-08-18.md).

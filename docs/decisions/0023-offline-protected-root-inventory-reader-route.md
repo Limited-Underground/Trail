@@ -17,7 +17,7 @@ OpenTrail rejects host Python/espefuse inventory execution, including full summa
 
 OpenTrail accepts a narrower offline design boundary for a future target-side ESP-IDF 6.0.2 metadata adapter. The accepted official ESP-IDF source identities are pinned by full SHA-256 in `protected-root-inventory-reader-plan.json`.
 
-No executable reader exists. `reader_present` remains false. No command, attempt, connection, unit identifier, port identifier, operation identifier, or output path is defined or claimed.
+At OT-080 acceptance no executable adapter or complete inventory reader/orchestrator existed. No command, attempt, connection, unit identifier, port identifier, operation identifier, or output path was defined or claimed.
 
 Every owner, reader-implementation, execution, device-access, connection, port-detection, reset, bootloader, ROM-command, security-read, key-read, eFuse-read, raw-dump, key-material, write, burn, protection-change, field-selection, provider-admission, provisioning, and runtime-integration authority remains false.
 

@@ -245,6 +245,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'Heltec protected-root key-roster adapter'
+        Output = Join-Path $buildDirectory 'companion_protected_root_key_roster_adapter_tests.exe'
+        Sources = @(
+            '-I',
+            (Join-Path $projectRoot 'tests\host\ot081_esp_idf'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_protected_root_key_roster_adapter.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_protected_root_key_roster_adapter_tests.cpp')
+        )
+    },
+    @{
         Name = 'companion authorization protected KV slot media'
         Output = Join-Path $buildDirectory 'companion_authorization_protected_kv_media_tests.exe'
         Sources = @(

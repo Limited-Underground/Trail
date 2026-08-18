@@ -88,7 +88,19 @@ def test_rejected_host_route(plan):
 
 def test_exact_api_surface(plan):
     route = plan["accepted_target_side_route"]
-    require(route["implementation_present"] is False, "adapter must be absent")
+    require(route["implementation_present"] is True,
+            "build-only adapter implementation must be present")
+    implementation = route["implementation_evidence"]
+    require(implementation["increment"] == "OT-081", "wrong adapter increment")
+    require(implementation["build_status"] ==
+            "BUILD-COMPILED-NOT-RUNTIME-INJECTED", "wrong build status")
+    require(implementation["execution_status"] ==
+            "NOT-AUTHORIZED-NOT-RUN", "execution must remain denied")
+    require(implementation["complete_inventory_output"] is False,
+            "coarse roster must not become complete inventory")
+    for path in (implementation["adapter_header"], implementation["adapter_source"],
+                 implementation["host_test"], implementation["evidence"]):
+        require((ROOT / path).is_file(), f"missing OT-081 evidence path: {path}")
     require(route["direct_in_process_only"] is True, "adapter must be in-process")
     require(set(route["allowed_decoded_read_only_apis"]) == EXPECTED_ALLOWED_APIS,
             "decoded API allowlist drift")
@@ -114,7 +126,10 @@ def test_exact_api_surface(plan):
 
 
 def test_no_reader_authority_or_operation(plan):
-    require(plan["reader_present"] is False, "reader must remain absent")
+    require(plan["coarse_key_roster_leaf_present"] is True,
+            "coarse key-roster leaf must be recorded")
+    require(plan["complete_inventory_reader_orchestrator_present"] is False,
+            "complete inventory reader/orchestrator must remain absent")
     require(all(value is False for value in plan["authority"].values()),
             "every authority must remain false")
     policy = plan["future_connection_policy"]
@@ -190,7 +205,10 @@ def test_offline_truth(plan):
             "accepted source must be frozen")
     require(assertions["unsafe_host_route_rejected"] is True,
             "unsafe host route must be rejected")
-    require(assertions["reader_exists"] is False, "reader existence must remain false")
+    require(assertions["target_side_key_roster_adapter_build_compiled"] is True,
+            "key-roster adapter build evidence must be accepted")
+    require(assertions["complete_inventory_reader_orchestrator_exists"] is False,
+            "complete inventory reader/orchestrator must remain absent")
     require(assertions["execution_authorized"] is False, "execution must remain false")
     require(assertions["hardware_observed"] is False, "hardware must remain unobserved")
     require(assertions["runtime_changed"] is False, "runtime must remain unchanged")

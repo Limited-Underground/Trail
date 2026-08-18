@@ -51,7 +51,7 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target: its exact profile, physical boot and BLE advertisement, and target-local 128 x 64 startup/status OLED passed bounded write, verification, runtime, visual, and Android discovery gates. The exact installed partition table and complete blank protected-storage source region passed a bounded physical read-only proof, the exact installed application is privately retained as a verified recovery artifact, and one exact recovery route, protected-root provider classes, an offline-only complete-inventory verifier, and a raw-key-safe target-side metadata-interface contract are accepted without physical allocation or authority.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. The exact installed partition table and blank protected-storage source region passed a bounded physical proof, the installed application is privately retained for recovery, and one exact recovery route plus protected-root provider/inventory contracts are accepted. OT-081 adds a build-compiled, host-tested six-slot coarse key-roster adapter with no runtime call path; it cannot prove provisioning/reservation or complete inventory and grants no physical allocation or authority.",
       "weight": 15,
       "completion": 25,
       "evidence_status": "Experimental physical target with startup/status OLED",
@@ -65,11 +65,12 @@
         "tests/hardware/OT-078-2026-08-18.md",
         "tests/hardware/OT-079-2026-08-18.md",
         "tests/hardware/OT-080-2026-08-18.md",
+        "tests/hardware/OT-081-2026-08-18.md",
         "tests/hardware/OT-074-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Implement and host-test the audited target-side metadata adapter without deployment authority, then select and review an exact bounded non-secret floor descriptor before designing a separately authorized private inventory; afterward select exact protected-key/floor allocations, prove redundant recovery custody and fresh unified evidence, and obtain separate authority before any physical transition or protected runtime."
+      "next_gate": "Define and host-test bounded decoded sources for configured-NVS conflict and security-state facts without deployment authority, then select and review an exact non-secret rollback-floor descriptor before any physical-read design; afterward select exact protected-key/floor allocations, prove redundant recovery custody and fresh unified evidence, and obtain separate authority before any physical transition or protected runtime."
     },
     {
       "id": "first-complete-unit",
@@ -141,12 +142,12 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical proof of the exact installed partition table plus complete blank protected-storage source region, a privately retained exact installed-application recovery artifact, and one exact recovery route, protected-root provider classes, an offline-only complete-inventory verifier, and a raw-key-safe target-side metadata-interface contract accepted without physical allocation or authority.",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical partition/source proof, a privately retained exact application recovery artifact, and accepted recovery/protected-root contracts. OT-081 adds a build-compiled, host-tested six-slot coarse key-roster adapter with no runtime call path, complete-inventory output, physical allocation, or authority.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Experimental physical target",
-          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "hardware/INVENTORY.md"],
-          "next_gate": "Implement and host-test the audited target-side metadata adapter without deployment authority, then select and review an exact bounded non-secret floor descriptor before designing a separately authorized private inventory; afterward select exact protected-key/floor allocations, prove redundant recovery custody and fresh unified evidence, and obtain separate authority before any physical transition, protected storage, private bond authority, GATT authorization and Ready, LoRa, or GNSS work."
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "hardware/INVENTORY.md"],
+          "next_gate": "Define and host-test bounded decoded sources for configured-NVS conflict and security-state facts without deployment authority, then select and review an exact non-secret rollback-floor descriptor before any physical-read design; afterward select exact protected-key/floor allocations, prove redundant recovery custody and fresh unified evidence, and obtain separate authority before any physical transition, protected storage, private bond authority, GATT authorization and Ready, LoRa, or GNSS work."
         },
         {
           "id": "android-companion",
@@ -210,13 +211,19 @@
           "date": "2026-08-18",
           "overall_exact": 39.75,
           "overall": 40,
-          "reason": "Accepted the offline protected-root inventory plan and pure supplied-evidence verifier. No reader exists, no device inventory or allocation was observed, and every physical, provisioning, runtime, and transition authority remains closed, so no milestone completion changed."
+          "reason": "Accepted the offline protected-root inventory plan and pure supplied-evidence verifier. At OT-079 acceptance no complete inventory reader/orchestrator existed, no device inventory or allocation was observed, and every physical, provisioning, runtime, and transition authority remained closed, so no milestone completion changed."
         },
         {
           "date": "2026-08-18",
           "overall_exact": 39.75,
           "overall": 40,
           "reason": "Rejected unsafe host-side eFuse materialization and accepted only a pure target-side decoded-metadata interface contract. No adapter, device read, floor descriptor, allocation, provisioning, or runtime authority exists, so no milestone completion changed."
+        },
+        {
+          "date": "2026-08-18",
+          "overall_exact": 39.75,
+          "overall": 40,
+          "reason": "Accepted the build-only six-slot coarse key-roster adapter after strict host/static checks, the complete host gate, and two identical pinned target builds. It has no runtime call path, was not device-executed, and cannot prove complete inventory or provider suitability, so no milestone completion changed."
         }
       ]
     },
@@ -295,12 +302,17 @@
     {
       "date": "2026-08-18",
       "overall": 32,
-      "reason": "Accepted the offline protected-root inventory plan and pure supplied-evidence verifier. No reader exists, no device inventory or allocation was observed, and every physical, provisioning, runtime, and transition authority remains closed, so the historical baseline is unchanged."
+      "reason": "Accepted the offline protected-root inventory plan and pure supplied-evidence verifier. At OT-079 acceptance no complete inventory reader/orchestrator existed, no device inventory or allocation was observed, and every physical, provisioning, runtime, and transition authority remained closed, so the historical baseline is unchanged."
     },
     {
       "date": "2026-08-18",
       "overall": 32,
       "reason": "Rejected unsafe host-side eFuse materialization and accepted only a pure target-side decoded-metadata interface contract. No adapter, device read, floor descriptor, allocation, provisioning, or runtime authority exists, so the historical baseline is unchanged."
+    },
+    {
+      "date": "2026-08-18",
+      "overall": 32,
+      "reason": "Accepted the build-only six-slot coarse key-roster adapter with no runtime call path or device execution. Complete inventory, provider suitability, and every physical authority remain open, so the historical baseline is unchanged."
     }
   ]
 }
