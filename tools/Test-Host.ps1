@@ -255,6 +255,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'companion rollback-floor descriptor viability'
+        Output = Join-Path $buildDirectory 'companion_rollback_floor_descriptor_viability_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_rollback_floor_descriptor_viability.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_rollback_floor_descriptor_viability_tests.cpp')
+        )
+    },
+    @{
         Name = 'Heltec protected-root configuration-security adapter'
         Output = Join-Path $buildDirectory 'companion_protected_root_configuration_security_adapter_tests.exe'
         Sources = @(
@@ -1815,6 +1823,10 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_protected_storage_provider_plan_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 protected-storage provider-plan tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\protected_root_rollback_floor_descriptor_plan_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Heltec V4 rollback-floor descriptor viability plan tests failed.'
 }
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_protected_root_inventory_plan_tests.py')
 if ($LASTEXITCODE -ne 0) {

@@ -8,6 +8,7 @@
   "purpose": "Define the evidence envelope and fail-closed rules for a possible future read-only protected-root inventory without granting authority to access a device.",
   "reader_route_plan": "protected-root-inventory-reader-plan.json",
   "configuration_security_plan": "protected-root-configuration-security-plan.json",
+  "rollback_floor_descriptor_plan": "protected-root-rollback-floor-descriptor-plan.json",
   "reader_route_status": "OFFLINE_METADATA_INTERFACE_ACCEPTED_EXECUTION_UNAUTHORIZED",
   "key_roster_adapter_status": "BUILD-COMPILED-NOT-RUNTIME-INJECTED",
   "key_roster_adapter_evidence": "tests/hardware/OT-081-2026-08-18.md",
@@ -18,7 +19,11 @@
   "configuration_security_adapter_complete_inventory_output": false,
   "configuration_security_adapter_executed": false,
   "candidate_provider": {
-    "provider_class": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
+    "provider_class": null,
+    "reviewed_candidate": {
+      "provider_class": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
+      "result": "REJECTED-RS-CODING-UNIT-SUPPORTS-ONE-WRITE-NOT-REPEATED-ADVANCES"
+    },
     "efuse_block": null,
     "first_bit": null,
     "capacity_bits": null,
@@ -135,5 +140,5 @@
     "runtime_changed": false,
     "score_change_supported": false
   },
-  "next_gate": "Define and host-test bounded decoded sources for configured-NVS conflict and security-state facts without deployment authority; select and review an exact non-secret floor descriptor separately before any later physical-read design."
+  "next_gate": "Choose between a separate architecture review of the limited SECURE_VERSION primitive and external monotonic hardware; do not compose or execute inventory until a viable independent rollback-floor provider exists."
 }

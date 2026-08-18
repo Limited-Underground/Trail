@@ -9,6 +9,19 @@ Status date: 2026-08-18
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-083 rejects the conditional ESP32-S3 custom USER_DATA eFuse thermometer
+from Decision 0021. Pinned ESP-IDF 6.0.2 sources prove the USER_DATA block uses
+Reed-Solomon coding and an already nonempty coding unit cannot be written
+again, which is incompatible with repeated independent one-bit rollback-floor
+advances. The pure viability evaluator, the updated provider admission, six
+descriptor-plan groups, existing protected-root plan regressions, eleven target-
+admission groups, and the complete 146-executable host gate pass. No provider,
+block, bit range, or capacity is selected; no target source, device/eFuse state,
+or runtime changed. The two protected HMAC roles remain selected by type only.
+V1 remains exact 39.75%/displayed 40%. See
+[OT-083](../tests/hardware/OT-083-2026-08-18.md) and
+[Decision 0026](decisions/0026-reject-esp32s3-user-data-rollback-floor.md).
+
 OT-082 adds a Heltec-local, one-use, all-or-none source for the default build's
 normalized NVS protection configuration and four decoded security-state values.
 It keeps secure boot, flash encryption, secure download, and download-mode

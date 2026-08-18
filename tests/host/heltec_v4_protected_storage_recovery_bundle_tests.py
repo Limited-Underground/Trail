@@ -364,11 +364,14 @@ def test_denied_recovery_plan_is_exact_and_coherent() -> None:
     require(floor["requirements_defined"] is True and
             floor["independent_from_all_rewritable_flash"] is True and
             floor["monotonic_non_rollbackable"] is True and
-            floor["provider_selected_offline_conditionally"] is True and
+            floor["provider_class"] is None and
+            floor["provider_selected_offline_conditionally"] is False and
+            floor["reviewed_custom_user_efuse_candidate"] ==
+            "REJECTED-RS-CODING-UNIT-SUPPORTS-ONE-WRITE-NOT-REPEATED-ADVANCES" and
             floor["exact_field_selected"] is False and
             floor["provisioned"] is False and
             floor["current_result"] == "DENY",
-            "rollback floor must be conditional and physically absent")
+            "rollback floor must remain unselected after candidate rejection")
 
 
 def test_no_physical_surface_and_registered_host_gate() -> None:

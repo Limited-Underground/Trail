@@ -247,17 +247,21 @@ read protection, operational self-test, freshness, distinctness, and one shared
 operation/evidence binding; the configured NVS block may match only the NVS
 role.
 
-The independent rollback floor conditionally uses a dedicated custom user-eFuse
-thermometer field. Canonical bits are a contiguous low-order set prefix followed
-only by unset bits. An advance is exactly one bit and requires an exact reread.
-Holes, unknown width/protection, exhaustion, and possible post-burn ambiguity
-keep authorization closed. Reset never lowers the floor, prepared-ahead records
-are not published, and a floor ahead of the record requires forward recovery.
+Decision 0021 conditionally proposed a dedicated custom user-eFuse thermometer
+field. OT-083 supersedes that provider selection after pinned ESP-IDF 6.0.2
+source proved the ESP32-S3 USER_DATA block is Reed-Solomon coded and an already
+nonempty coding unit cannot be written again. That physical medium cannot
+support repeated independent one-bit advances. The generic canonical encoding,
+exact-reread, uncertainty, exhaustion, and reconciliation semantics remain,
+but no physical rollback-floor provider is admitted.
 
 Exact physical blocks, floor field, capacity, inventory, provisioning, runtime
 injection, and every key/eFuse/device authority remain absent. See
 [Decision 0021](../decisions/0021-offline-protected-root-provider-selection.md)
-and [OT-078 evidence](../../tests/hardware/OT-078-2026-08-18.md).
+and [OT-078 evidence](../../tests/hardware/OT-078-2026-08-18.md), as superseded
+for the floor candidate by
+[Decision 0026](../decisions/0026-reject-esp32s3-user-data-rollback-floor.md)
+and [OT-083 evidence](../../tests/hardware/OT-083-2026-08-18.md).
 
 ## OT-079 offline protected-root inventory admission
 
@@ -324,3 +328,15 @@ Complete inventory composition and an exact non-secret rollback-floor
 descriptor remain missing. See
 [Decision 0025](../decisions/0025-build-only-protected-root-configuration-security-adapter.md)
 and [OT-082 evidence](../../tests/hardware/OT-082-2026-08-18.md).
+
+## OT-083 rollback-floor descriptor viability review
+
+OT-083 binds the exact official source evidence that rejects the custom
+USER_DATA thermometer without accessing a device. Its pure evaluator emits
+only `REVIEWED-NO-VIABLE-CUSTOM-THERMOMETER` for the exact pinned incompatibility
+or a generic denial for drift, authority, selection, or disclosure claims.
+
+No descriptor or compositor is added. The next decision must review the limited
+`SECURE_VERSION` primitive and its firmware/recovery coupling or require
+external monotonic hardware. Rewritable flash remains insufficient as an
+independent floor.

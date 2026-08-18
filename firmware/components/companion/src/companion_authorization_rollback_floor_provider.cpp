@@ -5,20 +5,14 @@
 namespace opentrail::companion {
 
 bool IsPhysicallyAdmitted(const RollbackFloorProviderEvidence& evidence) {
-  return evidence.provider_class ==
-             RollbackFloorProviderClass::kEsp32s3CustomEfuseThermometer &&
-         evidence.efuse_block.has_value() && evidence.first_bit.has_value() &&
-         evidence.capacity_bits.has_value() &&
-         evidence.capacity_bits.value() > 0 &&
-         evidence.exact_inventory_observed &&
-         evidence.protection_state_observed &&
-         evidence.protection_state_matches && evidence.provisioned_known &&
-         evidence.provisioned && evidence.post_provision_read_verified &&
-         evidence.operational_self_test_attempted &&
-         evidence.operational_self_test_passed &&
-         evidence.factory_target_admitted &&
-         evidence.provisioning_authorized && evidence.write_authorized &&
-         evidence.active;
+  // No physical floor provider class is currently admitted. OT-083 proved
+  // that the ESP32-S3 custom USER_DATA candidate cannot support repeated
+  // one-bit advances because its Reed-Solomon coding unit is writable once.
+  // The semantic observation/reconciliation helpers below remain useful for a
+  // future provider, but factual fields and authority cannot revive a rejected
+  // physical provider class.
+  static_cast<void>(evidence);
+  return false;
 }
 
 RollbackFloorObservation EvaluateRollbackFloorObservation(

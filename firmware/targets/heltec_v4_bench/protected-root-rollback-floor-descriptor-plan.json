@@ -1,0 +1,57 @@
+{
+  "schema": "OTRFD0/v0",
+  "plan_id": "OT-083",
+  "status": "OFFLINE-VIABILITY-REVIEWED-NO-PROVIDER-SELECTED",
+  "as_of": "2026-08-18",
+  "target": "heltec_v4_bench",
+  "device_family": "ESP32-S3",
+  "decision": "docs/decisions/0026-reject-esp32s3-user-data-rollback-floor.md",
+  "evidence": "tests/hardware/OT-083-2026-08-18.md",
+  "reviewed_sources": {
+    "esp_idf_version": "6.0.2",
+    "files": [
+      {"path": "components/efuse/esp32s3/esp_efuse_table.csv", "byte_length": 26976, "sha256": "0B22F89D2B0F7EE315046DE5108C1DDDA8F46BB451985C7F66EB753301BFA69E"},
+      {"path": "components/efuse/esp32s3/include/esp_efuse_chip.h", "byte_length": 3689, "sha256": "B5299EE67627C912C5E7A0E4A908D1678FD0D2F12D5AFD7A58D849FC1BADAA30"},
+      {"path": "components/efuse/esp32s3/esp_efuse_utility.c", "byte_length": 10672, "sha256": "87EF1EA4E0B17AFEF9AB8E8939E67649A934C4CD3531FAFD07D343139B1B8E64"},
+      {"path": "components/efuse/include/esp_efuse.h", "byte_length": 35691, "sha256": "4D488D3F2A75F0E55B903410987E08DCBAA550E11344032E93B315BEC87648A7"},
+      {"path": "docs/en/api-reference/system/efuse.rst", "byte_length": 34742, "sha256": "477703495E87597CC55DB87C78DB71399199187789624C9397F8BBF53002E9E2"}
+    ]
+  },
+  "reviewed_candidate": {
+    "provider_class": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
+    "user_data": {"block_class": "EFUSE_BLK3", "first_bit": 0, "bit_count": 256},
+    "mac_custom_overlap": {"first_bit": 200, "bit_count": 48},
+    "coding_scheme": "REED_SOLOMON",
+    "coding_unit_write_behavior": "SINGLE_WRITE_ONLY",
+    "required_behavior": "REPEATED_INDEPENDENT_ONE_BIT_ADVANCES",
+    "result": "REJECTED-INCOMPATIBLE-WITH-REQUIRED-ADVANCE-SEMANTICS"
+  },
+  "current_selection": {
+    "provider_class": null,
+    "efuse_block": null,
+    "first_bit": null,
+    "capacity_bits": null,
+    "descriptor_selected": false,
+    "provider_admitted": false,
+    "provider_active": false
+  },
+  "alternatives": {
+    "secure_version": {"selected": false, "capacity_bits": 16, "status": "REQUIRES-SEPARATE-ARCHITECTURE-AND-RECOVERY-REVIEW"},
+    "external_monotonic_hardware": {"selected": false, "present_on_current_target": false, "status": "HARDWARE-REDESIGN-REQUIRED"},
+    "rewritable_flash_counter": {"selected": false, "status": "REJECTED-NOT-INDEPENDENTLY-NONROLLBACKABLE"}
+  },
+  "execution_surface": {"device_port": null, "commands": [], "attempts": 0},
+  "authorities": {
+    "device_access_authorized": false,
+    "efuse_read_authorized": false,
+    "efuse_write_authorized": false,
+    "descriptor_selection_authorized": false,
+    "provider_admission_authorized": false,
+    "provisioning_authorized": false,
+    "runtime_activation_authorized": false
+  },
+  "privacy": {"raw_device_data_present": false, "private_identity_or_path_present": false},
+  "fixed_public_results": ["REVIEWED-NO-VIABLE-CUSTOM-THERMOMETER", "DENY-DESCRIPTOR-VIABILITY"],
+  "current_result": "REVIEWED-NO-VIABLE-CUSTOM-THERMOMETER",
+  "next_gate": "Choose whether to perform a separate architecture and recovery review of the limited SECURE_VERSION primitive or require external monotonic hardware; do not build an inventory compositor until a viable rollback-floor provider exists."
+}

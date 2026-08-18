@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TARGET = ROOT / "firmware" / "targets" / "heltec_v4_bench"
 PLAN_PATH = TARGET / "protected-root-inventory-plan.json"
+DESCRIPTOR_PLAN_PATH = TARGET / "protected-root-rollback-floor-descriptor-plan.json"
 PROVIDER_PATH = TARGET / "protected-storage-provider-plan.json"
 PROVISIONING_PATH = TARGET / "protected-storage-provisioning-plan.json"
 TRANSITION_PATH = TARGET / "protected-storage-transition-plan.json"
@@ -47,9 +48,13 @@ def test_exact_offline_boundary() -> None:
             "OFFLINE_METADATA_INTERFACE_ACCEPTED_EXECUTION_UNAUTHORIZED",
             "OT-080 reader route must be linked without execution authority")
     candidate = plan["candidate_provider"]
-    require(candidate["provider_class"] ==
-            "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
-            "unexpected conditional provider class")
+    require(plan["rollback_floor_descriptor_plan"] == DESCRIPTOR_PLAN_PATH.name,
+            "inventory plan must reference the exact OT-083 descriptor review")
+    require(candidate["provider_class"] is None and
+            candidate["reviewed_candidate"] == {
+                "provider_class": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
+                "result": "REJECTED-RS-CODING-UNIT-SUPPORTS-ONE-WRITE-NOT-REPEATED-ADVANCES",
+            }, "custom USER_DATA candidate must be rejected")
     require(candidate["efuse_block"] is None and
             candidate["first_bit"] is None and
             candidate["capacity_bits"] is None and

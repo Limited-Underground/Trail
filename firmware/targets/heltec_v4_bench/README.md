@@ -405,3 +405,12 @@ inventory, provider admission, and the rollback-floor descriptor remain open;
 all device/read/write/provisioning/runtime authority remains false. See
 [Decision 0025](../../../docs/decisions/0025-build-only-protected-root-configuration-security-adapter.md)
 and [OT-082 evidence](../../../tests/hardware/OT-082-2026-08-18.md).
+
+OT-083 rejects the conditional custom USER_DATA eFuse thermometer after pinned
+ESP-IDF 6.0.2 source proved its Reed-Solomon coding unit is writable only once.
+That medium cannot provide repeated one-bit rollback-floor advances. The review
+adds no target source or runtime edge, performs no device/eFuse operation, and
+selects no replacement provider, block, range, or capacity. The active target
+build and installed application are unchanged. See
+[Decision 0026](../../../docs/decisions/0026-reject-esp32s3-user-data-rollback-floor.md)
+and [OT-083 evidence](../../../tests/hardware/OT-083-2026-08-18.md).

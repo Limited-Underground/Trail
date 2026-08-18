@@ -6,6 +6,20 @@ public chronology.
 
 ## 2026-08-18
 
+### OT-083 rollback-floor descriptor viability review
+
+- Rechecked the conditional custom USER_DATA eFuse thermometer against pinned
+  ESP-IDF 6.0.2 source and proved its Reed-Solomon coding unit is writable only
+  once, so it cannot implement repeated independent floor advances.
+- Added a pure source-bound viability evaluator, fixed sanitized outcome, and
+  fail-closed plan tests; existing physical-provider admission now remains
+  false even when all old factual fields are populated.
+- The complete 146-executable host gate and eleven Heltec target-admission
+  groups pass. No target build input, device, eFuse, or runtime changed. The
+  two HMAC roles remain selected by type, the rollback-floor provider is now
+  unselected, and V1 completion is unchanged. See
+  [OT-083 evidence](../tests/hardware/OT-083-2026-08-18.md).
+
 ### OT-082 build-only configuration/security metadata source
 
 - Added a target-local, one-use source for the default NVS build configuration

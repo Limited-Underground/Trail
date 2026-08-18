@@ -590,6 +590,16 @@ configured-key conflict, complete inventory, provider suitability, or the
 rollback-floor descriptor. See
 [Decision 0025](decisions/0025-build-only-protected-root-configuration-security-adapter.md).
 
+OT-083 closes the proposed custom USER_DATA eFuse rollback-floor branch. Pinned
+ESP-IDF 6.0.2 sources show that the relevant ESP32-S3 USER_DATA block uses
+Reed-Solomon coding and cannot accept the repeated independent writes required
+by the thermometer contract. A pure source-bound viability evaluator records
+that incompatibility; no descriptor, provider, compositor, reader, target
+dependency edge, or authority is added. The architecture must now choose a
+different independent monotonic provider before protected-root composition can
+continue. See
+[Decision 0026](decisions/0026-reject-esp32s3-user-data-rollback-floor.md).
+
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;

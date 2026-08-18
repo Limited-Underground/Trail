@@ -72,8 +72,8 @@ void TestAdmissionDefaultsClosed() {
   malformed.provider_class =
       opentrail::companion::RollbackFloorProviderClass::
           kEsp32s3CustomEfuseThermometer;
-  Expect(IsPhysicallyAdmitted(malformed),
-         "complete exact factual evidence may admit the selected provider");
+  Expect(!IsPhysicallyAdmitted(malformed),
+         "rejected physical provider cannot be revived by factual fields");
   auto missing_fact = malformed;
   missing_fact.provisioned_known = false;
   Expect(!IsPhysicallyAdmitted(missing_fact),

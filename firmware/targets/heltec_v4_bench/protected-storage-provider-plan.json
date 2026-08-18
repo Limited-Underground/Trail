@@ -1,12 +1,14 @@
 {
   "schema": "OTPRP0/v0",
-  "status": "OFFLINE-PROVIDER-TYPES-SELECTED-PHYSICAL-ADMISSION-CLOSED",
+  "status": "OFFLINE-KEY-PROVIDER-TYPES-SELECTED-ROLLBACK-PROVIDER-UNSELECTED",
   "as_of": "2026-08-18",
   "target": "heltec_v4_bench",
   "decision": "docs/decisions/0021-offline-protected-root-provider-selection.md",
   "protected_root_inventory_plan": "protected-root-inventory-plan.json",
+  "rollback_floor_descriptor_plan": "protected-root-rollback-floor-descriptor-plan.json",
   "provider_type_selection": {
-    "accepted_offline": true,
+    "protected_key_roles_accepted_offline": true,
+    "rollback_floor_provider_selected_offline": false,
     "physical_provider_admitted": false,
     "runtime_activation_admitted": false
   },
@@ -38,8 +40,13 @@
     "factual_pair_admission_current_result": "DENY"
   },
   "rollback_floor": {
-    "provider_class": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
-    "selected_offline_conditionally": true,
+    "provider_class": null,
+    "selected_offline_conditionally": false,
+    "descriptor_plan": "protected-root-rollback-floor-descriptor-plan.json",
+    "reviewed_candidate": {
+      "provider_class": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
+      "result": "REJECTED-RS-CODING-UNIT-SUPPORTS-ONE-WRITE-NOT-REPEATED-ADVANCES"
+    },
     "exact_efuse_block": null,
     "first_bit": null,
     "capacity_bits": null,
@@ -82,7 +89,7 @@
   "remaining_physical_gates": [
     "capture a private read-only eFuse inventory on the exact selected unit",
     "review and select two unused distinct HMAC_UP blocks",
-    "review and select a non-overlapping custom user-eFuse counter field and capacity",
+    "select a viable independent rollback-floor provider after rejecting the custom USER_DATA thermometer",
     "accept irreversible provisioning and read-protection order plus recovery consequences",
     "obtain separate one-use physical authority before any provision or burn",
     "prove post-provision reads self-tests reboot reconciliation and uncertainty behavior"

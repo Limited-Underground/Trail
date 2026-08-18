@@ -16,6 +16,9 @@ KEY_HEADER = ROOT / "firmware" / "components" / "companion" / "include" / "opent
 KEY_SOURCE = ROOT / "firmware" / "components" / "companion" / "src" / "companion_protected_key_provider_admission.cpp"
 FLOOR_HEADER = ROOT / "firmware" / "components" / "companion" / "include" / "opentrail" / "companion_authorization_rollback_floor_provider.hpp"
 FLOOR_SOURCE = ROOT / "firmware" / "components" / "companion" / "src" / "companion_authorization_rollback_floor_provider.cpp"
+VIABILITY_HEADER = ROOT / "firmware" / "components" / "companion" / "include" / "opentrail" / "companion_rollback_floor_descriptor_viability.hpp"
+VIABILITY_SOURCE = ROOT / "firmware" / "components" / "companion" / "src" / "companion_rollback_floor_descriptor_viability.cpp"
+DESCRIPTOR_PLAN_PATH = TARGET / "protected-root-rollback-floor-descriptor-plan.json"
 TEST_HOST = ROOT / "tools" / "Test-Host.ps1"
 
 
@@ -32,11 +35,12 @@ def test_exact_offline_selection() -> None:
     plan = load(PLAN_PATH)
     require(plan["schema"] == "OTPRP0/v0", "unexpected provider schema")
     require(plan["status"] ==
-            "OFFLINE-PROVIDER-TYPES-SELECTED-PHYSICAL-ADMISSION-CLOSED",
+            "OFFLINE-KEY-PROVIDER-TYPES-SELECTED-ROLLBACK-PROVIDER-UNSELECTED",
             "provider plan must stay physical-admission closed")
     selection = plan["provider_type_selection"]
     require(selection == {
-        "accepted_offline": True,
+        "protected_key_roles_accepted_offline": True,
+        "rollback_floor_provider_selected_offline": False,
         "physical_provider_admitted": False,
         "runtime_activation_admitted": False,
     }, "offline selection must grant no physical or runtime admission")
@@ -62,19 +66,23 @@ def test_exact_offline_selection() -> None:
             "key pair must remain factually denied")
 
 
-def test_floor_is_conditional_and_unallocated() -> None:
+def test_floor_candidate_is_rejected_and_unallocated() -> None:
     floor = load(PLAN_PATH)["rollback_floor"]
-    require(floor["provider_class"] ==
-            "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER" and
-            floor["selected_offline_conditionally"] is True,
-            "unexpected rollback-floor provider class")
+    require(floor["provider_class"] is None and
+            floor["selected_offline_conditionally"] is False and
+            floor["descriptor_plan"] == DESCRIPTOR_PLAN_PATH.name,
+            "rollback-floor provider must remain unselected")
+    require(floor["reviewed_candidate"] == {
+        "provider_class": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
+        "result": "REJECTED-RS-CODING-UNIT-SUPPORTS-ONE-WRITE-NOT-REPEATED-ADVANCES",
+    }, "custom USER_DATA candidate must be explicitly rejected")
     require(floor["exact_efuse_block"] is None and
             floor["first_bit"] is None and
             floor["capacity_bits"] is None and
             floor["inventory_observed"] is False and
             floor["protection_state_observed"] is False and
             floor["provisioned"] is False and floor["active"] is False,
-            "conditional floor must not invent a physical allocation")
+            "rejected floor must not invent a physical allocation")
     require(floor["advance_step"] == 1 and
             floor["post_advance_exact_reread_required"] is True and
             floor["exhaustion_result"] == "PERMANENT-DENY" and
@@ -108,6 +116,7 @@ def test_parent_plans_remain_denied() -> None:
             "both parent plans must reference the exact provider plan")
     require(provisioning["key_roles"]["provider_types_selected_offline"] is True and
             provisioning["key_roles"]["physical_pair_admitted"] is False and
+            provisioning["rollback_floor"]["provider"] is None and
             provisioning["rollback_floor"]["exact_field_selected"] is False,
             "provisioning must distinguish type selection from admission")
     role_requirements = transition["protected_key_role_requirements"]
@@ -118,6 +127,7 @@ def test_parent_plans_remain_denied() -> None:
             role_requirements["current_result"] == "DENY",
             "transition key-role admission must remain denied")
     require(transition["rollback_floor_requirements"]["exact_field_selected"] is False and
+            transition["rollback_floor_requirements"]["provider_class"] is None and
             transition["rollback_floor_requirements"]["current_result"] == "DENY" and
             transition["promotion_admission"]["current_result"] == "DENY" and
             not any(transition["authorities"].values()),
@@ -126,7 +136,8 @@ def test_parent_plans_remain_denied() -> None:
 
 def test_pure_source_surface_and_registration() -> None:
     combined = "\n".join(path.read_text(encoding="utf-8") for path in
-                         (KEY_HEADER, KEY_SOURCE, FLOOR_HEADER, FLOOR_SOURCE))
+                         (KEY_HEADER, KEY_SOURCE, FLOOR_HEADER, FLOOR_SOURCE,
+                          VIABILITY_HEADER, VIABILITY_SOURCE))
     forbidden = (
         "esp_efuse", "esp_hmac", "nvs_flash", "nvs_open", "SerialPort",
         "esptool", "subprocess", "CreateFile", "fopen", "ofstream",
@@ -141,6 +152,8 @@ def test_pure_source_surface_and_registration() -> None:
         "companion authorization rollback-floor provider",
         "companion_protected_key_provider_admission.cpp",
         "companion_authorization_rollback_floor_provider.cpp",
+        "companion rollback-floor descriptor viability",
+        "companion_rollback_floor_descriptor_viability.cpp",
     ):
         require(expected in harness, f"host matrix missing {expected}")
 
@@ -148,7 +161,7 @@ def test_pure_source_surface_and_registration() -> None:
 def main() -> int:
     tests = (
         test_exact_offline_selection,
-        test_floor_is_conditional_and_unallocated,
+        test_floor_candidate_is_rejected_and_unallocated,
         test_no_execution_or_authority,
         test_parent_plans_remain_denied,
         test_pure_source_surface_and_registration,

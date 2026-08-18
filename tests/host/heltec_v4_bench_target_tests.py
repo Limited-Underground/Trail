@@ -120,6 +120,7 @@ def test_contract() -> None:
         "protected-root-inventory-plan.json",
         "protected-root-inventory-reader-plan.json",
         "protected-root-configuration-security-plan.json",
+        "protected-root-rollback-floor-descriptor-plan.json",
         "protected-storage-provisioning-plan.json",
         "protected-storage-recovery-bundle-plan.json",
         "protected-storage-transition-read-plan.json",
@@ -659,12 +660,14 @@ def test_protected_storage_candidate_plan() -> None:
         "efuse_provisioning_authorized": False,
     }, "candidate plan must select only the provider type")
     require(plan["rollback_floor"] == {
-        "provider": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
-        "provider_class_selected_offline_conditionally": True,
+        "provider": None,
+        "provider_class_selected_offline_conditionally": False,
+        "reviewed_custom_user_efuse_candidate":
+            "REJECTED-RS-CODING-UNIT-SUPPORTS-ONE-WRITE-NOT-REPEATED-ADVANCES",
         "exact_field_selected": False,
         "independent_from_authorization_partition_required": True,
         "provisioning_authorized": False,
-    }, "candidate plan must keep the conditional floor physically absent")
+    }, "candidate plan must keep the rejected floor unselected")
     require(all(value is False for value in plan["runtime"].values()),
             "candidate plan must enable no protected runtime capability")
     require(all(value is False for value in
