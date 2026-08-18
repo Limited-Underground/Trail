@@ -1,0 +1,101 @@
+{
+  "schema": "OTPRP0/v0",
+  "status": "OFFLINE-PROVIDER-TYPES-SELECTED-PHYSICAL-ADMISSION-CLOSED",
+  "as_of": "2026-08-18",
+  "target": "heltec_v4_bench",
+  "decision": "docs/decisions/0021-offline-protected-root-provider-selection.md",
+  "provider_type_selection": {
+    "accepted_offline": true,
+    "physical_provider_admitted": false,
+    "runtime_activation_admitted": false
+  },
+  "protected_key_roles": {
+    "provider_kind": "ESP32S3_HMAC_UP_EFUSE",
+    "nvs_encryption": {
+      "role": "OT_AUTH_NVS_ENCRYPTION_ONLY",
+      "purpose": "HMAC_UP",
+      "key_block_id": null,
+      "provider_selected_offline": true,
+      "block_selected": false,
+      "provisioned": false,
+      "read_protection_observed": null,
+      "operational_self_test": null
+    },
+    "bond_binding_prf": {
+      "role": "PRIVATE_BOND_BINDING_PRF_ONLY",
+      "purpose": "HMAC_UP",
+      "key_block_id": null,
+      "provider_selected_offline": true,
+      "block_selected": false,
+      "provisioned": false,
+      "read_protection_observed": null,
+      "operational_self_test": null
+    },
+    "distinct_blocks_required": true,
+    "same_nonzero_operation_and_evidence_binding_required": true,
+    "configured_nvs_id_must_match_only_nvs_role": true,
+    "factual_pair_admission_current_result": "DENY"
+  },
+  "rollback_floor": {
+    "provider_class": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
+    "selected_offline_conditionally": true,
+    "exact_efuse_block": null,
+    "first_bit": null,
+    "capacity_bits": null,
+    "inventory_observed": false,
+    "protection_state_observed": false,
+    "provisioned": false,
+    "active": false,
+    "encoding": "CONTIGUOUS_LOW_ORDER_ONES_THEN_ZEROES",
+    "advance_step": 1,
+    "post_advance_exact_reread_required": true,
+    "holes_unknown_width_or_protection_mismatch_result": "DENY",
+    "possible_post_burn_error_result": "UNCERTAIN-AUTHORIZATION-CLOSED",
+    "exhaustion_result": "PERMANENT-DENY",
+    "decrement_wrap_reseed_erase_allowed": false,
+    "independent_from_rewritable_flash": true,
+    "production_anti_tamper_claimed": false,
+    "physical_provider_admission_current_result": "DENY"
+  },
+  "recovery_and_reset_policy": {
+    "reset_or_power_loss_changes_floor": false,
+    "boot_requires_exact_floor_and_record_reconciliation": true,
+    "prepared_record_ahead_of_floor_is_publishable": false,
+    "floor_ahead_of_record_requires_forward_recovery": true,
+    "revoke_replace_or_reset_uses_next_generation_tombstone": true,
+    "blank_storage_with_nonzero_floor_result": "DENY",
+    "replacement_chip_starts_new_device_at_floor_zero": true,
+    "old_table_restore_requires_initial_floor": true
+  },
+  "explicitly_not_selected": {
+    "esp32s3_secure_version": true,
+    "ordinary_nvs_or_flash_counter": true,
+    "external_secure_element": true
+  },
+  "remaining_physical_gates": [
+    "capture a private read-only eFuse inventory on the exact selected unit",
+    "review and select two unused distinct HMAC_UP blocks",
+    "review and select a non-overlapping custom user-eFuse counter field and capacity",
+    "accept irreversible provisioning and read-protection order plus recovery consequences",
+    "obtain separate one-use physical authority before any provision or burn",
+    "prove post-provision reads self-tests reboot reconciliation and uncertainty behavior"
+  ],
+  "execution_surface": {
+    "device_port": null,
+    "commands": [],
+    "attempts": 0,
+    "device_access_authorized": false
+  },
+  "authorities": {
+    "efuse_inventory_read_authorized": false,
+    "key_generation_authorized": false,
+    "key_provisioning_authorized": false,
+    "efuse_write_authorized": false,
+    "read_protection_write_authorized": false,
+    "rollback_floor_advance_authorized": false,
+    "partition_write_authorized": false,
+    "application_write_authorized": false,
+    "runtime_activation_authorized": false
+  },
+  "current_result": "DENY-PHYSICAL-ADMISSION"
+}

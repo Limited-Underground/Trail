@@ -6,6 +6,7 @@
   "active_target_configuration_changed": false,
   "read_evidence_plan": "protected-storage-transition-read-plan.json",
   "recovery_bundle_plan": "protected-storage-recovery-bundle-plan.json",
+  "provider_plan": "protected-storage-provider-plan.json",
   "recovery_route_decision": "docs/decisions/0020-offline-exact-rom-recovery-route.md",
   "transition": {
     "source_layout": {
@@ -56,22 +57,23 @@
     "results": {"unknown": "DENY", "size_mismatch": "DENY", "non_ff": "DENY", "all_ff": "SOURCE-PROOF-SATISFIED-ONLY"}
   },
   "protected_key_role_requirements": {
+    "provider_kind": "ESP32S3_HMAC_UP_EFUSE",
     "requirements_defined": true,
-    "nvs_encryption_hmac_key": {"purpose": "OT_AUTH_NVS_ENCRYPTION_ONLY", "provider_selected": false, "provisioned": false},
-    "bond_binding_prf_hmac_key": {"purpose": "PRIVATE_BOND_BINDING_PRF_ONLY", "provider_selected": false, "provisioned": false},
+    "nvs_encryption_hmac_key": {"purpose": "OT_AUTH_NVS_ENCRYPTION_ONLY", "provider_selected_offline": true, "key_block_id": null, "physical_provider_admitted": false, "provisioned": false},
+    "bond_binding_prf_hmac_key": {"purpose": "PRIVATE_BOND_BINDING_PRF_ONLY", "provider_selected_offline": true, "key_block_id": null, "physical_provider_admitted": false, "provisioned": false},
     "distinct_keys_required": true, "opaque_ids_read_protection_purpose_check_and_private_self_test_required": true, "usable_as_release_signing_recovery_or_rollback_authority": false, "current_result": "DENY"
   },
   "rollback_floor_requirements": {
     "requirements_defined": true, "independent_from_all_rewritable_flash": true, "monotonic_non_rollbackable": true, "fresh_read_compare_advance_and_post_advance_reread_required": true, "exhaustion_and_uncertain_result_policy_required": true,
-    "provider_selected": false, "provisioned": false, "current_result": "DENY"
+    "provider_class": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER", "provider_selected_offline_conditionally": true, "exact_field_selected": false, "provisioned": false, "current_result": "DENY"
   },
   "promotion_admission": {
     "current_result": "DENY", "source_proof_alone_authorizes_transition": false, "partition_table_promotion_authorized": false,
     "remaining_requirements": [
       "bind fresh installed-table source-region and recovery evidence to one later nonzero operation and evidence set",
       "prove two independently hashed private application copies before device access",
-      "select and provision the two defined protected key roles under separate authority",
-      "select and provision an independent non-rollbackable generation authority",
+      "inventory select and provision two distinct HMAC_UP blocks under separate authority",
+      "inventory select and provision the conditional custom user-eFuse floor field",
       "complete exact-unit candidate-transition and recovery validation",
       "obtain separate physical-write authorization"
     ]

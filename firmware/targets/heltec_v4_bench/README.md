@@ -355,3 +355,12 @@ No device was accessed and no command, write, reset, recovery, key/eFuse, or
 transition authority was added. See
 [Decision 0020](../../../docs/decisions/0020-offline-exact-rom-recovery-route.md)
 and [OT-077 evidence](../../../tests/hardware/OT-077-2026-08-18.md).
+OT-078 selects only provider classes: two distinct ESP32-S3 `HMAC_UP` eFuse
+blocks for the NVS-encryption and bond-binding PRF roles, and a conditional
+custom user-eFuse thermometer field for the independent generation floor. Pure
+host evaluators require exact factual admission and fail closed on missing,
+unprovisioned, stale, mismatched, noncanonical, exhausted, or uncertain state.
+No physical block, field, capacity, key, inventory, provision, runtime injection,
+or device authority exists. See
+[Decision 0021](../../../docs/decisions/0021-offline-protected-root-provider-selection.md)
+and [OT-078 evidence](../../../tests/hardware/OT-078-2026-08-18.md).

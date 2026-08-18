@@ -9,6 +9,18 @@ Status date: 2026-08-18
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-078 selects the protected-root provider classes offline. The NVS-encryption
+and private bond-binding roles each require a distinct ESP32-S3 `HMAC_UP` eFuse
+block; a future admission must prove exact provisioning, purpose, read
+protection, operational self-test, freshness, and one shared evidence binding.
+The independent floor conditionally uses a dedicated custom user-eFuse
+thermometer field with one-bit advance, exact reread, permanent exhaustion, and
+fail-closed uncertainty. No physical block, counter field, capacity, key, or
+provisioning sequence is selected. No hardware was accessed and every physical,
+write, runtime, and transition authority remains false. V1 Companion remains
+exact 39.75%/displayed 40%. See [OT-078](../tests/hardware/OT-078-2026-08-18.md)
+and [Decision 0021](decisions/0021-offline-protected-root-provider-selection.md).
+
 OT-077 accepts the exact `OTRR0/v0/heltec-v4-ot064-source-restore` route as an
 offline contract. It fixes ESP32-S3 ROM serial tooling at esptool 5.3.1,
 115,200 baud, `no-reset` before/after, and no RAM stub; restores the exact
@@ -20,13 +32,13 @@ recipe is deterministic. One private application copy is proved retained, but
 a second independently hashed staged copy is required before any physical
 operation. Two distinct protected HMAC roles and an independent monotonic
 rollback-floor requirement are defined without selecting or provisioning a
-Future admission also requires a fresh same-operation/evidence-set read-only
+provider. Future admission also requires a fresh same-operation/evidence-set read-only
 observation proving secure boot, flash encryption, and secure download mode are
 disabled; unknown or mismatch denies. Any failure after the first write closes
 the connection, remains in ROM as `RECOVERY-UNCERTAIN`, preserves private
 artifacts and a minimum private journal before transient cleanup, makes no boot-
 success claim, never auto-retries, and requires fresh owner authorization.
-provider. No hardware was accessed; every physical recovery, write, key/eFuse,
+No hardware was accessed; every physical recovery, write, key/eFuse,
 rollback, and transition authority remains false. V1 Companion remains exact
 39.75%/displayed 40%. See
 [OT-077](../tests/hardware/OT-077-2026-08-18.md) and

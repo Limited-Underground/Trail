@@ -354,16 +354,21 @@ def test_denied_recovery_plan_is_exact_and_coherent() -> None:
             "transition must consume only the accepted offline route")
     require(key_roles["requirements_defined"] is True and
             key_roles["distinct_keys_required"] is True and
-            key_roles["nvs_encryption_hmac_key"]["provider_selected"] is False and
-            key_roles["bond_binding_prf_hmac_key"]["provider_selected"] is False and
+            key_roles["provider_kind"] == "ESP32S3_HMAC_UP_EFUSE" and
+            key_roles["nvs_encryption_hmac_key"]["provider_selected_offline"] is True and
+            key_roles["nvs_encryption_hmac_key"]["physical_provider_admitted"] is False and
+            key_roles["bond_binding_prf_hmac_key"]["provider_selected_offline"] is True and
+            key_roles["bond_binding_prf_hmac_key"]["physical_provider_admitted"] is False and
             key_roles["current_result"] == "DENY",
-            "protected key roles must be defined without selected providers")
+            "protected key roles must select only provider types")
     require(floor["requirements_defined"] is True and
             floor["independent_from_all_rewritable_flash"] is True and
             floor["monotonic_non_rollbackable"] is True and
-            floor["provider_selected"] is False and floor["provisioned"] is False and
+            floor["provider_selected_offline_conditionally"] is True and
+            floor["exact_field_selected"] is False and
+            floor["provisioned"] is False and
             floor["current_result"] == "DENY",
-            "rollback floor must be defined without provisioning authority")
+            "rollback floor must be conditional and physically absent")
 
 
 def test_no_physical_surface_and_registered_host_gate() -> None:

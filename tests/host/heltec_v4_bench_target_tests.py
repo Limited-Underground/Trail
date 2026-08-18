@@ -102,6 +102,7 @@ def test_contract() -> None:
         "oled-startup-flash-plan.json",
         "physical-flash-plan.json",
         "protected-storage-partitions.candidate.csv",
+        "protected-storage-provider-plan.json",
         "protected-storage-provisioning-plan.json",
         "protected-storage-recovery-bundle-plan.json",
         "protected-storage-transition-read-plan.json",
@@ -583,7 +584,7 @@ def test_protected_storage_candidate_plan() -> None:
     require(plan["schema"] == "OTPSP0/v0",
             "unexpected protected-storage plan schema")
     require(plan["status"] == "DESIGN-ONLY-NOT-ACTIVE-NOT-AUTHORIZED" and
-            plan["as_of"] == "2026-08-17" and
+            plan["as_of"] == "2026-08-18" and
             plan["target"] == "heltec_v4_bench",
             "candidate plan must remain dated, target-bound, and inactive")
     require(plan["active_target_configuration_changed"] is False,
@@ -591,6 +592,8 @@ def test_protected_storage_candidate_plan() -> None:
     require(plan["candidate_partition_table"] ==
             "protected-storage-partitions.candidate.csv",
             "candidate plan must bind the exact candidate table")
+    require(plan["provider_plan"] == "protected-storage-provider-plan.json",
+            "candidate plan must bind the offline provider contract")
     require(plan["candidate_layout"] == {
         "flash_size_bytes": 16777216,
         "authorization_partition": {
@@ -604,16 +607,21 @@ def test_protected_storage_candidate_plan() -> None:
         },
     }, "candidate partition layout must remain exact")
     require(plan["key_roles"] == {
+        "provider_kind": "ESP32S3_HMAC_UP_EFUSE",
         "nvs_encryption_hmac_key_id": None,
         "bond_binding_prf_hmac_key_id": None,
+        "provider_types_selected_offline": True,
+        "physical_pair_admitted": False,
         "distinct_keys_required": True,
         "efuse_provisioning_authorized": False,
-    }, "candidate plan must not invent or authorize protected keys")
+    }, "candidate plan must select only the provider type")
     require(plan["rollback_floor"] == {
-        "provider": None,
+        "provider": "ESP32S3_CUSTOM_USER_EFUSE_THERMOMETER",
+        "provider_class_selected_offline_conditionally": True,
+        "exact_field_selected": False,
         "independent_from_authorization_partition_required": True,
         "provisioning_authorized": False,
-    }, "candidate plan must preserve the missing independent floor")
+    }, "candidate plan must keep the conditional floor physically absent")
     require(all(value is False for value in plan["runtime"].values()),
             "candidate plan must enable no protected runtime capability")
     require(all(value is False for value in

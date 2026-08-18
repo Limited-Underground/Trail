@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-08-18
 
+### OT-078 offline protected-root provider selection
+
+- Selected distinct ESP32-S3 `HMAC_UP` provider types for `ot_auth` NVS
+  encryption and private bond-binding PRF use without selecting physical blocks.
+- Conditionally selected a dedicated custom user-eFuse thermometer provider
+  class for the independent authorization floor. Exact allocation, capacity,
+  provisioning, protection, and target behavior remain unknown.
+- Pure fail-closed host contracts cover absent/unprovisioned key evidence,
+  role/purpose/distinctness/read-protection/self-test binding, canonical floor
+  encoding, one-step advance, uncertainty, exhaustion, and reboot reconciliation.
+- No device was accessed and no key generation, eFuse write, protected-storage
+  activation, rollback advance, partition transition, or physical authority was
+  added. V1 Companion remains 40%. See
+  [OT-078 evidence](../tests/hardware/OT-078-2026-08-18.md).
+
 ### OT-077 offline exact recovery-route acceptance
 
 - Accepted one exact ESP32-S3 ROM source-restore contract: unconditional exact

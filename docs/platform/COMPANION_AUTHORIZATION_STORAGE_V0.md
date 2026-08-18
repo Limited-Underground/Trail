@@ -238,3 +238,23 @@ OT-071, and a satisfied result proves only the source prerequisite; it cannot
 authorize partition promotion, protected-storage activation, keys, eFuses,
 GATT authorization, or Ready. See [Decision 0016](../decisions/0016-read-only-protected-storage-transition-evidence.md)
 and [OT-071 evidence](../../tests/hardware/OT-071-2026-08-17.md).
+## OT-078 offline protected-root providers
+
+OT-078 selects only provider classes. Two distinct ESP32-S3 `HMAC_UP` eFuse
+blocks are required for the `ot_auth` NVS-encryption role and the private
+bond-binding PRF role. Factual admission requires exact provisioning, purpose,
+read protection, operational self-test, freshness, distinctness, and one shared
+operation/evidence binding; the configured NVS block may match only the NVS
+role.
+
+The independent rollback floor conditionally uses a dedicated custom user-eFuse
+thermometer field. Canonical bits are a contiguous low-order set prefix followed
+only by unset bits. An advance is exactly one bit and requires an exact reread.
+Holes, unknown width/protection, exhaustion, and possible post-burn ambiguity
+keep authorization closed. Reset never lowers the floor, prepared-ahead records
+are not published, and a floor ahead of the record requires forward recovery.
+
+Exact physical blocks, floor field, capacity, inventory, provisioning, runtime
+injection, and every key/eFuse/device authority remain absent. See
+[Decision 0021](../decisions/0021-offline-protected-root-provider-selection.md)
+and [OT-078 evidence](../../tests/hardware/OT-078-2026-08-18.md).

@@ -213,6 +213,22 @@ $builds = @(
         )
     },
     @{
+        Name = 'companion protected-key provider admission'
+        Output = Join-Path $buildDirectory 'companion_protected_key_provider_admission_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protected_key_provider_admission.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_protected_key_provider_admission_tests.cpp')
+        )
+    },
+    @{
+        Name = 'companion authorization rollback-floor provider'
+        Output = Join-Path $buildDirectory 'companion_authorization_rollback_floor_provider_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_rollback_floor_provider.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_authorization_rollback_floor_provider_tests.cpp')
+        )
+    },
+    @{
         Name = 'companion authorization protected KV slot media'
         Output = Join-Path $buildDirectory 'companion_authorization_protected_kv_media_tests.exe'
         Sources = @(
@@ -1756,6 +1772,11 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_protected_storage_recovery_bundle_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 protected-storage recovery-bundle tests failed.'
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_protected_storage_provider_plan_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Heltec V4 protected-storage provider-plan tests failed.'
 }
 
 & (Join-Path $projectRoot 'tests\host\wio_tracker_l1_preflight_tests.ps1')

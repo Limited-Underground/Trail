@@ -432,7 +432,7 @@ then rereads both authorities before success. Prepared-ahead, stale-only,
 duplicate-current, corrupt, missing, conflicting, and ambiguous states remain
 closed. The associated Heltec `OTPS0/v0` partition and provisioning documents
 are inactive candidates only: the accepted partition table and sdkconfig are
-unchanged, no key or rollback-floor provider is selected, and no target runtime
+unchanged, provider classes are selected offline but no physical key block or floor field is admitted, and no target runtime
 uses this component. See
 [Decision 0010](decisions/0010-reversible-companion-protected-storage-foundation.md).
 This proves recovery ordering in host code, not target encryption, secrets,
@@ -543,6 +543,17 @@ No binary path, port, device identity, or private evidence identity enters the
 public contract. See
 [Decision 0019](decisions/0019-retain-exact-installed-application-for-recovery.md).
 
+OT-077 freezes the exact pre-authorization ROM recovery route and its security-
+state and post-first-write uncertainty boundaries. OT-078 then selects only the
+protected-root provider classes: distinct ESP32-S3 `HMAC_UP` eFuse blocks for
+NVS encryption and bond-binding PRF use, plus a conditional custom user-eFuse
+thermometer field for the independent floor. The host-only evaluators accept no
+I/O authority and require factual provisioning/protection/self-test evidence,
+canonical monotonic encoding, one-step advance, exact reread, and closed reboot
+reconciliation. Exact physical allocation, provisioning, runtime use, and
+production anti-tamper remain unproved. See
+[Decision 0020](decisions/0020-offline-exact-rom-recovery-route.md) and
+[Decision 0021](decisions/0021-offline-protected-root-provider-selection.md).
 [Decision 0008](decisions/0008-limited-underground-trail-working-product-family.md)
 places replaceable customer-facing working names above those technical tracks.
 `Limited Underground Trail Essential` is the screenless one-phone companion;
