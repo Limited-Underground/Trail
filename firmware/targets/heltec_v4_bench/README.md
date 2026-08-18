@@ -2,6 +2,13 @@
 
 Status: experimentally flashed with bounded USB runtime, BLE service advertising, and a physically accepted startup/status OLED on `OT-DEV-001`; not supported hardware.
 
+The current source now also build-tests OT-085: one fixed, privacy-safe public
+link-information read and a bounded single-link lifecycle. The accepted image
+has not been flashed, so the physical status above still describes OT-064.
+Decision 0028 defers rollback-protected authorization on this hardware; no
+secure ownership, trusted phone, protected write, provisioning, or Ready path
+is enabled.
+
 This bounded ESP-IDF target is the first native OpenTrail build surface for the
 ESP32-S3 family used by the two assembled Heltec V4 bench clients. OT-059 binds
 the build configuration to the recorded `OT-DEV-001` evidence: observed
@@ -53,9 +60,10 @@ console and remains an unreviewed surface until target build and runtime
 evidence exists.
 
 The image also compiles one real ESP-IDF v6.0.2 NimBLE GATT definition and
-callback adapter for the exact companion service, Protocol Info, Command, and
-Stream UUIDs. The fixed definition self-check verifies their exact bytes,
-properties, 128-bit key-size requirement, and v0.1 Protocol Info capability
+callback adapter for the exact companion service, protected Protocol Info,
+Command, and Stream UUIDs, plus the fixed public link-information UUID suffix
+`0x04`. The fixed definition self-check verifies exact bytes, properties,
+protected 128-bit key-size requirements, public READ-only access, and the v0.1 Protocol Info capability
 shape. Protocol Info is encrypted, authenticated, and authorized Read;
 Command is encrypted, authenticated, and authorized Write With Response only;
 Stream is Indicate-only with encrypted, authenticated, and authorized access.
@@ -113,11 +121,12 @@ contains the stack without an unbounded retry loop.
 Protected authorization storage remains denied by the exact current preflight.
 The configured Secure Connections, MITM, bonding, no-input/no-output, and
 no-store settings therefore do not provide a usable pairing or secure bond in
-this increment. Every successful connection is immediately terminated. An
-already-disconnected result releases the exact adapter state and schedules the
-bounded advertising restart; any other termination-initiation error contains
-the runtime so an unauthenticated peer cannot monopolize the sole connection.
-Claims and normal commands remain closed for the lifetime of this composition.
+this increment. OT-085 keeps one connection open for at most 15 seconds so the
+fixed public value can be read and `BLE CONNECTED` can be presented. The owner
+then requests exact-link termination and requires its matching disconnect
+callback within two seconds; failure contains the runtime, while success enters
+the existing bounded advertising restart. Claims and normal commands remain
+closed for the lifetime of this composition.
 
 The image also build-links the target-neutral durable authorization adapter and
 a target-local security admission preflight. The fixed 32-byte `OAP0/v0`

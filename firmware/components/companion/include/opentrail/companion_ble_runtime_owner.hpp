@@ -44,6 +44,8 @@ struct CompanionBleRuntimePolicy {
     std::uint64_t host_sync_timeout_ms{10000};
     std::uint64_t restart_delay_ms{1000};
     std::uint8_t max_restart_attempts{3};
+    std::uint64_t public_link_window_ms{15000};
+    std::uint64_t termination_ack_timeout_ms{2000};
 };
 
 struct CompanionBleRuntimeStatus {
@@ -54,6 +56,7 @@ struct CompanionBleRuntimeStatus {
     std::uint16_t connection_handle{kCompanionBleInvalidConnectionHandle};
     std::uint64_t restart_token{0};
     std::uint8_t restart_attempts{0};
+    bool termination_pending{false};
 };
 
 // Target port for one immutable runtime owner. Advertising data must contain
@@ -69,7 +72,8 @@ public:
     [[nodiscard]] virtual bool start_host_task() = 0;
     [[nodiscard]] virtual bool configure_public_service_advertising() = 0;
     [[nodiscard]] virtual bool start_advertising() = 0;
-    virtual void terminate_connection(std::uint16_t connection_handle) = 0;
+    [[nodiscard]] virtual bool terminate_connection(
+        std::uint16_t connection_handle) = 0;
     [[nodiscard]] virtual bool contain_stack() = 0;
 };
 
@@ -88,7 +92,8 @@ public:
         bool authorization_admission_denied);
     [[nodiscard]] CompanionBleRuntimeError host_synced(std::uint64_t now_ms);
     [[nodiscard]] CompanionBleRuntimeError connection_opened(
-        std::uint16_t connection_handle);
+        std::uint16_t connection_handle,
+        std::uint64_t now_ms);
     [[nodiscard]] CompanionBleRuntimeError connection_closed(
         std::uint16_t connection_handle,
         std::uint64_t now_ms);
@@ -124,6 +129,8 @@ private:
     CompanionBleRuntimeStatus status_{};
     std::uint64_t host_sync_deadline_ms_{0};
     std::uint64_t restart_deadline_ms_{0};
+    std::uint64_t public_link_deadline_ms_{0};
+    std::uint64_t termination_ack_deadline_ms_{0};
     std::uint64_t next_restart_token_{1};
     bool operation_active_{false};
     bool reentry_observed_{false};

@@ -16,6 +16,8 @@ $protectedRootRosterSourcePath = Join-Path $targetRoot 'main\companion_protected
 $configurationSecurityHeaderPath = Join-Path $targetRoot 'main\companion_protected_root_configuration_security_adapter.hpp'
 $configurationSecuritySourcePath = Join-Path $targetRoot 'main\companion_protected_root_configuration_security_adapter.cpp'
 $sdkconfigPath = Join-Path $buildRoot 'sdkconfig'
+$publicLinkInfoHeaderPath = Join-Path $projectRoot 'firmware\components\companion\include\opentrail\companion_public_link_info.hpp'
+$publicLinkInfoSourcePath = Join-Path $projectRoot 'firmware\components\companion\src\companion_public_link_info.cpp'
 
 foreach ($rosterSourcePath in @($protectedRootRosterHeaderPath, $protectedRootRosterSourcePath)) {
     if (-not (Test-Path -LiteralPath $rosterSourcePath -PathType Leaf)) {
@@ -25,6 +27,11 @@ foreach ($rosterSourcePath in @($protectedRootRosterHeaderPath, $protectedRootRo
 foreach ($configurationSecurityPath in @($configurationSecurityHeaderPath, $configurationSecuritySourcePath)) {
     if (-not (Test-Path -LiteralPath $configurationSecurityPath -PathType Leaf)) {
         throw "Protected-root configuration/security source is missing: $(Split-Path -Leaf $configurationSecurityPath)"
+    }
+}
+foreach ($publicLinkInfoPath in @($publicLinkInfoHeaderPath, $publicLinkInfoSourcePath)) {
+    if (-not (Test-Path -LiteralPath $publicLinkInfoPath -PathType Leaf)) {
+        throw "Companion public link-info source is missing: $(Split-Path -Leaf $publicLinkInfoPath)"
     }
 }
 
@@ -403,6 +410,7 @@ foreach ($requiredObject in @(
     'companion_nimble_runtime.cpp.obj',
     'companion_authorization_storage.cpp.obj',
     'companion_ble_runtime_owner.cpp.obj',
+    'companion_public_link_info.cpp.obj',
     'heltec_startup_display.cpp.obj',
     'heltec_v4_oled.cpp.obj'
 )) {
@@ -472,6 +480,32 @@ $configurationSecurityBuildEvidence = [ordered]@{
         sha256 = (Get-FileHash -LiteralPath $configurationSecurityObject.FullName -Algorithm SHA256).Hash
     }
 }
+$compiledPublicLinkInfoObject = @(
+    Get-ChildItem -LiteralPath $buildRoot -Recurse -File |
+        Where-Object {
+            $_.Name -eq 'companion_public_link_info.cpp.obj'
+        })
+if (@($compiledPublicLinkInfoObject).Count -ne 1) {
+    throw 'Companion public link-info source was not build-compiled exactly once.'
+}
+$publicLinkInfoObject = @($compiledPublicLinkInfoObject)[0]
+$publicLinkInfoBuildEvidence = [ordered]@{
+    header = [ordered]@{
+        name = Split-Path -Leaf $publicLinkInfoHeaderPath
+        bytes = (Get-Item -LiteralPath $publicLinkInfoHeaderPath).Length
+        sha256 = (Get-FileHash -LiteralPath $publicLinkInfoHeaderPath -Algorithm SHA256).Hash
+    }
+    source = [ordered]@{
+        name = Split-Path -Leaf $publicLinkInfoSourcePath
+        bytes = (Get-Item -LiteralPath $publicLinkInfoSourcePath).Length
+        sha256 = (Get-FileHash -LiteralPath $publicLinkInfoSourcePath -Algorithm SHA256).Hash
+    }
+    object = [ordered]@{
+        name = $publicLinkInfoObject.Name
+        bytes = $publicLinkInfoObject.Length
+        sha256 = (Get-FileHash -LiteralPath $publicLinkInfoObject.FullName -Algorithm SHA256).Hash
+    }
+}
 $artifactEvidence = @(
     foreach ($artifactPath in $artifactPaths) {
         if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
@@ -538,6 +572,10 @@ $evidence = [ordered]@{
     protected_root_configuration_security_adapter = 'BUILD-COMPILED-NOT-RUNTIME-INJECTED'
     protected_root_configuration_security_execution = 'NOT-AUTHORIZED-NOT-RUN'
     protected_root_configuration_security_build_evidence = $configurationSecurityBuildEvidence
+    companion_public_link_info = 'BUILD-LINKED-PUBLIC-READ-NOT-RUN'
+    companion_public_link_info_build_evidence = $publicLinkInfoBuildEvidence
+    bounded_public_link_window = 'HOST-TESTED-BUILD-LINKED-NOT-RUN'
+    public_link_hardware_observation = 'NOT-RUN'
     companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'
     companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'
     companion_command_dispatch = 'BUILD-LINKED-PREFLIGHT-DENIED-NOT-RUN'

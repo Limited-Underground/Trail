@@ -526,8 +526,9 @@ public:
         ++advertise_calls_;
         return step_ == 5;
     }
-    void terminate_connection(std::uint16_t) override {
+    bool terminate_connection(std::uint16_t) override {
         ++terminate_calls_;
+        return true;
     }
     bool contain_stack() override {
         ++contain_calls_;
@@ -881,7 +882,7 @@ bool run_companion_ble_runtime_owner_self_check() {
     CompanionBleRuntimeOwner owner(port, {10, 5, 3});
     if (owner.start(1, true) != CompanionBleRuntimeError::none ||
         owner.host_synced(2) != CompanionBleRuntimeError::none ||
-        owner.connection_opened(7) != CompanionBleRuntimeError::none ||
+        owner.connection_opened(7, 3) != CompanionBleRuntimeError::none ||
         owner.connection_closed(7, 3) != CompanionBleRuntimeError::none) {
         return false;
     }

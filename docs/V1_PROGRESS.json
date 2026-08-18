@@ -51,7 +51,7 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. The exact installed partition table and blank protected-storage source region passed a bounded physical proof, the installed application is privately retained for recovery, and one exact recovery route plus protected-root provider/inventory contracts are accepted. OT-081 adds a build-compiled six-slot coarse key-roster leaf; OT-082 adds a separate build-compiled default NVS-configuration and decoded security-state leaf. OT-083 rejects the conditional custom USER_DATA rollback-floor candidate because its Reed-Solomon coding unit cannot support repeated writes. OT-084 also rejects SECURE_VERSION because its 16-step application-firmware anti-rollback role and OTA-only native model conflict with an independent authorization floor and the accepted factory recovery route. No viable on-chip floor provider is selected; external monotonic hardware would require a future hardware revision. The two target leaves are host-tested, have no runtime call path, were not device-executed, cannot prove complete inventory or provider suitability, and grant no physical allocation or authority.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. OT-083 and OT-084 reject both on-chip authorization rollback-floor candidates, so Decision 0028 defers protected ownership/control beyond the current Heltec V1 rather than weakening it. OT-085 build-tests a fixed privacy-safe public BLE read and bounded transport-link/display lifecycle while every protected characteristic, claim, and command remains closed. Two identical target builds pass, but the OT-085 image was not flashed and no phone read or `BLE CONNECTED` hardware transition was observed. The exact installed partition/source proof, private recovery application, recovery contracts, and dormant protected-root foundations remain accepted historical evidence without current runtime authority.",
       "weight": 15,
       "completion": 25,
       "evidence_status": "Experimental physical target with startup/status OLED",
@@ -69,11 +69,12 @@
         "tests/hardware/OT-082-2026-08-18.md",
         "tests/hardware/OT-083-2026-08-18.md",
         "tests/hardware/OT-084-2026-08-18.md",
+        "tests/hardware/OT-085-2026-08-18.md",
         "tests/hardware/OT-074-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Make the owner product-direction decision: approve a future authenticated external monotonic-hardware revision, defer rollback-protected authorization beyond current V1, or explicitly revise the rollback threat requirement."
+      "next_gate": "With separate physical-write authority, flash the exact OT-085 image and prove one bounded public BLE read plus the connected-to-advertising display lifecycle; protected authorization remains deferred to future hardware."
     },
     {
       "id": "first-complete-unit",
@@ -145,22 +146,22 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical partition/source proof, a privately retained exact application recovery artifact, and accepted recovery/protected-root contracts. OT-081 adds a build-compiled six-slot coarse key-roster leaf; OT-082 adds a separate build-compiled default NVS-configuration and decoded security-state leaf. OT-083 rejects the custom USER_DATA rollback-floor candidate, and OT-084 rejects SECURE_VERSION because its 16-step firmware anti-rollback role and OTA-only native model conflict with the independent authorization floor and accepted factory recovery route. No viable on-chip floor provider is selected; external monotonic hardware would require a future hardware revision. Both target leaves are host-tested, have no runtime call path, were not device-executed, and provide no complete-inventory output, physical allocation, or authority.",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical partition/source proof, a privately retained exact application recovery artifact, and accepted recovery/protected-root contracts. Both on-chip authorization-floor candidates are rejected, and Decision 0028 defers protected ownership/control beyond current Heltec V1 rather than weakening it. OT-085 build-tests a fixed privacy-safe public BLE read and a bounded `BLE CONNECTED` transport lifecycle; all protected characteristics, claims, and commands remain closed. Two identical target builds pass, but the image was not flashed and no phone read, connected display transition, or link stability was observed.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Experimental physical target",
-          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "tests/hardware/OT-084-2026-08-18.md", "hardware/INVENTORY.md"],
-          "next_gate": "Make the owner product-direction decision between a future authenticated external monotonic-hardware revision, deferring rollback-protected authorization beyond current V1, or explicitly revising the rollback threat requirement."
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "tests/hardware/OT-084-2026-08-18.md", "tests/hardware/OT-085-2026-08-18.md", "hardware/INVENTORY.md"],
+          "next_gate": "With separate physical-write authority, flash the exact OT-085 image and prove one bounded public BLE read plus the connected-to-advertising display lifecycle; protected authorization remains deferred to future hardware."
         },
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "Two of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance and exact-service discovery; connection, protected authorization, and operational release acceptance remain open.",
+          "description": "Two of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance and exact-service discovery. A bounded public connection/read is the next physical gate; protected authorization is deferred on current Heltec hardware and operational release acceptance remains open.",
           "weight": 20,
           "completion": 40,
           "evidence_status": "Build tested with bounded physical observations",
           "evidence_refs": ["android/README.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md"],
-          "next_gate": "Prove physical GATT connection and negotiation, protected one-phone authorization and Ready, then operational and release acceptance."
+          "next_gate": "Prove the OT-085 physical public GATT connection/read and display lifecycle; keep protected one-phone authorization and Ready deferred pending future hardware."
         },
         {
           "id": "four-person-companion-field-proof",
@@ -245,6 +246,12 @@
           "overall_exact": 39.75,
           "overall": 40,
           "reason": "Rejected ESP32-S3 SECURE_VERSION as the independent companion-authorization floor after pinned ESP-IDF evidence proved its 16-step firmware anti-rollback role and OTA-only native model conflict with the accepted factory recovery route. External monotonic hardware remains a future hardware-revision option with no part selected, and no device or runtime changed, so no milestone completion changed."
+        },
+        {
+          "date": "2026-08-18",
+          "overall_exact": 39.75,
+          "overall": 40,
+          "reason": "Deferred rollback-protected companion authorization beyond current Heltec V1 and accepted the OT-085 build-only fixed public BLE read plus bounded link/display lifecycle after the complete 148-executable native host gate, eleven target-admission groups, and two identical pinned target builds. The image was not flashed, no physical connection/read/display transition occurred, and all protected control remains closed, so no milestone completion changed."
         }
       ]
     },
@@ -349,6 +356,11 @@
       "date": "2026-08-18",
       "overall": 32,
       "reason": "Rejected ESP32-S3 SECURE_VERSION as the independent companion-authorization floor after pinned ESP-IDF evidence proved its 16-step firmware anti-rollback role and OTA-only native model conflict with the accepted factory recovery route. No external part is selected and no device or runtime changed, so the historical baseline is unchanged."
+    },
+    {
+      "date": "2026-08-18",
+      "overall": 32,
+      "reason": "Deferred rollback-protected companion authorization beyond current Heltec V1 and accepted the OT-085 build-only fixed public BLE read plus bounded link/display lifecycle. The image was not flashed, no physical connection/read/display transition occurred, and all protected control remains closed, so the historical baseline is unchanged."
     }
   ]
 }

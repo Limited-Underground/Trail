@@ -359,3 +359,18 @@ hardware-revision option requiring separate transaction and recovery semantics.
 See
 [Decision 0027](../decisions/0027-reject-esp32s3-secure-version-authorization-floor.md)
 and [OT-084 evidence](../../tests/hardware/OT-084-2026-08-18.md).
+
+## Current Heltec V1 deferral
+
+[Decision 0028](../decisions/0028-defer-rollback-protected-companion-authorization-beyond-current-heltec-v1.md)
+defers this protected authorization contract beyond the current Heltec V1
+target because neither on-chip floor candidate is viable and no external
+provider is selected or present. The contract and its build-tested components
+remain engineering foundations only: they are not weakened, relabeled, or
+injected into the current runtime.
+
+Current Heltec work may expose only separately accepted non-privileged
+functions. OT-085's fixed public BLE link-information read grants no ownership,
+claim, write, provisioning, persistent identity, protected recovery, or Ready
+authority. Any future protected authorization requires a new hardware/provider
+architecture and separate physical acceptance.

@@ -14,6 +14,7 @@
 #include "host/ble_l2cap.h"
 #include "host/ble_uuid.h"
 #include "os/os_mbuf.h"
+#include "opentrail/companion_public_link_info.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
@@ -47,6 +48,10 @@ constexpr std::array<std::uint8_t, 16> kStreamUuidBytes{
     0xD0, 0xB7, 0x43, 0x1F, 0x4F, 0x0C, 0x10, 0xA2,
     0xA3, 0x4E, 0x6B, 0x7C, 0x03, 0x2A, 0x0F, 0x5E,
 };
+constexpr std::array<std::uint8_t, 16> kPublicLinkInfoUuidBytes{
+    0xD0, 0xB7, 0x43, 0x1F, 0x4F, 0x0C, 0x10, 0xA2,
+    0xA3, 0x4E, 0x6B, 0x7C, 0x04, 0x2A, 0x0F, 0x5E,
+};
 
 const ble_uuid128_t kServiceUuid = BLE_UUID128_INIT(
     0xD0, 0xB7, 0x43, 0x1F, 0x4F, 0x0C, 0x10, 0xA2,
@@ -60,6 +65,9 @@ const ble_uuid128_t kCommandUuid = BLE_UUID128_INIT(
 const ble_uuid128_t kStreamUuid = BLE_UUID128_INIT(
     0xD0, 0xB7, 0x43, 0x1F, 0x4F, 0x0C, 0x10, 0xA2,
     0xA3, 0x4E, 0x6B, 0x7C, 0x03, 0x2A, 0x0F, 0x5E);
+const ble_uuid128_t kPublicLinkInfoUuid = BLE_UUID128_INIT(
+    0xD0, 0xB7, 0x43, 0x1F, 0x4F, 0x0C, 0x10, 0xA2,
+    0xA3, 0x4E, 0x6B, 0x7C, 0x04, 0x2A, 0x0F, 0x5E);
 const ble_uuid16_t kStreamCccdUuid =
     BLE_UUID16_INIT(BLE_GATT_DSC_CLT_CFG_UUID16);
 
@@ -78,6 +86,8 @@ constexpr ble_gatt_chr_flags kStreamFlags =
     BLE_GATT_CHR_F_NOTIFY_INDICATE_ENC |
     BLE_GATT_CHR_F_NOTIFY_INDICATE_AUTHEN |
     BLE_GATT_CHR_F_NOTIFY_INDICATE_AUTHOR;
+constexpr ble_gatt_chr_flags kPublicLinkInfoFlags =
+    BLE_GATT_CHR_F_READ;
 
 CompanionGattAuthorizationCallbackAdapter* g_adapter = nullptr;
 bool g_service_added = false;
@@ -86,6 +96,7 @@ std::uint16_t g_service_handle = 0;
 std::uint16_t g_protocol_info_handle = 0;
 std::uint16_t g_command_handle = 0;
 std::uint16_t g_stream_handle = 0;
+std::uint16_t g_public_link_info_handle = 0;
 std::uint16_t g_stream_cccd_handle = 0;
 
 class NimbleIndicationPort final : public CompanionGattIndicationPort {
@@ -230,6 +241,10 @@ int protocol_info_access(std::uint16_t connection_handle,
                          std::uint16_t attribute_handle,
                          ble_gatt_access_ctxt* context,
                          void* argument);
+int public_link_info_access(std::uint16_t connection_handle,
+                            std::uint16_t attribute_handle,
+                            ble_gatt_access_ctxt* context,
+                            void* argument);
 int command_access(std::uint16_t connection_handle,
                    std::uint16_t attribute_handle,
                    ble_gatt_access_ctxt* context,
@@ -246,6 +261,8 @@ const ble_gatt_chr_def kCharacteristics[] = {
      kCommandFlags, kMinimumKeyBytes, &g_command_handle, nullptr},
     {&kStreamUuid.u, stream_access, nullptr, nullptr,
      kStreamFlags, kMinimumKeyBytes, &g_stream_handle, nullptr},
+    {&kPublicLinkInfoUuid.u, public_link_info_access, nullptr, nullptr,
+     kPublicLinkInfoFlags, 0, &g_public_link_info_handle, nullptr},
     {},
 };
 
@@ -295,6 +312,8 @@ void registration_callback(ble_gatt_register_ctxt* context, void* argument) {
         g_command_handle = context->chr.val_handle;
     } else if (context->chr.chr_def == &kCharacteristics[2]) {
         g_stream_handle = context->chr.val_handle;
+    } else if (context->chr.chr_def == &kCharacteristics[3]) {
+        g_public_link_info_handle = context->chr.val_handle;
     }
 }
 
@@ -307,10 +326,14 @@ bool ensure_exact_registered_handles() {
         g_stream_handle == 0) {
         return false;
     }
+    if (g_public_link_info_handle == 0) {
+        return false;
+    }
     std::uint16_t service = 0;
     std::uint16_t protocol = 0;
     std::uint16_t command = 0;
     std::uint16_t stream = 0;
+    std::uint16_t public_link_info = 0;
     std::uint16_t cccd = 0;
     if (ble_gatts_find_svc(&kServiceUuid.u, &service) != 0 ||
         ble_gatts_find_chr(&kServiceUuid.u, &kProtocolInfoUuid.u,
@@ -319,11 +342,14 @@ bool ensure_exact_registered_handles() {
                            nullptr, &command) != 0 ||
         ble_gatts_find_chr(&kServiceUuid.u, &kStreamUuid.u,
                            nullptr, &stream) != 0 ||
+        ble_gatts_find_chr(&kServiceUuid.u, &kPublicLinkInfoUuid.u,
+                           nullptr, &public_link_info) != 0 ||
         ble_gatts_find_dsc(&kServiceUuid.u, &kStreamUuid.u,
                            &kStreamCccdUuid.u,
                            &cccd) != 0 ||
         service != g_service_handle || protocol != g_protocol_info_handle ||
         command != g_command_handle || stream != g_stream_handle ||
+        public_link_info != g_public_link_info_handle ||
         cccd == 0 || cccd == stream) {
         return false;
     }
@@ -406,6 +432,27 @@ int protocol_info_access(std::uint16_t connection_handle,
                : BLE_ATT_ERR_INSUFFICIENT_RES;
 }
 
+int public_link_info_access(std::uint16_t connection_handle,
+                            std::uint16_t attribute_handle,
+                            ble_gatt_access_ctxt* context,
+                            void*) {
+    if (connection_handle == BLE_HS_CONN_HANDLE_NONE || context == nullptr ||
+        context->om == nullptr ||
+        context->op != BLE_GATT_ACCESS_OP_READ_CHR ||
+        attribute_handle != g_public_link_info_handle) {
+        return BLE_ATT_ERR_UNLIKELY;
+    }
+    std::array<std::uint8_t, kCompanionPublicLinkInfoBytes> encoded{};
+    const auto result = encode_companion_public_link_info(
+        {encoded.data(), encoded.size()});
+    if (!result.encoded() || result.encoded_bytes != encoded.size()) {
+        return BLE_ATT_ERR_UNLIKELY;
+    }
+    return os_mbuf_append(context->om, encoded.data(), encoded.size()) == 0
+               ? 0
+               : BLE_ATT_ERR_INSUFFICIENT_RES;
+}
+
 int command_access(std::uint16_t connection_handle,
                    std::uint16_t attribute_handle,
                    ble_gatt_access_ctxt* context,
@@ -444,6 +491,7 @@ bool definition_is_pristine() {
     return !g_service_added && !g_handles_bound && g_adapter == nullptr &&
            g_service_handle == 0 && g_protocol_info_handle == 0 &&
            g_command_handle == 0 && g_stream_handle == 0 &&
+           g_public_link_info_handle == 0 &&
            g_stream_cccd_handle == 0;
 }
 
@@ -465,6 +513,7 @@ bool companion_nimble_gatt_definition_self_check() {
            uuid_bytes_equal(kProtocolInfoUuid, kProtocolInfoUuidBytes) &&
            uuid_bytes_equal(kCommandUuid, kCommandUuidBytes) &&
            uuid_bytes_equal(kStreamUuid, kStreamUuidBytes) &&
+           uuid_bytes_equal(kPublicLinkInfoUuid, kPublicLinkInfoUuidBytes) &&
            kServices[0].type == BLE_GATT_SVC_TYPE_PRIMARY &&
            kServices[0].characteristics == kCharacteristics &&
            kServices[1].type == BLE_GATT_SVC_TYPE_END &&
@@ -476,7 +525,9 @@ bool companion_nimble_gatt_definition_self_check() {
            kCharacteristics[0].min_key_size == kMinimumKeyBytes &&
            kCharacteristics[1].min_key_size == kMinimumKeyBytes &&
            kCharacteristics[2].min_key_size == kMinimumKeyBytes &&
-           kCharacteristics[3].uuid == nullptr && definition_is_pristine();
+           kCharacteristics[3].flags == kPublicLinkInfoFlags &&
+           kCharacteristics[3].min_key_size == 0 &&
+           kCharacteristics[4].uuid == nullptr && definition_is_pristine();
 }
 
 CompanionGattIndicationPort& companion_nimble_gatt_indication_port() {

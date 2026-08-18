@@ -55,10 +55,11 @@ public:
         }
         return advertise_ok;
     }
-    void terminate_connection(std::uint16_t handle) override {
+    bool terminate_connection(std::uint16_t handle) override {
         calls.emplace_back("terminate");
         terminated = handle;
         maybe_reenter("terminate");
+        return terminate_ok;
     }
     bool contain_stack() override {
         calls.emplace_back("contain");
@@ -80,6 +81,7 @@ public:
     bool host_ok{true};
     bool adv_config_ok{true};
     bool advertise_ok{true};
+    bool terminate_ok{true};
     bool contain_ok{true};
     std::uint8_t advertise_failures{0};
     std::string reenter_at{};
@@ -182,9 +184,9 @@ void test_sync_failures_and_deadline_contain() {
 void test_one_connection_and_exact_disconnect() {
     FakePort port{};
     auto owner = ready_owner(port);
-    require(owner.connection_opened(7) == CompanionBleRuntimeError::none,
+    require(owner.connection_opened(7, 3) == CompanionBleRuntimeError::none,
             "first connection");
-    require(owner.connection_opened(8) ==
+    require(owner.connection_opened(8, 4) ==
                 CompanionBleRuntimeError::connection_in_use,
             "second connection rejected");
     require(port.terminated == 8, "second exact terminated");
@@ -198,7 +200,7 @@ void test_one_connection_and_exact_disconnect() {
 void test_disconnect_restart_due_stale_and_success() {
     FakePort port{};
     auto owner = ready_owner(port);
-    require(owner.connection_opened(7) == CompanionBleRuntimeError::none,
+    require(owner.connection_opened(7, 3) == CompanionBleRuntimeError::none,
             "connect");
     require(owner.connection_closed(7, 10) == CompanionBleRuntimeError::none,
             "disconnect");
@@ -221,7 +223,7 @@ void test_disconnect_restart_due_stale_and_success() {
 void test_restart_attempts_are_capped_and_tokens_rotate() {
     FakePort port{};
     auto owner = ready_owner(port);
-    require(owner.connection_opened(7) == CompanionBleRuntimeError::none,
+    require(owner.connection_opened(7, 3) == CompanionBleRuntimeError::none,
             "connect");
     require(owner.connection_closed(7, 10) == CompanionBleRuntimeError::none,
             "disconnect");
@@ -272,7 +274,7 @@ void test_watchdog_and_host_reset_are_terminal() {
 void test_failed_denied_connection_termination_is_terminal() {
     FakePort port{};
     auto owner = ready_owner(port);
-    require(owner.connection_opened(7) == CompanionBleRuntimeError::none,
+    require(owner.connection_opened(7, 3) == CompanionBleRuntimeError::none,
             "termination failure connection");
     require(owner.connection_termination_failed(8) ==
                 CompanionBleRuntimeError::wrong_connection,
@@ -336,14 +338,76 @@ void test_advertising_and_termination_reentry_contains() {
     FakePort port{};
     auto owner = ready_owner(port);
     port.owner = &owner;
-    require(owner.connection_opened(7) == CompanionBleRuntimeError::none,
+    require(owner.connection_opened(7, 3) == CompanionBleRuntimeError::none,
             "termination reentry first connection");
     port.reenter_at = "terminate";
-    require(owner.connection_opened(8) ==
+    require(owner.connection_opened(8, 4) ==
                 CompanionBleRuntimeError::reentrant_call,
             "termination reentry contained");
     require(owner.status().phase == CompanionBleRuntimePhase::contained,
             "termination reentry terminal");
+}
+
+void test_public_link_window_terminates_then_requires_ack() {
+    FakePort port{};
+    CompanionBleRuntimeOwner owner{port, {10, 5, 3, 15, 2}};
+    require(owner.start(1, true) == CompanionBleRuntimeError::none,
+            "window start");
+    require(owner.host_synced(2) == CompanionBleRuntimeError::none,
+            "window sync");
+    require(owner.connection_opened(7, 3) == CompanionBleRuntimeError::none,
+            "window connection");
+    require(owner.service_watchdog(17) == CompanionBleRuntimeError::none,
+            "window remains open before deadline");
+    require(port.terminated == kCompanionBleInvalidConnectionHandle,
+            "no early termination");
+    require(owner.service_watchdog(18) == CompanionBleRuntimeError::none,
+            "window deadline requests termination");
+    require(port.terminated == 7, "exact window connection terminated");
+    require(owner.status().termination_pending,
+            "termination acknowledgment pending");
+    require(owner.connection_closed(7, 19) == CompanionBleRuntimeError::none,
+            "termination acknowledged by exact disconnect");
+    require(!owner.status().termination_pending,
+            "disconnect clears termination pending");
+    require(owner.status().authorization_claims_closed &&
+                owner.status().normal_commands_closed,
+            "public window grants no command authority");
+}
+
+void test_public_link_termination_failures_contain() {
+    FakePort failed_port{};
+    CompanionBleRuntimeOwner failed{failed_port, {10, 5, 3, 15, 2}};
+    require(failed.start(1, true) == CompanionBleRuntimeError::none,
+            "failed termination start");
+    require(failed.host_synced(2) == CompanionBleRuntimeError::none,
+            "failed termination sync");
+    require(failed.connection_opened(7, 3) == CompanionBleRuntimeError::none,
+            "failed termination connection");
+    failed_port.terminate_ok = false;
+    require(failed.service_watchdog(18) ==
+                CompanionBleRuntimeError::connection_termination_failed,
+            "failed termination contained");
+
+    FakePort missing_ack_port{};
+    CompanionBleRuntimeOwner missing_ack{
+        missing_ack_port, {10, 5, 3, 15, 2}};
+    require(missing_ack.start(1, true) == CompanionBleRuntimeError::none,
+            "missing ack start");
+    require(missing_ack.host_synced(2) == CompanionBleRuntimeError::none,
+            "missing ack sync");
+    require(missing_ack.connection_opened(7, 3) ==
+                CompanionBleRuntimeError::none,
+            "missing ack connection");
+    require(missing_ack.service_watchdog(18) ==
+                CompanionBleRuntimeError::none,
+            "missing ack termination requested");
+    require(missing_ack.service_watchdog(19) ==
+                CompanionBleRuntimeError::none,
+            "missing ack grace interval");
+    require(missing_ack.service_watchdog(20) ==
+                CompanionBleRuntimeError::connection_termination_failed,
+            "missing ack timeout contained");
 }
 
 }  // namespace
@@ -362,6 +426,8 @@ int main() {
     test_shutdown_failure_is_terminal_and_attempted_once();
     test_each_start_callback_reentry_contains();
     test_advertising_and_termination_reentry_contains();
-    std::cout << "companion BLE runtime owner tests passed: 13 groups\n";
+    test_public_link_window_terminates_then_requires_ack();
+    test_public_link_termination_failures_contain();
+    std::cout << "companion BLE runtime owner tests passed: 15 groups\n";
     return 0;
 }

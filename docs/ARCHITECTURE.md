@@ -24,6 +24,22 @@ Hardware interfaces: radio | GPS | display/touch | storage | power | entropy | m
 
 Application and protocol logic must depend on interfaces, not concrete boards. Packet codecs and delivery state machines should be host-testable. Board bindings and role composition belong in target applications.
 
+For the current Heltec V1 prototype, rollback-protected companion
+authorization is deferred under [Decision 0028](decisions/0028-defer-rollback-protected-companion-authorization-beyond-current-heltec-v1.md).
+The authorization, protected-storage, key-provider, and recovery foundations
+remain dormant and do not grant a runtime edge. Mobile operating-system BLE
+pairing is transport behavior, not OpenTrail trust or ownership.
+
+[Decision 0029](decisions/0029-bounded-read-only-ble-link-status.md) permits one
+narrow exception for non-privileged link proof: a fixed, identical-across-units
+public record may be read through one read-only characteristic while a single
+BLE transport link is held for a bounded window. That record has no caller-
+supplied payload, identity, configuration, state mutation, or authority. The
+display may distinguish `BLE ADVERTISING` from `BLE CONNECTED`; connected does
+not mean paired, trusted, authorized, Ready, or capable of radio/messaging
+work. Every protected characteristic retains its prior security policy, and
+link expiry/disconnect returns through the same bounded advertising owner.
+
 The host-tested secure-randomness boundary uses explicit not-ready, ready, and
 failed states, bounded 1-64-byte requests, and complete output or no change on
 any failure. Deterministic output exists only under test support; exact ESP-IDF

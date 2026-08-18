@@ -6,6 +6,26 @@ public chronology.
 
 ## 2026-08-18
 
+### OT-085 bounded public BLE link/status build
+
+- Added one fixed 16-byte public `OTB0/v0` read under UUID suffix `0x04`.
+  It carries zero capability bits and no unit, phone, owner, group, radio,
+  location, key, path, or operation identity; no write property exists.
+- Retained every protected Protocol Info, Command, and Stream permission and
+  kept authorization claims plus normal commands closed. One connection may
+  remain for 15 seconds, followed by exact termination and a two-second
+  disconnect-acknowledgement bound before fail-closed containment.
+- Five fixed-value groups, fifteen BLE-owner groups, the complete 148-executable
+  native host matrix, eleven target-admission groups, and two identical pinned
+  ESP-IDF v6.0.2 builds pass. No hardware was accessed or flashed. See
+  [OT-085 evidence](../tests/hardware/OT-085-2026-08-18.md).
+
+### Decision 0028 current-Heltec authorization deferral
+
+- Deferred rollback-protected ownership/control beyond current Heltec V1 after
+  both on-chip floor candidates were rejected. Protected foundations remain
+  dormant; no control is relabeled secure and V1 scoring is unchanged.
+
 ### OT-084 SECURE_VERSION rollback-floor viability review
 
 - Rechecked ESP32-S3 `SECURE_VERSION` against seven pinned ESP-IDF 6.0.2

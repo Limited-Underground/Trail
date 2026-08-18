@@ -247,6 +247,9 @@ def test_contract() -> None:
         "protected_root_configuration_security_adapter_build_compiled",
         "nimble_runtime_owner_build_linked",
         "nimble_runtime_startup_coded",
+        "companion_public_link_info_build_linked",
+        "public_link_characteristic_runtime_coded",
+        "bounded_public_link_window_host_tested",
         "private_service_advertising_coded",
         "evidence_bound_memory_profile_build_configured",
         "recovery_partition_layout_build_configured",
@@ -320,6 +323,12 @@ def test_contract() -> None:
             capabilities["nimble_runtime_startup_coded"] is True and
             capabilities["private_service_advertising_coded"] is True,
             "bounded NimBLE runtime code must be explicitly admitted")
+    require(capabilities["companion_public_link_info_build_linked"] is True and
+            capabilities["public_link_characteristic_runtime_coded"] is True and
+            capabilities["bounded_public_link_window_host_tested"] is True and
+            capabilities["public_link_connection_physically_observed"] is False and
+            capabilities["public_link_info_physically_read"] is False,
+            "public link build evidence must not claim physical connection or read")
     require(capabilities["evidence_bound_memory_profile_build_configured"] is True and
             capabilities["recovery_partition_layout_build_configured"] is True,
             "memory profile and recovery layout must be build-configured")
@@ -869,8 +878,8 @@ def test_protected_root_key_roster_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 22,
-            "non-injection gate must cover the exact 22-source target build")
+    require(len(linked_source_tokens) == 23,
+            "non-injection gate must cover the exact 23-source target build")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -882,7 +891,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 21,
+    require(len(other_linked_sources) == 22,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -944,8 +953,8 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 22,
-            "configuration/security non-injection gate must cover 22 sources")
+    require(len(linked_source_tokens) == 23,
+            "configuration/security non-injection gate must cover 23 sources")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_configuration_security_adapter.cpp":
@@ -957,7 +966,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 21,
+    require(len(other_linked_sources) == 22,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1192,8 +1201,8 @@ def test_application_surface() -> None:
         "xTaskCreatePinnedToCore", "ble_gap_adv_start",
         "BLE_HS_IO_NO_INPUT_OUTPUT", "sm_bonding = 1", "sm_mitm = 1",
         "sm_sc = 1", "StaticQueue_t", "std::atomic<bool>",
-        "nvs_encryption_not_configured", "BLE_HS_ENOTCONN",
-        "connection_termination_failed", "ble_gap_terminate",
+        "nvs_encryption_not_configured", "connection_termination_failed",
+        "ble_gap_terminate", "15000", "2000",
         "observe_host_run_exit", "host_started_ && !host_run_exited_",
     ):
         require(required in nimble_runtime,
@@ -1225,14 +1234,14 @@ def test_application_surface() -> None:
         nimble_runtime.index("case BLE_GAP_EVENT_CONNECT"):
         nimble_runtime.index("case BLE_GAP_EVENT_DISCONNECT")
     ]
-    require("ble_gap_terminate" in connect_case and
-            "termination == BLE_HS_ENOTCONN" in connect_case and
-            "RuntimeEventKind::connection_termination_failed" in connect_case,
-            "denied-storage connect must close or contain on terminate failure")
+    require("ble_gap_terminate" not in connect_case and
+            "RuntimeEventKind::connection_opened" in connect_case,
+            "public link connect must be queued without immediate termination")
     for required in (
         "operation_active_", "reentry_observed_", "callback_overflow",
         "max_restart_attempts", "restart_token", "contain_stack",
-        "connection_termination_failed",
+        "connection_termination_failed", "public_link_window_ms",
+        "termination_ack_timeout_ms", "termination_pending",
     ):
         require(required in runtime_owner,
                 f"missing serialized runtime-owner invariant: {required}")
@@ -1276,6 +1285,8 @@ def test_application_surface() -> None:
         "BLE_GAP_EVENT_NOTIFY_TX",
         "BLE_GAP_EVENT_AUTHORIZE",
         "g_indication_port.pending_tuple()",
+        "kPublicLinkInfoFlags", "BLE_GATT_CHR_F_READ",
+        "encode_companion_public_link_info",
     ):
         require(required in nimble_gatt,
                 f"missing fail-closed NimBLE GATT surface: {required}")
@@ -1287,6 +1298,22 @@ def test_application_surface() -> None:
             "refresh_security(connection_handle)" in command_access and
             "BLE_ATT_ERR_INSUFFICIENT_AUTHOR" in command_access,
             "Command callback must refresh security and route only through the fail-closed adapter")
+    public_access = nimble_gatt[
+        nimble_gatt.rindex("int public_link_info_access("):
+        nimble_gatt.rindex("int command_access(std::uint16_t connection_handle,")
+    ]
+    require("encode_companion_public_link_info" in public_access and
+            "BLE_GATT_ACCESS_OP_READ_CHR" in public_access and
+            "refresh_security" not in public_access and
+            "g_adapter" not in public_access and
+            "service_command" not in public_access,
+            "public link-info callback must expose only the fixed read")
+    public_flags = nimble_gatt[
+        nimble_gatt.index("constexpr ble_gatt_chr_flags kPublicLinkInfoFlags"):
+        nimble_gatt.index("CompanionGattAuthorizationCallbackAdapter*")]
+    require("BLE_GATT_CHR_F_READ" in public_flags and
+            "WRITE" not in public_flags and "AUTHOR" not in public_flags,
+            "public link-info characteristic must be read-only and unprivileged")
     require("g_stream_handle + 1" not in nimble_gatt and
             "ble_gatts_find_dsc" in nimble_gatt and
             "BLE_GATT_DSC_CLT_CFG_UUID16" in nimble_gatt and
@@ -1349,6 +1376,7 @@ def test_application_surface() -> None:
         "0x01, 0x2A, 0x0F, 0x5E",
         "0x02, 0x2A, 0x0F, 0x5E",
         "0x03, 0x2A, 0x0F, 0x5E",
+        "0x04, 0x2A, 0x0F, 0x5E",
     ):
         require(uuid_tail in nimble_gatt,
                 f"missing exact v0 UUID tail: {uuid_tail}")
@@ -1370,6 +1398,7 @@ def test_application_surface() -> None:
         "companion_protected_root_key_roster_adapter.cpp",
         "companion_protected_root_configuration_security_adapter.cpp",
         "companion/src/companion_ble_runtime_owner.cpp",
+        "companion/src/companion_public_link_info.cpp",
         "companion_authorization_storage.cpp",
         "companion_boot_self_check.cpp",
         "companion_nimble_gatt.cpp",
@@ -1382,8 +1411,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 22,
-            "target source set must remain eleven target and eleven companion sources")
+    require(cmake.count('.cpp"') == 23,
+            "target source set must remain eleven target and twelve companion sources")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
@@ -1607,6 +1636,24 @@ def test_build_only_tooling() -> None:
     ):
         require(expected_hash in script,
                 f"build helper must pin OT-082 configuration/security source: {expected_hash}")
+    require("companion_public_link_info = 'BUILD-LINKED-PUBLIC-READ-NOT-RUN'" in script and
+            "bounded_public_link_window = 'HOST-TESTED-BUILD-LINKED-NOT-RUN'" in script and
+            "public_link_hardware_observation = 'NOT-RUN'" in script,
+            "build evidence must keep the public link at build-only status")
+    require("$publicLinkInfoHeaderPath" in script and
+            "$publicLinkInfoSourcePath" in script and
+            "companion_public_link_info_build_evidence = $publicLinkInfoBuildEvidence" in script,
+            "build receipt must bind the exact public link-info sources")
+    for required_receipt_field in (
+        "name = Split-Path -Leaf $publicLinkInfoHeaderPath",
+        "name = Split-Path -Leaf $publicLinkInfoSourcePath",
+        "name = $publicLinkInfoObject.Name",
+        "sha256 = (Get-FileHash -LiteralPath $publicLinkInfoObject.FullName",
+    ):
+        require(required_receipt_field in script,
+                f"build receipt is missing public link revision evidence: {required_receipt_field}")
+    require("companion_public_link_info.cpp.obj" in script,
+            "build helper must verify the public link-info object in the link map")
     require("companion_nimble_gatt = 'BUILD-LINKED-RUNTIME-PATH-NOT-RUN'" in script and
             "companion_nimble_runtime = 'CODED-BUILD-LINKED-NOT-RUN'" in script,
             "build evidence must deny GATT/runtime execution evidence")

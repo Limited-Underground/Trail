@@ -29,7 +29,7 @@ namespace {
 using namespace opentrail::companion;
 
 constexpr std::size_t kCallbackQueueCapacity = 8;
-constexpr CompanionBleRuntimePolicy kRuntimePolicy{10000, 1000, 3};
+constexpr CompanionBleRuntimePolicy kRuntimePolicy{10000, 1000, 3, 15000, 2000};
 
 const ble_uuid128_t kAdvertisedServiceUuid = BLE_UUID128_INIT(
     0xD0, 0xB7, 0x43, 0x1F, 0x4F, 0x0C, 0x10, 0xA2,
@@ -204,12 +204,11 @@ public:
                                  &parameters, runtime_gap_event, nullptr) == 0;
     }
 
-    void terminate_connection(std::uint16_t connection_handle) override {
-        if (host_started_ &&
-            connection_handle != kCompanionBleInvalidConnectionHandle) {
-            (void)ble_gap_terminate(connection_handle,
-                                    BLE_ERR_REM_USER_CONN_TERM);
-        }
+    bool terminate_connection(std::uint16_t connection_handle) override {
+        return host_started_ &&
+               connection_handle != kCompanionBleInvalidConnectionHandle &&
+               ble_gap_terminate(connection_handle,
+                                 BLE_ERR_REM_USER_CONN_TERM) == 0;
     }
 
     bool contain_stack() override {
@@ -307,25 +306,6 @@ int runtime_gap_event(ble_gap_event* event, void*) {
             const bool queued = queue_event({RuntimeEventKind::connection_opened,
                                              event->connect.conn_handle,
                                              observed});
-            // OT-054 protected owner/bond persistence is deliberately denied.
-            // Consequently no usable secure application session can be
-            // established in this increment. Terminate every connection
-            // immediately so an unauthenticated peer cannot monopolize the
-            // one-connection runtime or suppress re-advertising indefinitely.
-            const int termination = ble_gap_terminate(
-                event->connect.conn_handle, BLE_ERR_REM_USER_CONN_TERM);
-            if (termination == BLE_HS_ENOTCONN) {
-                // No disconnect callback can follow. Release the exact OT-052
-                // session and enqueue the matching close after the open.
-                (void)g_callback_adapter.disconnect(
-                    event->connect.conn_handle);
-                (void)queue_event({RuntimeEventKind::connection_closed,
-                                  event->connect.conn_handle, observed});
-            } else if (termination != 0) {
-                (void)queue_event({
-                    RuntimeEventKind::connection_termination_failed,
-                    event->connect.conn_handle, observed});
-            }
             if (!adapter_connected || !queued) {
                 g_event_overflow.store(true, std::memory_order_release);
             }
@@ -367,7 +347,8 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
             return g_runtime_owner.advertising_interrupted(
                 event.observed_at_ms);
         case RuntimeEventKind::connection_opened:
-            return g_runtime_owner.connection_opened(event.connection_handle);
+            return g_runtime_owner.connection_opened(
+                event.connection_handle, event.observed_at_ms);
         case RuntimeEventKind::connection_closed:
             return g_runtime_owner.connection_closed(
                 event.connection_handle, event.observed_at_ms);

@@ -13,7 +13,9 @@ bool CompanionBleRuntimeOwner::valid_policy() const {
     return policy_.host_sync_timeout_ms != 0 &&
            policy_.restart_delay_ms != 0 &&
            policy_.max_restart_attempts != 0 &&
-           policy_.max_restart_attempts <= 8;
+           policy_.max_restart_attempts <= 8 &&
+           policy_.public_link_window_ms != 0 &&
+           policy_.termination_ack_timeout_ms != 0;
 }
 
 bool CompanionBleRuntimeOwner::deadline_reached(
@@ -56,6 +58,7 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::contain(
     status_.terminal_error = error;
     status_.connection_handle = kCompanionBleInvalidConnectionHandle;
     status_.restart_token = 0;
+    status_.termination_pending = false;
     if (!port_.contain_stack()) {
         status_.terminal_error =
             CompanionBleRuntimeError::stack_shutdown_failed;
@@ -154,7 +157,8 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::host_synced(
 }
 
 CompanionBleRuntimeError CompanionBleRuntimeOwner::connection_opened(
-    std::uint16_t connection_handle) {
+    std::uint16_t connection_handle,
+    std::uint64_t now_ms) {
     if (!enter_operation()) {
         return CompanionBleRuntimeError::reentrant_call;
     }
@@ -163,10 +167,12 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::connection_opened(
         return CompanionBleRuntimeError::invalid_argument;
     }
     if (status_.phase == CompanionBleRuntimePhase::connected) {
-        port_.terminate_connection(connection_handle);
-        if (reentry_observed_) {
+        const auto terminated = port_.terminate_connection(connection_handle);
+        if (!terminated || reentry_observed_) {
             const auto result = contain(
-                CompanionBleRuntimeError::reentrant_call);
+                reentry_observed_
+                    ? CompanionBleRuntimeError::reentrant_call
+                    : CompanionBleRuntimeError::connection_termination_failed);
             leave_operation();
             return result;
         }
@@ -174,19 +180,28 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::connection_opened(
         return CompanionBleRuntimeError::connection_in_use;
     }
     if (status_.phase != CompanionBleRuntimePhase::advertising) {
-        port_.terminate_connection(connection_handle);
-        if (reentry_observed_) {
+        const auto terminated = port_.terminate_connection(connection_handle);
+        if (!terminated || reentry_observed_) {
             const auto result = contain(
-                CompanionBleRuntimeError::reentrant_call);
+                reentry_observed_
+                    ? CompanionBleRuntimeError::reentrant_call
+                    : CompanionBleRuntimeError::connection_termination_failed);
             leave_operation();
             return result;
         }
         leave_operation();
         return CompanionBleRuntimeError::contained;
     }
+    if (!add_deadline(now_ms, policy_.public_link_window_ms,
+                      public_link_deadline_ms_)) {
+        const auto result = contain(CompanionBleRuntimeError::invalid_argument);
+        leave_operation();
+        return result;
+    }
     status_.phase = CompanionBleRuntimePhase::connected;
     status_.connection_handle = connection_handle;
     status_.restart_token = 0;
+    status_.termination_pending = false;
     leave_operation();
     return CompanionBleRuntimeError::none;
 }
@@ -215,6 +230,7 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::connection_closed(
         return CompanionBleRuntimeError::wrong_connection;
     }
     status_.connection_handle = kCompanionBleInvalidConnectionHandle;
+    status_.termination_pending = false;
     status_.restart_attempts = 0;
     const auto result = next_restart(now_ms);
     leave_operation();
@@ -281,6 +297,35 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::service_watchdog(
     if (status_.phase == CompanionBleRuntimePhase::waiting_for_host_sync &&
         deadline_reached(now_ms, host_sync_deadline_ms_)) {
         const auto result = contain(CompanionBleRuntimeError::startup_timeout);
+        leave_operation();
+        return result;
+    }
+    if (status_.phase == CompanionBleRuntimePhase::connected &&
+        !status_.termination_pending &&
+        deadline_reached(now_ms, public_link_deadline_ms_)) {
+        if (!add_deadline(now_ms, policy_.termination_ack_timeout_ms,
+                          termination_ack_deadline_ms_)) {
+            const auto result = contain(
+                CompanionBleRuntimeError::connection_termination_failed);
+            leave_operation();
+            return result;
+        }
+        status_.termination_pending = true;
+        const auto terminated =
+            port_.terminate_connection(status_.connection_handle);
+        if (!terminated || reentry_observed_) {
+            const auto result = contain(
+                reentry_observed_
+                    ? CompanionBleRuntimeError::reentrant_call
+                    : CompanionBleRuntimeError::connection_termination_failed);
+            leave_operation();
+            return result;
+        }
+    } else if (status_.phase == CompanionBleRuntimePhase::connected &&
+               status_.termination_pending &&
+               deadline_reached(now_ms, termination_ack_deadline_ms_)) {
+        const auto result = contain(
+            CompanionBleRuntimeError::connection_termination_failed);
         leave_operation();
         return result;
     }

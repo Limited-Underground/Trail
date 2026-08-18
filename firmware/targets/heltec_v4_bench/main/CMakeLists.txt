@@ -24,6 +24,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_authorization_persistence.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_authorization_protected_kv_media.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_ble_runtime_owner.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_public_link_info.cpp"
     INCLUDE_DIRS
         "."
         "${OPENTRAIL_COMPONENT_ROOT}/companion/include"

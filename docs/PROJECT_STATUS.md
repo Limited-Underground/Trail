@@ -9,6 +9,27 @@ Status date: 2026-08-18
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-085 implements the first bounded non-privileged BLE link/status surface for
+the current Heltec target. One fixed read-only characteristic exposes only a
+16-byte privacy-safe `OTB0/v0` protocol/transport record with zero capability
+bits. The existing protected Protocol Info, Command, and Stream permissions
+remain unchanged. A serialized owner permits one 15-second link, requests
+termination, allows two seconds for the matching disconnect callback, and
+returns through bounded re-advertising; failure or missing acknowledgement
+contains the runtime. The complete 148-executable native host matrix, eleven
+target-admission groups, and two byte-identical pinned target builds pass. No
+device was accessed or flashed, so connection, read, OLED transition, and link
+stability remain unproved. See [OT-085](../tests/hardware/OT-085-2026-08-18.md)
+and [Decision 0029](decisions/0029-bounded-read-only-ble-link-status.md).
+
+Decision 0028 defers rollback-protected companion authorization beyond the
+current Heltec V1 rather than weakening it. Secure ownership, trusted-phone
+claims, protected writes, provisioning, provider-backed recovery, and Ready
+remain unavailable. The build-tested authorization foundations remain dormant;
+current work may advance only bounded non-privileged prototype functions. V1
+remains exact 39.75%/displayed 40%. See
+[Decision 0028](decisions/0028-defer-rollback-protected-companion-authorization-beyond-current-heltec-v1.md).
+
 OT-084 rejects ESP32-S3 `SECURE_VERSION` as the independent companion-
 authorization floor. Pinned ESP-IDF 6.0.2 sources prove it is a 16-step
 application-firmware anti-rollback field whose native model requires OTA slots
