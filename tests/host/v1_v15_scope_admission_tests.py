@@ -334,7 +334,7 @@ def test_canonical_v1_progress_projects_scope_without_reweighting() -> None:
     assert v1["change_log"][-1]["overall_exact"] == 43.75
     assert v1["change_log"][-1]["overall"] == 44
 
-    v1_5 = tracks["v1.5-multinode-interoperability"]
+    v1_5 = tracks["v1-5-multinode-interoperability"]
     assert v1_5["status"] == "unmeasured"
     assert v1_5["milestones"] == []
 
