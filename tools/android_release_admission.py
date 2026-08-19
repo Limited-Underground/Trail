@@ -33,6 +33,48 @@ TARGET_SDK = 35
 REQUIRED_API_LEVELS = [31, 33, 36]
 PRIVATE_SIDELOAD_SCOPE = "private-sideload-v1-pilot"
 FIRST_RELEASE_UPGRADE_MODE = "first-release-not-applicable"
+OPERATIONAL_POLICY_ID = "OT-088-ANDROID-PRIVATE-PILOT-OPERATIONAL-POLICY-V0"
+PRIVACY_DATA_SAFETY_POLICY = {
+    "policy_id": "OT-088-PRIVACY-DATA-SAFETY-V0",
+    "network_or_server_collection": "none",
+    "third_party_sharing": "none",
+    "account_required": False,
+    "companion_location_use": "ephemeral_local_display_only",
+    "persistent_product_storage": "prohibited",
+    "production_sensitive_logging": "prohibited",
+    "sensitive_notification_content": "prohibited",
+    "backup_and_device_transfer": "excluded",
+    "uninstall_data_removal_verification": "required",
+    "public_evidence": "aggregate_redacted_only",
+    "play_data_safety": "not_applicable_private_sideload",
+}
+ROLLBACK_POLICY = {
+    "policy_id": "OT-088-ROLLBACK-V0",
+    "prior_supported_release": "none_first_release",
+    "in_place_upgrade": "not_applicable_first_release",
+    "downgrade": "prohibited",
+    "automatic_rollback": "none",
+    "recovery_route": "disconnect_stop_uninstall_verify_removal",
+    "failure_fallback": "no_app_fail_closed",
+    "data_restore": "prohibited",
+    "failed_candidate_replacement": "new_evidence_set_required",
+    "reinstall_authority": "separate_owner_authorization_required",
+}
+SUPPORT_POLICY = {
+    "policy_id": "OT-088-SUPPORT-V0",
+    "scope": "four_owner_approved_private_pilot_phones_only",
+    "starts": "after_complete_release_acceptance",
+    "supported_version": "exact_accepted_candidate_only",
+    "supported_platforms": "exact_approved_physical_matrix_only",
+    "installation_source": "owner_controlled_hash_and_signer_verified_apk",
+    "known_limitations": "required",
+    "service_level": "best_effort_no_sla",
+    "failure_path": "stop_use_disconnect_uninstall_and_report",
+    "support_channel": "owner_provided_private_pilot_channel",
+    "security_reports": "repository_security_policy",
+    "ends": "owner_revocation_or_superseding_accepted_release",
+    "safety_boundary": "supplemental_not_guaranteed_rescue",
+}
 
 AUTHORED_PERMISSIONS = [
     "android.permission.BLUETOOTH_CONNECT",
@@ -223,6 +265,25 @@ def _fixed_boolean_object(
     return result
 
 
+def _fixed_policy_object(
+    value: Any, expected: dict[str, Any], path: str
+) -> dict[str, Any]:
+    result = _object(value, path)
+    _exact_keys(result, set(expected) | {"owner_approved"}, path)
+    for key, required in expected.items():
+        actual = result[key]
+        if isinstance(required, bool):
+            if _boolean(actual, f"{path}.{key}") is not required:
+                raise AdmissionError(f"{path}.{key} differs from the canonical policy")
+        elif isinstance(required, str):
+            if _string(actual, f"{path}.{key}") != required:
+                raise AdmissionError(f"{path}.{key} differs from the canonical policy")
+        else:
+            raise AssertionError("unsupported canonical policy value")
+    _boolean(result["owner_approved"], f"{path}.owner_approved")
+    return result
+
+
 def canonical_sha256(value: dict[str, Any]) -> str:
     encoded = json.dumps(
         value, sort_keys=True, separators=(",", ":"), ensure_ascii=True
@@ -258,11 +319,11 @@ def _derived_blockers(plan: dict[str, Any]) -> list[str]:
         blockers.append("signer_and_custody_not_approved")
     if not platforms["matrix_approved"]:
         blockers.append("physical_acceptance_matrix_not_approved")
-    if not operational["privacy_data_safety_approved"]:
+    if not operational["privacy_data_safety"]["owner_approved"]:
         blockers.append("privacy_data_safety_not_approved")
-    if not operational["support_policy_approved"]:
+    if not operational["support"]["owner_approved"]:
         blockers.append("support_policy_not_approved")
-    if not operational["rollback_policy_approved"]:
+    if not operational["rollback"]["owner_approved"]:
         blockers.append("rollback_policy_not_approved")
     return sorted(blockers)
 
@@ -495,14 +556,66 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
     _exact_keys(
         operational,
         {
-            "privacy_data_safety_approved",
-            "support_policy_approved",
-            "rollback_policy_approved",
+            "policy_id",
+            "candidate_binding",
+            "privacy_data_safety",
+            "rollback",
+            "support",
         },
         "plan.operational_policy",
     )
-    for key in operational:
-        _boolean(operational[key], f"plan.operational_policy.{key}")
+    if operational["policy_id"] != OPERATIONAL_POLICY_ID:
+        raise AdmissionError("plan.operational_policy.policy_id is not canonical")
+    binding = _object(
+        operational["candidate_binding"],
+        "plan.operational_policy.candidate_binding",
+    )
+    _exact_keys(
+        binding,
+        {"application_id", "version_code", "version_name", "distribution_scope"},
+        "plan.operational_policy.candidate_binding",
+    )
+    if (
+        _string(
+            binding["application_id"],
+            "plan.operational_policy.candidate_binding.application_id",
+        )
+        != application["application_id"]
+        or _integer(
+            binding["version_code"],
+            "plan.operational_policy.candidate_binding.version_code",
+            minimum=1,
+        )
+        != candidate_code
+        or _string(
+            binding["version_name"],
+            "plan.operational_policy.candidate_binding.version_name",
+        )
+        != candidate_name
+        or _string(
+            binding["distribution_scope"],
+            "plan.operational_policy.candidate_binding.distribution_scope",
+        )
+        != distribution["scope"]
+    ):
+        raise AdmissionError(
+            "plan.operational_policy.candidate_binding differs from the candidate"
+        )
+    _fixed_policy_object(
+        operational["privacy_data_safety"],
+        PRIVACY_DATA_SAFETY_POLICY,
+        "plan.operational_policy.privacy_data_safety",
+    )
+    _fixed_policy_object(
+        operational["rollback"],
+        ROLLBACK_POLICY,
+        "plan.operational_policy.rollback",
+    )
+    _fixed_policy_object(
+        operational["support"],
+        SUPPORT_POLICY,
+        "plan.operational_policy.support",
+    )
 
     if plan["required_acceptance_checks"] != REQUIRED_ACCEPTANCE_CHECKS:
         raise AdmissionError(

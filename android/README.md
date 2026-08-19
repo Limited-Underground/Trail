@@ -23,8 +23,10 @@ signing, installation, supported phone, distribution, support, or V1 release.
 
 OT-087 freezes base version code/name `1` / `1.0.0`, adds a `-dev` debug
 suffix, and accepts an explicit non-debuggable unsigned release-build
-foundation plus packaged inspection. Exactly two OTAR prerequisites are now
-satisfied; six remain. The result is not an accepted, signed, installable,
+foundation plus packaged inspection. OT-088 then freezes the offline/transient
+privacy promise, first-release removal/no-downgrade route, and best-effort
+private-pilot support boundary. Exactly five OTAR prerequisites are now
+satisfied; three remain. The result is not an accepted, signed, installable,
 distributable, supported, reproducible, production-ready, or operationally
 accepted release candidate.
 
@@ -255,14 +257,22 @@ exact application/version/SDK and six-permission union, disabled backup and
 transfer, omitted debug/test helpers and instrumentation, passed both DEX
 checksums, and failed signature verification exactly as an unsigned artifact.
 It satisfies only the production-variant and release-version prerequisites.
-Physical matrix, privacy/data-safety, release identity, rollback, signer/
-custody, and support approval remain blocked.
+
+[Decision 0032](../docs/decisions/0032-android-private-pilot-operational-policy-freeze.md)
+and the [private-pilot operational policy](../docs/platform/ANDROID_PRIVATE_PILOT_OPERATIONAL_POLICY_V0.md)
+accept only the privacy/data-safety, rollback, and support promises. The app is
+bounded to offline, account-free, transient operation; the first release may be
+removed but not downgraded; and any future support is best-effort, no-SLA, and
+limited to an exact accepted private-pilot candidate and matrix. The later run
+must still prove every privacy, lifecycle, removal, recovery, support, and
+cleanup result. Physical matrix, release identity, and signer/custody approval
+remain blocked.
 
 A Google Play path is outside OT-086. It requires a separate decision and plan,
 a fresh recheck of the then-current Play target-API policy, and any required
 Android toolchain and target-SDK update before admission.
 
-The next Android release-track gate is to satisfy the accepted plan's six
+The next Android release-track gate is to satisfy the accepted plan's three
 remaining prerequisites and execute its complete private-sideload evidence sequence under
 separately authorized signing, phone, installation, and distribution
 operations. Missing, stale, mixed, skipped, private, or contradictory evidence
@@ -301,4 +311,4 @@ An explicit non-debuggable release build type is present, but it has no signing
 configuration. No signing key, accepted release artifact, device access,
 release installation command, or public/store distribution configuration is
 present. The OT-086 plan selects only `private-sideload-v1-pilot` and remains
-blocked from execution with six prerequisites open.
+blocked from execution with three prerequisites open.

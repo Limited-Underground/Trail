@@ -6,6 +6,27 @@ public chronology.
 
 ## 2026-08-19
 
+### OT-088 Android private-pilot operational policy freeze
+
+- Froze one policy revision for offline/account-free/transient privacy and
+  data safety, complete backup/transfer exclusion, privacy-safe public
+  evidence, and mandatory later inspection of logs, notifications, recent
+  tasks, screenshots, crash output, storage, and cleanup.
+- Froze first-release rollback as disconnect, service stop, uninstall and
+  verified app-data removal with no downgrade. A retry may use only the same
+  accepted version, artifact digest, signer, and private source; changed output
+  starts a new evidence set.
+- Froze private-pilot support as best-effort/no-SLA and unavailable until a
+  complete OTAR pass. Support uses an owner-provided private-pilot channel;
+  `SECURITY.md` remains the sensitive-report route.
+- Satisfied exactly five of eight OTAR prerequisites. Physical matrix, release
+  identity, and signer/custody remain blocked; the release gate stays
+  `NOT-EVALUATED`, plan outcome stays `PLAN-ACCEPTED-EXECUTION-BLOCKED`, and
+  execution authority stays false. No phone, install, signing, account, upload,
+  or distribution operation occurred.
+- Android remains 60%, and V1 Companion remains exact 43.75%/displayed 44%.
+  See [OT-088 evidence](../tests/hardware/OT-088-2026-08-19.md).
+
 ### OT-087 Android unsigned release-build foundation
 
 - Froze Android version code/name `1` / `1.0.0`, retained a `-dev` debug

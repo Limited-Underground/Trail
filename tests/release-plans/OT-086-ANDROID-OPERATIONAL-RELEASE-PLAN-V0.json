@@ -72,9 +72,57 @@
     "matrix_approved": false
   },
   "operational_policy": {
-    "privacy_data_safety_approved": false,
-    "support_policy_approved": false,
-    "rollback_policy_approved": false
+    "policy_id": "OT-088-ANDROID-PRIVATE-PILOT-OPERATIONAL-POLICY-V0",
+    "candidate_binding": {
+      "application_id": "io.github.nbjelanovic.otclient",
+      "version_code": 1,
+      "version_name": "1.0.0",
+      "distribution_scope": "private-sideload-v1-pilot"
+    },
+    "privacy_data_safety": {
+      "policy_id": "OT-088-PRIVACY-DATA-SAFETY-V0",
+      "network_or_server_collection": "none",
+      "third_party_sharing": "none",
+      "account_required": false,
+      "companion_location_use": "ephemeral_local_display_only",
+      "persistent_product_storage": "prohibited",
+      "production_sensitive_logging": "prohibited",
+      "sensitive_notification_content": "prohibited",
+      "backup_and_device_transfer": "excluded",
+      "uninstall_data_removal_verification": "required",
+      "public_evidence": "aggregate_redacted_only",
+      "play_data_safety": "not_applicable_private_sideload",
+      "owner_approved": true
+    },
+    "rollback": {
+      "policy_id": "OT-088-ROLLBACK-V0",
+      "prior_supported_release": "none_first_release",
+      "in_place_upgrade": "not_applicable_first_release",
+      "downgrade": "prohibited",
+      "automatic_rollback": "none",
+      "recovery_route": "disconnect_stop_uninstall_verify_removal",
+      "failure_fallback": "no_app_fail_closed",
+      "data_restore": "prohibited",
+      "failed_candidate_replacement": "new_evidence_set_required",
+      "reinstall_authority": "separate_owner_authorization_required",
+      "owner_approved": true
+    },
+    "support": {
+      "policy_id": "OT-088-SUPPORT-V0",
+      "scope": "four_owner_approved_private_pilot_phones_only",
+      "starts": "after_complete_release_acceptance",
+      "supported_version": "exact_accepted_candidate_only",
+      "supported_platforms": "exact_approved_physical_matrix_only",
+      "installation_source": "owner_controlled_hash_and_signer_verified_apk",
+      "known_limitations": "required",
+      "service_level": "best_effort_no_sla",
+      "failure_path": "stop_use_disconnect_uninstall_and_report",
+      "support_channel": "owner_provided_private_pilot_channel",
+      "security_reports": "repository_security_policy",
+      "ends": "owner_revocation_or_superseding_accepted_release",
+      "safety_boundary": "supplemental_not_guaranteed_rescue",
+      "owner_approved": true
+    }
   },
   "required_acceptance_checks": [
     "release_variant_build_and_lint",
@@ -115,10 +163,7 @@
   },
   "blockers": [
     "physical_acceptance_matrix_not_approved",
-    "privacy_data_safety_not_approved",
     "release_identity_not_approved",
-    "rollback_policy_not_approved",
-    "signer_and_custody_not_approved",
-    "support_policy_not_approved"
+    "signer_and_custody_not_approved"
   ]
 }

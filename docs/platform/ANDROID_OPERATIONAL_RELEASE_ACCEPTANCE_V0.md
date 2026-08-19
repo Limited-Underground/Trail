@@ -160,10 +160,17 @@ production-variant and stable-version prerequisites. It is not an accepted,
 immutable, signed, reproducible, installable, or distributable release
 candidate, and it earns no partial fifth-gate credit.
 
-The checked-in plan remains blocked on six exact prerequisites: physical
-acceptance matrix, privacy/data-safety, release identity, rollback policy,
-signer/custody, and support policy. Full lifecycle, operational endurance,
-usability, and coherent cleanup evidence also remain unexecuted. The
+OT-088 ([Decision 0032](../decisions/0032-android-private-pilot-operational-policy-freeze.md),
+[policy](ANDROID_PRIVATE_PILOT_OPERATIONAL_POLICY_V0.md),
+[evidence](../../tests/hardware/OT-088-2026-08-19.md)) freezes the offline and
+transient privacy/data-safety promise, first-release removal/no-downgrade route,
+and bounded best-effort private-pilot support policy. This satisfies exactly
+three additional policy prerequisites, not their later execution checks.
+
+The checked-in plan remains blocked on three exact prerequisites: physical
+acceptance matrix, release identity, and signer/custody. Full lifecycle,
+privacy, operational endurance, usability, rollback, support, and coherent
+cleanup evidence also remain unexecuted. The
 distribution scope is frozen as
 `private-sideload-v1-pilot`; freezing that scope supplies no package, signing,
 installation, support, or release evidence.

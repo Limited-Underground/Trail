@@ -158,12 +158,12 @@
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "Three of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance, exact-service discovery, and bounded physical public GATT connection/read evidence covering both phone-disconnect and target-initiated automatic disconnect/re-advertise lifecycles. OT-086 accepts the plan-only OTAR0/v0 operational-release contract. OT-087 freezes version 1/1.0.0 and accepts an explicit non-debuggable unsigned release-build foundation plus packaged inspection, satisfying two of eight plan prerequisites; six remain and execution is blocked. No signed, installed, supported, distributed, production-ready, or operationally accepted candidate exists. Protected authorization remains deferred on current Heltec hardware.",
+          "description": "Three of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance, exact-service discovery, and bounded physical public GATT connection/read evidence covering both phone-disconnect and target-initiated automatic disconnect/re-advertise lifecycles. OT-086 accepts the plan-only OTAR0/v0 operational-release contract. OT-087 freezes version 1/1.0.0 and accepts an explicit non-debuggable unsigned release-build foundation plus packaged inspection. OT-088 freezes the private-pilot privacy/data-safety, first-release rollback/removal, and bounded support policies. Five of eight plan prerequisites are satisfied; physical matrix, release identity, and signer/custody remain blocked. No signed, installed, supported, distributed, production-ready, or operationally accepted candidate exists. Protected authorization remains deferred on current Heltec hardware.",
           "weight": 20,
           "completion": 60,
-          "evidence_status": "Build tested with bounded physical public BLE read and unsigned release-build foundation",
-          "evidence_refs": ["android/README.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md"],
-          "next_gate": "Satisfy the six remaining prerequisites and execute the accepted OTAR0/v0 private-sideload-v1-pilot plan as one coherent release-candidate evidence set; keep protected one-phone authorization and Ready deferred pending future hardware."
+          "evidence_status": "Build tested with bounded physical public BLE read, unsigned release-build foundation, and accepted private-pilot policy foundation",
+          "evidence_refs": ["android/README.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md"],
+          "next_gate": "Satisfy physical matrix, release-identity, and signer/custody prerequisites, then execute the accepted OTAR0/v0 private-sideload-v1-pilot plan as one coherent release-candidate evidence set; keep protected one-phone authorization and Ready deferred pending future hardware."
         },
         {
           "id": "four-person-companion-field-proof",
@@ -278,6 +278,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Accepted the OT-087 Android unsigned release-build foundation at version code/name 1 / 1.0.0 after debug/release tests, lint, assembly, and packaged artifact inspection. This satisfies exactly the production-variant and stable-version plan prerequisites, while physical matrix, privacy/data-safety, release identity, rollback, signer/custody, and support remain blocked. No signing, installation, phone/device, account/store, distribution, or operational-release acceptance occurred, so Android remains 60% and V1 Companion remains exact 43.75% / displayed 44%."
+        },
+        {
+          "date": "2026-08-19",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted the OT-088 private-pilot privacy/data-safety, first-release rollback/removal, and bounded best-effort/no-SLA support policies without executing them. Five of eight OTAR prerequisites are satisfied; physical matrix, release identity, and signer/custody remain blocked. No phone, installation, signing, account, upload, distribution, support delivery, or operational-release acceptance occurred, so Android remains 60% and V1 Companion remains exact 43.75% / displayed 44%."
         }
       ]
     },

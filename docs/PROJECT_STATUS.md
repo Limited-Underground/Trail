@@ -9,6 +9,23 @@ Status date: 2026-08-19
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-088 freezes one private-pilot operational policy revision. Privacy and data
+safety are offline, account-free, transient, backup/transfer-excluded, and
+subject to later physical inspection. First-release rollback means explicit
+disconnect/service stop and uninstall with verified app-data removal, no
+downgrade, and retry only with the same accepted artifact/digest/signer.
+Support begins only after a complete OTAR pass and is best-effort/no-SLA for
+the exact four-phone private matrix. This satisfies three more prerequisites;
+five of eight are satisfied, while physical matrix, release identity, and
+signer/custody remain blocked. The result remains
+`PLAN-ACCEPTED-EXECUTION-BLOCKED`, the release gate is `NOT-EVALUATED`, and
+execution authority remains false. No phone, installation, signing, account,
+upload, or distribution operation occurred. Android remains 60%, and V1
+Companion remains exact 43.75%/displayed 44%. See
+[Decision 0032](decisions/0032-android-private-pilot-operational-policy-freeze.md),
+the [private-pilot policy](platform/ANDROID_PRIVATE_PILOT_OPERATIONAL_POLICY_V0.md),
+and [OT-088 evidence](../tests/hardware/OT-088-2026-08-19.md).
+
 OT-087 freezes Android version code/name `1` / `1.0.0`, configures an explicit
 non-debuggable release build type without signing, and accepts bounded packaged
 inspection of one disposable unsigned local APK. Debug and release unit tests,
@@ -35,8 +52,9 @@ update. The sole successful planning outcome is
 `PLAN-ACCEPTED-EXECUTION-BLOCKED`: the plan is bounded, but no production
 variant, signer/custody policy, immutable artifact, supported-device matrix,
 lifecycle/endurance/privacy/support result, installation, distribution, or
-release pass existed. OT-087 later satisfied only the production-variant and
-stable-version prerequisites. Android remains 60%, and V1 Companion remains exact
+release pass existed. OT-087 later satisfied the production-variant and
+stable-version prerequisites; OT-088 later satisfied the three policy
+prerequisites without executing them. Android remains 60%, and V1 Companion remains exact
 43.75%/displayed 44%. See
 [Decision 0030](decisions/0030-android-operational-release-admission.md),
 [the operational-release contract](platform/ANDROID_OPERATIONAL_RELEASE_ACCEPTANCE_V0.md),

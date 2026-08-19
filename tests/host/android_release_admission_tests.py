@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -50,8 +51,6 @@ def ready_plan() -> dict:
     value["signing"]["certificate_sha256"] = "1" * 64
     value["signing"]["custody_approved"] = True
     value["supported_platforms"]["matrix_approved"] = True
-    for key in value["operational_policy"]:
-        value["operational_policy"][key] = True
     value["blockers"] = []
     value["plan_status"] = "ready_for_separate_execution_authorization"
     return value
@@ -64,11 +63,8 @@ def test_checked_in_plan_is_accepted_but_execution_blocked() -> None:
     assert report["execution_authority_granted"] is False
     assert report["blockers"] == [
         "physical_acceptance_matrix_not_approved",
-        "privacy_data_safety_not_approved",
         "release_identity_not_approved",
-        "rollback_policy_not_approved",
         "signer_and_custody_not_approved",
-        "support_policy_not_approved",
     ]
     application = plan()["application"]
     assert application["candidate_version_code"] == 1
@@ -152,6 +148,87 @@ def test_blocker_list_must_be_exact_sorted_and_current() -> None:
     expect_error(value, "does not match")
 
 
+def test_operational_policy_is_exact_candidate_bound_and_approved() -> None:
+    value = plan()
+    operational = value["operational_policy"]
+    assert operational["policy_id"] == admission.OPERATIONAL_POLICY_ID
+    assert operational["candidate_binding"] == {
+        "application_id": value["application"]["application_id"],
+        "version_code": value["application"]["candidate_version_code"],
+        "version_name": value["application"]["candidate_version_name"],
+        "distribution_scope": value["distribution"]["scope"],
+    }
+    for key, expected in (
+        ("privacy_data_safety", admission.PRIVACY_DATA_SAFETY_POLICY),
+        ("rollback", admission.ROLLBACK_POLICY),
+        ("support", admission.SUPPORT_POLICY),
+    ):
+        actual = dict(operational[key])
+        assert actual.pop("owner_approved") is True
+        assert actual == expected
+
+
+def test_operational_policy_shape_binding_and_content_drift_fail_closed() -> None:
+    value = plan()
+    value["operational_policy"]["policy_id"] = "OT-088-drift"
+    expect_error(value, "policy_id is not canonical")
+
+    value = plan()
+    del value["operational_policy"]["candidate_binding"]["version_name"]
+    expect_error(value, "keys differ")
+    value = plan()
+    value["operational_policy"]["candidate_binding"]["unexpected"] = False
+    expect_error(value, "keys differ")
+    value = plan()
+    value["operational_policy"]["candidate_binding"]["version_code"] = True
+    expect_error(value, "must be an integer")
+    value = plan()
+    value["operational_policy"]["candidate_binding"]["distribution_scope"] = (
+        "different-scope"
+    )
+    expect_error(value, "differs from the candidate")
+
+    value = plan()
+    del value["operational_policy"]["privacy_data_safety"][
+        "network_or_server_collection"
+    ]
+    expect_error(value, "keys differ")
+    value = plan()
+    value["operational_policy"]["rollback"]["unexpected"] = "none"
+    expect_error(value, "keys differ")
+    value = plan()
+    value["operational_policy"]["support"]["service_level"] = "guaranteed"
+    expect_error(value, "canonical policy")
+    value = plan()
+    value["operational_policy"]["privacy_data_safety"]["account_required"] = 0
+    expect_error(value, "must be a Boolean")
+    value = plan()
+    value["operational_policy"]["rollback"]["owner_approved"] = "true"
+    expect_error(value, "must be a Boolean")
+
+
+def test_each_policy_false_approval_derives_one_exact_blocker() -> None:
+    cases = (
+        ("privacy_data_safety", "privacy_data_safety_not_approved"),
+        ("rollback", "rollback_policy_not_approved"),
+        ("support", "support_policy_not_approved"),
+    )
+    canonical_blockers = plan()["blockers"]
+    for policy, blocker in cases:
+        value = plan()
+        value["operational_policy"][policy]["owner_approved"] = False
+        value["blockers"] = sorted(canonical_blockers + [blocker])
+        report = admission.validate_plan(value)
+        assert report["blockers"] == value["blockers"]
+        assert report["plan_status"] == "PLAN-ACCEPTED-EXECUTION-BLOCKED"
+        assert report["release_gate_status"] == "NOT-EVALUATED"
+        assert report["execution_authority_granted"] is False
+
+        stale = plan()
+        stale["operational_policy"][policy]["owner_approved"] = False
+        expect_error(stale, "derived blocker set")
+
+
 def test_synthetic_ready_plan_is_not_release_acceptance_or_authority() -> None:
     report = admission.validate_plan(ready_plan())
     assert (
@@ -227,6 +304,90 @@ def test_plan_baseline_matches_android_source() -> None:
     assert set(source_permissions) == set(admission.AUTHORED_PERMISSIONS)
     assert authored_permissions == admission.AUTHORED_PERMISSIONS
     assert set(source_permissions).isdisjoint(admission.GENERATED_PERMISSIONS)
+
+
+def test_ot088_source_privacy_boundary_is_explicit() -> None:
+    main = ROOT / "android" / "app" / "src" / "main"
+    manifest_path = main / "AndroidManifest.xml"
+    manifest = manifest_path.read_text(encoding="utf-8")
+    root = ET.fromstring(manifest)
+    android = "{http://schemas.android.com/apk/res/android}"
+    application = root.find("application")
+    assert application is not None
+    assert application.attrib[f"{android}allowBackup"] == "false"
+    assert application.attrib[f"{android}fullBackupContent"] == "@xml/backup_rules"
+    assert (
+        application.attrib[f"{android}dataExtractionRules"]
+        == "@xml/data_extraction_rules"
+    )
+
+    permissions = {
+        element.attrib[f"{android}name"] for element in root.findall("uses-permission")
+    }
+    assert permissions == set(admission.AUTHORED_PERMISSIONS)
+    assert "android.permission.INTERNET" not in permissions
+
+    expected_exclusions = sorted(
+        (domain, ".")
+        for domain in ("root", "file", "database", "sharedpref", "external")
+    )
+
+    def exclusions(element: ET.Element) -> list[tuple[str | None, str | None]]:
+        children = list(element)
+        assert all(child.tag == "exclude" for child in children)
+        return sorted(
+            (child.attrib.get("domain"), child.attrib.get("path"))
+            for child in children
+        )
+
+    backup = ET.parse(main / "res" / "xml" / "backup_rules.xml").getroot()
+    assert backup.tag == "full-backup-content"
+    assert exclusions(backup) == expected_exclusions
+
+    extraction = ET.parse(
+        main / "res" / "xml" / "data_extraction_rules.xml"
+    ).getroot()
+    assert extraction.tag == "data-extraction-rules"
+    branches = list(extraction)
+    assert [branch.tag for branch in branches] == ["cloud-backup", "device-transfer"]
+    for branch in branches:
+        assert exclusions(branch) == expected_exclusions
+
+    production_sources = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted((main / "kotlin").rglob("*.kt"))
+    )
+    for forbidden in (
+        "android.util.Log",
+        "Timber.",
+        "println(",
+        "SharedPreferences",
+        "DataStore",
+        "RoomDatabase",
+        "SQLiteDatabase",
+        "java.io.File",
+        "filesDir",
+        "cacheDir",
+        "getExternalFilesDir",
+        "java.net.",
+        "okhttp3.",
+        "retrofit2.",
+    ):
+        assert forbidden not in production_sources
+
+    notification_contract = (
+        main
+        / "kotlin"
+        / "io"
+        / "github"
+        / "nbjelanovic"
+        / "otclient"
+        / "ConnectedDeviceServiceContract.kt"
+    ).read_text(encoding="utf-8")
+    assert (
+        'CONNECTED_DEVICE_NOTIFICATION_TEXT = "Bluetooth device connection service is running"'
+        in notification_contract
+    )
 
 
 def test_ot087_release_variant_and_artifact_gate_are_explicit() -> None:
@@ -528,9 +689,13 @@ def main() -> None:
         test_private_sideload_scope_is_frozen_without_store_authority,
         test_signing_shape_and_custody_fail_closed,
         test_blocker_list_must_be_exact_sorted_and_current,
+        test_operational_policy_is_exact_candidate_bound_and_approved,
+        test_operational_policy_shape_binding_and_content_drift_fail_closed,
+        test_each_policy_false_approval_derives_one_exact_blocker,
         test_synthetic_ready_plan_is_not_release_acceptance_or_authority,
         test_permission_checklist_platform_and_policy_drift_fail_closed,
         test_plan_baseline_matches_android_source,
+        test_ot088_source_privacy_boundary_is_explicit,
         test_ot087_release_variant_and_artifact_gate_are_explicit,
         test_ot085_test_only_components_are_explicitly_forbidden,
         test_privacy_and_execution_authority_cannot_be_relaxed,
