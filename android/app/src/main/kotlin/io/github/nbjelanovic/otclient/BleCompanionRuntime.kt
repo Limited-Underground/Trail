@@ -36,6 +36,16 @@ object CompanionGattV0Contract {
     const val PROTOCOL_INFO_UUID = "5e0f2a01-7c6b-4ea3-a210-0c4f1f43b7d0"
     const val COMMAND_UUID = "5e0f2a02-7c6b-4ea3-a210-0c4f1f43b7d0"
     const val STREAM_UUID = "5e0f2a03-7c6b-4ea3-a210-0c4f1f43b7d0"
+    const val PUBLIC_LINK_INFO_UUID = "5e0f2a04-7c6b-4ea3-a210-0c4f1f43b7d0"
+
+    private val publicLinkInfoV0 = byteArrayOf(
+        0x4f, 0x54, 0x42, 0x30,
+        0x00, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x18, 0x00,
+        0x01, 0x01, 0x00, 0x00,
+    )
+
+    fun acceptsPublicLinkInfo(value: ByteArray): Boolean = value.contentEquals(publicLinkInfoV0)
 }
 
 enum class BleRuntimeBlock {

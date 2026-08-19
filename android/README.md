@@ -8,8 +8,9 @@ mirror, plus the OT-051 provisional-authorization runtime
 orchestration, the OT-053 protected-read production composition, the OT-055
 user-started connected-device foreground-service ownership boundary, and the
 OT-060 foreground-only screen-retention contract, the OT-061 one-candidate
-physical BLE discovery result, and the OT-062 exact Trail entry-artwork
-integration and physical visual acceptance. This directory contains a buildable
+physical BLE discovery result, the OT-062 exact Trail entry-artwork integration
+and physical visual acceptance, and the OT-085A bounded physical public BLE
+read/disconnect acceptance. This directory contains a buildable
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -191,6 +192,26 @@ phone, cold-launched successfully, and the owner visually accepted the artwork
 and framing; a Home/reopen check also succeeded. No screenshot or device
 identifier was retained. Heltec OLED and future touchscreen rendering remain
 separate hardware gates.
+
+OT-085A used one temporary, test-only instrumentation surface on that Android
+13/API 33 phone to select the only compatible advertiser, connect without a
+pairing request, require the suffix-`0x04` characteristic to be READ-only, and
+match the exact fixed 16-byte zero-capability public value. After a two-second
+hold, phone disconnect completed and the same in-memory endpoint was
+rediscovered. The owner separately observed `BLE CONNECTED` followed by
+`BLE ADVERTISING`; Android did not measure the OLED. The transient run emitted
+only `OT085_PHONE_ACCEPTANCE=PASS`, and no address, name, phone identifier,
+private binding, screenshot, or detailed log was retained.
+
+After acceptance, the superseded exported debug Activity and duplicated
+contract were removed. The retained instrumentation now binds callbacks to one
+exact GATT instance and monotonic phase, uses cross-thread-safe scan state,
+requires same-endpoint rediscovery, and emits only fixed per-gate PASS/DENY
+fields. The updated standard gate passes 138 JVM tests across fourteen suites,
+lint, and debug assembly; the instrumentation APK also compiles. It was not
+rerun physically. This evidence proves neither the firmware's independent
+15-second termination nor pairing, protected authorization, Ready, operational
+release, or supported-device behavior.
 
 The platform contract follows the official Android documentation for
 [Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),

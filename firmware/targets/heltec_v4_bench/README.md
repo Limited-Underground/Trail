@@ -1,10 +1,14 @@
 # Heltec V4 bench candidate target
 
-Status: experimentally flashed with bounded USB runtime, BLE service advertising, and a physically accepted startup/status OLED on `OT-DEV-001`; not supported hardware.
+Status: experimentally flashed with bounded USB runtime, BLE service
+advertising, one fixed public BLE read, and physically accepted startup/link
+status OLED transitions on `OT-DEV-001`; not supported hardware.
 
-The current source now also build-tests OT-085: one fixed, privacy-safe public
-link-information read and a bounded single-link lifecycle. The accepted image
-has not been flashed, so the physical status above still describes OT-064.
+OT-085A installed and read-back verified the exact OT-085 image, then accepted
+one fixed, privacy-safe public link-information read and a phone-disconnect
+return to advertising. The owner observed `BLE CONNECTED` followed by
+`BLE ADVERTISING`. No endpoint identity was retained, and the independent
+15-second automatic termination path was not physically exercised.
 Decision 0028 defers rollback-protected authorization on this hardware; no
 secure ownership, trusted phone, protected write, provisioning, or Ready path
 is enabled.
@@ -126,7 +130,11 @@ fixed public value can be read and `BLE CONNECTED` can be presented. The owner
 then requests exact-link termination and requires its matching disconnect
 callback within two seconds; failure contains the runtime, while success enters
 the existing bounded advertising restart. Claims and normal commands remain
-closed for the lifetime of this composition.
+closed for the lifetime of this composition. OT-085A physically accepted the
+phone-driven disconnect path: one Android 13 phone matched the exact READ-only
+value, the owner observed the connected-to-advertising OLED lifecycle, and the
+same in-memory endpoint was rediscovered. This does not physically prove the
+independent 15-second termination path.
 
 The image also build-links the target-neutral durable authorization adapter and
 a target-local security admission preflight. The fixed 32-byte `OAP0/v0`
@@ -328,10 +336,11 @@ OT-075 adds an offline-only generator for the exact `OTPS0/v0` candidate
 partition binary and a denied recovery-bundle plan. The pinned ESP-IDF v6.0.2
 partition tool produces a 3,072-byte artifact with the fixed encrypted
 `ot_auth` and retained `ot_state` rows; generated output remains ignored and
-grants no write authority. A source-commit rebuild did not match the exact
-application currently installed by OT-064, so no substitute recovery image is
-accepted. Active `partitions.csv`, `sdkconfig.defaults`, runtime composition,
-and device bytes remain unchanged. See
+grants no write authority. At OT-075 acceptance, a source-commit rebuild did
+not match the exact application then installed by OT-064, so no substitute
+recovery image was accepted. That offline increment did not change active
+`partitions.csv`, `sdkconfig.defaults`, runtime composition, or device bytes.
+See
 [Decision 0018](../../../docs/decisions/0018-offline-heltec-protected-storage-recovery-bundle.md)
 and [OT-075 evidence](../../../tests/hardware/OT-075-2026-08-17.md).
 

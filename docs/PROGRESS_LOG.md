@@ -4,6 +4,29 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-19
+
+### OT-085A physical bounded public BLE link/status acceptance
+
+- Installed and read-back verified the exact OT-085 factory application on the
+  selected experimental Heltec target under one consumed owner authorization.
+- One Android 13 phone selected the only compatible advertiser, connected, read
+  the exact fixed 16-byte zero-capability public value from the READ-only
+  suffix-`0x04` characteristic, disconnected, and rediscovered the same
+  in-memory endpoint. No device name, address, or private binding was retained.
+- The owner observed `BLE CONNECTED` during the link and return to
+  `BLE ADVERTISING` after phone disconnect. The firmware's independent
+  15-second automatic termination was not physically exercised.
+- Removed the superseded exported debug Activity. The retained one-use
+  instrumentation is test-only, correlates one exact GATT and phase, fails
+  closed on stale or unexpected callbacks, and emits only fixed pass/deny
+  fields. The Android gate passes 138 JVM tests across fourteen suites, lint,
+  debug assembly, and instrumentation compilation.
+- Accepted the third of five equal Android evidence gates, raising V1 Companion
+  from exact 39.75%/displayed 40% to exact 43.75%/displayed 44%. Protected
+  authorization, Ready, production support, and field evidence remain open. See
+  [OT-085A evidence](../tests/hardware/OT-085A-2026-08-19.md).
+
 ## 2026-08-18
 
 ### OT-085 bounded public BLE link/status build

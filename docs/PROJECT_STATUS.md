@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-18
+Status date: 2026-08-19
 
 ## Conceptual goals
 
@@ -9,25 +9,31 @@ Status date: 2026-08-18
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
-OT-085 implements the first bounded non-privileged BLE link/status surface for
-the current Heltec target. One fixed read-only characteristic exposes only a
-16-byte privacy-safe `OTB0/v0` protocol/transport record with zero capability
-bits. The existing protected Protocol Info, Command, and Stream permissions
-remain unchanged. A serialized owner permits one 15-second link, requests
-termination, allows two seconds for the matching disconnect callback, and
-returns through bounded re-advertising; failure or missing acknowledgement
-contains the runtime. The complete 148-executable native host matrix, eleven
-target-admission groups, and two byte-identical pinned target builds pass. No
-device was accessed or flashed, so connection, read, OLED transition, and link
-stability remain unproved. See [OT-085](../tests/hardware/OT-085-2026-08-18.md)
-and [Decision 0029](decisions/0029-bounded-read-only-ble-link-status.md).
+OT-085A physically accepts the first bounded non-privileged BLE link/status
+cycle on the current Heltec target. The exact 471,456-byte OT-085 factory image
+was installed and read-back verified on `OT-DEV-001`. One Android 13 phone
+selected the only compatible service advertiser, connected, required the
+UUID-suffix-`0x04` characteristic to be READ-only, and matched the exact fixed
+16-byte zero-capability `OTB0/v0` value. The owner observed `BLE CONNECTED`
+during that link and `BLE ADVERTISING` after the phone requested disconnect;
+the phone then rediscovered the same in-memory endpoint. No address, name,
+coordinate, key, or private binding was retained. The hardened retained harness
+is test-only and was build-validated after acceptance; it did not create a
+second physical result. The firmware's automatic 15-second termination remains
+unproved on hardware. See
+[OT-085A](../tests/hardware/OT-085A-2026-08-19.md),
+[OT-085](../tests/hardware/OT-085-2026-08-18.md), and
+[Decision 0029](decisions/0029-bounded-read-only-ble-link-status.md).
 
 Decision 0028 defers rollback-protected companion authorization beyond the
 current Heltec V1 rather than weakening it. Secure ownership, trusted-phone
 claims, protected writes, provisioning, provider-backed recovery, and Ready
 remain unavailable. The build-tested authorization foundations remain dormant;
-current work may advance only bounded non-privileged prototype functions. V1
-remains exact 39.75%/displayed 40%. See
+current work may advance only bounded non-privileged prototype functions. The
+accepted third Android evidence gate raises V1 Companion to exact
+43.75%/displayed 44%; the Heltec milestone description advances but its
+completion remains unchanged because no separate scoring increment is defined.
+See
 [Decision 0028](decisions/0028-defer-rollback-protected-companion-authorization-beyond-current-heltec-v1.md).
 
 OT-084 rejects ESP32-S3 `SECURE_VERSION` as the independent companion-
@@ -38,7 +44,8 @@ factory layout and exact factory-restore route, and sharing it would consume
 the firmware version budget rather than provide an independent authorization
 domain. The strict source-bound evaluator and six plan groups pass. No external
 part is selected or present on the current target; no device, eFuse, target
-build input, or runtime changed. V1 remains exact 39.75%/displayed 40%. See
+build input, or runtime changed. At OT-084 acceptance, V1 was exact
+39.75%/displayed 40%. See
 [OT-084](../tests/hardware/OT-084-2026-08-18.md) and
 [Decision 0027](decisions/0027-reject-esp32s3-secure-version-authorization-floor.md).
 
@@ -51,7 +58,7 @@ descriptor-plan groups, existing protected-root plan regressions, eleven target-
 admission groups, and the complete 146-executable host gate pass. No provider,
 block, bit range, or capacity is selected; no target source, device/eFuse state,
 or runtime changed. The two protected HMAC roles remain selected by type only.
-V1 remains exact 39.75%/displayed 40%. See
+At OT-083 acceptance, V1 was exact 39.75%/displayed 40%. See
 [OT-083](../tests/hardware/OT-083-2026-08-18.md) and
 [Decision 0026](decisions/0026-reject-esp32s3-user-data-rollback-floor.md).
 
@@ -116,8 +123,9 @@ The independent floor conditionally uses a dedicated custom user-eFuse
 thermometer field with one-bit advance, exact reread, permanent exhaustion, and
 fail-closed uncertainty. No physical block, counter field, capacity, key, or
 provisioning sequence is selected. No hardware was accessed and every physical,
-write, runtime, and transition authority remains false. V1 Companion remains
-exact 39.75%/displayed 40%. See [OT-078](../tests/hardware/OT-078-2026-08-18.md)
+write, runtime, and transition authority remains false. At OT-078 acceptance,
+V1 Companion was exact 39.75%/displayed 40%. See
+[OT-078](../tests/hardware/OT-078-2026-08-18.md)
 and [Decision 0021](decisions/0021-offline-protected-root-provider-selection.md).
 
 OT-077 accepts the exact `OTRR0/v0/heltec-v4-ot064-source-restore` route as an
@@ -138,8 +146,8 @@ the connection, remains in ROM as `RECOVERY-UNCERTAIN`, preserves private
 artifacts and a minimum private journal before transient cleanup, makes no boot-
 success claim, never auto-retries, and requires fresh owner authorization.
 No hardware was accessed; every physical recovery, write, key/eFuse,
-rollback, and transition authority remains false. V1 Companion remains exact
-39.75%/displayed 40%. See
+rollback, and transition authority remains false. At OT-077 acceptance, V1
+Companion was exact 39.75%/displayed 40%. See
 [OT-077](../tests/hardware/OT-077-2026-08-18.md) and
 [Decision 0020](decisions/0020-offline-exact-rom-recovery-route.md).
 
@@ -156,7 +164,8 @@ defines the key-role/floor requirements; fresh same-operation evidence,
 redundant custody, concrete providers, exact-unit physical validation, and
 separate physical-write authorization remain open. After manual RST, the
 owner observed the Trail logo followed by `BLE ADVERTISING`. The transition
-stays denied and V1 Companion remains exact 39.75%/displayed 40%. See
+stays denied; at OT-076 acceptance, V1 Companion was exact
+39.75%/displayed 40%. See
 [OT-076](../tests/hardware/OT-076-2026-08-17.md) and
 [Decision 0019](decisions/0019-retain-exact-installed-application-for-recovery.md).
 
@@ -172,7 +181,7 @@ remain denied. Active partitions, configuration, runtime, and device bytes are
 unchanged. OT-076 and OT-077 later closed the artifact and offline-route
 prerequisites. A future operation still requires redundant custody, concrete
 key/floor providers, fresh unified evidence, and separate physical authority.
-V1 Companion remains exact 39.75%/displayed 40%. See
+At OT-075 acceptance, V1 Companion was exact 39.75%/displayed 40%. See
 [OT-075](../tests/hardware/OT-075-2026-08-17.md) and
 [Decision 0018](decisions/0018-offline-heltec-protected-storage-recovery-bundle.md).
 
@@ -186,9 +195,9 @@ bytecode were deleted with cleanup verified. After manual RST, the owner
 observed the Trail logo followed by `BLE ADVERTISING`. This satisfies only the
 OT-070 source prerequisite; it does not authorize a partition transition or
 prove protected NVS, key roles, an independent rollback floor, bond
-persistence, GATT authorization, Ready, LoRa, or GNSS. Historical standalone
-progress remains exact 31.75%/displayed 32%; V1 Companion remains exact
-39.75%/displayed 40%. See
+persistence, GATT authorization, Ready, LoRa, or GNSS. At OT-074 acceptance,
+historical standalone progress was exact 31.75%/displayed 32% and V1 Companion
+was exact 39.75%/displayed 40%. See
 [OT-074](../tests/hardware/OT-074-2026-08-17.md).
 
 OT-073 records one owner-authorized, one-use read-only source-proof attempt on
@@ -201,21 +210,21 @@ ephemeral executor files plus bytecode were deleted. The owner then pressed RST
 with PRG released and observed the Trail logo followed by `BLE ADVERTISING`.
 Source proof remains absent, so no partition transition, protected storage,
 key, rollback-floor, bond, GATT, Ready, LoRa, or GNSS authority or evidence is
-added. Historical standalone progress remains exact 31.75%/displayed 32%; V1
-Companion remains exact 39.75%/displayed 40%. See
+added. At OT-073 acceptance, historical standalone progress was exact
+31.75%/displayed 32% and V1 Companion was exact 39.75%/displayed 40%. See
 [OT-073](../tests/hardware/OT-073-2026-08-17.md).
 
-OT-072 establishes the first canonical V1 Companion release measurement.
+OT-072 established the first canonical V1 Companion release measurement.
 The six weights total 100: architecture/safety 15 at 85%, core firmware 20 at
 65%, loader 15 at 15%, Heltec/Trail Essential target 15 at 25%, Android
-Companion 20 at 40%, and four-person Companion field proof 15 at 0%. The exact
-weighted result is 39.75% and public display rounds to 40%. Android's 40%
-records two of five equal accepted gates: tested application plus bounded
+Companion 20 at 40%, and four-person Companion field proof 15 at 0%. At that
+acceptance point, the exact weighted result was 39.75% and public display
+rounded to 40%. Android's 40% recorded two of five equal accepted gates: tested application plus bounded
 physical install/lifecycle/artwork observations, and exact-service discovery.
 Physical GATT connection/negotiation, protected one-phone authorization and
-Ready, operational release acceptance, and Companion field proof remain open.
-The historical standalone baseline remains exact 31.75%/displayed 32%; V2
-Integrated remains unmeasured. No firmware, app package, target, device, or
+Ready, operational release acceptance, and Companion field proof were open.
+The historical standalone baseline was exact 31.75%/displayed 32%; V2
+Integrated was unmeasured. No firmware, app package, target, device, or
 field evidence changed. See [Decision 0017](decisions/0017-v1-companion-release-measurement.md)
 and [OT-072](../tests/hardware/OT-072-2026-08-17.md).
 

@@ -80,7 +80,8 @@
     "public_region_verification_passed": true,
     "bounded_runtime_accepted": true,
     "oled_factory_app_write_completed": true,
-    "write_attempts": 2
+    "public_link_factory_app_write_completed": true,
+    "write_attempts": 3
   },
   "capabilities": {
     "bounded_usb_heartbeat": true,
@@ -113,8 +114,8 @@
     "companion_public_link_info_build_linked": true,
     "public_link_characteristic_runtime_coded": true,
     "bounded_public_link_window_host_tested": true,
-    "public_link_connection_physically_observed": false,
-    "public_link_info_physically_read": false,
+    "public_link_connection_physically_observed": true,
+    "public_link_info_physically_read": true,
     "private_service_advertising_coded": true,
     "evidence_bound_memory_profile_build_configured": true,
     "recovery_partition_layout_build_configured": true,
@@ -122,6 +123,7 @@
     "oled_startup_display_build_linked": true,
     "oled_startup_logo_coded": true,
     "oled_ble_phase_status_coded": true,
+    "oled_ble_link_status_physically_observed": true,
     "oled_startup_display_physically_observed": true,
     "bounded_usb_heartbeat_physically_observed": true,
     "nimble_runtime_startup_physically_reached": true,

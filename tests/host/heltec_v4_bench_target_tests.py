@@ -222,7 +222,8 @@ def test_contract() -> None:
         "public_region_verification_passed": True,
         "bounded_runtime_accepted": True,
         "oled_factory_app_write_completed": True,
-        "write_attempts": 2,
+        "public_link_factory_app_write_completed": True,
+        "write_attempts": 3,
     }, "physical execution evidence must remain exact and further authority absent")
 
 
@@ -250,6 +251,8 @@ def test_contract() -> None:
         "companion_public_link_info_build_linked",
         "public_link_characteristic_runtime_coded",
         "bounded_public_link_window_host_tested",
+        "public_link_connection_physically_observed",
+        "public_link_info_physically_read",
         "private_service_advertising_coded",
         "evidence_bound_memory_profile_build_configured",
         "recovery_partition_layout_build_configured",
@@ -260,6 +263,7 @@ def test_contract() -> None:
         "oled_startup_display_build_linked",
         "oled_startup_logo_coded",
         "oled_ble_phase_status_coded",
+        "oled_ble_link_status_physically_observed",
         "oled_startup_display_physically_observed",
     }
     require(capabilities["bounded_usb_heartbeat"] is True,
@@ -326,9 +330,9 @@ def test_contract() -> None:
     require(capabilities["companion_public_link_info_build_linked"] is True and
             capabilities["public_link_characteristic_runtime_coded"] is True and
             capabilities["bounded_public_link_window_host_tested"] is True and
-            capabilities["public_link_connection_physically_observed"] is False and
-            capabilities["public_link_info_physically_read"] is False,
-            "public link build evidence must not claim physical connection or read")
+            capabilities["public_link_connection_physically_observed"] is True and
+            capabilities["public_link_info_physically_read"] is True,
+            "accepted public link connection and fixed read must be recorded")
     require(capabilities["evidence_bound_memory_profile_build_configured"] is True and
             capabilities["recovery_partition_layout_build_configured"] is True,
             "memory profile and recovery layout must be build-configured")
@@ -342,8 +346,9 @@ def test_contract() -> None:
             capabilities["oled_ble_phase_status_coded"] is True,
             "host-tested, build-linked OLED startup/status surface must be admitted")
     require(capabilities["oled_startup_display_physically_observed"] is True and
+            capabilities["oled_ble_link_status_physically_observed"] is True and
             capabilities["display"] is False,
-            "OLED startup display observation must not claim general display support")
+            "bounded OLED observations must not claim general display support")
 
     for name, enabled in capabilities.items():
         if name not in admitted:
