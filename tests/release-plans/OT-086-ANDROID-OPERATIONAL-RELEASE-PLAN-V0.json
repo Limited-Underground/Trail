@@ -7,13 +7,13 @@
   "application": {
     "application_id": "io.github.nbjelanovic.otclient",
     "current_version_code": 1,
-    "current_version_name": "0.1.0-dev",
-    "candidate_version_code": 0,
-    "candidate_version_name": "",
+    "current_version_name": "1.0.0",
+    "candidate_version_code": 1,
+    "candidate_version_name": "1.0.0",
     "min_sdk": 26,
     "bluetooth_min_sdk": 31,
     "target_sdk": 35,
-    "production_variant_configured": false
+    "production_variant_configured": true
   },
   "release_identity": {
     "public_name": "Limited Underground Trail",
@@ -116,9 +116,7 @@
   "blockers": [
     "physical_acceptance_matrix_not_approved",
     "privacy_data_safety_not_approved",
-    "production_variant_not_configured",
     "release_identity_not_approved",
-    "release_version_not_frozen",
     "rollback_policy_not_approved",
     "signer_and_custody_not_approved",
     "support_policy_not_approved"

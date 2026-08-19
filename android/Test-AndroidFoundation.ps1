@@ -32,9 +32,21 @@ $projectCache = Join-Path $CacheRoot 'project-cache'
 & $wrapper --no-daemon --project-cache-dir $projectCache `
     :protocol:test `
     :app:testDebugUnitTest `
+    :app:testReleaseUnitTest `
     :app:lintDebug `
+    :app:lintRelease `
     :app:assembleDebug `
-    :app:assembleDebugAndroidTest
+    :app:assembleDebugAndroidTest `
+    :app:assembleRelease
 if ($LASTEXITCODE -ne 0) {
     throw "Android foundation validation failed with exit code $LASTEXITCODE."
+}
+
+$releaseArtifact = Join-Path $env:OT_ANDROID_BUILD_ROOT 'app\outputs\apk\release\app-release-unsigned.apk'
+& (Join-Path $PSScriptRoot 'Test-AndroidUnsignedReleaseArtifact.ps1') `
+    -JdkRoot $JdkRoot `
+    -AndroidSdkRoot $AndroidSdkRoot `
+    -ArtifactPath $releaseArtifact
+if ($LASTEXITCODE -ne 0) {
+    throw "Android unsigned release artifact inspection failed with exit code $LASTEXITCODE."
 }

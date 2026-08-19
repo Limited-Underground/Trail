@@ -37,10 +37,18 @@ def main() -> int:
     expect_find(scanner, "fallback host", "owner." + "chatgpt" + ".site")
     expect_find(scanner, "certificate state", "pending" + "_validation")
 
+    original_publication_files = scanner.publication_files
+    try:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scanner.publication_files = lambda _: [root / "intentionally-moved.txt"]
+            assert scanner.scan_repository(root) == []
+    finally:
+        scanner.publication_files = original_publication_files
+
     print("PASS: publication-safety scanner scenarios")
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

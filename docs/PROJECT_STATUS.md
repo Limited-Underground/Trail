@@ -9,9 +9,24 @@ Status date: 2026-08-19
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
-OT-086 accepts the plan-only `OTAR0/v0` Android operational-release
-admission contract, one canonical plan, a fail-closed validator, and
-deterministic denial cases. The only current distribution scope is
+OT-087 freezes Android version code/name `1` / `1.0.0`, configures an explicit
+non-debuggable release build type without signing, and accepts bounded packaged
+inspection of one disposable unsigned local APK. Debug and release unit tests,
+both warning-as-error lint variants, debug/instrumentation/release assembly,
+exact manifest/permission/backup checks, DEX checksums, debug/test-surface
+absence, and unsigned-state verification pass. This satisfies only the
+production-variant and stable-version OTAR prerequisites. Six remain: physical
+acceptance matrix, privacy/data-safety, release identity, rollback policy,
+signer/custody, and support policy. The artifact was not installed, signed,
+uploaded, or distributed; no phone, hardware, key, certificate, account, or
+store was accessed. Android remains 60%, and V1 Companion remains exact
+43.75%/displayed 44%. See
+[Decision 0031](decisions/0031-android-unsigned-release-build-foundation.md)
+and [OT-087 evidence](../tests/hardware/OT-087-2026-08-19.md).
+
+At OT-086 acceptance, OpenTrail accepted the plan-only `OTAR0/v0` Android
+operational-release admission contract, one canonical plan, a fail-closed
+validator, and deterministic denial cases. The only current distribution scope is
 `private-sideload-v1-pilot`, meaning controlled private installation on the
 four V1 pilot phones that must each be approved and frozen before execution; it
 is not public or store distribution. A future Play scope requires a separate
@@ -20,7 +35,8 @@ update. The sole successful planning outcome is
 `PLAN-ACCEPTED-EXECUTION-BLOCKED`: the plan is bounded, but no production
 variant, signer/custody policy, immutable artifact, supported-device matrix,
 lifecycle/endurance/privacy/support result, installation, distribution, or
-release pass exists. Android remains 60%, and V1 Companion remains exact
+release pass existed. OT-087 later satisfied only the production-variant and
+stable-version prerequisites. Android remains 60%, and V1 Companion remains exact
 43.75%/displayed 44%. See
 [Decision 0030](decisions/0030-android-operational-release-admission.md),
 [the operational-release contract](platform/ANDROID_OPERATIONAL_RELEASE_ACCEPTANCE_V0.md),

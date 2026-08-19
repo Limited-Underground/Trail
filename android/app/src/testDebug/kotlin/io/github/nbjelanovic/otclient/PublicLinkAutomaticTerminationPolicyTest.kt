@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+// The policy under test is intentionally available only in the debug source set.
 class PublicLinkAutomaticTerminationPolicyTest {
     @Test
     fun onlyBoundedTargetTerminationTimingIsAccepted() {

@@ -26,7 +26,7 @@ MAX_JSON_DEPTH = 64
 
 APPLICATION_ID = "io.github.nbjelanovic.otclient"
 CURRENT_VERSION_CODE = 1
-CURRENT_VERSION_NAME = "0.1.0-dev"
+CURRENT_VERSION_NAME = "1.0.0"
 MIN_SDK = 26
 BLUETOOTH_MIN_SDK = 31
 TARGET_SDK = 35
@@ -328,6 +328,13 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
         if not VERSION_NAME.fullmatch(candidate_name):
             raise AdmissionError(
                 "candidate version name must be stable X.Y.Z text"
+            )
+        if (
+            candidate_code != CURRENT_VERSION_CODE
+            or candidate_name != CURRENT_VERSION_NAME
+        ):
+            raise AdmissionError(
+                "candidate version must equal the accepted source baseline"
             )
 
     identity = _object(plan["release_identity"], "plan.release_identity")

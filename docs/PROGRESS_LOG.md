@@ -6,6 +6,27 @@ public chronology.
 
 ## 2026-08-19
 
+### OT-087 Android unsigned release-build foundation
+
+- Froze Android version code/name `1` / `1.0.0`, retained a `-dev` debug
+  suffix, and configured an explicit non-debuggable unsigned release build
+  type with no signing configuration.
+- Passed 248 JVM test executions across protocol/debug/release suites, both
+  warning-as-error lint variants, debug and instrumentation assembly, and
+  unsigned release assembly.
+- Inspected the packaged disposable APK for exact identity/version/SDK, the
+  exact six-permission union, backup and transfer exclusion, non-debuggable/
+  non-test-only state, no instrumentation or OT-085 helper classes, valid DEX
+  checksums, and the exact unsigned verification result. No phone, hardware,
+  key/certificate, account/store, installation, upload, or distribution
+  operation occurred.
+- Satisfied exactly two of eight OTAR prerequisites. Physical matrix, privacy/
+  data-safety, release identity, rollback, signer/custody, and support remain
+  blocked; the release gate stays `NOT-EVALUATED` and plan outcome stays
+  `PLAN-ACCEPTED-EXECUTION-BLOCKED`.
+- Android remains 60%, and V1 Companion remains exact 43.75%/displayed 44%.
+  See [OT-087 evidence](../tests/hardware/OT-087-2026-08-19.md).
+
 ### OT-086 Android operational-release admission plan
 
 - Accepted the machine-checkable `OTAR0/v0` operational-release contract,

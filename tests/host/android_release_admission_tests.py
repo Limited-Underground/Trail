@@ -62,7 +62,18 @@ def test_checked_in_plan_is_accepted_but_execution_blocked() -> None:
     assert report["plan_status"] == "PLAN-ACCEPTED-EXECUTION-BLOCKED"
     assert report["release_gate_status"] == "NOT-EVALUATED"
     assert report["execution_authority_granted"] is False
-    assert len(report["blockers"]) == 8
+    assert report["blockers"] == [
+        "physical_acceptance_matrix_not_approved",
+        "privacy_data_safety_not_approved",
+        "release_identity_not_approved",
+        "rollback_policy_not_approved",
+        "signer_and_custody_not_approved",
+        "support_policy_not_approved",
+    ]
+    application = plan()["application"]
+    assert application["candidate_version_code"] == 1
+    assert application["candidate_version_name"] == "1.0.0"
+    assert application["production_variant_configured"] is True
 
 
 def test_canonical_digest_is_key_order_independent() -> None:
@@ -86,7 +97,10 @@ def test_release_baseline_and_version_coherence_fail_closed() -> None:
     expect_error(value, "accepted baseline")
     value = plan()
     value["application"]["candidate_version_code"] = 2
-    expect_error(value, "absent or present together")
+    expect_error(value, "accepted source baseline")
+    value = plan()
+    value["application"]["candidate_version_name"] = "1.0.1"
+    expect_error(value, "accepted source baseline")
     value = ready_plan()
     value["application"]["candidate_version_name"] = "1.0.0-debug"
     expect_error(value, "stable X.Y.Z")
@@ -213,6 +227,78 @@ def test_plan_baseline_matches_android_source() -> None:
     assert set(source_permissions) == set(admission.AUTHORED_PERMISSIONS)
     assert authored_permissions == admission.AUTHORED_PERMISSIONS
     assert set(source_permissions).isdisjoint(admission.GENERATED_PERMISSIONS)
+
+
+def test_ot087_release_variant_and_artifact_gate_are_explicit() -> None:
+    build = (ROOT / "android" / "app" / "build.gradle.kts").read_text(
+        encoding="utf-8"
+    )
+    foundation = (ROOT / "android" / "Test-AndroidFoundation.ps1").read_text(
+        encoding="utf-8"
+    )
+    inspector = (
+        ROOT / "android" / "Test-AndroidUnsignedReleaseArtifact.ps1"
+    ).read_text(encoding="utf-8")
+
+    release = re.search(
+        r'getByName\("release"\)\s*\{(?P<body>.*?)\n\s*\}',
+        build,
+        re.DOTALL,
+    )
+    assert release is not None
+    release_body = release.group("body")
+    assert "isDebuggable = false" in release_body
+    assert "isJniDebuggable = false" in release_body
+    assert "isMinifyEnabled = false" in release_body
+    assert "signingConfig = null" in release_body
+    assert 'versionNameSuffix = "-dev"' in build
+
+    for task in (
+        ":app:testReleaseUnitTest",
+        ":app:lintRelease",
+        ":app:assembleRelease",
+    ):
+        assert task in foundation
+    assert "Test-AndroidUnsignedReleaseArtifact.ps1" in foundation
+    assert "$apksigner verify --verbose" in inspector
+    assert "$apksigner sign " not in inspector
+    assert "uses-permission(?:-sdk-[0-9]+)?" in inspector
+    assert "256MB" in inspector
+    assert "64MB" in inspector
+    assert "$cloudRules" in inspector
+    assert "$transferRules" in inspector
+    assert "OT087_SIGNATURE=UNSIGNED" in inspector
+    assert "OT087_TEMP_CLEANUP=PASS" in inspector
+    assert inspector.rstrip().endswith("exit 0")
+
+    common_test = (
+        ROOT
+        / "android"
+        / "app"
+        / "src"
+        / "test"
+        / "kotlin"
+        / "io"
+        / "github"
+        / "nbjelanovic"
+        / "otclient"
+        / "PublicLinkAutomaticTerminationPolicyTest.kt"
+    )
+    debug_test = (
+        ROOT
+        / "android"
+        / "app"
+        / "src"
+        / "testDebug"
+        / "kotlin"
+        / "io"
+        / "github"
+        / "nbjelanovic"
+        / "otclient"
+        / "PublicLinkAutomaticTerminationPolicyTest.kt"
+    )
+    assert not common_test.exists()
+    assert debug_test.is_file()
 
 
 def test_ot085_test_only_components_are_explicitly_forbidden() -> None:
@@ -445,6 +531,7 @@ def main() -> None:
         test_synthetic_ready_plan_is_not_release_acceptance_or_authority,
         test_permission_checklist_platform_and_policy_drift_fail_closed,
         test_plan_baseline_matches_android_source,
+        test_ot087_release_variant_and_artifact_gate_are_explicit,
         test_ot085_test_only_components_are_explicitly_forbidden,
         test_privacy_and_execution_authority_cannot_be_relaxed,
         test_private_fields_and_values_are_rejected_without_echo,

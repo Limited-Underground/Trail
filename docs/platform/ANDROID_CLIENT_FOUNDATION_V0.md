@@ -193,7 +193,7 @@ command-line-tools bootstrap archive `11076708` had observed SHA-256
 `4d6931209eebb1bfb7c7e8b240a6a3cb3ab24479ea294f3539429574b1eec862`.
 All environment changes were process-scoped; no global PATH was changed.
 
-The current Android-only gate passes 136 JVM tests across thirteen suites
+At OT-062 acceptance, the then-current Android-only gate passed 136 JVM tests across thirteen suites
 (protocol 29; application 107), including the foreground-only screen and exact
 artwork/no-delay policies,
 with zero failures, errors, or skips. Warning-as-error Android lint reports

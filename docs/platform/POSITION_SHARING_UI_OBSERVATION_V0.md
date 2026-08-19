@@ -95,7 +95,7 @@ coordinate source. Real Bluetooth cards report coordinates unavailable because
 no accepted BLE coordinate feed exists; Local mode uses separately labeled
 deterministic synthetic cards. No phone GPS, map, tiles, network, location
 permission, storage, identity authority, or private device correlation was
-added. The current Android gate passes 134 JVM tests across thirteen suites,
+added. At OT-057 acceptance, the then-current Android gate passed 134 JVM tests across thirteen suites,
 clean lint, manifest inspection, and debug assembly; no phone/device/install or
 live-location proof exists.
 

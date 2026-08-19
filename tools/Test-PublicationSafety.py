@@ -69,7 +69,13 @@ def publication_files(root: Path) -> list[Path]:
 def scan_repository(root: Path) -> list[str]:
     findings: list[str] = []
     for path in publication_files(root):
-        data = path.read_bytes()
+        try:
+            data = path.read_bytes()
+        except FileNotFoundError:
+            # A tracked path can be absent during an intentional move. Git still
+            # lists the deleted index entry; its replacement is scanned as an
+            # untracked path in the same snapshot.
+            continue
         if b"\0" in data:
             continue
         text = data.decode("utf-8", errors="replace")

@@ -21,6 +21,13 @@ distribution scope is `private-sideload-v1-pilot`. The accepted outcome is
 `PLAN-ACCEPTED-EXECUTION-BLOCKED`; it proves no production candidate,
 signing, installation, supported phone, distribution, support, or V1 release.
 
+OT-087 freezes base version code/name `1` / `1.0.0`, adds a `-dev` debug
+suffix, and accepts an explicit non-debuggable unsigned release-build
+foundation plus packaged inspection. Exactly two OTAR prerequisites are now
+satisfied; six remain. The result is not an accepted, signed, installable,
+distributable, supported, reproducible, production-ready, or operationally
+accepted release candidate.
+
 The visible working product name is `Limited Underground Trail`. The stable,
 technical application and package namespace is
 `io.github.nbjelanovic.otclient`; customer-facing working names do not enter the
@@ -223,12 +230,13 @@ compatible-advertiser return, and overall acceptance; the owner observed
 `BLE CONNECTED` followed by `BLE ADVERTISING`. No endpoint identity was
 required, inferred, or retained.
 
-The updated standard gate passes 139 JVM tests across fifteen suites, lint,
-debug assembly, and instrumentation assembly. This evidence still proves no
+At OT-085B acceptance, the then-current gate passed 139 JVM tests across
+fifteen suites, lint, debug assembly, and instrumentation assembly. This
+evidence still proves no
 pairing, protected authorization, Ready, operational release, or supported-
 device behavior.
 
-## Operational-release admission (plan only)
+## Operational-release admission
 
 The accepted
 [`OTAR0/v0` contract](../docs/platform/ANDROID_OPERATIONAL_RELEASE_ACCEPTANCE_V0.md)
@@ -241,12 +249,21 @@ before execution. It does not authorize creating or using a signing key,
 installing or removing an app, changing phone settings, accessing a device/
 account, or distributing a package.
 
+[Decision 0031](../docs/decisions/0031-android-unsigned-release-build-foundation.md)
+accepts the OT-087 unsigned build foundation. The packaged APK matched the
+exact application/version/SDK and six-permission union, disabled backup and
+transfer, omitted debug/test helpers and instrumentation, passed both DEX
+checksums, and failed signature verification exactly as an unsigned artifact.
+It satisfies only the production-variant and release-version prerequisites.
+Physical matrix, privacy/data-safety, release identity, rollback, signer/
+custody, and support approval remain blocked.
+
 A Google Play path is outside OT-086. It requires a separate decision and plan,
 a fresh recheck of the then-current Play target-API policy, and any required
 Android toolchain and target-SDK update before admission.
 
-The next Android release-track gate is to satisfy the accepted plan's named
-prerequisites and execute its complete private-sideload evidence sequence under
+The next Android release-track gate is to satisfy the accepted plan's six
+remaining prerequisites and execute its complete private-sideload evidence sequence under
 separately authorized signing, phone, installation, and distribution
 operations. Missing, stale, mixed, skipped, private, or contradictory evidence
 must remain blocked; protected one-phone authorization and `Ready` remain a
@@ -269,9 +286,10 @@ project pins Android Gradle Plugin 8.7.3, Kotlin/Compose plugin 2.0.21,
 compile/target SDK 35, build-tools 35.0.0, and Java 17.
 `Test-AndroidFoundation.ps1` requires explicit JDK and SDK roots, changes no
 global PATH, and puts Gradle caches and build outputs below the supplied
-user-local cache root. The gate runs protocol tests, application-state tests,
-warning-as-error Android lint, debug assembly, and debug instrumentation
-assembly.
+user-local cache root. The gate runs protocol tests, debug and release
+application-state tests, debug and release warning-as-error Android lint,
+debug assembly, debug instrumentation assembly, unsigned release assembly, and
+packaged release-artifact inspection with build-tools 35.0.0.
 
 ```powershell
 .\Test-AndroidFoundation.ps1 `
@@ -279,7 +297,8 @@ assembly.
   -AndroidSdkRoot "$env:LOCALAPPDATA\Android\Sdk"
 ```
 
-No signing key, production variant, release artifact, device access, release
-installation command, or public/store distribution configuration is present.
-The OT-086 plan selects only `private-sideload-v1-pilot` and remains blocked
-from execution.
+An explicit non-debuggable release build type is present, but it has no signing
+configuration. No signing key, accepted release artifact, device access,
+release installation command, or public/store distribution configuration is
+present. The OT-086 plan selects only `private-sideload-v1-pilot` and remains
+blocked from execution with six prerequisites open.

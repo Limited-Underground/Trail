@@ -151,17 +151,26 @@ No partial percentage is awarded within the fifth Android gate.
 
 ## Current blockers
 
-The checked-in plan deliberately records the current release candidate as
-blocked because there is no accepted production variant/version, signer and
-custody policy, immutable release artifact, supported-device matrix, full
-lifecycle result, operational endurance result, privacy/support acceptance, or
-coherent cleanup evidence set. The distribution scope is frozen as
+OT-087 ([Decision 0031](../decisions/0031-android-unsigned-release-build-foundation.md),
+[evidence](../../tests/hardware/OT-087-2026-08-19.md)) freezes version code/name
+`1` / `1.0.0`, configures an explicit
+non-debuggable release build type without signing, and accepts packaged
+inspection of one disposable unsigned local APK. This satisfies exactly the
+production-variant and stable-version prerequisites. It is not an accepted,
+immutable, signed, reproducible, installable, or distributable release
+candidate, and it earns no partial fifth-gate credit.
+
+The checked-in plan remains blocked on six exact prerequisites: physical
+acceptance matrix, privacy/data-safety, release identity, rollback policy,
+signer/custody, and support policy. Full lifecycle, operational endurance,
+usability, and coherent cleanup evidence also remain unexecuted. The
+distribution scope is frozen as
 `private-sideload-v1-pilot`; freezing that scope supplies no package, signing,
 installation, support, or release evidence.
 
-The current Android debug build and OT-085A/OT-085B instrumentation remain
-development and bounded physical-public-BLE evidence. They are not eligible
-release artifacts.
+The current unsigned release-build foundation, Android debug build, and
+OT-085A/OT-085B instrumentation remain engineering or bounded physical-public-
+BLE evidence. None is an eligible release artifact.
 
 ## Separate V1 gates
 
