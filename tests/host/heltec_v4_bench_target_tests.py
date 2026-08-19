@@ -22,6 +22,15 @@ SOURCE = TARGET / "main" / "app_main.cpp"
 SELF_CHECK = TARGET / "main" / "companion_boot_self_check.cpp"
 NIMBLE_GATT = TARGET / "main" / "companion_nimble_gatt.cpp"
 NIMBLE_RUNTIME = TARGET / "main" / "companion_nimble_runtime.cpp"
+ANDROID_TERMINATION_POLICY = (
+    ROOT / "android" / "app" / "src" / "debug" / "kotlin" / "io" /
+    "github" / "nbjelanovic" / "otclient" /
+    "PublicLinkAutomaticTerminationPolicy.kt")
+ANDROID_TERMINATION_INSTRUMENTATION = (
+    ROOT / "android" / "app" / "src" / "androidTest" / "kotlin" / "io" /
+    "github" / "nbjelanovic" / "otclient" /
+    "PublicLinkProbeInstrumentation.kt")
+ANDROID_APP_BUILD = ROOT / "android" / "app" / "build.gradle.kts"
 BLE_RUNTIME_OWNER = (
     ROOT / "firmware" / "components" / "companion" / "src" /
     "companion_ble_runtime_owner.cpp"
@@ -253,6 +262,8 @@ def test_contract() -> None:
         "bounded_public_link_window_host_tested",
         "public_link_connection_physically_observed",
         "public_link_info_physically_read",
+        "public_link_automatic_termination_physically_observed",
+        "public_link_compatible_advertiser_return_physically_observed",
         "private_service_advertising_coded",
         "evidence_bound_memory_profile_build_configured",
         "recovery_partition_layout_build_configured",
@@ -331,8 +342,12 @@ def test_contract() -> None:
             capabilities["public_link_characteristic_runtime_coded"] is True and
             capabilities["bounded_public_link_window_host_tested"] is True and
             capabilities["public_link_connection_physically_observed"] is True and
-            capabilities["public_link_info_physically_read"] is True,
-            "accepted public link connection and fixed read must be recorded")
+            capabilities["public_link_info_physically_read"] is True and
+            capabilities[
+                "public_link_automatic_termination_physically_observed"] is True and
+            capabilities[
+                "public_link_compatible_advertiser_return_physically_observed"] is True,
+            "accepted public link read and automatic lifecycle must be recorded")
     require(capabilities["evidence_bound_memory_profile_build_configured"] is True and
             capabilities["recovery_partition_layout_build_configured"] is True,
             "memory profile and recovery layout must be build-configured")
@@ -1742,6 +1757,63 @@ def test_build_only_tooling() -> None:
             f"destructive ESP-IDF action present: {action}")
 
 
+def test_automatic_termination_acceptance_surface() -> None:
+    runtime = NIMBLE_RUNTIME.read_text(encoding="utf-8")
+    policy = ANDROID_TERMINATION_POLICY.read_text(encoding="utf-8")
+    instrumentation = ANDROID_TERMINATION_INSTRUMENTATION.read_text(
+        encoding="utf-8")
+    android_build = ANDROID_APP_BUILD.read_text(encoding="utf-8")
+
+    require(
+        re.search(
+            r"kRuntimePolicy\s*\{\s*10000\s*,\s*1000\s*,\s*3\s*,"
+            r"\s*15000\s*,\s*2000\s*\}",
+            runtime,
+        ) is not None,
+        "target automatic termination policy must remain exactly 15 seconds",
+    )
+    require("TARGET_WINDOW_MILLIS = 15_000L" in policy,
+            "Android acceptance must pin the exact target window")
+    require(
+        "TARGET_WINDOW_MILLIS - EARLY_CALLBACK_ALLOWANCE_MILLIS" in policy and
+        "TARGET_WINDOW_MILLIS + LATE_CALLBACK_ALLOWANCE_MILLIS" in policy and
+        "MAX_ACCEPTED_MILLIS + WAIT_MARGIN_MILLIS" in policy,
+        "Android timing bounds must derive from the pinned target window",
+    )
+    for required in (
+        "SystemClock.elapsedRealtime()",
+        "AtomicLong(0L)",
+        "stage.compareAndSet(Stage.HOLDING, Stage.DISCONNECTED)",
+        "status == BluetoothGatt.GATT_SUCCESS",
+        "PublicLinkAutomaticTerminationPolicy.acceptsElapsed(elapsedMillis)",
+        "initial.size == 1",
+        "setServiceUuid(ParcelUuid(SERVICE_UUID))",
+        "postTermination.size == 1",
+        "OT085B_PUBLIC_READ=",
+        "OT085B_AUTOMATIC_TERMINATION=",
+        "OT085B_COMPATIBLE_ADVERTISER_RETURNED=",
+        "OT085B_PHONE_ACCEPTANCE=",
+    ):
+        require(required in instrumentation,
+                f"missing bounded automatic-termination gate: {required}")
+    for forbidden in (
+        "gatt.disconnect(",
+        ".requestDisconnect(",
+        "BluetoothDevice.EXTRA_DEVICE",
+        "result.device.address",
+        "result.device.name",
+        "selectedDevice in scan(",
+    ):
+        require(forbidden not in instrumentation,
+                f"phone-driven or identity-bearing harness surface: {forbidden}")
+    require(
+        '"io.github.nbjelanovic.otclient.PublicLinkProbeInstrumentation"' in
+        android_build and
+        "androidx.test.runner.AndroidJUnitRunner" not in android_build,
+        "the built test APK must register the bounded OT-085B instrumentation",
+    )
+
+
 def main() -> int:
     tests = (test_contract, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
@@ -1750,7 +1822,8 @@ def main() -> int:
              test_protected_root_key_roster_adapter_surface,
              test_protected_root_configuration_security_adapter_surface,
              test_display_surface,
-             test_application_surface, test_build_only_tooling)
+             test_application_surface, test_build_only_tooling,
+             test_automatic_termination_acceptance_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

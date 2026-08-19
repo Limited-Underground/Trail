@@ -116,6 +116,8 @@
     "bounded_public_link_window_host_tested": true,
     "public_link_connection_physically_observed": true,
     "public_link_info_physically_read": true,
+    "public_link_automatic_termination_physically_observed": true,
+    "public_link_compatible_advertiser_return_physically_observed": true,
     "private_service_advertising_coded": true,
     "evidence_bound_memory_profile_build_configured": true,
     "recovery_partition_layout_build_configured": true,

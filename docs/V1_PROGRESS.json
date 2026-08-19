@@ -51,7 +51,7 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. OT-083 and OT-084 reject both on-chip authorization rollback-floor candidates, so Decision 0028 defers protected ownership/control beyond the current Heltec V1 rather than weakening it. OT-085A installed and verified the exact OT-085 image, accepted one fixed privacy-safe public BLE read, and physically observed `BLE CONNECTED` followed by the phone-disconnect return to `BLE ADVERTISING`; every protected characteristic, claim, and command remains closed. The independent 15-second automatic termination was not physically exercised. The exact installed partition/source proof, private OT-064 recovery application, recovery contracts, and dormant protected-root foundations remain accepted historical evidence without current runtime authority.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. OT-083 and OT-084 reject both on-chip authorization rollback-floor candidates, so Decision 0028 defers protected ownership/control beyond the current Heltec V1 rather than weakening it. OT-085A installed and verified the exact OT-085 image, accepted one fixed privacy-safe public BLE read, and physically observed `BLE CONNECTED` followed by the phone-disconnect return to `BLE ADVERTISING`. OT-085B accepted target-initiated automatic termination inside the bounded interval, the same owner-observed display lifecycle, and return of exactly one compatible service advertiser without claiming stable identity; every protected characteristic, claim, and command remains closed. The exact installed partition/source proof, private OT-064 recovery application, recovery contracts, and dormant protected-root foundations remain accepted historical evidence without current runtime authority.",
       "weight": 15,
       "completion": 25,
       "evidence_status": "Experimental physical target with bounded public BLE link",
@@ -71,11 +71,12 @@
         "tests/hardware/OT-084-2026-08-18.md",
         "tests/hardware/OT-085-2026-08-18.md",
         "tests/hardware/OT-085A-2026-08-19.md",
+        "tests/hardware/OT-085B-2026-08-19.md",
         "tests/hardware/OT-074-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Physically exercise the independent 15-second link-termination path and continue bounded non-privileged target integration; protected authorization remains deferred to future hardware."
+      "next_gate": "Continue bounded non-privileged target integration; protected authorization remains deferred to future hardware."
     },
     {
       "id": "first-complete-unit",
@@ -147,21 +148,21 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical partition/source proof, a privately retained OT-064 recovery application, and accepted recovery/protected-root contracts. Both on-chip authorization-floor candidates are rejected, and Decision 0028 defers protected ownership/control beyond current Heltec V1 rather than weakening it. OT-085A installed and verified the exact OT-085 image, accepted one fixed public BLE read, and physically observed the connected-to-advertising display lifecycle; all protected characteristics, claims, and commands remain closed. The independent 15-second automatic termination was not physically exercised.",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, a bounded physical partition/source proof, a privately retained OT-064 recovery application, and accepted recovery/protected-root contracts. Both on-chip authorization-floor candidates are rejected, and Decision 0028 defers protected ownership/control beyond current Heltec V1 rather than weakening it. OT-085A installed and verified the exact OT-085 image, accepted one fixed public BLE read, and physically observed the phone-disconnect connected-to-advertising lifecycle. OT-085B accepted target-initiated automatic termination inside the bounded interval, the same owner-observed display lifecycle, and return of exactly one compatible service advertiser without claiming stable identity; all protected characteristics, claims, and commands remain closed.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Experimental physical target with bounded public BLE link",
-          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "tests/hardware/OT-084-2026-08-18.md", "tests/hardware/OT-085-2026-08-18.md", "tests/hardware/OT-085A-2026-08-19.md", "hardware/INVENTORY.md"],
-          "next_gate": "Physically exercise the independent 15-second link-termination path and continue bounded non-privileged target integration; protected authorization remains deferred to future hardware."
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "tests/hardware/OT-084-2026-08-18.md", "tests/hardware/OT-085-2026-08-18.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "hardware/INVENTORY.md"],
+          "next_gate": "Continue bounded non-privileged target integration; protected authorization remains deferred to future hardware."
         },
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "Three of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance, exact-service discovery, and one bounded physical public GATT connection/read plus disconnect/re-advertise cycle. Protected authorization is deferred on current Heltec hardware and operational release acceptance remains open.",
+          "description": "Three of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance, exact-service discovery, and bounded physical public GATT connection/read evidence covering both phone-disconnect and target-initiated automatic disconnect/re-advertise lifecycles. Protected authorization is deferred on current Heltec hardware and operational release acceptance remains open.",
           "weight": 20,
           "completion": 60,
           "evidence_status": "Build tested with bounded physical public BLE read",
-          "evidence_refs": ["android/README.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md"],
+          "evidence_refs": ["android/README.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md"],
           "next_gate": "Complete operational release acceptance; keep protected one-phone authorization and Ready deferred pending future hardware."
         },
         {
@@ -259,6 +260,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Accepted one OT-085A physical public GATT connection/read and phone-disconnect return to advertising on the exact verified OT-085 image. The owner observed BLE CONNECTED followed by BLE ADVERTISING, and the sanitized phone harness rediscovered the same in-memory endpoint without retaining identity. This closes the third of five equal Android evidence gates and advances that milestone from 40% to 60%; the Heltec milestone completion remains 25% because no separate scoring increment is defined. Protected authorization, Ready, the independent 15-second termination path, operational release, and field evidence remain open."
+        },
+        {
+          "date": "2026-08-19",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted OT-085B physical target-initiated automatic BLE termination on the exact verified OT-085 image. The Android 13 harness made no disconnect request, accepted the successful remote disconnect inside the target-derived bounded interval, and observed exactly one compatible service advertiser return; the owner observed BLE CONNECTED followed by BLE ADVERTISING. This closes the automatic-termination sub-gate but defines no separate scoring increment, so the Heltec milestone remains 25% and Android remains 60%. Protected authorization, Ready, operational release, and field evidence remain open."
         }
       ]
     },
@@ -373,6 +380,11 @@
       "date": "2026-08-19",
       "overall": 32,
       "reason": "Accepted one OT-085A physical public GATT connection/read and phone-disconnect return to advertising on the exact verified OT-085 image, including the bounded OLED link-status observation. The historical standalone baseline has no Android milestone and the Heltec completion remains 25% because no separate scoring increment is defined, so the historical baseline remains exact 31.75% / displayed 32%."
+    },
+    {
+      "date": "2026-08-19",
+      "overall": 32,
+      "reason": "Accepted OT-085B physical target-initiated automatic BLE termination, owner-observed connected-to-advertising status, and return of exactly one compatible service advertiser on the exact verified OT-085 image. No separate Heltec scoring increment is defined, so the historical baseline remains exact 31.75% / displayed 32%."
     }
   ]
 }

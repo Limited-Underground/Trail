@@ -33,7 +33,8 @@ $projectCache = Join-Path $CacheRoot 'project-cache'
     :protocol:test `
     :app:testDebugUnitTest `
     :app:lintDebug `
-    :app:assembleDebug
+    :app:assembleDebug `
+    :app:assembleDebugAndroidTest
 if ($LASTEXITCODE -ne 0) {
     throw "Android foundation validation failed with exit code $LASTEXITCODE."
 }

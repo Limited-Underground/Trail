@@ -9,18 +9,18 @@ Status date: 2026-08-19
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
-OT-085A physically accepts the first bounded non-privileged BLE link/status
-cycle on the current Heltec target. The exact 471,456-byte OT-085 factory image
-was installed and read-back verified on `OT-DEV-001`. One Android 13 phone
-selected the only compatible service advertiser, connected, required the
-UUID-suffix-`0x04` characteristic to be READ-only, and matched the exact fixed
-16-byte zero-capability `OTB0/v0` value. The owner observed `BLE CONNECTED`
-during that link and `BLE ADVERTISING` after the phone requested disconnect;
-the phone then rediscovered the same in-memory endpoint. No address, name,
-coordinate, key, or private binding was retained. The hardened retained harness
-is test-only and was build-validated after acceptance; it did not create a
-second physical result. The firmware's automatic 15-second termination remains
-unproved on hardware. See
+OT-085B physically accepts the independent automatic public-BLE lifecycle on
+the exact 471,456-byte OT-085 factory image already installed and read-back
+verified on `OT-DEV-001`. One Android 13 phone found exactly one compatible
+service advertiser, connected, required the UUID-suffix-`0x04` characteristic
+to be READ-only, and matched the exact fixed 16-byte zero-capability `OTB0/v0`
+value. The phone made no disconnect request. The bound GATT disconnected inside
+the policy-derived window around the frozen 15-second target limit; the owner
+observed `BLE CONNECTED` followed by `BLE ADVERTISING`, and exactly one
+compatible service advertiser returned. No stable address or endpoint identity
+was required or inferred, and no name, coordinate, key, or private binding was
+retained. See
+[OT-085B](../tests/hardware/OT-085B-2026-08-19.md),
 [OT-085A](../tests/hardware/OT-085A-2026-08-19.md),
 [OT-085](../tests/hardware/OT-085-2026-08-18.md), and
 [Decision 0029](decisions/0029-bounded-read-only-ble-link-status.md).

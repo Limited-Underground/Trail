@@ -6,6 +6,27 @@ public chronology.
 
 ## 2026-08-19
 
+### OT-085B physical automatic BLE link-termination acceptance
+
+- Reused the exact installed and verified OT-085 image without a target write,
+  reset, recovery action, protected access, or unit-2 access.
+- One Android 13 phone found exactly one compatible service advertiser, read
+  the exact fixed 16-byte value from the READ-only suffix-`0x04`
+  characteristic, and made no disconnect request. The target disconnected the
+  bound GATT inside the frozen timing window.
+- The owner observed `BLE CONNECTED` followed by `BLE ADVERTISING`; the phone
+  then found exactly one compatible service advertiser without requiring or
+  inferring a stable address identity.
+- Rejected an earlier RPA-sensitive address-equality postcondition, registered
+  the exact custom test-only runner, and added instrumentation assembly to the
+  standard gate. The Android gate passes 139 JVM tests across fifteen suites,
+  lint, debug assembly, and instrumentation assembly; all twelve target-
+  admission groups pass.
+- Heltec remains 25%, Android remains 60%, and V1 Companion remains exact
+  43.75%/displayed 44%. Protected authorization, Ready, operational release,
+  support, and field evidence remain open. See
+  [OT-085B evidence](../tests/hardware/OT-085B-2026-08-19.md).
+
 ### OT-085A physical bounded public BLE link/status acceptance
 
 - Installed and read-back verified the exact OT-085 factory application on the

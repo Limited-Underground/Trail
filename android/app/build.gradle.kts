@@ -16,7 +16,8 @@ android {
         versionCode = 1
         versionName = "0.1.0-dev"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner =
+            "io.github.nbjelanovic.otclient.PublicLinkProbeInstrumentation"
     }
 
     buildFeatures {

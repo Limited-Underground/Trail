@@ -18,14 +18,16 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.ParcelUuid
+import android.os.SystemClock
 import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
-/** One-use, read-only Android hardware acceptance for the fixed OT-085 public value. */
+/** One-use OT-085B acceptance that passively awaits target-side link termination. */
 class PublicLinkProbeInstrumentation : Instrumentation() {
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
@@ -60,23 +62,22 @@ class PublicLinkProbeInstrumentation : Instrumentation() {
                 require(callback.readFinished.await(CONNECTION_AND_READ_MILLIS, TimeUnit.MILLISECONDS))
                 require(callback.readAccepted)
                 observation.publicRead = true
-                Thread.sleep(CONNECTED_DISPLAY_HOLD_MILLIS)
-                require(callback.requestDisconnect(gatt))
-                try {
-                    gatt.disconnect()
-                } catch (_: SecurityException) {
-                    error("disconnect")
-                }
-                require(callback.disconnected.await(DISCONNECT_MILLIS, TimeUnit.MILLISECONDS))
+                require(
+                    callback.disconnected.await(
+                        PublicLinkAutomaticTerminationPolicy.WAIT_MILLIS,
+                        TimeUnit.MILLISECONDS,
+                    ),
+                )
                 require(callback.disconnectAccepted)
-                observation.phoneDisconnect = true
+                observation.automaticTermination = true
             } finally {
                 gatt.close()
             }
 
             Thread.sleep(READVERTISE_SETTLE_MILLIS)
-            require(selectedDevice in scan(adapter.bluetoothLeScanner, READVERTISE_SCAN_MILLIS))
-            observation.selectedEndpointReadvertised = true
+            val postTermination = scan(adapter.bluetoothLeScanner, READVERTISE_SCAN_MILLIS)
+            require(postTermination.size == 1)
+            observation.compatibleAdvertiserReturned = true
         } catch (_: Exception) {
             // Intentionally emit only fixed booleans below: never exception text or endpoint data.
         }
@@ -126,7 +127,6 @@ class PublicLinkProbeInstrumentation : Instrumentation() {
             DISCOVERING,
             READING,
             HOLDING,
-            DISCONNECTING,
             DISCONNECTED,
             FAILED,
         }
@@ -139,12 +139,19 @@ class PublicLinkProbeInstrumentation : Instrumentation() {
             private set
         @Volatile var disconnectAccepted = false
             private set
+        private val connectedAtElapsedMillis = AtomicLong(0L)
 
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             if (!acceptsGatt(gatt)) return fail()
             if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                if (stage.compareAndSet(Stage.DISCONNECTING, Stage.DISCONNECTED)) {
-                    disconnectAccepted = true
+                if (status == BluetoothGatt.GATT_SUCCESS &&
+                    stage.compareAndSet(Stage.HOLDING, Stage.DISCONNECTED)
+                ) {
+                    val connectedAt = connectedAtElapsedMillis.get()
+                    val elapsedMillis = SystemClock.elapsedRealtime() - connectedAt
+                    disconnectAccepted =
+                        connectedAt > 0L &&
+                        PublicLinkAutomaticTerminationPolicy.acceptsElapsed(elapsedMillis)
                     disconnected.countDown()
                 } else {
                     fail()
@@ -155,6 +162,7 @@ class PublicLinkProbeInstrumentation : Instrumentation() {
                 newState != BluetoothProfile.STATE_CONNECTED ||
                 !stage.compareAndSet(Stage.CONNECTING, Stage.DISCOVERING)
             ) return fail()
+            connectedAtElapsedMillis.set(SystemClock.elapsedRealtime())
             val discoveryStarted = try {
                 gatt.discoverServices()
             } catch (_: SecurityException) {
@@ -208,9 +216,6 @@ class PublicLinkProbeInstrumentation : Instrumentation() {
             onCharacteristicRead(gatt, characteristic, characteristic.value?.copyOf() ?: byteArrayOf(), status)
         }
 
-        fun requestDisconnect(gatt: BluetoothGatt): Boolean =
-            acceptsGatt(gatt) && stage.compareAndSet(Stage.HOLDING, Stage.DISCONNECTING)
-
         private fun acceptsGatt(gatt: BluetoothGatt): Boolean {
             val current = boundGatt.get()
             return if (current == null) boundGatt.compareAndSet(null, gatt) else current === gatt
@@ -225,17 +230,17 @@ class PublicLinkProbeInstrumentation : Instrumentation() {
 
     private data class Observation(
         var publicRead: Boolean = false,
-        var phoneDisconnect: Boolean = false,
-        var selectedEndpointReadvertised: Boolean = false,
+        var automaticTermination: Boolean = false,
+        var compatibleAdvertiserReturned: Boolean = false,
     ) {
         val passed: Boolean
-            get() = publicRead && phoneDisconnect && selectedEndpointReadvertised
+            get() = publicRead && automaticTermination && compatibleAdvertiserReturned
 
         fun render(): String = listOf(
-            "OT085A_PUBLIC_READ=${publicRead.status()}",
-            "OT085A_PHONE_DISCONNECT=${phoneDisconnect.status()}",
-            "OT085A_SELECTED_ENDPOINT_READVERTISED=${selectedEndpointReadvertised.status()}",
-            "OT085A_PHONE_ACCEPTANCE=${passed.status()}",
+            "OT085B_PUBLIC_READ=${publicRead.status()}",
+            "OT085B_AUTOMATIC_TERMINATION=${automaticTermination.status()}",
+            "OT085B_COMPATIBLE_ADVERTISER_RETURNED=${compatibleAdvertiserReturned.status()}",
+            "OT085B_PHONE_ACCEPTANCE=${passed.status()}",
         ).joinToString("\n")
 
         private fun Boolean.status(): String = if (this) "PASS" else "DENY"
@@ -246,8 +251,6 @@ class PublicLinkProbeInstrumentation : Instrumentation() {
         val PUBLIC_LINK_INFO_UUID: UUID = UUID.fromString(CompanionGattV0Contract.PUBLIC_LINK_INFO_UUID)
         const val INITIAL_SCAN_MILLIS = 4_000L
         const val CONNECTION_AND_READ_MILLIS = 10_000L
-        const val CONNECTED_DISPLAY_HOLD_MILLIS = 2_000L
-        const val DISCONNECT_MILLIS = 4_000L
         const val READVERTISE_SETTLE_MILLIS = 1_000L
         const val READVERTISE_SCAN_MILLIS = 6_000L
     }

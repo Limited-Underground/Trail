@@ -203,15 +203,23 @@ rediscovered. The owner separately observed `BLE CONNECTED` followed by
 only `OT085_PHONE_ACCEPTANCE=PASS`, and no address, name, phone identifier,
 private binding, screenshot, or detailed log was retained.
 
-After acceptance, the superseded exported debug Activity and duplicated
-contract were removed. The retained instrumentation now binds callbacks to one
-exact GATT instance and monotonic phase, uses cross-thread-safe scan state,
-requires same-endpoint rediscovery, and emits only fixed per-gate PASS/DENY
-fields. The updated standard gate passes 138 JVM tests across fourteen suites,
-lint, and debug assembly; the instrumentation APK also compiles. It was not
-rerun physically. This evidence proves neither the firmware's independent
-15-second termination nor pairing, protected authorization, Ready, operational
-release, or supported-device behavior.
+OT-085B extended that retained test-only instrumentation to wait passively for
+the target's automatic disconnect. It binds callbacks to one exact GATT and
+monotonic phase, accepts the successful disconnect callback only inside the
+policy-derived 13–20-second window around the frozen 15-second target policy,
+and contains no phone disconnect or automatic reconnect call. The first timed
+attempt rejected an address-equality rediscovery assumption that was unsuitable
+for the target's privacy-aware address rotation. The accepted run instead
+required exactly one exact-service advertiser before and after the link. The
+phone emitted four fixed PASS fields for public read, automatic termination,
+compatible-advertiser return, and overall acceptance; the owner observed
+`BLE CONNECTED` followed by `BLE ADVERTISING`. No endpoint identity was
+required, inferred, or retained.
+
+The updated standard gate passes 139 JVM tests across fifteen suites, lint,
+debug assembly, and instrumentation assembly. This evidence still proves no
+pairing, protected authorization, Ready, operational release, or supported-
+device behavior.
 
 The platform contract follows the official Android documentation for
 [Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),
@@ -231,7 +239,8 @@ compile/target SDK 35, build-tools 35.0.0, and Java 17.
 `Test-AndroidFoundation.ps1` requires explicit JDK and SDK roots, changes no
 global PATH, and puts Gradle caches and build outputs below the supplied
 user-local cache root. The gate runs protocol tests, application-state tests,
-warning-as-error Android lint, and debug assembly.
+warning-as-error Android lint, debug assembly, and debug instrumentation
+assembly.
 
 ```powershell
 .\Test-AndroidFoundation.ps1 `

@@ -6,9 +6,11 @@ status OLED transitions on `OT-DEV-001`; not supported hardware.
 
 OT-085A installed and read-back verified the exact OT-085 image, then accepted
 one fixed, privacy-safe public link-information read and a phone-disconnect
-return to advertising. The owner observed `BLE CONNECTED` followed by
-`BLE ADVERTISING`. No endpoint identity was retained, and the independent
-15-second automatic termination path was not physically exercised.
+return to advertising. OT-085B accepted the independent automatic path: the
+phone made no disconnect request, the bound GATT disconnected inside the
+frozen timing window, the owner observed `BLE CONNECTED` followed by
+`BLE ADVERTISING`, and exactly one compatible service advertiser returned.
+No endpoint identity was required, inferred, or retained.
 Decision 0028 defers rollback-protected authorization on this hardware; no
 secure ownership, trusted phone, protected write, provisioning, or Ready path
 is enabled.
@@ -127,14 +129,17 @@ The configured Secure Connections, MITM, bonding, no-input/no-output, and
 no-store settings therefore do not provide a usable pairing or secure bond in
 this increment. OT-085 keeps one connection open for at most 15 seconds so the
 fixed public value can be read and `BLE CONNECTED` can be presented. The owner
-then requests exact-link termination and requires its matching disconnect
+runtime owner then requests exact-link termination and requires its matching disconnect
 callback within two seconds; failure contains the runtime, while success enters
 the existing bounded advertising restart. Claims and normal commands remain
 closed for the lifetime of this composition. OT-085A physically accepted the
 phone-driven disconnect path: one Android 13 phone matched the exact READ-only
 value, the owner observed the connected-to-advertising OLED lifecycle, and the
-same in-memory endpoint was rediscovered. This does not physically prove the
-independent 15-second termination path.
+same in-memory endpoint was rediscovered. OT-085B then physically accepted the
+independent automatic path without a phone disconnect request: the bound GATT
+disconnected inside the policy-derived window, the owner observed the same OLED
+lifecycle, and exactly one compatible service advertiser returned. The scan
+did not require or infer stable address identity.
 
 The image also build-links the target-neutral durable authorization adapter and
 a target-local security admission preflight. The fixed 32-byte `OAP0/v0`
