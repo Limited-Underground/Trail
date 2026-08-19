@@ -34,7 +34,16 @@ Connections pairing/bonding, one current controller, and confirmed
 replacement. Factory reset, reflashing, invasive access, or old-flash restore
 may reset or roll back ownership; V1 makes no contrary claim. Existing stronger
 protected-storage/floor foundations remain historical and optional future
-hardening. Nothing is implemented or physically accepted by this decision.
+hardening. [Decision 0034](decisions/0034-host-tested-ble-pairing-replacement-contract.md)
+and [`OTBP0/v0`](platform/BLE_PAIRING_REPLACEMENT_V0.md) now freeze and
+host-test the exact pairing, reconnect, replacement, timeout, restart, and
+fail-closed persistence semantics. A designated target-neutral local input held
+for at least 3000 ms and released opens one exact 30-second window; confirmed
+replacement requires a second qualifying hold/release after the candidate
+secure bond and before that original deadline. This selects no GPIO/button
+mapping. Pairing is Secure Connections-only, MITM passkey-authenticated and
+bonded with an exact 16-byte/128-bit key. No target, Android, storage, pairing,
+protected-control, or physical capability is implemented or accepted.
 
 [Decision 0029](decisions/0029-bounded-read-only-ble-link-status.md) permits one
 narrow exception for non-privileged link proof: a fixed, identical-across-units

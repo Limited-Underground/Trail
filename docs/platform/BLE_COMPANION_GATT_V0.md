@@ -19,13 +19,18 @@ authorization, or Ready evidence exists.
 Decision 0033 preserves the codec, lifecycle, and historical authorization
 evidence below while replacing only the V1 authorization prerequisite. V1 no
 longer waits for an independent monotonic floor or secure element. It requires
-a normally closed, deliberately opened short pairing/replacement window, a
-fresh locally displayed six-digit PIN, authenticated BLE Secure Connections
-pairing/bonding, one current controller, saved-bond reconnect, and confirmed
-old-phone removal. The disclosed limit permits ownership rollback after reset,
-reflash, invasive access, or old-flash restoration. The GATT/pairing state
-contract, target implementation, Android integration, and physical acceptance
-remain open.
+a normally closed 30-second pairing/replacement window opened only after a
+designated target-neutral local input is held for at least 3000 ms and released,
+a fresh locally displayed six-decimal-digit passkey, Bluetooth LE Secure
+Connections-only MITM-authenticated passkey pairing/bonding with an exact
+16-byte/128-bit key,
+one current controller, saved-bond reconnect, and confirmed old-phone removal.
+Replacement requires a second qualifying hold/release after candidate bonding
+and before the original deadline. The disclosed limit permits ownership rollback after reset,
+reflash, invasive access, or old-flash restoration. OT-090 now freezes and
+host-tests those exact pairing/reconnect/replacement semantics in
+[`OTBP0/v0`](BLE_PAIRING_REPLACEMENT_V0.md). Target, Android, storage, pairing,
+replacement, protected-control, and physical evidence remain open.
 
 ## Purpose and authority
 
@@ -143,11 +148,15 @@ The target adapter may open a session only after it supplies all of:
   workflow.
 
 The host guard treats these as adapter obligations, not as values received from
-the phone. Exact secure-connections/OOB/passkey behavior for a screenless target
-is unresolved; ordinary unauthenticated "Just Works" pairing is not sufficient
-evidence for the `authenticated_bond` input. A physical authorization window,
-revocation/reset path, privacy-safe bond storage, and lost-phone recovery must
-be designed and validated on the selected device before production use.
+the phone. `OTBP0/v0` freezes the target-neutral 3000-ms hold/release gesture,
+30-second deadline, locally displayed passkey, secure-connections-only security,
+and second replacement-confirmation gesture. The exact target GPIO/button and
+electrical mapping, OLED adapter, NimBLE binding, and bond-store binding remain
+unselected or unimplemented; ordinary unauthenticated "Just Works" pairing is
+not sufficient evidence for the `authenticated_bond` input. The ordinary
+application-protected owner storage, reset/service path, Android flow, and lost-
+phone replacement must still be implemented and validated on the selected
+devices before production use.
 
 Only one controller binding can hold the boot-local session. The device assigns
 a strictly increasing nonzero boot-local session nonce for each opening and

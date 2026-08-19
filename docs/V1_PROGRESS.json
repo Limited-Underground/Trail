@@ -51,7 +51,7 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. OT-083 and OT-084 reject both on-chip authorization rollback-floor candidates; Decision 0033 preserves that result for rollback-proof ownership while permitting a future practical physical-presence authorization design under the disclosed physical-reflash limit. OT-085A installed and verified the exact OT-085 image, accepted one fixed privacy-safe public BLE read, and physically observed `BLE CONNECTED` followed by the phone-disconnect return to `BLE ADVERTISING`. OT-085B accepted target-initiated automatic termination inside the bounded interval, the same owner-observed display lifecycle, and return of exactly one compatible service advertiser without claiming stable identity; every protected characteristic, claim, and command remains closed. The exact installed partition/source proof, private OT-064 recovery application, recovery contracts, and dormant protected-root foundations remain accepted historical evidence without current runtime authority.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. OT-083 and OT-084 reject both on-chip authorization rollback-floor candidates; Decision 0033 preserves that result for rollback-proof ownership while permitting practical physical-presence authorization under the disclosed physical-reflash limit. OT-090 freezes and host-tests that exact pairing/reconnect/replacement contract without target, Android, storage, pairing, protected-control, or physical evidence. OT-085A installed and verified the exact OT-085 image, accepted one fixed privacy-safe public BLE read, and physically observed `BLE CONNECTED` followed by the phone-disconnect return to `BLE ADVERTISING`. OT-085B accepted target-initiated automatic termination inside the bounded interval, the same owner-observed display lifecycle, and return of exactly one compatible service advertiser without claiming stable identity; every protected characteristic, claim, and command remains closed. The exact installed partition/source proof, private OT-064 recovery application, recovery contracts, and dormant protected-root foundations remain accepted historical evidence without current runtime authority.",
       "weight": 15,
       "completion": 25,
       "evidence_status": "Experimental physical target with bounded public BLE link",
@@ -72,11 +72,14 @@
         "tests/hardware/OT-085-2026-08-18.md",
         "tests/hardware/OT-085A-2026-08-19.md",
         "tests/hardware/OT-085B-2026-08-19.md",
+        "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md",
+        "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md",
+        "tests/hardware/OT-090-2026-08-19.md",
         "tests/hardware/OT-074-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Freeze and host-test Decision 0033 practical authorization and its accepted physical-reflash limitation before any separately authorized target implementation or physical acceptance."
+      "next_gate": "Implement the frozen OT-090 practical authorization contract only under separate target/app authority; secure LoRa and physical acceptance remain open."
     },
     {
       "id": "first-complete-unit",
@@ -118,12 +121,12 @@
         {
           "id": "architecture-safety",
           "name": "Architecture and safety contracts",
-          "description": "Protocol, recovery, privacy, degraded-operation, and owner-approved two-pair V1/four-node V1.5 scope rules are documented; many implementation contracts are host tested, while the new authorization and secure-LoRa gates remain open.",
+          "description": "Protocol, recovery, privacy, degraded-operation, and owner-approved two-pair V1/four-node V1.5 scope rules are documented. OT-090 freezes and host-tests the exact practical BLE pairing/reconnect/replacement contract; its target/app implementation and the separate secure-LoRa contract remain open.",
           "weight": 15,
           "completion": 85,
           "evidence_status": "Host tested",
-          "evidence_refs": ["README.md#project-status", "docs/ARCHITECTURE.md", "docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md", "docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md", "tests/hardware/OT-089-2026-08-19.md", "tasks/BACKLOG.md"],
-          "next_gate": "Freeze and host-test the practical pairing/replacement state machine and separate authenticated/encrypted LoRa contract without claiming implementation credit."
+          "evidence_refs": ["README.md#project-status", "docs/ARCHITECTURE.md", "docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md", "docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-089-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "tasks/BACKLOG.md"],
+          "next_gate": "Freeze and host-test the separate authenticated/encrypted LoRa key-provisioning and transport contract without claiming implementation credit."
         },
         {
           "id": "core-firmware",
@@ -148,22 +151,22 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, bounded partition/source proof, a privately retained recovery application, and historical stronger protected-root contracts. Both on-chip authorization-floor candidates are rejected. Decision 0033 now adopts practical physical-presence authorization for two supported Heltec V1 nodes under a disclosed physical-reflash rollback limit; that new state machine and its target implementation remain open. OT-085A/OT-085B accept only one fixed public BLE read and bounded disconnect/re-advertise lifecycle on one experimental target; all protected characteristics, claims, and commands remain closed.",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, bounded partition/source proof, a privately retained recovery application, and historical stronger protected-root contracts. Both on-chip authorization-floor candidates are rejected. Decision 0033 adopts practical physical-presence authorization for two supported Heltec V1 nodes under a disclosed physical-reflash rollback limit, and OT-090 freezes and host-tests its exact pairing/reconnect/replacement state contract. Target/Android implementation, storage binding, and physical authorization remain open. OT-085A/OT-085B accept only one fixed public BLE read and bounded disconnect/re-advertise lifecycle on one experimental target; all protected characteristics, claims, and commands remain closed.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Experimental physical target with bounded public BLE link",
-          "evidence_refs": ["firmware/targets/heltec_v4_bench", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "tests/hardware/OT-084-2026-08-18.md", "tests/hardware/OT-085-2026-08-18.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "hardware/INVENTORY.md"],
-          "next_gate": "Freeze and host-test practical fresh-PIN pairing/replacement, then implement it under separate device authority; the second Heltec and direct secure-LoRa path remain unaccepted."
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "tests/hardware/OT-084-2026-08-18.md", "tests/hardware/OT-085-2026-08-18.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "hardware/INVENTORY.md"],
+          "next_gate": "Implement the frozen OT-090 pairing/replacement contract under separate device/app authority; the second Heltec, physical acceptance, and direct secure-LoRa path remain unaccepted."
         },
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "Three of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance, exact-service discovery, and bounded physical public GATT connection/read evidence covering both disconnect paths. OT-086 through OT-088 accept only the blocked operational-release plan, unsigned 1/1.0.0 build foundation, and policy prerequisites. Decision 0033 narrows the later physical release matrix to exactly two approved phones and makes practical one-phone-per-Heltec PIN authorization a separate required V1 gate under the disclosed physical-reflash rollback limit. No signed, supported, distributed, production-ready, or operationally accepted candidate or practical authorization implementation exists.",
+          "description": "Three of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance, exact-service discovery, and bounded physical public GATT connection/read evidence covering both disconnect paths. OT-086 through OT-088 accept only the blocked operational-release plan, unsigned 1/1.0.0 build foundation, and policy prerequisites. Decision 0033 narrows the later physical release matrix to exactly two approved phones, and OT-090 freezes/host-tests the separate practical one-phone-per-Heltec pairing/reconnect/replacement contract under the disclosed physical-reflash rollback limit. No Android implementation, signed/supported/distributed candidate, practical physical authorization, or operational acceptance exists.",
           "weight": 20,
           "completion": 60,
           "evidence_status": "Build tested with bounded physical public BLE read, unsigned release-build foundation, and accepted private-pilot policy foundation",
-          "evidence_refs": ["android/README.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md"],
-          "next_gate": "Satisfy the exact two-phone physical matrix, release-identity, and signer/custody prerequisites, then execute OTAR0/v0 on one coherent candidate; practical pairing/replacement and Ready remain separate open V1 gates."
+          "evidence_refs": ["android/README.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md"],
+          "next_gate": "Implement and physically accept the frozen pairing/replacement flow, and separately satisfy the exact two-phone matrix, release-identity, signer/custody, OTAR0/v0, and Ready gates."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -172,8 +175,8 @@
           "weight": 15,
           "completion": 0,
           "evidence_status": "Not started",
-          "evidence_refs": ["docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md", "docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md", "tests/hardware/OT-089-2026-08-19.md"],
-          "next_gate": "Freeze the pairing/replacement and secure-LoRa contracts, implement them, approve exact two-pair candidates, then run one coherent physical V1 sequence."
+          "evidence_refs": ["docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md", "docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-089-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md"],
+          "next_gate": "Freeze the secure-LoRa contract, implement it and the frozen pairing/replacement contract, approve exact two-pair candidates, then run one coherent physical V1 sequence."
         }
       ],
       "change_log": [
@@ -290,6 +293,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Adopted the permanent owner-approved two-pair V1 and four-supported-node V1.5 scope plus practical physical-presence authorization boundary. This planning decision supersedes only incompatible four-pair/four-phone and mandatory authorization-floor requirements; it proves no pairing, secure LoRa, signed release, supported hardware, or physical acceptance. Android remains 60%, V1 Companion remains exact 43.75% / displayed 44%, and V1.5 remains unmeasured."
+        },
+        {
+          "date": "2026-08-19",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted the host-tested OTBP0/v0 practical BLE pairing/reconnect/replacement contract with normally closed physical admission, fresh local passkey, authenticated Secure Connections bonding, replacement confirmation, restart closure, ambiguity denial, and privacy-safe diagnostics. No target/app/storage implementation, phone/hardware operation, pairing, protected control, secure LoRa, or physical acceptance occurred, so every milestone completion is unchanged: Android remains 60%, V1 Companion remains exact 43.75% / displayed 44%, and V1.5 remains unmeasured."
         }
       ]
     },
@@ -419,6 +428,11 @@
       "date": "2026-08-19",
       "overall": 32,
       "reason": "Accepted OT-085B physical target-initiated automatic BLE termination, owner-observed connected-to-advertising status, and return of exactly one compatible service advertiser on the exact verified OT-085 image. No separate Heltec scoring increment is defined, so the historical baseline remains exact 31.75% / displayed 32%."
+    },
+    {
+      "date": "2026-08-19",
+      "overall": 32,
+      "reason": "Accepted the host-tested OTBP0/v0 practical BLE pairing/reconnect/replacement contract without target/app/storage implementation, phone or hardware operation, pairing, protected control, secure LoRa, or physical acceptance. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
     }
   ]
 }

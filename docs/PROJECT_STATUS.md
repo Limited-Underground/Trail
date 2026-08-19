@@ -9,13 +9,45 @@ Status date: 2026-08-19
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-090 freezes and host-tests `OTBP0/v0`, the exact Decision 0033 practical
+physical-presence BLE pairing, saved-bond reconnect, and confirmed phone-
+replacement contract. Pairing is normally closed. Holding the designated
+target-neutral local input for at least 3000 ms and releasing it opens one exact
+30-second, one-attempt, single-candidate window; no GPIO/button mapping is
+selected. Each admitted window receives one fresh uniformly sampled, locally
+displayed six-decimal-digit passkey. Pairing is Bluetooth LE Secure
+Connections-only, MITM passkey-authenticated and bonded with an exact
+16-byte/128-bit key;
+legacy pairing, `Just Works`, and static/debug passkeys are denied.
+Reconnect rechecks the saved current bond, link security, and separate
+application authorization without rewriting ownership. Replacement stays
+distinct: after the candidate secure bond, a second qualifying hold/release
+must complete before the original deadline. Candidate commit and exact readback
+precede old-authorization invalidation; verified old-bond removal precedes new-
+controller publication. Abort, expiry, interruption, or known pre-mutation
+failure preserves the exact prior owner only after candidate-bond removal and
+verified absence. Ambiguous commit, readback, candidate cleanup, or old-bond
+cleanup publishes neither controller.
+Timeout, mismatch, authentication/bond failure, disconnect, stale/replayed
+events, clock failure/rollback, restart, and incoherent persistence fail closed.
+
+This is deterministic host-contract evidence only. No target or Android
+implementation, storage binding, physical gesture/display, Bluetooth operation,
+PIN display/entry, pairing, bond, reconnect, replacement, protected GATT,
+`Ready`, secure LoRa, phone installation, signed release, supported hardware,
+or coherent V1 physical result is claimed. Android remains 60%; V1 remains exact
+43.75%/displayed 44%; V1.5 remains unmeasured. See
+[Decision 0034](decisions/0034-host-tested-ble-pairing-replacement-contract.md),
+the [OTBP0/v0 contract](platform/BLE_PAIRING_REPLACEMENT_V0.md), and
+[OT-090 evidence](../tests/hardware/OT-090-2026-08-19.md).
+
 OT-089 permanently adopts the owner-approved V1 scope and security boundary.
 V1 now requires exactly two supported Heltec LoRa devices and two approved
 Android phones, one current phone per Heltec, with one coherent bidirectional
 Phone A ⇄ BLE ⇄ Heltec A ⇄ direct LoRa ⇄ Heltec B ⇄ BLE ⇄ Phone B acceptance.
-Practical authorization uses a normally closed short physical window, a fresh
-locally displayed six-digit PIN, authenticated BLE Secure Connections pairing/
-bonding, saved-bond reconnect, and confirmed phone replacement. Factory reset,
+At OT-089 acceptance, practical authorization still required an exact state
+contract. OT-090 later freezes and host-tests that contract without
+implementation or score credit. Factory reset,
 reflashing, invasive access, or old-flash restore may reset or roll back
 ownership; V1 requires no secure element or independent monotonic floor and
 makes no rollback-proof physical-attacker claim. LoRa authentication,
@@ -105,9 +137,9 @@ Decision 0028 historically deferred rollback-protected companion authorization
 beyond the current Heltec V1 rather than weakening it. Decision 0033 now
 supersedes only the independent-floor requirement for V1 and adopts practical
 authorization under the disclosed physical-reflash rollback limit. The
-build-tested stronger foundations remain historical; the replacement practical
-state machine, target/app implementation, physical acceptance, and Ready remain
-open.
+build-tested stronger foundations remain historical. OT-090 later freezes and
+host-tests the replacement practical state contract; target/app implementation,
+storage binding, physical acceptance, and Ready remain open.
 OT-085A's accepted third Android evidence gate raised V1 Companion to exact
 43.75%/displayed 44%. OT-085B closes its automatic-termination sub-gate without
 an additional score; the Heltec milestone description advances but its
@@ -2386,9 +2418,12 @@ entropy/time/power/display/input adapters, target application build, or
 on-device composition evidence exists. Exact adapters, thresholds, and rendered
 behavior wait for frozen client hardware. OT-023 remains a blocked historical
 four-client standalone plan, not the V1 Companion completion gate. Under
-Decision 0033, the next V1 checkpoint is to freeze and host-test the practical
-pairing/replacement state machine and separate secure-LoRa contract before any
-target implementation or coherent two-pair acceptance. Continue the partially
+Decision 0033, OT-090 has frozen and host-tested the practical pairing/
+replacement state machine without implementation credit. The next V1 contract
+checkpoint is to freeze and host-test the separate authenticated/encrypted
+secure-LoRa key-provisioning and transport contract. Pairing/replacement target
+and Android implementation, physical acceptance, and the coherent two-pair run
+remain separately authorized later gates. Continue the partially
 executed OT-020 procedure without reconstructing the Wio's unpreserved shipping
 state.
 Authenticated on-device transport, protected target state, physical restart and

@@ -32,12 +32,27 @@ Phone A ⇄ BLE ⇄ Heltec A ⇄ direct LoRa ⇄ Heltec B ⇄ BLE ⇄ Phone B
 
 ## V1 authorization gate
 
-Before implementation, freeze one exact state machine for normally closed
-pairing admission, a deliberate short physical window, one fresh locally
-displayed six-digit PIN per session, authenticated BLE Secure Connections
-pairing/bonding, one current controller, saved-bond reconnect, timeout/failure
-closure, confirmed replacement, and previous-authorization removal. No PIN,
-key, address, phone ID, or device ID may enter ordinary logs or public evidence.
+OT-090 freezes and host-tests `OTBP0/v0`, the exact state contract for normally
+closed pairing admission. Holding the designated target-neutral local input for
+at least 3000 ms and releasing it opens one exact 30-second, one-attempt,
+single-candidate window; no GPIO/button mapping is selected. Each admitted
+window receives one fresh uniformly sampled, locally displayed six-decimal-
+digit passkey. Pairing is Bluetooth LE Secure Connections-only, MITM passkey-
+authenticated and bonded with an exact 16-byte/128-bit key; legacy pairing, `Just Works`, and
+static/debug passkeys are denied. Saved-bond reconnect rechecks link security
+and separate application authorization without rewriting ownership.
+
+Replacement requires a second qualifying hold/release after the candidate
+secure bond and before the original deadline. Candidate commit and exact
+readback precede old-authorization invalidation; old-bond removal and verified
+absence precede new-controller publication. Abort, expiry, interruption, or
+known pre-mutation failure preserves the exact prior owner only after candidate-
+bond removal and verified absence. Ambiguous commit, readback, candidate
+cleanup, or old-bond cleanup publishes neither controller. Restart closes
+transient state. Target, Android,
+storage, pairing, replacement, and physical acceptance remain open. No PIN,
+key, private bond reference, address, phone ID, physical-event token, or device
+ID may enter ordinary logs or public evidence.
 
 The implementation may use ordinary application-protected storage. Factory
 reset, flash replacement/restoration, reflashing, or invasive access may reset
@@ -108,11 +123,12 @@ does not confer support.
 
 ## Sequence and scoring
 
-Freeze and host-test authorization; implement and physically accept pairing and
-replacement; freeze and host-test secure LoRa; implement direct transport and
-Android message flow; run complete two-pair V1 acceptance; finish the signed
-Android gate; then publish V1. Four-node interoperability and any mesh claim
-remain V1.5.
+Authorization is frozen and host-tested under OT-090. Next freeze and host-test
+the separate secure-LoRa key-provisioning and transport contract. Then
+implement and physically accept the frozen pairing/replacement and secure-LoRa
+paths under separate authority; complete the Android message flow; run complete
+two-pair V1 acceptance; finish the signed Android gate; then publish V1.
+Four-node interoperability and any mesh claim remain V1.5.
 
 This scope decision changes no completion. V1 remains exact 43.75%/displayed
 44%; V1.5 has no percentage until a separate evidence-weighted measurement is

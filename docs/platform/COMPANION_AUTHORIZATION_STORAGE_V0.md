@@ -14,7 +14,14 @@ evidence but removes the independent monotonic floor and secure-element class
 from the V1 completion prerequisites. Practical V1 authorization may store its
 bond/owner state in ordinary application-protected storage under the disclosed
 limit that reset, reflashing, invasive access, or old-flash restoration may
-reset or roll back ownership. The exact replacement storage contract and target
+reset or roll back ownership. OT-090 freezes the separate `OTBP0/v0` requirement
+for a schema distinct from these historical floor-based records, an opaque
+private bond reference, exact owner commit/readback, and fail-closed
+reconciliation. Abort, expiry, interruption, or known pre-mutation failure
+preserves the exact prior owner only after candidate-bond removal and verified
+absence; possible mutation without exact readback or ambiguous candidate/old-
+bond cleanup publishes no controller. OT-090 does not select or implement the concrete
+ordinary application-protected record/backend. Target storage and physical
 evidence remain open. The floor-based contract below remains eligible optional
 future hardening and must not be represented as current V1 implementation.
 
@@ -371,17 +378,21 @@ See
 [Decision 0027](../decisions/0027-reject-esp32s3-secure-version-authorization-floor.md)
 and [OT-084 evidence](../../tests/hardware/OT-084-2026-08-18.md).
 
-## Current Heltec V1 deferral
+## Historical Decision 0028 deferral
 
 [Decision 0028](../decisions/0028-defer-rollback-protected-companion-authorization-beyond-current-heltec-v1.md)
-defers this protected authorization contract beyond the current Heltec V1
-target because neither on-chip floor candidate is viable and no external
-provider is selected or present. The contract and its build-tested components
-remain engineering foundations only: they are not weakened, relabeled, or
-injected into the current runtime.
+originally deferred this rollback-floor-based protected authorization contract
+beyond the then-current Heltec V1 target because neither on-chip floor candidate
+was viable and no external provider was selected or present. Its build-tested
+components remain engineering foundations only: they are not weakened,
+relabeled, or injected into the current runtime.
 
-Current Heltec work may expose only separately accepted non-privileged
-functions. OT-085's fixed public BLE link-information read grants no ownership,
-claim, write, provisioning, persistent identity, protected recovery, or Ready
-authority. Any future protected authorization requires a new hardware/provider
-architecture and separate physical acceptance.
+[Decision 0033](../decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
+later supersedes Decision 0028 only as a mandatory practical-V1 floor/hardware
+prerequisite. `OTBP0/v0` is the current host-tested practical authorization
+contract under the disclosed physical-reflash rollback limit. The installed
+OT-085 image remains non-privileged and grants no ownership, claim, write,
+provisioning, persistent identity, protected recovery, or `Ready` authority.
+Target/app implementation and physical acceptance still require separate
+authority, but no new rollback-floor provider or hardware revision is a V1
+prerequisite.

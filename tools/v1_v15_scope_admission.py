@@ -26,7 +26,7 @@ PUBLIC_SUMMARY = (
     "implementation and physical acceptance remain open."
 )
 CANONICAL_PLAN_SHA256 = (
-    "bdffeebe171bb6a6ee6afee476465fac194d61254760464ff4ae5840e12d4f31"
+    "de20457c068368ec870437234c42c9519f1584008030b11aac014e6bb157d69e"
 )
 MAX_PLAN_BYTES = 64 * 1024
 MAX_JSON_DEPTH = 64

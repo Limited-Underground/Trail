@@ -57,7 +57,7 @@ def test_checked_in_scope_is_adopted_but_not_evaluated() -> None:
     assert report["execution_authority_granted"] is False
     assert report["score_credit_added"] is False
     assert report["open_followup_gates"] == [
-        "ble_pairing_protocol_not_frozen",
+        "ble_pairing_implementation_and_physical_acceptance_open",
         "lora_key_provisioning_workflow_not_frozen",
         "implementation_and_physical_acceptance_open",
     ]
@@ -110,7 +110,7 @@ def test_v1_practical_ble_authorization_and_limitation_are_exact() -> None:
     assert policy["closed_to_new_pairing_by_default"] is True
     assert policy["deliberate_physical_action_required"] is True
     assert policy["pairing_window"] == "short_bounded"
-    assert policy["pairing_window_duration"] == "unfrozen_blocker"
+    assert policy["pairing_window_duration"] == 30000
     assert policy["pin_generation"] == "fresh_uniform_csprng_six_decimal_digits"
     assert policy["pin_display"] == "local_heltec_only"
     assert policy["pairing_method"] == (

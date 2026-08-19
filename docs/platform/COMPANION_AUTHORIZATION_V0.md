@@ -12,15 +12,28 @@ evidence exists,
 [Decision 0033](../decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
 preserves this host/build evidence but supersedes the independent monotonic
 rollback floor as a V1 prerequisite. Current V1 must instead implement a
-normally closed short physical window, fresh locally displayed six-digit PIN,
-authenticated BLE Secure Connections pairing/bonding, one current controller,
-saved-bond reconnect, and confirmed replacement in ordinary application-
-protected storage. Factory reset, reflashing, invasive physical access, or an
-old-flash restore may reset/roll back ownership. The exact new state contract,
-implementation, and physical acceptance remain open; no existing host result is
+normally closed exact 30-second window opened by holding the designated target-
+neutral local input for at least 3000 ms and releasing it. Each window receives
+one fresh uniformly sampled, locally displayed six-decimal-digit passkey and
+admits one Bluetooth LE Secure Connections-only, MITM-authenticated passkey
+pairing attempt with bonding and an exact 16-byte/128-bit key. One current controller, saved-
+bond reconnect, and replacement confirmed by a second qualifying hold/release
+before the original deadline use ordinary application-protected storage.
+Factory reset, reflashing, invasive physical access, or an
+old-flash restore may reset/roll back ownership. OT-090 now freezes and
+host-tests the separate exact [`OTBP0/v0`](BLE_PAIRING_REPLACEMENT_V0.md)
+pairing/reconnect/replacement state contract. Target and Android implementation,
+ordinary application-protected storage binding, physical pairing/replacement,
+and protected-control acceptance remain open; no older host result is
 relabelled as evidence for them.
 
-## Authority boundary
+Everything below this notice describes the preserved pre-Decision-0033
+rollback-floor-based host/build slices unless an OT-090 cross-reference says
+otherwise. Those exact records, tokens, claim/revoke/reset actions, and trusted-
+generation requirements are not silently reinterpreted as the practical
+`OTBP0/v0` V1 implementation.
+
+## Preserved historical authority boundary
 
 The LoRa device, not the Android app, owns the authorized-phone decision. A
 trusted future BLE bond store supplies a stable opaque 128-bit bond identity

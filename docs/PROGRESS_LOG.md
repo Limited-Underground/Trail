@@ -6,6 +6,43 @@ public chronology.
 
 ## 2026-08-19
 
+### OT-090 host-tested BLE pairing/replacement contract
+
+- Accepted `OTBP0/v0`, the exact normally closed physical-presence pairing,
+  saved-bond reconnect, and confirmed phone-replacement contract required by
+  Decision 0033.
+- Froze the target-neutral physical gesture: hold the designated local input for
+  at least 3000 ms and release it to open one exact 30-second, one-attempt,
+  single-candidate window. No GPIO/button mapping is selected. Each admitted
+  window receives one fresh uniformly sampled, locally displayed six-decimal-
+  digit passkey.
+- Required Bluetooth LE Secure Connections-only, MITM-authenticated passkey
+  pairing, bonding, and an exact 16-byte/128-bit key; legacy pairing, `Just Works`, and
+  static/debug passkeys are denied. Reconnect rechecks the exact saved bond,
+  link security, and separate application authorization without rewriting
+  ownership.
+- Required replacement confirmation by a second qualifying 3000-ms hold/release
+  after the candidate secure bond and before the original deadline. The
+  candidate owner commit and exact readback precede old-authorization
+  invalidation; old-bond removal and verified absence precede publication of
+  the new controller.
+- Required timeout, mismatch, authentication/bond failure, cancellation,
+  disconnect, stale/replayed events, second candidates, clock failure/rollback,
+  restart, and ambiguous persistence to fail closed. Restart never restores a
+  passkey or pending window. Abort, expiry, interruption, or known pre-mutation
+  failure preserves the exact prior owner only after candidate-bond removal and
+  verified absence; ambiguous commit, readback, candidate cleanup, or old-bond
+  cleanup publishes neither controller.
+- Kept PINs, bond keys, phone identifiers, BLE addresses, device-specific
+  identifiers, private owner bindings, and storage contents out of ordinary
+  logs and public evidence.
+- No target, Android, storage, phone, Bluetooth, pairing, PIN, bond, key, signer,
+  radio, installation, write, account, upload, or distribution operation ran.
+  Implementation and physical acceptance remain open.
+- Android remains 60%; V1 remains exact 43.75%/displayed 44%; V1.5 remains
+  unmeasured. The separate secure-LoRa contract is the next host-contract gate.
+  See [OT-090 evidence](../tests/hardware/OT-090-2026-08-19.md).
+
 ### OT-089 permanent V1/V1.5 scope and security boundary
 
 - Adopted the owner-approved permanent V1 topology: two supported Heltecs, two

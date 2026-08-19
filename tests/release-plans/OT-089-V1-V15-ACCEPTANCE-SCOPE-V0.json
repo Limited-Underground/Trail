@@ -30,7 +30,7 @@
       "closed_to_new_pairing_by_default": true,
       "deliberate_physical_action_required": true,
       "pairing_window": "short_bounded",
-      "pairing_window_duration": "unfrozen_blocker",
+      "pairing_window_duration": 30000,
       "pin_generation": "fresh_uniform_csprng_six_decimal_digits",
       "pin_display": "local_heltec_only",
       "pairing_method": "authenticated_ble_le_secure_connections_passkey_and_bond",
@@ -196,7 +196,7 @@
     "v1_5_complete": false
   },
   "open_followup_gates": [
-    "ble_pairing_protocol_not_frozen",
+    "ble_pairing_implementation_and_physical_acceptance_open",
     "lora_key_provisioning_workflow_not_frozen",
     "implementation_and_physical_acceptance_open"
   ]
