@@ -6,6 +6,26 @@ public chronology.
 
 ## 2026-08-19
 
+### OT-086 Android operational-release admission plan
+
+- Accepted the machine-checkable `OTAR0/v0` operational-release contract,
+  canonical plan, fail-closed validator, and deterministic denial cases.
+- Froze `private-sideload-v1-pilot` as the only current distribution scope:
+  controlled private installation on four V1 pilot phones that must each be
+  approved and frozen before execution, not public or store distribution. Any
+  future Play path requires a separate current target-API policy recheck and
+  required toolchain/target-SDK update.
+- The exact accepted result is `PLAN-ACCEPTED-EXECUTION-BLOCKED`. No production
+  variant, signer/custody policy, immutable artifact, supported-device matrix,
+  lifecycle/endurance/privacy/support result, install, distribution, or release
+  pass exists, and no signing, phone, store/account, or device authority was
+  exercised.
+- Android remains 60%, and V1 Companion remains exact 43.75%/displayed 44%.
+  The next release-track gate is to satisfy and execute the accepted private-
+  sideload plan as one coherent candidate evidence set. Protected one-phone
+  authorization/`Ready` and the four-pair field proof remain separate gates.
+  See [OT-086 evidence](../tests/hardware/OT-086-2026-08-19.md).
+
 ### OT-085B physical automatic BLE link-termination acceptance
 
 - Reused the exact installed and verified OT-085 image without a target write,

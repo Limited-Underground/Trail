@@ -15,6 +15,12 @@ termination and compatible-advertiser-return acceptance. This directory contains
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
+OT-086 also accepts the plan-only `OTAR0/v0` operational-release admission
+contract, canonical plan, and fail-closed validator. Its only current
+distribution scope is `private-sideload-v1-pilot`. The accepted outcome is
+`PLAN-ACCEPTED-EXECUTION-BLOCKED`; it proves no production candidate,
+signing, installation, supported phone, distribution, support, or V1 release.
+
 The visible working product name is `Limited Underground Trail`. The stable,
 technical application and package namespace is
 `io.github.nbjelanovic.otclient`; customer-facing working names do not enter the
@@ -222,6 +228,30 @@ debug assembly, and instrumentation assembly. This evidence still proves no
 pairing, protected authorization, Ready, operational release, or supported-
 device behavior.
 
+## Operational-release admission (plan only)
+
+The accepted
+[`OTAR0/v0` contract](../docs/platform/ANDROID_OPERATIONAL_RELEASE_ACCEPTANCE_V0.md)
+and [Decision 0030](../docs/decisions/0030-android-operational-release-admission.md)
+bind a future run to one immutable release candidate and one coherent package,
+signer, lifecycle, privacy, endurance, accessibility, recovery, support, and
+cleanup evidence set. The checked-in plan selects only controlled private
+sideloading to four V1 pilot phones that must each be approved and frozen
+before execution. It does not authorize creating or using a signing key,
+installing or removing an app, changing phone settings, accessing a device/
+account, or distributing a package.
+
+A Google Play path is outside OT-086. It requires a separate decision and plan,
+a fresh recheck of the then-current Play target-API policy, and any required
+Android toolchain and target-SDK update before admission.
+
+The next Android release-track gate is to satisfy the accepted plan's named
+prerequisites and execute its complete private-sideload evidence sequence under
+separately authorized signing, phone, installation, and distribution
+operations. Missing, stale, mixed, skipped, private, or contradictory evidence
+must remain blocked; protected one-phone authorization and `Ready` remain a
+separate V1 hardware gate.
+
 The platform contract follows the official Android documentation for
 [Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),
 [service-UUID scan filters](https://developer.android.com/reference/android/bluetooth/le/ScanFilter.Builder),
@@ -249,5 +279,7 @@ assembly.
   -AndroidSdkRoot "$env:LOCALAPPDATA\Android\Sdk"
 ```
 
-No signing key, production variant, Play Store configuration, device access,
-live Bluetooth evidence, or installation command is present.
+No signing key, production variant, release artifact, device access, release
+installation command, or public/store distribution configuration is present.
+The OT-086 plan selects only `private-sideload-v1-pilot` and remains blocked
+from execution.

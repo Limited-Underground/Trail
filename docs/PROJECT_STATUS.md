@@ -9,6 +9,23 @@ Status date: 2026-08-19
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-086 accepts the plan-only `OTAR0/v0` Android operational-release
+admission contract, one canonical plan, a fail-closed validator, and
+deterministic denial cases. The only current distribution scope is
+`private-sideload-v1-pilot`, meaning controlled private installation on the
+four V1 pilot phones that must each be approved and frozen before execution; it
+is not public or store distribution. A future Play scope requires a separate
+current target-API policy recheck and any required Android toolchain/target-SDK
+update. The sole successful planning outcome is
+`PLAN-ACCEPTED-EXECUTION-BLOCKED`: the plan is bounded, but no production
+variant, signer/custody policy, immutable artifact, supported-device matrix,
+lifecycle/endurance/privacy/support result, installation, distribution, or
+release pass exists. Android remains 60%, and V1 Companion remains exact
+43.75%/displayed 44%. See
+[Decision 0030](decisions/0030-android-operational-release-admission.md),
+[the operational-release contract](platform/ANDROID_OPERATIONAL_RELEASE_ACCEPTANCE_V0.md),
+and [OT-086 evidence](../tests/hardware/OT-086-2026-08-19.md).
+
 OT-085B physically accepts the independent automatic public-BLE lifecycle on
 the exact 471,456-byte OT-085 factory image already installed and read-back
 verified on `OT-DEV-001`. One Android 13 phone found exactly one compatible

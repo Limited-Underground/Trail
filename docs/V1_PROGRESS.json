@@ -158,12 +158,12 @@
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "Three of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance, exact-service discovery, and bounded physical public GATT connection/read evidence covering both phone-disconnect and target-initiated automatic disconnect/re-advertise lifecycles. Protected authorization is deferred on current Heltec hardware and operational release acceptance remains open.",
+          "description": "Three of five equal evidence gates are accepted: build/install/lifecycle/artwork acceptance, exact-service discovery, and bounded physical public GATT connection/read evidence covering both phone-disconnect and target-initiated automatic disconnect/re-advertise lifecycles. OT-086 accepts the plan-only OTAR0/v0 operational-release contract and canonical private-sideload-v1-pilot plan with execution blocked; it supplies no production candidate or release acceptance. Protected authorization remains deferred on current Heltec hardware.",
           "weight": 20,
           "completion": 60,
           "evidence_status": "Build tested with bounded physical public BLE read",
-          "evidence_refs": ["android/README.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md"],
-          "next_gate": "Complete operational release acceptance; keep protected one-phone authorization and Ready deferred pending future hardware."
+          "evidence_refs": ["android/README.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md"],
+          "next_gate": "Satisfy the named prerequisites and execute the accepted OTAR0/v0 private-sideload-v1-pilot plan as one coherent release-candidate evidence set; keep protected one-phone authorization and Ready deferred pending future hardware."
         },
         {
           "id": "four-person-companion-field-proof",
@@ -266,6 +266,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Accepted OT-085B physical target-initiated automatic BLE termination on the exact verified OT-085 image. The Android 13 harness made no disconnect request, accepted the successful remote disconnect inside the target-derived bounded interval, and observed exactly one compatible service advertiser return; the owner observed BLE CONNECTED followed by BLE ADVERTISING. This closes the automatic-termination sub-gate but defines no separate scoring increment, so the Heltec milestone remains 25% and Android remains 60%. Protected authorization, Ready, operational release, and field evidence remain open."
+        },
+        {
+          "date": "2026-08-19",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted the plan-only OTAR0/v0 Android operational-release contract, canonical private-sideload-v1-pilot plan, and fail-closed admission validator with execution blocked. No production candidate, signing, installation, supported-device, operational, support, distribution, or release evidence was added, so Android remains 60% and V1 Companion remains exact 43.75% / displayed 44%."
         }
       ]
     },

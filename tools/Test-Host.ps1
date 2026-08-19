@@ -1920,6 +1920,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "Crypto benchmark evidence tests failed with exit code $LASTEXITCODE."
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\android_release_admission_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "Android operational-release admission tests failed with exit code $LASTEXITCODE."
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\map_package_manifest_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "Map-package manifest tests failed with exit code $LASTEXITCODE."

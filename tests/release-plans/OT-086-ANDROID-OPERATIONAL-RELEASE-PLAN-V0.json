@@ -1,0 +1,126 @@
+{
+  "schema": "OTAR0",
+  "version": 0,
+  "artifact_kind": "android_operational_release_plan",
+  "plan_id": "OT-086-ANDROID-OPERATIONAL-RELEASE-V0",
+  "plan_status": "accepted_execution_blocked",
+  "application": {
+    "application_id": "io.github.nbjelanovic.otclient",
+    "current_version_code": 1,
+    "current_version_name": "0.1.0-dev",
+    "candidate_version_code": 0,
+    "candidate_version_name": "",
+    "min_sdk": 26,
+    "bluetooth_min_sdk": 31,
+    "target_sdk": 35,
+    "production_variant_configured": false
+  },
+  "release_identity": {
+    "public_name": "Limited Underground Trail",
+    "clearance": "pending_professional_clearance",
+    "owner_approved_for_candidate": false
+  },
+  "distribution": {
+    "scope": "private-sideload-v1-pilot",
+    "artifact_format": "apk",
+    "owner_approved": true,
+    "external_account_authority_included": false
+  },
+  "upgrade_mode": "first-release-not-applicable",
+  "signing": {
+    "custody_model": "unselected",
+    "certificate_sha256": "",
+    "custody_approved": false,
+    "sensitive_material_included": false
+  },
+  "artifact_policy": {
+    "require_signed_release": true,
+    "require_non_debuggable": true,
+    "require_test_components_absent": true,
+    "require_backup_excluded": true,
+    "require_hash_manifest": true,
+    "require_sbom": true,
+    "authored_permissions": [
+      "android.permission.BLUETOOTH_CONNECT",
+      "android.permission.BLUETOOTH_SCAN",
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
+      "android.permission.POST_NOTIFICATIONS"
+    ],
+    "generated_permissions": [
+      "io.github.nbjelanovic.otclient.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+    ],
+    "forbidden_permissions": [
+      "android.permission.ACCESS_COARSE_LOCATION",
+      "android.permission.ACCESS_FINE_LOCATION",
+      "android.permission.INTERNET",
+      "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.REQUEST_INSTALL_PACKAGES",
+      "android.permission.WAKE_LOCK",
+      "android.permission.WRITE_EXTERNAL_STORAGE"
+    ],
+    "forbidden_release_components": [
+      "io.github.nbjelanovic.otclient.PublicLinkAutomaticTerminationPolicy",
+      "io.github.nbjelanovic.otclient.PublicLinkProbeInstrumentation"
+    ]
+  },
+  "supported_platforms": {
+    "required_api_levels": [31, 33, 36],
+    "minimum_physical_devices_per_level": 1,
+    "matrix_approved": false
+  },
+  "operational_policy": {
+    "privacy_data_safety_approved": false,
+    "support_policy_approved": false,
+    "rollback_policy_approved": false
+  },
+  "required_acceptance_checks": [
+    "release_variant_build_and_lint",
+    "artifact_identity_and_hash_manifest",
+    "release_signature_and_certificate_pin",
+    "permission_and_component_allowlist",
+    "ot085_instrumentation_and_debug_helpers_absent",
+    "clean_install_and_cold_launch",
+    "first_release_uninstall_reinstall_and_state_boundary",
+    "uninstall_and_data_removal",
+    "foreground_service_notification_granted",
+    "foreground_service_notification_denied",
+    "background_reopen_and_process_restart",
+    "device_reboot_no_auto_start",
+    "screen_reader_and_accessibility_review",
+    "backup_and_device_transfer_excluded",
+    "privacy_data_safety_and_support",
+    "rollback_and_recovery",
+    "public_evidence_redaction"
+  ],
+  "privacy": {
+    "aggregate_only": true,
+    "account_identifiers_included": false,
+    "device_identifiers_included": false,
+    "local_paths_included": false,
+    "precise_locations_included": false,
+    "raw_logs_public": false,
+    "signing_material_included": false,
+    "store_credentials_included": false
+  },
+  "execution_authority": {
+    "device_install": false,
+    "hardware_access": false,
+    "signing_key_access": false,
+    "signing_key_generation": false,
+    "store_account_access": false,
+    "store_upload": false
+  },
+  "blockers": [
+    "physical_acceptance_matrix_not_approved",
+    "privacy_data_safety_not_approved",
+    "production_variant_not_configured",
+    "release_identity_not_approved",
+    "release_version_not_frozen",
+    "rollback_policy_not_approved",
+    "signer_and_custody_not_approved",
+    "support_policy_not_approved"
+  ]
+}
