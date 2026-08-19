@@ -10,7 +10,8 @@ user-started connected-device foreground-service ownership boundary, and the
 OT-060 foreground-only screen-retention contract, the OT-061 one-candidate
 physical BLE discovery result, the OT-062 exact Trail entry-artwork integration
 and physical visual acceptance, and the OT-085A bounded physical public BLE
-read/disconnect acceptance. This directory contains a buildable
+read/disconnect acceptance, plus the OT-085B target-initiated automatic
+termination and compatible-advertiser-return acceptance. This directory contains a buildable
 Android application shell and pure Kotlin implementations of the brand-neutral `OTB0/v0`,
 `OTC0/v0`, `OTX0/v0`, `OTN0/v0`, `OTA0/v0`, and `OTR0/v0` records.
 
@@ -209,7 +210,7 @@ monotonic phase, accepts the successful disconnect callback only inside the
 policy-derived 13–20-second window around the frozen 15-second target policy,
 and contains no phone disconnect or automatic reconnect call. The first timed
 attempt rejected an address-equality rediscovery assumption that was unsuitable
-for the target's privacy-aware address rotation. The accepted run instead
+for privacy-capable addressing. The accepted run instead
 required exactly one exact-service advertiser before and after the link. The
 phone emitted four fixed PASS fields for public read, automatic termination,
 compatible-advertiser return, and overall acceptance; the owner observed

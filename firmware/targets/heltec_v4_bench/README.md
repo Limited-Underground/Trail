@@ -129,8 +129,9 @@ The configured Secure Connections, MITM, bonding, no-input/no-output, and
 no-store settings therefore do not provide a usable pairing or secure bond in
 this increment. OT-085 keeps one connection open for at most 15 seconds so the
 fixed public value can be read and `BLE CONNECTED` can be presented. The owner
-runtime owner then requests exact-link termination and requires its matching disconnect
-callback within two seconds; failure contains the runtime, while success enters
+then waits while the runtime owner requests exact-link termination and requires
+its matching disconnect callback within two seconds; failure contains the
+runtime, while success enters
 the existing bounded advertising restart. Claims and normal commands remain
 closed for the lifetime of this composition. OT-085A physically accepted the
 phone-driven disconnect path: one Android 13 phone matched the exact READ-only

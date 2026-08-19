@@ -29,9 +29,10 @@ Decision 0028 defers rollback-protected companion authorization beyond the
 current Heltec V1 rather than weakening it. Secure ownership, trusted-phone
 claims, protected writes, provisioning, provider-backed recovery, and Ready
 remain unavailable. The build-tested authorization foundations remain dormant;
-current work may advance only bounded non-privileged prototype functions. The
-accepted third Android evidence gate raises V1 Companion to exact
-43.75%/displayed 44%; the Heltec milestone description advances but its
+current work may advance only bounded non-privileged prototype functions.
+OT-085A's accepted third Android evidence gate raised V1 Companion to exact
+43.75%/displayed 44%. OT-085B closes its automatic-termination sub-gate without
+an additional score; the Heltec milestone description advances but its
 completion remains unchanged because no separate scoring increment is defined.
 See
 [Decision 0028](decisions/0028-defer-rollback-protected-companion-authorization-beyond-current-heltec-v1.md).
