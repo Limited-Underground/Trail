@@ -14,6 +14,19 @@ connection, or pairing. Protected storage admission remains denied, every
 connection is coded for immediate termination, and no GATT exchange,
 authorization, or Ready evidence exists.
 
+## Current V1 supersession notice
+
+Decision 0033 preserves the codec, lifecycle, and historical authorization
+evidence below while replacing only the V1 authorization prerequisite. V1 no
+longer waits for an independent monotonic floor or secure element. It requires
+a normally closed, deliberately opened short pairing/replacement window, a
+fresh locally displayed six-digit PIN, authenticated BLE Secure Connections
+pairing/bonding, one current controller, saved-bond reconnect, and confirmed
+old-phone removal. The disclosed limit permits ownership rollback after reset,
+reflash, invasive access, or old-flash restoration. The GATT/pairing state
+contract, target implementation, Android integration, and physical acceptance
+remain open.
+
 ## Purpose and authority
 
 This contract is the smallest production-facing boundary between one phone and

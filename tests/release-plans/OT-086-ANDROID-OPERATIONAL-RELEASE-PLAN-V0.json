@@ -67,8 +67,9 @@
     ]
   },
   "supported_platforms": {
-    "required_api_levels": [31, 33, 36],
-    "minimum_physical_devices_per_level": 1,
+    "minimum_api_level": 31,
+    "required_phone_roles": ["phone-a", "phone-b"],
+    "required_physical_phones": 2,
     "matrix_approved": false
   },
   "operational_policy": {
@@ -109,7 +110,7 @@
     },
     "support": {
       "policy_id": "OT-088-SUPPORT-V0",
-      "scope": "four_owner_approved_private_pilot_phones_only",
+      "scope": "two_owner_approved_private_pilot_phones_only",
       "starts": "after_complete_release_acceptance",
       "supported_version": "exact_accepted_candidate_only",
       "supported_platforms": "exact_approved_physical_matrix_only",

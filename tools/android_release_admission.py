@@ -30,7 +30,9 @@ CURRENT_VERSION_NAME = "1.0.0"
 MIN_SDK = 26
 BLUETOOTH_MIN_SDK = 31
 TARGET_SDK = 35
-REQUIRED_API_LEVELS = [31, 33, 36]
+MINIMUM_PHYSICAL_API_LEVEL = 31
+REQUIRED_PHONE_ROLES = ["phone-a", "phone-b"]
+REQUIRED_PHYSICAL_PHONES = 2
 PRIVATE_SIDELOAD_SCOPE = "private-sideload-v1-pilot"
 FIRST_RELEASE_UPGRADE_MODE = "first-release-not-applicable"
 OPERATIONAL_POLICY_ID = "OT-088-ANDROID-PRIVATE-PILOT-OPERATIONAL-POLICY-V0"
@@ -62,7 +64,7 @@ ROLLBACK_POLICY = {
 }
 SUPPORT_POLICY = {
     "policy_id": "OT-088-SUPPORT-V0",
-    "scope": "four_owner_approved_private_pilot_phones_only",
+    "scope": "two_owner_approved_private_pilot_phones_only",
     "starts": "after_complete_release_acceptance",
     "supported_version": "exact_accepted_candidate_only",
     "supported_platforms": "exact_approved_physical_matrix_only",
@@ -529,25 +531,37 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
     _exact_keys(
         platforms,
         {
-            "required_api_levels",
-            "minimum_physical_devices_per_level",
+            "minimum_api_level",
+            "required_phone_roles",
+            "required_physical_phones",
             "matrix_approved",
         },
         "plan.supported_platforms",
     )
-    if platforms["required_api_levels"] != REQUIRED_API_LEVELS:
+    if (
+        _integer(
+            platforms["minimum_api_level"],
+            "plan.supported_platforms.minimum_api_level",
+            minimum=1,
+        )
+        != MINIMUM_PHYSICAL_API_LEVEL
+    ):
         raise AdmissionError(
-            "plan.supported_platforms.required_api_levels differs from the canonical matrix"
+            "plan.supported_platforms.minimum_api_level differs from the canonical matrix"
+        )
+    if platforms["required_phone_roles"] != REQUIRED_PHONE_ROLES:
+        raise AdmissionError(
+            "plan.supported_platforms.required_phone_roles differs from the canonical matrix"
         )
     if (
         _integer(
-            platforms["minimum_physical_devices_per_level"],
-            "plan.supported_platforms.minimum_physical_devices_per_level",
+            platforms["required_physical_phones"],
+            "plan.supported_platforms.required_physical_phones",
             minimum=1,
         )
-        != 1
+        != REQUIRED_PHYSICAL_PHONES
     ):
-        raise AdmissionError("minimum physical devices per API level must be exactly one")
+        raise AdmissionError("required physical phones must be exactly two")
     _boolean(
         platforms["matrix_approved"], "plan.supported_platforms.matrix_approved"
     )

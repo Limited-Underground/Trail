@@ -70,6 +70,12 @@ def test_checked_in_plan_is_accepted_but_execution_blocked() -> None:
     assert application["candidate_version_code"] == 1
     assert application["candidate_version_name"] == "1.0.0"
     assert application["production_variant_configured"] is True
+    assert plan()["supported_platforms"] == {
+        "minimum_api_level": 31,
+        "required_phone_roles": ["phone-a", "phone-b"],
+        "required_physical_phones": 2,
+        "matrix_approved": False,
+    }
 
 
 def test_canonical_digest_is_key_order_independent() -> None:
@@ -151,6 +157,10 @@ def test_blocker_list_must_be_exact_sorted_and_current() -> None:
 def test_operational_policy_is_exact_candidate_bound_and_approved() -> None:
     value = plan()
     operational = value["operational_policy"]
+    assert admission.OPERATIONAL_POLICY_ID == (
+        "OT-088-ANDROID-PRIVATE-PILOT-OPERATIONAL-POLICY-V0"
+    )
+    assert admission.SUPPORT_POLICY["policy_id"] == "OT-088-SUPPORT-V0"
     assert operational["policy_id"] == admission.OPERATIONAL_POLICY_ID
     assert operational["candidate_binding"] == {
         "application_id": value["application"]["application_id"],
@@ -166,6 +176,53 @@ def test_operational_policy_is_exact_candidate_bound_and_approved() -> None:
         actual = dict(operational[key])
         assert actual.pop("owner_approved") is True
         assert actual == expected
+
+
+def test_ot089_two_phone_scope_supersedes_the_historical_four_phone_plan() -> None:
+    value = plan()
+    assert value["supported_platforms"]["minimum_api_level"] == (
+        admission.MINIMUM_PHYSICAL_API_LEVEL
+    )
+    assert value["supported_platforms"]["required_phone_roles"] == (
+        admission.REQUIRED_PHONE_ROLES
+    )
+    assert value["supported_platforms"]["required_physical_phones"] == (
+        admission.REQUIRED_PHYSICAL_PHONES
+    )
+    assert value["operational_policy"]["support"]["scope"] == (
+        "two_owner_approved_private_pilot_phones_only"
+    )
+
+    value = plan()
+    value["supported_platforms"]["required_phone_roles"] = [
+        "phone-a",
+        "phone-b",
+        "phone-c",
+        "phone-d",
+    ]
+    expect_error(value, "canonical matrix")
+    value = plan()
+    value["supported_platforms"]["required_physical_phones"] = 4
+    expect_error(value, "exactly two")
+    value = plan()
+    value["supported_platforms"]["minimum_api_level"] = 30
+    expect_error(value, "canonical matrix")
+    value = plan()
+    value["operational_policy"]["support"]["scope"] = (
+        "four_owner_approved_private_pilot_phones_only"
+    )
+    expect_error(value, "canonical policy")
+
+
+def test_ot088_canonical_digest_remains_historical_evidence() -> None:
+    historical_digest = (
+        "aaed611ea5e5853f030d950c0ae725be817650dd1e3b45bb424fb70143b1cab9"
+    )
+    evidence = (ROOT / "tests" / "hardware" / "OT-088-2026-08-19.md").read_text(
+        encoding="utf-8"
+    )
+    assert historical_digest in evidence
+    assert admission.canonical_sha256(plan()) != historical_digest
 
 
 def test_operational_policy_shape_binding_and_content_drift_fail_closed() -> None:
@@ -257,7 +314,7 @@ def test_permission_checklist_platform_and_policy_drift_fail_closed() -> None:
     value["required_acceptance_checks"] = value["required_acceptance_checks"][:-1]
     expect_error(value, "required_acceptance_checks")
     value = plan()
-    value["supported_platforms"]["required_api_levels"] = [33, 36]
+    value["supported_platforms"]["required_phone_roles"] = ["phone-a"]
     expect_error(value, "canonical matrix")
     value = plan()
     value["artifact_policy"]["require_test_components_absent"] = False
@@ -690,6 +747,8 @@ def main() -> None:
         test_signing_shape_and_custody_fail_closed,
         test_blocker_list_must_be_exact_sorted_and_current,
         test_operational_policy_is_exact_candidate_bound_and_approved,
+        test_ot089_two_phone_scope_supersedes_the_historical_four_phone_plan,
+        test_ot088_canonical_digest_remains_historical_evidence,
         test_operational_policy_shape_binding_and_content_drift_fail_closed,
         test_each_policy_false_approval_derives_one_exact_blocker,
         test_synthetic_ready_plan_is_not_release_acceptance_or_authority,

@@ -24,11 +24,17 @@ Hardware interfaces: radio | GPS | display/touch | storage | power | entropy | m
 
 Application and protocol logic must depend on interfaces, not concrete boards. Packet codecs and delivery state machines should be host-testable. Board bindings and role composition belong in target applications.
 
-For the current Heltec V1 prototype, rollback-protected companion
-authorization is deferred under [Decision 0028](decisions/0028-defer-rollback-protected-companion-authorization-beyond-current-heltec-v1.md).
-The authorization, protected-storage, key-provider, and recovery foundations
-remain dormant and do not grant a runtime edge. Mobile operating-system BLE
-pairing is transport behavior, not OpenTrail trust or ownership.
+Decision 0028 historically deferred rollback-proof companion authorization on
+the current Heltec because no independent monotonic floor was available.
+[Decision 0033](decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
+now supersedes only that floor as a V1 prerequisite. V1 uses practical
+physical-presence authorization: normally closed pairing, a short deliberate
+window, one fresh locally displayed six-digit PIN, authenticated BLE Secure
+Connections pairing/bonding, one current controller, and confirmed
+replacement. Factory reset, reflashing, invasive access, or old-flash restore
+may reset or roll back ownership; V1 makes no contrary claim. Existing stronger
+protected-storage/floor foundations remain historical and optional future
+hardening. Nothing is implemented or physically accepted by this decision.
 
 [Decision 0029](decisions/0029-bounded-read-only-ble-link-status.md) permits one
 narrow exception for non-privileged link proof: a fixed, identical-across-units
@@ -111,12 +117,13 @@ versioned protocol and reusable behavior in this repository. Platform and
 hardware adapters remain separate, and evidence from one track cannot be
 credited to the other.
 
-[Decision 0017](decisions/0017-v1-companion-release-measurement.md) establishes
-V1 Companion as the current measured release goal and retains the earlier
-phone-independent calculation as a historical standalone evidence baseline.
-The Companion track counts shared evidence once, adds its Android milestone,
-and requires a distinct four-pair field proof. V2 Integrated remains
-unmeasured until its own hardware and acceptance milestones are approved.
+[Decision 0017](decisions/0017-v1-companion-release-measurement.md) established
+the measured V1 Companion track and historical standalone baseline. Decision
+0033 supersedes only its four-pair field gate: current V1 requires two supported
+Heltec/Android pairs and one coherent bidirectional BLE/direct-LoRa/BLE
+acceptance. V1.5 is a separate unmeasured four-supported-node interoperability
+track with mixed hardware allowed. V2 Integrated remains unmeasured until its
+own hardware and acceptance milestones are approved.
 
 [Decision 0009](decisions/0009-one-phone-companion-authority.md) and the
 [BLE Companion GATT v0](platform/BLE_COMPANION_GATT_V0.md) now bound the first
@@ -918,23 +925,20 @@ copies separately. It is a planning input only: collisions, channel access,
 protocol overhead, RF behavior, and regulatory acceptance still require direct
 measurement and review.
 
-The first live-test composition is narrower than the protocol's eventual
-capacity: exactly four identical standalone clients and no infrastructure
-dependency during a one-hour session. The versioned `OTFP0/v0` plan records the
-session classes, generated traffic, peer-delivery opportunities, provisional
-acceptance limits, privacy declarations, and hardware freeze. Validation refuses
-a `ready` plan until the exact client model and firmware satisfy self-contained
-power, enclosure, GNSS, display, input, and USB recovery gates. Later
-four-plus-repeater and eight-plus-repeater phases are separate evidence steps,
-not assumptions inherited from this pilot.
+The historical `OTFP0/v0` standalone plan remains a valid evidence contract for
+four identical self-contained clients and no infrastructure dependency during
+one one-hour session. It records session classes, generated traffic, peer-
+delivery opportunities, provisional acceptance limits, privacy declarations,
+and hardware freeze. Decision 0033 preserves it for that historical scope but
+supersedes it as the V1 Companion completion gate.
 
-The [first-release capacity policy](testing/FIRST_RELEASE_CAPACITY_V0.md) fixes
-the intended v0 product boundary at no more than eight active clients in one
-group plus at most one optional authorized repeater. Support must be earned in
-order: four standalone clients, four clients plus the repeater, then eight
-clients plus the repeater. No server, internet, phone, laptop, vehicle, or
-repeater may become a base-client dependency. This is a planned release ceiling
-and acceptance sequence, not current field-capacity evidence.
+The current [first-release capacity policy](testing/FIRST_RELEASE_CAPACITY_V0.md)
+defines V1 as two supported Heltec-and-Android pairs using direct LoRa, with no
+relay, server, or internet dependency. V1.5 is the separate unmeasured four-
+supported-node interoperability gate; mixed hardware is allowed and preferred
+but not mandatory, four phones are not required, and any relay claim requires
+three physical radios. Broader four-plus-repeater and eight-plus-repeater load
+models remain planning evidence, not current field-capacity or support claims.
 
 The [product boundary map](PRODUCT_BOUNDARIES_V0.md) keeps one self-contained
 base client separate from optional repeater, server/archive, OpenGauge vehicle,

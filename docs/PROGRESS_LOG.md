@@ -6,6 +6,34 @@ public chronology.
 
 ## 2026-08-19
 
+### OT-089 permanent V1/V1.5 scope and security boundary
+
+- Adopted the owner-approved permanent V1 topology: two supported Heltecs, two
+  approved Android phones, one current phone per Heltec, and exact
+  bidirectional BLE/direct-LoRa/BLE message acceptance with no relay, server, or
+  internet dependency.
+- Adopted practical physical-presence authorization: normally closed pairing,
+  a short deliberate window, one fresh locally displayed six-digit PIN,
+  authenticated BLE Secure Connections pairing/bonding, saved-bond reconnect,
+  and confirmed phone replacement. V1 discloses that reset, reflash, invasive
+  access, or old-flash restoration may reset/roll back ownership; no secure
+  element or independent monotonic floor is required.
+- Kept LoRa security separate: authentication, encryption, sender/destination
+  identity, unique IDs, integrity, replay/duplicate rejection, acknowledgement,
+  bounded retry, key provisioning/replacement, implementation, and physical
+  acceptance remain open.
+- Defined V1.5 as four supported nodes with mixed hardware allowed and
+  preferred but not mandatory. Four phones are not required; any relay claim
+  requires a physical three-radio path.
+- Preserved earlier decisions/evidence and superseded only their incompatible
+  four-pair, four-phone, and mandatory-authorization-floor clauses. No hardware,
+  phone, pairing, key, signer, radio, installation, account, upload, or
+  distribution operation occurred.
+- Result: `OWNER-APPROVED-SCOPE-ADOPTED`. Owner-approved V1 scope and security
+  boundary adopted; implementation and physical acceptance remain open.
+  Android remains 60%; V1 remains exact 43.75%/displayed 44%; V1.5 remains
+  unmeasured. See [OT-089 evidence](../tests/hardware/OT-089-2026-08-19.md).
+
 ### OT-088 Android private-pilot operational policy freeze
 
 - Froze one policy revision for offline/account-free/transient privacy and

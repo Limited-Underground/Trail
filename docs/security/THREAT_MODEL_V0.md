@@ -6,6 +6,17 @@ This document defines threats and lifecycle rules. It does not select or claim
 an implemented cryptographic protocol. Packet v0 remains unauthenticated test
 traffic and must not carry real group, location, or emergency information.
 
+[Decision 0033](../decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
+sets the current V1 physical threat boundary. Practical PIN-based physical-
+presence authorization must resist nearby unauthorized controllers, stale
+phones, replay, timeout, and ordinary restart under one current saved bond.
+Factory reset, reflashing, invasive physical access, or restoration of an old
+flash image may reset or roll back ownership. That physical firmware-writing
+attacker is outside V1; a secure element and independent authorization floor
+are not V1 requirements. This limitation does not weaken the separate LoRa
+authentication, encryption, identity, integrity, replay, duplicate, and retry
+requirements.
+
 ## Protected assets
 
 - long-term device private identity material;
@@ -25,7 +36,7 @@ are labels or routing conveniences. They are never proof of identity.
 | --- | --- |
 | Passive radio observer | Do not expose stable device identity, group membership, precise location, or plaintext content unnecessarily; padding/traffic-analysis limits remain a later budget decision |
 | Active injector or impersonator | Authenticate every protected packet and bind version, type, routing context, group epoch, sender alias, message ID, and ciphertext length as authenticated data |
-| Replay attacker | Use a per-sender monotonic message/nonce discipline, duplicate window, epoch binding, and persistent rollback-safe state |
+| Replay attacker | Use a per-sender unique message/nonce discipline, duplicate window, epoch binding, and persistent state within the accepted V1 physical-access boundary; never imply resistance to hostile flash rollback |
 | Malicious current member | Treat membership as access to current group traffic, not proof of an individual sender or administrator authority. Require separate source authentication for named-origin claims; rate-limit and support removal/key rotation |
 | Lost or stolen node | Revoke it, advance the group epoch, distribute a new traffic key only to retained members, and disclose that old captured traffic/secrets cannot be remotely erased |
 | Compromised setup phone/computer | Minimize secret exposure, require human confirmation for privileged operations, expire invitations, and provide a direct physical recovery/reset path |
@@ -33,7 +44,7 @@ are labels or routing conveniences. They are never proof of identity.
 | Identity/alias collision | Compare authoritative full fingerprints; never merge peers solely because a short alias or display name matches |
 | Partitioned/offline group | Carry explicit epochs and tolerate delayed key updates without silently accepting stale-epoch traffic |
 | Radio denial/jamming | Fail visibly and safely; cryptography cannot guarantee availability or emergency delivery |
-| Physical flash extraction | Current development evidence shows secure boot and flash encryption disabled on `OT-DEV-001`; do not claim protection against a physical attacker on these boards |
+| Physical firmware access | Current development evidence shows secure boot and flash encryption disabled on `OT-DEV-001`; factory reset, reflashing, invasive access, or old-image restoration may reset/roll back V1 ownership, so do not claim rollback-proof authorization |
 | Downgrade or corrupt update | Require signed/versioned updates, anti-rollback policy, interruption recovery, and a physical recovery path under OT-019 |
 
 OT-033 host-tests only the brand-neutral fragment codec and a one-controller
@@ -173,6 +184,7 @@ and its guidance on
 - instantiate the invitation and authenticated handshake transcript/timeout/retry with the selected crypto library;
 - decide whether production privilege changes need multi-administrator approval beyond OT-013's one-current-administrator policy;
 - define alias derivation/collision recovery and privacy rotation;
-- define key/epoch storage, rollback protection, and physical reset behavior;
+- define key/epoch storage and physical reset behavior under the accepted V1
+  physical-firmware-access limitation;
 - add standard cryptographic vectors and negative/interoperability tests; and
 - perform a two-device join, rename, revoke/rekey, reset, and recovery test.

@@ -13,6 +13,12 @@ Trail Android application can satisfy the operational/release-acceptance gate
 in V1 Companion. It is an admission boundary, not a release checklist whose
 unchecked items may be waived during a run.
 
+Decision 0033 supersedes only the prior four-phone pilot count. The same exact
+candidate must now be installed and physically accepted on exactly two approved
+V1 phones, roles phone-a and phone-b, one per supported Heltec. This scope change
+does not satisfy the still-blocked physical matrix, release identity, or signer/
+custody prerequisite and grants no installation or distribution authority.
+
 The canonical plan is
 [`OT-086-ANDROID-OPERATIONAL-RELEASE-PLAN-V0.json`](../../tests/release-plans/OT-086-ANDROID-OPERATIONAL-RELEASE-PLAN-V0.json).
 The deterministic validator is
@@ -65,7 +71,7 @@ failed evidence is retained as failure history rather than silently discarded.
   credential paths are structurally forbidden public-plan content.
 - The only current distribution scope is `private-sideload-v1-pilot`, with one
   exact rollback/removal route frozen before execution. It permits controlled
-  private installation only on four V1 pilot phones that must each be approved
+  private installation only on two V1 pilot phones that must each be approved
   and frozen before execution. Local build output alone is not distribution
   evidence, and private sideload acceptance is neither public distribution nor
   a store-release claim.
@@ -181,7 +187,8 @@ BLE evidence. None is an eligible release artifact.
 
 ## Separate V1 gates
 
-Decision 0028 keeps protected one-phone authorization and `Ready` unavailable
-on the current Heltec target. Passing a future operational-release candidate
-must not imply those capabilities. V1 completion still requires resolving that
-separate gate and accepting a Companion-specific four-device/phone field pilot.
+Decision 0033 makes practical one-phone-per-Heltec authorization a required,
+separate V1 gate under the disclosed physical-reflash rollback limitation.
+Passing an operational-release candidate must not imply that pairing,
+replacement, protected control, direct LoRa security, or the coherent two-pair
+V1 acceptance has passed.

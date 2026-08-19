@@ -1,25 +1,40 @@
 # OpenTrail Product Boundaries v0
 
-Status: release-planning architecture, updated 2026-08-12. Capabilities remain
+Status: release-planning architecture, updated 2026-08-19. Capabilities remain
 goals unless their linked host and physical acceptance evidence says otherwise.
 
-## Base client
+## Current V1 Companion boundary
 
-The first-release client is intended to be self-contained. Its required product
-boundary includes:
+Decision 0033 defines the first release as exactly two supported Heltec LoRa
+devices and two approved Android phones, one physically authorized phone per
+Heltec. Its required path is:
 
-- battery operation in a protective enclosure;
-- local display and local input;
-- GNSS-aware local/group state with explicit no-fix and stale behavior;
-- offline group messaging, quick status, and critical-alert presentation;
-- privacy-safe local diagnostic/evidence collection;
-- group/security lifecycle and recovery behavior; and
-- documented USB recovery.
+Phone A ⇄ BLE ⇄ Heltec A ⇄ direct LoRa ⇄ Heltec B ⇄ BLE ⇄ Phone B
 
-During normal group operation it must not require a repeater, central server,
-internet connection, phone, laptop, map display, vehicle connection, or cloud
-account. GNSS loss must not stop messaging; it removes or visibly stales only
-position-dependent behavior.
+Each Heltec remains authoritative for radio, security, queues, message and
+acknowledgement identity, delivery outcomes, GNSS validity, and durable state.
+Its one approved Android phone is the required V1 user interface. The two-pair
+path must not depend on a repeater, relay, central server, internet connection,
+laptop, map display, vehicle connection, or cloud account. GNSS loss must not
+stop messaging; it removes or visibly stales only position-dependent behavior.
+
+V1 requires practical physical-presence phone authorization and separately
+authenticated/encrypted direct-LoRa messaging. These are current requirements,
+not implemented or accepted capabilities. Factory reset, reflashing, invasive
+access, or old-flash restoration may reset or roll back phone authorization;
+V1 makes no rollback-proof ownership claim against that physical attacker.
+
+## Preserved standalone and later-node boundaries
+
+The original self-contained touchscreen-client concept remains a future product
+track with its own display, input, battery, GNSS, radio, recovery, and physical
+acceptance obligations. Historical four-person standalone plans remain evidence
+for that original scope but no longer define V1 Companion completion.
+
+V1.5 is the separate unmeasured four-supported-node interoperability gate.
+Mixed supported hardware is allowed and preferred but not required; four
+identical supported nodes may pass, four phones are not required, and any relay
+claim requires a physical three-radio sender-to-relay-to-receiver path.
 
 ## Working product-family forms
 

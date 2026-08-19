@@ -1,0 +1,203 @@
+{
+  "schema": "OTVS0",
+  "version": 0,
+  "artifact_kind": "v1_v15_acceptance_scope_plan",
+  "plan_id": "OT-089-V1-V15-ACCEPTANCE-SCOPE-V0",
+  "decision_id": "0033",
+  "plan_status": "owner_approved_scope_adopted",
+  "public_summary": "Owner-approved V1 scope and security boundary adopted; implementation and physical acceptance remain open.",
+  "implementation_status": "implementation_and_physical_acceptance_open",
+  "v1": {
+    "release_name": "V1 Companion",
+    "hardware": {
+      "heltec_target": "heltec_v4",
+      "heltec_nodes_required": 2,
+      "android_phones_required": 2,
+      "authorized_phones_per_heltec": 1,
+      "support_must_be_earned": true,
+      "secure_element_required": false,
+      "replacement_board_required": false
+    },
+    "topology": {
+      "path": ["phone-a", "ble", "heltec-a", "lora", "heltec-b", "ble", "phone-b"],
+      "direct_bidirectional_lora_required": true,
+      "server_required": false,
+      "internet_required": false,
+      "repeater_required": false,
+      "multi_hop_claimed": false
+    },
+    "ble_authorization": {
+      "closed_to_new_pairing_by_default": true,
+      "deliberate_physical_action_required": true,
+      "pairing_window": "short_bounded",
+      "pairing_window_duration": "unfrozen_blocker",
+      "pin_generation": "fresh_uniform_csprng_six_decimal_digits",
+      "pin_display": "local_heltec_only",
+      "pairing_method": "authenticated_ble_le_secure_connections_passkey_and_bond",
+      "current_controller_limit": 1,
+      "saved_bond_reconnect": true,
+      "fresh_pin_each_pairing_or_replacement": true,
+      "replacement_requires_physical_action_and_confirmation": true,
+      "replacement_removes_previous_authorization": true,
+      "pairing_timeout_fails_closed": true,
+      "ordinary_protected_application_storage_allowed": true,
+      "rollback_proof_against_physical_firmware_access": false,
+      "accepted_limitation": "factory_reset_reflash_invasive_access_or_old_image_restore_may_reset_or_rollback_ownership"
+    },
+    "lora_security": {
+      "separate_from_ble_authorization": true,
+      "network_or_conversation_authentication": true,
+      "message_encryption": true,
+      "sender_identity": true,
+      "destination_identity": true,
+      "unique_message_identifiers": true,
+      "duplicate_suppression": true,
+      "integrity_verification": true,
+      "acknowledgement_and_bounded_retry": true,
+      "reject_malformed": true,
+      "reject_unauthenticated": true,
+      "reject_wrong_network": true,
+      "reject_replayed": true,
+      "ordinary_protected_application_storage_allowed": true,
+      "physical_flash_rollback_resistance_required": false,
+      "key_provisioning_and_replacement_workflow": "unfrozen_blocker",
+      "secret_or_private_identifier_logging": "prohibited"
+    },
+    "pairing_acceptance_checks": [
+      "heltec_a_fresh_pin_authorizes_phone_a",
+      "heltec_b_distinct_fresh_pin_authorizes_phone_b",
+      "pairing_windows_expire_and_close",
+      "both_pairs_reconnect_after_app_and_device_restarts",
+      "phone_a_cannot_silently_control_heltec_b",
+      "phone_b_cannot_silently_control_heltec_a",
+      "unauthorized_connections_expose_no_protected_data_or_commands",
+      "physical_phone_replacement_exercised",
+      "old_authorization_rejected_after_replacement"
+    ],
+    "communication_acceptance_checks": [
+      "phone_a_message_reaches_phone_b_exactly",
+      "phone_b_reply_reaches_phone_a_exactly",
+      "addressed_messages_reach_only_intended_recipient",
+      "duplicates_not_presented_as_new",
+      "corrupted_or_unauthenticated_messages_rejected",
+      "temporary_ble_disconnect_recovers",
+      "temporary_lora_interruption_uses_bounded_retry_or_failure_and_recovers",
+      "restarts_do_not_misroute_duplicate_or_corrupt_accepted_messages"
+    ],
+    "android_release_acceptance_checks": [
+      "exact_v1_artifact_versioned_and_reproducibly_identified",
+      "release_identity_and_signer_custody_approved",
+      "signed_artifact_installed_on_both_approved_phones",
+      "permissions_foreground_service_notification_background_reopen_and_uninstall_physically_accepted",
+      "debug_instrumentation_and_temporary_helpers_absent",
+      "no_store_upload_or_public_distribution_implied"
+    ],
+    "completion_status": "not_evaluated"
+  },
+  "v1_5": {
+    "release_name": "V1.5 Multi-node interoperability",
+    "supported_nodes_required": 4,
+    "hardware_mixture_allowed": true,
+    "heterogeneous_hardware_preferred": true,
+    "heterogeneous_hardware_required": false,
+    "four_identical_supported_nodes_allowed": true,
+    "predetermined_model_list_required": false,
+    "four_phones_required": false,
+    "v1_endpoint_phones_may_remain": 2,
+    "additional_node_phone_required": false,
+    "support_definition": [
+      "explicit_firmware_target",
+      "mcu",
+      "radio",
+      "frequency_band",
+      "pin_mapping",
+      "ble_capability_where_claimed",
+      "regional_configuration"
+    ],
+    "acceptance_checks": [
+      "four_nodes_operate_simultaneously",
+      "firmware_builds_and_installs_for_every_represented_target",
+      "all_nodes_join_same_authenticated_network",
+      "every_node_sends_and_receives_compatible_messages",
+      "messages_cross_hardware_model_boundaries_when_mixed",
+      "addressed_and_group_messages_reach_correct_recipients",
+      "concurrent_senders_do_not_silently_corrupt",
+      "acknowledgements_retry_limits_replay_rejection_and_duplicate_suppression_work_across_all_nodes",
+      "nodes_leave_restart_and_rejoin_safely",
+      "companion_capable_boards_pass_independent_ble_app_compatibility"
+    ],
+    "relay_claim": {
+      "required_for_basic_v1_5": false,
+      "minimum_radios_if_claimed": 3,
+      "required_path_if_claimed": ["sender", "intermediate-relay", "receiver"],
+      "two_radios_prove_direct_only": true
+    },
+    "measurement_status": "unmeasured",
+    "completion_status": "not_evaluated"
+  },
+  "supersession": {
+    "preserve_historical_records": true,
+    "superseded_portions": [
+      "decision-0004-initial-release-repeater-claim",
+      "decision-0007-four-standalone-current-first-release",
+      "decision-0009-standalone-four-unit-v1-unchanged",
+      "decision-0017-four-person-companion-field-proof",
+      "decision-0028-current-heltec-practical-authorization-deferral",
+      "decision-0030-four-phone-private-sideload-and-four-pair-gate",
+      "decision-0032-four-phone-support-scope",
+      "first-release-capacity-v0-four-and-eight-client-sequence"
+    ],
+    "preserved_foundations": [
+      "one-active-phone-device-authority",
+      "ble-and-lora-security-separation",
+      "decisions-0026-0027-floor-rejections",
+      "decision-0010-rollback-resistant-future-foundation",
+      "otar-ot088-policy-evidence",
+      "otfp0-otpr0-historical-standalone-evidence"
+    ]
+  },
+  "progress": {
+    "v1_milestone_weights": [15, 20, 15, 15, 20, 15],
+    "v1_milestone_completions": [85, 65, 15, 25, 60, 0],
+    "android_completion": 60,
+    "v1_overall_exact": 43.75,
+    "v1_overall_display": 44,
+    "score_credit_added": false,
+    "v1_5_measured": false
+  },
+  "privacy": {
+    "aggregate_public_evidence_only": true,
+    "pairing_pins_included": false,
+    "bond_keys_included": false,
+    "lora_keys_included": false,
+    "phone_identifiers_included": false,
+    "ble_addresses_included": false,
+    "device_specific_identifiers_included": false,
+    "ordinary_logs_include_secrets_or_private_identifiers": false
+  },
+  "execution_authority": {
+    "device_flash": false,
+    "phone_install": false,
+    "phone_settings": false,
+    "bluetooth_pairing": false,
+    "signing_key_access": false,
+    "signing_key_generation": false,
+    "lora_key_provisioning": false,
+    "physical_radio_test": false,
+    "store_upload": false,
+    "public_distribution": false
+  },
+  "claims": {
+    "secure_pairing_implemented": false,
+    "bidirectional_lora_accepted": false,
+    "signed_android_release_accepted": false,
+    "supported_hardware_accepted": false,
+    "v1_complete": false,
+    "v1_5_complete": false
+  },
+  "open_followup_gates": [
+    "ble_pairing_protocol_not_frozen",
+    "lora_key_provisioning_workflow_not_frozen",
+    "implementation_and_physical_acceptance_open"
+  ]
+}

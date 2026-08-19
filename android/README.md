@@ -30,6 +30,14 @@ satisfied; three remain. The result is not an accepted, signed, installable,
 distributable, supported, reproducible, production-ready, or operationally
 accepted release candidate.
 
+OT-089 permanently changes the V1 private-pilot topology from four phones to
+exactly two approved phones, one per supported Heltec. It adopts practical
+physical-presence authorization with a fresh locally displayed six-digit PIN,
+authenticated BLE Secure Connections pairing/bonding, saved-bond reconnect,
+and confirmed phone replacement. The exact Android and device workflows remain
+unimplemented and physically unaccepted. No PIN, phone, pairing, install,
+signing, or device operation occurred in OT-089.
+
 The visible working product name is `Limited Underground Trail`. The stable,
 technical application and package namespace is
 `io.github.nbjelanovic.otclient`; customer-facing working names do not enter the
@@ -246,7 +254,7 @@ and [Decision 0030](../docs/decisions/0030-android-operational-release-admission
 bind a future run to one immutable release candidate and one coherent package,
 signer, lifecycle, privacy, endurance, accessibility, recovery, support, and
 cleanup evidence set. The checked-in plan selects only controlled private
-sideloading to four V1 pilot phones that must each be approved and frozen
+sideloading to two V1 pilot phones that must each be approved and frozen
 before execution. It does not authorize creating or using a signing key,
 installing or removing an app, changing phone settings, accessing a device/
 account, or distributing a package.
@@ -268,6 +276,15 @@ must still prove every privacy, lifecycle, removal, recovery, support, and
 cleanup result. Physical matrix, release identity, and signer/custody approval
 remain blocked.
 
+[Decision 0033](../docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
+supersedes only the four-phone scope and the independent monotonic
+authorization floor as V1 prerequisites. The Android release gate now binds
+the same exact signed candidate to both approved V1 phones. Practical pairing,
+replacement, protected control, and direct-LoRa messaging remain separate
+unimplemented and physically unaccepted V1 gates. The disclosed V1 limit is
+that physical reflashing, reset, invasive access, or old-flash restoration may
+reset or roll back ownership.
+
 A Google Play path is outside OT-086. It requires a separate decision and plan,
 a fresh recheck of the then-current Play target-API policy, and any required
 Android toolchain and target-SDK update before admission.
@@ -276,8 +293,8 @@ The next Android release-track gate is to satisfy the accepted plan's three
 remaining prerequisites and execute its complete private-sideload evidence sequence under
 separately authorized signing, phone, installation, and distribution
 operations. Missing, stale, mixed, skipped, private, or contradictory evidence
-must remain blocked; protected one-phone authorization and `Ready` remain a
-separate V1 hardware gate.
+must remain blocked; practical one-phone-per-Heltec authorization and `Ready`
+remain a separate V1 hardware gate.
 
 The platform contract follows the official Android documentation for
 [Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),

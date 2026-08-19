@@ -13,9 +13,9 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-088 freezes the offline/transient privacy and data-safety promise, first-release removal/no-downgrade route, and bounded best-effort private-pilot support policy. Five of eight OTAR prerequisites are satisfied; physical matrix, release identity, and signer/custody remain blocked. `PLAN-ACCEPTED-EXECUTION-BLOCKED` is still not signing, installation, support delivery, distribution, or a release pass |
-| Proven so far | OT-088 accepts policy and validator evidence only: the later release run must still verify privacy surfaces, lifecycle, uninstall/data removal, rollback, support, accessibility, usability, endurance, and cleanup on one coherent signed candidate. OT-087 passes 248 JVM test executions across debug/release foundations, both warning-as-error lint variants, debug/instrumentation/release assembly, and bounded inspection of one disposable unsigned APK; the artifact was never installed, signed, or distributed. OT-086 freezes the private V1-pilot evidence contract. A future Play scope requires a separate current target-API policy recheck and any needed Android toolchain/target-SDK update. The 148-executable native C++ host matrix passes; OT-085 adds a fixed privacy-safe 16-byte public BLE read and a host-tested 15-second single-link window with bounded termination, while every protected characteristic, authorization claim, and normal command remains closed. OT-085A physically installed and verified that exact image on `OT-DEV-001` and accepted the phone-disconnect path. OT-085B then accepted an exact Android 13 public read with no phone disconnect request, target-driven disconnect inside the frozen window, owner-observed `BLE CONNECTED` to `BLE ADVERTISING`, and return of exactly one compatible service advertiser. OT-074's partition/source proof, OT-076's private OT-064 recovery input, and OT-077's fail-closed recovery route remain historical safeguards; OT-083 and OT-084 still defer secure ownership and protected control to future hardware. Real LoRa/GNSS, protected authorization, release identity/signing/lifecycle/privacy/support execution, complete-client recovery, power/endurance, field, regulatory, and support evidence remain open |
-| Planned first release | Four Trail Essential device-and-Android-phone pairs, with later capacity evidence up to eight active clients and at most one optional authorized repeater |
+| Latest increment | OT-089 permanently adopts the owner-approved V1 scope and security boundary: two Heltec-and-Android pairs, practical physical-presence PIN pairing with a disclosed physical-reflash rollback limit, separate authenticated/encrypted LoRa security, and a later V1.5 four-supported-node interoperability milestone. Implementation and physical acceptance remain open |
+| Proven so far | OT-089 is planning and validator evidence only; it proves no secure pairing, protected control, LoRa transmission, Android signed release, supported hardware, or V1/V1.5 completion. OT-088 freezes the private-pilot Android policy boundary with release execution still blocked. OT-087 accepts only an unsigned build foundation. OT-085A/OT-085B remain bounded physical public-BLE evidence on one experimental target. Earlier rollback-floor investigations remain valid historical evidence, but an independent floor or secure element is no longer a V1 prerequisite under the disclosed physical-firmware-access limit |
+| Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 
 OpenTrail is not production-ready, and no hardware is currently listed as supported. See the [dated progress log](docs/PROGRESS_LOG.md) for recent work and the [engineering backlog](tasks/BACKLOG.md) for exact acceptance evidence and remaining gates.
@@ -33,22 +33,28 @@ OpenTrail is not production-ready, and no hardware is currently listed as suppor
 
 ## Release boundary
 
-The current release goal is V1 Companion: a Trail Essential LoRa device uses
-one privately authorized Android phone as its interface. The first release must
-prove four frozen device-phone pairs, direct group operation, recovery, range,
-endurance, and usability without depending on a server or internet connection.
-The phone is an intentional V1 interface dependency; a repeater remains
-optional.
+The permanent V1 Companion goal is two supported Heltec LoRa devices and two
+approved Android phones, one physically authorized phone per Heltec. The exact
+end-to-end chain is Phone A ⇄ BLE ⇄ Heltec A ⇄ direct LoRa ⇄ Heltec B ⇄ BLE ⇄
+Phone B. V1 must physically accept practical PIN-based authorization and phone
+replacement, authenticated/encrypted bidirectional messaging, rejection and
+bounded retry/recovery, and one exact signed Android artifact on both phones.
+It has no relay, server, or internet dependency.
 
-The future V2 Integrated goal moves the interface onto a dedicated touchscreen
-client. Its standalone no-phone acceptance path and the later four-plus-
-repeater and eight-plus-repeater capacity steps remain separate evidence gates.
+[Decision 0033](docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
+accepts that factory reset, reflashing, invasive access, or old-flash restore
+may reset or roll back ownership. V1 does not require a secure element or claim
+rollback-proof authorization against physical firmware-writing access.
 
-The existing [capacity policy](docs/testing/FIRST_RELEASE_CAPACITY_V0.md),
-[four-person pilot plan](docs/testing/FOUR_PERSON_PILOT_V0.md), and
-[result evaluator](docs/testing/FOUR_PERSON_PILOT_RESULT_V0.md) still govern the
-standalone path. A Companion-specific pilot amendment remains required before
-V1 field evidence can be accepted.
+V1.5 is the separate four-supported-node interoperability milestone. Any
+compatible mix of supported hardware is allowed and heterogeneous evidence is
+preferred; four identical supported nodes remain eligible. Four phones are not
+required. Any mesh claim requires a physical three-radio relay path. See the
+[canonical V1/V1.5 scope](docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md).
+
+The future V2 Integrated goal still moves the interface onto a dedicated
+touchscreen client. Historical four-person standalone pilot artifacts remain
+preserved for their original scope; they no longer define V1 Companion.
 
 ## How it fits together
 
@@ -83,7 +89,7 @@ These are product goals unless the linked evidence explicitly says otherwise.
 
 ## Hardware status
 
-The available bench inventory contains two assembled Heltec V4 OLED units: `OT-DEV-001` now runs the experimental OT-085 OpenTrail target and has physically accepted startup, advertising, one fixed public BLE read, `BLE CONNECTED`, both phone-driven and target-timed disconnect paths, return to `BLE ADVERTISING`, and return of one compatible service advertiser; untouched `OT-DEV-002` remains a MeshCore USB Companion. It also contains one packaged Seeed SenseCAP Solar P1-Pro MeshCore repeater and one owner-reported Wio Tracker L1 Pro candidate. A privacy-safe USB check shows both Heltecs detect and activate their connected GNSS hardware and emit GPS telemetry; the SenseCAP reached a live fix, with subsequent checks increasing through four, seven, and eight satellites. The Wio's first read-only pass identified public USB model `Seeed Wio Tracker L1`, USB Companion `v1.17.0-727fc05`, the configured 910.525 MHz/BW 62.5 kHz/SF7/CR5/22 dBm profile, zero error/traffic counters across four cycles, and GNSS detected but inactive. No coordinates, identities, channel values, or transient ports were published, and the Wio did not transmit. Exact Wio label/revision and pre-write state, over-air interoperability, GNSS fix/loss, RF/regulatory fit, power/endurance, BLE, and recovery remain open. The accepted OLED evidence is bounded startup/link-status only—not interactive UI or supported-hardware evidence. The Heltec kits and Wio are bench candidates, not the frozen board-level parts for the first complete touchscreen client. The integrated solar SenseCAP may be evaluated as the optional packaged repeater; exact complete-client hardware for the four-person pilot remains unfrozen.
+The available bench inventory contains two assembled Heltec V4 OLED units: `OT-DEV-001` now runs the experimental OT-085 OpenTrail target and has physically accepted startup, advertising, one fixed public BLE read, `BLE CONNECTED`, both phone-driven and target-timed disconnect paths, return to `BLE ADVERTISING`, and return of one compatible service advertiser; untouched `OT-DEV-002` remains a MeshCore USB Companion. It also contains one packaged Seeed SenseCAP Solar P1-Pro MeshCore repeater and one owner-reported Wio Tracker L1 Pro candidate. A privacy-safe USB check shows both Heltecs detect and activate their connected GNSS hardware and emit GPS telemetry; the SenseCAP reached a live fix, with subsequent checks increasing through four, seven, and eight satellites. The Wio's first read-only pass identified public USB model `Seeed Wio Tracker L1`, USB Companion `v1.17.0-727fc05`, the configured 910.525 MHz/BW 62.5 kHz/SF7/CR5/22 dBm profile, zero error/traffic counters across four cycles, and GNSS detected but inactive. No coordinates, identities, channel values, or transient ports were published, and the Wio did not transmit. Exact Wio label/revision and pre-write state, over-air interoperability, GNSS fix/loss, RF/regulatory fit, power/endurance, BLE, and recovery remain open. The accepted OLED evidence is bounded startup/link-status only—not interactive UI or supported-hardware evidence. The Heltec kits and Wio are bench candidates, not the frozen board-level parts for the first complete touchscreen client. The integrated solar SenseCAP may be evaluated for V1.5 or a future relay claim; exact two-pair V1 firmware, security, and physical acceptance remain open.
 
 See the [hardware inventory](hardware/INVENTORY.md), [regulatory reconciliation](hardware/HARDWARE_REGULATORY_INVENTORY_2026-08-10.md), and partially executed [Wio Tracker bring-up procedure](hardware/WIO_TRACKER_L1_PRO_BRINGUP.md). A radio preset or in-band frequency alone is not proof of legal operation.
 

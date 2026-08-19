@@ -11,7 +11,9 @@ Policy ID: `OT-088-ANDROID-PRIVATE-PILOT-OPERATIONAL-POLICY-V0`
 This policy freezes the privacy/data-safety, first-release rollback/removal,
 and support promises for the single `private-sideload-v1-pilot` scope admitted
 by `OTAR0/v0`, application `io.github.nbjelanovic.otclient`, and version
-code/name `1` / `1.0.0`. It approves those three prerequisites only. It does not approve
+code/name `1` / `1.0.0`. Decision 0033 binds the pilot to exactly two future
+owner-approved phone roles, phone-a and phone-b, one per supported Heltec. This
+policy approves those three prerequisites only. It does not approve
 a phone, release identity, signer, certificate, artifact, installation,
 distribution, protected authorization, `Ready`, or a release result.
 
@@ -87,8 +89,9 @@ A rebuilt, changed, differently signed, or newly versioned artifact starts a
 new evidence set. Failed disconnect, service stop, uninstall, data removal,
 bond-state restoration, or exact-candidate reinstall denies cleanup and stops
 the run. Application removal does not claim to erase or revoke device-side
-state; current Heltec V1 protected authorization remains deferred and must not
-be inferred.
+state. Decision 0033 permits only future practical authorization under its
+disclosed physical-reflash rollback limit; no authorization is implemented or
+inferred by this policy.
 
 The next supported release after `1.0.0` requires a separately frozen and
 physically accepted in-place upgrade from the immediately prior supported
@@ -99,7 +102,7 @@ release. The first-release exception cannot be reused.
 Policy ID: `OT-088-SUPPORT-V0`
 
 Support begins only if one signed candidate passes the entire coherent OTAR
-evidence set. It is limited to version `1.0.0`, the four privately approved
+evidence set. It is limited to version `1.0.0`, the two privately approved
 pilot phones and exact Android/API/device combinations later admitted by the
 physical matrix, and an owner-controlled APK whose hash and signer have been
 verified. API 31 is the

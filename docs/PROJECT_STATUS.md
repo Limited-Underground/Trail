@@ -9,13 +9,38 @@ Status date: 2026-08-19
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
-OT-088 freezes one private-pilot operational policy revision. Privacy and data
+OT-089 permanently adopts the owner-approved V1 scope and security boundary.
+V1 now requires exactly two supported Heltec LoRa devices and two approved
+Android phones, one current phone per Heltec, with one coherent bidirectional
+Phone A ⇄ BLE ⇄ Heltec A ⇄ direct LoRa ⇄ Heltec B ⇄ BLE ⇄ Phone B acceptance.
+Practical authorization uses a normally closed short physical window, a fresh
+locally displayed six-digit PIN, authenticated BLE Secure Connections pairing/
+bonding, saved-bond reconnect, and confirmed phone replacement. Factory reset,
+reflashing, invasive access, or old-flash restore may reset or roll back
+ownership; V1 requires no secure element or independent monotonic floor and
+makes no rollback-proof physical-attacker claim. LoRa authentication,
+encryption, identity, integrity, replay/duplicate rejection, acknowledgement,
+bounded retry, and key provisioning/replacement remain separate open gates.
+
+V1.5 is a separate unmeasured four-supported-node interoperability milestone.
+Mixed hardware is allowed and preferred but not required; four identical
+supported nodes remain eligible, four phones are unnecessary, and a relay claim
+requires a physical three-radio path. OT-089 is planning only: no pairing,
+protected control, LoRa transmission, signed Android release, hardware support,
+or V1/V1.5 completion is claimed. Android remains 60%; V1 remains exact
+43.75%/displayed 44%. See
+[Decision 0033](decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md),
+the [canonical scope](testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md), and
+[OT-089 evidence](../tests/hardware/OT-089-2026-08-19.md).
+
+At OT-088 acceptance, OpenTrail froze one private-pilot operational policy revision. Privacy and data
 safety are offline, account-free, transient, backup/transfer-excluded, and
 subject to later physical inspection. First-release rollback means explicit
 disconnect/service stop and uninstall with verified app-data removal, no
 downgrade, and retry only with the same accepted artifact/digest/signer.
 Support begins only after a complete OTAR pass and is best-effort/no-SLA for
-the exact four-phone private matrix. This satisfies three more prerequisites;
+the then-planned four-phone private matrix, since superseded by Decision 0033's
+two-phone scope. This satisfies three more prerequisites;
 five of eight are satisfied, while physical matrix, release identity, and
 signer/custody remain blocked. The result remains
 `PLAN-ACCEPTED-EXECUTION-BLOCKED`, the release gate is `NOT-EVALUATED`, and
@@ -76,11 +101,13 @@ retained. See
 [OT-085](../tests/hardware/OT-085-2026-08-18.md), and
 [Decision 0029](decisions/0029-bounded-read-only-ble-link-status.md).
 
-Decision 0028 defers rollback-protected companion authorization beyond the
-current Heltec V1 rather than weakening it. Secure ownership, trusted-phone
-claims, protected writes, provisioning, provider-backed recovery, and Ready
-remain unavailable. The build-tested authorization foundations remain dormant;
-current work may advance only bounded non-privileged prototype functions.
+Decision 0028 historically deferred rollback-protected companion authorization
+beyond the current Heltec V1 rather than weakening it. Decision 0033 now
+supersedes only the independent-floor requirement for V1 and adopts practical
+authorization under the disclosed physical-reflash rollback limit. The
+build-tested stronger foundations remain historical; the replacement practical
+state machine, target/app implementation, physical acceptance, and Ready remain
+open.
 OT-085A's accepted third Android evidence gate raised V1 Companion to exact
 43.75%/displayed 44%. OT-085B closes its automatic-termination sub-gate without
 an additional score; the Heltec milestone description advances but its
@@ -1933,14 +1960,14 @@ only; the raw capture remains in ignored local build state.
 - Website and hosting operations are maintained privately outside this public
   repository. Local device operation cannot depend on the website or any
   future service.
-- The initial public field progression is four clients without a repeater, four
-  clients plus one repeater, then eight clients plus one repeater. A host-only
-  load model accounts for source attempts, forwarding copies, and configured
+- Historical capacity planning modeled four clients without a repeater, four
+  clients plus one repeater, then eight clients plus one repeater. Its host-only
+  load evidence accounts for source attempts, forwarding copies, and configured
   LoRa airtime; it is not physical capacity or regulatory evidence.
-- The first four-person pilot must operate without a phone, server, repeater,
-  laptop, internet, or vehicle connection during the session. Its machine-
-  validated plan cannot claim `ready` until an exact four-unit client hardware
-  and firmware freeze is recorded.
+- Decision 0033 now defines V1 as exactly two supported Heltec-and-Android pairs
+  over direct LoRa with no relay, server, or internet dependency. Four supported
+  nodes belong to the separate unmeasured V1.5 interoperability gate; a relay
+  claim requires a physical three-radio sender-to-relay-to-receiver path.
 - The cryptographic benchmark order is now fixed without selecting production
   cryptography: Espressif libsodium first, pinned ESP-IDF mbedTLS/PSA and
   Monocypher comparisons, Noise-C reference only. Noise XK is a leading join
@@ -2357,9 +2384,13 @@ OT-003F now supplies the first checked-time outbound runtime composition, but
 OT-003 remains partial because no exact ESP-IDF radio/GPS/log/storage/
 entropy/time/power/display/input adapters, target application build, or
 on-device composition evidence exists. Exact adapters, thresholds, and rendered
-behavior wait for frozen client hardware. OT-023 remains blocked at the exact
-four-unit client and firmware freeze. Continue the partially executed OT-020
-procedure without reconstructing the Wio's unpreserved shipping state.
+behavior wait for frozen client hardware. OT-023 remains a blocked historical
+four-client standalone plan, not the V1 Companion completion gate. Under
+Decision 0033, the next V1 checkpoint is to freeze and host-test the practical
+pairing/replacement state machine and separate secure-LoRa contract before any
+target implementation or coherent two-pair acceptance. Continue the partially
+executed OT-020 procedure without reconstructing the Wio's unpreserved shipping
+state.
 Authenticated on-device transport, protected target state, physical restart and
 power-failure injection, GPS evidence, field performance, and direct-radio
 airtime remain explicit later gates.

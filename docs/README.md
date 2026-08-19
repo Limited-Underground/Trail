@@ -17,12 +17,12 @@ This is the organized entry point for OpenTrail design, evidence, and engineerin
 
 | If you want to... | Start here |
 | --- | --- |
-| Understand the first release | [Capacity policy](testing/FIRST_RELEASE_CAPACITY_V0.md), [product boundaries](PRODUCT_BOUNDARIES_V0.md), and [four-person pilot](testing/FOUR_PERSON_PILOT_V0.md) |
+| Understand V1 and V1.5 | [Permanent V1/V1.5 acceptance scope](testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md), [scope/security decision](decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md), [capacity policy](testing/FIRST_RELEASE_CAPACITY_V0.md), and [product boundaries](PRODUCT_BOUNDARIES_V0.md) |
 | Follow recent work | [Progress log](PROGRESS_LOG.md) |
 | See what is complete or still planned | [Engineering backlog](../tasks/BACKLOG.md) |
 | Work on a portable client target | [Portable-client composition](platform/PORTABLE_CLIENT_COMPOSITION_V0.md), [build-only Heltec V4 bench candidate](../firmware/targets/heltec_v4_bench/README.md), [OT-059 exact-profile evidence](../tests/hardware/OT-059-2026-08-15.md), [OT-056 runtime-owner evidence](../tests/hardware/OT-056-2026-08-15.md), [development guide](DEVELOPMENT.md), and [hardware inventory](../hardware/INVENTORY.md) |
 | Work on the laptop simulator or client presentation tracks | [Dual virtual-LCD simulator and OT-058 bounded pump](testing/DUAL_VIRTUAL_LCD_SIMULATOR_V0.md), [Android position-observation and Group / Location boundary](platform/POSITION_SHARING_UI_OBSERVATION_V0.md), [shared client-track decision](decisions/0007-shared-client-presentation-tracks.md), and [local interface](platform/LOCAL_INTERFACE_V0.md) |
-| Work on the Android BLE companion path | [Android client foundation, protected-read composition, foreground-service owner, and Group / Location presentation](platform/ANDROID_CLIENT_FOUNDATION_V0.md), [Android operational-release acceptance](platform/ANDROID_OPERATIONAL_RELEASE_ACCEPTANCE_V0.md), [private-pilot operational policy](platform/ANDROID_PRIVATE_PILOT_OPERATIONAL_POLICY_V0.md), [policy-freeze decision](decisions/0032-android-private-pilot-operational-policy-freeze.md), [OT-088 evidence](../tests/hardware/OT-088-2026-08-19.md), [BLE Companion GATT and coded runtime owner](platform/BLE_COMPANION_GATT_V0.md), [one-phone authorization policy, wire, and restricted transport](platform/COMPANION_AUTHORIZATION_V0.md), [protected authorization storage prerequisite](platform/COMPANION_AUTHORIZATION_STORAGE_V0.md), [request coordinator](platform/COMPANION_REQUEST_COORDINATOR_V0.md), [one-phone authority decision](decisions/0009-one-phone-companion-authority.md), [shared client-track decision](decisions/0007-shared-client-presentation-tracks.md), and [threat model](security/THREAT_MODEL_V0.md) |
+| Work on the Android BLE companion path | [Permanent V1/V1.5 scope](testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md), [Android operational-release acceptance](platform/ANDROID_OPERATIONAL_RELEASE_ACCEPTANCE_V0.md), [private-pilot operational policy](platform/ANDROID_PRIVATE_PILOT_OPERATIONAL_POLICY_V0.md), [BLE Companion GATT and coded runtime owner](platform/BLE_COMPANION_GATT_V0.md), [one-phone authorization policy](platform/COMPANION_AUTHORIZATION_V0.md), [authorization storage history/current boundary](platform/COMPANION_AUTHORIZATION_STORAGE_V0.md), [Android client foundation](platform/ANDROID_CLIENT_FOUNDATION_V0.md), [request coordinator](platform/COMPANION_REQUEST_COORDINATOR_V0.md), and [threat model](security/THREAT_MODEL_V0.md) |
 | Understand the working product names | [Limited Underground Trail product-family decision](decisions/0008-limited-underground-trail-working-product-family.md) and [product boundaries](PRODUCT_BOUNDARIES_V0.md) |
 | Work on the Windows firmware loader | [WPF desktop shell](update/WINDOWS_LOADER_DESKTOP_SHELL_V0.md), [selected-device bundle match](update/WINDOWS_LOADER_DEVICE_BUNDLE_MATCH_V0.md), [bundle candidate format](update/FIRMWARE_BUNDLE_CANDIDATE_FORMAT_V0.md), [release-signature decision](decisions/0006-firmware-bundle-signature.md), [live inspection model](update/WINDOWS_LOADER_INSPECTION_VIEW_V0.md), [Windows USB/runtime inspection](update/WINDOWS_USB_CANDIDATE_DISCOVERY_V0.md), [final write admission](update/FIRMWARE_WRITE_ADMISSION_V0.md), [firmware-bundle admission](update/FIRMWARE_BUNDLE_ADMISSION_V0.md), [firmware-install preflight](update/FIRMWARE_INSTALL_PREFLIGHT_V0.md), [update/recovery architecture](update/UPDATE_RECOVERY_ARCHITECTURE_V0.md), and [hardware inventory](../hardware/INVENTORY.md) |
 | Work on radio packets or delivery | [Protocol documents](protocol/), [generic quick-status payload](protocol/QUICK_STATUS_PAYLOAD_V0.md), and [immutable repeater decision](decisions/0004-immutable-first-release-forwarding.md) |
@@ -52,14 +52,14 @@ This is the organized entry point for OpenTrail design, evidence, and engineerin
 
 ## Important project workflows
 
-### First four-person pilot
+### V1 and V1.5 physical acceptance
 
-1. Confirm the [first-release capacity policy](testing/FIRST_RELEASE_CAPACITY_V0.md).
-2. Freeze one exact four-unit client configuration under the [pilot plan](testing/FOUR_PERSON_PILOT_V0.md).
-3. Publish only evidence accepted by the [privacy-safe field log](testing/FIELD_TEST_LOG_V0.md).
-4. Produce the deterministic verdict defined by the [pilot result evaluator](testing/FOUR_PERSON_PILOT_RESULT_V0.md).
+1. Follow the [permanent V1/V1.5 scope](testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md).
+2. Freeze and host-test practical Heltec pairing/replacement and separate secure LoRa contracts.
+3. Run one coherent two-phone/two-Heltec V1 acceptance only after its exact candidates and release artifact are frozen.
+4. Defer four-supported-node interoperability and every relay claim to V1.5.
 
-The pilot is currently blocked at the hardware/firmware freeze. A complete plan and evaluator do not constitute a live pass.
+The historical [four-person standalone pilot](testing/FOUR_PERSON_PILOT_V0.md) and [result evaluator](testing/FOUR_PERSON_PILOT_RESULT_V0.md) remain preserved evidence contracts but no longer define V1 Companion completion.
 
 ### Hardware arrival and compatibility
 

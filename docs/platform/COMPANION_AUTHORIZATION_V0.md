@@ -7,6 +7,19 @@ service remains unregistered and no live provisional GATT or physical BLE
 evidence exists,
 2026-08-15.
 
+## Current V1 supersession notice
+
+[Decision 0033](../decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
+preserves this host/build evidence but supersedes the independent monotonic
+rollback floor as a V1 prerequisite. Current V1 must instead implement a
+normally closed short physical window, fresh locally displayed six-digit PIN,
+authenticated BLE Secure Connections pairing/bonding, one current controller,
+saved-bond reconnect, and confirmed replacement in ordinary application-
+protected storage. Factory reset, reflashing, invasive physical access, or an
+old-flash restore may reset/roll back ownership. The exact new state contract,
+implementation, and physical acceptance remain open; no existing host result is
+relabelled as evidence for them.
+
 ## Authority boundary
 
 The LoRa device, not the Android app, owns the authorized-phone decision. A

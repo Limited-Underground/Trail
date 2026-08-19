@@ -7,6 +7,17 @@ This contract defines the smallest durable boundary required for the one-phone
 authorization authority to survive reboot. It does not claim that ordinary NVS
 is secure, rollback-resistant, or ready for production.
 
+## Current V1 supersession notice
+
+Decision 0033 preserves every result below as historical stronger-design
+evidence but removes the independent monotonic floor and secure-element class
+from the V1 completion prerequisites. Practical V1 authorization may store its
+bond/owner state in ordinary application-protected storage under the disclosed
+limit that reset, reflashing, invasive access, or old-flash restoration may
+reset or roll back ownership. The exact replacement storage contract and target
+evidence remain open. The floor-based contract below remains eligible optional
+future hardening and must not be represented as current V1 implementation.
+
 ## Durable record
 
 `OAP0/v0` is exactly 32 bytes:

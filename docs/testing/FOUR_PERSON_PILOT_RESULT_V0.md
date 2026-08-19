@@ -1,5 +1,9 @@
 # Four-Person Pilot Result v0
 
+> Historical standalone evaluator: Decision 0033 preserves this contract for
+> its original plan. It does not evaluate the current two-pair V1 Companion gate
+> or the future four-supported-node V1.5 interoperability gate.
+
 Status: host evaluator and aggregate result contract, 2026-08-10
 
 `OTPR0/v0` turns one completed four-person session into a deterministic

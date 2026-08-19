@@ -1,5 +1,10 @@
 # Four-Person Standalone Pilot v0
 
+> Historical standalone scope: Decision 0033 preserves this draft plan and its
+> evidence contract but supersedes it as the V1 Companion completion gate.
+> Current V1 uses two Heltec/Android pairs; four-supported-node interoperability
+> is the separate unmeasured V1.5 milestone.
+
 Status date: 2026-08-10
 
 Plan ID: `four-person-pilot-v0`

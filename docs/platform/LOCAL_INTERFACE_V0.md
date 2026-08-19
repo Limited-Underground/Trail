@@ -5,11 +5,15 @@ or physical-display claim**
 
 ## Purpose
 
-The first four-person OpenTrail pilot requires each standalone client to have a
+The historical four-person standalone pilot required each client to have a
 locally readable display and local controls for quick status and critical-alert
-actions. The same application behavior should remain possible on a small OLED
-with buttons, a touch display, or a later accessible input adapter without
-making screen dimensions, color, touch, or a specific UI framework part of the
+actions; Decision 0033 preserves that contract as historical evidence but no
+longer makes it the V1 Companion completion gate. Current V1 reuses these
+semantics for two supported Heltecs and additionally requires a fresh six-digit
+pairing PIN to be displayed locally during each bounded authorization window.
+The same application behavior should remain possible on a small OLED with
+buttons, a touch display, or a later accessible input adapter without making
+screen dimensions, color, touch, or a specific UI framework part of the
 application state machine.
 
 This contract separates semantic frames and normalized actions from pixels,
@@ -263,5 +267,6 @@ The predictable display and input fakes remain under `test_support` only.
   temperature behavior, and long-session stability.
 - Connect resolved application requests to the tested priority/delivery path
   without turning local acceptance into false delivery success.
-- Freeze one exact four-unit client model and firmware before changing the
-  four-person pilot from `draft_blocked` to `ready`.
+- Freeze the exact two supported Heltec targets and practical-authorization
+  state machine required by Decision 0033 before attempting the coherent V1
+  two-pair run. Four-node interoperability is a separate unmeasured V1.5 gate.
