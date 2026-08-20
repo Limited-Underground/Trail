@@ -119,6 +119,18 @@ six blockers and every device/flash/radio/key/packet-v1/score boundary remain
 open. See [Decision 0043](decisions/0043-libsodium-managed-import-evidence.md)
 and [OT-099 evidence](../tests/hardware/OT-099-2026-08-20.md).
 
+OT-100 accepts strict host-only `OTCSLA0/v0`, raw SHA-256
+`df595f2d07ba1b5d0a9bdf70237b1f0ea5a01fe8cb5a63ffb3575fe484faede0`.
+It binds unchanged OT-097 policy and OT-099 evidence and accepts only the exact
+Espressif libsodium 1.0.22 source lock. The mbedTLS/PSA and Monocypher source
+registries and all API/configuration and import registries remain empty.
+Historical OT-094/OT-097 evidence retains six blockers; the current unresolved
+set is five after closing only the libsodium source-lock requirement. Readiness
+remains blocked. No target/final-configuration, device/flash/radio/key/crypto
+execution, benchmark, selection, packet-v1, legal/compatibility, physical,
+authority, or score claim changed. See [Decision 0044](decisions/0044-libsodium-source-lock-admission-delta.md)
+and [OT-100 evidence](../tests/hardware/OT-100-2026-08-20.md).
+
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
 unicast path. One secret-free authenticated invitation admits one candidate and

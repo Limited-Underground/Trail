@@ -212,6 +212,21 @@ crypto-execution, benchmark, or selection evidence. All six blockers and all
 device/radio/key/packet-v1/score boundaries remain open. See [Decision 0043](../decisions/0043-libsodium-managed-import-evidence.md)
 and [OT-099 evidence](../../tests/hardware/OT-099-2026-08-20.md).
 
+## OT-100 libsodium source-lock admission
+
+`OTCSLA0/v0`, raw SHA-256 `df595f2d07ba1b5d0a9bdf70237b1f0ea5a01fe8cb5a63ffb3575fe484faede0`,
+binds the unchanged OT-097 policy and OT-099 evidence and independently accepts
+only the exact Espressif libsodium 1.0.22 source anchor. The mbedTLS/PSA and
+Monocypher source registries and every API/configuration and import registry
+remain empty.
+
+OT-094 and OT-097 remain historical six-blocker artifacts. The current set is
+five after closing only `espressif_libsodium_source_lock_absent`; readiness
+remains blocked. This adds no target/final-configuration proof, device/radio/key
+or crypto execution, benchmark, selection, packet-v1, legal/compatibility,
+physical, authority, or score evidence. See [Decision 0044](../decisions/0044-libsodium-source-lock-admission-delta.md)
+and [OT-100 evidence](../../tests/hardware/OT-100-2026-08-20.md).
+
 ## Result contract
 
 One result evaluates one candidate under one exact ready plan. It records:

@@ -13,7 +13,7 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-099 records complete Espressif libsodium 1.0.22 managed-import evidence and a passing isolated generic ESP32-S3 computer build. The archive entered the link graph, but probe symbols were not retained; source-lock admission remains pending and all six blockers remain open. Result: `ESPRESSIF-LIBSODIUM-1.0.22-MANAGED-IMPORT-EVIDENCE-COMPLETE; SOURCE-LOCK-ADMISSION-PENDING; ISOLATED-COMPUTER-BUILD-PASSED; NO-DEVICE-OR-CRYPTO-EXECUTION; OTCBR0-READINESS-BLOCKED`. No score was added |
+| Latest increment | OT-100 accepts the exact OT-099 Espressif libsodium 1.0.22 source lock host-only. OT-094 and OT-097 preserve the historical six-blocker state; the current unresolved set is five. Readiness remains blocked and API/configuration and import anchors remain empty. Result: `LIBSODIUM-1.0.22-SOURCE-LOCK-ADMITTED-HOST-ONLY; FIVE-OTCBR0-REQUIREMENTS-REMAIN; NO-API-CONFIG-OR-IMPORT-ACCEPTANCE; OTCBR0-READINESS-BLOCKED`. No score was added |
 | Proven so far | OT-095 adds strict source-evidence admission governance, not a source lock or candidate readiness. OT-094 adds strict blocked readiness governance, not candidate readiness. OT-093 adds reproducible build-only evidence, not crypto performance or target support. OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on one experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 and V2 remain unmeasured |
 | Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
@@ -81,7 +81,12 @@ and [OT-099 evidence](tests/hardware/OT-099-2026-08-20.md) record complete
 managed-import evidence and an isolated generic ESP32-S3 build pass. The
 candidate archive entered the link graph but probe symbols were not retained.
 Source-lock admission remains pending and all six blockers remain open.
-Next close those readiness requirements, accept a new immutable executable plan,
+[Decision 0044](docs/decisions/0044-libsodium-source-lock-admission-delta.md)
+and [OT-100 evidence](tests/hardware/OT-100-2026-08-20.md) now accept only that
+exact libsodium source lock. OT-094 and OT-097 remain historical six-blocker
+records; the current unresolved set is five, readiness is still blocked, and
+API/configuration and import anchors remain empty. Next close those five
+readiness requirements, accept a new immutable executable plan,
 run the exact candidate benchmark under separate authority, and make a later
 explicit suite/wire decision. Implementation and physical acceptance remain
 separately authorized.

@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-20
 
+### OT-100 exact libsodium source-lock admission
+
+- Accepted host-only `OTCSLA0/v0`, raw SHA-256 `df595f2d07ba1b5d0a9bdf70237b1f0ea5a01fe8cb5a63ffb3575fe484faede0`, and result `LIBSODIUM-1.0.22-SOURCE-LOCK-ADMITTED-HOST-ONLY; FIVE-OTCBR0-REQUIREMENTS-REMAIN; NO-API-CONFIG-OR-IMPORT-ACCEPTANCE; OTCBR0-READINESS-BLOCKED`.
+- Bound unchanged OT-097 policy and OT-099 evidence and accepted only exact libsodium 1.0.22 source evidence. API/configuration and import anchors remain empty.
+- Preserved historical OT-094/OT-097 six-blocker evidence while recording five current unresolved requirements. Readiness remains blocked; no target/final-config/device/flash/radio/key/crypto execution/benchmark/selection/packet-v1/legal/physical/authority/score claim changed.
+- Focused validation passes 5 groups and independent review is clear. Android 60%; V1 exact 43.75%/display44%; baseline exact31.75%/display32%; V1.5/V2 unmeasured. See [Decision 0044](decisions/0044-libsodium-source-lock-admission-delta.md) and [OT-100 evidence](../tests/hardware/OT-100-2026-08-20.md).
+
 ### OT-099 libsodium managed-import evidence
 
 - Accepted host-only `OTLMI0/v0`, raw SHA-256 `8285fa7308bfc83a5d55503a7a3e1fa4c21895a42b095197b3ec75f634411ec9`, and result `ESPRESSIF-LIBSODIUM-1.0.22-MANAGED-IMPORT-EVIDENCE-COMPLETE; SOURCE-LOCK-ADMISSION-PENDING; ISOLATED-COMPUTER-BUILD-PASSED; NO-DEVICE-OR-CRYPTO-EXECUTION; OTCBR0-READINESS-BLOCKED`.
