@@ -1,0 +1,149 @@
+{
+  "schema": "OTCMSE0",
+  "version": 0,
+  "artifact_kind": "mbedtls_psa_static_eligibility_audit",
+  "audit_id": "OT-096-OT005-MBEDTLS-STATIC-ELIGIBILITY-V0",
+  "recorded_date": "2026-08-20",
+  "status": "fixed_operation_set_ineligible_host_only",
+  "public_result": "MBEDTLS-STATIC-ELIGIBILITY-FROZEN-HOST-ONLY; FIXED-OT005-OPERATION-SET-INELIGIBLE; OTCBR0-BLOCKER4-REMAINS-OPEN",
+  "parent_contracts": {
+    "otcb0_plan_sha256": "49792b585286823ffa9b7589704d57e8393b3dbf3d514917ffd7b5970301edb7",
+    "otcbl0_baseline_sha256": "16ffe83af7e3c1f00b5d123eae30e3ac4a0ea2dea0cb08bcc60b990d3e881733",
+    "otcbr0_readiness_sha256": "705b30693196e2f46d8bda7c17acb1e04d7b9092c4a3817286c14d189001b9d3",
+    "otcsl0_admission_policy_sha256": "c0bd923782d0977f8b375cbd2fe8cde5ff132a26b8b6a7ea34a62111bd101f1f"
+  },
+  "provenance": {
+    "audit_scope": "already_installed_pinned_source_static_read_only",
+    "source_acquired_or_imported_by_ot096": false,
+    "esp_idf": {
+      "version": "v6.0.2",
+      "source_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+      "mbedtls_component_tree_git_oid": "22c8f32fe2cf02a128c8f7a39363ecf3f70fb9ff",
+      "mbedtls_gitlink_path": "components/mbedtls/mbedtls",
+      "mbedtls_gitlink_commit": "6cc42afad309e861f4c07e6f106e2ab14a9cb8e5",
+      "tracked_or_nonignored_change_count": 0,
+      "ignored_entries_outside_candidate_scope_excluded": true
+    },
+    "mbedtls": {
+      "version": "4.1.0",
+      "source_commit": "6cc42afad309e861f4c07e6f106e2ab14a9cb8e5",
+      "source_tree_git_oid": "c8766facace97c13f9996d08638dc4ba52f66e4d",
+      "tf_psa_tree_git_oid": "3f133cd7475b00c0f7e7e2f2548d5f64813c17b5",
+      "tf_psa_is_separate_gitlink": false,
+      "tracked_or_nonignored_change_count": 0,
+      "ignored_entry_count": 0,
+      "full_tree_manifest_kind": "git-ls-tree-rz-full-tree-v1",
+      "full_tree_manifest_sha256": "74401cf9c7fa2c6e5c21f4f35c3df2fa101ce5054200748c26f081690b9c9b27",
+      "full_tree_entry_count": 3551,
+      "tf_psa_manifest_kind": "git-ls-tree-rz-full-tree-v1",
+      "tf_psa_manifest_sha256": "36cbf9ecde6536392899f3c82327a934bb0c6516eb3a37bd602b4c3b289f46b6",
+      "tf_psa_entry_count": 3203
+    },
+    "component_glue": {
+      "manifest_kind": "git-ls-tree-rz-full-tree-v1",
+      "manifest_sha256": "9748f2e4ec5b1642894e6a129a64f7e07441ebceea0275f8413228e7e1f39b5e",
+      "entry_count": 199,
+      "regular_file_count": 198,
+      "gitlink_count": 1
+    },
+    "license": {
+      "upstream_expression": "Apache-2.0 OR GPL-2.0-or-later",
+      "project_choice": "Apache-2.0",
+      "logical_path": "LICENSE",
+      "git_blob_oid": "776ac77eaf5a0da545f95ad7386b9954378fa8ae",
+      "canonical_git_blob_sha256": "9b405ef4c89342f5eae1dd828882f931747f71001cfba7d114801039b52ad09b",
+      "canonical_git_blob_bytes": 29852,
+      "full_otcsle_license_inventory_complete": false
+    }
+  },
+  "source_anchors": [
+    {"anchor_id": "idf_component_cmake", "logical_path": "components/mbedtls/CMakeLists.txt", "git_blob_oid": "6d5c314338e3b5033557e47d0ce6d7a6925a8224", "canonical_git_blob_sha256": "129255f0e27e6a0d960a143bfa367f2434640a34b0e233585a4315a83eb69e30", "canonical_git_blob_bytes": 26556},
+    {"anchor_id": "idf_component_kconfig", "logical_path": "components/mbedtls/Kconfig", "git_blob_oid": "9332203451724b5e16a34973fd44de615f57a072", "canonical_git_blob_sha256": "a022279fbf770cef37dc8904e8a69e0eff72957f2fb5d77d744d227b86f8f432", "canonical_git_blob_bytes": 71944},
+    {"anchor_id": "idf_esp_config", "logical_path": "components/mbedtls/port/include/mbedtls/esp_config.h", "git_blob_oid": "f877145a55574ab9ef0bf41832cce105669b7cb9", "canonical_git_blob_sha256": "7c50b4e7ea3f5b1d0b6985d2022dcec5b23f63f7379b9c96dd77766eaea8ff7f", "canonical_git_blob_bytes": 94185},
+    {"anchor_id": "idf_default_preset", "logical_path": "components/mbedtls/config/mbedtls_preset_default.conf", "git_blob_oid": "11047ec88fe2c52ae5a1516d7ddebadb27e10140", "canonical_git_blob_sha256": "29a7fabd94aebee0d9126681c059341c453ba719c7fe54a26931d1ba3f7d36cd", "canonical_git_blob_bytes": 5064},
+    {"anchor_id": "mbedtls_build_info", "logical_path": "include/mbedtls/build_info.h", "git_blob_oid": "e077bbce40728057a8306bca6d2034764b2402e6", "canonical_git_blob_sha256": "1746baac0ebce39360b8837e4ee4fb956fe93bbf3b4bd0a4b69d5908388e72f9", "canonical_git_blob_bytes": 2714},
+    {"anchor_id": "tf_psa_crypto_config", "logical_path": "tf-psa-crypto/include/psa/crypto_config.h", "git_blob_oid": "36d218db172607f0bd3ba80bf994b1fd35af5067", "canonical_git_blob_sha256": "dc4753d99690d2584ab33edd46aa09c6562f3193ac49a171916ae513937357f2", "canonical_git_blob_bytes": 77903},
+    {"anchor_id": "tf_psa_crypto_values", "logical_path": "tf-psa-crypto/include/psa/crypto_values.h", "git_blob_oid": "d30b8d2f496fc22088bdd3aa424e3f0eb0000e78", "canonical_git_blob_sha256": "cb22bf205eae93e14b05af6a41c046cf1cfbbb8cc09595d4970fe9933a74657c", "canonical_git_blob_bytes": 124376},
+    {"anchor_id": "tf_psa_api", "logical_path": "tf-psa-crypto/include/psa/crypto.h", "git_blob_oid": "1bd257431f28fb53a8ccd4a71030465635befaf6", "canonical_git_blob_sha256": "8f0b7e1c227875076540809d19c4686b38a765f929caa1559df2babc418cdb85", "canonical_git_blob_bytes": 296641},
+    {"anchor_id": "tf_psa_core", "logical_path": "tf-psa-crypto/core/psa_crypto.c", "git_blob_oid": "d7931d22540bd60ba7cbe7620512b6bd3a0a8471", "canonical_git_blob_sha256": "a6d6d6d394c201fafa337eeab5f3a5a5ed0516d28665eb7acbf089a940d3ebcf", "canonical_git_blob_bytes": 333734},
+    {"anchor_id": "tf_psa_x25519", "logical_path": "tf-psa-crypto/drivers/everest/library/x25519.c", "git_blob_oid": "3a843c333d2ad68edc603e513cb222bebdefd432", "canonical_git_blob_sha256": "8a363405a9289b77645dd71ea7a3271bad10b54548387b8d8b54501034d45ccf", "canonical_git_blob_bytes": 1857},
+    {"anchor_id": "tf_psa_ecp", "logical_path": "tf-psa-crypto/drivers/builtin/src/psa_crypto_ecp.c", "git_blob_oid": "156519f5f89d2ec43fc86f050c32a7b27268b42e", "canonical_git_blob_sha256": "8d6e2245774ef2f672f3ee29657a9f8bb341fc0224f24d2380d460a2b739b8d5", "canonical_git_blob_bytes": 30786},
+    {"anchor_id": "tf_psa_hash_dispatch", "logical_path": "tf-psa-crypto/drivers/builtin/src/psa_crypto_hash.c", "git_blob_oid": "bd1e3083f8ac360bc48482532d7853c940b83d18", "canonical_git_blob_sha256": "0840b40c54497dcc9934b57d3b003332411e602980aefc111ff70b870209aeb4", "canonical_git_blob_bytes": 14435},
+    {"anchor_id": "tf_psa_sha256", "logical_path": "tf-psa-crypto/drivers/builtin/src/sha256.c", "git_blob_oid": "3eb38dd1a8881fc383e7a3c57bf1280875a02e63", "canonical_git_blob_sha256": "f1c3018055c8fe04722a99fdb18ff13bc871113ff5295e3ca5ee2eb3d652b5ad", "canonical_git_blob_bytes": 29573},
+    {"anchor_id": "tf_psa_aead_dispatch", "logical_path": "tf-psa-crypto/drivers/builtin/src/psa_crypto_aead.c", "git_blob_oid": "ca1982647e9509e3a020bae97fc3f8f4e9cb1b2c", "canonical_git_blob_sha256": "b3d317ea71de1c26096ebe5b819ec293bfdf36cd817a3da6520569d7b6586dc6", "canonical_git_blob_bytes": 22800},
+    {"anchor_id": "tf_psa_chacha20", "logical_path": "tf-psa-crypto/drivers/builtin/src/chacha20.c", "git_blob_oid": "19b1ad882b4636d309ba9451e08d6173683bb73b", "canonical_git_blob_sha256": "f1284ef1bcf2cd1924445a36ba3c7b330dfa033de2bd10bbcbb81dd15852f3df", "canonical_git_blob_bytes": 17618},
+    {"anchor_id": "tf_psa_chachapoly", "logical_path": "tf-psa-crypto/drivers/builtin/src/chachapoly.c", "git_blob_oid": "22aa7cdcc2bc9690cb3a14d108989793900a4968", "canonical_git_blob_sha256": "7aeebeb1e3138a1a5681bdd06c58128dbe233789fb8aad58e71f6cb561aa6c06", "canonical_git_blob_bytes": 14466},
+    {"anchor_id": "tf_psa_poly1305", "logical_path": "tf-psa-crypto/drivers/builtin/src/poly1305.c", "git_blob_oid": "ba5299844d86723d2ea5549c67190447298a1525", "canonical_git_blob_sha256": "7735cad5b69901ea980eb3051d798583e4acafc35890e55e4cd11f8ac83c55df", "canonical_git_blob_bytes": 14415},
+    {"anchor_id": "tf_psa_ed25519_negative_doc", "logical_path": "tf-psa-crypto/docs/architecture/psa-shared-memory.md", "git_blob_oid": "09ac317ea64e77e6ef30e5e8c9b769b0ca399f92", "canonical_git_blob_sha256": "a567ac01d189e655cff03edfc470ff687e7caba0849646fd0a93899dedfd0af1", "canonical_git_blob_bytes": 57453},
+    {"anchor_id": "tf_psa_not_supported_test", "logical_path": "tf-psa-crypto/tests/suites/test_suite_psa_crypto_not_supported.function", "git_blob_oid": "4f15a3f796ddb71708b6d4fe872f9f6ffe47634d", "canonical_git_blob_sha256": "88e0687e656d3b0663f35820c96e8c269124dfdb778997bd01b5222da583487b", "canonical_git_blob_bytes": 2353}
+  ],
+  "configuration": {
+    "open_trail_sdkconfig_defaults_sha256": "84d54e5d730ba28ceba0c97831a477303db128d63ede7575bec52013770d70c0",
+    "open_trail_relevant_override_count": 0,
+    "ot093_generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+    "ot093_generated_sdkconfig_role": "PRE-SELECTION-BASELINE-NOT-FINAL-OTCB0",
+    "final_candidate_sdkconfig_sha256": null,
+    "final_candidate_config_resolved": false,
+    "defaults_are_final_config_evidence": false,
+    "default_source_states": [
+      {"capability": "x25519", "idf_default": "enabled", "symbols": ["CONFIG_MBEDTLS_ECP_C", "CONFIG_MBEDTLS_ECDH_C", "CONFIG_MBEDTLS_ECP_DP_CURVE25519_ENABLED", "PSA_WANT_ALG_ECDH", "PSA_WANT_ECC_MONTGOMERY_255"]},
+      {"capability": "sha256", "idf_default": "enabled", "symbols": ["CONFIG_MBEDTLS_SHA256_C", "PSA_WANT_ALG_SHA_256"]},
+      {"capability": "hkdf_sha256", "idf_default": "enabled_by_tf_psa_default", "symbols": ["PSA_WANT_ALG_HKDF", "PSA_WANT_ALG_HMAC", "PSA_WANT_ALG_SHA_256"]},
+      {"capability": "chacha20poly1305", "idf_default": "disabled", "symbols": ["CONFIG_MBEDTLS_CHACHA20_C", "CONFIG_MBEDTLS_CHACHAPOLY_C", "PSA_WANT_KEY_TYPE_CHACHA20", "PSA_WANT_ALG_CHACHA20_POLY1305"]}
+    ]
+  },
+  "operation_matrix": [
+    {"operation": "ed25519_sign", "source_implementation_present": false, "api_symbols": ["psa_sign_message", "PSA_ALG_PURE_EDDSA"], "source_anchor_ids": ["tf_psa_crypto_values", "tf_psa_api", "tf_psa_ed25519_negative_doc", "tf_psa_not_supported_test"], "source_state": "identifiers_and_generic_api_only_no_ed25519_implementation", "final_config_proven": false},
+    {"operation": "ed25519_verify", "source_implementation_present": false, "api_symbols": ["psa_verify_message", "PSA_ALG_PURE_EDDSA"], "source_anchor_ids": ["tf_psa_crypto_values", "tf_psa_api", "tf_psa_ed25519_negative_doc", "tf_psa_not_supported_test"], "source_state": "identifiers_and_generic_api_only_no_ed25519_implementation", "final_config_proven": false},
+    {"operation": "x25519", "source_implementation_present": true, "api_symbols": ["psa_raw_key_agreement", "PSA_ALG_ECDH", "PSA_ECC_FAMILY_MONTGOMERY"], "source_anchor_ids": ["tf_psa_crypto_values", "tf_psa_api", "tf_psa_core", "tf_psa_x25519", "tf_psa_ecp"], "source_state": "concrete_psa_api_and_everest_implementation_present", "final_config_proven": false},
+    {"operation": "sha256", "source_implementation_present": true, "api_symbols": ["psa_hash_compute", "PSA_ALG_SHA_256"], "source_anchor_ids": ["tf_psa_crypto_values", "tf_psa_api", "tf_psa_core", "tf_psa_hash_dispatch", "tf_psa_sha256"], "source_state": "concrete_psa_api_and_builtin_implementation_present", "final_config_proven": false},
+    {"operation": "hkdf_sha256", "source_implementation_present": true, "api_symbols": ["psa_key_derivation_setup", "psa_key_derivation_input_bytes", "psa_key_derivation_input_key", "psa_key_derivation_output_bytes", "PSA_ALG_HKDF", "PSA_ALG_SHA_256"], "source_anchor_ids": ["tf_psa_crypto_config", "tf_psa_crypto_values", "tf_psa_api", "tf_psa_core"], "source_state": "concrete_psa_api_and_core_implementation_present", "final_config_proven": false},
+    {"operation": "chacha20poly1305_encrypt", "source_implementation_present": true, "api_symbols": ["psa_aead_encrypt", "PSA_ALG_CHACHA20_POLY1305"], "source_anchor_ids": ["tf_psa_crypto_values", "tf_psa_api", "tf_psa_core", "tf_psa_aead_dispatch", "tf_psa_chacha20", "tf_psa_chachapoly", "tf_psa_poly1305"], "source_state": "concrete_psa_api_and_builtin_implementation_present_default_disabled", "final_config_proven": false},
+    {"operation": "chacha20poly1305_decrypt", "source_implementation_present": true, "api_symbols": ["psa_aead_decrypt", "PSA_ALG_CHACHA20_POLY1305"], "source_anchor_ids": ["tf_psa_crypto_values", "tf_psa_api", "tf_psa_core", "tf_psa_aead_dispatch", "tf_psa_chacha20", "tf_psa_chachapoly", "tf_psa_poly1305"], "source_state": "concrete_psa_api_and_builtin_implementation_present_default_disabled", "final_config_proven": false},
+    {"operation": "noise_xk_handshake", "source_implementation_present": false, "api_symbols": [], "source_anchor_ids": [], "source_state": "no_noise_xk_composition_or_state_machine_present", "final_config_proven": false}
+  ],
+  "summary": {
+    "required_operation_count": 8,
+    "source_implementation_present_count": 5,
+    "source_implementation_absent_count": 3,
+    "complete_fixed_operation_set_present": false,
+    "final_candidate_config_resolved": false,
+    "candidate_api_config_eligible": false,
+    "source_lock_accepted": false,
+    "readiness_advanced": false,
+    "atomic_blocker_closed": false
+  },
+  "unchanged_blockers": [
+    "exact_received_target_profile_unresolved",
+    "final_candidate_build_configuration_unresolved",
+    "espressif_libsodium_source_lock_absent",
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "monocypher_source_lock_absent",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "authority": {
+    "dependency_acquisition_authorized": false,
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "suite_selection_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "source_acquired": false,
+    "source_lock_accepted": false,
+    "candidate_imported": false,
+    "api_config_eligibility_proven": false,
+    "candidate_benchmark_executed": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_wire_selected": false,
+    "hardware_or_device_accessed": false,
+    "physical_evidence_added": false,
+    "score_credit_added": false
+  }
+}
