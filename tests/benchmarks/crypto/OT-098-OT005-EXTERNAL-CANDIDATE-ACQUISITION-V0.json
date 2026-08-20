@@ -1,0 +1,40 @@
+{
+  "schema": "OTCAI0",
+  "version": 0,
+  "artifact_kind": "external_candidate_acquisition_and_static_inspection",
+  "audit_id": "OT-098-OT005-EXTERNAL-CANDIDATE-ACQUISITION-V0",
+  "recorded_date": "2026-08-20",
+  "status": "external_candidates_acquired_static_inspection_host_only",
+  "public_result": "EXTERNAL-CANDIDATE-SOURCES-ACQUIRED-AND-STATICALLY-INSPECTED; ZERO-SOURCES-IMPORTED; ZERO-SOURCE-LOCKS-ACCEPTED; OTCBR0-READINESS-BLOCKED",
+  "otcsl1_admission_policy_sha256": "51639e1b9342dc9e501fb0682d044c0f7c05e691e1a26f463358a753f28a123a",
+  "candidates": [
+    {
+      "name": "libsodium", "version": "1.0.22", "origin": "https://github.com/jedisct1/libsodium.git",
+      "tag": "1.0.22", "tag_kind": "annotated", "tag_object": "fe3fa3dd583d9487e1cc32b0f5ef0f516949c836",
+      "commit": "77e1ce5d6dee871c49ef211222ba18ef0c486bda", "tree": "07cdf5776966946afb03d09e6f1ca8f9d5ecbf1d",
+      "clean": true, "patch_count": 0, "submodule_count": 0,
+      "manifest_kind": "sorted-git-ls-files-raw-sha256-lines-v1", "manifest_sha256": "283f4a94ad8e0d867699a11b4d2e63f0eba21a7e765bf2f6dc70a89c5e8b107a", "manifest_entry_count": 714,
+      "license_expression": "ISC", "project_license_choice": "ISC", "license_path": "LICENSE", "license_blob": "95c22fbadfa457cd7898ebe96aaa05147589b655", "license_sha256": "93e7cac854d71cdafc9d9e4e9f8fd28d87ae541b3dda224d7c8fe23d37875704",
+      "license_files": [{"path": "LICENSE", "blob": "95c22fbadfa457cd7898ebe96aaa05147589b655", "sha256": "93e7cac854d71cdafc9d9e4e9f8fd28d87ae541b3dda224d7c8fe23d37875704", "scope": "project"}],
+      "signature": {"present": true, "key_fingerprint": "0C7983A8FD9A104C623172CB62F25B592B6F76DA", "verified": false, "trust_resolved": false, "reason": "public_key_unavailable"},
+      "sbom_present": false, "transitive_dependency_inventory_complete": false, "project_source_lock_present": false, "component_metadata_present": false,
+      "operations": {"ed25519_sign": true, "ed25519_verify": true, "x25519": true, "sha256": true, "hkdf_sha256": true, "chacha20poly1305_encrypt": true, "chacha20poly1305_decrypt": true, "noise_xk_handshake": false}
+    },
+    {
+      "name": "Monocypher", "version": "4.0.3", "origin": "https://github.com/LoupVaillant/Monocypher.git",
+      "tag": "4.0.3", "tag_kind": "lightweight", "tag_object": null,
+      "commit": "ab2b16dd619ad5f6979a4fbe69cfa324a6fcc35f", "parent_commit": "9a046c3bfbade2e503471a52ea44272297798f98", "tree": "eccc366491fc98c4149401d580ce41081a7854b1",
+      "clean": true, "patch_count": 0, "submodule_count": 0,
+      "manifest_kind": "git-ls-tree-r-full-tree-lf-v1", "manifest_sha256": "493a91a278750017af31447dae36cdfbf426b9886e804b9d985fea14db492a97", "manifest_entry_count": 161,
+      "license_expression": "CC0-1.0 OR BSD-2-Clause", "project_license_choice": null, "license_path": "LICENCE.md", "license_blob": "9d69ad72ec113a743264d34dd86a5c04d0c42d35", "license_sha256": "035c7355e948ce49e49f7c4e500ebabe79135f1b46080149649d144a02c23fe5",
+      "license_files": [{"path": "LICENCE.md", "blob": "9d69ad72ec113a743264d34dd86a5c04d0c42d35", "sha256": "035c7355e948ce49e49f7c4e500ebabe79135f1b46080149649d144a02c23fe5", "scope": "project"}, {"path": "tests/externals/tinyssh/LICENCE", "blob": "0e259d42c996742e9e3cba14c677129b2c1b6311", "sha256": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328", "scope": "test-only external"}],
+      "signature": {"present": false, "key_fingerprint": null, "verified": false, "trust_resolved": false, "reason": "lightweight_tag_and_unsigned_commit"},
+      "sbom_present": false, "transitive_dependency_inventory_complete": false, "project_source_lock_present": false, "component_metadata_present": false,
+      "operations": {"ed25519_sign": true, "ed25519_verify": true, "x25519": true, "sha256": false, "hkdf_sha256": false, "chacha20poly1305_encrypt": true, "chacha20poly1305_decrypt": true, "noise_xk_handshake": false}
+    }
+  ],
+  "summary": {"candidate_count": 2, "sources_acquired_count": 2, "sources_statically_inspected_count": 2, "sources_imported_count": 0, "source_locks_accepted_count": 0, "libsodium_operations_present": 7, "monocypher_operations_present": 5, "fixed_operation_count": 8, "final_candidate_config_resolved": false, "benchmark_executed": false, "candidate_selected": false, "legal_clearance_claimed": false, "license_compatibility_claimed": false, "score_credit_added": false},
+  "unchanged_blockers": ["exact_received_target_profile_unresolved", "final_candidate_build_configuration_unresolved", "espressif_libsodium_source_lock_absent", "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved", "monocypher_source_lock_absent", "direct_radio_mtu_phy_region_unresolved"],
+  "authority": {"candidate_import_authorized": false, "benchmark_build_authorized": false, "benchmark_execution_authorized": false, "device_access_authorized": false, "radio_transmit_authorized": false, "key_or_entropy_operation_authorized": false, "suite_selection_authorized": false, "packet_v1_authorized": false, "score_credit_added": false},
+  "claims": {"sources_acquired": true, "sources_statically_inspected": true, "sources_imported": false, "source_locks_accepted": false, "api_final_config_eligibility_proven": false, "benchmark_executed": false, "candidate_selected": false, "legal_clearance": false, "license_compatibility": false, "hardware_or_device_accessed": false, "physical_evidence_added": false, "score_credit_added": false}
+}

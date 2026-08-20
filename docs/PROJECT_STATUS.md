@@ -97,6 +97,17 @@ selection, support, implementation, physical evidence, or score changed. See
 [Decision 0041](decisions/0041-license-aware-source-lock-admission-v1.md) and
 [OT-097 evidence](../tests/hardware/OT-097-2026-08-20.md).
 
+OT-098 accepts host-only `OTCAI0/v0`, raw SHA-256
+`b7be03e305c6253e10f69f624132a736cce5aea3f559760cde4f948ae79abad6`.
+Exact clean libsodium 1.0.22 and Monocypher 4.0.3 sources were acquired and
+statically inspected, exposing 7/8 and 5/8 fixed operations respectively.
+Signature trust remains unresolved; Monocypher's project license choice is
+null; complete SBOM/transitive inventories, project locks, final configuration,
+import, build, benchmark, and selection remain absent. Zero source locks are
+accepted, all six blockers remain open, and no legal/compatibility, authority,
+physical-evidence, or score claim changed. See [Decision 0042](decisions/0042-external-candidate-acquisition-static-inspection.md)
+and [OT-098 evidence](../tests/hardware/OT-098-2026-08-20.md).
+
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
 unicast path. One secret-free authenticated invitation admits one candidate and

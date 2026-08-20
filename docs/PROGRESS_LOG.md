@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-20
 
+### OT-098 external candidate acquisition and static inspection
+
+- Accepted host-only `OTCAI0/v0`, raw SHA-256 `b7be03e305c6253e10f69f624132a736cce5aea3f559760cde4f948ae79abad6`, and result `EXTERNAL-CANDIDATE-SOURCES-ACQUIRED-AND-STATICALLY-INSPECTED; ZERO-SOURCES-IMPORTED; ZERO-SOURCE-LOCKS-ACCEPTED; OTCBR0-READINESS-BLOCKED`.
+- Exact clean libsodium 1.0.22 and Monocypher 4.0.3 trees were acquired and statically inspected. Source paths cover 7/8 and 5/8 fixed operations; neither contains Noise XK.
+- Signature trust, complete inventories, Monocypher's project license choice, project locks, final configuration, import, build, benchmark, and selection remain unresolved or absent. All six blockers remain open.
+- Focused validation passes 3 scenario groups and independent review is clear. Android remains 60%; V1 exact 43.75%/displayed 44%; historical baseline exact 31.75%/displayed 32%; V1.5/V2 remain unmeasured. See [Decision 0042](decisions/0042-external-candidate-acquisition-static-inspection.md) and [OT-098 evidence](../tests/hardware/OT-098-2026-08-20.md).
+
 ### OT-097 license-aware source-lock admission v1
 
 - Accepted strict host-only `OTCSL0/v1`, admission ID `OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1`, canonical/policy SHA-256 `51639e1b9342dc9e501fb0682d044c0f7c05e691e1a26f463358a753f28a123a`, and result `LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1-FROZEN-HOST-ONLY; ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED`.

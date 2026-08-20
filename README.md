@@ -13,7 +13,7 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-097 freezes strict host-only `OTCSL0/v1`, requiring separate upstream SPDX expression, project license choice, complete license inventory, and inventory digest before future source-lock acceptance. `OTCSL0/v0` remains valid historical evidence but permanently non-admitting. Result: `LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1-FROZEN-HOST-ONLY; ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED`. All six blockers remain open; no legal clearance, compatibility determination, source lock, readiness, benchmark, selection, support, implementation, physical evidence, authority, or score was added |
+| Latest increment | OT-098 records exact host-only acquisition and static inspection of libsodium 1.0.22 and Monocypher 4.0.3. Source paths cover 7/8 and 5/8 fixed operations; signature trust, complete inventories, project locks, final configuration, import, benchmark, and selection remain unresolved or absent. Result: `EXTERNAL-CANDIDATE-SOURCES-ACQUIRED-AND-STATICALLY-INSPECTED; ZERO-SOURCES-IMPORTED; ZERO-SOURCE-LOCKS-ACCEPTED; OTCBR0-READINESS-BLOCKED`. All six blockers remain open and no score was added |
 | Proven so far | OT-095 adds strict source-evidence admission governance, not a source lock or candidate readiness. OT-094 adds strict blocked readiness governance, not candidate readiness. OT-093 adds reproducible build-only evidence, not crypto performance or target support. OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on one experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 and V2 remain unmeasured |
 | Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
@@ -70,6 +70,12 @@ and [OT-097 evidence](tests/hardware/OT-097-2026-08-20.md) freeze the
 license-aware `OTCSL0/v1` admission policy. Version 0 remains historical but
 cannot admit a future source lock; version 1 requires separate upstream SPDX,
 project-choice, complete-inventory, and inventory-digest evidence.
+[Decision 0042](docs/decisions/0042-external-candidate-acquisition-static-inspection.md)
+and [OT-098 evidence](tests/hardware/OT-098-2026-08-20.md) record exact
+acquisition and static inspection of the two external candidates: libsodium
+has 7/8 and Monocypher 5/8 source operations. Signature trust, complete
+inventories, project locks, final configuration, import, benchmark, and
+selection remain unresolved or absent; all six blockers remain open.
 Next close those readiness requirements, accept a new immutable executable plan,
 run the exact candidate benchmark under separate authority, and make a later
 explicit suite/wire decision. Implementation and physical acceptance remain

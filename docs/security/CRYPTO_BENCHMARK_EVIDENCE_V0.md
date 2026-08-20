@@ -181,6 +181,22 @@ It preserves the v0 evidence layers while making four license fields mandatory f
 
 The candidate entries preserve their distinct upstream expressions and current project choices. Every inventory remains incomplete, every inventory digest is null, and every source-lock state is `not_accepted`. OT-097 acquires/imports zero sources and grants no legal clearance or compatibility determination. All six blockers and all authority/readiness/benchmark/selection/support/physical/score closures remain open. See [Decision 0041](../decisions/0041-license-aware-source-lock-admission-v1.md) and [OT-097 evidence](../../tests/hardware/OT-097-2026-08-20.md).
 
+## OT-098 external candidate acquisition and static inspection
+
+`OTCAI0/v0` binds exact official origins, refs, commits, trees, manifests,
+license files, and unresolved signature state for acquired libsodium 1.0.22 and
+Monocypher 4.0.3 sources. Its raw SHA-256 is
+`b7be03e305c6253e10f69f624132a736cce5aea3f559760cde4f948ae79abad6`.
+Static source paths cover 7/8 operations for libsodium and 5/8 for Monocypher;
+neither contains Noise XK composition. Monocypher also lacks SHA-256 and
+HKDF-SHA-256.
+
+Signature trust remains unresolved. Monocypher's project license choice remains
+null, inventories are incomplete, and neither candidate has an OpenTrail
+project lock, final configuration, import, build, benchmark, or selection.
+All six blockers remain open. See [Decision 0042](../decisions/0042-external-candidate-acquisition-static-inspection.md)
+and [OT-098 evidence](../../tests/hardware/OT-098-2026-08-20.md).
+
 ## Result contract
 
 One result evaluates one candidate under one exact ready plan. It records:
