@@ -6,6 +6,22 @@ public chronology.
 
 ## 2026-08-20
 
+### OT-096 host-only mbedTLS/PSA static eligibility
+
+- Accepted strict `OTCMSE0/v0`, canonical SHA-256
+  `3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e`,
+  and result `MBEDTLS-STATIC-ELIGIBILITY-FROZEN-HOST-ONLY; FIXED-OT005-OPERATION-SET-INELIGIBLE; OTCBR0-BLOCKER4-REMAINS-OPEN`.
+- The pinned clean source has concrete paths for 5/8 operations; Ed25519
+  sign/verify and Noise XK are absent, final configuration is unresolved, and
+  generic APIs/identifiers/defaults cannot close those gaps.
+- OT-096 acquired/imported zero source. No source lock, readiness, benchmark,
+  selection, support, implementation, physical evidence, authority, or score
+  changed; all six blockers remain open.
+- Focused validation passes 17 scenario groups. Android remains 60%; V1 exact
+  43.75%/displayed 44%; historical baseline exact 31.75%/displayed 32%;
+  V1.5/V2 remain unmeasured. See [Decision 0040](decisions/0040-host-only-mbedtls-psa-static-eligibility.md)
+  and [OT-096 evidence](../tests/hardware/OT-096-2026-08-20.md).
+
 ### OT-095 host-only candidate source-lock admission contract
 
 - Accepted strict `OTCSL0/v0`, admission ID

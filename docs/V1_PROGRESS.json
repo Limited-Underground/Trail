@@ -349,6 +349,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Accepted the strict host-only OTCSL0/v0 candidate source-lock admission contract. It distinguishes six evidence layers and freezes separate candidate-specific source/API-config/import admission while accepting, acquiring, and importing zero sources; benchmark-execution admission remains undefined and blocked. All six OTCBR0 requirements remain open, OTCB0 remains draft_blocked and unexecuted, and no authority, readiness advancement, benchmark, suite/wire selection, target support, implementation, device/radio/key action, physical acceptance, or score credit was added. Every milestone completion is unchanged: Android remains 60%, V1 Companion remains exact 43.75% / displayed 44%, and V1.5 and V2 remain unmeasured."
+        },
+        {
+          "date": "2026-08-20",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted strict host-only OTCMSE0/v0, a read-only static assessment of the already-installed pinned ESP-IDF mbedTLS/PSA comparison. Concrete source/API paths exist for five of eight fixed operations; Ed25519 sign, Ed25519 verify, and Noise XK are absent, final candidate configuration remains unresolved, no source lock or readiness is accepted, and all six OTCBR0 blockers remain open. No acquisition/import, benchmark, selection, support, implementation, device/radio/key action, physical acceptance, authority, or score credit was added. Every milestone completion is unchanged: Android remains 60%, V1 Companion remains exact 43.75% / displayed 44%, and V1.5 and V2 remain unmeasured."
         }
       ]
     },
@@ -503,6 +509,11 @@
       "date": "2026-08-20",
       "overall": 32,
       "reason": "Accepted the strict host-only OTCSL0/v0 candidate source-lock admission contract while accepting, acquiring, and importing zero sources; benchmark-execution admission remains undefined and blocked. All six OTCBR0 requirements remain open, OTCB0 remains draft_blocked and unexecuted, and no authority, readiness advancement, benchmark, suite/wire selection, target support, implementation, device/radio/key action, physical acceptance, or score credit was added. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
+    },
+    {
+      "date": "2026-08-20",
+      "overall": 32,
+      "reason": "Accepted strict host-only OTCMSE0/v0, a read-only static assessment of the already-installed pinned ESP-IDF mbedTLS/PSA comparison. Concrete source/API paths exist for five of eight fixed operations; Ed25519 sign, Ed25519 verify, and Noise XK are absent, final candidate configuration remains unresolved, no source lock or readiness is accepted, and all six OTCBR0 blockers remain open. No acquisition/import, benchmark, selection, support, implementation, device/radio/key action, physical acceptance, authority, or score credit was added. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
     }
   ]
 }

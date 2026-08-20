@@ -24,6 +24,9 @@ The blocked candidate-readiness validator is
 The candidate source-lock admission validator is
 `tools/crypto_candidate_source_lock.py`, and its accepted contract is
 `tests/benchmarks/crypto/OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0.json`.
+The bounded mbedTLS/PSA static validator is
+`tools/crypto_mbedtls_static_eligibility.py`, with accepted assessment
+`tests/benchmarks/crypto/OT-096-OT005-MBEDTLS-STATIC-ELIGIBILITY-V0.json`.
 
 ## Plan contract
 
@@ -149,6 +152,24 @@ physical evidence, authority, or score credit was added.
 
 See [Decision 0039](../decisions/0039-host-only-candidate-source-lock-admission-contract.md)
 and the [OT-095 evidence](../../tests/hardware/OT-095-2026-08-20.md).
+
+## OT-096 mbedTLS/PSA static eligibility
+
+`OTCMSE0/v0` records the clean, already-installed ESP-IDF v6.0.2 /
+mbedTLS 4.1.0 pinned source with canonical SHA-256
+`3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e`.
+Five of eight fixed operations have concrete source/API paths: X25519,
+SHA-256, HKDF-SHA-256, and ChaCha20-Poly1305 encrypt/decrypt. Ed25519
+sign/verify and Noise XK implementations are absent. Generic APIs/identifiers
+do not prove implementation, and defaults/pre-selection sdkconfig do not prove
+final configuration.
+
+The result is
+`MBEDTLS-STATIC-ELIGIBILITY-FROZEN-HOST-ONLY; FIXED-OT005-OPERATION-SET-INELIGIBLE; OTCBR0-BLOCKER4-REMAINS-OPEN`.
+It is not a benchmark failure, global rejection, source lock, import, or
+selection. All six blockers and all authority/score closures remain open. See
+[Decision 0040](../decisions/0040-host-only-mbedtls-psa-static-eligibility.md)
+and [OT-096 evidence](../../tests/hardware/OT-096-2026-08-20.md).
 
 ## Result contract
 

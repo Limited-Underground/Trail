@@ -72,6 +72,18 @@ readiness, execution, selection, support, physical-evidence, and score claim
 remains false. See [Decision 0039](decisions/0039-host-only-candidate-source-lock-admission-contract.md)
 and [OT-095 evidence](../tests/hardware/OT-095-2026-08-20.md).
 
+OT-096 freezes strict `OTCMSE0/v0`, a read-only static assessment of the
+already-installed pinned ESP-IDF v6.0.2 mbedTLS/PSA 4.1.0 comparison, with
+canonical SHA-256
+`3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e`.
+Concrete source/API paths exist for 5/8 fixed operations; Ed25519 sign/verify
+and Noise XK implementations are absent, and final configuration is unresolved.
+This is not a benchmark failure or global suitability claim. No source was
+acquired/imported, no source lock/readiness was accepted, all six blockers stay
+open, and authority/execution/selection/support/implementation/physical/score
+claims remain false. See [Decision 0040](decisions/0040-host-only-mbedtls-psa-static-eligibility.md)
+and [OT-096 evidence](../tests/hardware/OT-096-2026-08-20.md).
+
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
 unicast path. One secret-free authenticated invitation admits one candidate and
