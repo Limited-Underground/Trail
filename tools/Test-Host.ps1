@@ -1930,6 +1930,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "OTCSL0 candidate source-lock admission tests failed with exit code $LASTEXITCODE."
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_mbedtls_static_eligibility_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTCMSE0 Mbed TLS static-eligibility tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "OTCBL0 build-lock tests failed with exit code $LASTEXITCODE."
