@@ -108,6 +108,17 @@ accepted, all six blockers remain open, and no legal/compatibility, authority,
 physical-evidence, or score claim changed. See [Decision 0042](decisions/0042-external-candidate-acquisition-static-inspection.md)
 and [OT-098 evidence](../tests/hardware/OT-098-2026-08-20.md).
 
+OT-099 accepts host-only `OTLMI0/v0`, raw SHA-256
+`8285fa7308bfc83a5d55503a7a3e1fa4c21895a42b095197b3ec75f634411ec9`.
+Exact Espressif libsodium 1.0.22 managed-import evidence is complete, but
+source-lock admission is pending because OTCSL0/v1 accepted registries remain
+empty. An isolated generic ESP32-S3 build passed: the archive built and entered
+the link graph, while probe symbols were not retained. This proves no exact
+target, final configuration, crypto execution, benchmark, or selection. All
+six blockers and every device/flash/radio/key/packet-v1/score boundary remain
+open. See [Decision 0043](decisions/0043-libsodium-managed-import-evidence.md)
+and [OT-099 evidence](../tests/hardware/OT-099-2026-08-20.md).
+
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
 unicast path. One secret-free authenticated invitation admits one candidate and

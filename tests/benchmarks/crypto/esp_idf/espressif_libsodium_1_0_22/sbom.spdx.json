@@ -1,0 +1,16 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "OT-099 espressif-libsodium managed candidate",
+  "documentNamespace": "https://limitedunderground.com/spdx/opentrail/ot-099/espressif-libsodium-1.0.22",
+  "creationInfo": {"created": "2026-08-20T00:00:00Z", "creators": ["Tool: OpenTrail OT-099 evidence workflow"]},
+  "packages": [
+    {"name":"espressif/libsodium","SPDXID":"SPDXRef-Package-espressif-libsodium","versionInfo":"1.0.22","downloadLocation":"https://components.espressif.com/components/espressif/libsodium/versions/1.0.22","filesAnalyzed":false,"licenseConcluded":"ISC","licenseDeclared":"ISC","checksums":[{"algorithm":"SHA256","checksumValue":"39c9dc77d81804d54a539c8f076faed165152be7720ddd0e721acb9daf4aa5af"}],"externalRefs":[{"referenceCategory":"PACKAGE-MANAGER","referenceType":"purl","referenceLocator":"pkg:esp/idf/espressif/libsodium@1.0.22"}]},
+    {"name":"esp-idf","SPDXID":"SPDXRef-Package-esp-idf","versionInfo":"6.0.2","downloadLocation":"https://github.com/espressif/esp-idf","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION"}
+  ],
+  "relationships": [
+    {"spdxElementId":"SPDXRef-DOCUMENT","relationshipType":"DESCRIBES","relatedSpdxElement":"SPDXRef-Package-espressif-libsodium"},
+    {"spdxElementId":"SPDXRef-Package-espressif-libsodium","relationshipType":"DEPENDS_ON","relatedSpdxElement":"SPDXRef-Package-esp-idf"}
+  ]
+}

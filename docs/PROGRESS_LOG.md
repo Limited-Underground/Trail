@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-20
 
+### OT-099 libsodium managed-import evidence
+
+- Accepted host-only `OTLMI0/v0`, raw SHA-256 `8285fa7308bfc83a5d55503a7a3e1fa4c21895a42b095197b3ec75f634411ec9`, and result `ESPRESSIF-LIBSODIUM-1.0.22-MANAGED-IMPORT-EVIDENCE-COMPLETE; SOURCE-LOCK-ADMISSION-PENDING; ISOLATED-COMPUTER-BUILD-PASSED; NO-DEVICE-OR-CRYPTO-EXECUTION; OTCBR0-READINESS-BLOCKED`.
+- Exact managed lock/source/license/SPDX/dependency/patch evidence is complete, but OTCSL0/v1 admission remains pending.
+- The isolated generic ESP32-S3 build passed; the archive entered the link graph but probe symbols were not retained. No exact-target, final-config, crypto-execution, benchmark, or selection claim follows.
+- Focused validation passes 4 groups and independent review is clear. All six blockers remain open. Android 60%; V1 exact 43.75%/display44%; baseline exact31.75%/display32%; V1.5/V2 unmeasured. See [Decision 0043](decisions/0043-libsodium-managed-import-evidence.md) and [OT-099 evidence](../tests/hardware/OT-099-2026-08-20.md).
+
 ### OT-098 external candidate acquisition and static inspection
 
 - Accepted host-only `OTCAI0/v0`, raw SHA-256 `b7be03e305c6253e10f69f624132a736cce5aea3f559760cde4f948ae79abad6`, and result `EXTERNAL-CANDIDATE-SOURCES-ACQUIRED-AND-STATICALLY-INSPECTED; ZERO-SOURCES-IMPORTED; ZERO-SOURCE-LOCKS-ACCEPTED; OTCBR0-READINESS-BLOCKED`.

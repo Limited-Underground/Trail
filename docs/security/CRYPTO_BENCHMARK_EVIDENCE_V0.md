@@ -197,6 +197,21 @@ project lock, final configuration, import, build, benchmark, or selection.
 All six blockers remain open. See [Decision 0042](../decisions/0042-external-candidate-acquisition-static-inspection.md)
 and [OT-098 evidence](../../tests/hardware/OT-098-2026-08-20.md).
 
+## OT-099 libsodium managed-import evidence
+
+`OTLMI0/v0`, raw SHA-256 `8285fa7308bfc83a5d55503a7a3e1fa4c21895a42b095197b3ec75f634411ec9`,
+binds the exact registry lock, 733-entry source manifest, ISC license inventory,
+candidate-scoped SPDX record, managed dependencies, and empty patch set. The
+evidence is complete, but source-lock admission remains pending because the
+controlling OTCSL0/v1 accepted registries remain empty.
+
+An isolated generic ESP32-S3 computer build passed: the probe compiled, the
+candidate archive built and entered the link graph, and the ELF linked. Probe
+symbols were not retained. This is not exact-target, final-configuration,
+crypto-execution, benchmark, or selection evidence. All six blockers and all
+device/radio/key/packet-v1/score boundaries remain open. See [Decision 0043](../decisions/0043-libsodium-managed-import-evidence.md)
+and [OT-099 evidence](../../tests/hardware/OT-099-2026-08-20.md).
+
 ## Result contract
 
 One result evaluates one candidate under one exact ready plan. It records:

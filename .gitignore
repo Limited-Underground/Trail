@@ -45,5 +45,7 @@ Thumbs.db
 **/local.properties
 **/.kotlin/
 **/build/
+tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/
+tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/sdkconfig
 *.jks
 *.keystore
