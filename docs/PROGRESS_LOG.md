@@ -6,6 +6,27 @@ public chronology.
 
 ## 2026-08-19
 
+### OT-092 post-V2 future-concepts register and Public Assistance direction
+
+- Created the durable [future-concepts register](FUTURE_CONCEPTS.md) with one
+  required field set and explicit separation between accepted direction,
+  scheduling, implementation, support, and progress evidence.
+- Accepted a provisioning-independent regional public lane and independently
+  configurable Public Assistance Broadcast as direction only, deferred until
+  V2 is fully functional and accepted. One LoRa radio time-shares logical lanes;
+  no simultaneous-profile capability is claimed.
+- Required deliberate public-content and location confirmation, fresh/stale-
+  location handling, private-text isolation, nonconfidential public packets,
+  bounded radio/abuse controls, and truthful receipt/dispatch language.
+- Preserved the existing boundaries: `OTQ0/v0` is not the Public Assistance
+  packet, `OTSL0/v0` grants no broadcast authority, and exact packet, radio,
+  security, regulatory, and physical-acceptance designs remain future work.
+- This is planning/governance evidence only. No hardware, phone, key, location,
+  radio, firmware, install, account, upload, or distribution action ran.
+  Android remains 60%; V1 remains exact 43.75%/displayed 44%; V1.5 and V2 remain
+  unmeasured. The next V1 security checkpoint remains the exact OT-005 target
+  benchmark and explicit suite/wire selection. See [Decision 0036](decisions/0036-post-v2-public-lane-and-assistance-direction.md).
+
 ### OT-091 host-tested secure-LoRa lifecycle/admission contract
 
 - Accepted `OTSL0/v0`, the algorithm-neutral Decision 0033 contract for V1's

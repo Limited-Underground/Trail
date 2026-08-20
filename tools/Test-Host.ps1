@@ -1940,6 +1940,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "Secure-LoRa contract tests failed with exit code $LASTEXITCODE."
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\future_concepts_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "Future-concepts governance tests failed with exit code $LASTEXITCODE."
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\map_package_manifest_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "Map-package manifest tests failed with exit code $LASTEXITCODE."

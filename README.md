@@ -13,7 +13,7 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-091 freezes and host-tests the algorithm-neutral `OTSL0/v0` secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-unicast path: secret-free single-use invitation admission, mutual-authentication and matching-confirmation obligations, exact commit/activation, epoch-plus-one replacement with no old-epoch fallback, directional key/counter binding, authenticated packet admission, durable replay-before-delivery ordering, protected acknowledgements, and bounded retry/restart failure. Decision 0003 still blocks suite/library, packet-v1 wire, target, and physical claims until the exact OT-005 benchmark passes |
+| Latest increment | OT-092 records the owner-accepted, unscheduled post-V2 direction for a provisioning-independent public lane and optional Public Assistance Broadcast in a durable future-concepts register. It adds planning/governance evidence only, changes no V1, V1.5, or V2 progress, and grants no packet, radio, location, implementation, support, or physical authority. The next active V1 security checkpoint remains the exact OT-005 target benchmark followed by explicit suite/library, handshake/KDF, and packet-v1 wire selection |
 | Proven so far | OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on one experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, and V1.5 unmeasured |
 | Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
@@ -26,6 +26,7 @@ OpenTrail is not production-ready, and no hardware is currently listed as suppor
 - [Architecture](docs/ARCHITECTURE.md) — system layers, roles, interfaces, and failure boundaries
 - [Product boundaries](docs/PRODUCT_BOUNDARIES_V0.md) — base system versus optional additions
 - [Project status and open decisions](docs/PROJECT_STATUS.md) — current assumptions, evidence, and unresolved choices
+- [Future concepts](docs/FUTURE_CONCEPTS.md) — unscheduled post-release ideas and accepted directions with no progress credit
 - [Dated progress log](docs/PROGRESS_LOG.md) — public chronology, newest day first
 - [Engineering backlog](tasks/BACKLOG.md) — work-item status and acceptance evidence
 - [Hardware inventory](hardware/INVENTORY.md) — available, ordered, missing, and unverified equipment

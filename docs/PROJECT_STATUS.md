@@ -2004,6 +2004,13 @@ only; the raw capture remains in ignored local build state.
 
 ## Decisions captured
 
+- Decision 0036 accepts a provisioning-independent public rendezvous lane and
+  separately configurable Public Assistance Broadcast as a post-V2 direction
+  only. It is deferred until V2 is fully functional and accepted, has no
+  schedule or progress credit, and preserves V1's pairwise-only `OTSL0/v0`
+  boundary. `OTQ0/v0` cannot be reused as the public alert packet. Exact packet,
+  radio, security, privacy, abuse, regulatory, and physical-acceptance designs
+  remain future work. See the [future-concepts register](FUTURE_CONCEPTS.md).
 - OpenTrail and OpenGauge are separate projects and must remain independently operable.
 - The owner-approved working hierarchy is `Limited Underground` as parent;
   `Limited Underground Trail` as Android application and family; Essential,
