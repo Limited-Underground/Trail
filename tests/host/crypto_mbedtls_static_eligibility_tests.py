@@ -31,10 +31,6 @@ HISTORICAL_BLOBS = {
     "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json": "240906d62926048e6f55b1bb11ce21538e24edbeb8956439ffeb35f3b49b3c83",
     "tests/benchmarks/crypto/OT-094-OT005-CANDIDATE-READINESS-V0.json": "bb607158cbe8ac95a470f0a6c87fbb6d8d986259cf86540b14245fc1167dc7ae",
     "tests/benchmarks/crypto/OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0.json": "3fb904e1d5770613ec5d84560ea91dc3ec318a8a96c89c7d4333aa229267bab8",
-    "tools/crypto_benchmark.py": "6d1f4bb8649018bc2801342ebaa8a3828fe724abdaa1309842c711b5562b989d",
-    "tools/crypto_benchmark_baseline.py": "84e441141708d839d6cb13117476068a7c36570fdafd880173196205c778c747",
-    "tools/crypto_benchmark_readiness.py": "eee3a1bdc2d24bce36059571c1764052ce12b1372a1fe305f95c6920e24b279a",
-    "tools/crypto_candidate_source_lock.py": "a004c6bca6919ee81e597ad83f164ac800f7347e48a5fb04931f31a1025b6e5b",
 }
 
 

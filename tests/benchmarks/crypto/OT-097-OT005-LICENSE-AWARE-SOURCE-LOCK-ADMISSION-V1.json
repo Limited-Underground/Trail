@@ -1,0 +1,38 @@
+{
+  "schema": "OTCSL0",
+  "version": 1,
+  "artifact_kind": "license_aware_candidate_source_lock_admission_contract",
+  "admission_id": "OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1",
+  "accepted_date": "2026-08-20",
+  "status": "license_aware_admission_contract_frozen_host_only",
+  "public_result": "LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1-FROZEN-HOST-ONLY; ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED",
+  "predecessor_policy_sha256": "c0bd923782d0977f8b375cbd2fe8cde5ff132a26b8b6a7ea34a62111bd101f1f",
+  "mbedtls_static_assessment_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+  "inherited_policy": "OTCSL0/v0-exact-except-license-reconciliation-v1",
+  "license_policy": {
+    "upstream_expression_required": true,
+    "project_choice_required_for_acceptance": true,
+    "complete_inventory_required_for_acceptance": true,
+    "inventory_digest_required_for_acceptance": true,
+    "v0_evidence_admissible_for_future_acceptance": false
+  },
+  "candidates": [
+    {"candidate_id":"espressif_libsodium","required_version":"1.0.22","upstream_license_expression":"ISC","project_license_choice":"ISC","license_inventory_complete":false,"license_inventory_sha256":null,"source_lock_state":"not_accepted"},
+    {"candidate_id":"esp_idf_mbedtls_psa","required_version":"4.1.0","upstream_license_expression":"Apache-2.0 OR GPL-2.0-or-later","project_license_choice":"Apache-2.0","license_inventory_complete":false,"license_inventory_sha256":null,"source_lock_state":"not_accepted"},
+    {"candidate_id":"monocypher","required_version":"4.0.3","upstream_license_expression":"CC0-1.0 OR BSD-2-Clause","project_license_choice":null,"license_inventory_complete":false,"license_inventory_sha256":null,"source_lock_state":"not_accepted"}
+  ],
+  "accepted_source_evidence_sha256": {"espressif_libsodium":[],"esp_idf_mbedtls_psa":[],"monocypher":[]},
+  "accepted_api_config_evidence_sha256": {"espressif_libsodium":[],"esp_idf_mbedtls_psa":[],"monocypher":[]},
+  "accepted_candidate_import_evidence_sha256": {"espressif_libsodium":[],"esp_idf_mbedtls_psa":[],"monocypher":[]},
+  "unchanged_blockers": [
+    "exact_received_target_profile_unresolved",
+    "final_candidate_build_configuration_unresolved",
+    "espressif_libsodium_source_lock_absent",
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "monocypher_source_lock_absent",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "authority": {"dependency_acquisition_authorized":false,"candidate_import_authorized":false,"benchmark_build_authorized":false,"benchmark_execution_authorized":false,"device_access_authorized":false,"radio_transmit_authorized":false,"key_or_entropy_operation_authorized":false,"suite_selection_authorized":false,"packet_v1_authorized":false,"score_credit_added":false},
+  "claims": {"source_acquired":false,"source_lock_accepted":false,"candidate_imported":false,"api_config_eligibility_proven":false,"candidate_benchmark_executed":false,"candidate_selected":false,"suite_selected":false,"packet_v1_wire_selected":false,"hardware_or_device_accessed":false,"physical_evidence_added":false,"score_credit_added":false},
+  "license_claims": {"legal_clearance_claimed":false,"license_compatibility_determined":false}
+}

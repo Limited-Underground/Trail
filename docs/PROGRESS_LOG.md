@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-20
 
+### OT-097 license-aware source-lock admission v1
+
+- Accepted strict host-only `OTCSL0/v1`, admission ID `OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1`, canonical/policy SHA-256 `51639e1b9342dc9e501fb0682d044c0f7c05e691e1a26f463358a753f28a123a`, and result `LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1-FROZEN-HOST-ONLY; ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED`.
+- Future acceptance now requires separate upstream SPDX expression, project choice, complete license inventory, and inventory digest. OTCSL0/v0 remains valid historical evidence but permanently non-admitting.
+- Zero sources were accepted/acquired/imported; all six blockers remain open. No legal clearance, compatibility determination, authority, readiness, benchmark, selection, support, implementation, physical evidence, or score was added.
+- Focused validation passes 17 scenario groups. Android remains 60%; V1 exact 43.75%/displayed 44%; historical baseline exact 31.75%/displayed 32%; V1.5/V2 remain unmeasured. See [Decision 0041](decisions/0041-license-aware-source-lock-admission-v1.md) and [OT-097 evidence](../tests/hardware/OT-097-2026-08-20.md).
+
 ### OT-096 host-only mbedTLS/PSA static eligibility
 
 - Accepted strict `OTCMSE0/v0`, canonical SHA-256

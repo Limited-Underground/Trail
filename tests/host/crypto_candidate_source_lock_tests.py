@@ -28,6 +28,10 @@ CONTRACT_PATH = (
     / "crypto"
     / "OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0.json"
 )
+V1_CONTRACT_PATH = (
+    ROOT / "tests" / "benchmarks" / "crypto"
+    / "OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1.json"
+)
 PLAN_PATH = (
     ROOT / "tests" / "benchmarks" / "crypto" / "OT-005-CRYPTO-BENCHMARK-PLAN-V0.json"
 )
@@ -46,10 +50,15 @@ READINESS_PATH = (
     / "OT-094-OT005-CANDIDATE-READINESS-V0.json"
 )
 EXPECTED_SHA256 = "c0bd923782d0977f8b375cbd2fe8cde5ff132a26b8b6a7ea34a62111bd101f1f"
+EXPECTED_V1_SHA256 = "51639e1b9342dc9e501fb0682d044c0f7c05e691e1a26f463358a753f28a123a"
 
 
 def contract() -> dict:
     return source_lock.load(CONTRACT_PATH)
+
+
+def v1_contract() -> dict:
+    return source_lock.load(V1_CONTRACT_PATH)
 
 
 def digest(label: str) -> str:
@@ -352,7 +361,7 @@ def test_candidate_specific_trust_anchors_are_empty_and_self_claims_fail() -> No
     assert source_lock.admission_policy_sha256(future) == source_lock.admission_policy_sha256(value)
 
 
-def test_future_accepted_source_returns_every_reconciliation_fact() -> None:
+def test_v0_future_source_acceptance_is_permanently_disabled() -> None:
     value = contract()
     evidence = synthetic_source_evidence("esp_idf_mbedtls_psa")
     evidence_sha = source_lock.canonical_sha256(evidence)
@@ -367,13 +376,173 @@ def test_future_accepted_source_returns_every_reconciliation_fact() -> None:
         source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256[
             "esp_idf_mbedtls_psa"
         ] = frozenset({evidence_sha})
-        result = source_lock.validate_source_evidence(evidence, future)
+        expect_error(
+            lambda: source_lock.validate_source_evidence(evidence, future),
+            "v0 source evidence cannot be admitted",
+        )
     finally:
         source_lock.EXPECTED_CONTRACT_SHA256 = original_expected
         source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256[
             "esp_idf_mbedtls_psa"
         ] = original_anchors
-    assert result == accepted_source_facts(evidence)
+
+
+def v1_source_evidence(candidate_id: str = "esp_idf_mbedtls_psa") -> dict:
+    evidence = synthetic_source_evidence(candidate_id)
+    policy = next(item for item in v1_contract()["candidates"] if item["candidate_id"] == candidate_id)
+    evidence["version"] = 1
+    evidence["contract_policy_sha256"] = source_lock.admission_policy_sha256(v1_contract())
+    del evidence["license_spdx"]
+    evidence["upstream_license_expression"] = policy["upstream_license_expression"]
+    evidence["project_license_choice"] = policy["project_license_choice"] or policy["upstream_license_expression"].split(" OR ")[0]
+    evidence["legal_clearance_claimed"] = False
+    evidence["license_compatibility_determined"] = False
+    manifest = evidence["license_manifest"]
+    del manifest["declared_spdx"]
+    manifest["upstream_license_expression"] = evidence["upstream_license_expression"]
+    manifest["project_license_choice"] = evidence["project_license_choice"]
+    manifest["inventory_complete"] = True
+    return evidence
+
+
+def test_v1_contract_and_license_evidence_fail_closed() -> None:
+    value = v1_contract()
+    result = source_lock.validate_contract(value)
+    assert result["version"] == 1 and result["otcbr0_blocker_count"] == 6
+    assert result["admission_sha256"] == EXPECTED_V1_SHA256
+    assert not result["readiness_advanced"] and not result["score_credit_added"]
+    flattened = copy.deepcopy(value)
+    candidate = flattened["candidates"][1]
+    candidate["upstream_license_expression"] = "Apache-2.0"
+    expect_error(lambda: source_lock.validate_contract(flattened), "candidate license identity")
+    legal = copy.deepcopy(value)
+    legal["license_claims"]["legal_clearance_claimed"] = True
+    expect_error(lambda: source_lock.validate_contract(legal), "must be false")
+    blocker = copy.deepcopy(value)
+    blocker["unchanged_blockers"].pop()
+    expect_error(lambda: source_lock.validate_contract(blocker), "six-blocker")
+    authority = copy.deepcopy(value)
+    authority["authority"]["dependency_acquisition_authorized"] = True
+    expect_error(lambda: source_lock.validate_contract(authority), "must be false")
+    claim = copy.deepcopy(value)
+    claim["claims"]["score_credit_added"] = True
+    expect_error(lambda: source_lock.validate_contract(claim), "must be false")
+    evidence = v1_source_evidence()
+    expect_error(lambda: source_lock.validate_source_evidence(evidence, value), "not independently accepted")
+    incomplete = copy.deepcopy(evidence)
+    incomplete["license_manifest"]["inventory_complete"] = False
+    expect_error(lambda: source_lock.validate_source_evidence(incomplete, value), "must be true")
+    wrong_choice = copy.deepcopy(evidence)
+    wrong_choice["project_license_choice"] = "MIT"
+    wrong_choice["license_manifest"]["project_license_choice"] = "MIT"
+    expect_error(lambda: source_lock.validate_source_evidence(wrong_choice, value), "candidate/version/license")
+    claimed = copy.deepcopy(evidence)
+    claimed["legal_clearance_claimed"] = True
+    expect_error(lambda: source_lock.validate_source_evidence(claimed, value), "must be false")
+
+
+def test_v1_future_source_acceptance_returns_separate_license_facts() -> None:
+    value = v1_contract()
+    evidence = v1_source_evidence()
+    evidence_sha = source_lock.canonical_sha256(evidence)
+    future = copy.deepcopy(value)
+    future["accepted_source_evidence_sha256"]["esp_idf_mbedtls_psa"] = [evidence_sha]
+    original_anchors = source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256["esp_idf_mbedtls_psa"]
+    original_expected = source_lock.EXPECTED_V1_CONTRACT_SHA256
+    try:
+        source_lock.EXPECTED_V1_CONTRACT_SHA256 = source_lock.canonical_sha256(future)
+        source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256["esp_idf_mbedtls_psa"] = frozenset({evidence_sha})
+        result = source_lock.validate_source_evidence(evidence, future)
+    finally:
+        source_lock.EXPECTED_V1_CONTRACT_SHA256 = original_expected
+        source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256["esp_idf_mbedtls_psa"] = original_anchors
+    assert result["version"] == 1
+    assert result["upstream_license_expression"] == "Apache-2.0 OR GPL-2.0-or-later"
+    assert result["project_license_choice"] == "Apache-2.0"
+    assert result["license_inventory_sha256"] == evidence["license_manifest"]["manifest_sha256"]
+
+
+def test_v1_license_facts_bind_through_api_and_import_chain() -> None:
+    value = v1_contract()
+    source_evidence = v1_source_evidence()
+    source_sha = source_lock.canonical_sha256(source_evidence)
+    source_facts = {
+        "schema": "OTCSLE0", "version": 1,
+        "candidate_id": source_evidence["candidate_id"], "role": source_evidence["role"],
+        "version_string": source_evidence["version_string"],
+        "upstream_license_expression": source_evidence["upstream_license_expression"],
+        "project_license_choice": source_evidence["project_license_choice"],
+        "license_inventory_sha256": source_evidence["license_manifest"]["manifest_sha256"],
+        "legal_clearance_claimed": False, "license_compatibility_determined": False,
+        "source_commit": source_evidence["source_commit"], "lock_kind": source_evidence["lock_kind"],
+        "project_dependency_lock_sha256": source_evidence["project_dependency_lock"]["lock_sha256"],
+        "parent_source_commit": source_evidence["parent_idf_binding"]["parent_source_commit"],
+        "gitlink_path": source_evidence["parent_idf_binding"]["gitlink_path"],
+        "gitlink_commit": source_evidence["parent_idf_binding"]["gitlink_commit"],
+        "source_evidence_sha256": source_sha, "source_lock_accepted": True,
+        "import_authorized": False, "execution_authorized": False, "score_credit_added": False,
+    }
+    api = synthetic_api_config_evidence("esp_idf_mbedtls_psa", accepted_source_facts(synthetic_source_evidence("esp_idf_mbedtls_psa")))
+    api["version"] = 1
+    api["contract_policy_sha256"] = source_lock.admission_policy_sha256(value)
+    api["source_evidence_sha256"] = source_sha
+    del api["license_spdx"]
+    for field in ("upstream_license_expression", "project_license_choice", "license_inventory_sha256", "legal_clearance_claimed", "license_compatibility_determined"):
+        api[field] = source_facts[field]
+    api_sha = source_lock.canonical_sha256(api)
+    api_facts = {
+        "schema": "OTCAPI0", "version": 1, "candidate_id": "esp_idf_mbedtls_psa",
+        "source_evidence_sha256": source_sha,
+        "final_sdkconfig_sha256": api["final_sdkconfig_sha256"],
+        "api_config_evidence_sha256": api_sha, "api_config_eligible": True,
+        "execution_authorized": False, "score_credit_added": False,
+    }
+    imported = synthetic_import_evidence("esp_idf_mbedtls_psa", accepted_source_facts(synthetic_source_evidence("esp_idf_mbedtls_psa")), accepted_api_facts(api if "license_spdx" in api else {**api, "license_spdx": "Apache-2.0"}, accepted_source_facts(synthetic_source_evidence("esp_idf_mbedtls_psa"))))
+    imported["version"] = 1
+    imported["contract_policy_sha256"] = source_lock.admission_policy_sha256(value)
+    imported["source_evidence_sha256"] = source_sha
+    imported["api_config_evidence_sha256"] = api_sha
+    del imported["license_spdx"]
+    for field in ("upstream_license_expression", "project_license_choice", "license_inventory_sha256", "legal_clearance_claimed", "license_compatibility_determined"):
+        imported[field] = source_facts[field]
+    import_sha = source_lock.canonical_sha256(imported)
+    future = copy.deepcopy(value)
+    future["accepted_source_evidence_sha256"]["esp_idf_mbedtls_psa"] = [source_sha]
+    future["accepted_api_config_evidence_sha256"]["esp_idf_mbedtls_psa"] = [api_sha]
+    future["accepted_candidate_import_evidence_sha256"]["esp_idf_mbedtls_psa"] = [import_sha]
+    originals = (source_lock.EXPECTED_V1_CONTRACT_SHA256, source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256["esp_idf_mbedtls_psa"], source_lock.ACCEPTED_API_CONFIG_EVIDENCE_SHA256["esp_idf_mbedtls_psa"], source_lock.ACCEPTED_CANDIDATE_IMPORT_EVIDENCE_SHA256["esp_idf_mbedtls_psa"])
+    try:
+        source_lock.EXPECTED_V1_CONTRACT_SHA256 = source_lock.canonical_sha256(future)
+        source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256["esp_idf_mbedtls_psa"] = frozenset({source_sha})
+        source_lock.ACCEPTED_API_CONFIG_EVIDENCE_SHA256["esp_idf_mbedtls_psa"] = frozenset({api_sha})
+        source_lock.ACCEPTED_CANDIDATE_IMPORT_EVIDENCE_SHA256["esp_idf_mbedtls_psa"] = frozenset({import_sha})
+        accepted_source = source_lock.validate_source_evidence(source_evidence, future)
+        accepted_api = source_lock.validate_api_config_evidence(api, future, accepted_source)
+        accepted_import = source_lock.validate_candidate_import_evidence(imported, future, accepted_source, accepted_api)
+    finally:
+        source_lock.EXPECTED_V1_CONTRACT_SHA256, source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256["esp_idf_mbedtls_psa"], source_lock.ACCEPTED_API_CONFIG_EVIDENCE_SHA256["esp_idf_mbedtls_psa"], source_lock.ACCEPTED_CANDIDATE_IMPORT_EVIDENCE_SHA256["esp_idf_mbedtls_psa"] = originals
+    assert accepted_import["version"] == 1
+    for field, replacement in (
+        ("upstream_license_expression", "Apache-2.0"),
+        ("project_license_choice", "GPL-2.0-or-later"),
+        ("license_inventory_sha256", digest("forged-license-inventory")),
+        ("legal_clearance_claimed", True),
+        ("license_compatibility_determined", True),
+    ):
+        forged_api = copy.deepcopy(api)
+        forged_api[field] = replacement
+        expect_error(lambda forged_api=forged_api: source_lock.validate_api_config_evidence(forged_api, value, source_facts), "accepted source facts" if field not in ("legal_clearance_claimed", "license_compatibility_determined") else "must be false")
+        forged_import = copy.deepcopy(imported)
+        forged_import[field] = replacement
+        expect_error(lambda forged_import=forged_import: source_lock.validate_candidate_import_evidence(forged_import, value, source_facts, api_facts), "accepted source facts" if field not in ("legal_clearance_claimed", "license_compatibility_determined") else "must be false")
+    flattened_api = copy.deepcopy(api)
+    del flattened_api["upstream_license_expression"]
+    flattened_api["license_spdx"] = "Apache-2.0"
+    expect_error(lambda: source_lock.validate_api_config_evidence(flattened_api, value, source_facts), "fields are not exact")
+    flattened_import = copy.deepcopy(imported)
+    del flattened_import["upstream_license_expression"]
+    flattened_import["license_spdx"] = "Apache-2.0"
+    expect_error(lambda: source_lock.validate_candidate_import_evidence(flattened_import, value, source_facts, api_facts), "fields are not exact")
 
 
 def test_api_config_and_import_evidence_are_separately_bound_and_unaccepted() -> None:
@@ -628,7 +797,10 @@ def main() -> int:
         test_candidate_order_versions_licenses_and_lock_kinds_are_exact,
         test_evidence_layers_cannot_individually_claim_a_source_lock,
         test_candidate_specific_trust_anchors_are_empty_and_self_claims_fail,
-        test_future_accepted_source_returns_every_reconciliation_fact,
+        test_v0_future_source_acceptance_is_permanently_disabled,
+        test_v1_contract_and_license_evidence_fail_closed,
+        test_v1_future_source_acceptance_returns_separate_license_facts,
+        test_v1_license_facts_bind_through_api_and_import_chain,
         test_api_config_and_import_evidence_are_separately_bound_and_unaccepted,
         test_full_tree_license_sbom_transitive_and_patch_manifests_are_required,
         test_mbedtls_requires_exact_parent_idf_gitlink_binding,

@@ -9,7 +9,7 @@
     {
       "id": "architecture-safety",
       "name": "Architecture and safety contracts",
-      "description": "Protocol, recovery, privacy, group-size, and degraded-operation rules are documented and extensively host tested. OT-091 freezes the algorithm-neutral secure-LoRa lifecycle/admission semantics without selecting cryptography, implementing packet v1, or adding physical evidence. OT-093 freezes the deterministic candidate-free pre-crypto build baseline. OT-094 freezes the strict blocked candidate-readiness contract without making the OT-005 plan ready. OT-095 freezes strict source-lock admission semantics while accepting, acquiring, and importing zero sources; neither governance increment runs a benchmark, selects cryptography, or adds implementation or physical evidence.",
+      "description": "Protocol, recovery, privacy, group-size, and degraded-operation rules are documented and extensively host tested. OT-091 freezes the algorithm-neutral secure-LoRa lifecycle/admission semantics without selecting cryptography, implementing packet v1, or adding physical evidence. OT-093 freezes the deterministic candidate-free pre-crypto build baseline. OT-094 freezes the strict blocked candidate-readiness contract without making the OT-005 plan ready. OT-095 freezes historical source-lock admission semantics, OT-096 records the bounded 5/8 mbedTLS static assessment, and OT-097 freezes license-aware OTCSL0/v1 while accepting, acquiring, and importing zero sources. None runs a benchmark, selects cryptography, provides legal clearance or compatibility determination, or adds implementation or physical evidence.",
       "weight": 15,
       "completion": 85,
       "evidence_status": "Host tested",
@@ -29,6 +29,12 @@
         "docs/decisions/0039-host-only-candidate-source-lock-admission-contract.md",
         "tests/benchmarks/crypto/OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0.json",
         "tests/hardware/OT-095-2026-08-20.md",
+        "docs/decisions/0040-host-only-mbedtls-psa-static-eligibility.md",
+        "tests/benchmarks/crypto/OT-096-OT005-MBEDTLS-STATIC-ELIGIBILITY-V0.json",
+        "tests/hardware/OT-096-2026-08-20.md",
+        "docs/decisions/0041-license-aware-source-lock-admission-v1.md",
+        "tests/benchmarks/crypto/OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1.json",
+        "tests/hardware/OT-097-2026-08-20.md",
         "tasks/BACKLOG.md"
       ],
       "next_gate": "Close all six OTCBR0 readiness requirements, accept a new immutable executable benchmark plan, run the exact candidate comparison under separate authority, explicitly accept the suite/wire selection, and close the remaining product-firmware architecture gates with target evidence."
@@ -147,11 +153,11 @@
         {
           "id": "architecture-safety",
           "name": "Architecture and safety contracts",
-          "description": "Protocol, recovery, privacy, degraded-operation, and owner-approved two-pair V1/four-node V1.5 scope rules are documented. OT-090 freezes and host-tests the practical BLE pairing/reconnect/replacement contract. OT-091 freezes the separate algorithm-neutral secure-LoRa lifecycle/admission semantics while preserving Decision 0003. OT-093 freezes the deterministic candidate-free pre-crypto build baseline. OT-094 freezes the strict blocked readiness contract while OTCB0 remains draft-blocked and unexecuted. OT-095 freezes source-lock admission semantics while accepting, acquiring, and importing zero sources. Target/app implementation and physical acceptance remain open.",
+          "description": "Protocol, recovery, privacy, degraded-operation, and owner-approved two-pair V1/four-node V1.5 scope rules are documented. OT-090 freezes and host-tests the practical BLE pairing/reconnect/replacement contract. OT-091 freezes the separate algorithm-neutral secure-LoRa lifecycle/admission semantics while preserving Decision 0003. OT-093 freezes the deterministic candidate-free pre-crypto build baseline. OT-094 freezes the strict blocked readiness contract while OTCB0 remains draft-blocked and unexecuted. OT-095 remains historical non-admitting governance, OT-096 records the bounded mbedTLS static assessment, and OT-097 freezes license-aware source-lock admission v1 while accepting, acquiring, and importing zero sources. Target/app implementation and physical acceptance remain open.",
           "weight": 15,
           "completion": 85,
           "evidence_status": "Host tested",
-          "evidence_refs": ["README.md#project-status", "docs/ARCHITECTURE.md", "docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md", "docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md", "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md", "docs/decisions/0037-pre-crypto-build-baseline.md", "docs/decisions/0038-host-only-ot005-candidate-readiness-contract.md", "docs/decisions/0039-host-only-candidate-source-lock-admission-contract.md", "docs/security/CRYPTO_BENCHMARK_EVIDENCE_V0.md", "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json", "tests/benchmarks/crypto/OT-094-OT005-CANDIDATE-READINESS-V0.json", "tests/benchmarks/crypto/OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0.json", "tests/hardware/OT-089-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "tests/hardware/OT-091-2026-08-19.md", "tests/hardware/OT-093-2026-08-20.md", "tests/hardware/OT-094-2026-08-20.md", "tests/hardware/OT-095-2026-08-20.md", "tasks/BACKLOG.md"],
+          "evidence_refs": ["README.md#project-status", "docs/ARCHITECTURE.md", "docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md", "docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md", "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md", "docs/decisions/0037-pre-crypto-build-baseline.md", "docs/decisions/0038-host-only-ot005-candidate-readiness-contract.md", "docs/decisions/0039-host-only-candidate-source-lock-admission-contract.md", "docs/decisions/0040-host-only-mbedtls-psa-static-eligibility.md", "docs/decisions/0041-license-aware-source-lock-admission-v1.md", "docs/security/CRYPTO_BENCHMARK_EVIDENCE_V0.md", "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json", "tests/benchmarks/crypto/OT-094-OT005-CANDIDATE-READINESS-V0.json", "tests/benchmarks/crypto/OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0.json", "tests/benchmarks/crypto/OT-096-OT005-MBEDTLS-STATIC-ELIGIBILITY-V0.json", "tests/benchmarks/crypto/OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1.json", "tests/hardware/OT-089-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "tests/hardware/OT-091-2026-08-19.md", "tests/hardware/OT-093-2026-08-20.md", "tests/hardware/OT-094-2026-08-20.md", "tests/hardware/OT-095-2026-08-20.md", "tests/hardware/OT-096-2026-08-20.md", "tests/hardware/OT-097-2026-08-20.md", "tasks/BACKLOG.md"],
           "next_gate": "Close all six OTCBR0 readiness requirements, accept a new immutable executable benchmark plan, run the exact comparison under separate authority, and explicitly accept the crypto suite/library, handshake/KDF, and packet-v1 wire selection before implementation."
         },
         {
@@ -355,6 +361,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Accepted strict host-only OTCMSE0/v0, a read-only static assessment of the already-installed pinned ESP-IDF mbedTLS/PSA comparison. Concrete source/API paths exist for five of eight fixed operations; Ed25519 sign, Ed25519 verify, and Noise XK are absent, final candidate configuration remains unresolved, no source lock or readiness is accepted, and all six OTCBR0 blockers remain open. No acquisition/import, benchmark, selection, support, implementation, device/radio/key action, physical acceptance, authority, or score credit was added. Every milestone completion is unchanged: Android remains 60%, V1 Companion remains exact 43.75% / displayed 44%, and V1.5 and V2 remain unmeasured."
+        },
+        {
+          "date": "2026-08-20",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted strict host-only license-aware OTCSL0/v1. Future source-lock acceptance now requires separate upstream SPDX expression, project license choice, complete license inventory, and inventory digest; OTCSL0/v0 remains valid historical evidence but permanently non-admitting. Zero sources were accepted, acquired, or imported, all six OTCBR0 blockers remain open, and no legal clearance, compatibility determination, readiness, benchmark, selection, support, implementation, device/radio/key action, physical acceptance, authority, or score credit was added. Every milestone completion is unchanged: Android remains 60%, V1 Companion remains exact 43.75% / displayed 44%, and V1.5 and V2 remain unmeasured."
         }
       ]
     },
@@ -514,6 +526,11 @@
       "date": "2026-08-20",
       "overall": 32,
       "reason": "Accepted strict host-only OTCMSE0/v0, a read-only static assessment of the already-installed pinned ESP-IDF mbedTLS/PSA comparison. Concrete source/API paths exist for five of eight fixed operations; Ed25519 sign, Ed25519 verify, and Noise XK are absent, final candidate configuration remains unresolved, no source lock or readiness is accepted, and all six OTCBR0 blockers remain open. No acquisition/import, benchmark, selection, support, implementation, device/radio/key action, physical acceptance, authority, or score credit was added. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
+    },
+    {
+      "date": "2026-08-20",
+      "overall": 32,
+      "reason": "Accepted strict host-only license-aware OTCSL0/v1. Future source-lock acceptance now requires separate upstream SPDX expression, project license choice, complete license inventory, and inventory digest; OTCSL0/v0 remains valid historical evidence but permanently non-admitting. Zero sources were accepted, acquired, or imported, all six OTCBR0 blockers remain open, and no legal clearance, compatibility determination, readiness, benchmark, selection, support, implementation, device/radio/key action, physical acceptance, authority, or score credit was added. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
     }
   ]
 }

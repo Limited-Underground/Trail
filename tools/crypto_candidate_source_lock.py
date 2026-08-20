@@ -62,6 +62,19 @@ EXPECTED_READINESS_SHA256 = (
 EXPECTED_CONTRACT_SHA256 = (
     "c0bd923782d0977f8b375cbd2fe8cde5ff132a26b8b6a7ea34a62111bd101f1f"
 )
+V1_ADMISSION_ID = "OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1"
+V1_STATUS = "license_aware_admission_contract_frozen_host_only"
+V1_PUBLIC_RESULT = (
+    "LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1-FROZEN-HOST-ONLY; "
+    "ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED"
+)
+EXPECTED_OT096_SHA256 = "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e"
+EXPECTED_V1_CONTRACT_SHA256 = "51639e1b9342dc9e501fb0682d044c0f7c05e691e1a26f463358a753f28a123a"
+V1_LICENSES = {
+    "espressif_libsodium": ("ISC", "ISC"),
+    "esp_idf_mbedtls_psa": ("Apache-2.0 OR GPL-2.0-or-later", "Apache-2.0"),
+    "monocypher": ("CC0-1.0 OR BSD-2-Clause", None),
+}
 
 CANDIDATES = (
     {
@@ -408,7 +421,7 @@ def _validate_references(contract: dict[str, Any]) -> None:
         raise ValidationError("OT-094 readiness reference mismatch")
 
 
-def validate_contract(contract: dict[str, Any]) -> dict[str, Any]:
+def _validate_contract_v0(contract: dict[str, Any]) -> dict[str, Any]:
     _scan_structure(contract)
     contract = _object(contract, "contract")
     _exact_keys(
@@ -608,6 +621,102 @@ def validate_contract(contract: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _validate_contract_v1(contract: dict[str, Any]) -> dict[str, Any]:
+    _scan_structure(contract)
+    contract = _object(contract, "contract")
+    _exact_keys(contract, {
+        "schema", "version", "artifact_kind", "admission_id", "accepted_date",
+        "status", "public_result", "predecessor_policy_sha256",
+        "mbedtls_static_assessment_sha256", "inherited_policy", "license_policy",
+        "candidates", "accepted_source_evidence_sha256",
+        "accepted_api_config_evidence_sha256",
+        "accepted_candidate_import_evidence_sha256", "unchanged_blockers",
+            "authority", "claims", "license_claims",
+    }, "contract")
+    if (
+        contract["schema"] != SCHEMA
+        or _integer(contract["version"], "version", minimum=1, maximum=1) != 1
+        or contract["artifact_kind"] != "license_aware_candidate_source_lock_admission_contract"
+        or contract["admission_id"] != V1_ADMISSION_ID
+        or contract["accepted_date"] != "2026-08-20"
+        or contract["status"] != V1_STATUS
+        or contract["public_result"] != V1_PUBLIC_RESULT
+        or _sha(contract["predecessor_policy_sha256"], "predecessor_policy_sha256") != EXPECTED_CONTRACT_SHA256
+        or _sha(contract["mbedtls_static_assessment_sha256"], "mbedtls_static_assessment_sha256") != EXPECTED_OT096_SHA256
+        or contract["inherited_policy"] != "OTCSL0/v0-exact-except-license-reconciliation-v1"
+    ):
+        raise ValidationError("canonical v1 contract identity or binding mismatch")
+    if _object(contract["license_policy"], "license_policy") != {
+        "upstream_expression_required": True,
+        "project_choice_required_for_acceptance": True,
+        "complete_inventory_required_for_acceptance": True,
+        "inventory_digest_required_for_acceptance": True,
+        "v0_evidence_admissible_for_future_acceptance": False,
+    }:
+        raise ValidationError("license-aware admission policy mismatch")
+    candidates = _list(contract["candidates"], "candidates")
+    if len(candidates) != len(CANDIDATES):
+        raise ValidationError("candidate set is incomplete")
+    for index, (base, raw) in enumerate(zip(CANDIDATES, candidates)):
+        candidate = _object(raw, f"candidates[{index}]")
+        _exact_keys(candidate, {
+            "candidate_id", "required_version", "upstream_license_expression",
+            "project_license_choice", "license_inventory_complete",
+            "license_inventory_sha256", "source_lock_state",
+        }, f"candidates[{index}]")
+        upstream, choice = V1_LICENSES[base["candidate_id"]]
+        if candidate != {
+            "candidate_id": base["candidate_id"],
+            "required_version": base["required_version"],
+            "upstream_license_expression": upstream,
+            "project_license_choice": choice,
+            "license_inventory_complete": False,
+            "license_inventory_sha256": None,
+            "source_lock_state": "not_accepted",
+        }:
+            raise ValidationError("candidate license identity or blocked state mismatch")
+    for field, registry in (
+        ("accepted_source_evidence_sha256", ACCEPTED_SOURCE_EVIDENCE_SHA256),
+        ("accepted_api_config_evidence_sha256", ACCEPTED_API_CONFIG_EVIDENCE_SHA256),
+        ("accepted_candidate_import_evidence_sha256", ACCEPTED_CANDIDATE_IMPORT_EVIDENCE_SHA256),
+    ):
+        anchors = _object(contract[field], field)
+        _exact_keys(anchors, set(CANDIDATE_BY_ID), field)
+        for candidate_id in CANDIDATE_BY_ID:
+            if _list(anchors[candidate_id], f"{field}.{candidate_id}") != sorted(registry[candidate_id]):
+                raise ValidationError("candidate-specific accepted evidence anchors mismatch")
+    if _list(contract["unchanged_blockers"], "unchanged_blockers") != [
+        "exact_received_target_profile_unresolved",
+        "final_candidate_build_configuration_unresolved",
+        "espressif_libsodium_source_lock_absent",
+        "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+        "monocypher_source_lock_absent",
+        "direct_radio_mtu_phy_region_unresolved",
+    ]:
+        raise ValidationError("six-blocker state mismatch")
+    _all_false(contract["authority"], AUTHORITY_FIELDS, "authority")
+    _all_false(contract["claims"], CLAIM_FIELDS, "claims")
+    _all_false(contract["license_claims"], ("legal_clearance_claimed", "license_compatibility_determined"), "license_claims")
+    digest = canonical_sha256(contract)
+    if EXPECTED_V1_CONTRACT_SHA256 and digest != EXPECTED_V1_CONTRACT_SHA256:
+        raise ValidationError("canonical v1 source-lock admission digest mismatch")
+    return {
+        "schema": SCHEMA, "version": 1, "admission_id": V1_ADMISSION_ID,
+        "status": V1_STATUS, "public_result": V1_PUBLIC_RESULT,
+        "candidate_count": len(CANDIDATES), "accepted_source_lock_count": 0,
+        "otcbr0_blocker_count": 6, "readiness_advanced": False,
+        "execution_authorized": False, "score_credit_added": False,
+        "admission_sha256": digest,
+        "admission_policy_sha256": admission_policy_sha256(contract),
+    }
+
+
+def validate_contract(contract: dict[str, Any]) -> dict[str, Any]:
+    if type(contract) is dict and contract.get("schema") == SCHEMA and contract.get("version") == 1:
+        return _validate_contract_v1(contract)
+    return _validate_contract_v0(contract)
+
+
 def _manifest(value: Any, field: str, expected_keys: set[str]) -> dict[str, Any]:
     value = _object(value, field)
     _exact_keys(value, expected_keys, field)
@@ -620,6 +729,12 @@ def validate_source_evidence(
     contract_result = validate_contract(contract)
     _scan_structure(evidence)
     evidence = _object(evidence, "source_evidence")
+    contract_version = contract_result["version"]
+    license_fields = (
+        {"license_spdx"}
+        if contract_version == 0
+        else {"upstream_license_expression", "project_license_choice", "legal_clearance_claimed", "license_compatibility_determined"}
+    )
     _exact_keys(
         evidence,
         {
@@ -632,7 +747,7 @@ def validate_source_evidence(
             "candidate_id",
             "role",
             "version_string",
-            "license_spdx",
+            *license_fields,
             "source_kind",
             "lock_kind",
             "source_commit",
@@ -650,8 +765,8 @@ def validate_source_evidence(
         "source_evidence",
     )
     if evidence["schema"] != "OTCSLE0" or _integer(
-        evidence["version"], "source_evidence.version", minimum=0, maximum=0
-    ) != 0 or evidence["artifact_kind"] != "candidate_source_evidence":
+        evidence["version"], "source_evidence.version", minimum=contract_version, maximum=contract_version
+    ) != contract_version or evidence["artifact_kind"] != "candidate_source_evidence":
         raise ValidationError("source-evidence schema/version/kind mismatch")
     if not EVIDENCE_ID.fullmatch(_string(evidence["evidence_id"], "evidence_id")):
         raise ValidationError("source-evidence identifier is not canonical")
@@ -666,10 +781,24 @@ def validate_source_evidence(
     expected = CANDIDATE_BY_ID.get(candidate_id)
     if expected is None:
         raise ValidationError("source evidence candidate is not canonical")
+    expected_upstream, expected_choice = V1_LICENSES.get(candidate_id, (None, None))
+    if contract_version == 1:
+        _boolean(evidence["legal_clearance_claimed"], "legal_clearance_claimed", False)
+        _boolean(evidence["license_compatibility_determined"], "license_compatibility_determined", False)
+    license_mismatch = (
+        evidence["license_spdx"] != expected["license_spdx"]
+        if contract_version == 0
+        else (
+            evidence["upstream_license_expression"] != expected_upstream
+            or evidence["project_license_choice"] is None
+            or evidence["project_license_choice"] not in expected_upstream.split(" OR ")
+            or (expected_choice is not None and evidence["project_license_choice"] != expected_choice)
+        )
+    )
     if (
         evidence["role"] != expected["role"]
         or evidence["version_string"] != expected["required_version"]
-        or evidence["license_spdx"] != expected["license_spdx"]
+        or license_mismatch
         or evidence["source_kind"] != expected["source_kind"]
     ):
         raise ValidationError("source evidence candidate/version/license mismatch")
@@ -727,10 +856,15 @@ def validate_source_evidence(
     for field in ("symlink_count", "reparse_point_count", "casefold_collision_count"):
         _integer(full_tree[field], f"full_tree_manifest.{field}", minimum=0, maximum=0)
 
+    license_manifest_keys = (
+        {"manifest_kind", "artifact_id", "manifest_sha256", "file_count", "declared_spdx"}
+        if contract_version == 0
+        else {"manifest_kind", "artifact_id", "manifest_sha256", "file_count", "upstream_license_expression", "project_license_choice", "inventory_complete"}
+    )
     license_manifest = _manifest(
         evidence["license_manifest"],
         "license_manifest",
-        {"manifest_kind", "artifact_id", "manifest_sha256", "file_count", "declared_spdx"},
+        license_manifest_keys,
     )
     if (
         license_manifest["manifest_kind"] != "sha256-utf8-jsonl-license-inventory-v1"
@@ -739,8 +873,16 @@ def validate_source_evidence(
         raise ValidationError("license manifest kind or artifact identity mismatch")
     _sha(license_manifest["manifest_sha256"], "license_manifest.manifest_sha256")
     _integer(license_manifest["file_count"], "license_manifest.file_count", minimum=1)
-    if license_manifest["declared_spdx"] != expected["license_spdx"]:
-        raise ValidationError("license manifest SPDX mismatch")
+    if contract_version == 0:
+        if license_manifest["declared_spdx"] != expected["license_spdx"]:
+            raise ValidationError("license manifest SPDX mismatch")
+    else:
+        _boolean(license_manifest["inventory_complete"], "license_manifest.inventory_complete", True)
+        if (
+            license_manifest["upstream_license_expression"] != evidence["upstream_license_expression"]
+            or license_manifest["project_license_choice"] != evidence["project_license_choice"]
+        ):
+            raise ValidationError("license manifest does not reconcile upstream expression and project choice")
 
     sbom = _manifest(
         evidence["sbom_manifest"],
@@ -847,15 +989,27 @@ def validate_source_evidence(
     _all_false(evidence["authority"], AUTHORITY_FIELDS, "source_evidence.authority")
     _all_false(evidence["claims"], CLAIM_FIELDS, "source_evidence.claims")
     digest = canonical_sha256(evidence)
+    if digest in ACCEPTED_SOURCE_EVIDENCE_SHA256[candidate_id] and contract_version == 0:
+        raise ValidationError("v0 source evidence cannot be admitted for future acceptance")
     if digest not in ACCEPTED_SOURCE_EVIDENCE_SHA256[candidate_id]:
         raise ValidationError("source evidence digest is not independently accepted")
     return {
         "schema": "OTCSLE0",
-        "version": 0,
+        "version": contract_version,
         "candidate_id": candidate_id,
         "role": expected["role"],
         "version_string": expected["required_version"],
-        "license_spdx": expected["license_spdx"],
+        **(
+            {"license_spdx": expected["license_spdx"]}
+            if contract_version == 0
+            else {
+                "upstream_license_expression": evidence["upstream_license_expression"],
+                "project_license_choice": evidence["project_license_choice"],
+                "license_inventory_sha256": license_manifest["manifest_sha256"],
+                "legal_clearance_claimed": False,
+                "license_compatibility_determined": False,
+            }
+        ),
         "source_commit": source_commit,
         "lock_kind": lock_kind,
         "project_dependency_lock_sha256": project_lock["lock_sha256"],
@@ -878,6 +1032,12 @@ def validate_api_config_evidence(
     contract_result = validate_contract(contract)
     _scan_structure(evidence)
     evidence = _object(evidence, "api_config_evidence")
+    contract_version = contract_result["version"]
+    license_fields = (
+        {"license_spdx"}
+        if contract_version == 0
+        else {"upstream_license_expression", "project_license_choice", "license_inventory_sha256", "legal_clearance_claimed", "license_compatibility_determined"}
+    )
     _exact_keys(
         evidence,
         {
@@ -890,7 +1050,7 @@ def validate_api_config_evidence(
             "candidate_id",
             "role",
             "version_string",
-            "license_spdx",
+            *license_fields,
             "source_evidence_sha256",
             "final_sdkconfig_sha256",
             "required_operations",
@@ -904,7 +1064,7 @@ def validate_api_config_evidence(
     )
     if (
         evidence["schema"] != "OTCAPI0"
-        or _integer(evidence["version"], "api_config_evidence.version", minimum=0, maximum=0) != 0
+        or _integer(evidence["version"], "api_config_evidence.version", minimum=contract_version, maximum=contract_version) != contract_version
         or evidence["artifact_kind"] != "candidate_api_config_eligibility_evidence"
         or evidence["result"] != "api_config_eligible"
     ):
@@ -919,10 +1079,13 @@ def validate_api_config_evidence(
     ) != contract_result["admission_policy_sha256"]:
         raise ValidationError("API/config evidence does not bind the admission policy")
     candidate_id = _string(evidence["candidate_id"], "api_config_evidence.candidate_id")
+    if contract_version == 1:
+        _boolean(evidence["legal_clearance_claimed"], "api_config_evidence.legal_clearance_claimed", False)
+        _boolean(evidence["license_compatibility_determined"], "api_config_evidence.license_compatibility_determined", False)
     expected = CANDIDATE_BY_ID.get(candidate_id)
     if expected is None:
         raise ValidationError("API/config evidence candidate is not canonical")
-    for field in ("candidate_id", "role", "version_string", "license_spdx"):
+    for field in ("candidate_id", "role", "version_string", *license_fields):
         if evidence[field] != accepted_source[field]:
             raise ValidationError("API/config evidence does not bind accepted source facts")
     if _sha(
@@ -952,11 +1115,13 @@ def validate_api_config_evidence(
     _boolean(evidence["execution_authorized"], "api_config_evidence.execution_authorized", False)
     _boolean(evidence["score_credit_added"], "api_config_evidence.score_credit_added", False)
     digest = canonical_sha256(evidence)
+    if digest in ACCEPTED_API_CONFIG_EVIDENCE_SHA256[candidate_id] and contract_version == 0:
+        raise ValidationError("v0 API/config evidence cannot be admitted for future acceptance")
     if digest not in ACCEPTED_API_CONFIG_EVIDENCE_SHA256[candidate_id]:
         raise ValidationError("API/config evidence digest is not independently accepted")
     return {
         "schema": "OTCAPI0",
-        "version": 0,
+        "version": contract_version,
         "candidate_id": candidate_id,
         "source_evidence_sha256": accepted_source["source_evidence_sha256"],
         "final_sdkconfig_sha256": final_sdkconfig,
@@ -976,6 +1141,12 @@ def validate_candidate_import_evidence(
     contract_result = validate_contract(contract)
     _scan_structure(evidence)
     evidence = _object(evidence, "candidate_import_evidence")
+    contract_version = contract_result["version"]
+    license_fields = (
+        {"license_spdx"}
+        if contract_version == 0
+        else {"upstream_license_expression", "project_license_choice", "license_inventory_sha256", "legal_clearance_claimed", "license_compatibility_determined"}
+    )
     _exact_keys(
         evidence,
         {
@@ -988,7 +1159,7 @@ def validate_candidate_import_evidence(
             "candidate_id",
             "role",
             "version_string",
-            "license_spdx",
+            *license_fields,
             "source_evidence_sha256",
             "api_config_evidence_sha256",
             "project_dependency_lock_sha256",
@@ -1002,7 +1173,7 @@ def validate_candidate_import_evidence(
     )
     if (
         evidence["schema"] != "OTCIMP0"
-        or _integer(evidence["version"], "candidate_import_evidence.version", minimum=0, maximum=0) != 0
+        or _integer(evidence["version"], "candidate_import_evidence.version", minimum=contract_version, maximum=contract_version) != contract_version
         or evidence["artifact_kind"] != "candidate_import_evidence"
         or evidence["result"] != "imported_for_benchmark_only"
     ):
@@ -1017,9 +1188,12 @@ def validate_candidate_import_evidence(
     ) != contract_result["admission_policy_sha256"]:
         raise ValidationError("candidate-import evidence does not bind the admission policy")
     candidate_id = _string(evidence["candidate_id"], "candidate_import_evidence.candidate_id")
+    if contract_version == 1:
+        _boolean(evidence["legal_clearance_claimed"], "candidate_import_evidence.legal_clearance_claimed", False)
+        _boolean(evidence["license_compatibility_determined"], "candidate_import_evidence.license_compatibility_determined", False)
     if candidate_id not in CANDIDATE_BY_ID:
         raise ValidationError("candidate-import evidence candidate is not canonical")
-    for field in ("candidate_id", "role", "version_string", "license_spdx"):
+    for field in ("candidate_id", "role", "version_string", *license_fields):
         if evidence[field] != accepted_source[field]:
             raise ValidationError("candidate-import evidence does not bind accepted source facts")
     if _sha(
@@ -1050,11 +1224,13 @@ def validate_candidate_import_evidence(
     )
     _boolean(evidence["score_credit_added"], "candidate_import_evidence.score_credit_added", False)
     digest = canonical_sha256(evidence)
+    if digest in ACCEPTED_CANDIDATE_IMPORT_EVIDENCE_SHA256[candidate_id] and contract_version == 0:
+        raise ValidationError("v0 candidate-import evidence cannot be admitted for future acceptance")
     if digest not in ACCEPTED_CANDIDATE_IMPORT_EVIDENCE_SHA256[candidate_id]:
         raise ValidationError("candidate-import evidence digest is not independently accepted")
     return {
         "schema": "OTCIMP0",
-        "version": 0,
+        "version": contract_version,
         "candidate_id": candidate_id,
         "source_evidence_sha256": accepted_source["source_evidence_sha256"],
         "api_config_evidence_sha256": accepted_api_config[

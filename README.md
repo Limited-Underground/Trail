@@ -13,7 +13,7 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-096 freezes strict host-only `OTCMSE0/v0`: a read-only assessment of pinned ESP-IDF mbedTLS/PSA. Concrete source/API paths exist for 5/8 fixed operations; Ed25519 sign/verify and Noise XK are absent, final configuration is unresolved, and blocker 4 remains open. Result: `MBEDTLS-STATIC-ELIGIBILITY-FROZEN-HOST-ONLY; FIXED-OT005-OPERATION-SET-INELIGIBLE; OTCBR0-BLOCKER4-REMAINS-OPEN`. No source lock, readiness, benchmark, selection, support, implementation, physical evidence, authority, or score was added |
+| Latest increment | OT-097 freezes strict host-only `OTCSL0/v1`, requiring separate upstream SPDX expression, project license choice, complete license inventory, and inventory digest before future source-lock acceptance. `OTCSL0/v0` remains valid historical evidence but permanently non-admitting. Result: `LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1-FROZEN-HOST-ONLY; ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED`. All six blockers remain open; no legal clearance, compatibility determination, source lock, readiness, benchmark, selection, support, implementation, physical evidence, authority, or score was added |
 | Proven so far | OT-095 adds strict source-evidence admission governance, not a source lock or candidate readiness. OT-094 adds strict blocked readiness governance, not candidate readiness. OT-093 adds reproducible build-only evidence, not crypto performance or target support. OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on one experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 and V2 remain unmeasured |
 | Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
@@ -65,6 +65,11 @@ any candidate source. All six readiness requirements remain blocked.
 [Decision 0040](docs/decisions/0040-host-only-mbedtls-psa-static-eligibility.md)
 and [OT-096 evidence](tests/hardware/OT-096-2026-08-20.md) record the bounded
 5/8 static result; final configuration and all six blockers remain unresolved.
+[Decision 0041](docs/decisions/0041-license-aware-source-lock-admission-v1.md)
+and [OT-097 evidence](tests/hardware/OT-097-2026-08-20.md) freeze the
+license-aware `OTCSL0/v1` admission policy. Version 0 remains historical but
+cannot admit a future source lock; version 1 requires separate upstream SPDX,
+project-choice, complete-inventory, and inventory-digest evidence.
 Next close those readiness requirements, accept a new immutable executable plan,
 run the exact candidate benchmark under separate authority, and make a later
 explicit suite/wire decision. Implementation and physical acceptance remain

@@ -27,6 +27,8 @@ The candidate source-lock admission validator is
 The bounded mbedTLS/PSA static validator is
 `tools/crypto_mbedtls_static_eligibility.py`, with accepted assessment
 `tests/benchmarks/crypto/OT-096-OT005-MBEDTLS-STATIC-ELIGIBILITY-V0.json`.
+The same source-lock validator also owns the current license-aware contract
+`tests/benchmarks/crypto/OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1.json`.
 
 ## Plan contract
 
@@ -170,6 +172,14 @@ It is not a benchmark failure, global rejection, source lock, import, or
 selection. All six blockers and all authority/score closures remain open. See
 [Decision 0040](../decisions/0040-host-only-mbedtls-psa-static-eligibility.md)
 and [OT-096 evidence](../../tests/hardware/OT-096-2026-08-20.md).
+
+## OT-097 license-aware source-lock admission v1
+
+`OTCSL0/v1` has admission ID `OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1`, canonical/policy SHA-256 `51639e1b9342dc9e501fb0682d044c0f7c05e691e1a26f463358a753f28a123a`, and result `LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1-FROZEN-HOST-ONLY; ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED`.
+
+It preserves the v0 evidence layers while making four license fields mandatory for future acceptance: upstream SPDX expression, explicit project choice, complete inventory, and a separate inventory digest. These facts cannot substitute for one another. OTCSL0/v0 remains valid historical evidence but is permanently non-admitting.
+
+The candidate entries preserve their distinct upstream expressions and current project choices. Every inventory remains incomplete, every inventory digest is null, and every source-lock state is `not_accepted`. OT-097 acquires/imports zero sources and grants no legal clearance or compatibility determination. All six blockers and all authority/readiness/benchmark/selection/support/physical/score closures remain open. See [Decision 0041](../decisions/0041-license-aware-source-lock-admission-v1.md) and [OT-097 evidence](../../tests/hardware/OT-097-2026-08-20.md).
 
 ## Result contract
 

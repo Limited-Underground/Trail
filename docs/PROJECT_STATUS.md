@@ -84,6 +84,19 @@ open, and authority/execution/selection/support/implementation/physical/score
 claims remain false. See [Decision 0040](decisions/0040-host-only-mbedtls-psa-static-eligibility.md)
 and [OT-096 evidence](../tests/hardware/OT-096-2026-08-20.md).
 
+OT-097 freezes strict license-aware `OTCSL0/v1`, admission ID
+`OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1`, with canonical/policy
+SHA-256 `51639e1b9342dc9e501fb0682d044c0f7c05e691e1a26f463358a753f28a123a`.
+It separately requires upstream SPDX expression, project license choice,
+complete license inventory, and inventory digest before any future source-lock
+acceptance. OTCSL0/v0 remains valid historical evidence but permanently
+non-admitting. Zero sources were accepted, acquired, or imported; inventories
+remain incomplete, all six blockers remain open, and no legal clearance or
+compatibility determination is claimed. No authority, readiness, benchmark,
+selection, support, implementation, physical evidence, or score changed. See
+[Decision 0041](decisions/0041-license-aware-source-lock-admission-v1.md) and
+[OT-097 evidence](../tests/hardware/OT-097-2026-08-20.md).
+
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
 unicast path. One secret-free authenticated invitation admits one candidate and
