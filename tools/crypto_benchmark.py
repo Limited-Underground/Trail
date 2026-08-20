@@ -15,11 +15,21 @@ from typing import Any
 SCHEMA = "OTCB0"
 VERSION = 0
 PLAN_STATUSES = {"draft_blocked", "ready"}
+MAX_BYTES = 65_536
+MAX_DEPTH = 12
+MAX_NODES = 2_048
+MAX_STRING = 500
 CANDIDATES = {
     "espressif_libsodium": "primary",
     "esp_idf_mbedtls_psa": "comparison",
     "monocypher": "comparison",
 }
+BLOCKERS = (
+    "exact_client_board_and_revision_not_frozen",
+    "esp_idf_toolchain_and_sdkconfig_not_pinned",
+    "candidate_source_commits_and_dependency_locks_not_pinned",
+    "direct_radio_mtu_and_phy_profile_not_frozen",
+)
 GATES = (
     "primitive_vectors_and_negative_cases",
     "noise_xk_independent_interoperability",
@@ -57,9 +67,31 @@ class ValidationError(ValueError):
     pass
 
 
+class SafeArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> None:
+        del message
+        print("ERROR: invalid command line", file=sys.stderr)
+        raise SystemExit(2)
+
+
+def _pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in items:
+        if key in value:
+            raise ValidationError("JSON contains a duplicate key")
+        value[key] = item
+    return value
+
+
 def _object(value: Any, path: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise ValidationError(f"{path} must be an object")
+    if type(value) is not dict:
+        raise ValidationError(f"{path} must be an exact object")
+    return value
+
+
+def _list(value: Any, path: str) -> list[Any]:
+    if type(value) is not list:
+        raise ValidationError(f"{path} must be an exact list")
     return value
 
 
@@ -71,25 +103,68 @@ def _exact_keys(value: dict[str, Any], expected: set[str], path: str) -> None:
 
 
 def _string(value: Any, path: str, *, allow_empty: bool = False) -> str:
-    if not isinstance(value, str) or (not allow_empty and not value):
+    if (
+        type(value) is not str
+        or len(value) > MAX_STRING
+        or (not allow_empty and not value)
+    ):
         raise ValidationError(f"{path} must be a{' possibly empty' if allow_empty else ' nonempty'} string")
     return value
 
 
-def _integer(value: Any, path: str, *, minimum: int = 0) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
-        raise ValidationError(f"{path} must be an integer >= {minimum}")
+def _integer(
+    value: Any, path: str, *, minimum: int = 0, maximum: int = (1 << 63) - 1
+) -> int:
+    if type(value) is not int or value < minimum or value > maximum:
+        raise ValidationError(f"{path} must be an exact integer in range")
     return value
 
 
 def _boolean(value: Any, path: str) -> bool:
-    if not isinstance(value, bool):
-        raise ValidationError(f"{path} must be a Boolean")
+    if type(value) is not bool:
+        raise ValidationError(f"{path} must be an exact Boolean")
     return value
 
 
+def _scan_structure(value: Any) -> None:
+    seen: set[int] = set()
+    nodes = 0
+
+    def visit(child: Any, depth: int) -> None:
+        nonlocal nodes
+        nodes += 1
+        if nodes > MAX_NODES or depth > MAX_DEPTH:
+            raise ValidationError("artifact exceeds structural bounds")
+        if type(child) is dict:
+            identity = id(child)
+            if identity in seen or len(child) > 64:
+                raise ValidationError("artifact contains a cycle or oversized object")
+            seen.add(identity)
+            for key, item in child.items():
+                if type(key) is not str:
+                    raise ValidationError("artifact object keys must be exact strings")
+                visit(key, depth + 1)
+                visit(item, depth + 1)
+            seen.remove(identity)
+        elif type(child) is list:
+            identity = id(child)
+            if identity in seen or len(child) > 64:
+                raise ValidationError("artifact contains a cycle or oversized list")
+            seen.add(identity)
+            for item in child:
+                visit(item, depth + 1)
+            seen.remove(identity)
+        elif type(child) is str:
+            if len(child) > MAX_STRING:
+                raise ValidationError("artifact contains oversized text")
+        elif child is not None and type(child) not in (int, bool):
+            raise ValidationError("artifact contains a noncanonical JSON type")
+
+    visit(value, 0)
+
+
 def _scan_public(value: Any, path: str = "artifact") -> None:
-    if isinstance(value, dict):
+    if type(value) is dict:
         forbidden = {
             "serial_number",
             "mac_address",
@@ -105,10 +180,10 @@ def _scan_public(value: Any, path: str = "artifact") -> None:
             raise ValidationError(f"{path} contains prohibited field(s): {sorted(found)}")
         for key, item in value.items():
             _scan_public(item, f"{path}.{key}")
-    elif isinstance(value, list):
+    elif type(value) is list:
         for index, item in enumerate(value):
             _scan_public(item, f"{path}[{index}]")
-    elif isinstance(value, str):
+    elif type(value) is str:
         for pattern in PRIVATE_TEXT:
             if pattern.search(value):
                 raise ValidationError(f"{path} contains private machine/device text")
@@ -116,18 +191,49 @@ def _scan_public(value: Any, path: str = "artifact") -> None:
 
 def _load(path: Path) -> dict[str, Any]:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ValidationError(f"cannot read JSON: {exc}") from exc
+        with path.open("rb") as source:
+            raw = source.read(MAX_BYTES + 1)
+        if len(raw) > MAX_BYTES:
+            raise ValidationError("JSON exceeds the size limit")
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_pairs)
+    except ValidationError:
+        raise
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError, ValueError) as exc:
+        raise ValidationError("JSON is unreadable or invalid") from exc
     return _object(value, "artifact")
 
 
 def canonical_sha256(value: dict[str, Any]) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    try:
+        encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    except (TypeError, ValueError, RecursionError) as exc:
+        raise ValidationError("artifact is not canonically serializable") from exc
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
-def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
+def _readiness_info(
+    plan: dict[str, Any],
+    readiness: dict[str, Any] | None,
+    baseline: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if readiness is None and baseline is None:
+        return None
+    if readiness is None or baseline is None:
+        raise ValidationError("readiness and baseline must be supplied together")
+    try:
+        import crypto_benchmark_readiness as readiness_validator
+
+        return readiness_validator.validate(readiness, plan, baseline)
+    except (ImportError, ValueError, TypeError, RecursionError) as exc:
+        raise ValidationError("candidate readiness is invalid or unaccepted") from exc
+
+
+def validate_plan(
+    plan: dict[str, Any],
+    readiness: dict[str, Any] | None = None,
+    baseline: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    _scan_structure(plan)
     _scan_public(plan)
     _exact_keys(
         plan,
@@ -163,6 +269,8 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
     _exact_keys(target, {"manufacturer", "board_model", "board_revision", "mcu", "flash_bytes", "psram_bytes"}, "plan.target")
     for field in ("manufacturer", "board_model", "board_revision", "mcu"):
         _string(target[field], f"plan.target.{field}", allow_empty=status == "draft_blocked")
+    if target["mcu"] != "ESP32-S3":
+        raise ValidationError("plan.target.mcu must remain ESP32-S3")
     _integer(target["flash_bytes"], "plan.target.flash_bytes", minimum=0 if status == "draft_blocked" else 1)
     _integer(target["psram_bytes"], "plan.target.psram_bytes")
 
@@ -177,11 +285,27 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
 
     radio = _object(plan["radio"], "plan.radio")
     _exact_keys(radio, {"mtu_bytes", "frequency_hz", "bandwidth_hz", "spreading_factor", "coding_rate_denominator"}, "plan.radio")
+    radio_ranges = {
+        "mtu_bytes": (1, 255),
+        "frequency_hz": (137_000_000, 1_020_000_000),
+        "bandwidth_hz": (7_800, 500_000),
+        "spreading_factor": (5, 12),
+        "coding_rate_denominator": (5, 8),
+    }
     for field in radio:
-        _integer(radio[field], f"plan.radio.{field}", minimum=0 if status == "draft_blocked" else 1)
+        if status == "draft_blocked":
+            _integer(radio[field], f"plan.radio.{field}", minimum=0)
+        else:
+            minimum, maximum = radio_ranges[field]
+            _integer(
+                radio[field],
+                f"plan.radio.{field}",
+                minimum=minimum,
+                maximum=maximum,
+            )
 
-    candidates = plan["candidates"]
-    if not isinstance(candidates, list) or len(candidates) != len(CANDIDATES):
+    candidates = _list(plan["candidates"], "plan.candidates")
+    if len(candidates) != len(CANDIDATES):
         raise ValidationError("plan.candidates must contain the three fixed candidates")
     seen: set[str] = set()
     for index, raw in enumerate(candidates):
@@ -193,12 +317,16 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
         seen.add(candidate_id)
         if candidate["role"] != CANDIDATES[candidate_id]:
             raise ValidationError(f"{candidate_id} role mismatch")
+        if candidate_id != tuple(CANDIDATES)[index]:
+            raise ValidationError("plan candidate order must remain canonical")
         for field in ("version", "license_spdx"):
             _string(candidate[field], f"{candidate_id}.{field}", allow_empty=status == "draft_blocked")
         for field, pattern in (("source_commit", HEX40), ("lock_sha256", HEX64)):
             value = _string(candidate[field], f"{candidate_id}.{field}", allow_empty=status == "draft_blocked")
             if value and not pattern.fullmatch(value):
                 raise ValidationError(f"{candidate_id}.{field} must be lowercase hexadecimal")
+            if status == "ready" and len(set(value)) == 1:
+                raise ValidationError(f"{candidate_id}.{field} cannot be a placeholder digest")
     if seen != set(CANDIDATES):
         raise ValidationError("plan candidate set is incomplete")
 
@@ -208,14 +336,29 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
     _exact_keys(repetitions, {"cold", "warm"}, "plan.minimum_repetitions")
     if repetitions["cold"] != 100 or repetitions["warm"] != 100:
         raise ValidationError("minimum repetitions must be exactly 100 cold and 100 warm")
-    blockers = plan["blockers"]
-    if not isinstance(blockers, list) or any(not isinstance(item, str) or not item for item in blockers):
+    blockers = _list(plan["blockers"], "plan.blockers")
+    if any(type(item) is not str or not item for item in blockers):
         raise ValidationError("plan.blockers must be a list of nonempty strings")
     if status == "ready" and blockers:
         raise ValidationError("ready plan cannot contain blockers")
     if status == "draft_blocked" and not blockers:
         raise ValidationError("draft_blocked plan must name at least one blocker")
-    return {"status": status, "benchmark_id": benchmark_id, "plan_sha256": canonical_sha256(plan)}
+    if status == "draft_blocked" and blockers != list(BLOCKERS):
+        raise ValidationError("OTCB0/v0 draft must preserve the canonical blockers")
+    readiness_info = _readiness_info(plan, readiness, baseline)
+    readiness_verified = bool(
+        readiness_info
+        and readiness_info["fully_resolved"] is True
+        and readiness_info["accepted_for_legacy_v0"] is True
+        and readiness_info["execution_authorized"] is True
+    )
+    return {
+        "status": status,
+        "benchmark_id": benchmark_id,
+        "plan_sha256": canonical_sha256(plan),
+        "readiness_verified": readiness_verified,
+        "execution_authorized": readiness_verified,
+    }
 
 
 def _stats(value: Any, path: str) -> None:
@@ -226,8 +369,14 @@ def _stats(value: Any, path: str) -> None:
         raise ValidationError(f"{path} timing values must be nondecreasing")
 
 
-def validate_result(plan: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
-    plan_info = validate_plan(plan)
+def validate_result(
+    plan: dict[str, Any],
+    result: dict[str, Any],
+    readiness: dict[str, Any] | None = None,
+    baseline: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    plan_info = validate_plan(plan, readiness, baseline)
+    _scan_structure(result)
     _scan_public(result)
     _exact_keys(
         result,
@@ -310,6 +459,8 @@ def validate_result(plan: dict[str, Any], result: dict[str, Any]) -> dict[str, A
     failures: list[str] = []
     if plan_info["status"] != "ready":
         failures.append("plan_not_ready")
+    if not plan_info["readiness_verified"]:
+        failures.append("candidate_readiness_not_verified")
     if not build["passed"]:
         failures.append("build_failed")
     if build["compiler_warnings"] != 0:
@@ -333,10 +484,19 @@ def validate_result(plan: dict[str, Any], result: dict[str, Any]) -> dict[str, A
     }
 
 
-def result_template(plan: dict[str, Any], candidate_id: str) -> dict[str, Any]:
-    info = validate_plan(plan)
+def result_template(
+    plan: dict[str, Any],
+    candidate_id: str,
+    readiness: dict[str, Any] | None = None,
+    baseline: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    info = validate_plan(plan, readiness, baseline)
     if info["status"] != "ready":
         raise ValidationError("result template requires a ready plan")
+    if not info["readiness_verified"]:
+        raise ValidationError(
+            "result template requires separately verified fully resolved readiness"
+        )
     if candidate_id not in CANDIDATES:
         raise ValidationError("candidate_id is not canonical")
     zero_stats = {"min_us": 0, "median_us": 0, "p95_us": 0, "max_us": 0}
@@ -367,7 +527,7 @@ def _write_new(path: Path, value: dict[str, Any]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = SafeArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     validate = sub.add_parser("validate-plan")
     validate.add_argument("plan", type=Path)
@@ -378,20 +538,34 @@ def main(argv: list[str] | None = None) -> int:
     evaluate = sub.add_parser("evaluate")
     evaluate.add_argument("plan", type=Path)
     evaluate.add_argument("result", type=Path)
+    for command in (validate, template, evaluate):
+        command.add_argument("--readiness", type=Path)
+        command.add_argument("--baseline", type=Path)
     args = parser.parse_args(argv)
     try:
         plan = _load(args.plan)
+        if (args.readiness is None) != (args.baseline is None):
+            raise ValidationError("readiness and baseline must be supplied together")
+        readiness = _load(args.readiness) if args.readiness is not None else None
+        baseline = _load(args.baseline) if args.baseline is not None else None
         if args.command == "validate-plan":
-            print(json.dumps(validate_plan(plan), sort_keys=True))
+            print(json.dumps(validate_plan(plan, readiness, baseline), sort_keys=True))
         elif args.command == "create-result-template":
-            _write_new(args.output, result_template(plan, args.candidate_id))
-            print(args.output)
+            _write_new(
+                args.output,
+                result_template(plan, args.candidate_id, readiness, baseline),
+            )
+            print("CREATED")
         else:
             result = _load(args.result)
-            print(json.dumps(validate_result(plan, result), sort_keys=True))
+            print(
+                json.dumps(
+                    validate_result(plan, result, readiness, baseline), sort_keys=True
+                )
+            )
         return 0
-    except (ValidationError, FileExistsError) as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
+    except (ValidationError, FileExistsError):
+        print("ERROR: crypto benchmark evidence is invalid or unaccepted", file=sys.stderr)
         return 2
 
 

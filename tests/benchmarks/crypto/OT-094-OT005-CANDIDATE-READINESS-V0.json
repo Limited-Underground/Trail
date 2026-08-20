@@ -1,0 +1,227 @@
+{
+  "schema": "OTCBR0",
+  "version": 0,
+  "artifact_kind": "candidate_readiness",
+  "readiness_id": "OT-094-OT005-CANDIDATE-READINESS-V0",
+  "accepted_date": "2026-08-20",
+  "status": "readiness_blocked",
+  "public_result": "CANDIDATE-READINESS-CONTRACT-FROZEN-HOST-ONLY; OTCB0-EXECUTION-BLOCKED",
+  "otcb0_snapshot": {
+    "schema": "OTCB0",
+    "version": 0,
+    "benchmark_id": "OT-005-CRYPTO-ESP32S3-V0",
+    "plan_sha256": "49792b585286823ffa9b7589704d57e8393b3dbf3d514917ffd7b5970301edb7",
+    "plan_status": "draft_blocked",
+    "execution_authorized": false
+  },
+  "preselection_baseline": {
+    "schema": "OTCBL0",
+    "version": 0,
+    "baseline_id": "OT-093-OT005-BUILD-BASELINE-V0",
+    "baseline_sha256": "16ffe83af7e3c1f00b5d123eae30e3ac4a0ea2dea0cb08bcc60b990d3e881733",
+    "status": "build_baseline_frozen",
+    "target_id": "heltec-v4-bench-candidate",
+    "esp_idf_version": "v6.0.2",
+    "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "compiler": "xtensa-esp32s3-elf-gcc",
+    "compiler_version": "15.2.0",
+    "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+    "generated_sdkconfig_role": "PRE-SELECTION-BASELINE-NOT-FINAL-OTCB0"
+  },
+  "target_readiness": {
+    "state": "blocked",
+    "target_id": "heltec-v4-bench-candidate",
+    "manufacturer": null,
+    "board_model": null,
+    "exact_received_revision": null,
+    "rf_variant": null,
+    "mcu": "ESP32-S3",
+    "processor_revision": "v0.2",
+    "flash_bytes": 16777216,
+    "psram_bytes": 2097152,
+    "supported": false,
+    "evidence_sha256": null
+  },
+  "candidate_configuration": {
+    "state": "blocked",
+    "baseline_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+    "baseline_role": "PRE-SELECTION-BASELINE-NOT-FINAL-OTCB0",
+    "final_common_sdkconfig_sha256": null,
+    "candidate_overlays": [
+      {
+        "candidate_id": "espressif_libsodium",
+        "overlay_sha256": null,
+        "generated_sdkconfig_sha256": null
+      },
+      {
+        "candidate_id": "esp_idf_mbedtls_psa",
+        "overlay_sha256": null,
+        "generated_sdkconfig_sha256": null
+      },
+      {
+        "candidate_id": "monocypher",
+        "overlay_sha256": null,
+        "generated_sdkconfig_sha256": null
+      }
+    ],
+    "evidence_sha256": null
+  },
+  "candidates": [
+    {
+      "candidate_id": "espressif_libsodium",
+      "role": "primary",
+      "declared_version": "1.0.22",
+      "observed_version": null,
+      "source_state": "not_project_locked",
+      "source_commit": null,
+      "parent_source_commit": null,
+      "dependency_lock_kind": null,
+      "dependency_lock_sha256": null,
+      "source_evidence_sha256": null,
+      "license_spdx": "ISC",
+      "imported": false,
+      "benchmark_eligible": false,
+      "executed": false,
+      "selected": false
+    },
+    {
+      "candidate_id": "esp_idf_mbedtls_psa",
+      "role": "comparison",
+      "declared_version": null,
+      "observed_version": "4.1.0",
+      "source_state": "installed_comparison_source_observed_not_locked",
+      "source_commit": "6cc42afad309e861f4c07e6f106e2ab14a9cb8e5",
+      "parent_source_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+      "dependency_lock_kind": null,
+      "dependency_lock_sha256": null,
+      "source_evidence_sha256": null,
+      "license_spdx": "Apache-2.0",
+      "imported": false,
+      "benchmark_eligible": false,
+      "executed": false,
+      "selected": false
+    },
+    {
+      "candidate_id": "monocypher",
+      "role": "comparison",
+      "declared_version": "4.0.3",
+      "observed_version": null,
+      "source_state": "not_project_locked",
+      "source_commit": null,
+      "parent_source_commit": null,
+      "dependency_lock_kind": null,
+      "dependency_lock_sha256": null,
+      "source_evidence_sha256": null,
+      "license_spdx": "CC0-1.0 OR BSD-2-Clause",
+      "imported": false,
+      "benchmark_eligible": false,
+      "executed": false,
+      "selected": false
+    }
+  ],
+  "radio_readiness": {
+    "state": "blocked",
+    "rf_variant": null,
+    "region_code": null,
+    "frequency_hz": null,
+    "bandwidth_hz": null,
+    "spreading_factor": null,
+    "coding_rate_denominator": null,
+    "tx_power_dbm": null,
+    "preamble_symbols": null,
+    "explicit_header": null,
+    "crc_enabled": null,
+    "low_data_rate_optimization": null,
+    "sync_word": null,
+    "direct_payload_ceiling_bytes": null,
+    "benchmark_mtu_bytes": null,
+    "evidence_sha256": null
+  },
+  "readiness_requirements": [
+    {
+      "blocker_id": "exact_received_target_profile_unresolved",
+      "state": "blocked",
+      "closure_evidence_sha256": null,
+      "requires_owner_decision": true,
+      "requires_physical_evidence": true,
+      "requires_external_source_acquisition": false
+    },
+    {
+      "blocker_id": "final_candidate_build_configuration_unresolved",
+      "state": "blocked",
+      "closure_evidence_sha256": null,
+      "requires_owner_decision": true,
+      "requires_physical_evidence": false,
+      "requires_external_source_acquisition": false
+    },
+    {
+      "blocker_id": "espressif_libsodium_source_lock_absent",
+      "state": "blocked",
+      "closure_evidence_sha256": null,
+      "requires_owner_decision": true,
+      "requires_physical_evidence": false,
+      "requires_external_source_acquisition": true
+    },
+    {
+      "blocker_id": "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+      "state": "blocked",
+      "closure_evidence_sha256": null,
+      "requires_owner_decision": false,
+      "requires_physical_evidence": false,
+      "requires_external_source_acquisition": false
+    },
+    {
+      "blocker_id": "monocypher_source_lock_absent",
+      "state": "blocked",
+      "closure_evidence_sha256": null,
+      "requires_owner_decision": true,
+      "requires_physical_evidence": false,
+      "requires_external_source_acquisition": true
+    },
+    {
+      "blocker_id": "direct_radio_mtu_phy_region_unresolved",
+      "state": "blocked",
+      "closure_evidence_sha256": null,
+      "requires_owner_decision": true,
+      "requires_physical_evidence": true,
+      "requires_external_source_acquisition": false
+    }
+  ],
+  "blockers": [
+    "exact_received_target_profile_unresolved",
+    "final_candidate_build_configuration_unresolved",
+    "espressif_libsodium_source_lock_absent",
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "monocypher_source_lock_absent",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "authority": {
+    "dependency_acquisition_authorized": false,
+    "candidate_import_authorized": false,
+    "result_template_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "suite_selection_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "ot005_candidate_imported": false,
+    "candidate_benchmark_executed": false,
+    "candidate_selected": false,
+    "secure_lora_adapter_imported": false,
+    "secure_lora_adapter_executed": false,
+    "suite_selected": false,
+    "handshake_kdf_selected": false,
+    "packet_v1_wire_selected": false,
+    "radio_profile_selected": false,
+    "supported_target": false,
+    "hardware_or_device_accessed": false,
+    "key_or_entropy_operation": false,
+    "physical_evidence_added": false,
+    "score_credit_added": false
+  }
+}

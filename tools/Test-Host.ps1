@@ -1920,6 +1920,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "Crypto benchmark evidence tests failed with exit code $LASTEXITCODE."
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_readiness_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "OTCBR0 candidate-readiness tests failed with exit code $LASTEXITCODE."
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "OTCBL0 build-lock tests failed with exit code $LASTEXITCODE."

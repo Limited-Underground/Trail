@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import crypto_benchmark as otcb0  # noqa: E402
 import crypto_benchmark_baseline as baseline  # noqa: E402
+import crypto_benchmark_readiness as readiness  # noqa: E402
 
 
 BASELINE_PATH = (
@@ -26,6 +27,13 @@ BASELINE_PATH = (
 )
 OTCB0_PATH = (
     ROOT / "tests" / "benchmarks" / "crypto" / "OT-005-CRYPTO-BENCHMARK-PLAN-V0.json"
+)
+READINESS_PATH = (
+    ROOT
+    / "tests"
+    / "benchmarks"
+    / "crypto"
+    / "OT-094-OT005-CANDIDATE-READINESS-V0.json"
 )
 BUILD_HELPER = ROOT / "tools" / "Build-HeltecV4BenchTarget.ps1"
 
@@ -232,6 +240,22 @@ def test_historical_otcb0_plan_is_unchanged_and_ineligible() -> None:
         pass
     else:
         raise AssertionError("blocked OTCB0 plan unexpectedly created a result template")
+
+
+def test_ot094_preserves_historical_plan_and_baseline_bytes() -> None:
+    assert hashlib.sha256(OTCB0_PATH.read_bytes()).hexdigest() == (
+        "47c210c6257cd104d07f8e043f2cd1c688195136bbd3fcbafb8e6da095d18884"
+    )
+    assert hashlib.sha256(BASELINE_PATH.read_bytes()).hexdigest() == (
+        "240906d62926048e6f55b1bb11ce21538e24edbeb8956439ffeb35f3b49b3c83"
+    )
+    plan = otcb0._load(OTCB0_PATH)
+    build_lock = baseline.load(BASELINE_PATH)
+    blocked_readiness = readiness.load(READINESS_PATH)
+    info = otcb0.validate_plan(plan, blocked_readiness, build_lock)
+    assert info["status"] == "draft_blocked"
+    assert info["readiness_verified"] is False
+    assert info["execution_authorized"] is False
 
 
 def test_exact_types_unknown_fields_cycles_and_depth_are_rejected() -> None:
@@ -470,6 +494,7 @@ def main() -> int:
         test_headroom_equation_and_bounds_fail_closed,
         test_candidate_specific_claim_does_not_deny_framework_crypto,
         test_historical_otcb0_plan_is_unchanged_and_ineligible,
+        test_ot094_preserves_historical_plan_and_baseline_bytes,
         test_exact_types_unknown_fields_cycles_and_depth_are_rejected,
         test_two_run_forgeries_partial_receipts_and_swaps_fail_closed,
         test_private_content_and_cli_errors_are_sanitized,

@@ -6,6 +6,38 @@ public chronology.
 
 ## 2026-08-20
 
+### OT-094 host-only OT-005 candidate-readiness contract
+
+- Accepted the strict `OTCBR0/v0` ledger, readiness ID
+  `OT-094-OT005-CANDIDATE-READINESS-V0`, canonical SHA-256
+  `705b30693196e2f46d8bda7c17acb1e04d7b9092c4a3817286c14d189001b9d3`,
+  status `readiness_blocked`, and result
+  `CANDIDATE-READINESS-CONTRACT-FROZEN-HOST-ONLY; OTCB0-EXECUTION-BLOCKED`.
+- Bound the unchanged historical OT-005 plan and accepted OT-093 baseline,
+  baseline-only target/tool/configuration facts, fixed comparison order, and
+  the exact fields required for a later direct-radio benchmark profile.
+- Preserved six ordered blockers: exact received target profile, final common
+  and candidate build configuration, libsodium project lock, mbedTLS/PSA
+  dependency lock plus API/config eligibility, Monocypher project lock, and
+  direct-radio region/MTU/full-PHY. Every closure digest remains null.
+- Hardened legacy admission so a caller-declared `ready` OTCB0/v0 plan is
+  structural only. Without an independently accepted, fully resolved readiness
+  artifact it cannot create a result template or yield pass. The accepted-ready
+  trust-anchor set remains empty.
+- Focused OTCB0 10, OTCBR0 13, OTCBL0 13, Heltec target 12, and V1/V1.5 scope
+  16 scenario groups pass; both publication-safety layers pass and the complete
+  `tools/Test-Host.ps1` run exits `0`.
+- No dependency acquisition, candidate import, benchmark build/execution,
+  target support, suite/wire selection, implementation, device/radio/key action,
+  physical evidence, or score credit occurred. Android remains 60%; V1 exact
+  43.75%/displayed 44%; the historical baseline exact 31.75%/displayed 32%;
+  V1.5 and V2 remain unmeasured.
+- Next: close all six readiness requirements, accept a new immutable executable
+  benchmark plan, run the exact comparison under separate authority, and make a
+  later explicit suite/wire decision. See
+  [Decision 0038](decisions/0038-host-only-ot005-candidate-readiness-contract.md)
+  and [OT-094 evidence](../tests/hardware/OT-094-2026-08-20.md).
+
 ### OT-093 deterministic pre-crypto OT-005 build baseline
 
 - Accepted `OTCBL0/v0`, baseline ID

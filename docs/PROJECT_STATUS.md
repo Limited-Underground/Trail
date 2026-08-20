@@ -31,6 +31,29 @@ unmeasured. See [Decision 0037](decisions/0037-pre-crypto-build-baseline.md),
 the [benchmark evidence boundary](security/CRYPTO_BENCHMARK_EVIDENCE_V0.md),
 and [OT-093 evidence](../tests/hardware/OT-093-2026-08-20.md).
 
+OT-094 now freezes the separate strict `OTCBR0/v0` host-only
+candidate-readiness contract with canonical SHA-256
+`705b30693196e2f46d8bda7c17acb1e04d7b9092c4a3817286c14d189001b9d3`
+and result
+`CANDIDATE-READINESS-CONTRACT-FROZEN-HOST-ONLY; OTCB0-EXECUTION-BLOCKED`.
+It binds the unchanged historical OT-005 plan and accepted OT-093 baseline,
+while keeping six target, final-configuration, dependency-lock, and direct-radio
+requirements blocked. Exact received revision/RF identity, final common and
+candidate-overlay sdkconfig applicability, project-owned libsodium/Monocypher
+locks, mbedTLS/PSA lock/API/config eligibility, and region/MTU/full-PHY remain
+unresolved.
+
+A caller-declared legacy `ready` plan is structural only: without an
+independently accepted, fully resolved readiness artifact it cannot create a
+result template or yield pass. The accepted-ready trust-anchor set is empty.
+All dependency-acquisition, import, build, execution, device, radio, key,
+selection, packet-v1, support, physical-evidence, and score authority remains
+false. This changes no percentage: Android remains 60%; V1 exact
+43.75%/displayed 44%; the historical baseline exact 31.75%/displayed 32%; and
+V1.5 and V2 remain unmeasured. See
+[Decision 0038](decisions/0038-host-only-ot005-candidate-readiness-contract.md)
+and [OT-094 evidence](../tests/hardware/OT-094-2026-08-20.md).
+
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
 unicast path. One secret-free authenticated invitation admits one candidate and
@@ -2488,11 +2511,14 @@ four-client standalone plan, not the V1 Companion completion gate. Under
 Decision 0033, OT-090 has frozen and host-tested the practical pairing/
 replacement state machine without implementation credit, OT-091 has frozen the
 separate algorithm-neutral secure-LoRa lifecycle/admission semantics with the
-same host-only boundary, and OT-093 has frozen the deterministic pre-crypto
-build baseline without running a candidate. The next security checkpoint is to
-make the OT-005 plan final-candidate ready and execute the exact candidate
-benchmark, followed by explicit suite/library, handshake/KDF, and packet-v1
-wire selection. Pairing/replacement and secure-LoRa target/Android
+same host-only boundary, OT-093 has frozen the deterministic pre-crypto build
+baseline without running a candidate, and OT-094 has frozen the separate
+candidate-readiness contract while all six closure requirements remain blocked.
+The next security checkpoint is to close those target/configuration/dependency/
+radio requirements, accept a new immutable executable benchmark plan, and run
+the exact candidate comparison under separate authority, followed by explicit
+suite/library, handshake/KDF, and packet-v1 wire selection. Pairing/replacement
+and secure-LoRa target/Android
 implementation, physical acceptance, and the coherent two-pair run remain
 separately authorized later gates. Continue the partially
 executed OT-020 procedure without reconstructing the Wio's unpreserved shipping

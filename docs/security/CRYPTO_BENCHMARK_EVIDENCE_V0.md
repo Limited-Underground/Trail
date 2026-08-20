@@ -1,7 +1,7 @@
 # Cryptographic Benchmark Evidence v0
 
-Status: host-tested evidence boundary; pre-crypto build baseline frozen and
-target candidate plan blocked, 2026-08-20
+Status: host-tested evidence boundary; pre-crypto build and candidate-readiness
+contracts frozen while target candidate execution remains blocked, 2026-08-20
 
 ## Purpose
 
@@ -17,6 +17,9 @@ The pre-selection build-lock validator is
 `tools/crypto_benchmark_baseline.py`.
 The separate accepted pre-selection build lock is
 `tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json`.
+The blocked candidate-readiness validator is
+`tools/crypto_benchmark_readiness.py`, and its accepted ledger is
+`tests/benchmarks/crypto/OT-094-OT005-CANDIDATE-READINESS-V0.json`.
 
 ## Plan contract
 
@@ -77,6 +80,40 @@ Existing ESP-IDF/NimBLE cryptographic objects are not a selection. The ordinary
 Heltec `standard` build remains a compile-only receipt and cannot publish an
 OT-093 frozen-baseline result.
 
+## OT-094 candidate-readiness contract
+
+`OTCBR0/v0` freezes the admission requirements between the accepted
+candidate-free build and any executable OT-005 plan. The accepted ledger has
+readiness ID `OT-094-OT005-CANDIDATE-READINESS-V0`, canonical SHA-256
+`705b30693196e2f46d8bda7c17acb1e04d7b9092c4a3817286c14d189001b9d3`,
+status `readiness_blocked`, and public result
+`CANDIDATE-READINESS-CONTRACT-FROZEN-HOST-ONLY; OTCB0-EXECUTION-BLOCKED`.
+
+The ledger binds the unchanged historical `OTCB0/v0` plan and accepted
+`OTCBL0/v0` baseline. It preserves baseline-only target, ESP-IDF, compiler, and
+sdkconfig facts without treating them as final candidate configuration or
+target support. Its six ordered blockers cover exact received target identity,
+final common/candidate configuration, the three comparison-source locks and
+mbedTLS API/config eligibility, and direct-radio region/MTU/full-PHY evidence.
+Every closure digest remains null.
+
+A legacy plan's caller-declared `ready` string is structural only. Without an
+independently accepted and fully resolved readiness artifact it cannot create a
+result template or yield a passing evaluation. The accepted-ready trust-anchor
+set is empty, so the public plan remains `draft_blocked`, readiness unverified,
+and execution unauthorized. A future executable plan must use a new accepted
+version and bind the OT-094 contract digest plus actual closure evidence rather
+than rewriting the historical plan.
+
+The ledger's fixed three-candidate order is the comparison set from Decision
+0003, not a selection. Espressif libsodium and Monocypher remain unimported and
+unlocked. The installed ESP-IDF mbedTLS source observation is explicitly not a
+project dependency lock or API/config eligibility result. No radio profile,
+suite/library, handshake/KDF, or packet-v1 wire is selected.
+
+See [Decision 0038](../decisions/0038-host-only-ot005-candidate-readiness-contract.md)
+and the [OT-094 evidence](../../tests/hardware/OT-094-2026-08-20.md).
+
 ## Result contract
 
 One result evaluates one candidate under one exact ready plan. It records:
@@ -123,14 +160,18 @@ intentionally invalid/incomplete and cannot be mistaken for a passing result.
 
 ## Host evidence and remaining gates
 
-Eight deterministic `OTCB0/v0` scenario groups cover the blocked public plan,
+Ten deterministic `OTCB0/v0` scenario groups cover the blocked public plan,
 exact ready-plan structure, candidate/gate set enforcement, plan-bound template
-creation and overwrite refusal, a complete pass, measured failures, plan/config
-mismatch, private-text rejection, and incomplete/noncanonical measurements.
-Twelve `OTCBL0/v0` scenario groups cover source/tool/configuration locks,
+admission refusal without independently accepted readiness, measured failures,
+plan/config mismatch, private-text rejection, and incomplete/noncanonical
+measurements. Thirteen `OTCBR0/v0` scenario groups cover immutable plan/baseline
+binding, target/configuration/candidate/radio blockers, authority closure,
+strict bounded loading, privacy, and no execution capability. Thirteen
+`OTCBL0/v0` scenario groups cover source/tool/configuration locks,
 exact-type and loader rejection, two-receipt provenance, derived artifact
 equality, environment restoration, aggregate-only claims, privacy, and CLI
-sanitization. Both focused suites and the complete host gate pass.
+sanitization. The focused suites, Heltec and V1/V1.5 static admission checks,
+both publication-safety layers, and the complete host gate pass.
 
 This remains an evidence-quality boundary. No candidate library has been
 imported, benchmarked, or selected; no OT-005 candidate result exists. Entropy,
