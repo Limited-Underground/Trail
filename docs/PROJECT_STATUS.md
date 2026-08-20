@@ -54,6 +54,24 @@ V1.5 and V2 remain unmeasured. See
 [Decision 0038](decisions/0038-host-only-ot005-candidate-readiness-contract.md)
 and [OT-094 evidence](../tests/hardware/OT-094-2026-08-20.md).
 
+OT-095 now freezes the strict `OTCSL0/v0` host-only candidate source-lock
+admission contract with canonical and policy SHA-256
+`c0bd923782d0977f8b375cbd2fe8cde5ff132a26b8b6a7ea34a62111bd101f1f`
+and result
+`SOURCE-LOCK-ADMISSION-CONTRACT-FROZEN-HOST-ONLY; ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED`.
+It distinguishes acquisition-receipt, immutable-source-tree, project-lock,
+API/configuration, candidate-import, and benchmark-execution evidence layers,
+with admission defined for the first five and benchmark-execution admission
+still undefined and blocked. Separate candidate-specific source/API-config/import
+trust anchors and accepted anchor registries remain empty: no source lock is
+accepted, no source was
+acquired or imported, and the installed mbedTLS/PSA observation is not a project
+lock or API/Ed25519/final-configuration eligibility result. All six OTCBR0
+requirements remain blocked, OTCB0 remains `draft_blocked`, and every authority,
+readiness, execution, selection, support, physical-evidence, and score claim
+remains false. See [Decision 0039](decisions/0039-host-only-candidate-source-lock-admission-contract.md)
+and [OT-095 evidence](../tests/hardware/OT-095-2026-08-20.md).
+
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
 unicast path. One secret-free authenticated invitation admits one candidate and
@@ -2512,8 +2530,9 @@ Decision 0033, OT-090 has frozen and host-tested the practical pairing/
 replacement state machine without implementation credit, OT-091 has frozen the
 separate algorithm-neutral secure-LoRa lifecycle/admission semantics with the
 same host-only boundary, OT-093 has frozen the deterministic pre-crypto build
-baseline without running a candidate, and OT-094 has frozen the separate
-candidate-readiness contract while all six closure requirements remain blocked.
+baseline without running a candidate, OT-094 has frozen the separate
+candidate-readiness contract, and OT-095 has frozen the zero-source source-lock
+admission contract while all six closure requirements remain blocked.
 The next security checkpoint is to close those target/configuration/dependency/
 radio requirements, accept a new immutable executable benchmark plan, and run
 the exact candidate comparison under separate authority, followed by explicit

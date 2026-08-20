@@ -1,0 +1,214 @@
+{
+  "schema": "OTCSL0",
+  "version": 0,
+  "artifact_kind": "candidate_source_lock_admission_contract",
+  "admission_id": "OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0",
+  "accepted_date": "2026-08-20",
+  "status": "admission_contract_frozen_host_only",
+  "public_result": "SOURCE-LOCK-ADMISSION-CONTRACT-FROZEN-HOST-ONLY; ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED",
+  "otcb0_snapshot": {
+    "schema": "OTCB0",
+    "version": 0,
+    "benchmark_id": "OT-005-CRYPTO-ESP32S3-V0",
+    "plan_sha256": "49792b585286823ffa9b7589704d57e8393b3dbf3d514917ffd7b5970301edb7",
+    "status": "draft_blocked"
+  },
+  "preselection_baseline": {
+    "schema": "OTCBL0",
+    "version": 0,
+    "baseline_id": "OT-093-OT005-BUILD-BASELINE-V0",
+    "baseline_sha256": "16ffe83af7e3c1f00b5d123eae30e3ac4a0ea2dea0cb08bcc60b990d3e881733",
+    "status": "build_baseline_frozen"
+  },
+  "candidate_readiness": {
+    "schema": "OTCBR0",
+    "version": 0,
+    "readiness_id": "OT-094-OT005-CANDIDATE-READINESS-V0",
+    "readiness_sha256": "705b30693196e2f46d8bda7c17acb1e04d7b9092c4a3817286c14d189001b9d3",
+    "status": "readiness_blocked",
+    "blocker_count": 6
+  },
+  "evidence_layers": [
+    {
+      "layer_id": "acquisition_receipt",
+      "admission_defined": true,
+      "sufficient_alone": false
+    },
+    {
+      "layer_id": "immutable_source_tree",
+      "admission_defined": true,
+      "sufficient_alone": false
+    },
+    {
+      "layer_id": "project_dependency_lock",
+      "admission_defined": true,
+      "sufficient_alone": false
+    },
+    {
+      "layer_id": "api_config_eligibility",
+      "admission_defined": true,
+      "sufficient_alone": false
+    },
+    {
+      "layer_id": "candidate_import",
+      "admission_defined": true,
+      "sufficient_alone": false
+    },
+    {
+      "layer_id": "benchmark_execution",
+      "admission_defined": false,
+      "sufficient_alone": false
+    }
+  ],
+  "manifest_policy": {
+    "path_encoding": "utf8_relative_posix",
+    "path_order": "ordinal_bytewise_ascending",
+    "case_policy": "unicode-15.1-nfc-casefold-unique",
+    "control_characters_forbidden": true,
+    "leading_trailing_whitespace_forbidden": true,
+    "trailing_dot_or_space_forbidden": true,
+    "windows_reserved_basename_forbidden": true,
+    "digest_algorithm": "sha256",
+    "digest_scope": "exact_public_manifest_bytes",
+    "canonical_json_format": "utf8-no-bom-sort-keys-compact-no-nan-v1",
+    "jsonl_format": "utf8-no-bom-one-canonical-json-object-per-line-lf-terminal-v1",
+    "acquisition_receipt_kind": "sha256-canonical-json-acquisition-receipt-v1",
+    "source_tree_manifest_kind": "sha256-utf8-jsonl-posix-tree-v1",
+    "license_manifest_kind": "sha256-utf8-jsonl-license-inventory-v1",
+    "sbom_manifest_kind": "sha256-canonical-spdx-json-v1",
+    "transitive_manifest_kind": "sha256-utf8-jsonl-transitive-dependencies-v1",
+    "patch_manifest_kind": "sha256-utf8-jsonl-ordered-patches-v1",
+    "project_lock_digest_kind": "sha256-raw-project-lock-bytes-v1",
+    "component_glue_manifest_kind": "sha256-utf8-jsonl-posix-tree-v1",
+    "api_operation_evidence_kind": "sha256-canonical-json-operation-evidence-v1",
+    "build_graph_manifest_kind": "sha256-utf8-jsonl-build-graph-v1",
+    "allowed_entry_kinds": [
+      "directory",
+      "regular_file"
+    ],
+    "forbidden_entry_kinds": [
+      "absolute_path",
+      "backslash_path",
+      "dot_segment",
+      "drive_path",
+      "fifo",
+      "reparse_point",
+      "socket",
+      "symlink"
+    ],
+    "full_tree_manifest_required": true,
+    "license_manifest_required": true,
+    "sbom_manifest_required": true,
+    "transitive_manifest_required": true,
+    "patch_manifest_required_even_when_empty": true
+  },
+  "candidates": [
+    {
+      "candidate_id": "espressif_libsodium",
+      "role": "primary",
+      "required_version": "1.0.22",
+      "license_spdx": "ISC",
+      "source_kind": "external_managed_component",
+      "permitted_lock_kinds": [
+        "esp_idf_managed_component_lock"
+      ],
+      "acquisition_receipt_required": true,
+      "parent_idf_binding_required": false,
+      "observed_source_commit": null,
+      "observed_parent_source_commit": null,
+      "source_lock_state": "not_accepted",
+      "accepted_source_evidence_sha256": null,
+      "acquired": false,
+      "imported": false,
+      "api_config_eligible": false,
+      "benchmark_eligible": false,
+      "executed": false,
+      "selected": false
+    },
+    {
+      "candidate_id": "esp_idf_mbedtls_psa",
+      "role": "comparison",
+      "required_version": "4.1.0",
+      "license_spdx": "Apache-2.0",
+      "source_kind": "esp_idf_pinned_gitlink",
+      "permitted_lock_kinds": [
+        "esp_idf_gitlink_dependency_lock"
+      ],
+      "acquisition_receipt_required": false,
+      "parent_idf_binding_required": true,
+      "observed_source_commit": "6cc42afad309e861f4c07e6f106e2ab14a9cb8e5",
+      "observed_parent_source_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+      "source_lock_state": "not_accepted",
+      "accepted_source_evidence_sha256": null,
+      "acquired": false,
+      "imported": false,
+      "api_config_eligible": false,
+      "benchmark_eligible": false,
+      "executed": false,
+      "selected": false
+    },
+    {
+      "candidate_id": "monocypher",
+      "role": "comparison",
+      "required_version": "4.0.3",
+      "license_spdx": "CC0-1.0 OR BSD-2-Clause",
+      "source_kind": "external_vendored_source",
+      "permitted_lock_kinds": [
+        "git_submodule_dependency_lock",
+        "vendored_source_tree_lock"
+      ],
+      "acquisition_receipt_required": true,
+      "parent_idf_binding_required": false,
+      "observed_source_commit": null,
+      "observed_parent_source_commit": null,
+      "source_lock_state": "not_accepted",
+      "accepted_source_evidence_sha256": null,
+      "acquired": false,
+      "imported": false,
+      "api_config_eligible": false,
+      "benchmark_eligible": false,
+      "executed": false,
+      "selected": false
+    }
+  ],
+  "accepted_source_evidence_sha256": {
+    "espressif_libsodium": [],
+    "esp_idf_mbedtls_psa": [],
+    "monocypher": []
+  },
+  "accepted_api_config_evidence_sha256": {
+    "espressif_libsodium": [],
+    "esp_idf_mbedtls_psa": [],
+    "monocypher": []
+  },
+  "accepted_candidate_import_evidence_sha256": {
+    "espressif_libsodium": [],
+    "esp_idf_mbedtls_psa": [],
+    "monocypher": []
+  },
+  "authority": {
+    "dependency_acquisition_authorized": false,
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "suite_selection_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "source_acquired": false,
+    "source_lock_accepted": false,
+    "candidate_imported": false,
+    "api_config_eligibility_proven": false,
+    "candidate_benchmark_executed": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_wire_selected": false,
+    "hardware_or_device_accessed": false,
+    "physical_evidence_added": false,
+    "score_credit_added": false
+  }
+}

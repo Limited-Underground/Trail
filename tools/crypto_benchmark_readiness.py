@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import crypto_benchmark_baseline as baseline_validator
+import crypto_candidate_source_lock as source_lock_validator
 
 
 SCHEMA = "OTCBR0"
@@ -345,8 +346,49 @@ def _validate_plan_reference(
         )
 
 
+def _reconcile_accepted_source_lock(
+    candidate: dict[str, Any],
+    plan_candidate: dict[str, Any],
+    accepted: dict[str, Any],
+) -> None:
+    version = candidate["observed_version"] or candidate["declared_version"]
+    expected = {
+        "candidate_id": candidate["candidate_id"],
+        "role": candidate["role"],
+        "version_string": version,
+        "license_spdx": candidate["license_spdx"],
+        "source_commit": candidate["source_commit"],
+        "parent_source_commit": candidate["parent_source_commit"],
+        "lock_kind": candidate["dependency_lock_kind"],
+        "project_dependency_lock_sha256": candidate["dependency_lock_sha256"],
+        "source_evidence_sha256": candidate["source_evidence_sha256"],
+    }
+    if any(accepted.get(field) != value for field, value in expected.items()):
+        raise ValidationError(
+            "ready candidate does not reconcile with accepted source-lock evidence"
+        )
+    if (
+        plan_candidate.get("candidate_id") != accepted["candidate_id"]
+        or plan_candidate.get("role") != accepted["role"]
+        or plan_candidate.get("version") != accepted["version_string"]
+        or plan_candidate.get("source_commit") != accepted["source_commit"]
+        or plan_candidate.get("lock_sha256")
+        != accepted["project_dependency_lock_sha256"]
+        or plan_candidate.get("license_spdx") != accepted["license_spdx"]
+    ):
+        raise ValidationError(
+            "ready plan does not reconcile with accepted source-lock evidence"
+        )
+
+
 def validate(
-    readiness: dict[str, Any], plan: dict[str, Any], baseline: dict[str, Any]
+    readiness: dict[str, Any],
+    plan: dict[str, Any],
+    baseline: dict[str, Any],
+    source_lock_contract: dict[str, Any] | None = None,
+    source_evidence: list[dict[str, Any]] | None = None,
+    api_config_evidence: list[dict[str, Any]] | None = None,
+    candidate_import_evidence: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     for value in (readiness, plan, baseline):
         _scan_structure(value)
@@ -582,6 +624,18 @@ def validate(
     blockers = _list(readiness["blockers"], "blockers")
 
     if status == BLOCKED_STATUS:
+        if any(
+            value is not None
+            for value in (
+                source_lock_contract,
+                source_evidence,
+                api_config_evidence,
+                candidate_import_evidence,
+            )
+        ):
+            raise ValidationError(
+                "blocked readiness cannot consume source-lock admission evidence"
+            )
         if readiness_id != "OT-094-OT005-CANDIDATE-READINESS-V0" or readiness["accepted_date"] != "2026-08-20":
             raise ValidationError("canonical blocked readiness identity/date mismatch")
         if target["state"] != "blocked":
@@ -634,6 +688,68 @@ def validate(
             _boolean(claims[field], f"claims.{field}", False)
         fully_resolved = False
     else:
+        if (
+            source_lock_contract is None
+            or source_evidence is None
+            or api_config_evidence is None
+            or candidate_import_evidence is None
+        ):
+            raise ValidationError(
+                "accepted source-lock, API/config, and import evidence are required"
+            )
+        if any(
+            type(items) is not list or len(items) != len(CANDIDATES)
+            for items in (
+                source_evidence,
+                api_config_evidence,
+                candidate_import_evidence,
+            )
+        ):
+            raise ValidationError(
+                "accepted source-lock, API/config, and import evidence are required"
+            )
+        source_lock_result = source_lock_validator.validate_contract(
+            source_lock_contract
+        )
+        if (
+            source_lock_result["accepted_source_lock_count"] != len(CANDIDATES)
+            or source_lock_result["readiness_advanced"] is not True
+        ):
+            raise ValidationError(
+                "source-lock contract state does not admit all candidates for readiness"
+            )
+        accepted_source_locks: list[dict[str, Any]] = []
+        for (candidate_id, _), evidence in zip(CANDIDATES, source_evidence):
+            accepted = source_lock_validator.validate_source_evidence(
+                evidence, source_lock_contract
+            )
+            if accepted["candidate_id"] != candidate_id:
+                raise ValidationError("accepted source-lock evidence order mismatch")
+            accepted_source_locks.append(accepted)
+        if len(accepted_source_locks) != len(CANDIDATES):
+            raise ValidationError("all candidate source locks must be independently accepted")
+        accepted_api_configs: list[dict[str, Any]] = []
+        for accepted_source, evidence in zip(
+            accepted_source_locks, api_config_evidence
+        ):
+            accepted = source_lock_validator.validate_api_config_evidence(
+                evidence, source_lock_contract, accepted_source
+            )
+            if accepted["candidate_id"] != accepted_source["candidate_id"]:
+                raise ValidationError("accepted API/config evidence order mismatch")
+            accepted_api_configs.append(accepted)
+        accepted_candidate_imports: list[dict[str, Any]] = []
+        for accepted_source, accepted_api, evidence in zip(
+            accepted_source_locks,
+            accepted_api_configs,
+            candidate_import_evidence,
+        ):
+            accepted = source_lock_validator.validate_candidate_import_evidence(
+                evidence, source_lock_contract, accepted_source, accepted_api
+            )
+            if accepted["candidate_id"] != accepted_source["candidate_id"]:
+                raise ValidationError("accepted candidate-import evidence order mismatch")
+            accepted_candidate_imports.append(accepted)
         if target["state"] != "resolved":
             raise ValidationError("ready target must be resolved")
         for field in ("manufacturer", "board_model", "exact_received_revision", "rf_variant"):
@@ -656,6 +772,11 @@ def validate(
             configuration["final_common_sdkconfig_sha256"],
             "candidate_configuration.final_common_sdkconfig_sha256",
         )
+        for accepted_api in accepted_api_configs:
+            if accepted_api["final_sdkconfig_sha256"] != final_sdkconfig:
+                raise ValidationError(
+                    "accepted API/config evidence does not match final sdkconfig"
+                )
         _sha(configuration["evidence_sha256"], "candidate_configuration.evidence_sha256")
         if plan.get("toolchain", {}).get("sdkconfig_sha256") != final_sdkconfig:
             raise ValidationError("ready plan sdkconfig does not match readiness")
@@ -688,7 +809,19 @@ def validate(
         plan_candidates = plan.get("candidates")
         if type(plan_candidates) is not list or len(plan_candidates) != len(CANDIDATES):
             raise ValidationError("ready plan candidate set is unavailable")
-        for candidate, plan_candidate in zip(candidate_values, plan_candidates):
+        for (
+            candidate,
+            plan_candidate,
+            accepted_source_lock,
+            accepted_api_config,
+            accepted_candidate_import,
+        ) in zip(
+            candidate_values,
+            plan_candidates,
+            accepted_source_locks,
+            accepted_api_configs,
+            accepted_candidate_imports,
+        ):
             if candidate["source_state"] != "locked":
                 raise ValidationError("ready candidate source must be locked")
             version = candidate["observed_version"] or candidate["declared_version"]
@@ -710,6 +843,25 @@ def validate(
                 or plan_candidate.get("license_spdx") != candidate["license_spdx"]
             ):
                 raise ValidationError("ready candidate does not reconcile with plan")
+            _reconcile_accepted_source_lock(
+                candidate, plan_candidate, accepted_source_lock
+            )
+            if (
+                accepted_api_config["candidate_id"] != candidate["candidate_id"]
+                or accepted_candidate_import["candidate_id"]
+                != candidate["candidate_id"]
+                or accepted_candidate_import["source_evidence_sha256"]
+                != candidate["source_evidence_sha256"]
+                or accepted_candidate_import["project_dependency_lock_sha256"]
+                != candidate["dependency_lock_sha256"]
+                or accepted_candidate_import["api_config_evidence_sha256"]
+                != accepted_api_config["api_config_evidence_sha256"]
+                or accepted_candidate_import["imported_for_benchmark"] is not True
+                or accepted_api_config["api_config_eligible"] is not True
+            ):
+                raise ValidationError(
+                    "ready candidate does not reconcile with accepted API/config and import evidence"
+                )
         if radio["state"] != "resolved":
             raise ValidationError("ready radio must be resolved")
         for field in ("rf_variant", "region_code"):
@@ -805,12 +957,48 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--readiness", required=True, type=Path)
     parser.add_argument("--plan", required=True, type=Path)
     parser.add_argument("--baseline", required=True, type=Path)
+    parser.add_argument("--source-lock-contract", type=Path)
+    parser.add_argument("--source-evidence", action="append", type=Path)
+    parser.add_argument("--api-config-evidence", action="append", type=Path)
+    parser.add_argument("--candidate-import-evidence", action="append", type=Path)
     args = parser.parse_args(argv)
     try:
-        result = validate(load(args.readiness), load(args.plan), load(args.baseline))
+        contract = (
+            source_lock_validator.load(args.source_lock_contract)
+            if args.source_lock_contract is not None
+            else None
+        )
+        evidence = (
+            [source_lock_validator.load(path) for path in args.source_evidence]
+            if args.source_evidence is not None
+            else None
+        )
+        api_evidence = (
+            [source_lock_validator.load(path) for path in args.api_config_evidence]
+            if args.api_config_evidence is not None
+            else None
+        )
+        import_evidence = (
+            [source_lock_validator.load(path) for path in args.candidate_import_evidence]
+            if args.candidate_import_evidence is not None
+            else None
+        )
+        result = validate(
+            load(args.readiness),
+            load(args.plan),
+            load(args.baseline),
+            contract,
+            evidence,
+            api_evidence,
+            import_evidence,
+        )
         print(json.dumps(result, sort_keys=True))
         return 0
-    except (ValidationError, baseline_validator.ValidationError):
+    except (
+        ValidationError,
+        baseline_validator.ValidationError,
+        source_lock_validator.ValidationError,
+    ):
         print("ERROR: candidate readiness is invalid or unaccepted", file=sys.stderr)
         return 2
 

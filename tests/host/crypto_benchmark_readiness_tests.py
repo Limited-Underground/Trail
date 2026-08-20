@@ -18,6 +18,8 @@ sys.path.insert(0, str(ROOT / "tools"))
 import crypto_benchmark as otcb0  # noqa: E402
 import crypto_benchmark_baseline as otcb_l0  # noqa: E402
 import crypto_benchmark_readiness as readiness  # noqa: E402
+import crypto_candidate_source_lock as source_lock  # noqa: E402
+import crypto_candidate_source_lock_tests as source_fixtures  # noqa: E402
 
 
 READINESS_PATH = (
@@ -38,6 +40,13 @@ BASELINE_PATH = (
     / "OT-093-OT005-BUILD-BASELINE-V0.json"
 )
 EXPECTED_SHA256 = "705b30693196e2f46d8bda7c17acb1e04d7b9092c4a3817286c14d189001b9d3"
+SOURCE_LOCK_PATH = (
+    ROOT
+    / "tests"
+    / "benchmarks"
+    / "crypto"
+    / "OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0.json"
+)
 
 
 def artifacts() -> tuple[dict, dict, dict]:
@@ -192,7 +201,11 @@ def structurally_resolved_readiness(plan: dict) -> dict:
 def expect_error(action, contains: str) -> None:
     try:
         action()
-    except (readiness.ValidationError, otcb_l0.ValidationError) as exc:
+    except (
+        readiness.ValidationError,
+        otcb_l0.ValidationError,
+        source_lock.ValidationError,
+    ) as exc:
         assert contains in str(exc), (contains, str(exc))
         return
     raise AssertionError(f"expected validation failure containing {contains!r}")
@@ -395,7 +408,7 @@ def test_structurally_resolved_but_unaccepted_digest_is_rejected() -> None:
     _, _, baseline = artifacts()
     expect_error(
         lambda: readiness.validate(value, plan, baseline),
-        "digest is not independently accepted",
+        "API/config, and import evidence are required",
     )
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
@@ -423,6 +436,198 @@ def test_structurally_resolved_but_unaccepted_digest_is_rejected() -> None:
             "ERROR: candidate readiness is invalid or unaccepted"
         )
         assert readiness.READY_PUBLIC_RESULT not in completed.stderr
+
+
+def test_source_lock_contract_cannot_advance_blocked_readiness() -> None:
+    value, plan, baseline = artifacts()
+    contract = source_lock.load(SOURCE_LOCK_PATH)
+    contract_result = source_lock.validate_contract(contract)
+    assert contract_result["accepted_source_lock_count"] == 0
+    assert contract_result["readiness_advanced"] is False
+    expect_error(
+        lambda: readiness.validate(value, plan, baseline, contract, None),
+        "blocked readiness cannot consume source-lock admission evidence",
+    )
+
+    ready_plan = synthetic_ready_plan()
+    resolved = structurally_resolved_readiness(ready_plan)
+    expect_error(
+        lambda: readiness.validate(
+            resolved,
+            ready_plan,
+            baseline,
+            contract,
+            [{}, {}, {}],
+            [{}, {}, {}],
+            [{}, {}, {}],
+        ),
+        "source-lock contract state does not admit all candidates",
+    )
+
+
+def test_ready_candidate_must_reconcile_every_accepted_source_lock_fact() -> None:
+    plan = synthetic_ready_plan()
+    value = structurally_resolved_readiness(plan)
+    candidate = value["candidates"][0]
+    accepted = {
+        "candidate_id": candidate["candidate_id"],
+        "role": candidate["role"],
+        "version_string": candidate["declared_version"],
+        "license_spdx": candidate["license_spdx"],
+        "source_commit": candidate["source_commit"],
+        "parent_source_commit": candidate["parent_source_commit"],
+        "lock_kind": candidate["dependency_lock_kind"],
+        "project_dependency_lock_sha256": candidate["dependency_lock_sha256"],
+        "source_evidence_sha256": candidate["source_evidence_sha256"],
+    }
+    readiness._reconcile_accepted_source_lock(
+        candidate, plan["candidates"][0], accepted
+    )
+    for field in (
+        "candidate_id",
+        "role",
+        "version_string",
+        "license_spdx",
+        "source_commit",
+        "parent_source_commit",
+        "lock_kind",
+        "project_dependency_lock_sha256",
+        "source_evidence_sha256",
+    ):
+        changed = copy.deepcopy(accepted)
+        changed[field] = "different"
+        expect_error(
+            lambda changed=changed: readiness._reconcile_accepted_source_lock(
+                candidate, plan["candidates"][0], changed
+            ),
+            "does not reconcile with accepted source-lock evidence",
+        )
+    changed_plan = copy.deepcopy(plan["candidates"][0])
+    changed_plan["lock_sha256"] = "9a" * 32
+    expect_error(
+        lambda: readiness._reconcile_accepted_source_lock(
+            candidate, changed_plan, accepted
+        ),
+        "ready plan does not reconcile",
+    )
+
+
+def test_future_evidence_anchors_cannot_override_blocked_contract_state() -> None:
+    contract = source_lock.load(SOURCE_LOCK_PATH)
+    source_documents = [
+        source_fixtures.synthetic_source_evidence(candidate_id)
+        for candidate_id in source_lock.CANDIDATE_BY_ID
+    ]
+    source_facts = [
+        source_fixtures.accepted_source_facts(document)
+        for document in source_documents
+    ]
+    plan = synthetic_ready_plan()
+    for plan_candidate, accepted in zip(plan["candidates"], source_facts):
+        plan_candidate["source_commit"] = accepted["source_commit"]
+        plan_candidate["lock_sha256"] = accepted[
+            "project_dependency_lock_sha256"
+        ]
+    value = structurally_resolved_readiness(plan)
+    for candidate, accepted in zip(value["candidates"], source_facts):
+        candidate["source_commit"] = accepted["source_commit"]
+        candidate["parent_source_commit"] = accepted["parent_source_commit"]
+        candidate["dependency_lock_kind"] = accepted["lock_kind"]
+        candidate["dependency_lock_sha256"] = accepted[
+            "project_dependency_lock_sha256"
+        ]
+        candidate["source_evidence_sha256"] = accepted[
+            "source_evidence_sha256"
+        ]
+
+    api_documents = []
+    api_facts = []
+    import_documents = []
+    for candidate_id, accepted_source in zip(
+        source_lock.CANDIDATE_BY_ID, source_facts
+    ):
+        api_document = source_fixtures.synthetic_api_config_evidence(
+            candidate_id, accepted_source
+        )
+        api_document["final_sdkconfig_sha256"] = plan["toolchain"][
+            "sdkconfig_sha256"
+        ]
+        accepted_api = source_fixtures.accepted_api_facts(
+            api_document, accepted_source
+        )
+        import_document = source_fixtures.synthetic_import_evidence(
+            candidate_id, accepted_source, accepted_api
+        )
+        api_documents.append(api_document)
+        api_facts.append(accepted_api)
+        import_documents.append(import_document)
+
+    future_contract = copy.deepcopy(contract)
+    for candidate_id, source_document, api_document, import_document in zip(
+        source_lock.CANDIDATE_BY_ID,
+        source_documents,
+        api_documents,
+        import_documents,
+    ):
+        future_contract["accepted_source_evidence_sha256"][candidate_id] = [
+            source_lock.canonical_sha256(source_document)
+        ]
+        future_contract["accepted_api_config_evidence_sha256"][candidate_id] = [
+            source_lock.canonical_sha256(api_document)
+        ]
+        future_contract["accepted_candidate_import_evidence_sha256"][
+            candidate_id
+        ] = [source_lock.canonical_sha256(import_document)]
+
+    original_contract_digest = source_lock.EXPECTED_CONTRACT_SHA256
+    original_source_anchors = source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256
+    original_api_anchors = source_lock.ACCEPTED_API_CONFIG_EVIDENCE_SHA256
+    original_import_anchors = source_lock.ACCEPTED_CANDIDATE_IMPORT_EVIDENCE_SHA256
+    original_ready_anchors = readiness.ACCEPTED_READY_READINESS_SHA256
+    try:
+        source_lock.EXPECTED_CONTRACT_SHA256 = source_lock.canonical_sha256(
+            future_contract
+        )
+        source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256 = {
+            candidate_id: frozenset(values)
+            for candidate_id, values in future_contract[
+                "accepted_source_evidence_sha256"
+            ].items()
+        }
+        source_lock.ACCEPTED_API_CONFIG_EVIDENCE_SHA256 = {
+            candidate_id: frozenset(values)
+            for candidate_id, values in future_contract[
+                "accepted_api_config_evidence_sha256"
+            ].items()
+        }
+        source_lock.ACCEPTED_CANDIDATE_IMPORT_EVIDENCE_SHA256 = {
+            candidate_id: frozenset(values)
+            for candidate_id, values in future_contract[
+                "accepted_candidate_import_evidence_sha256"
+            ].items()
+        }
+        readiness.ACCEPTED_READY_READINESS_SHA256 = frozenset(
+            {readiness.canonical_sha256(value)}
+        )
+        _, _, baseline = artifacts()
+        expect_error(
+            lambda: readiness.validate(
+                value,
+                plan,
+                baseline,
+                future_contract,
+                source_documents,
+                api_documents,
+                import_documents,
+            ),
+            "source-lock contract state does not admit all candidates",
+        )
+    finally:
+        source_lock.EXPECTED_CONTRACT_SHA256 = original_contract_digest
+        source_lock.ACCEPTED_SOURCE_EVIDENCE_SHA256 = original_source_anchors
+        source_lock.ACCEPTED_API_CONFIG_EVIDENCE_SHA256 = original_api_anchors
+        source_lock.ACCEPTED_CANDIDATE_IMPORT_EVIDENCE_SHA256 = original_import_anchors
+        readiness.ACCEPTED_READY_READINESS_SHA256 = original_ready_anchors
 
 
 def test_exact_types_cycles_depth_and_oversized_values_are_rejected() -> None:
@@ -542,6 +747,9 @@ def main() -> int:
         test_requirements_blockers_authority_and_claims_are_coherent,
         test_legacy_declared_ready_plan_cannot_reuse_blocked_readiness,
         test_structurally_resolved_but_unaccepted_digest_is_rejected,
+        test_source_lock_contract_cannot_advance_blocked_readiness,
+        test_ready_candidate_must_reconcile_every_accepted_source_lock_fact,
+        test_future_evidence_anchors_cannot_override_blocked_contract_state,
         test_exact_types_cycles_depth_and_oversized_values_are_rejected,
         test_loader_rejects_duplicates_invalid_depth_and_oversized_input,
         test_private_fields_and_machine_text_are_rejected,

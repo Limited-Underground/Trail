@@ -1,7 +1,8 @@
 # Cryptographic Benchmark Evidence v0
 
-Status: host-tested evidence boundary; pre-crypto build and candidate-readiness
-contracts frozen while target candidate execution remains blocked, 2026-08-20
+Status: host-tested evidence boundary; pre-crypto build, candidate-readiness,
+and source-lock admission contracts frozen while target candidate execution
+remains blocked, 2026-08-20
 
 ## Purpose
 
@@ -20,6 +21,9 @@ The separate accepted pre-selection build lock is
 The blocked candidate-readiness validator is
 `tools/crypto_benchmark_readiness.py`, and its accepted ledger is
 `tests/benchmarks/crypto/OT-094-OT005-CANDIDATE-READINESS-V0.json`.
+The candidate source-lock admission validator is
+`tools/crypto_candidate_source_lock.py`, and its accepted contract is
+`tests/benchmarks/crypto/OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0.json`.
 
 ## Plan contract
 
@@ -113,6 +117,38 @@ suite/library, handshake/KDF, or packet-v1 wire is selected.
 
 See [Decision 0038](../decisions/0038-host-only-ot005-candidate-readiness-contract.md)
 and the [OT-094 evidence](../../tests/hardware/OT-094-2026-08-20.md).
+
+## OT-095 candidate source-lock admission contract
+
+`OTCSL0/v0` freezes the host-only evidence admission rules that a future
+candidate source lock must satisfy. The accepted contract has admission ID
+`OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0`, canonical and policy
+SHA-256 `c0bd923782d0977f8b375cbd2fe8cde5ff132a26b8b6a7ea34a62111bd101f1f`,
+status `admission_contract_frozen_host_only`, and public result
+`SOURCE-LOCK-ADMISSION-CONTRACT-FROZEN-HOST-ONLY; ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED`.
+
+The contract preserves the three-candidate comparison order and distinguishes
+six evidence layers: acquisition receipt, immutable source tree, project
+dependency lock, API/configuration eligibility, candidate import, and benchmark
+execution. Admission semantics are defined for the first five; benchmark-
+execution admission remains undefined and blocked. None is sufficient alone.
+Candidate-specific accepted source-lock,
+API/configuration, and import registries are separate and empty. The registries
+are excluded from the immutable policy digest, but changing an anchor alone
+cannot advance the current zero-source blocked state; a future truthful accepted-
+state contract revision must reconcile the candidate, version, license, source
+tree, project lock, parent-IDF binding where applicable, final configuration,
+import evidence, and independent accepted digests.
+
+OT-095 accepted, acquired, and imported zero sources. The installed ESP-IDF
+mbedTLS/PSA observation is not a project lock and does not prove required API,
+Ed25519, or final-configuration eligibility. All six `OTCBR0/v0` requirements
+remain blocked, `OTCB0/v0` remains `draft_blocked`, and no acquisition, import,
+build, benchmark, target support, cryptographic selection, implementation,
+physical evidence, authority, or score credit was added.
+
+See [Decision 0039](../decisions/0039-host-only-candidate-source-lock-admission-contract.md)
+and the [OT-095 evidence](../../tests/hardware/OT-095-2026-08-20.md).
 
 ## Result contract
 

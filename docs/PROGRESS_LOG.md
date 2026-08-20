@@ -6,6 +6,37 @@ public chronology.
 
 ## 2026-08-20
 
+### OT-095 host-only candidate source-lock admission contract
+
+- Accepted strict `OTCSL0/v0`, admission ID
+  `OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0`, canonical and policy
+  SHA-256 `c0bd923782d0977f8b375cbd2fe8cde5ff132a26b8b6a7ea34a62111bd101f1f`,
+  status `admission_contract_frozen_host_only`, and result
+  `SOURCE-LOCK-ADMISSION-CONTRACT-FROZEN-HOST-ONLY; ZERO-SOURCES-ACQUIRED-OR-IMPORTED; OTCBR0-READINESS-BLOCKED`.
+- Distinguished acquisition receipts, immutable source trees, project
+  dependency locks, API/configuration eligibility, candidate import, and
+  benchmark execution. Admission semantics are defined for the first five;
+  benchmark-execution admission remains undefined and blocked. No evidence
+  layer is sufficient alone.
+- Kept the source-lock, API/configuration, and candidate-import accepted-digest
+  registries separate, candidate-specific, and empty. Anchor mutation alone
+  cannot advance the current zero-source blocked contract.
+- Accepted, acquired, and imported zero sources. The installed mbedTLS/PSA
+  observation remains neither a project dependency lock nor proof of required
+  API, Ed25519, or final-configuration eligibility.
+- Kept all six OTCBR0 requirements open and OTCB0 `draft_blocked`. No acquisition,
+  import, benchmark, build, target support, cryptographic selection,
+  implementation, device/radio/key action, physical evidence, authority, or
+  score credit was added.
+- Focused validation passes 14 OTCSL0, 16 OTCBR0, 10 OTCB0, and 13 OTCBL0
+  scenario groups; independent adversarial machine-contract audit is clear.
+  The complete host gate exits zero, including both publication-safety layers,
+  59 loader scenarios, and simulator groups 33/23/15/10 plus 13/13 UI scenarios.
+- Android remains 60%; V1 exact 43.75%/displayed 44%; the historical baseline
+  exact 31.75%/displayed 32%; V1.5 and V2 remain unmeasured. See
+  [Decision 0039](decisions/0039-host-only-candidate-source-lock-admission-contract.md)
+  and [OT-095 evidence](../tests/hardware/OT-095-2026-08-20.md).
+
 ### OT-094 host-only OT-005 candidate-readiness contract
 
 - Accepted the strict `OTCBR0/v0` ledger, readiness ID
