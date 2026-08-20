@@ -974,6 +974,23 @@ group traffic remains a separate sender-key/nonce-counter design. No lifecycle
 Boolean, received packet, display name, or parsed QR can manufacture production
 authentication evidence.
 
+[Decision 0035](decisions/0035-host-tested-secure-lora-key-transport-contract.md)
+and [`OTSL0/v0`](security/SECURE_LORA_KEY_TRANSPORT_V0.md) now freeze the
+algorithm-neutral lifecycle/admission semantics for V1's exact two-node
+pairwise-unicast path. One secret-free authenticated invitation admits one
+candidate/attempt; mutual device authentication, complete transcript binding,
+matching local confirmation, exact candidate commit/readback, and exact peer
+activation precede traffic. Epoch replacement advances by one with fresh
+material for retained identities, blocks traffic while unresolved, and permits
+no old-epoch fallback after possible/new activation. BLE ownership and phone
+requests remain separate from LoRa cryptographic authority, and LoRa private
+material remains on the Heltecs.
+
+This is deterministic host-contract evidence only. Decision 0003 still blocks
+suite/library, handshake/KDF instantiation, final packet-v1 bytes, target
+storage, and physical operation until the exact OT-005 target benchmark passes.
+Packet v0 and plaintext fallback remain prohibited from protected traffic.
+
 Before a sender-specific traffic key can protect packet v1, its outbound nonce
 domain needs rollback-safe allocation. The `OTCN` two-slot store commits a
 64-bit high-water range before counters are returned and uses a persistence
@@ -981,15 +998,28 @@ domain separate from configuration, secret material, and ACK session state.
 Restart may waste a reserved range but cannot reuse it under the same 128-bit
 domain/group epoch. A host-tested boundary packs the adapter-supplied 32-bit
 prefix and nonzero 64-bit counter only after full lease/key domain equality.
-Exact cryptographic domain/key/prefix derivation remains part of the future
-authenticated packet contract.
+`OTSL0/v0` makes those checks mandatory for its leading 96-bit nonce boundary,
+forbids random-nonce or reset-under-same-key fallback, and requires a new
+reviewed contract version if the later selected suite cannot honor them. Exact
+cryptographic domain/key/prefix derivation remains behind OT-005.
 
 The public derivation context is now canonical: `OTKD/v1` binds the nonzero
 group ID, epoch, full authoritative sender fingerprint, and one of three
 purpose bytes for the group AEAD key, nonce prefix, or counter-domain ID. This
 prevents alias/name substitution and cross-purpose reuse at the encoding
-boundary; the audited KDF, epoch secret, output handling, and target vectors
+boundary. For V1 pairwise unicast, the parent derivation must additionally bind
+the full destination fingerprint and ordered direction because `OTKD/v1` alone
+does not. The audited KDF, epoch secret, output handling, and target vectors
 remain unselected.
+
+Inbound protected admission authenticates before changing replay state, commits
+durable current-key/direction/epoch replay and receive state before releasing
+plaintext, and creates a protected acknowledgement only afterward. The
+time-based `DuplicateWindow`/`ODS0` evidence remains application duplicate
+handling rather than cryptographic replay authority. The current delivery
+controller's caller-facing acknowledgement method may be reached only through
+future exact protected-ACK admission. A positive LoRa acknowledgement means
+peer-device durable admission, not phone display or user read.
 
 Packet-v1 sizing is modeled separately from wire-format implementation. The
 current candidate accounting reserves 44 authenticated header bytes for
@@ -1009,12 +1039,14 @@ reorders by index, treats exact duplicates idempotently, clears conflicts, and
 releases only a complete message. Raw packets cannot enter this boundary, and
 the host type does not itself supply cryptographic proof.
 
-For the initial zero/one-repeater topology, Decision 0004 removes that mutable
-field instead of inventing a tag exception: a validated repeater forwards the
-exact immutable protected bytes once. Named sender claims additionally require
+For the historical zero/one-repeater topology, Decision 0004 removes that
+mutable field instead of inventing a tag exception: a validated repeater
+forwards the exact immutable protected bytes once. Decision 0033 supersedes the
+repeater as a V1 requirement, and `OTSL0/v0` grants no relay or broadcast
+authority. Named sender claims beyond V1's exact pairwise unicast still require
 source authentication beyond common group AEAD access. A signed-group candidate
-adds 64 bytes; pairwise symmetric protection is a unicast comparison. Multi-
-repeater routing needs a new reviewed outer construction or packet version.
+adds 64 bytes; multi-recipient or repeater operation needs a new reviewed
+construction/version and V1.5 evidence.
 
 ## Location and time
 

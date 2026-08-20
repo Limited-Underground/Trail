@@ -58,7 +58,7 @@ def test_checked_in_scope_is_adopted_but_not_evaluated() -> None:
     assert report["score_credit_added"] is False
     assert report["open_followup_gates"] == [
         "ble_pairing_implementation_and_physical_acceptance_open",
-        "lora_key_provisioning_workflow_not_frozen",
+        "secure_lora_implementation_and_physical_acceptance_open",
         "implementation_and_physical_acceptance_open",
     ]
 
@@ -136,7 +136,7 @@ def test_v1_practical_ble_authorization_and_limitation_are_exact() -> None:
     expect_error(value, "canonical accepted scope")
 
 
-def test_lora_security_is_separate_complete_and_still_unfrozen() -> None:
+def test_lora_security_is_separate_complete_and_contract_frozen() -> None:
     security = plan()["v1"]["lora_security"]
     required_true = (
         "separate_from_ble_authorization",
@@ -158,7 +158,7 @@ def test_lora_security_is_separate_complete_and_still_unfrozen() -> None:
     assert security["physical_flash_rollback_resistance_required"] is False
     assert (
         security["key_provisioning_and_replacement_workflow"]
-        == "unfrozen_blocker"
+        == "contract_frozen_not_implemented"
     )
     for field in (
         "separate_from_ble_authorization",
@@ -451,7 +451,7 @@ def main() -> None:
         test_exact_top_level_shape_and_public_summary_fail_closed,
         test_v1_exact_two_pair_topology_cannot_return_to_four_pairs,
         test_v1_practical_ble_authorization_and_limitation_are_exact,
-        test_lora_security_is_separate_complete_and_still_unfrozen,
+        test_lora_security_is_separate_complete_and_contract_frozen,
         test_v1_physical_acceptance_matrix_is_complete_and_not_a_pass,
         test_v1_5_is_four_supported_nodes_without_a_mandatory_purchase_list,
         test_v1_5_rejects_model_phone_and_relay_scope_regressions,

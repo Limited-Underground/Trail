@@ -61,12 +61,23 @@ failure.
 
 ## V1 LoRa gate
 
-Before implementation, freeze one versioned key-provisioning/replacement and
-packet/transport contract that provides network or conversation authentication,
-message encryption, sender/destination identity, unique message identifiers,
-integrity, replay rejection, duplicate suppression, acknowledgements, bounded
-retry/failure, malformed/wrong-network rejection, and privacy-safe diagnostics.
-BLE authorization and LoRa security remain separate evidence gates.
+OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral lifecycle and
+admission contract for the exact two-node pairwise-unicast V1 path. It requires
+secret-free single-use invitation admission, mutual device authentication,
+matching local confirmation, exact key-state commit/activation, epoch-plus-one
+replacement with no old-epoch fallback, both full identities and direction in
+the derivation chain, durable counter/nonce discipline, authentication before
+replay mutation, replay and receive persistence before plaintext release,
+protected acknowledgements, exact-byte retries, bounded failure, restart
+reconciliation, and privacy-safe diagnostics. Packet v0, plaintext fallback,
+alias/name/caller-Boolean trust, unauthenticated acknowledgements, and counter
+reuse are denied.
+
+Decision 0003 remains controlling. `OTSL0/v0` selects no suite, library,
+handshake/KDF instantiation, packet-v1 wire bytes, target storage, MTU/PHY, or
+production timing. The exact OT-005 target benchmark and a later explicit
+suite/wire decision must pass before implementation. BLE authorization and
+LoRa security remain separate implementation and physical evidence gates.
 
 ## Coherent V1 physical acceptance
 
@@ -123,11 +134,13 @@ does not confer support.
 
 ## Sequence and scoring
 
-Authorization is frozen and host-tested under OT-090. Next freeze and host-test
-the separate secure-LoRa key-provisioning and transport contract. Then
-implement and physically accept the frozen pairing/replacement and secure-LoRa
-paths under separate authority; complete the Android message flow; run complete
-two-pair V1 acceptance; finish the signed Android gate; then publish V1.
+Authorization is frozen and host-tested under OT-090, and the algorithm-neutral
+secure-LoRa lifecycle/admission semantics are frozen and host-tested under
+OT-091. Next complete the exact OT-005 target benchmark and accept the crypto
+suite/library, handshake/KDF, and packet-v1 wire selection. Then implement and
+physically accept the frozen pairing/replacement and selected secure-LoRa paths
+under separate authority; complete the Android message flow; run complete two-
+pair V1 acceptance; finish the signed Android gate; then publish V1.
 Four-node interoperability and any mesh claim remain V1.5.
 
 This scope decision changes no completion. V1 remains exact 43.75%/displayed

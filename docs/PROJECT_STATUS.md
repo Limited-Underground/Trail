@@ -9,6 +9,34 @@ Status date: 2026-08-19
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
+secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
+unicast path. One secret-free authenticated invitation admits one candidate and
+one attempt. Mutual device authentication, complete transcript binding,
+matching local confirmation, exact candidate commit/readback, and exact peer
+activation precede traffic. Epoch replacement advances by exactly one with
+fresh material for retained identities, blocks routine traffic while unresolved,
+and never falls back to an old epoch after possible/new activation.
+
+The contract binds both full identities, ordered direction, group/epoch, and
+purpose before using the existing traffic-context, durable-counter, and nonce-
+composition obligations. Packet v0/plaintext fallback is denied. Authentication
+precedes replay mutation; durable cryptographic replay and receive admission
+precede plaintext release and protected acknowledgement. Exact retries reuse
+the same sealed bytes. A positive LoRa acknowledgement means only peer-device
+durable admission, not phone display or user read.
+
+This is deterministic host-contract evidence only. Decision 0003 remains in
+force: the OT-005 public benchmark plan is blocked, and no suite/library,
+handshake/KDF, packet-v1 wire, target storage, key operation, radio traffic,
+provisioning, epoch replacement, replay protection, acknowledgement, delivery,
+or physical result is implemented or accepted. Android remains 60%; V1 remains
+exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/
+displayed 32%; V1.5 remains unmeasured. See
+[Decision 0035](decisions/0035-host-tested-secure-lora-key-transport-contract.md),
+the [OTSL0/v0 contract](security/SECURE_LORA_KEY_TRANSPORT_V0.md), and
+[OT-091 evidence](../tests/hardware/OT-091-2026-08-19.md).
+
 OT-090 freezes and host-tests `OTBP0/v0`, the exact Decision 0033 practical
 physical-presence BLE pairing, saved-bond reconnect, and confirmed phone-
 replacement contract. Pairing is normally closed. Holding the designated
@@ -50,9 +78,10 @@ contract. OT-090 later freezes and host-tests that contract without
 implementation or score credit. Factory reset,
 reflashing, invasive access, or old-flash restore may reset or roll back
 ownership; V1 requires no secure element or independent monotonic floor and
-makes no rollback-proof physical-attacker claim. LoRa authentication,
-encryption, identity, integrity, replay/duplicate rejection, acknowledgement,
-bounded retry, and key provisioning/replacement remain separate open gates.
+makes no rollback-proof physical-attacker claim. OT-091 later freezes the
+algorithm-neutral LoRa lifecycle/admission semantics without implementation or
+score credit. Exact OT-005 target benchmarking, suite/wire selection, target
+implementation, and physical secure-LoRa acceptance remain open.
 
 V1.5 is a separate unmeasured four-supported-node interoperability milestone.
 Mixed hardware is allowed and preferred but not required; four identical
@@ -2419,11 +2448,13 @@ on-device composition evidence exists. Exact adapters, thresholds, and rendered
 behavior wait for frozen client hardware. OT-023 remains a blocked historical
 four-client standalone plan, not the V1 Companion completion gate. Under
 Decision 0033, OT-090 has frozen and host-tested the practical pairing/
-replacement state machine without implementation credit. The next V1 contract
-checkpoint is to freeze and host-test the separate authenticated/encrypted
-secure-LoRa key-provisioning and transport contract. Pairing/replacement target
-and Android implementation, physical acceptance, and the coherent two-pair run
-remain separately authorized later gates. Continue the partially
+replacement state machine without implementation credit, and OT-091 has frozen
+the separate algorithm-neutral secure-LoRa lifecycle/admission semantics with
+the same host-only boundary. The next security checkpoint is the exact OT-005
+target benchmark followed by explicit suite/library, handshake/KDF, and packet-
+v1 wire selection. Pairing/replacement and secure-LoRa target/Android
+implementation, physical acceptance, and the coherent two-pair run remain
+separately authorized later gates. Continue the partially
 executed OT-020 procedure without reconstructing the Wio's unpreserved shipping
 state.
 Authenticated on-device transport, protected target state, physical restart and

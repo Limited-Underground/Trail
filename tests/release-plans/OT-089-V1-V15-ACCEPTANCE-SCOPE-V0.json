@@ -60,7 +60,7 @@
       "reject_replayed": true,
       "ordinary_protected_application_storage_allowed": true,
       "physical_flash_rollback_resistance_required": false,
-      "key_provisioning_and_replacement_workflow": "unfrozen_blocker",
+      "key_provisioning_and_replacement_workflow": "contract_frozen_not_implemented",
       "secret_or_private_identifier_logging": "prohibited"
     },
     "pairing_acceptance_checks": [
@@ -197,7 +197,7 @@
   },
   "open_followup_gates": [
     "ble_pairing_implementation_and_physical_acceptance_open",
-    "lora_key_provisioning_workflow_not_frozen",
+    "secure_lora_implementation_and_physical_acceptance_open",
     "implementation_and_physical_acceptance_open"
   ]
 }

@@ -26,7 +26,7 @@ PUBLIC_SUMMARY = (
     "implementation and physical acceptance remain open."
 )
 CANONICAL_PLAN_SHA256 = (
-    "de20457c068368ec870437234c42c9519f1584008030b11aac014e6bb157d69e"
+    "14b85459dcab366e40191613c9656927d7e2a87d82898ea10777210b569557f8"
 )
 MAX_PLAN_BYTES = 64 * 1024
 MAX_JSON_DEPTH = 64
@@ -157,6 +157,24 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
         raise AdmissionError("plan status is not canonical")
     if plan["public_summary"] != PUBLIC_SUMMARY:
         raise AdmissionError("plan public summary is not canonical")
+    try:
+        lora = _object(plan["v1"], "plan.v1")["lora_security"]
+        lora = _object(lora, "plan.v1.lora_security")
+        if (
+            lora["key_provisioning_and_replacement_workflow"]
+            != "contract_frozen_not_implemented"
+        ):
+            raise AdmissionError("secure-LoRa workflow freeze status is not canonical")
+        if plan["open_followup_gates"] != [
+            "ble_pairing_implementation_and_physical_acceptance_open",
+            "secure_lora_implementation_and_physical_acceptance_open",
+            "implementation_and_physical_acceptance_open",
+        ]:
+            raise AdmissionError("plan open follow-up gates are not canonical")
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise AdmissionError(
+            "plan structure or field types differ from the canonical scope"
+        ) from exc
     if canonical_sha256(plan) != CANONICAL_PLAN_SHA256:
         raise AdmissionError("plan differs from the canonical accepted scope")
 

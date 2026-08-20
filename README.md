@@ -13,8 +13,8 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-090 freezes and host-tests the exact `OTBP0/v0` physical-presence BLE pairing, saved-bond reconnect, and confirmed phone-replacement contract: a target-neutral local input held for at least 3000 ms and released opens one 30-second window, with a second qualifying hold/release required to confirm replacement. No GPIO/button mapping is selected. The target, Android, storage, pairing, replacement, protected-control, and physical evidence gates remain open |
-| Proven so far | OT-090 is deterministic host-contract evidence only; it proves no secure physical pairing, bond persistence, phone replacement, protected control, LoRa transmission, Android signed release, supported hardware, or V1/V1.5 completion. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on one experimental target. Earlier rollback-floor investigations remain valid historical evidence, but an independent floor or secure element is no longer a V1 prerequisite under the disclosed physical-firmware-access limit |
+| Latest increment | OT-091 freezes and host-tests the algorithm-neutral `OTSL0/v0` secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-unicast path: secret-free single-use invitation admission, mutual-authentication and matching-confirmation obligations, exact commit/activation, epoch-plus-one replacement with no old-epoch fallback, directional key/counter binding, authenticated packet admission, durable replay-before-delivery ordering, protected acknowledgements, and bounded retry/restart failure. Decision 0003 still blocks suite/library, packet-v1 wire, target, and physical claims until the exact OT-005 benchmark passes |
+| Proven so far | OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on one experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, and V1.5 unmeasured |
 | Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 
@@ -45,6 +45,13 @@ It has no relay, server, or internet dependency.
 accepts that factory reset, reflashing, invasive access, or old-flash restore
 may reset or roll back ownership. V1 does not require a secure element or claim
 rollback-proof authorization against physical firmware-writing access.
+
+[Decision 0035](docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md)
+and [`OTSL0/v0`](docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md) freeze the
+algorithm-neutral secure-LoRa lifecycle/admission semantics without selecting
+cryptography or packet v1. The exact OT-005 target benchmark and suite/wire
+selection are the next security gates; implementation and physical acceptance
+remain separately authorized.
 
 V1.5 is the separate four-supported-node interoperability milestone. Any
 compatible mix of supported hardware is allowed and heterogeneous evidence is

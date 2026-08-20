@@ -6,6 +6,40 @@ public chronology.
 
 ## 2026-08-19
 
+### OT-091 host-tested secure-LoRa lifecycle/admission contract
+
+- Accepted `OTSL0/v0`, the algorithm-neutral Decision 0033 contract for V1's
+  exact two-node pairwise-unicast key lifecycle and protected-radio admission.
+- Froze one secret-free authenticated invitation per candidate/attempt, mutual
+  device-authentication and complete-transcript obligations, matching local
+  confirmation, exact candidate commit/readback, and exact peer activation
+  before routine traffic.
+- Required epoch replacement to advance by exactly one with fresh material for
+  retained exact identities, block traffic while unresolved, and forbid old-
+  epoch fallback after possible/new activation. Known no-change failure may
+  retain the prior coherent epoch; ambiguity requires reconciliation with no
+  traffic.
+- Bound group/epoch, both full identities, ordered direction, and purpose before
+  the existing traffic-context, durable counter-lease, and nonce-composition
+  obligations. Packet v0, plaintext downgrade, random-nonce fallback, counter
+  reuse, alias/name/caller-Boolean trust, and phone-held LoRa keys are denied.
+- Required authentication before replay mutation, durable cryptographic replay
+  and receive admission before plaintext release, and protected acknowledgement
+  afterward. Exact retries reuse the same sealed bytes; byte-identical retries
+  are not redelivered. A positive LoRa acknowledgement means peer-device durable
+  admission, not phone display or user read.
+- Preserved Decision 0003: the OT-005 public benchmark plan remains blocked, so
+  no suite/library, handshake/KDF, packet-v1 wire, target storage, MTU/PHY, or
+  production retry values are selected.
+- No hardware/phone access, device/storage write, entropy/key/signer operation,
+  BLE action, radio transmission, physical input/display, installation, account,
+  upload, or distribution operation ran. No secure-LoRa implementation or
+  physical acceptance is claimed.
+- Android remains 60%; V1 remains exact 43.75%/displayed 44%; the historical
+  baseline remains exact 31.75%/displayed 32%; V1.5 remains unmeasured. The next
+  gate is the exact OT-005 target benchmark and explicit suite/wire selection.
+  See [OT-091 evidence](../tests/hardware/OT-091-2026-08-19.md).
+
 ### OT-090 host-tested BLE pairing/replacement contract
 
 - Accepted `OTBP0/v0`, the exact normally closed physical-presence pairing,
@@ -40,7 +74,8 @@ public chronology.
   radio, installation, write, account, upload, or distribution operation ran.
   Implementation and physical acceptance remain open.
 - Android remains 60%; V1 remains exact 43.75%/displayed 44%; V1.5 remains
-  unmeasured. The separate secure-LoRa contract is the next host-contract gate.
+  unmeasured. At OT-090 acceptance the separate secure-LoRa contract was the
+  next host gate; OT-091 later froze it without implementation or score credit.
   See [OT-090 evidence](../tests/hardware/OT-090-2026-08-19.md).
 
 ### OT-089 permanent V1/V1.5 scope and security boundary
