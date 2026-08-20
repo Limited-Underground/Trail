@@ -2,14 +2,14 @@
   "schema_version": 2,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-08-19",
+  "as_of": "2026-08-20",
   "baseline_name": "Historical standalone evidence baseline",
   "baseline_definition": "The historical standalone evidence baseline measures progress toward four self-contained field units that do not depend on a phone, server, or repeater; it is retained for continuity and is not the current V1 Companion release total.",
   "baseline_milestones": [
     {
       "id": "architecture-safety",
       "name": "Architecture and safety contracts",
-      "description": "Protocol, recovery, privacy, group-size, and degraded-operation rules are documented and extensively host tested. OT-091 freezes the algorithm-neutral secure-LoRa lifecycle/admission semantics without selecting cryptography, implementing packet v1, or adding physical evidence.",
+      "description": "Protocol, recovery, privacy, group-size, and degraded-operation rules are documented and extensively host tested. OT-091 freezes the algorithm-neutral secure-LoRa lifecycle/admission semantics without selecting cryptography, implementing packet v1, or adding physical evidence. OT-093 separately freezes the deterministic candidate-free pre-crypto build baseline without running an OT-005 benchmark, selecting cryptography, or adding implementation or physical evidence.",
       "weight": 15,
       "completion": 85,
       "evidence_status": "Host tested",
@@ -19,9 +19,13 @@
         "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md",
         "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md",
         "tests/hardware/OT-091-2026-08-19.md",
+        "docs/decisions/0037-pre-crypto-build-baseline.md",
+        "docs/security/CRYPTO_BENCHMARK_EVIDENCE_V0.md",
+        "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json",
+        "tests/hardware/OT-093-2026-08-20.md",
         "tasks/BACKLOG.md"
       ],
-      "next_gate": "Close remaining product-firmware architecture gates with target evidence."
+      "next_gate": "Make OTCB0 final-candidate ready, run the exact candidate benchmark, explicitly accept the suite/wire selection, and close the remaining product-firmware architecture gates with target evidence."
     },
     {
       "id": "core-firmware",
@@ -54,7 +58,7 @@
     {
       "id": "heltec-v4-target",
       "name": "Heltec V4 bench firmware",
-      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. OT-083 and OT-084 reject both on-chip authorization rollback-floor candidates; Decision 0033 preserves that result for rollback-proof ownership while permitting practical physical-presence authorization under the disclosed physical-reflash limit. OT-090 freezes and host-tests that exact pairing/reconnect/replacement contract without target, Android, storage, pairing, protected-control, or physical evidence, and OT-091 freezes the separate algorithm-neutral secure-LoRa lifecycle/admission semantics without crypto selection, implementation, or physical evidence. OT-085A installed and verified the exact OT-085 image, accepted one fixed privacy-safe public BLE read, and physically observed `BLE CONNECTED` followed by the phone-disconnect return to `BLE ADVERTISING`. OT-085B accepted target-initiated automatic termination inside the bounded interval, the same owner-observed display lifecycle, and return of exactly one compatible service advertiser without claiming stable identity; every protected characteristic, claim, and command remains closed. The exact installed partition/source proof, private OT-064 recovery application, recovery contracts, and dormant protected-root foundations remain accepted historical evidence without current runtime authority.",
+      "description": "Two assembled Heltec V4 units retain bounded historical MeshCore bench evidence. OT-DEV-001 is an experimental OpenTrail target with exact-profile build, physical boot/BLE advertisement, and startup/status OLED evidence. OT-083 and OT-084 reject both on-chip authorization rollback-floor candidates; Decision 0033 preserves that result for rollback-proof ownership while permitting practical physical-presence authorization under the disclosed physical-reflash limit. OT-090 freezes and host-tests that exact pairing/reconnect/replacement contract without target, Android, storage, pairing, protected-control, or physical evidence, and OT-091 freezes the separate algorithm-neutral secure-LoRa lifecycle/admission semantics without crypto selection, implementation, or physical evidence. OT-093 freezes an exact two-build candidate-free pre-crypto baseline for the unsupported bench target under source/tool/configuration locks; it is not an OT-005 benchmark, target-support result, crypto selection, implementation, or physical evidence. OT-085A installed and verified the exact OT-085 image, accepted one fixed privacy-safe public BLE read, and physically observed `BLE CONNECTED` followed by the phone-disconnect return to `BLE ADVERTISING`. OT-085B accepted target-initiated automatic termination inside the bounded interval, the same owner-observed display lifecycle, and return of exactly one compatible service advertiser without claiming stable identity; every protected characteristic, claim, and command remains closed. The exact installed partition/source proof, private OT-064 recovery application, recovery contracts, and dormant protected-root foundations remain accepted historical evidence without current runtime authority.",
       "weight": 15,
       "completion": 25,
       "evidence_status": "Experimental physical target with bounded public BLE link",
@@ -81,11 +85,15 @@
         "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md",
         "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md",
         "tests/hardware/OT-091-2026-08-19.md",
+        "docs/decisions/0037-pre-crypto-build-baseline.md",
+        "docs/security/CRYPTO_BENCHMARK_EVIDENCE_V0.md",
+        "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json",
+        "tests/hardware/OT-093-2026-08-20.md",
         "tests/hardware/OT-074-2026-08-17.md",
         "tests/hardware/OT-059-2026-08-15.md",
         "hardware/INVENTORY.md"
       ],
-      "next_gate": "Complete the exact OT-005 target benchmark and suite/wire selection, then implement the frozen OT-090 and OT-091 contracts under separate target/app/radio authority; physical acceptance remains open."
+      "next_gate": "Make OTCB0 final-candidate ready, run the exact candidate benchmark, and explicitly accept the suite/wire selection; then implement the frozen OT-090 and OT-091 contracts under separate target/app/radio authority. Physical acceptance remains open."
     },
     {
       "id": "first-complete-unit",
@@ -120,19 +128,19 @@
       "id": "v1-companion",
       "name": "V1 Companion",
       "status": "measured",
-      "as_of": "2026-08-19",
+      "as_of": "2026-08-20",
       "definition": "A complete V1 Companion release means exactly two supported Heltec LoRa devices and two approved Android phones, one physically authorized phone per Heltec, exchange authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE with restart, disconnect, rejection, retry, recovery, and one exact signed Android release physically accepted without relay, server, or internet dependency.",
       "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
       "milestones": [
         {
           "id": "architecture-safety",
           "name": "Architecture and safety contracts",
-          "description": "Protocol, recovery, privacy, degraded-operation, and owner-approved two-pair V1/four-node V1.5 scope rules are documented. OT-090 freezes and host-tests the exact practical BLE pairing/reconnect/replacement contract. OT-091 freezes and host-tests the separate algorithm-neutral secure-LoRa lifecycle/admission semantics while preserving Decision 0003's exact-target benchmark and suite/wire selection gate. Target/app implementation and physical acceptance remain open.",
+          "description": "Protocol, recovery, privacy, degraded-operation, and owner-approved two-pair V1/four-node V1.5 scope rules are documented. OT-090 freezes and host-tests the exact practical BLE pairing/reconnect/replacement contract. OT-091 freezes and host-tests the separate algorithm-neutral secure-LoRa lifecycle/admission semantics while preserving Decision 0003. OT-093 freezes the deterministic candidate-free pre-crypto build baseline, while OTCB0 remains draft-blocked and unexecuted. Target/app implementation and physical acceptance remain open.",
           "weight": 15,
           "completion": 85,
           "evidence_status": "Host tested",
-          "evidence_refs": ["README.md#project-status", "docs/ARCHITECTURE.md", "docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md", "docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md", "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md", "tests/hardware/OT-089-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "tests/hardware/OT-091-2026-08-19.md", "tasks/BACKLOG.md"],
-          "next_gate": "Complete the exact OT-005 target benchmark and explicitly accept the crypto suite/library, handshake/KDF, and packet-v1 wire selection before implementation."
+          "evidence_refs": ["README.md#project-status", "docs/ARCHITECTURE.md", "docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md", "docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md", "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md", "docs/decisions/0037-pre-crypto-build-baseline.md", "docs/security/CRYPTO_BENCHMARK_EVIDENCE_V0.md", "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json", "tests/hardware/OT-089-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "tests/hardware/OT-091-2026-08-19.md", "tests/hardware/OT-093-2026-08-20.md", "tasks/BACKLOG.md"],
+          "next_gate": "Make OTCB0 final-candidate ready, run the exact candidate benchmark, and explicitly accept the crypto suite/library, handshake/KDF, and packet-v1 wire selection before implementation."
         },
         {
           "id": "core-firmware",
@@ -157,12 +165,12 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, bounded partition/source proof, a privately retained recovery application, and historical stronger protected-root contracts. Both on-chip authorization-floor candidates are rejected. Decision 0033 adopts practical physical-presence authorization for two supported Heltec V1 nodes under a disclosed physical-reflash rollback limit, OT-090 freezes its exact pairing/reconnect/replacement state contract, and OT-091 freezes the separate algorithm-neutral secure-LoRa lifecycle/admission semantics. Target/Android implementation, cryptographic selection, storage binding, secure radio, and physical authorization remain open. OT-085A/OT-085B accept only one fixed public BLE read and bounded disconnect/re-advertise lifecycle on one experimental target; all protected characteristics, claims, and commands remain closed.",
+          "description": "One experimental target has exact-profile build, physical boot, startup/status OLED, heartbeat, privacy-safe BLE-advertisement evidence, bounded partition/source proof, a privately retained recovery application, and historical stronger protected-root contracts. Both on-chip authorization-floor candidates are rejected. Decision 0033 adopts practical physical-presence authorization for two supported Heltec V1 nodes under a disclosed physical-reflash rollback limit, OT-090 freezes its exact pairing/reconnect/replacement state contract, and OT-091 freezes the separate algorithm-neutral secure-LoRa lifecycle/admission semantics. OT-093 freezes a deterministic two-build candidate-free pre-crypto baseline for this unsupported bench target; it is not an OT-005 benchmark, supported-target result, crypto selection, implementation, or physical evidence. Target/Android implementation, cryptographic selection, storage binding, secure radio, and physical authorization remain open. OT-085A/OT-085B accept only one fixed public BLE read and bounded disconnect/re-advertise lifecycle on one experimental target; all protected characteristics, claims, and commands remain closed.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Experimental physical target with bounded public BLE link",
-          "evidence_refs": ["firmware/targets/heltec_v4_bench", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md", "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "tests/hardware/OT-084-2026-08-18.md", "tests/hardware/OT-085-2026-08-18.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "tests/hardware/OT-091-2026-08-19.md", "hardware/INVENTORY.md"],
-          "next_gate": "Complete OT-005 suite/wire selection, then implement the frozen OT-090 and OT-091 contracts under separate device/app/radio authority; the second Heltec and physical acceptance remain unaccepted."
+          "evidence_refs": ["firmware/targets/heltec_v4_bench", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md", "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md", "docs/decisions/0037-pre-crypto-build-baseline.md", "docs/security/CRYPTO_BENCHMARK_EVIDENCE_V0.md", "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "tests/hardware/OT-084-2026-08-18.md", "tests/hardware/OT-085-2026-08-18.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "tests/hardware/OT-091-2026-08-19.md", "tests/hardware/OT-093-2026-08-20.md", "hardware/INVENTORY.md"],
+          "next_gate": "Make OTCB0 final-candidate ready, run the exact candidate benchmark, and explicitly accept the suite/wire selection; then implement the frozen OT-090 and OT-091 contracts under separate device/app/radio authority. The second Heltec and physical acceptance remain unaccepted."
         },
         {
           "id": "android-companion",
@@ -177,12 +185,12 @@
         {
           "id": "two-pair-end-to-end-acceptance",
           "name": "Two-pair end-to-end V1 acceptance",
-          "description": "Exactly two supported Heltec/Android pairs must coherently pass fresh-PIN authorization, restart reconnect, cross-pair denial, phone replacement, authenticated/encrypted bidirectional direct-LoRa messaging, rejection/duplicate/retry/recovery, and the exact signed Android release on both phones.",
+          "description": "Exactly two supported Heltec/Android pairs must coherently pass fresh-PIN authorization, restart reconnect, cross-pair denial, phone replacement, authenticated/encrypted bidirectional direct-LoRa messaging, rejection/duplicate/retry/recovery, and the exact signed Android release on both phones. OT-093 freezes only the candidate-free pre-crypto build baseline; it adds no end-to-end, target-support, crypto-selection, implementation, or physical evidence.",
           "weight": 15,
           "completion": 0,
           "evidence_status": "Not started",
-          "evidence_refs": ["docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md", "docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md", "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md", "tests/hardware/OT-089-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "tests/hardware/OT-091-2026-08-19.md"],
-          "next_gate": "Complete the exact OT-005 target benchmark and suite/wire selection, implement OT-090 and OT-091, approve exact two-pair candidates, then run one coherent physical V1 sequence."
+          "evidence_refs": ["docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md", "docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md", "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md", "docs/decisions/0037-pre-crypto-build-baseline.md", "docs/security/CRYPTO_BENCHMARK_EVIDENCE_V0.md", "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json", "tests/hardware/OT-089-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "tests/hardware/OT-091-2026-08-19.md", "tests/hardware/OT-093-2026-08-20.md"],
+          "next_gate": "Make OTCB0 final-candidate ready, run the exact candidate benchmark, accept the suite/wire selection, implement OT-090 and OT-091, approve exact two-pair candidates, then run one coherent physical V1 sequence."
         }
       ],
       "change_log": [
@@ -311,6 +319,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Accepted the host-tested algorithm-neutral OTSL0/v0 secure-LoRa lifecycle/admission contract while preserving Decision 0003's blocked exact-target benchmark and suite/wire selection gate. No crypto selection, packet v1, target/app/storage implementation, key operation, radio transmission, provisioning, rekey, replay protection, acknowledgement, delivery, or physical acceptance occurred, so every milestone completion is unchanged: Android remains 60%, V1 Companion remains exact 43.75% / displayed 44%, and V1.5 remains unmeasured."
+        },
+        {
+          "date": "2026-08-20",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted the deterministic candidate-free OTCBL0/v0 pre-crypto build baseline after two independent, cache-disabled, zero-warning target builds produced identical seven-artifact tuples under exact source, configuration, project-version, ESP-IDF, tool, and Python-isolation locks. The OTCB0/v0 plan remains draft_blocked and unexecuted; no candidate or secure-LoRa adapter was imported or executed, and no suite/wire selection, target support, implementation, device operation, physical acceptance, or score credit was added. Every milestone completion is unchanged: Android remains 60%, V1 Companion remains exact 43.75% / displayed 44%, and V1.5 remains unmeasured."
         }
       ]
     },
@@ -450,6 +464,11 @@
       "date": "2026-08-19",
       "overall": 32,
       "reason": "Accepted the host-tested algorithm-neutral OTSL0/v0 secure-LoRa lifecycle/admission contract without crypto selection, packet v1, target/app/storage implementation, key operation, radio transmission, provisioning, rekey, replay protection, acknowledgement, delivery, or physical acceptance. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
+    },
+    {
+      "date": "2026-08-20",
+      "overall": 32,
+      "reason": "Accepted the deterministic candidate-free OTCBL0/v0 pre-crypto build baseline after two independent, cache-disabled, zero-warning target builds produced identical seven-artifact tuples under exact source, configuration, project-version, ESP-IDF, tool, and Python-isolation locks. The OTCB0/v0 plan remains draft_blocked and unexecuted; no candidate or secure-LoRa adapter was imported or executed, and no suite/wire selection, target support, implementation, device operation, physical acceptance, or score credit was added. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
     }
   ]
 }

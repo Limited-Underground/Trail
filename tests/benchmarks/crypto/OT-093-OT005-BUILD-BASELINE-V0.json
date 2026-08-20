@@ -1,0 +1,135 @@
+{
+  "schema": "OTCBL0",
+  "version": 0,
+  "artifact_kind": "build_lock",
+  "baseline_id": "OT-093-OT005-BUILD-BASELINE-V0",
+  "accepted_date": "2026-08-20",
+  "status": "build_baseline_frozen",
+  "public_result": "BUILD-BASELINE-FROZEN; OTCB0-EXECUTION-BLOCKED",
+  "source": {
+    "firmware_base_commit": "0afac6b1cf3d142aca2f2cae98264f80ee801989",
+    "firmware_scope_clean": true,
+    "input_manifest_kind": "git-index-stage-zero-v1",
+    "input_manifest_file_count": 307,
+    "input_manifest_sha256": "6738195a7da53eb3d03c4a47552f6c0b6489559a2d81c0ba068489fe9faf7bc3",
+    "working_tree_manifest_kind": "sha256-raw-bytes-path-v1",
+    "working_tree_manifest_sha256": "3837dbce866a3fc7cef76fd374bf242bb0125c042e8de15273a9e44bafff3324",
+    "git_core_autocrlf": "true"
+  },
+  "toolchain": {
+    "esp_idf_version": "v6.0.2",
+    "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "esp_idf_tracked_source_clean": true,
+    "idf_py_sha256": "5f703be3a915433f63206a28260357ad807ec83ae0a8589c684c9c08516a7a40",
+    "compiler": "xtensa-esp32s3-elf-gcc",
+    "compiler_version": "15.2.0",
+    "crosstool": "esp-15.2.0_20251204",
+    "compiler_executable_sha256": "20e70278d1fa041c1305e0e70e6f35dde01b7eb21f2c7bbc0013456493a011a5",
+    "cmake_version": "cmake version 4.0.3",
+    "cmake_executable_sha256": "392ab4d6c3c91543fd297ed6c7e7354bf62edcd26fdf2706ad8613ad620cc45e",
+    "ninja_version": "1.12.1",
+    "ninja_executable_sha256": "68865c3276d449d746cea5065fdec2baf755d7813e161ab04205b0907b2629b8",
+    "python_version": "Python 3.14.6",
+    "python_executable_sha256": "199ce15a9f0d4f9522edba59338e4879d28cf61f88e377b8164bcb716275ed22",
+    "independent_python_cache": true,
+    "python_user_site_disabled": true
+  },
+  "target": {
+    "target_id": "heltec-v4-bench-candidate",
+    "mcu": "ESP32-S3",
+    "processor_revision": "v0.2",
+    "flash_bytes": 16777216,
+    "psram_bytes": 2097152,
+    "exact_received_revision": null,
+    "rf_variant": null,
+    "supported": false
+  },
+  "inputs": {
+    "target_contract": "firmware/targets/heltec_v4_bench/target-contract.json",
+    "target_contract_sha256": "8f263e9d5fd756e5b80dbed33dbbc4e264a66763ce6088bca3d894cc42025615",
+    "sdkconfig_defaults": "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
+    "sdkconfig_defaults_sha256": "84d54e5d730ba28ceba0c97831a477303db128d63ede7575bec52013770d70c0",
+    "build_helper": "tools/Build-HeltecV4BenchTarget.ps1",
+    "build_helper_sha256": "c36a58e0529a7628b66cc4674f4207804ae2d0a709b9d3a20b4973de6c585214",
+    "reproducible_defaults_sha256": "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6",
+    "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+    "generated_sdkconfig_role": "PRE-SELECTION-BASELINE-NOT-FINAL-OTCB0",
+    "future_candidate_builds_require_same_baseline_config": true,
+    "project_version": "ot093-precrypto-v0",
+    "text_digest_kind": "utf8-crlf-normalized-lf-v1"
+  },
+  "build_reproducibility": {
+    "clean_run_count": 2,
+    "independent_build_directories": true,
+    "shared_compiler_cache_disabled": true,
+    "reproducible_build_paths_normalized": true,
+    "runs": [
+      {
+        "profile": "ot093-a",
+        "build_exit_code": 0,
+        "compiler_warning_count": 0,
+        "raw_build_evidence_sha256": "c5b4ce41ecc52bc5998c4c2eb508357687c0c90cd486c046d2391b23e22c2431",
+        "public_artifacts": [
+          {"role": "application", "name": "opentrail_heltec_v4_bench.bin", "bytes": 471456, "sha256": "7e0e9b358be30a88b55a44fa2e69448a3842f91267fd3065b881705ba5ae6d70"},
+          {"role": "application_elf", "name": "opentrail_heltec_v4_bench.elf", "bytes": 6792588, "sha256": "b36262437c9a93925a5cf0d5a518731ddd29793bb3c4f5d2bab57da796d61696"},
+          {"role": "linker_map", "name": "opentrail_heltec_v4_bench.map", "bytes": 6366378, "sha256": "9f360bba687717f7919858837a115588530a0ec6d480bc9872750a416334cf5d"},
+          {"role": "bootloader", "name": "bootloader.bin", "bytes": 22480, "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"},
+          {"role": "partition_table", "name": "partition-table.bin", "bytes": 3072, "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"},
+          {"role": "generated_sdkconfig", "name": "sdkconfig", "bytes": 106913, "sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"},
+          {"role": "partition_csv", "name": "partitions.csv", "bytes": 452, "sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"}
+        ],
+        "normalized_receipt_sha256": "265ee99c47784100c8a00dd021c3f10a29ca71cc97361639f7f85e6ea13d10df"
+      },
+      {
+        "profile": "ot093-b",
+        "build_exit_code": 0,
+        "compiler_warning_count": 0,
+        "raw_build_evidence_sha256": "15c152df46002d264dca148bc1bc632164d46d0f3f98014c3485a86c7bd3a1ca",
+        "public_artifacts": [
+          {"role": "application", "name": "opentrail_heltec_v4_bench.bin", "bytes": 471456, "sha256": "7e0e9b358be30a88b55a44fa2e69448a3842f91267fd3065b881705ba5ae6d70"},
+          {"role": "application_elf", "name": "opentrail_heltec_v4_bench.elf", "bytes": 6792588, "sha256": "b36262437c9a93925a5cf0d5a518731ddd29793bb3c4f5d2bab57da796d61696"},
+          {"role": "linker_map", "name": "opentrail_heltec_v4_bench.map", "bytes": 6366378, "sha256": "9f360bba687717f7919858837a115588530a0ec6d480bc9872750a416334cf5d"},
+          {"role": "bootloader", "name": "bootloader.bin", "bytes": 22480, "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"},
+          {"role": "partition_table", "name": "partition-table.bin", "bytes": 3072, "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"},
+          {"role": "generated_sdkconfig", "name": "sdkconfig", "bytes": 106913, "sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"},
+          {"role": "partition_csv", "name": "partitions.csv", "bytes": 452, "sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"}
+        ],
+        "normalized_receipt_sha256": "265ee99c47784100c8a00dd021c3f10a29ca71cc97361639f7f85e6ea13d10df"
+      }
+    ]
+  },
+  "app_slot_headroom": {
+    "application_image_bytes": 471456,
+    "smallest_app_slot_bytes": 5177344,
+    "headroom_bytes": 4705888
+  },
+  "otcb0_gate": {
+    "schema": "OTCB0",
+    "version": 0,
+    "plan_id": "OT-005-CRYPTO-ESP32S3-V0",
+    "plan_sha256": "49792b585286823ffa9b7589704d57e8393b3dbf3d514917ffd7b5970301edb7",
+    "plan_status": "draft_blocked",
+    "execution_authorized": false
+  },
+  "claim_scope": "NO-OT005-CANDIDATE-OR-SECURE-LORA-ADAPTER-IMPORTED-OR-EXECUTED; EXISTING-ESP-IDF-NIMBLE-CRYPTOGRAPHIC-OBJECTS-ARE-NOT-AN-OT005-SELECTION",
+  "claims": {
+    "ot005_candidate_imported": false,
+    "secure_lora_adapter_imported": false,
+    "secure_lora_adapter_executed": false,
+    "suite_selected": false,
+    "handshake_kdf_selected": false,
+    "packet_v1_wire_selected": false,
+    "radio_profile_selected": false,
+    "benchmark_executed": false,
+    "hardware_or_device_accessed": false,
+    "key_or_entropy_operation": false,
+    "score_credit_added": false
+  },
+  "historical_otcb0_plan_blockers": [
+    "exact_client_board_and_revision_not_frozen",
+    "esp_idf_toolchain_and_sdkconfig_not_pinned",
+    "candidate_source_commits_and_dependency_locks_not_pinned",
+    "direct_radio_mtu_and_phy_profile_not_frozen"
+  ],
+  "otcb0_plan_blockers_applicability": "FINAL-CANDIDATE-READY-TARGET-TOOLCHAIN-SDKCONFIG-APPLICABILITY-REMAINS-UNRESOLVED"
+}

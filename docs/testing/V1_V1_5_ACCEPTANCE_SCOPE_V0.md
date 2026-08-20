@@ -75,9 +75,11 @@ reuse are denied.
 
 Decision 0003 remains controlling. `OTSL0/v0` selects no suite, library,
 handshake/KDF instantiation, packet-v1 wire bytes, target storage, MTU/PHY, or
-production timing. The exact OT-005 target benchmark and a later explicit
-suite/wire decision must pass before implementation. BLE authorization and
-LoRa security remain separate implementation and physical evidence gates.
+production timing. OT-093 freezes the reproducible two-build baseline before
+any candidate import, but `OTCB0/v0` remains `draft_blocked` and unexecuted.
+Final candidate readiness, the exact OT-005 candidate benchmark, and a later
+explicit suite/wire decision must pass before implementation. BLE authorization
+and LoRa security remain separate implementation and physical evidence gates.
 
 ## Coherent V1 physical acceptance
 
@@ -134,12 +136,14 @@ does not confer support.
 
 ## Sequence and scoring
 
-Authorization is frozen and host-tested under OT-090, and the algorithm-neutral
+Authorization is frozen and host-tested under OT-090, the algorithm-neutral
 secure-LoRa lifecycle/admission semantics are frozen and host-tested under
-OT-091. Next complete the exact OT-005 target benchmark and accept the crypto
-suite/library, handshake/KDF, and packet-v1 wire selection. Then implement and
-physically accept the frozen pairing/replacement and selected secure-LoRa paths
-under separate authority; complete the Android message flow; run complete two-
+OT-091, and OT-093 freezes the deterministic pre-selection build baseline
+without benchmark execution or score. Next make the OT-005 plan final-candidate
+ready, run the exact benchmark, and accept the crypto suite/library,
+handshake/KDF, and packet-v1 wire selection. Then implement and physically
+accept the frozen pairing/replacement and selected secure-LoRa paths under
+separate authority; complete the Android message flow; run complete two-
 pair V1 acceptance; finish the signed Android gate; then publish V1.
 Four-node interoperability and any mesh claim remain V1.5.
 

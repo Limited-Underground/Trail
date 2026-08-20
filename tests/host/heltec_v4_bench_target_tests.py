@@ -1541,6 +1541,92 @@ def test_build_only_tooling() -> None:
 
     script = BUILD_SCRIPT.read_text(encoding="utf-8")
     require("ESP-IDF v6.0.2" in script, "build script must pin ESP-IDF")
+    for exact_toolchain_evidence in (
+        "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+        "5f703be3a915433f63206a28260357ad807ec83ae0a8589c684c9c08516a7a40",
+        "xtensa-esp32s3-elf-gcc",
+        "15.2.0",
+        "esp-15.2.0_20251204",
+        "20e70278d1fa041c1305e0e70e6f35dde01b7eb21f2c7bbc0013456493a011a5",
+        "cmake version 4.0.3",
+        "392ab4d6c3c91543fd297ed6c7e7354bf62edcd26fdf2706ad8613ad620cc45e",
+        "1.12.1",
+        "68865c3276d449d746cea5065fdec2baf755d7813e161ab04205b0907b2629b8",
+        "Python 3.14.6",
+        "199ce15a9f0d4f9522edba59338e4879d28cf61f88e377b8164bcb716275ed22",
+        "framework_tracked_source_clean = $true",
+        "compiler_sha256 = $requiredCompilerSha256",
+    ):
+        require(exact_toolchain_evidence in script,
+                f"OT-093 exact toolchain evidence missing: {exact_toolchain_evidence}")
+    require("[ValidateSet('standard', 'ot093-a', 'ot093-b')]" in script and
+            "OT-093 requires an absent, independent build directory" in script and
+            "$env:CCACHE_DISABLE = '1'" in script,
+            "OT-093 must use two absent independent build roots with shared cache disabled")
+    require("CONFIG_APP_REPRODUCIBLE_BUILD=y" in script and
+            "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6" in script and
+            "reproducible_build_paths_normalized = $true" in script and
+            "future_ot005_candidate_builds_require_same_baseline_config = $true" in script,
+            "OT-093 must bind path-normalized defaults for this and future candidate builds")
+    require("diff --quiet $acceptedFirmwareBaseCommit -- firmware/components firmware/targets/heltec_v4_bench" in script and
+            "$requiredFirmwareInputManifestFileCount = 307" in script and
+            "$requiredFirmwareInputManifestSha256 = '6738195a7da53eb3d03c4a47552f6c0b6489559a2d81c0ba068489fe9faf7bc3'" in script and
+            "ls-files --stage" in script and
+            "ls-files --others --exclude-standard" in script and
+            "status --porcelain --untracked-files=all" in script and
+            "firmware_input_manifest_kind = 'git-index-stage-zero-v1'" in script and
+            "working_tree_manifest_kind = 'sha256-raw-bytes-path-v1'" in script and
+            "$requiredFirmwareWorkingTreeManifestSha256 = '3837dbce866a3fc7cef76fd374bf242bb0125c042e8de15273a9e44bafff3324'" in script and
+            "$requiredGitCoreAutocrlf = 'true'" in script and
+            "firmware_input_manifest_sha256 = $sourceManifestSha256" in script,
+            "OT-093 must bind a clean firmware scope and deterministic input manifest")
+    require("$requiredOt093ProjectVersion = 'ot093-precrypto-v0'" in script and
+            'PROJECT_VER=$requiredOt093ProjectVersion' in script and
+            "project_description.json" in script and
+            "application image does not embed the stable OT-093 project version" in script,
+            "OT-093 must freeze and verify a Git-state-independent embedded project version")
+    require('$env:PYTHONPYCACHEPREFIX = $ot093PythonCacheRoot' in script and
+            'ot093-python-cache-$BuildProfile' in script and
+            "$env:PYTHONNOUSERSITE = '1'" in script and
+            "independent_python_cache = $true" in script,
+            "OT-093 Python imports must use a fresh per-profile cache and no user site")
+    for artifact_role in (
+        "'application'", "'application_elf'", "'linker_map'", "'bootloader'",
+        "'partition_table'", "'generated_sdkconfig'", "'partition_csv'",
+    ):
+        require(f"Role = {artifact_role}" in script,
+                f"OT-093 receipt is missing ordered artifact role {artifact_role}")
+    require("applicationHeadroomBytes = $smallestAppSlotBytes - $applicationImageBytes" in script and
+            "headroom_bytes = $applicationHeadroomBytes" in script,
+            "OT-093 must prove the exact application-slot headroom equation")
+    require("NO-OT005-CANDIDATE-OR-SECURE-LORA-ADAPTER-IMPORTED-OR-EXECUTED" in script,
+            "OT-093 must state the candidate-specific pre-selection claim")
+    require(script.count("ot005_pre_selection_baseline") == 1 and
+            "$evidence['ot005_pre_selection_baseline']" in script,
+            "standard evidence must omit the OT-093-only frozen baseline receipt")
+    require("BUILD-RUN-CAPTURED; OTCBL0-RECONCILIATION-PENDING; OTCB0-EXECUTION-BLOCKED" in script and
+            "BUILD-BASELINE-FROZEN" not in script,
+            "one helper run must not claim aggregate two-run baseline acceptance")
+    for denied_claim in (
+        "ot005_candidate_imported = $false",
+        "secure_lora_adapter_imported = $false",
+        "secure_lora_adapter_executed = $false",
+        "suite_selected = $false",
+        "handshake_implemented = $false",
+        "packet_v1_wire_selected = $false",
+        "radio_enabled = $false",
+        "hardware_or_device_accessed = $false",
+        "key_or_entropy_operation = $false",
+        "score_credit_added = $false",
+    ):
+        require(denied_claim in script,
+                f"OT-093 build receipt is missing denied authority: {denied_claim}")
+    for forbidden_link_token in (
+        "'libsodium'", "'sodium_'", "'monocypher'", "'noise_xk'",
+        "'secure_lora'", "'otsl0'", "'otcb0'",
+    ):
+        require(forbidden_link_token in script,
+                f"OT-093 link-map guard is missing {forbidden_link_token}")
     require(re.search(r"set-target\s+esp32s3", script, re.IGNORECASE) is not None,
             "build script must select ESP32-S3")
     require("if ($requiresTargetSelection)" in script,
@@ -1549,7 +1635,7 @@ def test_build_only_tooling() -> None:
             "incremental admission must check the exact generated target")
     require("preserving incremental build state" in script,
             "accepted incremental path must remain explicit")
-    require(re.search(r"(?m)^\s*build\s*$", script) is not None,
+    require(re.search(r"(?m)^\s*build(?:\s+2>&1\))?\s*$", script) is not None,
             "build script must invoke the build action")
     require(re.search(r"(?m)^\s*size\s*$", script) is not None,
             "build script must run image-size analysis")

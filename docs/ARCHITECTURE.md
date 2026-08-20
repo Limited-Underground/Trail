@@ -991,6 +991,24 @@ suite/library, handshake/KDF instantiation, final packet-v1 bytes, target
 storage, and physical operation until the exact OT-005 target benchmark passes.
 Packet v0 and plaintext fallback remain prohibited from protected traffic.
 
+[Decision 0037](decisions/0037-pre-crypto-build-baseline.md) and the canonical
+[`OTCBL0/v0` record](../tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json)
+freeze the reproducible build immediately before any OT-005 candidate import.
+Two independent, initially absent, cache-disabled build roots produced zero
+warnings and identical ordered application BIN, ELF, map, bootloader, partition
+table, sdkconfig, and partition-CSV tuples under exact source, raw-byte,
+configuration, stable-project-version, ESP-IDF, tool-executable, and isolated-
+Python locks. Individual helper receipts remain reconciliation-pending; only the
+aggregate validator may derive equality and publish
+`BUILD-BASELINE-FROZEN; OTCB0-EXECUTION-BLOCKED`.
+
+That lock is pre-crypto build evidence, not an OT-005 benchmark or supported-
+target result. No candidate or secure-LoRa adapter was imported or executed,
+and existing ESP-IDF/NimBLE cryptographic objects are not a selection. The plan
+remains `draft_blocked`; final candidate-ready target/toolchain/sdkconfig
+applicability, dependency locks, direct-radio MTU/PHY, actual candidate
+measurements, and explicit suite/wire acceptance remain later gates.
+
 Before a sender-specific traffic key can protect packet v1, its outbound nonce
 domain needs rollback-safe allocation. The `OTCN` two-slot store commits a
 64-bit high-water range before counters are returned and uses a persistence

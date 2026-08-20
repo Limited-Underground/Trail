@@ -4,6 +4,40 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-20
+
+### OT-093 deterministic pre-crypto OT-005 build baseline
+
+- Accepted `OTCBL0/v0`, baseline ID
+  `OT-093-OT005-BUILD-BASELINE-V0`, canonical SHA-256
+  `16ffe83af7e3c1f00b5d123eae30e3ac4a0ea2dea0cb08bcc60b990d3e881733`,
+  and result `BUILD-BASELINE-FROZEN; OTCB0-EXECUTION-BLOCKED`.
+- Ran two independent, initially absent, cache-disabled build profiles with
+  stable project version `ot093-precrypto-v0`, exact source/raw-byte,
+  configuration, ESP-IDF, tool-executable, and isolated-Python locks. Both
+  exited zero, produced zero warnings, and yielded identical ordered
+  application BIN, ELF, map, bootloader, partition-table, sdkconfig, and
+  partition-CSV tuples. Their normalized receipt SHA-256 values both equal
+  `265ee99c47784100c8a00dd021c3f10a29ca71cc97361639f7f85e6ea13d10df`.
+- Preserved aggregate-only authority: each run receipt remained
+  `BUILD-RUN-CAPTURED` and reconciliation-pending; only the aggregate validator
+  derived exact receipt and artifact equality.
+- Focused OTCBL0 12, Heltec target 12, historical OTCB0 8, and V1/V1.5 scope 16
+  groups pass. Independent aggregate audit is clear, and the fresh complete
+  `tools/Test-Host.ps1` run exits `0`.
+- Preserved Decision 0003. The OT-005 plan remains `draft_blocked`, execution
+  authority false, and final candidate-ready target/toolchain/sdkconfig
+  applicability unresolved. No candidate or secure-LoRa adapter was imported
+  or executed; no suite/library, handshake/KDF, packet-v1 wire, radio profile,
+  benchmark result, device operation, implementation, or physical evidence is
+  accepted.
+- This build-only result adds no score. Android remains 60%; V1 remains exact
+  43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed
+  32%; V1.5 remains unmeasured. Next: make the OT-005 plan final-candidate
+  ready, execute the exact candidate benchmark, then explicitly accept the
+  suite/wire selection. See [Decision 0037](decisions/0037-pre-crypto-build-baseline.md)
+  and [OT-093 evidence](../tests/hardware/OT-093-2026-08-20.md).
+
 ## 2026-08-19
 
 ### OT-092 post-V2 future-concepts register and Public Assistance direction

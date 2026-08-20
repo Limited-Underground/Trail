@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-19
+Status date: 2026-08-20
 
 ## Conceptual goals
 
@@ -8,6 +8,28 @@ Status date: 2026-08-19
 - Portable, vehicle, repeater, and larger touchscreen configurations
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
+
+OT-093 freezes the deterministic pre-selection build baseline required before
+the later OT-005 ESP32-S3 cryptographic comparison. Two independent, initially
+absent and cache-disabled builds of the unsupported Heltec V4 bench candidate
+used stable project version `ot093-precrypto-v0`, exact source-index/raw-byte,
+configuration, ESP-IDF, tool-executable, and isolated-Python locks. Both exited
+zero with zero warnings and produced identical ordered application BIN, ELF,
+map, bootloader, partition-table, sdkconfig, and partition-CSV tuples. Individual
+run receipts remained reconciliation-pending; only aggregate validation derived
+equality and accepted
+`BUILD-BASELINE-FROZEN; OTCB0-EXECUTION-BLOCKED`.
+
+This is build-only host evidence. The `OTCB0/v0` plan remains `draft_blocked`,
+execution authority false, and final candidate-ready target/toolchain/sdkconfig
+applicability unresolved. No candidate or secure-LoRa adapter was imported or
+executed; no suite/library, handshake/KDF, packet-v1 wire, radio profile, key or
+entropy operation, device access, implementation, physical result, or score is
+accepted. Android remains 60%; V1 remains exact 43.75%/displayed 44%; the
+historical baseline remains exact 31.75%/displayed 32%; V1.5 remains
+unmeasured. See [Decision 0037](decisions/0037-pre-crypto-build-baseline.md),
+the [benchmark evidence boundary](security/CRYPTO_BENCHMARK_EVIDENCE_V0.md),
+and [OT-093 evidence](../tests/hardware/OT-093-2026-08-20.md).
 
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
@@ -80,8 +102,10 @@ reflashing, invasive access, or old-flash restore may reset or roll back
 ownership; V1 requires no secure element or independent monotonic floor and
 makes no rollback-proof physical-attacker claim. OT-091 later freezes the
 algorithm-neutral LoRa lifecycle/admission semantics without implementation or
-score credit. Exact OT-005 target benchmarking, suite/wire selection, target
-implementation, and physical secure-LoRa acceptance remain open.
+score credit. OT-093 later freezes only the deterministic pre-crypto build
+baseline. Final candidate readiness, exact OT-005 candidate benchmarking,
+suite/wire selection, target implementation, and physical secure-LoRa
+acceptance remain open.
 
 V1.5 is a separate unmeasured four-supported-node interoperability milestone.
 Mixed hardware is allowed and preferred but not required; four identical
@@ -2004,6 +2028,13 @@ only; the raw capture remains in ignored local build state.
 
 ## Decisions captured
 
+- Decision 0037 accepts the deterministic `OTCBL0/v0` pre-crypto two-build
+  baseline and result
+  `BUILD-BASELINE-FROZEN; OTCB0-EXECUTION-BLOCKED`. Exact source/raw-byte,
+  configuration, stable-version, ESP-IDF/tool, Python-isolation, receipt, and
+  seven-artifact equality evidence is frozen. The OT-005 plan remains
+  `draft_blocked`; no candidate, suite/wire, implementation, device operation,
+  physical result, or score is accepted.
 - Decision 0036 accepts a provisioning-independent public rendezvous lane and
   separately configurable Public Assistance Broadcast as a post-V2 direction
   only. It is deferred until V2 is fully functional and accepted, has no
@@ -2455,11 +2486,13 @@ on-device composition evidence exists. Exact adapters, thresholds, and rendered
 behavior wait for frozen client hardware. OT-023 remains a blocked historical
 four-client standalone plan, not the V1 Companion completion gate. Under
 Decision 0033, OT-090 has frozen and host-tested the practical pairing/
-replacement state machine without implementation credit, and OT-091 has frozen
-the separate algorithm-neutral secure-LoRa lifecycle/admission semantics with
-the same host-only boundary. The next security checkpoint is the exact OT-005
-target benchmark followed by explicit suite/library, handshake/KDF, and packet-
-v1 wire selection. Pairing/replacement and secure-LoRa target/Android
+replacement state machine without implementation credit, OT-091 has frozen the
+separate algorithm-neutral secure-LoRa lifecycle/admission semantics with the
+same host-only boundary, and OT-093 has frozen the deterministic pre-crypto
+build baseline without running a candidate. The next security checkpoint is to
+make the OT-005 plan final-candidate ready and execute the exact candidate
+benchmark, followed by explicit suite/library, handshake/KDF, and packet-v1
+wire selection. Pairing/replacement and secure-LoRa target/Android
 implementation, physical acceptance, and the coherent two-pair run remain
 separately authorized later gates. Continue the partially
 executed OT-020 procedure without reconstructing the Wio's unpreserved shipping

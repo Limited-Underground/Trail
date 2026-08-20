@@ -273,8 +273,11 @@ recorded in [OT-091 evidence](../../tests/hardware/OT-091-2026-08-19.md).
 This validates only exact contract shape, state ordering, fail-closed outcomes,
 privacy, and absence of execution authority.
 
-The next gate is the exact OT-005 target benchmark and suite/wire selection.
-Later separately authorized work must still implement and physically accept the
-selected crypto adapter, entropy, invitation/handshake, target key/counter/
-replay storage, packet codec, direct radio, protected acknowledgements,
+OT-093 now freezes only the deterministic candidate-free `OTCBL0/v0` build
+baseline. Next reconcile and freeze final `OTCB0/v0` target/toolchain/sdkconfig
+applicability, candidate source/dependency locks, and direct-radio MTU/PHY;
+then execute the exact candidate benchmark and make a later explicit suite/wire
+decision. Separately authorized work must still implement and physically
+accept the selected crypto adapter, entropy, invitation/handshake, target key/
+counter/replay storage, packet codec, direct radio, protected acknowledgements,
 delivery, Android flow, and coherent two-pair V1 path.

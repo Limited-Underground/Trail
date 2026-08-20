@@ -13,8 +13,8 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-092 records the owner-accepted, unscheduled post-V2 direction for a provisioning-independent public lane and optional Public Assistance Broadcast in a durable future-concepts register. It adds planning/governance evidence only, changes no V1, V1.5, or V2 progress, and grants no packet, radio, location, implementation, support, or physical authority. The next active V1 security checkpoint remains the exact OT-005 target benchmark followed by explicit suite/library, handshake/KDF, and packet-v1 wire selection |
-| Proven so far | OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on one experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, and V1.5 unmeasured |
+| Latest increment | OT-093 freezes a deterministic two-build pre-crypto baseline for the unsupported Heltec V4 bench candidate. Two independent, cache-disabled builds produced zero warnings and identical seven-artifact tuples under exact source, configuration, project-version, ESP-IDF, tool, and Python-isolation locks. The aggregate result is `BUILD-BASELINE-FROZEN; OTCB0-EXECUTION-BLOCKED`: no OT-005 candidate benchmark, suite/wire selection, implementation, device operation, or score credit occurred. Next, make the OT-005 plan final-candidate ready and run the exact candidate benchmark before any selection |
+| Proven so far | OT-093 adds reproducible build-only evidence, not crypto performance or target support. OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on one experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 unmeasured |
 | Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 
@@ -50,9 +50,12 @@ rollback-proof authorization against physical firmware-writing access.
 [Decision 0035](docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md)
 and [`OTSL0/v0`](docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md) freeze the
 algorithm-neutral secure-LoRa lifecycle/admission semantics without selecting
-cryptography or packet v1. The exact OT-005 target benchmark and suite/wire
-selection are the next security gates; implementation and physical acceptance
-remain separately authorized.
+cryptography or packet v1. [Decision 0037](docs/decisions/0037-pre-crypto-build-baseline.md)
+and the accepted [`OTCBL0/v0` evidence](tests/hardware/OT-093-2026-08-20.md)
+now freeze the reproducible zero-candidate target build only. The OT-005 plan
+remains blocked; final-candidate readiness, the actual candidate benchmark, and
+an explicit suite/wire decision are the next security gates. Implementation and
+physical acceptance remain separately authorized.
 
 V1.5 is the separate four-supported-node interoperability milestone. Any
 compatible mix of supported hardware is allowed and heterogeneous evidence is

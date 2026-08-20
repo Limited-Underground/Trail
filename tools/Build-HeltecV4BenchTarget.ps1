@@ -1,14 +1,46 @@
 [CmdletBinding()]
-param()
+param(
+    [ValidateSet('standard', 'ot093-a', 'ot093-b')]
+    [string]$BuildProfile = 'standard',
+    [Parameter(DontShow)]
+    [ValidateSet('none', 'success', 'failure')]
+    [string]$EnvironmentIsolationProbe = 'none'
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $requiredVersion = 'ESP-IDF v6.0.2'
+$acceptedFirmwareBaseCommit = '0afac6b1cf3d142aca2f2cae98264f80ee801989'
+$requiredFirmwareInputManifestFileCount = 307
+$requiredFirmwareInputManifestSha256 = '6738195a7da53eb3d03c4a47552f6c0b6489559a2d81c0ba068489fe9faf7bc3'
+$requiredFirmwareWorkingTreeManifestSha256 = '3837dbce866a3fc7cef76fd374bf242bb0125c042e8de15273a9e44bafff3324'
+$requiredGitCoreAutocrlf = 'true'
+$requiredOt093ProjectVersion = 'ot093-precrypto-v0'
+$requiredOt093DefaultsSha256 = '995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6'
+$requiredIdfCommit = '7101770dc6db2667b3c477cc31365dd1acd6db4e'
+$requiredIdfToolSha256 = '5f703be3a915433f63206a28260357ad807ec83ae0a8589c684c9c08516a7a40'
+$requiredCompiler = 'xtensa-esp32s3-elf-gcc'
+$requiredCompilerVersion = '15.2.0'
+$requiredCrosstool = 'esp-15.2.0_20251204'
+$requiredCompilerSha256 = '20e70278d1fa041c1305e0e70e6f35dde01b7eb21f2c7bbc0013456493a011a5'
+$requiredCMakeVersion = 'cmake version 4.0.3'
+$requiredCMakeSha256 = '392ab4d6c3c91543fd297ed6c7e7354bf62edcd26fdf2706ad8613ad620cc45e'
+$requiredNinjaVersion = '1.12.1'
+$requiredNinjaSha256 = '68865c3276d449d746cea5065fdec2baf755d7813e161ab04205b0907b2629b8'
+$requiredPythonVersion = 'Python 3.14.6'
+$requiredPythonSha256 = '199ce15a9f0d4f9522edba59338e4879d28cf61f88e377b8164bcb716275ed22'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $targetRoot = Join-Path $projectRoot 'firmware\targets\heltec_v4_bench'
-$buildRoot = Join-Path $projectRoot 'build\targets\heltec_v4_bench'
+$buildLeaf = switch ($BuildProfile) {
+    'ot093-a' { 'heltec_v4_bench_ot093_a' }
+    'ot093-b' { 'heltec_v4_bench_ot093_b' }
+    default { 'heltec_v4_bench' }
+}
+$buildRoot = Join-Path $projectRoot "build\targets\$buildLeaf"
+$ot093PythonCacheRoot = Join-Path $projectRoot "build\targets\ot093-python-cache-$BuildProfile"
 $defaultsPath = Join-Path $targetRoot 'sdkconfig.defaults'
+$ot093DefaultsPath = Join-Path $projectRoot 'build\targets\ot093-reproducible.defaults'
 $partitionCsvPath = Join-Path $targetRoot 'partitions.csv'
 $logoPath = Join-Path $targetRoot 'main\trail_startup_logo.hpp'
 $protectedRootRosterHeaderPath = Join-Path $targetRoot 'main\companion_protected_root_key_roster_adapter.hpp'
@@ -18,6 +50,68 @@ $configurationSecuritySourcePath = Join-Path $targetRoot 'main\companion_protect
 $sdkconfigPath = Join-Path $buildRoot 'sdkconfig'
 $publicLinkInfoHeaderPath = Join-Path $projectRoot 'firmware\components\companion\include\opentrail\companion_public_link_info.hpp'
 $publicLinkInfoSourcePath = Join-Path $projectRoot 'firmware\components\companion\src\companion_public_link_info.cpp'
+
+$ot093CleanBaseline = $BuildProfile -ne 'standard'
+$ot093EnvironmentNames = @('CCACHE_DISABLE', 'PYTHONPYCACHEPREFIX', 'PYTHONNOUSERSITE')
+$ot093EnvironmentSnapshot = @{}
+$ot093PythonCacheOwnedByRun = $false
+if (-not $ot093CleanBaseline -and $EnvironmentIsolationProbe -ne 'none') {
+    throw 'The environment-isolation probe is available only to an OT-093 profile.'
+}
+if ($ot093CleanBaseline) {
+    foreach ($name in $ot093EnvironmentNames) {
+        $ot093EnvironmentSnapshot[$name] = [ordered]@{
+            Exists = Test-Path -LiteralPath "Env:$name"
+            Value = [System.Environment]::GetEnvironmentVariable(
+                $name,
+                [System.EnvironmentVariableTarget]::Process)
+        }
+    }
+}
+try {
+  if ($ot093CleanBaseline) {
+    if ($EnvironmentIsolationProbe -eq 'none') {
+        if (Test-Path -LiteralPath $buildRoot) {
+            throw 'OT-093 requires an absent, independent build directory.'
+        }
+        if (Test-Path -LiteralPath $ot093PythonCacheRoot) {
+            throw 'OT-093 requires an absent, independent Python cache directory.'
+        }
+        $ot093PythonCacheOwnedByRun = $true
+    }
+    $env:CCACHE_DISABLE = '1'
+    $env:PYTHONPYCACHEPREFIX = $ot093PythonCacheRoot
+    $env:PYTHONNOUSERSITE = '1'
+    if ($EnvironmentIsolationProbe -eq 'success') {
+        Write-Output 'OT-093-ENVIRONMENT-ISOLATION-PROBE-ONLY'
+        return
+    }
+    if ($EnvironmentIsolationProbe -eq 'failure') {
+        throw 'OT-093 environment-isolation failure probe.'
+    }
+    $ot093DefaultsContent = "CONFIG_APP_REPRODUCIBLE_BUILD=y`nCONFIG_APP_COMPILE_TIME_DATE=n`n"
+    $ot093DefaultsParent = Split-Path -Parent $ot093DefaultsPath
+    [System.IO.Directory]::CreateDirectory($ot093DefaultsParent) | Out-Null
+    [System.IO.File]::WriteAllText(
+        $ot093DefaultsPath,
+        $ot093DefaultsContent,
+        [System.Text.UTF8Encoding]::new($false))
+    $ot093DefaultsSha256 =
+        (Get-FileHash -LiteralPath $ot093DefaultsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($ot093DefaultsSha256 -ne $requiredOt093DefaultsSha256) {
+        throw 'The generated OT-093 reproducible-build defaults digest does not match.'
+    }
+}
+$effectiveDefaultsPath = if ($ot093CleanBaseline) {
+    "$defaultsPath;$ot093DefaultsPath"
+} else {
+    $defaultsPath
+}
+$ot093ProjectVersionArgs = if ($ot093CleanBaseline) {
+    @('-D', "PROJECT_VER=$requiredOt093ProjectVersion")
+} else {
+    @()
+}
 
 foreach ($rosterSourcePath in @($protectedRootRosterHeaderPath, $protectedRootRosterSourcePath)) {
     if (-not (Test-Path -LiteralPath $rosterSourcePath -PathType Leaf)) {
@@ -54,6 +148,152 @@ $reportedVersion = (& $idfPython.Source $idfTool --version 2>&1 |
     ForEach-Object { $_.ToString().Trim() }) -join ' '
 if ($LASTEXITCODE -ne 0 -or $reportedVersion -ne $requiredVersion) {
     throw "Expected $requiredVersion; received '$reportedVersion'."
+}
+
+if ($ot093CleanBaseline) {
+    $pythonIdentity = (& $idfPython.Source --version 2>&1 |
+        ForEach-Object { $_.ToString().Trim() }) -join ' '
+    $pythonSha256 =
+        (Get-FileHash -LiteralPath $idfPython.Source -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($LASTEXITCODE -ne 0 -or $pythonIdentity -ne $requiredPythonVersion -or
+        $pythonSha256 -ne $requiredPythonSha256) {
+        throw 'The ESP-IDF Python executable does not match the frozen OT-093 baseline.'
+    }
+
+    $cmakeTool = Get-Command cmake -ErrorAction SilentlyContinue | Select-Object -First 1
+    $ninjaTool = Get-Command ninja -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $cmakeTool -or -not $ninjaTool) {
+        throw 'CMake or Ninja is unavailable in the exported ESP-IDF environment.'
+    }
+    $cmakeIdentity = (& $cmakeTool.Source --version 2>&1 |
+        Select-Object -First 1).ToString().Trim()
+    $ninjaIdentity = (& $ninjaTool.Source --version 2>&1 |
+        ForEach-Object { $_.ToString().Trim() }) -join ' '
+    $cmakeSha256 =
+        (Get-FileHash -LiteralPath $cmakeTool.Source -Algorithm SHA256).Hash.ToLowerInvariant()
+    $ninjaSha256 =
+        (Get-FileHash -LiteralPath $ninjaTool.Source -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($cmakeIdentity -ne $requiredCMakeVersion -or $cmakeSha256 -ne $requiredCMakeSha256) {
+        throw 'CMake does not match the frozen OT-093 baseline.'
+    }
+    if ($ninjaIdentity -ne $requiredNinjaVersion -or $ninjaSha256 -ne $requiredNinjaSha256) {
+        throw 'Ninja does not match the frozen OT-093 baseline.'
+    }
+
+    $gitTool = Get-Command git -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $gitTool) {
+        throw 'Git is unavailable; the exact OT-093 source revisions cannot be verified.'
+    }
+    $reportedIdfCommit = (& $gitTool.Source -C $env:IDF_PATH rev-parse HEAD 2>&1 |
+        ForEach-Object { $_.ToString().Trim() }) -join ''
+    if ($LASTEXITCODE -ne 0 -or $reportedIdfCommit -ne $requiredIdfCommit) {
+        throw "Expected ESP-IDF commit $requiredIdfCommit; received '$reportedIdfCommit'."
+    }
+    $idfTrackedStatus = @(& $gitTool.Source -C $env:IDF_PATH status --porcelain --untracked-files=all 2>&1 |
+        ForEach-Object { $_.ToString().Trim() } |
+        Where-Object { $_ })
+    if ($LASTEXITCODE -ne 0) {
+        throw 'The ESP-IDF tracked-source status could not be verified.'
+    }
+    if ($idfTrackedStatus.Count -ne 0) {
+        throw 'The pinned ESP-IDF source contains tracked or untracked changes; refusing a non-reproducible build baseline.'
+    }
+    $idfToolSha256 =
+        (Get-FileHash -LiteralPath $idfTool -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($idfToolSha256 -ne $requiredIdfToolSha256) {
+        throw 'The idf.py entrypoint digest does not match the frozen OT-093 baseline.'
+    }
+
+    & $gitTool.Source -C $projectRoot diff --quiet $acceptedFirmwareBaseCommit -- firmware/components firmware/targets/heltec_v4_bench
+    $sourceScopeDiffExitCode = $LASTEXITCODE
+    if ($sourceScopeDiffExitCode -ne 0) {
+        throw 'The firmware source scope differs from the frozen OpenTrail commit.'
+    }
+    $reportedGitCoreAutocrlf = (& $gitTool.Source -C $projectRoot config --get core.autocrlf 2>&1 |
+        ForEach-Object { $_.ToString().Trim().ToLowerInvariant() }) -join ''
+    if ($LASTEXITCODE -ne 0 -or $reportedGitCoreAutocrlf -ne $requiredGitCoreAutocrlf) {
+        throw 'OT-093 requires the frozen core.autocrlf=true working-tree byte contract.'
+    }
+    $untrackedFirmwareInputs = @(& $gitTool.Source -C $projectRoot ls-files --others --exclude-standard -- firmware/components firmware/targets/heltec_v4_bench |
+        ForEach-Object { $_.ToString().Trim() } |
+        Where-Object { $_ })
+    if ($LASTEXITCODE -ne 0 -or $untrackedFirmwareInputs.Count -ne 0) {
+        throw 'The frozen firmware scope contains untracked build inputs.'
+    }
+    $trackedSourceEntries = @(& $gitTool.Source -C $projectRoot ls-files --stage -- firmware/components firmware/targets/heltec_v4_bench |
+        ForEach-Object { $_.ToString() } |
+        Where-Object { $_ })
+    if ($LASTEXITCODE -ne 0 -or $trackedSourceEntries.Count -eq 0) {
+        throw 'The frozen firmware input inventory could not be enumerated.'
+    }
+    $sourceManifestLines = @(
+        foreach ($entry in $trackedSourceEntries) {
+            if ($entry -notmatch '^(\d{6}) ([0-9a-f]{40}) 0\t(.+)$') {
+                throw 'The firmware input inventory contains a non-stage-zero or malformed index entry.'
+            }
+            "$($Matches[1]) $($Matches[2]) $($Matches[3])"
+        }
+    )
+    $sourceManifestText = ($sourceManifestLines -join "`n") + "`n"
+    $sourceManifestBytes = [System.Text.Encoding]::UTF8.GetBytes($sourceManifestText)
+    $sourceManifestHasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $sourceManifestDigest = $sourceManifestHasher.ComputeHash($sourceManifestBytes)
+    } finally {
+        $sourceManifestHasher.Dispose()
+    }
+    $sourceManifestSha256 =
+        ([BitConverter]::ToString($sourceManifestDigest)).Replace('-', '').ToLowerInvariant()
+    if ($trackedSourceEntries.Count -ne $requiredFirmwareInputManifestFileCount -or
+        $sourceManifestSha256 -ne $requiredFirmwareInputManifestSha256) {
+        throw 'The firmware input manifest does not match the frozen OT-093 baseline.'
+    }
+    $workingTreeManifestLines = @(
+        foreach ($entry in $trackedSourceEntries) {
+            if ($entry -notmatch '^(\d{6}) ([0-9a-f]{40}) 0\t(.+)$') {
+                throw 'The working-tree manifest contains a malformed index entry.'
+            }
+            $relativePath = $Matches[3]
+            $workingTreePath = Join-Path $projectRoot ($relativePath.Replace('/', '\'))
+            $workingTreeSha256 =
+                (Get-FileHash -LiteralPath $workingTreePath -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$workingTreeSha256 $relativePath"
+        }
+    )
+    $workingTreeManifestText = ($workingTreeManifestLines -join "`n") + "`n"
+    $workingTreeManifestBytes = [System.Text.Encoding]::UTF8.GetBytes($workingTreeManifestText)
+    $workingTreeManifestHasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $workingTreeManifestDigest = $workingTreeManifestHasher.ComputeHash($workingTreeManifestBytes)
+    } finally {
+        $workingTreeManifestHasher.Dispose()
+    }
+    $workingTreeManifestSha256 =
+        ([BitConverter]::ToString($workingTreeManifestDigest)).Replace('-', '').ToLowerInvariant()
+    if ($workingTreeManifestSha256 -ne $requiredFirmwareWorkingTreeManifestSha256) {
+        throw 'The raw firmware working-tree bytes do not match the frozen OT-093 compiler inputs.'
+    }
+
+    $compilerTool = Get-Command $requiredCompiler -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $compilerTool) {
+        throw "The required compiler is unavailable: $requiredCompiler"
+    }
+    $compilerSha256 =
+        (Get-FileHash -LiteralPath $compilerTool.Source -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($compilerSha256 -ne $requiredCompilerSha256) {
+        throw 'The compiler executable digest does not match the frozen OT-093 baseline.'
+    }
+    $compilerReport = @(& $compilerTool.Source --version 2>&1 |
+        ForEach-Object { $_.ToString().Trim() })
+    if ($LASTEXITCODE -ne 0 -or $compilerReport.Count -eq 0) {
+        throw 'The compiler identity could not be verified.'
+    }
+    $compilerIdentity = $compilerReport[0]
+    if (-not $compilerIdentity.Contains($requiredCompilerVersion) -or
+        -not $compilerIdentity.Contains($requiredCrosstool)) {
+        throw "Expected compiler $requiredCompilerVersion / $requiredCrosstool; received '$compilerIdentity'."
+    }
 }
 
 $protectedRootMetadataSources = @(
@@ -254,7 +494,8 @@ if ($requiresTargetSelection) {
         -C $targetRoot `
         -B $buildRoot `
         -D "SDKCONFIG=$sdkconfigPath" `
-        -D "SDKCONFIG_DEFAULTS=$defaultsPath" `
+        -D "SDKCONFIG_DEFAULTS=$effectiveDefaultsPath" `
+        @ot093ProjectVersionArgs `
         set-target esp32s3
     if ($LASTEXITCODE -ne 0) {
         throw "ESP32-S3 target selection failed with exit code $LASTEXITCODE."
@@ -263,14 +504,23 @@ if ($requiresTargetSelection) {
     Write-Output 'Existing exact ESP32-S3/USB Serial-JTAG sdkconfig accepted; preserving incremental build state.'
 }
 
-& $idfPython.Source $idfTool `
+$buildOutput = @(& $idfPython.Source $idfTool `
     -C $targetRoot `
     -B $buildRoot `
     -D "SDKCONFIG=$sdkconfigPath" `
-    -D "SDKCONFIG_DEFAULTS=$defaultsPath" `
-    build
-if ($LASTEXITCODE -ne 0) {
-    throw "Heltec V4 bench candidate build failed with exit code $LASTEXITCODE."
+    -D "SDKCONFIG_DEFAULTS=$effectiveDefaultsPath" `
+    @ot093ProjectVersionArgs `
+    build 2>&1)
+$buildExitCode = $LASTEXITCODE
+$buildOutput | ForEach-Object { Write-Output $_ }
+if ($buildExitCode -ne 0) {
+    throw "Heltec V4 bench candidate build failed with exit code $buildExitCode."
+}
+$compilerWarningCount = @($buildOutput | Where-Object {
+    $_.ToString() -match '(?i)\bwarning:'
+}).Count
+if ($ot093CleanBaseline -and $compilerWarningCount -ne 0) {
+    throw "OT-093 requires a warning-free build; observed $compilerWarningCount warning lines."
 }
 
 $generatedSdkconfigLines = @(Get-Content -LiteralPath $sdkconfigPath)
@@ -314,6 +564,7 @@ foreach ($selection in $forbiddenNimbleSelections) {
 & $idfPython.Source $idfTool `
     -C $targetRoot `
     -B $buildRoot `
+    @ot093ProjectVersionArgs `
     size
 if ($LASTEXITCODE -ne 0) {
     throw "Heltec V4 bench candidate size analysis failed with exit code $LASTEXITCODE."
@@ -342,6 +593,17 @@ if ($imageBytes[2] -ne 0x02) {
 }
 if ($imageBytes[3] -ne 0x4F) {
     throw ('Application image header size/frequency mismatch: expected 16MB/80MHz byte 0x4F; received 0x{0:X2}.' -f $imageBytes[3])
+}
+if ($ot093CleanBaseline) {
+    $projectDescriptionPath = Join-Path $buildRoot 'project_description.json'
+    $projectDescription = Get-Content -LiteralPath $projectDescriptionPath -Raw | ConvertFrom-Json
+    if ($projectDescription.project_version -ne $requiredOt093ProjectVersion) {
+        throw 'The generated project description does not contain the stable OT-093 project version.'
+    }
+    $applicationText = [System.Text.Encoding]::ASCII.GetString($imageBytes)
+    if (-not $applicationText.Contains($requiredOt093ProjectVersion)) {
+        throw 'The application image does not embed the stable OT-093 project version.'
+    }
 }
 
 $partitionTool = Join-Path $env:IDF_PATH 'components\partition_table\gen_esp32part.py'
@@ -395,6 +657,25 @@ $partitionBinaryVerified = $true
 
 $linkMapPath = Join-Path $buildRoot 'opentrail_heltec_v4_bench.map'
 $linkMap = Get-Content -LiteralPath $linkMapPath -Raw
+if ($ot093CleanBaseline) {
+    $forbiddenOt005LinkTokens = @(
+        'libsodium',
+        'sodium_',
+        'monocypher',
+        'noise_xk',
+        'secure_lora',
+        'otsl0',
+        'otcb0'
+    )
+    foreach ($token in $forbiddenOt005LinkTokens) {
+        if ($linkMap.IndexOf($token, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            throw "OT-005 candidate or secure-LoRa adapter is present in the pre-selection link map: $token"
+        }
+    }
+    if ($generatedSdkconfigLines -notcontains 'CONFIG_APP_REPRODUCIBLE_BUILD=y') {
+        throw 'OT-093 generated sdkconfig did not enable ESP-IDF reproducible-build path normalization.'
+    }
+}
 foreach ($requiredObject in @(
     'companion_protocol.cpp.obj',
     'companion_semantics.cpp.obj',
@@ -520,10 +801,10 @@ $artifactEvidence = @(
         }
     }
 )
-
 $evidence = [ordered]@{
     status = 'NOT-FLASHED'
     framework = $requiredVersion
+    build_profile = $BuildProfile
     target = 'esp32s3'
     evidence_unit = 'OT-DEV-001'
     family_profile_part = 'ESP32-S3R2'
@@ -593,6 +874,90 @@ $evidence = [ordered]@{
     framework_log_surface = 'UNREVIEWED-RUNTIME'
     artifacts = $artifactEvidence
 }
+if ($ot093CleanBaseline) {
+    $publicBaselineArtifactPaths = @(
+        @{ Role = 'application'; Path = $applicationBinPath },
+        @{ Role = 'application_elf'; Path = (Join-Path $buildRoot 'opentrail_heltec_v4_bench.elf') },
+        @{ Role = 'linker_map'; Path = (Join-Path $buildRoot 'opentrail_heltec_v4_bench.map') },
+        @{ Role = 'bootloader'; Path = (Join-Path $buildRoot 'bootloader\bootloader.bin') },
+        @{ Role = 'partition_table'; Path = $partitionBinPath },
+        @{ Role = 'generated_sdkconfig'; Path = $sdkconfigPath },
+        @{ Role = 'partition_csv'; Path = $partitionCsvPath }
+    )
+    $publicBaselineArtifacts = @(
+        foreach ($artifact in $publicBaselineArtifactPaths) {
+            $item = Get-Item -LiteralPath $artifact.Path
+            [ordered]@{
+                role = $artifact.Role
+                name = $item.Name
+                bytes = $item.Length
+                sha256 = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+        }
+    )
+    $smallestAppSlotBytes = 5177344
+    $applicationImageBytes = (Get-Item -LiteralPath $applicationBinPath).Length
+    $applicationHeadroomBytes = $smallestAppSlotBytes - $applicationImageBytes
+    if ($applicationHeadroomBytes -le 0) {
+        throw 'The application image does not fit the smallest configured application slot.'
+    }
+    $generatedSdkconfigSha256 =
+        (Get-FileHash -LiteralPath $sdkconfigPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $evidence['ot005_pre_selection_baseline'] = [ordered]@{
+        status = 'BUILD-RUN-CAPTURED'
+        public_result = 'BUILD-RUN-CAPTURED; OTCBL0-RECONCILIATION-PENDING; OTCB0-EXECUTION-BLOCKED'
+        linked_claim = 'NO-OT005-CANDIDATE-OR-SECURE-LORA-ADAPTER-IMPORTED-OR-EXECUTED'
+        project_version = $requiredOt093ProjectVersion
+        accepted_firmware_base_commit = $acceptedFirmwareBaseCommit
+        firmware_input_manifest_kind = 'git-index-stage-zero-v1'
+        firmware_input_manifest_file_count = $trackedSourceEntries.Count
+        firmware_input_manifest_sha256 = $sourceManifestSha256
+        working_tree_manifest_kind = 'sha256-raw-bytes-path-v1'
+        working_tree_manifest_sha256 = $workingTreeManifestSha256
+        git_core_autocrlf = $requiredGitCoreAutocrlf
+        framework_commit = $requiredIdfCommit
+        framework_tracked_source_clean = $true
+        idf_py_sha256 = $requiredIdfToolSha256
+        compiler = $requiredCompiler
+        compiler_version = $requiredCompilerVersion
+        compiler_crosstool = $requiredCrosstool
+        compiler_sha256 = $requiredCompilerSha256
+        cmake_version = $requiredCMakeVersion
+        cmake_sha256 = $requiredCMakeSha256
+        ninja_version = $requiredNinjaVersion
+        ninja_sha256 = $requiredNinjaSha256
+        python_version = $requiredPythonVersion
+        python_sha256 = $requiredPythonSha256
+        independent_python_cache = $true
+        python_user_site_disabled = $true
+        clean_independent_build_directory = $true
+        shared_compiler_cache_disabled = $true
+        reproducible_build_paths_normalized = $true
+        reproducible_defaults_sha256 = $requiredOt093DefaultsSha256
+        generated_sdkconfig_sha256 = $generatedSdkconfigSha256
+        sdkconfig_role = 'PRE-SELECTION-BASELINE-NOT-FINAL-OTCB0'
+        future_ot005_candidate_builds_require_same_baseline_config = $true
+        ot005_candidate_imported = $false
+        secure_lora_adapter_imported = $false
+        secure_lora_adapter_executed = $false
+        suite_selected = $false
+        handshake_implemented = $false
+        packet_v1_wire_selected = $false
+        radio_enabled = $false
+        hardware_or_device_accessed = $false
+        key_or_entropy_operation = $false
+        score_credit_added = $false
+        otcb0_status = 'draft_blocked'
+        build_exit_code = $buildExitCode
+        compiler_warning_count = $compilerWarningCount
+        public_artifacts = $publicBaselineArtifacts
+        app_slot_headroom = [ordered]@{
+            application_image_bytes = $applicationImageBytes
+            smallest_app_slot_bytes = $smallestAppSlotBytes
+            headroom_bytes = $applicationHeadroomBytes
+        }
+    }
+}
 $evidencePath = Join-Path $buildRoot 'build-evidence.json'
 $evidenceJson = $evidence | ConvertTo-Json -Depth 4
 [System.IO.File]::WriteAllText(
@@ -604,3 +969,38 @@ Write-Output "Build-only target passed with $requiredVersion."
 Write-Output "Output: $buildRoot"
 Write-Output "Evidence: $evidencePath"
 Write-Output $evidenceJson
+} finally {
+    if ($ot093CleanBaseline) {
+        try {
+            if ($ot093PythonCacheOwnedByRun -and
+                (Test-Path -LiteralPath $ot093PythonCacheRoot -PathType Container)) {
+                $cacheItem = Get-Item -LiteralPath $ot093PythonCacheRoot -Force
+                $expectedCacheRoot = [System.IO.Path]::GetFullPath($ot093PythonCacheRoot)
+                $buildTargetsRoot = [System.IO.Path]::GetFullPath(
+                    (Join-Path $projectRoot 'build\targets'))
+                $nestedReparsePoints = @(Get-ChildItem -LiteralPath $cacheItem.FullName -Recurse -Force |
+                    Where-Object {
+                        $_.Attributes -band [System.IO.FileAttributes]::ReparsePoint
+                    })
+                if ($cacheItem.FullName -ne $expectedCacheRoot -or
+                    -not $cacheItem.FullName.StartsWith(
+                        "$buildTargetsRoot\ot093-python-cache-",
+                        [System.StringComparison]::OrdinalIgnoreCase) -or
+                    ($cacheItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -or
+                    $nestedReparsePoints.Count -ne 0) {
+                    throw 'Refusing unsafe OT-093 Python cache cleanup.'
+                }
+                Remove-Item -LiteralPath $cacheItem.FullName -Recurse -Force
+            }
+        } finally {
+            foreach ($name in $ot093EnvironmentNames) {
+                $snapshot = $ot093EnvironmentSnapshot[$name]
+                if ($snapshot.Exists) {
+                    Set-Item -LiteralPath "Env:$name" -Value $snapshot.Value
+                } else {
+                    Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+                }
+            }
+        }
+    }
+}
