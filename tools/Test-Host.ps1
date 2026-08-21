@@ -2003,6 +2003,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OTRPF0 direct-radio profile evidence-contract tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_radio_diag_source_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('Heltec V4 radio diagnostic source tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_historical_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "OTCBL0 historical successor tests failed with exit code $LASTEXITCODE."
