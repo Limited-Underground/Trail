@@ -75,8 +75,22 @@ void draw_status_text(std::array<std::uint8_t, kTrailStartupLogoBytes>& frame,
     }
 }
 
-}  // namespace
 
+void draw_frame_footer(
+    std::array<std::uint8_t, kTrailStartupLogoBytes>& pixels,
+    StartupDisplayFrame frame) {
+    ui::compact_status_footer::Page footer{};
+    if (startup_display_compact_footer_page(frame, footer)) {
+        std::copy(
+            footer.columns.begin(),
+            footer.columns.end(),
+            pixels.begin() + kStatusPage * kDisplayWidth);
+        return;
+    }
+    draw_status_text(pixels, startup_display_text(frame));
+}
+
+}  // namespace
 bool HeltecV4Oled::record_failure(const char* step, int error_code) {
     ESP_LOGW(kLogTag, "display unavailable step=%s code=%d", step, error_code);
     initialized_ = false;
@@ -150,7 +164,7 @@ bool HeltecV4Oled::initialize() {
 bool HeltecV4Oled::render(StartupDisplayFrame frame) {
     if (!initialized_ || panel_ == nullptr) return false;
     auto pixels = kTrailStartupLogoSsd1306;
-    draw_status_text(pixels, startup_display_text(frame));
+    draw_frame_footer(pixels, frame);
     const auto result = esp_lcd_panel_draw_bitmap(
         panel_, 0, 0, kDisplayWidth, kDisplayHeight, pixels.data());
     return result == ESP_OK || record_failure("panel-draw", result);

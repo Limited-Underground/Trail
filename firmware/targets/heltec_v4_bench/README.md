@@ -15,6 +15,20 @@ Decision 0028 defers rollback-protected authorization on this hardware; no
 secure ownership, trusted phone, protected write, provisioning, or Ready path
 is enabled.
 
+OT-106 promotes the accepted compact-footer implementation into the production
+UI component and build-links it into this target. BLE startup, advertising,
+connected, retry, and terminal-error frames render the exact compact footer
+`BAT:--% GPS:-- BLE:<S/A/C/R/E>` with a blank five-column direction field.
+Terminal runtime error has compact `BLE:E` precedence. The startup logo and
+explicit full-screen `SELF CHECK FAIL` path remain separate.
+
+The target deliberately binds no live battery percentage, GNSS satellite
+observation, or LoRa activity owner. Battery and GPS therefore remain at their
+fail-closed placeholders and no RX/TX arrow can appear. Two fresh pinned,
+cache-isolated computer builds linked the component with zero warnings and
+identical artifacts; this is not device, flash, radio, physical-display, live-
+telemetry, support, regulatory, readiness, final-configuration, or score
+acceptance. See [OT-106 evidence](../../../tests/hardware/OT-106-2026-08-21.md).
 This bounded ESP-IDF target is the first native OpenTrail build surface for the
 ESP32-S3 family used by the two assembled Heltec V4 bench clients. OT-059 binds
 the build configuration to the recorded `OT-DEV-001` evidence: observed

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "compact_status_footer.hpp"
+#include "opentrail/compact_status_footer.hpp"
 #include "opentrail/companion_ble_runtime_owner.hpp"
 #include "opentrail/power_state.hpp"
 

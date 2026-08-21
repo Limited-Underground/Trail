@@ -13,8 +13,8 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-105 accepts the exact installed pinned ESP-IDF v6.0.2 / mbedTLS 4.1.0 source and dependency lock as host-only metadata evidence. All 3,551 source files and 198 component-glue files are covered exactly once; accepted source/API-configuration/import counts become `3/0/0`. No readiness blocker closes: the mbedTLS/PSA composite requirement still lacks API/configuration eligibility, OT-096 remains 5/8, and final configuration plus direct-radio MTU/PHY/region remain open. No source copy/import/build/device/radio/benchmark/selection/legal/support or score claim was added |
-| Proven so far | OT-105 accepts only the pinned host source/dependency lock; readiness remains blocked. OT-103 adds bounded owner-supplied physical identity evidence for one experimental target without new device access or a support claim. OT-095 adds strict source-evidence admission governance, not a source lock or candidate readiness. OT-094 adds strict blocked readiness governance, not candidate readiness. OT-093 adds reproducible build-only evidence, not crypto performance or target support. OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on the same experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 and V2 remain unmeasured |
+| Latest increment | OT-106 promotes the accepted compact footer into the production UI component and links it into the Heltec V4 bench target. Two fresh pinned, cache-isolated computer builds reproduce the same seven artifacts with zero warnings and leave 4,704,320 bytes of application-slot headroom. The target still supplies no live battery, GNSS, or LoRa-activity source, and no device, flash, radio, physical-display, support, readiness, configuration, crypto, regulatory, or score claim is added |
+| Proven so far | OT-106 proves only deterministic build linkage of `BAT:--% GPS:-- BLE:<S/A/C/R/E>` plus a blank direction field; it does not prove live telemetry or a viewed display. OT-105 accepts only the pinned host source/dependency lock; readiness remains blocked. OT-103 adds bounded owner-supplied physical identity evidence for one experimental target without new device access or a support claim. OT-095 adds strict source-evidence admission governance, not a source lock or candidate readiness. OT-094 adds strict blocked readiness governance, not candidate readiness. OT-093 adds reproducible build-only evidence, not crypto performance or target support. OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on the same experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 and V2 remain unmeasured |
 | Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 
@@ -99,6 +99,17 @@ readiness requirements, accept a new immutable executable plan,
 run the exact candidate benchmark under separate authority, and make a later
 explicit suite/wire decision. Implementation and physical acceptance remain
 separately authorized.
+
+[OT-106 evidence](tests/hardware/OT-106-2026-08-21.md) records the separate
+compact-footer target-linkage build. Both fresh computer-only builds used the
+exact 309-file staged input, exited with zero warnings, and produced identical
+ordered artifact tuples; no device or radio operation ran. All five accepted
+OT-093 files remain byte-for-byte unchanged. Its frozen `3837dbce...` mixed-EOL
+raw-working-tree digest remains an immutable one-time historical digest whose
+per-line map was not recorded and is therefore non-reconstructible. The
+successor record's separately reproducible `c84ba0e3...` Git-blob transform
+aggregate describes a deterministic isolated checkout; it is distinct from
+and does not replace or reconstruct `3837dbce...`.
 
 V1.5 is the separate four-supported-node interoperability milestone. Any
 compatible mix of supported hardware is allowed and heterogeneous evidence is

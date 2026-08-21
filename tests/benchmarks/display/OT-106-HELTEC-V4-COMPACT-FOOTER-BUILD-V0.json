@@ -1,0 +1,133 @@
+{
+  "schema": "OTFBL0",
+  "version": 0,
+  "record_id": "OT-106-HELTEC-V4-COMPACT-FOOTER-BUILD-V0",
+  "status": "build_evidence_captured",
+  "public_result": "COMPUTER-BUILD-ONLY; COMPACT-FOOTER-BUILD-LINKED; DEVICE-AND-RADIO-NOT-RUN",
+  "source": {
+    "firmware_input_manifest_kind": "git-index-stage-zero-v1",
+    "firmware_input_manifest_file_count": 309,
+    "firmware_input_manifest_sha256": "c2b731d2e3ca8031afc3679759c8768f183e4c3665877ed342981df4ef7030d8",
+    "working_tree_manifest_kind": "sha256-raw-bytes-path-v1",
+    "working_tree_manifest_sha256": "95a888b6f8c47509af744426e94e429040b0ef29b1947371c71fc18006dec0a9",
+    "git_core_autocrlf": "true"
+  },
+  "toolchain": {
+    "framework": "ESP-IDF v6.0.2",
+    "framework_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "framework_clean": true,
+    "idf_py_sha256": "5f703be3a915433f63206a28260357ad807ec83ae0a8589c684c9c08516a7a40",
+    "compiler": "xtensa-esp32s3-elf-gcc",
+    "compiler_version": "15.2.0",
+    "compiler_crosstool": "esp-15.2.0_20251204",
+    "compiler_sha256": "20e70278d1fa041c1305e0e70e6f35dde01b7eb21f2c7bbc0013456493a011a5",
+    "cmake_version": "cmake version 4.0.3",
+    "cmake_sha256": "392ab4d6c3c91543fd297ed6c7e7354bf62edcd26fdf2706ad8613ad620cc45e",
+    "ninja_version": "1.12.1",
+    "ninja_sha256": "68865c3276d449d746cea5065fdec2baf755d7813e161ab04205b0907b2629b8",
+    "python_version": "Python 3.14.6",
+    "python_sha256": "199ce15a9f0d4f9522edba59338e4879d28cf61f88e377b8164bcb716275ed22"
+  },
+  "inputs": {
+    "project_version": "ot106-footer-v0",
+    "build_helper": "tools/Build-HeltecV4BenchCompactFooter.ps1",
+    "build_helper_sha256": "81c23dab25b26a90a17be585862c74b119c63df64433d0c3b3cc2d9e50b7f289",
+    "target_contract": "firmware/targets/heltec_v4_bench/target-contract.json",
+    "target_contract_sha256": "27274362c77bd53ebc14fa32a22f39c4b6302d5cba0634a78ac1d0175fa1a9ad",
+    "sdkconfig_defaults": "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
+    "sdkconfig_defaults_sha256": "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb",
+    "reproducible_defaults_sha256": "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6"
+  },
+  "build_reproducibility": {
+    "clean_run_count": 2,
+    "profiles": ["ot106-a", "ot106-b"],
+    "independent_build_directories": true,
+    "independent_python_caches": true,
+    "python_user_site_disabled": true,
+    "shared_compiler_cache_disabled": true,
+    "reproducible_build_paths_normalized": true,
+    "runs": [
+      {
+        "profile": "ot106-a",
+        "build_helper_sha256": "81c23dab25b26a90a17be585862c74b119c63df64433d0c3b3cc2d9e50b7f289",
+        "raw_receipt_sha256": "154a1d21741ccb9c98a8bcfbf2462b581279cf635c4d565d3a45a49ce89af379",
+        "normalized_receipt_sha256": "7c5a46a0edcc1efd860a737cfd185b231eb8b54bdce081823dbedba0830cb84e",
+        "build": {
+          "exit_code": 0,
+          "compiler_warning_count": 0,
+          "partition_layout": "OTHP0/v0-verified-generated-binary",
+          "public_artifacts": [
+            {"role": "application", "name": "opentrail_heltec_v4_bench.bin", "bytes": 473024, "sha256": "d6047f45b6defbf5613bdfcc6ffbf5207a96fa26812090bab58cc593e260e017"},
+            {"role": "application_elf", "name": "opentrail_heltec_v4_bench.elf", "bytes": 6835144, "sha256": "ad6a8acfe02073cd4c503820a262591176e8486e623f504d26bf7677f954d236"},
+            {"role": "linker_map", "name": "opentrail_heltec_v4_bench.map", "bytes": 6374646, "sha256": "7835435b5dce27e5eafdc08ff049a3e57b447fa6f9cf8921fdcaaab4b312ab74"},
+            {"role": "bootloader", "name": "bootloader.bin", "bytes": 22480, "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"},
+            {"role": "partition_table", "name": "partition-table.bin", "bytes": 3072, "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"},
+            {"role": "generated_sdkconfig", "name": "sdkconfig", "bytes": 106913, "sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"},
+            {"role": "partition_csv", "name": "partitions.csv", "bytes": 452, "sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"}
+          ],
+          "application_image_bytes": 473024,
+          "smallest_app_slot_bytes": 5177344,
+          "headroom_bytes": 4704320
+        }
+      },
+      {
+        "profile": "ot106-b",
+        "build_helper_sha256": "81c23dab25b26a90a17be585862c74b119c63df64433d0c3b3cc2d9e50b7f289",
+        "raw_receipt_sha256": "2dd97bbedc477bb8b4eb0206b41198a4bef520ce34f1ea2b6dcb72284435c842",
+        "normalized_receipt_sha256": "7c5a46a0edcc1efd860a737cfd185b231eb8b54bdce081823dbedba0830cb84e",
+        "build": {
+          "exit_code": 0,
+          "compiler_warning_count": 0,
+          "partition_layout": "OTHP0/v0-verified-generated-binary",
+          "public_artifacts": [
+            {"role": "application", "name": "opentrail_heltec_v4_bench.bin", "bytes": 473024, "sha256": "d6047f45b6defbf5613bdfcc6ffbf5207a96fa26812090bab58cc593e260e017"},
+            {"role": "application_elf", "name": "opentrail_heltec_v4_bench.elf", "bytes": 6835144, "sha256": "ad6a8acfe02073cd4c503820a262591176e8486e623f504d26bf7677f954d236"},
+            {"role": "linker_map", "name": "opentrail_heltec_v4_bench.map", "bytes": 6374646, "sha256": "7835435b5dce27e5eafdc08ff049a3e57b447fa6f9cf8921fdcaaab4b312ab74"},
+            {"role": "bootloader", "name": "bootloader.bin", "bytes": 22480, "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"},
+            {"role": "partition_table", "name": "partition-table.bin", "bytes": 3072, "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"},
+            {"role": "generated_sdkconfig", "name": "sdkconfig", "bytes": 106913, "sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"},
+            {"role": "partition_csv", "name": "partitions.csv", "bytes": 452, "sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"}
+          ],
+          "application_image_bytes": 473024,
+          "smallest_app_slot_bytes": 5177344,
+          "headroom_bytes": 4704320
+        }
+      }
+    ]
+  },
+  "footer": {
+    "component_object_linked": true,
+    "target_display_owner_linked": true,
+    "ble_short_codes": ["S", "A", "C", "R", "E"],
+    "battery_live_source_bound": false,
+    "gps_live_source_bound": false,
+    "radio_activity_source_bound": false
+  },
+  "app_slot_headroom": {
+    "application_image_bytes": 473024,
+    "smallest_app_slot_bytes": 5177344,
+    "headroom_bytes": 4704320
+  },
+  "historical_preservation": {
+    "ot093_record_sha256": "240906d62926048e6f55b1bb11ce21538e24edbeb8956439ffeb35f3b49b3c83",
+    "ot093_helper_sha256": "6f3ffcb724e2eb52f3d553596481983330fdb2484871b0aab5f793763f2d07fe",
+    "ot093_validator_sha256": "84e441141708d839d6cb13117476068a7c36570fdafd880173196205c778c747",
+    "ot093_tests_sha256": "83dff18b1b73f3567368e6e2cc582718eae7437e1a8a535c060ccaa1634730d4",
+    "ot093_evidence_note_sha256": "d4b504b34ec731b287ef24276861bd7ce105fd2b613ce00cdc3d22cb84ce8938"
+  },
+  "claims": {
+    "hardware_or_device_accessed": false,
+    "flash_or_erase_performed": false,
+    "radio_or_ble_executed": false,
+    "key_or_entropy_operation": false,
+    "target_support_claimed": false,
+    "physical_display_claimed": false,
+    "live_telemetry_claimed": false,
+    "candidate_readiness_claimed": false,
+    "final_configuration_selected": false,
+    "crypto_candidate_imported": false,
+    "crypto_benchmark_executed": false,
+    "crypto_suite_selected": false,
+    "score_credit_added": false
+  }
+}

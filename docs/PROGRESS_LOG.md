@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-21
 
+### OT-106 Heltec compact-footer build integration
+
+- Promoted the accepted OT-101/OT-101A implementation into the production UI component and linked it into the Heltec V4 bench target. The build-linked footer is `BAT:--% GPS:-- BLE:<S/A/C/R/E>` with a blank five-column direction field; terminal BLE errors retain compact `BLE:E`, while the startup logo and explicit full-screen `SELF CHECK FAIL` path remain separate.
+- No live battery, GNSS, or LoRa-activity source is bound. Two fresh, initially absent, cache-isolated pinned ESP-IDF v6.0.2 builds used the exact 309-file staged input, exited zero with zero warnings, reproduced the same ordered seven artifacts, built a 473,024-byte application, and left 4,704,320 bytes free in the verified 5,177,344-byte smallest application slot. Aggregate SHA-256 is `3ba1145cf56cdad3447ce4a1a01c1098e2e78f2c2ffaa8e5378bc4f911b59dc9`.
+- Preserved all five accepted OT-093 files byte-for-byte. Its immutable historical mixed-EOL raw digest `3837dbce...` is non-reconstructible because no per-line map was retained; the successor's deterministic Git-blob transforms separately reproduce distinct checkout aggregate `c84ba0e3...` and do not replace or reconstruct `3837dbce...`.
+- Focused footer, adapter, startup, target, successor, evidence, and tamper gates passed; independent audit cleared the slice and full Test-Host session 99300 passed. No hardware/device access, flash/erase, radio/BLE/key/entropy/benchmark operation, physical-display/live-telemetry/support/readiness/configuration/crypto/regulatory/score claim was added. Three current readiness requirements remain; Android stays 60%, V1 exact 43.75%/displayed 44%, baseline exact 31.75%/displayed 32%. See [OT-106 evidence](../tests/hardware/OT-106-2026-08-21.md).
 ### OT-105 pinned ESP-IDF mbedTLS/PSA source-lock admission
 
 - Accepted exact `OTCSLE0/v1` evidence SHA-256 `ae12ad7da6702ac85092e9cb8ad793b749871153fadee8b1a276e5a46b036e49`, strict `OTMPSLA0/v0` admission SHA-256 `26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85`, and project-lock SHA-256 `12f8699d8d286a484e054df186fb0e8c97b75263d23caf4bd77ed48082e9c7ab`.

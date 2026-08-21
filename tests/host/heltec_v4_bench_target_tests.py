@@ -87,6 +87,12 @@ DISPLAY_OWNER = TARGET / "main" / "heltec_startup_display.cpp"
 DISPLAY_ADAPTER_HEADER = TARGET / "main" / "heltec_v4_oled.hpp"
 DISPLAY_ADAPTER = TARGET / "main" / "heltec_v4_oled.cpp"
 DISPLAY_LOGO = TARGET / "main" / "trail_startup_logo.hpp"
+COMPACT_FOOTER_HEADER = (
+    ROOT / "firmware" / "components" / "ui" / "include" / "opentrail" /
+    "compact_status_footer.hpp")
+COMPACT_FOOTER = (
+    ROOT / "firmware" / "components" / "ui" / "src" /
+    "compact_status_footer.cpp")
 
 
 def require(condition: bool, message: str) -> None:
@@ -272,6 +278,8 @@ def test_contract() -> None:
         "ble_service_advertising_physically_observed",
         "oled_startup_display_owner_host_tested",
         "oled_startup_display_build_linked",
+        "oled_compact_status_footer_host_tested",
+        "oled_compact_status_footer_build_linked",
         "oled_startup_logo_coded",
         "oled_ble_phase_status_coded",
         "oled_ble_link_status_physically_observed",
@@ -360,6 +368,14 @@ def test_contract() -> None:
             capabilities["oled_startup_logo_coded"] is True and
             capabilities["oled_ble_phase_status_coded"] is True,
             "host-tested, build-linked OLED startup/status surface must be admitted")
+    require(capabilities["oled_compact_status_footer_host_tested"] is True and
+            capabilities["oled_compact_status_footer_build_linked"] is True and
+            capabilities[
+                "oled_compact_status_footer_live_telemetry_bound"] is False and
+            capabilities[
+                "oled_compact_status_footer_radio_activity_bound"] is False,
+            "compact footer must remain placeholder-only and radio-unbound")
+
     require(capabilities["oled_startup_display_physically_observed"] is True and
             capabilities["oled_ble_link_status_physically_observed"] is True and
             capabilities["display"] is False,
@@ -898,8 +914,8 @@ def test_protected_root_key_roster_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 23,
-            "non-injection gate must cover the exact 23-source target build")
+    require(len(linked_source_tokens) == 24,
+            "non-injection gate must cover the exact 24-source target build")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -911,7 +927,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 22,
+    require(len(other_linked_sources) == 23,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -973,8 +989,8 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 23,
-            "configuration/security non-injection gate must cover 23 sources")
+    require(len(linked_source_tokens) == 24,
+            "configuration/security non-injection gate must cover 24 sources")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_configuration_security_adapter.cpp":
@@ -986,7 +1002,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 22,
+    require(len(other_linked_sources) == 23,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1004,6 +1020,8 @@ def test_display_surface() -> None:
     adapter_header = DISPLAY_ADAPTER_HEADER.read_text(encoding="utf-8")
     adapter = DISPLAY_ADAPTER.read_text(encoding="utf-8")
     logo = DISPLAY_LOGO.read_text(encoding="utf-8")
+    footer_header = COMPACT_FOOTER_HEADER.read_text(encoding="utf-8")
+    footer = COMPACT_FOOTER.read_text(encoding="utf-8")
 
     exact_constants = (
         "kHeltecV4OledSdaGpio = 17",
@@ -1055,6 +1073,49 @@ def test_display_surface() -> None:
                 f"typed BLE runtime phase lacks display mapping: {phase}")
     require('return "BLE ADVERTISING"' in owner,
             "advertising text must be available only through the typed frame")
+
+    footer_codes = {
+        "ble_starting": "BleCode::starting",
+        "ble_advertising": "BleCode::advertising",
+        "ble_connected": "BleCode::connected",
+        "ble_retrying": "BleCode::retrying",
+        "ble_error": "BleCode::error",
+    }
+    for frame, code in footer_codes.items():
+        require(re.search(
+            rf"StartupDisplayFrame::{frame}.*?snapshot\.ble = {code};",
+            owner, re.DOTALL) is not None,
+            f"typed BLE frame lacks compact footer code: {frame}")
+    require("Snapshot snapshot{}" in owner and
+            "Freshness{0, 0}" in owner and
+            "ActivityOwner unsupported_activity{false, 0}" in owner,
+            "target footer must force unavailable metrics and unsupported activity")
+    require("case StartupDisplayFrame::logo:" in owner and
+            "case StartupDisplayFrame::self_check_failed:" in owner and
+            "page = {};" in owner and "return false;" in owner,
+            "logo and SELF CHECK FAIL must bypass the compact BLE footer")
+    require("footer.columns.begin()" in adapter and
+            "kStatusPage = 7" in adapter and
+            "kDisplayWidth = 128" in adapter and
+            "startup_display_compact_footer_page(frame, footer)" in adapter and
+            "footer.columns.end()" in adapter and
+            "pixels.begin() + kStatusPage * kDisplayWidth" in adapter,
+            "OLED adapter must copy the exact 128-column page into page 7")
+    require("draw_status_text(pixels, startup_display_text(frame))" in adapter and
+            'return "SELF CHECK FAIL"' in owner,
+            "logo/self-check fallback path must remain explicit")
+    require("kWidth = 128" in footer_header and
+            "render_text(page, 1U, fields.battery)" in footer and
+            "render_text(page, 51U, fields.gps)" in footer and
+            "render_text(page, 89U, fields.ble)" in footer,
+            "target must reuse the accepted compact footer geometry")
+    for forbidden_binding in (
+        "battery_metric_from_power", "GpsProvider",
+        "observe_accepted_transport_event", "RadioTransport",
+    ):
+        require(forbidden_binding not in "\n".join(
+                    (source, owner_header, owner, adapter_header, adapter)),
+                f"placeholder target gained live source binding: {forbidden_binding}")
 
     display_start = source.index("observe_display_result(g_startup_display.start())")
     self_check_start = source.index("if (!run_companion_codec_self_check() ||")
@@ -1427,12 +1488,14 @@ def test_application_surface() -> None:
         "heltec_startup_display.cpp",
         "heltec_v4_oled.cpp",
         "protocol/include",
+        "ui/src/compact_status_footer.cpp",
+        "ui/include",
         "radio/include",
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 23,
-            "target source set must remain eleven target and twelve companion sources")
+    require(cmake.count('.cpp"') == 24,
+            "target source set must remain eleven target, twelve companion, and one UI source")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",

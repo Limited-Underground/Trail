@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "opentrail/companion_ble_runtime_owner.hpp"
+#include "opentrail/compact_status_footer.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 
@@ -48,6 +49,13 @@ private:
 
 [[nodiscard]] StartupDisplayFrame startup_display_frame_for_ble_phase(
     companion::CompanionBleRuntimePhase phase);
+
+// Produces the compact page for BLE frames only. Battery and GPS remain
+// unavailable and radio activity is unsupported, so those fields fail closed.
+[[nodiscard]] bool startup_display_compact_footer_page(
+    StartupDisplayFrame frame,
+    ui::compact_status_footer::Page& page);
+
 
 [[nodiscard]] const char* startup_display_text(StartupDisplayFrame frame);
 

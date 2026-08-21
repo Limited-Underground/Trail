@@ -1,4 +1,4 @@
-#include "compact_status_footer.hpp"
+#include "opentrail/compact_status_footer.hpp"
 
 #include <array>
 #include <cstddef>

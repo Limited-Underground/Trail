@@ -1,0 +1,2284 @@
+{
+  "schema": "OTHBL0",
+  "version": 0,
+  "record_id": "OT-093-HISTORICAL-SUCCESSOR-V0",
+  "status": "historical_successor_gate",
+  "frozen_suite": {
+    "raw_files": [
+      {
+        "role": "record",
+        "path": "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json",
+        "bytes": 7585,
+        "sha256": "240906d62926048e6f55b1bb11ce21538e24edbeb8956439ffeb35f3b49b3c83"
+      },
+      {
+        "role": "helper",
+        "path": "tools/Build-HeltecV4BenchTarget.ps1",
+        "bytes": 48249,
+        "sha256": "6f3ffcb724e2eb52f3d553596481983330fdb2484871b0aab5f793763f2d07fe"
+      },
+      {
+        "role": "validator",
+        "path": "tools/crypto_benchmark_baseline.py",
+        "bytes": 26497,
+        "sha256": "84e441141708d839d6cb13117476068a7c36570fdafd880173196205c778c747"
+      },
+      {
+        "role": "tests",
+        "path": "tests/host/crypto_benchmark_baseline_tests.py",
+        "bytes": 22742,
+        "sha256": "83dff18b1b73f3567368e6e2cc582718eae7437e1a8a535c060ccaa1634730d4"
+      },
+      {
+        "role": "evidence_note",
+        "path": "tests/hardware/OT-093-2026-08-20.md",
+        "bytes": 7161,
+        "sha256": "d4b504b34ec731b287ef24276861bd7ce105fd2b613ce00cdc3d22cb84ce8938"
+      }
+    ]
+  },
+  "source_snapshot": {
+    "firmware_base_commit": "0afac6b1cf3d142aca2f2cae98264f80ee801989",
+    "ot093_acceptance_commit": "e144e683d5a07fb4e305f95895f4f07cffb2d869",
+    "acceptance_parent_commit": "0afac6b1cf3d142aca2f2cae98264f80ee801989",
+    "scopes": [
+      "firmware/components",
+      "firmware/targets/heltec_v4_bench"
+    ],
+    "commit_tree_file_count": 307,
+    "commit_tree_manifest_sha256": "6738195a7da53eb3d03c4a47552f6c0b6489559a2d81c0ba068489fe9faf7bc3",
+    "checkout_core_autocrlf": true,
+    "checkout_manifest_sha256": "c84ba0e3baf334134a60bf753cc951824b9ac21edf1390b143ce21e1194a0c45",
+    "historical_working_manifest_sha256": "3837dbce866a3fc7cef76fd374bf242bb0125c042e8de15273a9e44bafff3324",
+    "historical_working_manifest_status": "accepted-one-time-historical-digest",
+    "historical_working_manifest_git_reconstructible": false,
+    "historical_mixed_eol_per_file_map_available": false,
+    "historical_limitation": "exact mixed-EOL per-file map unavailable/non-reconstructible",
+    "checkout_derivation": "one-time-isolated-autocrlf-checkout; reproduced-by-explicit-git-blob-transforms"
+  },
+  "inputs": {
+    "target_contract": {
+      "path": "firmware/targets/heltec_v4_bench/target-contract.json",
+      "commit": "0afac6b1cf3d142aca2f2cae98264f80ee801989",
+      "mode": "100644",
+      "blob_oid": "ad09ee666ad56f3926ab189ed4adea6cabe98ba8",
+      "canonical_sha256": "8f263e9d5fd756e5b80dbed33dbbc4e264a66763ce6088bca3d894cc42025615"
+    },
+    "sdkconfig_defaults": {
+      "path": "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
+      "commit": "0afac6b1cf3d142aca2f2cae98264f80ee801989",
+      "mode": "100644",
+      "blob_oid": "bc413557f07e8389ae73cd7bea379c23944265bd",
+      "canonical_sha256": "84d54e5d730ba28ceba0c97831a477303db128d63ede7575bec52013770d70c0"
+    },
+    "build_helper": {
+      "path": "tools/Build-HeltecV4BenchTarget.ps1",
+      "commit": "e144e683d5a07fb4e305f95895f4f07cffb2d869",
+      "mode": "100644",
+      "blob_oid": "0e5506f6d63c2fbb9cbeb1360575c0d37f0bde76",
+      "canonical_sha256": "c36a58e0529a7628b66cc4674f4207804ae2d0a709b9d3a20b4973de6c585214",
+      "frozen_working_raw_sha256": "6f3ffcb724e2eb52f3d553596481983330fdb2484871b0aab5f793763f2d07fe",
+      "checkout_raw_sha256": "24e142dcf21a9709200f14b6c6f1578023f96e71946f584ac00a3bbc8f1835a6",
+      "checkout_transform": "lf-to-crlf-v1"
+    }
+  },
+  "test_plan": {
+    "discovered_original_tests": [
+      "test_accepted_build_lock_is_exact_and_still_blocked",
+      "test_two_clean_cache_disabled_receipts_are_seven_artifact_equal",
+      "test_source_toolchain_and_generated_defaults_are_bound",
+      "test_firmware_input_manifest_is_current_and_ordered",
+      "test_headroom_equation_and_bounds_fail_closed",
+      "test_candidate_specific_claim_does_not_deny_framework_crypto",
+      "test_historical_otcb0_plan_is_unchanged_and_ineligible",
+      "test_ot094_preserves_historical_plan_and_baseline_bytes",
+      "test_exact_types_unknown_fields_cycles_and_depth_are_rejected",
+      "test_two_run_forgeries_partial_receipts_and_swaps_fail_closed",
+      "test_private_content_and_cli_errors_are_sanitized",
+      "test_validator_and_build_helper_add_no_execution_authority",
+      "test_ot093_environment_is_restored_after_success_and_failure"
+    ],
+    "skipped_original_tests": [
+      "test_source_toolchain_and_generated_defaults_are_bound",
+      "test_firmware_input_manifest_is_current_and_ordered"
+    ],
+    "executed_original_tests": [
+      "test_accepted_build_lock_is_exact_and_still_blocked",
+      "test_two_clean_cache_disabled_receipts_are_seven_artifact_equal",
+      "test_headroom_equation_and_bounds_fail_closed",
+      "test_candidate_specific_claim_does_not_deny_framework_crypto",
+      "test_historical_otcb0_plan_is_unchanged_and_ineligible",
+      "test_ot094_preserves_historical_plan_and_baseline_bytes",
+      "test_exact_types_unknown_fields_cycles_and_depth_are_rejected",
+      "test_two_run_forgeries_partial_receipts_and_swaps_fail_closed",
+      "test_private_content_and_cli_errors_are_sanitized",
+      "test_validator_and_build_helper_add_no_execution_authority",
+      "test_ot093_environment_is_restored_after_success_and_failure"
+    ],
+    "replacement_tests": [
+      "test_source_toolchain_and_generated_defaults_are_historically_bound",
+      "test_firmware_input_manifest_is_historically_reconstructed"
+    ]
+  },
+  "policy": {
+    "commit_fallback_allowed": false,
+    "working_tree_fallback_allowed": false,
+    "git_error_echo_allowed": false,
+    "checkout_digest_equivalent_to_historical_digest": false,
+    "temporary_checkout_performed": false
+  },
+  "reconstruction": {
+    "kind": "acceptance-commit-isolated-autocrlf-derived-git-blob-transform-v1",
+    "entries": [
+      {
+        "path": "firmware/components/.gitkeep",
+        "mode": "100644",
+        "blob_oid": "8b137891791fe96927ad78e64b0aad7bded08bdc",
+        "checkout_raw_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_authorization.hpp",
+        "mode": "100644",
+        "blob_oid": "afd1ff6d2edb0ec33d5554fd3fdf0bcd30ea60e9",
+        "checkout_raw_sha256": "04c9838676e2deabbb53111abba2ded60d153dadcb3c41f02fc03246ba414be3",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_authorization_persistence.hpp",
+        "mode": "100644",
+        "blob_oid": "f269ef0fcaf56bc2c936f7d878d597c699e655ef",
+        "checkout_raw_sha256": "b5a06bb95d5375155a7e71a3aefe76bd981c8b49a3d10d03e724f4eb9dcdee31",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_authorization_protected_kv_media.hpp",
+        "mode": "100644",
+        "blob_oid": "f43ea4407231c25154911cd490091107bd92769d",
+        "checkout_raw_sha256": "ee5377acfef4133bc01396dcd00c326cb050fdea770769c378b7847dce406f30",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_authorization_protected_store.hpp",
+        "mode": "100644",
+        "blob_oid": "6d5d08bc2cace025eccf682c3699fa8f0d8255c5",
+        "checkout_raw_sha256": "70ec92ec2a31e3356c3591d802b2da28a69187945a1997fab97eb5553cc6a7d4",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_authorization_rollback_floor_provider.hpp",
+        "mode": "100644",
+        "blob_oid": "6f5b8a9ce52c81310df9901ade6cc1f83c5e8bea",
+        "checkout_raw_sha256": "3de57b10aa8b53c3170546cba591d429477a8a66c1b3dd12604949e5dbb731ca",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_authorization_storage_recovery_route.hpp",
+        "mode": "100644",
+        "blob_oid": "35ae0950ac1024ea95d1a7e48ce2048d208ea5bf",
+        "checkout_raw_sha256": "297ff9ce0189d50ea957db28f56147c7bd6b5d4e838790d2122085f33a3ac129",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_authorization_storage_transition.hpp",
+        "mode": "100644",
+        "blob_oid": "82f7ba7511e8f0fd05ab9e2819d38d909ec6ac6e",
+        "checkout_raw_sha256": "f0b4ac6e16225a8b5eb69061fa72453c3285f6d20979e69b2186e062752f1f45",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_authorization_wire.hpp",
+        "mode": "100644",
+        "blob_oid": "5ddc6331d977df5312f6a0bef12c88c342d19853",
+        "checkout_raw_sha256": "526228a2d60b9b785f6361826da657e81ab3e4ce41bf3d56148f1e8bc65cc9d5",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_ble_runtime_owner.hpp",
+        "mode": "100644",
+        "blob_oid": "e70acbda3e142aee4dd85cb16c83e82823f8b5a1",
+        "checkout_raw_sha256": "588eac177248bcd81f7c3e3b5a41ace6c9f8d18d3e1d610f2e7537fc0add9ddc",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_gatt_authority_composition.hpp",
+        "mode": "100644",
+        "blob_oid": "3924b1aa7be4a5e341375666356014e0dcbf3b97",
+        "checkout_raw_sha256": "7e788722b9d35c5d7985ffbeedc79f6467ee7f6d65e653f12128e9db776feda9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_gatt_authorization.hpp",
+        "mode": "100644",
+        "blob_oid": "16b3f6281ed39528ec8dde1280c5757783dff027",
+        "checkout_raw_sha256": "372c3f0edfc6870907ca43ce7f2a77ea24d67d6fa13d35870e741b10799d4120",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_gatt_authorization_adapter.hpp",
+        "mode": "100644",
+        "blob_oid": "855bc2d0af6954d307d8b8b8b444bacad7972fb9",
+        "checkout_raw_sha256": "fce44bc8ac234f39d9d4612170f22ae3545906c2cd76af0fde5039ba631871d7",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_gatt_session.hpp",
+        "mode": "100644",
+        "blob_oid": "0f18d5d2024ab7ee21a48651c77d36d2de4bec00",
+        "checkout_raw_sha256": "9387eb15b0c98e546f5fd96a13fefcd97802d26e62cb1f4acff3a17dfbc0cb6f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_protected_key_provider_admission.hpp",
+        "mode": "100644",
+        "blob_oid": "01817057a4f27511634ba1d7843f7d54c70a65d2",
+        "checkout_raw_sha256": "c5b97403e525eb3fc24e9bb49ec1dc13ccba30b58a45b97233898d517c21456f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_protected_root_inventory.hpp",
+        "mode": "100644",
+        "blob_oid": "a38b8b931d01b619ae47aceb648eaa562398c3e5",
+        "checkout_raw_sha256": "c4dcdf8393a8f3c65424b7ee0248f17c05647e227e9a66924a9506f8cb70f353",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_protected_root_inventory_reader_route.hpp",
+        "mode": "100644",
+        "blob_oid": "02f84e634ee548a02ffd415913f4434a17c9f039",
+        "checkout_raw_sha256": "52c7c16ac8dab8ea246de0ac809d6b22707ecb70b879f10d6acf8297de31bf39",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_protocol.hpp",
+        "mode": "100644",
+        "blob_oid": "ebb2601a888b15c33dc80964b2135688704e00a2",
+        "checkout_raw_sha256": "38c2a66e0a12a9c4ac5c0b5b39c292fbde955433dc807e410141cc75a64baad4",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_public_link_info.hpp",
+        "mode": "100644",
+        "blob_oid": "30d1a8d3cc394a7399f29869d1b7f4aaaf77a8bc",
+        "checkout_raw_sha256": "d37ad8aa09f971580d46bebac45b80da1a230e6fda07823bee48ce87f6c4fa42",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_request_coordinator.hpp",
+        "mode": "100644",
+        "blob_oid": "5ec9c4b5640c769a975a31e032bdb7813d4020ff",
+        "checkout_raw_sha256": "224d0d2072ee3d3ced545eb8324eac753cf27ee2f29acfcef55ce6cd4c0df35b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_rollback_floor_descriptor_viability.hpp",
+        "mode": "100644",
+        "blob_oid": "f87cfab5c897dfd766d476d3fc9582727c75841d",
+        "checkout_raw_sha256": "40005fa616154b185c946749aa66c0303f8e5b47965dc7586b4da176d4690c0c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_rollback_floor_secure_version_viability.hpp",
+        "mode": "100644",
+        "blob_oid": "94f1b251e16758b479af5c5dca7bfd2ce6cc45cd",
+        "checkout_raw_sha256": "8fa3d9d173b9720412136d86c69d60ce922c933042e90b64d3de3f8acf8a1bda",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/include/opentrail/companion_semantics.hpp",
+        "mode": "100644",
+        "blob_oid": "7a6c8c2e11f5b1b2b0390a4cfa35f0cb76144f9a",
+        "checkout_raw_sha256": "4d18f1f44ba606f3002eba78fdf337e707143f992cd9364952739ea2d42fa13c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_authorization.cpp",
+        "mode": "100644",
+        "blob_oid": "03afa7427442e70b41b6eeb74019c63569813f15",
+        "checkout_raw_sha256": "04c24d8ca51c87b59c35de74f0f6c34c6a3300fc07bd1296e439b08c5b7beb5b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_authorization_persistence.cpp",
+        "mode": "100644",
+        "blob_oid": "b039d685c6b25739bc3020bc6060884dc1c1ea3f",
+        "checkout_raw_sha256": "2408ef41c9d9e03dc245662750db3713807b46ab2b5b72b1546c743682f6196a",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_authorization_protected_kv_media.cpp",
+        "mode": "100644",
+        "blob_oid": "46a914525800cd446d6478329b2d008f5db8a784",
+        "checkout_raw_sha256": "8d1f76a9e6943f97612c24f3bcb1aff2f24bc24b4294e1db9cc2dad9785abcec",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_authorization_protected_store.cpp",
+        "mode": "100644",
+        "blob_oid": "f022d9ea256288ac95b392234100f5915f818677",
+        "checkout_raw_sha256": "39defd870a33f39e882e57ccac9ef7b8e3129b579a31f79ef23a3fb88168060e",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_authorization_rollback_floor_provider.cpp",
+        "mode": "100644",
+        "blob_oid": "289bfa014d5e47959943a1e2eb93d2f6c578e831",
+        "checkout_raw_sha256": "1761c131e05ce56ee5ef7020d4f5b4aa08b86c11dce711fb960f962532115bcc",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_authorization_storage_recovery_route.cpp",
+        "mode": "100644",
+        "blob_oid": "621333a6d6a03b8ddd2c0f72c7508e2b59277e24",
+        "checkout_raw_sha256": "2266daac486279bccecbe3a69a0fe07f3451a4b0598f612a39ad7673490ea42a",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_authorization_storage_transition.cpp",
+        "mode": "100644",
+        "blob_oid": "73109b773727070a457104c12e75902c569a14fe",
+        "checkout_raw_sha256": "f23b26a79b65513f7351745decf47e38ee5783fa8123cb7e5591586ec8bc6b9e",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_authorization_wire.cpp",
+        "mode": "100644",
+        "blob_oid": "cf6ca712b1cefdce74b0d99ff9385e48b7978d31",
+        "checkout_raw_sha256": "a1e9af9b92445199b1836425d5e0e356e0646086e9f3ceec79aa0e46e44a47b3",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_ble_runtime_owner.cpp",
+        "mode": "100644",
+        "blob_oid": "2a35dae72c11efc21026de4591cf0855a604129f",
+        "checkout_raw_sha256": "ce7f61d933ac19bd03da0a368eaa1b9c69e2db063ee9708b9d23bcfa0161b8ce",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_gatt_authority_composition.cpp",
+        "mode": "100644",
+        "blob_oid": "50288f2717d36308a12ef644a7cf5da3dbb17f82",
+        "checkout_raw_sha256": "b39f80a8d4593247c1a64d6f093521b74b06673fd7824bb916d19fbe76f7a112",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_gatt_authorization.cpp",
+        "mode": "100644",
+        "blob_oid": "c9858c0b5d999c8cee1d1ff38ea380250d191925",
+        "checkout_raw_sha256": "cba0e195fc95ae35af3e80097f5d299ac33d6b755ad953552d4c40fee39e9d21",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_gatt_authorization_adapter.cpp",
+        "mode": "100644",
+        "blob_oid": "a6a71dadacb46d5f3ae787beacad925f43750730",
+        "checkout_raw_sha256": "82c2d813969d50e5d91130df3e954772968bbc04229fcc3ef7a139eded977c9c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_gatt_session.cpp",
+        "mode": "100644",
+        "blob_oid": "e9f3cb59c8d2ae3c5e289d38530c7663d6634b67",
+        "checkout_raw_sha256": "5529fd0c10ffe5fdfc086b6571115466b1c06b0921064f9f53649366a018fcc5",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_protected_key_provider_admission.cpp",
+        "mode": "100644",
+        "blob_oid": "948803cb6f74e10ae1cf3395d6824c51289a8ee1",
+        "checkout_raw_sha256": "6e3edc4cc098ba7fe27cd7f379d82dc4a24b875537afdf58890d47217d8b82e4",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_protected_root_inventory.cpp",
+        "mode": "100644",
+        "blob_oid": "97a835ac02873310a3c059df7bf33d8b9c658065",
+        "checkout_raw_sha256": "7be7cca809e7e99892eca938731db9f9a3e9c6f37751a25678a249f2fbce7e9f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_protected_root_inventory_reader_route.cpp",
+        "mode": "100644",
+        "blob_oid": "e2f5417f2426d43ea26ca86038e114407cf59944",
+        "checkout_raw_sha256": "d381a43d0583a6a1dac23f512779ca9c460e4e9c06e2c0ed4fec2b2c240de834",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_protocol.cpp",
+        "mode": "100644",
+        "blob_oid": "b3d3da21760d2c8f02b389bed63a7812a5a4d929",
+        "checkout_raw_sha256": "ccc6ba6f45a66318ef80e0beefea5546bb52b707cfc307120096811b12d8eb62",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_public_link_info.cpp",
+        "mode": "100644",
+        "blob_oid": "5d5d676af8801de21f5153d90ddb4b88c4985c98",
+        "checkout_raw_sha256": "f71d342f4915fde46433a2abde79f3e38c988d6cd8c952489b57469e56d081f4",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_request_coordinator.cpp",
+        "mode": "100644",
+        "blob_oid": "32ace1558e320949401992911840e4e2dcc685c7",
+        "checkout_raw_sha256": "200c1642492e5f87b9b08db5b24c1ffc61c2936eb84e296428543d5be3ab1c79",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_rollback_floor_descriptor_viability.cpp",
+        "mode": "100644",
+        "blob_oid": "467e87648f2d4f1fe4f86e4182f428b1c769237e",
+        "checkout_raw_sha256": "adea9861ed0be8befa9b895ea27fab00d949996b8bd2c9d503aed29147a2fc58",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_rollback_floor_secure_version_viability.cpp",
+        "mode": "100644",
+        "blob_oid": "c15df0fa5809d92f2369d0e0b8a3557744c0477e",
+        "checkout_raw_sha256": "4ac087960f0bf620f49e94fb8259850e4c17e7241901decbd595c72783867396",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/companion/src/companion_semantics.cpp",
+        "mode": "100644",
+        "blob_oid": "03f09e2eb5aa1aedf6f2256156f2293b199c6d3b",
+        "checkout_raw_sha256": "18f1c58e9e10b290c53d6a26b7a5b574ab3a2d1afae569b92bba6f714b860347",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/include/opentrail/delivery_controller.hpp",
+        "mode": "100644",
+        "blob_oid": "9cefc4b165758211c4a5385256c7cab90adcebba",
+        "checkout_raw_sha256": "37f7dc178cb02f0f0c13451e9796e256dbc245d3b7c5ea56f12e250380c49f99",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/include/opentrail/duplicate_checkpoint_codec.hpp",
+        "mode": "100644",
+        "blob_oid": "1f42900bdc1b2dadb8c41a17349f3a58de32a0db",
+        "checkout_raw_sha256": "0027e10cac750b6dd2d79cbba0891de14bfa1b64d4512ea95aa4e19ea357ed03",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/include/opentrail/duplicate_checkpoint_kv_storage.hpp",
+        "mode": "100644",
+        "blob_oid": "0607348a4d0759e73919b329225aeea6c0918a2e",
+        "checkout_raw_sha256": "0fe590e2cff0fd07a591ba59c626ea8c8ee70d22c04b2f9473c84c2411079ed8",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/include/opentrail/duplicate_checkpoint_store.hpp",
+        "mode": "100644",
+        "blob_oid": "eb54f1d4df05c8a21d13d2436c1a2a9994699ef9",
+        "checkout_raw_sha256": "b89dfb6b3069a0557f2e2aad7e53c7facb4ef8663aa31c7d336d9e9823ba689d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/include/opentrail/duplicate_window.hpp",
+        "mode": "100644",
+        "blob_oid": "d697c18ed153bc331203a1b8f849e72dea2170af",
+        "checkout_raw_sha256": "7a5c0a53c80830d4764c581abfe8ab2a9c9fba7facf17b6556e81c1aa70f3ec9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/include/opentrail/forwarding_controller.hpp",
+        "mode": "100644",
+        "blob_oid": "9740f0dca82aa673edc3ac8c8a54675ae7323e7b",
+        "checkout_raw_sha256": "b88ada128fc825f60d3ccd22d10a54a11936246ee7cf1cb459ad335191f8ab58",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/include/opentrail/priority_queue.hpp",
+        "mode": "100644",
+        "blob_oid": "5595cf4226014f6a030489ba2761bc89ad7f5167",
+        "checkout_raw_sha256": "3a732d70b05ba987a5881cff7018aeabb6cf6710eeb396bd2f02c1ae528be1fc",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/include/opentrail/single_repeater_forwarder.hpp",
+        "mode": "100644",
+        "blob_oid": "df5b603d27ccc34f930c2b146959aa26b242a0e7",
+        "checkout_raw_sha256": "d191c291e5ae6c49be62683ca2d3b6b322f870c72328847ea9983e8eab3b2833",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/include/opentrail/single_repeater_replay_coordinator.hpp",
+        "mode": "100644",
+        "blob_oid": "7037a89537dfb72dbaa70415881cce40979c23e7",
+        "checkout_raw_sha256": "f9d0e4fef00e8b5e65a9562e1247793f6334d9237f6541022d9b44e7ebd58387",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/src/delivery_controller.cpp",
+        "mode": "100644",
+        "blob_oid": "7019add93d9cbda33d286d10c56159e0edfd903d",
+        "checkout_raw_sha256": "b3b4f504bba6b26d3531336ad6869d8ce4cc2f4d9f6394eb2a4468f94feaa1d0",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/src/duplicate_checkpoint_codec.cpp",
+        "mode": "100644",
+        "blob_oid": "8d73a0e8fc3c244d9608b13c8c2ceb9aafdfa484",
+        "checkout_raw_sha256": "9230a4f90828bd3a97c526c643d06d002c21d20d29b648da2ba8a83daedde581",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/src/duplicate_checkpoint_kv_storage.cpp",
+        "mode": "100644",
+        "blob_oid": "d04bc18fde0bd36cb54345e4cd0088f74de11da9",
+        "checkout_raw_sha256": "a68e41f1e602ab66c3fb4ffafa4be8d4a18d6b4cc51bc30b21828294828771d1",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/src/duplicate_checkpoint_store.cpp",
+        "mode": "100644",
+        "blob_oid": "b989175c53b529e91180d858a03168c262bbb491",
+        "checkout_raw_sha256": "56995e42ff177b4a39be5f292dcefd0cdaf5aece1dbd8c8eed53547a17e11060",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/src/duplicate_window.cpp",
+        "mode": "100644",
+        "blob_oid": "cee024428efe9619ebc0510315f64c5e958e6117",
+        "checkout_raw_sha256": "c1be73de9de8701d92bc61ecca2b0495454bb8294c222d1f7e918ffc827ffb56",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/src/forwarding_controller.cpp",
+        "mode": "100644",
+        "blob_oid": "0c4219b014242d9a7161e10330d6cd4d53ba06e5",
+        "checkout_raw_sha256": "b7f914b7a7e7c702a12348b5b4928567dbb6ee6652c5962222ad3e4e7ffcde30",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/src/priority_queue.cpp",
+        "mode": "100644",
+        "blob_oid": "c4b3a4adef2f9faccf127b200dbcfde48d71cc0e",
+        "checkout_raw_sha256": "02e3ff2cf991683a6ce9f3aff5544af16aaf4c8805309626a03fadbc2f9c55a3",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/src/single_repeater_forwarder.cpp",
+        "mode": "100644",
+        "blob_oid": "6f474e4333c5e639017fa200817c3aa6de774a45",
+        "checkout_raw_sha256": "406d4753687e80bd7cbe1cfa919a53e0891a5969ec9e71ecd3eed79f0e4addb5",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/delivery/src/single_repeater_replay_coordinator.cpp",
+        "mode": "100644",
+        "blob_oid": "0d23508be7de514d7eb41e3fa6cebc2d33b452e2",
+        "checkout_raw_sha256": "a8c8ea5e91f2dc525930f363b5c975e3c89e8585eb66bb1601aef3678f32b608",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/diagnostics/include/opentrail/logger.hpp",
+        "mode": "100644",
+        "blob_oid": "9e01e7526939d149fbd0d27c0916d9312308470f",
+        "checkout_raw_sha256": "1ec1c1b2dd7f5c7811b6a25bf74af8125e52aeef933c165097ffa0d6a1ae95a0",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/diagnostics/include/opentrail/position_sharing_ui_diagnostics.hpp",
+        "mode": "100644",
+        "blob_oid": "4c5aec81eda2b23cc8d98a77593fa4743793c443",
+        "checkout_raw_sha256": "d17190453400509f73e68976ee0006297369b84496d05bc1952b5878834c5487",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/diagnostics/include/opentrail/ring_log_sink.hpp",
+        "mode": "100644",
+        "blob_oid": "75882250218cba2f4b21878ef82c833ce6b3420f",
+        "checkout_raw_sha256": "6b7b46c4a6b68cf548519cca1c5c37057ec5eed851a5173ae44ea33259167fc8",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/diagnostics/include/opentrail/update_recovery_diagnostics.hpp",
+        "mode": "100644",
+        "blob_oid": "e92546dcf2b19f7d6fc9c33e110c16a9b110577d",
+        "checkout_raw_sha256": "8ff30c9b35982d4c7da1271e84e636bba892ca79cd1520de43a893ed49869515",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/diagnostics/src/logger.cpp",
+        "mode": "100644",
+        "blob_oid": "d8135833dbc06cb61daa4df20acfa3e011d71968",
+        "checkout_raw_sha256": "24136e92b81b9d4ba45ee1337b6e6e4345a334870483f1f7b684dd7e8f74488e",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/diagnostics/src/position_sharing_ui_diagnostics.cpp",
+        "mode": "100644",
+        "blob_oid": "415b4ef33ed5738a80cf9cd1bb3ce9d05fc113b6",
+        "checkout_raw_sha256": "2b3fb620f242390d69c46b18dca44557b25e945d408bb7fc736bc359b72a205e",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/diagnostics/src/ring_log_sink.cpp",
+        "mode": "100644",
+        "blob_oid": "a757f44a754d707db422acc992576425f9d426aa",
+        "checkout_raw_sha256": "c0849c45d895f0cd34c3d25ed5c6025daf6248b5b25f73693ce2219c532f74ba",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/diagnostics/src/update_recovery_diagnostics.cpp",
+        "mode": "100644",
+        "blob_oid": "040e1b793d3cc48a066c5334e3071556be8de9c1",
+        "checkout_raw_sha256": "a4fc55aef6195bd81bd708983d9f1359e412766bfe9802413e4400be1a695066",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/diagnostics/test_support/memory_log_sink.cpp",
+        "mode": "100644",
+        "blob_oid": "3a576b205c7c23ecbfecd95319cddf0db4fb8341",
+        "checkout_raw_sha256": "eb6898132cedfefc5e61dcc520bdc37801f60519da9a1e6e2e232b68869a7f10",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/diagnostics/test_support/memory_log_sink.hpp",
+        "mode": "100644",
+        "blob_oid": "29996873350a18ecc28f50a67176920bb6021664",
+        "checkout_raw_sha256": "b51594cd1b67d386df1fdb94e9679c49727d070c54c5dd4781e5e390fb64d669",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/identity/include/opentrail/group_access_controller.hpp",
+        "mode": "100644",
+        "blob_oid": "31a9734f90eea8436673821c44a9483f73cf954b",
+        "checkout_raw_sha256": "5545d05f690d72294e25d3cad843e2e4919a7a66ac3e0437ccfb777edbb7ba04",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/identity/include/opentrail/identity_model.hpp",
+        "mode": "100644",
+        "blob_oid": "36dbd44a2d60ff9252ee956bb27fff2daf376b57",
+        "checkout_raw_sha256": "31dc04f8f7e645d82340a04e127e9537388c2b1259d44747a70db135dc73c9e2",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/identity/src/group_access_controller.cpp",
+        "mode": "100644",
+        "blob_oid": "e102751af16d55d94f6512ed7d4cd47b17e1978a",
+        "checkout_raw_sha256": "4f4ecf50a5c46f8a13aac8afca13756151e75e4261c5cf374b6bafcc5944d312",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/identity/src/identity_model.cpp",
+        "mode": "100644",
+        "blob_oid": "191cc9101e105fafd9ef975d778a76e687b6a743",
+        "checkout_raw_sha256": "ef70d3830d340f5cca81b541526da49deb73a87e70f9fa14c9349c998e9ba0ea",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/breadcrumb_archive_consent.hpp",
+        "mode": "100644",
+        "blob_oid": "f8f087d58580dca98d7476b8c3d3859322561d14",
+        "checkout_raw_sha256": "84ab475e14d2bb6d0ca9e57153e47d05443b9424e21b02930aedfa1fa02e5967",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/breadcrumb_archive_navigation_coordinator.hpp",
+        "mode": "100644",
+        "blob_oid": "9ec03ace0e6e099c5b064012d5850eb9df356bee",
+        "checkout_raw_sha256": "687c1882de99bf09eb5d6df70d106149a6c46d5d060bb928e0e04745fe915c71",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/breadcrumb_archive_parent_page_coordinator.hpp",
+        "mode": "100644",
+        "blob_oid": "0d5895a5b9db9de44b2ca0b3044464a4bac0c709",
+        "checkout_raw_sha256": "715d7da3ea22c9cf07c3c750a4bfd9f1309b9387ae1c6495dbe0375fe8227ce0",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/breadcrumb_archive_presentation.hpp",
+        "mode": "100644",
+        "blob_oid": "63834ddd75959529afcaedf506c3e46a34937e9e",
+        "checkout_raw_sha256": "419777e4ccd4c38143e064139ec59125cdbca7fb811a28841d1e9cf68a99f05b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/breadcrumb_archive_runtime_owner.hpp",
+        "mode": "100644",
+        "blob_oid": "b08d73977bfdb64f14eb9d941f72eb1970b74007",
+        "checkout_raw_sha256": "491358dbc5981395709660f9c9bf6611e7ce50bcfde10cc49fee550eddc8b7ae",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/breadcrumb_archive_snapshot_adapter.hpp",
+        "mode": "100644",
+        "blob_oid": "56fffe48e4149ec7898d1e012fa76071fff9f137",
+        "checkout_raw_sha256": "e2b7e7a0412f156bba60d57e3aa493c744f596c2066d252030ba86c2a445e304",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/breadcrumb_archive_ui_coordinator.hpp",
+        "mode": "100644",
+        "blob_oid": "e4269814a226283a5ed3eace2beb774774600796",
+        "checkout_raw_sha256": "635a742bf470081f63068f4a437305c8e00c8125dfb99b032efadaaff4bc35da",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/breadcrumb_archive_workflow_bootstrap.hpp",
+        "mode": "100644",
+        "blob_oid": "a31c715d562790096be6bbea2ed1ff00797199b5",
+        "checkout_raw_sha256": "fddaf9a79618064b14477f52734819b0d430cb0524435f4890a06d9b1f5a77d2",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/breadcrumb_archive_workflow_coordinator.hpp",
+        "mode": "100644",
+        "blob_oid": "8338841496824cf891780d5accc127b40bfdca96",
+        "checkout_raw_sha256": "b2547d22e6b4014bab2e0586b3d0080961914cec89cecd8c690fdd6fc40d36b3",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/critical_alert.hpp",
+        "mode": "100644",
+        "blob_oid": "fea4e99160e59d888bcd99ed151a03b50cb27c7e",
+        "checkout_raw_sha256": "70c6499fd80ea31d11942598fe6b34ed8af327c47d77440d920d7baac4b5b786",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/critical_alert_ack.hpp",
+        "mode": "100644",
+        "blob_oid": "fb7a367da983c3ddc7f6ea9401857b040682071d",
+        "checkout_raw_sha256": "4fc20842ac9ad8f487efe5c6770ada24dab2423151ea936a66d641ac121ff628",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/critical_alert_ack_responder.hpp",
+        "mode": "100644",
+        "blob_oid": "8b2b01af36a9bec34fd57b4b5335fba93a3cc0cb",
+        "checkout_raw_sha256": "6fd9f95a6c5d5f47afe99fb1713cae2838cab77c5e65d74f7f5430bd2bd8e1fe",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/outbound_service_coordinator.hpp",
+        "mode": "100644",
+        "blob_oid": "aa0c487df4442d2fe1b015ecd1a363a0bc94a013",
+        "checkout_raw_sha256": "7c2d812a6d006aee5d2006385500aa92201b785475d4dbd0afa28e93f880182a",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/portable_ui_shell.hpp",
+        "mode": "100644",
+        "blob_oid": "2eb5d9f73fbdcc3fc00c844812d07f0ded8a4bae",
+        "checkout_raw_sha256": "2dfc1d3b73a0fdd9986d0c53e1667dbe2ea63d18d98784a92c7ec0d5b6bb8abc",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/position_packet_admission.hpp",
+        "mode": "100644",
+        "blob_oid": "27e5b70ee0e8f58ff91e00e96b9e950a2bdd64dd",
+        "checkout_raw_sha256": "6043efc0732fe60497d00362fe07b3111509dfe15aabdecc5797976fc3326447",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/position_sharing_control.hpp",
+        "mode": "100644",
+        "blob_oid": "f547711243617057ced2b212b9602a0bc86b6468",
+        "checkout_raw_sha256": "d677bcbf2e3f0a4ec8dbd53e0484057f3bb751bc954958546f86278bbdfad157",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/position_sharing_ui_coordinator.hpp",
+        "mode": "100644",
+        "blob_oid": "16bc857e0202d20cc83d2e697e6a8acac8722f55",
+        "checkout_raw_sha256": "08e2f135275de0d5b4a8d1abf90b7b4501c3fa844a2c0b8920ce8d657ac2764c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/priority_delivery_handoff.hpp",
+        "mode": "100644",
+        "blob_oid": "2973b06f03cac9532ca955fd109d35861cff8e8c",
+        "checkout_raw_sha256": "feaf09b4cc7007b1efb2779b7d6d07b04b2f4430e732198493dd4f53ca3e03c5",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/quick_status_menu_coordinator.hpp",
+        "mode": "100644",
+        "blob_oid": "159830914604035f6ea645b1049d5f9336b95a46",
+        "checkout_raw_sha256": "a3cf85910131e6e8573aafddc7bf9f510e4fada39e99bd90c1e39c7be807d6a5",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/quick_status_parent_page_coordinator.hpp",
+        "mode": "100644",
+        "blob_oid": "d4b046e6f98d204a2a024e61038cfe0279f9d2bc",
+        "checkout_raw_sha256": "8efd1735501fbfa524eb207c68592c1098ef1f89692b7b6568be7390f0f3f355",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/include/opentrail/update_recovery_presentation.hpp",
+        "mode": "100644",
+        "blob_oid": "b0fc4f671cbb125a67e533537133d704d59c747e",
+        "checkout_raw_sha256": "f359a824ce52a4cea7434301843bb8e4d502d25c5dce54f286b8a6b1a8f371b7",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/breadcrumb_archive_consent.cpp",
+        "mode": "100644",
+        "blob_oid": "2eaa252834b34f01e7d6ee00ac9cf6d38f3fb411",
+        "checkout_raw_sha256": "99a434ca2dcf73dce404fe78afa72d2dcc333c2410e2555b65993461fb99a114",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/breadcrumb_archive_navigation_coordinator.cpp",
+        "mode": "100644",
+        "blob_oid": "1078e6cf9ebfd681c2d01049ed1de9a88c20b1d2",
+        "checkout_raw_sha256": "c6eb946dffb6322ff8df4492b9d6534f9a2ab9d8125a9f8c16aeadf4ed28bf55",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/breadcrumb_archive_parent_page_coordinator.cpp",
+        "mode": "100644",
+        "blob_oid": "00797007e8f3d40d3a628c0433bc5c2c427db86e",
+        "checkout_raw_sha256": "ecd7e5bd99fd9d0704d249d25fc53dedb25ca088e768e95228f2700466fd4d72",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/breadcrumb_archive_presentation.cpp",
+        "mode": "100644",
+        "blob_oid": "a8fde1645ab5937a5538e7ac2ca2b6f99d4c291b",
+        "checkout_raw_sha256": "d9190f1d5592726e74ad276fb938296ac90169352fb1a87404101786ff848d0b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/breadcrumb_archive_runtime_owner.cpp",
+        "mode": "100644",
+        "blob_oid": "60305d72bac125ed4c958583c7bd23d6d84470c2",
+        "checkout_raw_sha256": "b3de3d1bd77d6aa4e6288b366a4f2e6468f0f58a7556996080db944394528cb5",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/breadcrumb_archive_snapshot_adapter.cpp",
+        "mode": "100644",
+        "blob_oid": "e4f51d907eb57515181b7ffa05e0c53932a087ba",
+        "checkout_raw_sha256": "008ff2175478557fcbbcd79050132c5805973b9acf70ef7b143ebd929ef13fd6",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/breadcrumb_archive_ui_coordinator.cpp",
+        "mode": "100644",
+        "blob_oid": "9e9e4aad8527b03fb8dedbb3803153006425b526",
+        "checkout_raw_sha256": "6ff0a1d621f0843d901abe4386562e2f6a0179b24b774d6168b09d2febe7a8e5",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/breadcrumb_archive_workflow_bootstrap.cpp",
+        "mode": "100644",
+        "blob_oid": "0743e0f88c3708677e273efb2bd7cb35fa9bab21",
+        "checkout_raw_sha256": "fa5f51f4b89e52043c103c841101deef172bb12a9ccd59568d82332559e53517",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/breadcrumb_archive_workflow_coordinator.cpp",
+        "mode": "100644",
+        "blob_oid": "1763ee52d9fa812267ed2f8a826d3aad40553f9e",
+        "checkout_raw_sha256": "280e94c06e52708de4a23976d0ce7bb0a4ce74d93772c9a746723a97d77dc725",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/critical_alert.cpp",
+        "mode": "100644",
+        "blob_oid": "563452a6d186871d5e231c13680381ff30e7de85",
+        "checkout_raw_sha256": "7b64885ca114d5157de05962cf7da359c42bacd8689bf072a181bcaf482b47cb",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/critical_alert_ack.cpp",
+        "mode": "100644",
+        "blob_oid": "ed9e51129c331b820f846d43bd8f9e9ad03988a1",
+        "checkout_raw_sha256": "6f525423113ab96f0206274011ea1c8b90cdd6f525134649eec3e360af358888",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/critical_alert_ack_responder.cpp",
+        "mode": "100644",
+        "blob_oid": "34de95f5f29032494216e89b321311668d34016e",
+        "checkout_raw_sha256": "4ab81d73a77d64f924b03ebbb20d5678d2d5cbbb14feefce2a02af10af6af8f9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/outbound_position_control.cpp",
+        "mode": "100644",
+        "blob_oid": "952b21bce3fa5ffb693b5875224b5e23b12aeaa7",
+        "checkout_raw_sha256": "642eb5c8d6dce991122a403fc029ccd8110e921cc7d84b8be4ff4390422e7407",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/outbound_service_coordinator.cpp",
+        "mode": "100644",
+        "blob_oid": "b38d5c55cf0f205df404b253c8dbbd42b7c10054",
+        "checkout_raw_sha256": "619a29b0e12d76f2232dd820c3b44657da98f19fccde4cc39a95b223825fd826",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/portable_ui_shell.cpp",
+        "mode": "100644",
+        "blob_oid": "12b99d377afd64003a8966fb1b5b67d68b79ba2d",
+        "checkout_raw_sha256": "d87aaadea4dcaeff8267c7d799de689a5d8c69eea848470af7ad8d695ea2865d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/position_packet_admission.cpp",
+        "mode": "100644",
+        "blob_oid": "59d4d943c7c5bd8c1f5de0b3032a4c2a76cd46ae",
+        "checkout_raw_sha256": "cd34f568666bdfe858167c2b1ccc49bf99a5130f0d4aa91bc085cbbfede215d3",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/position_sharing_control.cpp",
+        "mode": "100644",
+        "blob_oid": "fd5bdf16de76011ee9e8a2d5b7b74da4acb05efe",
+        "checkout_raw_sha256": "7d98bb5d558500cffdffaa8e523cfdce45fe7213521686dc4de0a6242aad82b3",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/position_sharing_ui_coordinator.cpp",
+        "mode": "100644",
+        "blob_oid": "e5173611c955b162ca5651114eaa4546941d8e40",
+        "checkout_raw_sha256": "fb824dc57621ae710bc64d65b88b6dfdfa5776dfc822203a668be7384e7be245",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/priority_delivery_handoff.cpp",
+        "mode": "100644",
+        "blob_oid": "83f66509c7ef100c59ddeb8c656e4594b4ede4b8",
+        "checkout_raw_sha256": "7ac7b5759dbda936850ed0d30d462bf478b82aa47891c96defde8f7049c3771c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/quick_status_menu_coordinator.cpp",
+        "mode": "100644",
+        "blob_oid": "08cbeb54e86313995fad751fbaf21d5efc25c81b",
+        "checkout_raw_sha256": "76db11d1edaa30aa075ad8049974404ff8f4df104af7385065e7aadecd60512e",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/quick_status_parent_page_coordinator.cpp",
+        "mode": "100644",
+        "blob_oid": "92810bc044bd48891b5bcf3b1d6ea6185085ee31",
+        "checkout_raw_sha256": "9e1c2131b3a9478f19dc1dccc4f4d9d127ae92b5092e8eac482efbeb615b41ca",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/integration/src/update_recovery_presentation.cpp",
+        "mode": "100644",
+        "blob_oid": "9a2552d561e37d7100970d4ef198899a39e32350",
+        "checkout_raw_sha256": "8e7d3666ece6d8549afeda7ae28ddd84cc8496976f8e6d8c5cbb80ff2cebf1b7",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/include/opentrail/breadcrumb_archive.hpp",
+        "mode": "100644",
+        "blob_oid": "20034b9f2b447b8867c219377933a8dcc4d1c031",
+        "checkout_raw_sha256": "19c8406c4aa6dd2acab79a247036de9efe2f588196fb8bc0eac60c8f89cf2367",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/include/opentrail/breadcrumb_archive_outbox.hpp",
+        "mode": "100644",
+        "blob_oid": "7bf2b4ac3a4d8cc1915506c0e707f56f83ee24b7",
+        "checkout_raw_sha256": "71202ed987188086ffff5f93736997b349d010cefcc05b5eb59ea836bfae55d9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/include/opentrail/breadcrumb_archive_retry.hpp",
+        "mode": "100644",
+        "blob_oid": "b98694a44a0f8c1a9c0a4da362a4cc584a81c8c6",
+        "checkout_raw_sha256": "41b18cfd7b4b3716704d71a21846bcb90c343623fb86d2784903d6accc28ed2d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/include/opentrail/gps_provider.hpp",
+        "mode": "100644",
+        "blob_oid": "6f5ca80ff6c9b563b1804edade5a5b4a225d5355",
+        "checkout_raw_sha256": "89465cd0ee23958bd8b1528496ec82b83fc24f81ad6dd4b54d428c5054ba84a5",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/include/opentrail/location_tracker.hpp",
+        "mode": "100644",
+        "blob_oid": "f3712deeb78a17baf2f98224c0291bb83091adf4",
+        "checkout_raw_sha256": "0a33381dfcb84a3b203ae29b65b9d21a8f27c2c2a837c0ca4396a978f7b2053d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/include/opentrail/position_broadcast_scheduler.hpp",
+        "mode": "100644",
+        "blob_oid": "3dcd707eeb71d634bef103faf123cc28d87c6e3b",
+        "checkout_raw_sha256": "8f1c80ead6edd72698ffcfb7a7d697c7584a64cd734fcfc11732ecb11cecc18e",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/include/opentrail/position_codec.hpp",
+        "mode": "100644",
+        "blob_oid": "1eb6457288d3f306e8f5d707da68f714e0b5c9c7",
+        "checkout_raw_sha256": "4c7d14afe429587e8e2b168635db9198c360cc7560542892877bdb7d50ae30db",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/src/breadcrumb_archive.cpp",
+        "mode": "100644",
+        "blob_oid": "f00452ea12013ef0624d4be6f15d51c039ad67cd",
+        "checkout_raw_sha256": "f7f21a98d87f482150def3413740eb324ec48c6595b2a08a9c52bffe57d9dc11",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/src/breadcrumb_archive_outbox.cpp",
+        "mode": "100644",
+        "blob_oid": "d81ace7ac057a016aad849b5bf61067055a22e47",
+        "checkout_raw_sha256": "7a9900d042652b979ef9b30755603c94fc78d0d136602d15f114f5349a7c9d81",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/src/breadcrumb_archive_retry.cpp",
+        "mode": "100644",
+        "blob_oid": "5671214b55d6298e90a65e67a34c7878d96effc5",
+        "checkout_raw_sha256": "575c34b338ed48811c891e480ca0ed8d3ad0ed80cfa1565e30f53ce6884bbeab",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/src/location_tracker.cpp",
+        "mode": "100644",
+        "blob_oid": "34904aed212e192570dc833b789f0bd1a736a307",
+        "checkout_raw_sha256": "a36c24fac6d740c6308d0e189cdfb8548cfb2c95e6038351f14db4b8e5e61d49",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/src/position_broadcast_scheduler.cpp",
+        "mode": "100644",
+        "blob_oid": "0a32149ac4db94662f3ae9d835feb0c014d4bbbf",
+        "checkout_raw_sha256": "9564430c99f1736856d7564f0d9c0d2e1e133443a7f0e2536f716d5d6bbd224a",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/src/position_codec.cpp",
+        "mode": "100644",
+        "blob_oid": "e3f031df9b83931e3c12162395137fdc927f3178",
+        "checkout_raw_sha256": "9d89b58f400daa89eb2db0891ef91565d56b94dd69f19eeebbff8663a21a2a4f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/test_support/fake_breadcrumb_archive_remote.cpp",
+        "mode": "100644",
+        "blob_oid": "4e13addbb553ca6d6be147fc40f6ed6cf0a67722",
+        "checkout_raw_sha256": "466d207f9f226428e43ac094698e96d4aeb946ee349e4d80516549ddccc33ea9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/test_support/fake_breadcrumb_archive_remote.hpp",
+        "mode": "100644",
+        "blob_oid": "57a66bec52c825596350f8876c5e9fbde89af555",
+        "checkout_raw_sha256": "c8ceb9590c673d05fa3cf40a9f906d5e831ef5bf8619545239fdd318c79ef4d0",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/test_support/fake_breadcrumb_archive_transport.cpp",
+        "mode": "100644",
+        "blob_oid": "742529f080167c1a40837ab4af4485f39fc65171",
+        "checkout_raw_sha256": "81fbcf0685396439dec470ca260f39a3be472e1d0e7ddf071ca2e2f1a7f13247",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/test_support/fake_breadcrumb_archive_transport.hpp",
+        "mode": "100644",
+        "blob_oid": "b6d5a5ece694a4bdd519648ddd3f0d8cd1a18967",
+        "checkout_raw_sha256": "3afeaefd533b8dedc6241036f7b2b7a41f7c9033539bd1f7aebadf803d03ffa6",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/test_support/fake_gps_provider.cpp",
+        "mode": "100644",
+        "blob_oid": "3054b10ab372c4b59ef2a93b09271af3e4ee3290",
+        "checkout_raw_sha256": "96207d1770f8b67352d4b4a0a6037064a2db709be2cc9835f4070aca71426f1f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/test_support/fake_gps_provider.hpp",
+        "mode": "100644",
+        "blob_oid": "e336742e9a1bfee03b4c7f3b8b9d5cb6a6101c7b",
+        "checkout_raw_sha256": "0f7ca7166825aa7644ba6f73cd66791a0161bee3b6ce29e347492a413f6c6791",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/test_support/fake_position_broadcast_sink.cpp",
+        "mode": "100644",
+        "blob_oid": "7e0b3783bc3f18f6f18640214fe9b2e9ff892344",
+        "checkout_raw_sha256": "cc96d06da7f94dbd1805bf5385862aa48908ebad4678a75e8d32f88e53302698",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/location/test_support/fake_position_broadcast_sink.hpp",
+        "mode": "100644",
+        "blob_oid": "3d24cfd088eb4e362d26af9e8a838413184c0b89",
+        "checkout_raw_sha256": "3aa1b0c31bb2d5a6b6e952b0265903571f135dd892d7b037d58df2909ba1d2c4",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_activation_guard.hpp",
+        "mode": "100644",
+        "blob_oid": "6f3a5bf41c36b666f32b46bd589907f1e8de64ae",
+        "checkout_raw_sha256": "36a77602e0feeb1120cffc4361dfaec649d969dfdc9795c1b5e35c77c80ae4eb",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_baseline.hpp",
+        "mode": "100644",
+        "blob_oid": "c83f81afcb26b6e6e9da2baf3bd49cfbc1c99322",
+        "checkout_raw_sha256": "57b18ea0b91a11c0f07f729f0652b206cfdd76e6ab5028253fd1b529498316d9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_boot.hpp",
+        "mode": "100644",
+        "blob_oid": "3e438d0b725c14de9debf0bd9ab2fe032ed65f90",
+        "checkout_raw_sha256": "3216eff0b20403eb09913c1d1473ddf5b95b89821385c8fddabc772c15c097c7",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_candidate.hpp",
+        "mode": "100644",
+        "blob_oid": "ecc972975234294bd4f5c0aaadfaed27fee79610",
+        "checkout_raw_sha256": "5077d4ba8d623ceaf930958b25050846d841c0d61ced7659e81d2c52f29068f8",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_checkpoint.hpp",
+        "mode": "100644",
+        "blob_oid": "493673233712361459b38604b97f5cf15974447d",
+        "checkout_raw_sha256": "a29ca735c2c9727a79f30f097077b9634cfd2622a02052a3997b80ffd84c99fd",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_domain_activation.hpp",
+        "mode": "100644",
+        "blob_oid": "62b49494428ea17ea6b90ac03fe4ee8f9849b2a3",
+        "checkout_raw_sha256": "8618d79e0dfbb3b7f95938afcbf33845f1c769f6a2dba0bd28ad3506b4b96091",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_domain_authorization.hpp",
+        "mode": "100644",
+        "blob_oid": "ad4db07ab2e6c7111f14fb8e5c352304ad7c0661",
+        "checkout_raw_sha256": "f9947246fd111a6ac71b0dfc8ee56b86ef491dae8281a24c0dc58a875f03d802",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_domain_boot.hpp",
+        "mode": "100644",
+        "blob_oid": "199aa841bebdec6779895b810e739c01d6bc6beb",
+        "checkout_raw_sha256": "c44c0899fe06107047d4cd6118f85bc8adb690a9b1df10a9de516e3637316cf6",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_domain_candidate.hpp",
+        "mode": "100644",
+        "blob_oid": "11a617e3185a00dbb15665e9ff970e9481d7ca15",
+        "checkout_raw_sha256": "2d31bf431c89cdb57885a9a90d3b64c9e7f7adcc37eb38d8186136be14c46b87",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_domain_kv_storage.hpp",
+        "mode": "100644",
+        "blob_oid": "066db2a430acb912954d2015881e4b97562bceb4",
+        "checkout_raw_sha256": "03cfe1ca723f9ff48a46fa994e1e62d031a015bc877b5e872f4f189337b9fc28",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_domain_provisioner.hpp",
+        "mode": "100644",
+        "blob_oid": "730a221f0baf1c9b599781ebf3c5d596f5c76927",
+        "checkout_raw_sha256": "23e19d13439f18ee720db27bb74c2b2f070c1d29fed2905a6b83003afad4bae4",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_domain_record.hpp",
+        "mode": "100644",
+        "blob_oid": "7a9348e3d79ebc51710fe5b6ae03dcc41c406225",
+        "checkout_raw_sha256": "55fe7d44cf24ddd9e62534ae3dbde4454ec8bbad2d2cca2eb69914507c5ead16",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_domain_store.hpp",
+        "mode": "100644",
+        "blob_oid": "5a901e91655e59a8b10c6311c29477f69aaf1a17",
+        "checkout_raw_sha256": "0397dcab764f236005284b6c864f0b5bcfb0bd754a678771a0d24f43b944efea",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_domain_transition.hpp",
+        "mode": "100644",
+        "blob_oid": "92674f12bd982c9f5aac1a00cc5bee79de1dd4a5",
+        "checkout_raw_sha256": "ec8ecdb34b1c7e2cf74637f12452dc163e73d978335012987b09071c886da6ae",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_domain_trial_boot.hpp",
+        "mode": "100644",
+        "blob_oid": "82a603441817bc490cdb2adeb8a4d226c120c187",
+        "checkout_raw_sha256": "213bfcaab78b273fe7f3291817fc1bb1a9a1645fee55c093a0b41d7208db9e13",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_kv_storage.hpp",
+        "mode": "100644",
+        "blob_oid": "0041d2d896dc4f94efcbdecdbafdfca564283dbe",
+        "checkout_raw_sha256": "bf7d4eacedab98d0d59ae3389df98d3729fefee162c72e98a2041111ffd86f01",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_reseed.hpp",
+        "mode": "100644",
+        "blob_oid": "ba2e8d1180835859685652e910ca5823ee89554e",
+        "checkout_raw_sha256": "b2d692f45bcc65a21261be0cbb22eb8dc15e5619e35cbb7dc39e9461340e0832",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_reseed_authorization.hpp",
+        "mode": "100644",
+        "blob_oid": "c2c2cf643ab7c537e9c01de0637a9c31b36c8cfc",
+        "checkout_raw_sha256": "9d498828ef9da5c0002b64dac0072a5e6345cafa7a8b02dc7b2f7abcfee4d36a",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_reset_policy.hpp",
+        "mode": "100644",
+        "blob_oid": "5399da6fb7f64f2ba2ace918d299eb10463233e3",
+        "checkout_raw_sha256": "93812c6476ff958ce5e000d250ffbe674ef3eb8442f71291a262748a054a8139",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_store.hpp",
+        "mode": "100644",
+        "blob_oid": "27075c61312bbe51ab106b43320b58b36dea3657",
+        "checkout_raw_sha256": "6840af4a52b2d685b897108ffbc4457365dd72140a3193a943a05b31a097d085",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_transition.hpp",
+        "mode": "100644",
+        "blob_oid": "b8ee6a41b005403c0aeb2cecf89d8800dcdc1476",
+        "checkout_raw_sha256": "05be3c552daa97c8cd347372e71a199300d9515802c9d3f7f86b9405a3dcc05b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_trusted_baseline.hpp",
+        "mode": "100644",
+        "blob_oid": "a17a031749f2f20e4d1c4c5a84d97b60458780a8",
+        "checkout_raw_sha256": "80a0593a48a37ca15720e17cea5a3be3626306c0b215e7a28136738d9991d32b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_trusted_boot.hpp",
+        "mode": "100644",
+        "blob_oid": "f55bfb407d5a78b0ed15d7e9a88f7bcf1b2db417",
+        "checkout_raw_sha256": "f5033e62db690ca0ae9cc7be7cc61d14a2a3d0ee91b276c0090a25a53fb31f6d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_trusted_candidate.hpp",
+        "mode": "100644",
+        "blob_oid": "3e32ef9282547cd7e3b70e7fcf875b4feb6d78fe",
+        "checkout_raw_sha256": "1aad49f59bba168f1783b86ce28491960b8930ebc6bf5053343b558f1b300de7",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_trusted_generation.hpp",
+        "mode": "100644",
+        "blob_oid": "3094057e6afdf893af7080b6035c5f32439e7056",
+        "checkout_raw_sha256": "a871ea35792bb62ec691b05d5d2848be0eb4ab1182c55f298324e6edb9c73fea",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_trusted_reseed.hpp",
+        "mode": "100644",
+        "blob_oid": "fcfa2a758723d30333eb00e0914e20745a38a05c",
+        "checkout_raw_sha256": "48e299031b68af283876740e3983af8586b614ee9773585797bc941b2006cbfc",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/include/opentrail/map_selector_trusted_transition.hpp",
+        "mode": "100644",
+        "blob_oid": "23fc9f8f05bff3ee668d3a6e42f13bd9b2f51fdb",
+        "checkout_raw_sha256": "413c91f711b8f69be0d5c93430cfac5c81758a660534d537a0f2d3e5041d8e64",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_activation_guard.cpp",
+        "mode": "100644",
+        "blob_oid": "7c98860d4b9b6ffc70966b4ef224981d4e6bcdee",
+        "checkout_raw_sha256": "733a69fdda562fc203fbd1ccf56542d69163916945b63edf74b84d94f2b8b77b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_baseline.cpp",
+        "mode": "100644",
+        "blob_oid": "0ad93508ad3d52d3d81c59a24d6d82591a5a54f9",
+        "checkout_raw_sha256": "b3472e6deba8ed4492ad8fe89fad1eb8603636b9dcf14a7429314c4f5c99680d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_boot.cpp",
+        "mode": "100644",
+        "blob_oid": "79b82de94fea0710f4bb3b3d98faf118ca7d248d",
+        "checkout_raw_sha256": "c37a7be07b298007f1e46fe4f8e23f5f86b6c30d9042837001a4ee25d67bff25",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_candidate.cpp",
+        "mode": "100644",
+        "blob_oid": "c5cf2df9f5f58b4c1e62ded8c407cb8a26942b13",
+        "checkout_raw_sha256": "1a08e89af8385653232f9ebd0e861deef90bb2ff728674681718d51ce55ac6b7",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_checkpoint.cpp",
+        "mode": "100644",
+        "blob_oid": "64b552a32943c257d56b96c2d33a6f6760c994d5",
+        "checkout_raw_sha256": "59cb1bfd658b7ca10e220d3c4f71880f5eca726dc71834d26ab671030cbe8e9c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_domain_activation.cpp",
+        "mode": "100644",
+        "blob_oid": "a6d297a6cbe69232a5e8afb4cc13e0aaa6b905c6",
+        "checkout_raw_sha256": "ab7a6cb00bec36774736097bcb54278f877bd57331231f4e7c3fcabcb4d02830",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_domain_authorization.cpp",
+        "mode": "100644",
+        "blob_oid": "cfaa2da4cbcb2210461d00b7c987f50ba55dce8f",
+        "checkout_raw_sha256": "011b0ea776f765d8dd43c996c6c1e378d766da6c231628a31301af0db5baf514",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_domain_boot.cpp",
+        "mode": "100644",
+        "blob_oid": "7c58723f7fed0572d4f4d1a530a0d5303736a602",
+        "checkout_raw_sha256": "923cb6c84b26d8f47d77dcc3ce4124401781de7645a01dd899502a5e2fd6bacd",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_domain_candidate.cpp",
+        "mode": "100644",
+        "blob_oid": "d46e2c898afb96f91a1bb760845263ce9a863dfc",
+        "checkout_raw_sha256": "33e05b88c454ab0683da7e05df91e6e864f7500276cdb18ab8697b570cc55b78",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_domain_kv_storage.cpp",
+        "mode": "100644",
+        "blob_oid": "c66b38b95337cbc41fde554a52d3433ddafa00d7",
+        "checkout_raw_sha256": "d637f58d116c9ee78284790aed5a842bc2e38fdd190d2fedbfc25aa8d23af194",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_domain_provisioner.cpp",
+        "mode": "100644",
+        "blob_oid": "d51427d181bdbbc470af699e9d3bebe1199475bb",
+        "checkout_raw_sha256": "f05db4ab4ac8169a2a3a50fa818c4ff94dc45821a8a7a4049ac2179f80bde823",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_domain_record.cpp",
+        "mode": "100644",
+        "blob_oid": "34e865e4792e23fefdd77b20d7d607567a95886d",
+        "checkout_raw_sha256": "49abaab9d049b1ff237a1a53e7393a1a0945a7ec7d6f12619ad42206a202005c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_domain_store.cpp",
+        "mode": "100644",
+        "blob_oid": "5326c4f9a2c22cfb05dd5bd394c07e36a5437dbf",
+        "checkout_raw_sha256": "b972e9b88ba3c6272b74d881dd5ec3e24d38d87ae6519c690949b0732c87a603",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_domain_transition.cpp",
+        "mode": "100644",
+        "blob_oid": "ef238d106f272e7c1fe8a880b474ad026c64df74",
+        "checkout_raw_sha256": "a3ab75abd6e8ae47c37745969e0176c4b05c11b282d11d68df608d3c7d8c04f2",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_domain_trial_boot.cpp",
+        "mode": "100644",
+        "blob_oid": "b4e0a79bd4f7cc5321c051776b0c9c0b441cd879",
+        "checkout_raw_sha256": "73943066a02890bf02f45afd0505c114a2f9232085e76efb77b1bfebb44a1651",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_kv_storage.cpp",
+        "mode": "100644",
+        "blob_oid": "ec3eebe3efc4254605dade2a6b3f4063dbf80ce3",
+        "checkout_raw_sha256": "f89019ff3377083688bbc95c589d9bcda3d83e19e845f58f6dc05e6bd07beecc",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_reseed.cpp",
+        "mode": "100644",
+        "blob_oid": "90d1aea9db3c7f281048351cefef4ff468d45224",
+        "checkout_raw_sha256": "6ce42a60f2e23bdc39cf5b1d7f3e882d181a06aae16b39754385e4a28472d54a",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_reseed_authorization.cpp",
+        "mode": "100644",
+        "blob_oid": "4cdc03a46c4170b8a77312fb94c51bde5ce1de19",
+        "checkout_raw_sha256": "c47dd29b96fa0faf6c6e7255bf15f08da19e8460f8924c8f8cb20c8b3f56ca3e",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_reset_policy.cpp",
+        "mode": "100644",
+        "blob_oid": "611dab9e58d6589264623d7cd8f89e69c49d37ae",
+        "checkout_raw_sha256": "34dcdc457e1983bb79a6c1aa22e61a9df416b456ef7cce8510f5059a745ef41d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_store.cpp",
+        "mode": "100644",
+        "blob_oid": "85c671a742792ca4494c5819c7bd9b66bd63f0de",
+        "checkout_raw_sha256": "1c962e514aea1efa1b0bec81005ef23322e018f22a4a2942a049bbe417489f77",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_transition.cpp",
+        "mode": "100644",
+        "blob_oid": "997cc8c787ad671f882fe825ff2b54bf0a88dee6",
+        "checkout_raw_sha256": "aba8eb944e04e0c2fd7f5c3e21fa179f777eff389cf082415b8281d55b357397",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_trusted_baseline.cpp",
+        "mode": "100644",
+        "blob_oid": "ff7fc6ae575fafce4bdb828eafaa7bd4ab5b64d2",
+        "checkout_raw_sha256": "75bb35d63cb8e170821a3ab7548a14267732dffe0f66ca0b1d379f1cc80cdce7",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_trusted_boot.cpp",
+        "mode": "100644",
+        "blob_oid": "8c2c58ac6494a9cc552a8bd0ff31898ee2d02614",
+        "checkout_raw_sha256": "fe424efccbdc6d4d043081093fdbbf3da65fda8120e64df72105507da83e9df5",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_trusted_candidate.cpp",
+        "mode": "100644",
+        "blob_oid": "d3a8b54cd5f05268a58d2bbef85f094adfdbde0b",
+        "checkout_raw_sha256": "aa9eff8a221a9a0dcee16689657cef06b6808ecab2ff91b9fadae9bc2c29c6e7",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_trusted_generation.cpp",
+        "mode": "100644",
+        "blob_oid": "0be39ed67241788ace79cf817b057478d0fba987",
+        "checkout_raw_sha256": "92a48cb8d40e818809726186618669149783b57e5cc04b0a18f717bda758feec",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_trusted_reseed.cpp",
+        "mode": "100644",
+        "blob_oid": "6729c5b8ce399e236ddeb7687c54fbdaca217655",
+        "checkout_raw_sha256": "e1fd23a7ad85369198f21e48a70caee6e0671adcd7b0509f7409f8a52257270c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/maps/src/map_selector_trusted_transition.cpp",
+        "mode": "100644",
+        "blob_oid": "55ba5a4d0fce37442da4fee586180f4cfc63b851",
+        "checkout_raw_sha256": "8fd9d5bc404c06b44ae26e69a34d5dce32dfbb37db48eef3ee61868059700e49",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/include/opentrail/ack_responder_session_store.hpp",
+        "mode": "100644",
+        "blob_oid": "c1327cc6f772a0b9606b7a0be1ac51bdd7ecf3fd",
+        "checkout_raw_sha256": "f047146c726d54c0b6c45d7a3c8c98cfe94756c40b80b37d6017bab4e630ba88",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/include/opentrail/breadcrumb_archive_session_lease_store.hpp",
+        "mode": "100644",
+        "blob_oid": "be062ddf3c142955d87cef94b78a694567a70f02",
+        "checkout_raw_sha256": "35053291b1e35badcb41a89e22f152fdc2e79f9fc7d19ee6f91618a0420cde6b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/include/opentrail/configuration_store.hpp",
+        "mode": "100644",
+        "blob_oid": "165aa540b70378b8a2d6ae514ac5eb4543d4d858",
+        "checkout_raw_sha256": "6f434934c6b79141b5d5307c7651a378e364d6190912691e0feae93fe2c36c5b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/include/opentrail/outbound_counter_lease_store.hpp",
+        "mode": "100644",
+        "blob_oid": "1eca424e3e77f7f1f0d95049c4fbfe523ee8cd9d",
+        "checkout_raw_sha256": "9e298fab283927de4a08694ceaae34fd63aa9c4f9abac73f3aec969d6540d1c0",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/include/opentrail/persistent_storage.hpp",
+        "mode": "100644",
+        "blob_oid": "3479fba7dcfa2aacaa25b13a164d288529342903",
+        "checkout_raw_sha256": "2f6c1cacf111b2de8c81f999bfd4de09d84f6441c354f5523865c1b62c2c88ed",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/include/opentrail/persistent_storage_kv.hpp",
+        "mode": "100644",
+        "blob_oid": "6712738e5aecb1f1611a0323df6822fe588464f4",
+        "checkout_raw_sha256": "74ac988e9557ddf38b6b575fbd15c71e7191f7aba448ef5f7dadda14c8da6682",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/src/ack_responder_session_store.cpp",
+        "mode": "100644",
+        "blob_oid": "ce954fa56717db7c97b9c4dc435aeea7c4a1cc5f",
+        "checkout_raw_sha256": "c77e08798431fa583b7a4ec8e95df48b00fa68401ab083294ae99d918a93c76b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/src/breadcrumb_archive_session_lease_store.cpp",
+        "mode": "100644",
+        "blob_oid": "a8b629bdad7175ebc7be510abcac01b57fd28254",
+        "checkout_raw_sha256": "ed3da644b643635c2feaecadda544fc72183e1166c8fbc5663bd81dede7494bb",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/src/configuration_store.cpp",
+        "mode": "100644",
+        "blob_oid": "6f2d4e5f428a3210dd4c70fe0178168fd74bbe58",
+        "checkout_raw_sha256": "b19ea95c86bb4ffdda1f7f09df0ac39b5c34e708c3ae066a615d7668e296a12d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/src/outbound_counter_lease_store.cpp",
+        "mode": "100644",
+        "blob_oid": "299c70f318e3b7971b239f3f0971a1a7303d230d",
+        "checkout_raw_sha256": "6d832d1447189f53e733642d4c7118333a973690d40b702a4fdde1999c69f151",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/src/persistent_storage_kv.cpp",
+        "mode": "100644",
+        "blob_oid": "c196218e850d96431973ee140a87936ef72a2c10",
+        "checkout_raw_sha256": "e5567c236abeb96deab2ab9f4730dc18e5c1d664535d1f22024b5ff81d929c70",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/test_support/memory_persistent_storage.cpp",
+        "mode": "100644",
+        "blob_oid": "acfd728930ef105e54560b6c4474d0e1108cfd19",
+        "checkout_raw_sha256": "75f2c25fee5b737285c5b2d0549f979a74296cca35ba8a552ad748ab14bd28ff",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/persistence/test_support/memory_persistent_storage.hpp",
+        "mode": "100644",
+        "blob_oid": "613a7b7102ab980756199d0279ed99a734fa5c2f",
+        "checkout_raw_sha256": "60223eda4910b65f8970d92cea0d5595faeb133f2a7e53c338b9a5fc1e7a3561",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/power/include/opentrail/power_state.hpp",
+        "mode": "100644",
+        "blob_oid": "53e1b9808230b8654e04dc43cc60026a1499a5fb",
+        "checkout_raw_sha256": "c4574b411e297ce761f20230c35936c8bcb5f6faab4aca653395fb25cad7c0b7",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/power/src/power_state.cpp",
+        "mode": "100644",
+        "blob_oid": "957700ca4d75b8adeae538731ccbdfb29559a576",
+        "checkout_raw_sha256": "01df6b1053468528bab739a239adbec0e5c073297a9b8a7b40351e98b9965cbc",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/power/test_support/fake_power_status_source.cpp",
+        "mode": "100644",
+        "blob_oid": "d314c07173bcc5ec97aba740d4f4d2e55957a02b",
+        "checkout_raw_sha256": "baa3a542d9650f75a69da98fefe49c419f5f5e879c58d877523f241613963121",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/power/test_support/fake_power_status_source.hpp",
+        "mode": "100644",
+        "blob_oid": "de37806c6bd9d55740d6fbf5f2426c25887a2222",
+        "checkout_raw_sha256": "75bdafeea0acb1c60372bb6bcc1d9b26f623e582a7180fc5536f1d0f6fe11911",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/protocol/include/opentrail/packet_codec.hpp",
+        "mode": "100644",
+        "blob_oid": "f4374291e1739a6f3c0618f6ec9aaedfd495a7a5",
+        "checkout_raw_sha256": "246118a68c4a17ff61b9f6c1ca60be14b08e0eb4894019f6751c9dac3aca0839",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/protocol/include/opentrail/protected_packet_budget.hpp",
+        "mode": "100644",
+        "blob_oid": "44c72d4f999353a728f6793d0c5d46ee4137121f",
+        "checkout_raw_sha256": "d9c195934837ba38fbf2bb14a7be6b0078d688f67538e591f044f813f5fb5973",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/protocol/include/opentrail/protected_reassembly.hpp",
+        "mode": "100644",
+        "blob_oid": "887a9502c86f63621c5fcefb506f7bc912fc70ca",
+        "checkout_raw_sha256": "6c637076f14e35cabb2c46b0222de13c564f3f99d9b1c02d4fe90a008f17f329",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/protocol/include/opentrail/quick_status_codec.hpp",
+        "mode": "100644",
+        "blob_oid": "27053d1e2f0dc15fa549c5172e8f173ec18d694b",
+        "checkout_raw_sha256": "c1953b7ee2d6f2683ebf1abf0045dbead9b73a80547e501cb1f71a09bbfc74a7",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/protocol/src/packet_codec.cpp",
+        "mode": "100644",
+        "blob_oid": "5b4df918d48a6c6eafee616a97c41ee79d396f7d",
+        "checkout_raw_sha256": "1fcc7bcc411b781b73ab82be704aa8842aed7132fd2a9a5cf9b4eb5b964a4c67",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/protocol/src/protected_packet_budget.cpp",
+        "mode": "100644",
+        "blob_oid": "f5ae3dae0acfffb5bbc49b124098858c51f23b4d",
+        "checkout_raw_sha256": "8d62203fb20aa68717ca1b780886571423ed37765a105088ecd7b96061d26513",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/protocol/src/protected_reassembly.cpp",
+        "mode": "100644",
+        "blob_oid": "203443776a914301d8141f7d3152fff34754de62",
+        "checkout_raw_sha256": "ae096a1e8630f009acaadb7ec5fffda44133e3e300b6e5f4b4583eadd5406511",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/protocol/src/quick_status_codec.cpp",
+        "mode": "100644",
+        "blob_oid": "ba4b9784b763fade7e3cce24423e2e6d883e6acc",
+        "checkout_raw_sha256": "4b1665e204c44c8122db2fe555e301b7d409618b02b3d8a1ee19b233730df29d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/radio/include/opentrail/lora_airtime.hpp",
+        "mode": "100644",
+        "blob_oid": "f2ca70bc1c70b410613e19404c79df6098166620",
+        "checkout_raw_sha256": "13386461ce183192603bf4109a81f4e70d95f2cab2c84babecb5b97f8b8b8e58",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/radio/include/opentrail/radio_transport.hpp",
+        "mode": "100644",
+        "blob_oid": "44c031c1deac63e0b92729daa909f6bebae64a75",
+        "checkout_raw_sha256": "d19f3dee030f6bc1e40bf16cd9c22a1a372869cf458516bdcb2db00c18cc7677",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/radio/src/lora_airtime.cpp",
+        "mode": "100644",
+        "blob_oid": "e8797abae1df013eabc75a91775b5772fe7991eb",
+        "checkout_raw_sha256": "cce2addba064592348c20509411277ff7ceaa7b4826f51a4363b60c623070722",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/radio/test_support/fake_radio_transport.cpp",
+        "mode": "100644",
+        "blob_oid": "690bf946d4b4b21a502387a55631cd6ffbe445a7",
+        "checkout_raw_sha256": "346bf5e40981372ecee33fc718ac585c36fc2ac97fe2abf1e514bb6d6c033c2c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/radio/test_support/fake_radio_transport.hpp",
+        "mode": "100644",
+        "blob_oid": "59df73dccf60d45c6c1ba075387974a4be378e62",
+        "checkout_raw_sha256": "9953e82f9fc8a6921c71155200b5c9b8214daf5b1be0c88a44308a7b45422b66",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/security/include/opentrail/aead_nonce.hpp",
+        "mode": "100644",
+        "blob_oid": "824b9ed66a51e776b72af5d285681535fbf3ea40",
+        "checkout_raw_sha256": "469b3186591f773ba70e4aa3c314f2738f35432a388761c91d622624119b8fdd",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/security/include/opentrail/secure_random.hpp",
+        "mode": "100644",
+        "blob_oid": "21008138c3b52a7f2b5cb4b561f6a337efa48359",
+        "checkout_raw_sha256": "8cb343ee20d777d45acc277f46ee07d4a22199252ef1cf6eeedeff5d9ae9a58f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/security/include/opentrail/traffic_key_context.hpp",
+        "mode": "100644",
+        "blob_oid": "a421ba430e4ed086c7ed60bcc86ecee2532b1cd0",
+        "checkout_raw_sha256": "a5d8f311cd24709c3f8829e6bb56404a064272b4b99d03e3e9fe10c22f2e7401",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/security/src/aead_nonce.cpp",
+        "mode": "100644",
+        "blob_oid": "3824c6fa6a3473d28b15a030331c3f0854909b0c",
+        "checkout_raw_sha256": "e28a118c29886c26d2011f58c989d764b0bc784b6fb71c27cd49a7853486bac9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/security/src/traffic_key_context.cpp",
+        "mode": "100644",
+        "blob_oid": "dd193a719e58912c087454bb15f3a1ce2cd5a3b7",
+        "checkout_raw_sha256": "f13de62373504817427bac4728a34fe45602993c049f92e6c45b566b1d8c93ed",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/security/test_support/fake_secure_random.cpp",
+        "mode": "100644",
+        "blob_oid": "8104507568bde08a8ddfd6e7cb0c59974f6e3f88",
+        "checkout_raw_sha256": "1becda0385d90018438edc1130be004ca02f201ff84b7558d9698a0912922c6d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/security/test_support/fake_secure_random.hpp",
+        "mode": "100644",
+        "blob_oid": "5cf82899eb3b042a66be955e0823432482f40b2d",
+        "checkout_raw_sha256": "107dc24e9e3aea0d35aafac29333801f2a09b8ae5688b816287cc2dbff7bdfda",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/simulation/include/opentrail/group_load_model.hpp",
+        "mode": "100644",
+        "blob_oid": "e8b8c62d6e2d4f90e1fcf218d270c7d5899a42dc",
+        "checkout_raw_sha256": "b806ac3f89538ae848a5b5b70e69c474ead4bb586e4e6d6d38b205367b6550e0",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/simulation/src/group_load_model.cpp",
+        "mode": "100644",
+        "blob_oid": "3e65975f42a75397a54c8546481950b00e2a2441",
+        "checkout_raw_sha256": "bc15671d339a8ddf55e206733b61d9841887b4f08059e6bf6cbe25cdebf28abe",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/time/include/opentrail/monotonic_clock.hpp",
+        "mode": "100644",
+        "blob_oid": "1366d1f867eb0cd3caee6441f8fb356af9abb21b",
+        "checkout_raw_sha256": "9bcda2ef1433e6fcb6714939af434e47760a6e3724454ad17316925491f18a48",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/time/src/monotonic_clock.cpp",
+        "mode": "100644",
+        "blob_oid": "f2adbaa1d0a0a0b828e7dbfdfdfe2a9ce05b8ebf",
+        "checkout_raw_sha256": "37a05680864521d8934633b0d93899915d0db49a2a82bae9e76ba38a07705ed8",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/time/test_support/fake_monotonic_counter_source.cpp",
+        "mode": "100644",
+        "blob_oid": "7cfbd2c9d195c7eec72fe692d61c9d461371c004",
+        "checkout_raw_sha256": "6c4c91497995aca8a4a7fe16e002c78410cb90409a3f7ec61449d58dfbbb3b36",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/time/test_support/fake_monotonic_counter_source.hpp",
+        "mode": "100644",
+        "blob_oid": "6aea011707b24f44aa2abc17c1b135fcd12244cd",
+        "checkout_raw_sha256": "b04ec7461fde1d25e47728952ed84ca15073b344fc48d56f78bbbfbb62728073",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/ui/include/opentrail/local_interface.hpp",
+        "mode": "100644",
+        "blob_oid": "e79f21cfeb4751a4e2787f1b1b29f909bffa9704",
+        "checkout_raw_sha256": "2ac63faf03e3e84ec8ab886265bd12f4dae465b3d5e59714e07bb113ee4886fb",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/ui/include/opentrail/portable_ui_render_plan.hpp",
+        "mode": "100644",
+        "blob_oid": "d48d9961b959428f9115f44b9496eab2ca1ce384",
+        "checkout_raw_sha256": "decb7b1d37aee05a35ea4db96053aae2b777f6f3f4a1b754a72489771b3bd185",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/ui/src/local_interface.cpp",
+        "mode": "100644",
+        "blob_oid": "940e9270694dfdc0739dce304ae30d02115f7a25",
+        "checkout_raw_sha256": "04ad23dee6d036ca1dfaa37d6dedd886487d8da3918b45e2bd0aa02a651f2764",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/ui/src/portable_ui_render_plan.cpp",
+        "mode": "100644",
+        "blob_oid": "97e3ab13244e338bd1d04deb441a901fd410f153",
+        "checkout_raw_sha256": "542a64c4efabf8bf764f4aceb8945b0d1bbee58350b5c48b79d07f59af799318",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/ui/test_support/fake_local_interface.cpp",
+        "mode": "100644",
+        "blob_oid": "d7c49a844e0b9c3f177ef1a16f375c4b0f5ffe47",
+        "checkout_raw_sha256": "bcc5c38de80d13147a665943947c489edf1ecd75aba0cfab34a8dd32fbbb53c4",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/ui/test_support/fake_local_interface.hpp",
+        "mode": "100644",
+        "blob_oid": "9c13320c36c8140c49b7e02520afef02eb999746",
+        "checkout_raw_sha256": "c880a614ccc27338608054357a31db2be591114c85e50b814c1053efa67306fb",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/firmware_bundle_admission.hpp",
+        "mode": "100644",
+        "blob_oid": "e32588fa7fa076325e58943c47357ad0659fc729",
+        "checkout_raw_sha256": "a14b7fee4760ff157ec28c39f79335539b07a46c26359958e536f0c655a0d1e1",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/firmware_install_preflight.hpp",
+        "mode": "100644",
+        "blob_oid": "fa0f1ddba75fe7069507e8d90209f0a9e1517991",
+        "checkout_raw_sha256": "41c772866466fd977c89aeca43b161d5d61cd06bfc5ccddd3e8b9989a0931cc1",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/firmware_write_admission.hpp",
+        "mode": "100644",
+        "blob_oid": "470010318279cecade3abd1a8790b9fb830fa6c9",
+        "checkout_raw_sha256": "107548eb17fbbcd230fcad6efce487500278feea72fa47c7d579b07ef29aa0fd",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/update_boot_guard.hpp",
+        "mode": "100644",
+        "blob_oid": "3ebec2409837e01e12ff04876c04a610c9e330bb",
+        "checkout_raw_sha256": "0fd5b47a4747c5105837afa9bca3d8237c1ebf2c37e960a035d12a72b87d7409",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/update_checkpoint.hpp",
+        "mode": "100644",
+        "blob_oid": "4da2315d809b974c4a37e2e1b9b35bda99ac3a34",
+        "checkout_raw_sha256": "cfc22dbdf361ac48a60c4df7bdd7d5d41e96b31f49ee49e84c6a93fb53c6f593",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/update_checkpoint_kv_storage.hpp",
+        "mode": "100644",
+        "blob_oid": "ba591571e2f4a6143b1767e0115ff0614aac329d",
+        "checkout_raw_sha256": "3bb6f763499f13a07cd81c8ab30b746df06c9336f706b60498508473cf27347f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/update_checkpoint_store.hpp",
+        "mode": "100644",
+        "blob_oid": "ff6086efa32f11051811202fc231175b32f15c0c",
+        "checkout_raw_sha256": "c147c776f28618518d4d2befa1eae832b481d4134f44d1f2018756378451cc91",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/update_recovery_boot.hpp",
+        "mode": "100644",
+        "blob_oid": "bec46edc4b22352f4568ea14422bfb581fb72af4",
+        "checkout_raw_sha256": "e9916d1ed2607f43fec7ce3ba2904d748742e486b2f094c130e640a00fa4ef37",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/update_recovery_save.hpp",
+        "mode": "100644",
+        "blob_oid": "d6485aa9f81b73a449f30b2ee7df36eab28ddf34",
+        "checkout_raw_sha256": "4e250b920a8e24804f6f63255abf58f642765b65c59cbf1d493693795126d6a4",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/update_recovery_status.hpp",
+        "mode": "100644",
+        "blob_oid": "96397f1d714500270619d6fcf31d49c1b5587808",
+        "checkout_raw_sha256": "fed9af80484c27cfd1e87b7bc5702e92ae1c088fc977d931e4cb164dd087857a",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/include/opentrail/update_recovery_transition.hpp",
+        "mode": "100644",
+        "blob_oid": "c8cdb8f77c6ac2f22d53cd92af9543490e3243d4",
+        "checkout_raw_sha256": "b07cdf4c048f607d954fbbb586893b426f72222c55542625a84262521c07987a",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/firmware_bundle_admission.cpp",
+        "mode": "100644",
+        "blob_oid": "670dd6df1a467868983f95cb649d7fdf299a7f49",
+        "checkout_raw_sha256": "a2a4ffdbf9879d859bc8edd94c582ea2fdd3ed74e50c9aee703f39aab756df53",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/firmware_install_preflight.cpp",
+        "mode": "100644",
+        "blob_oid": "c77bb514b3638cefd245aee921c8c3911ab5cac4",
+        "checkout_raw_sha256": "10c0eab3c2c069f0a9e6b586109781a28f5e45fba5e539c5fd8bf945c1d1fe22",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/firmware_write_admission.cpp",
+        "mode": "100644",
+        "blob_oid": "f5fb634b40eb8096fc7ede52526d65f2081abcba",
+        "checkout_raw_sha256": "77f934f3d0ce6c865682cf37023a7b713c8abcc2c9e321e128cce4c40a6a9c70",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/update_boot_guard.cpp",
+        "mode": "100644",
+        "blob_oid": "c4181a9f69aed4ba997c1c9bc746026dfef53996",
+        "checkout_raw_sha256": "f70df2b2e0e8c7099858aecfa1d713d83179a6867f9304d8cea3dd60230bd557",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/update_checkpoint.cpp",
+        "mode": "100644",
+        "blob_oid": "9684182cf34aa2f9558dd5e28898be37b842ed83",
+        "checkout_raw_sha256": "115849237218aaa24c592fe7dda48ef85e45e042e1c5f865b8696f58889d502b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/update_checkpoint_kv_storage.cpp",
+        "mode": "100644",
+        "blob_oid": "7e0416192c17df8b1b18ba1eabc129e33333eaeb",
+        "checkout_raw_sha256": "d0d4d468542e51915f42a51f1ddeafa84f7661931c74d2030375085499d6490f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/update_checkpoint_store.cpp",
+        "mode": "100644",
+        "blob_oid": "9273ebb746075e1e04ba78dab419ab850c36d46b",
+        "checkout_raw_sha256": "ac1e46f2ede20e48de3e23b3b12bc03657422e04ab8773552c06a5e4cd71dd1f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/update_recovery_boot.cpp",
+        "mode": "100644",
+        "blob_oid": "90c971cf4d48b36b58f22ba9239bd972c4dc00db",
+        "checkout_raw_sha256": "69b9b57b0632cf3ce387978e4a3b91082b1ffc9c54945a2ec2c7b8397554325d",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/update_recovery_save.cpp",
+        "mode": "100644",
+        "blob_oid": "ee9b92d7461adfe6e0cf0fbcf31fc323fe5f0e7c",
+        "checkout_raw_sha256": "fd705e4f622db1fc305729f64526ae6d89efd38e13f251bf09ea86fb6138acf9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/update_recovery_status.cpp",
+        "mode": "100644",
+        "blob_oid": "c6da843cdc9d8983191ee1cca032cf0628f89c67",
+        "checkout_raw_sha256": "03d997c1e3175eb9d2ec99e61629a83fccd7df350c92e692f7112ca028158b08",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/components/update/src/update_recovery_transition.cpp",
+        "mode": "100644",
+        "blob_oid": "933c5b6da7a40ddb507a706c0852826d0e9c442f",
+        "checkout_raw_sha256": "6c28a367378e6d56b5478694f55e72b71e89ebe8d12b1eb565a79acf9887b03c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/CMakeLists.txt",
+        "mode": "100644",
+        "blob_oid": "a05e7be56b8fe497b0431580c3ab95dd08d7e4fa",
+        "checkout_raw_sha256": "ee02b7d9d0c73150e1f787ad5bd77578128567ed355d35c7009b66dd39faad27",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/README.md",
+        "mode": "100644",
+        "blob_oid": "ad297bd6b391e3da9d8067f671e4b4d97f62e3ed",
+        "checkout_raw_sha256": "1e28800e228b78ab640100be7fbd980e878ccb57ae9172f324621b6157745cd1",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/CMakeLists.txt",
+        "mode": "100644",
+        "blob_oid": "a9d6601cdd56585028535958f11a23e6864765f0",
+        "checkout_raw_sha256": "4eb2c5a124396e7958e248da8bdb8258c7b81542244c35c5e009dc3373088d6b",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/app_main.cpp",
+        "mode": "100644",
+        "blob_oid": "3846a1bc083a66e32a8164557b943b38add49bc6",
+        "checkout_raw_sha256": "f8d70f2a3dc422ef1b18976187cfdf404f2dcb9645dbe8ae37bb04931b477022",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_authorization_nvs_backend.cpp",
+        "mode": "100644",
+        "blob_oid": "f5c34979b0858e36a8d8e910ddc5997cd81569c1",
+        "checkout_raw_sha256": "f76208931b6122806c33f816028dfb1da3aa00d9c4a0cae2b861b0c03bc2a643",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_authorization_nvs_backend.hpp",
+        "mode": "100644",
+        "blob_oid": "2ded1c29d0eabf70425c7d6da20619399837dfa2",
+        "checkout_raw_sha256": "0fbc9eed331115404b994950b19675bba1e1760747b75dc2e78e07dd6b0982eb",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_authorization_nvs_context.cpp",
+        "mode": "100644",
+        "blob_oid": "93cd7d23afced0d96ce7c0f859151fbd2764e5d1",
+        "checkout_raw_sha256": "51f5454dd9d762cde97c9fc1b4552f7b092e421933acabf655368082eee8a729",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_authorization_nvs_context.hpp",
+        "mode": "100644",
+        "blob_oid": "fd8d16bd17794473ed16cee5a33b98e383f87a9a",
+        "checkout_raw_sha256": "5ba5699d92a23a87b808f379e9bf52594e0bcadb84db6f134f7f83b02e3e92ca",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_authorization_storage.cpp",
+        "mode": "100644",
+        "blob_oid": "bd99fe30a599e63ea273c709b7e7c6d72c86cdaf",
+        "checkout_raw_sha256": "7e6bb5d803ffb800f00d7913ce25ebc17e47cd13c2a7df8a29f621d02982771f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_authorization_storage.hpp",
+        "mode": "100644",
+        "blob_oid": "ffd543c70a71b2f90e911038ec6a01649de72d42",
+        "checkout_raw_sha256": "3b2998bce4ce6486ff9533bfba779ba6e08723c460197b8db53a1d9a1d35ccd6",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_boot_self_check.cpp",
+        "mode": "100644",
+        "blob_oid": "23923717061a8c3590b33242a0407a63dfa17571",
+        "checkout_raw_sha256": "8a6e9d35a7afc7562bf81fc3ad153542e7ebc29c4fd2b5cba2c0cc86565f30f8",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_boot_self_check.hpp",
+        "mode": "100644",
+        "blob_oid": "767045221f58caa0cc3af5fe9765268a830eaeb3",
+        "checkout_raw_sha256": "01dfc5b9b75c6602d0904110a6c448ecc5ff28d28d400c939ac906f2f3565447",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_nimble_gatt.cpp",
+        "mode": "100644",
+        "blob_oid": "06ce9a72f46ddc8b040f3ea8665c6ff13aebe0a7",
+        "checkout_raw_sha256": "735f99bf1233a8ab7e9c2a07e7ff2733964e652534a83e688106041d350068fc",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_nimble_gatt.hpp",
+        "mode": "100644",
+        "blob_oid": "d1967447d0d66936b8e25478616baf93728d20db",
+        "checkout_raw_sha256": "b923f35cfee60a4007166ad08129209ae721eea3e2ff40692384435a36c07176",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_nimble_runtime.cpp",
+        "mode": "100644",
+        "blob_oid": "70122e4ec59d60c1cb7d0363855312ec9cae7d84",
+        "checkout_raw_sha256": "5644542f7a9ca5dcb0ccd8968c6703be0a346669306d079bba0e3f8d372e44bf",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_nimble_runtime.hpp",
+        "mode": "100644",
+        "blob_oid": "1c2606739df7a8dc594e22aeba8a579153f3706d",
+        "checkout_raw_sha256": "2af5a4a86a3c007820a543cb026b8dc9bc99c7c161d5d4f537b99a146b8ca3e3",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_protected_root_configuration_security_adapter.cpp",
+        "mode": "100644",
+        "blob_oid": "e7a967894e159c7ada80c7d301eba6d5cbcdcc4d",
+        "checkout_raw_sha256": "6b9d0a9b5fe47dfc74038353cd84488080fd3c94351c8419155c5e08c18d647f",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_protected_root_configuration_security_adapter.hpp",
+        "mode": "100644",
+        "blob_oid": "b32eb70b92555e187694dad2c5c047b7c43cbafe",
+        "checkout_raw_sha256": "f0c4639ff90d46be17b6174b3d611bb0427c087052eababf38211c3c55f5a4f1",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_protected_root_key_roster_adapter.cpp",
+        "mode": "100644",
+        "blob_oid": "3536677e900cbbbd7bffac90d3c072c81479aa3c",
+        "checkout_raw_sha256": "4ddd22907ff53adb9db44058892820df19cca975816d70cbdb8a168ae09a6efc",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/companion_protected_root_key_roster_adapter.hpp",
+        "mode": "100644",
+        "blob_oid": "d07d81bf0d9cc94070806ed9a3c23be2a8db6301",
+        "checkout_raw_sha256": "efcf09d516413fcc5506ff52301f1fb44d4595960420842f8e8a6afdf205f6e9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/heltec_startup_display.cpp",
+        "mode": "100644",
+        "blob_oid": "1ed6e54fcaabcb8f64561d5a4da7bf951d4c8ee1",
+        "checkout_raw_sha256": "2fcc7a5be6939126e761eac0861f1fc0fad9772653afe39cc982bf7df7987bd6",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/heltec_startup_display.hpp",
+        "mode": "100644",
+        "blob_oid": "61dfcbdc88980f346e40bae897d624df726b417b",
+        "checkout_raw_sha256": "7ae3e545ed9cba359427922ddb3bb1bf410ae024d22209599e1b5e026ae60595",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/heltec_v4_oled.cpp",
+        "mode": "100644",
+        "blob_oid": "a2911e16e5fbf400f2806222d012ee222c5d1206",
+        "checkout_raw_sha256": "ef5df7b0c32c3f8736b83e08083d6dee5b9e7b3b4fcfcbe1ae3973c5338cf1db",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/heltec_v4_oled.hpp",
+        "mode": "100644",
+        "blob_oid": "c0695dd0243ad86d2289e15b71e503740ae50ec9",
+        "checkout_raw_sha256": "a73553e0a25dabd37697328b8556ce65e2f8eb72c6ffc4ab85c9f77bcfb386c4",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/main/trail_startup_logo.hpp",
+        "mode": "100644",
+        "blob_oid": "02ce8238ba4b997db7498f7c1388fa816b0cfe13",
+        "checkout_raw_sha256": "48dc171dba14416cfa0c3da1092252e62a7aafad02a5df2614540591398e6f7c",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/oled-startup-flash-plan.json",
+        "mode": "100644",
+        "blob_oid": "d7f3f0207564547f22ec1263d590c3eb43c3c9e1",
+        "checkout_raw_sha256": "d30876b6c8e34385908ec07607f899186a3006685bb0d60cec6f35db73d6b7d3",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/partitions.csv",
+        "mode": "100644",
+        "blob_oid": "08262b85a1888e71d2492f8ace8c9b09713d7474",
+        "checkout_raw_sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/physical-flash-plan.json",
+        "mode": "100644",
+        "blob_oid": "b0aad7c8107eee262f40cf886ae85751daa88dd9",
+        "checkout_raw_sha256": "5316befa13b3af2a312b414047c6af02762bcb7be6571b217d2d99925edc5580",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-root-configuration-security-plan.json",
+        "mode": "100644",
+        "blob_oid": "20fdb3b9ddbe4b44d2464e83930c4a8523a76f1b",
+        "checkout_raw_sha256": "c1bfd7c035d9c6c95df8cb13d1a44acdcccef58b9f9f807dfe1df0afdb4c7b34",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-root-inventory-plan.json",
+        "mode": "100644",
+        "blob_oid": "f63ac5f54c0d0a2093a507360782b37116699a5e",
+        "checkout_raw_sha256": "0f66b5acd5b3414792cf1498c94215734f72d231ef12df18e165de2b7ac169d0",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-root-inventory-reader-plan.json",
+        "mode": "100644",
+        "blob_oid": "71ae69de03d5e1e01b3a320944a336a662b07a01",
+        "checkout_raw_sha256": "0113b33fb8af2f2646a440124685a3f54860b03d00ebeb9623b72a402f2429b9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-root-rollback-floor-descriptor-plan.json",
+        "mode": "100644",
+        "blob_oid": "4b5e61514ea7ff8bec762eab75ca87dc7863285f",
+        "checkout_raw_sha256": "3e43326477d75c8a3b98a474038166a4330cf304242fe7caa10ec651021b3927",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-root-secure-version-floor-plan.json",
+        "mode": "100644",
+        "blob_oid": "7b303f85892f9eb33a6b09f356c3e729c1d8696f",
+        "checkout_raw_sha256": "8c529a79ba5a733a136c3f8452b774d90644e58b7843c35b5d1a1d2a18ad8069",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-storage-partitions.candidate.csv",
+        "mode": "100644",
+        "blob_oid": "fce4059e57644d7403c73d5c5e01d2870bf3fe46",
+        "checkout_raw_sha256": "310fd207687c6d9964f8c1bf83031acfd5eafd837e7dbfcff429a5cee168c3ca",
+        "checkout_transform": "identity"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-storage-provider-plan.json",
+        "mode": "100644",
+        "blob_oid": "ea2d0cc57bbf9125d96b88d4edf2e41e1de20df4",
+        "checkout_raw_sha256": "9985d27c3fa89beae1d87f98f1a5392aae219c8e4c40f4c16ecec0c0e5becf89",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-storage-provisioning-plan.json",
+        "mode": "100644",
+        "blob_oid": "f07289ebf6ef72c8bac3542359fd47abe8e74f2e",
+        "checkout_raw_sha256": "49a8868410ec2924ac62fc8049af58150d7b29ef2c1e4ec33be4aa6ad068c8cb",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-storage-recovery-bundle-plan.json",
+        "mode": "100644",
+        "blob_oid": "d4e42dd11b827c476af60bff6f1d869719c77be9",
+        "checkout_raw_sha256": "14fdcc69e7a5cb9712a0ea3b21852c58c0ff075b9bcc1f7bc3b191db906920c9",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-storage-transition-plan.json",
+        "mode": "100644",
+        "blob_oid": "e78889feb1c2925be40cfc31e732b1fa3b1e8bee",
+        "checkout_raw_sha256": "4fef161b5317882248be26ede476e148febedf99eb1dc78a910af6074ba38edd",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/protected-storage-transition-read-plan.json",
+        "mode": "100644",
+        "blob_oid": "cff9acaa706e705dcc05467e914ffe2fab660ab3",
+        "checkout_raw_sha256": "349aaed5db03d1c37ad6dc331ca7f554ac5e2ea6546c66c928bdf9be53d4fb26",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
+        "mode": "100644",
+        "blob_oid": "bc413557f07e8389ae73cd7bea379c23944265bd",
+        "checkout_raw_sha256": "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb",
+        "checkout_transform": "lf-to-crlf-v1"
+      },
+      {
+        "path": "firmware/targets/heltec_v4_bench/target-contract.json",
+        "mode": "100644",
+        "blob_oid": "ad09ee666ad56f3926ab189ed4adea6cabe98ba8",
+        "checkout_raw_sha256": "524272ef9b4d6352cb6f8252f102421dfb5336c3a392159a5c854e738baca39f",
+        "checkout_transform": "lf-to-crlf-v1"
+      }
+    ]
+  }
+}

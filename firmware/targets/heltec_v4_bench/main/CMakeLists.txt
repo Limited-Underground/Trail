@@ -19,6 +19,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_gatt_session.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_authorization_wire.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_gatt_authorization.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/ui/src/compact_status_footer.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_gatt_authorization_adapter.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_authorization.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_authorization_persistence.cpp"
@@ -26,6 +27,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_ble_runtime_owner.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_public_link_info.cpp"
     INCLUDE_DIRS
+        "${OPENTRAIL_COMPONENT_ROOT}/ui/include"
         "."
         "${OPENTRAIL_COMPONENT_ROOT}/companion/include"
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/include"

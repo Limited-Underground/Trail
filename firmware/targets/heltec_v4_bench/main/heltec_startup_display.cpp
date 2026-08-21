@@ -52,6 +52,47 @@ StartupDisplayFrame startup_display_frame_for_ble_phase(
     return StartupDisplayFrame::ble_error;
 }
 
+bool startup_display_compact_footer_page(
+    StartupDisplayFrame frame,
+    ui::compact_status_footer::Page& page) {
+    using ui::compact_status_footer::ActivityOwner;
+    using ui::compact_status_footer::BleCode;
+    using ui::compact_status_footer::Freshness;
+    using ui::compact_status_footer::Snapshot;
+
+    Snapshot snapshot{};
+    switch (frame) {
+        case StartupDisplayFrame::ble_starting:
+            snapshot.ble = BleCode::starting;
+            break;
+        case StartupDisplayFrame::ble_advertising:
+            snapshot.ble = BleCode::advertising;
+            break;
+        case StartupDisplayFrame::ble_connected:
+            snapshot.ble = BleCode::connected;
+            break;
+        case StartupDisplayFrame::ble_retrying:
+            snapshot.ble = BleCode::retrying;
+            break;
+        case StartupDisplayFrame::ble_error:
+            snapshot.ble = BleCode::error;
+            break;
+        case StartupDisplayFrame::logo:
+        case StartupDisplayFrame::self_check_failed:
+        default:
+            page = {};
+            return false;
+    }
+
+    constexpr std::uint64_t kRenderNowMs = 0;
+    const auto fields = ui::compact_status_footer::format(
+        snapshot, Freshness{0, 0}, kRenderNowMs);
+    const ActivityOwner unsupported_activity{false, 0};
+    page = ui::compact_status_footer::render(
+        fields, unsupported_activity, kRenderNowMs);
+    return true;
+}
+
 const char* startup_display_text(StartupDisplayFrame frame) {
     switch (frame) {
         case StartupDisplayFrame::logo:

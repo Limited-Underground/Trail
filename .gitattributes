@@ -8,3 +8,10 @@ tests/benchmarks/crypto/OT-102-OT005-MONOCYPHER-SOURCE-LOCK-ADMISSION-DELTA-V0.j
 tests/benchmarks/crypto/esp_idf/mbedtls_4_1_0/* text eol=lf
 tests/benchmarks/crypto/OT-105-OT005-MBEDTLS-PSA-SOURCE-EVIDENCE-V0.json text eol=lf
 tests/benchmarks/crypto/OT-105-OT005-MBEDTLS-PSA-SOURCE-LOCK-ADMISSION-DELTA-V0.json text eol=lf
+tools/Build-HeltecV4BenchCompactFooter.ps1 text eol=lf
+tools/heltec_compact_footer_build_evidence.py text eol=lf
+tests/benchmarks/display/OT-106-HELTEC-V4-COMPACT-FOOTER-BUILD-V0.json text eol=lf
+tests/host/heltec_compact_footer_build_evidence_tests.py text eol=lf
+tests/benchmarks/crypto/OT-093-HISTORICAL-SUCCESSOR-V0.json text eol=lf
+tests/host/crypto_benchmark_baseline_historical_tests.py text eol=lf
+tests/host/crypto_benchmark_baseline_historical_harness_tests.py text eol=lf

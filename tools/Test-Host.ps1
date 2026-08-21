@@ -364,6 +364,7 @@ $builds = @(
         Name = 'Heltec V4 startup display state owner'
         Output = Join-Path $buildDirectory 'heltec_startup_display_tests.exe'
         Sources = @(
+            (Join-Path $projectRoot 'firmware\components\ui\src\compact_status_footer.cpp'),
             (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_startup_display.cpp'),
             (Join-Path $projectRoot 'tests\host\heltec_startup_display_tests.cpp')
         )
@@ -1167,7 +1168,7 @@ $builds = @(
         Name = 'compact 128-column status footer'
         Output = Join-Path $buildDirectory 'compact_status_footer_tests.exe'
         Sources = @(
-            (Join-Path $projectRoot 'tests\host_support\compact_status_footer.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\compact_status_footer.cpp'),
             (Join-Path $projectRoot 'tests\host\compact_status_footer_tests.cpp')
         )
     },
@@ -1175,7 +1176,7 @@ $builds = @(
         Name = 'compact status footer canonical adapters'
         Output = Join-Path $buildDirectory 'compact_status_footer_adapters_tests.exe'
         Sources = @(
-            (Join-Path $projectRoot 'tests\host_support\compact_status_footer.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\compact_status_footer.cpp'),
             (Join-Path $projectRoot 'tests\host_support\compact_status_footer_adapters.cpp'),
             (Join-Path $projectRoot 'tests\host\compact_status_footer_adapters_tests.cpp')
         )
@@ -1982,11 +1983,20 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OTMPSLA0 mbedTLS/PSA source-lock admission tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
-& $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_tests.py')
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_historical_tests.py')
 if ($LASTEXITCODE -ne 0) {
-    throw "OTCBL0 build-lock tests failed with exit code $LASTEXITCODE."
+    throw "OTCBL0 historical successor tests failed with exit code $LASTEXITCODE."
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_historical_harness_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "OTCBL0 historical successor tamper tests failed with exit code $LASTEXITCODE."
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\heltec_compact_footer_build_evidence_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "OTFBL0 compact-footer build-evidence tests failed with exit code $LASTEXITCODE."
+}
 & $python.Source (Join-Path $projectRoot 'tests\host\android_release_admission_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "Android operational-release admission tests failed with exit code $LASTEXITCODE."
