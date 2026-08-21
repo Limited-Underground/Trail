@@ -1172,6 +1172,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'compact status footer canonical adapters'
+        Output = Join-Path $buildDirectory 'compact_status_footer_adapters_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host_support\compact_status_footer.cpp'),
+            (Join-Path $projectRoot 'tests\host_support\compact_status_footer_adapters.cpp'),
+            (Join-Path $projectRoot 'tests\host\compact_status_footer_adapters_tests.cpp')
+        )
+    },
+    @{
         Name = 'revision-safe generic quick-status menu'
         Output = Join-Path $buildDirectory 'quick_status_menu_coordinator_tests.exe'
         Sources = @(

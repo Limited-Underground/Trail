@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-21
 
+### OT-101A host-only compact-footer adapters
+
+- Added pure target-neutral adapters under `tests/host_support` from the existing power assessment and BLE runtime status into the accepted OT-101 footer contract; OT-101 remains `partial`.
+- Valid battery percentages reconstruct the original sample time from the assessment time, while a separate render time controls freshness. Delayed composition preserves and expires the old sample; unavailable or invalid assessments, out-of-range percentages, unsafe unsigned subtraction, and render time before assessment time fail closed.
+- BLE maps dormant, waiting-for-host-sync, advertising, connected, restart-wait, and contained to `-`, `S`, `A`, `C`, `R`, and `E`. Terminal errors take precedence; unknown phases fail closed to unavailable. Composition intentionally provides no GPS source and uses an unsupported activity owner, so it renders `GPS:--` with a blank direction field.
+- Ten C++17 warnings-as-errors adapter groups, the existing twelve footer groups, and the corrected complete host gate all pass (exit zero, session 17704). There is no firmware or target wiring, renderer/OLED, battery sensor, GNSS, BLE transport, radio-event or accepted real-traffic binding, target build, device access, flash, telemetry, traffic, physical-display, support, regulatory, or score evidence. V1 progress is unchanged. See [OT-101A evidence](../tests/hardware/OT-101A-2026-08-21.md).
+
 ### OT-101 host-only compact status footer prototype
 
 - Advanced OT-101 from planned to partial with a target-neutral prototype/contract under `tests/host_support`; it remains deliberately outside the firmware tree.

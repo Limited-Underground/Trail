@@ -2621,11 +2621,16 @@ not treated as proof of authorization.
   battery/GPS observations render as `--`; BLE uses bounded codes with a
   legend. Exact glyph, formatter, width/layout, golden-page,
   validity/freshness, code, latest-direction, monotonic-expiry, and rejection
-  behavior pass 12 warning-free host groups from `tests/host_support`. The
-  prototype remains outside the firmware tree; current target renderer/OLED,
-  battery, GNSS-satellite, BLE, and radio bindings are absent, so no firmware,
-  target-build, device, flash, traffic, physical-display, support, regulatory,
-  or score result is claimed
+  behavior pass 12 warning-free host groups from `tests/host_support`. OT-101A
+  adds pure target-neutral adapters from the existing power assessment and BLE
+  runtime status. Ten adapter groups prove separate assessment/render clock
+  handling, delayed-sample expiry, regressive-clock rejection,
+  fail-closed power mapping, and the bounded `-`/`S`/`A`/`C`/`R`/`E` BLE
+  mapping; composition deliberately keeps GPS unavailable and activity blank.
+  The prototype and adapters remain outside the firmware tree; current target
+  renderer/OLED, battery, GNSS-satellite, BLE transport, and radio bindings are
+  absent, so no firmware, target-build, device, flash, telemetry, traffic,
+  physical-display, support, regulatory, or score result is claimed
 
 ### Governance
 
@@ -2674,20 +2679,30 @@ Authenticated on-device transport, protected target state, physical restart and
 power-failure injection, GPS evidence, field performance, and direct-radio
 airtime remain explicit later gates.
 
-OT-101 is now partial. A target-neutral host-only prototype/contract under
+OT-101 remains partial. A target-neutral host-only prototype/contract under
 `tests/host_support` formats `BAT:100% GPS:12 BLE:C` within one exact
 128-column by 8-row page plus one transient latest-direction field: `↑` for an
 injected accepted TX event, `↓` for an injected accepted RX event, and blank
 while idle, unsupported, future-dated, or expired. Every unavailable, invalid,
 stale, future, or out-of-range battery/GPS value renders as `--`; BLE uses the
-bounded documented codes `-`, `S`, `A`, `C`, `R`, and `E`. Twelve
-warning-free host groups cover exact glyphs, formatter and widths, golden
-layout, validity and freshness, BLE codes, latest-direction replacement,
-monotonic expiry, regressive-time rejection, unsupported transport, and clear
-behavior. The activity owner accepts only injected host events; no accepted
-real-transport source exists. The prototype remains deliberately outside the
-firmware tree, and the current Heltec target has no renderer/OLED,
-battery-percentage, GNSS-satellite-count, BLE, or radio-event binding. No
-firmware or target build, device access, flash, telemetry, traffic,
-physical-display, support, regulatory, or score claim follows. See
-[OT-101 evidence](../tests/hardware/OT-101-2026-08-21.md).
+bounded documented codes `-`, `S`, `A`, `C`, `R`, and `E`. Twelve warning-free
+host groups cover exact glyphs, formatter and widths, golden layout, validity
+and freshness, BLE codes, latest-direction replacement, monotonic expiry,
+regressive-time rejection, unsupported transport, and clear behavior.
+OT-101A adds pure host adapters from `power::PowerAssessment` and
+`companion::CompanionBleRuntimeStatus`. Valid battery values reconstruct the
+original observation time from the assessment time; a separate render time
+controls freshness, so delayed composition expires the old sample instead of
+refreshing it. Underflow, render time before assessment time, and invalid or unavailable
+assessments fail closed. Known BLE phases map
+only to `-`, `S`, `A`, `C`, `R`, and `E`; terminal errors win and unknown
+phases are unavailable. Ten adapter groups pass, while the existing twelve
+footer groups remain green. Adapter composition has no GPS source and uses an
+unsupported activity owner, producing `GPS:--` and a blank arrow in every tested
+case. No accepted real-transport source exists. The prototype and adapters remain
+deliberately outside the firmware tree, and the current Heltec target has no
+renderer/OLED, battery-percentage, GNSS-satellite-count, BLE transport, or
+radio-event binding. No firmware or target build, device access, flash,
+telemetry, traffic, physical-display, support, regulatory, or score claim
+follows. See [OT-101 evidence](../tests/hardware/OT-101-2026-08-21.md) and
+[OT-101A evidence](../tests/hardware/OT-101A-2026-08-21.md).
