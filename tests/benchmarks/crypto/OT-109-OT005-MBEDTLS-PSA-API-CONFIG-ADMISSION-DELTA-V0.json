@@ -1,0 +1,51 @@
+{
+  "schema": "OTCAPIA0",
+  "version": 0,
+  "artifact_kind": "append_only_mbedtls_psa_api_config_acceptance_delta",
+  "admission_id": "OT-109-OT005-MBEDTLS-PSA-API-CONFIG-ADMISSION-DELTA-V0",
+  "accepted_date": "2026-08-21",
+  "status": "mbedtls_psa_partial_api_config_admitted_readiness_blocked",
+  "public_result": "MBEDTLS-PSA-FIVE-OF-EIGHT-API-CONFIG-COMPARISON-PARTIAL-ADMITTED-HOST-ONLY; COUNTS-3-1-0; ONE-DIRECT-RADIO-REQUIREMENT-REMAINS; NONSELECTABLE; READINESS-BLOCKED",
+  "parents": {
+    "otcac0_v1_raw_sha256": "575e8747cdba643f2abb6f3252a62adbf3f12a9faaa46ca1d4bf4ce8bd9d23f3",
+    "otcac0_v1_canonical_sha256": "ccdb11e19031a4a01c717e30c172332c5e71ca79ee2b36b721277e55ca9a6c22",
+    "otcapioe0_v0_raw_sha256": "ea85f548deee36ca34241747cdf567036febfb9eecd88d9e134d3383edf2379e",
+    "otcapioe0_v0_canonical_sha256": "6a17a6f5a753a19d2d78d7cb6f0c757ef9791e0bf2e953e27afc3eccb04f27ed",
+    "otcapi0_v2_raw_sha256": "67532e10704d02489b72a72ef55607743c00a5bd8504276750931b5d986f6155",
+    "otcapi0_v2_canonical_sha256": "22975ac7fbd3c9faab1ae0c9fa952a58dc4a7a893de3cc74604182b3492fe1f8"
+  },
+  "accepted_api_config_evidence_sha256": {
+    "espressif_libsodium": [],
+    "esp_idf_mbedtls_psa": ["22975ac7fbd3c9faab1ae0c9fa952a58dc4a7a893de3cc74604182b3492fe1f8"],
+    "monocypher": []
+  },
+  "acceptance_counts": {
+    "source": 3,
+    "api_config": 1,
+    "candidate_import": 0
+  },
+  "closed_by_this_delta": {
+    "blocker_id": "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "closure_evidence_sha256": "22975ac7fbd3c9faab1ae0c9fa952a58dc4a7a893de3cc74604182b3492fe1f8"
+  },
+  "current_one_blocker": ["direct_radio_mtu_phy_region_unresolved"],
+  "authority": {
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "candidate_selection_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "complete_api_config_eligibility_proven": false,
+    "candidate_imported": false,
+    "candidate_benchmark_executed": false,
+    "candidate_selected": false,
+    "hardware_or_device_accessed": false,
+    "physical_evidence_added": false,
+    "score_credit_added": false
+  }
+}

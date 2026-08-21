@@ -1,0 +1,29 @@
+{
+  "schema": "OTCAPI0",
+  "version": 2,
+  "artifact_kind": "candidate_api_config_evidence",
+  "evidence_id": "OT-109-OT005-MBEDTLS-PSA-API-CONFIG-EVIDENCE-V2",
+  "recorded_date": "2026-08-21",
+  "contract_sha256": "ccdb11e19031a4a01c717e30c172332c5e71ca79ee2b36b721277e55ca9a6c22",
+  "candidate_id": "esp_idf_mbedtls_psa",
+  "role": "comparison",
+  "source_evidence_sha256": "ae12ad7da6702ac85092e9cb8ad793b749871153fadee8b1a276e5a46b036e49",
+  "final_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686",
+  "operation_results": [
+    {"operation_id": "ed25519_sign", "state": "unavailable", "evidence_sha256": null},
+    {"operation_id": "ed25519_verify", "state": "unavailable", "evidence_sha256": null},
+    {"operation_id": "x25519", "state": "eligible", "evidence_sha256": "3c605dc2f9ab53bef1d0ebc86cc40f8079444d0edc37ab210817dec4928ed8e6"},
+    {"operation_id": "sha256", "state": "eligible", "evidence_sha256": "a0c14f7f5ebbc8b4efadef614d0abf6c985dd01765f1c3141268b7a9dbdfd60b"},
+    {"operation_id": "hkdf_sha256", "state": "eligible", "evidence_sha256": "5a7ad2519c74aa5fd65de139cc3d1deea784d27b582269914774a8ee0825a233"},
+    {"operation_id": "chacha20poly1305_encrypt", "state": "eligible", "evidence_sha256": "53673578fba0d8f5e10f3fc170846337546f9c3474d0f333137dceeb0af01863"},
+    {"operation_id": "chacha20poly1305_decrypt", "state": "eligible", "evidence_sha256": "87cb4d0a6958f571bef7d7a45b83d9c7dcaf398dff1dd4cd72809cb6eddd9046"},
+    {"operation_id": "noise_xk_handshake", "state": "unavailable", "evidence_sha256": null}
+  ],
+  "coverage_state": "comparison_partial",
+  "comparison_measurement_eligible": true,
+  "selection_eligible": false,
+  "result": "partial_comparison_only",
+  "execution_authorized": false,
+  "selection_authorized": false,
+  "score_credit_added": false
+}

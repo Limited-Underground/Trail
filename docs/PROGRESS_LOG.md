@@ -5,6 +5,14 @@ remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concis
 public chronology.
 
 ## 2026-08-21
+### OT-109 mbedTLS/PSA API/configuration evidence admission
+
+- Accepted exact generated host-only `OTCAPIOE0/v0` operation evidence, canonical SHA-256 `6a17a6f5a753a19d2d78d7cb6f0c757ef9791e0bf2e953e27afc3eccb04f27ed` / raw SHA-256 `ea85f548deee36ca34241747cdf567036febfb9eecd88d9e134d3383edf2379e`, and `OTCAPI0/v2` candidate evidence, canonical SHA-256 `22975ac7fbd3c9faab1ae0c9fa952a58dc4a7a893de3cc74604182b3492fe1f8` / raw SHA-256 `67532e10704d02489b72a72ef55607743c00a5bd8504276750931b5d986f6155`.
+- Two fresh, initially absent, component-manager-disabled configuration-only runs reproduced the exact 106,921-byte OT-107 mbedTLS/PSA sdkconfig SHA-256 `9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686`. No candidate source was copied or compiled.
+- Accepted append-only `OTCAPIA0/v0`, canonical SHA-256 `fed7b009a97a60678b2dfbba23d933b974aa0fec46d0b460ac7eb221e91931dd` / raw SHA-256 `0311b8b264d264d4a005ac9be8531c06175521362ed54ac9f40bdef1fd7a5df0`. X25519, SHA-256, HKDF-SHA256, and ChaCha20-Poly1305 encrypt/decrypt are admitted for comparison measurement; Ed25519 sign/verify and Noise XK remain unavailable. Five-of-eight partial coverage is structurally nonselectable.
+- Counts become `3/1/0`; the mbedTLS/PSA API/configuration requirement closes, while `direct_radio_mtu_phy_region_unresolved` remains the sole readiness blocker. Readiness remains blocked, no execution or selection is authorized, and all progress values remain unchanged. See [Decision 0050](decisions/0050-host-only-mbedtls-psa-api-configuration-admission.md), the [operation bundle](../tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-OPERATION-EVIDENCE-V0.json), [candidate evidence](../tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-EVIDENCE-V2.json), [admission](../tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-ADMISSION-DELTA-V0.json), and [OT-109 evidence](../tests/hardware/OT-109-2026-08-21.md).
+- Nine focused adversarial groups, exact raw-byte tamper rejection, independent review, publication-safety checks, and the complete host gate (exit zero, session `22143`) pass. The aggregate gate's existing privacy-safe USB loader precheck is separate from OT-109 and added no device, flash, radio, or physical evidence to this increment.
+
 ### OT-108 versioned per-candidate API/configuration acceptance contract
 
 - Accepted append-only `OTCAC0/v1`, canonical SHA-256 `ccdb11e19031a4a01c717e30c172332c5e71ca79ee2b36b721277e55ca9a6c22`, raw SHA-256 `575e8747cdba643f2abb6f3252a62adbf3f12a9faaa46ca1d4bf4ce8bd9d23f3`.

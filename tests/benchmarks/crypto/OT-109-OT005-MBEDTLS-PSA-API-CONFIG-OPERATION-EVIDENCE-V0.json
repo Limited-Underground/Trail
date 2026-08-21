@@ -1,0 +1,183 @@
+{
+  "schema": "OTCAPIOE0",
+  "version": 0,
+  "artifact_kind": "mbedtls_psa_api_config_operation_evidence",
+  "evidence_id": "OT-109-OT005-MBEDTLS-PSA-API-CONFIG-OPERATION-EVIDENCE-V0",
+  "recorded_date": "2026-08-21",
+  "status": "comparison_partial_host_only",
+  "public_result": "MBEDTLS-PSA-API-CONFIG-OPERATION-EVIDENCE-GENERATED-HOST-ONLY; FIVE-OF-EIGHT-COMPARISON-PARTIAL; NONSELECTABLE; NO-IMPORT-BUILD-BENCHMARK-DEVICE-RADIO-OR-SCORE",
+  "parents": {
+    "otcmse0_v0_raw_sha256": "1a49125c3b236a5b744c0ca198e5a1f30b1509d9e58d86cce836f70fb1f10030",
+    "otcmse0_v0_canonical_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+    "otcsle0_v1_raw_sha256": "ae12ad7da6702ac85092e9cb8ad793b749871153fadee8b1a276e5a46b036e49",
+    "otmpsla0_v0_raw_sha256": "26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85",
+    "otcbcge0_v0_raw_sha256": "0c1b8cb574a210c6123b82b565e6ea8e12cee59bacd6ab4b94b293ddf9d2dfbc",
+    "otcbcga0_v0_raw_sha256": "3d71dfb02b6fd25e0881ac63cc085174c2cdd7e5ac2cd1e12c320ec34928f5a2",
+    "otcac0_v1_raw_sha256": "575e8747cdba643f2abb6f3252a62adbf3f12a9faaa46ca1d4bf4ce8bd9d23f3",
+    "otcac0_v1_canonical_sha256": "ccdb11e19031a4a01c717e30c172332c5e71ca79ee2b36b721277e55ca9a6c22"
+  },
+  "candidate": {
+    "candidate_id": "esp_idf_mbedtls_psa",
+    "role": "comparison",
+    "source_evidence_sha256": "ae12ad7da6702ac85092e9cb8ad793b749871153fadee8b1a276e5a46b036e49",
+    "source_admission_raw_sha256": "26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85",
+    "generated_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+  },
+  "configuration_reproduction": {
+    "run_count": 2,
+    "runs_identical": true,
+    "generated_sdkconfig_bytes": 106921,
+    "generated_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686",
+    "required_effective_symbols": [
+      "CONFIG_APP_COMPILE_TIME_DATE=n",
+      "CONFIG_APP_REPRODUCIBLE_BUILD=y",
+      "CONFIG_COMPILER_OPTIMIZATION_SIZE=y",
+      "CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160=y",
+      "CONFIG_FREERTOS_HZ=100",
+      "CONFIG_IDF_TARGET=\"esp32s3\"",
+      "CONFIG_MBEDTLS_CHACHA20_C=y",
+      "CONFIG_MBEDTLS_CHACHAPOLY_C=y"
+    ],
+    "forbidden_effective_symbols": [
+      "CONFIG_APP_COMPILE_TIME_DATE=y",
+      "CONFIG_MBEDTLS_CHACHA20_C=n",
+      "CONFIG_MBEDTLS_CHACHAPOLY_C=n"
+    ],
+    "runs": [
+      {
+        "run": "A",
+        "isolated_root_initially_absent": true,
+        "configuration_only": true,
+        "component_manager_disabled": true,
+        "exit_code": 0,
+        "generated_sdkconfig_bytes": 106921,
+        "generated_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686",
+        "required_symbols_present": true,
+        "forbidden_symbols_absent": true,
+        "candidate_source_copied": false,
+        "candidate_compiled": false,
+        "benchmark_executed": false,
+        "device_accessed": false,
+        "radio_used": false
+      },
+      {
+        "run": "B",
+        "isolated_root_initially_absent": true,
+        "configuration_only": true,
+        "component_manager_disabled": true,
+        "exit_code": 0,
+        "generated_sdkconfig_bytes": 106921,
+        "generated_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686",
+        "required_symbols_present": true,
+        "forbidden_symbols_absent": true,
+        "candidate_source_copied": false,
+        "candidate_compiled": false,
+        "benchmark_executed": false,
+        "device_accessed": false,
+        "radio_used": false
+      }
+    ]
+  },
+  "operation_records": [
+    {
+      "operation_id": "ed25519_sign",
+      "state": "unavailable",
+      "source_assessment_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+      "source_anchor_ids": [],
+      "api_symbols": [],
+      "required_effective_symbols": [],
+      "source_state": "identifiers_and_generic_api_only_no_ed25519_implementation",
+      "final_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+    },
+    {
+      "operation_id": "ed25519_verify",
+      "state": "unavailable",
+      "source_assessment_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+      "source_anchor_ids": [],
+      "api_symbols": [],
+      "required_effective_symbols": [],
+      "source_state": "identifiers_and_generic_api_only_no_ed25519_implementation",
+      "final_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+    },
+    {
+      "operation_id": "x25519",
+      "state": "eligible",
+      "source_assessment_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+      "source_anchor_ids": ["tf_psa_crypto_values", "tf_psa_api", "tf_psa_core", "tf_psa_x25519", "tf_psa_ecp"],
+      "api_symbols": ["psa_raw_key_agreement", "PSA_ALG_ECDH", "PSA_ECC_FAMILY_MONTGOMERY"],
+      "required_effective_symbols": [],
+      "source_state": "concrete_psa_api_and_everest_implementation_present",
+      "final_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+    },
+    {
+      "operation_id": "sha256",
+      "state": "eligible",
+      "source_assessment_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+      "source_anchor_ids": ["tf_psa_crypto_values", "tf_psa_api", "tf_psa_core", "tf_psa_hash_dispatch", "tf_psa_sha256"],
+      "api_symbols": ["psa_hash_compute", "PSA_ALG_SHA_256"],
+      "required_effective_symbols": [],
+      "source_state": "concrete_psa_api_and_builtin_implementation_present",
+      "final_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+    },
+    {
+      "operation_id": "hkdf_sha256",
+      "state": "eligible",
+      "source_assessment_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+      "source_anchor_ids": ["tf_psa_crypto_config", "tf_psa_crypto_values", "tf_psa_api", "tf_psa_core"],
+      "api_symbols": ["psa_key_derivation_setup", "psa_key_derivation_input_bytes", "psa_key_derivation_input_key", "psa_key_derivation_output_bytes", "PSA_ALG_HKDF", "PSA_ALG_SHA_256"],
+      "required_effective_symbols": [],
+      "source_state": "concrete_psa_api_and_core_implementation_present",
+      "final_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+    },
+    {
+      "operation_id": "chacha20poly1305_encrypt",
+      "state": "eligible",
+      "source_assessment_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+      "source_anchor_ids": ["tf_psa_crypto_values", "tf_psa_api", "tf_psa_core", "tf_psa_aead_dispatch", "tf_psa_chacha20", "tf_psa_chachapoly", "tf_psa_poly1305"],
+      "api_symbols": ["psa_aead_encrypt", "PSA_ALG_CHACHA20_POLY1305"],
+      "required_effective_symbols": ["CONFIG_MBEDTLS_CHACHA20_C=y", "CONFIG_MBEDTLS_CHACHAPOLY_C=y"],
+      "source_state": "concrete_psa_api_and_builtin_implementation_present_default_disabled",
+      "final_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+    },
+    {
+      "operation_id": "chacha20poly1305_decrypt",
+      "state": "eligible",
+      "source_assessment_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+      "source_anchor_ids": ["tf_psa_crypto_values", "tf_psa_api", "tf_psa_core", "tf_psa_aead_dispatch", "tf_psa_chacha20", "tf_psa_chachapoly", "tf_psa_poly1305"],
+      "api_symbols": ["psa_aead_decrypt", "PSA_ALG_CHACHA20_POLY1305"],
+      "required_effective_symbols": ["CONFIG_MBEDTLS_CHACHA20_C=y", "CONFIG_MBEDTLS_CHACHAPOLY_C=y"],
+      "source_state": "concrete_psa_api_and_builtin_implementation_present_default_disabled",
+      "final_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+    },
+    {
+      "operation_id": "noise_xk_handshake",
+      "state": "unavailable",
+      "source_assessment_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+      "source_anchor_ids": [],
+      "api_symbols": [],
+      "required_effective_symbols": [],
+      "source_state": "no_noise_xk_composition_or_state_machine_present",
+      "final_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+    }
+  ],
+  "authority": {
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "candidate_selection_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "api_config_evidence_generated": true,
+    "api_config_evidence_accepted": false,
+    "candidate_imported": false,
+    "candidate_benchmark_executed": false,
+    "candidate_selected": false,
+    "hardware_or_device_accessed": false,
+    "physical_evidence_added": false,
+    "score_credit_added": false
+  }
+}

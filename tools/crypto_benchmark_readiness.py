@@ -14,6 +14,7 @@ from typing import Any
 import crypto_benchmark_baseline as baseline_validator
 import crypto_candidate_source_lock as source_lock_validator
 import crypto_api_config_acceptance_contract as api_config_contract_validator
+import crypto_mbedtls_api_config_admission as mbedtls_api_config_admission_validator
 
 
 SCHEMA = "OTCBR0"
@@ -987,6 +988,32 @@ def validate_per_candidate_api_config_boundary(
         "score_credit_added": False,
         "contract_sha256": contract_result["contract_sha256"],
     }
+
+def validate_mbedtls_api_config_admission_boundary(
+    admission: dict[str, Any],
+    bundle: dict[str, Any],
+    api_evidence: dict[str, Any],
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    """Validate the append-only OT-109 successor without changing older boundaries."""
+    result = mbedtls_api_config_admission_validator.validate(
+        admission, bundle, api_evidence, contract
+    )
+    return {
+        "schema": result["schema"],
+        "version": result["version"],
+        "admission_id": result["admission_id"],
+        "source_count": result["source_count"],
+        "accepted_api_config_count": result["accepted_api_config_count"],
+        "candidate_import_count": result["candidate_import_count"],
+        "blocker_count": result["blocker_count"],
+        "fully_resolved": result["fully_resolved"],
+        "execution_authorized": result["execution_authorized"],
+        "selection_authorized": result["selection_authorized"],
+        "score_credit_added": result["score_credit_added"],
+        "admission_sha256": result["admission_sha256"],
+    }
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = SafeArgumentParser(description=__doc__)
