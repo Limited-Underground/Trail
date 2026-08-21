@@ -5,3 +5,6 @@ tests/benchmarks/crypto/monocypher/4.0.3/* -text
 tests/benchmarks/crypto/monocypher/4.0.3/source/** -text whitespace=-trailing-space,-space-before-tab
 tests/benchmarks/crypto/OT-102-OT005-MONOCYPHER-SOURCE-EVIDENCE-V0.json -text
 tests/benchmarks/crypto/OT-102-OT005-MONOCYPHER-SOURCE-LOCK-ADMISSION-DELTA-V0.json -text
+tests/benchmarks/crypto/esp_idf/mbedtls_4_1_0/* text eol=lf
+tests/benchmarks/crypto/OT-105-OT005-MBEDTLS-PSA-SOURCE-EVIDENCE-V0.json text eol=lf
+tests/benchmarks/crypto/OT-105-OT005-MBEDTLS-PSA-SOURCE-LOCK-ADMISSION-DELTA-V0.json text eol=lf
