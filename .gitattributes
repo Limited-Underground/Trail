@@ -21,3 +21,6 @@ tests/benchmarks/crypto/OT-107-OT005-FINAL-CANDIDATE-BUILD-CONFIGURATION-ADMISSI
 tools/crypto_final_candidate_build_configuration_admission.py text eol=lf
 tools/crypto_final_candidate_build_configuration_contract.py text eol=lf
 tests/host/crypto_final_candidate_build_configuration_admission_tests.py text eol=lf
+tests/benchmarks/crypto/OT-108-OT005-PER-CANDIDATE-API-CONFIG-ACCEPTANCE-CONTRACT-V1.json text eol=lf
+tools/crypto_api_config_acceptance_contract.py text eol=lf
+tests/host/crypto_api_config_acceptance_contract_tests.py text eol=lf

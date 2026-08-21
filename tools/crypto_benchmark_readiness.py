@@ -13,6 +13,7 @@ from typing import Any
 
 import crypto_benchmark_baseline as baseline_validator
 import crypto_candidate_source_lock as source_lock_validator
+import crypto_api_config_acceptance_contract as api_config_contract_validator
 
 
 SCHEMA = "OTCBR0"
@@ -951,6 +952,41 @@ def validate(
         "readiness_sha256": digest,
     }
 
+
+def validate_per_candidate_api_config_boundary(
+    contract: dict[str, Any],
+    api_config_evidence: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Validate the append-only OT-108 successor boundary without changing OTCBR0/v0."""
+    contract_result = api_config_contract_validator.validate_contract(contract)
+    accepted: list[dict[str, Any]] = []
+    if api_config_evidence is not None:
+        accepted = [
+            api_config_contract_validator.validate_evidence(item, contract)
+            for item in api_config_evidence
+        ]
+        candidate_ids = [item["candidate_id"] for item in accepted]
+        if len(candidate_ids) != len(set(candidate_ids)):
+            raise ValidationError("per-candidate API/config evidence contains a duplicate candidate")
+        if set(candidate_ids) != set(api_config_contract_validator.CANDIDATE_BY_ID):
+            raise ValidationError("per-candidate API/config evidence must cover every candidate")
+
+    return {
+        "schema": contract_result["schema"],
+        "version": contract_result["version"],
+        "contract_id": contract_result["contract_id"],
+        "status": contract_result["status"],
+        "public_result": contract_result["public_result"],
+        "source_count": contract_result["source_count"],
+        "accepted_api_config_count": len(accepted),
+        "candidate_import_count": contract_result["candidate_import_count"],
+        "blocker_count": contract_result["blocker_count"],
+        "fully_resolved": False,
+        "execution_authorized": False,
+        "selection_authorized": False,
+        "score_credit_added": False,
+        "contract_sha256": contract_result["contract_sha256"],
+    }
 
 def main(argv: list[str] | None = None) -> int:
     parser = SafeArgumentParser(description=__doc__)

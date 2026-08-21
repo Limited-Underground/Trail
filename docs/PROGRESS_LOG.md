@@ -5,6 +5,14 @@ remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concis
 public chronology.
 
 ## 2026-08-21
+### OT-108 versioned per-candidate API/configuration acceptance contract
+
+- Accepted append-only `OTCAC0/v1`, canonical SHA-256 `ccdb11e19031a4a01c717e30c172332c5e71ca79ee2b36b721277e55ca9a6c22`, raw SHA-256 `575e8747cdba643f2abb6f3252a62adbf3f12a9faaa46ca1d4bf4ce8bd9d23f3`.
+- Bound each candidate to its distinct OT-107 generated sdkconfig and accepted source evidence. Future complete eight-operation evidence may be structurally selection-eligible without granting selection; strict nonempty partial evidence is comparison-only, measurable only for evidenced operations, and nonselectable.
+- Nine focused adversarial groups cover exact identity/counts, per-candidate configuration substitution, complete/partial partitions, partial-primary and selection/execution rejection, unsupported-operation evidence, empty independent registries, readiness integration, and historical OT-094 through OT-107 preservation.
+- Accepted no API/configuration evidence and granted no import/build/benchmark/device/radio/key/selection authority. Counts remain `3/0/0`, OT-096 remains 5/8, the same two blockers remain, readiness remains blocked, and all progress values remain unchanged. See [Decision 0049](decisions/0049-versioned-per-candidate-api-configuration-acceptance-contract.md) and [OT-108 evidence](../tests/hardware/OT-108-2026-08-21.md).
+
+
 ### OT-107 final per-candidate build-configuration admission
 
 - Accepted owner-approved proposal raw SHA-256 `f9072a602a9c139b1e7728735db04cc270720bc37e0429c22bcdb0cd56202a15`, exact configuration-generation evidence raw SHA-256 `0c1b8cb574a210c6123b82b565e6ea8e12cee59bacd6ab4b94b293ddf9d2dfbc`, and append-only admission raw SHA-256 `3d71dfb02b6fd25e0881ac63cc085174c2cdd7e5ac2cd1e12c320ec34928f5a2`.
