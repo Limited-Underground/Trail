@@ -66,10 +66,11 @@ Connected directly to the development laptop for bounded inventory beginning 202
 
 | Field | Verified result | Evidence/source |
 | --- | --- | --- |
-| Inventory state | Experimentally flashed OpenTrail target; exact profile, boot/self-check/USB heartbeat, service advertising, one fixed public BLE read, target-local Trail startup/link-status OLED, and both phone-driven and target-timed disconnect/advertising-return paths passed. Exact SKU/RF front end, installed antenna, full pinout, protected authorization, LoRa/GNSS, interactive UI/input, recovery-after-loss, and support remain unresolved | [OT-061](../tests/hardware/OT-061-2026-08-16.md), [OT-064](../tests/hardware/OT-064-2026-08-17.md), [OT-085A](../tests/hardware/OT-085A-2026-08-19.md), and [OT-085B](../tests/hardware/OT-085B-2026-08-19.md) evidence |
-| Evidence role | Experimented OpenTrail bench target with physically accepted startup/status OLED and bounded public BLE read plus automatic lifecycle evidence; not validated or supported hardware | OT-061 full-image, OT-064 app-only, and OT-085A app-only write authorizations are consumed; OT-085B performed no target write and grants no standing write, recovery, unit-2, or support authority |
-| Purchase record | One of two units from Meshnology two-set V4 GPS bundle, Amazon ASIN `B0FS1WQWKF`, selected as `Black-2` | Owner-provided purchase link, 2026-08-12; the listing identifies two V4 boards, two L76 GNSS modules, two 3000 mAh batteries, N39 cases, and 915 MHz antennas, but is not an exact received board-revision label |
-| Product/model | `Heltec V4 OLED` runtime identity; likely Heltec WiFi LoRa 32 V4 family match (not V4.3), exact commercial SKU unconfirmed | MeshCore Device Info reported `Heltec V4 OLED`; official MeshCore runtime code reports V4.3 separately when its KCT8103L power amplifier is detected |
+| Inventory state | Experimentally flashed OpenTrail target; exact received Heltec Automation WiFi LoRa 32 V4 / `HTIT-WB32LAF` / `V4.2` documented-high-band profile, boot/self-check/USB heartbeat, service advertising, one fixed public BLE read, target-local Trail startup/link-status OLED, and both phone-driven and target-timed disconnect/advertising-return paths passed. Installed antenna, electrical radio path, full pinout, protected authorization, direct OpenTrail LoRa/GNSS, interactive UI/input, recovery-after-loss, regulatory acceptance, and support remain unresolved | [OT-061](../tests/hardware/OT-061-2026-08-16.md), [OT-064](../tests/hardware/OT-064-2026-08-17.md), [OT-085A](../tests/hardware/OT-085A-2026-08-19.md), [OT-085B](../tests/hardware/OT-085B-2026-08-19.md), and [OT-103](../tests/hardware/OT-103-2026-08-20.md) evidence |
+| Evidence role | Experimented OpenTrail bench target with exact received-unit identity, physically accepted startup/status OLED, bounded public BLE read, and automatic lifecycle evidence; not validated or supported hardware | OT-103 adds identity evidence only. OT-061 full-image, OT-064 app-only, and OT-085A app-only write authorizations are consumed; OT-085B and OT-103 performed no target write and grant no standing write, recovery, unit-2, radio, regulatory, or support authority |
+| Purchase record | One of two units from Meshnology two-set V4 GPS bundle, Amazon ASIN `B0FS1WQWKF`, selected as `Black-2` | Owner-provided purchase link, 2026-08-12. An owner-provided package photo reads `WiFi LoRa 32 V4`, `LoRa Dev-kits`, `LoRa Band`, and `HF 863-928`; the checkbox state is not claimed. The listing describes two V4 boards, two L76 GNSS modules, two 3000 mAh batteries, N39 cases, and 915 MHz antennas but remains corroborating purchase evidence rather than electrical verification |
+| Product/model | Exact received Heltec Automation `WiFi LoRa 32 V4`, PCB/RF-variant model `HTIT-WB32LAF`, received revision `V4.2`, documented-high-band profile | Privacy-safe owner-photo observations admitted by [OT-103](../tests/hardware/OT-103-2026-08-20.md); the prior `Heltec V4 OLED` runtime identity remains corroborating evidence |
+| Official documented family/profile | V4.2 datasheet Table 1.5 records `HTIT-WB32LAF` at `868-928 MHz` and `28 +/- 1 dBm`; Table 3.5.1 separately records `863-928 MHz` and `28 +/- 1 dBm`; Table 3.1 identifies ESP32-S3R2, SX1262, 16 MiB flash, and 2 MiB PSRAM | Official PDF digest and source URL are recorded in OT-103; the PDF was not retained. The two published band ranges stay distinct, and family-level SX1262/power statements are not received-unit electrical, antenna, legal-region, or regulatory proof |
 | USB port during test | `COM3` | Windows Ports-class device enumeration; port assignment can change |
 | USB identity | Espressif `VID 303A`, `PID 1001`; USB Serial/JTAG | Windows Plug-and-Play properties |
 | MCU | ESP32-S3, QFN56, revision v0.2 | `esptool 5.3.1 chip-id` |
@@ -96,25 +97,31 @@ Connected directly to the development laptop for bounded inventory beginning 202
 | MeshCore capacity/status | 1/40 channels, 0/350 contacts, storage 0% used (0 KB of 3169 KB) | Connected MeshCore browser application's Device Info, 2026-08-08 |
 | Prior MeshCore post-flash USB runtime snapshot | USB serial connection successful; uptime 670 seconds; 0 errors; queue length 0; 0 packets sent/received; 0 transmit/receive airtime | Historical 2026-08-08 read-only MeshCore evidence |
 | Firmware-reported repeater frequency points | 433.000 MHz, 869.495 MHz, and 918.000 MHz | `meshcli get allowed_repeat_freq`, 2026-08-08; firmware-reported permitted repeater points, not proof of antenna suitability, exact RF front end, legal authorization, or full supported band |
-| GPS/GNSS bench evidence | Connected GNSS was detected by MeshCore, its setting read disabled, explicit bench enablement read back enabled, and a redacted self-telemetry query contained a GPS field | `meshcli get custom` plus in-memory-reduced self telemetry, 2026-08-12; no coordinates or identity were saved. This proves firmware detection/activation and a telemetry path, not current fix, satellites, accuracy, loss behavior, exact physical module, or wiring |
+| GPS/GNSS bench evidence | Connected GNSS was detected by MeshCore, its setting read disabled, explicit bench enablement read back enabled, and a redacted self-telemetry query contained a GPS field. An OT-103 privacy-safe owner photo separately shows a module marked `QUECTEL` and `L76K` | `meshcli get custom`, in-memory-reduced self telemetry, and [OT-103](../tests/hardware/OT-103-2026-08-20.md); no coordinates or identity were saved. This proves bounded module marking plus historical firmware detection/activation and a telemetry path, not the wiring path, current fix, satellites, accuracy, loss behavior, radio compatibility, or support |
 
 The device-specific MAC address was observed during the private diagnostic pass
 but is deliberately excluded from this public inventory.
 
 ### Still unresolved
 
-- Exact received V4 minor board revision and high-/low-power RF variant not
-  exposed by the runtime model or fixed by the third-party bundle listing
-- Exact installed RF front end/full supported band; the official Heltec V4 family specification identifies an SX1262 and a nominal 863-928 MHz high-band variant, but this has not been electrically confirmed on this specific enclosed unit
-- Installed antenna type and connector
-- Complete board pinout, exact OLED controller silicon/board revision, interactive display/input behavior, physical GNSS source/module, battery/charger details, sensors, and other pin assignments; only the selected-unit OLED startup/status binding is physically accepted
-- Regional regulatory/legal operating constraints (the current USA/Canada preset is now recorded)
+- Exact installed RF front end and full electrically verified operating band; the
+  documented `HTIT-WB32LAF` profile and family-level SX1262 statement do not
+  establish the received unit's electrical path
+- Installed antenna model, band, gain, connector, feed cable, and loss
+- Complete board pinout, exact OLED controller silicon, interactive
+  display/input behavior, GNSS wiring and live OpenTrail fix/satellite behavior,
+  battery/charger details, sensors, and other pin assignments; only the selected-
+  unit OLED startup/status binding and the L76K module marking are physically
+  accepted
+- Direct-radio MTU/PHY/region configuration and regional regulatory/legal
+  operating constraints
 
-MeshCore's official runtime code reports `Heltec V4.3 OLED` when it detects the KCT8103L power amplifier and `Heltec V4 OLED` otherwise. This device reported `Heltec V4 OLED`, resolving that runtime distinction without opening the case. Radio silicon, full supported band, and full SKU may still require a label, purchase record, authoritative hardware record, or controlled radio inspection.
+MeshCore's historical runtime code reported `Heltec V4 OLED`; OT-103 now supersedes that runtime-only identity boundary for OT-DEV-001 with exact privacy-safe received-unit markings. The admitted `HTIT-WB32LAF` / `V4.2` profile does not prove the installed antenna, electrical radio path, full usable band, legal operating mode, regulatory acceptance, compatibility, or support.
 
 Official references used for family matching:
 
 - [Heltec WiFi LoRa 32 V4 product specification](https://heltec.org/project/wifi-lora-32-v4/)
+- [Heltec WiFi LoRa 32 V4.2 datasheet](https://resource.heltec.cn/download/WiFi_LoRa_32_V4/datasheet/WiFi_LoRa_32_V4.2.0.pdf)
 - [MeshCore Heltec V4 board target](https://github.com/meshcore-dev/MeshCore/blob/main/boards/heltec_v4.json)
 - [MeshCore Heltec V4 runtime model detection](https://github.com/meshcore-dev/MeshCore/blob/main/variants/heltec_v4/HeltecV4Board.cpp)
 

@@ -429,6 +429,20 @@ protected storage or bond authority, GATT exchange, application authorization,
 Ready, normal commands, LoRa, GNSS, display, GPIO, recovery-after-loss, or
 support. Every additional write and the second unit remain unauthorized.
 
+OT-103 later admits a separate exact received-target profile for only
+`OT-DEV-001`: Heltec Automation WiFi LoRa 32 V4, PCB/RF-variant model
+`HTIT-WB32LAF`, received revision `V4.2`, ESP32-S3R2 revision v0.2, a 40 MHz
+crystal, 16 MiB flash, and 2 MiB PSRAM. Five owner-supplied photos contribute
+one closure input and four corroborating inputs without retaining raw images,
+local paths, EXIF/location data, or private identifiers. Official manufacturer
+Tables 1.5 and 3.5.1 retain distinct 868-928 MHz and 863-928 MHz literals; the
+package literal `HF 863-928` is corroborating only and no checkbox state is
+claimed. Manufacturer SX1262/high-band facts are not electrical radio proof.
+This closes only the exact received-target readiness requirement. Final build
+configuration, mbedTLS/PSA lock and API/config eligibility, direct-radio MTU/
+PHY/region, installed antenna, regulatory acceptance, compatibility, support,
+and every benchmark/selection/implementation gate remain open.
+
 OT-063 advances only the storage-admission observation boundary. A target-linked
 read-only probe can inspect coarse configuration, the named NVS partition, and a
 separately selected HMAC_UP key's purpose, read protection, and one private
@@ -678,7 +692,7 @@ exact hardware-profile ID, processor, target role, received revision,
 bootloader schema, and image capacity with the inspected manifest. USB/runtime
 labels and vendor-family baselines cannot supply that authority. A match is
 compatibility evidence only and cannot grant release admission or Flash
-permission. No current bench card has an authoritative profile.
+permission. OT-103 admits an exact received-unit profile only for OT-005 readiness accounting. It does not populate a loader-authoritative card, establish image compatibility, set `authoritative_for_flash=true`, or grant Flash permission; no current bench card has a loader-authoritative profile.
 
 The host-tested portable-client composition preflight now collects every
 target-facing dependency required by the first self-contained client and
@@ -1450,7 +1464,7 @@ remain gates.
 
 ## Architecture gates before product firmware
 
-1. Confirm exact development boards, radio region, frequency plan, antennas, and legal operating constraints.
+1. Retain the accepted exact `OT-DEV-001` board/revision profile while separately confirming the final radio region, frequency plan, installed antenna, and legal operating constraints; other intended supported boards still need their own exact profiles.
 2. Measure two-node LoRa airtime, loss, latency, and usable payload behavior across candidate settings.
 3. Define identity/security threat model and packet-size budget.
 4. Freeze only a minimal experimental packet envelope, then validate direct and controlled-forwarding behavior.

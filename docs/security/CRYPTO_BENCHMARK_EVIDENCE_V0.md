@@ -220,8 +220,9 @@ only the exact Espressif libsodium 1.0.22 source anchor. The mbedTLS/PSA and
 Monocypher source registries and every API/configuration and import registry
 remain empty.
 
-OT-094 and OT-097 remain historical six-blocker artifacts. The current set is
-five after closing only `espressif_libsodium_source_lock_absent`; readiness
+OT-094 and OT-097 remain historical six-blocker artifacts. At OT-100, the
+then-current set was five after closing only
+`espressif_libsodium_source_lock_absent`; readiness
 remains blocked. This adds no target/final-configuration proof, device/radio/key
 or crypto execution, benchmark, selection, packet-v1, legal/compatibility,
 physical, authority, or score evidence. See [Decision 0044](../decisions/0044-libsodium-source-lock-admission-delta.md)
@@ -242,7 +243,7 @@ Strict host-only `OTMSLA0/v0`, raw SHA-256
 `6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52`,
 accepts exactly one Monocypher source lock. It preserves the historical six-
 blocker and prior five-blocker states, closes only
-`monocypher_source_lock_absent`, and records four current requirements.
+`monocypher_source_lock_absent`, and records the then-current four requirements.
 The total accepted source count is two including libsodium. Every
 API/configuration and candidate-import registry remains empty, and readiness
 stays blocked.
@@ -251,6 +252,41 @@ This adds no firmware import or build, crypto execution, device/radio/key
 action, benchmark, selection, packet-v1, legal/compatibility, physical,
 authority, or score evidence. See [Decision 0045](../decisions/0045-monocypher-source-lock-admission-delta.md)
 and [OT-102 evidence](../../tests/hardware/OT-102-2026-08-20.md).
+
+## OT-103 exact received target-profile admission
+
+Strict host-only `OTRTPE0/v0`, raw SHA-256
+`517809caf31250d126cc3619f9d05386a92811a594dca0087d9acbf1b671147e`,
+binds `heltec-v4-bench-candidate` / `OT-DEV-001` to the exact received Heltec
+Automation `WiFi LoRa 32 V4`, PCB/RF-variant model `HTIT-WB32LAF`, received
+revision `V4.2`, documented-high-band profile, ESP32-S3 / ESP32-S3R2 revision
+v0.2, 40 MHz crystal, 16 MiB flash, and 2 MiB PSRAM. The retained public
+record contains normalized observations from five owner-provided photos; it
+retains no raw photo, local path, EXIF/location data, or private device identity.
+
+The official V4.2 datasheet was inspected at the recorded URL and digest but
+was not retained. Its Table 1.5 records `868-928 MHz` and `28 +/- 1 dBm` for
+`HTIT-WB32LAF`; Table 3.5.1 separately records `863-928 MHz` and
+`28 +/- 1 dBm`. Those source values remain distinct rather than being
+normalized or reconciled. The official family-level `SX1262` statement is not
+an electrical verification of the received unit, and the package checkbox
+state, installed antenna, legal region, and direct-radio profile remain
+unclaimed.
+
+Strict host-only `OTRTPA0/v0`, raw SHA-256
+`98cce120cadc1bddf5851f1480ae181488e17277ba0a2c8c8c38a70a062be105`,
+closes only `exact_received_target_profile_unresolved`. OT-094 and OT-097
+remain historical six-blocker artifacts; OT-102 retains the prior four-blocker
+state; three current requirements remain: final candidate build configuration,
+ESP-IDF mbedTLS/PSA dependency-lock plus API/configuration eligibility, and the
+direct-radio MTU/PHY/region profile. Source/API-configuration/candidate-import
+anchor counts remain `2/0/0`, and readiness stays blocked.
+
+This is exact identity evidence, not support, compatibility, regulatory or
+legal-region acceptance, radio-profile proof, firmware import/build, crypto or
+device/radio/key action, benchmark, selection, packet-v1 authority, continuing
+authority, or score evidence. See [Decision 0046](../decisions/0046-exact-received-target-profile-admission-delta.md)
+and [OT-103 evidence](../../tests/hardware/OT-103-2026-08-20.md).
 
 ## Result contract
 

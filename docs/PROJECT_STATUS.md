@@ -154,6 +154,33 @@ score changed. See
 [Decision 0045](decisions/0045-monocypher-source-lock-admission-delta.md) and
 [OT-102 evidence](../tests/hardware/OT-102-2026-08-20.md).
 
+OT-103 accepts exact `OTRTPE0/v0` received-target evidence, raw SHA-256
+`517809caf31250d126cc3619f9d05386a92811a594dca0087d9acbf1b671147e`,
+and strict append-only `OTRTPA0/v0`, raw SHA-256
+`98cce120cadc1bddf5851f1480ae181488e17277ba0a2c8c8c38a70a062be105`,
+for `OT-DEV-001`. The admitted profile is Heltec Automation WiFi LoRa 32 V4,
+PCB/RF-variant model `HTIT-WB32LAF`, received revision `V4.2`, ESP32-S3R2
+revision v0.2, a 40 MHz crystal, 16 MiB flash, and 2 MiB PSRAM.
+
+Five owner-supplied photos contribute one closure input and four corroborating
+inputs without retaining raw images, local paths, EXIF/location data, or private
+identifiers. The official Heltec V4.2.0 datasheet is bound at SHA-256
+`d284d4f01f9e801bb8407386cf50ee4d099ed3c3f5e9153683cb5819b53f7f4d`
+without retaining the PDF. Table 1.5 `868-928 MHz`, Table 3.5.1 `863-928 MHz`,
+and the package literal `HF 863-928` remain distinct; no package checkbox state
+or reconciliation is claimed. Manufacturer SX1262/high-band facts are not
+received-unit electrical radio or antenna proof.
+
+OT-103 closes only `exact_received_target_profile_unresolved`. Historical
+OT-094/OT-097 six-blocker and OT-102 prior current four-blocker states remain
+recorded; three current requirements remain and readiness stays blocked. The
+accepted crypto source/API-config/import counts remain `2/0/0`. No support,
+compatibility, regulatory, legal-region, direct-radio-profile, final-
+configuration, firmware, device/flash/radio/key, benchmark, selection,
+packet-v1, continuing-authority, or score claim is added. See
+[Decision 0046](decisions/0046-exact-received-target-profile-admission-delta.md)
+and [OT-103 evidence](../tests/hardware/OT-103-2026-08-20.md).
+
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
 unicast path. One secret-free authenticated invitation admits one candidate and
@@ -2408,7 +2435,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 
 | Item | Current status | Required evidence |
 | --- | --- | --- |
-| Two Heltec V4 LoRa-capable boards | `OT-DEV-001` is the first experimentally flashed OpenTrail target. OT-061 proved exact-profile write/verification, boot self-check/USB heartbeat, and one privacy-safe BLE advertisement observation. OT-064 then applied one factory-app-only update and physically accepted a recognizable Trail startup logo followed by `BLE ADVERTISING`, boot self-check PASS, four heartbeats, and one exact-service Android candidate without selection, connection, pairing, or identifier retention. `OT-DEV-002` remains untouched by OpenTrail and continues to run MeshCore USB Companion `v1.16.0-07a3ca9`. Historical MeshCore bench evidence established matching USA/Canada configuration, bounded bidirectional delivery, repeater transport, alert/ACK behavior, and GNSS detection. | OT-064 closes only the selected-unit startup/status OLED binding. Protected storage, GATT authorization, Ready, LoRa/GNSS, interactive display/input, exact controller/revision/RF/full pinout/power, recovery-after-loss, field range/endurance, regulatory acceptance, and support remain open. Both write authorizations are consumed; no standing write or unit-2 authority remains. See `tests/hardware/OT-061-2026-08-16.md`, `tests/hardware/OT-064-2026-08-17.md`, `hardware/INVENTORY.md`, and the historical MeshCore evidence records. |
+| Two Heltec V4 LoRa-capable boards | `OT-DEV-001` is the first experimentally flashed OpenTrail target. OT-061 proved exact-profile write/verification, boot self-check/USB heartbeat, and one privacy-safe BLE advertisement observation. OT-064 then applied one factory-app-only update and physically accepted a recognizable Trail startup logo followed by `BLE ADVERTISING`, boot self-check PASS, four heartbeats, and one exact-service Android candidate without selection, connection, pairing, or identifier retention. OT-103 admits its exact received profile as Heltec Automation WiFi LoRa 32 V4 / `HTIT-WB32LAF` / revision `V4.2` / ESP32-S3R2 v0.2 / 16 MiB flash / 2 MiB PSRAM, while keeping support, compatibility, radio-profile, antenna, and regulatory claims closed. `OT-DEV-002` remains untouched by OpenTrail and continues to run MeshCore USB Companion `v1.16.0-07a3ca9`. Historical MeshCore bench evidence established matching USA/Canada configuration, bounded bidirectional delivery, repeater transport, alert/ACK behavior, and GNSS detection. | OT-064 closes only the selected-unit startup/status OLED binding. Protected storage, GATT authorization, Ready, LoRa/GNSS, interactive display/input, electrically verified radio front end/full supported band, installed antenna, full pinout/power, recovery-after-loss, field range/endurance, regulatory acceptance, and support remain open. Both write authorizations are consumed; no standing write or unit-2 authority remains. See `tests/hardware/OT-061-2026-08-16.md`, `tests/hardware/OT-064-2026-08-17.md`, `tests/hardware/OT-103-2026-08-20.md`, `hardware/INVENTORY.md`, and the historical MeshCore evidence records. |
 | Seeed SenseCAP solar node | Runtime-identified as **Seeed SenseCap Solar**, USB `VID 2886:0059`, running MeshCore Repeater `v1.16.0-07a3ca9` at 910.525 MHz/BW 62.5/SF7/CR5/22 dBm with repeat enabled. The owner purchase record is SenseCAP Solar Node **P1-Pro**, ASIN `B0FMDHBWX8`; Seeed's current MeshCore product maps that variant to SKU `100023690` with XIAO nRF52840 Plus, Wio-SX1262, L76K GNSS, and battery. Its coordinate-free GNSS status progressed from active/no-fix/0 satellites to a live fix, with later checks at 4, 7, and 8 satellites. Both Heltecs received its advert and remotely read its synchronized clock. A temporary private-channel run produced exactly +2 flood RX/+2 flood TX. Explicit one-hop direct routes then succeeded both ways; with repeat off, the same route failed with +1 direct RX/+0 direct TX and no destination message, proving the repeater was required. A non-secret channel lease passed real stopped-session recovery. The 300-minute alternating close-bench run delivered 300/300 (150 each direction), zero loss/duplicates/errors, 229.8-312.1 ms latency, exact +300 repeater flood RX/TX, repeat preserved, empty queues, and verified exact-name channel/journal cleanup. OT-017D added exact aggregate +4 flood RX/+4 flood TX while two role-reversed alert/ACK cycles passed; repeat remained on and errors stayed zero. See `tests/hardware/OT-003A-2026-08-12.md`, `tests/hardware/OT-009-2026-08-08.md`, `tests/hardware/OT-009A-2026-08-09.md`, and `tests/hardware/OT-017D-2026-08-09.md`. | Exact received label/revision and internals, physical GPS/antenna details, GNSS accuracy/cold-start/loss/power behavior, solar endurance, physical field behavior/range, and regulatory validation remain. |
 | Wio Tracker L1 Pro for MeshCore | Owner reports the unit arrived after already being flashed as USB Companion and configured for a USA frequency plan; shipping/pre-write state was not preserved or verified. Windows reported public USB model `Seeed Wio Tracker L1`, family `2886:1667`; fixed read-only MeshCLI returned USB Companion `v1.17.0-727fc05` build 09-Aug-2026, repeat false, 910.525 MHz/BW 62.5 kHz/SF7/CR5/configured and maximum 22 dBm, 4.111 V, and zero errors/queue/packets/airtime/receive errors. Three more cycles kept public model/firmware/profile and zero error/traffic state stable while uptime increased. GNSS was detected but inactive with no GPS telemetry. A non-transmitting comparison matched channel 0 and absent default-scope state only in memory, confirmed distinct identities without emitting them, and found clocks within one second. No transient port, identity, secret, or coordinate is retained. C# and Python loaders now recognize the family; three built-in live refreshes and three exact-roster source-free external UI Automation cycles returned one Heltec, one SenseCAP, and one Wio, all runtime-identified and zero ready. See `tests/hardware/OT-020-2026-08-13.md`. | OT-020 is `partial` and the unit is only `experimented`. Exact label/SKU/revision, pre-write state, antenna/RF/regulatory evidence, over-air interoperability, GNSS activation/fix/loss, power/endurance, BLE, DFU/recovery, and clean-machine evidence remain. The package result is loader recognition evidence only, not hardware compatibility or support |
 | Two Waveshare ESP32-S3 1.75-inch round AMOLED touch boards | Owner reports two ordered; not received or tested. The product family is advertised as 466x466 touch with ESP32-S3R8, 8 MB PSRAM, 16 MB flash, and standard/case/GPS variants; exact ordered and received variant remains unconfirmed | Preserve shipping firmware/recovery evidence; confirm exact labels/variant, display/touch/storage interfaces, usable memory, power/thermal behavior, and map/peer/alert rendering under OT-018 |
@@ -2624,10 +2651,12 @@ baseline without running a candidate, OT-094 has frozen the separate
 candidate-readiness contract, and OT-095 has frozen the zero-source source-lock
 admission contract while all six historical closure requirements remain
 recorded. OT-100 accepted the exact libsodium source lock and recorded five
-current requirements; OT-102 now accepts the exact Monocypher source lock under
-the owner-selected `BSD-2-Clause` branch and records four. Readiness remains
-blocked, and API/configuration and candidate-import anchors remain empty.
-The next security checkpoint is to close those four target/configuration/dependency/
+current requirements; OT-102 accepted the exact Monocypher source lock under
+the owner-selected `BSD-2-Clause` branch and recorded four; OT-103 now admits
+the exact received `OT-DEV-001` target profile and records three. Readiness
+remains blocked, crypto source/API-config/import counts stay `2/0/0`, and no
+support, compatibility, regulatory, or direct-radio-profile claim is added.
+The next security checkpoint is to close those three configuration/dependency/
 radio requirements, accept a new immutable executable benchmark plan, and run
 the exact candidate comparison under separate authority, followed by explicit
 suite/library, handshake/KDF, and packet-v1 wire selection. Pairing/replacement

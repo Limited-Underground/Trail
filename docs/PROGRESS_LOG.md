@@ -6,6 +6,14 @@ public chronology.
 
 ## 2026-08-20
 
+### OT-103 exact received target-profile admission
+
+- Accepted exact `OTRTPE0/v0` received-target evidence, SHA-256 `517809caf31250d126cc3619f9d05386a92811a594dca0087d9acbf1b671147e`, and strict append-only `OTRTPA0/v0`, raw SHA-256 `98cce120cadc1bddf5851f1480ae181488e17277ba0a2c8c8c38a70a062be105`, for `OT-DEV-001`.
+- Bound Heltec Automation WiFi LoRa 32 V4 / `HTIT-WB32LAF` / received `V4.2` / ESP32-S3R2 v0.2 / 16 MiB flash / 2 MiB PSRAM from five owner-supplied photos, existing OT-059/OT-061 evidence, and the official V4.2.0 datasheet. Raw photos/PDF, local paths, EXIF/location data, and private identifiers are not retained.
+- Preserved official Table 1.5 `868-928 MHz`, Table 3.5.1 `863-928 MHz`, and package `HF 863-928` literals separately; no checkbox state, electrical front-end/antenna proof, region selection, regulatory acceptance, compatibility, or support claim follows.
+- Closed only `exact_received_target_profile_unresolved`. Historical six-blocker and prior current four-blocker states remain recorded; three current requirements remain, readiness stays blocked, and crypto source/API-config/import counts remain `2/0/0`.
+- Seven focused groups, the full host gate (exit zero, session 19027), publication-safety scans, and independent review pass. No final configuration, firmware/device/flash/radio/key action, benchmark, selection, packet-v1, continuing authority, or score was added. Android 60%; V1 exact 43.75%/display44%; baseline exact31.75%/display32%; V1.5/V2 unmeasured. See [Decision 0046](decisions/0046-exact-received-target-profile-admission-delta.md) and [OT-103 evidence](../tests/hardware/OT-103-2026-08-20.md).
+
 ### OT-102 exact Monocypher source-lock admission
 
 - Accepted exact `OTCSLE0/v1` source evidence, SHA-256 `fe037820304103f7ca2253665076e4dc41740598ca9742ba8d45f6ec64ebc06f`, and strict host-only `OTMSLA0/v0`, raw SHA-256 `6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52`.

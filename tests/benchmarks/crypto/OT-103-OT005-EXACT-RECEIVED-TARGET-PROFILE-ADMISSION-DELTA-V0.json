@@ -1,0 +1,112 @@
+{
+  "schema": "OTRTPA0",
+  "version": 0,
+  "artifact_kind": "append_only_exact_received_target_profile_acceptance_delta",
+  "admission_id": "OT-103-OT005-EXACT-RECEIVED-TARGET-PROFILE-ADMISSION-DELTA-V0",
+  "accepted_date": "2026-08-20",
+  "status": "exact_received_target_profile_admitted_readiness_blocked",
+  "public_result": "EXACT-RECEIVED-TARGET-PROFILE-ADMITTED-FOR-OT-DEV-001; THREE-OTCBR0-REQUIREMENTS-REMAIN; NO-SUPPORT-COMPATIBILITY-REGULATORY-RADIO-PROFILE-BENCHMARK-OR-SELECTION; OTCBR0-READINESS-BLOCKED",
+  "parents": {
+    "otcbr0_v0_raw_sha256": "bb607158cbe8ac95a470f0a6c87fbb6d8d986259cf86540b14245fc1167dc7ae",
+    "otmsla0_v0_raw_sha256": "6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52",
+    "ot059_raw_sha256": "4cce747a9b39354346efc638cde2c6851e17a0b6cc6fd3339302c3674a34ba9e",
+    "ot061_raw_sha256": "fb5c9a00222cffecf7afc991866f5e86e8f21cc6fe92e1bf917dd1912644564a"
+  },
+  "profile_evidence": {
+    "path": "tests/benchmarks/crypto/OT-103-OT005-EXACT-RECEIVED-TARGET-PROFILE-EVIDENCE-V0.json",
+    "sha256": "517809caf31250d126cc3619f9d05386a92811a594dca0087d9acbf1b671147e"
+  },
+  "accepted_target_profile": {
+    "target_id": "heltec-v4-bench-candidate",
+    "evidence_unit": "OT-DEV-001",
+    "manufacturer": "Heltec Automation",
+    "board_model": "HTIT-WB32LAF",
+    "exact_received_revision": "V4.2",
+    "rf_variant_model": "HTIT-WB32LAF",
+    "mcu": "ESP32-S3",
+    "manufacturer_part": "ESP32-S3R2",
+    "processor_revision": "v0.2",
+    "flash_bytes": 16777216,
+    "psram_bytes": 2097152,
+    "supported": false
+  },
+  "evidence_counts": {
+    "owner_photos": 5,
+    "closure_input_photos": 1,
+    "corroborating_photos": 4,
+    "official_source_documents": 1,
+    "immutable_parent_records": 4
+  },
+  "preserved_crypto_acceptance_counts": {
+    "source": 2,
+    "api_config": 0,
+    "candidate_import": 0
+  },
+  "historical_six_blockers": [
+    "exact_received_target_profile_unresolved",
+    "final_candidate_build_configuration_unresolved",
+    "espressif_libsodium_source_lock_absent",
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "monocypher_source_lock_absent",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "prior_current_four_blockers": [
+    "exact_received_target_profile_unresolved",
+    "final_candidate_build_configuration_unresolved",
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "closed_by_this_delta": [
+    {
+      "blocker_id": "exact_received_target_profile_unresolved",
+      "closure_evidence_sha256": "517809caf31250d126cc3619f9d05386a92811a594dca0087d9acbf1b671147e"
+    }
+  ],
+  "current_three_blockers": [
+    "final_candidate_build_configuration_unresolved",
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "owner_evidence": {
+    "owner_supplied_photo_set": true,
+    "received_unit_association": "OT-DEV-001",
+    "new_device_access_for_this_increment": false
+  },
+  "authority": {
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "candidate_import_authorized": false,
+    "device_access_authorized": false,
+    "final_candidate_configuration_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "packet_v1_authorized": false,
+    "radio_profile_selection_authorized": false,
+    "radio_transmit_authorized": false,
+    "score_credit_added": false,
+    "suite_selection_authorized": false
+  },
+  "claims": {
+    "exact_received_target_profile_accepted": true,
+    "physical_evidence_added": true,
+    "libsodium_source_lock_remains_accepted": true,
+    "monocypher_source_lock_remains_accepted": true,
+    "readiness_accepted": false,
+    "final_candidate_configuration_proven": false,
+    "direct_radio_profile_resolved": false,
+    "radio_region_selected": false,
+    "regulatory_acceptance_claimed": false,
+    "hardware_support_claimed": false,
+    "compatibility_claimed": false,
+    "manufacturer_lora_chip_electrically_verified": false,
+    "benchmark_executed": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_wire_selected": false,
+    "hardware_or_device_accessed_for_this_increment": false,
+    "firmware_changed": false,
+    "flashed": false,
+    "radio_used": false,
+    "key_or_entropy_operation": false,
+    "score_credit_added": false
+  }
+}

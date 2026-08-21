@@ -13,8 +13,8 @@ The base design is a self-contained portable client with its own power, display,
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-102 accepts exact `OTCSLE0/v1` Monocypher 4.0.3 source evidence under the owner-selected `BSD-2-Clause` branch and strict host-only `OTMSLA0/v0`. It closes only the Monocypher source-lock requirement: historical six-blocker and prior five-blocker states remain recorded, four current requirements remain, and readiness stays blocked. The accepted source count is two; every API/configuration and candidate-import anchor remains empty. Result: `MONOCYPHER-4.0.3-SOURCE-LOCK-ADMITTED-HOST-ONLY-BSD-2-CLAUSE; FOUR-OTCBR0-REQUIREMENTS-REMAIN; NO-FIRMWARE-IMPORT-BUILD-BENCHMARK-OR-SELECTION; OTCBR0-READINESS-BLOCKED`. No legal/compatibility claim or score was added |
-| Proven so far | OT-095 adds strict source-evidence admission governance, not a source lock or candidate readiness. OT-094 adds strict blocked readiness governance, not candidate readiness. OT-093 adds reproducible build-only evidence, not crypto performance or target support. OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on one experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 and V2 remain unmeasured |
+| Latest increment | OT-103 accepts exact `OTRTPE0/v0` received-target evidence and strict `OTRTPA0/v0` for `OT-DEV-001`. The admitted profile is Heltec Automation WiFi LoRa 32 V4, `HTIT-WB32LAF`, received revision `V4.2`, ESP32-S3R2 revision v0.2, 16 MiB flash, and 2 MiB PSRAM. It closes only the exact received-target requirement: historical six-blocker and prior current four-blocker states remain recorded, three current requirements remain, and readiness stays blocked. Result: `EXACT-RECEIVED-TARGET-PROFILE-ADMITTED-FOR-OT-DEV-001; THREE-OTCBR0-REQUIREMENTS-REMAIN; NO-SUPPORT-COMPATIBILITY-REGULATORY-RADIO-PROFILE-BENCHMARK-OR-SELECTION; OTCBR0-READINESS-BLOCKED`. No support, compatibility, regulatory, radio-profile, benchmark, selection, or score claim was added |
+| Proven so far | OT-103 adds bounded owner-supplied physical identity evidence for one experimental target without new device access or a support claim. OT-095 adds strict source-evidence admission governance, not a source lock or candidate readiness. OT-094 adds strict blocked readiness governance, not candidate readiness. OT-093 adds reproducible build-only evidence, not crypto performance or target support. OT-091 is deterministic host-contract evidence only; it proves no crypto suite, packet v1, provisioning, key replacement, encrypted radio traffic, replay protection, acknowledgement, or physical delivery. OT-090 separately freezes practical BLE pairing/replacement without implementation. OT-089 permanently fixes the two-pair V1/four-node V1.5 scope and disclosed physical-reflash rollback limit. OT-085A/OT-085B remain bounded physical public-BLE evidence on the same experimental target. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 and V2 remain unmeasured |
 | Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 
@@ -88,8 +88,13 @@ records; OT-100 records the prior five-blocker state.
 [Decision 0045](docs/decisions/0045-monocypher-source-lock-admission-delta.md)
 and [OT-102 evidence](tests/hardware/OT-102-2026-08-20.md) accept the exact
 Monocypher 4.0.3 source lock under the owner-selected `BSD-2-Clause` branch.
-Four current requirements remain, readiness is still blocked, and every
-API/configuration and candidate-import anchor remains empty. Next close those four
+[Decision 0046](docs/decisions/0046-exact-received-target-profile-admission-delta.md)
+and [OT-103 evidence](tests/hardware/OT-103-2026-08-20.md) then accept the exact
+received `OT-DEV-001` profile without granting support, compatibility,
+regulatory acceptance, or radio-profile authority. Historical six-blocker and
+prior current four-blocker states remain recorded; three current requirements
+remain, readiness is still blocked, and every API/configuration and
+candidate-import anchor remains empty. Next close those three
 readiness requirements, accept a new immutable executable plan,
 run the exact candidate benchmark under separate authority, and make a later
 explicit suite/wire decision. Implementation and physical acceptance remain
