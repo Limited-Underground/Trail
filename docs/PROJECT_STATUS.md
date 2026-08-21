@@ -9,6 +9,26 @@ Status date: 2026-08-21
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-110 freezes strict host-only `OTRPF0/v0`, raw SHA-256
+`8af36e000d5cd0478d1a829fb5a1f2b330cdf09bad188445d30579c348f7e2e1`
+and canonical SHA-256
+`d5b44cea761b12ad6422be250bf0a827469441643d6f5e944932a91cc92b68d9`,
+as the future US915 direct-radio region/MTU/full-PHY evidence contract. It
+requires two independently identified physical nodes, exact firmware,
+configuration, radio-adapter, antenna, recovery, applied-profile, packet,
+latency, RSSI/SNR, airtime, restart-persistence, 163-byte protocol-test,
+measured-ceiling, and 256-byte local-rejection evidence under a fixed sequence.
+
+All radio-profile values remain unmeasured. A separate privacy-safe read-only
+USB preflight observed two connected ESP32 candidates; the owner confirmed the
+generic second candidate is the other Heltec and that both antennas are attached.
+No device state changed, no firmware was built, no packet was transmitted, and
+no physical radio evidence or radio authority was added. `direct_radio_mtu_phy_region_unresolved` remains the
+sole blocker; counts remain `3/1/0`; readiness remains blocked; and all progress
+values remain unchanged. See [Decision 0051](decisions/0051-host-only-us915-direct-radio-profile-evidence-contract.md),
+the [contract](../tests/benchmarks/crypto/OT-110-OT005-US915-DIRECT-RADIO-PROFILE-EVIDENCE-CONTRACT-V0.json),
+and [OT-110 evidence](../tests/hardware/OT-110-2026-08-21.md).
+
 OT-093 freezes the deterministic pre-selection build baseline required before
 the later OT-005 ESP32-S3 cryptographic comparison. Two independent, initially
 absent and cache-disabled builds of the unsupported Heltec V4 bench candidate

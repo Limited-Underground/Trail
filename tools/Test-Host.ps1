@@ -1998,6 +1998,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OTCAPIA0 mbedTLS/PSA API/config admission tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_radio_profile_contract_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTRPF0 direct-radio profile evidence-contract tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_historical_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "OTCBL0 historical successor tests failed with exit code $LASTEXITCODE."

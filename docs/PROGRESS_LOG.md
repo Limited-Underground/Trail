@@ -5,6 +5,13 @@ remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concis
 public chronology.
 
 ## 2026-08-21
+### OT-110 US915 direct-radio profile evidence contract
+
+- Accepted strict host-only `OTRPF0/v0`, canonical SHA-256 `d5b44cea761b12ad6422be250bf0a827469441643d6f5e944932a91cc92b68d9` / raw SHA-256 `8af36e000d5cd0478d1a829fb5a1f2b330cdf09bad188445d30579c348f7e2e1`, as the contract for future evidence resolving the US915 direct-radio region/MTU/full-PHY requirement.
+- Froze a two-node evidence sequence covering exact per-node firmware/configuration/radio-adapter/antenna/profile readback, successor recovery evidence, bidirectional 1-byte, 163-byte protocol-test, measured-ceiling, 256-byte local-rejection, restart-persistence, packet-integrity, latency, RSSI/SNR, close-bench, timeout, and airtime evidence. The peer identity must be resolved independently before execution.
+- All profile values remain unmeasured. A privacy-safe read-only USB preflight observed two connected ESP32 candidates; the owner confirmed the generic candidate is the other Heltec and both antennas are attached. No device state change, firmware build, flash, radio transmission, physical radio evidence, regulatory claim, benchmark authority, or selection authority was added. Fresh authority and regulatory preflight remain mandatory before future hardware work.
+- `direct_radio_mtu_phy_region_unresolved` remains the sole blocker; counts stay `3/1/0`; readiness remains blocked; and every progress value remains unchanged. See [Decision 0051](decisions/0051-host-only-us915-direct-radio-profile-evidence-contract.md), the [contract](../tests/benchmarks/crypto/OT-110-OT005-US915-DIRECT-RADIO-PROFILE-EVIDENCE-CONTRACT-V0.json), and [OT-110 evidence](../tests/hardware/OT-110-2026-08-21.md).
+
 ### OT-109 mbedTLS/PSA API/configuration evidence admission
 
 - Accepted exact generated host-only `OTCAPIOE0/v0` operation evidence, canonical SHA-256 `6a17a6f5a753a19d2d78d7cb6f0c757ef9791e0bf2e953e27afc3eccb04f27ed` / raw SHA-256 `ea85f548deee36ca34241747cdf567036febfb9eecd88d9e134d3383edf2379e`, and `OTCAPI0/v2` candidate evidence, canonical SHA-256 `22975ac7fbd3c9faab1ae0c9fa952a58dc4a7a893de3cc74604182b3492fe1f8` / raw SHA-256 `67532e10704d02489b72a72ef55607743c00a5bd8504276750931b5d986f6155`.
