@@ -227,6 +227,31 @@ or crypto execution, benchmark, selection, packet-v1, legal/compatibility,
 physical, authority, or score evidence. See [Decision 0044](../decisions/0044-libsodium-source-lock-admission-delta.md)
 and [OT-100 evidence](../../tests/hardware/OT-100-2026-08-20.md).
 
+## OT-102 Monocypher source-lock admission
+
+Exact `OTCSLE0/v1` Monocypher 4.0.3 source evidence has SHA-256
+`fe037820304103f7ca2253665076e4dc41740598ca9742ba8d45f6ec64ebc06f`.
+It binds all 161 retained upstream Git blobs at commit
+`ab2b16dd619ad5f6979a4fbe69cfa324a6fcc35f` and tree
+`eccc366491fc98c4149401d580ce41081a7854b1`, plus canonical acquisition,
+full-tree, complete license, SPDX, transitive-dependency, zero-patch, and
+project-lock evidence. The owner selected the upstream `BSD-2-Clause` branch;
+that is not legal clearance or a compatibility determination.
+
+Strict host-only `OTMSLA0/v0`, raw SHA-256
+`6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52`,
+accepts exactly one Monocypher source lock. It preserves the historical six-
+blocker and prior five-blocker states, closes only
+`monocypher_source_lock_absent`, and records four current requirements.
+The total accepted source count is two including libsodium. Every
+API/configuration and candidate-import registry remains empty, and readiness
+stays blocked.
+
+This adds no firmware import or build, crypto execution, device/radio/key
+action, benchmark, selection, packet-v1, legal/compatibility, physical,
+authority, or score evidence. See [Decision 0045](../decisions/0045-monocypher-source-lock-admission-delta.md)
+and [OT-102 evidence](../../tests/hardware/OT-102-2026-08-20.md).
+
 ## Result contract
 
 One result evaluates one candidate under one exact ready plan. It records:

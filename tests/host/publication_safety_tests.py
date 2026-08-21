@@ -25,6 +25,15 @@ def main() -> int:
     assert not scanner.scan_text("safe.txt", "owner@users.noreply.github.com")
     assert not scanner.scan_text("safe.txt", "security@example.com")
     assert not scanner.scan_text("safe.txt", "ordinary protocol token and private-key policy words")
+    upstream_path = scanner.IMMUTABLE_UPSTREAM_ATTRIBUTION_PREFIX + "AUTHORS.md"
+    assert not scanner.scan_text(upstream_path, "dlbeer" + "@gmail.com")
+    assert not scanner.scan_text(upstream_path, "DLBEER" + "@GMAIL.COM")
+    expect_find(scanner, "upstream address outside locked tree", "dlbeer" + "@gmail.com")
+    lookalike_path = scanner.IMMUTABLE_UPSTREAM_ATTRIBUTION_PREFIX.rstrip("/") + "-lookalike/AUTHORS.md"
+    assert scanner.scan_text(lookalike_path, "dlbeer" + "@gmail.com")
+    sibling_path = "tests/benchmarks/crypto/monocypher/4.0.3/source-sibling/AUTHORS.md"
+    assert scanner.scan_text(sibling_path, "dlbeer" + "@gmail.com")
+    assert scanner.scan_text(upstream_path, "invented" + "@gmail.com")
 
     expect_find(scanner, "email", "owner" + "@personal.invalid")
     expect_find(scanner, "user path", "C:" + "\\Users\\operator\\capture.txt")

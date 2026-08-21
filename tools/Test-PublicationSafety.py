@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import subprocess
 import sys
@@ -29,12 +30,28 @@ ALLOWED_EMAIL_SUFFIXES = (
     "@example.net",
 )
 
+IMMUTABLE_UPSTREAM_ATTRIBUTION_PREFIX = (
+    "tests/benchmarks/crypto/monocypher/4.0.3/source/"
+)
+IMMUTABLE_UPSTREAM_ATTRIBUTION_EMAIL_SHA256 = frozenset(
+    {
+        "3bff26f7a4ad40f95934aeb3d9eac41665fcad9d2f4f49f9c9f0d096ccdc947f",
+        "f0763395c4ecb8b1ff85e30f6d78323b7a7c85a2bfd2f6d6e218f947c55dc734",
+        "f6441ac86d8866cf684985666a9ee17251d99831528c677c79d6139f22039e83",
+    }
+)
+
 
 def scan_text(path: str, text: str) -> list[str]:
     findings: list[str] = []
     for match in EMAIL.finditer(text):
         address = match.group(0).lower()
-        if not address.endswith(ALLOWED_EMAIL_SUFFIXES):
+        exact_upstream_attribution = (
+            path.startswith(IMMUTABLE_UPSTREAM_ATTRIBUTION_PREFIX)
+            and hashlib.sha256(address.encode("utf-8")).hexdigest()
+            in IMMUTABLE_UPSTREAM_ATTRIBUTION_EMAIL_SHA256
+        )
+        if not address.endswith(ALLOWED_EMAIL_SUFFIXES) and not exact_upstream_attribution:
             line = text.count("\n", 0, match.start()) + 1
             findings.append(f"{path}:{line}: unmasked email address")
     for label, pattern in PATTERNS:

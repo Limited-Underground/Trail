@@ -1950,6 +1950,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OTCSLA0 libsodium source-lock admission tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_monocypher_source_lock_admission_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTMSLA0 Monocypher source-lock admission tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "OTCBL0 build-lock tests failed with exit code $LASTEXITCODE."

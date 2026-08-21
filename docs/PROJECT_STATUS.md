@@ -131,6 +131,29 @@ execution, benchmark, selection, packet-v1, legal/compatibility, physical,
 authority, or score claim changed. See [Decision 0044](decisions/0044-libsodium-source-lock-admission-delta.md)
 and [OT-100 evidence](../tests/hardware/OT-100-2026-08-20.md).
 
+OT-102 accepts exact `OTCSLE0/v1` Monocypher 4.0.3 source evidence, SHA-256
+`fe037820304103f7ca2253665076e4dc41740598ca9742ba8d45f6ec64ebc06f`,
+under the owner-selected `BSD-2-Clause` branch and strict host-only
+`OTMSLA0/v0`, raw SHA-256
+`6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52`.
+All 161 upstream Git blobs at commit
+`ab2b16dd619ad5f6979a4fbe69cfa324a6fcc35f` and tree
+`eccc366491fc98c4149401d580ce41081a7854b1` are retained under complete
+canonical acquisition/tree/license/SPDX/transitive/zero-patch/project-lock
+evidence. The license branch is a project choice, not legal clearance or a
+compatibility determination.
+
+OT-102 accepts exactly one Monocypher source lock and closes only
+`monocypher_source_lock_absent`. Historical OT-094/OT-097 six-blocker evidence
+and OT-100's prior five-blocker state remain recorded; four current
+requirements remain and readiness stays blocked. Two source anchors are now
+accepted in total, while every API/configuration and candidate-import registry
+remains empty. No firmware import/build, crypto execution, device/flash/radio/
+key action, benchmark, selection, packet-v1, physical evidence, authority, or
+score changed. See
+[Decision 0045](decisions/0045-monocypher-source-lock-admission-delta.md) and
+[OT-102 evidence](../tests/hardware/OT-102-2026-08-20.md).
+
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
 unicast path. One secret-free authenticated invitation admits one candidate and
@@ -2563,11 +2586,14 @@ not treated as proof of authorization.
 - OpenGauge authenticated on-device transport, peer/key lifecycle, persistent replay/outbox state, failure UX, and direct radio integration; the v0 semantic schema/policy is host-tested and OT-017D/OT-017E supply bounded physical byte and host-component completion evidence
 - Field-session repetition count, movement/terrain profiles, acceptance
   thresholds, and the final position/status cadence after measured contention
-- OT-101 plans a compact Heltec footer, `B:100% G:12 BLE:C`: invalid, stale,
-  or unavailable battery/GPS observations render as `--`; BLE uses bounded
-  codes with a legend; optional RX/TX arrows require accepted real events and
-  monotonic expiry. Glyph and layout tests remain required. Current battery,
-  GNSS-satellite, and radio bindings are absent, so no device result is claimed
+- OT-101 plans the owner-finalized compact Heltec footer,
+  `BAT:100% GPS:12 BLE:C`, plus one transient latest-direction field: `↑` for
+  accepted LoRa TX, `↓` for accepted LoRa RX, and blank while idle,
+  unsupported, or expired. Invalid, stale, or unavailable battery/GPS
+  observations render as `--`; BLE uses bounded codes with a legend. Glyph,
+  formatter, width/layout, validity/staleness, code, latest-direction, and
+  monotonic-expiry tests remain required. Current battery, GNSS-satellite, and
+  radio bindings are absent, so no device result is claimed
 
 ### Governance
 
@@ -2596,8 +2622,12 @@ separate algorithm-neutral secure-LoRa lifecycle/admission semantics with the
 same host-only boundary, OT-093 has frozen the deterministic pre-crypto build
 baseline without running a candidate, OT-094 has frozen the separate
 candidate-readiness contract, and OT-095 has frozen the zero-source source-lock
-admission contract while all six closure requirements remain blocked.
-The next security checkpoint is to close those target/configuration/dependency/
+admission contract while all six historical closure requirements remain
+recorded. OT-100 accepted the exact libsodium source lock and recorded five
+current requirements; OT-102 now accepts the exact Monocypher source lock under
+the owner-selected `BSD-2-Clause` branch and records four. Readiness remains
+blocked, and API/configuration and candidate-import anchors remain empty.
+The next security checkpoint is to close those four target/configuration/dependency/
 radio requirements, accept a new immutable executable benchmark plan, and run
 the exact candidate comparison under separate authority, followed by explicit
 suite/library, handshake/KDF, and packet-v1 wire selection. Pairing/replacement
@@ -2610,12 +2640,15 @@ Authenticated on-device transport, protected target state, physical restart and
 power-failure injection, GPS evidence, field performance, and direct-radio
 airtime remain explicit later gates.
 
-OT-101 records only the planned compact Heltec footer requirement. Its target
-form is `B:100% G:12 BLE:C`, with `--` for every unavailable, invalid, or stale
-battery/GPS value and a bounded documented BLE-code legend. Optional RX/TX
-arrows must be driven only by accepted real transport events, expire against a
-monotonic clock, and remain absent while idle or unsupported. Required glyph,
-formatter, width/layout, staleness, code, and activity-expiry tests are not yet
-implemented. The current Heltec target has no admitted battery-percentage,
-GNSS-satellite-count, or radio-event binding; no firmware, device, flash,
-telemetry, traffic, or physical-display claim follows from this documentation.
+OT-101 records only the planned compact Heltec footer requirement. Its owner-
+finalized target form is `BAT:100% GPS:12 BLE:C` plus one transient latest-
+direction field: `↑` for accepted LoRa TX, `↓` for accepted LoRa RX, and blank
+while idle, unsupported, or expired. Every unavailable, invalid, or stale
+battery/GPS value renders as `--`, and BLE uses a bounded documented code
+legend. The direction field must be driven only by accepted real transport
+events and expire against a monotonic clock. Required glyph, formatter, width/
+layout, validity/staleness, code, latest-direction, and activity-expiry tests
+are not implemented. The current Heltec target has no admitted battery-
+percentage, GNSS-satellite-count, or radio-event binding; no firmware, device,
+flash, telemetry, traffic, or physical-display claim follows from this planned
+documentation.

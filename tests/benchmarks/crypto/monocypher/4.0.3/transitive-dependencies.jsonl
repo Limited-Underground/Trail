@@ -1,0 +1,4 @@
+{"name":"c25519","path":"tests/externals/c25519","runtime_or_link_dependency":false,"scope":"bundled-test-only"}
+{"name":"ed25519-donna","path":"tests/externals/ed25519-donna","runtime_or_link_dependency":false,"scope":"bundled-test-only"}
+{"name":"tinyssh","path":"tests/externals/tinyssh","runtime_or_link_dependency":false,"scope":"bundled-test-only"}
+{"name":"tweetnacl","path":"tests/externals/tweetnacl","runtime_or_link_dependency":false,"scope":"bundled-test-only"}

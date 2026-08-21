@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-20
 
+### OT-102 exact Monocypher source-lock admission
+
+- Accepted exact `OTCSLE0/v1` source evidence, SHA-256 `fe037820304103f7ca2253665076e4dc41740598ca9742ba8d45f6ec64ebc06f`, and strict host-only `OTMSLA0/v0`, raw SHA-256 `6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52`.
+- Retained all 161 Monocypher 4.0.3 upstream Git blobs under a complete canonical acquisition/tree/license/SPDX/transitive/zero-patch/project-lock chain. The owner selected `BSD-2-Clause`; no legal-clearance or compatibility claim follows.
+- Accepted one Monocypher source lock and closed only `monocypher_source_lock_absent`. Historical six-blocker and prior five-blocker states remain recorded; four current requirements remain. The accepted source count is two, while every API/configuration and candidate-import anchor remains empty.
+- Seven focused groups, exact 161/161 staged source comparison, publication-safety checks, the complete host gate, and independent review pass. No firmware import/build, crypto/device/radio/key action, benchmark, selection, packet-v1, physical evidence, authority, or score was added. Android 60%; V1 exact 43.75%/display44%; baseline exact31.75%/display32%; V1.5/V2 unmeasured. See [Decision 0045](decisions/0045-monocypher-source-lock-admission-delta.md) and [OT-102 evidence](../tests/hardware/OT-102-2026-08-20.md).
+
 ### OT-100 exact libsodium source-lock admission
 
 - Accepted host-only `OTCSLA0/v0`, raw SHA-256 `df595f2d07ba1b5d0a9bdf70237b1f0ea5a01fe8cb5a63ffb3575fe484faede0`, and result `LIBSODIUM-1.0.22-SOURCE-LOCK-ADMITTED-HOST-ONLY; FIVE-OTCBR0-REQUIREMENTS-REMAIN; NO-API-CONFIG-OR-IMPORT-ACCEPTANCE; OTCBR0-READINESS-BLOCKED`.

@@ -1,3 +1,7 @@
 tests/fixtures/firmware_bundle_signature_vector_v0.json text eol=lf
 firmware/targets/heltec_v4_bench/partitions.csv text eol=crlf
 firmware/targets/heltec_v4_bench/protected-storage-partitions.candidate.csv text eol=lf
+tests/benchmarks/crypto/monocypher/4.0.3/* -text
+tests/benchmarks/crypto/monocypher/4.0.3/source/** -text whitespace=-trailing-space,-space-before-tab
+tests/benchmarks/crypto/OT-102-OT005-MONOCYPHER-SOURCE-EVIDENCE-V0.json -text
+tests/benchmarks/crypto/OT-102-OT005-MONOCYPHER-SOURCE-LOCK-ADMISSION-DELTA-V0.json -text
