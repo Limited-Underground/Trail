@@ -181,6 +181,12 @@ packet-v1, continuing-authority, or score claim is added. See
 [Decision 0046](decisions/0046-exact-received-target-profile-admission-delta.md)
 and [OT-103 evidence](../tests/hardware/OT-103-2026-08-20.md).
 
+OT-105 accepts exact `OTCSLE0/v1` evidence, raw SHA-256 `ae12ad7da6702ac85092e9cb8ad793b749871153fadee8b1a276e5a46b036e49`, and append-only `OTMPSLA0/v0`, raw SHA-256 `26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85`, for the installed pinned ESP-IDF v6.0.2 / mbedTLS 4.1.0 source dependency lock. Project-lock SHA-256 is `12f8699d8d286a484e054df186fb0e8c97b75263d23caf4bd77ed48082e9c7ab`.
+
+Metadata covers all 3,551 source and 198 glue files exactly once. Bundled partitions are not runtime/link evidence. Zero patches means zero OpenTrail-applied patches only after the pinned Espressif gitlink; Espressif/upstream divergence is unassessed. The `Apache-2.0` project choice is not legal clearance or compatibility determination.
+
+OT-105 closes no blocker. History remains six at OT-094/097, five after OT-100, four after OT-102, three after OT-103, and three current after OT-105. Counts are `3/0/0`. OT-096 remains 5/8 and the composite dependency-lock plus API/configuration requirement stays open. No source copy/import/build, API eligibility, device/radio/key action, benchmark, selection, support, physical evidence, authority, or score is added. See [Decision 0047](decisions/0047-host-only-mbedtls-psa-source-lock-admission-delta.md) and [OT-105 evidence](../tests/hardware/OT-105-2026-08-21.md).
+
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
 unicast path. One secret-free authenticated invitation admits one candidate and
@@ -2662,10 +2668,13 @@ candidate-readiness contract, and OT-095 has frozen the zero-source source-lock
 admission contract while all six historical closure requirements remain
 recorded. OT-100 accepted the exact libsodium source lock and recorded five
 current requirements; OT-102 accepted the exact Monocypher source lock under
-the owner-selected `BSD-2-Clause` branch and recorded four; OT-103 now admits
-the exact received `OT-DEV-001` target profile and records three. Readiness
-remains blocked, crypto source/API-config/import counts stay `2/0/0`, and no
-support, compatibility, regulatory, or direct-radio-profile claim is added.
+the owner-selected `BSD-2-Clause` branch and recorded four; OT-103 admitted the
+exact received `OT-DEV-001` target profile and recorded three; OT-105 now
+accepts the exact pinned ESP-IDF mbedTLS/PSA source/dependency lock while
+recording the same three. Readiness remains blocked, crypto source/API-config/
+import counts are `3/0/0`, OT-096 remains 5/8, and no support, compatibility,
+regulatory, direct-radio-profile, API/configuration-eligibility, build/import,
+selection, or score claim is added.
 The next security checkpoint is to close those three configuration/dependency/
 radio requirements, accept a new immutable executable benchmark plan, and run
 the exact candidate comparison under separate authority, followed by explicit

@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-21
 
+### OT-105 pinned ESP-IDF mbedTLS/PSA source-lock admission
+
+- Accepted exact `OTCSLE0/v1` evidence SHA-256 `ae12ad7da6702ac85092e9cb8ad793b749871153fadee8b1a276e5a46b036e49`, strict `OTMPSLA0/v0` admission SHA-256 `26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85`, and project-lock SHA-256 `12f8699d8d286a484e054df186fb0e8c97b75263d23caf4bd77ed48082e9c7ab`.
+- Covered all 3,551 source and 198 glue files exactly once. Zero patches means only zero OpenTrail-applied patches after the pinned Espressif gitlink; Espressif/upstream divergence is unassessed.
+- Counts become `3/0/0`; no blocker closes. Historical six/prior five/prior four/prior three/current three states remain; OT-096 stays 5/8 and the composite API/configuration blocker remains open.
+- Direct, focused 9, generic 17, static 17, deterministic nine-output, publication, independent-review, and full Test-Host session 76051 gates pass. No acquisition/copy/import/build/API eligibility/device/radio/key/benchmark/selection/legal/support/physical/score claim was added. V1 exact43.75%/display44%; baseline31.75%/display32%. See [Decision 0047](decisions/0047-host-only-mbedtls-psa-source-lock-admission-delta.md) and [OT-105 evidence](../tests/hardware/OT-105-2026-08-21.md).
+
 ### OT-101A host-only compact-footer adapters
 
 - Added pure target-neutral adapters under `tests/host_support` from the existing power assessment and BLE runtime status into the accepted OT-101 footer contract; OT-101 remains `partial`.

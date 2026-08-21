@@ -288,6 +288,14 @@ device/radio/key action, benchmark, selection, packet-v1 authority, continuing
 authority, or score evidence. See [Decision 0046](../decisions/0046-exact-received-target-profile-admission-delta.md)
 and [OT-103 evidence](../../tests/hardware/OT-103-2026-08-20.md).
 
+## OT-105 pinned ESP-IDF mbedTLS/PSA source-lock admission
+
+Strict `OTCSLE0/v1`, raw SHA-256 `ae12ad7da6702ac85092e9cb8ad793b749871153fadee8b1a276e5a46b036e49`, and append-only `OTMPSLA0/v0`, raw SHA-256 `26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85`, accept the metadata-only dependency lock for installed pinned ESP-IDF v6.0.2 / mbedTLS 4.1.0. Project-lock SHA-256 is `12f8699d8d286a484e054df186fb0e8c97b75263d23caf4bd77ed48082e9c7ab`.
+
+All 3,551 source and 198 glue files are covered exactly once by full-tree, glue, 3,749-file license, SPDX, seven bundled partitions, patch, and project-lock records. Bundled partitions are not runtime/link evidence. Zero patches means only zero OpenTrail-applied patches after the exact pinned Espressif gitlink; Espressif/upstream divergence is unassessed.
+
+OT-103 remains historical `2/0/0`. OT-105 records current `3/0/0`, closes no blocker, and leaves three requirements open. OT-096 remains 5/8, so the composite dependency-lock plus API/configuration requirement is unresolved. No acquisition/copy/import/build/API eligibility, device/radio/key action, benchmark, selection, legal/compatibility/support, physical evidence, or score is added. See [Decision 0047](../decisions/0047-host-only-mbedtls-psa-source-lock-admission-delta.md) and [OT-105 evidence](../../tests/hardware/OT-105-2026-08-21.md).
+
 ## Result contract
 
 One result evaluates one candidate under one exact ready plan. It records:
