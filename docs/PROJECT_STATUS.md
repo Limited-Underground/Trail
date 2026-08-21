@@ -2563,6 +2563,11 @@ not treated as proof of authorization.
 - OpenGauge authenticated on-device transport, peer/key lifecycle, persistent replay/outbox state, failure UX, and direct radio integration; the v0 semantic schema/policy is host-tested and OT-017D/OT-017E supply bounded physical byte and host-component completion evidence
 - Field-session repetition count, movement/terrain profiles, acceptance
   thresholds, and the final position/status cadence after measured contention
+- OT-101 plans a compact Heltec footer, `B:100% G:12 BLE:C`: invalid, stale,
+  or unavailable battery/GPS observations render as `--`; BLE uses bounded
+  codes with a legend; optional RX/TX arrows require accepted real events and
+  monotonic expiry. Glyph and layout tests remain required. Current battery,
+  GNSS-satellite, and radio bindings are absent, so no device result is claimed
 
 ### Governance
 
@@ -2604,3 +2609,13 @@ state.
 Authenticated on-device transport, protected target state, physical restart and
 power-failure injection, GPS evidence, field performance, and direct-radio
 airtime remain explicit later gates.
+
+OT-101 records only the planned compact Heltec footer requirement. Its target
+form is `B:100% G:12 BLE:C`, with `--` for every unavailable, invalid, or stale
+battery/GPS value and a bounded documented BLE-code legend. Optional RX/TX
+arrows must be driven only by accepted real transport events, expire against a
+monotonic clock, and remain absent while idle or unsupported. Required glyph,
+formatter, width/layout, staleness, code, and activity-expiry tests are not yet
+implemented. The current Heltec target has no admitted battery-percentage,
+GNSS-satellite-count, or radio-event binding; no firmware, device, flash,
+telemetry, traffic, or physical-display claim follows from this documentation.
