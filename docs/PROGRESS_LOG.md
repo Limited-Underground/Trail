@@ -5,6 +5,13 @@ remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concis
 public chronology.
 
 ## 2026-08-21
+### OT-112 identical-node Heltec V4 direct-radio diagnostic
+
+- Corrected the live-boot SPI lifecycle defect by binding RadioLib HAL `init()`/`term()` to the target SPI begin/end operations; the full ESP-IDF build and 10 focused source groups pass.
+- Flashed the same 210,816-byte image (`A50B6F19C728CC8FE40256CF5786385BDA0F34AF35EA3BD65326A03CFF7D3E6D`) to both V4.2 bench nodes. Both booted receive-only with `ready=yes`, `armed=no`, and the fixed 915 MHz profile.
+- Controlled OTD1 frames passed A→B and B→A at 17 total wire bytes and exactly 163 total wire bytes; each node ended at `rx=2`, `tx=2`, `armed=no`.
+- This closes the bounded OT-112 diagnostic, not the OT-110 acceptance contract. Stress, measured ceiling, rejection, latency, RSSI/SNR recording, restart persistence, RF output/EIRP, regulatory acceptance, compatibility, and support remain open; readiness and progress values do not change. See [OT-112 evidence](../tests/hardware/OT-112-2026-08-21.md).
+
 ### OT-110 US915 direct-radio profile evidence contract
 
 - Accepted strict host-only `OTRPF0/v0`, canonical SHA-256 `d5b44cea761b12ad6422be250bf0a827469441643d6f5e944932a91cc92b68d9` / raw SHA-256 `8af36e000d5cd0478d1a829fb5a1f2b330cdf09bad188445d30579c348f7e2e1`, as the contract for future evidence resolving the US915 direct-radio region/MTU/full-PHY requirement.

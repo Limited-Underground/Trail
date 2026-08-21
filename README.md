@@ -12,9 +12,9 @@ The base design is a self-contained portable client with its own power, display,
 
 | Area | Current state |
 | --- | --- |
-| Phase | Architecture, host-tested components, bounded bench proofs, and one experimentally flashed Heltec target |
-| Latest increment | OT-109 admits exact host-only mbedTLS/PSA API/configuration evidence for five of eight fixed operations as comparison-only and structurally nonselectable. Counts are `3/1/0`; only the direct-radio region/MTU/full-PHY requirement remains, and readiness stays blocked |
-| Proven so far | OT-109 binds the accepted mbedTLS/PSA source and exact OT-107 sdkconfig to five purpose-distinct operation records and admits only their comparison evidence. Ed25519 sign/verify and Noise XK remain unavailable; no candidate import, compile, benchmark, device/radio/key operation, execution, or selection is authorized. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 and V2 remain unmeasured |
+| Phase | Architecture, host-tested components, bounded bench proofs, and two experimentally flashed Heltec targets |
+| Latest increment | OT-112 completes a bounded identical-image Heltec V4.2 direct-radio diagnostic: both nodes boot receive-only and valid structured frames pass A→B and B→A at 17 and exactly 163 total wire bytes. This does not close the broader OT-110 radio requirement; counts remain `3/1/0` and readiness stays blocked |
+| Proven so far | The corrected 210,816-byte OT-112 image passes the full build and 10 focused source groups; both bench nodes run the same SHA-256 and ended the controlled radio check at `rx=2`, `tx=2`, `armed=no`. Stress, measured ceiling/rejection, latency, RSSI/SNR, restart persistence, EIRP, regulatory acceptance, compatibility, and support remain open. No score changes: Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 and V2 remain unmeasured |
 | Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
 | Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
 

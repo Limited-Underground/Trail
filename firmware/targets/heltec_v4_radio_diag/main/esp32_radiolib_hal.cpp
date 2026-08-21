@@ -24,6 +24,10 @@ Esp32RadioLibHal::Esp32RadioLibHal(int sck, int miso, int mosi)
                   GPIO_INTR_POSEDGE, GPIO_INTR_NEGEDGE),
       sck_(sck), miso_(miso), mosi_(mosi) {}
 
+void Esp32RadioLibHal::init() { spiBegin(); }
+
+void Esp32RadioLibHal::term() { spiEnd(); }
+
 void Esp32RadioLibHal::pinMode(uint32_t pin, uint32_t mode) {
     if (!valid_pin(pin)) return;
     gpio_config_t cfg{};

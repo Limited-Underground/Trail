@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[2]
 TARGET = ROOT / "firmware" / "targets" / "heltec_v4_radio_diag"
 BENCH_TARGET = ROOT / "firmware" / "targets" / "heltec_v4_bench"
 APP = TARGET / "main" / "app_main.cpp"
+HAL_CPP = TARGET / "main" / "esp32_radiolib_hal.cpp"
+HAL_HPP = TARGET / "main" / "esp32_radiolib_hal.hpp"
 MANIFEST = TARGET / "main" / "idf_component.yml"
 LOCK = TARGET / "dependencies.lock"
 
@@ -83,6 +85,18 @@ def test_exact_heltec_v4_gc1109_pin_binding() -> None:
             "{Module::MODE_TX,   {1, 1, 1, 0, 0}}" in text,
             "GC1109 receive/transmit RF-switch modes changed")
 
+
+def test_radiolib_hal_lifecycle_owns_spi_bus() -> None:
+    implementation = HAL_CPP.read_text(encoding="utf-8")
+    declaration = HAL_HPP.read_text(encoding="utf-8")
+    require("void init() override;" in declaration and "void term() override;" in declaration,
+            "RadioLib HAL lifecycle overrides must remain explicit")
+    init_body = function_body(implementation, "void Esp32RadioLibHal::init()")
+    term_body = function_body(implementation, "void Esp32RadioLibHal::term()")
+    require(init_body.strip() == "spiBegin();",
+            "RadioLib HAL init must initialize SPI exactly once through spiBegin")
+    require(term_body.strip() == "spiEnd();",
+            "RadioLib HAL term must release SPI exactly once through spiEnd")
 
 def test_radiolib_dependency_is_exactly_pinned() -> None:
     manifest = MANIFEST.read_text(encoding="utf-8")
@@ -226,6 +240,7 @@ def main() -> int:
     tests = (
         test_is_one_isolated_identical_node_firmware_target,
         test_exact_heltec_v4_gc1109_pin_binding,
+        test_radiolib_hal_lifecycle_owns_spi_bus,
         test_radiolib_dependency_is_exactly_pinned,
         test_fixed_us915_close_bench_profile_is_exact,
         test_boot_is_receive_only_with_no_automatic_transmit,

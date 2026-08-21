@@ -1,6 +1,6 @@
 # OpenTrail Hardware Inventory
 
-Last updated: 2026-08-19
+Last updated: 2026-08-21
 
 Compatibility states used here:
 
@@ -82,8 +82,8 @@ Connected directly to the development laptop for bounded inventory beginning 202
 | Flash encryption | Disabled | `esptool 5.3.1 get-security-info` |
 | State during query | ROM USB/UART download bootloader | ROM serial banner and query connection |
 | Normal application USB | Espressif application USB `VID 303A`, `PID 0002`, observed as `COM6` | Windows enumeration after normal boot; COM assignment can change |
-| Current installed application | Experimental OpenTrail `heltec_v4_bench` OT-085 image; 471,456-byte factory app, SHA-256 `CE9FB1B4E5ABF5E3B11EBA2CC67BF9F55B662E31AB56A00E6656350F659E524E` | OT-085A consumed app-only write and exact read-back verification |
-| Current bounded runtime | Deterministic boot self-check and heartbeat retained; one Android 13 phone read the exact fixed 16-byte public value on both accepted paths. OT-085B made no phone disconnect request, accepted the target-driven disconnect inside the frozen timing window, recorded the owner's `BLE CONNECTED` to `BLE ADVERTISING` observation, and found exactly one compatible service advertiser afterward | [OT-085A](../tests/hardware/OT-085A-2026-08-19.md) and [OT-085B](../tests/hardware/OT-085B-2026-08-19.md); no name, address, stable identity, pairing, protected authorization, or private binding retained |
+| Current installed application | Experimental OpenTrail `heltec_v4_radio_diag`; 210,816-byte application, SHA-256 `A50B6F19C728CC8FE40256CF5786385BDA0F34AF35EA3BD65326A03CFF7D3E6D` | OT-112 flashed and verified the corrected identical image on both bench nodes |
+| Current bounded runtime | Receive-only diagnostic booted `ready=yes`, `armed=no` on the fixed 915 MHz profile; controlled 17-byte and exactly 163-byte structured frames passed in both directions, ending at `rx=2`, `tx=2` | [OT-112 evidence](../tests/hardware/OT-112-2026-08-21.md); broader OT-110 acceptance remains open |
 | Protected-storage source proof | A bounded read-only operation matched the exact installed 3,072-byte partition table and verified that the complete 1 MiB source region was all `0xFF`; it retained no raw bytes or private binding details, and its temporary executor was deleted. Manual RST returned the Trail logo and `BLE ADVERTISING`. This satisfies only the OT-070 source prerequisite | [OT-074 evidence](../tests/hardware/OT-074-2026-08-17.md) |
 | Prior installed application | MeshCore `v1.16.0-07a3ca9` | Historical application strings and pre-OT-061 public runtime evidence |
 | Exact application recovery artifact | The complete 470,928-byte OT-064 factory application was captured read-only and independently verified after connection close; SHA-256 `A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B`; retained only as a private ignored recovery artifact, with no restore/write authority | [OT-076 evidence](../tests/hardware/OT-076-2026-08-17.md) |
@@ -174,18 +174,18 @@ Connected independently to the development laptop and queried read-only over USB
 
 | Field | Verified result | Evidence/source |
 | --- | --- | --- |
-| Inventory state | Runtime board/firmware identity, USB transport, active radio configuration, battery, and clean runtime statistics identified; low-level ROM/flash identity and physical SKU/RF/antenna/pinout remain unresolved | MeshCLI serial queries and Windows USB enumeration |
+| Inventory state | Experimental OpenTrail direct-radio bench target; corrected identical image boot and bounded bidirectional 17/163-byte structured-frame delivery passed. Low-level ROM/flash identity and physical SKU/RF/antenna/pinout remain unresolved | [OT-112 evidence](../tests/hardware/OT-112-2026-08-21.md), prior MeshCLI serial queries, and Windows USB enumeration |
 | Evidence role | Assembled bench client | Same boundary as `OT-DEV-001`; not the board-level first complete-client build |
 | Purchase record | Second unit from Meshnology two-set V4 GPS bundle, Amazon ASIN `B0FS1WQWKF`, selected as `Black-2` | Owner-provided purchase link, 2026-08-12; same listing boundary as `OT-DEV-001` |
 | Product/model | Heltec V4 OLED (runtime-detected) | `meshcli ver` |
 | Application USB | Espressif application USB `VID 303A`, `PID 0002`, observed as `COM11`; assignment can change | Windows/pySerial enumeration |
-| Installed transport/role | USB Companion | Successful MeshCLI serial connection after the user's clean USB Companion flash |
-| Firmware | MeshCore `v1.16.0-07a3ca9`, firmware date 06-Jun-2026 | `meshcli ver` |
-| Capacity/options | 350 contacts, 40 channels; repeat disabled; path-hash mode 0 | `meshcli ver` |
-| Radio configuration | User-applied USA/Canada preset: 910.525 MHz, 62.5 kHz bandwidth, SF7, CR5, 10 dBm transmit power; maximum reported 22 dBm | Filtered `meshcli infos` query |
+| Current installed application | Experimental OpenTrail `heltec_v4_radio_diag`; 210,816-byte application, SHA-256 `A50B6F19C728CC8FE40256CF5786385BDA0F34AF35EA3BD65326A03CFF7D3E6D` | OT-112 flashed and verified the corrected identical image on both bench nodes |
+| Current bounded runtime | Receive-only diagnostic booted `ready=yes`, `armed=no` on the fixed 915 MHz profile; controlled 17-byte and exactly 163-byte structured frames passed in both directions, ending at `rx=2`, `tx=2` | [OT-112 evidence](../tests/hardware/OT-112-2026-08-21.md); broader OT-110 acceptance remains open |
+| Prior MeshCore firmware/role | USB Companion `v1.16.0-07a3ca9`, firmware date 06-Jun-2026; 350 contacts, 40 channels; repeat disabled; path-hash mode 0 | Historical MeshCLI evidence before OT-112 |
+| Prior MeshCore radio configuration | User-applied USA/Canada preset: 910.525 MHz, 62.5 kHz bandwidth, SF7, CR5, 10 dBm transmit power; maximum reported 22 dBm | Historical filtered `meshcli infos` query before OT-112 |
 | Telemetry/contact defaults | Environment, location, and base telemetry disabled; manual contact addition disabled | Filtered `meshcli infos` query |
 | Battery snapshot | 4.069 V | `meshcli get stats_core`; transient observation only |
-| Runtime snapshot after USB recovery | Latest 2026-08-13 recovery read: uptime 133 seconds; 0 errors; queue length 0; 0 packets sent/received; 0 transmit/receive airtime; 0 receive errors; firmware and radio configuration unchanged | `meshcli` core/radio/packet statistics; [OT-019O](../tests/hardware/OT-019O-2026-08-13.md) |
+| Prior MeshCore runtime snapshot after USB recovery | Latest 2026-08-13 recovery read: uptime 133 seconds; 0 errors; queue length 0; 0 packets sent/received; 0 transmit/receive airtime; 0 receive errors; firmware and radio configuration unchanged | Historical `meshcli` evidence and [OT-019O](../tests/hardware/OT-019O-2026-08-13.md) before OT-112 |
 | Firmware-reported repeater frequency points | 433.000 MHz, 869.495 MHz, and 918.000 MHz | `meshcli get allowed_repeat_freq`; not proof of antenna suitability, exact RF front end, legal authorization, or full supported band |
 | Low-level ROM/flash query | Not obtained. A repeated bounded one-attempt session on 2026-08-13 used `esptool 5.3.1`, `--no-stub`, and read-only `chip-id`, but failed at host port configuration before an ESP32 ROM connection. The runtime temporarily stopped answering, the attempt was not repeated, and MeshCore returned with unchanged firmware/radio settings after USB reconnection/re-enumeration. This proves only manual recovery on this host, not automatic ROM entry or a supported profile. | [OT-019O negative/recovery evidence](../tests/hardware/OT-019O-2026-08-13.md) |
 | GPS/GNSS bench evidence | Connected GNSS was detected by MeshCore, its setting read disabled, explicit bench enablement read back enabled, and a redacted self-telemetry query contained a GPS field | Same privacy-safe method as `OT-DEV-001`, 2026-08-12. This proves firmware detection/activation and a telemetry path, not current fix, satellites, accuracy, loss behavior, exact physical module, or wiring |

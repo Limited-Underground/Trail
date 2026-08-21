@@ -11,6 +11,9 @@ class Esp32RadioLibHal final : public RadioLibHal {
 public:
     Esp32RadioLibHal(int sck, int miso, int mosi);
 
+    void init() override;
+    void term() override;
+
     void pinMode(uint32_t pin, uint32_t mode) override;
     void digitalWrite(uint32_t pin, uint32_t value) override;
     uint32_t digitalRead(uint32_t pin) override;
