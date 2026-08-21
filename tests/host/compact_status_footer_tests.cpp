@@ -5,7 +5,7 @@
 #include <limits>
 #include <string>
 
-#include "opentrail/compact_status_footer.hpp"
+#include "../host_support/compact_status_footer.hpp"
 
 namespace {
 

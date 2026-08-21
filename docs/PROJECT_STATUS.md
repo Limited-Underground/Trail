@@ -2613,14 +2613,19 @@ not treated as proof of authorization.
 - OpenGauge authenticated on-device transport, peer/key lifecycle, persistent replay/outbox state, failure UX, and direct radio integration; the v0 semantic schema/policy is host-tested and OT-017D/OT-017E supply bounded physical byte and host-component completion evidence
 - Field-session repetition count, movement/terrain profiles, acceptance
   thresholds, and the final position/status cadence after measured contention
-- OT-101 plans the owner-finalized compact Heltec footer,
-  `BAT:100% GPS:12 BLE:C`, plus one transient latest-direction field: `↑` for
-  accepted LoRa TX, `↓` for accepted LoRa RX, and blank while idle,
-  unsupported, or expired. Invalid, stale, or unavailable battery/GPS
-  observations render as `--`; BLE uses bounded codes with a legend. Glyph,
-  formatter, width/layout, validity/staleness, code, latest-direction, and
-  monotonic-expiry tests remain required. Current battery, GNSS-satellite, and
-  radio bindings are absent, so no device result is claimed
+- OT-101 is partial with a target-neutral host-only prototype/contract for the
+  owner-finalized compact Heltec footer, `BAT:100% GPS:12 BLE:C`, plus one
+  transient latest-direction field: `↑` for an injected accepted TX event,
+  `↓` for an injected accepted RX event, and blank while idle, unsupported,
+  future-dated, or expired. Invalid, stale, unavailable, future, or out-of-range
+  battery/GPS observations render as `--`; BLE uses bounded codes with a
+  legend. Exact glyph, formatter, width/layout, golden-page,
+  validity/freshness, code, latest-direction, monotonic-expiry, and rejection
+  behavior pass 12 warning-free host groups from `tests/host_support`. The
+  prototype remains outside the firmware tree; current target renderer/OLED,
+  battery, GNSS-satellite, BLE, and radio bindings are absent, so no firmware,
+  target-build, device, flash, traffic, physical-display, support, regulatory,
+  or score result is claimed
 
 ### Governance
 
@@ -2669,15 +2674,20 @@ Authenticated on-device transport, protected target state, physical restart and
 power-failure injection, GPS evidence, field performance, and direct-radio
 airtime remain explicit later gates.
 
-OT-101 records only the planned compact Heltec footer requirement. Its owner-
-finalized target form is `BAT:100% GPS:12 BLE:C` plus one transient latest-
-direction field: `↑` for accepted LoRa TX, `↓` for accepted LoRa RX, and blank
-while idle, unsupported, or expired. Every unavailable, invalid, or stale
-battery/GPS value renders as `--`, and BLE uses a bounded documented code
-legend. The direction field must be driven only by accepted real transport
-events and expire against a monotonic clock. Required glyph, formatter, width/
-layout, validity/staleness, code, latest-direction, and activity-expiry tests
-are not implemented. The current Heltec target has no admitted battery-
-percentage, GNSS-satellite-count, or radio-event binding; no firmware, device,
-flash, telemetry, traffic, or physical-display claim follows from this planned
-documentation.
+OT-101 is now partial. A target-neutral host-only prototype/contract under
+`tests/host_support` formats `BAT:100% GPS:12 BLE:C` within one exact
+128-column by 8-row page plus one transient latest-direction field: `↑` for an
+injected accepted TX event, `↓` for an injected accepted RX event, and blank
+while idle, unsupported, future-dated, or expired. Every unavailable, invalid,
+stale, future, or out-of-range battery/GPS value renders as `--`; BLE uses the
+bounded documented codes `-`, `S`, `A`, `C`, `R`, and `E`. Twelve
+warning-free host groups cover exact glyphs, formatter and widths, golden
+layout, validity and freshness, BLE codes, latest-direction replacement,
+monotonic expiry, regressive-time rejection, unsupported transport, and clear
+behavior. The activity owner accepts only injected host events; no accepted
+real-transport source exists. The prototype remains deliberately outside the
+firmware tree, and the current Heltec target has no renderer/OLED,
+battery-percentage, GNSS-satellite-count, BLE, or radio-event binding. No
+firmware or target build, device access, flash, telemetry, traffic,
+physical-display, support, regulatory, or score claim follows. See
+[OT-101 evidence](../tests/hardware/OT-101-2026-08-21.md).

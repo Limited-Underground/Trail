@@ -4,6 +4,15 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-21
+
+### OT-101 host-only compact status footer prototype
+
+- Advanced OT-101 from planned to partial with a target-neutral prototype/contract under `tests/host_support`; it remains deliberately outside the firmware tree.
+- Formatted the owner-finalized `BAT:100% GPS:12 BLE:C` fields in one exact 128-column by 8-row page. Invalid, unavailable, stale, future, and out-of-range battery/GPS observations fail closed to `--`; BLE is limited to documented `-`, `S`, `A`, `C`, `R`, and `E` codes.
+- Added one arrow field with host-injected latest-event semantics: `↑` for TX, `↓` for RX, equal-time replacement accepted, regressive time rejected, and blank while idle, unsupported, future-dated, expired, or cleared. No accepted real-transport source is wired.
+- Twelve focused C++17 warnings-as-errors groups and the complete host gate pass (exit zero, session 4000), including both publication-safety gates and the Windows tail. There is no target renderer/OLED, battery/GNSS/BLE/radio binding, firmware or target build, device access, flash, telemetry, traffic, physical-display, support, regulatory, or score evidence. V1 progress is unchanged. See [OT-101 evidence](../tests/hardware/OT-101-2026-08-21.md).
+
 ## 2026-08-20
 
 ### OT-103 exact received target-profile admission
