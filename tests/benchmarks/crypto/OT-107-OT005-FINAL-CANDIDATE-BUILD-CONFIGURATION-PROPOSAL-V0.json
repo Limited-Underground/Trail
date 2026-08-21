@@ -1,0 +1,206 @@
+{
+  "schema": "OTCBCP0",
+  "version": 0,
+  "artifact_kind": "final_candidate_build_configuration_proposal",
+  "proposal_id": "OT-107-OT005-FINAL-CANDIDATE-BUILD-CONFIGURATION-PROPOSAL-V0",
+  "recorded_date": "2026-08-21",
+  "status": "configuration_proposed_owner_approval_required",
+  "public_result": "FINAL-CANDIDATE-BUILD-CONFIGURATION-PROPOSED-HOST-ONLY; OWNER-APPROVAL-REQUIRED; THREE-OTCBR0-REQUIREMENTS-REMAIN; OTCBR0-READINESS-BLOCKED",
+  "parents": {
+    "otcb0_v0_raw_sha256": "47c210c6257cd104d07f8e043f2cd1c688195136bbd3fcbafb8e6da095d18884",
+    "otcbl0_v0_raw_sha256": "240906d62926048e6f55b1bb11ce21538e24edbeb8956439ffeb35f3b49b3c83",
+    "otcbl0_v0_canonical_sha256": "16ffe83af7e3c1f00b5d123eae30e3ac4a0ea2dea0cb08bcc60b990d3e881733",
+    "otcbr0_v0_raw_sha256": "bb607158cbe8ac95a470f0a6c87fbb6d8d986259cf86540b14245fc1167dc7ae",
+    "otcbr0_v0_canonical_sha256": "705b30693196e2f46d8bda7c17acb1e04d7b9092c4a3817286c14d189001b9d3",
+    "otcmse0_v0_canonical_sha256": "3034da5a9f21ed663f82dc45ba976f8b5d6ec4ff353c2f96a3d5de4b586c013e",
+    "otrtpa0_v0_raw_sha256": "98cce120cadc1bddf5851f1480ae181488e17277ba0a2c8c8c38a70a062be105",
+    "otmpsla0_v0_raw_sha256": "26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85"
+  },
+  "target": {
+    "target_id": "heltec-v4-bench-candidate",
+    "evidence_unit": "OT-DEV-001",
+    "board_model": "HTIT-WB32LAF",
+    "exact_received_revision": "V4.2",
+    "mcu": "ESP32-S3",
+    "processor_revision": "v0.2",
+    "flash_bytes": 16777216,
+    "psram_bytes": 2097152,
+    "supported": false
+  },
+  "toolchain": {
+    "esp_idf_version": "v6.0.2",
+    "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "compiler": "xtensa-esp32s3-elf-gcc",
+    "compiler_version": "15.2.0"
+  },
+  "historical_baseline": {
+    "sdkconfig_defaults_sha256": "84d54e5d730ba28ceba0c97831a477303db128d63ede7575bec52013770d70c0",
+    "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+    "role": "PRE-SELECTION-BASELINE-NOT-FINAL-OTCB0"
+  },
+  "proposed_common_configuration": {
+    "tracked_target_defaults_path": "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
+    "tracked_target_defaults_sha256": "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb",
+    "reproducible_defaults_sha256": "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6",
+    "decision_settings": [
+      {
+        "symbol": "CONFIG_IDF_TARGET",
+        "value": "\"esp32s3\""
+      },
+      {
+        "symbol": "CONFIG_APP_REPRODUCIBLE_BUILD",
+        "value": "y"
+      },
+      {
+        "symbol": "CONFIG_APP_COMPILE_TIME_DATE",
+        "value": "n"
+      },
+      {
+        "symbol": "CONFIG_COMPILER_OPTIMIZATION_SIZE",
+        "value": "y"
+      },
+      {
+        "symbol": "CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160",
+        "value": "y"
+      },
+      {
+        "symbol": "CONFIG_FREERTOS_HZ",
+        "value": "100"
+      }
+    ],
+    "decision_settings_lf_sha256": "1b30492d828b2c67782fdc1f98469595d42413e2361818a7424d32eaac7a4cb6",
+    "generated_sdkconfig_bytes": 106913,
+    "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+    "recommendation": "preserve_existing_target_profile_size_optimized_160mhz_100hz"
+  },
+  "common_generation_receipts": [
+    {
+      "run": "A",
+      "environment": "computer_only",
+      "isolated_root_initially_absent": true,
+      "configuration_only": true,
+      "candidate_source_imported": false,
+      "candidate_compiled": false,
+      "benchmark_executed": false,
+      "device_accessed": false,
+      "radio_used": false,
+      "exit_code": 0,
+      "generated_sdkconfig_bytes": 106913,
+      "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    },
+    {
+      "run": "B",
+      "environment": "computer_only",
+      "isolated_root_initially_absent": true,
+      "configuration_only": true,
+      "candidate_source_imported": false,
+      "candidate_compiled": false,
+      "benchmark_executed": false,
+      "device_accessed": false,
+      "radio_used": false,
+      "exit_code": 0,
+      "generated_sdkconfig_bytes": 106913,
+      "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    }
+  ],
+  "generated_digest_rule": "per_candidate_successor_required",
+  "candidate_overlays": [
+    {
+      "candidate_id": "espressif_libsodium",
+      "role": "primary",
+      "recommendation": "use_native_libsodium_sha_not_mbedtls_wrappers",
+      "kconfig_settings": [
+        {
+          "symbol": "CONFIG_LIBSODIUM_USE_MBEDTLS_SHA",
+          "value": "n"
+        }
+      ],
+      "overlay_lf_sha256": "b7b722dc1bcc2c5917bee365f2123171ec398b0a0f295d61e7a7e8c26b99c832",
+      "source_requirements": [],
+      "compile_definitions": [],
+      "generated_sdkconfig_sha256": null,
+      "generation_executed": false,
+      "eligibility_state": "unresolved_noise_xk_composition"
+    },
+    {
+      "candidate_id": "esp_idf_mbedtls_psa",
+      "role": "comparison",
+      "recommendation": "enable_chacha20_and_chachapoly_for_the_partial_comparison",
+      "kconfig_settings": [
+        {
+          "symbol": "CONFIG_MBEDTLS_CHACHA20_C",
+          "value": "y"
+        },
+        {
+          "symbol": "CONFIG_MBEDTLS_CHACHAPOLY_C",
+          "value": "y"
+        }
+      ],
+      "overlay_lf_sha256": "e8ec2842ad1aebe6c912970af54a28dc6de7e87e3b2554dfb2b40775626e388d",
+      "source_requirements": [],
+      "compile_definitions": [],
+      "generated_sdkconfig_sha256": null,
+      "generation_executed": false,
+      "eligibility_state": "controlling_static_assessment_5_of_8"
+    },
+    {
+      "candidate_id": "monocypher",
+      "role": "comparison",
+      "recommendation": "include_optional_ed25519_sources_and_keep_blake2_unrolling_enabled",
+      "kconfig_settings": [],
+      "overlay_lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_requirements": [
+        "tests/benchmarks/crypto/monocypher/4.0.3/source/src/monocypher.c",
+        "tests/benchmarks/crypto/monocypher/4.0.3/source/src/optional/monocypher-ed25519.c"
+      ],
+      "compile_definitions": [],
+      "generated_sdkconfig_sha256": null,
+      "generation_executed": false,
+      "eligibility_state": "partial_comparison_missing_sha256_hkdf_and_noise_xk_composition"
+    }
+  ],
+  "policy_recommendation": {
+    "accept_partial_candidates_as_measured_comparisons": true,
+    "require_complete_operation_coverage_for_final_selection": true,
+    "replace_historical_single_sdkconfig_rule_with_per_candidate_generated_digests": true,
+    "rationale": "Candidate-specific Kconfig surfaces make one whole-file generated sdkconfig digest impossible without hiding real configuration differences."
+  },
+  "acceptance_counts": {
+    "source": 3,
+    "api_config": 0,
+    "candidate_import": 0
+  },
+  "current_three_blockers": [
+    "final_candidate_build_configuration_unresolved",
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "closed_by_this_proposal": [],
+  "owner_approval": {
+    "approved": false,
+    "approved_proposal_raw_sha256": null
+  },
+  "authority": {
+    "final_candidate_configuration_authorized": false,
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "suite_selection_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "final_candidate_configuration_proven": false,
+    "candidate_import_accepted": false,
+    "api_config_eligibility_proven": false,
+    "benchmark_executed": false,
+    "candidate_selected": false,
+    "readiness_accepted": false,
+    "physical_evidence_added": false,
+    "hardware_or_device_accessed": false,
+    "score_credit_added": false
+  }
+}

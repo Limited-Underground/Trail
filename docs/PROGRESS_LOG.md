@@ -5,6 +5,13 @@ remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concis
 public chronology.
 
 ## 2026-08-21
+### OT-107 final per-candidate build-configuration admission
+
+- Accepted owner-approved proposal raw SHA-256 `f9072a602a9c139b1e7728735db04cc270720bc37e0429c22bcdb0cd56202a15`, exact configuration-generation evidence raw SHA-256 `0c1b8cb574a210c6123b82b565e6ea8e12cee59bacd6ab4b94b293ddf9d2dfbc`, and append-only admission raw SHA-256 `3d71dfb02b6fd25e0881ac63cc085174c2cdd7e5ac2cd1e12c320ec34928f5a2`.
+- Two fresh, initially absent, component-manager-disabled configuration-only runs per candidate reproduced exact generated sdkconfig pairs for native-SHA libsodium, ChaCha20/ChaChaPoly-enabled mbedTLS/PSA, and the Monocypher core-plus-optional-Ed25519 source requirement. No candidate source was copied or compiled.
+- Closed only `final_candidate_build_configuration_unresolved`. The mbedTLS/PSA API/configuration and direct-radio region/MTU/full-PHY requirements remain open; history retains six/prior five/prior four/prior three/current two states, counts remain `3/0/0`, OT-096 remains 5/8, and readiness remains blocked.
+- No candidate import/build, benchmark, hardware/device/radio/key operation, selection, packet-v1, support, regulatory, physical, continuing-authority, or score claim was added. Android stays 60%, V1 exact 43.75%/displayed 44%, baseline exact 31.75%/displayed 32%, and V1.5/V2 remain unmeasured. See [Decision 0048](decisions/0048-host-only-final-candidate-build-configuration-admission.md) and [OT-107 evidence](../tests/hardware/OT-107-2026-08-21.md).
+
 
 ### OT-106 Heltec compact-footer build integration
 

@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-20
+Status date: 2026-08-21
 
 ## Conceptual goals
 
@@ -192,6 +192,12 @@ OT-106 promotes the accepted OT-101/OT-101A compact-footer implementation into t
 Two fresh, initially absent, cache-isolated pinned ESP-IDF v6.0.2 builds used the exact 309-file staged input. Both exited zero with zero compiler warnings, produced identical ordered seven-artifact tuples, built a 473,024-byte application, and left 4,704,320 bytes free in the verified 5,177,344-byte smallest application slot. Aggregate evidence SHA-256 is `3ba1145cf56cdad3447ce4a1a01c1098e2e78f2c2ffaa8e5378bc4f911b59dc9`; full Test-Host session 99300 passed.
 
 All five accepted OT-093 files remain byte-for-byte unchanged. The frozen `3837dbce866a3fc7cef76fd374bf242bb0125c042e8de15273a9e44bafff3324` mixed-EOL raw-working-tree digest remains immutable but non-reconstructible because its per-line map was not retained. The successor's deterministic Git-blob transforms separately reproduce `c84ba0e3baf334134a60bf753cc951824b9ac21edf1390b143ce21e1194a0c45`; that checkout aggregate is distinct and does not replace or reconstruct `3837...`. No hardware/device access, flash/erase, BLE/LoRa/radio/key/entropy/benchmark operation, target-support, physical-display, live-telemetry, readiness, final-configuration, crypto-import/selection, regulatory, or score claim is added. Readiness remains at three current requirements and V1 remains exact 43.75% / displayed 44%. See [OT-106 evidence](../tests/hardware/OT-106-2026-08-21.md).
+
+OT-107 accepts the owner-approved final per-candidate build configuration through append-only `OTCBCGA0/v0`, raw SHA-256 `3d71dfb02b6fd25e0881ac63cc085174c2cdd7e5ac2cd1e12c320ec34928f5a2`. It binds unchanged proposal raw SHA-256 `f9072a602a9c139b1e7728735db04cc270720bc37e0429c22bcdb0cd56202a15` and exact `OTCBCGE0/v0` generation evidence raw SHA-256 `0c1b8cb574a210c6123b82b565e6ea8e12cee59bacd6ab4b94b293ddf9d2dfbc`.
+
+Two fresh configuration-only runs per candidate reproduce exact generated sdkconfig digests: libsodium `b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f`, mbedTLS/PSA `9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686`, and Monocypher `4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f`. The isolated roots started absent, disabled the component manager, exited zero, and copied or compiled no candidate source.
+
+OT-107 closes only `final_candidate_build_configuration_unresolved`. The mbedTLS/PSA API/configuration and direct-radio region/MTU/full-PHY requirements remain open, counts remain `3/0/0`, OT-096 remains 5/8, and readiness remains blocked. No candidate import/build, benchmark, hardware/device/radio/key operation, selection, packet-v1 authority, support, regulatory, physical, continuing-authority, or score claim is added. V1 remains exact 43.75% / displayed 44%. See [Decision 0048](decisions/0048-host-only-final-candidate-build-configuration-admission.md) and [OT-107 evidence](../tests/hardware/OT-107-2026-08-21.md).
 
 OT-091 freezes and host-tests `OTSL0/v0`, the algorithm-neutral Decision 0033
 secure-LoRa lifecycle/admission contract for V1's exact two-node pairwise-
@@ -2677,12 +2683,13 @@ current requirements; OT-102 accepted the exact Monocypher source lock under
 the owner-selected `BSD-2-Clause` branch and recorded four; OT-103 admitted the
 exact received `OT-DEV-001` target profile and recorded three; OT-105 now
 accepts the exact pinned ESP-IDF mbedTLS/PSA source/dependency lock while
-recording the same three. Readiness remains blocked, crypto source/API-config/
+recording the same three; OT-107 accepts the final per-candidate configuration
+and records two. Readiness remains blocked, crypto source/API-config/
 import counts are `3/0/0`, OT-096 remains 5/8, and no support, compatibility,
-regulatory, direct-radio-profile, API/configuration-eligibility, build/import,
+regulatory, direct-radio-profile, API/configuration-eligibility, candidate build/import,
 selection, or score claim is added.
-The next security checkpoint is to close those three configuration/dependency/
-radio requirements, accept a new immutable executable benchmark plan, and run
+The next security checkpoint is to close those two API-configuration/radio
+requirements, accept a new immutable executable benchmark plan, and run
 the exact candidate comparison under separate authority, followed by explicit
 suite/library, handshake/KDF, and packet-v1 wire selection. Pairing/replacement
 and secure-LoRa target/Android

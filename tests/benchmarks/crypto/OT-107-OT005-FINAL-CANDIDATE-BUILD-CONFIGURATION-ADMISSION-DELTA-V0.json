@@ -1,0 +1,99 @@
+{
+  "schema": "OTCBCGA0",
+  "version": 0,
+  "artifact_kind": "append_only_final_candidate_build_configuration_acceptance_delta",
+  "admission_id": "OT-107-OT005-FINAL-CANDIDATE-BUILD-CONFIGURATION-ADMISSION-DELTA-V0",
+  "accepted_date": "2026-08-21",
+  "status": "final_candidate_build_configuration_admitted_readiness_blocked",
+  "public_result": "FINAL-CANDIDATE-BUILD-CONFIGURATION-ADMITTED-HOST-ONLY; PER-CANDIDATE-SDKCONFIG-DIGESTS-ACCEPTED; TWO-OTCBR0-REQUIREMENTS-REMAIN; NO-CANDIDATE-IMPORT-BUILD-BENCHMARK-DEVICE-RADIO-OR-SELECTION; OTCBR0-READINESS-BLOCKED",
+  "parents": {
+    "otcbr0_v0_raw_sha256": "bb607158cbe8ac95a470f0a6c87fbb6d8d986259cf86540b14245fc1167dc7ae",
+    "otmpsla0_v0_raw_sha256": "26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85",
+    "otcbcp0_v0_raw_sha256": "f9072a602a9c139b1e7728735db04cc270720bc37e0429c22bcdb0cd56202a15",
+    "otcbcge0_v0_raw_sha256": "0c1b8cb574a210c6123b82b565e6ea8e12cee59bacd6ab4b94b293ddf9d2dfbc"
+  },
+  "owner_approval": {
+    "approved": true,
+    "approved_proposal_raw_sha256": "f9072a602a9c139b1e7728735db04cc270720bc37e0429c22bcdb0cd56202a15"
+  },
+  "configuration_evidence": {
+    "path": "tests/benchmarks/crypto/OT-107-OT005-FINAL-CANDIDATE-BUILD-CONFIGURATION-EVIDENCE-V0.json",
+    "sha256": "0c1b8cb574a210c6123b82b565e6ea8e12cee59bacd6ab4b94b293ddf9d2dfbc"
+  },
+  "acceptance_counts": {
+    "source": 3,
+    "api_config": 0,
+    "candidate_import": 0
+  },
+  "historical_six_blockers": [
+    "exact_received_target_profile_unresolved",
+    "final_candidate_build_configuration_unresolved",
+    "espressif_libsodium_source_lock_absent",
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "monocypher_source_lock_absent",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "prior_current_three_blockers": [
+    "final_candidate_build_configuration_unresolved",
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "closed_by_this_delta": [
+    {
+      "blocker_id": "final_candidate_build_configuration_unresolved",
+      "closure_evidence_sha256": "0c1b8cb574a210c6123b82b565e6ea8e12cee59bacd6ab4b94b293ddf9d2dfbc"
+    }
+  ],
+  "current_two_blockers": [
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "accepted_candidate_configurations": [
+    {
+      "candidate_id": "espressif_libsodium",
+      "role": "primary",
+      "overlay_lf_sha256": "b7b722dc1bcc2c5917bee365f2123171ec398b0a0f295d61e7a7e8c26b99c832",
+      "generated_sdkconfig_bytes": 107001,
+      "generated_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+    },
+    {
+      "candidate_id": "esp_idf_mbedtls_psa",
+      "role": "comparison",
+      "overlay_lf_sha256": "e8ec2842ad1aebe6c912970af54a28dc6de7e87e3b2554dfb2b40775626e388d",
+      "generated_sdkconfig_bytes": 106921,
+      "generated_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+    },
+    {
+      "candidate_id": "monocypher",
+      "role": "comparison",
+      "overlay_lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "generated_sdkconfig_bytes": 106913,
+      "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    }
+  ],
+  "authority": {
+    "final_candidate_configuration_authorized": true,
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "suite_selection_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "final_candidate_configuration_proven": true,
+    "api_config_eligibility_proven": false,
+    "candidate_import_accepted": false,
+    "benchmark_executed": false,
+    "readiness_accepted": false,
+    "direct_radio_profile_resolved": false,
+    "hardware_or_device_accessed": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_wire_selected": false,
+    "score_credit_added": false
+  }
+}

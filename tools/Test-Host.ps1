@@ -1983,6 +1983,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OTMPSLA0 mbedTLS/PSA source-lock admission tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_final_candidate_build_configuration_admission_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTCBCGA0 final candidate build-configuration admission tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_historical_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "OTCBL0 historical successor tests failed with exit code $LASTEXITCODE."
