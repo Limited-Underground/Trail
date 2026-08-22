@@ -10,4 +10,14 @@ idf_component_register(
         espressif__libsodium
 )
 
-target_compile_options(${COMPONENT_LIB} PRIVATE -Wall -Wextra -Werror)
+target_compile_options(
+    ${COMPONENT_LIB}
+    PRIVATE
+        -Wall
+        -Wextra
+        -Werror
+        # GCC 15 diagnoses the accepted adapter's 32-bit size guard and its
+        # zero-length HKDF salt call; suppress only those two diagnostics.
+        -Wno-type-limits
+        -Wno-nonnull
+)
