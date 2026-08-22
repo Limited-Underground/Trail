@@ -1,0 +1,78 @@
+{
+  "schema": "OTRTPR0",
+  "version": 0,
+  "artifact_kind": "privacy_safe_second_node_exact_profile_observation_receipt",
+  "receipt_id": "OT-119-OT005-SECOND-NODE-EXACT-PROFILE-USB-RECEIPT-V0",
+  "observed_date": "2026-08-22",
+  "status": "second_node_read_only_profile_observed",
+  "public_result": "OT-DEV-002-READ-ONLY-USB-AND-OWNER-PHOTO-FACTS-RECORDED; FIRMWARE-HEARTBEAT-RESTORED; NO-PRIVATE-IDENTIFIERS-RAW-OUTPUT-FLASH-RADIO-KEY-OR-SCORE",
+  "target_selection": {
+    "target_id": "heltec-v4-bench-candidate",
+    "evidence_unit": "OT-DEV-002",
+    "simultaneously_connected_node_count": 2,
+    "selected_unit_owner_confirmed": true,
+    "distinct_from_ot_dev_001": true
+  },
+  "usb_observation": {
+    "mode": "read_only_no_stub_rom_queries",
+    "operations": [
+      "chip_identity",
+      "flash_identity"
+    ],
+    "normalized_facts": {
+      "mcu_family": "ESP32-S3",
+      "processor_revision": "v0.2",
+      "crystal_mhz": 40,
+      "embedded_psram_bytes": 2097152,
+      "flash_bytes": 16777216
+    },
+    "transient_rom_entry_or_reset": true,
+    "persistent_state_changed": false,
+    "firmware_heartbeat_after_probe": "ot_bench",
+    "heartbeat_restored": true
+  },
+  "owner_photo_observation": {
+    "sha256": "a4068a1d33b2dd6342422b968c4634ba390810ae1f7ca197bcbd24543b42ce9e",
+    "bytes": 244612,
+    "width_px": 960,
+    "height_px": 1280,
+    "owner_supplied": true,
+    "same_selected_unit": true,
+    "supplied_immediately_after_selected_unit_reboot_confirmation": true,
+    "visible_markings": [
+      "HTIT-WB32LAF",
+      "V4.2"
+    ],
+    "raw_photo_retained_in_repository": false,
+    "local_path_retained": false,
+    "exif_or_location_retained": false
+  },
+  "privacy": {
+    "raw_probe_output_retained": false,
+    "serial_port_retained": false,
+    "usb_serial_or_hardware_path_retained": false,
+    "mac_or_chip_identifier_retained": false,
+    "private_device_identifier_retained": false,
+    "raw_flash_bytes_read_or_retained": false,
+    "raw_efuse_content_retained": false,
+    "ble_identity_or_pin_retained": false,
+    "coordinate_retained": false,
+    "local_path_retained": false
+  },
+  "boundaries": {
+    "device_accessed_read_only": true,
+    "physical_evidence_added": true,
+    "firmware_changed": false,
+    "flashed": false,
+    "flash_read": false,
+    "efuse_read_or_changed": false,
+    "radio_used": false,
+    "key_or_entropy_operation": false,
+    "benchmark_executed": false,
+    "candidate_selected": false,
+    "hardware_support_claimed": false,
+    "compatibility_claimed": false,
+    "regulatory_acceptance_claimed": false,
+    "score_credit_added": false
+  }
+}

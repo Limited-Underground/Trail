@@ -1,0 +1,129 @@
+{
+  "schema": "OTRTPE1",
+  "version": 1,
+  "artifact_kind": "second_node_exact_received_target_profile_evidence",
+  "evidence_id": "OT-119-OT005-SECOND-NODE-EXACT-PROFILE-EVIDENCE-V1",
+  "accepted_date": "2026-08-22",
+  "status": "second_node_exact_received_target_profile_evidenced",
+  "public_result": "OT-DEV-002-EXACT-RECEIVED-TARGET-PROFILE-EVIDENCED; USB-AND-PHYSICAL-MARKINGS-BOUND; NO-SUPPORT-COMPATIBILITY-REGULATORY-BENCHMARK-SELECTION-OR-SCORE",
+  "parents": {
+    "otrtpe0_v0_raw_sha256": "517809caf31250d126cc3619f9d05386a92811a594dca0087d9acbf1b671147e",
+    "otrtpe0_v0_canonical_sha256": "68ebd7818a356500fd941e66e685a84d55d5d01f4446efeaaaf728d47efa68be",
+    "otrtpa0_v0_raw_sha256": "98cce120cadc1bddf5851f1480ae181488e17277ba0a2c8c8c38a70a062be105",
+    "otrtpa0_v0_canonical_sha256": "dc7247ae9b277418c104690193fa7bfce2d9297038d2c24c2f5daedf4dc3331e",
+    "otrer0_v0_raw_sha256": "d285d43ec30b2d81473b37bf189b14d89db389cb1636cacbe59cf9f84825d1dd",
+    "otrer0_v0_canonical_sha256": "1700446be2216f6520859928e941a72a06605dfdeedad6957b6e4f8d5259e8c4",
+    "otrpe1_v1_raw_sha256": "b6d2a7ce4ebe3ab233ebbc748ab7831ff12cf4d8f6504d2d7e23dae108bd5876",
+    "otrpe1_v1_canonical_sha256": "ac7e77a4438772a4c5b5f2b17472b302a3520e186a21b88125a9314ee6998bf0",
+    "otrpa1_v1_raw_sha256": "19325f730b96b9dbeeb4f64682c4913e7586d1995ef419b26408d82be12ef266",
+    "otrpa1_v1_canonical_sha256": "eecf2b821ef2c25274cc5d3a179494b1545eb4a859280a48459ebb83c79ed257",
+    "ot115_physical_record_raw_sha256": "4ea35e4b694133c7e3c7a3499c35da13916cfab1938b7186cf21bc4f2df5a175",
+    "otcbr1_v0_raw_sha256": "333f8d525160f45627a13913e5d1adabe8e5c8374290af32b9af1df96ef1bd7e",
+    "otcbr1_v0_canonical_sha256": "ad10935a52bbbcb1ed06f523ef5084a8d70b91aca355d7b497e9ad54c18f453e",
+    "otcbx1_v1_raw_sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+    "otcbx1_v1_canonical_sha256": "7844d7be1824784a0ff58ba58df25bda85c6059c445f217a4d520215bfff50a8",
+    "otmapia0_v0_raw_sha256": "9fbecf19b206b31fae948b6bc7e7aa4e206ba26aa59b94fb7f07d4e1d300810a",
+    "otmapia0_v0_canonical_sha256": "df412285515fe29525b0bfd7cba45fd7ccd9a3d601be284242886e8adb19fec9",
+    "otrtpr0_v0_raw_sha256": "16e69159aed7b9e7d9304cd7cc16d25b7205fc9283ee7751f26b3b9580df5f7c",
+    "otrtpr0_v0_canonical_sha256": "e89f3e027f695d88e764af01b1e032b360a23455a7122121833720d2fbf7adf7"
+  },
+  "observation_receipt": {
+    "path": "tests/benchmarks/crypto/OT-119-OT005-SECOND-NODE-EXACT-PROFILE-USB-RECEIPT-V0.json",
+    "raw_sha256": "16e69159aed7b9e7d9304cd7cc16d25b7205fc9283ee7751f26b3b9580df5f7c",
+    "canonical_sha256": "e89f3e027f695d88e764af01b1e032b360a23455a7122121833720d2fbf7adf7"
+  },
+  "target_binding": {
+    "target_id": "heltec-v4-bench-candidate",
+    "evidence_unit": "OT-DEV-002",
+    "manufacturer": "Heltec Automation",
+    "commercial_family": "WiFi LoRa 32 V4",
+    "pcb_model": "HTIT-WB32LAF",
+    "exact_received_revision": "V4.2",
+    "manufacturer_variant_role": "documented_high_band_variant"
+  },
+  "exact_profile": {
+    "mcu_family": "ESP32-S3",
+    "manufacturer_part": "ESP32-S3R2",
+    "processor_revision": "v0.2",
+    "crystal_mhz": 40,
+    "flash_bytes": 16777216,
+    "psram_bytes": 2097152,
+    "manufacturer_lora_chip_family": "SX1262",
+    "rf_variant_model": "HTIT-WB32LAF"
+  },
+  "field_provenance": {
+    "usb_observed": [
+      "mcu_family",
+      "processor_revision",
+      "crystal_mhz",
+      "flash_bytes",
+      "psram_bytes"
+    ],
+    "owner_photo_observed": [
+      "pcb_model",
+      "exact_received_revision",
+      "rf_variant_model"
+    ],
+    "ot103_exact_profile_and_official_source_bound": [
+      "manufacturer",
+      "commercial_family",
+      "manufacturer_part",
+      "manufacturer_lora_chip_family",
+      "manufacturer_variant_role"
+    ]
+  },
+  "corroboration": {
+    "ot114_owner_confirmed_two_v4_2_diagnostic_nodes": true,
+    "ot114_per_node_exact_image_context_receipts": 2,
+    "ot115_identical_full_image_writes_verified": 2,
+    "ot115_bounded_heartbeats_observed": 2,
+    "corroboration_closes_profile_without_usb_and_marking_evidence": false
+  },
+  "accepted_profile_registry": [
+    {
+      "evidence_unit": "OT-DEV-001",
+      "profile_evidence_raw_sha256": "517809caf31250d126cc3619f9d05386a92811a594dca0087d9acbf1b671147e",
+      "profile_admission_canonical_sha256": "dc7247ae9b277418c104690193fa7bfce2d9297038d2c24c2f5daedf4dc3331e"
+    },
+    {
+      "evidence_unit": "OT-DEV-002",
+      "observation_receipt_canonical_sha256": "e89f3e027f695d88e764af01b1e032b360a23455a7122121833720d2fbf7adf7"
+    }
+  ],
+  "boundaries": {
+    "raw_photo_retained_in_repository": false,
+    "raw_probe_output_retained": false,
+    "local_paths_retained": false,
+    "exif_or_location_retained": false,
+    "private_device_identifier_retained": false,
+    "serial_port_retained": false,
+    "usb_serial_or_hardware_path_retained": false,
+    "mac_or_chip_identifier_retained": false,
+    "firmware_changed": false,
+    "flashed": false,
+    "flash_read": false,
+    "efuse_read_or_changed": false,
+    "radio_used": false,
+    "key_or_entropy_operation": false,
+    "benchmark_executed": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_wire_selected": false,
+    "hardware_support_claimed": false,
+    "compatibility_claimed": false,
+    "regulatory_acceptance_claimed": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "second_node_exact_profile_evidence_generated": true,
+    "bounded_read_only_device_access_performed": true,
+    "physical_evidence_added": true,
+    "persistent_device_state_changed": false,
+    "benchmark_executed": false,
+    "candidate_selected": false,
+    "hardware_support_proven": false,
+    "compatibility_proven": false,
+    "regulatory_compliance_proven": false,
+    "score_credit_added": false
+  }
+}

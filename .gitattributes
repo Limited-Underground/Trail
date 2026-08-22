@@ -63,3 +63,8 @@ tests/benchmarks/crypto/adapters/monocypher_api_v0/monocypher_benchmark_api.c te
 tests/host/fixtures/monocypher_api/monocypher.h text eol=lf
 tests/host/fixtures/monocypher_api/monocypher-ed25519.h text eol=lf
 tests/host/monocypher_benchmark_api_tests.cpp text eol=lf
+tests/benchmarks/crypto/OT-119-OT005-SECOND-NODE-EXACT-PROFILE-USB-RECEIPT-V0.json text eol=lf
+tests/benchmarks/crypto/OT-119-OT005-SECOND-NODE-EXACT-PROFILE-EVIDENCE-V1.json text eol=lf
+tests/benchmarks/crypto/OT-119-OT005-SECOND-NODE-EXACT-PROFILE-ADMISSION-DELTA-V1.json text eol=lf
+tools/crypto_second_node_target_profile_admission.py text eol=lf
+tests/host/crypto_second_node_target_profile_admission_tests.py text eol=lf

@@ -1,6 +1,6 @@
 # OpenTrail Hardware Inventory
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 Compatibility states used here:
 
@@ -174,10 +174,16 @@ Connected independently to the development laptop and queried read-only over USB
 
 | Field | Verified result | Evidence/source |
 | --- | --- | --- |
-| Inventory state | Experimental OpenTrail bench target currently running the identical OT-115 compact-footer image; automatic full-image verification passed on both units, one bounded heartbeat was observed from each, and the two-unit view shows both OLEDs lit with the footer row; one clear close view confirms the exact placeholder text. Prior OT-114 direct-radio evidence remains historical. Low-level ROM/flash identity and physical SKU/RF/antenna/pinout remain unresolved | [OT-115 evidence](../tests/hardware/OT-115-2026-08-21.md), [OT-114 evidence](../tests/hardware/OT-114-2026-08-21.md), prior MeshCLI serial queries, and Windows USB enumeration |
-| Evidence role | Assembled bench client | Same boundary as `OT-DEV-001`; not the board-level first complete-client build |
+| Inventory state | Experimental OpenTrail bench target with an independently accepted exact received V4.2 documented-high-band profile, current OT-115 compact-footer image, and historical OT-114 direct-radio evidence. Installed antenna, electrical radio path, full pinout, protected authorization, live OpenTrail LoRa/GNSS/battery binding, interactive UI/input, recovery-after-loss, regulatory acceptance, compatibility, and support remain unresolved | [OT-119](../tests/hardware/OT-119-2026-08-22.md), [OT-115](../tests/hardware/OT-115-2026-08-21.md), and [OT-114](../tests/hardware/OT-114-2026-08-21.md) evidence |
+| Evidence role | Independently identified experimental OpenTrail bench target; not validated or supported hardware | OT-119 adds exact received-unit profile evidence only and grants no standing device, write, recovery, radio, regulatory, compatibility, or support authority |
 | Purchase record | Second unit from Meshnology two-set V4 GPS bundle, Amazon ASIN `B0FS1WQWKF`, selected as `Black-2` | Owner-provided purchase link, 2026-08-12; same listing boundary as `OT-DEV-001` |
-| Product/model | Heltec V4 OLED (runtime-detected) | `meshcli ver` |
+| Product/model | Exact received Heltec Automation `WiFi LoRa 32 V4`, PCB/RF-variant model `HTIT-WB32LAF`, received revision `V4.2`, documented-high-band profile | OT-119 owner-confirmed same-unit marking photo plus privacy-safe ROM evidence; the prior `Heltec V4 OLED` runtime result remains corroborating only |
+| Official documented family/profile | V4.2 datasheet Table 1.5 records `HTIT-WB32LAF` at `868-928 MHz` and `28 +/- 1 dBm`; Table 3.5.1 separately records `863-928 MHz` and `28 +/- 1 dBm`; Table 3.1 identifies ESP32-S3R2, SX1262, 16 MiB flash, and 2 MiB PSRAM | OT-119 binds the accepted OT-103 official-source facts without turning family specifications into received-unit electrical, antenna, legal-region, regulatory, compatibility, or support proof |
+| ROM maintenance USB | Espressif Ports-class interface; transient port assignment omitted | OT-119 privacy-safe no-stub observation receipt |
+| MCU | ESP32-S3, revision v0.2 | OT-119 privacy-safe ROM observation |
+| PSRAM | 2 MiB embedded PSRAM | OT-119 privacy-safe ROM observation |
+| SPI flash | 16 MiB | OT-119 privacy-safe ROM observation; no flash bytes were read |
+| Crystal | 40 MHz | OT-119 privacy-safe ROM observation |
 | Application USB | Espressif application USB `VID 303A`, `PID 0002`; transient port assignment omitted | Windows/pySerial enumeration |
 | Current installed application | Experimental OpenTrail `heltec_v4_bench`; 473,152-byte application, SHA-256 `0C40AEB6C95ADE9940AA21065CBC73A72DCD82E96ADE9D13126693147FEB5741` | OT-115 automatically flashed and verified the identical full image on both bench nodes |
 | Current bounded runtime | One bounded OpenTrail heartbeat was observed from each unit after automatic reset. A two-unit view shows both OLEDs lit with the footer row; one separate clear close view confirms `BAT:--% GPS:-- BLE:A` with a blank traffic field. BLE advertising is live; battery, GNSS satellites, and LoRa activity are unbound placeholders | [OT-115 evidence](../tests/hardware/OT-115-2026-08-21.md); OT-114 direct-radio results remain historical evidence for the replaced diagnostic image |
@@ -187,16 +193,16 @@ Connected independently to the development laptop and queried read-only over USB
 | Battery snapshot | 4.069 V | `meshcli get stats_core`; transient observation only |
 | Prior MeshCore runtime snapshot after USB recovery | Latest 2026-08-13 recovery read: uptime 133 seconds; 0 errors; queue length 0; 0 packets sent/received; 0 transmit/receive airtime; 0 receive errors; firmware and radio configuration unchanged | Historical `meshcli` evidence and [OT-019O](../tests/hardware/OT-019O-2026-08-13.md) before OT-112 |
 | Firmware-reported repeater frequency points | 433.000 MHz, 869.495 MHz, and 918.000 MHz | `meshcli get allowed_repeat_freq`; not proof of antenna suitability, exact RF front end, legal authorization, or full supported band |
-| Low-level ROM/flash query | Not obtained. A repeated bounded one-attempt session on 2026-08-13 used `esptool 5.3.1`, `--no-stub`, and read-only `chip-id`, but failed at host port configuration before an ESP32 ROM connection. The runtime temporarily stopped answering, the attempt was not repeated, and MeshCore returned with unchanged firmware/radio settings after USB reconnection/re-enumeration. This proves only manual recovery on this host, not automatic ROM entry or a supported profile. | [OT-019O negative/recovery evidence](../tests/hardware/OT-019O-2026-08-13.md) |
+| Low-level ROM/flash query | OT-119 completed one bounded privacy-safe no-stub read-only observation for the owner-selected `OT-DEV-002`: ESP32-S3 revision v0.2, 40 MHz crystal, 16 MiB flash, and 2 MiB embedded PSRAM. The normal `ot_bench` heartbeat returned. Raw output, port, MAC/chip identifier, USB serial/hardware path, flash bytes, and raw eFuse contents were not retained or read. The older OT-019O failed attempt remains historical recovery evidence. | [OT-119 admission](../tests/hardware/OT-119-2026-08-22.md) and [OT-019O negative/recovery evidence](../tests/hardware/OT-019O-2026-08-13.md) |
 | GPS/GNSS bench evidence | Connected GNSS was detected by MeshCore, its setting read disabled, explicit bench enablement read back enabled, and a redacted self-telemetry query contained a GPS field | Same privacy-safe method as `OT-DEV-001`, 2026-08-12. This proves firmware detection/activation and a telemetry path, not current fix, satellites, accuracy, loss behavior, exact physical module, or wiring |
 
 Device-specific identity/public-key values returned by MeshCLI were deliberately excluded from this inventory.
 
 ### Still unresolved for OT-DEV-002
 
-- Independent ROM-level MCU, PSRAM, flash, crystal, and security-fuse confirmation
-- Exact received minor revision, high-/low-power RF variant, and installed RF
-  front end/full supported band
+- Exact installed RF front end and full electrically verified operating band; the
+  admitted `HTIT-WB32LAF` / `V4.2` documented-high-band profile and
+  family-level SX1262 statement do not establish the electrical path
 - Installed antenna type/connector, physical GNSS source, battery/charger details, sensors, and pin assignments
 - Regulatory constraints applicable to the selected preset and intended deployment
 

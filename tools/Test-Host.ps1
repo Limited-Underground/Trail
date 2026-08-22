@@ -2028,6 +2028,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OTMAPIA0 Monocypher API/config admission tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_second_node_target_profile_admission_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTRTPA1 second-node exact-profile admission tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_radio_profile_contract_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OTRPF0 direct-radio profile evidence-contract tests failed with exit code {0}.' -f $LASTEXITCODE)

@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-22
 
+### OT-119 second measurement-node exact-profile admission
+
+- Accepted privacy-safe `OTRTPR0/v0`, exact second-node `OTRTPE1/v1`, and append-only `OTRTPA1/v1`. Receipt raw/canonical SHA-256 is `16e69159aed7b9e7d9304cd7cc16d25b7205fc9283ee7751f26b3b9580df5f7c` / `e89f3e027f695d88e764af01b1e032b360a23455a7122121833720d2fbf7adf7`; evidence is `0e8a9862091f7a1c58630bb64fc9250bdb24bddfdf8c09856629dd7dc73255e1` / `7f470316d446cdc3be5a878580418c08bff628e703dd8f419aa5e83f9001d223`; admission is `afd3d8b17f80c49560f9fad71e93703ef6d142ee538146fc5829b2a0799d0e36` / `0eff2d934891f36999bdafb2a14ffc755b258c19bccb96a5a8d96db06105a443`.
+- Independently bound owner-selected `OT-DEV-002` to ESP32-S3 revision v0.2, 40 MHz crystal, 16 MiB flash, 2 MiB embedded PSRAM, and same-unit `HTIT-WB32LAF` / `V4.2` markings. The normal `ot_bench` heartbeat returned after transient ROM entry. Raw probe/photo data, port, identifiers, paths, and EXIF/location are not retained; no flash or raw eFuse content was read.
+- The exact-profile registry now contains two independently evidenced units. Phase 0 is complete, counts remain `3/3/0`, and measurement remains false with exactly two blockers: absent retained candidate import/build admissions and absent fresh benchmark execution authority. Ten focused adversarial groups pass.
+- No firmware/persistent-state change, flash, radio, key/entropy operation, candidate import/build, benchmark, suite/wire selection, secure-LoRa, Packet V1, support, compatibility, regulatory/range, or score claim is added. Android remains 60%; V1 exact 43.75%/displayed 44%; baseline exact 31.75%/displayed 32%. See [Decision 0057](decisions/0057-second-measurement-node-exact-profile-admission.md) and [OT-119 evidence](../tests/hardware/OT-119-2026-08-22.md).
+
 ### OT-118 partial Monocypher API/configuration admission
 
 - Accepted exact host-only `OTCAPIOE0/v0`, `OTCAPI0/v2`, and append-only `OTMAPIA0/v0` evidence for Monocypher 4.0.3 under the frozen OT-108, OT-116, and OT-117 boundaries.

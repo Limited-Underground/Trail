@@ -1,0 +1,94 @@
+{
+  "schema": "OTRTPA1",
+  "version": 1,
+  "artifact_kind": "append_only_second_node_exact_profile_acceptance_delta",
+  "admission_id": "OT-119-OT005-SECOND-NODE-EXACT-PROFILE-ADMISSION-DELTA-V1",
+  "accepted_date": "2026-08-22",
+  "status": "second_node_exact_profile_admitted_phase_zero_complete_measurement_blocked",
+  "public_result": "SECOND-NODE-EXACT-PROFILE-ADMITTED-FOR-OT-DEV-002; PHASE-0-COMPLETE; COUNTS-3-3-0; MEASUREMENT-BLOCKED-ON-IMPORT-BUILD-AND-FRESH-EXECUTION-AUTHORITY; NO-SUPPORT-COMPATIBILITY-REGULATORY-BENCHMARK-SELECTION-OR-SCORE",
+  "parents": {
+    "otrtpa0_v0_raw_sha256": "98cce120cadc1bddf5851f1480ae181488e17277ba0a2c8c8c38a70a062be105",
+    "otrtpa0_v0_canonical_sha256": "dc7247ae9b277418c104690193fa7bfce2d9297038d2c24c2f5daedf4dc3331e",
+    "otcbx1_v1_raw_sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+    "otcbx1_v1_canonical_sha256": "7844d7be1824784a0ff58ba58df25bda85c6059c445f217a4d520215bfff50a8",
+    "otmapia0_v0_raw_sha256": "9fbecf19b206b31fae948b6bc7e7aa4e206ba26aa59b94fb7f07d4e1d300810a",
+    "otmapia0_v0_canonical_sha256": "df412285515fe29525b0bfd7cba45fd7ccd9a3d601be284242886e8adb19fec9",
+    "otrtpr0_v0_raw_sha256": "16e69159aed7b9e7d9304cd7cc16d25b7205fc9283ee7751f26b3b9580df5f7c",
+    "otrtpr0_v0_canonical_sha256": "e89f3e027f695d88e764af01b1e032b360a23455a7122121833720d2fbf7adf7",
+    "otrtpe1_v1_raw_sha256": "0e8a9862091f7a1c58630bb64fc9250bdb24bddfdf8c09856629dd7dc73255e1",
+    "otrtpe1_v1_canonical_sha256": "7f470316d446cdc3be5a878580418c08bff628e703dd8f419aa5e83f9001d223"
+  },
+  "accepted_target_profiles": [
+    {
+      "target_id": "heltec-v4-bench-candidate",
+      "evidence_unit": "OT-DEV-001",
+      "profile_evidence_raw_sha256": "517809caf31250d126cc3619f9d05386a92811a594dca0087d9acbf1b671147e",
+      "profile_admission_canonical_sha256": "dc7247ae9b277418c104690193fa7bfce2d9297038d2c24c2f5daedf4dc3331e",
+      "supported": false
+    },
+    {
+      "target_id": "heltec-v4-bench-candidate",
+      "evidence_unit": "OT-DEV-002",
+      "profile_evidence_canonical_sha256": "7f470316d446cdc3be5a878580418c08bff628e703dd8f419aa5e83f9001d223",
+      "supported": false
+    }
+  ],
+  "acceptance_counts": {
+    "exact_profile_units": 2,
+    "source": 3,
+    "api_config": 3,
+    "candidate_import": 0
+  },
+  "phase_zero": {
+    "name": "api_configuration_admission",
+    "prior_complete": false,
+    "prior_remaining": [
+      "independent_second_node_exact_profile_admission"
+    ],
+    "complete": true,
+    "remaining": [],
+    "completed": [
+      "espressif_libsodium_complete_api_config_admission",
+      "esp_idf_mbedtls_psa_partial_api_config_admission",
+      "monocypher_partial_api_config_admission",
+      "independent_second_node_exact_profile_admission"
+    ]
+  },
+  "measurement_blockers": [
+    "candidate_import_and_build_admissions_absent",
+    "fresh_benchmark_execution_authority_absent"
+  ],
+  "authority": {
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "flash_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "candidate_selection_authorized": false,
+    "suite_selection_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "second_node_exact_profile_accepted": true,
+    "phase_zero_complete": true,
+    "bounded_read_only_device_access_performed": true,
+    "physical_evidence_added": true,
+    "measurement_ready": false,
+    "candidate_imported": false,
+    "candidate_benchmark_built": false,
+    "candidate_benchmark_executed": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "hardware_support_proven": false,
+    "compatibility_proven": false,
+    "regulatory_compliance_proven": false,
+    "firmware_changed": false,
+    "flashed": false,
+    "radio_used": false,
+    "key_or_entropy_operation": false,
+    "score_credit_added": false
+  }
+}

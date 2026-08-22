@@ -147,9 +147,10 @@ Authorization is frozen and host-tested under OT-090, the algorithm-neutral
 secure-LoRa lifecycle/admission semantics are frozen and host-tested under
 OT-091, and OT-093 freezes the deterministic pre-selection build baseline
 without benchmark execution or score. OT-116 freezes the phased successor plan; OT-117 and OT-118 populate all three
-candidate API/configuration registries. Next admit the second node's exact
-profile and retained import/build evidence, run the
-exact benchmark under fresh separate authority, and
+candidate API/configuration registries, and OT-119 independently admits the
+second node's exact profile to complete phase 0. Next admit retained import/build
+evidence for every included executable candidate, run the exact benchmark under
+fresh separate authority, and
 accept the crypto suite/library, handshake/KDF, and packet-v1 wire selection.
 Then implement and physically accept the frozen pairing/replacement and selected
 secure-LoRa paths under separate authority; complete the Android message flow;
