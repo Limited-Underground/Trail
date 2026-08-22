@@ -2032,6 +2032,14 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw ('OTRTPA1 second-node exact-profile admission tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_candidate_import_build_admission_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTCIBC1 candidate import/build admission tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot120_candidate_build_harness_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-120 candidate build-harness tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
 
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_radio_profile_contract_tests.py')
 if ($LASTEXITCODE -ne 0) {

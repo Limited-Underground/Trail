@@ -68,3 +68,12 @@ tests/benchmarks/crypto/OT-119-OT005-SECOND-NODE-EXACT-PROFILE-EVIDENCE-V1.json 
 tests/benchmarks/crypto/OT-119-OT005-SECOND-NODE-EXACT-PROFILE-ADMISSION-DELTA-V1.json text eol=lf
 tools/crypto_second_node_target_profile_admission.py text eol=lf
 tests/host/crypto_second_node_target_profile_admission_tests.py text eol=lf
+tests/benchmarks/crypto/OT-120-OT005-CANDIDATE-IMPORT-BUILD-CONTRACT-V1.json text eol=lf
+tests/benchmarks/crypto/OT-120-OT005-*-IMPORT-BUILD-GRAPH-V1.jsonl text eol=lf
+tests/benchmarks/crypto/OT-120-OT005-*-IMPORT-BUILD-EVIDENCE-V1.json text eol=lf
+tests/benchmarks/crypto/OT-120-OT005-CANDIDATE-IMPORT-BUILD-ADMISSION-DELTA-V1.json text eol=lf
+tools/Build-Ot120CandidateImportEvidence.ps1 text eol=lf
+tools/crypto_candidate_import_build_admission.py text eol=lf
+tests/host/crypto_candidate_import_build_admission_tests.py text eol=lf
+tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/** text eol=lf
+tests/host/ot120_candidate_build_harness_tests.py text eol=lf
