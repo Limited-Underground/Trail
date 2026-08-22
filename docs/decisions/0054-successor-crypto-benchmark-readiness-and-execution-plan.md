@@ -32,12 +32,13 @@ Accept the append-only `OTCBR1/v0` successor review and the immutable
 - benchmark measurement remains blocked pending candidate-specific preflight
   admissions and separate execution authority.
 
-`OTCBX1/v1` freezes a fail-closed procedure in three phases:
+`OTCBX1/v1` freezes a fail-closed procedure in four phases:
 
 1. admit candidate-specific API/configuration evidence;
 2. admit retained candidate import/build evidence;
 3. only after those gates and fresh separate authority, perform exact-target
-   cold/warm measurement and radio-cost collection.
+   cold/warm measurement and radio-cost collection;
+4. independently admit the exact bound result before any selection review.
 
 The candidate order remains Espressif libsodium primary, pinned ESP-IDF
 mbedTLS/PSA comparison, then Monocypher comparison. A passing primary result
