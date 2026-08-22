@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-22
 
+### OT-118 partial Monocypher API/configuration admission
+
+- Accepted exact host-only `OTCAPIOE0/v0`, `OTCAPI0/v2`, and append-only `OTMAPIA0/v0` evidence for Monocypher 4.0.3 under the frozen OT-108, OT-116, and OT-117 boundaries.
+- Two fresh configuration-only runs reproduce the exact 106,913-byte OT-107 Monocypher sdkconfig. Ed25519 sign/verify, X25519, and ChaCha20-Poly1305 encrypt/decrypt are admitted; SHA-256, HKDF-SHA256, and Noise XK remain unavailable. The benchmark-only API adapter passes 4/4 strict host groups, and the admission suite passes 8/8 adversarial groups.
+- Counts advance to `3/3/0`; all candidate API/configuration registries are populated. Monocypher and mbedTLS/PSA remain partial, comparison-only, and structurally nonselectable; libsodium remains structurally eligible but unselected and unauthorized. Phase 0 remains incomplete only on the second node's exact profile, and all retained import/build admissions plus fresh benchmark authority remain absent.
+- No retained candidate import/build, benchmark, device, flash, radio, production key/entropy operation, suite/wire selection, secure-LoRa implementation, physical evidence, or score credit is added. See [Decision 0056](decisions/0056-host-only-monocypher-api-configuration-admission.md) and [OT-118 evidence](../tests/hardware/OT-118-2026-08-22.md).
+
 ### OT-117 complete libsodium API/configuration admission
 
 - Accepted exact host-only `OTCAPIOE0/v0`, `OTCAPI0/v2`, and append-only `OTLAPIA0/v0` evidence for Espressif libsodium 1.0.22 under the frozen OT-108 and OT-116 boundaries.

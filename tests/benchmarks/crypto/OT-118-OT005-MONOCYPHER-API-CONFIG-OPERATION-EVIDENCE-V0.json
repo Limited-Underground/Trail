@@ -1,0 +1,149 @@
+{
+  "schema": "OTCAPIOE0",
+  "version": 0,
+  "artifact_kind": "monocypher_api_config_operation_evidence",
+  "evidence_id": "OT-118-OT005-MONOCYPHER-API-CONFIG-OPERATION-EVIDENCE-V0",
+  "recorded_date": "2026-08-22",
+  "status": "comparison_partial_host_only",
+  "public_result": "MONOCYPHER-FIVE-OF-EIGHT-API-CONFIG-EVIDENCE-GENERATED-HOST-ONLY; COMPARISON-PARTIAL-STRUCTURALLY-NONSELECTABLE; SHA256-HKDF-SHA256-NOISE-XK-UNAVAILABLE; NO-IMPORT-BUILD-BENCHMARK-DEVICE-RADIO-SELECTION-OR-SCORE",
+  "parents": {
+    "otcsle0_v1_raw_sha256": "fe037820304103f7ca2253665076e4dc41740598ca9742ba8d45f6ec64ebc06f",
+    "otmsla0_v0_raw_sha256": "6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52",
+    "otcbcge0_v0_raw_sha256": "0c1b8cb574a210c6123b82b565e6ea8e12cee59bacd6ab4b94b293ddf9d2dfbc",
+    "otcbcga0_v0_raw_sha256": "3d71dfb02b6fd25e0881ac63cc085174c2cdd7e5ac2cd1e12c320ec34928f5a2",
+    "otcac0_v1_raw_sha256": "575e8747cdba643f2abb6f3252a62adbf3f12a9faaa46ca1d4bf4ce8bd9d23f3",
+    "otcac0_v1_canonical_sha256": "ccdb11e19031a4a01c717e30c172332c5e71ca79ee2b36b721277e55ca9a6c22",
+    "otcapia0_v0_raw_sha256": "0311b8b264d264d4a005ac9be8531c06175521362ed54ac9f40bdef1fd7a5df0",
+    "otcapia0_v0_canonical_sha256": "fed7b009a97a60678b2dfbba23d933b974aa0fec46d0b460ac7eb221e91931dd",
+    "otlapia0_v0_raw_sha256": "527c5e713a6d96d38b7dfbfb9d3e0ceb891f4652f8428e2ca65e0b8ea8f316d2",
+    "otlapia0_v0_canonical_sha256": "6eb12a9cf44bdc37e6ac87081b1d256b94f5ee013459c3549606c56b5faf0527"
+  },
+  "candidate": {
+    "candidate_id": "monocypher",
+    "role": "comparison",
+    "source_evidence_sha256": "fe037820304103f7ca2253665076e4dc41740598ca9742ba8d45f6ec64ebc06f",
+    "source_admission_raw_sha256": "6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52",
+    "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+  },
+  "configuration_reproduction": {
+    "run_count": 2,
+    "runs_identical": true,
+    "generated_sdkconfig_bytes": 106913,
+    "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+    "required_effective_symbols": [
+      "CONFIG_APP_COMPILE_TIME_DATE=n",
+      "CONFIG_APP_REPRODUCIBLE_BUILD=y",
+      "CONFIG_COMPILER_OPTIMIZATION_SIZE=y",
+      "CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160=y",
+      "CONFIG_FREERTOS_HZ=100",
+      "CONFIG_IDF_TARGET=\"esp32s3\""
+    ],
+    "forbidden_effective_symbols": ["CONFIG_APP_COMPILE_TIME_DATE=y"],
+    "source_requirements": [
+      {"path": "tests/benchmarks/crypto/monocypher/4.0.3/source/src/monocypher.c", "raw_sha256": "f1f838cdd483bdebe0df0ff5c5ed60535e496f769c6a2f933ac4c0b114207123"},
+      {"path": "tests/benchmarks/crypto/monocypher/4.0.3/source/src/optional/monocypher-ed25519.c", "raw_sha256": "ce0d2f8e32ca8f66398ba5b3456cc74327c3eff14e7b950ce7d57be9025cc453"}
+    ],
+    "runs": [
+      {
+        "run": "A", "isolated_root_initially_absent": true,
+        "configuration_only": true, "component_manager_disabled": true,
+        "exit_code": 0, "generated_sdkconfig_bytes": 106913,
+        "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+        "required_symbols_present": true, "forbidden_symbols_absent": true,
+        "candidate_source_copied": false, "candidate_compiled": false,
+        "benchmark_executed": false, "device_accessed": false, "radio_used": false
+      },
+      {
+        "run": "B", "isolated_root_initially_absent": true,
+        "configuration_only": true, "component_manager_disabled": true,
+        "exit_code": 0, "generated_sdkconfig_bytes": 106913,
+        "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+        "required_symbols_present": true, "forbidden_symbols_absent": true,
+        "candidate_source_copied": false, "candidate_compiled": false,
+        "benchmark_executed": false, "device_accessed": false, "radio_used": false
+      }
+    ]
+  },
+  "adapter": {
+    "schema": "OTMAPI0",
+    "version": 0,
+    "header_path": "tests/benchmarks/crypto/adapters/monocypher_api_v0/monocypher_benchmark_api.h",
+    "header_raw_sha256": "110f5b54cf37538e30450d73a3402807eb59143f2ceb528b12280b7725e52072",
+    "source_path": "tests/benchmarks/crypto/adapters/monocypher_api_v0/monocypher_benchmark_api.c",
+    "source_raw_sha256": "e12b800841c6c8347cdf08d05768f2cfbc83ee271fdae7616f8a3b16e4263e59",
+    "direct_api_symbols": [
+      "crypto_ed25519_sign", "crypto_ed25519_check", "crypto_x25519",
+      "crypto_aead_init_ietf", "crypto_aead_write", "crypto_aead_read", "crypto_wipe"
+    ],
+    "benchmark_only": true
+  },
+  "operation_records": [
+    {
+      "operation_id": "ed25519_sign", "state": "eligible",
+      "source_anchor_ids": ["monocypher_ed25519_header", "monocypher_ed25519_source"],
+      "api_symbols": ["crypto_ed25519_sign"], "required_effective_symbols": [],
+      "source_state": "concrete_optional_standard_ed25519_sha512_sign_api_present",
+      "final_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    },
+    {
+      "operation_id": "ed25519_verify", "state": "eligible",
+      "source_anchor_ids": ["monocypher_ed25519_header", "monocypher_ed25519_source"],
+      "api_symbols": ["crypto_ed25519_check"], "required_effective_symbols": [],
+      "source_state": "concrete_optional_standard_ed25519_sha512_verify_api_present",
+      "final_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    },
+    {
+      "operation_id": "x25519", "state": "eligible",
+      "source_anchor_ids": ["monocypher_core_header", "monocypher_core_source"],
+      "api_symbols": ["crypto_x25519"], "required_effective_symbols": [],
+      "source_state": "concrete_monocypher_x25519_api_and_implementation_present",
+      "final_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    },
+    {
+      "operation_id": "sha256", "state": "unavailable",
+      "source_anchor_ids": [], "api_symbols": [], "required_effective_symbols": [],
+      "source_state": "no_sha256_api_or_implementation_sha512_and_blake2b_are_not_substitutes",
+      "final_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    },
+    {
+      "operation_id": "hkdf_sha256", "state": "unavailable",
+      "source_anchor_ids": [], "api_symbols": [], "required_effective_symbols": [],
+      "source_state": "no_hkdf_sha256_api_or_implementation_hkdf_sha512_is_not_substitute",
+      "final_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    },
+    {
+      "operation_id": "chacha20poly1305_encrypt", "state": "eligible",
+      "source_anchor_ids": ["monocypher_core_header", "monocypher_core_source", "ot118_monocypher_api_adapter_header", "ot118_monocypher_api_adapter_source"],
+      "api_symbols": ["crypto_aead_init_ietf", "crypto_aead_write"],
+      "required_effective_symbols": [],
+      "source_state": "concrete_benchmark_wrapper_uses_exact_ietf_chacha20poly1305_encrypt_path",
+      "final_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    },
+    {
+      "operation_id": "chacha20poly1305_decrypt", "state": "eligible",
+      "source_anchor_ids": ["monocypher_core_header", "monocypher_core_source", "ot118_monocypher_api_adapter_header", "ot118_monocypher_api_adapter_source"],
+      "api_symbols": ["crypto_aead_init_ietf", "crypto_aead_read"],
+      "required_effective_symbols": [],
+      "source_state": "concrete_benchmark_wrapper_uses_exact_ietf_chacha20poly1305_decrypt_path",
+      "final_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    },
+    {
+      "operation_id": "noise_xk_handshake", "state": "unavailable",
+      "source_anchor_ids": [], "api_symbols": [], "required_effective_symbols": [],
+      "source_state": "no_noise_xk_composition_and_required_sha256_hkdf_sha256_are_unavailable",
+      "final_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    }
+  ],
+  "authority": {
+    "candidate_import_authorized": false, "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false, "device_access_authorized": false,
+    "radio_transmit_authorized": false, "key_or_entropy_operation_authorized": false,
+    "candidate_selection_authorized": false, "score_credit_added": false
+  },
+  "claims": {
+    "api_config_evidence_generated": true, "api_config_evidence_accepted": false,
+    "candidate_imported": false, "candidate_benchmark_executed": false,
+    "candidate_selected": false, "hardware_or_device_accessed": false,
+    "physical_evidence_added": false, "score_credit_added": false
+  }
+}

@@ -96,7 +96,9 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'firmware\targets\portable_client\include'),
     '-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main'),
     '-I', (Join-Path $projectRoot 'tests\host\fixtures\libsodium_noise_xk'),
-    '-I', (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\libsodium_noise_xk_v0')
+    '-I', (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\libsodium_noise_xk_v0'),
+    '-I', (Join-Path $projectRoot 'tests\host\fixtures\monocypher_api'),
+    '-I', (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\monocypher_api_v0')
 )
 
 $builds = @(
@@ -106,6 +108,14 @@ $builds = @(
         Sources = @(
             (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\libsodium_noise_xk_v0\noise_xk_libsodium.c'),
             (Join-Path $projectRoot 'tests\host\libsodium_noise_xk_composition_tests.cpp')
+        )
+    },
+    @{
+        Name = 'benchmark-only Monocypher API adapter'
+        Output = Join-Path $buildDirectory 'monocypher_benchmark_api_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\monocypher_api_v0\monocypher_benchmark_api.c'),
+            (Join-Path $projectRoot 'tests\host\monocypher_benchmark_api_tests.cpp')
         )
     },
     @{
@@ -2011,6 +2021,11 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_libsodium_api_config_admission_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OTLAPIA0 libsodium API/config admission tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_monocypher_api_config_admission_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTMAPIA0 Monocypher API/config admission tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_radio_profile_contract_tests.py')

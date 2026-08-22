@@ -52,3 +52,14 @@ tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.h text
 tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.c text eol=lf
 tests/host/fixtures/libsodium_noise_xk/sodium.h text eol=lf
 tests/host/libsodium_noise_xk_composition_tests.cpp text eol=lf
+tests/benchmarks/crypto/OT-118-OT005-MONOCYPHER-API-CONFIG-OPERATION-EVIDENCE-V0.json text eol=lf
+tests/benchmarks/crypto/OT-118-OT005-MONOCYPHER-API-CONFIG-EVIDENCE-V2.json text eol=lf
+tests/benchmarks/crypto/OT-118-OT005-MONOCYPHER-API-CONFIG-ADMISSION-DELTA-V0.json text eol=lf
+tools/crypto_monocypher_api_config_evidence.py text eol=lf
+tools/crypto_monocypher_api_config_admission.py text eol=lf
+tests/host/crypto_monocypher_api_config_admission_tests.py text eol=lf
+tests/benchmarks/crypto/adapters/monocypher_api_v0/monocypher_benchmark_api.h text eol=lf
+tests/benchmarks/crypto/adapters/monocypher_api_v0/monocypher_benchmark_api.c text eol=lf
+tests/host/fixtures/monocypher_api/monocypher.h text eol=lf
+tests/host/fixtures/monocypher_api/monocypher-ed25519.h text eol=lf
+tests/host/monocypher_benchmark_api_tests.cpp text eol=lf

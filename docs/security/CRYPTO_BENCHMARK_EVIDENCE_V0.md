@@ -361,9 +361,11 @@ OT-094 closure requirements satisfied and freezes the exact phased procedure,
 but it imports, builds, benchmarks, or selects no candidate and creates no
 OT-005 result. OT-117 subsequently admits complete eight-of-eight host-only libsodium API/
 configuration evidence, advancing accepted source/API/import counts to
-`3/2/0`. Measurement remains blocked until Monocypher API/configuration,
-second-node exact-profile admission, retained import/build admissions, and
-fresh execution authority pass. Entropy,
+`3/2/0`. OT-118 then admits strict five-of-eight Monocypher comparison
+evidence, populating all three API/configuration registries and advancing
+current counts to `3/3/0`. Measurement remains blocked until second-node exact-
+profile admission, retained import/build admissions, and fresh execution
+authority pass. Entropy,
 interoperability, candidate resource deltas, exact benchmark radio cost,
 physical join/revoke/reset, protected storage, and power-interruption evidence
 remain open.
