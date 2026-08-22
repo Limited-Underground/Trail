@@ -1022,9 +1022,11 @@ and existing ESP-IDF/NimBLE cryptographic objects are not a selection. The
 historical `OTCB0/v0` plan remains `draft_blocked`. OT-116 accepts an append-only
 `OTCBR1/v0` successor review and freezes an immutable `OTCBX1/v1` phased plan:
 all six old closure requirements have accepted evidence, but measurement remains
-blocked at source/API/import counts `3/1/0`. Missing candidate-specific API/
-configuration and retained import/build admissions plus fresh execution
-authority precede exact-target measurements. Explicit suite/wire acceptance
+blocked at source/API/import counts `3/1/0`. OT-117 subsequently admits
+complete eight-of-eight host-only libsodium API/configuration evidence and
+advances current counts to `3/2/0`, but Monocypher API/configuration,
+second-node exact-profile admission, retained import/build admissions, and
+fresh execution authority still precede exact-target measurements. Explicit suite/wire acceptance
 remains a later gate.
 
 Before a sender-specific traffic key can protect packet v1, its outbound nonce

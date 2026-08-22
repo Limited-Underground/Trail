@@ -1,0 +1,206 @@
+{
+  "schema": "OTCAPIOE0",
+  "version": 0,
+  "artifact_kind": "libsodium_api_config_operation_evidence",
+  "evidence_id": "OT-117-OT005-LIBSODIUM-API-CONFIG-OPERATION-EVIDENCE-V0",
+  "recorded_date": "2026-08-22",
+  "status": "complete_primary_host_only",
+  "public_result": "LIBSODIUM-EIGHT-OF-EIGHT-API-CONFIG-EVIDENCE-GENERATED-HOST-ONLY; PRIMARY-COMPLETE-STRUCTURALLY-SELECTION-ELIGIBLE; NO-IMPORT-BUILD-BENCHMARK-DEVICE-RADIO-SELECTION-OR-SCORE",
+  "parents": {
+    "otlmi0_v0_raw_sha256": "8285fa7308bfc83a5d55503a7a3e1fa4c21895a42b095197b3ec75f634411ec9",
+    "otcsla0_v0_raw_sha256": "df595f2d07ba1b5d0a9bdf70237b1f0ea5a01fe8cb5a63ffb3575fe484faede0",
+    "otcbcge0_v0_raw_sha256": "0c1b8cb574a210c6123b82b565e6ea8e12cee59bacd6ab4b94b293ddf9d2dfbc",
+    "otcbcga0_v0_raw_sha256": "3d71dfb02b6fd25e0881ac63cc085174c2cdd7e5ac2cd1e12c320ec34928f5a2",
+    "otcac0_v1_raw_sha256": "575e8747cdba643f2abb6f3252a62adbf3f12a9faaa46ca1d4bf4ce8bd9d23f3",
+    "otcac0_v1_canonical_sha256": "ccdb11e19031a4a01c717e30c172332c5e71ca79ee2b36b721277e55ca9a6c22",
+    "otcapia0_v0_raw_sha256": "0311b8b264d264d4a005ac9be8531c06175521362ed54ac9f40bdef1fd7a5df0",
+    "otcapia0_v0_canonical_sha256": "fed7b009a97a60678b2dfbba23d933b974aa0fec46d0b460ac7eb221e91931dd"
+  },
+  "candidate": {
+    "candidate_id": "espressif_libsodium",
+    "role": "primary",
+    "source_evidence_sha256": "8285fa7308bfc83a5d55503a7a3e1fa4c21895a42b095197b3ec75f634411ec9",
+    "source_admission_raw_sha256": "df595f2d07ba1b5d0a9bdf70237b1f0ea5a01fe8cb5a63ffb3575fe484faede0",
+    "generated_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+  },
+  "configuration_reproduction": {
+    "run_count": 2,
+    "runs_identical": true,
+    "generated_sdkconfig_bytes": 107001,
+    "generated_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f",
+    "required_effective_symbols": [
+      "CONFIG_APP_COMPILE_TIME_DATE=n",
+      "CONFIG_APP_REPRODUCIBLE_BUILD=y",
+      "CONFIG_COMPILER_OPTIMIZATION_SIZE=y",
+      "CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160=y",
+      "CONFIG_FREERTOS_HZ=100",
+      "CONFIG_IDF_TARGET=\"esp32s3\"",
+      "CONFIG_LIBSODIUM_USE_MBEDTLS_SHA=n"
+    ],
+    "forbidden_effective_symbols": [
+      "CONFIG_APP_COMPILE_TIME_DATE=y",
+      "CONFIG_LIBSODIUM_USE_MBEDTLS_SHA=y"
+    ],
+    "runs": [
+      {
+        "run": "A",
+        "isolated_root_initially_absent": true,
+        "configuration_only": true,
+        "component_manager_disabled": true,
+        "exit_code": 0,
+        "generated_sdkconfig_bytes": 107001,
+        "generated_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f",
+        "required_symbols_present": true,
+        "forbidden_symbols_absent": true,
+        "candidate_source_copied": false,
+        "candidate_compiled": false,
+        "benchmark_executed": false,
+        "device_accessed": false,
+        "radio_used": false
+      },
+      {
+        "run": "B",
+        "isolated_root_initially_absent": true,
+        "configuration_only": true,
+        "component_manager_disabled": true,
+        "exit_code": 0,
+        "generated_sdkconfig_bytes": 107001,
+        "generated_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f",
+        "required_symbols_present": true,
+        "forbidden_symbols_absent": true,
+        "candidate_source_copied": false,
+        "candidate_compiled": false,
+        "benchmark_executed": false,
+        "device_accessed": false,
+        "radio_used": false
+      }
+    ]
+  },
+  "adapter": {
+    "schema": "OTNXK0",
+    "version": 0,
+    "suite": "Noise_XK_25519_ChaChaPoly_SHA256",
+    "header_path": "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.h",
+    "header_raw_sha256": "b7c649434cdffe648e467bb117849ae0296a73fa041d614d3d4ba32578e40c45",
+    "source_path": "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.c",
+    "source_raw_sha256": "8534fe1a6a4b68cd37e491ebd0f564dd38fd3935fb21d8f2d45aa8333ae442b8",
+    "direct_api_symbols": [
+      "crypto_hash_sha256",
+      "crypto_hash_sha256_init",
+      "crypto_hash_sha256_update",
+      "crypto_hash_sha256_final",
+      "crypto_kdf_hkdf_sha256_extract",
+      "crypto_kdf_hkdf_sha256_expand",
+      "crypto_scalarmult_curve25519",
+      "crypto_aead_chacha20poly1305_ietf_encrypt",
+      "crypto_aead_chacha20poly1305_ietf_decrypt",
+      "sodium_memzero"
+    ],
+    "benchmark_only": true
+  },
+  "operation_records": [
+    {
+      "operation_id": "ed25519_sign",
+      "state": "eligible",
+      "source_anchor_ids": ["libsodium_crypto_sign_header", "libsodium_crypto_sign_implementation"],
+      "api_symbols": ["crypto_sign_detached"],
+      "required_effective_symbols": [],
+      "source_state": "concrete_libsodium_api_and_ed25519_implementation_present",
+      "final_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+    },
+    {
+      "operation_id": "ed25519_verify",
+      "state": "eligible",
+      "source_anchor_ids": ["libsodium_crypto_sign_header", "libsodium_crypto_sign_implementation"],
+      "api_symbols": ["crypto_sign_verify_detached"],
+      "required_effective_symbols": [],
+      "source_state": "concrete_libsodium_api_and_ed25519_implementation_present",
+      "final_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+    },
+    {
+      "operation_id": "x25519",
+      "state": "eligible",
+      "source_anchor_ids": ["libsodium_curve25519_header", "libsodium_curve25519_implementation"],
+      "api_symbols": ["crypto_scalarmult_curve25519"],
+      "required_effective_symbols": [],
+      "source_state": "concrete_libsodium_api_and_curve25519_implementation_present",
+      "final_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+    },
+    {
+      "operation_id": "sha256",
+      "state": "eligible",
+      "source_anchor_ids": ["libsodium_sha256_header", "libsodium_sha256_implementation"],
+      "api_symbols": ["crypto_hash_sha256"],
+      "required_effective_symbols": ["CONFIG_LIBSODIUM_USE_MBEDTLS_SHA=n"],
+      "source_state": "concrete_libsodium_api_and_native_sha256_implementation_present",
+      "final_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+    },
+    {
+      "operation_id": "hkdf_sha256",
+      "state": "eligible",
+      "source_anchor_ids": ["libsodium_hkdf_sha256_header", "libsodium_hkdf_sha256_implementation"],
+      "api_symbols": ["crypto_kdf_hkdf_sha256_extract", "crypto_kdf_hkdf_sha256_expand"],
+      "required_effective_symbols": ["CONFIG_LIBSODIUM_USE_MBEDTLS_SHA=n"],
+      "source_state": "concrete_libsodium_api_and_native_hkdf_sha256_implementation_present",
+      "final_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+    },
+    {
+      "operation_id": "chacha20poly1305_encrypt",
+      "state": "eligible",
+      "source_anchor_ids": ["libsodium_chacha20poly1305_header", "libsodium_chacha20poly1305_implementation"],
+      "api_symbols": ["crypto_aead_chacha20poly1305_ietf_encrypt"],
+      "required_effective_symbols": [],
+      "source_state": "concrete_libsodium_ietf_chacha20poly1305_encrypt_present",
+      "final_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+    },
+    {
+      "operation_id": "chacha20poly1305_decrypt",
+      "state": "eligible",
+      "source_anchor_ids": ["libsodium_chacha20poly1305_header", "libsodium_chacha20poly1305_implementation"],
+      "api_symbols": ["crypto_aead_chacha20poly1305_ietf_decrypt"],
+      "required_effective_symbols": [],
+      "source_state": "concrete_libsodium_ietf_chacha20poly1305_decrypt_present",
+      "final_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+    },
+    {
+      "operation_id": "noise_xk_handshake",
+      "state": "eligible",
+      "source_anchor_ids": ["ot117_noise_xk_adapter_header", "ot117_noise_xk_adapter_source"],
+      "api_symbols": [
+        "crypto_hash_sha256",
+      "crypto_hash_sha256_init",
+        "crypto_hash_sha256_update",
+        "crypto_hash_sha256_final",
+        "crypto_kdf_hkdf_sha256_extract",
+        "crypto_kdf_hkdf_sha256_expand",
+        "crypto_scalarmult_curve25519",
+          "crypto_aead_chacha20poly1305_ietf_encrypt",
+        "crypto_aead_chacha20poly1305_ietf_decrypt",
+        "sodium_memzero"
+      ],
+      "required_effective_symbols": ["CONFIG_LIBSODIUM_USE_MBEDTLS_SHA=n"],
+      "source_state": "concrete_benchmark_only_noise_xk_25519_chachapoly_sha256_adapter_present",
+      "final_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+    }
+  ],
+  "authority": {
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "candidate_selection_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "api_config_evidence_generated": true,
+    "api_config_evidence_accepted": false,
+    "candidate_imported": false,
+    "candidate_benchmark_executed": false,
+    "candidate_selected": false,
+    "hardware_or_device_accessed": false,
+    "physical_evidence_added": false,
+    "score_credit_added": false
+  }
+}

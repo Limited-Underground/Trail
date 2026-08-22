@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-22
 
+### OT-117 complete libsodium API/configuration admission
+
+- Accepted exact host-only `OTCAPIOE0/v0`, `OTCAPI0/v2`, and append-only `OTLAPIA0/v0` evidence for Espressif libsodium 1.0.22 under the frozen OT-108 and OT-116 boundaries.
+- Two fresh configuration-only runs reproduce the candidate-specific OT-107 sdkconfig. All eight fixed operations are structurally eligible, including the separately hash-bound benchmark-only `OTNXK0/v0` Noise XK composition; its strict C11/C++20 fixture passes 4/4 groups, and the admission suite passes 10/10 adversarial groups.
+- Counts advance to `3/2/0`. Libsodium is structurally selection eligible but is not selected and execution remains unauthorized. Phase 0 remains incomplete pending Monocypher API/configuration and the second node's exact profile; all retained import/build admissions and fresh benchmark authority remain absent.
+- No retained candidate import/build, benchmark, device, flash, radio, production key/entropy operation, suite/wire selection, secure-LoRa implementation, physical evidence, or score credit is added. See [Decision 0055](decisions/0055-host-only-libsodium-api-configuration-admission.md) and [OT-117 evidence](../tests/hardware/OT-117-2026-08-22.md).
+
 ### OT-116 successor crypto readiness review and phased benchmark plan
 
 - Accepted append-only `OTCBR1/v0`: all six historical OT-094 requirements have exact accepted closure evidence, while benchmark measurement remains blocked rather than being inferred ready.

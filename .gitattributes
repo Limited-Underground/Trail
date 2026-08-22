@@ -42,3 +42,13 @@ tests/benchmarks/crypto/OT-116-OT005-SUCCESSOR-READINESS-DECISION-V1.json text e
 tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json text eol=lf
 tools/crypto_benchmark_execution_plan.py text eol=lf
 tests/host/crypto_benchmark_execution_plan_tests.py text eol=lf
+tests/benchmarks/crypto/OT-117-OT005-LIBSODIUM-API-CONFIG-OPERATION-EVIDENCE-V0.json text eol=lf
+tests/benchmarks/crypto/OT-117-OT005-LIBSODIUM-API-CONFIG-EVIDENCE-V2.json text eol=lf
+tests/benchmarks/crypto/OT-117-OT005-LIBSODIUM-API-CONFIG-ADMISSION-DELTA-V0.json text eol=lf
+tools/crypto_libsodium_api_config_evidence.py text eol=lf
+tools/crypto_libsodium_api_config_admission.py text eol=lf
+tests/host/crypto_libsodium_api_config_admission_tests.py text eol=lf
+tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.h text eol=lf
+tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.c text eol=lf
+tests/host/fixtures/libsodium_noise_xk/sodium.h text eol=lf
+tests/host/libsodium_noise_xk_composition_tests.cpp text eol=lf

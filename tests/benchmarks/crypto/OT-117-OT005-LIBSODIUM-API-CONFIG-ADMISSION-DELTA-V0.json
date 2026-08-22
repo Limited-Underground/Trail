@@ -1,0 +1,83 @@
+{
+  "schema": "OTLAPIA0",
+  "version": 0,
+  "artifact_kind": "append_only_libsodium_api_config_acceptance_delta",
+  "admission_id": "OT-117-OT005-LIBSODIUM-API-CONFIG-ADMISSION-DELTA-V0",
+  "accepted_date": "2026-08-22",
+  "status": "libsodium_complete_api_config_admitted_measurement_blocked",
+  "public_result": "LIBSODIUM-EIGHT-OF-EIGHT-API-CONFIG-PRIMARY-COMPLETE-ADMITTED-HOST-ONLY; COUNTS-3-2-0; PHASE-0-INCOMPLETE; MEASUREMENT-READINESS-BLOCKED; NO-EXECUTION-SELECTION-OR-SCORE",
+  "parents": {
+    "otcapia0_v0_raw_sha256": "0311b8b264d264d4a005ac9be8531c06175521362ed54ac9f40bdef1fd7a5df0",
+    "otcapia0_v0_canonical_sha256": "fed7b009a97a60678b2dfbba23d933b974aa0fec46d0b460ac7eb221e91931dd",
+    "otcbr1_v0_raw_sha256": "333f8d525160f45627a13913e5d1adabe8e5c8374290af32b9af1df96ef1bd7e",
+    "otcbr1_v0_canonical_sha256": "ad10935a52bbbcb1ed06f523ef5084a8d70b91aca355d7b497e9ad54c18f453e",
+    "otcbx1_v1_raw_sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+    "otcbx1_v1_canonical_sha256": "7844d7be1824784a0ff58ba58df25bda85c6059c445f217a4d520215bfff50a8",
+    "otcac0_v1_raw_sha256": "575e8747cdba643f2abb6f3252a62adbf3f12a9faaa46ca1d4bf4ce8bd9d23f3",
+    "otcac0_v1_canonical_sha256": "ccdb11e19031a4a01c717e30c172332c5e71ca79ee2b36b721277e55ca9a6c22",
+    "otcapioe0_v0_raw_sha256": "b1daf950473ea9e86ddff16d8f28efbc0972582902d5b262686cf73d0907bf58",
+    "otcapioe0_v0_canonical_sha256": "6419ac77392aa7b7f295cbda7719a16581a617e7564c2afec6c03aac7b2fea90",
+    "otcapi0_v2_raw_sha256": "34888d71da2c9042856ea48c7b1225f21c1345582c144239cab0096ff03e69b5",
+    "otcapi0_v2_canonical_sha256": "6e5e969c3b3f7bf29372e15e3cc75c693fb00f57f7f297c14cc77123dec4610d",
+    "otnxk0_v0_header_raw_sha256": "b7c649434cdffe648e467bb117849ae0296a73fa041d614d3d4ba32578e40c45",
+    "otnxk0_v0_source_raw_sha256": "8534fe1a6a4b68cd37e491ebd0f564dd38fd3935fb21d8f2d45aa8333ae442b8"
+  },
+  "accepted_api_config_evidence_sha256": {
+    "espressif_libsodium": ["6e5e969c3b3f7bf29372e15e3cc75c693fb00f57f7f297c14cc77123dec4610d"],
+    "esp_idf_mbedtls_psa": ["22975ac7fbd3c9faab1ae0c9fa952a58dc4a7a893de3cc74604182b3492fe1f8"],
+    "monocypher": []
+  },
+  "acceptance_counts": {
+    "source": 3,
+    "api_config": 2,
+    "candidate_import": 0
+  },
+  "admitted_candidate": {
+    "candidate_id": "espressif_libsodium",
+    "role": "primary",
+    "coverage_state": "complete_selectable",
+    "eligible_operation_count": 8,
+    "api_config_evidence_sha256": "6e5e969c3b3f7bf29372e15e3cc75c693fb00f57f7f297c14cc77123dec4610d",
+    "selection_eligible": true,
+    "selection_authorized": false
+  },
+  "phase_zero": {
+    "name": "api_configuration_admission",
+    "complete": false,
+    "remaining": [
+      "independent_second_node_exact_profile_admission",
+      "independent_monocypher_api_configuration_admission",
+      "preserve_mbedtls_psa_five_of_eight_partial_nonselectable_state"
+    ]
+  },
+  "measurement_blockers": [
+    "phase_zero_incomplete",
+    "candidate_import_and_build_admissions_absent",
+    "fresh_benchmark_execution_authority_absent"
+  ],
+  "authority": {
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "flash_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "candidate_selection_authorized": false,
+    "suite_selection_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "complete_api_config_eligibility_proven": true,
+    "api_config_evidence_accepted": true,
+    "candidate_imported": false,
+    "candidate_benchmark_built": false,
+    "candidate_benchmark_executed": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "hardware_or_device_accessed": false,
+    "physical_evidence_added": false,
+    "score_credit_added": false
+  }
+}

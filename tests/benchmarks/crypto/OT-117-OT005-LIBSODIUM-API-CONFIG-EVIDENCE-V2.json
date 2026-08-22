@@ -1,0 +1,29 @@
+{
+  "schema": "OTCAPI0",
+  "version": 2,
+  "artifact_kind": "candidate_api_config_evidence",
+  "evidence_id": "OT-117-OT005-LIBSODIUM-API-CONFIG-EVIDENCE-V2",
+  "recorded_date": "2026-08-22",
+  "contract_sha256": "ccdb11e19031a4a01c717e30c172332c5e71ca79ee2b36b721277e55ca9a6c22",
+  "candidate_id": "espressif_libsodium",
+  "role": "primary",
+  "source_evidence_sha256": "8285fa7308bfc83a5d55503a7a3e1fa4c21895a42b095197b3ec75f634411ec9",
+  "final_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f",
+  "operation_results": [
+    {"operation_id": "ed25519_sign", "state": "eligible", "evidence_sha256": "b4b1ee8717f14ee5a83a4dd40a2abc238308515a34e956ddd4d7b37e581cfcfc"},
+    {"operation_id": "ed25519_verify", "state": "eligible", "evidence_sha256": "bfc17014e41233b6f238558208f036fb24f94d17dd235cfc7062b600d255e1c3"},
+    {"operation_id": "x25519", "state": "eligible", "evidence_sha256": "bf8db6c6aff015280e1eeaa5353062aa3ee9aab287538aee1532cf3cb3538af2"},
+    {"operation_id": "sha256", "state": "eligible", "evidence_sha256": "de69f9dc105146e5065cb3f1e4884fe09d300e688f2e20553bca395878ff03e1"},
+    {"operation_id": "hkdf_sha256", "state": "eligible", "evidence_sha256": "ef199b82cdc0f5636b510f50a0d7cc07871b7198b8b0089c2daa441dd290b275"},
+    {"operation_id": "chacha20poly1305_encrypt", "state": "eligible", "evidence_sha256": "652059ecf6679f005858c8b44412c172a758e22fbbc48c81e8a79d809d897ece"},
+    {"operation_id": "chacha20poly1305_decrypt", "state": "eligible", "evidence_sha256": "971d930e7abc32245ffae499f724cb55544c0452783b3361a667c6d7cd310670"},
+    {"operation_id": "noise_xk_handshake", "state": "eligible", "evidence_sha256": "57a8a0535202d0f8be843c1a30de93cf278fc2ac06ea71518aaa3eabe3921b6b"}
+  ],
+  "coverage_state": "complete_selectable",
+  "comparison_measurement_eligible": true,
+  "selection_eligible": true,
+  "result": "complete_api_config_eligible",
+  "execution_authorized": false,
+  "selection_authorized": false,
+  "score_credit_added": false
+}

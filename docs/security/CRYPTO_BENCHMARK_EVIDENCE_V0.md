@@ -359,9 +359,11 @@ both publication-safety layers, and the complete host gate pass.
 This remains an evidence-quality boundary. OT-116 now records all six historical
 OT-094 closure requirements satisfied and freezes the exact phased procedure,
 but it imports, builds, benchmarks, or selects no candidate and creates no
-OT-005 result. Measurement remains blocked at accepted source/API/import counts
-`3/1/0` until missing candidate-specific API/configuration and retained import/
-build admissions pass and fresh execution authority is granted. Entropy,
+OT-005 result. OT-117 subsequently admits complete eight-of-eight host-only libsodium API/
+configuration evidence, advancing accepted source/API/import counts to
+`3/2/0`. Measurement remains blocked until Monocypher API/configuration,
+second-node exact-profile admission, retained import/build admissions, and
+fresh execution authority pass. Entropy,
 interoperability, candidate resource deltas, exact benchmark radio cost,
 physical join/revoke/reset, protected storage, and power-interruption evidence
 remain open.

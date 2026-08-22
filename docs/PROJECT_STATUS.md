@@ -9,12 +9,14 @@ Status date: 2026-08-22
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-117 accepts complete eight-of-eight host-only libsodium API/configuration evidence under the frozen OT-116 procedure. The exact candidate-specific OT-107 sdkconfig reproduced twice, and the hash-bound benchmark-only `OTNXK0/v0` composition completes the fixed operation set. Current source/API-configuration/import counts are `3/2/0`; libsodium is structurally selection eligible but is neither selected nor authorized for execution. Phase 0 remains incomplete pending Monocypher API/configuration and the second node's exact profile. Every retained import/build anchor and fresh benchmark execution authority also remain absent. No benchmark, device, radio, production key/entropy, suite/wire selection, secure-LoRa implementation, physical evidence, or score claim changes. See [Decision 0055](decisions/0055-host-only-libsodium-api-configuration-admission.md) and [OT-117 evidence](../tests/hardware/OT-117-2026-08-22.md).
+
 OT-116 accepts append-only `OTCBR1/v0`, recording that all six historical
 OT-094 requirements now have exact accepted closure evidence, and freezes
-immutable `OTCBX1/v1` as the successor phased benchmark procedure. This does
-not make the benchmark measurement-ready. Accepted source/API-configuration/
-import counts remain `3/1/0`; libsodium and Monocypher still lack independent
-candidate-specific API/configuration admission, every candidate lacks an
+immutable `OTCBX1/v1` as the successor phased benchmark procedure. This did
+not make the benchmark measurement-ready. At OT-116 acceptance, source/API-
+configuration/import counts were `3/1/0`; libsodium and Monocypher both lacked
+independent candidate-specific API/configuration admission, every candidate lacks an
 accepted retained import/build anchor, the second measurement node lacks exact-
 profile admission, and execution authority remains false.
 The mbedTLS/PSA five-of-eight result remains comparison-only and structurally
@@ -2779,13 +2781,14 @@ exact received `OT-DEV-001` target profile and recorded three; OT-105 now
 accepts the exact pinned ESP-IDF mbedTLS/PSA source/dependency lock while
 recording the same three; OT-107 accepts the final per-candidate configuration and records two; OT-109
 admits five-of-eight mbedTLS/PSA comparison evidence and records one; OT-114
-closes the final direct-radio requirement. OT-116 now records all six historical
-requirements closed and freezes the phased successor plan, while measurement
-stays blocked at source/API-config/import counts `3/1/0`. OT-096 remains 5/8,
-and no support, compatibility, regulatory, candidate build/import, selection,
-or score claim is added.
-The next security checkpoint is to admit the missing candidate-specific API/
-configuration and retained import/build evidence under the frozen OT-116 plan,
+closes the final direct-radio requirement. OT-116 records all six historical requirements closed and freezes the phased
+successor plan. OT-117 then admits complete eight-of-eight libsodium API/
+configuration evidence, advancing current source/API-config/import counts to
+`3/2/0`. Measurement remains blocked; no support, compatibility, regulatory,
+candidate build/import, benchmark, selection, or score claim is added.
+The next security checkpoint is to admit Monocypher API/configuration, the
+second node's exact profile, and retained import/build evidence under the frozen
+OT-116 plan,
 then run the exact candidate comparison only under fresh separate authority,
 followed by explicit suite/library, handshake/KDF, and packet-v1 wire selection. Pairing/replacement
 and secure-LoRa target/Android

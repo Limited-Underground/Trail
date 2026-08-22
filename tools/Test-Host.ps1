@@ -94,10 +94,20 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'firmware\components\ui\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\update\include'),
     '-I', (Join-Path $projectRoot 'firmware\targets\portable_client\include'),
-    '-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main')
+    '-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main'),
+    '-I', (Join-Path $projectRoot 'tests\host\fixtures\libsodium_noise_xk'),
+    '-I', (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\libsodium_noise_xk_v0')
 )
 
 $builds = @(
+    @{
+        Name = 'benchmark-only libsodium Noise XK composition'
+        Output = Join-Path $buildDirectory 'libsodium_noise_xk_composition_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\libsodium_noise_xk_v0\noise_xk_libsodium.c'),
+            (Join-Path $projectRoot 'tests\host\libsodium_noise_xk_composition_tests.cpp')
+        )
+    },
     @{
         Name = 'radio transport'
         Output = Join-Path $buildDirectory 'radio_transport_tests.exe'
@@ -1996,6 +2006,11 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_mbedtls_api_config_admission_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OTCAPIA0 mbedTLS/PSA API/config admission tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_libsodium_api_config_admission_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTLAPIA0 libsodium API/config admission tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_radio_profile_contract_tests.py')
