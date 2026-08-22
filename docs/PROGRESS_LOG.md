@@ -4,6 +4,15 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-22
+
+### OT-116 successor crypto readiness review and phased benchmark plan
+
+- Accepted append-only `OTCBR1/v0`: all six historical OT-094 requirements have exact accepted closure evidence, while benchmark measurement remains blocked rather than being inferred ready.
+- Froze immutable `OTCBX1/v1` as a phased, fail-closed procedure: candidate-specific API/configuration admission, retained import/build admission, then exact-target measurement only under fresh separate authority.
+- Counts remain `3/1/0`. The current mbedTLS/PSA five-of-eight evidence is comparison-only and structurally nonselectable; libsodium and Monocypher still need candidate-specific evidence, and every executable candidate still needs accepted import/build evidence, and the second measurement node still needs exact-profile admission.
+- Host validation covers parent pins, candidate/configuration/radio invariants, partial-comparison boundaries, authority and claim denial, privacy, parser limits, and deterministic plan semantics. No candidate was imported or built, no hardware or radio was used, no cryptography was selected, and no score changed. See [Decision 0054](decisions/0054-successor-crypto-benchmark-readiness-and-execution-plan.md) and [OT-116 evidence](../tests/hardware/OT-116-2026-08-22.md).
+
 ## 2026-08-21
 ### OT-115 two-device compact-footer install and acceptance
 

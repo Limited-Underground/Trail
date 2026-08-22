@@ -1,8 +1,8 @@
 # Cryptographic Benchmark Evidence v0
 
-Status: host-tested evidence boundary; pre-crypto build, candidate-readiness,
-and source-lock admission contracts frozen while target candidate execution
-remains blocked, 2026-08-20
+Status: host-tested evidence boundary; historical plans preserved, successor
+readiness review and phased execution contract frozen while target candidate
+measurement remains blocked, 2026-08-22
 
 ## Purpose
 
@@ -29,6 +29,7 @@ The bounded mbedTLS/PSA static validator is
 `tests/benchmarks/crypto/OT-096-OT005-MBEDTLS-STATIC-ELIGIBILITY-V0.json`.
 The same source-lock validator also owns the current license-aware contract
 `tests/benchmarks/crypto/OT-097-OT005-LICENSE-AWARE-SOURCE-LOCK-ADMISSION-V1.json`.
+The OT-116 successor validator is `tools/crypto_benchmark_execution_plan.py`; its accepted append-only review and immutable phased contract are `tests/benchmarks/crypto/OT-116-OT005-SUCCESSOR-READINESS-DECISION-V1.json` and `tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json`.
 
 ## Plan contract
 
@@ -355,7 +356,12 @@ equality, environment restoration, aggregate-only claims, privacy, and CLI
 sanitization. The focused suites, Heltec and V1/V1.5 static admission checks,
 both publication-safety layers, and the complete host gate pass.
 
-This remains an evidence-quality boundary. No candidate library has been
-imported, benchmarked, or selected; no OT-005 candidate result exists. Entropy,
-interoperability, candidate resource deltas, radio, physical join/revoke/reset,
-protected storage, and power-interruption evidence remain open.
+This remains an evidence-quality boundary. OT-116 now records all six historical
+OT-094 closure requirements satisfied and freezes the exact phased procedure,
+but it imports, builds, benchmarks, or selects no candidate and creates no
+OT-005 result. Measurement remains blocked at accepted source/API/import counts
+`3/1/0` until missing candidate-specific API/configuration and retained import/
+build admissions pass and fresh execution authority is granted. Entropy,
+interoperability, candidate resource deltas, exact benchmark radio cost,
+physical join/revoke/reset, protected storage, and power-interruption evidence
+remain open.

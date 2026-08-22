@@ -1018,10 +1018,14 @@ aggregate validator may derive equality and publish
 
 That lock is pre-crypto build evidence, not an OT-005 benchmark or supported-
 target result. No candidate or secure-LoRa adapter was imported or executed,
-and existing ESP-IDF/NimBLE cryptographic objects are not a selection. The plan
-remains `draft_blocked`; final candidate-ready target/toolchain/sdkconfig
-applicability, dependency locks, direct-radio MTU/PHY, actual candidate
-measurements, and explicit suite/wire acceptance remain later gates.
+and existing ESP-IDF/NimBLE cryptographic objects are not a selection. The
+historical `OTCB0/v0` plan remains `draft_blocked`. OT-116 accepts an append-only
+`OTCBR1/v0` successor review and freezes an immutable `OTCBX1/v1` phased plan:
+all six old closure requirements have accepted evidence, but measurement remains
+blocked at source/API/import counts `3/1/0`. Missing candidate-specific API/
+configuration and retained import/build admissions plus fresh execution
+authority precede exact-target measurements. Explicit suite/wire acceptance
+remains a later gate.
 
 Before a sender-specific traffic key can protect packet v1, its outbound nonce
 domain needs rollback-safe allocation. The `OTCN` two-slot store commits a

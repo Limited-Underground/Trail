@@ -30,3 +30,15 @@ tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-ADMISSION-DELTA-V0.j
 tools/crypto_mbedtls_api_config_evidence.py text eol=lf
 tools/crypto_mbedtls_api_config_admission.py text eol=lf
 tests/host/crypto_mbedtls_api_config_admission_tests.py text eol=lf
+tests/benchmarks/crypto/OT-113-OT005-US915-DIRECT-RADIO-PROFILE-EXECUTION-CONTRACT-V1.json text eol=lf
+tests/benchmarks/crypto/OT-114-OT005-US915-DIRECT-RADIO-PROFILE-EVIDENCE-V1.json text eol=lf
+tests/benchmarks/crypto/OT-114-OT005-US915-DIRECT-RADIO-PROFILE-ADMISSION-DELTA-V1.json text eol=lf
+tests/hardware/OT-114-2026-08-21-EXECUTION-RECEIPT-V0.json text eol=lf
+tools/crypto_radio_profile_execution_contract.py text eol=lf
+tools/crypto_radio_profile_evidence_admission.py text eol=lf
+tests/host/crypto_radio_profile_execution_contract_tests.py text eol=lf
+tests/host/crypto_radio_profile_evidence_admission_tests.py text eol=lf
+tests/benchmarks/crypto/OT-116-OT005-SUCCESSOR-READINESS-DECISION-V1.json text eol=lf
+tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json text eol=lf
+tools/crypto_benchmark_execution_plan.py text eol=lf
+tests/host/crypto_benchmark_execution_plan_tests.py text eol=lf

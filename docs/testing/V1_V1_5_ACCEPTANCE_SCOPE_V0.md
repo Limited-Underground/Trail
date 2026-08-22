@@ -76,10 +76,14 @@ reuse are denied.
 Decision 0003 remains controlling. `OTSL0/v0` selects no suite, library,
 handshake/KDF instantiation, packet-v1 wire bytes, target storage, MTU/PHY, or
 production timing. OT-093 freezes the reproducible two-build baseline before
-any candidate import, but `OTCB0/v0` remains `draft_blocked` and unexecuted.
-Final candidate readiness, the exact OT-005 candidate benchmark, and a later
-explicit suite/wire decision must pass before implementation. BLE authorization
-and LoRa security remain separate implementation and physical evidence gates.
+any candidate import, and the historical `OTCB0/v0` remains `draft_blocked` and
+unexecuted. OT-116 records all six old OT-094 requirements closed and freezes a
+phased successor plan, but measurement stays blocked at source/API/import counts
+`3/1/0` until missing candidate-specific API/configuration and retained import/
+build evidence plus fresh execution authority pass. The exact benchmark and a
+later explicit suite/wire decision remain mandatory before implementation. BLE
+authorization and LoRa security remain separate implementation and physical
+evidence gates.
 
 ## Coherent V1 physical acceptance
 
@@ -139,13 +143,14 @@ does not confer support.
 Authorization is frozen and host-tested under OT-090, the algorithm-neutral
 secure-LoRa lifecycle/admission semantics are frozen and host-tested under
 OT-091, and OT-093 freezes the deterministic pre-selection build baseline
-without benchmark execution or score. Next make the OT-005 plan final-candidate
-ready, run the exact benchmark, and accept the crypto suite/library,
-handshake/KDF, and packet-v1 wire selection. Then implement and physically
-accept the frozen pairing/replacement and selected secure-LoRa paths under
-separate authority; complete the Android message flow; run complete two-
-pair V1 acceptance; finish the signed Android gate; then publish V1.
-Four-node interoperability and any mesh claim remain V1.5.
+without benchmark execution or score. OT-116 freezes the phased successor plan.
+Next admit the missing candidate-specific API/configuration and retained import/
+build evidence, run the exact benchmark under fresh separate authority, and
+accept the crypto suite/library, handshake/KDF, and packet-v1 wire selection.
+Then implement and physically accept the frozen pairing/replacement and selected
+secure-LoRa paths under separate authority; complete the Android message flow;
+run complete two-pair V1 acceptance; finish the signed Android gate; then
+publish V1. Four-node interoperability and any mesh claim remain V1.5.
 
 This scope decision changes no completion. V1 remains exact 43.75%/displayed
 44%; V1.5 has no percentage until a separate evidence-weighted measurement is

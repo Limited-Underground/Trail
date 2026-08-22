@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-21
+Status date: 2026-08-22
 
 ## Conceptual goals
 
@@ -8,6 +8,22 @@ Status date: 2026-08-21
 - Portable, vehicle, repeater, and larger touchscreen configurations
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
+
+OT-116 accepts append-only `OTCBR1/v0`, recording that all six historical
+OT-094 requirements now have exact accepted closure evidence, and freezes
+immutable `OTCBX1/v1` as the successor phased benchmark procedure. This does
+not make the benchmark measurement-ready. Accepted source/API-configuration/
+import counts remain `3/1/0`; libsodium and Monocypher still lack independent
+candidate-specific API/configuration admission, every candidate lacks an
+accepted retained import/build anchor, the second measurement node lacks exact-
+profile admission, and execution authority remains false.
+The mbedTLS/PSA five-of-eight result remains comparison-only and structurally
+nonselectable. The exact-target measurement phase may begin only after the
+earlier admission phases pass and fresh separate authority is granted. No
+candidate import/build, hardware/radio/key/entropy action, crypto selection,
+support, regulatory/range, physical, or score claim is added. See
+[Decision 0054](decisions/0054-successor-crypto-benchmark-readiness-and-execution-plan.md)
+and [OT-116 evidence](../tests/hardware/OT-116-2026-08-22.md).
 
 OT-115 installs the exact compact-footer `heltec_v4_bench` image on both Heltec
 test units and accepts the physical placeholder layout. The pinned ESP-IDF
@@ -2761,15 +2777,17 @@ current requirements; OT-102 accepted the exact Monocypher source lock under
 the owner-selected `BSD-2-Clause` branch and recorded four; OT-103 admitted the
 exact received `OT-DEV-001` target profile and recorded three; OT-105 now
 accepts the exact pinned ESP-IDF mbedTLS/PSA source/dependency lock while
-recording the same three; OT-107 accepts the final per-candidate configuration
-and records two. Readiness remains blocked, crypto source/API-config/
-import counts are `3/0/0`, OT-096 remains 5/8, and no support, compatibility,
-regulatory, direct-radio-profile, API/configuration-eligibility, candidate build/import,
-selection, or score claim is added.
-The next security checkpoint is to close those two API-configuration/radio
-requirements, accept a new immutable executable benchmark plan, and run
-the exact candidate comparison under separate authority, followed by explicit
-suite/library, handshake/KDF, and packet-v1 wire selection. Pairing/replacement
+recording the same three; OT-107 accepts the final per-candidate configuration and records two; OT-109
+admits five-of-eight mbedTLS/PSA comparison evidence and records one; OT-114
+closes the final direct-radio requirement. OT-116 now records all six historical
+requirements closed and freezes the phased successor plan, while measurement
+stays blocked at source/API-config/import counts `3/1/0`. OT-096 remains 5/8,
+and no support, compatibility, regulatory, candidate build/import, selection,
+or score claim is added.
+The next security checkpoint is to admit the missing candidate-specific API/
+configuration and retained import/build evidence under the frozen OT-116 plan,
+then run the exact candidate comparison only under fresh separate authority,
+followed by explicit suite/library, handshake/KDF, and packet-v1 wire selection. Pairing/replacement
 and secure-LoRa target/Android
 implementation, physical acceptance, and the coherent two-pair run remain
 separately authorized later gates. Continue the partially

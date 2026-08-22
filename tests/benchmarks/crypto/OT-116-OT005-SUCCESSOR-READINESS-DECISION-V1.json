@@ -1,0 +1,150 @@
+{
+  "schema": "OTCBR1",
+  "version": 0,
+  "artifact_kind": "append_only_successor_candidate_readiness_review",
+  "readiness_id": "OT-116-OT005-SUCCESSOR-READINESS-DECISION-V1",
+  "accepted_date": "2026-08-22",
+  "status": "requirements_closed_execution_blocked",
+  "public_result": "SIX-HISTORICAL-READINESS-REQUIREMENTS-CLOSED; COUNTS-3-1-0; MEASUREMENT-READINESS-NOT-ADMITTED; BENCHMARK-EXECUTION-BLOCKED",
+  "append_only_parents": [
+    {
+      "role": "preselection_build_baseline",
+      "path": "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json",
+      "raw_sha256": "240906d62926048e6f55b1bb11ce21538e24edbeb8956439ffeb35f3b49b3c83",
+      "canonical_sha256": "16ffe83af7e3c1f00b5d123eae30e3ac4a0ea2dea0cb08bcc60b990d3e881733"
+    },
+    {
+      "role": "historical_six_requirement_ledger",
+      "path": "tests/benchmarks/crypto/OT-094-OT005-CANDIDATE-READINESS-V0.json",
+      "raw_sha256": "bb607158cbe8ac95a470f0a6c87fbb6d8d986259cf86540b14245fc1167dc7ae",
+      "canonical_sha256": "705b30693196e2f46d8bda7c17acb1e04d7b9092c4a3817286c14d189001b9d3"
+    },
+    {
+      "role": "libsodium_source_lock_admission",
+      "path": "tests/benchmarks/crypto/OT-100-OT005-LIBSODIUM-SOURCE-LOCK-ADMISSION-DELTA-V0.json",
+      "raw_sha256": "df595f2d07ba1b5d0a9bdf70237b1f0ea5a01fe8cb5a63ffb3575fe484faede0",
+      "canonical_sha256": "9f253738d1766a2d6d273ff5d566bb42c828e6db8cdc3a4b156068f55c07075d"
+    },
+    {
+      "role": "monocypher_source_lock_admission",
+      "path": "tests/benchmarks/crypto/OT-102-OT005-MONOCYPHER-SOURCE-LOCK-ADMISSION-DELTA-V0.json",
+      "raw_sha256": "6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52",
+      "canonical_sha256": "6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52"
+    },
+    {
+      "role": "exact_received_target_profile_admission",
+      "path": "tests/benchmarks/crypto/OT-103-OT005-EXACT-RECEIVED-TARGET-PROFILE-ADMISSION-DELTA-V0.json",
+      "raw_sha256": "98cce120cadc1bddf5851f1480ae181488e17277ba0a2c8c8c38a70a062be105",
+      "canonical_sha256": "dc7247ae9b277418c104690193fa7bfce2d9297038d2c24c2f5daedf4dc3331e"
+    },
+    {
+      "role": "mbedtls_psa_source_lock_admission",
+      "path": "tests/benchmarks/crypto/OT-105-OT005-MBEDTLS-PSA-SOURCE-LOCK-ADMISSION-DELTA-V0.json",
+      "raw_sha256": "26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85",
+      "canonical_sha256": "26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85"
+    },
+    {
+      "role": "final_per_candidate_configuration_admission",
+      "path": "tests/benchmarks/crypto/OT-107-OT005-FINAL-CANDIDATE-BUILD-CONFIGURATION-ADMISSION-DELTA-V0.json",
+      "raw_sha256": "3d71dfb02b6fd25e0881ac63cc085174c2cdd7e5ac2cd1e12c320ec34928f5a2",
+      "canonical_sha256": "d94aa0dd96c13a628c5858f544c950f5c53903456ebe1687dee287f2d15abcf2"
+    },
+    {
+      "role": "per_candidate_api_config_acceptance_contract",
+      "path": "tests/benchmarks/crypto/OT-108-OT005-PER-CANDIDATE-API-CONFIG-ACCEPTANCE-CONTRACT-V1.json",
+      "raw_sha256": "575e8747cdba643f2abb6f3252a62adbf3f12a9faaa46ca1d4bf4ce8bd9d23f3",
+      "canonical_sha256": "ccdb11e19031a4a01c717e30c172332c5e71ca79ee2b36b721277e55ca9a6c22"
+    },
+    {
+      "role": "mbedtls_psa_partial_api_config_admission",
+      "path": "tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-ADMISSION-DELTA-V0.json",
+      "raw_sha256": "0311b8b264d264d4a005ac9be8531c06175521362ed54ac9f40bdef1fd7a5df0",
+      "canonical_sha256": "fed7b009a97a60678b2dfbba23d933b974aa0fec46d0b460ac7eb221e91931dd"
+    },
+    {
+      "role": "direct_radio_execution_contract",
+      "path": "tests/benchmarks/crypto/OT-113-OT005-US915-DIRECT-RADIO-PROFILE-EXECUTION-CONTRACT-V1.json",
+      "raw_sha256": "c59fd52f8c1608f7e7dfdb5c166504bb7ad7fb02c6e82b3d3d0677c79cd2c87c",
+      "canonical_sha256": "d73ebf7340c4351b5daa775d7cb9342f6650baf376f1c45944049d7efe49462c"
+    },
+    {
+      "role": "direct_radio_execution_receipt",
+      "path": "tests/hardware/OT-114-2026-08-21-EXECUTION-RECEIPT-V0.json",
+      "raw_sha256": "d285d43ec30b2d81473b37bf189b14d89db389cb1636cacbe59cf9f84825d1dd",
+      "canonical_sha256": "1700446be2216f6520859928e941a72a06605dfdeedad6957b6e4f8d5259e8c4"
+    },
+    {
+      "role": "direct_radio_profile_evidence",
+      "path": "tests/benchmarks/crypto/OT-114-OT005-US915-DIRECT-RADIO-PROFILE-EVIDENCE-V1.json",
+      "raw_sha256": "b6d2a7ce4ebe3ab233ebbc748ab7831ff12cf4d8f6504d2d7e23dae108bd5876",
+      "canonical_sha256": "ac7e77a4438772a4c5b5f2b17472b302a3520e186a21b88125a9314ee6998bf0"
+    },
+    {
+      "role": "direct_radio_profile_admission",
+      "path": "tests/benchmarks/crypto/OT-114-OT005-US915-DIRECT-RADIO-PROFILE-ADMISSION-DELTA-V1.json",
+      "raw_sha256": "19325f730b96b9dbeeb4f64682c4913e7586d1995ef419b26408d82be12ef266",
+      "canonical_sha256": "eecf2b821ef2c25274cc5d3a179494b1545eb4a859280a48459ebb83c79ed257"
+    }
+  ],
+  "historical_six_requirements": [
+    "exact_received_target_profile_unresolved",
+    "final_candidate_build_configuration_unresolved",
+    "espressif_libsodium_source_lock_absent",
+    "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved",
+    "monocypher_source_lock_absent",
+    "direct_radio_mtu_phy_region_unresolved"
+  ],
+  "closure_map": [
+    {"blocker_id": "exact_received_target_profile_unresolved", "parent_role": "exact_received_target_profile_admission"},
+    {"blocker_id": "final_candidate_build_configuration_unresolved", "parent_role": "final_per_candidate_configuration_admission"},
+    {"blocker_id": "espressif_libsodium_source_lock_absent", "parent_role": "libsodium_source_lock_admission"},
+    {"blocker_id": "esp_idf_mbedtls_psa_dependency_lock_and_api_config_unresolved", "parent_role": "mbedtls_psa_partial_api_config_admission", "supporting_parent_role": "mbedtls_psa_source_lock_admission"},
+    {"blocker_id": "monocypher_source_lock_absent", "parent_role": "monocypher_source_lock_admission"},
+    {"blocker_id": "direct_radio_mtu_phy_region_unresolved", "parent_role": "direct_radio_profile_admission"}
+  ],
+  "current_requirements": [],
+  "acceptance_counts": {"source": 3, "api_config": 1, "candidate_import": 0},
+  "candidate_dispositions": [
+    {"candidate_id": "espressif_libsodium", "role": "primary", "source_lock_accepted": true, "final_configuration_accepted": true, "api_config_admission": "required_before_measurement", "candidate_import_admission": "required_before_measurement", "measurement_ready": false, "selection_eligible": false},
+    {"candidate_id": "esp_idf_mbedtls_psa", "role": "comparison", "source_lock_accepted": true, "final_configuration_accepted": true, "api_config_admission": "accepted_comparison_partial_5_of_8", "candidate_import_admission": "required_before_measurement", "measurement_ready": false, "selection_eligible": false},
+    {"candidate_id": "monocypher", "role": "comparison", "source_lock_accepted": true, "final_configuration_accepted": true, "api_config_admission": "required_before_measurement", "candidate_import_admission": "required_before_measurement", "measurement_ready": false, "selection_eligible": false}
+  ],
+  "successor_boundary": {
+    "historical_otcbr0_v0_mutated": false,
+    "historical_plan_promoted": false,
+    "readiness_requirements_closed": true,
+    "measurement_readiness_admitted": false,
+    "readiness_advanced": false,
+    "new_phased_contract_required": true,
+    "independent_api_config_and_import_admissions_required": true,
+    "independent_second_node_exact_profile_admission_required": true
+  },
+  "authority": {
+    "candidate_api_config_generation_authorized": false,
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "flash_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "candidate_selection_authorized": false,
+    "secure_lora_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "historical_requirements_closed": true,
+    "measurement_ready": false,
+    "candidate_imported": false,
+    "benchmark_built": false,
+    "benchmark_executed": false,
+    "candidate_selected": false,
+    "hardware_or_device_accessed": false,
+    "physical_evidence_added": false,
+    "production_support_proven": false,
+    "regulatory_compliance_proven": false,
+    "range_proven": false,
+    "score_credit_added": false
+  }
+}
