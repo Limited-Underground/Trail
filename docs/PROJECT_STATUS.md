@@ -9,6 +9,24 @@ Status date: 2026-08-21
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
+OT-114 accepts strict `OTRPE1/v1` physical evidence and append-only
+`OTRPA1/v1` admission for the OT-113 executable successor contract. The exact
+two-node close-bench run reconciles 242/242 probe/data frames and 240/240
+acknowledgements with zero loss, duplication, corruption, or unexpected
+traffic. It records per-frame DATA/ACK hashes, RSSI/SNR, device-monotonic RTT,
+220 exact 163-byte timeouts at 2,318 ms, 20 exact 255-byte timeouts at 2,452 ms,
+two local 256-byte no-transmit rejections, and profile retention after both
+nodes restart. The exact 216,112-byte image passed the ESP-IDF 6.0.2 build and
+nine focused source groups.
+
+This closes only `direct_radio_mtu_phy_region_unresolved`. Counts remain
+`3/1/0`, and no progress percentage changes. Readiness does not automatically
+advance: a successor readiness decision and new immutable executable benchmark
+plan remain required before comparison execution or selection. No EIRP,
+regulatory, range, compatibility, support, secure-LoRa, Packet V1, production,
+or selection claim is added. See [Decision 0053](decisions/0053-admit-us915-direct-radio-profile-evidence-v1.md)
+and [OT-114 evidence](../tests/hardware/OT-114-2026-08-21.md).
+
 OT-112 completes a bounded identical-image direct-radio diagnostic on the two
 Heltec V4.2 bench nodes. A live-boot SPI lifecycle defect was corrected, the
 full build and ten focused source groups pass, and both nodes run the same

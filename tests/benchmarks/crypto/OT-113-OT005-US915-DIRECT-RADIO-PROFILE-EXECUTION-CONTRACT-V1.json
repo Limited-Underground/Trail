@@ -1,0 +1,221 @@
+{
+  "schema": "OTRPX1",
+  "version": 1,
+  "artifact_kind": "direct_radio_profile_execution_contract",
+  "contract_id": "OT-113-OT005-US915-DIRECT-RADIO-PROFILE-EXECUTION-CONTRACT-V1",
+  "accepted_date": "2026-08-21",
+  "status": "executable_successor_contract_frozen_host_only",
+  "public_result": "OTRPF0-HISTORY-PRESERVED; DISPOSABLE-US915-CLOSE-BENCH-EXECUTION-DEFINED; PHYSICAL-EVIDENCE-NOT-YET-ADMITTED; READINESS-BLOCKED",
+  "append_only_parents": [
+    {
+      "path": "tests/benchmarks/crypto/OT-110-OT005-US915-DIRECT-RADIO-PROFILE-EVIDENCE-CONTRACT-V0.json",
+      "raw_sha256": "8af36e000d5cd0478d1a829fb5a1f2b330cdf09bad188445d30579c348f7e2e1",
+      "canonical_sha256": "d5b44cea761b12ad6422be250bf0a827469441643d6f5e944932a91cc92b68d9"
+    },
+    {
+      "path": "tests/hardware/OT-112-2026-08-21.md",
+      "raw_sha256": "7e2c6ffe263696fcaa71297b35f58177936ace011a2d2291ded910ceae40f19b"
+    }
+  ],
+  "supersession": {
+    "scope": "execution_preconditions_only",
+    "superseded_otrpf0_requirements": [
+      "exact_antenna_model_gain_connector_cable_loss_and_fcc_input_precondition",
+      "successor_recovery_contract_and_prewrite_restore_evidence_precondition",
+      "mandatory_post_test_restore_readback",
+      "applied_profile_register_or_calibrated_rf_readback"
+    ],
+    "historical_evidence_superseded": false,
+    "parent_contract_mutated": false,
+    "all_other_otrpf0_boundaries_preserved": true
+  },
+  "bench_boundary": {
+    "physical_nodes": 2,
+    "device_class": "two_identical_heltec_wifi_lora_32_v4_2_diagnostic_nodes",
+    "peer_identity_evidence": [
+      "separately_recorded_owner_confirmation",
+      "identical_v4_2_diagnostic_pin_and_profile_success",
+      "per_node_artifact_receipts"
+    ],
+    "public_device_identifiers_prohibited": true,
+    "location": "owner_confirmed_usa_close_bench_no_coordinates",
+    "antennas": "owner_confirmed_attached_supplied_high_band_antennas",
+    "recovery": {
+      "classification": "disposable_bench",
+      "sufficient_route": "rom_bootloader_plus_committed_source_plus_exact_built_image",
+      "preserve_or_restore_meshcore_required": false,
+      "preserve_or_restore_prior_diagnostic_state_required": false,
+      "permitted_post_test_state": "diagnostic_firmware_may_remain_installed"
+    }
+  },
+  "commanded_profile": {
+    "region_code": "US915",
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate": "4/5",
+    "explicit_header": true,
+    "crc_enabled": true,
+    "low_data_rate_optimization": false,
+    "sync_word": "0x12",
+    "preamble_symbols": 8,
+    "tx_power_command_setpoint_dbm": 2,
+    "receiver_start_required": true,
+    "applied_profile_proof": {
+      "required": [
+        "exact_successful_driver_command_chain_receipts",
+        "successful_receiver_start_receipt",
+        "bounded_ota_interoperability_before_restart",
+        "bounded_ota_interoperability_after_restart"
+      ],
+      "not_claimed": [
+        "register_readback",
+        "calibrated_frequency_readback",
+        "calibrated_power_readback",
+        "antenna_gain",
+        "eirp"
+      ]
+    }
+  },
+  "wire_protocol": {
+    "byte_order": "little_endian_for_multibyte_integers",
+    "data": {
+      "name": "OTD1",
+      "header_bytes": 16,
+      "header_layout": [
+        {"offset": 0, "bytes": 4, "value_ascii": "OTD1"},
+        {"offset": 4, "bytes": 1, "value_uint8": 1},
+        {"offset": 5, "bytes": 1, "field": "sender_role", "allowed_uint8": [1, 2]},
+        {"offset": 6, "bytes": 1, "field": "direction", "allowed_uint8": [1, 2]},
+        {"offset": 7, "bytes": 1, "value_uint8": 16},
+        {"offset": 8, "bytes": 4, "field": "nonzero_session_uint32_le"},
+        {"offset": 12, "bytes": 4, "field": "sequence_uint32_le"}
+      ],
+      "role_direction_pairs": [{"sender_role": 1, "direction": 1}, {"sender_role": 2, "direction": 2}],
+      "raw_probe": {"total_wire_bytes": 1, "bytes_hex": "a5", "not_otd1": true},
+      "protocol_test": {"fill_bytes": 147, "total_wire_bytes": 163},
+      "measured_ceiling": {"fill_bytes": 239, "total_wire_bytes": 255},
+      "oversize_request": {"requested_total_wire_bytes": 256, "local_reject": true, "tx_receipt_must_not_exist": true},
+      "fill_algorithm": "u32 v=session XOR (sequence*0x9E3779B9) XOR (sender_role<<24) XOR (direction<<16) XOR index; v=v XOR (v>>16); v=v*0x7FEB352D; v=v XOR (v>>15); byte=(v XOR (v>>8)) AND 0xff; all u32 operations wrap modulo 2^32"
+    },
+    "ack": {
+      "name": "OTA1",
+      "total_wire_bytes": 16,
+      "layout": [
+        {"offset": 0, "bytes": 4, "value_ascii": "OTA1"},
+        {"offset": 4, "bytes": 1, "value_uint8": 1},
+        {"offset": 5, "bytes": 1, "field": "ack_sender_role", "allowed_uint8": [1, 2]},
+        {"offset": 6, "bytes": 1, "field": "acked_direction", "allowed_uint8": [1, 2]},
+        {"offset": 7, "bytes": 1, "value_uint8": 16},
+        {"offset": 8, "bytes": 4, "field": "matching_session_uint32_le"},
+        {"offset": 12, "bytes": 4, "field": "matching_sequence_uint32_le"}
+      ],
+      "bounded": true,
+      "one_ack_per_valid_data_frame": true
+    }
+  },
+  "ordered_execution": [
+    {"order": 1, "operation": "off_air_preflight", "required_successes": 2, "transmit": false},
+    {"order": 2, "operation": "configure_receivers", "required_successes": 2, "transmit": false},
+    {"order": 3, "operation": "raw_probe", "frames_per_direction": 1, "data_wire_bytes": 1},
+    {"order": 4, "operation": "protocol_test", "frames_per_direction": 100, "data_wire_bytes": 163},
+    {"order": 5, "operation": "measured_ceiling", "frames_per_direction": 10, "data_wire_bytes": 255},
+    {"order": 6, "operation": "oversize_local_reject", "requests_per_node": 1, "requested_wire_bytes": 256, "transmit": false},
+    {"order": 7, "operation": "restart_both_nodes", "required_successes": 2, "transmit": false},
+    {"order": 8, "operation": "post_restart_protocol_test", "frames_per_direction": 10, "data_wire_bytes": 163}
+  ],
+  "receipt_contract": {
+    "machine_receipts_required": true,
+    "receipt_types": [
+      "SESSION_START",
+      "PROFILE_COMMAND",
+      "RX_START",
+      "DATA_TX",
+      "DATA_RX",
+      "ACK_TX",
+      "ACK_RX",
+      "LOCAL_REJECT",
+      "RESTART",
+      "SESSION_END"
+    ],
+    "runner_receipt_mapping": {
+      "BOOT": "SESSION_START_or_post_restart_boot",
+      "PROFILE": "PROFILE_COMMAND",
+      "STATUS": "off_air_preflight_state",
+      "ARM": "transmit_permit_request",
+      "ACK_ARM": "transmit_permit_receipt",
+      "TX": "DATA_TX_or_ACK_TX",
+      "RX": "DATA_RX_or_ACK_RX",
+      "REJECT": "LOCAL_REJECT",
+      "RX_ERROR": "receive_error_receipt",
+      "RX_ARM": "RX_START",
+      "RESTART": "RESTART",
+      "SESSION_START": "SESSION_START",
+      "SESSION_END": "SESSION_END"
+    },
+    "device_monotonic_timestamp_field": "mono_us",
+    "per_frame_exact_reconciliation": [
+      "session",
+      "direction",
+      "sequence",
+      "data_wire_sha256",
+      "ack_wire_sha256"
+    ],
+    "acceptance_counts": {"lost": 0, "duplicate": 0, "corrupt": 0, "unexpected": 0},
+    "per_received_frame_metrics": ["rssi_dbm", "snr_db"],
+    "timeout_policy": "each matching ACK timeout must be derived from and record the theoretical LoRa airtime for the exact DATA and OTA1 ACK bytes plus the fixed recorded responder_turnaround_bound_ms and fixed recorded scheduling_margin_ms",
+    "protocol_rtt": {
+      "start": "DATA_TX receipt monotonic timestamp after successful driver transmit completion",
+      "end": "matching bounded OTA1 ACK_RX receipt monotonic timestamp",
+      "includes": "responder receive_validate_turnaround_and_ack_transmit",
+      "required_summary_ms": ["p50", "p95", "max"]
+    }
+  },
+  "authority": {
+    "separately_recorded_owner_authority_permitted": [
+      "device_access",
+      "firmware_build",
+      "flash",
+      "low_power_close_bench_radio_transmit"
+    ],
+    "not_authorized": [
+      "benchmark_execution",
+      "candidate_selection",
+      "secure_lora",
+      "packet_v1",
+      "score_credit"
+    ]
+  },
+  "future_evidence_and_admission": {
+    "evidence_schema": "OTRPE1",
+    "admission_schema": "OTRPA1",
+    "evidence_must_bind": ["contract_raw_sha256", "contract_canonical_sha256"],
+    "admission_must_bind": ["contract_raw_sha256", "contract_canonical_sha256", "evidence_raw_sha256", "evidence_canonical_sha256"],
+    "independent_admission_required": true,
+    "only_closable_requirement": "direct_radio_mtu_phy_region_unresolved",
+    "admission_advances_readiness": false,
+    "successor_readiness_decision_required": true,
+    "new_executable_benchmark_plan_required": true
+  },
+  "prohibited_claims": [
+    "antenna_gain",
+    "eirp",
+    "fcc_or_regulatory_compliance",
+    "production_support",
+    "range",
+    "secure_lora",
+    "packet_v1_acceptance",
+    "benchmark_readiness",
+    "candidate_selection",
+    "score_credit"
+  ],
+  "claims": {
+    "contract_frozen": true,
+    "physical_evidence_generated": false,
+    "direct_radio_requirement_closed": false,
+    "readiness_advanced": false,
+    "benchmark_executed": false,
+    "candidate_selected": false,
+    "score_credit_added": false
+  }
+}

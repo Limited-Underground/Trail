@@ -1,0 +1,114 @@
+{
+  "schema": "OTRPE1",
+  "version": 1,
+  "artifact_kind": "direct_radio_profile_evidence",
+  "evidence_id": "OT-114-OT005-US915-DIRECT-RADIO-PROFILE-EVIDENCE-V1",
+  "accepted_date": "2026-08-21",
+  "status": "physical_execution_evidence_passed_pending_independent_admission",
+  "parents": {
+    "contract": {
+      "path": "tests/benchmarks/crypto/OT-113-OT005-US915-DIRECT-RADIO-PROFILE-EXECUTION-CONTRACT-V1.json",
+      "raw_sha256": "c59fd52f8c1608f7e7dfdb5c166504bb7ad7fb02c6e82b3d3d0677c79cd2c87c",
+      "canonical_sha256": "d73ebf7340c4351b5daa775d7cb9342f6650baf376f1c45944049d7efe49462c"
+    },
+    "execution_receipt": {
+      "path": "tests/hardware/OT-114-2026-08-21-EXECUTION-RECEIPT-V0.json",
+      "raw_sha256": "d285d43ec30b2d81473b37bf189b14d89db389cb1636cacbe59cf9f84825d1dd",
+      "canonical_sha256": "1700446be2216f6520859928e941a72a06605dfdeedad6957b6e4f8d5259e8c4"
+    }
+  },
+  "execution_result": {
+    "ordered_steps_passed": 8,
+    "physical_nodes": 2,
+    "distance_class": "close_bench_no_coordinates",
+    "radio_frames_attempted": 242,
+    "radio_frames_received": 242,
+    "ack_frames_attempted": 240,
+    "ack_frames_received": 240,
+    "radio_transmissions_including_acks": 482,
+    "lost": 0,
+    "duplicates": 0,
+    "corrupt": 0,
+    "unexpected": 0,
+    "direct_payload_ceiling_bytes": 255,
+    "oversize_256_local_reject_transmissions": 0,
+    "restart_successes": 2,
+    "post_restart_profile_retained": true,
+    "receipt_chain_sha256": "3046024e082f7e6a5a78deec4bbf3d84dd9f6ed0eefaec8bb7fb8c0cc80506ab"
+  },
+  "session_and_receipts": {
+    "single_nonzero_test_session": true,
+    "session_start_receipts": 4,
+    "session_end_receipts": 2,
+    "restart_revoked_pre_restart_sessions": 2,
+    "device_monotonic_timestamp_field": "mono_us",
+    "frame_identity_unique_count": 242,
+    "data_hashes_reconciled": 242,
+    "ack_hashes_reconciled": 240,
+    "contract_runner_receipt_kinds_supported": ["BOOT", "PROFILE", "STATUS", "ARM", "ACK_ARM", "TX", "RX", "REJECT", "RX_ERROR", "RX_ARM", "RESTART", "SESSION_START", "SESSION_END"],
+    "normalized_receipt_transcript_published": false,
+    "normalized_receipts_committed_by_receipt_chain_sha256": true
+  },
+  "profile": {
+    "region_code": "US915",
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate_denominator": 5,
+    "explicit_header": true,
+    "crc_enabled": true,
+    "low_data_rate_optimization": false,
+    "sync_word": "0x12",
+    "preamble_symbols": 8,
+    "tx_power_command_setpoint_dbm": 2,
+    "scope": "driver_command_acceptance_plus_bounded_ota_interoperability",
+    "calibrated": false
+  },
+  "metrics": {
+    "data_rssi_dbm_min": -23.0,
+    "data_rssi_dbm_max": -0.0,
+    "data_snr_db_min": 11.5,
+    "data_snr_db_max": 14.2,
+    "ack_rssi_dbm_min": -35.0,
+    "ack_rssi_dbm_max": -0.0,
+    "ack_snr_db_min": 11.5,
+    "ack_snr_db_max": 13.2,
+    "rtt_ms_min": 65.997,
+    "rtt_ms_p50": 72.722,
+    "rtt_ms_p95": 76.0,
+    "rtt_ms_max": 76.009,
+    "rtt_source": "DATA_TX_device_mono_us_to_matching_ACK_RX_device_mono_us_including_responder_turnaround",
+    "receipt_timeout_ms": 2452,
+    "receipt_timeout_ms_by_data_wire_bytes": {"163": 2318, "255": 2452},
+    "theoretical_airtime_ms": {"1": 25.856, "16": 51.456, "163": 266.496, "255": 399.616},
+    "responder_turnaround_bound_ms": 500,
+    "scheduling_margin_ms": 1500
+  },
+  "bounded_owner_context": {
+    "owner_confirmed": ["usa_location", "attached_supplied_high_band_antennas", "two_v4_2_diagnostic_nodes", "device_access", "firmware_build", "flash", "low_power_close_bench_transmit"],
+    "public_device_identifiers": false,
+    "recovery": "rom_bootloader_plus_committed_source_plus_exact_built_image",
+    "restore_prior_state_required": false
+  },
+  "artifact_bindings": {
+    "firmware_application_sha256": "fbdf4523265c4a66db63b956283ffcdef62dc826d68904bd23372cbef40d100e",
+    "firmware_entrypoint_source_sha256": "66c5b8cab273556802a3f04c11a85c2c72b02df6d4e4685e2314a4eb0c9a0f2a",
+    "runner_source_sha256": "57c2685149ddb5d8e569d0067f71201c33163b7deb52f1a9d24944132ca20947",
+    "per_node_exact_image_context_receipts": 2,
+    "binding_scope": "owner_confirmed_per_node_exact_image_context_plus_published_source_hashes_and_receipt_chain"
+  },
+  "privacy": {
+    "coordinates_recorded": false,
+    "device_identifiers_recorded": false,
+    "filesystem_paths_recorded": false,
+    "raw_payload_recorded": false,
+    "serial_ports_recorded": false
+  },
+  "acceptance": {
+    "contract_satisfied": true,
+    "eligible_for_independent_admission": true,
+    "evidence_self_closes_requirement": false,
+    "readiness_advanced": false
+  },
+  "does_not_prove": ["antenna_gain", "eirp", "fcc_or_regulatory_compliance", "production_support", "range", "secure_lora", "packet_v1", "benchmark_readiness", "candidate_selection", "score_credit"]
+}

@@ -5,6 +5,18 @@ remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concis
 public chronology.
 
 ## 2026-08-21
+### OT-114 US915 direct-radio profile evidence admission
+
+- Accepted strict `OTRPE1/v1` physical evidence and append-only `OTRPA1/v1` admission under the corrected OT-113 executable successor contract.
+- The exact two-node close-bench run reconciles 242/242 probe/data frames and 240/240 acknowledgements with zero loss, duplication, corruption, or unexpected traffic; per-frame DATA/ACK hashes, RSSI/SNR, device-monotonic RTT, 220 exact 2,318 ms bounds for 163-byte DATA, 20 exact 2,452 ms bounds for 255-byte DATA, local 256-byte no-transmit rejection, and post-restart profile retention all pass.
+- The final 216,112-byte image passes the ESP-IDF 6.0.2 build and nine focused source groups. Strict validators, independent reconstruction, eight OT-113 adversarial groups, and six OT-114 adversarial groups pass.
+- This closes only `direct_radio_mtu_phy_region_unresolved`. Counts remain `3/1/0`; readiness and progress values do not advance pending a successor readiness decision and new executable benchmark plan. No EIRP, regulatory, range, support, compatibility, secure-LoRa, Packet V1, production, benchmark, or selection claim is added. See [Decision 0053](decisions/0053-admit-us915-direct-radio-profile-evidence-v1.md) and [OT-114 evidence](../tests/hardware/OT-114-2026-08-21.md).
+
+### OT-113 executable US915 direct-radio profile contract
+
+- Froze corrected strict `OTRPX1/v1`, replacing only OT-110 execution preconditions that were unsuitable for disposable test nodes while preserving all historical evidence and claim boundaries.
+- Added explicit session lifecycle, exact DATA/ACK receipt reconciliation, device-monotonic RTT, fixed timeout components, bounded recovery through the ROM bootloader plus committed source/image, and privacy-safe two-node execution requirements. See [Decision 0052](decisions/0052-host-only-us915-direct-radio-profile-execution-contract-v1.md) and [OT-113 evidence](../tests/hardware/OT-113-2026-08-21.md).
+
 ### OT-112 identical-node Heltec V4 direct-radio diagnostic
 
 - Corrected the live-boot SPI lifecycle defect by binding RadioLib HAL `init()`/`term()` to the target SPI begin/end operations; the full ESP-IDF build and 10 focused source groups pass.
