@@ -238,7 +238,7 @@ def test_contract() -> None:
         "bounded_runtime_accepted": True,
         "oled_factory_app_write_completed": True,
         "public_link_factory_app_write_completed": True,
-        "write_attempts": 3,
+        "write_attempts": 5,
     }, "physical execution evidence must remain exact and further authority absent")
 
 
@@ -280,6 +280,7 @@ def test_contract() -> None:
         "oled_startup_display_build_linked",
         "oled_compact_status_footer_host_tested",
         "oled_compact_status_footer_build_linked",
+        "oled_compact_status_footer_physically_observed",
         "oled_startup_logo_coded",
         "oled_ble_phase_status_coded",
         "oled_ble_link_status_physically_observed",
@@ -371,10 +372,12 @@ def test_contract() -> None:
     require(capabilities["oled_compact_status_footer_host_tested"] is True and
             capabilities["oled_compact_status_footer_build_linked"] is True and
             capabilities[
+                "oled_compact_status_footer_physically_observed"] is True and
+            capabilities[
                 "oled_compact_status_footer_live_telemetry_bound"] is False and
             capabilities[
                 "oled_compact_status_footer_radio_activity_bound"] is False,
-            "compact footer must remain placeholder-only and radio-unbound")
+            "compact footer must be physically observed while remaining placeholder-only and radio-unbound")
 
     require(capabilities["oled_startup_display_physically_observed"] is True and
             capabilities["oled_ble_link_status_physically_observed"] is True and
@@ -1094,14 +1097,14 @@ def test_display_surface() -> None:
             "case StartupDisplayFrame::self_check_failed:" in owner and
             "page = {};" in owner and "return false;" in owner,
             "logo and SELF CHECK FAIL must bypass the compact BLE footer")
-    require("footer.columns.begin()" in adapter and
+    require("view.footer.columns.begin()" in adapter and
             "kStatusPage = 7" in adapter and
             "kDisplayWidth = 128" in adapter and
-            "startup_display_compact_footer_page(frame, footer)" in adapter and
-            "footer.columns.end()" in adapter and
+            "view.has_footer" in adapter and
+            "view.footer.columns.end()" in adapter and
             "pixels.begin() + kStatusPage * kDisplayWidth" in adapter,
-            "OLED adapter must copy the exact 128-column page into page 7")
-    require("draw_status_text(pixels, startup_display_text(frame))" in adapter and
+            "OLED adapter must copy the exact supplied 128-column page into page 7")
+    require("draw_status_text(pixels, startup_display_text(view.frame))" in adapter and
             'return "SELF CHECK FAIL"' in owner,
             "logo/self-check fallback path must remain explicit")
     require("kWidth = 128" in footer_header and

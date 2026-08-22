@@ -1,8 +1,9 @@
 # Heltec V4 bench candidate target
 
-Status: experimentally flashed with bounded USB runtime, BLE service
-advertising, one fixed public BLE read, and physically accepted startup/link
-status OLED transitions on `OT-DEV-001`; not supported hardware.
+Status: experimentally flashed on both Heltec bench units with bounded USB
+runtime and the physically accepted compact placeholder footer. `OT-DEV-001`
+also retains its earlier BLE service, public-read, and link-status evidence; not
+supported hardware.
 
 OT-085A installed and read-back verified the exact OT-085 image, then accepted
 one fixed, privacy-safe public link-information read and a phone-disconnect
@@ -29,6 +30,18 @@ cache-isolated computer builds linked the component with zero warnings and
 identical artifacts; this is not device, flash, radio, physical-display, live-
 telemetry, support, regulatory, readiness, final-configuration, or score
 acceptance. See [OT-106 evidence](../../../tests/hardware/OT-106-2026-08-21.md).
+
+OT-115 adds content-aware footer redraw under an unchanged BLE phase, installs
+the exact 473,152-byte `heltec_v4_bench` image on both test units, and accepts
+the physical placeholder layout from owner-provided views: both displays are
+lit, and a clear close view reads `BAT:--% GPS:-- BLE:A` with the direction
+field blank. Both units also emitted bounded OpenTrail USB heartbeats after the
+automatic flash and reset. The photos were inspected transiently and were not
+copied into the repository. BLE advertising is the only live footer value
+accepted by this run; battery, satellite count, and LoRa activity remain
+unbound. OT-115 is not live-telemetry, radio, GNSS, battery, interactive-UI,
+device-name, support, regulatory, production, end-to-end, or score evidence.
+See [OT-115 evidence](../../../tests/hardware/OT-115-2026-08-21.md).
 This bounded ESP-IDF target is the first native OpenTrail build surface for the
 ESP32-S3 family used by the two assembled Heltec V4 bench clients. OT-059 binds
 the build configuration to the recorded `OT-DEV-001` evidence: observed

@@ -7,28 +7,56 @@ bool StartupDisplayOwner::start() {
         return status_.available;
     }
     started_ = true;
-    if (!port_.initialize() || !port_.render(StartupDisplayFrame::logo)) {
+    const StartupDisplayView view{};
+    if (!port_.initialize() || !port_.render(view)) {
         status_.available = false;
         return false;
     }
     status_.available = true;
     status_.frame = StartupDisplayFrame::logo;
     status_.render_count = 1;
+    view_ = view;
+    has_view_ = true;
     return true;
 }
 
 bool StartupDisplayOwner::show(StartupDisplayFrame frame) {
+    StartupDisplayView view{};
+    view.frame = frame;
+    view.has_footer = startup_display_compact_footer_page(frame, view.footer);
+    return show_view(view);
+}
+
+bool StartupDisplayOwner::show_footer(
+    StartupDisplayFrame frame,
+    const ui::compact_status_footer::Page& footer) {
+    ui::compact_status_footer::Page generated{};
+    if (!startup_display_compact_footer_page(frame, generated)) {
+        return false;
+    }
+    StartupDisplayView view{};
+    view.frame = frame;
+    view.has_footer = true;
+    view.footer = footer;
+    return show_view(view);
+}
+
+bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
     if (!started_ || !status_.available) {
         return false;
     }
-    if (status_.frame == frame) {
+    if (has_view_ && view_.frame == view.frame &&
+        view_.has_footer == view.has_footer &&
+        (!view.has_footer || view_.footer.columns == view.footer.columns)) {
         return true;
     }
-    if (!port_.render(frame)) {
+    if (!port_.render(view)) {
         status_.available = false;
         return false;
     }
-    status_.frame = frame;
+    view_ = view;
+    has_view_ = true;
+    status_.frame = view.frame;
     ++status_.render_count;
     return true;
 }

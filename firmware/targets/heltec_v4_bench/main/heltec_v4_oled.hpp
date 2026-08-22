@@ -20,7 +20,7 @@ inline constexpr std::uint32_t kHeltecV4OledClockHz = 400000;
 class HeltecV4Oled final : public StartupDisplayPort {
 public:
     [[nodiscard]] bool initialize() override;
-    [[nodiscard]] bool render(StartupDisplayFrame frame) override;
+    [[nodiscard]] bool render(const StartupDisplayView& view) override;
 
 private:
     [[nodiscard]] bool record_failure(const char* step, int error_code);

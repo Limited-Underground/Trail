@@ -66,12 +66,12 @@ Connected directly to the development laptop for bounded inventory beginning 202
 
 | Field | Verified result | Evidence/source |
 | --- | --- | --- |
-| Inventory state | Experimentally flashed OpenTrail target; exact received Heltec Automation WiFi LoRa 32 V4 / `HTIT-WB32LAF` / `V4.2` documented-high-band profile, boot/self-check/USB heartbeat, service advertising, one fixed public BLE read, target-local Trail startup/link-status OLED, and both phone-driven and target-timed disconnect/advertising-return paths passed. Installed antenna, electrical radio path, full pinout, protected authorization, direct OpenTrail LoRa/GNSS, interactive UI/input, recovery-after-loss, regulatory acceptance, and support remain unresolved | [OT-061](../tests/hardware/OT-061-2026-08-16.md), [OT-064](../tests/hardware/OT-064-2026-08-17.md), [OT-085A](../tests/hardware/OT-085A-2026-08-19.md), [OT-085B](../tests/hardware/OT-085B-2026-08-19.md), and [OT-103](../tests/hardware/OT-103-2026-08-20.md) evidence |
+| Inventory state | Experimental OpenTrail bench target with exact received V4.2 documented-high-band profile, prior bounded BLE/link-status and direct-radio evidence, and current two-device compact-footer acceptance. Installed antenna, electrical radio path, full pinout, protected authorization, live OpenTrail LoRa/GNSS/battery binding, interactive UI/input, recovery-after-loss, regulatory acceptance, and support remain unresolved | [OT-115](../tests/hardware/OT-115-2026-08-21.md), [OT-114](../tests/hardware/OT-114-2026-08-21.md), [OT-085A](../tests/hardware/OT-085A-2026-08-19.md), [OT-085B](../tests/hardware/OT-085B-2026-08-19.md), and [OT-103](../tests/hardware/OT-103-2026-08-20.md) evidence |
 | Evidence role | Experimented OpenTrail bench target with exact received-unit identity, physically accepted startup/status OLED, bounded public BLE read, and automatic lifecycle evidence; not validated or supported hardware | OT-103 adds identity evidence only. OT-061 full-image, OT-064 app-only, and OT-085A app-only write authorizations are consumed; OT-085B and OT-103 performed no target write and grant no standing write, recovery, unit-2, radio, regulatory, or support authority |
 | Purchase record | One of two units from Meshnology two-set V4 GPS bundle, Amazon ASIN `B0FS1WQWKF`, selected as `Black-2` | Owner-provided purchase link, 2026-08-12. An owner-provided package photo reads `WiFi LoRa 32 V4`, `LoRa Dev-kits`, `LoRa Band`, and `HF 863-928`; the checkbox state is not claimed. The listing describes two V4 boards, two L76 GNSS modules, two 3000 mAh batteries, N39 cases, and 915 MHz antennas but remains corroborating purchase evidence rather than electrical verification |
 | Product/model | Exact received Heltec Automation `WiFi LoRa 32 V4`, PCB/RF-variant model `HTIT-WB32LAF`, received revision `V4.2`, documented-high-band profile | Privacy-safe owner-photo observations admitted by [OT-103](../tests/hardware/OT-103-2026-08-20.md); the prior `Heltec V4 OLED` runtime identity remains corroborating evidence |
 | Official documented family/profile | V4.2 datasheet Table 1.5 records `HTIT-WB32LAF` at `868-928 MHz` and `28 +/- 1 dBm`; Table 3.5.1 separately records `863-928 MHz` and `28 +/- 1 dBm`; Table 3.1 identifies ESP32-S3R2, SX1262, 16 MiB flash, and 2 MiB PSRAM | Official PDF digest and source URL are recorded in OT-103; the PDF was not retained. The two published band ranges stay distinct, and family-level SX1262/power statements are not received-unit electrical, antenna, legal-region, or regulatory proof |
-| USB port during test | `COM3` | Windows Ports-class device enumeration; port assignment can change |
+| ROM maintenance USB | Espressif Ports-class interface; transient port assignment omitted | Windows Ports-class device enumeration |
 | USB identity | Espressif `VID 303A`, `PID 1001`; USB Serial/JTAG | Windows Plug-and-Play properties |
 | MCU | ESP32-S3, QFN56, revision v0.2 | `esptool 5.3.1 chip-id` |
 | CPU/features | Dual core plus LP core, up to 240 MHz, Wi-Fi, Bluetooth 5 LE | `esptool 5.3.1 chip-id` |
@@ -81,9 +81,9 @@ Connected directly to the development laptop for bounded inventory beginning 202
 | Secure Boot | Disabled | `esptool 5.3.1 get-security-info` |
 | Flash encryption | Disabled | `esptool 5.3.1 get-security-info` |
 | State during query | ROM USB/UART download bootloader | ROM serial banner and query connection |
-| Normal application USB | Espressif application USB `VID 303A`, `PID 0002`, observed as `COM6` | Windows enumeration after normal boot; COM assignment can change |
-| Current installed application | Experimental OpenTrail `heltec_v4_radio_diag`; 210,816-byte application, SHA-256 `A50B6F19C728CC8FE40256CF5786385BDA0F34AF35EA3BD65326A03CFF7D3E6D` | OT-112 flashed and verified the corrected identical image on both bench nodes |
-| Current bounded runtime | Receive-only diagnostic booted `ready=yes`, `armed=no` on the fixed 915 MHz profile; controlled 17-byte and exactly 163-byte structured frames passed in both directions, ending at `rx=2`, `tx=2` | [OT-112 evidence](../tests/hardware/OT-112-2026-08-21.md); broader OT-110 acceptance remains open |
+| Normal application USB | Espressif application USB `VID 303A`, `PID 0002`; transient port assignment omitted | Windows enumeration after normal boot |
+| Current installed application | Experimental OpenTrail `heltec_v4_bench`; 473,152-byte application, SHA-256 `0C40AEB6C95ADE9940AA21065CBC73A72DCD82E96ADE9D13126693147FEB5741` | OT-115 automatically flashed and verified the identical full image on both bench nodes |
+| Current bounded runtime | One bounded OpenTrail heartbeat was observed from each unit after automatic reset. A two-unit view shows both OLEDs lit with the footer row; one separate clear close view confirms `BAT:--% GPS:-- BLE:A` with a blank traffic field. BLE advertising is live; battery, GNSS satellites, and LoRa activity are unbound placeholders | [OT-115 evidence](../tests/hardware/OT-115-2026-08-21.md); OT-114 direct-radio results remain historical evidence for the replaced diagnostic image |
 | Protected-storage source proof | A bounded read-only operation matched the exact installed 3,072-byte partition table and verified that the complete 1 MiB source region was all `0xFF`; it retained no raw bytes or private binding details, and its temporary executor was deleted. Manual RST returned the Trail logo and `BLE ADVERTISING`. This satisfies only the OT-070 source prerequisite | [OT-074 evidence](../tests/hardware/OT-074-2026-08-17.md) |
 | Prior installed application | MeshCore `v1.16.0-07a3ca9` | Historical application strings and pre-OT-061 public runtime evidence |
 | Exact application recovery artifact | The complete 470,928-byte OT-064 factory application was captured read-only and independently verified after connection close; SHA-256 `A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B`; retained only as a private ignored recovery artifact, with no restore/write authority | [OT-076 evidence](../tests/hardware/OT-076-2026-08-17.md) |
@@ -150,7 +150,7 @@ Official references used for family matching:
   command was sent. OT-DEV-001 then ran USB Companion so serial CLI validation
   could proceed after the browser released the Web Serial port; OT-061 later
   replaced that installation with the experimental OpenTrail image.
-- Historical pre-OT-061 USB Companion serial validation succeeded on `COM6`:
+- Historical pre-OT-061 USB Companion serial validation succeeded on the selected transient port:
   MeshCLI connected, confirmed firmware `v1.16.0-07a3ca9`, and returned
   read-only configuration/runtime statistics. The browser and MeshCLI could
   not own the Web Serial/COM port simultaneously.
@@ -174,13 +174,13 @@ Connected independently to the development laptop and queried read-only over USB
 
 | Field | Verified result | Evidence/source |
 | --- | --- | --- |
-| Inventory state | Experimental OpenTrail direct-radio bench target; corrected identical image boot and bounded bidirectional 17/163-byte structured-frame delivery passed. Low-level ROM/flash identity and physical SKU/RF/antenna/pinout remain unresolved | [OT-112 evidence](../tests/hardware/OT-112-2026-08-21.md), prior MeshCLI serial queries, and Windows USB enumeration |
+| Inventory state | Experimental OpenTrail bench target currently running the identical OT-115 compact-footer image; automatic full-image verification passed on both units, one bounded heartbeat was observed from each, and the two-unit view shows both OLEDs lit with the footer row; one clear close view confirms the exact placeholder text. Prior OT-114 direct-radio evidence remains historical. Low-level ROM/flash identity and physical SKU/RF/antenna/pinout remain unresolved | [OT-115 evidence](../tests/hardware/OT-115-2026-08-21.md), [OT-114 evidence](../tests/hardware/OT-114-2026-08-21.md), prior MeshCLI serial queries, and Windows USB enumeration |
 | Evidence role | Assembled bench client | Same boundary as `OT-DEV-001`; not the board-level first complete-client build |
 | Purchase record | Second unit from Meshnology two-set V4 GPS bundle, Amazon ASIN `B0FS1WQWKF`, selected as `Black-2` | Owner-provided purchase link, 2026-08-12; same listing boundary as `OT-DEV-001` |
 | Product/model | Heltec V4 OLED (runtime-detected) | `meshcli ver` |
-| Application USB | Espressif application USB `VID 303A`, `PID 0002`, observed as `COM11`; assignment can change | Windows/pySerial enumeration |
-| Current installed application | Experimental OpenTrail `heltec_v4_radio_diag`; 210,816-byte application, SHA-256 `A50B6F19C728CC8FE40256CF5786385BDA0F34AF35EA3BD65326A03CFF7D3E6D` | OT-112 flashed and verified the corrected identical image on both bench nodes |
-| Current bounded runtime | Receive-only diagnostic booted `ready=yes`, `armed=no` on the fixed 915 MHz profile; controlled 17-byte and exactly 163-byte structured frames passed in both directions, ending at `rx=2`, `tx=2` | [OT-112 evidence](../tests/hardware/OT-112-2026-08-21.md); broader OT-110 acceptance remains open |
+| Application USB | Espressif application USB `VID 303A`, `PID 0002`; transient port assignment omitted | Windows/pySerial enumeration |
+| Current installed application | Experimental OpenTrail `heltec_v4_bench`; 473,152-byte application, SHA-256 `0C40AEB6C95ADE9940AA21065CBC73A72DCD82E96ADE9D13126693147FEB5741` | OT-115 automatically flashed and verified the identical full image on both bench nodes |
+| Current bounded runtime | One bounded OpenTrail heartbeat was observed from each unit after automatic reset. A two-unit view shows both OLEDs lit with the footer row; one separate clear close view confirms `BAT:--% GPS:-- BLE:A` with a blank traffic field. BLE advertising is live; battery, GNSS satellites, and LoRa activity are unbound placeholders | [OT-115 evidence](../tests/hardware/OT-115-2026-08-21.md); OT-114 direct-radio results remain historical evidence for the replaced diagnostic image |
 | Prior MeshCore firmware/role | USB Companion `v1.16.0-07a3ca9`, firmware date 06-Jun-2026; 350 contacts, 40 channels; repeat disabled; path-hash mode 0 | Historical MeshCLI evidence before OT-112 |
 | Prior MeshCore radio configuration | User-applied USA/Canada preset: 910.525 MHz, 62.5 kHz bandwidth, SF7, CR5, 10 dBm transmit power; maximum reported 22 dBm | Historical filtered `meshcli infos` query before OT-112 |
 | Telemetry/contact defaults | Environment, location, and base telemetry disabled; manual contact addition disabled | Filtered `meshcli infos` query |
@@ -212,13 +212,13 @@ and selected the USA region.
 | Evidence role | Integrated solar packaged-repeater candidate | May be evaluated as the actual optional repeater after exact received-profile, recovery, GNSS, power, weather, radio, and regulatory gates |
 | Purchase record | SenseCAP Solar Node **P1-Pro**, Amazon ASIN `B0FMDHBWX8` | Owner-provided purchase link, 2026-08-12. Seeed's current MeshCore P1-Pro product is SKU `100023690` with XIAO nRF52840 Plus, Wio-SX1262, L76K GNSS, and battery; exact received label/revision remains to be transcribed |
 | Runtime board | `Seeed SenseCap Solar` | Repeater `board` command |
-| USB interface during test | `COM17`; USB `VID 2886`, `PID 0059` | pySerial enumeration; port assignment can change |
+| USB interface during test | USB `VID 2886`, `PID 0059`; transient port assignment omitted | pySerial enumeration |
 | Installed role and firmware | MeshCore Repeater `v1.16.0-07a3ca9`, build 06-Jun-2026 | Repeater `ver` command |
 | Radio configuration | 910.5250244 MHz, 62.5 kHz bandwidth, SF7, CR5, 22 dBm transmit power; repeating enabled | Repeater `get radio`, `get tx`, and `get repeat` commands |
 | Battery snapshot | 4.155 V while USB-connected | Repeater `stats-core`; transient observation only |
 | Runtime health snapshot | Uptime 448 seconds, 0 core errors, empty queue, -110 dBm reported noise floor, and 0 receive errors | Repeater `stats-core`, `stats-radio`, and `stats-packets` |
-| Clock | Fresh flash initially reported 15-May-2024; synchronized over USB to current UTC and verified remotely from both Heltec companions | Repeater `clock sync`; Companion `req_clock` from `COM6` and `COM11` |
-| Companion discovery | Both Heltec companions independently stored the SenseCAP repeater advert | Redacted contact-list comparison on `COM6` and `COM11` |
+| Clock | Fresh flash initially reported 15-May-2024; synchronized over USB to current UTC and verified remotely from both Heltec companions | Repeater `clock sync`; Companion `req_clock` from both Heltec units |
+| Companion discovery | Both Heltec companions independently stored the SenseCAP repeater advert | Redacted contact-list comparison on both Heltec units |
 | Close-range forwarding | One temporary private-channel message delivered in each Heltec direction with 0 loss, 0 duplicates, 240.8/276.9 ms latency, and 11.5/12.0 dB SNR; the repeater recorded exactly +2 flood RX/+2 flood TX. Explicit one-hop direct routes then succeeded in both directions (1,121 ms and 880 ms acknowledgement round trips), each with exactly +2 direct RX/+2 direct TX at the repeater. With repeat temporarily off, the repeater recorded +1 direct RX/+0 direct TX, the sender timed out, and the destination received no message. | `tests/hardware/OT-009-2026-08-08.md` |
 | GPS/GNSS bench evidence | The documented status initially reported off; explicit bench enablement produced active/no-fix/0 satellites for the first 27 seconds, followed later by a live fix and checks at 4, 7, and 8 satellites | MeshCore repeater bare `gps` status, 2026-08-12; no coordinates or identity were saved. This proves the installed firmware/GNSS path can obtain a live fix, not exact physical module/wiring, accuracy, repeatable cold-start time, loss/obstruction behavior, or power cost |
 
@@ -243,7 +243,7 @@ were deliberately excluded from this inventory.
 
 ## Two-node USB preflight
 
-Both boards were connected simultaneously to the development laptop on 2026-08-08 and detected independently as `COM6` (`OT-DEV-001`) and `COM11` (`OT-DEV-002`). The redacted USB health check confirmed:
+Both boards were connected simultaneously to the development laptop on 2026-08-08 and detected independently; transient port assignments are omitted. The redacted USB health check confirmed:
 
 - Both report Heltec V4 OLED and MeshCore USB Companion `v1.16.0-07a3ca9`.
 - Both use 910.525 MHz, 62.5 kHz bandwidth, SF7, CR5, and 10 dBm transmit power.

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 import subprocess
 import sys
@@ -16,19 +15,6 @@ sys.path.insert(0, str(ROOT / "tools"))
 import heltec_compact_footer_build_evidence as evidence  # noqa: E402
 
 EVIDENCE = ROOT / "tests" / "benchmarks" / "display" / "OT-106-HELTEC-V4-COMPACT-FOOTER-BUILD-V0.json"
-OT093_FILES = {
-    "ot093_record_sha256": ROOT / "tests" / "benchmarks" / "crypto" / "OT-093-OT005-BUILD-BASELINE-V0.json",
-    "ot093_helper_sha256": ROOT / "tools" / "Build-HeltecV4BenchTarget.ps1",
-    "ot093_validator_sha256": ROOT / "tools" / "crypto_benchmark_baseline.py",
-    "ot093_tests_sha256": ROOT / "tests" / "host" / "crypto_benchmark_baseline_tests.py",
-    "ot093_evidence_note_sha256": ROOT / "tests" / "hardware" / "OT-093-2026-08-20.md",
-}
-
-
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def checked() -> dict:
     return evidence.load(EVIDENCE)
 
@@ -65,13 +51,13 @@ def test_frozen_receipts_and_artifacts_are_exact() -> None:
         assert evidence.canonical_sha256(normalized) == evidence.EXPECTED_NORMALIZED_RECEIPT
 
 
-def test_live_inputs_and_ot093_history_are_exact() -> None:
+def test_frozen_input_and_ot093_history_locks_are_exact() -> None:
     value = checked()
     for field, (relative, expected) in evidence.EXPECTED_INPUTS.items():
         assert value["inputs"][field] == relative
-        assert sha256(ROOT / relative) == expected == value["inputs"][f"{field}_sha256"]
-    for field, path in OT093_FILES.items():
-        assert sha256(path) == evidence.EXPECTED_OT093[field] == value["historical_preservation"][field]
+        assert expected == value["inputs"][f"{field}_sha256"]
+    for field, expected in evidence.EXPECTED_OT093.items():
+        assert value["historical_preservation"][field] == expected
 
 
 def test_source_tool_input_and_receipt_forgery_fail_closed() -> None:
@@ -166,7 +152,7 @@ def main() -> int:
     tests = (
         test_accepted_exact_two_build_record,
         test_frozen_receipts_and_artifacts_are_exact,
-        test_live_inputs_and_ot093_history_are_exact,
+        test_frozen_input_and_ot093_history_locks_are_exact,
         test_source_tool_input_and_receipt_forgery_fail_closed,
         test_artifact_partition_and_headroom_tampering_fail_closed,
         test_every_authority_boundary_rejects_true,

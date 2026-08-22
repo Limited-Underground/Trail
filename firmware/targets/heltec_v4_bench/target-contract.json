@@ -81,7 +81,7 @@
     "bounded_runtime_accepted": true,
     "oled_factory_app_write_completed": true,
     "public_link_factory_app_write_completed": true,
-    "write_attempts": 3
+    "write_attempts": 5
   },
   "capabilities": {
     "bounded_usb_heartbeat": true,
@@ -127,6 +127,7 @@
     "oled_ble_phase_status_coded": true,
     "oled_compact_status_footer_host_tested": true,
     "oled_compact_status_footer_build_linked": true,
+    "oled_compact_status_footer_physically_observed": true,
     "oled_compact_status_footer_live_telemetry_bound": false,
     "oled_compact_status_footer_radio_activity_bound": false,
     "oled_ble_link_status_physically_observed": true,

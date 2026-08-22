@@ -23,11 +23,17 @@ struct StartupDisplayStatus {
     std::uint32_t render_count{0};
 };
 
+struct StartupDisplayView {
+    StartupDisplayFrame frame{StartupDisplayFrame::logo};
+    bool has_footer{false};
+    ui::compact_status_footer::Page footer{};
+};
+
 class StartupDisplayPort {
 public:
     virtual ~StartupDisplayPort() = default;
     [[nodiscard]] virtual bool initialize() = 0;
-    [[nodiscard]] virtual bool render(StartupDisplayFrame frame) = 0;
+    [[nodiscard]] virtual bool render(const StartupDisplayView& view) = 0;
 };
 
 // Best-effort owner for the small target-local startup/status display. A
@@ -39,12 +45,19 @@ public:
 
     [[nodiscard]] bool start();
     [[nodiscard]] bool show(StartupDisplayFrame frame);
+    [[nodiscard]] bool show_footer(
+        StartupDisplayFrame frame,
+        const ui::compact_status_footer::Page& footer);
     [[nodiscard]] StartupDisplayStatus status() const { return status_; }
 
 private:
+    [[nodiscard]] bool show_view(const StartupDisplayView& view);
+
     StartupDisplayPort& port_;
     StartupDisplayStatus status_{};
+    StartupDisplayView view_{};
     bool started_{false};
+    bool has_view_{false};
 };
 
 [[nodiscard]] StartupDisplayFrame startup_display_frame_for_ble_phase(

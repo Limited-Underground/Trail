@@ -13,6 +13,7 @@ using opentrail::companion::CompanionBleRuntimePhase;
 using opentrail::target::heltec_v4_bench::StartupDisplayFrame;
 using opentrail::target::heltec_v4_bench::StartupDisplayOwner;
 using opentrail::target::heltec_v4_bench::StartupDisplayPort;
+using opentrail::target::heltec_v4_bench::StartupDisplayView;
 using opentrail::target::heltec_v4_bench::startup_display_frame_for_ble_phase;
 using opentrail::target::heltec_v4_bench::startup_display_text;
 
@@ -31,15 +32,15 @@ public:
         return initialize_succeeds;
     }
 
-    bool render(StartupDisplayFrame frame) override {
-        frames.push_back(frame);
-        return frames.size() != failing_render_call;
+    bool render(const StartupDisplayView& view) override {
+        views.push_back(view);
+        return views.size() != failing_render_call;
     }
 
     bool initialize_succeeds{true};
     std::size_t failing_render_call{0};
     std::size_t initialize_calls{0};
-    std::vector<StartupDisplayFrame> frames{};
+    std::vector<StartupDisplayView> views{};
 };
 
 void test_success_and_duplicate_suppression() {
@@ -54,11 +55,11 @@ void test_success_and_duplicate_suppression() {
             "show advertising");
     const auto status = owner.status();
     require(port.initialize_calls == 1, "initialize exactly once");
-    require(port.frames.size() == 3, "duplicate frame suppressed");
-    require(port.frames[0] == StartupDisplayFrame::logo, "logo first");
-    require(port.frames[1] == StartupDisplayFrame::ble_starting,
+    require(port.views.size() == 3, "duplicate frame suppressed");
+    require(port.views[0].frame == StartupDisplayFrame::logo, "logo first");
+    require(port.views[1].frame == StartupDisplayFrame::ble_starting,
             "starting second");
-    require(port.frames[2] == StartupDisplayFrame::ble_advertising,
+    require(port.views[2].frame == StartupDisplayFrame::ble_advertising,
             "advertising only after explicit update");
     require(status.available && status.render_count == 3,
             "successful display status");
@@ -69,7 +70,7 @@ void test_initialization_and_render_fail_closed_locally() {
     init_failure.initialize_succeeds = false;
     StartupDisplayOwner unavailable{init_failure};
     require(!unavailable.start(), "init failure returned");
-    require(init_failure.frames.empty(), "no render after init failure");
+    require(init_failure.views.empty(), "no render after init failure");
     require(!unavailable.show(StartupDisplayFrame::ble_advertising),
             "unavailable display stays local-only");
 
@@ -82,10 +83,85 @@ void test_initialization_and_render_fail_closed_locally() {
     require(!owner.status().available, "render failure latches unavailable");
     require(!owner.show(StartupDisplayFrame::ble_advertising),
             "no later display work after failure");
-    require(render_failure.frames.size() == 2,
+    require(render_failure.views.size() == 2,
             "failed display does not retry implicitly");
 }
 
+void test_content_aware_footer_suppression_and_redraw() {
+    using Page = opentrail::ui::compact_status_footer::Page;
+
+    FakeDisplayPort port;
+    StartupDisplayOwner owner{port};
+    require(owner.start(), "content-aware display start");
+
+    Page first{};
+    first.columns[25] = 0x01;
+    require(owner.show_footer(StartupDisplayFrame::ble_connected, first),
+            "first connected footer accepted");
+    require(port.views.size() == 2, "first footer rendered");
+    require(port.views.back().frame == StartupDisplayFrame::ble_connected,
+            "footer retains BLE frame");
+    require(port.views.back().has_footer, "footer presence retained");
+    require(port.views.back().footer.columns == first.columns,
+            "exact footer retained");
+
+    require(owner.show_footer(StartupDisplayFrame::ble_connected, first),
+            "identical connected footer accepted");
+    require(port.views.size() == 2, "identical footer suppressed");
+
+    auto changed = first;
+    changed.columns[121] = 0x7F;
+    require(owner.show_footer(StartupDisplayFrame::ble_connected, changed),
+            "changed connected footer accepted");
+    require(port.views.size() == 3,
+            "changed footer redraws under unchanged BLE frame");
+    require(port.views.back().footer.columns == changed.columns,
+            "changed exact footer rendered");
+
+    require(owner.show(StartupDisplayFrame::ble_connected),
+            "plain connected footer accepted");
+    require(port.views.size() == 4,
+            "plain footer redraws after different explicit content");
+    require(port.views.back().has_footer,
+            "plain BLE frame carries generated footer");
+    require(port.views.back().footer.columns != changed.columns,
+            "plain BLE frame replaces explicit footer content");
+
+    const auto status = owner.status();
+    require(status.available &&
+                status.frame == StartupDisplayFrame::ble_connected &&
+                status.render_count == 4,
+            "content-aware redraw updates status");
+}
+
+void test_footer_rejected_for_non_footer_frames() {
+    using Page = opentrail::ui::compact_status_footer::Page;
+
+    FakeDisplayPort port;
+    StartupDisplayOwner owner{port};
+    require(owner.start(), "footer rejection display start");
+
+    Page page{};
+    page.columns.fill(0xFF);
+    require(!owner.show_footer(StartupDisplayFrame::logo, page),
+            "logo footer rejected");
+    require(!owner.show_footer(StartupDisplayFrame::self_check_failed, page),
+            "self-check footer rejected");
+    require(!owner.show_footer(static_cast<StartupDisplayFrame>(0xFF), page),
+            "invalid frame footer rejected");
+    require(port.views.size() == 1,
+            "rejected footer requests do not render");
+    require(owner.status().available && owner.status().render_count == 1,
+            "rejected footer requests do not contain display");
+
+    require(owner.show(StartupDisplayFrame::self_check_failed),
+            "plain self-check frame remains available");
+    require(port.views.size() == 2 &&
+                port.views.back().frame ==
+                    StartupDisplayFrame::self_check_failed &&
+                !port.views.back().has_footer,
+            "plain self-check frame retains full-screen path");
+}
 void test_ble_phase_and_copy_mapping() {
     require(startup_display_frame_for_ble_phase(
                 CompanionBleRuntimePhase::dormant) ==
@@ -191,8 +267,10 @@ void test_compact_footer_placeholder_mapping() {
 int main() {
     test_success_and_duplicate_suppression();
     test_initialization_and_render_fail_closed_locally();
+    test_content_aware_footer_suppression_and_redraw();
+    test_footer_rejected_for_non_footer_frames();
     test_ble_phase_and_copy_mapping();
     test_compact_footer_placeholder_mapping();
-    std::cout << "4 Heltec startup display groups passed.\n";
+    std::cout << "6 Heltec startup display groups passed.\n";
     return 0;
 }

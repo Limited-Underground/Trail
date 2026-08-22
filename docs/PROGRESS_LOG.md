@@ -5,6 +5,12 @@ remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concis
 public chronology.
 
 ## 2026-08-21
+### OT-115 two-device compact-footer install and acceptance
+
+- Added content-aware view ownership so a footer pixel change redraws under an unchanged BLE phase while an identical complete view remains suppressed; invalid footer frames fail closed.
+- The pinned ESP-IDF 6.0.2 build produced a 473,152-byte application with SHA-256 `0C40AEB6C95ADE9940AA21065CBC73A72DCD82E96ADE9D13126693147FEB5741` and 91% of the smallest application slot free.
+- Automatic full-image write, hash verification, and hard reset passed on both Heltec test units. Both emitted bounded OpenTrail heartbeats. Owner-provided views show both OLEDs lit, and a clear close view accepts `BAT:--% GPS:-- BLE:A` with no traffic arrow; the views were not copied into the repository.
+- BLE advertising is the only live footer field accepted here. Battery, GNSS satellites, and LoRa activity remain unbound placeholders. OT-114 remains historical radio evidence; no support, regulatory, production, end-to-end, or score claim changes. See [OT-115 evidence](../tests/hardware/OT-115-2026-08-21.md).
 ### OT-114 US915 direct-radio profile evidence admission
 
 - Accepted strict `OTRPE1/v1` physical evidence and append-only `OTRPA1/v1` admission under the corrected OT-113 executable successor contract.
