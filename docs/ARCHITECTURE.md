@@ -1026,10 +1026,11 @@ blocked at source/API/import counts `3/1/0`. OT-117 subsequently admits
 complete eight-of-eight host-only libsodium API/configuration evidence and
 advances counts to `3/2/0`. OT-118 subsequently admits strict five-of-eight
 Monocypher comparison evidence, populating all three API/configuration
-registries and advancing current counts to `3/3/0`. Monocypher and mbedTLS/PSA
-remain structurally nonselectable. Second-node exact-profile admission,
-retained import/build admissions, and fresh execution authority still precede
-exact-target measurements. Explicit suite/wire acceptance
+registries and advancing counts to `3/3/0`. OT-119 then completes phase 0, and
+OT-120 atomically accepts every retained candidate import/build anchor and
+completes phase 1 at `3/3/3`. Monocypher and mbedTLS/PSA remain structurally
+nonselectable. Fresh execution authority is the only remaining precondition
+before exact-target measurements. Explicit suite/wire acceptance
 remains a later gate.
 
 Before a sender-specific traffic key can protect packet v1, its outbound nonce

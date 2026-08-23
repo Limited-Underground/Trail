@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-22
 
+### OT-120 retained candidate import/build admission
+
+- Accepted the exact retained import/build graphs and evidence for Espressif libsodium, ESP-IDF mbedTLS/PSA, and Monocypher plus append-only atomic `OTCIBA1/v1`. Graph raw SHA-256 values are `c939dbc7...`, `7338e238...`, and `9e59ab26...`; admission raw/canonical SHA-256 is `90af3196...` / `0c55f498...`.
+- Each candidate completed two independent, initially absent, cache-disabled and component-manager-network-disabled ESP-IDF 6.0.2 builds. All six builds returned zero with zero compiler warnings, reproduced the accepted OT-107 sdkconfig, retained every admitted operation anchor, and produced equal two-run artifact tuples.
+- Source/API-configuration/import counts advance atomically to `3/3/3`; phase 0 and phase 1 are complete. Measurement remains false and blocked only by absent fresh benchmark execution authority. Libsodium remains structurally eligible but unselected; mbedTLS/PSA and Monocypher remain five-of-eight, comparison-only, and structurally nonselectable.
+- No benchmark, hardware, flash, radio, key/entropy operation, suite/wire selection, secure-LoRa, Packet V1, support, compatibility, regulatory, physical, or score claim is added. Android remains 60%; V1 exact 43.75%/displayed 44%; baseline exact 31.75%/displayed 32%. See [Decision 0058](decisions/0058-retained-candidate-import-build-admission.md) and [OT-120 evidence](../tests/hardware/OT-120-2026-08-22.md).
+
 ### OT-119 second measurement-node exact-profile admission
 
 - Accepted privacy-safe `OTRTPR0/v0`, exact second-node `OTRTPE1/v1`, and append-only `OTRTPA1/v1`. Receipt raw/canonical SHA-256 is `16e69159aed7b9e7d9304cd7cc16d25b7205fc9283ee7751f26b3b9580df5f7c` / `e89f3e027f695d88e764af01b1e032b360a23455a7122121833720d2fbf7adf7`; evidence is `0e8a9862091f7a1c58630bb64fc9250bdb24bddfdf8c09856629dd7dc73255e1` / `7f470316d446cdc3be5a878580418c08bff628e703dd8f419aa5e83f9001d223`; admission is `afd3d8b17f80c49560f9fad71e93703ef6d142ee538146fc5829b2a0799d0e36` / `0eff2d934891f36999bdafb2a14ffc755b258c19bccb96a5a8d96db06105a443`.

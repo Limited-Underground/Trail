@@ -81,10 +81,11 @@ unexecuted. OT-116 records all six old OT-094 requirements closed and freezes a
 phased successor plan. OT-117 admits complete eight-of-eight host-only
 libsodium API/configuration evidence and advances source/API/import counts to
 `3/2/0`. OT-118 then admits strict five-of-eight Monocypher comparison
-evidence and advances current counts to `3/3/0`; measurement remains blocked
-pending second-node exact-profile admission, retained import/build evidence,
-and fresh execution authority. The exact benchmark and a
-later explicit suite/wire decision remain mandatory before implementation. BLE
+evidence and advances counts to `3/3/0`. OT-119 completes phase 0, and OT-120
+atomically accepts every retained candidate import/build anchor and completes
+phase 1 at `3/3/3`. Measurement remains blocked only by absent fresh execution
+authority. The exact benchmark and a later explicit suite/wire decision remain
+mandatory before implementation. BLE
 authorization and LoRa security remain separate implementation and physical
 evidence gates.
 
@@ -147,11 +148,11 @@ Authorization is frozen and host-tested under OT-090, the algorithm-neutral
 secure-LoRa lifecycle/admission semantics are frozen and host-tested under
 OT-091, and OT-093 freezes the deterministic pre-selection build baseline
 without benchmark execution or score. OT-116 freezes the phased successor plan; OT-117 and OT-118 populate all three
-candidate API/configuration registries, and OT-119 independently admits the
-second node's exact profile to complete phase 0. Next admit retained import/build
-evidence for every included executable candidate, run the exact benchmark under
-fresh separate authority, and
-accept the crypto suite/library, handshake/KDF, and packet-v1 wire selection.
+candidate API/configuration registries, OT-119 independently admits the second
+node's exact profile and completes phase 0, and OT-120 accepts every retained
+candidate import/build anchor and completes phase 1 at `3/3/3`. Next run the
+exact benchmark under fresh separate authority, then accept the crypto
+suite/library, handshake/KDF, and packet-v1 wire selection.
 Then implement and physically accept the frozen pairing/replacement and selected
 secure-LoRa paths under separate authority; complete the Android message flow;
 run complete two-pair V1 acceptance; finish the signed Android gate; then

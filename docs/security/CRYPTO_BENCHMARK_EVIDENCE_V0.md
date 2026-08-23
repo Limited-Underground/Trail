@@ -1,8 +1,8 @@
 # Cryptographic Benchmark Evidence v0
 
-Status: host-tested evidence boundary; historical plans preserved, successor
-readiness review and phased execution contract frozen while target candidate
-measurement remains blocked, 2026-08-22
+Status: host-tested evidence boundary; historical plans preserved, phases 0
+and 1 accepted at source/API/import counts `3/3/3`; exact-target measurement
+blocked only by absent fresh execution authority, 2026-08-22
 
 ## Purpose
 
@@ -363,9 +363,10 @@ OT-005 result. OT-117 subsequently admits complete eight-of-eight host-only libs
 configuration evidence, advancing accepted source/API/import counts to
 `3/2/0`. OT-118 then admits strict five-of-eight Monocypher comparison
 evidence, populating all three API/configuration registries and advancing
-current counts to `3/3/0`. Measurement remains blocked until second-node exact-
-profile admission, retained import/build admissions, and fresh execution
-authority pass. Entropy,
+counts to `3/3/0`. OT-119 then accepts the second-node exact profile and
+completes phase 0. OT-120 atomically accepts every retained candidate
+import/build anchor and completes phase 1 at `3/3/3`. Measurement remains
+blocked only until fresh execution authority is granted. Entropy,
 interoperability, candidate resource deltas, exact benchmark radio cost,
 physical join/revoke/reset, protected storage, and power-interruption evidence
 remain open.
