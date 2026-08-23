@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Any
 
 
-PREFIX = b"OTCBXRF1 "
-SCHEMA = "OTCBXRF1"
-VERSION = 1
+PREFIX = b"OTCBXRF2 "
+SCHEMA = "OTCBXRF2"
+VERSION = 2
 CANDIDATE_ID = "espressif_libsodium"
-SCOPE = "local_primitives_v1"
+SCOPE = "candidate_local_v2"
 OPERATIONS = (
     "ed25519_sign",
     "ed25519_verify",
@@ -23,11 +23,12 @@ OPERATIONS = (
     "hkdf_sha256",
     "chacha20poly1305_encrypt",
     "chacha20poly1305_decrypt",
+    "noise_xk_handshake",
 )
 PHASES = ("cold", "warm")
 GATES = ("sodium_init", "primitive_vectors_and_negative_cases")
 REPETITIONS = 100
-EXPECTED_FRAME_COUNT = 1 + len(GATES) + len(OPERATIONS) * (2 * REPETITIONS + 2) + 1
+EXPECTED_FRAME_COUNT = 1 + len(GATES) + len(OPERATIONS) * (2 * REPETITIONS + 2) + 2
 MAX_CAPTURE_BYTES = 2_097_152
 MAX_FRAME_BYTES = 2_048
 MAX_DURATION_US = 2**63 - 1
@@ -205,6 +206,39 @@ def _summary(
     return expected
 
 
+def _runtime_resources(record: dict[str, Any]) -> dict[str, int]:
+    _exact(record, {
+        "schema", "version", "record_kind", "scope", "candidate_id",
+        "heap_domain", "heap_start_free_bytes", "heap_min_free_bytes",
+        "peak_dynamic_ram_bytes", "stack_allocation_bytes",
+        "stack_high_water_free_bytes", "max_stack_used_bytes",
+        "watchdog_resets", "watchdog_measurement", "phase2_complete",
+    }, "runtime resources")
+    _common(record, "runtime_resources")
+    values = {
+        name: _integer(record[name], f"runtime resources {name}", 0, 2**63 - 1)
+        for name in (
+            "heap_start_free_bytes", "heap_min_free_bytes",
+            "peak_dynamic_ram_bytes", "stack_allocation_bytes",
+            "stack_high_water_free_bytes", "max_stack_used_bytes",
+            "watchdog_resets",
+        )
+    }
+    if (
+        record["heap_domain"] != "internal_8bit"
+        or record["watchdog_measurement"] != "uninterrupted_terminal_frame"
+        or values["heap_min_free_bytes"] > values["heap_start_free_bytes"]
+        or values["peak_dynamic_ram_bytes"]
+        != values["heap_start_free_bytes"] - values["heap_min_free_bytes"]
+        or values["stack_allocation_bytes"] != 8192
+        or values["stack_high_water_free_bytes"] > values["stack_allocation_bytes"]
+        or values["max_stack_used_bytes"]
+        != values["stack_allocation_bytes"] - values["stack_high_water_free_bytes"]
+        or values["watchdog_resets"] != 0
+    ):
+        raise FrameError("runtime resource measurement mismatch")
+    return values
+
 def _complete(record: dict[str, Any]) -> None:
     _exact(record, {
         "schema", "version", "record_kind", "scope", "candidate_id",
@@ -245,6 +279,8 @@ def parse_capture_bytes(raw: bytes) -> dict[str, Any]:
                 records[cursor], operation, phase, samples
             )
             cursor += 1
+    resources = _runtime_resources(records[cursor])
+    cursor += 1
     if cursor != len(records) - 1:
         raise FrameError("terminal frame position mismatch")
     _complete(records[cursor])
@@ -259,6 +295,7 @@ def parse_capture_bytes(raw: bytes) -> dict[str, Any]:
         "warm_sample_count": len(OPERATIONS) * REPETITIONS,
         "summary_count": len(OPERATIONS) * len(PHASES),
         "gate_count": len(GATES),
+        "runtime_resources": resources,
         "phase2_complete": False,
         "radio_used": False,
         "candidate_selected": False,

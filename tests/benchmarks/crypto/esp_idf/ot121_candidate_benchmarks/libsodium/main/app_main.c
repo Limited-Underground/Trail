@@ -6,10 +6,12 @@
 
 #include "driver/usb_serial_jtag.h"
 #include "esp_err.h"
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "noise_xk_libsodium.h"
 #include "ot121_benchmark_frame.h"
 #include "sodium.h"
 
@@ -39,6 +41,20 @@ typedef struct {
     bool passed;
 } ot121_sample;
 
+typedef struct {
+    ot_noise_xk_keypair initiator_static;
+    ot_noise_xk_keypair initiator_ephemeral;
+    ot_noise_xk_keypair responder_static;
+    ot_noise_xk_keypair responder_ephemeral;
+    ot_noise_xk_state initiator;
+    ot_noise_xk_state responder;
+    unsigned char message[OT_NOISE_XK_MESSAGE_3_BYTES];
+    unsigned char initiator_tx[OT_NOISE_XK_KEY_BYTES];
+    unsigned char initiator_rx[OT_NOISE_XK_KEY_BYTES];
+    unsigned char responder_tx[OT_NOISE_XK_KEY_BYTES];
+    unsigned char responder_rx[OT_NOISE_XK_KEY_BYTES];
+} ot121_noise_scratch;
+
 static void ot121_benchmark_task(void *context);
 
 static unsigned char g_message[OT121_MESSAGE_BYTES];
@@ -62,6 +78,7 @@ static volatile unsigned char g_cache_sweep[OT121_COLD_SWEEP_BYTES];
 static volatile unsigned char g_sink;
 static ot121_sample g_samples[OT121_COLD_REPETITIONS];
 static uint64_t g_sorted[OT121_COLD_REPETITIONS];
+static ot121_noise_scratch g_noise;
 
 static const unsigned char k_sha256_abc[crypto_hash_sha256_BYTES] = {
     0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea,
@@ -203,6 +220,76 @@ static int op_chacha20poly1305_decrypt(void)
     return -1;
 }
 
+static int op_noise_xk_handshake(void)
+{
+    size_t message_size = 0U;
+    int rc = -1;
+
+    sodium_memzero(&g_noise.initiator, sizeof(g_noise.initiator));
+    sodium_memzero(&g_noise.responder, sizeof(g_noise.responder));
+    sodium_memzero(g_noise.message, sizeof(g_noise.message));
+    sodium_memzero(g_noise.initiator_tx, sizeof(g_noise.initiator_tx));
+    sodium_memzero(g_noise.initiator_rx, sizeof(g_noise.initiator_rx));
+    sodium_memzero(g_noise.responder_tx, sizeof(g_noise.responder_tx));
+    sodium_memzero(g_noise.responder_rx, sizeof(g_noise.responder_rx));
+
+    if (ot_noise_xk_init_initiator(&g_noise.initiator,
+                                   &g_noise.initiator_static,
+                                   &g_noise.initiator_ephemeral,
+                                   g_noise.responder_static.public_key,
+                                   NULL,
+                                   0U) != 0 ||
+        ot_noise_xk_init_responder(&g_noise.responder,
+                                   &g_noise.responder_static,
+                                   &g_noise.responder_ephemeral,
+                                   NULL,
+                                   0U) != 0 ||
+        ot_noise_xk_write_message(&g_noise.initiator, g_noise.message,
+                                  sizeof(g_noise.message), &message_size) != 0 ||
+        message_size != OT_NOISE_XK_MESSAGE_1_BYTES ||
+        ot_noise_xk_read_message(&g_noise.responder, g_noise.message,
+                                 message_size) != 0 ||
+        ot_noise_xk_write_message(&g_noise.responder, g_noise.message,
+                                  sizeof(g_noise.message), &message_size) != 0 ||
+        message_size != OT_NOISE_XK_MESSAGE_2_BYTES ||
+        ot_noise_xk_read_message(&g_noise.initiator, g_noise.message,
+                                 message_size) != 0 ||
+        ot_noise_xk_write_message(&g_noise.initiator, g_noise.message,
+                                  sizeof(g_noise.message), &message_size) != 0 ||
+        message_size != OT_NOISE_XK_MESSAGE_3_BYTES ||
+        ot_noise_xk_read_message(&g_noise.responder, g_noise.message,
+                                 message_size) != 0 ||
+        sodium_memcmp(g_noise.initiator.handshake_hash,
+                      g_noise.responder.handshake_hash,
+                      OT_NOISE_XK_HASH_BYTES) != 0 ||
+        ot_noise_xk_split(&g_noise.initiator, g_noise.initiator_tx,
+                          g_noise.initiator_rx) != 0 ||
+        ot_noise_xk_split(&g_noise.responder, g_noise.responder_tx,
+                          g_noise.responder_rx) != 0 ||
+        sodium_memcmp(g_noise.initiator_tx, g_noise.responder_rx,
+                      OT_NOISE_XK_KEY_BYTES) != 0 ||
+        sodium_memcmp(g_noise.initiator_rx, g_noise.responder_tx,
+                      OT_NOISE_XK_KEY_BYTES) != 0 ||
+        sodium_memcmp(g_noise.initiator_tx, g_noise.initiator_rx,
+                      OT_NOISE_XK_KEY_BYTES) == 0 ||
+        g_noise.initiator.stage != OT_NOISE_XK_STAGE_FINISHED ||
+        g_noise.responder.stage != OT_NOISE_XK_STAGE_FINISHED) {
+        goto cleanup;
+    }
+
+    g_sink ^= g_noise.initiator_tx[0];
+    rc = 0;
+
+cleanup:
+    ot_noise_xk_abort(&g_noise.initiator);
+    ot_noise_xk_abort(&g_noise.responder);
+    sodium_memzero(g_noise.message, sizeof(g_noise.message));
+    sodium_memzero(g_noise.initiator_tx, sizeof(g_noise.initiator_tx));
+    sodium_memzero(g_noise.initiator_rx, sizeof(g_noise.initiator_rx));
+    sodium_memzero(g_noise.responder_tx, sizeof(g_noise.responder_tx));
+    sodium_memzero(g_noise.responder_rx, sizeof(g_noise.responder_rx));
+    return rc;
+}
 static const ot121_operation k_operations[] = {
     { "ed25519_sign", op_ed25519_sign },
     { "ed25519_verify", op_ed25519_verify },
@@ -210,7 +297,8 @@ static const ot121_operation k_operations[] = {
     { "sha256", op_sha256 },
     { "hkdf_sha256", op_hkdf_sha256 },
     { "chacha20poly1305_encrypt", op_chacha20poly1305_encrypt },
-    { "chacha20poly1305_decrypt", op_chacha20poly1305_decrypt }
+    { "chacha20poly1305_decrypt", op_chacha20poly1305_decrypt },
+    { "noise_xk_handshake", op_noise_xk_handshake }
 };
 
 static void initialize_inputs(void)
@@ -234,6 +322,24 @@ static void initialize_inputs(void)
     for (size_t i = 0; i < sizeof(g_aead_nonce); ++i) {
         g_aead_nonce[i] = (unsigned char) (0x70U + i);
     }
+    for (size_t i = 0; i < OT_NOISE_XK_KEY_BYTES; ++i) {
+        g_noise.initiator_static.secret[i] = (unsigned char) (0x31U + i);
+        g_noise.initiator_ephemeral.secret[i] = (unsigned char) (0x51U + i);
+        g_noise.responder_static.secret[i] = (unsigned char) (0x71U + i);
+        g_noise.responder_ephemeral.secret[i] = (unsigned char) (0x91U + i);
+    }
+    ESP_ERROR_CHECK(crypto_scalarmult_curve25519_base(
+        g_noise.initiator_static.public_key,
+        g_noise.initiator_static.secret) == 0 ? ESP_OK : ESP_FAIL);
+    ESP_ERROR_CHECK(crypto_scalarmult_curve25519_base(
+        g_noise.initiator_ephemeral.public_key,
+        g_noise.initiator_ephemeral.secret) == 0 ? ESP_OK : ESP_FAIL);
+    ESP_ERROR_CHECK(crypto_scalarmult_curve25519_base(
+        g_noise.responder_static.public_key,
+        g_noise.responder_static.secret) == 0 ? ESP_OK : ESP_FAIL);
+    ESP_ERROR_CHECK(crypto_scalarmult_curve25519_base(
+        g_noise.responder_ephemeral.public_key,
+        g_noise.responder_ephemeral.secret) == 0 ? ESP_OK : ESP_FAIL);
 }
 
 static void clear_sensitive_state(void)
@@ -254,9 +360,47 @@ static void clear_sensitive_state(void)
     sodium_memzero(g_aead_nonce, sizeof(g_aead_nonce));
     sodium_memzero(g_ciphertext, sizeof(g_ciphertext));
     sodium_memzero(g_plaintext, sizeof(g_plaintext));
+    sodium_memzero(&g_noise, sizeof(g_noise));
     g_ciphertext_len = 0;
 }
 
+static bool noise_xk_positive_and_negative_cases(void)
+{
+    size_t message_size = 0U;
+    bool passed = false;
+
+    if (op_noise_xk_handshake() != 0 ||
+        ot_noise_xk_init_initiator(&g_noise.initiator,
+                                   &g_noise.initiator_static,
+                                   &g_noise.initiator_ephemeral,
+                                   g_noise.responder_static.public_key,
+                                   NULL, 0U) != 0 ||
+        ot_noise_xk_init_responder(&g_noise.responder,
+                                   &g_noise.responder_static,
+                                   &g_noise.responder_ephemeral,
+                                   NULL, 0U) != 0 ||
+        ot_noise_xk_write_message(&g_noise.initiator, g_noise.message,
+                                  sizeof(g_noise.message), &message_size) != 0 ||
+        message_size != OT_NOISE_XK_MESSAGE_1_BYTES ||
+        ot_noise_xk_read_message(&g_noise.responder, g_noise.message,
+                                 message_size) != 0 ||
+        ot_noise_xk_write_message(&g_noise.responder, g_noise.message,
+                                  sizeof(g_noise.message), &message_size) != 0 ||
+        message_size != OT_NOISE_XK_MESSAGE_2_BYTES) {
+        goto cleanup;
+    }
+
+    g_noise.message[message_size - 1U] ^= 0x80U;
+    passed = ot_noise_xk_read_message(&g_noise.initiator,
+                                      g_noise.message,
+                                      message_size) != 0;
+
+cleanup:
+    ot_noise_xk_abort(&g_noise.initiator);
+    ot_noise_xk_abort(&g_noise.responder);
+    sodium_memzero(g_noise.message, sizeof(g_noise.message));
+    return passed;
+}
 static bool primitive_vectors_and_negative_cases(void)
 {
     static const unsigned char abc[] = { 'a', 'b', 'c' };
@@ -322,7 +466,7 @@ static bool primitive_vectors_and_negative_cases(void)
         g_aead_nonce,
         g_aead_key) != 0;
     g_ciphertext[g_ciphertext_len - 1U] ^= 0x01U;
-    if (!tamper_rejected) {
+    if (!tamper_rejected || !noise_xk_positive_and_negative_cases()) {
         goto cleanup;
     }
     passed = true;
@@ -450,6 +594,12 @@ static void ot121_benchmark_task(void *context)
     (void) context;
     bool passed = false;
     unsigned completed = 0;
+    size_t heap_start_free_bytes = 0U;
+    size_t heap_min_free_bytes = 0U;
+    size_t peak_dynamic_ram_bytes = 0U;
+    size_t stack_high_water_free_bytes = 0U;
+    size_t max_stack_used_bytes = 0U;
+    bool heap_monitor_started = false;
 
     vTaskDelay(pdMS_TO_TICKS(3000U));
     ot121_frame_header();
@@ -460,6 +610,13 @@ static void ot121_benchmark_task(void *context)
     if (!initialized) {
         goto cleanup;
     }
+
+    heap_start_free_bytes = heap_caps_get_free_size(
+        MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    if (heap_caps_monitor_local_minimum_free_size_start() != ESP_OK) {
+        goto cleanup;
+    }
+    heap_monitor_started = true;
 
     bool vectors_passed = primitive_vectors_and_negative_cases();
     ot121_frame_gate("primitive_vectors_and_negative_cases", vectors_passed);
@@ -485,7 +642,29 @@ static void ot121_benchmark_task(void *context)
     }
 
 cleanup:
+    if (heap_monitor_started) {
+        heap_min_free_bytes = heap_caps_get_minimum_free_size(
+            MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+        ESP_ERROR_CHECK(heap_caps_monitor_local_minimum_free_size_stop());
+        peak_dynamic_ram_bytes = heap_start_free_bytes >= heap_min_free_bytes
+                                     ? heap_start_free_bytes - heap_min_free_bytes
+                                     : 0U;
+        stack_high_water_free_bytes = (size_t) uxTaskGetStackHighWaterMark2(NULL);
+        max_stack_used_bytes =
+            stack_high_water_free_bytes <= OT121_BENCHMARK_TASK_STACK_BYTES
+                ? OT121_BENCHMARK_TASK_STACK_BYTES - stack_high_water_free_bytes
+                : OT121_BENCHMARK_TASK_STACK_BYTES;
+    }
     clear_sensitive_state();
+    if (heap_monitor_started) {
+        ot121_frame_runtime_resources(heap_start_free_bytes,
+                                      heap_min_free_bytes,
+                                      peak_dynamic_ram_bytes,
+                                      OT121_BENCHMARK_TASK_STACK_BYTES,
+                                      stack_high_water_free_bytes,
+                                      max_stack_used_bytes,
+                                      0U);
+    }
     ot121_frame_local_complete(completed, passed);
     vTaskDelete(NULL);
 }

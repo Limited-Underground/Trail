@@ -4,15 +4,15 @@ This directory contains a bounded executable subset of OT-005 Phase 2. It is
 intentionally separate from the immutable OT-120 import/build evidence and is
 not a complete Phase 2 result.
 
-Current scope is the admitted espressif_libsodium candidate and exactly seven
-local cryptographic primitives. The firmware runs deterministic known-answer,
+Current scope is the admitted espressif_libsodium candidate and all eight
+admitted local operations, including a complete benchmark-only Noise XK handshake. The firmware runs deterministic known-answer,
 round-trip, and negative tests before measuring each primitive with 100
-data-cache-conditioned and 100 warm samples. Noise XK, radio measurements,
+data-cache-conditioned and 100 warm samples. Radio measurements,
 cross-candidate comparison, and independent result admission are absent.
 
-Each serial record is one JSON object prefixed by OTCBXRF1. Every record declares
-scope local_primitives_v1 and phase2_complete false. The terminal record kind is
-local_complete with operations_required equal to 7; it cannot be interpreted as
+Each serial record is one JSON object prefixed by OTCBXRF2. Runtime resource output records peak internal 8-bit heap use, maximum 8 KiB worker-stack use, and zero watchdog resets only when the uninterrupted terminal frame is reached. Every record declares
+scope candidate_local_v2 and phase2_complete false. The terminal record kind is
+local_complete with operations_required equal to 8; it cannot be interpreted as
 OTCBXR1 completion or complete Phase 2 evidence. The per-record shapes are
 closed independently in result-frame.schema.json.
 

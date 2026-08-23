@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools" / "ot121_local_primitive_frames.py"
-PREFIX = b"OTCBXRF1 "
+PREFIX = b"OTCBXRF2 "
 OPERATIONS = (
     "ed25519_sign",
     "ed25519_verify",
@@ -22,12 +22,13 @@ OPERATIONS = (
     "hkdf_sha256",
     "chacha20poly1305_encrypt",
     "chacha20poly1305_decrypt",
+    "noise_xk_handshake",
 )
 PHASES = ("cold", "warm")
 COMMON = {
-    "schema": "OTCBXRF1",
-    "version": 1,
-    "scope": "local_primitives_v1",
+    "schema": "OTCBXRF2",
+    "version": 2,
+    "scope": "candidate_local_v2",
     "candidate_id": "espressif_libsodium",
     "phase2_complete": False,
 }
@@ -48,7 +49,7 @@ def _valid_records() -> list[dict[str, object]]:
         {
             **COMMON,
             "record_kind": "header",
-            "operations_required": 7,
+            "operations_required": 8,
             "repetitions_cold": 100,
             "repetitions_warm": 100,
             "cold_conditioning": "32k_data_sweep",
@@ -105,9 +106,24 @@ def _valid_records() -> list[dict[str, object]]:
     records.append(
         {
             **COMMON,
+            "record_kind": "runtime_resources",
+            "heap_domain": "internal_8bit",
+            "heap_start_free_bytes": 100000,
+            "heap_min_free_bytes": 98000,
+            "peak_dynamic_ram_bytes": 2000,
+            "stack_allocation_bytes": 8192,
+            "stack_high_water_free_bytes": 4096,
+            "max_stack_used_bytes": 4096,
+            "watchdog_resets": 0,
+            "watchdog_measurement": "uninterrupted_terminal_frame",
+        }
+    )
+    records.append(
+        {
+            **COMMON,
             "record_kind": "local_complete",
-            "operations_completed": 7,
-            "operations_required": 7,
+            "operations_completed": 8,
+            "operations_required": 8,
             "outcome": "pass",
             "radio_used": False,
             "candidate_selected": False,
@@ -181,12 +197,12 @@ def _find(
 def test_accepts_exact_local_capture() -> None:
     result = _must_accept(_valid_records())
     assert result["candidate_id"] == "espressif_libsodium"
-    assert result["scope"] == "local_primitives_v1"
-    assert result["operations_required"] == 7
-    assert result["operations_completed"] == 7
-    assert result["cold_sample_count"] == 700
-    assert result["warm_sample_count"] == 700
-    assert result["summary_count"] == 14
+    assert result["scope"] == "candidate_local_v2"
+    assert result["operations_required"] == 8
+    assert result["operations_completed"] == 8
+    assert result["cold_sample_count"] == 800
+    assert result["warm_sample_count"] == 800
+    assert result["summary_count"] == 16
     assert result["phase2_complete"] is False
 
 
@@ -197,10 +213,10 @@ def test_framing_and_json_are_strict() -> None:
     _must_reject_payload(valid.replace(b"\n", b"\r\n", 1))
     _must_reject_payload(valid + b"\n")
     _must_reject_payload(
-        valid.replace(b'"version":1', b'"version":1,"version":1', 1)
+        valid.replace(b'"version":2', b'"version":2,"version":2', 1)
     )
     _must_reject_payload(
-        valid.replace(b'"schema":"OTCBXRF1"', b'"schema": "OTCBXRF1"', 1)
+        valid.replace(b'"schema":"OTCBXRF2"', b'"schema": "OTCBXRF2"', 1)
     )
     _must_reject_payload(
         valid.replace(b'"record_kind":"header"', b'"record_kind":header', 1)
@@ -212,7 +228,7 @@ def test_framing_and_json_are_strict() -> None:
             1,
         )
     )
-    _must_reject_payload(valid + b"OTCBXRF1 " + (b"x" * 3000) + b"\n")
+    _must_reject_payload(valid + b"OTCBXRF2 " + (b"x" * 3000) + b"\n")
 
 
 def test_header_is_exact_and_local_only() -> None:
@@ -339,6 +355,32 @@ def test_summaries_are_recomputed_exactly_without_samples_field() -> None:
         summary[extra_key] = extra_value
         _must_reject(records)
 
+
+def test_runtime_resources_are_exact_derived_and_zero_watchdog() -> None:
+    for key, value in (
+        ("heap_domain", "all_memory"),
+        ("heap_min_free_bytes", 100001),
+        ("peak_dynamic_ram_bytes", 1999),
+        ("stack_allocation_bytes", 4096),
+        ("stack_high_water_free_bytes", 8193),
+        ("max_stack_used_bytes", 4095),
+        ("watchdog_resets", 1),
+        ("watchdog_measurement", "reset_reason_guess"),
+    ):
+        records = _valid_records()
+        resource = _find(records, "runtime_resources")
+        resource[key] = value
+        _must_reject(records)
+
+    records = _valid_records()
+    resource = _find(records, "runtime_resources")
+    resource["extra"] = 0
+    _must_reject(records)
+
+    records = _valid_records()
+    resource = _find(records, "runtime_resources")
+    records.remove(resource)
+    _must_reject(records)
 
 def test_terminal_is_exact_local_completion_not_phase_two() -> None:
     mutations: tuple[tuple[str, object], ...] = (

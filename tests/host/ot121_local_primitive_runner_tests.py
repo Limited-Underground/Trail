@@ -104,11 +104,11 @@ def fake_parser(raw: bytes) -> dict[str, object]:
     if node not in {"A", "B"}:
         raise runner.RunnerError("frame parse failed")
     return {
-        "schema": "OTCBXRF1",
-        "version": 1,
+        "schema": "OTCBXRF2",
+        "version": 2,
         "candidate_id": "espressif_libsodium",
-        "scope": "local_primitives_v1",
-        "operations_completed": 7,
+        "scope": "candidate_local_v2",
+        "operations_completed": 8,
         "phase2_complete": False,
         "radio_used": False,
         "candidate_selected": False,
@@ -471,7 +471,7 @@ class Ot121LocalPrimitiveRunnerTests(unittest.TestCase):
     def test_17_two_or_more_packed_frames_are_extracted_exactly(self) -> None:
         first = runner.frame_contract.PREFIX + b'{"record_kind":"header"}'
         second = runner.frame_contract.PREFIX + b'{"record_kind":"gate","gate":1}'
-        third = runner.frame_contract.PREFIX + b'{"value":"OTCBXRF1 inside-json"}'
+        third = runner.frame_contract.PREFIX + b'{"value":"OTCBXRF2 inside-json"}'
         preamble = b"\x1b[0m startup "
         interframe = b" harmless inter-frame text\t"
         line = preamble + first + interframe + second + third + b"\r\n"

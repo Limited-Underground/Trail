@@ -12,11 +12,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#define OT121_FRAME_SCHEMA "OTCBXRF1"
+#define OT121_FRAME_SCHEMA "OTCBXRF2"
 #define OT121_FRAME_PREFIX OT121_FRAME_SCHEMA " "
-#define OT121_SCOPE "local_primitives_v1"
+#define OT121_SCOPE "candidate_local_v2"
 #define OT121_CANDIDATE_ID "espressif_libsodium"
-#define OT121_LOCAL_OPERATIONS_REQUIRED 7U
+#define OT121_LOCAL_OPERATIONS_REQUIRED 8U
 #define OT121_COLD_REPETITIONS 100U
 #define OT121_WARM_REPETITIONS 100U
 #define OT121_FRAME_BUFFER_BYTES 512U
@@ -71,7 +71,7 @@ static inline void ot121_frame_header(void)
 {
     ot121_frame_write_and_pace(OT121_FRAME_PREFIX
            "{\"schema\":\"" OT121_FRAME_SCHEMA
-           "\",\"version\":1,\"record_kind\":\"header\","
+           "\",\"version\":2,\"record_kind\":\"header\","
            "\"scope\":\"" OT121_SCOPE
            "\",\"candidate_id\":\"" OT121_CANDIDATE_ID
            "\",\"operations_required\":%u,"
@@ -88,7 +88,7 @@ static inline void ot121_frame_gate(const char *gate, bool passed)
 {
     ot121_frame_write_and_pace(OT121_FRAME_PREFIX
            "{\"schema\":\"" OT121_FRAME_SCHEMA
-           "\",\"version\":1,\"record_kind\":\"gate\","
+           "\",\"version\":2,\"record_kind\":\"gate\","
            "\"scope\":\"" OT121_SCOPE
            "\",\"candidate_id\":\"" OT121_CANDIDATE_ID
            "\",\"gate\":\"%s\",\"outcome\":\"%s\","
@@ -105,7 +105,7 @@ static inline void ot121_frame_sample(const char *operation,
 {
     ot121_frame_write_and_pace(OT121_FRAME_PREFIX
            "{\"schema\":\"" OT121_FRAME_SCHEMA
-           "\",\"version\":1,\"record_kind\":\"sample\","
+           "\",\"version\":2,\"record_kind\":\"sample\","
            "\"scope\":\"" OT121_SCOPE
            "\",\"candidate_id\":\"" OT121_CANDIDATE_ID
            "\",\"operation\":\"%s\",\"phase\":\"%s\","
@@ -128,7 +128,7 @@ static inline void ot121_frame_summary(const char *operation,
 {
     ot121_frame_write_and_pace(OT121_FRAME_PREFIX
            "{\"schema\":\"" OT121_FRAME_SCHEMA
-           "\",\"version\":1,\"record_kind\":\"operation_summary\","
+           "\",\"version\":2,\"record_kind\":\"operation_summary\","
            "\"scope\":\"" OT121_SCOPE
            "\",\"candidate_id\":\"" OT121_CANDIDATE_ID
            "\",\"operation\":\"%s\",\"phase\":\"%s\","
@@ -144,11 +144,44 @@ static inline void ot121_frame_summary(const char *operation,
            passed ? "pass" : "fail");
 }
 
+static inline void ot121_frame_runtime_resources(
+    size_t heap_start_free_bytes,
+    size_t heap_min_free_bytes,
+    size_t peak_dynamic_ram_bytes,
+    size_t stack_allocation_bytes,
+    size_t stack_high_water_free_bytes,
+    size_t max_stack_used_bytes,
+    unsigned watchdog_resets)
+{
+    ot121_frame_write_and_pace(OT121_FRAME_PREFIX
+           "{\"schema\":\"" OT121_FRAME_SCHEMA
+           "\",\"version\":2,\"record_kind\":\"runtime_resources\","
+           "\"scope\":\"" OT121_SCOPE
+           "\",\"candidate_id\":\"" OT121_CANDIDATE_ID
+           "\",\"heap_domain\":\"internal_8bit\","
+           "\"heap_start_free_bytes\":%zu,"
+           "\"heap_min_free_bytes\":%zu,"
+           "\"peak_dynamic_ram_bytes\":%zu,"
+           "\"stack_allocation_bytes\":%zu,"
+           "\"stack_high_water_free_bytes\":%zu,"
+           "\"max_stack_used_bytes\":%zu,"
+           "\"watchdog_resets\":%u,"
+           "\"watchdog_measurement\":\"uninterrupted_terminal_frame\","
+           "\"phase2_complete\":false}\n",
+           heap_start_free_bytes,
+           heap_min_free_bytes,
+           peak_dynamic_ram_bytes,
+           stack_allocation_bytes,
+           stack_high_water_free_bytes,
+           max_stack_used_bytes,
+           watchdog_resets);
+}
+
 static inline void ot121_frame_local_complete(unsigned operations, bool passed)
 {
     ot121_frame_write_and_pace(OT121_FRAME_PREFIX
            "{\"schema\":\"" OT121_FRAME_SCHEMA
-           "\",\"version\":1,\"record_kind\":\"local_complete\","
+           "\",\"version\":2,\"record_kind\":\"local_complete\","
            "\"scope\":\"" OT121_SCOPE
            "\",\"candidate_id\":\"" OT121_CANDIDATE_ID
            "\",\"operations_completed\":%u,"

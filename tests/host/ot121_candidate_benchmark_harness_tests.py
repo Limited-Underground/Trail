@@ -21,6 +21,7 @@ OPERATIONS = [
     "hkdf_sha256",
     "chacha20poly1305_encrypt",
     "chacha20poly1305_decrypt",
+    "noise_xk_handshake",
 ]
 
 
@@ -69,14 +70,14 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
             LIBSODIUM / "main" / "app_main.c",
         ]
         self.assertTrue(all(path.is_file() for path in required))
-        self.assertEqual(len(self.schema["oneOf"]), 5)
+        self.assertEqual(len(self.schema["oneOf"]), 6)
         kinds = {
             branch["properties"]["record_kind"]["const"]
             for branch in self.schema["oneOf"]
         }
         self.assertEqual(
             kinds,
-            {"header", "gate", "sample", "operation_summary", "local_complete"},
+            {"header", "gate", "sample", "operation_summary", "runtime_resources", "local_complete"},
         )
         operation_rules = [
             branch["properties"]["operation"]["enum"]
@@ -95,9 +96,9 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
 
     def test_schema_requires_exact_fields_for_each_record_kind(self) -> None:
         common = {
-            "schema": "OTCBXRF1",
-            "version": 1,
-            "scope": "local_primitives_v1",
+            "schema": "OTCBXRF2",
+            "version": 2,
+            "scope": "candidate_local_v2",
             "candidate_id": "espressif_libsodium",
             "phase2_complete": False,
         }
@@ -105,7 +106,7 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
             {
                 **common,
                 "record_kind": "header",
-                "operations_required": 7,
+                "operations_required": 8,
                 "repetitions_cold": 100,
                 "repetitions_warm": 100,
                 "cold_conditioning": "32k_data_sweep",
@@ -140,9 +141,22 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
             },
             {
                 **common,
+                "record_kind": "runtime_resources",
+                "heap_domain": "internal_8bit",
+                "heap_start_free_bytes": 100000,
+                "heap_min_free_bytes": 98000,
+                "peak_dynamic_ram_bytes": 2000,
+                "stack_allocation_bytes": 8192,
+                "stack_high_water_free_bytes": 4096,
+                "max_stack_used_bytes": 4096,
+                "watchdog_resets": 0,
+                "watchdog_measurement": "uninterrupted_terminal_frame",
+            },
+            {
+                **common,
                 "record_kind": "local_complete",
-                "operations_completed": 7,
-                "operations_required": 7,
+                "operations_completed": 8,
+                "operations_required": 8,
                 "outcome": "pass",
                 "radio_used": False,
                 "candidate_selected": False,
@@ -154,7 +168,8 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
             (records[1], "gate"),
             (records[2], "duration_us"),
             (records[3], "p95_us"),
-            (records[4], "outcome"),
+            (records[4], "peak_dynamic_ram_bytes"),
+            (records[5], "outcome"),
         ):
             malformed = copy.deepcopy(record)
             malformed.pop(missing)
@@ -162,10 +177,10 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
         extra = copy.deepcopy(records[2])
         extra["result_contract"] = "OTCBXR1"
         self.assertFalse(schema_accepts(self.schema, extra))
-        wrong_scope = copy.deepcopy(records[4])
+        wrong_scope = copy.deepcopy(records[5])
         wrong_scope["scope"] = "phase2_complete"
         self.assertFalse(schema_accepts(self.schema, wrong_scope))
-        false_completion = copy.deepcopy(records[4])
+        false_completion = copy.deepcopy(records[5])
         false_completion["phase2_complete"] = True
         self.assertFalse(schema_accepts(self.schema, false_completion))
 
@@ -173,8 +188,8 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
         header = (ROOT / "include" / "ot121_benchmark_frame.h").read_text(encoding="utf-8")
         source = (LIBSODIUM / "main" / "app_main.c").read_text(encoding="utf-8")
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn('#define OT121_SCOPE "local_primitives_v1"', header)
-        self.assertIn("#define OT121_LOCAL_OPERATIONS_REQUIRED 7U", header)
+        self.assertIn('#define OT121_SCOPE "candidate_local_v2"', header)
+        self.assertIn("#define OT121_LOCAL_OPERATIONS_REQUIRED 8U", header)
         self.assertIn("#define OT121_COLD_REPETITIONS 100U", header)
         self.assertIn("#define OT121_WARM_REPETITIONS 100U", header)
         self.assertIn("ot121_frame_local_complete", source)
@@ -183,25 +198,25 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
         self.assertNotIn('record_kind\\":\\"complete', header)
         for operation in OPERATIONS:
             self.assertIn(f'{{ "{operation}",', source)
-        self.assertIn("local_primitives_v1", readme)
-        self.assertIn("operations_required equal to 7", readme)
+        self.assertIn("candidate_local_v2", readme)
+        self.assertIn("operations_required equal to 8", readme)
         self.assertIn("phase2_complete false", readme)
         self.assertIn("not a complete Phase 2 result", readme)
 
     def test_fixed_frame_buffer_covers_exact_worst_case_wire_records(self) -> None:
         maximum = 2**64 - 1
         common = {
-            "schema": "OTCBXRF1",
-            "version": 1,
-            "scope": "local_primitives_v1",
+            "schema": "OTCBXRF2",
+            "version": 2,
+            "scope": "candidate_local_v2",
             "candidate_id": "espressif_libsodium",
             "phase2_complete": False,
         }
         records = {
             "header": {
-                "schema": "OTCBXRF1", "version": 1, "record_kind": "header",
-                "scope": "local_primitives_v1", "candidate_id": "espressif_libsodium",
-                "operations_required": 7, "repetitions_cold": 100,
+                "schema": "OTCBXRF2", "version": 2, "record_kind": "header",
+                "scope": "candidate_local_v2", "candidate_id": "espressif_libsodium",
+                "operations_required": 8, "repetitions_cold": 100,
                 "repetitions_warm": 100, "cold_conditioning": "32k_data_sweep",
                 "phase2_complete": False, "radio_used": False,
                 "candidate_selected": False,
@@ -221,9 +236,21 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
                 "min_us": maximum, "median_us": maximum, "p95_us": maximum,
                 "max_us": maximum, "outcome": "pass",
             },
+            "runtime_resources": {
+                **common, "record_kind": "runtime_resources",
+                "heap_domain": "internal_8bit",
+                "heap_start_free_bytes": maximum,
+                "heap_min_free_bytes": 0,
+                "peak_dynamic_ram_bytes": maximum,
+                "stack_allocation_bytes": 8192,
+                "stack_high_water_free_bytes": 0,
+                "max_stack_used_bytes": 8192,
+                "watchdog_resets": 0,
+                "watchdog_measurement": "uninterrupted_terminal_frame",
+            },
             "local_complete": {
                 **common, "record_kind": "local_complete",
-                "operations_completed": 7, "operations_required": 7,
+                "operations_completed": 8, "operations_required": 8,
                 "outcome": "pass", "radio_used": False,
                 "candidate_selected": False,
             },
@@ -231,7 +258,7 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
         lengths = {
             kind: len(
                 (
-                    "OTCBXRF1 "
+                    "OTCBXRF2 "
                     + json.dumps(record, ensure_ascii=True, separators=(",", ":"))
                     + "\n"
                 ).encode("ascii")
@@ -239,11 +266,12 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
             for kind, record in records.items()
         }
         self.assertEqual(lengths, {
-            "header": 310,
-            "gate": 218,
-            "sample": 278,
-            "operation_summary": 362,
-            "local_complete": 277,
+            "header": 309,
+            "gate": 217,
+            "sample": 277,
+            "operation_summary": 361,
+            "runtime_resources": 476,
+            "local_complete": 276,
         })
         self.assertLess(max(lengths.values()), 512)
     def test_measurements_are_buffered_before_serial_emission(self) -> None:
@@ -332,7 +360,8 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
 
         emitters = (
             "ot121_frame_header", "ot121_frame_gate", "ot121_frame_sample",
-            "ot121_frame_summary", "ot121_frame_local_complete",
+            "ot121_frame_summary", "ot121_frame_runtime_resources",
+            "ot121_frame_local_complete",
         )
         for index, name in enumerate(emitters):
             start = header.index(f"static inline void {name}")
@@ -348,7 +377,7 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
             self.assertNotIn("puts(", body, name)
             self.assertNotIn("fwrite(", body, name)
             self.assertNotIn("fflush(", body, name)
-        self.assertEqual(header.count("ot121_frame_write_and_pace("), 6)
+        self.assertEqual(header.count("ot121_frame_write_and_pace("), 7)
 
         consumers = []
         for source in ROOT.rglob("main/*.c"):
@@ -449,7 +478,7 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
             task.index("ot121_frame_header();"),
         )
         self.assertIn(
-            "PRIV_REQUIRES espressif__libsodium esp_driver_usb_serial_jtag esp_timer freertos log",
+            "PRIV_REQUIRES espressif__libsodium esp_driver_usb_serial_jtag esp_timer freertos heap log",
             component,
         )
         self.assertIn("ot121_frame_local_complete(completed, passed);", task)
@@ -525,7 +554,7 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
         overlay = (LIBSODIUM / "sdkconfig.overlay").read_bytes()
         self.assertEqual(
             hashlib.sha256(overlay).hexdigest(),
-            "99627e5ba5884d988b02aee38ba98a71b175b7b5f97ac5f58d9ef137bfe5fb6c",
+            "b7b722dc1bcc2c5917bee365f2123171ec398b0a0f295d61e7a7e8c26b99c832",
         )
 
 
