@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-23
 
+### OT-122 bounded libsodium Noise XK and runtime-resource checkpoint
+
+- Decision 0061 records the second bounded Phase 2 checkpoint. Both admitted anonymous nodes passed all eight Espressif libsodium operations, including complete benchmark-only Noise XK, with 100 data-cache-conditioned and 100 warm samples per operation.
+- Both nodes measured 0 bytes peak dynamic internal-heap use, 4,312 bytes maximum use of the 8 KiB worker stack, and 0 watchdog resets. Noise XK medians were 116,256 us conditioned on both nodes and 116,255/116,256 us warm.
+- The 293,120-byte benchmark image has SHA-256 `665dd55e5e21c3af7639ee2d1e0765b52250b3f3243692bb46baabe80ec1d973`; the privacy-safe receipt SHA-256 is `2b023c640bfbec8ad6eb5d1d63d65e8f1ad75dcfe593566aba6b3d468355a178`. Both nodes were restored and verified to the exact Trail image.
+- The receipt remains `phase_two_complete=false` and `radio_used=false`. Other candidates, radio, matched linked-flash/static-RAM admission, Phase 3, and explicit selection remain open. No support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added; V1 remains exact 43.75%/displayed 44%.
+
 ### OT-121 bounded libsodium local-primitives checkpoint
 
 - Decision 0059 grants one bounded Phase 2 execution session; Decision 0060 records only the privacy-safe `OT121LPER1/v1` checkpoint. The public receipt SHA-256 is `731824641945c9930e2afc401ea583154dedf6051fcb1ede0f3b165fb8c1eb7f`.

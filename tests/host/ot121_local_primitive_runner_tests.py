@@ -317,6 +317,7 @@ class Ot121LocalPrimitiveRunnerTests(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         self.assertIn('"write-flash"', source)
         self.assertIn('"verify-flash"', source)
+        self.assertIn('"--no-stub"', source)
         self.assertIn('"0x10000"', source)
         self.assertNotIn("--offset", source)
         execute_source = source[source.index("def execute("):source.index("def _allowed_discarded_serial_bytes")]

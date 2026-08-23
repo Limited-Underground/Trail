@@ -577,7 +577,7 @@ class EsptoolSerialTransport:
         command = [
             self._python, "-m", "esptool", "--chip", "esp32s3", "--port",
             private_port, "--baud", "115200", "--before", "default-reset",
-            "--after", "no-reset", *operation,
+            "--after", "no-reset", "--no-stub", *operation,
         ]
         try:
             completed = subprocess.run(

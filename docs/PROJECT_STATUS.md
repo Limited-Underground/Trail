@@ -9,20 +9,9 @@ Status date: 2026-08-23
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
-OT-121 now records a bounded, privacy-safe Phase 2 checkpoint rather than a
-complete benchmark result. Both admitted anonymous experimental nodes passed
-all seven Espressif libsodium local primitives with 100 data-cache-conditioned
-and 100 warm samples per operation. Benchmark readback, capture validation,
-exact restoration to the 473,152-byte Trail image, restore readback, and reset
-passed on both nodes. The accepted sdkconfig remained unchanged; an observed
-3,584-byte main-task stack overflow was corrected with a core-pinned 8 KiB
-benchmark worker. The public receipt records no device identifiers, filesystem
-paths, raw capture, or serial ports. `phase_two_complete=false` and
-`radio_used=false`: Noise XK, other candidates, radio, resource measurements,
-independent Phase 3 admission, and explicit suite/wire selection remain open.
-No support, compatibility, regulatory, production, secure-LoRa, end-to-end, or
-score claim changes. See [Decision 0060](decisions/0060-bounded-libsodium-local-primitives-checkpoint.md)
-and [OT-121 evidence](../tests/hardware/OT-121-2026-08-23.md).
+OT-122 continues the bounded, privacy-safe Phase 2 session without completing it. Both admitted anonymous experimental nodes passed all eight Espressif libsodium operations, including complete benchmark-only Noise XK, with 100 data-cache-conditioned and 100 warm samples per operation. Benchmark readback, capture validation, exact restoration to the 473,152-byte Trail image, restore readback, and reset passed on both nodes.
+
+Both nodes independently measured 0 bytes peak dynamic internal-heap use, 4,312 bytes maximum use of the 8 KiB worker stack, and 0 watchdog resets. The public receipt contains no device identifiers, filesystem paths, raw capture, or serial ports. `phase_two_complete=false` and `radio_used=false`: other candidates, radio, the matched linked-flash/static-RAM admission, independent Phase 3 admission, and explicit suite/wire selection remain open. No support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim changes. See [Decision 0061](decisions/0061-bounded-libsodium-noise-resource-checkpoint.md) and [OT-122 evidence](../tests/hardware/OT-122-2026-08-23.md).
 
 OT-120 atomically accepts retained host-only import/build evidence for
 libsodium, mbedTLS/PSA, and Monocypher after two independent clean zero-warning
