@@ -23,6 +23,7 @@ def normalized(path: Path) -> str:
 def test_exact_file_set_and_overlays() -> None:
     expected = {
         "README.md",
+        "reproducible.defaults",
         "espressif_libsodium/CMakeLists.txt",
         "espressif_libsodium/sdkconfig.overlay",
         "espressif_libsodium/partitions.csv",
@@ -45,6 +46,9 @@ def test_exact_file_set_and_overlays() -> None:
     )
     assert sha(HARNESS / "esp_idf_mbedtls_psa/sdkconfig.overlay") == (
         "e8ec2842ad1aebe6c912970af54a28dc6de7e87e3b2554dfb2b40775626e388d"
+    )
+    assert sha(HARNESS / "reproducible.defaults") == (
+        "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6"
     )
     target_partition = normalized(ROOT / "firmware/targets/heltec_v4_bench/partitions.csv")
     for candidate in ("espressif_libsodium", "esp_idf_mbedtls_psa", "monocypher"):
@@ -86,6 +90,8 @@ def test_orchestrator_is_fail_closed_and_host_only() -> None:
     assert source.index("& $python.Source $ContractValidatorPath --contract $ContractPath") < source.index("if (-not $Execute)")
     assert "$env:IDF_COMPONENT_MANAGER = '0'" in source
     assert "'--no-ccache'" in source
+    assert "$commonDefaults;$reproducibleDefaults" in source
+    assert "'PROJECT_VER=ot107-config-v0'" in source
     assert "foreach ($run in @('A', 'B'))" in source
     assert "Get-Command xtensa-esp32s3-elf-nm" in source
     assert "normalized_receipt_sha256" in source

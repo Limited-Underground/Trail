@@ -75,8 +75,13 @@ if ($contract.schema -ne 'OTCIBC1' -or $contract.version -ne 1 -or
 
 $harnessRoot = Join-Path $projectRoot 'tests\benchmarks\crypto\esp_idf\ot120_candidate_builds'
 $commonDefaults = Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\sdkconfig.defaults'
+$reproducibleDefaults = Join-Path $harnessRoot 'reproducible.defaults'
 $partitionSource = Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\partitions.csv'
 Assert-ExactFile $commonDefaults 'accepted common sdkconfig defaults'
+Assert-ExactFile $reproducibleDefaults 'accepted reproducible sdkconfig defaults'
+if ((Get-Sha256 $reproducibleDefaults) -ne '995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6') {
+    throw 'Accepted reproducible sdkconfig defaults digest mismatch.'
+}
 Assert-ExactFile $partitionSource 'accepted partition table'
 
 $candidateSpecs = @(
@@ -206,9 +211,9 @@ foreach ($candidate in $candidateSpecs) {
         $rawLog = Join-Path $runRoot 'build.log'
         New-Item -ItemType Directory -Path $runRoot | Out-Null
 
-        $defaults = $commonDefaults
+        $defaults = "$commonDefaults;$reproducibleDefaults"
         if ($candidate.overlay) {
-            $defaults = "$commonDefaults;$($candidate.overlay)"
+            $defaults = "$defaults;$($candidate.overlay)"
         }
         $sdkconfig = Join-Path $buildRoot 'sdkconfig'
         $arguments = @(
@@ -218,6 +223,7 @@ foreach ($candidate in $candidateSpecs) {
             '-B', $buildRoot,
             '-D', "SDKCONFIG=$sdkconfig",
             '-D', "SDKCONFIG_DEFAULTS=$defaults",
+            '-D', 'PROJECT_VER=ot107-config-v0',
             '-D', 'IDF_TARGET=esp32s3',
             'build'
         )
