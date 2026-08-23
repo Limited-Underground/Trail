@@ -1,0 +1,83 @@
+{
+  "schema": "OTCIBA1",
+  "version": 1,
+  "artifact_kind": "append_only_atomic_candidate_import_build_admission",
+  "admission_id": "OT-120-OT005-CANDIDATE-IMPORT-BUILD-ADMISSION-DELTA-V1",
+  "accepted_date": "2026-08-22",
+  "status": "phase_one_complete_measurement_awaits_fresh_authority",
+  "public_result": "OT-120 PHASE-ONE CANDIDATE IMPORT BUILDS ACCEPTED HOST-ONLY; MEASUREMENT AWAITS FRESH AUTHORITY; NO BENCHMARK DEVICE RADIO SELECTION OR SCORE",
+  "parents": {
+    "contract_raw_sha256": "ac0b3dd0e7f6fbd1fdb7edbf482ed301cfd2ce15a32c9b6f2e48bf1b8408df51",
+    "contract_canonical_sha256": "bbbc9c93028affce509bc145ce2f3de44c0cc2a5934cc3804bd3526dee94a8ea",
+    "otrtpa1_v1_raw_sha256": "afd3d8b17f80c49560f9fad71e93703ef6d142ee538146fc5829b2a0799d0e36",
+    "otrtpa1_v1_canonical_sha256": "0eff2d934891f36999bdafb2a14ffc755b258c19bccb96a5a8d96db06105a443"
+  },
+  "accepted_candidate_imports": [
+    {
+      "candidate_id": "espressif_libsodium",
+      "evidence_raw_sha256": "735b4755f25da280cde7ba79387f5eeeee5a38bf477b60042e64d31f20f2186f",
+      "evidence_canonical_sha256": "28c98e83cf2149177353f47346e8c37d263e8a436a10bff3b3f4cefe7608bd49",
+      "graph_raw_sha256": "c939dbc7afbc103a44c16d92474528acc782ca442873f06fa9a8a8b04aaec20c"
+    },
+    {
+      "candidate_id": "esp_idf_mbedtls_psa",
+      "evidence_raw_sha256": "e4cf79a47c6cd3a64f44412bf6b010815e7e66f3e7633242d2c2c89c61bf1307",
+      "evidence_canonical_sha256": "5ed9d04e6d773be599e22bbccb3a8117850d99636dfc3a30adeefcc1f384866d",
+      "graph_raw_sha256": "7338e2383f152d554d6a64e3d46e7260b0c9dba79099311ec7e140b1ccde7a55"
+    },
+    {
+      "candidate_id": "monocypher",
+      "evidence_raw_sha256": "4ba0b05ab4ee043e506b8bc15d5140451b0e6b1b95fd5eb46bae26a595789633",
+      "evidence_canonical_sha256": "390a94a0d256f4a8863c0d44363b788c7b8c9a91c4e94bebdf9356d8ca1a0c61",
+      "graph_raw_sha256": "9e59ab26cca582301027ee3544bfd69643dfde5b8a84a2ae494cb98969ba9645"
+    }
+  ],
+  "acceptance_counts": {
+    "exact_profile_units": 2,
+    "source": 3,
+    "api_config": 3,
+    "candidate_import": 3
+  },
+  "phases": {
+    "phase_zero_complete": true,
+    "phase_one_complete": true,
+    "phase_two_execution_admitted": false,
+    "phase_three_admission_complete": false
+  },
+  "measurement_blockers": [
+    "fresh_benchmark_execution_authority_absent"
+  ],
+  "one_time_authority": {
+    "host_only_phase_one_instruction_used": true,
+    "consumed": true,
+    "hardware_scope_included": false,
+    "benchmark_execution_scope_included": false
+  },
+  "continuing_authority": {
+    "candidate_import_authorized": false,
+    "benchmark_build_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "flash_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "candidate_selection_authorized": false,
+    "suite_selection_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "candidate_imports_accepted": true,
+    "candidate_benchmark_builds_accepted": true,
+    "phase_one_complete": true,
+    "measurement_ready": false,
+    "benchmark_executed": false,
+    "hardware_or_device_accessed": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "support_proven": false,
+    "compatibility_proven": false,
+    "regulatory_compliance_proven": false,
+    "score_credit_added": false
+  }
+}

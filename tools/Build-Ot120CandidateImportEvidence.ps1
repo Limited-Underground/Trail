@@ -347,7 +347,7 @@ foreach ($candidate in $candidateSpecs) {
         sha256 = $archive.sha256
     }
     $graphEntries += $pair[0].anchors
-    $graphEntries = @($graphEntries | Sort-Object logical_path)
+    $graphEntries = @($graphEntries | Sort-Object { [string]$_['logical_path'] })
 
     $contractCandidate = @($contract.candidates | Where-Object candidate_id -eq $candidate.id)
     if ($contractCandidate.Count -ne 1) {

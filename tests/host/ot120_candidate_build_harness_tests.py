@@ -95,6 +95,7 @@ def test_orchestrator_is_fail_closed_and_host_only() -> None:
     assert "$commonDefaults;$reproducibleDefaults" in source
     assert "'PROJECT_VER=ot107-config-v0'" in source
     assert "foreach ($run in @('A', 'B'))" in source
+    assert "Sort-Object { [string]$_['logical_path'] }" in source
     assert "Get-Command xtensa-esp32s3-elf-nm" in source
     assert "normalized_receipt_sha256" in source
     assert "one_time_authority" in source

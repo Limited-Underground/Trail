@@ -171,6 +171,27 @@ def synthetic_evidence_raw(evidence: dict) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def validate_synthetic_evidence(evidence: dict, *args, **kwargs) -> dict:
+    candidate_id = evidence["candidate_id"]
+    if type(candidate_id) is not str or candidate_id not in validator.EXPECTED_EVIDENCE_SHA256:
+        return validator.validate_evidence(evidence, *args, **kwargs)
+    expected = validator.EXPECTED_EVIDENCE_SHA256[candidate_id]
+    validator.EXPECTED_EVIDENCE_SHA256[candidate_id] = None
+    try:
+        return validator.validate_evidence(evidence, *args, **kwargs)
+    finally:
+        validator.EXPECTED_EVIDENCE_SHA256[candidate_id] = expected
+
+
+def validate_synthetic_admission(admission: dict, *args, **kwargs) -> dict:
+    expected = validator.EXPECTED_ADMISSION_SHA256
+    validator.EXPECTED_ADMISSION_SHA256 = None
+    try:
+        return validator.validate_admission(admission, *args, **kwargs)
+    finally:
+        validator.EXPECTED_ADMISSION_SHA256 = expected
+
+
 def synthetic_admission(results: list[dict], evidences: list[dict], graph_raws: list[str], value: dict) -> dict:
     return {
         "schema": "OTCIBA1", "version": 1,
@@ -306,7 +327,7 @@ def test_evidence_requires_two_equal_clean_zero_warning_builds() -> None:
     value = contract()
     candidate = value["candidates"][0]
     graph, evidence, graph_raw = evidence_fixture(candidate, value)
-    result = validator.validate_evidence(evidence, graph, value, evidence_raw_sha256=synthetic_evidence_raw(evidence), graph_raw_sha256=graph_raw)
+    result = validate_synthetic_evidence(evidence, graph, value, evidence_raw_sha256=synthetic_evidence_raw(evidence), graph_raw_sha256=graph_raw)
     assert result["candidate_imported"] is True
     assert result["candidate_benchmark_built"] is True
     assert result["benchmark_executed"] is False
@@ -323,7 +344,7 @@ def test_evidence_requires_two_equal_clean_zero_warning_builds() -> None:
             target = target[part]
         target[path[-1]] = replacement
         expect_error(
-            lambda changed=changed: validator.validate_evidence(changed, graph, value, evidence_raw_sha256=synthetic_evidence_raw(changed), graph_raw_sha256=graph_raw),
+            lambda changed=changed: validate_synthetic_evidence(changed, graph, value, evidence_raw_sha256=synthetic_evidence_raw(changed), graph_raw_sha256=graph_raw),
             message,
         )
 
@@ -336,24 +357,24 @@ def test_atomic_admission_rejects_partial_counts_authority_and_claims() -> None:
         graphs.append(graph)
         evidences.append(evidence)
         graph_raws.append(graph_raw)
-        results.append(validator.validate_evidence(evidence, graph, value, evidence_raw_sha256=synthetic_evidence_raw(evidence), graph_raw_sha256=graph_raw))
+        results.append(validate_synthetic_evidence(evidence, graph, value, evidence_raw_sha256=synthetic_evidence_raw(evidence), graph_raw_sha256=graph_raw))
     admission = synthetic_admission(results, evidences, graph_raws, value)
-    result = validator.validate_admission(admission, value, results)
+    result = validate_synthetic_admission(admission, value, results)
     assert result["candidate_import_count"] == 3
     assert result["phase_one_complete"] is True
     assert result["measurement_ready"] is False
     changed = copy.deepcopy(admission)
     changed["accepted_candidate_imports"].pop()
-    expect_error(lambda: validator.validate_admission(changed, value, results[:2]), "atomic")
+    expect_error(lambda: validate_synthetic_admission(changed, value, results[:2]), "atomic")
     changed = copy.deepcopy(admission)
     changed["acceptance_counts"]["candidate_import"] = 2
-    expect_error(lambda: validator.validate_admission(changed, value, results), "count")
+    expect_error(lambda: validate_synthetic_admission(changed, value, results), "count")
     changed = copy.deepcopy(admission)
     changed["measurement_blockers"] = []
-    expect_error(lambda: validator.validate_admission(changed, value, results), "blocker")
+    expect_error(lambda: validate_synthetic_admission(changed, value, results), "blocker")
     changed = copy.deepcopy(admission)
     changed["continuing_authority"]["benchmark_execution_authorized"] = True
-    expect_error(lambda: validator.validate_admission(changed, value, results), "authority")
+    expect_error(lambda: validate_synthetic_admission(changed, value, results), "authority")
 
 
 def test_malformed_shapes_fail_closed_without_runtime_exceptions() -> None:
@@ -371,7 +392,7 @@ def test_malformed_shapes_fail_closed_without_runtime_exceptions() -> None:
     changed_evidence = copy.deepcopy(evidence)
     changed_evidence["candidate_id"] = []
     expect_error(
-        lambda: validator.validate_evidence(
+        lambda: validate_synthetic_evidence(
             changed_evidence, graph, value,
             evidence_raw_sha256=synthetic_evidence_raw(changed_evidence), graph_raw_sha256=graph_raw,
         ),
@@ -380,7 +401,7 @@ def test_malformed_shapes_fail_closed_without_runtime_exceptions() -> None:
     changed_evidence = copy.deepcopy(evidence)
     del changed_evidence["build_reproducibility"]["runs"]
     expect_error(
-        lambda: validator.validate_evidence(
+        lambda: validate_synthetic_evidence(
             changed_evidence, graph, value,
             evidence_raw_sha256=synthetic_evidence_raw(changed_evidence), graph_raw_sha256=graph_raw,
         ),
@@ -389,7 +410,7 @@ def test_malformed_shapes_fail_closed_without_runtime_exceptions() -> None:
     changed_evidence = copy.deepcopy(evidence)
     changed_evidence["build_reproducibility"]["runs"][0]["artifacts"][0] = None
     expect_error(
-        lambda: validator.validate_evidence(
+        lambda: validate_synthetic_evidence(
             changed_evidence, graph, value,
             evidence_raw_sha256=synthetic_evidence_raw(changed_evidence), graph_raw_sha256=graph_raw,
         ),
@@ -419,6 +440,50 @@ def test_private_text_duplicate_keys_and_partial_cli_fail_closed() -> None:
     assert completed.returncode == 2 and "exactly three" in completed.stderr
 
 
+def test_pinned_live_phase_one_artifacts_validate_atomically() -> None:
+    expected_graphs = {
+        "espressif_libsodium": "c939dbc7afbc103a44c16d92474528acc782ca442873f06fa9a8a8b04aaec20c",
+        "esp_idf_mbedtls_psa": "7338e2383f152d554d6a64e3d46e7260b0c9dba79099311ec7e140b1ccde7a55",
+        "monocypher": "9e59ab26cca582301027ee3544bfd69643dfde5b8a84a2ae494cb98969ba9645",
+    }
+    expected_evidence_raw = {
+        "espressif_libsodium": "735b4755f25da280cde7ba79387f5eeeee5a38bf477b60042e64d31f20f2186f",
+        "esp_idf_mbedtls_psa": "e4cf79a47c6cd3a64f44412bf6b010815e7e66f3e7633242d2c2c89c61bf1307",
+        "monocypher": "4ba0b05ab4ee043e506b8bc15d5140451b0e6b1b95fd5eb46bae26a595789633",
+    }
+    expected_evidence_canonical = {
+        "espressif_libsodium": "28c98e83cf2149177353f47346e8c37d263e8a436a10bff3b3f4cefe7608bd49",
+        "esp_idf_mbedtls_psa": "5ed9d04e6d773be599e22bbccb3a8117850d99636dfc3a30adeefcc1f384866d",
+        "monocypher": "390a94a0d256f4a8863c0d44363b788c7b8c9a91c4e94bebdf9356d8ca1a0c61",
+    }
+    assert validator.EXPECTED_GRAPH_RAW_SHA256 == expected_graphs
+    assert validator.EXPECTED_EVIDENCE_RAW_SHA256 == expected_evidence_raw
+    assert validator.EXPECTED_EVIDENCE_SHA256 == expected_evidence_canonical
+    assert validator.EXPECTED_ADMISSION_RAW_SHA256 == "90af31966553bee58fcf71e4decfee8d2bcadfee58ef026e3f96cffcd6f45ccf"
+    assert validator.EXPECTED_ADMISSION_SHA256 == "0c55f49803d833c075670b17fa8d033bd5a7cd4997e8714ff247161f7fa2057b"
+    command = [sys.executable, str(validator.__file__), "--contract", str(CONTRACT)]
+    command.extend(("--admission", str(validator.ADMISSION)))
+    for candidate_id, _ in validator.CANDIDATE_SLUGS:
+        command.extend(("--evidence", str(validator.EVIDENCE_PATHS[candidate_id])))
+    for candidate_id, _ in validator.CANDIDATE_SLUGS:
+        command.extend(("--graph", str(validator.GRAPH_PATHS[candidate_id])))
+    completed = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
+    assert completed.returncode == 0, completed.stderr
+    payload = json.loads(completed.stdout)
+    assert payload == {
+        "admission_sha256": validator.EXPECTED_ADMISSION_SHA256,
+        "candidate_import_count": 3,
+        "execution_authorized": False,
+        "measurement_ready": False,
+        "phase_one_complete": True,
+        "phase_zero_complete": True,
+        "schema": "OTCIBA1",
+        "score_credit_added": False,
+        "selection_authorized": False,
+        "version": 1,
+    }
+
+
 def test_validator_has_no_hardware_or_network_runtime_imports() -> None:
     source = Path(validator.__file__).read_text(encoding="utf-8")
     for token in ("import serial", "import requests", "import socket", "import bleak", "esptool"):
@@ -436,6 +501,7 @@ def main() -> int:
         test_atomic_admission_rejects_partial_counts_authority_and_claims,
         test_malformed_shapes_fail_closed_without_runtime_exceptions,
         test_private_text_duplicate_keys_and_partial_cli_fail_closed,
+        test_pinned_live_phase_one_artifacts_validate_atomically,
         test_validator_has_no_hardware_or_network_runtime_imports,
     ]
     for test in tests:

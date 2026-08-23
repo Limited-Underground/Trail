@@ -1,0 +1,202 @@
+{
+  "schema": "OTCIBE1",
+  "version": 1,
+  "artifact_kind": "retained_candidate_import_build_evidence",
+  "evidence_id": "OT-120-OT005-LIBSODIUM-IMPORT-BUILD-EVIDENCE-V1",
+  "recorded_date": "2026-08-22",
+  "status": "candidate_import_build_evidence_complete_pending_atomic_admission",
+  "public_result": "LIBSODIUM-IMPORT-BUILD-EVIDENCE-COMPLETE-HOST-ONLY; PENDING-ATOMIC-ADMISSION; NO-BENCHMARK-DEVICE-RADIO-SELECTION-OR-SCORE",
+  "contract_raw_sha256": "ac0b3dd0e7f6fbd1fdb7edbf482ed301cfd2ce15a32c9b6f2e48bf1b8408df51",
+  "contract_canonical_sha256": "bbbc9c93028affce509bc145ce2f3de44c0cc2a5934cc3804bd3526dee94a8ea",
+  "candidate_id": "espressif_libsodium",
+  "source_bindings": {
+    "version": "1.0.22",
+    "source_evidence_sha256": "8285fa7308bfc83a5d55503a7a3e1fa4c21895a42b095197b3ec75f634411ec9",
+    "source_admission_canonical_sha256": "9f253738d1766a2d6d273ff5d566bb42c828e6db8cdc3a4b156068f55c07075d",
+    "project_dependency_lock_sha256": "d5f32dcb2ec24c853ac2040fb8f9410a8f61831b7b7d5e9522766e8456e2ec5e",
+    "source_manifest_sha256": "988fbb2b95d1b4f3850d153495f8d73482be52cb80808fa48e24a8d1e9bf91ea",
+    "sbom_sha256": "86e76598aa0a668239ae86e515b6e9a53fd03682e3a9b3325fceb19043780df2",
+    "api_config_evidence_canonical_sha256": "6e5e969c3b3f7bf29372e15e3cc75c693fb00f57f7f297c14cc77123dec4610d",
+    "generated_sdkconfig_bytes": 107001,
+    "generated_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f",
+    "coverage_state": "complete_selectable",
+    "eligible_operations": [
+      "ed25519_sign",
+      "ed25519_verify",
+      "x25519",
+      "sha256",
+      "hkdf_sha256",
+      "chacha20poly1305_encrypt",
+      "chacha20poly1305_decrypt",
+      "noise_xk_handshake"
+    ],
+    "unavailable_operations": []
+  },
+  "target": {
+    "target_id": "heltec-v4-bench-candidate",
+    "board_model": "HTIT-WB32LAF",
+    "exact_received_revision": "V4.2",
+    "mcu": "ESP32-S3",
+    "processor_revision": "v0.2",
+    "flash_bytes": 16777216,
+    "psram_bytes": 2097152,
+    "supported": false
+  },
+  "toolchain": {
+    "esp_idf_version": "v6.0.2",
+    "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "compiler": "xtensa-esp32s3-elf-gcc",
+    "compiler_version": "15.2.0",
+    "reproducible_build": true,
+    "compile_time_date_disabled": true,
+    "cpu_frequency_mhz": 160,
+    "freertos_tick_hz": 100
+  },
+  "graph_binding": {
+    "path": "tests/benchmarks/crypto/OT-120-OT005-LIBSODIUM-IMPORT-BUILD-GRAPH-V1.jsonl",
+    "raw_sha256": "c939dbc7afbc103a44c16d92474528acc782ca442873f06fa9a8a8b04aaec20c",
+    "entry_count": 12,
+    "manifest_kind": "canonical-lf-jsonl-build-graph-v1"
+  },
+  "build_reproducibility": {
+    "clean_run_count": 2,
+    "independent_build_directories": true,
+    "shared_compiler_cache_disabled": true,
+    "component_manager_network_disabled": true,
+    "reproducible_paths_normalized": true,
+    "runs": [
+      {
+        "profile": "ot120-libsodium-a",
+        "initial_build_directory_absent": true,
+        "build_exit_code": 0,
+        "compiler_warning_count": 0,
+        "raw_build_evidence_sha256": "f9c50a73b4756dde9b7b7e136402f4708c1714e84a98b638d75148567423f3cd",
+        "normalized_receipt_sha256": "12223b953b5efd8d58c3b11630859763a395f2a4a3969d8ac297c7dd37e9929f",
+        "artifacts": [
+          {
+            "role": "application",
+            "name": "ot120_espressif_libsodium_import_build.bin",
+            "bytes": 242752,
+            "sha256": "cf849809046385d773ac92949dda3b3023c52af11e523f4632918e2399f5e8ef"
+          },
+          {
+            "role": "application_elf",
+            "name": "ot120_espressif_libsodium_import_build.elf",
+            "bytes": 4070924,
+            "sha256": "f331d95166dd9885dce0cdfa6ffe3ec44e25989e59e55f90128407b67444eb43"
+          },
+          {
+            "role": "linker_map",
+            "name": "ot120_espressif_libsodium_import_build.map",
+            "bytes": 3934134,
+            "sha256": "b73b75527f74e9569d5065839fc275886895fa118fc291ea12ce4d16a75e871d"
+          },
+          {
+            "role": "bootloader",
+            "name": "bootloader.bin",
+            "bytes": 22480,
+            "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+          },
+          {
+            "role": "partition_table",
+            "name": "partition-table.bin",
+            "bytes": 3072,
+            "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"
+          },
+          {
+            "role": "generated_sdkconfig",
+            "name": "sdkconfig",
+            "bytes": 107001,
+            "sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+          },
+          {
+            "role": "partition_csv",
+            "name": "partitions.csv",
+            "bytes": 443,
+            "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+          }
+        ]
+      },
+      {
+        "profile": "ot120-libsodium-b",
+        "initial_build_directory_absent": true,
+        "build_exit_code": 0,
+        "compiler_warning_count": 0,
+        "raw_build_evidence_sha256": "9db92018032e0766e4292edd9deea523fab11576c96a38234ab11b0f82906101",
+        "normalized_receipt_sha256": "12223b953b5efd8d58c3b11630859763a395f2a4a3969d8ac297c7dd37e9929f",
+        "artifacts": [
+          {
+            "role": "application",
+            "name": "ot120_espressif_libsodium_import_build.bin",
+            "bytes": 242752,
+            "sha256": "cf849809046385d773ac92949dda3b3023c52af11e523f4632918e2399f5e8ef"
+          },
+          {
+            "role": "application_elf",
+            "name": "ot120_espressif_libsodium_import_build.elf",
+            "bytes": 4070924,
+            "sha256": "f331d95166dd9885dce0cdfa6ffe3ec44e25989e59e55f90128407b67444eb43"
+          },
+          {
+            "role": "linker_map",
+            "name": "ot120_espressif_libsodium_import_build.map",
+            "bytes": 3934134,
+            "sha256": "b73b75527f74e9569d5065839fc275886895fa118fc291ea12ce4d16a75e871d"
+          },
+          {
+            "role": "bootloader",
+            "name": "bootloader.bin",
+            "bytes": 22480,
+            "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+          },
+          {
+            "role": "partition_table",
+            "name": "partition-table.bin",
+            "bytes": 3072,
+            "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"
+          },
+          {
+            "role": "generated_sdkconfig",
+            "name": "sdkconfig",
+            "bytes": 107001,
+            "sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+          },
+          {
+            "role": "partition_csv",
+            "name": "partitions.csv",
+            "bytes": 443,
+            "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+          }
+        ]
+      }
+    ]
+  },
+  "one_time_authority": {
+    "host_only_phase_one_instruction_used": true,
+    "consumed": true,
+    "hardware_scope_included": false,
+    "benchmark_execution_scope_included": false
+  },
+  "boundaries": {
+    "benchmark_executed": false,
+    "device_accessed": false,
+    "flashed": false,
+    "radio_used": false,
+    "key_or_entropy_operation": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "candidate_imported_for_benchmark": true,
+    "candidate_benchmark_built": true,
+    "benchmark_executed": false,
+    "hardware_or_device_accessed": false,
+    "candidate_selected": false,
+    "support_proven": false,
+    "compatibility_proven": false,
+    "regulatory_compliance_proven": false,
+    "score_credit_added": false
+  }
+}

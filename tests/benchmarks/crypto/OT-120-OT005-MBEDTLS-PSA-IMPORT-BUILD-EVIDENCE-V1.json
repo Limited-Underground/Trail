@@ -1,0 +1,203 @@
+{
+  "schema": "OTCIBE1",
+  "version": 1,
+  "artifact_kind": "retained_candidate_import_build_evidence",
+  "evidence_id": "OT-120-OT005-MBEDTLS-PSA-IMPORT-BUILD-EVIDENCE-V1",
+  "recorded_date": "2026-08-22",
+  "status": "candidate_import_build_evidence_complete_pending_atomic_admission",
+  "public_result": "MBEDTLS-PSA-IMPORT-BUILD-EVIDENCE-COMPLETE-HOST-ONLY; PENDING-ATOMIC-ADMISSION; NO-BENCHMARK-DEVICE-RADIO-SELECTION-OR-SCORE",
+  "contract_raw_sha256": "ac0b3dd0e7f6fbd1fdb7edbf482ed301cfd2ce15a32c9b6f2e48bf1b8408df51",
+  "contract_canonical_sha256": "bbbc9c93028affce509bc145ce2f3de44c0cc2a5934cc3804bd3526dee94a8ea",
+  "candidate_id": "esp_idf_mbedtls_psa",
+  "source_bindings": {
+    "version": "4.1.0",
+    "source_evidence_sha256": "ae12ad7da6702ac85092e9cb8ad793b749871153fadee8b1a276e5a46b036e49",
+    "source_admission_canonical_sha256": "26b6acdc9928eb9510a0baed53c609a4f9a23288155636c6462747745f28ac85",
+    "project_dependency_lock_sha256": "12f8699d8d286a484e054df186fb0e8c97b75263d23caf4bd77ed48082e9c7ab",
+    "source_manifest_sha256": "ad22dd6aa7d86291918377d3dc76c37b9bcb6c3da0c498c9d302c88b7892fa9c",
+    "sbom_sha256": "4fc3c63306582732b2628b962352286f256af83036c2c6d65d62f27e0702e9dd",
+    "api_config_evidence_canonical_sha256": "22975ac7fbd3c9faab1ae0c9fa952a58dc4a7a893de3cc74604182b3492fe1f8",
+    "generated_sdkconfig_bytes": 106921,
+    "generated_sdkconfig_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686",
+    "coverage_state": "comparison_partial",
+    "eligible_operations": [
+      "x25519",
+      "sha256",
+      "hkdf_sha256",
+      "chacha20poly1305_encrypt",
+      "chacha20poly1305_decrypt"
+    ],
+    "unavailable_operations": [
+      "ed25519_sign",
+      "ed25519_verify",
+      "noise_xk_handshake"
+    ]
+  },
+  "target": {
+    "target_id": "heltec-v4-bench-candidate",
+    "board_model": "HTIT-WB32LAF",
+    "exact_received_revision": "V4.2",
+    "mcu": "ESP32-S3",
+    "processor_revision": "v0.2",
+    "flash_bytes": 16777216,
+    "psram_bytes": 2097152,
+    "supported": false
+  },
+  "toolchain": {
+    "esp_idf_version": "v6.0.2",
+    "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "compiler": "xtensa-esp32s3-elf-gcc",
+    "compiler_version": "15.2.0",
+    "reproducible_build": true,
+    "compile_time_date_disabled": true,
+    "cpu_frequency_mhz": 160,
+    "freertos_tick_hz": 100
+  },
+  "graph_binding": {
+    "path": "tests/benchmarks/crypto/OT-120-OT005-MBEDTLS-PSA-IMPORT-BUILD-GRAPH-V1.jsonl",
+    "raw_sha256": "7338e2383f152d554d6a64e3d46e7260b0c9dba79099311ec7e140b1ccde7a55",
+    "entry_count": 8,
+    "manifest_kind": "canonical-lf-jsonl-build-graph-v1"
+  },
+  "build_reproducibility": {
+    "clean_run_count": 2,
+    "independent_build_directories": true,
+    "shared_compiler_cache_disabled": true,
+    "component_manager_network_disabled": true,
+    "reproducible_paths_normalized": true,
+    "runs": [
+      {
+        "profile": "ot120-mbedtls-psa-a",
+        "initial_build_directory_absent": true,
+        "build_exit_code": 0,
+        "compiler_warning_count": 0,
+        "raw_build_evidence_sha256": "8cb199d27d87fcd0b7e98a2201e7c0b29fd49884a7a8cc4f7c9a31e8852ba119",
+        "normalized_receipt_sha256": "9af51958a90858db5864612eface5542130d51cc9c224ddf651fa5f9a8dfb34d",
+        "artifacts": [
+          {
+            "role": "application",
+            "name": "ot120_esp_idf_mbedtls_psa_import_build.bin",
+            "bytes": 255584,
+            "sha256": "6f8b206c111596fee1b17355803ed1b86635536987d61a2be25d8ef8884894b6"
+          },
+          {
+            "role": "application_elf",
+            "name": "ot120_esp_idf_mbedtls_psa_import_build.elf",
+            "bytes": 5305048,
+            "sha256": "b5b9634223dd69535fe2cda443566b03202df7b426d75b60cf423b76048f4690"
+          },
+          {
+            "role": "linker_map",
+            "name": "ot120_esp_idf_mbedtls_psa_import_build.map",
+            "bytes": 3831495,
+            "sha256": "620bb452f33b6b5e5b220d47b46c692b310c15d7fbbadfda799f77b9666feb52"
+          },
+          {
+            "role": "bootloader",
+            "name": "bootloader.bin",
+            "bytes": 22480,
+            "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+          },
+          {
+            "role": "partition_table",
+            "name": "partition-table.bin",
+            "bytes": 3072,
+            "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"
+          },
+          {
+            "role": "generated_sdkconfig",
+            "name": "sdkconfig",
+            "bytes": 106921,
+            "sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+          },
+          {
+            "role": "partition_csv",
+            "name": "partitions.csv",
+            "bytes": 443,
+            "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+          }
+        ]
+      },
+      {
+        "profile": "ot120-mbedtls-psa-b",
+        "initial_build_directory_absent": true,
+        "build_exit_code": 0,
+        "compiler_warning_count": 0,
+        "raw_build_evidence_sha256": "306dba092d7ea70c9cefc094a6e89349bb22a2be3e1aa1ebf87d0b0faae56354",
+        "normalized_receipt_sha256": "9af51958a90858db5864612eface5542130d51cc9c224ddf651fa5f9a8dfb34d",
+        "artifacts": [
+          {
+            "role": "application",
+            "name": "ot120_esp_idf_mbedtls_psa_import_build.bin",
+            "bytes": 255584,
+            "sha256": "6f8b206c111596fee1b17355803ed1b86635536987d61a2be25d8ef8884894b6"
+          },
+          {
+            "role": "application_elf",
+            "name": "ot120_esp_idf_mbedtls_psa_import_build.elf",
+            "bytes": 5305048,
+            "sha256": "b5b9634223dd69535fe2cda443566b03202df7b426d75b60cf423b76048f4690"
+          },
+          {
+            "role": "linker_map",
+            "name": "ot120_esp_idf_mbedtls_psa_import_build.map",
+            "bytes": 3831495,
+            "sha256": "620bb452f33b6b5e5b220d47b46c692b310c15d7fbbadfda799f77b9666feb52"
+          },
+          {
+            "role": "bootloader",
+            "name": "bootloader.bin",
+            "bytes": 22480,
+            "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+          },
+          {
+            "role": "partition_table",
+            "name": "partition-table.bin",
+            "bytes": 3072,
+            "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"
+          },
+          {
+            "role": "generated_sdkconfig",
+            "name": "sdkconfig",
+            "bytes": 106921,
+            "sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686"
+          },
+          {
+            "role": "partition_csv",
+            "name": "partitions.csv",
+            "bytes": 443,
+            "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+          }
+        ]
+      }
+    ]
+  },
+  "one_time_authority": {
+    "host_only_phase_one_instruction_used": true,
+    "consumed": true,
+    "hardware_scope_included": false,
+    "benchmark_execution_scope_included": false
+  },
+  "boundaries": {
+    "benchmark_executed": false,
+    "device_accessed": false,
+    "flashed": false,
+    "radio_used": false,
+    "key_or_entropy_operation": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "candidate_imported_for_benchmark": true,
+    "candidate_benchmark_built": true,
+    "benchmark_executed": false,
+    "hardware_or_device_accessed": false,
+    "candidate_selected": false,
+    "support_proven": false,
+    "compatibility_proven": false,
+    "regulatory_compliance_proven": false,
+    "score_credit_added": false
+  }
+}

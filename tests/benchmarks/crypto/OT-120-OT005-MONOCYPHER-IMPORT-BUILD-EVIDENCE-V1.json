@@ -1,0 +1,203 @@
+{
+  "schema": "OTCIBE1",
+  "version": 1,
+  "artifact_kind": "retained_candidate_import_build_evidence",
+  "evidence_id": "OT-120-OT005-MONOCYPHER-IMPORT-BUILD-EVIDENCE-V1",
+  "recorded_date": "2026-08-22",
+  "status": "candidate_import_build_evidence_complete_pending_atomic_admission",
+  "public_result": "MONOCYPHER-IMPORT-BUILD-EVIDENCE-COMPLETE-HOST-ONLY; PENDING-ATOMIC-ADMISSION; NO-BENCHMARK-DEVICE-RADIO-SELECTION-OR-SCORE",
+  "contract_raw_sha256": "ac0b3dd0e7f6fbd1fdb7edbf482ed301cfd2ce15a32c9b6f2e48bf1b8408df51",
+  "contract_canonical_sha256": "bbbc9c93028affce509bc145ce2f3de44c0cc2a5934cc3804bd3526dee94a8ea",
+  "candidate_id": "monocypher",
+  "source_bindings": {
+    "version": "4.0.3",
+    "source_evidence_sha256": "fe037820304103f7ca2253665076e4dc41740598ca9742ba8d45f6ec64ebc06f",
+    "source_admission_canonical_sha256": "6dbeeac0266f9e6dd90265cdd71a721acfd36b4308dcb87180bd9d7c24c77e52",
+    "project_dependency_lock_sha256": "b78dd459464180518c97f8bd192edab6fb7e886634e30bc498c2f2f5ad0307ca",
+    "source_manifest_sha256": "efb166777889c9ec1e1c08be73c2f8c878bd48300abfcd9f884d81ea5486ad84",
+    "sbom_sha256": "cd82634f6512a3bff927111686aa389e8fb9885e8d53e21b90690b4509bf1154",
+    "api_config_evidence_canonical_sha256": "c1ce6c0de2a72852359fa15efd9e27d9ffd15171362ab6adc4d04f66825949e9",
+    "generated_sdkconfig_bytes": 106913,
+    "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+    "coverage_state": "comparison_partial",
+    "eligible_operations": [
+      "ed25519_sign",
+      "ed25519_verify",
+      "x25519",
+      "chacha20poly1305_encrypt",
+      "chacha20poly1305_decrypt"
+    ],
+    "unavailable_operations": [
+      "sha256",
+      "hkdf_sha256",
+      "noise_xk_handshake"
+    ]
+  },
+  "target": {
+    "target_id": "heltec-v4-bench-candidate",
+    "board_model": "HTIT-WB32LAF",
+    "exact_received_revision": "V4.2",
+    "mcu": "ESP32-S3",
+    "processor_revision": "v0.2",
+    "flash_bytes": 16777216,
+    "psram_bytes": 2097152,
+    "supported": false
+  },
+  "toolchain": {
+    "esp_idf_version": "v6.0.2",
+    "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "compiler": "xtensa-esp32s3-elf-gcc",
+    "compiler_version": "15.2.0",
+    "reproducible_build": true,
+    "compile_time_date_disabled": true,
+    "cpu_frequency_mhz": 160,
+    "freertos_tick_hz": 100
+  },
+  "graph_binding": {
+    "path": "tests/benchmarks/crypto/OT-120-OT005-MONOCYPHER-IMPORT-BUILD-GRAPH-V1.jsonl",
+    "raw_sha256": "9e59ab26cca582301027ee3544bfd69643dfde5b8a84a2ae494cb98969ba9645",
+    "entry_count": 10,
+    "manifest_kind": "canonical-lf-jsonl-build-graph-v1"
+  },
+  "build_reproducibility": {
+    "clean_run_count": 2,
+    "independent_build_directories": true,
+    "shared_compiler_cache_disabled": true,
+    "component_manager_network_disabled": true,
+    "reproducible_paths_normalized": true,
+    "runs": [
+      {
+        "profile": "ot120-monocypher-a",
+        "initial_build_directory_absent": true,
+        "build_exit_code": 0,
+        "compiler_warning_count": 0,
+        "raw_build_evidence_sha256": "b7e7cfbffa1a2ffd1cf921e592d93c1057dc39e3eac2af67c48dc43b2e9aabc8",
+        "normalized_receipt_sha256": "21b1c096455c3fd50ae2dee6bf0e617ceb4939736a143ac4c0edc6e0e3514050",
+        "artifacts": [
+          {
+            "role": "application",
+            "name": "ot120_monocypher_import_build.bin",
+            "bytes": 171728,
+            "sha256": "b0452240589c4e99f0954405a41a92c579f96aa8f1739be8d1e4f2e0aec0a72d"
+          },
+          {
+            "role": "application_elf",
+            "name": "ot120_monocypher_import_build.elf",
+            "bytes": 3784956,
+            "sha256": "57397ac54fa64704e4877a933084409e5af7c1313111b612012a28e71e536ce2"
+          },
+          {
+            "role": "linker_map",
+            "name": "ot120_monocypher_import_build.map",
+            "bytes": 3710392,
+            "sha256": "71fa41969f934364e13f7116d13c45d357004b72e794771e355940bab247002d"
+          },
+          {
+            "role": "bootloader",
+            "name": "bootloader.bin",
+            "bytes": 22480,
+            "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+          },
+          {
+            "role": "partition_table",
+            "name": "partition-table.bin",
+            "bytes": 3072,
+            "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"
+          },
+          {
+            "role": "generated_sdkconfig",
+            "name": "sdkconfig",
+            "bytes": 106913,
+            "sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+          },
+          {
+            "role": "partition_csv",
+            "name": "partitions.csv",
+            "bytes": 443,
+            "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+          }
+        ]
+      },
+      {
+        "profile": "ot120-monocypher-b",
+        "initial_build_directory_absent": true,
+        "build_exit_code": 0,
+        "compiler_warning_count": 0,
+        "raw_build_evidence_sha256": "bf99ac4790a9fdfc032a9c81c5f331cd309c7c5f7b82bdeeeca93fcfb143ca76",
+        "normalized_receipt_sha256": "21b1c096455c3fd50ae2dee6bf0e617ceb4939736a143ac4c0edc6e0e3514050",
+        "artifacts": [
+          {
+            "role": "application",
+            "name": "ot120_monocypher_import_build.bin",
+            "bytes": 171728,
+            "sha256": "b0452240589c4e99f0954405a41a92c579f96aa8f1739be8d1e4f2e0aec0a72d"
+          },
+          {
+            "role": "application_elf",
+            "name": "ot120_monocypher_import_build.elf",
+            "bytes": 3784956,
+            "sha256": "57397ac54fa64704e4877a933084409e5af7c1313111b612012a28e71e536ce2"
+          },
+          {
+            "role": "linker_map",
+            "name": "ot120_monocypher_import_build.map",
+            "bytes": 3710392,
+            "sha256": "71fa41969f934364e13f7116d13c45d357004b72e794771e355940bab247002d"
+          },
+          {
+            "role": "bootloader",
+            "name": "bootloader.bin",
+            "bytes": 22480,
+            "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+          },
+          {
+            "role": "partition_table",
+            "name": "partition-table.bin",
+            "bytes": 3072,
+            "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"
+          },
+          {
+            "role": "generated_sdkconfig",
+            "name": "sdkconfig",
+            "bytes": 106913,
+            "sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+          },
+          {
+            "role": "partition_csv",
+            "name": "partitions.csv",
+            "bytes": 443,
+            "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+          }
+        ]
+      }
+    ]
+  },
+  "one_time_authority": {
+    "host_only_phase_one_instruction_used": true,
+    "consumed": true,
+    "hardware_scope_included": false,
+    "benchmark_execution_scope_included": false
+  },
+  "boundaries": {
+    "benchmark_executed": false,
+    "device_accessed": false,
+    "flashed": false,
+    "radio_used": false,
+    "key_or_entropy_operation": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "candidate_imported_for_benchmark": true,
+    "candidate_benchmark_built": true,
+    "benchmark_executed": false,
+    "hardware_or_device_accessed": false,
+    "candidate_selected": false,
+    "support_proven": false,
+    "compatibility_proven": false,
+    "regulatory_compliance_proven": false,
+    "score_credit_added": false
+  }
+}

@@ -30,21 +30,26 @@ EVIDENCE_PATHS = {
     for candidate_id, slug in CANDIDATE_SLUGS
 }
 
-# Pin these after the corresponding immutable artifacts exist. None deliberately
-# means that a contract-only validation cannot accidentally admit future evidence.
+# Immutable hashes for the accepted OT-120 Phase 1 contract and retained evidence.
 EXPECTED_CONTRACT_RAW_SHA256: str | None = "ac0b3dd0e7f6fbd1fdb7edbf482ed301cfd2ce15a32c9b6f2e48bf1b8408df51"
 EXPECTED_CONTRACT_SHA256: str | None = "bbbc9c93028affce509bc145ce2f3de44c0cc2a5934cc3804bd3526dee94a8ea"
 EXPECTED_GRAPH_RAW_SHA256: dict[str, str | None] = {
-    candidate_id: None for candidate_id, _ in CANDIDATE_SLUGS
+    "espressif_libsodium": "c939dbc7afbc103a44c16d92474528acc782ca442873f06fa9a8a8b04aaec20c",
+    "esp_idf_mbedtls_psa": "7338e2383f152d554d6a64e3d46e7260b0c9dba79099311ec7e140b1ccde7a55",
+    "monocypher": "9e59ab26cca582301027ee3544bfd69643dfde5b8a84a2ae494cb98969ba9645",
 }
 EXPECTED_EVIDENCE_RAW_SHA256: dict[str, str | None] = {
-    candidate_id: None for candidate_id, _ in CANDIDATE_SLUGS
+    "espressif_libsodium": "735b4755f25da280cde7ba79387f5eeeee5a38bf477b60042e64d31f20f2186f",
+    "esp_idf_mbedtls_psa": "e4cf79a47c6cd3a64f44412bf6b010815e7e66f3e7633242d2c2c89c61bf1307",
+    "monocypher": "4ba0b05ab4ee043e506b8bc15d5140451b0e6b1b95fd5eb46bae26a595789633",
 }
 EXPECTED_EVIDENCE_SHA256: dict[str, str | None] = {
-    candidate_id: None for candidate_id, _ in CANDIDATE_SLUGS
+    "espressif_libsodium": "28c98e83cf2149177353f47346e8c37d263e8a436a10bff3b3f4cefe7608bd49",
+    "esp_idf_mbedtls_psa": "5ed9d04e6d773be599e22bbccb3a8117850d99636dfc3a30adeefcc1f384866d",
+    "monocypher": "390a94a0d256f4a8863c0d44363b788c7b8c9a91c4e94bebdf9356d8ca1a0c61",
 }
-EXPECTED_ADMISSION_RAW_SHA256: str | None = None
-EXPECTED_ADMISSION_SHA256: str | None = None
+EXPECTED_ADMISSION_RAW_SHA256: str | None = "90af31966553bee58fcf71e4decfee8d2bcadfee58ef026e3f96cffcd6f45ccf"
+EXPECTED_ADMISSION_SHA256: str | None = "0c55f49803d833c075670b17fa8d033bd5a7cd4997e8714ff247161f7fa2057b"
 
 MAX_JSON_BYTES = 524_288
 MAX_GRAPH_BYTES = 524_288
