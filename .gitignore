@@ -9,6 +9,7 @@ __pycache__/
 venv/
 
 # PlatformIO and firmware build output
+.build/
 .pio/
 .private/
 build/

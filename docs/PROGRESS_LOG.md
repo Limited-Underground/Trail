@@ -4,6 +4,15 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-23
+
+### OT-121 bounded libsodium local-primitives checkpoint
+
+- Decision 0059 grants one bounded Phase 2 execution session; Decision 0060 records only the privacy-safe `OT121LPER1/v1` checkpoint. The public receipt SHA-256 is `731824641945c9930e2afc401ea583154dedf6051fcb1ede0f3b165fb8c1eb7f`.
+- Both admitted anonymous experimental nodes passed all seven Espressif libsodium local primitives with 100 data-cache-conditioned and 100 warm samples per operation. Both benchmark readbacks, captures, exact Trail restorations, restore readbacks, and resets validated.
+- The 288,448-byte benchmark image has SHA-256 `405a1ac4b508d591aa70e4ba2c76c1ffcd6e90cdee1489802182573b530def31`; the accepted sdkconfig remains exact SHA-256 `b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f`. A 3,584-byte main-task stack overflow was corrected with a core-pinned 8 KiB benchmark worker without changing that sdkconfig.
+- The receipt records `phase_two_complete=false` and `radio_used=false`. Other candidates, Noise XK, radio, resource measurements, Phase 3 admission, and explicit selection remain open. No support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added; V1 remains exact 43.75%/displayed 44%, and the historical baseline remains exact 31.75%/displayed 32%. See [Decision 0060](decisions/0060-bounded-libsodium-local-primitives-checkpoint.md) and [OT-121 evidence](../tests/hardware/OT-121-2026-08-23.md).
+
 ## 2026-08-22
 
 ### OT-120 retained candidate import/build admission

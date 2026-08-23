@@ -1029,9 +1029,13 @@ Monocypher comparison evidence, populating all three API/configuration
 registries and advancing counts to `3/3/0`. OT-119 then completes phase 0, and
 OT-120 atomically accepts every retained candidate import/build anchor and
 completes phase 1 at `3/3/3`. Monocypher and mbedTLS/PSA remain structurally
-nonselectable. Fresh execution authority is the only remaining precondition
-before exact-target measurements. Explicit suite/wire acceptance
-remains a later gate.
+nonselectable. OT-121 then grants the bounded one-time Phase 2 execution session
+and records a privacy-safe two-node libsodium local-primitives checkpoint: all
+seven local operations pass with 100 data-cache-conditioned and 100 warm samples
+per operation, and both nodes restore exactly. The receipt explicitly keeps
+`phase_two_complete=false` and `radio_used=false`; other candidates, Noise XK,
+radio, resource measurements, and independent admission remain open. Explicit
+suite/wire acceptance remains a later gate.
 
 Before a sender-specific traffic key can protect packet v1, its outbound nonce
 domain needs rollback-safe allocation. The `OTCN` two-slot store commits a

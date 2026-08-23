@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:opentrail:benchmark:OTCBXRF1",
+  "title": "OT-121 libsodium local-primitives serial frame",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["schema", "version", "record_kind", "scope", "candidate_id", "operations_required", "repetitions_cold", "repetitions_warm", "cold_conditioning", "phase2_complete", "radio_used", "candidate_selected"],
+      "properties": {
+        "schema": { "const": "OTCBXRF1" },
+        "version": { "const": 1 },
+        "record_kind": { "const": "header" },
+        "scope": { "const": "local_primitives_v1" },
+        "candidate_id": { "const": "espressif_libsodium" },
+        "operations_required": { "const": 7 },
+        "repetitions_cold": { "const": 100 },
+        "repetitions_warm": { "const": 100 },
+        "cold_conditioning": { "const": "32k_data_sweep" },
+        "phase2_complete": { "const": false },
+        "radio_used": { "const": false },
+        "candidate_selected": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["schema", "version", "record_kind", "scope", "candidate_id", "gate", "outcome", "phase2_complete"],
+      "properties": {
+        "schema": { "const": "OTCBXRF1" },
+        "version": { "const": 1 },
+        "record_kind": { "const": "gate" },
+        "scope": { "const": "local_primitives_v1" },
+        "candidate_id": { "const": "espressif_libsodium" },
+        "gate": { "enum": ["sodium_init", "primitive_vectors_and_negative_cases"] },
+        "outcome": { "enum": ["pass", "fail"] },
+        "phase2_complete": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["schema", "version", "record_kind", "scope", "candidate_id", "operation", "phase", "iteration", "duration_us", "outcome", "phase2_complete"],
+      "properties": {
+        "schema": { "const": "OTCBXRF1" },
+        "version": { "const": 1 },
+        "record_kind": { "const": "sample" },
+        "scope": { "const": "local_primitives_v1" },
+        "candidate_id": { "const": "espressif_libsodium" },
+        "operation": {
+          "enum": ["ed25519_sign", "ed25519_verify", "x25519", "sha256", "hkdf_sha256", "chacha20poly1305_encrypt", "chacha20poly1305_decrypt"]
+        },
+        "phase": { "enum": ["cold", "warm"] },
+        "iteration": { "type": "integer", "minimum": 0, "maximum": 99 },
+        "duration_us": { "type": "integer", "minimum": 0 },
+        "outcome": { "enum": ["pass", "fail"] },
+        "phase2_complete": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["schema", "version", "record_kind", "scope", "candidate_id", "operation", "phase", "min_us", "median_us", "p95_us", "max_us", "outcome", "phase2_complete"],
+      "properties": {
+        "schema": { "const": "OTCBXRF1" },
+        "version": { "const": 1 },
+        "record_kind": { "const": "operation_summary" },
+        "scope": { "const": "local_primitives_v1" },
+        "candidate_id": { "const": "espressif_libsodium" },
+        "operation": {
+          "enum": ["ed25519_sign", "ed25519_verify", "x25519", "sha256", "hkdf_sha256", "chacha20poly1305_encrypt", "chacha20poly1305_decrypt"]
+        },
+        "phase": { "enum": ["cold", "warm"] },
+        "min_us": { "type": "integer", "minimum": 0 },
+        "median_us": { "type": "integer", "minimum": 0 },
+        "p95_us": { "type": "integer", "minimum": 0 },
+        "max_us": { "type": "integer", "minimum": 0 },
+        "outcome": { "enum": ["pass", "fail"] },
+        "phase2_complete": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["schema", "version", "record_kind", "scope", "candidate_id", "operations_completed", "operations_required", "outcome", "phase2_complete", "radio_used", "candidate_selected"],
+      "properties": {
+        "schema": { "const": "OTCBXRF1" },
+        "version": { "const": 1 },
+        "record_kind": { "const": "local_complete" },
+        "scope": { "const": "local_primitives_v1" },
+        "candidate_id": { "const": "espressif_libsodium" },
+        "operations_completed": { "type": "integer", "minimum": 0, "maximum": 7 },
+        "operations_required": { "const": 7 },
+        "outcome": { "enum": ["pass", "fail"] },
+        "phase2_complete": { "const": false },
+        "radio_used": { "const": false },
+        "candidate_selected": { "const": false }
+      },
+      "additionalProperties": false
+    }
+  ]
+}
