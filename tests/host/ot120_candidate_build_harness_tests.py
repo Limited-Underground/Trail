@@ -81,6 +81,8 @@ def test_exact_operation_anchor_partitions() -> None:
         assert unavailable not in monocypher.lower()
     for unavailable in ("ed25519", "noise_xk"):
         assert unavailable not in mbedtls.lower()
+    monocypher_cmake = normalized(HARNESS / "monocypher/main/CMakeLists.txt")
+    assert "PRIV_REQUIRES\n        esp_system" in monocypher_cmake
 
 
 def test_orchestrator_is_fail_closed_and_host_only() -> None:

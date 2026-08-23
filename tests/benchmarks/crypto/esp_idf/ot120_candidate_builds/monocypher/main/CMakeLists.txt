@@ -11,6 +11,10 @@ idf_component_register(
         "${OT_CRYPTO_ROOT}/adapters/monocypher_api_v0"
         "${OT_MONOCYPHER_SOURCE}"
         "${OT_MONOCYPHER_SOURCE}/optional"
+    # Suppress ESP-IDF's special main-requires-everything fallback without
+    # trimming the full Kconfig surface used by the accepted OT-107 sdkconfig.
+    PRIV_REQUIRES
+        esp_system
 )
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wall -Wextra -Werror)
