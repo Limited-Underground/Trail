@@ -98,7 +98,8 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'tests\host\fixtures\libsodium_noise_xk'),
     '-I', (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\libsodium_noise_xk_v0'),
     '-I', (Join-Path $projectRoot 'tests\host\fixtures\monocypher_api'),
-    '-I', (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\monocypher_api_v0')
+    '-I', (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\monocypher_api_v0'),
+    '-I', (Join-Path $projectRoot 'tests\benchmarks\crypto\esp_idf\ot121_candidate_benchmarks\monocypher_ot129\main')
 )
 
 $builds = @(
@@ -116,6 +117,14 @@ $builds = @(
         Sources = @(
             (Join-Path $projectRoot 'tests\benchmarks\crypto\adapters\monocypher_api_v0\monocypher_benchmark_api.c'),
             (Join-Path $projectRoot 'tests\host\monocypher_benchmark_api_tests.cpp')
+        )
+    },
+    @{
+        Name = 'OT-129 benchmark control protocol'
+        Output = Join-Path $buildDirectory 'ot129_control_protocol_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\benchmarks\crypto\esp_idf\ot121_candidate_benchmarks\monocypher_ot129\main\ot129_control_protocol.c'),
+            (Join-Path $projectRoot 'tests\host\ot129_control_protocol_tests.cpp')
         )
     },
     @{
@@ -2087,6 +2096,14 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\ot128_monocypher_retry_abort_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-128 Monocypher second corrective-retry abort host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot129_monocypher_firmware_contract_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-129 Monocypher firmware contract host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot129_monocypher_protocol_runner_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-129 Monocypher protocol runner host tests failed.'
 }
 & $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_preparation_tests.py')
 if ($LASTEXITCODE -ne 0) {

@@ -392,6 +392,7 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
             [
                 LIBSODIUM / "main" / "app_main.c",
                 MONOCYPHER / "main" / "app_main.c",
+                ROOT / "monocypher_ot129" / "main" / "app_main.c",
             ],
         )
     def test_vectors_cleanup_and_failed_x25519_are_fail_closed(self) -> None:

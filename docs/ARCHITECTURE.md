@@ -1037,6 +1037,8 @@ per operation, and both nodes restore exactly. The receipt explicitly keeps
 radio, resource measurements, and independent admission remain open. Explicit
 suite/wire acceptance remains a later gate.
 
+OT-129 replaces the failed Monocypher capture timing assumption with an isolated host/device contract. After one reset the host proves either endpoint disappearance/return or three stable-present polls, opens once, and retransmits exact `OTCBXCTL1 START\n` at a bounded interval until exact `OTCBXCTL1 READY\n`. The device accepts complete START independent of USB read boundaries and idempotently across retries, drains READY, and only then emits the unchanged `OTCBXRF2` stream. The host retains partial bytes across timeouts, bounds printable preamble data, begins its benchmark deadline at READY, and never resets or reopens after START transmission begins. Failure output is a closed code/counter schema with raw endpoint, device, traffic, path, and exception material excluded. This is host-only preparation; immutable execution/restoration binding and fresh authority remain separate gates.
+
 Before a sender-specific traffic key can protect packet v1, its outbound nonce
 domain needs rollback-safe allocation. The `OTCN` two-slot store commits a
 64-bit high-water range before counters are returned and uses a persistence
