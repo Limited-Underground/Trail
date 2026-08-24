@@ -1,0 +1,88 @@
+{
+  "schema": "OTMRAC0",
+  "version": 0,
+  "artifact_kind": "matched_candidate_resource_accounting_contract",
+  "contract_id": "OT-123-OT005-MATCHED-RESOURCE-ACCOUNTING-CONTRACT-V0",
+  "accepted_date": "2026-08-23",
+  "status": "frozen_unexecuted",
+  "candidate_id": "monocypher",
+  "candidate_role": "comparison",
+  "selection_eligible": false,
+  "parents": {
+    "benchmark_plan_path": "tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json",
+    "benchmark_plan_raw_sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+    "phase_two_authority_path": "tests/benchmarks/crypto/OT-121-OT005-PHASE-TWO-EXECUTION-AUTHORITY-V1.json",
+    "phase_two_authority_raw_sha256": "765aacd8a33862265b46da2d60333759cd96b72a8acae9e70b22c5bda2dbd90f"
+  },
+  "matched_build_rules": {
+    "fresh_initially_absent_builds_per_side": 2,
+    "candidate_and_control_must_match": [
+      "benchmark_harness_source",
+      "frame_and_runtime_instrumentation",
+      "generated_sdkconfig",
+      "partition_layout",
+      "idf_target",
+      "esp_idf_commit",
+      "compiler",
+      "cmake",
+      "ninja",
+      "python",
+      "esp_idf_size",
+      "compile_flags",
+      "project_version",
+      "cache_policy",
+      "component_manager_network_policy"
+    ],
+    "only_permitted_difference": "candidate_and_adapter_linkage_replaced_by_reviewed_no_candidate_control_bindings",
+    "compiler_warnings_required": 0,
+    "ccache_allowed": false,
+    "component_manager_network_allowed": false,
+    "a_b_artifact_and_json2_equality_required": true
+  },
+  "size_report": {
+    "producer": "python pinned_idf_py size --format json2 --output-file output.json",
+    "format": "esp_idf_size_json2",
+    "format_version": "1.2",
+    "candidate_and_control_reports_retained_and_hash_bound": true
+  },
+  "formulas": {
+    "linked_flash_candidate_bytes": "candidate_report.total_size",
+    "linked_flash_control_bytes": "control_report.total_size",
+    "linked_flash_delta_bytes": "linked_flash_candidate_bytes - linked_flash_control_bytes",
+    "static_ram_candidate_bytes": "DIRAM(.data + .bss + .noinit) + all_layout_parts(.tdata + .tbss)",
+    "static_ram_control_bytes": "DIRAM(.data + .bss + .noinit) + all_layout_parts(.tdata + .tbss)",
+    "missing_named_parts_count_as_zero": true,
+    "duplicate_named_tls_parts_rejected": true,
+    "static_ram_delta_bytes": "static_ram_candidate_bytes - static_ram_control_bytes",
+    "deltas_are_signed": true,
+    "excluded_from_static_ram": ["DIRAM .text", "IRAM code", "RTC FAST", "RTC SLOW", "external RAM"]
+  },
+  "result_validator_transition": {
+    "current_validator_path": "tools/crypto_benchmark.py",
+    "current_validator_behavior": "OTCBR0 requires linked_flash_delta_bytes and static_ram_bytes to be integers greater than or equal to 1",
+    "current_validator_can_admit_this_signed_delta_contract": false,
+    "successor_schema_and_validator_required": true,
+    "successor_requirement": "preserve and admit zero or negative matched linked-flash and static-RAM deltas without absolute-value or positive-value coercion"
+  },
+  "fail_closed_rejections": [
+    "application_bin_file_length_as_linked_flash",
+    "elf_or_map_file_length_as_linked_flash",
+    "archive_or_symbol_anchor_size_as_linked_flash",
+    "restored_trail_or_ot093_full_product_as_control",
+    "absolute_data_plus_bss_presented_as_candidate_delta",
+    "unmatched_sdkconfig_toolchain_harness_or_partition",
+    "forced_positive_or_absolute_valued_delta",
+    "missing_noinit_tdata_or_tbss_accounting",
+    "old_validator_used_for_signed_delta_admission",
+    "missing_or_nonidentical_a_b_builds"
+  ],
+  "claims": {
+    "accounting_formula_frozen": true,
+    "matched_control_built": false,
+    "resource_delta_admitted": false,
+    "benchmark_executed": false,
+    "hardware_accessed": false,
+    "candidate_selected": false,
+    "score_credit_added": false
+  }
+}

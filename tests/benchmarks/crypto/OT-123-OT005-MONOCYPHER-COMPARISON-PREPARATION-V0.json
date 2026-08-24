@@ -1,0 +1,168 @@
+{
+  "schema": "OTMCP0",
+  "version": 0,
+  "artifact_kind": "monocypher_comparison_benchmark_preparation",
+  "preparation_id": "OT-123-OT005-MONOCYPHER-COMPARISON-PREPARATION-V0",
+  "accepted_date": "2026-08-23",
+  "status": "candidate_prepared_control_and_execution_pending",
+  "candidate_id": "monocypher",
+  "candidate_role": "comparison",
+  "selection_eligible": false,
+  "operations": [
+    "ed25519_sign",
+    "ed25519_verify",
+    "x25519",
+    "chacha20poly1305_encrypt",
+    "chacha20poly1305_decrypt"
+  ],
+  "unavailable_operations": [
+    "sha256",
+    "hkdf_sha256",
+    "noise_xk_handshake"
+  ],
+  "bindings": {
+    "matched_resource_contract_path": "tests/benchmarks/crypto/OT-123-OT005-MATCHED-RESOURCE-ACCOUNTING-CONTRACT-V0.json",
+    "matched_resource_contract_raw_sha256": "4023b35e0aecc6f4c8c5077bdd8646ad81df892c8816a1348bf1c97181c0cc03",
+    "benchmark_plan_raw_sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+    "phase_two_authority_raw_sha256": "765aacd8a33862265b46da2d60333759cd96b72a8acae9e70b22c5bda2dbd90f",
+    "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+    "normalized_partition_sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621",
+    "benchmark_source_sha256": "39a1427f9cf42a8914571080b80b3da4e57bcb528107b94220ac2a33dc5aae27",
+    "shared_frame_header_sha256": "cc5a4596400a8a2766e66fcab6b7d51dceecbc4f3c1be4055a2581d400415d4c",
+    "adapter_sha256": "e12b800841c6c8347cdf08d05768f2cfbc83ee271fdae7616f8a3b16e4263e59",
+    "monocypher_core_sha256": "f1f838cdd483bdebe0df0ff5c5ed60535e496f769c6a2f933ac4c0b114207123",
+    "monocypher_ed25519_sha256": "ce0d2f8e32ca8f66398ba5b3456cc74327c3eff14e7b950ce7d57be9025cc453",
+    "frame_parser_sha256": "2276aab6246898186804d39b08be342989ad2cf2c804b546b43cbab31350a721",
+    "frame_schema_sha256": "516cab7753d1ca22f59181480df4eed4aec232150035cee6a7a116fbb539c0e0",
+    "runner_sha256": "f6c4070512d1c8d0d58bd386646f1e4098084b275610a7834dbf0ee0145eb1d1",
+    "build_recipe_path": "tests/benchmarks/crypto/OT-123-OT005-MONOCYPHER-BUILD-RECIPE-V0.json",
+    "build_recipe_raw_sha256": "c109392296cf313f276bf0121629eeec2db8bf75773f76ca8086fa2f1a04e5cb",
+    "benchmark_top_cmake_sha256": "9a3f88786a73ee9417107b3bd2a2cb6e3d4d3df27710250e0b029f278d104440",
+    "benchmark_main_cmake_sha256": "eb69707679f687e7b4cc842a456fc4d03a58a5284681f3002215ddf39ce5d151",
+    "partition_raw_sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389",
+    "common_sdkconfig_defaults_sha256": "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb",
+    "reproducible_defaults_sha256": "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6",
+    "esp_idf_size_module_file_sha256": "ba38639de2a4d1f4fa48657e94cd3f250a3744ea8595e81fc74e9da0431a15c9",
+    "continuation_parent_path": "tests/benchmarks/crypto/OT-122-OT005-LIBSODIUM-NOISE-RESOURCE-EXECUTION-RECEIPT-V0.json",
+    "continuation_parent_raw_sha256": "2b023c640bfbec8ad6eb5d1d63d65e8f1ad75dcfe593566aba6b3d468355a178"
+  },
+  "toolchain": {
+    "esp_idf_version": "v6.0.2",
+    "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "esp_idf_clean": true,
+    "compiler": "xtensa-esp-elf-gcc 15.2.0 esp-15.2.0_20251204",
+    "compiler_executable_sha256": "20e70278d1fa041c1305e0e70e6f35dde01b7eb21f2c7bbc0013456493a011a5",
+    "cmake": "4.0.3",
+    "cmake_executable_sha256": "392ab4d6c3c91543fd297ed6c7e7354bf62edcd26fdf2706ad8613ad620cc45e",
+    "ninja": "1.12.1",
+    "ninja_executable_sha256": "68865c3276d449d746cea5065fdec2baf755d7813e161ab04205b0907b2629b8",
+    "python": "3.14.6",
+    "python_executable_sha256": "199ce15a9f0d4f9522edba59338e4879d28cf61f88e377b8164bcb716275ed22",
+    "esp_idf_size": "2.3.1",
+    "idf_target": "esp32s3",
+    "project_version": "ot107-config-v0",
+    "ccache_used": false,
+    "component_manager_network_used": false,
+    "esp_idf_size_module_file_sha256": "ba38639de2a4d1f4fa48657e94cd3f250a3744ea8595e81fc74e9da0431a15c9"
+  },
+  "candidate_builds": [
+    {
+      "run": "A",
+      "initial_build_directory_absent": true,
+      "compiler_warnings": 0,
+      "raw_build_log_sha256": "e4ce0eb66f255baf6b6d11cf78e678c3ca06969b720c4b0133c4b6216b3d3318",
+      "normalized_receipt_sha256": "83b5a21d7f9fa0b00cbca6c6fa3934b676a8bf6fdd77ee693bc8944f9f8327d9",
+      "application_bin": {
+        "bytes": 186640,
+        "sha256": "5e075fb791a658546fca714fc60de095ecbf14f7c443f414d3ac8642965a3b64"
+      },
+      "application_elf": {
+        "bytes": 3842940,
+        "sha256": "51b02f506304837a11a9570e2ab9c43097d37c06ee1d74a8727bf1c106e3b420"
+      },
+      "linker_map": {
+        "bytes": 3733060,
+        "sha256": "830246c5eb5ad85a790df3b9dbc7a447896209faabd3cff38ed81508a4478353"
+      },
+      "generated_sdkconfig": {
+        "bytes": 106913,
+        "sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+      },
+      "size_report": {
+        "bytes": 2045,
+        "sha256": "56bcf252c5392326ba07376881c960d76058750d933812da581caee337b02ac4"
+      }
+    },
+    {
+      "run": "B",
+      "initial_build_directory_absent": true,
+      "compiler_warnings": 0,
+      "raw_build_log_sha256": "8d5038981e1f50b203adf810a100c641b07dd57952cf976e7a488e64e944336a",
+      "normalized_receipt_sha256": "83b5a21d7f9fa0b00cbca6c6fa3934b676a8bf6fdd77ee693bc8944f9f8327d9",
+      "application_bin": {
+        "bytes": 186640,
+        "sha256": "5e075fb791a658546fca714fc60de095ecbf14f7c443f414d3ac8642965a3b64"
+      },
+      "application_elf": {
+        "bytes": 3842940,
+        "sha256": "51b02f506304837a11a9570e2ab9c43097d37c06ee1d74a8727bf1c106e3b420"
+      },
+      "linker_map": {
+        "bytes": 3733060,
+        "sha256": "830246c5eb5ad85a790df3b9dbc7a447896209faabd3cff38ed81508a4478353"
+      },
+      "generated_sdkconfig": {
+        "bytes": 106913,
+        "sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+      },
+      "size_report": {
+        "bytes": 2045,
+        "sha256": "56bcf252c5392326ba07376881c960d76058750d933812da581caee337b02ac4"
+      }
+    }
+  ],
+  "candidate_size_report": {
+    "path": "tests/benchmarks/crypto/OT-123-OT005-MONOCYPHER-CANDIDATE-SIZE-REPORT-V0.json",
+    "raw_sha256": "56bcf252c5392326ba07376881c960d76058750d933812da581caee337b02ac4",
+    "format_version": "1.2",
+    "linked_flash_candidate_bytes": 186516,
+    "diram_data_bytes": 12037,
+    "diram_bss_bytes": 38920,
+    "static_ram_candidate_bytes": 50973,
+    "diram_noinit_bytes": 0,
+    "tls_tdata_tbss_bytes": 16
+  },
+  "matched_control": {
+    "status": "not_built",
+    "linked_flash_control_bytes": null,
+    "linked_flash_delta_bytes": null,
+    "static_ram_control_bytes": null,
+    "static_ram_delta_bytes": null
+  },
+  "execution_preparation": {
+    "expected_frame_count": 1014,
+    "cold_samples_per_operation": 100,
+    "warm_samples_per_operation": 100,
+    "radio_used": false,
+    "runner_pins_benchmark_digest": true,
+    "caller_supplied_benchmark_digest_allowed": false,
+    "application_only_offset": 65536,
+    "restore_digest_pinned": true,
+    "private_recovery_journal_required": true,
+    "installed_trail_readback_required_on_both_nodes_before_first_write": true,
+    "fixed_private_recovery_journal": ".private/ot123-monocypher-recovery-journal.json",
+    "continuation_parent_receipt_hash_pinned": true
+  },
+  "claims": {
+    "candidate_harness_prepared": true,
+    "candidate_build_reproduced_twice": true,
+    "matched_resource_control_prepared": false,
+    "resource_delta_admitted": false,
+    "benchmark_executed": false,
+    "hardware_accessed": false,
+    "radio_used": false,
+    "candidate_selected": false,
+    "phase_two_complete": false,
+    "score_credit_added": false
+  }
+}

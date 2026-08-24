@@ -13,6 +13,7 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 ROOT = REPO / "tests" / "benchmarks" / "crypto" / "esp_idf" / "ot121_candidate_benchmarks"
 LIBSODIUM = ROOT / "libsodium"
+MONOCYPHER = ROOT / "monocypher"
 OPERATIONS = [
     "ed25519_sign",
     "ed25519_verify",
@@ -386,7 +387,13 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
                 component = source.parent / "CMakeLists.txt"
                 self.assertIn("esp_driver_usb_serial_jtag", component.read_text(encoding="utf-8"))
                 self.assertIn("freertos", component.read_text(encoding="utf-8"))
-        self.assertEqual(consumers, [LIBSODIUM / "main" / "app_main.c"])
+        self.assertEqual(
+            consumers,
+            [
+                LIBSODIUM / "main" / "app_main.c",
+                MONOCYPHER / "main" / "app_main.c",
+            ],
+        )
     def test_vectors_cleanup_and_failed_x25519_are_fail_closed(self) -> None:
         source = (LIBSODIUM / "main" / "app_main.c").read_text(encoding="utf-8")
         for marker in [

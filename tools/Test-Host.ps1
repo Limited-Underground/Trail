@@ -2040,6 +2040,33 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-120 candidate build-harness tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\ot121_candidate_benchmark_harness_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-121/OT-123 candidate benchmark-harness tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot121_local_primitive_frame_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-121 local-primitive frame tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_candidate_benchmark_harness_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-123 Monocypher benchmark-harness tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_frame_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-123 Monocypher frame tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_runner_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-123 Monocypher runner tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_preparation_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-123 Monocypher preparation tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
 
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_radio_profile_contract_tests.py')
 if ($LASTEXITCODE -ne 0) {

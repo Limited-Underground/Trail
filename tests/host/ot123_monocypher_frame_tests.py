@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused adversarial tests for the host-only OT-121 frame validator."""
+"""Focused adversarial tests for the host-only OT-123 Monocypher frame validator."""
 
 from __future__ import annotations
 
@@ -12,24 +12,21 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "tools" / "ot121_local_primitive_frames.py"
+TOOL = ROOT / "tools" / "ot123_monocypher_frames.py"
 PREFIX = b"OTCBXRF2 "
 OPERATIONS = (
     "ed25519_sign",
     "ed25519_verify",
     "x25519",
-    "sha256",
-    "hkdf_sha256",
     "chacha20poly1305_encrypt",
     "chacha20poly1305_decrypt",
-    "noise_xk_handshake",
 )
 PHASES = ("cold", "warm")
 COMMON = {
     "schema": "OTCBXRF2",
     "version": 2,
     "scope": "candidate_local_v2",
-    "candidate_id": "espressif_libsodium",
+    "candidate_id": "monocypher",
     "phase2_complete": False,
 }
 
@@ -49,18 +46,12 @@ def _valid_records() -> list[dict[str, object]]:
         {
             **COMMON,
             "record_kind": "header",
-            "operations_required": 8,
+            "operations_required": 5,
             "repetitions_cold": 100,
             "repetitions_warm": 100,
             "cold_conditioning": "32k_data_sweep",
             "radio_used": False,
             "candidate_selected": False,
-        },
-        {
-            **COMMON,
-            "record_kind": "gate",
-            "gate": "sodium_init",
-            "outcome": "pass",
         },
         {
             **COMMON,
@@ -122,8 +113,8 @@ def _valid_records() -> list[dict[str, object]]:
         {
             **COMMON,
             "record_kind": "local_complete",
-            "operations_completed": 8,
-            "operations_required": 8,
+            "operations_completed": 5,
+            "operations_required": 5,
             "outcome": "pass",
             "radio_used": False,
             "candidate_selected": False,
@@ -196,14 +187,24 @@ def _find(
 
 def test_accepts_exact_local_capture() -> None:
     result = _must_accept(_valid_records())
-    assert result["candidate_id"] == "espressif_libsodium"
+    assert result["candidate_id"] == "monocypher"
+    assert result["candidate_role"] == "comparison"
+    assert result["selection_eligible"] is False
+    assert result["unavailable_operations"] == [
+        "sha256", "hkdf_sha256", "noise_xk_handshake"
+    ]
     assert result["scope"] == "candidate_local_v2"
-    assert result["operations_required"] == 8
-    assert result["operations_completed"] == 8
-    assert result["cold_sample_count"] == 800
-    assert result["warm_sample_count"] == 800
-    assert result["summary_count"] == 16
+    assert result["operations_required"] == 5
+    assert result["operations_completed"] == 5
+    assert result["cold_sample_count"] == 500
+    assert result["warm_sample_count"] == 500
+    assert result["summary_count"] == 10
     assert result["phase2_complete"] is False
+    assert result["runtime_resources"]["heap_domain"] == "internal_8bit"
+    assert (
+        result["runtime_resources"]["watchdog_measurement"]
+        == "uninterrupted_terminal_frame"
+    )
 
 
 def test_framing_and_json_are_strict() -> None:
@@ -223,7 +224,7 @@ def test_framing_and_json_are_strict() -> None:
     )
     _must_reject_payload(
         valid.replace(
-            b'"candidate_id":"espressif_libsodium"',
+            b'"candidate_id":"monocypher"',
             b'"candidate_id":"libsodi\xffum"',
             1,
         )
@@ -238,7 +239,7 @@ def test_header_is_exact_and_local_only() -> None:
         ("operations_required", True),
         ("phase2_complete", True),
         ("phase2_complete", 0),
-        ("candidate_id", "monocypher"),
+        ("candidate_id", "espressif_libsodium"),
         ("repetitions_cold", 99),
         ("repetitions_warm", 101),
         ("cold_conditioning", "none"),
@@ -285,6 +286,7 @@ def test_samples_require_exact_order_count_values_and_common_fields() -> None:
     mutations: tuple[tuple[str, object], ...] = (
         ("iteration", 1),
         ("duration_us", -1),
+        ("duration_us", 0),
         ("duration_us", True),
         ("duration_us", 1.5),
         ("duration_us", 1 << 63),
@@ -455,7 +457,7 @@ def main() -> int:
     for test in tests:
         test()
         print(f"PASS {test.__name__}")
-    print(f"PASS {len(tests)} OT-121 local primitive frame test groups")
+    print(f"PASS {len(tests)} OT-123 Monocypher frame test groups")
     return 0
 
 

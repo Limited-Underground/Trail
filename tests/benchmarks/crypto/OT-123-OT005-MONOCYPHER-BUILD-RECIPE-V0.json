@@ -1,0 +1,163 @@
+{
+  "schema": "OTMBR0",
+  "version": 0,
+  "artifact_kind": "reproducible_monocypher_candidate_build_recipe",
+  "recipe_id": "OT-123-OT005-MONOCYPHER-BUILD-RECIPE-V0",
+  "accepted_date": "2026-08-23",
+  "status": "frozen_host_only",
+  "candidate_id": "monocypher",
+  "candidate_role": "comparison",
+  "selection_eligible": false,
+  "source_project": "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher",
+  "application_name": "ot123_monocypher_candidate_bench",
+  "inputs": [
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher/CMakeLists.txt",
+      "raw_sha256": "9a3f88786a73ee9417107b3bd2a2cb6e3d4d3df27710250e0b029f278d104440"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher/main/CMakeLists.txt",
+      "raw_sha256": "eb69707679f687e7b4cc842a456fc4d03a58a5284681f3002215ddf39ce5d151"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher/main/app_main.c",
+      "raw_sha256": "39a1427f9cf42a8914571080b80b3da4e57bcb528107b94220ac2a33dc5aae27"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher/partitions.csv",
+      "raw_sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/include/ot121_benchmark_frame.h",
+      "raw_sha256": "cc5a4596400a8a2766e66fcab6b7d51dceecbc4f3c1be4055a2581d400415d4c"
+    },
+    {
+      "path": "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
+      "raw_sha256": "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/reproducible.defaults",
+      "raw_sha256": "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6"
+    },
+    {
+      "path": "tests/benchmarks/crypto/adapters/monocypher_api_v0/monocypher_benchmark_api.c",
+      "raw_sha256": "e12b800841c6c8347cdf08d05768f2cfbc83ee271fdae7616f8a3b16e4263e59"
+    },
+    {
+      "path": "tests/benchmarks/crypto/adapters/monocypher_api_v0/monocypher_benchmark_api.h",
+      "raw_sha256": "110f5b54cf37538e30450d73a3402807eb59143f2ceb528b12280b7725e52072"
+    },
+    {
+      "path": "tests/benchmarks/crypto/monocypher/4.0.3/source/src/monocypher.c",
+      "raw_sha256": "f1f838cdd483bdebe0df0ff5c5ed60535e496f769c6a2f933ac4c0b114207123"
+    },
+    {
+      "path": "tests/benchmarks/crypto/monocypher/4.0.3/source/src/monocypher.h",
+      "raw_sha256": "fcaf6ed771358bb4f40fba016f6518ae86ec02b1b877d2cc35ad92d3a26fd7b3"
+    },
+    {
+      "path": "tests/benchmarks/crypto/monocypher/4.0.3/source/src/optional/monocypher-ed25519.c",
+      "raw_sha256": "ce0d2f8e32ca8f66398ba5b3456cc74327c3eff14e7b950ce7d57be9025cc453"
+    },
+    {
+      "path": "tests/benchmarks/crypto/monocypher/4.0.3/source/src/optional/monocypher-ed25519.h",
+      "raw_sha256": "3a3035181f991a158d0e1c7567258f0bae8ba0f1f23c5512b4a1db1b3c9730ce"
+    }
+  ],
+  "toolchain": {
+    "esp_idf_version": "v6.0.2",
+    "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "esp_idf_worktree_clean_required": true,
+    "python_environment": "idf6.0_py3.14_env",
+    "gcc": "xtensa-esp-elf-gcc 15.2.0 esp-15.2.0_20251204",
+    "cmake": "4.0.3",
+    "ninja": "1.12.1",
+    "esp_idf_size": {
+      "module": "esp_idf_size",
+      "version": "2.3.1",
+      "module_file_sha256": "ba38639de2a4d1f4fa48657e94cd3f250a3744ea8595e81fc74e9da0431a15c9",
+      "format": "json2",
+      "format_version": "1.2"
+    }
+  },
+  "execution": {
+    "output_root_must_be_initially_absent": true,
+    "independent_runs": [
+      "A",
+      "B"
+    ],
+    "ccache_allowed": false,
+    "idf_component_manager": "0",
+    "idf_target": "esp32s3",
+    "project_version": "ot107-config-v0",
+    "generated_sdkconfig_bytes": 106913,
+    "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f",
+    "build_command_tokens": [
+      "python",
+      "{IDF_PATH}/tools/idf.py",
+      "--no-ccache",
+      "-C",
+      "{REPO}/tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher",
+      "-B",
+      "{RUN_BUILD}",
+      "-D",
+      "SDKCONFIG={RUN_BUILD}/sdkconfig",
+      "-D",
+      "SDKCONFIG_DEFAULTS={REPO}/firmware/targets/heltec_v4_bench/sdkconfig.defaults;{REPO}/tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/reproducible.defaults",
+      "-D",
+      "PROJECT_VER=ot107-config-v0",
+      "-D",
+      "IDF_TARGET=esp32s3",
+      "build"
+    ],
+    "size_command_tokens": [
+      "python",
+      "-m",
+      "esp_idf_size",
+      "--format",
+      "json2",
+      "--output-file",
+      "{RUN}/size.json",
+      "{RUN_BUILD}/ot123_monocypher_candidate_bench.map"
+    ]
+  },
+  "evidence": {
+    "raw_build_log_sha256_required": true,
+    "raw_size_report_sha256_required": true,
+    "compiler_warning_count_required": 0,
+    "retained_artifacts": [
+      "application.bin",
+      "application.elf",
+      "application.map",
+      "sdkconfig",
+      "size.json"
+    ],
+    "normalized_receipt_fields": [
+      "candidate_id",
+      "candidate_role",
+      "selection_eligible",
+      "input_hashes",
+      "toolchain",
+      "application_bin",
+      "application_elf",
+      "linker_map",
+      "generated_sdkconfig",
+      "size_report"
+    ],
+    "normalized_receipt_excludes": [
+      "run_label",
+      "absolute_path",
+      "timestamp"
+    ],
+    "a_b_artifact_equality_required": true,
+    "a_b_size_report_equality_required": true,
+    "a_b_normalized_receipt_equality_required": true
+  },
+  "claims": {
+    "device_accessed": false,
+    "firmware_flashed": false,
+    "benchmark_executed": false,
+    "radio_used": false,
+    "candidate_selected": false
+  }
+}

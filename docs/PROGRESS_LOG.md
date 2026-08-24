@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-23
 
+### OT-123 Monocypher comparison benchmark preparation
+
+- Decision 0062 accepts the computer-only Monocypher 4.0.3 five-of-eight comparison preparation. The closed target/parser expects 1,014 frames, and the fail-closed runner pins the reviewed benchmark digest, existing bounded authority, application-only offset, exact Trail restore image, conservative ROM path, exact OT-122 continuation receipt, and fixed private recovery journal. Both installed Trail applications must be read back and hash-verified before that journal or any write exists.
+- Two fresh, initially absent, cache-disabled and network-disabled ESP-IDF 6.0.2 builds completed with zero compiler warnings and reproduced the same 186,640-byte image SHA-256 `5e075fb791a658546fca714fc60de095ecbf14f7c443f414d3ac8642965a3b64` plus identical ELF, map, sdkconfig, and official JSON2 tuples. Path-independent normalized receipts are identical; focused validation passes 66 checks/groups. The mandatory gate pins official RFC 8032 Ed25519 and RFC 8439 ChaCha20-Poly1305 known-answer vectors plus low-order X25519 all-zero rejection.
+- `OTMRAC0/v0` freezes a matched candidate-versus-no-candidate resource formula and rejects file lengths, archives, symbols, Trail, and OT-093 as false controls. Candidate absolute JSON2 values are retained with complete .noinit and TLS accounting, but the control is not built; both resource deltas remain null and unadmitted. The old positive-only validator cannot admit the signed result; a successor is required.
+- No device, flash, benchmark execution, radio, selection, Phase 2 completion, support/compatibility/regulatory/production claim, or score change is added. V1 remains exact 43.75%/displayed 44%. See [Decision 0062](decisions/0062-monocypher-comparison-benchmark-preparation.md) and [OT-123 evidence](../tests/hardware/OT-123-2026-08-23.md).
 ### OT-122 bounded libsodium Noise XK and runtime-resource checkpoint
 
 - Decision 0061 records the second bounded Phase 2 checkpoint. Both admitted anonymous nodes passed all eight Espressif libsodium operations, including complete benchmark-only Noise XK, with 100 data-cache-conditioned and 100 warm samples per operation.

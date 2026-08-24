@@ -1,0 +1,391 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:opentrail:benchmark:OTCBXRF2:monocypher",
+  "title": "OT-123 Monocypher candidate-local serial frame",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "schema",
+        "version",
+        "record_kind",
+        "scope",
+        "candidate_id",
+        "operations_required",
+        "repetitions_cold",
+        "repetitions_warm",
+        "cold_conditioning",
+        "phase2_complete",
+        "radio_used",
+        "candidate_selected"
+      ],
+      "properties": {
+        "schema": {
+          "const": "OTCBXRF2"
+        },
+        "version": {
+          "const": 2
+        },
+        "record_kind": {
+          "const": "header"
+        },
+        "scope": {
+          "const": "candidate_local_v2"
+        },
+        "candidate_id": {
+          "const": "monocypher"
+        },
+        "operations_required": {
+          "const": 5
+        },
+        "repetitions_cold": {
+          "const": 100
+        },
+        "repetitions_warm": {
+          "const": 100
+        },
+        "cold_conditioning": {
+          "const": "32k_data_sweep"
+        },
+        "phase2_complete": {
+          "const": false
+        },
+        "radio_used": {
+          "const": false
+        },
+        "candidate_selected": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "schema",
+        "version",
+        "record_kind",
+        "scope",
+        "candidate_id",
+        "gate",
+        "outcome",
+        "phase2_complete"
+      ],
+      "properties": {
+        "schema": {
+          "const": "OTCBXRF2"
+        },
+        "version": {
+          "const": 2
+        },
+        "record_kind": {
+          "const": "gate"
+        },
+        "scope": {
+          "const": "candidate_local_v2"
+        },
+        "candidate_id": {
+          "const": "monocypher"
+        },
+        "gate": {
+          "enum": [
+            "primitive_vectors_and_negative_cases"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "phase2_complete": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "schema",
+        "version",
+        "record_kind",
+        "scope",
+        "candidate_id",
+        "operation",
+        "phase",
+        "iteration",
+        "duration_us",
+        "outcome",
+        "phase2_complete"
+      ],
+      "properties": {
+        "schema": {
+          "const": "OTCBXRF2"
+        },
+        "version": {
+          "const": 2
+        },
+        "record_kind": {
+          "const": "sample"
+        },
+        "scope": {
+          "const": "candidate_local_v2"
+        },
+        "candidate_id": {
+          "const": "monocypher"
+        },
+        "operation": {
+          "enum": [
+            "ed25519_sign",
+            "ed25519_verify",
+            "x25519",
+            "chacha20poly1305_encrypt",
+            "chacha20poly1305_decrypt"
+          ]
+        },
+        "phase": {
+          "enum": [
+            "cold",
+            "warm"
+          ]
+        },
+        "iteration": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99
+        },
+        "duration_us": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "outcome": {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "phase2_complete": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "schema",
+        "version",
+        "record_kind",
+        "scope",
+        "candidate_id",
+        "operation",
+        "phase",
+        "min_us",
+        "median_us",
+        "p95_us",
+        "max_us",
+        "outcome",
+        "phase2_complete"
+      ],
+      "properties": {
+        "schema": {
+          "const": "OTCBXRF2"
+        },
+        "version": {
+          "const": 2
+        },
+        "record_kind": {
+          "const": "operation_summary"
+        },
+        "scope": {
+          "const": "candidate_local_v2"
+        },
+        "candidate_id": {
+          "const": "monocypher"
+        },
+        "operation": {
+          "enum": [
+            "ed25519_sign",
+            "ed25519_verify",
+            "x25519",
+            "chacha20poly1305_encrypt",
+            "chacha20poly1305_decrypt"
+          ]
+        },
+        "phase": {
+          "enum": [
+            "cold",
+            "warm"
+          ]
+        },
+        "min_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "median_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "p95_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "max_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "outcome": {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "phase2_complete": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "schema",
+        "version",
+        "record_kind",
+        "scope",
+        "candidate_id",
+        "heap_domain",
+        "heap_start_free_bytes",
+        "heap_min_free_bytes",
+        "peak_dynamic_ram_bytes",
+        "stack_allocation_bytes",
+        "stack_high_water_free_bytes",
+        "max_stack_used_bytes",
+        "watchdog_resets",
+        "watchdog_measurement",
+        "phase2_complete"
+      ],
+      "properties": {
+        "schema": {
+          "const": "OTCBXRF2"
+        },
+        "version": {
+          "const": 2
+        },
+        "record_kind": {
+          "const": "runtime_resources"
+        },
+        "scope": {
+          "const": "candidate_local_v2"
+        },
+        "candidate_id": {
+          "const": "monocypher"
+        },
+        "heap_domain": {
+          "const": "internal_8bit"
+        },
+        "heap_start_free_bytes": {
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "type": "integer"
+        },
+        "heap_min_free_bytes": {
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "type": "integer"
+        },
+        "peak_dynamic_ram_bytes": {
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "type": "integer"
+        },
+        "stack_allocation_bytes": {
+          "const": 8192
+        },
+        "stack_high_water_free_bytes": {
+          "maximum": 8192,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_stack_used_bytes": {
+          "maximum": 8192,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "watchdog_resets": {
+          "const": 0
+        },
+        "watchdog_measurement": {
+          "const": "uninterrupted_terminal_frame"
+        },
+        "phase2_complete": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "schema",
+        "version",
+        "record_kind",
+        "scope",
+        "candidate_id",
+        "operations_completed",
+        "operations_required",
+        "outcome",
+        "phase2_complete",
+        "radio_used",
+        "candidate_selected"
+      ],
+      "properties": {
+        "schema": {
+          "const": "OTCBXRF2"
+        },
+        "version": {
+          "const": 2
+        },
+        "record_kind": {
+          "const": "local_complete"
+        },
+        "scope": {
+          "const": "candidate_local_v2"
+        },
+        "candidate_id": {
+          "const": "monocypher"
+        },
+        "operations_completed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "operations_required": {
+          "const": 5
+        },
+        "outcome": {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "phase2_complete": {
+          "const": false
+        },
+        "radio_used": {
+          "const": false
+        },
+        "candidate_selected": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}
