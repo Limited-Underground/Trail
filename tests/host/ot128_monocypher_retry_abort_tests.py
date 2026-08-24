@@ -69,6 +69,9 @@ class Ot128MonocypherRetryAbortTests(unittest.TestCase):
             self.assertIn("authority", text)
         self.assertIn("No further Monocypher hardware attempt is authorized", decision)
         self.assertIn("no post-abort display claim", hardware)
+        self.assertIn("Later owner observation", hardware)
+        self.assertIn("owner visually confirmed both Trail displays on", hardware)
+        self.assertIn("original false observation flag", hardware)
 
 
 if __name__ == "__main__":

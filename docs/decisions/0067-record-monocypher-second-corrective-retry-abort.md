@@ -12,6 +12,10 @@ The execution receipt deliberately does not retain raw serial data or a failure 
 
 There is no Monocypher benchmark result admitted: no frame count, primitive result, timing, resource result, comparative result, or score is admitted. No radio or phone was used. Decision 0066's one-time authority is consumed, creates no continuing authority, and cannot be reused.
 
+## Post-record observation
+
+After this decision and its immutable receipt were published, the owner visually confirmed both Trail displays on. That later restoration observation does not alter the receipt's original false observation flag and admits no benchmark result.
+
 ## Consequences
 
 - Phase 2 remains incomplete and the latest admitted benchmark result remains OT-122.
