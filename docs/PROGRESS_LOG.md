@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-24
 
+### OT-128 Monocypher second corrective-retry execution abort
+
+- Decision 0067 accepts the privacy-safe abort/restoration record. Both nodes passed exact installed-Trail readback; only Node A received and readback-verified the benchmark image, capture did not validate, and Node A restored/readback/reset exactly to Trail. Node B was never benchmark-written.
+- A later non-writing reset succeeded on both devices and both USB endpoints returned. The private receipt does not classify the capture failure, so the physical root cause remains unconfirmed; source inspection requires a start-ready handshake, partial-byte accumulation, verified endpoint lifecycle, and privacy-safe failure categories before any fresh authority.
+- Decision 0066 is consumed and nonreusable. No further Monocypher hardware attempt is authorized. No benchmark result, radio, selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added; V1 remains exact 43.75%/displayed 44%. See [Decision 0067](decisions/0067-record-monocypher-second-corrective-retry-abort.md) and [OT-128 evidence](../tests/hardware/OT-128-2026-08-24.md).
+
 ### OT-127 one-time Monocypher second corrective-retry authority
 
 - Decision 0066 grants exactly one fresh, non-reusable two-node application-only attempt after OT-126 consumed Decision 0064. The authority binds immutable OT-125/OT-126 lineage, OT-123 preparation, exact benchmark/Trail images, and successor runner SHA-256 `ff81188b1f211aaf504192d3827147b2f572b29e895e45eeeee1bc505ffb5438`.

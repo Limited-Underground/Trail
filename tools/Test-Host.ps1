@@ -2084,6 +2084,10 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-127 Monocypher retry runner host tests failed.'
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\ot128_monocypher_retry_abort_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-128 Monocypher second corrective-retry abort host tests failed.'
+}
 & $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_preparation_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-123 Monocypher preparation tests failed with exit code {0}.' -f $LASTEXITCODE)

@@ -1,7 +1,7 @@
 # Decision 0066: one-time Monocypher second corrective-retry authority
 
 - Date: 2026-08-24
-- Status: Accepted
+- Status: Accepted; consumed by OT-128 abort
 - Scope: OT-005 / OT-127 one bounded application-only two-node attempt
 
 ## Decision
@@ -17,8 +17,12 @@ The owner's standing authorization for reversible test-device work covers this o
 - The authority is consumed by either success or abort, creates no continuing authority, and is never reusable.
 - The prior private journals and receipts remain unchanged and retained.
 - No radio use, candidate or suite selection, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is authorized.
-- Until a validated execution receipt exists, Phase 2 remains incomplete and the latest admitted benchmark result remains OT-122.
+- OT-128 consumed this authority without a validated capture; Phase 2 remains incomplete and the latest admitted benchmark result remains OT-122.
 - V1 remains exact 43.75%, displayed 44%.
+
+## Execution outcome
+
+OT-128 records this one-time authority as consumed by an abort after Node A benchmark readback without a validated capture. Every benchmark-touched node was restored to exact Trail. No result was admitted and this authority cannot be reused. See [Decision 0067](0067-record-monocypher-second-corrective-retry-abort.md).
 
 ## Evidence
 
