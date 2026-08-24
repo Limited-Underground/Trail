@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-24
 
+### OT-132 host-only Monocypher opaque-preamble correction
+
+- Decision 0071 accepts a new host-only successor runner rather than changing the OT-129 transport bound into OT-130/OT-131 history. Complete pre-READY records may be opaque only within the unchanged eight-record/512-byte limits.
+- Exact READY, frame-before-READY rejection, duplicate READY rejection, post-READY frame strictness, fixed deadlines, privacy-safe counters, and the unchanged real 1,014-frame parser remain enforced. OT-132 adversarial tests pass 14/14 and all frozen OT-129 through OT-131 regression gates pass. Fabricated opaque fixtures are not recovered hardware bytes and imply no physical root cause.
+- No hardware, flash, benchmark, radio, authority, result, selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added. OT-131 remains consumed. V1 remains exact 43.75%/displayed 44%; the next gate is a new immutable executable binding and fresh explicit one-attempt authority. See [Decision 0071](decisions/0071-host-only-monocypher-opaque-preamble-correction.md) and [OT-132 evidence](../tests/hardware/OT-132-2026-08-24.md).
+
 ### OT-131 executable Monocypher attempt abort
 
 - Decision 0070 accepts the sanitized result of the one executable OT-131 attempt. Node A passed exact benchmark readback, then capture failed closed as `capture_failed` / `preamble_invalid`; the bounded diagnostics retain lifecycle `stable_continuous`, one reset/open/START write, 512 observed bytes, one complete line, and zero frame lines without retaining the preamble.
