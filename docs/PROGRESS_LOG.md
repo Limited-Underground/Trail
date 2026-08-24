@@ -6,12 +6,23 @@ public chronology.
 
 ## 2026-08-24
 
+### OT-130 immutable Monocypher execution bundle and one-attempt authority
+
+- Decision 0069 accepts the host-only immutable bundle binding the exact OT-129 firmware inputs and six-file build tuple, START/READY transport, strict parser/schema, restoration-safe two-node coordinator, benchmark application, and exact Trail restoration image. Two fresh cache-disabled ESP-IDF 6.0.2 builds reproduced the same six artifacts with zero compiler warnings.
+- Coordinator tests pass 11/11 and preparation/authority tests pass 11/11. A separate fresh authority grants exactly one non-reusable two-node application-only attempt, consumed on success or abort, with exact Trail restoration of every touched node; it is accepted but not executed.
+- No hardware, flash, benchmark, radio, phone, selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added. V1 remains exact 43.75%/displayed 44%. The next gate is only the OT-130-authorized two-node attempt with restoration of both nodes. See [Decision 0069](decisions/0069-freeze-monocypher-execution-bundle-and-one-attempt-authority.md) and [OT-130 evidence](../tests/hardware/OT-130-2026-08-24.md).
+
+### OT-129 Monocypher START/READY protocol correction
+
+- Decision 0068 accepts the computer-only successor target and transport: retrying exact START, drained READY-before-frame ordering, partial-byte accumulation across read timeouts, verified endpoint lifecycle, bounded startup chatter, privacy-safe failures/counters, the unchanged real 1,014-frame parser, and pinned ESP-IDF 6.0.2 compile-only validation pass.
+- No hardware, flash, benchmark, radio, authority, selection, Phase 2 completion, or score claim was added. At that checkpoint an immutable firmware/runner/restoration binding and fresh authority remained required; OT-130 later supplies them without executing hardware. V1 remained exact 43.75%/displayed 44%. See [Decision 0068](decisions/0068-host-only-monocypher-start-ready-protocol-correction.md) and [OT-129 evidence](../tests/hardware/OT-129-2026-08-24.md).
+
 ### OT-128 Monocypher second corrective-retry execution abort
 
 - Decision 0067 accepts the privacy-safe abort/restoration record. Both nodes passed exact installed-Trail readback; only Node A received and readback-verified the benchmark image, capture did not validate, and Node A restored/readback/reset exactly to Trail. Node B was never benchmark-written.
 - A later non-writing reset succeeded on both devices and both USB endpoints returned. The private receipt does not classify the capture failure, so the physical root cause remains unconfirmed; source inspection requires a start-ready handshake, partial-byte accumulation, verified endpoint lifecycle, and privacy-safe failure categories before any fresh authority.
 - After the immutable receipt was published, the owner visually confirmed both Trail displays on. This later restoration observation does not rewrite the receipt and admits no benchmark result.
-- Decision 0066 is consumed and nonreusable. No further Monocypher hardware attempt is authorized. No benchmark result, radio, selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added; V1 remains exact 43.75%/displayed 44%. See [Decision 0067](decisions/0067-record-monocypher-second-corrective-retry-abort.md) and [OT-128 evidence](../tests/hardware/OT-128-2026-08-24.md).
+- Decision 0066 was consumed and nonreusable. At that checkpoint, no further Monocypher hardware attempt was authorized; OT-130 later grants one fresh unexecuted attempt. No benchmark result, radio, selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added; V1 remains exact 43.75%/displayed 44%. See [Decision 0067](decisions/0067-record-monocypher-second-corrective-retry-abort.md) and [OT-128 evidence](../tests/hardware/OT-128-2026-08-24.md).
 
 ### OT-127 one-time Monocypher second corrective-retry authority
 

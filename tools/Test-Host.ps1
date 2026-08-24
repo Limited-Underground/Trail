@@ -2105,6 +2105,14 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-129 Monocypher protocol runner host tests failed.'
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\ot130_monocypher_coordinator_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-130 Monocypher restoration-safe coordinator host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot130_monocypher_bundle_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-130 Monocypher immutable bundle/authority host tests failed.'
+}
 & $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_preparation_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-123 Monocypher preparation tests failed with exit code {0}.' -f $LASTEXITCODE)
