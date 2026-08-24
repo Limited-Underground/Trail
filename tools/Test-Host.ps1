@@ -2072,6 +2072,18 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-125 Monocypher retry runner host tests failed.'
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\ot126_monocypher_retry_abort_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-126 Monocypher retry abort host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot127_monocypher_retry_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-127 Monocypher retry authority host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot127_monocypher_retry_runner_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-127 Monocypher retry runner host tests failed.'
+}
 & $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_preparation_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-123 Monocypher preparation tests failed with exit code {0}.' -f $LASTEXITCODE)

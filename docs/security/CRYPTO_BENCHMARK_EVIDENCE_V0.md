@@ -368,12 +368,7 @@ completes phase 0. OT-120 atomically accepts every retained candidate
 import/build anchor and completes phase 1 at `3/3/3`. OT-121 and OT-122 then
 admit bounded two-node libsodium local-primitives, Noise XK, and runtime-resource
 checkpoints with exact Trail restoration while Phase 2 remains incomplete.
-OT-123 prepares the five-of-eight Monocypher comparison. OT-124 records its
-subsequent attempt as aborted after benchmark readback and a bounded capture
-timeout, with every touched node exactly restored and no Monocypher result
-admitted; that abort consumes Decision 0059. OT-125 separately grants one
-corrected, non-reusable application-only retry, whose hardware execution remains
-pending both USB endpoints and visible reset of both displays. Entropy,
+OT-123 prepares the five-of-eight Monocypher comparison. OT-124 and OT-126 record two subsequent attempts as aborted before an accepted Monocypher result, with every touched node exactly restored; their one-time authorities are consumed. Final non-writing resets returned both devices to normal Trail runtime, both USB endpoints returned, and both displays were observed on. OT-127 separately grants one successor, non-reusable application-only attempt with a fixed 180-second capture deadline, 10-second first-frame grace, and all-device preflight reset; execution remains pending publication of that authority. Entropy,
 interoperability, candidate resource deltas, exact benchmark radio cost,
 remaining candidate measurements, physical join/revoke/reset, protected
 storage, and power-interruption evidence remain open.

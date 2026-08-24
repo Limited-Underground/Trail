@@ -6,6 +6,18 @@ public chronology.
 
 ## 2026-08-24
 
+### OT-127 one-time Monocypher second corrective-retry authority
+
+- Decision 0066 grants exactly one fresh, non-reusable two-node application-only attempt after OT-126 consumed Decision 0064. The authority binds immutable OT-125/OT-126 lineage, OT-123 preparation, exact benchmark/Trail images, and successor runner SHA-256 `ff81188b1f211aaf504192d3827147b2f572b29e895e45eeeee1bc505ffb5438`.
+- The capture deadline is fixed at 180 seconds with no CLI override. Each fresh handle keeps a 10-second first-frame grace under one non-restarting deadline, no reopen occurs after any accepted frame, and both preflight devices are verified and reset before journal/write even on failure. Authority tests pass 8/8 and runner tests pass 34/34.
+- Hardware execution remains pending this published authority. No benchmark result, radio, selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added; V1 remains exact 43.75%/displayed 44%. See [Decision 0066](decisions/0066-one-time-monocypher-second-corrective-retry-authority.md) and [OT-127 evidence](../tests/hardware/OT-127-2026-08-24.md).
+
+### OT-126 Monocypher corrective-retry execution abort
+
+- Decision 0065 accepts the privacy-safe abort/restoration record. Both nodes passed exact installed-Trail readback; only Node A received and readback-verified the benchmark image, no frame was accepted, and Node A was restored/readback/reset exactly to Trail. Node B was never rewritten.
+- The OT-125 capture window could abandon a fresh handle before the firmware's first frame and its abort path did not reset an untouched preflight node. A final non-writing hard reset returned both devices to normal runtime, both USB endpoints returned, and the owner observed both Trail displays on.
+- Decision 0064 is consumed and nonreusable. No Monocypher result, radio, selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added; V1 remains exact 43.75%/displayed 44%. See [Decision 0065](decisions/0065-monocypher-corrective-retry-execution-abort.md) and [OT-126 evidence](../tests/hardware/OT-126-2026-08-24.md).
+
 ### OT-125 one-time Monocypher corrective-retry authority
 
 - Decision 0064 grants exactly one fresh, non-reusable two-node application-only Monocypher five-of-eight retry after the consumed OT-124 attempt. The authority binds the OT-124 abort, immutable OT-123 preparation, exact benchmark/restore images, and corrected runner SHA-256 `47022c46ce6d911998b5457516e250e3dec7dcc8dbe1e0c8e799a0cacfc23150`.
