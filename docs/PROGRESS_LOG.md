@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-24
 
+### OT-133 immutable successor execution abort
+
+- Decision 0072 accepts the fresh coordinator/private-state boundary, OT-132 runner, adapter, strict parser/schema, exact benchmark image, exact Trail restoration image, and one non-reusable authority as one immutable successor bundle.
+- The single attempt reached Node A benchmark readback, then failed closed as `capture_failed` / `preamble_invalid`: one 512-byte read held nine complete pre-READY records, exceeding the eight-record cap before any frame. Node A restored/readback/reset exactly to Trail, Node B remained untouched on Trail, and the owner confirmed both Trail logos.
+- The authority is consumed. No result, radio, selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added. V1 remains exact 43.75%/displayed 44%. Next correct and adversarially test the nine-record boundary host-only; no further Monocypher hardware attempt is authorized. See [Decision 0072](decisions/0072-record-ot133-immutable-successor-execution-abort.md) and [OT-133 evidence](../tests/hardware/OT-133-2026-08-24.md).
+
 ### OT-132 host-only Monocypher opaque-preamble correction
 
 - Decision 0071 accepts a new host-only successor runner rather than changing the OT-129 transport bound into OT-130/OT-131 history. Complete pre-READY records may be opaque only within the unchanged eight-record/512-byte limits.
