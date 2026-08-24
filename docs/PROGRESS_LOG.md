@@ -4,6 +4,19 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-24
+
+### OT-125 one-time Monocypher corrective-retry authority
+
+- Decision 0064 grants exactly one fresh, non-reusable two-node application-only Monocypher five-of-eight retry after the consumed OT-124 attempt. The authority binds the OT-124 abort, immutable OT-123 preparation, exact benchmark/restore images, and corrected runner SHA-256 `47022c46ce6d911998b5457516e250e3dec7dcc8dbe1e0c8e799a0cacfc23150`.
+- The runner now completes an esptool hard reset before opening a fresh Windows serial handle, never clears the new handle, and allows exactly one second reset/open cycle only before the first accepted frame. Configured re-enumeration plus all open retries remain below the firmware's fixed startup delay. Authority/abort validation passes 7/7 groups and runner validation passes 30/30 groups.
+- Hardware execution is pending exactly two USB endpoints and visible reset of both displays. No benchmark result, radio, selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added. V1 remains exact 43.75%/displayed 44%. See [Decision 0064](decisions/0064-one-time-monocypher-corrective-retry-authority.md) and [OT-125 evidence](../tests/hardware/OT-125-2026-08-24.md).
+
+### OT-124 Monocypher comparison execution abort
+
+- Decision 0063 accepts the sanitized abort receipt only. Both anonymous nodes passed exact installed-Trail readback. Node A then passed exact benchmark write/readback, but bounded serial capture ended without an accepted frame; Node A was restored, readback-verified, and reset to exact Trail. Node B remained untouched after preflight.
+- No Monocypher frame, timing, primitive, resource, or comparative result was admitted. No radio or phone was used. The capture timeout is observed without claiming a confirmed root cause.
+- Decision 0059 is consumed and nonreusable. The private failed-attempt journal and receipt remain unchanged and unpublished. No selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added; V1 remains exact 43.75%/displayed 44%. See [Decision 0063](decisions/0063-monocypher-comparison-execution-abort.md) and [OT-124 evidence](../tests/hardware/OT-124-2026-08-24.md).
 ## 2026-08-23
 
 ### OT-123 Monocypher comparison benchmark preparation

@@ -365,8 +365,15 @@ configuration evidence, advancing accepted source/API/import counts to
 evidence, populating all three API/configuration registries and advancing
 counts to `3/3/0`. OT-119 then accepts the second-node exact profile and
 completes phase 0. OT-120 atomically accepts every retained candidate
-import/build anchor and completes phase 1 at `3/3/3`. Measurement remains
-blocked only until fresh execution authority is granted. Entropy,
+import/build anchor and completes phase 1 at `3/3/3`. OT-121 and OT-122 then
+admit bounded two-node libsodium local-primitives, Noise XK, and runtime-resource
+checkpoints with exact Trail restoration while Phase 2 remains incomplete.
+OT-123 prepares the five-of-eight Monocypher comparison. OT-124 records its
+subsequent attempt as aborted after benchmark readback and a bounded capture
+timeout, with every touched node exactly restored and no Monocypher result
+admitted; that abort consumes Decision 0059. OT-125 separately grants one
+corrected, non-reusable application-only retry, whose hardware execution remains
+pending both USB endpoints and visible reset of both displays. Entropy,
 interoperability, candidate resource deltas, exact benchmark radio cost,
-physical join/revoke/reset, protected storage, and power-interruption evidence
-remain open.
+remaining candidate measurements, physical join/revoke/reset, protected
+storage, and power-interruption evidence remain open.
