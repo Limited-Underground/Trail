@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-24
 
+### OT-131 executable Monocypher attempt abort
+
+- Decision 0070 accepts the sanitized result of the one executable OT-131 attempt. Node A passed exact benchmark readback, then capture failed closed as `capture_failed` / `preamble_invalid`; the bounded diagnostics retain lifecycle `stable_continuous`, one reset/open/START write, 512 observed bytes, one complete line, and zero frame lines without retaining the preamble.
+- Node A restored/readback/reset exactly to Trail. Node B was never benchmark-flashed and remained on Trail. Restoration completed, and the owner visually confirmed both Trail logos after the abort. The private journal and receipt remain unchanged and unpublished.
+- The one-attempt authority is consumed and nonreusable. No result, radio, candidate or suite selection, Phase 2 completion, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or score claim is added. V1 remains exact 43.75%/displayed 44%; no further Monocypher hardware attempt is authorized. See [Decision 0070](decisions/0070-record-ot131-monocypher-execution-abort.md) and [OT-131 evidence](../tests/hardware/OT-131-2026-08-24.md).
+
 ### OT-130 immutable Monocypher execution bundle and one-attempt authority
 
 - Decision 0069 accepts the host-only immutable bundle binding the exact OT-129 firmware inputs and six-file build tuple, START/READY transport, strict parser/schema, restoration-safe two-node coordinator, benchmark application, and exact Trail restoration image. Two fresh cache-disabled ESP-IDF 6.0.2 builds reproduced the same six artifacts with zero compiler warnings.

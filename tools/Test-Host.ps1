@@ -2113,6 +2113,18 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-130 Monocypher immutable bundle/authority host tests failed.'
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\ot131_monocypher_execution_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-131 Monocypher executable bundle/authority host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot131_monocypher_hardware_adapter_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-131 Monocypher hardware adapter host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot131_monocypher_abort_record_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-131 Monocypher abort record host tests failed.'
+}
 & $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_preparation_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-123 Monocypher preparation tests failed with exit code {0}.' -f $LASTEXITCODE)
