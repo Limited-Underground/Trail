@@ -1869,6 +1869,11 @@ if ($LASTEXITCODE -ne 0) {
     throw 'Authoritative raw-byte checkout policy tests failed.'
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\host_validation_checkout_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Host validation history checkout tests failed.'
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_bench_target_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 bench target admission tests failed.'

@@ -14,11 +14,12 @@ Add one non-fail-fast audit that reports existence, length, actual and expected 
 
 The last green Host validation was OT-092 run 210. OT-093 run 211 was the first red run, but it failed the older OTCBL0 firmware-input manifest check. The current OTCAI failure signature first appeared when OT-098 introduced and executed that validator in run 217.
 
-The OT-098 artifact exists, is nonempty, and is below the limit: the authoritative LF blob is 5,454 bytes with SHA-256 `b7be03e305c6253e10f69f624132a736cce5aea3f559760cde4f948ae79abad6`, exactly matching the pinned digest, while an unpinned Windows `core.autocrlf=true` checkout produces 5,494 bytes and SHA-256 `058d793018496c0a512059fa6b1d838f2c08d54bd2440c802ab8f8ff64e3e909`. `MAX_BYTES` is 131,072. The deterministic failure was checkout newline conversion, not missing data, oversize data, a regenerated artifact, or a stale canonical digest.
+The OT-098 artifact exists, is nonempty, and is below the limit: the authoritative LF blob is 5,454 bytes with SHA-256 `b7be03e305c6253e10f69f624132a736cce5aea3f559760cde4f948ae79abad6`, exactly matching the pinned digest, while an unpinned Windows `core.autocrlf=true` checkout produces 5,494 bytes and SHA-256 `058d793018496c0a512059fa6b1d838f2c08d54bd2440c802ab8f8ff64e3e909`. `MAX_BYTES` is 131,072. The deterministic failure was checkout newline conversion, not missing data, oversize data, a regenerated artifact, or a stale canonical digest. After all 69 byte contracts passed remotely, the next hidden gate showed that the default depth-one Actions checkout omitted the exact OT-092 and OT-093 commits required by historical reconstruction. Host validation therefore also fetches complete history and verifies those objects before the matrix proceeds.
 
 ## Consequences
 
 - Fresh Windows checkouts reproduce all 69 registered raw-bound inputs, including canonical LF, authoritative CRLF, and exact mixed-EOL evidence.
+- GitHub Actions fetches complete history so the frozen OT-092 and OT-093 objects used by the historical successor gate are available.
 - Digest enforcement is not removed, relaxed, or derived from generated output.
 - No firmware, hardware, phone, product capability, V1 percentage, or public website status changes.
 
@@ -30,3 +31,4 @@ The OT-098 artifact exists, is nonempty, and is below the limit: the authoritati
 - `tests/host/crypto_libsodium_managed_import_tests.py`
 - `tests/host/crypto_libsodium_source_lock_admission_tests.py`
 - `tests/host/raw_byte_checkout_policy_tests.py`
+- `tests/host/host_validation_checkout_tests.py`
