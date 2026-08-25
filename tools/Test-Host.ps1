@@ -2171,6 +2171,10 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-136 Monocypher hardware adapter host tests failed.'
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\ot137_monocypher_abort_record_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-137 Monocypher abort record host tests failed.'
+}
 & $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_preparation_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-123 Monocypher preparation tests failed with exit code {0}.' -f $LASTEXITCODE)

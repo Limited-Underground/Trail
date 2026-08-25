@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-25
 
+### OT-137 OT-136-authorized execution abort
+
+- Decision 0076 accepts the sanitized result of the single OT-136-authorized attempt. The non-consuming preflight verified and reset both exact Trail applications; the owner confirmed both logos before execution.
+- Node A passed benchmark readback, then capture failed closed as `capture_failed` / `preamble_invalid`. Two 512-byte reads observed 1,024 bytes; 11 complete opaque pre-READY records remained within the accepted complete-record allowance, then remaining partial pre-READY data crossed the cumulative 512-byte bound before any frame. Node A restored/readback/reset exactly to Trail, Node B remained untouched on Trail, and the owner confirmed both logos after the abort.
+- The authority is consumed and non-reusable. OT-137 passes 7/7 and the raw-byte audit passes 82/82. No benchmark result, timing, resource result, radio, selection, Phase 2 completion, support, regulatory, production, end-to-end, or score claim is added. V1 remains exact 43.75%/displayed 44%; the latest admitted benchmark remains OT-122. No further Monocypher hardware attempt is authorized. See [Decision 0076](decisions/0076-record-ot137-ot136-execution-abort.md), [OT-137 evidence](../tests/hardware/OT-137-2026-08-25.md), and the [sanitized abort receipt](../tests/benchmarks/crypto/OT-137-OT005-MONOCYPHER-EXECUTION-ABORT-RECEIPT-V0.json).
+
 ### OT-136 immutable OT-135 successor binding and one-attempt authority
 
 - Decision 0075 accepts one executable bundle binding the exact OT-135 byte-bounded runner, unchanged strict parser/schema, fresh restoration-safe coordinator/private state, concrete adapter, exact benchmark application, and exact Trail restoration application.
