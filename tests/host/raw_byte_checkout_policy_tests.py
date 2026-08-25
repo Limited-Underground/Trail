@@ -33,6 +33,10 @@ docs/decisions/0003-crypto-benchmark-gate.md|2033|6a88a00aba6383e07e1d1ca8daed3c
 docs/decisions/0068-host-only-monocypher-start-ready-protocol-correction.md|2279|abc6212fde0cc4dd3df612c746ca8b9a1ce82869897beb911a883bb8e42c2448|lf|lf|none|lf
 docs/decisions/0071-host-only-monocypher-opaque-preamble-correction.md|2434|ed86f244673d5ded814fb1c2a1d392b52a311977897378b854476c0ae319b23e|lf|lf|none|lf
 docs/decisions/0074-host-only-monocypher-byte-bounded-preamble-correction.md|3040|cbefae9fb4e8c3b2179b8bbd486f4e2bb03ddd76eb2d3d2921a23f8792942cde|lf|lf|none|lf
+docs/decisions/0077-classify-monocypher-boot-control-transport-conflict.md|3759|efc4d25d6e2abb455d804caa411d33cb543fb47399369ffedd11daf427ae0286|lf|lf|none|lf
+tests/hardware/OT-138-2026-08-25.md|4054|f60cc203ea5ab1842b9519b2d95dd81594ef06eaf86e0add785c94bfb2903cd7|lf|lf|none|lf
+tests/host/ot138_monocypher_boot_control_investigation_tests.py|5958|9ef68ead05ef6cbf9f2febb7af0b20ad5093bcb01f5c967f69e55db97f58bb88|lf|lf|none|lf
+tools/ot138_monocypher_boot_control_investigation.py|14273|617ba545a5a3770ce4eaa10ff5b42c667757b94e82f6185e69228f5d42a2d8bf|lf|lf|none|lf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/include/ot121_benchmark_frame.h|7541|cc5a4596400a8a2766e66fcab6b7d51dceecbc4f3c1be4055a2581d400415d4c|lf|lf|none|lf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium/sdkconfig.overlay|35|b7b722dc1bcc2c5917bee365f2123171ec398b0a0f295d61e7a7e8c26b99c832|lf|lf|none|lf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot129/CMakeLists.txt|214|7fe5e93aff6f130b88cc0eed244cb1a21163693483cf2bf33dec184a7f9d08e3|lf|lf|none|none

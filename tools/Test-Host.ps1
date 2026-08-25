@@ -2123,6 +2123,10 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-135 Monocypher byte-bounded opaque-preamble protocol runner host tests failed.'
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\ot138_monocypher_boot_control_investigation_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-138 Monocypher boot/control investigation host tests failed.'
+}
 & $python.Source (Join-Path $projectRoot 'tests\host\ot130_monocypher_coordinator_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-130 Monocypher restoration-safe coordinator host tests failed.'

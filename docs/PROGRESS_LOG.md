@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-25
 
+### OT-138 host-only Monocypher boot/control classification
+
+- Decision 0077 accepts a fabricated-only reproduction of the complete public OT-137 counter shape and proves the frozen host can exhaust its shared 512-byte pre-READY budget before the 250 ms START retry.
+- The exact accepted build structurally shares USB Serial/JTAG between INFO-level startup console traffic and its later direct control protocol; application log suppression occurs only in app_main. The unretained OT-137 byte contents remain unconfirmed.
+- The next gate is a host-only console-isolated quiet target plus two fresh matching BIN/ELF/map/sdkconfig builds. OT-138 creates no successor firmware, executable bundle, authority, hardware attempt, result, radio, Phase 2 completion, or score claim. V1 remains exact 43.75%/displayed 44%. See [Decision 0077](decisions/0077-classify-monocypher-boot-control-transport-conflict.md) and [OT-138 evidence](../tests/hardware/OT-138-2026-08-25.md).
+
 ### OT-137 OT-136-authorized execution abort
 
 - Decision 0076 accepts the sanitized result of the single OT-136-authorized attempt. The non-consuming preflight verified and reset both exact Trail applications; the owner confirmed both logos before execution.

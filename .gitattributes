@@ -132,6 +132,10 @@ tests/benchmarks/crypto/OT-137-OT005-MONOCYPHER-EXECUTION-ABORT-RECEIPT-V0.json 
 tests/host/ot137_monocypher_abort_record_tests.py text eol=lf
 docs/decisions/0076-record-ot137-ot136-execution-abort.md text eol=lf
 tests/hardware/OT-137-2026-08-25.md text eol=lf
+tools/ot138_monocypher_boot_control_investigation.py text eol=lf
+tests/host/ot138_monocypher_boot_control_investigation_tests.py text eol=lf
+docs/decisions/0077-classify-monocypher-boot-control-transport-conflict.md text eol=lf
+tests/hardware/OT-138-2026-08-25.md text eol=lf
 firmware/targets/heltec_v4_bench/sdkconfig.defaults text eol=crlf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/*/partitions.csv text eol=crlf
 tests/hardware/OT-132-2026-08-24.md text eol=crlf
