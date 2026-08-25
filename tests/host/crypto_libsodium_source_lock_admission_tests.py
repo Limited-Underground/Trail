@@ -14,6 +14,12 @@ class Tests(unittest.TestCase):
   d=m.validate(ART);self.assertEqual(d["acceptance_counts"],{"source":1,"api_config":0,"candidate_import":0});self.assertEqual((len(d["historical_six_blockers"]),len(d["current_five_blockers"])),(6,5));self.assertTrue(d["claims"]["libsodium_source_lock_accepted"])
   self.assertEqual(hashlib.sha256(OT097.read_bytes()).hexdigest(),m.EXPECTED_CONTRACT_RAW_SHA256);self.assertEqual(hashlib.sha256(OT099.read_bytes()).hexdigest(),m.EXPECTED_EVIDENCE_SHA256)
   p=subprocess.run([sys.executable,str(TOOL),str(ART)],capture_output=True,text=True);self.assertEqual(p.returncode,0);self.assertIn("FIVE-OTCBR0-REQUIREMENTS-REMAIN",p.stdout)
+ def test_checkout_bytes_are_deterministic(self):
+  for path in (ART,OT097,OT099):
+   with self.subTest(path=path.name):
+    rel=path.relative_to(ROOT).as_posix();p=subprocess.run(["git","check-attr","-z","text","eol","--",rel],cwd=ROOT,capture_output=True,check=True)
+    parts=p.stdout.decode("utf-8").split("\0");attrs={parts[i+1]:parts[i+2] for i in range(0,len(parts)-1,3)}
+    self.assertEqual(attrs,{"text":"set","eol":"lf"})
  def test_identity_schema_and_exact_types(self):
   for key in ("schema","artifact_kind","acceptance_id","accepted_date","status","public_result"):
    with self.subTest(key=key):self.reject(lambda d,key=key:d.__setitem__(key,"changed"))

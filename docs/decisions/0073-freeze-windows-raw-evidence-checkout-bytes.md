@@ -6,9 +6,9 @@
 
 ## Decision
 
-Treat every repository file whose exact raw SHA-256 is an accepted contract input as a byte-preserved artifact. Pin the six currently raw-bound crypto evidence paths in `.gitattributes`: OT-098, OT-099, the libsodium source manifest, SPDX SBOM, and patch manifest use LF; the accepted libsodium `dependencies.lock` uses CRLF.
+Treat every repository file whose exact raw SHA-256 is an accepted contract input as byte-preserved evidence. Pin deterministic LF or CRLF policy wherever the authoritative bytes use one newline form, and preserve the exact Git blob for deliberately mixed-EOL inputs. The policy covers all known checkout-sensitive inputs, including the direct crypto JSON set, nested evidence, firmware inputs, test evidence, and host tools.
 
-Add focused tests that require these exact Git attributes. Keep the existing maximum-size and SHA-256 validation strict and keep every accepted artifact byte and pinned digest unchanged.
+Add one non-fail-fast audit that reports existence, length, actual and expected SHA-256, EOL form, BOM, final newline, and effective Git attributes for every registered input. Keep every maximum-size and digest check strict. Do not derive accepted hashes from the checkout or generated output.
 
 ## Basis
 
@@ -18,7 +18,7 @@ The OT-098 artifact exists, is nonempty, and is below the limit: the authoritati
 
 ## Consequences
 
-- Fresh Windows checkouts reproduce the accepted bytes for OT-098 and the next raw-bound OT-099 chain.
+- Fresh Windows checkouts reproduce all 69 registered raw-bound inputs, including canonical LF, authoritative CRLF, and exact mixed-EOL evidence.
 - Digest enforcement is not removed, relaxed, or derived from generated output.
 - No firmware, hardware, phone, product capability, V1 percentage, or public website status changes.
 
@@ -28,3 +28,5 @@ The OT-098 artifact exists, is nonempty, and is below the limit: the authoritati
 - `.gitattributes`
 - `tests/host/crypto_candidate_acquisition_inspection_tests.py`
 - `tests/host/crypto_libsodium_managed_import_tests.py`
+- `tests/host/crypto_libsodium_source_lock_admission_tests.py`
+- `tests/host/raw_byte_checkout_policy_tests.py`

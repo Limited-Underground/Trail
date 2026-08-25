@@ -8,9 +8,9 @@ public chronology.
 
 ### OT-134 deterministic Windows raw-evidence checkout
 
-- Decision 0073 pins exact Git checkout EOL for all six raw-bound OT-098/OT-099 files and adds focused attribute regression tests while leaving accepted bytes, digests, and strict validation unchanged.
-- The last green was OT-092 run 210. OT-093 run 211 was the first red but failed the older OTCBL0 raw-manifest check; the exact OTCAI signature began when OT-098 introduced that validator in run 217. The authoritative OT-098 artifact exists, is 5,454 bytes versus `MAX_BYTES=131072`, and matches its pinned SHA-256. An unpinned Windows checkout converted 40 LF endings to CRLF, producing 5,494 bytes and the mismatching digest.
-- Fresh Windows-filtered materialization reproduces all six authoritative blobs. OTCAI passes 4/4, OT-099 passes 5/5, and the complete Windows host matrix passes. No hardware, phone, firmware, accepted artifact, product capability, score, or website status changes. See [Decision 0073](decisions/0073-freeze-windows-raw-evidence-checkout-bytes.md) and [OT-134 evidence](../tests/hardware/OT-134-2026-08-24.md).
+- Decision 0073 makes all known raw-SHA contract inputs deterministic across Windows checkouts: canonical LF, authoritative CRLF, and nine deliberately mixed-EOL files are preserved without changing any accepted bytes or hashes.
+- The last green was OT-092 run 210. OT-093 run 211 was the first red with the older OTCBL0 signature; exact OTCAI failure began at OT-098 run 217. OT-098 exists, is 5,454 bytes versus MAX_BYTES 131,072, and matches its expected SHA-256. Unpinned Windows conversion alone produced the 5,494-byte mismatch.
+- The first correction run 262 passed OTCAI 4/4 and OT-099 5/5 before exposing the same issue at OT-100. A new OTRBC0 audit now checks 69 frozen inputs and their existence, length, digest, EOL, BOM, final newline, and Git policy; focused OT-100 passes 6/6 and the complete Windows matrix passes locally. No hardware, phone, firmware, accepted artifact, product capability, score, or website status changes. See [Decision 0073](decisions/0073-freeze-windows-raw-evidence-checkout-bytes.md) and [OT-134 evidence](../tests/hardware/OT-134-2026-08-24.md).
 
 ### OT-133 immutable successor execution abort
 

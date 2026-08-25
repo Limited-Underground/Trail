@@ -1864,6 +1864,11 @@ if ($null -eq $python) {
     throw 'Python was not found for MeshCore channel lease host tests.'
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\raw_byte_checkout_policy_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Authoritative raw-byte checkout policy tests failed.'
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_bench_target_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 bench target admission tests failed.'
