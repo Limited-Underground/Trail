@@ -5,6 +5,12 @@ remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concis
 public chronology.
 
 ## 2026-08-25
+### OT-139 reproducible Monocypher quiet target
+
+- Decision 0078 accepts a separate host-only target that compiles the frozen OT-129 application/control sources by reference while resolving both ESP-IDF consoles and bootloader/default/maximum application logging to none and retaining the direct USB Serial/JTAG driver.
+- Two fresh, initially absent, cache-disabled ESP-IDF 6.0.2 builds produced identical application BIN/ELF/map, bootloader BIN, partition-table BIN, and generated sdkconfig artifacts. Normal ROM logging remains unchanged, so physical endpoint silence from reset is not claimed.
+- OT-139 creates no executable binding or authority. Before device access, the next gate is a separate immutable exact-bundle binding and fresh explicit non-reusable one-attempt authority. No hardware, flash, benchmark, radio, result, selection, Phase 2 completion, or score claim is added. V1 remains exact 43.75%/displayed 44%. See [Decision 0078](decisions/0078-accept-reproducible-monocypher-quiet-target.md), [OT-139 evidence](../tests/hardware/OT-139-2026-08-25.md), and the [canonical build evidence](../tests/benchmarks/crypto/OT-139-OT005-MONOCYPHER-QUIET-TARGET-BUILD-EVIDENCE-V0.json).
+
 
 ### OT-138 host-only Monocypher boot/control classification
 

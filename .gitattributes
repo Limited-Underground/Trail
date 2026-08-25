@@ -148,3 +148,12 @@ tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot129/main
 tools/Build-HeltecV4BenchTarget.ps1 -text whitespace=cr-at-eol
 tools/ot110_radio_runner.py -text whitespace=cr-at-eol
 tools/ot129_monocypher_protocol_runner.py -text whitespace=cr-at-eol
+docs/decisions/0078-accept-reproducible-monocypher-quiet-target.md text eol=lf
+tests/hardware/OT-139-2026-08-25.md text eol=lf
+tools/Build-Ot139MonocypherQuietTarget.ps1 text eol=lf
+tools/ot139_monocypher_quiet_target_evidence.py text eol=lf
+tests/host/ot139_monocypher_quiet_target_tests.py text eol=lf
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/CMakeLists.txt text eol=lf
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/main/CMakeLists.txt text eol=lf
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/sdkconfig.defaults text eol=lf
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/partitions.csv text eol=crlf

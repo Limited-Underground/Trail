@@ -115,6 +115,16 @@ tests/benchmarks/crypto/OT-123-OT005-MONOCYPHER-CANDIDATE-SIZE-REPORT-V0.json|20
 tests/benchmarks/crypto/OT-123-OT005-MONOCYPHER-COMPARISON-PREPARATION-V0.json|7951|a80f06c4b6c0c1c56b5b36ae54b8fddacf36359b8b69abe6f0f4da2bd5d18a89|crlf|crlf|none|crlf
 tests/hardware/OT-132-2026-08-24.md|2669|2f7ee064f55446c33556c168e14dadb3ee7c023616b5860b796c62b048540b59|crlf|crlf|none|crlf
 tools/ot132_monocypher_protocol_runner.py|10942|d131286969d82f0ddef8b3051b6d64588042a4d49fafa2aca1d164de617f6a3d|crlf|crlf|none|crlf
+docs/decisions/0078-accept-reproducible-monocypher-quiet-target.md|3084|9f75b8059580f8b7a70d960778df43f9bdf18160dd777d8152de4dadae5b6998|lf|lf|none|lf
+tests/hardware/OT-139-2026-08-25.md|4020|b21122026af9e12bd1b6db408b1b3e0d2977ca86a1d2346fcfb0723a1fcb8a95|lf|lf|none|lf
+tools/Build-Ot139MonocypherQuietTarget.ps1|11812|2348c73e965aa3bba3c55fa96ee14d5e9cf405d3d513cf3901103d6b2090d3dd|lf|lf|none|lf
+tools/ot139_monocypher_quiet_target_evidence.py|12992|a49dc4098f32116c4ed9a0caa40dc3d0d937ba8d9ad0a876899eabd4b47c543a|lf|lf|none|lf
+tests/host/ot139_monocypher_quiet_target_tests.py|7390|640b83c7ad3355eaad846fc9b0a11b8b9db44d69f1a5ad5c15307c1a93eccffe|lf|lf|none|lf
+tests/benchmarks/crypto/OT-139-OT005-MONOCYPHER-QUIET-TARGET-BUILD-EVIDENCE-V0.json|11714|1a1aa548ed6487a56529e6b75cee253f707e35926b69b6d1e1effcc47287561d|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/CMakeLists.txt|234|943eff10472e939007b7c0bfccf51f453a18478845be5b4318ffee639bcec5db|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/main/CMakeLists.txt|895|0085c4f900c2b37003bf55d719cb7fa9980198f0a252723296c9b50af0409f8b|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/sdkconfig.defaults|997|f8d20cdc61ba606e47ba76049b7be97d959441abea691deae3b85cba7fd2e404|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/partitions.csv|452|4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389|crlf|crlf|none|crlf
 """.strip()
 
 
