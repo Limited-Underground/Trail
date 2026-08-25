@@ -15,6 +15,13 @@ class Tests(unittest.TestCase):
   for key in ("device_accessed","flashed","radio_used","crypto_executed","keys_or_entropy_used","benchmark_executed","candidate_selected","suite_selected","packet_v1_authorized","score_credit_added"):self.assertFalse(d["boundaries"][key])
   self.assertFalse(d["source_lock"]["accepted"]);self.assertTrue(d["source_lock"]["evidence_complete"]);self.assertFalse(d["build"]["probe_symbols_retained_in_final_map"]);self.assertEqual(len(d["remaining_blockers"]),6)
   p=subprocess.run([sys.executable,str(TOOL),str(ART)],capture_output=True,text=True);self.assertEqual(p.returncode,0);self.assertIn("SOURCE-LOCK-ADMISSION-PENDING",p.stdout)
+ def test_checkout_bytes_are_deterministic(self):
+  policies={ART:"lf",FIX/"source-manifest.sha256":"lf",FIX/"dependencies.lock":"crlf",FIX/"sbom.spdx.json":"lf",FIX/"patch-manifest.json":"lf"}
+  for path,eol in policies.items():
+   with self.subTest(path=path.name):
+    rel=path.relative_to(ROOT).as_posix();p=subprocess.run(["git","check-attr","-z","text","eol","--",rel],cwd=ROOT,capture_output=True,check=True)
+    parts=p.stdout.decode("utf-8").split("\0");attrs={parts[i+1]:parts[i+2] for i in range(0,len(parts)-1,3)}
+    self.assertEqual(attrs,{"text":"set","eol":eol})
  def test_retained_files_and_digests(self):
   d=self.data
   for k in ("lock","source_manifest","patch_manifest"):

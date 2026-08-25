@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-24
 
+### OT-134 deterministic Windows raw-evidence checkout
+
+- Decision 0073 pins exact Git checkout EOL for all six raw-bound OT-098/OT-099 files and adds focused attribute regression tests while leaving accepted bytes, digests, and strict validation unchanged.
+- The last green was OT-092 run 210. OT-093 run 211 was the first red but failed the older OTCBL0 raw-manifest check; the exact OTCAI signature began when OT-098 introduced that validator in run 217. The authoritative OT-098 artifact exists, is 5,454 bytes versus `MAX_BYTES=131072`, and matches its pinned SHA-256. An unpinned Windows checkout converted 40 LF endings to CRLF, producing 5,494 bytes and the mismatching digest.
+- Fresh Windows-filtered materialization reproduces all six authoritative blobs. OTCAI passes 4/4, OT-099 passes 5/5, and the complete Windows host matrix passes. No hardware, phone, firmware, accepted artifact, product capability, score, or website status changes. See [Decision 0073](decisions/0073-freeze-windows-raw-evidence-checkout-bytes.md) and [OT-134 evidence](../tests/hardware/OT-134-2026-08-24.md).
+
 ### OT-133 immutable successor execution abort
 
 - Decision 0072 accepts the fresh coordinator/private-state boundary, OT-132 runner, adapter, strict parser/schema, exact benchmark image, exact Trail restoration image, and one non-reusable authority as one immutable successor bundle.
