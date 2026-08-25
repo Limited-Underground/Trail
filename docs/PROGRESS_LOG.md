@@ -6,6 +6,11 @@ public chronology.
 
 ## 2026-08-25
 
+### OT-136 immutable OT-135 successor binding and one-attempt authority
+
+- Decision 0075 accepts one executable bundle binding the exact OT-135 byte-bounded runner, unchanged strict parser/schema, fresh restoration-safe coordinator/private state, concrete adapter, exact benchmark application, and exact Trail restoration application.
+- A fresh authority permits exactly one two-node application-only attempt from this workspace, is consumed on success or abort, is non-reusable, and remains unexecuted. The one-use guarantee is workspace-local operational state, not a global, hardware-backed, signed, or copy-proof mechanism.
+- Coordinator, authority, and adapter suites pass 11/11, 10/10, and 14/14; OT-135 and frozen OT-132 pass 14/14 each, frozen OT-133 passes 11/11 + 10/10 + 14/14 + 7/7, and the raw-byte audit passes 81/81. No hardware, flash, benchmark, radio, result, selection, Phase 2 completion, support, regulatory, production, score, or website status changes. V1 remains exact 43.75%/displayed 44%. See [Decision 0075](decisions/0075-freeze-ot136-immutable-successor-binding-and-authority.md) and [OT-136 evidence](../tests/hardware/OT-136-2026-08-25.md).
 ### OT-135 host-only Monocypher byte-bounded preamble correction
 
 - Decision 0074 accepts a fresh host-only successor while preserving OT-129 through OT-133 byte-for-byte. Complete opaque pre-READY records are bounded by the unchanged cumulative 512-byte budget and fixed control deadline; the independent eight-record ceiling is removed because the byte budget already bounds record count.

@@ -32,6 +32,7 @@ REGISTRY = """
 docs/decisions/0003-crypto-benchmark-gate.md|2033|6a88a00aba6383e07e1d1ca8daed3c48972806bc384e6d3980d27ea67accf359|lf|lf|none|lf
 docs/decisions/0068-host-only-monocypher-start-ready-protocol-correction.md|2279|abc6212fde0cc4dd3df612c746ca8b9a1ce82869897beb911a883bb8e42c2448|lf|lf|none|lf
 docs/decisions/0071-host-only-monocypher-opaque-preamble-correction.md|2434|ed86f244673d5ded814fb1c2a1d392b52a311977897378b854476c0ae319b23e|lf|lf|none|lf
+docs/decisions/0074-host-only-monocypher-byte-bounded-preamble-correction.md|3040|cbefae9fb4e8c3b2179b8bbd486f4e2bb03ddd76eb2d3d2921a23f8792942cde|lf|lf|none|lf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/include/ot121_benchmark_frame.h|7541|cc5a4596400a8a2766e66fcab6b7d51dceecbc4f3c1be4055a2581d400415d4c|lf|lf|none|lf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium/sdkconfig.overlay|35|b7b722dc1bcc2c5917bee365f2123171ec398b0a0f295d61e7a7e8c26b99c832|lf|lf|none|lf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot129/CMakeLists.txt|214|7fe5e93aff6f130b88cc0eed244cb1a21163693483cf2bf33dec184a7f9d08e3|lf|lf|none|none
@@ -62,12 +63,15 @@ tests/benchmarks/crypto/OT-130-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json|35
 tests/benchmarks/crypto/OT-131-OT005-MONOCYPHER-EXECUTION-ABORT-RECEIPT-V0.json|2349|4557149d6a45fb12bddeea968edea6f9d5ace76edf9d4203f13cf79711a6f489|lf|lf|none|lf
 tests/benchmarks/crypto/OT-131-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json|3870|c134107cf98c75045e033cb087b58dce9e693e77542e1e70406a8896a2532eb9|lf|lf|none|lf
 tests/benchmarks/crypto/OT-133-OT005-MONOCYPHER-EXECUTION-ABORT-RECEIPT-V0.json|2885|5a57675d1d367968fa1af20c97ab0a7ca4eb005a5b3f1fcf77c52fc552af6d04|lf|lf|none|lf
+tests/benchmarks/crypto/OT-136-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json|4725|bc968110fce49e45352d7dfd884a9f8fb0d4a3a8a2ce4fa510087f97570e113c|lf|lf|none|lf
+tests/benchmarks/crypto/OT-136-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json|4142|a890b570e088ecb941b3cd8a8915ba2950d99224963efaccf1b83c64e79296ad|lf|lf|none|lf
 tests/hardware/OT-059-2026-08-15.md|6650|4cce747a9b39354346efc638cde2c6851e17a0b6cc6fd3339302c3674a34ba9e|lf|lf|none|lf
 tests/hardware/OT-061-2026-08-16.md|5227|fb5c9a00222cffecf7afc991866f5e86e8f21cc6fe92e1bf917dd1912644564a|lf|lf|none|lf
 tests/hardware/OT-093-2026-08-20.md|7161|d4b504b34ec731b287ef24276861bd7ce105fd2b613ce00cdc3d22cb84ce8938|lf|lf|none|lf
 tests/hardware/OT-112-2026-08-21.md|2514|7e2c6ffe263696fcaa71297b35f58177936ace011a2d2291ded910ceae40f19b|lf|lf|none|lf
 tests/hardware/OT-115-2026-08-21.md|3849|4ea35e4b694133c7e3c7a3499c35da13916cfab1938b7186cf21bc4f2df5a175|lf|lf|none|none
 tests/hardware/OT-129-2026-08-24.md|2632|f101211094047c65d7326ca3a796933105987f37cff7003d647553adfb79e866|lf|lf|none|lf
+tests/hardware/OT-135-2026-08-25.md|3203|1f776274041d8ab9fabbe09ddd15d257ee55c13bb36d06a9ed205a5838ebe9d3|lf|lf|none|lf
 tests/host/crypto_benchmark_baseline_tests.py|22742|83dff18b1b73f3567368e6e2cc582718eae7437e1a8a535c060ccaa1634730d4|lf|lf|none|lf
 tools/Build-HeltecV4BenchTarget.ps1|48249|6f3ffcb724e2eb52f3d553596481983330fdb2484871b0aab5f793763f2d07fe|exact|mixed|none|lf
 tools/crypto_benchmark_baseline.py|26497|84e441141708d839d6cb13117476068a7c36570fdafd880173196205c778c747|lf|lf|none|lf
@@ -82,7 +86,13 @@ tools/ot131_monocypher_hardware_adapter.py|12854|fc2012d5aaa13e53c70ff9c68059231
 tools/ot133_monocypher_coordinator.py|25906|04d050d540f49203f2d041cb87dfa4f0d8f741aa268d43b75866ce67a4458cff|lf|lf|none|lf
 tools/ot133_monocypher_hardware_adapter.py|12850|1dd32656743a4ec3486cab110158d07824b8f2c0cbda2b4e2a8dd8420187086a|lf|lf|none|lf
 tools/ot135_monocypher_protocol_runner.py|10601|e06fa00ccef1aeea167286698d64bdd546a09406921dd074009d7174a5366993|lf|lf|none|lf
+tools/ot136_monocypher_coordinator.py|25904|3d340194f98b9d99d7833510d19b142e660ee2999d2d4e20000ca13d7f380867|lf|lf|none|lf
+tools/ot136_monocypher_execution_authority.py|22790|47bdeb66fa1cf25abb7e09cf89bb21b8dce2f88759ca3ab4fd2fa767f8c57eb9|lf|lf|none|lf
+tools/ot136_monocypher_hardware_adapter.py|12848|73a3cfd606ae2249c1920b27fa94daccecde20154f8b484de03fdd003c13aba8|lf|lf|none|lf
 tests/host/ot135_monocypher_protocol_runner_tests.py|11608|5af2692780026fc4d80225e02f76831ae1229dbd4d9cbe8997c8f2f252c524de|lf|lf|none|lf
+tests/host/ot136_monocypher_coordinator_tests.py|18693|ec9ec994b3399f55a3f2d598fcfe9bb6e7f0d3a5805c6c34af4a758104456c80|lf|lf|none|lf
+tests/host/ot136_monocypher_execution_authority_tests.py|14802|f5bc7b909aad15c6cf0033d6b53fcd4ba21e5294ea9665b42bfc9262ceae7612|lf|lf|none|lf
+tests/host/ot136_monocypher_hardware_adapter_tests.py|12361|f4c81a88e99857062a097c4406d10a26483f3085ca606b96cace137de6d332b6|lf|lf|none|lf
 firmware/targets/heltec_v4_bench/main/companion_authorization_storage.cpp|12764|308676a74b019b5fae2fa802503487b652f2d6aa060eab5a407098728a3a62ec|exact|mixed|none|lf
 firmware/targets/heltec_v4_bench/sdkconfig.defaults|1409|a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb|crlf|crlf|none|crlf
 firmware/targets/heltec_v4_radio_diag/main/app_main.cpp|24945|66c5b8cab273556802a3f04c11a85c2c72b02df6d4e4685e2314a4eb0c9a0f2a|exact|mixed|none|lf
