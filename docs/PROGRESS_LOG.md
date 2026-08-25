@@ -4,6 +4,13 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-25
+
+### OT-135 host-only Monocypher byte-bounded preamble correction
+
+- Decision 0074 accepts a fresh host-only successor while preserving OT-129 through OT-133 byte-for-byte. Complete opaque pre-READY records are bounded by the unchanged cumulative 512-byte budget and fixed control deadline; the independent eight-record ceiling is removed because the byte budget already bounds record count.
+- Fourteen adversarial OT-135 groups admit nine fabricated records totaling exactly 512 bytes and 64 short records within budget, reject byte 513 and a frame after nine pre-READY records, preserve exact/duplicate/post-READY rules and privacy-safe counters, and pass the unchanged real 1,014-frame parser. The frozen OT-132 14-group suite and 71-input deterministic-byte audit also pass.
+- No hardware, flash, benchmark, radio, execution authority, result, selection, Phase 2 completion, support, regulatory, production, secure-LoRa, end-to-end, score, or website status claim changes. V1 remains exact 43.75%/displayed 44%. Next require a new immutable executable binding and fresh explicit non-reusable one-attempt authority before any device access. See [Decision 0074](decisions/0074-host-only-monocypher-byte-bounded-preamble-correction.md) and [OT-135 evidence](../tests/hardware/OT-135-2026-08-25.md).
 ## 2026-08-24
 
 ### OT-134 deterministic Windows raw-evidence checkout
