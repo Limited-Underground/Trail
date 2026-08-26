@@ -10,12 +10,16 @@
 #include "companion_nimble_gatt.hpp"
 #include "companion_nimble_runtime.hpp"
 #include "heltec_startup_display.hpp"
+#include "heltec_v4_battery.hpp"
+#include "heltec_v4_gnss.hpp"
 #include "heltec_v4_oled.hpp"
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_semantics.hpp"
 
 namespace {
 using opentrail::target::heltec_v4_bench::HeltecV4Oled;
+using opentrail::target::heltec_v4_bench::CompactStatusSnapshot;
+using opentrail::target::heltec_v4_bench::HeltecV4Gnss;
 using opentrail::target::heltec_v4_bench::StartupDisplayFrame;
 using opentrail::target::heltec_v4_bench::StartupDisplayOwner;
 using opentrail::target::heltec_v4_bench::startup_display_frame_for_ble_phase;
@@ -24,8 +28,13 @@ using opentrail::target::heltec_v4_bench::companion_nimble_runtime_status;
 constexpr char kLogTag[] = "ot_bench";
 constexpr std::uint32_t kHeartbeatPeriodMs = 5000;
 constexpr std::uint32_t kMinimumLogoPeriodMs = 1200;
+constexpr std::uint64_t kBatterySamplePeriodMs = 30'000;
+constexpr std::uint64_t kBatteryFreshForMs = 60'000;
+constexpr std::uint64_t kGnssFreshForMs = 5'000;
 HeltecV4Oled g_oled_port;
 StartupDisplayOwner g_startup_display{g_oled_port};
+HeltecV4Gnss g_gnss;
+opentrail::ui::compact_status_footer::Metric g_battery_percent{};
 bool g_display_failure_logged{false};
 
 void observe_display_result(bool succeeded) {
@@ -33,6 +42,25 @@ void observe_display_result(bool succeeded) {
         ESP_LOGW(kLogTag, "startup display unavailable; runtime continues");
         g_display_failure_logged = true;
     }
+}
+
+CompactStatusSnapshot compact_status_snapshot(std::uint64_t now_ms) {
+    using opentrail::target::heltec_v4_bench::GnssSatelliteState;
+    using opentrail::ui::compact_status_footer::ObservationState;
+
+    CompactStatusSnapshot snapshot{};
+    snapshot.battery_percent = g_battery_percent;
+    snapshot.freshness = {kBatteryFreshForMs, kGnssFreshForMs};
+    snapshot.render_now_ms = now_ms;
+
+    const auto gnss = g_gnss.satellites(now_ms, kGnssFreshForMs);
+    if (gnss.state == GnssSatelliteState::valid) {
+        snapshot.gps_satellites = {
+            ObservationState::valid, gnss.satellites, gnss.sampled_at_ms};
+    } else if (gnss.state == GnssSatelliteState::invalid) {
+        snapshot.gps_satellites.state = ObservationState::invalid;
+    }
+    return snapshot;
 }
 
 bool run_companion_codec_self_check() {
@@ -181,7 +209,15 @@ extern "C" void app_main() {
     }
     ESP_LOGI(kLogTag, "companion runtime started");
 
+    if (!g_gnss.initialize()) {
+        ESP_LOGW(kLogTag, "GNSS unavailable; GPS status remains unknown");
+    }
+    if (!opentrail::heltec_v4::battery_init()) {
+        ESP_LOGW(kLogTag, "battery ADC unavailable; battery status remains unknown");
+    }
+
     std::uint64_t next_heartbeat_ms = started_at_ms;
+    std::uint64_t next_battery_sample_ms = started_at_ms;
     while (true) {
         const auto elapsed_ms =
             static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
@@ -192,10 +228,29 @@ extern "C" void app_main() {
             opentrail::companion::CompanionBleRuntimeError::none) {
             contain_runtime_failure();
         }
-        if (elapsed_ms - boot_started_at_ms >= kMinimumLogoPeriodMs) {
-            observe_display_result(g_startup_display.show(
+        g_gnss.service(elapsed_ms);
+        if (elapsed_ms >= next_battery_sample_ms) {
+            const auto reading = opentrail::heltec_v4::battery_read();
+            const auto sampled_at_ms =
+                static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+            g_battery_percent = reading.valid
+                ? opentrail::ui::compact_status_footer::Metric{
+                      opentrail::ui::compact_status_footer::ObservationState::valid,
+                      reading.percent,
+                      sampled_at_ms}
+                : opentrail::ui::compact_status_footer::Metric{
+                      opentrail::ui::compact_status_footer::ObservationState::invalid,
+                      0,
+                      sampled_at_ms};
+            next_battery_sample_ms = sampled_at_ms + kBatterySamplePeriodMs;
+        }
+        const auto render_now_ms =
+            static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+        if (render_now_ms - boot_started_at_ms >= kMinimumLogoPeriodMs) {
+            observe_display_result(g_startup_display.show_compact_status(
                 startup_display_frame_for_ble_phase(
-                    companion_nimble_runtime_status().phase)));
+                    companion_nimble_runtime_status().phase),
+                compact_status_snapshot(render_now_ms)));
         }
         if (elapsed_ms >= next_heartbeat_ms) {
             ESP_LOGI(kLogTag, "heartbeat elapsed_ms=%llu",

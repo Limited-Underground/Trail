@@ -27,6 +27,18 @@ bool StartupDisplayOwner::show(StartupDisplayFrame frame) {
     return show_view(view);
 }
 
+bool StartupDisplayOwner::show_compact_status(
+    StartupDisplayFrame frame,
+    const CompactStatusSnapshot& snapshot) {
+    StartupDisplayView view{};
+    view.frame = frame;
+    if (!startup_display_compact_footer_page(frame, snapshot, view.footer)) {
+        return false;
+    }
+    view.has_footer = true;
+    return show_view(view);
+}
+
 bool StartupDisplayOwner::show_footer(
     StartupDisplayFrame frame,
     const ui::compact_status_footer::Page& footer) {
@@ -83,12 +95,21 @@ StartupDisplayFrame startup_display_frame_for_ble_phase(
 bool startup_display_compact_footer_page(
     StartupDisplayFrame frame,
     ui::compact_status_footer::Page& page) {
+    return startup_display_compact_footer_page(
+        frame, CompactStatusSnapshot{}, page);
+}
+
+bool startup_display_compact_footer_page(
+    StartupDisplayFrame frame,
+    const CompactStatusSnapshot& status,
+    ui::compact_status_footer::Page& page) {
     using ui::compact_status_footer::ActivityOwner;
     using ui::compact_status_footer::BleCode;
-    using ui::compact_status_footer::Freshness;
     using ui::compact_status_footer::Snapshot;
 
     Snapshot snapshot{};
+    snapshot.battery_percent = status.battery_percent;
+    snapshot.gps_satellites = status.gps_satellites;
     switch (frame) {
         case StartupDisplayFrame::ble_starting:
             snapshot.ble = BleCode::starting;
@@ -112,12 +133,16 @@ bool startup_display_compact_footer_page(
             return false;
     }
 
-    constexpr std::uint64_t kRenderNowMs = 0;
     const auto fields = ui::compact_status_footer::format(
-        snapshot, Freshness{0, 0}, kRenderNowMs);
-    const ActivityOwner unsupported_activity{false, 0};
+        snapshot, status.freshness, status.render_now_ms);
+    ActivityOwner activity{
+        status.activity_supported, status.activity_visible_for_ms};
+    if (status.activity != ui::compact_status_footer::Direction::none) {
+        (void)activity.observe_accepted_transport_event(
+            status.activity, status.activity_at_ms);
+    }
     page = ui::compact_status_footer::render(
-        fields, unsupported_activity, kRenderNowMs);
+        fields, activity, status.render_now_ms);
     return true;
 }
 

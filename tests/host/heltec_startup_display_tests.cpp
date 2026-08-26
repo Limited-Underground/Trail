@@ -10,6 +10,7 @@
 namespace {
 
 using opentrail::companion::CompanionBleRuntimePhase;
+using opentrail::target::heltec_v4_bench::CompactStatusSnapshot;
 using opentrail::target::heltec_v4_bench::StartupDisplayFrame;
 using opentrail::target::heltec_v4_bench::StartupDisplayOwner;
 using opentrail::target::heltec_v4_bench::StartupDisplayPort;
@@ -262,6 +263,136 @@ void test_compact_footer_placeholder_mapping() {
     require(page_is_blank(page),
             "self-check request clears a prefilled page");
 }
+
+void test_dynamic_compact_footer_observations_and_redraw() {
+    using Direction = opentrail::ui::compact_status_footer::Direction;
+    using Glyph = std::array<std::uint8_t, 5>;
+    using ObservationState =
+        opentrail::ui::compact_status_footer::ObservationState;
+
+    const Glyph zero{0x3E, 0x51, 0x49, 0x45, 0x3E};
+    const Glyph one{0x00, 0x42, 0x7F, 0x40, 0x00};
+    const Glyph two{0x42, 0x61, 0x51, 0x49, 0x46};
+    const Glyph percent{0x63, 0x13, 0x08, 0x64, 0x63};
+    const Glyph connected{0x3E, 0x41, 0x41, 0x41, 0x22};
+    const Glyph tx{0x04, 0x02, 0x7F, 0x02, 0x04};
+
+    const auto glyph_at = [](const auto& page, std::size_t x) {
+        Glyph result{};
+        for (std::size_t index = 0; index < result.size(); ++index) {
+            result[index] = page.columns[x + index];
+        }
+        return result;
+    };
+
+    CompactStatusSnapshot snapshot{};
+    snapshot.battery_percent = {ObservationState::valid, 100, 950};
+    snapshot.gps_satellites = {ObservationState::valid, 12, 950};
+    snapshot.freshness = {100, 100};
+    snapshot.activity_supported = true;
+    snapshot.activity = Direction::tx;
+    snapshot.activity_at_ms = 980;
+    snapshot.activity_visible_for_ms = 100;
+    snapshot.render_now_ms = 1000;
+
+    FakeDisplayPort port;
+    StartupDisplayOwner owner{port};
+    require(owner.start(), "dynamic footer display start");
+    require(owner.show_compact_status(
+                StartupDisplayFrame::ble_connected, snapshot),
+            "dynamic connected footer accepted");
+    require(port.views.size() == 2, "dynamic footer rendered");
+    const auto& page = port.views.back().footer;
+    require(glyph_at(page, 25) == one && glyph_at(page, 31) == zero &&
+                glyph_at(page, 37) == zero &&
+                glyph_at(page, 43) == percent,
+            "three-digit battery observation rendered");
+    require(glyph_at(page, 75) == one && glyph_at(page, 81) == two,
+            "two-digit GPS observation rendered");
+    require(glyph_at(page, 113) == connected,
+            "BLE frame remains footer authority");
+    require(glyph_at(page, 121) == tx,
+            "accepted current TX observation rendered");
+
+    require(owner.show_compact_status(
+                StartupDisplayFrame::ble_connected, snapshot),
+            "identical dynamic footer accepted");
+    require(port.views.size() == 2,
+            "identical dynamic footer suppressed");
+
+    snapshot.battery_percent.value = 99;
+    require(owner.show_compact_status(
+                StartupDisplayFrame::ble_connected, snapshot),
+            "changed battery observation accepted");
+    require(port.views.size() == 3,
+            "changed observation redraws unchanged BLE frame");
+}
+
+void test_dynamic_compact_footer_fail_closed_boundaries() {
+    using Direction = opentrail::ui::compact_status_footer::Direction;
+    using Glyph = std::array<std::uint8_t, 5>;
+    using ObservationState =
+        opentrail::ui::compact_status_footer::ObservationState;
+    using Page = opentrail::ui::compact_status_footer::Page;
+
+    const Glyph dash{0x08, 0x08, 0x08, 0x08, 0x08};
+    const Glyph percent{0x63, 0x13, 0x08, 0x64, 0x63};
+    const Glyph blank{0x00, 0x00, 0x00, 0x00, 0x00};
+    const Glyph advertising{0x7E, 0x11, 0x11, 0x11, 0x7E};
+
+    const auto glyph_at = [](const Page& page, std::size_t x) {
+        Glyph result{};
+        for (std::size_t index = 0; index < result.size(); ++index) {
+            result[index] = page.columns[x + index];
+        }
+        return result;
+    };
+    const auto page_is_blank = [](const Page& page) {
+        for (const auto column : page.columns) {
+            if (column != 0) return false;
+        }
+        return true;
+    };
+
+    CompactStatusSnapshot snapshot{};
+    snapshot.battery_percent = {ObservationState::valid, 101, 999};
+    snapshot.gps_satellites = {ObservationState::valid, 12, 1001};
+    snapshot.freshness = {100, 100};
+    snapshot.activity_supported = true;
+    snapshot.activity = Direction::rx;
+    snapshot.activity_at_ms = 900;
+    snapshot.activity_visible_for_ms = 100;
+    snapshot.render_now_ms = 1000;
+
+    Page page{};
+    require(startup_display_compact_footer_page(
+                StartupDisplayFrame::ble_advertising, snapshot, page),
+            "dynamic advertising footer accepted");
+    require(glyph_at(page, 25) == dash && glyph_at(page, 31) == dash &&
+                glyph_at(page, 37) == percent,
+            "out-of-range battery fails closed");
+    require(glyph_at(page, 75) == dash && glyph_at(page, 81) == dash,
+            "future GPS observation fails closed");
+    require(glyph_at(page, 113) == advertising,
+            "advertising frame maps independently of invalid metrics");
+    require(glyph_at(page, 121) == blank,
+            "expired activity observation fails closed");
+
+    page.columns.fill(0xFF);
+    require(!startup_display_compact_footer_page(
+                StartupDisplayFrame::logo, snapshot, page),
+            "dynamic logo footer rejected");
+    require(page_is_blank(page), "dynamic rejected frame clears page");
+
+    FakeDisplayPort port;
+    StartupDisplayOwner owner{port};
+    require(owner.start(), "dynamic rejection display start");
+    require(!owner.show_compact_status(
+                StartupDisplayFrame::self_check_failed, snapshot),
+            "dynamic self-check footer rejected");
+    require(port.views.size() == 1,
+            "rejected dynamic footer does not replace boot view");
+}
 }  // namespace
 
 int main() {
@@ -271,6 +402,8 @@ int main() {
     test_footer_rejected_for_non_footer_frames();
     test_ble_phase_and_copy_mapping();
     test_compact_footer_placeholder_mapping();
-    std::cout << "6 Heltec startup display groups passed.\n";
+    test_dynamic_compact_footer_observations_and_redraw();
+    test_dynamic_compact_footer_fail_closed_boundaries();
+    std::cout << "8 Heltec startup display groups passed.\n";
     return 0;
 }

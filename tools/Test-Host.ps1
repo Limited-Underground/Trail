@@ -412,6 +412,21 @@ $builds = @(
         )
     },
     @{
+        Name = 'Heltec V4 battery conversion'
+        Output = Join-Path $buildDirectory 'heltec_v4_battery_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\heltec_v4_battery_tests.cpp')
+        )
+    },
+    @{
+        Name = 'Heltec V4 GNSS satellite observer'
+        Output = Join-Path $buildDirectory 'heltec_v4_gnss_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_v4_gnss.cpp'),
+            (Join-Path $projectRoot 'tests\host\heltec_v4_gnss_tests.cpp')
+        )
+    },
+    @{
         Name = 'restricted companion GATT authorization lifecycle'
         Output = Join-Path $buildDirectory 'companion_gatt_authorization_tests.exe'
         Sources = @(
@@ -1891,6 +1906,11 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_bench_target_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Heltec V4 bench target admission tests failed.'
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot147_heltec_v4_live_status_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-147 Heltec V4 live-status authority tests failed.'
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\protected_storage_transition_evidence_tests.py')

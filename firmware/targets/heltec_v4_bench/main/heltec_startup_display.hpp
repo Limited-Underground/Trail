@@ -29,6 +29,21 @@ struct StartupDisplayView {
     ui::compact_status_footer::Page footer{};
 };
 
+// Current target observations used to build the fixed compact footer. The BLE
+// observation remains the StartupDisplayFrame argument so the visible frame,
+// footer code, and runtime-owner phase cannot disagree.
+struct CompactStatusSnapshot {
+    ui::compact_status_footer::Metric battery_percent{};
+    ui::compact_status_footer::Metric gps_satellites{};
+    ui::compact_status_footer::Freshness freshness{};
+    bool activity_supported{false};
+    ui::compact_status_footer::Direction activity{
+        ui::compact_status_footer::Direction::none};
+    std::uint64_t activity_at_ms{0};
+    std::uint64_t activity_visible_for_ms{0};
+    std::uint64_t render_now_ms{0};
+};
+
 class StartupDisplayPort {
 public:
     virtual ~StartupDisplayPort() = default;
@@ -45,6 +60,9 @@ public:
 
     [[nodiscard]] bool start();
     [[nodiscard]] bool show(StartupDisplayFrame frame);
+    [[nodiscard]] bool show_compact_status(
+        StartupDisplayFrame frame,
+        const CompactStatusSnapshot& snapshot);
     [[nodiscard]] bool show_footer(
         StartupDisplayFrame frame,
         const ui::compact_status_footer::Page& footer);
@@ -63,10 +81,18 @@ private:
 [[nodiscard]] StartupDisplayFrame startup_display_frame_for_ble_phase(
     companion::CompanionBleRuntimePhase phase);
 
-// Produces the compact page for BLE frames only. Battery and GPS remain
-// unavailable and radio activity is unsupported, so those fields fail closed.
+// Compatibility path for callers that have no live observations yet. Battery,
+// GPS, and activity remain fail-closed placeholders.
 [[nodiscard]] bool startup_display_compact_footer_page(
     StartupDisplayFrame frame,
+    ui::compact_status_footer::Page& page);
+
+// Produces the compact page for BLE frames only from caller-owned current
+// observations. Invalid, stale, future, out-of-range, or unsupported inputs
+// retain the compact footer's fail-closed placeholders.
+[[nodiscard]] bool startup_display_compact_footer_page(
+    StartupDisplayFrame frame,
+    const CompactStatusSnapshot& snapshot,
     ui::compact_status_footer::Page& page);
 
 

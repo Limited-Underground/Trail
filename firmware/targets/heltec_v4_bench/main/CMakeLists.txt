@@ -12,6 +12,8 @@ idf_component_register(
         "companion_protected_root_key_roster_adapter.cpp"
         "companion_protected_root_configuration_security_adapter.cpp"
         "heltec_startup_display.cpp"
+        "heltec_v4_battery.cpp"
+        "heltec_v4_gnss.cpp"
         "heltec_v4_oled.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_protocol.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_semantics.cpp"
@@ -36,11 +38,13 @@ idf_component_register(
         bt
         bootloader_support
         efuse
+        esp_adc
         esp_partition
         esp_security
         esp_timer
         esp_driver_gpio
         esp_driver_i2c
+        esp_driver_uart
         esp_lcd
         nvs_flash
 )

@@ -166,6 +166,8 @@ tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json|6567|9
 tests/host/ot146_monocypher_success_record_tests.py|7817|968e1836f876fc595630d361324942b63c99008a25e2566599ce4e5eb5f6c876|lf|lf|none|lf
 docs/decisions/0083-record-ot146-ot145-monocypher-execution-success.md|3042|7f625f3ab2eaa8c84dc22cfdf5aad29839f65d67058fa43e73dfd97c2abf55c5|lf|lf|none|lf
 tests/hardware/OT-146-2026-08-26.md|4540|1f899dc57d3c578efc7aa02c211615957b9fe07a6943812f769e20c255daa788|lf|lf|none|lf
+tests/benchmarks/display/OT-147-HELTEC-V4-LIVE-STATUS-BUILD-AND-FLASH-AUTHORITY-V0.json|2838|a367ce3a13a89241aa6bd55c2ffec4adb17c15262e6c640c1608b2e43b8a43c5|lf|lf|none|lf
+tests/host/ot147_heltec_v4_live_status_authority_tests.py|6646|35a17e61edb44a594d95ec1dd6e2420a2ad3adb2388249b9bf8ed536535a7e6b|lf|lf|none|lf
 """.strip()
 
 

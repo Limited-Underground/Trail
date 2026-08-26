@@ -84,6 +84,10 @@ PARTITIONS = TARGET / "partitions.csv"
 BUILD_SCRIPT = ROOT / "tools" / "Build-HeltecV4BenchTarget.ps1"
 DISPLAY_OWNER_HEADER = TARGET / "main" / "heltec_startup_display.hpp"
 DISPLAY_OWNER = TARGET / "main" / "heltec_startup_display.cpp"
+BATTERY_HEADER = TARGET / "main" / "heltec_v4_battery.hpp"
+BATTERY_SOURCE = TARGET / "main" / "heltec_v4_battery.cpp"
+GNSS_HEADER = TARGET / "main" / "heltec_v4_gnss.hpp"
+GNSS_SOURCE = TARGET / "main" / "heltec_v4_gnss.cpp"
 DISPLAY_ADAPTER_HEADER = TARGET / "main" / "heltec_v4_oled.hpp"
 DISPLAY_ADAPTER = TARGET / "main" / "heltec_v4_oled.cpp"
 DISPLAY_LOGO = TARGET / "main" / "trail_startup_logo.hpp"
@@ -125,6 +129,10 @@ def test_contract() -> None:
         "partitions.csv",
         "main/heltec_startup_display.cpp",
         "main/heltec_startup_display.hpp",
+        "main/heltec_v4_battery.cpp",
+        "main/heltec_v4_battery.hpp",
+        "main/heltec_v4_gnss.cpp",
+        "main/heltec_v4_gnss.hpp",
         "main/heltec_v4_oled.cpp",
         "main/heltec_v4_oled.hpp",
         "main/trail_startup_logo.hpp",
@@ -281,6 +289,7 @@ def test_contract() -> None:
         "oled_compact_status_footer_host_tested",
         "oled_compact_status_footer_build_linked",
         "oled_compact_status_footer_physically_observed",
+        "oled_compact_status_footer_live_telemetry_bound",
         "oled_startup_logo_coded",
         "oled_ble_phase_status_coded",
         "oled_ble_link_status_physically_observed",
@@ -374,10 +383,10 @@ def test_contract() -> None:
             capabilities[
                 "oled_compact_status_footer_physically_observed"] is True and
             capabilities[
-                "oled_compact_status_footer_live_telemetry_bound"] is False and
+                "oled_compact_status_footer_live_telemetry_bound"] is True and
             capabilities[
                 "oled_compact_status_footer_radio_activity_bound"] is False,
-            "compact footer must be physically observed while remaining placeholder-only and radio-unbound")
+            "compact footer must bind live battery/GNSS while remaining radio-unbound")
 
     require(capabilities["oled_startup_display_physically_observed"] is True and
             capabilities["oled_ble_link_status_physically_observed"] is True and
@@ -917,8 +926,8 @@ def test_protected_root_key_roster_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 24,
-            "non-injection gate must cover the exact 24-source target build")
+    require(len(linked_source_tokens) == 26,
+            "non-injection gate must cover the exact 26-source target build")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -930,7 +939,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 23,
+    require(len(other_linked_sources) == 25,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -992,8 +1001,8 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 24,
-            "configuration/security non-injection gate must cover 24 sources")
+    require(len(linked_source_tokens) == 26,
+            "configuration/security non-injection gate must cover 26 sources")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_configuration_security_adapter.cpp":
@@ -1005,7 +1014,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 23,
+    require(len(other_linked_sources) == 25,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1020,6 +1029,10 @@ def test_display_surface() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     owner_header = DISPLAY_OWNER_HEADER.read_text(encoding="utf-8")
     owner = DISPLAY_OWNER.read_text(encoding="utf-8")
+    battery_header = BATTERY_HEADER.read_text(encoding="utf-8")
+    battery_source = BATTERY_SOURCE.read_text(encoding="utf-8")
+    gnss_header = GNSS_HEADER.read_text(encoding="utf-8")
+    gnss_source = GNSS_SOURCE.read_text(encoding="utf-8")
     adapter_header = DISPLAY_ADAPTER_HEADER.read_text(encoding="utf-8")
     adapter = DISPLAY_ADAPTER.read_text(encoding="utf-8")
     logo = DISPLAY_LOGO.read_text(encoding="utf-8")
@@ -1090,9 +1103,11 @@ def test_display_surface() -> None:
             owner, re.DOTALL) is not None,
             f"typed BLE frame lacks compact footer code: {frame}")
     require("Snapshot snapshot{}" in owner and
-            "Freshness{0, 0}" in owner and
-            "ActivityOwner unsupported_activity{false, 0}" in owner,
-            "target footer must force unavailable metrics and unsupported activity")
+            "snapshot.battery_percent = status.battery_percent" in owner and
+            "snapshot.gps_satellites = status.gps_satellites" in owner and
+            "status.freshness" in owner and
+            "ActivityOwner activity{" in owner,
+            "target footer must consume caller-owned live metrics and freshness")
     require("case StartupDisplayFrame::logo:" in owner and
             "case StartupDisplayFrame::self_check_failed:" in owner and
             "page = {};" in owner and "return false;" in owner,
@@ -1113,12 +1128,59 @@ def test_display_surface() -> None:
             "render_text(page, 89U, fields.ble)" in footer,
             "target must reuse the accepted compact footer geometry")
     for forbidden_binding in (
-        "battery_metric_from_power", "GpsProvider",
-        "observe_accepted_transport_event", "RadioTransport",
+        "battery_metric_from_power", "GpsProvider", "RadioTransport",
     ):
         require(forbidden_binding not in "\n".join(
                     (source, owner_header, owner, adapter_header, adapter)),
-                f"placeholder target gained live source binding: {forbidden_binding}")
+                f"target gained an unadmitted telemetry binding: {forbidden_binding}")
+
+    for required in (
+        "GPIO_NUM_37", "ADC_CHANNEL_0", "kDividerNumerator = 490",
+        "adc_cali_create_scheme_curve_fitting", "DividerGuard",
+        "gpio_set_level(kAdcControl, 1) == ESP_OK",
+    ):
+        require(required in battery_source,
+                f"missing audited Heltec V4 battery binding: {required}")
+    require("voltage-derived and is not fuel-gauge accuracy" in battery_header and
+            "kEmptyMillivolts = 3300" in battery_header and
+            "kFullMillivolts = 4200" in battery_header,
+            "battery percentage must remain explicitly approximate and bounded")
+
+    for required in (
+        "kHeltecV4GnssEnableGpio = 34",
+        "kHeltecV4GnssResetGpio = 42",
+        "kHeltecV4GnssRxGpio = 39",
+        "kHeltecV4GnssTxGpio = 38",
+        "kHeltecV4GnssBaud = 9'600",
+        "kHeltecV4GnssEnableLevel = 0",
+        "kHeltecV4GnssInactiveLevel = 1",
+        "kHeltecV4GnssResetAssertedLevel = 0",
+        "kHeltecV4GnssResetReleasedLevel = 1",
+    ):
+        require(required in gnss_header,
+                f"missing audited Heltec V4 GNSS binding: {required}")
+    require("uart_driver_install" in gnss_source and
+            "uart_read_bytes" in gnss_source and
+            "observer_.ingest" in gnss_source and
+            "contain_failure" in gnss_source and
+            "uart_driver_delete" in gnss_source,
+            "GNSS adapter must remain a bounded UART satellite observer")
+    for forbidden in ("latitude", "longitude", "altitude", "ESP_LOG", "printf("):
+        require(forbidden not in gnss_source,
+                f"GNSS adapter must not retain or emit private data: {forbidden}")
+
+    for required in (
+        "kBatterySamplePeriodMs = 30'000",
+        "kBatteryFreshForMs = 60'000",
+        "kGnssFreshForMs = 5'000",
+        "g_gnss.service(elapsed_ms)",
+        "opentrail::heltec_v4::battery_read()",
+        "GnssSatelliteState::valid",
+        "ObservationState::invalid",
+        "show_compact_status",
+    ):
+        require(required in source,
+                f"application lacks live compact-status binding: {required}")
 
     display_start = source.index("observe_display_result(g_startup_display.start())")
     self_check_start = source.index("if (!run_companion_codec_self_check() ||")
@@ -1130,7 +1192,7 @@ def test_display_surface() -> None:
             runtime_service < typed_status,
             "logo, self-check, runtime, and typed status order changed")
     require("kMinimumLogoPeriodMs = 1200" in source and
-            "elapsed_ms - boot_started_at_ms >= kMinimumLogoPeriodMs" in source,
+            "render_now_ms - boot_started_at_ms >= kMinimumLogoPeriodMs" in source,
             "startup logo must remain visible before typed BLE status replaces it")
     require("startup display unavailable; runtime continues" in source,
             "display failure must explicitly preserve runtime progress")
@@ -1489,6 +1551,8 @@ def test_application_surface() -> None:
         "companion_nimble_runtime.cpp",
         "companion/include",
         "heltec_startup_display.cpp",
+        "heltec_v4_battery.cpp",
+        "heltec_v4_gnss.cpp",
         "heltec_v4_oled.cpp",
         "protocol/include",
         "ui/src/compact_status_footer.cpp",
@@ -1497,12 +1561,13 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 24,
-            "target source set must remain eleven target, twelve companion, and one UI source")
+    require(cmake.count('.cpp"') == 26,
+            "target source set must remain thirteen target, twelve companion, and one UI source")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
-            "esp_driver_gpio", "esp_driver_i2c", "esp_lcd", "nvs_flash")),
+            "esp_adc", "esp_driver_gpio", "esp_driver_i2c", "esp_driver_uart",
+            "esp_lcd", "nvs_flash")),
             "target must declare pinned Bluetooth and security dependencies")
 
     linked_source = self_check + "\n" + nimble_gatt + "\n" + gatt_session + "\n" + gatt_authorization + "\n" + gatt_adapter + "\n" + authorization_persistence + "\n" + authorization_storage + "\n" + "\n".join(
@@ -1521,8 +1586,8 @@ def test_application_surface() -> None:
 
     forbidden = (
         "WiFi", "RadioLib",
-        "SX126", "LoRa", "GNSS", "GPS", "NVS", "nvs_", "SPIFFS", "FATFS",
-        "OTA", "gpio_", "efuse", "MAC", "secret", "private_key", "identity",
+        "SX126", "LoRa", "NVS", "nvs_", "SPIFFS", "FATFS",
+        "OTA", "efuse", "MAC", "secret", "private_key", "identity",
     )
     for token in forbidden:
         require(token.lower() not in source.lower(),
