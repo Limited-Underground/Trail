@@ -149,6 +149,16 @@ tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0
 tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json|3708|235e1227ef8ebed75a510335b017f9c0539d0508426a11414546591002f1bce0|lf|lf|none|lf
 docs/decisions/0080-freeze-ot143-corrected-target-bundle-and-authority.md|3981|c6d3249e7b646800da49d148e26b28f5f9ad965a78998ee5a9ef64f12176f8ca|lf|lf|none|lf
 tests/hardware/OT-143-2026-08-26.md|6049|b855199b87fea9e5666bfeab1cc0b458ed34f7145b9eea5f9b9002a98202ec40|lf|lf|none|lf
+tools/ot144_monocypher_coordinator.py|25912|2e8955c7a425c33208d8b6e944fdef52259cd146274bec44c543e1f4b7af69be|lf|lf|none|lf
+tools/ot144_monocypher_execution_authority.py|26519|d0598b529438d0b37671d65fd6c17d97791d2ab564806b378203e2834ecd1a52|lf|lf|none|lf
+tools/ot144_monocypher_hardware_adapter.py|12854|19eb64c29deda5af9e4d523a8bc1630ae2f9350cba4043e35ac7691146b09b71|lf|lf|none|lf
+tests/host/ot144_monocypher_coordinator_tests.py|18700|6cfa76222e93a71b595db733485372c7751f602b9b161e5400d896c2bce171eb|lf|lf|none|lf
+tests/host/ot144_monocypher_execution_authority_tests.py|18185|fdee3506b432dc042cc195762ae89e3f2cbb636f763799d54bbd3ea185dc2a9e|lf|lf|none|lf
+tests/host/ot144_monocypher_hardware_adapter_tests.py|12374|72717b63bf349ceb3b99d831f2fbea6c3127d3cdcaeed40fbdcdff8c57410282|lf|lf|none|lf
+tests/host/ot144_monocypher_binding_consistency_tests.py|4613|762afe57359aedabe9aba02e27444ae457d3b1887a8410b0e047306b0a2c0c07|lf|lf|none|lf
+tests/benchmarks/crypto/OT-144-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json|6298|9736e6c68647da594e31b8c32e076fd40c2fccedd1bbd1d740b5cc0443667455|lf|lf|none|lf
+docs/decisions/0081-correct-ot143-runtime-binding-before-hardware.md|3319|cd5b027945e44abecc24b1957301f40a2d203e98802014e0a005582e9b4958c2|lf|lf|none|lf
+tests/hardware/OT-144-2026-08-26.md|4174|fb3355f5df9b3fc5e4817c56badf09eb292dd981cbc528241ce3c247f74eb182|lf|lf|none|lf
 """.strip()
 
 

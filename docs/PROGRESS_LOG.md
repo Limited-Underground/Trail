@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-26
 
+### OT-144 corrected runtime/preparation binding
+
+- Host-only inspection found before device I/O that the accepted OT-143 authority is unconsumed but non-executable: its preparation/authority pin the 149,824-byte corrected OT-142 application while its coordinator still pins the 149,920-byte OT-139 image. No journal or receipt exists, and no endpoint, flash, reset, benchmark, radio, or phone operation occurred.
+- Decision 0081 preserves Decision 0080 and every OT-143 artifact as immutable history and accepts a fresh OT-144 coordinator, adapter, validator, and preparation that consistently bind the corrected image. Cross-layer real-file validation rejects stale or conflicting runtime pins.
+- Focused validation: `39/39 passed`; raw-byte audit: `130/130 passed`; complete Windows host matrix: `passed`. OT-144 creates no authority, result, selection, Phase 2 completion, support, regulatory, production, or score claim. Fresh separate explicit non-reusable authority is required before hardware. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. See [Decision 0081](decisions/0081-correct-ot143-runtime-binding-before-hardware.md) and [OT-144 evidence](../tests/hardware/OT-144-2026-08-26.md).
+- This internal fail-closed correction does not require a public website status update.
+
 ### OT-143 immutable corrected-target binding and one-attempt authority
 
 - Decision 0080 accepts one immutable executable bundle binding the exact OT-142 corrected-target six-file tuple, pinned ESP-IDF/source evidence, frozen OT-135 runner, strict parser/schema, fresh restoration-safe coordinator/private state, concrete adapter, and exact Trail restoration image. Only the application BIN is writable at `0x10000`; all other build artifacts are provenance-only.

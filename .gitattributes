@@ -188,3 +188,13 @@ tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0
 tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
 docs/decisions/0080-freeze-ot143-corrected-target-bundle-and-authority.md text eol=lf
 tests/hardware/OT-143-2026-08-26.md text eol=lf
+tools/ot144_monocypher_coordinator.py text eol=lf
+tools/ot144_monocypher_execution_authority.py text eol=lf
+tools/ot144_monocypher_hardware_adapter.py text eol=lf
+tests/host/ot144_monocypher_coordinator_tests.py text eol=lf
+tests/host/ot144_monocypher_execution_authority_tests.py text eol=lf
+tests/host/ot144_monocypher_hardware_adapter_tests.py text eol=lf
+tests/host/ot144_monocypher_binding_consistency_tests.py text eol=lf
+tests/benchmarks/crypto/OT-144-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json text eol=lf
+docs/decisions/0081-correct-ot143-runtime-binding-before-hardware.md text eol=lf
+tests/hardware/OT-144-2026-08-26.md text eol=lf
