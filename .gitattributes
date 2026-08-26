@@ -157,3 +157,13 @@ tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quie
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/main/CMakeLists.txt text eol=lf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/sdkconfig.defaults text eol=lf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/partitions.csv text eol=crlf
+tools/ot140_monocypher_coordinator.py text eol=lf
+tools/ot140_monocypher_execution_authority.py text eol=lf
+tools/ot140_monocypher_hardware_adapter.py text eol=lf
+tests/host/ot140_monocypher_coordinator_tests.py text eol=lf
+tests/host/ot140_monocypher_execution_authority_tests.py text eol=lf
+tests/host/ot140_monocypher_hardware_adapter_tests.py text eol=lf
+tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json text eol=lf
+tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
+docs/decisions/0079-freeze-ot140-quiet-target-bundle-and-authority.md text eol=lf
+tests/hardware/OT-140-2026-08-25.md text eol=lf

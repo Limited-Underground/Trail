@@ -125,6 +125,16 @@ tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quie
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/main/CMakeLists.txt|895|0085c4f900c2b37003bf55d719cb7fa9980198f0a252723296c9b50af0409f8b|lf|lf|none|lf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/sdkconfig.defaults|997|f8d20cdc61ba606e47ba76049b7be97d959441abea691deae3b85cba7fd2e404|lf|lf|none|lf
 tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot139_quiet/partitions.csv|452|4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389|crlf|crlf|none|crlf
+docs/decisions/0079-freeze-ot140-quiet-target-bundle-and-authority.md|3716|be56fc505f64141f8852dd12bc0d374d3f98a7ba5ef65af0d5c93582cb28da61|lf|lf|none|lf
+tests/hardware/OT-140-2026-08-25.md|6060|acbceb0b80e47d1a5256974cde06793b66f73a1ceba8029d24d4eb705e7169c2|lf|lf|none|lf
+tools/ot140_monocypher_coordinator.py|25905|a69cd1d5b0abc71b4dc786ad734ed977584790de88eac3a96d7086ec15dbeb16|lf|lf|none|lf
+tools/ot140_monocypher_execution_authority.py|25469|d3da7736c2e03d7dcd854de1f290eebb4ea07e1655089ba40dd5504f8d460221|lf|lf|none|lf
+tools/ot140_monocypher_hardware_adapter.py|12851|3001cba006d22e62a9941ebc6a07768731b589245ca2b53ba7bb53f4578cc1b7|lf|lf|none|lf
+tests/host/ot140_monocypher_coordinator_tests.py|18693|a5462de95018de0dc3cad3814dbcd66f4db2495ad2a31de8e5963e5d19cd0f60|lf|lf|none|lf
+tests/host/ot140_monocypher_execution_authority_tests.py|16448|da1c3030ef1abfd970ff69c6b9a47bb81fe31a3dcf65497c35910b649b45574b|lf|lf|none|lf
+tests/host/ot140_monocypher_hardware_adapter_tests.py|12347|8c734cc51c41a8f5e853e029a8e3f1c118173e6e98bf31ccc7d7d201a0a9b87e|lf|lf|none|lf
+tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json|5982|523ecfcd17f2fad2687622c0e0d062d4c5710551ecb3a731b91298e7474704eb|lf|lf|none|lf
+tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json|4333|fa867f3551b069767d2b00187841dc60cf861ee38492a1958ef86ed98398de9a|lf|lf|none|lf
 """.strip()
 
 

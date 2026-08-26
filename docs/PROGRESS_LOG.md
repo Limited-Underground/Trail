@@ -5,6 +5,12 @@ remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concis
 public chronology.
 
 ## 2026-08-25
+### OT-140 immutable OT-139 quiet-target binding and one-attempt authority
+
+- Decision 0079 accepts one immutable executable bundle binding the exact OT-139 six-file tuple, pinned ESP-IDF/source evidence, frozen OT-135 runner, strict parser/schema, fresh restoration-safe coordinator/private state, concrete adapter, and exact Trail restoration image. Only the application BIN is writable at `0x10000`; all other build artifacts are provenance-only.
+- A fresh explicitly approved authority permits exactly one two-node application-only attempt from this workspace, is consumed on success or abort, is non-reusable, grants no continuation, and remains unexecuted. Normal ROM logging remains enabled and endpoint silence is not claimed.
+- Coordinator, authority, and adapter suites pass 11/11, 10/10, and 14/14. No hardware, flash, benchmark result, radio, selection, Phase 2 completion, support, regulatory, production, score, or website status changes. V1 remains exact 43.75%/displayed 44%. See [Decision 0079](decisions/0079-freeze-ot140-quiet-target-bundle-and-authority.md) and [OT-140 evidence](../tests/hardware/OT-140-2026-08-25.md).
+
 ### OT-139 reproducible Monocypher quiet target
 
 - Decision 0078 accepts a separate host-only target that compiles the frozen OT-129 application/control sources by reference while resolving both ESP-IDF consoles and bootloader/default/maximum application logging to none and retaining the direct USB Serial/JTAG driver.

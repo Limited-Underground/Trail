@@ -41,6 +41,15 @@ OpenTrail is in architecture and proof-of-concept planning. Capabilities in the 
 
 Update the backlog status and the project status/open questions whenever a decision is made or evidence changes. Architecture decisions that constrain future work should be added under `docs/decisions/` when that directory is introduced.
 
+## Lean execution cadence
+
+- Scope ordinary increments to one coherent result expected to complete in 30-60 minutes. Split a larger increment before implementation instead of allowing one task to expand for hours.
+- Reuse a previously validated implementation, build, test, and publication path when its boundary and prerequisites have not changed. If it fails, diagnose the concrete conflict before abandoning the proven path.
+- Run focused validation while implementing and one complete affected matrix at the final gate. Do not repeatedly run the full matrix after every small edit.
+- Keep canonical project records current for each accepted increment, but batch editorial website synchronization and deployment at each ten-task checkpoint. Publish sooner only when the public completion percentage, demonstrated capability, field-test readiness, support/release state, or a material public correction changes.
+- Time-box unexpected failures to a focused evidence-gathering pass. If the correction is a separate capability or materially expands the task, record it and split it into the next bounded increment.
+- Do not create redundant backups, recovery copies, or duplicate evidence solely for preservation. Retain only artifacts required for deterministic validation, recovery, publication, or an accepted contract.
+
 ## Completion and publication gate
 
 - Follow the workspace-wide completion and publication gate in `D:\ESP32\AGENTS.md`.

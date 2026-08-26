@@ -2131,6 +2131,18 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-139 Monocypher quiet-target host tests failed.'
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\ot140_monocypher_coordinator_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-140 Monocypher restoration-safe coordinator host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot140_monocypher_execution_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-140 Monocypher executable bundle/authority host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot140_monocypher_hardware_adapter_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-140 Monocypher hardware adapter host tests failed.'
+}
 & $python.Source (Join-Path $projectRoot 'tests\host\ot130_monocypher_coordinator_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-130 Monocypher restoration-safe coordinator host tests failed.'
