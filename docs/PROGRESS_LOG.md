@@ -6,6 +6,14 @@ public chronology.
 
 ## 2026-08-26
 
+### OT-146 two-node Monocypher comparison and exact Trail restoration
+
+- The single OT-145-authorized application-only attempt completed successfully. Both anonymous nodes passed benchmark readback, all five admitted Monocypher comparison operations with 100 data-cache-conditioned and 100 warm samples per operation, and strict validation of all 1,014 result frames.
+- Both nodes restored, read back, and hard-reset exactly to the 473,152-byte Trail application; recovery was not required, and the owner confirmed both displays were back on. Radio remained unused.
+- The 6,567-byte canonical sanitized receipt has SHA-256 `9a5ea09fa8cdf465f5c83b6a0eb69fb80579806b0635ac63083e1234e4f91464`, and focused public-record validation passes 7/7. No endpoint, device identifier, path, raw capture, nonce, or backend error text is published.
+- Decision 0083 admits only this bounded Monocypher result. Phase 2, candidate/library/suite, handshake/KDF, packet-v1 wire, support, regulatory, production, field-readiness, and score claims remain open; V1 remains exact 43.75%/displayed 44%.
+- Next independently admit the completed Phase 2 evidence and explicitly select the suite/library, handshake/KDF, and packet-v1 wire format before implementation. A concise website sync is required for this newly demonstrated capability without changing the percentage or readiness claim. See [Decision 0083](decisions/0083-record-ot146-ot145-monocypher-execution-success.md), [OT-146 evidence](../tests/hardware/OT-146-2026-08-26.md), and the [sanitized receipt](../tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json).
+
 ### OT-145 one-attempt authority for the corrected runtime
 
 - Decision 0082 accepts the fresh explicitly approved `OT144MOAA0` authority for the unchanged OT-144 preparation. The 3,775-byte authority has raw SHA-256 `29c84ae8de494be2ac08e35cdeba5c4409f9381bc4f457a29cef64fb391afe31` and binds the corrected application, exact Trail restoration image, OT-144 coordinator/adapter, and all accepted fail-closed boundaries.

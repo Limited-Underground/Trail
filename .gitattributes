@@ -201,3 +201,7 @@ tests/hardware/OT-144-2026-08-26.md text eol=lf
 tests/benchmarks/crypto/OT-144-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
 docs/decisions/0082-accept-ot145-one-attempt-authority.md text eol=lf
 tests/hardware/OT-145-2026-08-26.md text eol=lf
+tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json text eol=lf
+tests/host/ot146_monocypher_success_record_tests.py text eol=lf
+docs/decisions/0083-record-ot146-ot145-monocypher-execution-success.md text eol=lf
+tests/hardware/OT-146-2026-08-26.md text eol=lf

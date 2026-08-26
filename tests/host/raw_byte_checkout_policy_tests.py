@@ -162,6 +162,10 @@ tests/hardware/OT-144-2026-08-26.md|4174|fb3355f5df9b3fc5e4817c56badf09eb292dd98
 tests/benchmarks/crypto/OT-144-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json|3775|29c84ae8de494be2ac08e35cdeba5c4409f9381bc4f457a29cef64fb391afe31|lf|lf|none|lf
 docs/decisions/0082-accept-ot145-one-attempt-authority.md|3194|a3182e8db3349a16f7526661bdbc37552801ea82c5ca143677c1cad53479d12b|lf|lf|none|lf
 tests/hardware/OT-145-2026-08-26.md|3930|3dde9529340c055f4fc06191df9b36ea39bf5c49f35de2e8ec87e30c27091e75|lf|lf|none|lf
+tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json|6567|9a5ea09fa8cdf465f5c83b6a0eb69fb80579806b0635ac63083e1234e4f91464|lf|lf|none|lf
+tests/host/ot146_monocypher_success_record_tests.py|7817|968e1836f876fc595630d361324942b63c99008a25e2566599ce4e5eb5f6c876|lf|lf|none|lf
+docs/decisions/0083-record-ot146-ot145-monocypher-execution-success.md|3042|7f625f3ab2eaa8c84dc22cfdf5aad29839f65d67058fa43e73dfd97c2abf55c5|lf|lf|none|lf
+tests/hardware/OT-146-2026-08-26.md|4540|1f899dc57d3c578efc7aa02c211615957b9fe07a6943812f769e20c255daa788|lf|lf|none|lf
 """.strip()
 
 
