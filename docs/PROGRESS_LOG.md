@@ -4,6 +4,16 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-26
+
+### OT-142 benchmark fixture correction
+
+- The OT-140 authority was consumed by one fail-closed attempt. The touched node restored/readback/reset exactly to Trail, the other node remained on Trail, both logos were confirmed, and no result was admitted.
+- Host investigation reproduced the terminal primitive-gate failure and traced it to a malformed RFC 8032 Ed25519 seed in the benchmark-only fixture. A real-library regression confirms the pinned Monocypher implementation is correct; the successor target changes only the seed.
+- Two fresh pinned ESP-IDF builds produced matching application, ELF, map, bootloader, partition-table, and sdkconfig artifacts, and the complete Windows host matrix passes. No hardware authority, radio, selection, Phase 2 completion, or score is added; V1 remains exact 43.75%/displayed 44%.
+- This contained internal correction does not require a public website status update.
+
+
 ## 2026-08-25
 ### OT-140 immutable OT-139 quiet-target binding and one-attempt authority
 

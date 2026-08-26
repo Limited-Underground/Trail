@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-25
+Status date: 2026-08-26
 
 ## Conceptual goals
 
@@ -8,6 +8,8 @@ Status date: 2026-08-25
 - Portable, vehicle, repeater, and larger touchscreen configurations
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
+
+OT-142 records that the OT-140 authority was consumed by one fail-closed attempt with exact restoration and no admitted result. Host-only investigation traced the deterministic primitive-gate failure to a malformed RFC 8032 seed in the benchmark-only fixture, not to either device or the pinned Monocypher implementation. A separate successor changes only that seed, verifies the RFC vector through the real library, reproduces two matching fresh build tuples, and passes the complete Windows host matrix. No hardware attempt is currently authorized; a fresh immutable binding and explicit one-attempt authority are required before device access. The latest admitted benchmark remains OT-122 and V1 remains exact 43.75%/displayed 44%.
 
 OT-140 accepts the immutable executable binding required by OT-139 and a fresh explicitly approved non-reusable one-attempt authority without executing it. The bundle independently verifies the exact OT-139 application BIN/ELF/map, bootloader BIN, partition-table BIN, and sdkconfig tuple; pinned toolchain and 14-source-input evidence; frozen OT-135 transport; strict parser/schema; fresh restoration-safe coordinator/private namespace; concrete adapter; and exact Trail restoration image. Only the application BIN may be written at `0x10000`. The authority permits one two-node application-only attempt from this workspace, is consumed on success or abort, and grants no continuation. Normal ROM logging remains enabled, so endpoint silence is not claimed. No device, flash, benchmark result, radio, selection, Phase 2 completion, support, regulatory, production, end-to-end, or score claim is added. The latest admitted benchmark remains OT-122; V1 remains exact 43.75%/displayed 44%. See [Decision 0079](decisions/0079-freeze-ot140-quiet-target-bundle-and-authority.md), [OT-140 evidence](../tests/hardware/OT-140-2026-08-25.md), [preparation](../tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json), and [authority](../tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json).
 

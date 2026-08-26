@@ -120,6 +120,19 @@ $builds = @(
         )
     },
     @{
+        Name = 'real Monocypher Ed25519 RFC 8032 vector'
+        Output = Join-Path $buildDirectory 'monocypher_real_ed25519_vector_tests.exe'
+        Arguments = @(
+            '-I', (Join-Path $projectRoot 'tests\benchmarks\crypto\monocypher\4.0.3\source\src\optional'),
+            '-I', (Join-Path $projectRoot 'tests\benchmarks\crypto\monocypher\4.0.3\source\src')
+        )
+        Sources = @(
+            (Join-Path $projectRoot 'tests\benchmarks\crypto\monocypher\4.0.3\source\src\monocypher.c'),
+            (Join-Path $projectRoot 'tests\benchmarks\crypto\monocypher\4.0.3\source\src\optional\monocypher-ed25519.c'),
+            (Join-Path $projectRoot 'tests\host\monocypher_real_ed25519_vector_tests.cpp')
+        )
+    },
+    @{
         Name = 'OT-129 benchmark control protocol'
         Output = Join-Path $buildDirectory 'ot129_control_protocol_tests.exe'
         Sources = @(
@@ -1800,7 +1813,8 @@ $builds = @(
 )
 
 foreach ($build in $builds) {
-    & $compiler @commonArguments @($build.Sources) '-o' $build.Output
+    $buildArguments = if ($build.ContainsKey('Arguments')) { @($build.Arguments) } else { @() }
+    & $compiler @buildArguments @commonArguments @($build.Sources) '-o' $build.Output
     if ($LASTEXITCODE -ne 0) {
         throw "$($build.Name) compilation failed with exit code $LASTEXITCODE."
     }
@@ -2142,6 +2156,10 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\ot140_monocypher_hardware_adapter_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-140 Monocypher hardware adapter host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot142_monocypher_corrected_target_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-142 corrected Monocypher target host tests failed.'
 }
 & $python.Source (Join-Path $projectRoot 'tests\host\ot130_monocypher_coordinator_tests.py')
 if ($LASTEXITCODE -ne 0) {
