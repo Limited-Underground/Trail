@@ -2161,6 +2161,22 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-142 corrected Monocypher target host tests failed.'
 }
+& $python.Source (Join-Path $projectRoot 'tests\host\ot143_monocypher_corrected_target_build_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-143 corrected Monocypher build-evidence host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot143_monocypher_coordinator_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-143 Monocypher restoration-safe coordinator host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot143_monocypher_execution_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-143 Monocypher executable bundle/authority host tests failed.'
+}
+& $python.Source (Join-Path $projectRoot 'tests\host\ot143_monocypher_hardware_adapter_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-143 Monocypher hardware adapter host tests failed.'
+}
 & $python.Source (Join-Path $projectRoot 'tests\host\ot130_monocypher_coordinator_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-130 Monocypher restoration-safe coordinator host tests failed.'

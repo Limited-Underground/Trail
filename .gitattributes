@@ -174,3 +174,17 @@ tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0
 tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
 docs/decisions/0079-freeze-ot140-quiet-target-bundle-and-authority.md text eol=lf
 tests/hardware/OT-140-2026-08-25.md text eol=lf
+tools/Build-Ot143MonocypherCorrectedTarget.ps1 text eol=lf whitespace=-blank-at-eof
+tools/ot143_monocypher_corrected_target_evidence.py text eol=lf whitespace=-blank-at-eof
+tools/ot143_monocypher_coordinator.py text eol=lf whitespace=-blank-at-eof
+tools/ot143_monocypher_execution_authority.py text eol=lf whitespace=-blank-at-eof
+tools/ot143_monocypher_hardware_adapter.py text eol=lf whitespace=-blank-at-eof
+tests/host/ot143_monocypher_corrected_target_build_tests.py text eol=lf whitespace=-blank-at-eof
+tests/host/ot143_monocypher_coordinator_tests.py text eol=lf whitespace=-blank-at-eof
+tests/host/ot143_monocypher_execution_authority_tests.py text eol=lf whitespace=-blank-at-eof
+tests/host/ot143_monocypher_hardware_adapter_tests.py text eol=lf whitespace=-blank-at-eof
+tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-CORRECTED-TARGET-BUILD-EVIDENCE-V0.json text eol=lf
+tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json text eol=lf
+tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
+docs/decisions/0080-freeze-ot143-corrected-target-bundle-and-authority.md text eol=lf
+tests/hardware/OT-143-2026-08-26.md text eol=lf

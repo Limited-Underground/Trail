@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-26
 
+### OT-143 immutable corrected-target binding and one-attempt authority
+
+- Decision 0080 accepts one immutable executable bundle binding the exact OT-142 corrected-target six-file tuple, pinned ESP-IDF/source evidence, frozen OT-135 runner, strict parser/schema, fresh restoration-safe coordinator/private state, concrete adapter, and exact Trail restoration image. Only the application BIN is writable at `0x10000`; all other build artifacts are provenance-only.
+- A fresh explicitly approved authority permits exactly one two-node application-only attempt from this workspace, is consumed on success or abort, is non-reusable, grants no continuation, and remains unexecuted. Normal ROM logging remains enabled and endpoint silence is not claimed.
+- Corrected-target build, coordinator, authority, and adapter suites pass 9/9, 11/11, 10/10, and 14/14. No hardware, flash, benchmark result, radio, selection, Phase 2 completion, support, regulatory, production, score, or website status changes. V1 remains exact 43.75%/displayed 44%. See [Decision 0080](decisions/0080-freeze-ot143-corrected-target-bundle-and-authority.md) and [OT-143 evidence](../tests/hardware/OT-143-2026-08-26.md).
+- This internal executable-binding checkpoint does not require a public website status update.
+
 ### OT-142 benchmark fixture correction
 
 - The OT-140 authority was consumed by one fail-closed attempt. The touched node restored/readback/reset exactly to Trail, the other node remained on Trail, both logos were confirmed, and no result was admitted.

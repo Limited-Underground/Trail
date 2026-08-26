@@ -135,6 +135,20 @@ tests/host/ot140_monocypher_execution_authority_tests.py|16448|da1c3030ef1abfd97
 tests/host/ot140_monocypher_hardware_adapter_tests.py|12347|8c734cc51c41a8f5e853e029a8e3f1c118173e6e98bf31ccc7d7d201a0a9b87e|lf|lf|none|lf
 tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json|5982|523ecfcd17f2fad2687622c0e0d062d4c5710551ecb3a731b91298e7474704eb|lf|lf|none|lf
 tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json|4333|fa867f3551b069767d2b00187841dc60cf861ee38492a1958ef86ed98398de9a|lf|lf|none|lf
+tools/Build-Ot143MonocypherCorrectedTarget.ps1|15490|ae569d634b13f70d747255648e7f6ef11eb95165ca5a43d61e0bf37d9b511974|lf|lf|none|lf
+tools/ot143_monocypher_corrected_target_evidence.py|15887|b7f1d35e36007998056669509fa9be0364eeac4c2043ccb0bf98bbd068a016ac|lf|lf|none|lf
+tools/ot143_monocypher_coordinator.py|25906|937f37a01beef9df8eb327c741ae7453c3f3d565c02977f7ae7ff5711f48579b|lf|lf|none|lf
+tools/ot143_monocypher_execution_authority.py|26356|5d860fc950b6983aa92d41552b968977ea9659970f7a16df1e111254c3830f15|lf|lf|none|lf
+tools/ot143_monocypher_hardware_adapter.py|12852|d7ed9e8c2d48f5979b6e7160ab90be2f892860a3542c561f259df199ed49b843|lf|lf|none|lf
+tests/host/ot143_monocypher_corrected_target_build_tests.py|10880|95150e40d773b564d0f1d18ef12ed06cb8afa98b23f664e64b6730902c7b41a1|lf|lf|none|lf
+tests/host/ot143_monocypher_coordinator_tests.py|18694|e7bf9ec139720bf0ee92d4c4bcb2d2abf63594f4aeab8f80459103cf87cdf106|lf|lf|none|lf
+tests/host/ot143_monocypher_execution_authority_tests.py|17863|4b6fcc1d5683e0f5ad779600015b1a0fbfe0cd889aaa45d4f4d0c50cd97f270a|lf|lf|none|lf
+tests/host/ot143_monocypher_hardware_adapter_tests.py|12348|a63eb9aee89db7f2b962ecf65560b507dcac239d81915ef01bbc6a8b4ea8a484|lf|lf|none|lf
+tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-CORRECTED-TARGET-BUILD-EVIDENCE-V0.json|11794|1045d5d59c26775b8a8c2a8520226fcb224b566f5554b5ff495b9876a8af8c37|lf|lf|none|lf
+tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json|6231|b923059493a48fc11cee6393e6b0a17e1eb119a429b2a8af95dbc0b7ed03ddc3|lf|lf|none|lf
+tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json|3708|235e1227ef8ebed75a510335b017f9c0539d0508426a11414546591002f1bce0|lf|lf|none|lf
+docs/decisions/0080-freeze-ot143-corrected-target-bundle-and-authority.md|3981|c6d3249e7b646800da49d148e26b28f5f9ad965a78998ee5a9ef64f12176f8ca|lf|lf|none|lf
+tests/hardware/OT-143-2026-08-26.md|6049|b855199b87fea9e5666bfeab1cc0b458ed34f7145b9eea5f9b9002a98202ec40|lf|lf|none|lf
 """.strip()
 
 
