@@ -1913,6 +1913,11 @@ if ($LASTEXITCODE -ne 0) {
     throw 'OT-147 Heltec V4 live-status authority tests failed.'
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\ot147_heltec_v4_live_status_success_record_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-147 Heltec V4 live-status success record tests failed.'
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\protected_storage_transition_evidence_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Protected-storage transition evidence verifier tests failed.'

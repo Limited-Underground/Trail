@@ -168,6 +168,9 @@ docs/decisions/0083-record-ot146-ot145-monocypher-execution-success.md|3042|7f62
 tests/hardware/OT-146-2026-08-26.md|4540|1f899dc57d3c578efc7aa02c211615957b9fe07a6943812f769e20c255daa788|lf|lf|none|lf
 tests/benchmarks/display/OT-147-HELTEC-V4-LIVE-STATUS-BUILD-AND-FLASH-AUTHORITY-V0.json|2838|a367ce3a13a89241aa6bd55c2ffec4adb17c15262e6c640c1608b2e43b8a43c5|lf|lf|none|lf
 tests/host/ot147_heltec_v4_live_status_authority_tests.py|6646|35a17e61edb44a594d95ec1dd6e2420a2ad3adb2388249b9bf8ed536535a7e6b|lf|lf|none|lf
+tests/benchmarks/display/OT-147-HELTEC-V4-LIVE-STATUS-EXECUTION-RECEIPT-V0.json|2151|165893b72537b04da210e1dbec268b7681f98c2a8aa0ba6bcf0906c3a28897cd|lf|lf|none|lf
+tests/host/ot147_heltec_v4_live_status_success_record_tests.py|5387|cb07d6eed2d77a823ed42dca8c5bbcf12c2756627ba9366244116b513aa22476|lf|lf|none|lf
+tests/hardware/OT-147-2026-08-26.md|3192|01b6f695485f50ad56dafdef6939ab668465de5483b7d72ba7df97e3cbfc01dd|lf|lf|none|lf
 """.strip()
 
 

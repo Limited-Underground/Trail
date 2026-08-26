@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-26
 
+### OT-147 two-device live battery and GNSS footer
+
+- The explicitly approved one-attempt authority completed one successful two-device application-only update. Both anonymous Heltec units were flashed, independently read back, and hard-reset to the exact 500,944-byte application with SHA-256 `f2a58414f82eed585ba90bf7671b06c8ebfaa82e8b23f6ac2093de95143b4e0e`.
+- The owner visually confirmed that both displays show live `BAT` and `GPS` values after reset. The battery percentage is an approximate voltage-derived estimate rather than a calibrated fuel-gauge result; the satellite count does not prove GNSS fix, position accuracy, or fix-loss behavior.
+- LoRa activity-arrow binding remains absent. No power-endurance, support, compatibility, regulatory, production, secure-LoRa, end-to-end, or field-readiness proof is added. V1 remains exact 43.75%/displayed 44%, and the historical baseline remains exact 31.75%/displayed 32%. See [OT-147 evidence](../tests/hardware/OT-147-2026-08-26.md).
+
 ### OT-146 two-node Monocypher comparison and exact Trail restoration
 
 - The single OT-145-authorized application-only attempt completed successfully. Both anonymous nodes passed benchmark readback, all five admitted Monocypher comparison operations with 100 data-cache-conditioned and 100 warm samples per operation, and strict validation of all 1,014 result frames.
