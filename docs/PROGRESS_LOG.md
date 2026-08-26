@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-26
 
+### OT-148 fail-closed Phase 2 crypto-corpus reconciliation
+
+- The exact OT-116 plan, three candidate API/configuration admissions, OT-122 libsodium result, OT-123 matched-resource contract, and OT-146 Monocypher result reconcile without changing their accepted claims.
+- Libsodium 1.0.22 is the only candidate with admitted 8/8 coverage and structural selection eligibility and is recorded as the evidence-backed recommendation only. mbedTLS/PSA and Monocypher remain 5/8 comparison-only candidates; mbedTLS/PSA still lacks a Phase 2 hardware result.
+- Phase 2 remains incomplete pending matched linked-flash/static-RAM admission, Noise XK radio cost, all eight named gates, and private raw-trace custody verification. Phase 3 and every library/suite/handshake/KDF/Packet-v1 selection remain withheld. Decision 0084 supersedes only Decision 0083's premature phrase “completed Phase 2 evidence.”
+- No hardware authority, device/phone access, score, capability, readiness, or immediate public website update is added. V1 remains exact 43.75%/displayed 44%. See [Decision 0084](decisions/0084-reconcile-incomplete-phase-two-before-selection.md), [OT-148 evidence](../tests/hardware/OT-148-2026-08-26.md), and the [reconciliation record](../tests/benchmarks/crypto/OT-148-OT005-PHASE-TWO-CORPUS-RECONCILIATION-V0.json).
+
 ### OT-147 two-device live battery and GNSS footer
 
 - The explicitly approved one-attempt authority completed one successful two-device application-only update. Both anonymous Heltec units were flashed, independently read back, and hard-reset to the exact 500,944-byte application with SHA-256 `f2a58414f82eed585ba90bf7671b06c8ebfaa82e8b23f6ac2093de95143b4e0e`.
@@ -18,7 +25,7 @@ public chronology.
 - Both nodes restored, read back, and hard-reset exactly to the 473,152-byte Trail application; recovery was not required, and the owner confirmed both displays were back on. Radio remained unused.
 - The 6,567-byte canonical sanitized receipt has SHA-256 `9a5ea09fa8cdf465f5c83b6a0eb69fb80579806b0635ac63083e1234e4f91464`, and focused public-record validation passes 7/7. No endpoint, device identifier, path, raw capture, nonce, or backend error text is published.
 - Decision 0083 admits only this bounded Monocypher result. Phase 2, candidate/library/suite, handshake/KDF, packet-v1 wire, support, regulatory, production, field-readiness, and score claims remain open; V1 remains exact 43.75%/displayed 44%.
-- Next independently admit the completed Phase 2 evidence and explicitly select the suite/library, handshake/KDF, and packet-v1 wire format before implementation. A concise website sync is required for this newly demonstrated capability without changing the percentage or readiness claim. See [Decision 0083](decisions/0083-record-ot146-ot145-monocypher-execution-success.md), [OT-146 evidence](../tests/hardware/OT-146-2026-08-26.md), and the [sanitized receipt](../tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json).
+- Decision 0084 later supersedes only the premature phrase “completed Phase 2 evidence” and records the exact remaining blockers before selection. The website sync for the demonstrated Monocypher result stays on the normal batched cadence. See [Decision 0083](decisions/0083-record-ot146-ot145-monocypher-execution-success.md), [OT-146 evidence](../tests/hardware/OT-146-2026-08-26.md), and the [sanitized receipt](../tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json).
 
 ### OT-145 one-attempt authority for the corrected runtime
 

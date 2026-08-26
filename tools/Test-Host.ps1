@@ -2299,6 +2299,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OTCBR1/OTCBX1 successor-readiness/plan tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_phase_two_reconciliation_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTP2CR0 Phase 2 corpus reconciliation tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_radio_diag_source_tests.py')
 if ($LASTEXITCODE -ne 0) {

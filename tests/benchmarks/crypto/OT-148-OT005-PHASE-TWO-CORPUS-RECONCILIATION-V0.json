@@ -1,0 +1,137 @@
+{
+  "schema": "OTP2CR0",
+  "version": 0,
+  "artifact_kind": "partial_phase_two_corpus_reconciliation",
+  "artifact_id": "OT-148-OT005-PHASE-TWO-CORPUS-RECONCILIATION-V0",
+  "accepted_date": "2026-08-26",
+  "status": "partial_phase_two_corpus_reconciled_selection_withheld",
+  "public_result": "PARTIAL-PHASE-TWO-CORPUS-RECONCILED-HOST-ONLY; LIBSODIUM-RECOMMENDED-NOT-SELECTED; PHASE-TWO-AND-PHASE-THREE-INCOMPLETE; NO-HARDWARE-AUTHORITY-OR-SCORE",
+  "bindings": {
+    "benchmark_plan": {
+      "path": "tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json",
+      "raw_sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+      "canonical_sha256": "7844d7be1824784a0ff58ba58df25bda85c6059c445f217a4d520215bfff50a8"
+    },
+    "phase_two_authority": {
+      "path": "tests/benchmarks/crypto/OT-121-OT005-PHASE-TWO-EXECUTION-AUTHORITY-V1.json",
+      "raw_sha256": "765aacd8a33862265b46da2d60333759cd96b72a8acae9e70b22c5bda2dbd90f",
+      "canonical_sha256": "a2e9bbea78282c3a0451654f39c0be49c875217933ef02b7bc384860f32f3105"
+    },
+    "mbedtls_psa_api_admission": {
+      "path": "tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-ADMISSION-DELTA-V0.json",
+      "raw_sha256": "0311b8b264d264d4a005ac9be8531c06175521362ed54ac9f40bdef1fd7a5df0",
+      "canonical_sha256": "fed7b009a97a60678b2dfbba23d933b974aa0fec46d0b460ac7eb221e91931dd"
+    },
+    "libsodium_api_admission": {
+      "path": "tests/benchmarks/crypto/OT-117-OT005-LIBSODIUM-API-CONFIG-ADMISSION-DELTA-V0.json",
+      "raw_sha256": "527c5e713a6d96d38b7dfbfb9d3e0ceb891f4652f8428e2ca65e0b8ea8f316d2",
+      "canonical_sha256": "6eb12a9cf44bdc37e6ac87081b1d256b94f5ee013459c3549606c56b5faf0527"
+    },
+    "monocypher_api_admission": {
+      "path": "tests/benchmarks/crypto/OT-118-OT005-MONOCYPHER-API-CONFIG-ADMISSION-DELTA-V0.json",
+      "raw_sha256": "9fbecf19b206b31fae948b6bc7e7aa4e206ba26aa59b94fb7f07d4e1d300810a",
+      "canonical_sha256": "df412285515fe29525b0bfd7cba45fd7ccd9a3d601be284242886e8adb19fec9"
+    },
+    "libsodium_result": {
+      "path": "tests/benchmarks/crypto/OT-122-OT005-LIBSODIUM-NOISE-RESOURCE-EXECUTION-RECEIPT-V0.json",
+      "raw_sha256": "2b023c640bfbec8ad6eb5d1d63d65e8f1ad75dcfe593566aba6b3d468355a178",
+      "canonical_sha256": "3cf651719d1e5ce96dad85fc364f5cb9e1c43bdcb64d2ac45b748dcc67c18949"
+    },
+    "matched_resource_contract": {
+      "path": "tests/benchmarks/crypto/OT-123-OT005-MATCHED-RESOURCE-ACCOUNTING-CONTRACT-V0.json",
+      "raw_sha256": "4023b35e0aecc6f4c8c5077bdd8646ad81df892c8816a1348bf1c97181c0cc03",
+      "canonical_sha256": "77e0656f286ee8e030c9add21bcbd07e753d78179a31e352f3ec9df000c344f5"
+    },
+    "monocypher_result": {
+      "path": "tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json",
+      "raw_sha256": "9a5ea09fa8cdf465f5c83b6a0eb69fb80579806b0635ac63083e1234e4f91464",
+      "canonical_sha256": "a53da32a10ad1e80ca2b07659b4865e56d490fd3d2a8c6650925c3beb792292b"
+    }
+  },
+  "candidate_corpus": [
+    {
+      "candidate_id": "espressif_libsodium",
+      "version": "1.0.22",
+      "role": "primary",
+      "admitted_operation_count": 8,
+      "required_operation_count": 8,
+      "two_node_measurement_state": "eight_of_eight_timing_and_runtime_resources_admitted",
+      "selection_eligible": true,
+      "selected": false
+    },
+    {
+      "candidate_id": "esp_idf_mbedtls_psa",
+      "version": "4.1.0",
+      "role": "comparison",
+      "admitted_operation_count": 5,
+      "required_operation_count": 5,
+      "two_node_measurement_state": "not_executed",
+      "selection_eligible": false,
+      "selected": false
+    },
+    {
+      "candidate_id": "monocypher",
+      "version": "4.0.3",
+      "role": "comparison",
+      "admitted_operation_count": 5,
+      "required_operation_count": 5,
+      "two_node_measurement_state": "five_of_five_timing_and_runtime_resources_admitted",
+      "selection_eligible": false,
+      "selected": false
+    }
+  ],
+  "recommendation": {
+    "candidate_id": "espressif_libsodium",
+    "version": "1.0.22",
+    "status": "evidence_backed_recommendation_only",
+    "basis": "only_candidate_with_complete_eight_of_eight_admitted_operation_surface_and_structural_selection_eligibility",
+    "selection_authorized": false
+  },
+  "unresolved_required_evidence": [
+    "mbedtls_psa_two_node_five_operation_timing_and_runtime_measurement",
+    "matched_linked_flash_and_static_ram_results_with_signed_or_zero_delta_admission",
+    "noise_xk_handshake_wire_bytes_fragments_measured_airtime_and_bounded_retry_result",
+    "independent_reconciliation_of_all_eight_named_required_gates",
+    "private_raw_trace_custody_verification"
+  ],
+  "unreconciled_required_gates": [
+    "primitive_vectors_and_negative_cases",
+    "noise_xk_independent_interoperability",
+    "invitation_replay_reorder_timeout_refusal",
+    "entropy_and_cold_start_uniqueness",
+    "temporary_secret_wipe_and_log_redaction",
+    "rollback_safe_counter_interruption",
+    "two_device_join_revoke_reset_recovery",
+    "license_sbom_and_reproducible_lock"
+  ],
+  "shortest_valid_sequence": [
+    "prepare_mbedtls_psa_target_and_signed_resource_accounting_successor_host_only",
+    "accept_fresh_explicit_bounded_hardware_authority",
+    "execute_remaining_candidate_resource_and_noise_xk_radio_measurements",
+    "independently_reconcile_all_named_gates_and_private_trace_custody",
+    "admit_complete_phase_two_corpus_in_phase_three",
+    "select_library_suite_handshake_kdf_and_packet_v1_wire"
+  ],
+  "authority": {
+    "host_reconciliation_authorized": true,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "flash_authorized": false,
+    "radio_transmit_authorized": false,
+    "candidate_selection_authorized": false,
+    "suite_selection_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "partial_corpus_reconciled": true,
+    "phase_two_complete": false,
+    "phase_three_admission_complete": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_wire_selected": false,
+    "hardware_or_device_accessed": false,
+    "public_website_update_required": false,
+    "score_credit_added": false
+  }
+}

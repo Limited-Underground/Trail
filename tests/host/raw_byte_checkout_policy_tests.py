@@ -171,6 +171,11 @@ tests/host/ot147_heltec_v4_live_status_authority_tests.py|6646|35a17e61edb44a594
 tests/benchmarks/display/OT-147-HELTEC-V4-LIVE-STATUS-EXECUTION-RECEIPT-V0.json|2151|165893b72537b04da210e1dbec268b7681f98c2a8aa0ba6bcf0906c3a28897cd|lf|lf|none|lf
 tests/host/ot147_heltec_v4_live_status_success_record_tests.py|5387|cb07d6eed2d77a823ed42dca8c5bbcf12c2756627ba9366244116b513aa22476|lf|lf|none|lf
 tests/hardware/OT-147-2026-08-26.md|3192|01b6f695485f50ad56dafdef6939ab668465de5483b7d72ba7df97e3cbfc01dd|lf|lf|none|lf
+tests/benchmarks/crypto/OT-148-OT005-PHASE-TWO-CORPUS-RECONCILIATION-V0.json|6249|beddc729f8449c3f2e3a09f62ba6947312f4e1893eee38abfa7a9a616f1bae1c|lf|lf|none|lf
+tools/crypto_phase_two_reconciliation.py|10959|f4fa81e2633d2e8da6109b129f53b686f45725da5ade9cab34c8dd161533c8b2|lf|lf|none|lf
+tests/host/crypto_phase_two_reconciliation_tests.py|4179|17b7cb9b1909b237f0065a41031e86b6c4802abbd10c257462d8cc5749edeb97|lf|lf|none|lf
+docs/decisions/0084-reconcile-incomplete-phase-two-before-selection.md|2958|8568a15f515fffd63fad0a465e5e98196e629e5e43c759997dad91143a368201|lf|lf|none|lf
+tests/hardware/OT-148-2026-08-26.md|1443|82def086ad86b262d3117d48bb4d6fc578861d6cdc2339b9e48f4f1718172eb6|lf|lf|none|lf
 """.strip()
 
 

@@ -210,3 +210,8 @@ tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json text e
 tests/host/ot146_monocypher_success_record_tests.py text eol=lf
 docs/decisions/0083-record-ot146-ot145-monocypher-execution-success.md text eol=lf
 tests/hardware/OT-146-2026-08-26.md text eol=lf
+tests/benchmarks/crypto/OT-148-OT005-PHASE-TWO-CORPUS-RECONCILIATION-V0.json text eol=lf
+tools/crypto_phase_two_reconciliation.py text eol=lf
+tests/host/crypto_phase_two_reconciliation_tests.py text eol=lf
+docs/decisions/0084-reconcile-incomplete-phase-two-before-selection.md text eol=lf
+tests/hardware/OT-148-2026-08-26.md text eol=lf
