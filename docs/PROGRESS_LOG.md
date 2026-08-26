@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-26
 
+### OT-145 one-attempt authority for the corrected runtime
+
+- Decision 0082 accepts the fresh explicitly approved `OT144MOAA0` authority for the unchanged OT-144 preparation. The 3,775-byte authority has raw SHA-256 `29c84ae8de494be2ac08e35cdeba5c4409f9381bc4f457a29cef64fb391afe31` and binds the corrected application, exact Trail restoration image, OT-144 coordinator/adapter, and all accepted fail-closed boundaries.
+- The authority remains unexecuted and permits only one two-node application-only attempt from this workspace. Success or abort consumes it; it is non-reusable, grants no continuation, and permits no radio use. No device, endpoint, reset, flash, benchmark, radio, or phone operation occurred, and no private journal or terminal receipt exists.
+- Focused authority tests pass 10/10 and direct canonical authority validation passes. The complete local Windows host matrix passes with exit 0; remote Host validation remains the final gate. No result, selection, Phase 2 completion, support, regulatory, production, score, or website status changes. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. See [Decision 0082](decisions/0082-accept-ot145-one-attempt-authority.md), [OT-145 evidence](../tests/hardware/OT-145-2026-08-26.md), and the [authority](../tests/benchmarks/crypto/OT-144-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json).
+- This internal authority checkpoint does not require a public website status update.
+
 ### OT-144 corrected runtime/preparation binding
 
 - Host-only inspection found before device I/O that the accepted OT-143 authority is unconsumed but non-executable: its preparation/authority pin the 149,824-byte corrected OT-142 application while its coordinator still pins the 149,920-byte OT-139 image. No journal or receipt exists, and no endpoint, flash, reset, benchmark, radio, or phone operation occurred.

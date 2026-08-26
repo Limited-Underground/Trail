@@ -159,6 +159,9 @@ tests/host/ot144_monocypher_binding_consistency_tests.py|4613|762afe57359aedabe9
 tests/benchmarks/crypto/OT-144-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json|6298|9736e6c68647da594e31b8c32e076fd40c2fccedd1bbd1d740b5cc0443667455|lf|lf|none|lf
 docs/decisions/0081-correct-ot143-runtime-binding-before-hardware.md|3319|cd5b027945e44abecc24b1957301f40a2d203e98802014e0a005582e9b4958c2|lf|lf|none|lf
 tests/hardware/OT-144-2026-08-26.md|4174|fb3355f5df9b3fc5e4817c56badf09eb292dd981cbc528241ce3c247f74eb182|lf|lf|none|lf
+tests/benchmarks/crypto/OT-144-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json|3775|29c84ae8de494be2ac08e35cdeba5c4409f9381bc4f457a29cef64fb391afe31|lf|lf|none|lf
+docs/decisions/0082-accept-ot145-one-attempt-authority.md|3194|a3182e8db3349a16f7526661bdbc37552801ea82c5ca143677c1cad53479d12b|lf|lf|none|lf
+tests/hardware/OT-145-2026-08-26.md|3930|3dde9529340c055f4fc06191df9b36ea39bf5c49f35de2e8ec87e30c27091e75|lf|lf|none|lf
 """.strip()
 
 
