@@ -284,3 +284,8 @@ tools/ot153_noise_xk_radio_hardware_adapter.py text eol=lf
 tools/ot153_noise_xk_radio_runner.py text eol=lf
 firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.hpp text eol=lf
 firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.cpp text eol=lf
+
+# OT-154 freezes deterministic one-attempt Noise XK radio authority bytes.
+tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
+tests/host/ot153_noise_xk_radio_execution_authority_tests.py text eol=lf
+tools/ot153_noise_xk_radio_execution_authority.py text eol=lf

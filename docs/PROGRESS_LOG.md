@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-27
 
+### OT-154 one-attempt Noise XK radio authority
+
+- Accepted the explicitly owner-approved, host-only `OT154NXRA0` authority for the unchanged OT-153 executable/restoration bundle. The canonical record is 3,330 bytes with raw SHA-256 `d792bd6814d03a196f74fdda5a675386e74b02e7e65335892a57f51a7dc5beb0` and canonical payload SHA-256 `490abc8717f5593a137e87d6e359e4372a4c120b782f10bacd557298cd4d61e6`.
+- The authority permits exactly one later two-node application-only attempt: both role directions, one baseline and one forced whole-handshake restart per direction, 14 transmissions, 736 radio-payload bytes, and 1,447,424 microseconds theoretical airtime. Private one-use state consumes the authority on success or abort; it is non-reusable, grants no continuation, and requires exact Trail restore/readback/hard-reset of every touched node. Recovery requires no benchmark image.
+- Focused authority/adapter/coordinator/runner validation passes 52/52, the 230-input raw-byte audit passes, and the complete Windows Host matrix passes locally with exit 0. No device, endpoint, reset, flash, radio, phone, private journal, or terminal receipt operation occurred. OT-155 is the sole permitted execution step.
+- No result, candidate/library/suite/handshake/KDF/Packet-v1 selection, Phase 2 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. No website update is required. See [Decision 0090](decisions/0090-accept-ot154-noise-xk-radio-one-attempt-authority.md), [evidence](../tests/hardware/OT-154-2026-08-27.md), and the [canonical authority](../tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json).
+
 ### OT-153 host-only Noise XK executable/restoration bundle
 
 - Froze the reproducible Heltec V4.2 ESP32-S3 target, strict Noise XK runner, simultaneous two-node restoration-safe coordinator, concrete fail-closed adapter, and exact 500,944-byte Trail restoration application. Two fresh cache-disabled builds reproduce the same application/provenance tuple.

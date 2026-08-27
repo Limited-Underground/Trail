@@ -2329,6 +2329,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OT153NXCR0 Noise XK restoration coordinator tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\ot153_noise_xk_radio_execution_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT154NXRA0 Noise XK radio preparation/authority tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\ot153_noise_xk_radio_hardware_adapter_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT153NXHA0 Noise XK hardware adapter tests failed with exit code {0}.' -f $LASTEXITCODE)

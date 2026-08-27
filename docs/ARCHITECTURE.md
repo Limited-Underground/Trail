@@ -1512,6 +1512,16 @@ only aggregate timing/counter outcomes and excludes endpoints, identifiers, raw
 payloads, keys, private traces, and absolute paths. OT-153 grants no authority
 and performs no hardware or radio execution. OT-154 must separately accept one
 fresh explicit non-reusable authority before either node may be accessed.
+OT-154 accepts that authority without executing it. It binds the immutable
+OT-153 preparation, benchmark and Trail application images, strict runner,
+simultaneous coordinator, concrete adapter, anonymous roles, and exact
+restoration boundary. The authority permits exactly one two-node,
+application-only attempt from this workspace: 14 transmissions carrying 736
+radio payload bytes across both role directions, with one baseline and one
+forced whole-handshake restart per direction. Success or abort consumes the
+authority; it is non-reusable and grants no continuation. OT-155 is the sole
+permitted execution step, and every touched node must be restored, read back,
+and hard-reset exactly to Trail.
 
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and

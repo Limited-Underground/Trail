@@ -256,6 +256,9 @@ tools/ot153_noise_xk_radio_bundle.py|20452|fc2ff341c882417e4d6f36f43241b84ede683
 tools/ot153_noise_xk_radio_coordinator.py|27295|6635c73c6952b322ec1d72043a80f637b2cc04b70c1763f578ea4f38559aeaf3|lf|lf|none|lf
 tools/ot153_noise_xk_radio_hardware_adapter.py|17460|d84aa9a1c0556f6421141a25336a3e87dab054cc971722b3f8058fe0a254f94b|lf|lf|none|lf
 tools/ot153_noise_xk_radio_runner.py|29335|8b20512bf25f06247bb59defa092b8db82fde753484a3936d9e4aee2fba808be|lf|lf|none|lf
+tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json|3330|d792bd6814d03a196f74fdda5a675386e74b02e7e65335892a57f51a7dc5beb0|lf|lf|none|lf
+tests/host/ot153_noise_xk_radio_execution_authority_tests.py|13812|e502ad0a4f7ff5c8a2a53bf315e71a1b26f8c327eb038c04c9154824d156d6ee|lf|lf|none|lf
+tools/ot153_noise_xk_radio_execution_authority.py|20669|2218d33c7e879c98faedd53f23375ea4885dfd08075a8cc0e34925f63191d4f0|lf|lf|none|lf
 """.strip()
 
 
