@@ -176,6 +176,29 @@ tools/crypto_phase_two_reconciliation.py|10959|f4fa81e2633d2e8da6109b129f53b686f
 tests/host/crypto_phase_two_reconciliation_tests.py|4179|17b7cb9b1909b237f0065a41031e86b6c4802abbd10c257462d8cc5749edeb97|lf|lf|none|lf
 docs/decisions/0084-reconcile-incomplete-phase-two-before-selection.md|2958|8568a15f515fffd63fad0a465e5e98196e629e5e43c759997dad91143a368201|lf|lf|none|lf
 tests/hardware/OT-148-2026-08-26.md|1443|82def086ad86b262d3117d48bb4d6fc578861d6cdc2339b9e48f4f1718172eb6|lf|lf|none|lf
+docs/decisions/0085-prepare-mbedtls-psa-target-and-resource-successor.md|3102|5fa74f34f8e111eed0d773fc3d31dfaaae35c9861b8306d8b48919435185c41f|lf|lf|none|lf
+tests/benchmarks/crypto/OT-149-OT005-MATCHED-RESOURCE-ACCOUNTING-SUCCESSOR-V1.json|6631|575efa5700bf2d2e40cf3fb49c0b9f860815dddc3ea81bb5a54a3d91733339bd|lf|lf|none|lf
+tests/benchmarks/crypto/OT-149-OT005-MBEDTLS-PSA-TARGET-PREPARATION-V0.json|10546|49d1cfba5fca01afeb1928be922eec287873b85b1d517c81c249e148331b8867|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/mbedtls-psa-result-frame.schema.json|7512|f24496e3151a725682838e791810b41401bd06e36db6ad9dbca89e9ee7aac2dd|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/CMakeLists.txt|1528|be533296c54c2a0d91c6f0c1c5c8f10197b96886fb5d6cac04e31ae0344474e2|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/main/CMakeLists.txt|595|1af87f0a96fdadabe66c0d5bc3daeed5843f8a7ae03398b80a98954bec8da3e2|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/main/mbedtls_psa_benchmark_api.c|16483|06cf13b01d479c39c52e480315ad69732a76c760978541b2ac6b207997a36673|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/partitions.csv|443|973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/sdkconfig.defaults|390|e8e4c1939008422d21dcd6993d3b3e6d3dd0d53328b46c4a5649188dc60014c6|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/common/app_main.c|9044|b8c66b8dfe0877ab715fa611fc42e18eba2308b582ac70ef18dbc2e3fcb42e5a|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/common/ot149_candidate_api.h|501|c086022e8a6499495b2814619f0a4f3a8a70410870dc4ee193fc5105056adea9|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/CMakeLists.txt|1528|be533296c54c2a0d91c6f0c1c5c8f10197b96886fb5d6cac04e31ae0344474e2|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/main/CMakeLists.txt|588|c49f34f5ff690c41a75780f931af10b42d8a402b696ec047cd7a9707fb1dff80|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/main/no_candidate_benchmark_api.c|1121|a3f5d29bfd925a4171eb8e1d0aab13c0dec02419c62be362db9373662d5c1035|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/partitions.csv|443|973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621|lf|lf|none|lf
+tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/sdkconfig.defaults|390|e8e4c1939008422d21dcd6993d3b3e6d3dd0d53328b46c4a5649188dc60014c6|lf|lf|none|lf
+tests/hardware/OT-149-2026-08-26.md|1993|3b134dfeed92ebca3d11773f3984a0044e89b064600e382eaec6954e8eb64d56|lf|lf|none|lf
+tests/host/crypto_matched_resource_accounting_tests.py|19450|28f5e902a3863e00af66e14925cfa8a48e6c276bf83dd394012e5729b6856c94|lf|lf|none|lf
+tests/host/ot149_mbedtls_psa_frame_tests.py|16402|245fd33de1d4b8df76d7a1d9375f02d97f40f0da9dee02a6fb4c17bf30e9d023|lf|lf|none|lf
+tests/host/ot149_mbedtls_psa_harness_tests.py|14023|9fddc8a0c77f1462197a475ea0013f389fab624fece058c0d9ee9dd2099a0dd4|lf|lf|none|lf
+tests/host/ot149_mbedtls_psa_preparation_tests.py|6159|2c0d0da622000e0669e5784beab74da4742cde3f5b373b431f07274dee17c38e|lf|lf|none|lf
+tools/crypto_matched_resource_accounting.py|32260|54ac45f5676605c767cfa6144d75e67c12aa919228491d68967c8a7d53910b7e|lf|lf|none|lf
+tools/ot149_mbedtls_psa_frames.py|12472|a431e45c8ab2098d6973171f4c325c7f5d7e2b6f183e01b3422086dbac6d15c9|lf|lf|none|lf
 """.strip()
 
 

@@ -1,0 +1,266 @@
+{
+  "schema": "OT149MPTP0",
+  "version": 0,
+  "artifact_kind": "mbedtls_psa_target_and_resource_successor_preparation",
+  "evidence_id": "OT-149-OT005-MBEDTLS-PSA-TARGET-PREPARATION-V0",
+  "recorded_date": "2026-08-26",
+  "status": "host_target_compile_validated_resource_successor_frozen_unexecuted",
+  "bindings": {
+    "benchmark_plan": {
+      "path": "tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json",
+      "raw_sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+      "canonical_sha256": "7844d7be1824784a0ff58ba58df25bda85c6059c445f217a4d520215bfff50a8"
+    },
+    "mbedtls_api_config": {
+      "path": "tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-EVIDENCE-V2.json",
+      "raw_sha256": "67532e10704d02489b72a72ef55607743c00a5bd8504276750931b5d986f6155",
+      "canonical_sha256": "22975ac7fbd3c9faab1ae0c9fa952a58dc4a7a893de3cc74604182b3492fe1f8"
+    },
+    "phase_two_reconciliation": {
+      "path": "tests/benchmarks/crypto/OT-148-OT005-PHASE-TWO-CORPUS-RECONCILIATION-V0.json",
+      "raw_sha256": "beddc729f8449c3f2e3a09f62ba6947312f4e1893eee38abfa7a9a616f1bae1c",
+      "canonical_sha256": "dcc0b408fdcc02df70717cd93ac8e5133c7159563c15d1da0f74a6c1bb70d1d0"
+    },
+    "resource_successor": {
+      "path": "tests/benchmarks/crypto/OT-149-OT005-MATCHED-RESOURCE-ACCOUNTING-SUCCESSOR-V1.json",
+      "bytes": 6631,
+      "raw_sha256": "575efa5700bf2d2e40cf3fb49c0b9f860815dddc3ea81bb5a54a3d91733339bd",
+      "canonical_sha256": "1c44d3d6f0c0d7c38ce83c51f1b79c75130455f2bbf99fed7edb4ffa1b9efaf2"
+    },
+    "result_frame_schema": {
+      "path": "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/mbedtls-psa-result-frame.schema.json",
+      "bytes": 7512,
+      "raw_sha256": "f24496e3151a725682838e791810b41401bd06e36db6ad9dbca89e9ee7aac2dd"
+    },
+    "result_frame_parser": {
+      "path": "tools/ot149_mbedtls_psa_frames.py",
+      "bytes": 12472,
+      "raw_sha256": "a431e45c8ab2098d6973171f4c325c7f5d7e2b6f183e01b3422086dbac6d15c9"
+    }
+  },
+  "target": {
+    "project": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa",
+    "candidate_id": "esp_idf_mbedtls_psa",
+    "idf_target": "esp32s3",
+    "esp_idf_version": "v6.0.2",
+    "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "compiler": "xtensa-esp32s3-elf-gcc 15.2.0",
+    "cmake": "4.0.3",
+    "ninja": "1.12.1",
+    "python": "3.14.6",
+    "operation_order": [
+      "x25519",
+      "sha256",
+      "hkdf_sha256",
+      "chacha20poly1305_encrypt",
+      "chacha20poly1305_decrypt"
+    ],
+    "unavailable_operations": [
+      "ed25519_sign",
+      "ed25519_verify",
+      "noise_xk_handshake"
+    ],
+    "cold_repetitions_per_operation": 100,
+    "warm_repetitions_per_operation": 100,
+    "gate_order": [
+      "candidate_initialization",
+      "primitive_vectors_and_negative_cases"
+    ],
+    "exact_result_frame_count": 1015,
+    "start_ready_transport_required": true
+  },
+  "configuration_lineage": {
+    "accepted_api_config_baseline_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686",
+    "generated_successor_bytes": 106890,
+    "generated_successor_sha256": "00fd8a75e1df36e7cb4d4aa2275492297e1300383e15cbbf2d4a6284dd99d85e",
+    "candidate_control_byte_identical": true,
+    "inputs": [
+      {
+        "path": "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
+        "bytes": 1409,
+        "sha256": "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb"
+      },
+      {
+        "path": "tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/reproducible.defaults",
+        "bytes": 63,
+        "sha256": "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6"
+      },
+      {
+        "path": "tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/esp_idf_mbedtls_psa/sdkconfig.overlay",
+        "bytes": 58,
+        "sha256": "e8ec2842ad1aebe6c912970af54a28dc6de7e87e3b2554dfb2b40775626e388d"
+      },
+      {
+        "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/sdkconfig.defaults",
+        "bytes": 390,
+        "sha256": "e8e4c1939008422d21dcd6993d3b3e6d3dd0d53328b46c4a5649188dc60014c6"
+      },
+      {
+        "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/sdkconfig.defaults",
+        "bytes": 390,
+        "sha256": "e8e4c1939008422d21dcd6993d3b3e6d3dd0d53328b46c4a5649188dc60014c6"
+      }
+    ],
+    "quiet_successor_delta": [
+      "CONFIG_ESP_CONSOLE_NONE=y",
+      "CONFIG_ESP_CONSOLE_SECONDARY_NONE=y",
+      "CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y",
+      "CONFIG_LOG_DEFAULT_LEVEL_NONE=y",
+      "CONFIG_LOG_MAXIMUM_EQUALS_DEFAULT=y",
+      "CONFIG_LOG_DYNAMIC_LEVEL_CONTROL=y",
+      "CONFIG_USJ_ENABLE_USB_SERIAL_JTAG=y"
+    ]
+  },
+  "source_inputs": [
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/include/ot121_benchmark_frame.h",
+      "bytes": 7541,
+      "sha256": "cc5a4596400a8a2766e66fcab6b7d51dceecbc4f3c1be4055a2581d400415d4c"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot129/main/ot129_control_protocol.c",
+      "bytes": 1752,
+      "sha256": "d10b9e6769676530c4eacd7e31bbf2192f293f1fa1099138673525bc395bdcdf"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot129/main/ot129_control_protocol.h",
+      "bytes": 830,
+      "sha256": "14e2896e43e9a873ffb0fbfc4ec01c371095f39b42a6f82b2544ecf0f7c57e76"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/CMakeLists.txt",
+      "bytes": 1528,
+      "sha256": "be533296c54c2a0d91c6f0c1c5c8f10197b96886fb5d6cac04e31ae0344474e2"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/partitions.csv",
+      "bytes": 443,
+      "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/main/CMakeLists.txt",
+      "bytes": 595,
+      "sha256": "1af87f0a96fdadabe66c0d5bc3daeed5843f8a7ae03398b80a98954bec8da3e2"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/main/mbedtls_psa_benchmark_api.c",
+      "bytes": 16483,
+      "sha256": "06cf13b01d479c39c52e480315ad69732a76c760978541b2ac6b207997a36673"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/common/app_main.c",
+      "bytes": 9044,
+      "sha256": "b8c66b8dfe0877ab715fa611fc42e18eba2308b582ac70ef18dbc2e3fcb42e5a"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/common/ot149_candidate_api.h",
+      "bytes": 501,
+      "sha256": "c086022e8a6499495b2814619f0a4f3a8a70410870dc4ee193fc5105056adea9"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/CMakeLists.txt",
+      "bytes": 1528,
+      "sha256": "be533296c54c2a0d91c6f0c1c5c8f10197b96886fb5d6cac04e31ae0344474e2"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/partitions.csv",
+      "bytes": 443,
+      "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/main/CMakeLists.txt",
+      "bytes": 588,
+      "sha256": "c49f34f5ff690c41a75780f931af10b42d8a402b696ec047cd7a9707fb1dff80"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/main/no_candidate_benchmark_api.c",
+      "bytes": 1121,
+      "sha256": "a3f5d29bfd925a4171eb8e1d0aab13c0dec02419c62be362db9373662d5c1035"
+    }
+  ],
+  "compile_validation": {
+    "fresh_candidate_and_control_builds": true,
+    "full_esp_idf_target_count_each": 1199,
+    "compiler_warning_count_each": 0,
+    "candidate": {
+      "application_bin": {
+        "bytes": 245584,
+        "sha256": "bb246459ac67175e234eecd46d02b32a146f2e333d2dab78d6510cbac9991197"
+      },
+      "application_elf": {
+        "bytes": 5187960,
+        "sha256": "6b195acdebe58c022875bd4b235c1522fb03f8a51b193c907d4928ccf597acba"
+      },
+      "linker_map": {
+        "bytes": 3748933,
+        "sha256": "feeb432753bc28eda7d7eb8e3bfe8f20eef9c169c0d7a5351ff63dcaff1c89f9"
+      },
+      "generated_sdkconfig": {
+        "bytes": 106890,
+        "sha256": "00fd8a75e1df36e7cb4d4aa2275492297e1300383e15cbbf2d4a6284dd99d85e"
+      },
+      "private_stdout_log": {
+        "bytes": 152478,
+        "sha256": "3bb24df64e8cd282b509999a58859ccb2867c725e0629ba8e06e546f217fd170"
+      }
+    },
+    "control": {
+      "application_bin": {
+        "bytes": 145952,
+        "sha256": "90f17bfdebc73cfc6f36520b7287dd206eaf1445b41dc1cd59fdeb429524dd8b"
+      },
+      "application_elf": {
+        "bytes": 3399212,
+        "sha256": "23d23e8c798dd2cd80f83754897f71f6c8167914fae2b775eb2f14724d32e7e2"
+      },
+      "linker_map": {
+        "bytes": 3600763,
+        "sha256": "505b4af524a5f092e9a109f3b81bc7bb35ca9c1fc7ab2a716b67f154faaf90dc"
+      },
+      "generated_sdkconfig": {
+        "bytes": 106890,
+        "sha256": "00fd8a75e1df36e7cb4d4aa2275492297e1300383e15cbbf2d4a6284dd99d85e"
+      },
+      "private_stdout_log": {
+        "bytes": 152453,
+        "sha256": "7d335d477c3c1c070b8318fe818b8d146f23ce926883e764bf6bc71ac0367ce0"
+      }
+    },
+    "shared_artifacts": {
+      "bootloader_bin": {
+        "bytes": 15216,
+        "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+      },
+      "partition_table_bin": {
+        "bytes": 3072,
+        "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"
+      }
+    },
+    "artifact_paths_publicly_recorded": false,
+    "matched_size_reports_generated": false,
+    "resource_delta_calculated": false
+  },
+  "authority": {
+    "host_source_and_compile_validation_authorized": true,
+    "matched_resource_execution_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "flash_authorized": false,
+    "radio_transmit_authorized": false,
+    "candidate_selection_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "five_operation_target_prepared": true,
+    "candidate_and_control_compile_validated": true,
+    "strict_result_parser_prepared": true,
+    "signed_zero_capable_resource_successor_frozen": true,
+    "benchmark_executed": false,
+    "matched_resource_result_admitted": false,
+    "hardware_or_device_accessed": false,
+    "radio_used": false,
+    "candidate_selected": false,
+    "phase_two_complete": false,
+    "score_credit_added": false
+  }
+}

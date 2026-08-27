@@ -2304,6 +2304,26 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OTP2CR0 Phase 2 corpus reconciliation tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_matched_resource_accounting_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTMRAC1/OTMRAR1 matched-resource successor tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot149_mbedtls_psa_harness_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-149 mbedTLS/PSA target harness tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot149_mbedtls_psa_frame_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-149 mbedTLS/PSA strict-frame tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot149_mbedtls_psa_preparation_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-149 mbedTLS/PSA preparation tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_radio_diag_source_tests.py')
 if ($LASTEXITCODE -ne 0) {

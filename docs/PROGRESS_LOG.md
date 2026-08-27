@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-26
 
+### OT-149 mbedTLS/PSA target and matched-resource successor
+
+- A separate host-only candidate and no-candidate control now compile the exact five admitted mbedTLS/PSA operations on the full ESP32-S3 graph. Both inherit the accepted configuration lineage plus the same seven-setting quiet-console delta and resolve to identical 106,890-byte sdkconfigs.
+- Exact RFC known-answer and negative gates, cleanup-result propagation, the proven START/READY boundary, and a strict 1,015-frame parser/schema are host-validated. Fresh candidate/control builds complete with zero compiler warnings.
+- The new generic matched-resource successor parses bounded ESP-IDF size JSON and admits exact signed linked-flash/static-RAM deltas, including zero and negative values, without weakening the historical contract.
+- No benchmark, matched-resource result, device, flash, radio, authority, selection, Phase 2 completion, capability, readiness, score, or immediate website update is added. See [Decision 0085](decisions/0085-prepare-mbedtls-psa-target-and-resource-successor.md), [evidence](../tests/hardware/OT-149-2026-08-26.md), [preparation](../tests/benchmarks/crypto/OT-149-OT005-MBEDTLS-PSA-TARGET-PREPARATION-V0.json), and [resource successor](../tests/benchmarks/crypto/OT-149-OT005-MATCHED-RESOURCE-ACCOUNTING-SUCCESSOR-V1.json).
+
 ### OT-148 fail-closed Phase 2 crypto-corpus reconciliation
 
 - The exact OT-116 plan, three candidate API/configuration admissions, OT-122 libsodium result, OT-123 matched-resource contract, and OT-146 Monocypher result reconcile without changing their accepted claims.

@@ -1,0 +1,173 @@
+{
+  "schema": "OTMRAC1",
+  "version": 1,
+  "artifact_kind": "generic_matched_candidate_resource_accounting_contract",
+  "contract_id": "OT-149-OT005-MATCHED-RESOURCE-ACCOUNTING-SUCCESSOR-V1",
+  "accepted_date": "2026-08-26",
+  "status": "frozen_host_only_unexecuted",
+  "bindings": {
+    "benchmark_plan": {
+      "path": "tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json",
+      "raw_sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+      "canonical_sha256": "7844d7be1824784a0ff58ba58df25bda85c6059c445f217a4d520215bfff50a8"
+    },
+    "predecessor_contract": {
+      "path": "tests/benchmarks/crypto/OT-123-OT005-MATCHED-RESOURCE-ACCOUNTING-CONTRACT-V0.json",
+      "raw_sha256": "4023b35e0aecc6f4c8c5077bdd8646ad81df892c8816a1348bf1c97181c0cc03",
+      "canonical_sha256": "77e0656f286ee8e030c9add21bcbd07e753d78179a31e352f3ec9df000c344f5"
+    },
+    "phase_two_reconciliation": {
+      "path": "tests/benchmarks/crypto/OT-148-OT005-PHASE-TWO-CORPUS-RECONCILIATION-V0.json",
+      "raw_sha256": "beddc729f8449c3f2e3a09f62ba6947312f4e1893eee38abfa7a9a616f1bae1c",
+      "canonical_sha256": "dcc0b408fdcc02df70717cd93ac8e5133c7159563c15d1da0f74a6c1bb70d1d0"
+    }
+  },
+  "target": {
+    "target_id": "heltec-v4-bench-candidate",
+    "mcu": "ESP32-S3",
+    "idf_target": "esp32s3",
+    "flash_bytes": 16777216
+  },
+  "toolchain": {
+    "esp_idf_version": "v6.0.2",
+    "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "compiler": "xtensa-esp32s3-elf-gcc",
+    "compiler_version": "15.2.0",
+    "cmake_version": "4.0.3",
+    "ninja_version": "1.12.1",
+    "python_version": "3.14.6",
+    "esp_idf_size_version": "2.3.1",
+    "esp_idf_size_module_sha256": "ba38639de2a4d1f4fa48657e94cd3f250a3744ea8595e81fc74e9da0431a15c9"
+  },
+  "candidates": [
+    {
+      "candidate_id": "espressif_libsodium",
+      "role": "primary",
+      "selection_eligible": true,
+      "generated_sdkconfig_sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+    },
+    {
+      "candidate_id": "esp_idf_mbedtls_psa",
+      "role": "comparison",
+      "selection_eligible": false,
+      "api_config_baseline_sha256": "9fc68f61f2fd5ce5f277c3050bdb33e520038349100d60ac142df9fe37d91686",
+      "generated_sdkconfig_sha256": "00fd8a75e1df36e7cb4d4aa2275492297e1300383e15cbbf2d4a6284dd99d85e"
+    },
+    {
+      "candidate_id": "monocypher",
+      "role": "comparison",
+      "selection_eligible": false,
+      "generated_sdkconfig_sha256": "4260688e6323cfda7a50912b4cc9c77a7b6f5133b6970b543bf0ce822ffd023f"
+    }
+  ],
+  "matched_build_rules": {
+    "fresh_initially_absent_builds_per_side": 2,
+    "candidate_and_control_must_match": [
+      "benchmark_harness_source",
+      "frame_and_runtime_instrumentation",
+      "generated_sdkconfig",
+      "partition_layout",
+      "idf_target",
+      "esp_idf_commit",
+      "compiler",
+      "cmake",
+      "ninja",
+      "python",
+      "esp_idf_size",
+      "compile_flags",
+      "project_version",
+      "cache_policy",
+      "component_manager_network_policy"
+    ],
+    "only_permitted_difference": "candidate_and_adapter_linkage_replaced_by_reviewed_no_candidate_control_bindings",
+    "compiler_warnings_required": 0,
+    "ccache_allowed": false,
+    "component_manager_network_allowed": false,
+    "a_b_artifact_and_json2_equality_required": true
+  },
+  "size_report": {
+    "producer": "python -m esp_idf_size --format json2 --output-file output.json application.map",
+    "format": "esp_idf_size_json2",
+    "format_version": "1.2",
+    "maximum_bytes": 65536,
+    "candidate_and_control_reports_retained_and_hash_bound": true,
+    "unique_diram_layout_required": true,
+    "missing_named_parts_count_as_zero": true,
+    "duplicate_named_tls_parts_rejected": true
+  },
+  "formulas": {
+    "linked_flash_candidate_bytes": "candidate_report.total_size",
+    "linked_flash_control_bytes": "control_report.total_size",
+    "linked_flash_delta_bytes": "linked_flash_candidate_bytes - linked_flash_control_bytes",
+    "static_ram_candidate_bytes": "DIRAM(.data + .bss + .noinit) + all_layout_parts(.tdata + .tbss)",
+    "static_ram_control_bytes": "DIRAM(.data + .bss + .noinit) + all_layout_parts(.tdata + .tbss)",
+    "static_ram_delta_bytes": "static_ram_candidate_bytes - static_ram_control_bytes",
+    "phase_two_projection.static_ram_bytes": "static_ram_candidate_bytes",
+    "deltas_are_signed": true,
+    "excluded_from_static_ram": [
+      "DIRAM .text",
+      "IRAM code",
+      "RTC FAST",
+      "RTC SLOW",
+      "external RAM"
+    ]
+  },
+  "result_contract": {
+    "schema": "OTMRAR1",
+    "version": 1,
+    "one_result_per_candidate": true,
+    "report_paths_repo_relative": true,
+    "raw_hash_and_byte_binding_required": true,
+    "signed_integer_min": -9223372036854775808,
+    "signed_integer_max": 9223372036854775807,
+    "required_absolute_fields": [
+      "linked_flash_candidate_bytes",
+      "linked_flash_control_bytes",
+      "static_ram_candidate_bytes",
+      "static_ram_control_bytes"
+    ],
+    "required_signed_fields": [
+      "linked_flash_delta_bytes",
+      "static_ram_delta_bytes"
+    ],
+    "phase_two_projection": {
+      "linked_flash_delta_bytes": "linked_flash_delta_bytes",
+      "static_ram_bytes": "static_ram_candidate_bytes"
+    }
+  },
+  "fail_closed_rejections": [
+    "application_bin_file_length_as_linked_flash",
+    "elf_or_map_file_length_as_linked_flash",
+    "archive_or_symbol_anchor_size_as_linked_flash",
+    "restored_trail_or_ot093_full_product_as_control",
+    "absolute_data_plus_bss_presented_as_candidate_delta",
+    "unmatched_sdkconfig_toolchain_harness_or_partition",
+    "forced_positive_or_absolute_valued_delta",
+    "missing_noinit_tdata_or_tbss_accounting",
+    "legacy_otcb0_validator_used_for_signed_delta_admission",
+    "missing_or_nonidentical_a_b_builds",
+    "report_path_escape_hash_or_byte_mismatch",
+    "duplicate_diram_or_tls_part",
+    "nonexact_or_out_of_range_integer"
+  ],
+  "authority": {
+    "host_contract_validation_authorized": true,
+    "matched_build_execution_authorized": false,
+    "benchmark_execution_authorized": false,
+    "device_access_authorized": false,
+    "flash_authorized": false,
+    "radio_transmit_authorized": false,
+    "candidate_selection_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "successor_contract_frozen": true,
+    "matched_controls_built": false,
+    "resource_delta_admitted": false,
+    "benchmark_executed": false,
+    "hardware_or_device_accessed": false,
+    "candidate_selected": false,
+    "phase_two_complete": false,
+    "score_credit_added": false
+  }
+}
