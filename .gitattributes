@@ -282,3 +282,5 @@ tools/ot153_noise_xk_radio_bundle.py text eol=lf
 tools/ot153_noise_xk_radio_coordinator.py text eol=lf
 tools/ot153_noise_xk_radio_hardware_adapter.py text eol=lf
 tools/ot153_noise_xk_radio_runner.py text eol=lf
+firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.hpp text eol=lf
+firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.cpp text eol=lf
