@@ -227,3 +227,24 @@ tests/host/ot149_mbedtls_psa_frame_tests.py text eol=lf
 tests/host/ot149_mbedtls_psa_preparation_tests.py text eol=lf
 docs/decisions/0085-prepare-mbedtls-psa-target-and-resource-successor.md text eol=lf
 tests/hardware/OT-149-2026-08-26.md text eol=lf
+
+# OT-150 retains native ESP-IDF JSON2 byte form; the admitted result is canonical LF text.
+tests/benchmarks/crypto/OT-150-OT005-MBEDTLS-PSA-CANDIDATE-SIZE-REPORT-V1.json text eol=crlf
+tests/benchmarks/crypto/OT-150-OT005-MBEDTLS-PSA-CONTROL-SIZE-REPORT-V1.json text eol=crlf
+tests/benchmarks/crypto/OT-150-OT005-MATCHED-RESOURCE-RESULT-V1.json text eol=lf
+tests/benchmarks/crypto/OT-150-OT005-MBEDTLS-PSA-EXECUTABLE-RESOURCE-BUNDLE-PREPARATION-V0.json text eol=lf
+docs/decisions/0086-freeze-ot150-mbedtls-psa-executable-resource-bundle.md text eol=lf
+tests/hardware/OT-150-2026-08-27.md text eol=lf
+tools/Build-Ot150MbedtlsPsaBundle.ps1 text eol=lf
+tools/ot150_mbedtls_psa_bundle.py text eol=lf
+tools/ot150_mbedtls_psa_coordinator.py text eol=lf
+tools/ot150_mbedtls_psa_execution_authority.py text eol=lf
+tools/ot150_mbedtls_psa_hardware_adapter.py text eol=lf
+tools/ot150_mbedtls_psa_protocol_runner.py text eol=lf
+tests/host/ot150_mbedtls_psa_builder_tests.py text eol=lf
+tests/host/ot150_mbedtls_psa_bundle_tests.py text eol=lf
+tests/host/ot150_mbedtls_psa_protocol_runner_tests.py text eol=lf
+tests/host/ot150_mbedtls_psa_coordinator_tests.py text eol=lf
+tests/host/ot150_mbedtls_psa_execution_authority_tests.py text eol=lf
+tests/host/ot150_mbedtls_psa_hardware_adapter_tests.py text eol=lf
+tests/host/ot150_mbedtls_psa_binding_consistency_tests.py text eol=lf

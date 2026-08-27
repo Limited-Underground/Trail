@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-08-26",
+  "as_of": "2026-08-27",
   "baseline_name": "Historical standalone evidence baseline",
   "baseline_definition": "The historical standalone evidence baseline measures progress toward four self-contained field units that do not depend on a phone, server, or repeater; it is retained for continuity and is not the current V1 Companion release total.",
   "baseline_milestones": [
@@ -234,7 +234,7 @@
       "id": "v1-companion",
       "name": "V1 Companion",
       "status": "measured",
-      "as_of": "2026-08-26",
+      "as_of": "2026-08-27",
       "definition": "A complete V1 Companion release means exactly two supported Heltec LoRa devices and two approved Android phones, one physically authorized phone per Heltec, exchange authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE with restart, disconnect, rejection, retry, recovery, and one exact signed Android release physically accepted without relay, server, or internet dependency.",
       "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
       "milestones": [
@@ -753,6 +753,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Accepted OT-147 after the explicitly owner-authorized non-reusable application-only attempt installed and independently readback-verified the identical 500,944-byte live-status image on both anonymous Heltec nodes, followed by hard resets and owner visual confirmation of populated BAT and GPS values. Battery percentage is an approximate voltage-derived indication and GPS exposes only satellite count; LoRa activity, battery calibration/charger/endurance, GNSS fix/accuracy/stale-loss behavior, support, regulatory acceptance, and field readiness remain open. Heltec target completion remains 25%, so V1 Companion remains exact 43.75% / displayed 44%."
+        },
+        {
+          "date": "2026-08-27",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted the host-only OT-150 deterministic mbedTLS/PSA executable/resource successor after fixed-version candidate A/B and matched control A/B builds reproduced exactly and the signed/zero-capable linked-flash/static-RAM result was admitted. Fresh explicit owner approval and a separate authority remain required before hardware; no device, radio, selection, Phase 2 completion, readiness, or score claim is added. Every milestone completion remains unchanged: Android 60%, V1 Companion exact 43.75% / displayed 44%, and V1.5/V2 unmeasured."
         }
     ]
     },
@@ -1088,6 +1094,11 @@
       "date": "2026-08-26",
       "overall": 32,
       "reason": "Accepted OT-147 after the explicitly owner-authorized non-reusable application-only attempt installed and independently readback-verified the identical 500,944-byte live-status image on both anonymous Heltec nodes, followed by hard resets and owner visual confirmation of populated BAT and GPS values. Battery percentage is an approximate voltage-derived indication and GPS exposes only satellite count; LoRa activity, battery calibration/charger/endurance, GNSS fix/accuracy/stale-loss behavior, support, regulatory acceptance, and field readiness remain open. Heltec target completion remains 25%, current V1 Companion remains exact 43.75% / displayed 44%, and the historical standalone baseline remains exact 31.75% / displayed 32%."
+    },
+    {
+      "date": "2026-08-27",
+      "overall": 32,
+      "reason": "Accepted the host-only OT-150 deterministic mbedTLS/PSA executable/resource successor after fixed-version candidate A/B and matched control A/B builds reproduced exactly and the signed/zero-capable linked-flash/static-RAM result was admitted. Fresh explicit owner approval and a separate authority remain required before hardware; no device, radio, selection, Phase 2 completion, readiness, or score claim is added. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
     }
   ]
 }

@@ -4,6 +4,15 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-27
+
+### OT-150 reproducible mbedTLS/PSA executable/resource bundle
+
+- Candidate A/B and matched no-candidate control A/B complete four fresh, initially absent, cache-disabled ESP-IDF v6.0.2 builds with fixed `PROJECT_VER=ot150-mbedtls-psa-v0`, 1,199/1,199 build steps, zero compiler warnings, and exact per-side reproduction. OT-149 remains immutable compile-validation history.
+- The canonical preparation freezes each side's strict six-role executable tuple and shared sdkconfig, bootloader, and partition identities. The admitted OTMRAR1 result records linked flash 245,466 versus 145,834 bytes (`+99,632`) and static RAM 50,187 versus 49,035 bytes (`+1,152`).
+- Only a future candidate application write at `0x10000` may be authorized. Any attempt must use fresh explicit owner approval, a separate authority, and the exact 500,944-byte OT-147 restoration image with SHA-256 `f2a58414f82eed585ba90bf7671b06c8ebfaa82e8b23f6ac2093de95143b4e0e`.
+- No device, phone, flash, benchmark capture, radio, selection, Phase 2 completion, readiness, or score claim is added. V1 remains exact 43.75%/displayed 44%. No website update is required. See [Decision 0086](decisions/0086-freeze-ot150-mbedtls-psa-executable-resource-bundle.md), [evidence](../tests/hardware/OT-150-2026-08-27.md), [preparation](../tests/benchmarks/crypto/OT-150-OT005-MBEDTLS-PSA-EXECUTABLE-RESOURCE-BUNDLE-PREPARATION-V0.json), and [matched-resource result](../tests/benchmarks/crypto/OT-150-OT005-MATCHED-RESOURCE-RESULT-V1.json).
+
 ## 2026-08-26
 
 ### OT-149 mbedTLS/PSA target and matched-resource successor

@@ -113,6 +113,8 @@ tests/benchmarks/crypto/OT-099-OT005-LIBSODIUM-MANAGED-IMPORT-V0.json|4982|8285f
 tests/benchmarks/crypto/OT-123-OT005-MONOCYPHER-BUILD-RECIPE-V0.json|5948|c109392296cf313f276bf0121629eeec2db8bf75773f76ca8086fa2f1a04e5cb|exact|mixed|none|lf
 tests/benchmarks/crypto/OT-123-OT005-MONOCYPHER-CANDIDATE-SIZE-REPORT-V0.json|2045|56bcf252c5392326ba07376881c960d76058750d933812da581caee337b02ac4|crlf|crlf|none|crlf
 tests/benchmarks/crypto/OT-123-OT005-MONOCYPHER-COMPARISON-PREPARATION-V0.json|7951|a80f06c4b6c0c1c56b5b36ae54b8fddacf36359b8b69abe6f0f4da2bd5d18a89|crlf|crlf|none|crlf
+tests/benchmarks/crypto/OT-150-OT005-MBEDTLS-PSA-CANDIDATE-SIZE-REPORT-V1.json|2047|7978147ea7e8197fc852d65650e44d2fea134799caa2331e27ae87fb2970f24e|crlf|crlf|none|crlf
+tests/benchmarks/crypto/OT-150-OT005-MBEDTLS-PSA-CONTROL-SIZE-REPORT-V1.json|2045|95743702c91609fb53cd3ad7020ab76120fa9690bd4921b3f73dbbb3e3f5b2d8|crlf|crlf|none|crlf
 tests/hardware/OT-132-2026-08-24.md|2669|2f7ee064f55446c33556c168e14dadb3ee7c023616b5860b796c62b048540b59|crlf|crlf|none|crlf
 tools/ot132_monocypher_protocol_runner.py|10942|d131286969d82f0ddef8b3051b6d64588042a4d49fafa2aca1d164de617f6a3d|crlf|crlf|none|crlf
 docs/decisions/0078-accept-reproducible-monocypher-quiet-target.md|3084|9f75b8059580f8b7a70d960778df43f9bdf18160dd777d8152de4dadae5b6998|lf|lf|none|lf
@@ -192,13 +194,30 @@ tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/main/CMakeLists.txt|58
 tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/main/no_candidate_benchmark_api.c|1121|a3f5d29bfd925a4171eb8e1d0aab13c0dec02419c62be362db9373662d5c1035|lf|lf|none|lf
 tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/partitions.csv|443|973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621|lf|lf|none|lf
 tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/sdkconfig.defaults|390|e8e4c1939008422d21dcd6993d3b3e6d3dd0d53328b46c4a5649188dc60014c6|lf|lf|none|lf
-tests/hardware/OT-149-2026-08-26.md|1993|3b134dfeed92ebca3d11773f3984a0044e89b064600e382eaec6954e8eb64d56|lf|lf|none|lf
+tests/hardware/OT-149-2026-08-26.md|2079|f4e176d86c8cd10ff9f441b883b167a392e235abd444429927a0370e2c0ab9b8|lf|lf|none|lf
 tests/host/crypto_matched_resource_accounting_tests.py|19450|28f5e902a3863e00af66e14925cfa8a48e6c276bf83dd394012e5729b6856c94|lf|lf|none|lf
 tests/host/ot149_mbedtls_psa_frame_tests.py|16402|245fd33de1d4b8df76d7a1d9375f02d97f40f0da9dee02a6fb4c17bf30e9d023|lf|lf|none|lf
 tests/host/ot149_mbedtls_psa_harness_tests.py|14023|9fddc8a0c77f1462197a475ea0013f389fab624fece058c0d9ee9dd2099a0dd4|lf|lf|none|lf
 tests/host/ot149_mbedtls_psa_preparation_tests.py|6159|2c0d0da622000e0669e5784beab74da4742cde3f5b373b431f07274dee17c38e|lf|lf|none|lf
 tools/crypto_matched_resource_accounting.py|32260|54ac45f5676605c767cfa6144d75e67c12aa919228491d68967c8a7d53910b7e|lf|lf|none|lf
 tools/ot149_mbedtls_psa_frames.py|12472|a431e45c8ab2098d6973171f4c325c7f5d7e2b6f183e01b3422086dbac6d15c9|lf|lf|none|lf
+docs/decisions/0086-freeze-ot150-mbedtls-psa-executable-resource-bundle.md|4433|55af2ed72393cef16311119f33003156d2f506504b8d8937cfa5c66b1ab40d21|lf|lf|none|lf
+tests/hardware/OT-150-2026-08-27.md|4162|2d5b235d40a42a4d28c8b419666d31b0bfc334d03c62d5a9b9fdd6d48642a02b|lf|lf|none|lf
+tests/benchmarks/crypto/OT-150-OT005-MBEDTLS-PSA-EXECUTABLE-RESOURCE-BUNDLE-PREPARATION-V0.json|9680|6f5a1e84acfd9c08f5201e84ab0ff18d12b18e3ab82141211d8f56f0a9e21072|lf|lf|none|lf
+tests/benchmarks/crypto/OT-150-OT005-MATCHED-RESOURCE-RESULT-V1.json|9590|14ce18688f4fe9e2d819666c857e07843a86cc694a23662832476c6f9cb0b7c0|lf|lf|none|lf
+tools/Build-Ot150MbedtlsPsaBundle.ps1|22988|a57c6e340f289f8b6c40f4f0d501648229aa71e3a4a29007f38040c45b5f69f4|lf|lf|none|lf
+tools/ot150_mbedtls_psa_bundle.py|20055|241c249047ac6b1daca6f210ae68ce3b51cfb218635d5039c1649e64eddde3c5|lf|lf|none|lf
+tools/ot150_mbedtls_psa_coordinator.py|26440|1602d9bf1a306a1b88c701bebd8cff920adf75d80533f09baba5de7b72144b97|lf|lf|none|lf
+tools/ot150_mbedtls_psa_execution_authority.py|27115|e80f0fc978fc19110281de25fdd0822a67b09eb31d4d66ed37e3641bf69c7fc9|lf|lf|none|lf
+tools/ot150_mbedtls_psa_hardware_adapter.py|13213|8f953e1a9b633a9ac3c443ab47654545cafa1a395e835673661162668228313e|lf|lf|none|lf
+tools/ot150_mbedtls_psa_protocol_runner.py|10599|82c2d8d39220e41d8f0e69bbbebfbcd30929ee0a01a692b996319a9bfdbcba92|lf|lf|none|lf
+tests/host/ot150_mbedtls_psa_builder_tests.py|6752|22c986d5b0f4157003434c6a7a3f8bc9223de4b4f79a18a4c436c84f69431d6f|lf|lf|none|lf
+tests/host/ot150_mbedtls_psa_bundle_tests.py|16992|be29df3ed5302fa7e90db3330ede34fea90eba6bdee276572b78a6e583e17453|lf|lf|none|lf
+tests/host/ot150_mbedtls_psa_protocol_runner_tests.py|11623|d88f3c01683dea60c1c6f96a62e5ba581e979be713bb2c839618000bc8f469cc|lf|lf|none|lf
+tests/host/ot150_mbedtls_psa_coordinator_tests.py|19887|7c15cba3d8e4de5c76551f84a72cf0371f54f28e90cc1507f32a071cc3d80f26|lf|lf|none|lf
+tests/host/ot150_mbedtls_psa_execution_authority_tests.py|17377|487fa99fd082b98639faca81913b03378289f952817c725f88ef6ff568409607|lf|lf|none|lf
+tests/host/ot150_mbedtls_psa_hardware_adapter_tests.py|13495|50fd9dbbfb3028c317895630a6c8711572f1ebe3ee6d21a9b6f9fe2fee2e7008|lf|lf|none|lf
+tests/host/ot150_mbedtls_psa_binding_consistency_tests.py|5287|026ea6ac45a9597766d27563405e90990ae9b207ad9eb14610cfff3b3f8620b9|lf|lf|none|lf
 """.strip()
 
 

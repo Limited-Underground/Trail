@@ -2324,6 +2324,41 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OT-149 mbedTLS/PSA preparation tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_builder_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-150 mbedTLS/PSA four-build orchestration tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_bundle_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-150 mbedTLS/PSA executable/resource bundle tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_protocol_runner_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-150 mbedTLS/PSA two-gate protocol tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_coordinator_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-150 mbedTLS/PSA restoration-safe coordinator tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_execution_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-150 mbedTLS/PSA preparation/authority tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_hardware_adapter_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-150 mbedTLS/PSA hardware adapter tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_binding_consistency_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-150 mbedTLS/PSA cross-layer binding tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_radio_diag_source_tests.py')
 if ($LASTEXITCODE -ne 0) {
