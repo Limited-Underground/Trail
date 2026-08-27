@@ -2309,6 +2309,31 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OTNXRP0 Noise XK radio-cost preparation tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\ot153_noise_xk_radio_cost_target_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT153FW0 Noise XK radio firmware target tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot153_noise_xk_radio_runner_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT153NXR0 Noise XK radio runner tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot153_noise_xk_radio_bundle_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT153NXBP0 Noise XK executable bundle tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot153_noise_xk_radio_coordinator_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT153NXCR0 Noise XK restoration coordinator tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot153_noise_xk_radio_hardware_adapter_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT153NXHA0 Noise XK hardware adapter tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_matched_resource_accounting_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OTMRAC1/OTMRAR1 matched-resource successor tests failed with exit code {0}.' -f $LASTEXITCODE)

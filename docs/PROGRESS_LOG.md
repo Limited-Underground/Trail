@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-27
 
+### OT-153 host-only Noise XK executable/restoration bundle
+
+- Froze the reproducible Heltec V4.2 ESP32-S3 target, strict Noise XK runner, simultaneous two-node restoration-safe coordinator, concrete fail-closed adapter, and exact 500,944-byte Trail restoration application. Two fresh cache-disabled builds reproduce the same application/provenance tuple.
+- Preserved OT-152's exact raw 48/48/64-byte messages, both role directions, one baseline and one bounded whole-handshake restart per direction, fresh attempt identity, temporary-secret wipe, stale-frame rejection, strict counters, and independent restore/readback/reset for each touched node.
+- Focused validation is `75/75 passed (firmware 19, runner 21, bundle 12, coordinator 12, adapter 11)`; the complete Windows Host validation matrix is `passed locally on 2026-08-27`. No device, phone, flash, radio, cryptographic execution, or physical measurement occurred, and OT-153 grants no authority. OT-154 requires fresh explicit non-reusable one-attempt owner authority before hardware.
+- No candidate/library/suite/handshake/KDF/Packet-v1 selection, Phase 2 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%; no website update is required. See [Decision 0089](decisions/0089-freeze-noise-xk-radio-executable-bundle.md), [evidence](../tests/hardware/OT-153-2026-08-27.md), and the [canonical preparation](../tests/benchmarks/crypto/OT-153-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json).
+
 ### OT-152 host-only Noise XK radio-cost preparation
 
 - Frozen benchmark-only direct-LoRa mapping: Noise XK messages are exactly 48, 48, and 64 bytes, totaling 160 payload bytes and three frames per successful handshake. Packet V1 and OTA1 ACK frames are not selected.

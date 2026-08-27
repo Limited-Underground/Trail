@@ -445,12 +445,12 @@ for line in sys.stdin:
         print('{"v":1,"ok":true,"shutdown":true}', flush=True)
         break
 """);
-    await using (var helperProcess = new ProcessPrivateCompanionHelper(
-        restartScript, TimeSpan.FromMilliseconds(150)))
+    await using (var helperProcess = new ProcessPrivateCompanionHelper(restartScript))
     {
+        using var firstTimeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
         try
         {
-            _ = await helperProcess.DiscoverAsync(CancellationToken.None);
+            _ = await helperProcess.DiscoverAsync(firstTimeout.Token);
             Expect(false, "a partial helper response must time out");
         }
         catch (IOException) { }

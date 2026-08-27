@@ -1498,9 +1498,20 @@ LoRa payloads of 48, 48, and 64 bytes. The accepted OT-114 profile makes their
 theoretical airtimes 97,536, 97,536, and 118,016 microseconds. Future execution
 must reverse roles, measure each successful TX interval, and exercise one
 bounded whole-handshake restart per direction with fresh attempt identity,
-temporary-secret wipe, and stale-frame rejection. OT-152 itself grants no
-hardware/radio authority and admits no physical result; OT-153 must first bind
-the exact executable, runner, and Trail restoration image under fresh authority.
+temporary-secret wipe, and stale-frame rejection.
+
+OT-153 binds that host-only contract to one exact reproducible ESP32-S3 target,
+the strict runner, a simultaneous two-node restoration-safe coordinator, a
+concrete fail-closed hardware adapter, and the exact Trail restoration image.
+Only the future application BIN at `0x10000` is writable; bootloader, partition
+table, NVS, and every other flash region remain outside the bundle. The runtime
+requires both installed Trail applications to pass readback/reset before any
+journal or benchmark write, and independently restores/readbacks/resets every
+touched node on success, failure, or exception. The public boundary retains
+only aggregate timing/counter outcomes and excludes endpoints, identifiers, raw
+payloads, keys, private traces, and absolute paths. OT-153 grants no authority
+and performs no hardware or radio execution. OT-154 must separately accept one
+fresh explicit non-reusable authority before either node may be accessed.
 
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and

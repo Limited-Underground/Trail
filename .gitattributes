@@ -267,3 +267,18 @@ tests/benchmarks/crypto/OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V
 tests/hardware/OT-152-2026-08-27.md text eol=lf
 tests/host/crypto_noise_xk_radio_cost_preparation_tests.py text eol=lf
 tools/crypto_noise_xk_radio_cost_preparation.py text eol=lf
+
+# OT-153 freezes deterministic host-only Noise XK radio execution/restoration bytes.
+docs/decisions/0089-freeze-noise-xk-radio-executable-bundle.md text eol=lf
+tests/benchmarks/crypto/OT-153-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json text eol=lf
+tests/benchmarks/crypto/esp_idf/ot153_noise_xk_radio_cost/** text eol=lf
+tests/hardware/OT-153-2026-08-27.md text eol=lf
+tests/host/ot153_noise_xk_radio_bundle_tests.py text eol=lf
+tests/host/ot153_noise_xk_radio_coordinator_tests.py text eol=lf
+tests/host/ot153_noise_xk_radio_cost_target_tests.py text eol=lf
+tests/host/ot153_noise_xk_radio_hardware_adapter_tests.py text eol=lf
+tests/host/ot153_noise_xk_radio_runner_tests.py text eol=lf
+tools/ot153_noise_xk_radio_bundle.py text eol=lf
+tools/ot153_noise_xk_radio_coordinator.py text eol=lf
+tools/ot153_noise_xk_radio_hardware_adapter.py text eol=lf
+tools/ot153_noise_xk_radio_runner.py text eol=lf
