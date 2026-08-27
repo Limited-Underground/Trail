@@ -2339,6 +2339,21 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OT-150 mbedTLS/PSA two-gate protocol tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\ot151_mbedtls_psa_corrected_target_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-151 corrected mbedTLS/PSA target tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot151_mbedtls_psa_failure_transcript_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-151 mbedTLS/PSA early-failure transcript tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot151_mbedtls_psa_abort_record_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-151 mbedTLS/PSA abort-record tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_coordinator_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-150 mbedTLS/PSA restoration-safe coordinator tests failed with exit code {0}.' -f $LASTEXITCODE)

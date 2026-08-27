@@ -95,14 +95,20 @@ class BindingConsistencyTests(unittest.TestCase):
         )
         self.assertIn("ot149_mbedtls_psa_frames.py", source)
 
-    def test_04_control_radio_and_authority_remain_closed(self) -> None:
+    def test_04_control_and_radio_remain_closed_and_authority_is_canonical(self) -> None:
         execution = authority._execution_contract()
         self.assertFalse(execution["control_application_writable"])
         self.assertFalse(execution["radio_allowed"])
         self.assertTrue(execution["application_only_writes"])
         self.assertEqual(execution["attempt_count"], 1)
         self.assertEqual(execution["node_count"], 2)
-        self.assertFalse((ROOT / authority.AUTHORITY_RELATIVE).exists())
+        path = ROOT / authority.AUTHORITY_RELATIVE
+        self.assertTrue(path.is_file())
+        raw = path.read_bytes()
+        value = authority.decode_canonical(raw, "authority")
+        self.assertEqual(raw, authority.canonical_document(value))
+        self.assertEqual(value["schema"], authority.AUTHORITY_SCHEMA)
+        self.assertEqual(value["execution"], execution)
 
     def test_05_canonical_preparation_when_present_binds_current_runtime(self) -> None:
         path = ROOT / authority.PREPARATION_RELATIVE

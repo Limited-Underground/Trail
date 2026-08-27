@@ -337,7 +337,6 @@ class AuthorityTests(unittest.TestCase):
             "erase-flash", "list_ports", "owner_authorization_granted=True\n        )",
         ):
             self.assertNotIn(forbidden, source)
-        self.assertFalse((ROOT / contract.AUTHORITY_RELATIVE).exists())
         self.assertIn('ADAPTER_RELATIVE = "tools/ot150_mbedtls_psa_hardware_adapter.py"', source)
         self.assertIn('BUNDLE_TOOL_RELATIVE = "tools/ot150_mbedtls_psa_bundle.py"', source)
         self.assertIn(

@@ -248,3 +248,15 @@ tests/host/ot150_mbedtls_psa_coordinator_tests.py text eol=lf
 tests/host/ot150_mbedtls_psa_execution_authority_tests.py text eol=lf
 tests/host/ot150_mbedtls_psa_hardware_adapter_tests.py text eol=lf
 tests/host/ot150_mbedtls_psa_binding_consistency_tests.py text eol=lf
+
+# OT-151 keeps the consumed OT-150 authority, restored-abort record, and host-only correction deterministic.
+docs/decisions/0087-record-ot150-abort-and-correct-mbedtls-psa-successor.md text eol=lf
+tests/benchmarks/crypto/OT-150-OT005-MBEDTLS-PSA-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
+tests/benchmarks/crypto/OT-151-OT005-MBEDTLS-PSA-EXECUTION-ABORT-RECEIPT-V0.json text eol=lf
+tests/benchmarks/crypto/esp_idf/ot151_mbedtls_psa_corrected/** text eol=lf
+tests/hardware/OT-151-2026-08-27.md text eol=lf
+tests/host/ot151_mbedtls_psa_abort_record_tests.py text eol=lf
+tests/host/ot151_mbedtls_psa_corrected_target_tests.py text eol=lf
+tests/host/ot151_mbedtls_psa_failure_transcript_tests.py text eol=lf
+tools/ot151_mbedtls_psa_failure_frames.py text eol=lf
+tools/ot151_mbedtls_psa_protocol_runner.py text eol=lf

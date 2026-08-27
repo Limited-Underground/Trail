@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-27
 
+### OT-151 restored mbedTLS/PSA abort and host-only correction
+
+- The sole OT-150-authorized attempt reached Node A benchmark readback, then failed closed as `capture_failed` / `frame_count_incomplete`. Node A restored/readback/reset exactly to Trail, Node B was never benchmark-written and remained on Trail, and the owner confirmed both logos. The authority is consumed and non-reusable.
+- Exact byte accounting and frozen-ELF inspection identify a deterministic benchmark-fixture defect: the all-zero X25519 peer correctly returned `PSA_ERROR_INVALID_ARGUMENT`, but the fixture incorrectly also required error `output_length == 0` despite pinned TF-PSA deliberately reporting the full randomized failure-buffer size.
+- A separate host-only successor removes only that invalid length assertion, retains the mandatory status check and zeroization, and adds immediate strict classification of canonical early terminal failures without weakening the 1,015-frame success contract.
+- No benchmark result, radio, selection, Phase 2 completion, readiness, or score claim is added. No further mbedTLS/PSA hardware attempt is authorized without a new immutable binding and fresh explicit one-attempt authority. V1 remains exact 43.75%/displayed 44%; no website update is required. See [Decision 0087](decisions/0087-record-ot150-abort-and-correct-mbedtls-psa-successor.md), [evidence](../tests/hardware/OT-151-2026-08-27.md), and the [sanitized receipt](../tests/benchmarks/crypto/OT-151-OT005-MBEDTLS-PSA-EXECUTION-ABORT-RECEIPT-V0.json).
+
 ### OT-150 reproducible mbedTLS/PSA executable/resource bundle
 
 - Candidate A/B and matched no-candidate control A/B complete four fresh, initially absent, cache-disabled ESP-IDF v6.0.2 builds with fixed `PROJECT_VER=ot150-mbedtls-psa-v0`, 1,199/1,199 build steps, zero compiler warnings, and exact per-side reproduction. OT-149 remains immutable compile-validation history.
