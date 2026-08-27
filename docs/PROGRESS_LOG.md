@@ -6,6 +6,12 @@ public chronology.
 
 ## 2026-08-27
 
+### OT-152 host-only Noise XK radio-cost preparation
+
+- Frozen benchmark-only direct-LoRa mapping: Noise XK messages are exactly 48, 48, and 64 bytes, totaling 160 payload bytes and three frames per successful handshake. Packet V1 and OTA1 ACK frames are not selected.
+- The accepted US915 formula yields 313,088 microseconds theoretical airtime per success. A later run must reverse roles and execute one baseline plus one bounded whole-handshake restart per direction, wiping temporary secrets and rejecting stale-attempt frames.
+- Focused validation passes 20/20. OT-152 grants no device, build, flash, radio, key/entropy, benchmark, selection, Phase 2 completion, readiness, or score authority. OT-153 must freeze an exact executable/restoration bundle and separately accept fresh non-reusable radio authority. V1 remains exact 43.75%/displayed 44%; no website update is required. See [Decision 0088](decisions/0088-prepare-noise-xk-radio-cost-measurement.md), [evidence](../tests/hardware/OT-152-2026-08-27.md), and the [preparation](../tests/benchmarks/crypto/OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V0.json).
+
 ### OT-151 restored mbedTLS/PSA abort and host-only correction
 
 - The sole OT-150-authorized attempt reached Node A benchmark readback, then failed closed as `capture_failed` / `frame_count_incomplete`. Node A restored/readback/reset exactly to Trail, Node B was never benchmark-written and remained on Trail, and the owner confirmed both logos. The authority is consumed and non-reusable.

@@ -1492,6 +1492,16 @@ latency, coarse environment, verified configuration, and cleanup under neutral
 role labels. The public validator rejects identity-, secret-, transport-port-,
 channel-name-, and precise-location-bearing fields before evidence is committed.
 
+OT-152 freezes a benchmark-only Noise XK radio-cost successor without selecting
+a production wire format. The exact `OTNXK0/v0` messages map directly to three
+LoRa payloads of 48, 48, and 64 bytes. The accepted OT-114 profile makes their
+theoretical airtimes 97,536, 97,536, and 118,016 microseconds. Future execution
+must reverse roles, measure each successful TX interval, and exercise one
+bounded whole-handshake restart per direction with fresh attempt identity,
+temporary-secret wipe, and stale-frame rejection. OT-152 itself grants no
+hardware/radio authority and admits no physical result; OT-153 must first bind
+the exact executable, runner, and Trail restoration image under fresh authority.
+
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and
 one canonical message through the existing logger. Generation values and all

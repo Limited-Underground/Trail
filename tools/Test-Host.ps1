@@ -2304,6 +2304,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OTP2CR0 Phase 2 corpus reconciliation tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_noise_xk_radio_cost_preparation_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OTNXRP0 Noise XK radio-cost preparation tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_matched_resource_accounting_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OTMRAC1/OTMRAR1 matched-resource successor tests failed with exit code {0}.' -f $LASTEXITCODE)

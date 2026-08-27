@@ -232,6 +232,11 @@ tests/host/ot151_mbedtls_psa_corrected_target_tests.py|3123|b29443bb543a910afe97
 tests/host/ot151_mbedtls_psa_failure_transcript_tests.py|7586|2029a5e2db11e280732e073dd997a05207c3d8d3c87ef3f1bbfc5c96dd66ae50|lf|lf|none|lf
 tools/ot151_mbedtls_psa_failure_frames.py|8882|3fb9fa51340a355848da45d06f66702efdadce3d265afc679bcf5407dbb386cb|lf|lf|none|lf
 tools/ot151_mbedtls_psa_protocol_runner.py|9880|46a4d978d92a84437d4d93403e67d27664009dc7f0be4c66c961685d94ed430b|lf|lf|none|lf
+docs/decisions/0088-prepare-noise-xk-radio-cost-measurement.md|2846|40fe9d0cdeb07ee76ac2aaabda584b16aa9f7e9b5f044b26ea793d07bd8e1c8f|lf|lf|none|lf
+tests/benchmarks/crypto/OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V0.json|9258|f556e9c70a4e46afc12d4ff7cbfd3ea8ad95f9b3055313a1ffbbcefe21611fb4|lf|lf|none|lf
+tests/hardware/OT-152-2026-08-27.md|3455|72d3b68d13f0c1684533565f101bb04f92926033e64faca8607e5ce66a30377b|lf|lf|none|lf
+tests/host/crypto_noise_xk_radio_cost_preparation_tests.py|5911|c629e50a7be05f14ab6b823b8a9f384a690c9a4776b95323cbc04d32e9ada4d5|lf|lf|none|lf
+tools/crypto_noise_xk_radio_cost_preparation.py|20973|6920cd3c8ed3f2d3888db4cb820bc315c62cb35e4033be9b19c270f6ad7c7c5c|lf|lf|none|lf
 """.strip()
 
 

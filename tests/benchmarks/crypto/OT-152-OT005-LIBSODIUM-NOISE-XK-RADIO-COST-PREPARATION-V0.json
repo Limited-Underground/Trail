@@ -1,0 +1,237 @@
+{
+  "schema": "OTNXRP0",
+  "version": 0,
+  "artifact_kind": "libsodium_noise_xk_radio_cost_measurement_preparation",
+  "record_id": "OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V0",
+  "recorded_date": "2026-08-27",
+  "status": "host_only_measurement_contract_frozen_execution_not_authorized",
+  "public_result": "NOISE-XK-RADIO-COST-AND-BOUNDED-RETRY-MEASUREMENT-PREPARED-HOST-ONLY; NO-RADIO-EXECUTION-RESULT-SELECTION-PHASE-2-COMPLETION-OR-SCORE",
+  "bindings": {
+    "benchmark_plan": {
+      "path": "tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json",
+      "raw_sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+      "canonical_sha256": "7844d7be1824784a0ff58ba58df25bda85c6059c445f217a4d520215bfff50a8"
+    },
+    "direct_radio_evidence": {
+      "path": "tests/benchmarks/crypto/OT-114-OT005-US915-DIRECT-RADIO-PROFILE-EVIDENCE-V1.json",
+      "raw_sha256": "b6d2a7ce4ebe3ab233ebbc748ab7831ff12cf4d8f6504d2d7e23dae108bd5876",
+      "canonical_sha256": "ac7e77a4438772a4c5b5f2b17472b302a3520e186a21b88125a9314ee6998bf0"
+    },
+    "direct_radio_admission": {
+      "path": "tests/benchmarks/crypto/OT-114-OT005-US915-DIRECT-RADIO-PROFILE-ADMISSION-DELTA-V1.json",
+      "raw_sha256": "19325f730b96b9dbeeb4f64682c4913e7586d1995ef419b26408d82be12ef266",
+      "canonical_sha256": "eecf2b821ef2c25274cc5d3a179494b1545eb4a859280a48459ebb83c79ed257"
+    },
+    "libsodium_operation_evidence": {
+      "path": "tests/benchmarks/crypto/OT-117-OT005-LIBSODIUM-API-CONFIG-OPERATION-EVIDENCE-V0.json",
+      "raw_sha256": "b1daf950473ea9e86ddff16d8f28efbc0972582902d5b262686cf73d0907bf58",
+      "canonical_sha256": "6419ac77392aa7b7f295cbda7719a16581a617e7564c2afec6c03aac7b2fea90"
+    },
+    "libsodium_api_admission": {
+      "path": "tests/benchmarks/crypto/OT-117-OT005-LIBSODIUM-API-CONFIG-ADMISSION-DELTA-V0.json",
+      "raw_sha256": "527c5e713a6d96d38b7dfbfb9d3e0ceb891f4652f8428e2ca65e0b8ea8f316d2",
+      "canonical_sha256": "6eb12a9cf44bdc37e6ac87081b1d256b94f5ee013459c3549606c56b5faf0527"
+    },
+    "libsodium_noise_result": {
+      "path": "tests/benchmarks/crypto/OT-122-OT005-LIBSODIUM-NOISE-RESOURCE-EXECUTION-RECEIPT-V0.json",
+      "raw_sha256": "2b023c640bfbec8ad6eb5d1d63d65e8f1ad75dcfe593566aba6b3d468355a178",
+      "canonical_sha256": "3cf651719d1e5ce96dad85fc364f5cb9e1c43bdcb64d2ac45b748dcc67c18949"
+    },
+    "phase_two_reconciliation": {
+      "path": "tests/benchmarks/crypto/OT-148-OT005-PHASE-TWO-CORPUS-RECONCILIATION-V0.json",
+      "raw_sha256": "beddc729f8449c3f2e3a09f62ba6947312f4e1893eee38abfa7a9a616f1bae1c",
+      "canonical_sha256": "dcc0b408fdcc02df70717cd93ac8e5133c7159563c15d1da0f74a6c1bb70d1d0"
+    }
+  },
+  "adapter": {
+    "schema": "OTNXK0",
+    "version": 0,
+    "protocol_name": "Noise_XK_25519_ChaChaPoly_SHA256",
+    "header_path": "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.h",
+    "header_raw_sha256": "b7c649434cdffe648e467bb117849ae0296a73fa041d614d3d4ba32578e40c45",
+    "source_path": "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.c",
+    "source_raw_sha256": "8534fe1a6a4b68cd37e491ebd0f564dd38fd3935fb21d8f2d45aa8333ae442b8",
+    "benchmark_only": true
+  },
+  "radio_profile": {
+    "region_code": "US915",
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate_denominator": 5,
+    "explicit_header": true,
+    "crc_enabled": true,
+    "low_data_rate_optimization": false,
+    "sync_word": "0x12",
+    "preamble_symbols": 8,
+    "tx_power_command_setpoint_dbm": 2,
+    "admitted_direct_total_wire_ceiling_bytes": 255,
+    "calibrated_rf_readback": false
+  },
+  "handshake_surface": {
+    "messages": [
+      {
+        "order": 1,
+        "message": "message_1",
+        "direction": "initiator_to_responder",
+        "wire_bytes": 48,
+        "radio_frames": 1
+      },
+      {
+        "order": 2,
+        "message": "message_2",
+        "direction": "responder_to_initiator",
+        "wire_bytes": 48,
+        "radio_frames": 1
+      },
+      {
+        "order": 3,
+        "message": "message_3",
+        "direction": "initiator_to_responder",
+        "wire_bytes": 64,
+        "radio_frames": 1
+      }
+    ],
+    "handshake_total_wire_bytes": 160,
+    "message_count": 3,
+    "fragments": 3,
+    "per_message_fragment_count": [1, 1, 1],
+    "message_fragmentation_required": false,
+    "separate_ota1_ack_frames_used": false,
+    "packet_v1_framing_selected": false,
+    "measurement_payload_scope": "exact_raw_benchmark_only_noise_xk_messages_as_lora_payload_bytes"
+  },
+  "airtime_model": {
+    "model": "semtech_lora_explicit_header_payload_airtime",
+    "symbol_duration_us": 1024,
+    "preamble_airtime_us": 12544,
+    "payload_airtime_us_by_wire_bytes": {
+      "48": 97536,
+      "64": 118016
+    },
+    "successful_handshake_theoretical_airtime_us": 313088,
+    "response_timeout_policy": "ceil(outbound_airtime_plus_expected_response_airtime_plus_responder_turnaround_plus_scheduling_margin)",
+    "responder_turnaround_bound_ms": 500,
+    "scheduling_margin_ms": 1500,
+    "message_2_response_timeout_ms": 2196,
+    "message_3_response_timeout_ms": 2216,
+    "measured_airtime_definition": "sum_of_each_successful_tx_done_mono_us_minus_tx_start_mono_us",
+    "measured_airtime_is_calibrated_rf_airtime": false
+  },
+  "role_reversed_execution": [
+    {
+      "cycle": 1,
+      "initiator": "A",
+      "responder": "B"
+    },
+    {
+      "cycle": 2,
+      "initiator": "B",
+      "responder": "A"
+    }
+  ],
+  "baseline_scenario_per_role_cycle": {
+    "attempts": 1,
+    "retry_count": 0,
+    "expected_result": "handshake_completed_and_split_keys_cross_match",
+    "handshake_total_wire_bytes": 160,
+    "fragments": 3,
+    "theoretical_airtime_us": 313088
+  },
+  "bounded_retry_scenario_per_role_cycle": {
+    "maximum_attempts": 2,
+    "maximum_retries": 1,
+    "forced_first_attempt_boundary": "message_1_transmitted_and_received_message_2_intentionally_withheld",
+    "first_attempt_wire_bytes": 48,
+    "first_attempt_fragments": 1,
+    "retry_trigger": "message_2_response_timeout_at_2196_ms",
+    "retry_scope": "abort_wipe_and_restart_whole_handshake_from_message_1",
+    "fresh_attempt_identity_required": true,
+    "stale_first_attempt_frames_must_be_rejected": true,
+    "second_attempt_expected_result": "handshake_completed_and_split_keys_cross_match",
+    "total_wire_bytes_including_retry": 208,
+    "fragments_including_retry": 4,
+    "theoretical_airtime_us_including_retry": 410624,
+    "expected_retry_result": "one_timeout_one_retry_final_success"
+  },
+  "complete_execution_totals": {
+    "role_cycles": 2,
+    "baseline_handshakes": 2,
+    "bounded_retry_handshakes": 2,
+    "forced_timeouts": 2,
+    "successful_final_handshakes": 4,
+    "handshake_total_wire_bytes_per_success": 160,
+    "radio_payload_wire_bytes": 736,
+    "fragments": 14,
+    "theoretical_airtime_us": 1447424
+  },
+  "future_receipt_contract": {
+    "required_frame_fields": [
+      "cycle",
+      "scenario",
+      "attempt",
+      "message",
+      "direction",
+      "wire_bytes",
+      "payload_sha256",
+      "tx_start_mono_us",
+      "tx_done_mono_us",
+      "measured_airtime_us"
+    ],
+    "required_summary_fields": [
+      "handshake_total_wire_bytes",
+      "fragments",
+      "measured_airtime_us",
+      "theoretical_airtime_us",
+      "bounded_retry_result"
+    ],
+    "exact_profile_command_receipts_required": true,
+    "receiver_start_receipts_required": true,
+    "per_frame_receive_and_stage_admission_required": true,
+    "both_role_cycles_required": true,
+    "lost": 0,
+    "duplicates": 0,
+    "corrupt": 0,
+    "unexpected": 0,
+    "temporary_secret_wipe_after_forced_abort_required": true,
+    "raw_traces_retained_privately": true,
+    "public_raw_payloads_prohibited": true,
+    "public_device_identifiers_prohibited": true
+  },
+  "next_gate": {
+    "work_item": "OT-153",
+    "scope": "freeze_exact_executable_bundle_and_separately_accept_one_bounded_two_node_radio_authority_before_execution",
+    "new_immutable_firmware_runner_and_restoration_binding_required": true,
+    "fresh_explicit_non_reusable_authority_required": true,
+    "success_or_abort_consumes_authority": true,
+    "exact_trail_restoration_required": true
+  },
+  "authority": {
+    "host_contract_validation_authorized": true,
+    "device_access_authorized": false,
+    "flash_authorized": false,
+    "radio_transmit_authorized": false,
+    "key_or_entropy_operation_authorized": false,
+    "benchmark_execution_authorized": false,
+    "candidate_selection_authorized": false,
+    "suite_selection_authorized": false,
+    "packet_v1_authorized": false,
+    "score_credit_added": false
+  },
+  "claims": {
+    "measurement_contract_prepared": true,
+    "hardware_or_device_accessed": false,
+    "radio_used": false,
+    "radio_measurement_admitted": false,
+    "phase_two_complete": false,
+    "phase_three_admission_complete": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_wire_selected": false,
+    "production_support_proven": false,
+    "regulatory_compliance_proven": false,
+    "range_proven": false,
+    "public_website_update_required": false,
+    "score_credit_added": false
+  }
+}

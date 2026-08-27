@@ -260,3 +260,10 @@ tests/host/ot151_mbedtls_psa_corrected_target_tests.py text eol=lf
 tests/host/ot151_mbedtls_psa_failure_transcript_tests.py text eol=lf
 tools/ot151_mbedtls_psa_failure_frames.py text eol=lf
 tools/ot151_mbedtls_psa_protocol_runner.py text eol=lf
+
+# OT-152 freezes deterministic host-only Noise XK radio-cost preparation bytes.
+docs/decisions/0088-prepare-noise-xk-radio-cost-measurement.md text eol=lf
+tests/benchmarks/crypto/OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V0.json text eol=lf
+tests/hardware/OT-152-2026-08-27.md text eol=lf
+tests/host/crypto_noise_xk_radio_cost_preparation_tests.py text eol=lf
+tools/crypto_noise_xk_radio_cost_preparation.py text eol=lf
