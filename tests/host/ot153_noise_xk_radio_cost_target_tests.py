@@ -13,8 +13,7 @@ PROJECT_CMAKE = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
 DEFAULTS = (TARGET / "sdkconfig.defaults").read_text(encoding="utf-8")
 LOCK = (TARGET / "dependencies.lock").read_text(encoding="utf-8")
 RADIOLIB_MANIFEST = (
-    ROOT / "firmware/targets/heltec_v4_radio_diag/managed_components/"
-    "jgromes__radiolib/idf_component.yml"
+    ROOT / "firmware/targets/heltec_v4_radio_diag/main/idf_component.yml"
 ).read_text(encoding="utf-8")
 
 
@@ -31,7 +30,7 @@ class Tests(unittest.TestCase):
             self.assertTrue((TARGET / relative).is_file(), relative)
         self.assertIn("version: 6.0.2", LOCK)
         self.assertIn('set(IDF_TARGET "esp32s3"', PROJECT_CMAKE)
-        self.assertIn("version: 7.7.1", RADIOLIB_MANIFEST)
+        self.assertIn('jgromes/radiolib: "==7.7.1"', RADIOLIB_MANIFEST)
         self.assertIn(
             'jgromes/radiolib: "==7.7.1"',
             (TARGET / "main/idf_component.yml").read_text(encoding="utf-8"),
