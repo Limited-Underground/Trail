@@ -1563,6 +1563,16 @@ it is non-reusable and grants no continuation. OT-159 is the sole permitted
 execution step, and every touched node must be restored, read back, and
 hard-reset exactly to Trail.
 
+OT-159 records a deterministic pre-consumption composition blockage. The
+inherited adapter passes application readback bytes to `coordinator._sha256`,
+while the substituted OT-157 coordinator exposes that name as a file-hash
+helper requiring a `Path`. Both official preflight attempts therefore fail
+before the exclusive journal, benchmark write, radio path, receipt, or
+authority consumption. OT-160 must separate file hashing from byte hashing in
+a host-only successor while preserving every accepted preflight, privacy,
+restoration, and radio boundary. The immutable OT-158 authority cannot be
+transferred to that corrected successor.
+
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and
 one canonical message through the existing logger. Generation values and all

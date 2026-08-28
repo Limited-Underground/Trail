@@ -6,6 +6,14 @@ public chronology.
 
 ## 2026-08-28
 
+### OT-159 pre-consumption Noise XK radio blockage
+
+- Both anonymous nodes passed direct exact-Trail application readback and reset, and the OT-158 authority plus bound benchmark and restoration artifacts validated.
+- Both official OT-157-bound preflight attempts failed before the exclusive journal, benchmark write, radio operation, execution receipt, or recovery receipt. The deterministic host cause is a file-hash helper shadowing the inherited byte-hash helper.
+- Focused OT-157-through-OT-159 regression validation passes 40/40, the raw-byte audit passes 258/258, the V1/V1.5 and future-concepts suites pass 16 and 9 groups, and the complete Windows Host matrix exits 0.
+- The OT-158 authority remains unused and unconsumed, but its immutable binding cannot be repurposed for corrected host code. OT-160 must create the minimal host-only successor before a new bundle and fresh authority.
+- No benchmark or radio result, selection, Phase 2 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. No website update is required. See [Decision 0095](decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md), [evidence](../tests/hardware/OT-159-2026-08-28.md), and the [sanitized blockage record](../tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json).
+
 ### OT-158 one-attempt reset-aware Noise XK radio authority
 
 - Accepted the owner-approved, host-only `OT158NXRA0` authority for the exact OT-157 reset-aware executable/restoration bundle. The canonical record is 4,545 bytes with raw SHA-256 `b696598cfdd71d04c2685dc50d74da5cd435ff064a6c1c5ffa985e490f4070f1` and canonical payload SHA-256 `1cc9b0965cec4ffc5eab87d0045aa5ee5e73e65d75e204ca338cfb2b8ffeac0d`.

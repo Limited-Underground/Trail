@@ -283,6 +283,10 @@ tests/hardware/OT-158-2026-08-28.md|3086|aa2b528c5415168534965f1d6bfe0395185ea82
 tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json|4545|b696598cfdd71d04c2685dc50d74da5cd435ff064a6c1c5ffa985e490f4070f1|lf|lf|none|lf
 tools/ot158_noise_xk_radio_execution_authority.py|24361|1107de7f113d6df5d8a12527be3019564a8bd42b8fc4c91d24ed819046e352e8|lf|lf|none|lf
 tests/host/ot158_noise_xk_radio_execution_authority_tests.py|15012|46bdf8b88447ff0290e7eb05b06120343fae2f96ad9340fcb97bbab45165788b|lf|lf|none|lf
+docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md|3811|ac1995d4595bf89cdd163135d69fe937f7c12f05eb217e25b089f0bbe9441bc5|lf|lf|none|lf
+tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json|3523|059de31dc9dbeaa9577d816ceef73a1e0f5e039494854e730e9dfd5ceaeb3469|lf|lf|none|lf
+tests/hardware/OT-159-2026-08-28.md|4420|dffdfdc198f783768fe7b66c013deaa4686c3d471a58fcc8fd3f4bf37834dc45|lf|lf|none|lf
+tests/host/ot159_noise_xk_radio_preconsumption_blockage_tests.py|6910|963cf72665a3b5e11704fd06bc723e7079ad7e7fca7599b49bbd03714755002a|lf|lf|none|lf
 """.strip()
 
 

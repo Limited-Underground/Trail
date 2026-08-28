@@ -321,3 +321,9 @@ tests/hardware/OT-158-2026-08-28.md text eol=lf
 tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
 tests/host/ot158_noise_xk_radio_execution_authority_tests.py text eol=lf
 tools/ot158_noise_xk_radio_execution_authority.py text eol=lf
+
+# OT-159 keeps the unconsumed pre-I/O blockage record deterministic.
+docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md text eol=lf
+tests/hardware/OT-159-2026-08-28.md text eol=lf
+tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json text eol=lf
+tests/host/ot159_noise_xk_radio_preconsumption_blockage_tests.py text eol=lf
