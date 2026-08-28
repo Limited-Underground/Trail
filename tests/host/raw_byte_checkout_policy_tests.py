@@ -277,7 +277,12 @@ tools/ot157_noise_xk_radio_coordinator.py|6986|a17d4615a50d2e373ba7fab98b6bed160
 tools/ot157_noise_xk_radio_hardware_adapter.py|3935|ec744f7430627600de1491d5729d8b5874ac38977faa786df90a4d39ce2d3de8|lf|lf|none|lf
 tests/host/ot157_noise_xk_radio_bundle_tests.py|15510|1becbb62e1cd96c79c212aeedad0f6742c310e5adc218f430c9e4c8fa704f57a|lf|lf|none|lf
 tests/host/ot157_noise_xk_radio_coordinator_tests.py|18005|4855f50066282f4876fd5207a3b77cbefa73207302189988f9f16352a88fdf17|lf|lf|none|lf
-tests/host/ot157_noise_xk_radio_hardware_adapter_tests.py|8338|22cc3f6c1ea1605ee84e25874718582c7375cee1dc4857b3d370320339d3bc0a|lf|lf|none|lf
+tests/host/ot157_noise_xk_radio_hardware_adapter_tests.py|8430|5a34629839bf18a8e4fadb6298d015ca04d7ff8ef1b58333219c2fd0e7f65fe3|lf|lf|none|lf
+docs/decisions/0094-accept-ot158-noise-xk-radio-one-attempt-authority.md|3632|85ba1c6bf005d7dfe54897cf84d6a031c00d15dfae21036cfec439c3d6b96d76|lf|lf|none|lf
+tests/hardware/OT-158-2026-08-28.md|3086|aa2b528c5415168534965f1d6bfe0395185ea829e371753d9c382d18c7c2e87a|lf|lf|none|lf
+tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json|4545|b696598cfdd71d04c2685dc50d74da5cd435ff064a6c1c5ffa985e490f4070f1|lf|lf|none|lf
+tools/ot158_noise_xk_radio_execution_authority.py|24361|1107de7f113d6df5d8a12527be3019564a8bd42b8fc4c91d24ed819046e352e8|lf|lf|none|lf
+tests/host/ot158_noise_xk_radio_execution_authority_tests.py|15012|46bdf8b88447ff0290e7eb05b06120343fae2f96ad9340fcb97bbab45165788b|lf|lf|none|lf
 """.strip()
 
 

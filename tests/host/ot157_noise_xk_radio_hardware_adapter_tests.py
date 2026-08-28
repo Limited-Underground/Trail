@@ -109,30 +109,29 @@ class Tests(unittest.TestCase):
         self.assertIsNot(successor.open_radio_endpoint, frozen.open_radio_endpoint)
         self.assertTrue(adapter.runtime.frozen_sources_match())
 
-    def test_03_missing_future_authority_fails_before_backend_or_device_io(self) -> None:
+    def test_03_ot158_authority_contract_and_record_are_exact(self) -> None:
         self.assertEqual(
             adapter.FUTURE_AUTHORITY_PATH.name,
             "OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json",
         )
-        self.assertFalse(adapter.FUTURE_AUTHORITY_TOOL_PATH.is_file())
-        self.assertFalse(adapter.FUTURE_AUTHORITY_PATH.is_file())
-        factory = mock.Mock()
-        code, stdout, stderr = self.run_main(
-            [
-                "--port-a", PORT_A,
-                "--port-b", PORT_B,
-                "--benchmark-app", "C:/PRIVATE/ot153_noise_xk_radio_cost.bin",
-                "--restore-app", "C:/PRIVATE/opentrail_heltec_v4_bench.bin",
-                "--execute", "--visual-preflight-confirmed",
-            ],
-            factory=factory,
-            authority_loader=adapter._load_authority_contract,
+        self.assertTrue(adapter.FUTURE_AUTHORITY_TOOL_PATH.is_file())
+        self.assertTrue(adapter.FUTURE_AUTHORITY_PATH.is_file())
+        contract = adapter._load_authority_contract()
+        self.assertEqual(contract.AUTHORITY_SCHEMA, "OT158NXRA0")
+        self.assertEqual(
+            contract.AUTHORITY_RELATIVE,
+            adapter.FUTURE_AUTHORITY_RELATIVE,
         )
-        self.assertEqual((code, stdout), (2, ""))
-        self.assertEqual(stderr, "ERROR: OT-153 hardware operation failed\n")
-        self.assertNotIn("PRIVATE", stderr)
-        self.assertNotIn("COM77", stderr)
-        factory.assert_not_called()
+        authority, raw = contract._load_canonical(
+            adapter.FUTURE_AUTHORITY_PATH, "authority"
+        )
+        self.assertEqual(authority["schema"], "OT158NXRA0")
+        self.assertEqual(authority["authority_id"], contract.AUTHORITY_ID)
+        self.assertEqual(raw, contract.canonical_document(authority))
+        self.assertTrue(authority["owner_authorization"]["granted"])
+        self.assertEqual(authority["execution"]["attempt_count"], 1)
+        self.assertFalse(authority["consumption"]["reusable"])
+        self.assertTrue(all(value is False for value in authority["claims"].values()))
 
     def test_04_fake_future_gate_composes_ot157_coordinator_and_same_backend(self) -> None:
         created: list[FakeBackend] = []

@@ -1551,8 +1551,17 @@ schemas and filenames, the unchanged OT-153 firmware, and the exact Trail
 restoration application. Independent restoration remains unconditional, and
 only the sixteen allowlisted OT-156 stages may enter sanitized failure records.
 The bundle grants no device, reset, flash, radio, benchmark, or execution
-authority. OT-158 is the separate fresh explicit non-reusable one-attempt
-authority gate.
+authority. OT-158 separately accepts the fresh explicit `OT158NXRA0`
+non-reusable authority without executing it. The authority binds the exact
+OT-157 preparation, benchmark and Trail applications, OT-156 reset-aware
+runner/runtime, OT-157 restoration-safe coordinator and concrete adapter,
+anonymous roles, and fresh workspace-local one-use state. It permits exactly
+one two-node application-only attempt: 14 transmissions carrying 736 radio
+payload bytes across both role directions, with one baseline and one forced
+whole-handshake restart per direction. Success or abort consumes the authority;
+it is non-reusable and grants no continuation. OT-159 is the sole permitted
+execution step, and every touched node must be restored, read back, and
+hard-reset exactly to Trail.
 
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and

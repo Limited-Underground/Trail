@@ -2369,6 +2369,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OT-157 reset-aware Noise XK bundle tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\ot158_noise_xk_radio_execution_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT158NXRA0 reset-aware Noise XK radio preparation/authority tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_matched_resource_accounting_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OTMRAC1/OTMRAR1 matched-resource successor tests failed with exit code {0}.' -f $LASTEXITCODE)

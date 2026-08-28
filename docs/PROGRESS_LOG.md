@@ -6,6 +6,13 @@ public chronology.
 
 ## 2026-08-28
 
+### OT-158 one-attempt reset-aware Noise XK radio authority
+
+- Accepted the owner-approved, host-only `OT158NXRA0` authority for the exact OT-157 reset-aware executable/restoration bundle. The canonical record is 4,545 bytes with raw SHA-256 `b696598cfdd71d04c2685dc50d74da5cd435ff064a6c1c5ffa985e490f4070f1` and canonical payload SHA-256 `1cc9b0965cec4ffc5eab87d0045aa5ee5e73e65d75e204ca338cfb2b8ffeac0d`.
+- The authority permits exactly one later two-node application-only attempt: both role directions, one baseline and one forced whole-handshake restart per direction, 14 transmissions, 736 radio-payload bytes, and 1,447,424 microseconds theoretical airtime. Fresh private one-use state consumes the authority on success or abort; it is non-reusable, grants no continuation, and requires exact Trail restore/readback/hard-reset of every touched node. Recovery requires no benchmark image.
+- Focused authority validation passes 10/10, the complete OT-153-through-OT-158 Noise XK chain passes 139/139, the raw-byte audit passes 254/254, and the complete Windows Host matrix passes locally with exit 0. No device, endpoint, serial, reset, flash, radio, phone, private journal, or terminal receipt operation occurred. OT-159 is the sole permitted execution step.
+- No physical OT-155 root cause, result, candidate/library/suite/handshake/KDF/Packet-v1 selection, Phase 2 or Phase 3 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. No website update is required. See [Decision 0094](decisions/0094-accept-ot158-noise-xk-radio-one-attempt-authority.md), [evidence](../tests/hardware/OT-158-2026-08-28.md), and the [canonical authority](../tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json).
+
 ### OT-157 reset-aware Noise XK executable/restoration successor
 
 - Accepted the host-only successor bundle binding the exact OT-156 runner/runtime to fresh OT-157 coordinator, adapter, journal, execution-receipt, and recovery-receipt namespaces while keeping the unchanged OT-153 firmware and exact Trail restoration application hash-locked.

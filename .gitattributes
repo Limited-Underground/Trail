@@ -314,3 +314,10 @@ tools/ot157_noise_xk_radio_hardware_adapter.py text eol=lf
 tests/host/ot157_noise_xk_radio_bundle_tests.py text eol=lf
 tests/host/ot157_noise_xk_radio_coordinator_tests.py text eol=lf
 tests/host/ot157_noise_xk_radio_hardware_adapter_tests.py text eol=lf
+
+# OT-158 freezes deterministic one-attempt reset-aware Noise XK radio authority bytes.
+docs/decisions/0094-accept-ot158-noise-xk-radio-one-attempt-authority.md text eol=lf
+tests/hardware/OT-158-2026-08-28.md text eol=lf
+tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
+tests/host/ot158_noise_xk_radio_execution_authority_tests.py text eol=lf
+tools/ot158_noise_xk_radio_execution_authority.py text eol=lf
