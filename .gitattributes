@@ -303,3 +303,14 @@ tools/ot156_noise_xk_radio_runner.py text eol=lf
 tools/ot156_noise_xk_radio_runtime.py text eol=lf
 tests/host/ot156_noise_xk_radio_runner_tests.py text eol=lf
 tests/host/ot156_noise_xk_radio_runtime_tests.py text eol=lf
+
+# OT-157 freezes deterministic reset-aware Noise XK bundle bytes.
+docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md text eol=lf
+tests/hardware/OT-157-2026-08-28.md text eol=lf
+tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json text eol=lf
+tools/ot157_noise_xk_radio_bundle.py text eol=lf
+tools/ot157_noise_xk_radio_coordinator.py text eol=lf
+tools/ot157_noise_xk_radio_hardware_adapter.py text eol=lf
+tests/host/ot157_noise_xk_radio_bundle_tests.py text eol=lf
+tests/host/ot157_noise_xk_radio_coordinator_tests.py text eol=lf
+tests/host/ot157_noise_xk_radio_hardware_adapter_tests.py text eol=lf

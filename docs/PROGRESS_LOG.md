@@ -4,6 +4,15 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-28
+
+### OT-157 reset-aware Noise XK executable/restoration successor
+
+- Accepted the host-only successor bundle binding the exact OT-156 runner/runtime to fresh OT-157 coordinator, adapter, journal, execution-receipt, and recovery-receipt namespaces while keeping the unchanged OT-153 firmware and exact Trail restoration application hash-locked.
+- Independent success/failure/`BaseException` restoration remains unconditional. Only sixteen allowlisted OT-156 failure stages may enter sanitized receipts; unknown or private error detail remains suppressed.
+- Focused OT-157 suites pass 22/22, OT-156 suites pass 17/17, the frozen OT-153 chain passes 75/75, the authoritative raw-byte audit passes, and the complete Windows Host matrix passes locally with exit 0.
+- No hardware, authority, radio attempt, result, selection, Phase 2 completion, readiness, support, release, regulatory, score, or website status changes. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. OT-158 is the separate fresh explicit non-reusable one-attempt authority gate. See [Decision 0093](decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md), [evidence](../tests/hardware/OT-157-2026-08-28.md), and the [canonical preparation](../tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json).
+
 ## 2026-08-27
 
 ### OT-156 reset-aware Noise XK radio host correction

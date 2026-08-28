@@ -1542,9 +1542,17 @@ self-test, boot, profile, status, command-list, and profile-echo contract before
 any radio verb. Sixteen allowlisted stage codes contain all successor failures,
 and the successful fixed-token result plus complete command stream remain exact
 to the immutable OT-153 happy path. This is host evidence of the corrected
-lifecycle, not proof of the physical OT-155 root cause. OT-157 must freeze new
-coordinator/adapter bindings and a fresh executable/restoration bundle before a
-later task may accept fresh authority.
+lifecycle, not proof of the physical OT-155 root cause.
+
+OT-157 freezes that corrected lifecycle into a host-only executable/restoration
+successor. It hash-locks the exact OT-156 runner and reconnectable runtime, fresh
+OT-157 coordinator and adapter bindings, separate journal/execution/recovery
+schemas and filenames, the unchanged OT-153 firmware, and the exact Trail
+restoration application. Independent restoration remains unconditional, and
+only the sixteen allowlisted OT-156 stages may enter sanitized failure records.
+The bundle grants no device, reset, flash, radio, benchmark, or execution
+authority. OT-158 is the separate fresh explicit non-reusable one-attempt
+authority gate.
 
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and

@@ -103,8 +103,9 @@
         ,"docs/decisions/0087-record-ot150-abort-and-correct-mbedtls-psa-successor.md", "tests/benchmarks/crypto/OT-151-OT005-MBEDTLS-PSA-EXECUTION-ABORT-RECEIPT-V0.json", "tests/hardware/OT-151-2026-08-27.md"
         ,"docs/decisions/0088-prepare-noise-xk-radio-cost-measurement.md", "tests/benchmarks/crypto/OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V0.json", "tests/hardware/OT-152-2026-08-27.md", "docs/decisions/0089-freeze-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-153-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-153-2026-08-27.md", "docs/decisions/0090-accept-ot154-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-154-2026-08-27.md"
         ,"docs/decisions/0091-record-ot155-noise-xk-radio-execution-abort.md", "tests/benchmarks/crypto/OT-155-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json", "tests/hardware/OT-155-2026-08-27.md", "docs/decisions/0092-accept-ot156-reset-aware-noise-xk-radio-host-correction.md", "tests/hardware/OT-156-2026-08-27.md"
+        ,"docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-157-2026-08-28.md"
       ],
-      "next_gate": "Freeze the OT-157 fresh immutable executable/restoration bundle around the accepted OT-156 runner/runtime and successor coordinator/adapter bindings, then accept fresh non-reusable authority before any further radio attempt; separately freeze and authorize the corrected OT-151 mbedTLS/PSA successor, then complete the remaining gates and Phase 3 admission."
+      "next_gate": "Accept a separate fresh explicit non-reusable OT-158 authority bound to the exact OT-157 executable/restoration bundle before any further radio attempt; separately freeze and authorize the corrected OT-151 mbedTLS/PSA successor, then complete the remaining gates and Phase 3 admission."
     },
     {
       "id": "core-firmware",
@@ -204,8 +205,9 @@
         ,"docs/decisions/0087-record-ot150-abort-and-correct-mbedtls-psa-successor.md", "tests/benchmarks/crypto/OT-151-OT005-MBEDTLS-PSA-EXECUTION-ABORT-RECEIPT-V0.json", "tests/hardware/OT-151-2026-08-27.md"
         ,"docs/decisions/0088-prepare-noise-xk-radio-cost-measurement.md", "tests/benchmarks/crypto/OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V0.json", "tests/hardware/OT-152-2026-08-27.md", "docs/decisions/0089-freeze-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-153-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-153-2026-08-27.md", "docs/decisions/0090-accept-ot154-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-154-2026-08-27.md"
         ,"docs/decisions/0091-record-ot155-noise-xk-radio-execution-abort.md", "tests/benchmarks/crypto/OT-155-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json", "tests/hardware/OT-155-2026-08-27.md", "docs/decisions/0092-accept-ot156-reset-aware-noise-xk-radio-host-correction.md", "tests/hardware/OT-156-2026-08-27.md"
+        ,"docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-157-2026-08-28.md"
       ],
-      "next_gate": "Freeze the OT-157 fresh immutable executable/restoration bundle around the accepted OT-156 runner/runtime and successor coordinator/adapter bindings, then accept fresh non-reusable authority before any further radio attempt; separately freeze and authorize the corrected OT-151 mbedTLS/PSA successor, while LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
+      "next_gate": "Accept a separate fresh explicit non-reusable OT-158 authority bound to the exact OT-157 executable/restoration bundle before any further radio attempt; separately freeze and authorize the corrected OT-151 mbedTLS/PSA successor, while LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
     },
     {
       "id": "first-complete-unit",
@@ -284,8 +286,9 @@
             ,"docs/decisions/0087-record-ot150-abort-and-correct-mbedtls-psa-successor.md", "tests/benchmarks/crypto/OT-151-OT005-MBEDTLS-PSA-EXECUTION-ABORT-RECEIPT-V0.json", "tests/hardware/OT-151-2026-08-27.md"
             ,"docs/decisions/0088-prepare-noise-xk-radio-cost-measurement.md", "tests/benchmarks/crypto/OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V0.json", "tests/hardware/OT-152-2026-08-27.md", "docs/decisions/0089-freeze-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-153-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-153-2026-08-27.md", "docs/decisions/0090-accept-ot154-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-154-2026-08-27.md"
             ,"docs/decisions/0091-record-ot155-noise-xk-radio-execution-abort.md", "tests/benchmarks/crypto/OT-155-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json", "tests/hardware/OT-155-2026-08-27.md", "docs/decisions/0092-accept-ot156-reset-aware-noise-xk-radio-host-correction.md", "tests/hardware/OT-156-2026-08-27.md"
+            ,"docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-157-2026-08-28.md"
           ],
-          "next_gate": "Freeze the OT-157 fresh immutable executable/restoration bundle around the accepted OT-156 runner/runtime and successor coordinator/adapter bindings, then accept fresh non-reusable authority before any further radio attempt; separately freeze and authorize the corrected OT-151 mbedTLS/PSA successor, then complete the remaining gates and Phase 3 admission."
+          "next_gate": "Accept a separate fresh explicit non-reusable OT-158 authority bound to the exact OT-157 executable/restoration bundle before any further radio attempt; separately freeze and authorize the corrected OT-151 mbedTLS/PSA successor, then complete the remaining gates and Phase 3 admission."
         },
         {
           "id": "core-firmware",
@@ -349,8 +352,9 @@
             ,"docs/decisions/0087-record-ot150-abort-and-correct-mbedtls-psa-successor.md", "tests/benchmarks/crypto/OT-151-OT005-MBEDTLS-PSA-EXECUTION-ABORT-RECEIPT-V0.json", "tests/hardware/OT-151-2026-08-27.md"
             ,"docs/decisions/0088-prepare-noise-xk-radio-cost-measurement.md", "tests/benchmarks/crypto/OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V0.json", "tests/hardware/OT-152-2026-08-27.md", "docs/decisions/0089-freeze-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-153-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-153-2026-08-27.md", "docs/decisions/0090-accept-ot154-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-154-2026-08-27.md"
             ,"docs/decisions/0091-record-ot155-noise-xk-radio-execution-abort.md", "tests/benchmarks/crypto/OT-155-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json", "tests/hardware/OT-155-2026-08-27.md", "docs/decisions/0092-accept-ot156-reset-aware-noise-xk-radio-host-correction.md", "tests/hardware/OT-156-2026-08-27.md"
+            ,"docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-157-2026-08-28.md"
           ],
-          "next_gate": "Freeze the OT-157 fresh immutable executable/restoration bundle around the accepted OT-156 runner/runtime and successor coordinator/adapter bindings, then accept fresh non-reusable authority before any further radio attempt; separately freeze and authorize the corrected OT-151 mbedTLS/PSA successor, while LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
+          "next_gate": "Accept a separate fresh explicit non-reusable OT-158 authority bound to the exact OT-157 executable/restoration bundle before any further radio attempt; separately freeze and authorize the corrected OT-151 mbedTLS/PSA successor, while LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
         },
         {
           "id": "android-companion",
@@ -402,8 +406,9 @@
             ,"docs/decisions/0077-classify-monocypher-boot-control-transport-conflict.md", "tests/hardware/OT-138-2026-08-25.md", "docs/decisions/0078-accept-reproducible-monocypher-quiet-target.md", "tests/hardware/OT-139-2026-08-25.md", "tests/benchmarks/crypto/OT-139-OT005-MONOCYPHER-QUIET-TARGET-BUILD-EVIDENCE-V0.json", "docs/decisions/0079-freeze-ot140-quiet-target-bundle-and-authority.md", "tests/hardware/OT-140-2026-08-25.md", "tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/benchmarks/crypto/OT-140-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot142_corrected/main/app_main.c", "tests/host/monocypher_real_ed25519_vector_tests.cpp", "tests/host/ot142_monocypher_corrected_target_tests.py", "docs/decisions/0080-freeze-ot143-corrected-target-bundle-and-authority.md", "tests/hardware/OT-143-2026-08-26.md", "tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-CORRECTED-TARGET-BUILD-EVIDENCE-V0.json", "tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/benchmarks/crypto/OT-143-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json", "docs/decisions/0081-correct-ot143-runtime-binding-before-hardware.md", "tests/hardware/OT-144-2026-08-26.md", "tests/benchmarks/crypto/OT-144-OT005-MONOCYPHER-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "docs/decisions/0082-accept-ot145-one-attempt-authority.md", "tests/hardware/OT-145-2026-08-26.md", "tests/benchmarks/crypto/OT-144-OT005-MONOCYPHER-ONE-ATTEMPT-AUTHORITY-V0.json"
             ,"docs/decisions/0088-prepare-noise-xk-radio-cost-measurement.md", "tests/benchmarks/crypto/OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V0.json", "tests/hardware/OT-152-2026-08-27.md", "docs/decisions/0089-freeze-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-153-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-153-2026-08-27.md", "docs/decisions/0090-accept-ot154-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-154-2026-08-27.md"
             ,"docs/decisions/0091-record-ot155-noise-xk-radio-execution-abort.md", "tests/benchmarks/crypto/OT-155-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json", "tests/hardware/OT-155-2026-08-27.md", "docs/decisions/0092-accept-ot156-reset-aware-noise-xk-radio-host-correction.md", "tests/hardware/OT-156-2026-08-27.md"
+            ,"docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-157-2026-08-28.md"
           ],
-          "next_gate": "Freeze the OT-157 fresh immutable executable/restoration bundle around the accepted OT-156 runner/runtime and successor coordinator/adapter bindings, then accept fresh non-reusable authority before any further radio attempt; separately freeze and authorize the corrected OT-151 mbedTLS/PSA successor, then reconcile the remaining Phase 2 corpus and gates before Phase 3 admission and explicit selection."
+          "next_gate": "Accept a separate fresh explicit non-reusable OT-158 authority bound to the exact OT-157 executable/restoration bundle before any further radio attempt; separately freeze and authorize the corrected OT-151 mbedTLS/PSA successor, then reconcile the remaining Phase 2 corpus and gates before Phase 3 admission and explicit selection."
         }
       ],
       "change_log": [
@@ -809,6 +814,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Accepted OT-156 as the host-only reset-aware successor for the consumed Noise XK path. Both restart acknowledgements precede bounded fresh opens, both post-reboot contracts precede every radio verb, stale handles cannot cross, and sixteen safe stages contain failures. The successor remains result- and command-exact to the frozen happy path. No hardware, firmware, radio attempt, result, selection, Phase 2 completion, readiness, or score claim is added. OT-157 must freeze a fresh bundle before any later authority. Every milestone completion remains unchanged: Android 60%, V1 Companion exact 43.75% / displayed 44%, and V1.5/V2 unmeasured."
+        },
+        {
+          "date": "2026-08-28",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted OT-157 as the host-only reset-aware Noise XK executable/restoration successor bundle. The exact OT-156 runner/runtime, fresh OT-157 coordinator/adapter/private namespaces, unchanged OT-153 firmware, and exact Trail restoration application are hash-locked; focused and complete Host validation pass. OT-157 grants no authority and adds no hardware, radio attempt, result, selection, Phase 2 completion, readiness, or score claim. OT-158 is the separate fresh one-attempt authority gate. Every milestone completion remains unchanged: Android 60%, V1 Companion exact 43.75% / displayed 44%, and V1.5/V2 unmeasured."
         }
     ]
     },
@@ -1179,6 +1190,11 @@
       "date": "2026-08-27",
       "overall": 32,
       "reason": "Accepted OT-156 as a host-only reset-aware successor with bounded fresh opens, stale-handle isolation, both post-reboot contracts before radio, privacy-safe failure stages, and an exact unchanged successful command/result contract. No physical attempt, result, selection, Phase 2 completion, readiness, or historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
+    },
+    {
+      "date": "2026-08-28",
+      "overall": 32,
+      "reason": "Accepted OT-157 as a host-only executable/restoration successor that hash-locks the corrected lifecycle, fresh private namespace, unchanged benchmark firmware, and exact Trail restoration application. No authority, physical attempt, result, selection, Phase 2 completion, readiness, or historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
     }
   ]
 }
