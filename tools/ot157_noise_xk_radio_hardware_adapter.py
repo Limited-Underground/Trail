@@ -22,7 +22,7 @@ FROZEN_ADAPTER_PATH = ROOT / "tools" / "ot153_noise_xk_radio_hardware_adapter.py
 COORDINATOR_PATH = ROOT / "tools" / "ot157_noise_xk_radio_coordinator.py"
 RUNTIME_PATH = ROOT / "tools" / "ot156_noise_xk_radio_runtime.py"
 FROZEN_ADAPTER_SHA256 = "d84aa9a1c0556f6421141a25336a3e87dab054cc971722b3f8058fe0a254f94b"
-COORDINATOR_SHA256 = "77146ca802d75338edfc67fdbb353ad169d4e9de9f6f85c4f3cbbd21fc28282e"
+COORDINATOR_SHA256 = "a17d4615a50d2e373ba7fab98b6bed160e6b24e291aac2ec83f0fa19d1479db1"
 RUNTIME_SHA256 = "bcdb1a772971aa665be699c2699a2b69625c4e8bd2352abd21811be0a4295dd8"
 
 FUTURE_AUTHORITY_TOOL_PATH = ROOT / "tools" / "ot158_noise_xk_radio_execution_authority.py"

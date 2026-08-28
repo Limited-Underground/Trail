@@ -32,7 +32,8 @@ bytes would add risk without changing the correction boundary.
    and schemas. The exact private root is created with a bounded non-recursive
    operation when absent, then the live inherited paths are validated for
    identity and reparse/symlink ancestry before use. Consumed OT-153/OT-154
-   state cannot authorize or resume OT-157.
+   state cannot authorize or resume OT-157. Resolution, creation, reparse, and
+   identity errors all fail closed before authority validation or device I/O.
 5. Preserve OT-156 ordering: both `RESTART` acknowledgements precede either
    reopen; old handles and queues are discarded; each reopen is bounded; and
    both complete post-reboot contracts precede every radio verb.
@@ -60,7 +61,7 @@ public website status update.
 
 ## Validation state
 
-- OT-157 focused bundle/coordinator/adapter suites: 22/22 passed.
+- OT-157 focused bundle/coordinator/adapter suites: 23/23 passed.
 - OT-156 reset-aware runtime/runner suites: 17/17 passed.
 - Frozen OT-153 target/runner/bundle/coordinator/adapter chain: 75/75 passed.
 - Authoritative raw-byte audit passed with all registered OT-157 files exact.

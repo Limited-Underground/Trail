@@ -194,6 +194,23 @@ class Fixture:
 
 
 class Tests(unittest.TestCase):
+    def assert_invalid_configuration_has_no_side_effects(
+        self, fixture: Fixture
+    ) -> None:
+        with self.assertRaises(coordinator.CoordinatorError) as caught:
+            coordinator.execute(fixture.config, fixture.backend, fixture.authority)
+        self.assertEqual(
+            caught.exception.code, coordinator.FailureCode.INVALID_CONFIGURATION
+        )
+        self.assertEqual(fixture.authority.calls, [])
+        self.assertEqual(fixture.backend.events, [])
+        rendered = "".join(traceback.format_exception(caught.exception))
+        self.assertNotIn("PRIVATE", rendered)
+        self.assertNotIn("COM77", rendered)
+        self.assertNotIn("secret-path", rendered)
+        self.assertIsNone(caught.exception.__cause__)
+        self.assertIsNone(caught.exception.__context__)
+
     def success(self, fixture: Fixture):
         with (
             mock.patch.object(
@@ -356,6 +373,39 @@ class Tests(unittest.TestCase):
             self.assertIsNone(caught.exception.__context__)
             for endpoint in fixture.endpoints:
                 self.assertEqual(fixture.backend.current[endpoint], RESTORE_PAYLOAD)
+
+    def test_07_private_path_failures_are_sanitized_before_authority_or_device(self) -> None:
+        cases = (
+            (
+                "resolve_runtime_error",
+                lambda: mock.patch.object(
+                    Path,
+                    "resolve",
+                    side_effect=RuntimeError("PRIVATE COM77 secret-path"),
+                ),
+            ),
+            (
+                "mkdir_os_error",
+                lambda: mock.patch.object(
+                    Path,
+                    "mkdir",
+                    side_effect=OSError("PRIVATE COM77 secret-path"),
+                ),
+            ),
+            (
+                "reparse_or_link",
+                lambda: mock.patch.object(
+                    base, "_has_reparse_or_symlink_ancestry", return_value=True
+                ),
+            ),
+        )
+        for label, patcher in cases:
+            with self.subTest(case=label), Fixture() as fixture, patcher():
+                self.assert_invalid_configuration_has_no_side_effects(fixture)
+
+        with self.subTest(case="private_root_is_file"), Fixture() as fixture:
+            fixture.private.write_text("PRIVATE COM77 secret-path", encoding="ascii")
+            self.assert_invalid_configuration_has_no_side_effects(fixture)
 
 
 if __name__ == "__main__":
