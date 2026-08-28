@@ -76,20 +76,32 @@ frozen.RECEIPT_SCHEMA = RECEIPT_SCHEMA
 
 
 def _private_paths_valid() -> bool:
+    root = frozen.ROOT
+    private_root = frozen.PRIVATE_ROOT
     expected = {
-        JOURNAL_PATH: "ot157-noise-xk-radio-execution-journal.json",
-        EXECUTION_RECEIPT_PATH: "ot157-noise-xk-radio-execution-receipt.json",
-        RECOVERY_RECEIPT_PATH: "ot157-noise-xk-radio-recovery-receipt.json",
+        frozen.JOURNAL_PATH: "ot157-noise-xk-radio-execution-journal.json",
+        frozen.EXECUTION_RECEIPT_PATH: "ot157-noise-xk-radio-execution-receipt.json",
+        frozen.RECOVERY_RECEIPT_PATH: "ot157-noise-xk-radio-recovery-receipt.json",
     }
     paths = tuple(expected)
+    if (
+        not root.is_absolute()
+        or not private_root.is_absolute()
+        or private_root.name != ".private"
+        or private_root.parent.resolve() != root.resolve()
+    ):
+        return False
+    try:
+        private_root.mkdir(mode=0o700, parents=False, exist_ok=True)
+    except OSError:
+        return False
     return (
-        PRIVATE_ROOT.is_absolute()
-        and PRIVATE_ROOT.is_dir()
-        and not frozen._has_reparse_or_symlink_ancestry(PRIVATE_ROOT, ROOT)
+        private_root.is_dir()
+        and not frozen._has_reparse_or_symlink_ancestry(private_root, root)
         and len({path.resolve() for path in paths}) == len(paths)
         and all(
             path.is_absolute()
-            and path.parent.resolve() == PRIVATE_ROOT.resolve()
+            and path.parent.resolve() == private_root.resolve()
             and path.name == name
             for path, name in expected.items()
         )

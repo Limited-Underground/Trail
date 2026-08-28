@@ -29,7 +29,10 @@ bytes would add risk without changing the correction boundary.
    `0x10000`, with independent restore write, readback, and reset for every
    benchmark-touched node on success, failure, or `BaseException`.
 4. Give OT-157 separate journal, execution-receipt, and recovery-receipt paths
-   and schemas. Consumed OT-153/OT-154 state cannot authorize or resume OT-157.
+   and schemas. The exact private root is created with a bounded non-recursive
+   operation when absent, then the live inherited paths are validated for
+   identity and reparse/symlink ancestry before use. Consumed OT-153/OT-154
+   state cannot authorize or resume OT-157.
 5. Preserve OT-156 ordering: both `RESTART` acknowledgements precede either
    reopen; old handles and queues are discarded; each reopen is bounded; and
    both complete post-reboot contracts precede every radio verb.

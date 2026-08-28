@@ -120,7 +120,6 @@ class Fixture:
         self.temporary = tempfile.TemporaryDirectory(prefix="ot157-coordinator-")
         self.root = Path(self.temporary.name).resolve()
         self.private = self.root / ".private"
-        self.private.mkdir()
         self.benchmark = self.root / BENCHMARK_NAME
         self.restore = self.root / coordinator.RESTORE_NAME
         self.benchmark.write_bytes(BENCHMARK_PAYLOAD)
@@ -151,6 +150,23 @@ class Fixture:
         self.stack = contextlib.ExitStack()
 
     def __enter__(self):
+        self.stack.enter_context(mock.patch.object(coordinator, "ROOT", self.root))
+        self.stack.enter_context(mock.patch.object(coordinator, "PRIVATE_ROOT", self.private))
+        self.stack.enter_context(mock.patch.object(
+            coordinator,
+            "JOURNAL_PATH",
+            self.private / "ot157-noise-xk-radio-execution-journal.json",
+        ))
+        self.stack.enter_context(mock.patch.object(
+            coordinator,
+            "EXECUTION_RECEIPT_PATH",
+            self.private / "ot157-noise-xk-radio-execution-receipt.json",
+        ))
+        self.stack.enter_context(mock.patch.object(
+            coordinator,
+            "RECOVERY_RECEIPT_PATH",
+            self.private / "ot157-noise-xk-radio-recovery-receipt.json",
+        ))
         self.stack.enter_context(mock.patch.object(base, "ROOT", self.root))
         self.stack.enter_context(mock.patch.object(base, "PRIVATE_ROOT", self.private))
         self.stack.enter_context(mock.patch.object(
@@ -213,10 +229,13 @@ class Tests(unittest.TestCase):
         self.assertIs(coordinator.execute, base.execute)
         self.assertIs(coordinator.recover, base.recover)
         self.assertIs(coordinator._restore_touched, base._restore_touched)
-        self.assertTrue(
-            base._private_paths_valid(),
-            "fresh OT-157 private filenames must pass the inherited configuration gate",
-        )
+        with Fixture() as fixture:
+            self.assertFalse(fixture.private.exists())
+            self.assertTrue(
+                base._private_paths_valid(),
+                "fresh OT-157 private filenames must pass the inherited configuration gate",
+            )
+            self.assertTrue(fixture.private.is_dir())
         self.assertEqual(coordinator.RESTORE_BYTES, 500_944)
         self.assertEqual(
             coordinator.RESTORE_SHA256,
