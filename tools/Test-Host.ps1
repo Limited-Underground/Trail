@@ -2339,6 +2339,21 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OT153NXHA0 Noise XK hardware adapter tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\ot155_noise_xk_radio_abort_record_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT155NXAR0 Noise XK radio abort-record tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot156_noise_xk_radio_runtime_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-156 reset-aware Noise XK runtime tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot156_noise_xk_radio_runner_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-156 reset-aware Noise XK runner tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_matched_resource_accounting_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OTMRAC1/OTMRAR1 matched-resource successor tests failed with exit code {0}.' -f $LASTEXITCODE)

@@ -26,6 +26,38 @@ Every concept uses these fields:
 planning. It does not mean the concept is scheduled, implemented, available,
 supported, or physically accepted.
 
+## Logo-first idle display and button-driven status pages
+
+- **Name:** Logo-first idle display and button-driven status pages
+- **Summary:** After a successful boot, retain the existing full-screen Trail
+  logo instead of automatically replacing it with live status. A short press
+  of the designated navigation button or input while awake leaves the logo and
+  enters the first information page; later short presses cycle the defined
+  information pages. If the display is asleep, the first press wakes it while
+  preserving the current page, and only a later press navigates. Runtime status
+  continues updating while hidden and must not force a page change.
+- **Status:** accepted direction
+- **Earliest eligible milestone:** Immediately after V1 is fully functional and
+  accepted. This is the first post-V1 enhancement and is not a V1 acceptance
+  gate.
+- **Dependencies:** Select and physically validate the navigation input; define
+  the page order and display sleep/wake policy; preserve the existing full-screen
+  startup-logo and live-status contracts; distinguish short navigation presses
+  from the existing at-least-3,000-millisecond pairing hold/release gesture; and
+  add host and selected-target tests for boot, wake-only, navigation, and failure
+  precedence.
+- **Safety, privacy, and security boundaries:** Boot self-check and runtime
+  failure pages override the idle logo. Display or input failure cannot control
+  BLE or radio state. No secret or private device identifier may be displayed.
+  Pairing remains a separate deliberate hold gesture with higher priority than
+  short-press navigation.
+- **Schedule and progress boundary:** There is no implementation or delivery
+  schedule, support claim, or V1, V1.5, or V2 progress credit. No public website
+  status change is required merely for recording this direction.
+- **Decision and evidence links:** Owner direction recorded 2026-08-27. There is
+  no implementation or physical acceptance evidence yet; assign an `OT-###`
+  work item only when the enhancement is promoted into active implementation.
+
 ## Provisioning-independent public lane and Public Assistance Broadcast
 
 - **Name:** Provisioning-independent public lane and Public Assistance

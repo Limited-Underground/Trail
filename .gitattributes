@@ -289,3 +289,17 @@ firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.cpp text eol=lf
 tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
 tests/host/ot153_noise_xk_radio_execution_authority_tests.py text eol=lf
 tools/ot153_noise_xk_radio_execution_authority.py text eol=lf
+
+# OT-155 keeps the consumed OT-154 authority and restored radio-abort record deterministic.
+docs/decisions/0091-record-ot155-noise-xk-radio-execution-abort.md text eol=lf
+tests/benchmarks/crypto/OT-155-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json text eol=lf
+tests/hardware/OT-155-2026-08-27.md text eol=lf
+tests/host/ot155_noise_xk_radio_abort_record_tests.py text eol=lf
+
+# OT-156 freezes deterministic reset-aware Noise XK host-correction bytes.
+docs/decisions/0092-accept-ot156-reset-aware-noise-xk-radio-host-correction.md text eol=lf
+tests/hardware/OT-156-2026-08-27.md text eol=lf
+tools/ot156_noise_xk_radio_runner.py text eol=lf
+tools/ot156_noise_xk_radio_runtime.py text eol=lf
+tests/host/ot156_noise_xk_radio_runner_tests.py text eol=lf
+tests/host/ot156_noise_xk_radio_runtime_tests.py text eol=lf

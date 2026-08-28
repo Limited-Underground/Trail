@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static governance tests for the post-V2 future-concepts register."""
+"""Static governance tests for the post-release future-concepts register."""
 
 from __future__ import annotations
 
@@ -56,6 +56,7 @@ def test_required_register_structure_and_status_vocabulary() -> None:
     )
     entries = concept_entries(text)
     assert [title for title, _ in entries] == [
+        "Logo-first idle display and button-driven status pages",
         "Provisioning-independent public lane and Public Assistance Broadcast"
     ]
     statuses = []
@@ -67,7 +68,7 @@ def test_required_register_structure_and_status_vocabulary() -> None:
         assert len(entry_statuses) == 1
         assert entry_statuses[0] in ALLOWED_STATUSES
         statuses.extend(entry_statuses)
-    assert statuses == ["accepted direction"]
+    assert statuses == ["accepted direction", "accepted direction"]
     for allowed in sorted(ALLOWED_STATUSES):
         assert f"`{allowed}`" in text
 
@@ -189,7 +190,7 @@ def test_navigation_status_backlog_and_progress_remain_coherent() -> None:
         ROOT / "docs" / "README.md": "FUTURE_CONCEPTS.md",
         ROOT / "docs" / "PROJECT_STATUS.md": "Decision 0036",
         ROOT / "docs" / "PROGRESS_LOG.md": "OT-092 post-V2 future-concepts",
-        ROOT / "tasks" / "BACKLOG.md": "## Post-V2 options",
+        ROOT / "tasks" / "BACKLOG.md": "## Post-release options",
     }
     for path, expected in references.items():
         assert expected in path.read_text(encoding="utf-8"), (path, expected)

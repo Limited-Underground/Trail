@@ -1523,6 +1523,29 @@ authority; it is non-reusable and grants no continuation. OT-155 is the sole
 permitted execution step, and every touched node must be restored, read back,
 and hard-reset exactly to Trail.
 
+OT-155 consumes that sole authority on a fail-closed abort. Both anonymous
+nodes pass installed-Trail preflight/reset, benchmark application readback, and
+benchmark reset before the coordinator invokes the radio path. No radio result
+passes validation. The unconditional restoration boundary then restores,
+readbacks, and hard-resets both touched nodes exactly to Trail, so recovery is
+not required. The frozen OT-153 boundary maps endpoint-open, runner, and result-
+validation exceptions to the same `radio_run_failed` code; OT-155 therefore
+does not establish an exact failure substage or root cause.
+
+OT-156 supplies the separate host-only successor without rewriting that
+history. Both anonymous `RESTART` acknowledgements are validated before either
+obsolete serial handle is closed and reopened. Each post-restart reopen waits
+150 milliseconds, retries a fresh DTR/RTS-low handle every 250 milliseconds for
+at most 15 seconds, and cannot admit queued data from the prior handle; initial
+opens remain bounded to 10 seconds. Both nodes must then pass the exact stale-
+self-test, boot, profile, status, command-list, and profile-echo contract before
+any radio verb. Sixteen allowlisted stage codes contain all successor failures,
+and the successful fixed-token result plus complete command stream remain exact
+to the immutable OT-153 happy path. This is host evidence of the corrected
+lifecycle, not proof of the physical OT-155 root cause. OT-157 must freeze new
+coordinator/adapter bindings and a fresh executable/restoration bundle before a
+later task may accept fresh authority.
+
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and
 one canonical message through the existing logger. Generation values and all

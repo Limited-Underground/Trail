@@ -6,6 +6,20 @@ public chronology.
 
 ## 2026-08-27
 
+### OT-156 reset-aware Noise XK radio host correction
+
+- Accepted a host-only successor that validates both anonymous `RESTART` acknowledgements before reopening either endpoint, discards stale handles and queued receipts, uses bounded fresh opens, and requires both complete post-reboot contracts before any radio verb.
+- Initial open is bounded to 10 seconds; each post-restart reopen waits 150 milliseconds and retries every 250 milliseconds for at most 15 seconds with DTR/RTS false before open. Sixteen allowlisted stage codes contain private failure detail.
+- Adversarial OT-156 runtime/runner suites pass 17/17. The frozen OT-153 runner/adapter/coordinator/authority regression chain passes 52/52, and the complete Windows Host matrix passes locally with exit 0. Fixed-token result bytes and complete command order/count remain exact to the frozen happy path, with no duplication.
+- This proves the corrected host lifecycle, not the physical OT-155 root cause. No hardware, firmware, radio attempt, result, selection, Phase 2 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. OT-157 is the fresh executable/restoration bundle gate. No website update is required. See [Decision 0092](decisions/0092-accept-ot156-reset-aware-noise-xk-radio-host-correction.md) and [evidence](../tests/hardware/OT-156-2026-08-27.md).
+
+### OT-155 consumed Noise XK radio abort and exact restoration
+
+- Executed the sole OT-154-authorized attempt only after both anonymous nodes passed exact installed-Trail readback/reset. Both nodes then passed benchmark application readback/reset before the bound radio path was invoked.
+- The attempt failed closed as `radio_run_failed`; `radio_run_invoked` is true and `radio_result_validated` is false. The frozen OT-153 boundary does not preserve an exact safe substage, so no endpoint-open, restart, host, USB, firmware, or physical-radio root cause is claimed.
+- The unconditional restoration boundary restored, read back, and hard-reset both touched nodes exactly to Trail. Restoration is complete, no recovery is required, and the OT-154 authority is consumed and non-reusable.
+- No radio result, transmission count, timing, selection, Phase 2 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. OT-156 is the separate host-only reset/reconnect correction gate. No website update is required. See [Decision 0091](decisions/0091-record-ot155-noise-xk-radio-execution-abort.md), [evidence](../tests/hardware/OT-155-2026-08-27.md), and the [sanitized receipt](../tests/benchmarks/crypto/OT-155-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json).
+
 ### OT-154 one-attempt Noise XK radio authority
 
 - Accepted the explicitly owner-approved, host-only `OT154NXRA0` authority for the unchanged OT-153 executable/restoration bundle. The canonical record is 3,330 bytes with raw SHA-256 `d792bd6814d03a196f74fdda5a675386e74b02e7e65335892a57f51a7dc5beb0` and canonical payload SHA-256 `490abc8717f5593a137e87d6e359e4372a4c120b782f10bacd557298cd4d61e6`.

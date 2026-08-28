@@ -259,6 +259,16 @@ tools/ot153_noise_xk_radio_runner.py|29335|8b20512bf25f06247bb59defa092b8db82fde
 tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json|3330|d792bd6814d03a196f74fdda5a675386e74b02e7e65335892a57f51a7dc5beb0|lf|lf|none|lf
 tests/host/ot153_noise_xk_radio_execution_authority_tests.py|13812|e502ad0a4f7ff5c8a2a53bf315e71a1b26f8c327eb038c04c9154824d156d6ee|lf|lf|none|lf
 tools/ot153_noise_xk_radio_execution_authority.py|20669|2218d33c7e879c98faedd53f23375ea4885dfd08075a8cc0e34925f63191d4f0|lf|lf|none|lf
+docs/decisions/0091-record-ot155-noise-xk-radio-execution-abort.md|3398|0118cb4b9a84e2842c88fe06c7d949e5dec143833f146cffdcccb3379bc24598|lf|lf|none|lf
+tests/benchmarks/crypto/OT-155-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json|2860|ae18a4bcc6f43b227ea7169dd3b77828d16440b7ca8216e64d0f4d39bf57d8de|lf|lf|none|lf
+tests/hardware/OT-155-2026-08-27.md|3793|261387375eb60a60eedf7f3330356f49989703c1916ff693d34ba0fa3479aa87|lf|lf|none|lf
+tests/host/ot155_noise_xk_radio_abort_record_tests.py|4353|1ebab659c549cdf6ee1133a89b575edc1e760224de2cdfe15f148515a8e05e5e|lf|lf|none|lf
+docs/decisions/0092-accept-ot156-reset-aware-noise-xk-radio-host-correction.md|4321|da33122ab2dcd52712f7859565a74bdde039c289e20c6c475872493fe6963647|lf|lf|none|lf
+tests/hardware/OT-156-2026-08-27.md|3931|60fdfaba7fa2a691202798cb9aaabdfc31f2f37ad5a2d0f37cafaef7733e7509|lf|lf|none|lf
+tools/ot156_noise_xk_radio_runner.py|11099|81d0a329d34c20e76362b9a3f07221b77b77f02189dd06660119a02ac1700244|lf|lf|none|lf
+tools/ot156_noise_xk_radio_runtime.py|6588|bcdb1a772971aa665be699c2699a2b69625c4e8bd2352abd21811be0a4295dd8|lf|lf|none|lf
+tests/host/ot156_noise_xk_radio_runner_tests.py|10202|34a15186a9821650dc1b1e3e561b03a32f0ebe1996fb3657962126b4473b0832|lf|lf|none|lf
+tests/host/ot156_noise_xk_radio_runtime_tests.py|8782|79de8553628426ca2d0eff61cf1cc9d723a5ef61a425c3116a5499671bba6306|lf|lf|none|lf
 """.strip()
 
 
