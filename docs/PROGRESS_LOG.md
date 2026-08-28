@@ -6,6 +6,14 @@ public chronology.
 
 ## 2026-08-28
 
+### OT-161 corrected Noise XK executable/restoration bundle
+
+- Froze the exact corrected host-only bundle around the already accepted OT-160 coordinator and adapter, exact OT-156 runner/runtime, unchanged OT-153 firmware/build lineage, and exact Trail restoration application.
+- The new `OT161NXBP0` preparation adds no fresh coordinator, adapter, or runtime-private namespace. Runtime state remains `OT160NXJ0` / `OT160NXCR0`, and the unused OT-158 authority remains permanently bound to the defective OT-157 composition and cannot transfer.
+- The OT-161 bundle suite passes 11/11, the focused OT-153/157/160/161 chain passes 46/46, the authoritative raw-byte checkout audit passes 269/269, and the complete Windows Host matrix passes locally with exit 0.
+- OT-161 creates no authority and touches no hardware. OT-162 must separately accept fresh explicit non-reusable authority before any corrected hardware execution.
+- No result, selection, Phase 2 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. No website update is required. See [Decision 0097](decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md), [evidence](../tests/hardware/OT-161-2026-08-28.md), and the [canonical preparation](../tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json).
+
 ### OT-160 Noise XK hash-helper host correction
 
 - Accepted the minimal host-only successor that separates `_source_sha256(Path)` source locks from the unchanged inherited `_sha256(bytes)` application-readback contract, with fresh OT-160 private-state names and both inherited adapter paths rebound to the corrected coordinator.

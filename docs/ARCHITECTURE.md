@@ -1584,6 +1584,20 @@ host-simulated commands, not new physical observations. OT-160 creates no
 bundle or authority: OT-161 must freeze the exact corrected bundle, and OT-162
 must later accept fresh explicit non-reusable authority before hardware work.
 
+OT-161 freezes that corrected composition into a host-only
+executable/restoration bundle without cloning the runtime. Its canonical
+`OT161NXBP0` preparation binds the exact accepted OT-160 coordinator and
+adapter, exact OT-156 runner and reconnectable runtime, unchanged OT-153
+firmware/build lineage, and exact Trail restoration application. The runtime
+continues to use the OT-160 journal, execution-receipt, and recovery-receipt
+filenames and `OT160NXJ0` / `OT160NXCR0` schemas; OT-161 introduces no fresh
+coordinator, adapter, or runtime-private namespace. Independent restoration,
+the sixteen allowlisted failure stages, and the exact frozen successful radio
+contract remain unchanged. The unused OT-158 authority remains nontransferable
+from the defective OT-157 composition. OT-161 grants no device, reset, flash,
+radio, benchmark, or execution authority; OT-162 is the separate fresh explicit
+non-reusable authority gate before any corrected hardware work.
+
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and
 one canonical message through the existing logger. Generation values and all

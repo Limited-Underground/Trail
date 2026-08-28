@@ -335,3 +335,10 @@ tools/ot160_noise_xk_radio_coordinator.py text eol=lf
 tools/ot160_noise_xk_radio_hardware_adapter.py text eol=lf
 tests/host/ot160_noise_xk_radio_coordinator_tests.py text eol=lf
 tests/host/ot160_noise_xk_radio_hardware_adapter_tests.py text eol=lf
+
+# OT-161 freezes deterministic corrected Noise XK executable-bundle bytes.
+docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md text eol=lf
+tests/hardware/OT-161-2026-08-28.md text eol=lf
+tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json text eol=lf
+tools/ot161_noise_xk_radio_bundle.py text eol=lf
+tests/host/ot161_noise_xk_radio_bundle_tests.py text eol=lf
