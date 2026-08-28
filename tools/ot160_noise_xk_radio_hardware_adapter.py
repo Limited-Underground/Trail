@@ -5,8 +5,9 @@ The immutable OT-153 application-write/readback/reset implementation and the
 accepted OT-156 reconnectable radio transport remain reused through private
 module instances.  Both instances are bound to the fresh OT-160 coordinator,
 which restores the inherited byte-hash contract without changing any device
-operation.  No authority is accepted here: OT-162 must separately freeze and
-authorize an exact successor before any hardware execution is permitted.
+operation. No corrected bundle or authority is accepted here: OT-161 must
+freeze the exact successor, and OT-162 must separately accept fresh authority
+before any hardware execution is permitted.
 """
 
 from __future__ import annotations

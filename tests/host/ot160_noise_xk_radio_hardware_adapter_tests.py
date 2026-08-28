@@ -223,7 +223,7 @@ class Tests(unittest.TestCase):
                 self.assertEqual(str(error), "preflight_failed")
                 self._assert_two_reads_and_resets(payload, commands)
 
-    def test_05_ot162_authority_is_fixed_and_absent_fail_closed(self) -> None:
+    def test_05_ot162_authority_is_fixed_and_missing_paths_fail_closed(self) -> None:
         self.assertEqual(
             adapter.FUTURE_AUTHORITY_TOOL_PATH.name,
             "ot162_noise_xk_radio_execution_authority.py",
@@ -232,10 +232,24 @@ class Tests(unittest.TestCase):
             adapter.FUTURE_AUTHORITY_PATH.name,
             "OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json",
         )
-        self.assertFalse(adapter.FUTURE_AUTHORITY_TOOL_PATH.is_file())
-        self.assertFalse(adapter.FUTURE_AUTHORITY_PATH.is_file())
-        with self.assertRaisesRegex(adapter.AdapterError, "authority_unavailable"):
-            adapter._load_authority_contract()
+        with tempfile.TemporaryDirectory(prefix="ot160-missing-authority-") as directory:
+            missing_root = Path(directory)
+            with (
+                mock.patch.object(
+                    adapter.frozen,
+                    "FUTURE_AUTHORITY_TOOL_PATH",
+                    missing_root / adapter.FUTURE_AUTHORITY_TOOL_PATH.name,
+                ),
+                mock.patch.object(
+                    adapter.frozen,
+                    "FUTURE_AUTHORITY_PATH",
+                    missing_root / adapter.FUTURE_AUTHORITY_PATH.name,
+                ),
+            ):
+                with self.assertRaisesRegex(
+                    adapter.AdapterError, "authority_unavailable"
+                ):
+                    adapter._load_authority_contract()
 
     def test_06_surface_has_no_authority_override_or_broad_flash_path(self) -> None:
         source = MODULE_PATH.read_text(encoding="utf-8")

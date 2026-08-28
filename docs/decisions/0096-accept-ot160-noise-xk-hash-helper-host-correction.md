@@ -46,12 +46,12 @@ otherwise exact readback before the attempt can be consumed.
 
 - OT-160 coordinator: 7,264 bytes, SHA-256
   `444528fd341b3d55f3a5b3224b217620e1b37e3c7960d224aefbe01d9953a02d`.
-- OT-160 adapter: 3,906 bytes, SHA-256
-  `5cfb1706900e12be2a7fe03a4b558e1a75637af5c03d4da5116a12b1cae82f28`.
+- OT-160 adapter: 3,952 bytes, SHA-256
+  `24d75806cdf7ae28c47fe427cac12a7ef3564d76d68a926ad58bd610c9e8f4b9`.
 - OT-160 coordinator tests: 19,421 bytes, SHA-256
   `4979348106afec502bc436adb45c755d5ae04dc8d2ffa22000427f21d3eee788`.
-- OT-160 adapter tests: 10,320 bytes, SHA-256
-  `6f6095ef6161bde0d3fa9902560b4620e4dc92bc1f535abdbe5ac0e3a94e828d`.
+- OT-160 adapter tests: 10,833 bytes, SHA-256
+  `c12a59cad654f484d2d4e8a84833c0145804fa1c9c1d1667ae0f46aec5c3201b`.
 
 Focused validation passes 13/13: coordinator behavior 7/7 and composed adapter
 behavior 6/6.
