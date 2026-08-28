@@ -327,3 +327,11 @@ docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md text eol=lf
 tests/hardware/OT-159-2026-08-28.md text eol=lf
 tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json text eol=lf
 tests/host/ot159_noise_xk_radio_preconsumption_blockage_tests.py text eol=lf
+
+# OT-160 keeps the corrected Noise XK host composition deterministic.
+docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md text eol=lf
+tests/hardware/OT-160-2026-08-28.md text eol=lf
+tools/ot160_noise_xk_radio_coordinator.py text eol=lf
+tools/ot160_noise_xk_radio_hardware_adapter.py text eol=lf
+tests/host/ot160_noise_xk_radio_coordinator_tests.py text eol=lf
+tests/host/ot160_noise_xk_radio_hardware_adapter_tests.py text eol=lf

@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-08-27",
+  "as_of": "2026-08-28",
   "baseline_name": "Historical standalone evidence baseline",
   "baseline_definition": "The historical standalone evidence baseline measures progress toward four self-contained field units that do not depend on a phone, server, or repeater; it is retained for continuity and is not the current V1 Companion release total.",
   "baseline_milestones": [
@@ -106,8 +106,9 @@
         ,"docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-157-2026-08-28.md"
         ,"docs/decisions/0094-accept-ot158-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-158-2026-08-28.md"
         ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
+        ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
       ],
-      "next_gate": "Correct the deterministic OT-157 hash-helper composition defect as host-only OT-160; then freeze and authorize an exact corrected successor before any new radio attempt; separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
+      "next_gate": "Freeze the exact OT-160 corrected successor bundle as OT-161, then separately accept fresh explicit non-reusable authority as OT-162 before any corrected radio attempt; separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
     },
     {
       "id": "core-firmware",
@@ -210,8 +211,9 @@
         ,"docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-157-2026-08-28.md"
         ,"docs/decisions/0094-accept-ot158-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-158-2026-08-28.md"
         ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
+        ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
       ],
-      "next_gate": "Correct the deterministic OT-157 hash-helper composition defect as host-only OT-160; then freeze and authorize an exact corrected successor before any new radio attempt, while corrected mbedTLS/PSA execution, LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
+      "next_gate": "Freeze the exact OT-160 corrected successor bundle as OT-161, then separately accept fresh explicit non-reusable authority as OT-162 before any corrected radio attempt, while corrected mbedTLS/PSA execution, LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
     },
     {
       "id": "first-complete-unit",
@@ -246,7 +248,7 @@
       "id": "v1-companion",
       "name": "V1 Companion",
       "status": "measured",
-      "as_of": "2026-08-27",
+      "as_of": "2026-08-28",
       "definition": "A complete V1 Companion release means exactly two supported Heltec LoRa devices and two approved Android phones, one physically authorized phone per Heltec, exchange authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE with restart, disconnect, rejection, retry, recovery, and one exact signed Android release physically accepted without relay, server, or internet dependency.",
       "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
       "milestones": [
@@ -293,8 +295,9 @@
             ,"docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-157-2026-08-28.md"
             ,"docs/decisions/0094-accept-ot158-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-158-2026-08-28.md"
             ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
+            ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
           ],
-          "next_gate": "Correct the deterministic OT-157 hash-helper composition defect as host-only OT-160; then freeze and authorize an exact corrected successor before any new radio attempt; separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
+          "next_gate": "Freeze the exact OT-160 corrected successor bundle as OT-161, then separately accept fresh explicit non-reusable authority as OT-162 before any corrected radio attempt; separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
         },
         {
           "id": "core-firmware",
@@ -361,8 +364,9 @@
             ,"docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-157-2026-08-28.md"
             ,"docs/decisions/0094-accept-ot158-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-158-2026-08-28.md"
             ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
+            ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
           ],
-          "next_gate": "Correct the deterministic OT-157 hash-helper composition defect as host-only OT-160; then freeze and authorize an exact corrected successor before any new radio attempt, while corrected mbedTLS/PSA execution, LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
+          "next_gate": "Freeze the exact OT-160 corrected successor bundle as OT-161, then separately accept fresh explicit non-reusable authority as OT-162 before any corrected radio attempt, while corrected mbedTLS/PSA execution, LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
         },
         {
           "id": "android-companion",
@@ -417,8 +421,9 @@
             ,"docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-157-2026-08-28.md"
             ,"docs/decisions/0094-accept-ot158-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-158-2026-08-28.md"
             ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
+            ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
           ],
-          "next_gate": "Correct the deterministic OT-157 hash-helper composition defect as host-only OT-160; then freeze and authorize an exact corrected successor before any new radio attempt; separately complete corrected mbedTLS/PSA execution and the remaining Phase 2 gates before independent reconciliation and explicit selection."
+          "next_gate": "Freeze the exact OT-160 corrected successor bundle as OT-161, then separately accept fresh explicit non-reusable authority as OT-162 before any corrected radio attempt; separately complete corrected mbedTLS/PSA execution and the remaining Phase 2 gates before independent reconciliation and explicit selection."
         }
       ],
       "change_log": [
@@ -842,6 +847,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Recorded OT-159 as a deterministic pre-consumption host-composition blockage: both anonymous nodes passed direct exact-Trail readback and reset, but the accepted OT-157 composition failed both official preflight attempts because its file-hash helper shadowed the inherited byte-hash helper. No journal, benchmark write, radio operation, execution or recovery receipt, result, or authority consumption occurred. The OT-158 authority remains unused but cannot be repurposed; OT-160 must correct the host composition before a new bundle and fresh authority. Every milestone completion remains unchanged: Android 60%, V1 Companion exact 43.75% / displayed 44%, and V1.5/V2 unmeasured."
+        },
+        {
+          "date": "2026-08-28",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted OT-160 as the minimal host-only Noise XK hash-helper correction. Source-file hashing is separate from inherited application-byte hashing, and the real composed preflight passes exact mocked readbacks while corrupt and short readbacks fail closed after both roles are read and reset. No hardware, bundle, authority, result, selection, Phase 2 completion, readiness, or score claim was added. OT-161 must freeze the corrected bundle and OT-162 must later accept fresh authority. Every milestone completion remains unchanged: Android 60%, V1 Companion exact 43.75% / displayed 44%, and V1.5/V2 unmeasured."
         }
     ]
     },
@@ -1227,6 +1238,11 @@
       "date": "2026-08-28",
       "overall": 32,
       "reason": "Recorded OT-159 as a deterministic pre-consumption host-composition blockage before journal creation, benchmark write, radio operation, result, or authority consumption. Both official bound preflight attempts failed before the consumption boundary. The OT-158 authority remains unused but cannot be reused against corrected code; OT-160 must create a host-only successor. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
+    },
+    {
+      "date": "2026-08-28",
+      "overall": 32,
+      "reason": "Accepted OT-160 as the minimal host-only Noise XK hash-helper correction. The real composed preflight passes exact mocked readbacks and fails closed for corrupt and short bytes without physical device work, bundle acceptance, or authority. OT-161 must freeze the corrected bundle and OT-162 must later accept fresh authority. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
     }
   ]
 }

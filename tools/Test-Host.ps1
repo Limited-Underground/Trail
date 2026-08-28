@@ -2379,6 +2379,16 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OT159NXB0 Noise XK pre-consumption blockage tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\ot160_noise_xk_radio_coordinator_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-160 corrected Noise XK coordinator tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot160_noise_xk_radio_hardware_adapter_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT-160 corrected Noise XK hardware-adapter tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_matched_resource_accounting_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OTMRAC1/OTMRAR1 matched-resource successor tests failed with exit code {0}.' -f $LASTEXITCODE)

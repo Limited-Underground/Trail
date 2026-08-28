@@ -1573,6 +1573,17 @@ a host-only successor while preserving every accepted preflight, privacy,
 restoration, and radio boundary. The immutable OT-158 authority cannot be
 transferred to that corrected successor.
 
+OT-160 accepts that host-only successor. Immutable source verification now uses
+`_source_sha256(Path)`, while module fallback exposes the frozen OT-153
+`_sha256(bytes)` application-readback helper. Fresh OT-160 private-state names
+and both inherited adapter coordinator references are bound to the corrected
+composition. The real composed preflight path passes exact mocked readbacks and
+fails closed for corrupt or short bytes after reading and resetting both
+anonymous roles, without a write, radio open, journal, or receipt. These are
+host-simulated commands, not new physical observations. OT-160 creates no
+bundle or authority: OT-161 must freeze the exact corrected bundle, and OT-162
+must later accept fresh explicit non-reusable authority before hardware work.
+
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and
 one canonical message through the existing logger. Generation values and all

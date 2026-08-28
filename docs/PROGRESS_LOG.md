@@ -6,6 +6,14 @@ public chronology.
 
 ## 2026-08-28
 
+### OT-160 Noise XK hash-helper host correction
+
+- Accepted the minimal host-only successor that separates `_source_sha256(Path)` source locks from the unchanged inherited `_sha256(bytes)` application-readback contract, with fresh OT-160 private-state names and both inherited adapter paths rebound to the corrected coordinator.
+- The real composed preflight passes exact mocked readbacks and fails closed as `preflight_failed` for corrupt and short readbacks after reading and resetting both anonymous roles. No write, radio open, journal, or receipt occurs; these are host-simulated commands, not physical device observations.
+- Focused OT-160 validation passes 13/13 and the raw-byte checkout audit passes 264/264.
+- OT-160 creates no corrected bundle or authority. OT-161 must freeze the exact corrected executable/restoration bundle, and OT-162 must later accept fresh explicit non-reusable authority before any corrected hardware execution.
+- No result, selection, Phase 2 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. No website update is required. See [Decision 0096](decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md) and [evidence](../tests/hardware/OT-160-2026-08-28.md).
+
 ### OT-159 pre-consumption Noise XK radio blockage
 
 - Both anonymous nodes passed direct exact-Trail application readback and reset, and the OT-158 authority plus bound benchmark and restoration artifacts validated.

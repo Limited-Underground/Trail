@@ -287,6 +287,12 @@ docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md|3811|ac1995
 tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json|3523|059de31dc9dbeaa9577d816ceef73a1e0f5e039494854e730e9dfd5ceaeb3469|lf|lf|none|lf
 tests/hardware/OT-159-2026-08-28.md|4420|dffdfdc198f783768fe7b66c013deaa4686c3d471a58fcc8fd3f4bf37834dc45|lf|lf|none|lf
 tests/host/ot159_noise_xk_radio_preconsumption_blockage_tests.py|6910|963cf72665a3b5e11704fd06bc723e7079ad7e7fca7599b49bbd03714755002a|lf|lf|none|lf
+docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md|4748|fd6faa532b1d81d0add0840e506bfbabd21a967ab0eda29e774eb9159bf7015c|lf|lf|none|lf
+tests/hardware/OT-160-2026-08-28.md|5142|b8c6756bfa93f478dfecb66adec02e790adb028528bb603a6f6935014fef94be|lf|lf|none|lf
+tools/ot160_noise_xk_radio_coordinator.py|7264|444528fd341b3d55f3a5b3224b217620e1b37e3c7960d224aefbe01d9953a02d|lf|lf|none|lf
+tools/ot160_noise_xk_radio_hardware_adapter.py|3906|5cfb1706900e12be2a7fe03a4b558e1a75637af5c03d4da5116a12b1cae82f28|lf|lf|none|lf
+tests/host/ot160_noise_xk_radio_coordinator_tests.py|19421|4979348106afec502bc436adb45c755d5ae04dc8d2ffa22000427f21d3eee788|lf|lf|none|lf
+tests/host/ot160_noise_xk_radio_hardware_adapter_tests.py|10320|6f6095ef6161bde0d3fa9902560b4620e4dc92bc1f535abdbe5ac0e3a94e828d|lf|lf|none|lf
 """.strip()
 
 
