@@ -11,6 +11,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+HISTORICAL_COMMON_CONFIG_BYTES = 1409
+HISTORICAL_COMMON_CONFIG_SHA256 = "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb"
+CURRENT_COMMON_CONFIG_BYTES = 1467
+CURRENT_COMMON_CONFIG_SHA256 = "9186abaa6bd99429bb6d7d32f52f772b02dc122145438dc1547d2b94b948fe4a"
 RECORD = (
     ROOT
     / "tests/benchmarks/crypto"
@@ -92,6 +96,12 @@ class Tests(unittest.TestCase):
             self.assertNotIn(path, seen)
             seen.add(path)
             raw = (ROOT / path).read_bytes()
+            if path == "firmware/targets/heltec_v4_bench/sdkconfig.defaults":
+                self.assertEqual(entry["bytes"], HISTORICAL_COMMON_CONFIG_BYTES)
+                self.assertEqual(entry["sha256"], HISTORICAL_COMMON_CONFIG_SHA256)
+                self.assertEqual(len(raw), CURRENT_COMMON_CONFIG_BYTES)
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), CURRENT_COMMON_CONFIG_SHA256)
+                continue
             if "bytes" in entry:
                 self.assertEqual(len(raw), entry["bytes"], path)
             expected = entry.get("raw_sha256", entry.get("sha256"))

@@ -53,6 +53,54 @@ bool StartupDisplayOwner::show_footer(
     return show_view(view);
 }
 
+bool StartupDisplayOwner::show_pairing_pin(
+    const std::array<char, 6>& digits) {
+    if (!started_ || !status_.available) {
+        return false;
+    }
+    for (const auto digit : digits) {
+        if (digit < '0' || digit > '9') {
+            return false;
+        }
+    }
+
+    PairingPinDisplayView pairing_view{};
+    pairing_view.digits = digits;
+    if (has_view_ && view_.has_footer) {
+        pairing_view.has_footer = true;
+        pairing_view.footer = view_.footer;
+    }
+    const auto rendered = port_.render_pairing_pin(pairing_view);
+    pairing_view.digits.fill('\0');
+    if (!rendered) {
+        (void)port_.conceal();
+        pairing_pin_visible_ = false;
+        status_.available = false;
+        return false;
+    }
+    pairing_pin_visible_ = true;
+    ++status_.render_count;
+    return true;
+}
+
+bool StartupDisplayOwner::clear_pairing_pin() {
+    if (!started_ || !status_.available) {
+        return false;
+    }
+    if (!pairing_pin_visible_) {
+        return true;
+    }
+    if (!has_view_ || !port_.render(view_)) {
+        (void)port_.conceal();
+        pairing_pin_visible_ = false;
+        status_.available = false;
+        return false;
+    }
+    pairing_pin_visible_ = false;
+    ++status_.render_count;
+    return true;
+}
+
 bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
     if (!started_ || !status_.available) {
         return false;
@@ -60,6 +108,12 @@ bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
     if (has_view_ && view_.frame == view.frame &&
         view_.has_footer == view.has_footer &&
         (!view.has_footer || view_.footer.columns == view.footer.columns)) {
+        return true;
+    }
+    if (pairing_pin_visible_) {
+        view_ = view;
+        has_view_ = true;
+        status_.frame = view.frame;
         return true;
     }
     if (!port_.render(view)) {
@@ -71,6 +125,15 @@ bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
     status_.frame = view.frame;
     ++status_.render_count;
     return true;
+}
+
+bool PairingPinDisplayPortAdapter::show_pairing_pin(
+    const std::array<char, 6>& digits) {
+    return display_.show_pairing_pin(digits);
+}
+
+bool PairingPinDisplayPortAdapter::clear_pairing_pin() {
+    return display_.clear_pairing_pin();
 }
 
 StartupDisplayFrame startup_display_frame_for_ble_phase(

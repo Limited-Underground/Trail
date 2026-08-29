@@ -403,6 +403,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'fresh companion BLE pairing window'
+        Output = Join-Path $buildDirectory 'companion_pairing_window_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\security\test_support\fake_secure_random.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_pairing_window.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_pairing_window_tests.cpp')
+        )
+    },
+    @{
         Name = 'Heltec V4 startup display state owner'
         Output = Join-Path $buildDirectory 'heltec_startup_display_tests.exe'
         Sources = @(
@@ -1916,6 +1925,26 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\ot147_heltec_v4_live_status_success_record_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-147 Heltec V4 live-status success record tests failed.'
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot164_heltec_v4_ble_pairing_window_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-164 Heltec V4 BLE pairing-window authority tests failed.'
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot164_heltec_v4_ble_pairing_window_v0_receipt_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-164 Heltec V4 BLE pairing-window V0 receipt tests failed.'
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot164_heltec_v4_ble_pairing_window_v1_authority_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-164 Heltec V4 BLE pairing-window V1 authority tests failed.'
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\ot164_heltec_v4_ble_pairing_window_v1_success_record_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'OT-164 Heltec V4 BLE pairing-window V1 success record tests failed.'
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\protected_storage_transition_evidence_tests.py')

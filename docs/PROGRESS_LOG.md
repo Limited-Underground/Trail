@@ -4,6 +4,15 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-29
+
+### OT-164 two-node fresh BLE pairing-window acceptance
+
+- Built the corrected Heltec V4 target reproducibly and installed the identical 507,296-byte application on both anonymous bench nodes using application-only writes after both exact pre-reads. Both independent readbacks passed and both displays returned after reset.
+- The owner accepted on both devices that a short press does nothing, a hold of at least three seconds followed by release shows `PAIR` and six digits, the candidate disappears after approximately 30 seconds, and reset conceals an active candidate. No PIN value was reported or recorded.
+- The initial V0 authority is consumed by a preacceptance emergency-concealment defect; the distinct corrected V1 authority is consumed by success, non-reusable, and grants no continuation.
+- This proves only the local target-side pairing-window input/display lifecycle. Android pairing, passkey exchange, durable bond ownership, reconnect, replacement, protected GATT, end-to-end operation, support, and field readiness remain open. V1 remains exact 43.75%/displayed 44%. See [Decision 0100](decisions/0100-accept-ot164-fresh-ble-pairing-window.md), [evidence](../tests/hardware/OT-164-2026-08-29.md), and the [V1 receipt](../tests/benchmarks/display/OT-164-HELTEC-V4-BLE-PAIRING-WINDOW-EXECUTION-RECEIPT-V1.json).
+
 ## 2026-08-28
 
 ### OT-163 Noise XK radio execution abort and exact Trail restoration

@@ -11,6 +11,8 @@ namespace {
 
 using opentrail::companion::CompanionBleRuntimePhase;
 using opentrail::target::heltec_v4_bench::CompactStatusSnapshot;
+using opentrail::target::heltec_v4_bench::PairingPinDisplayPortAdapter;
+using opentrail::target::heltec_v4_bench::PairingPinDisplayView;
 using opentrail::target::heltec_v4_bench::StartupDisplayFrame;
 using opentrail::target::heltec_v4_bench::StartupDisplayOwner;
 using opentrail::target::heltec_v4_bench::StartupDisplayPort;
@@ -38,10 +40,24 @@ public:
         return views.size() != failing_render_call;
     }
 
+    bool render_pairing_pin(const PairingPinDisplayView& view) override {
+        pairing_views.push_back(view);
+        return pairing_render_succeeds;
+    }
+
+    bool conceal() override {
+        ++conceal_calls;
+        return conceal_succeeds;
+    }
+
     bool initialize_succeeds{true};
     std::size_t failing_render_call{0};
     std::size_t initialize_calls{0};
     std::vector<StartupDisplayView> views{};
+    bool pairing_render_succeeds{true};
+    std::vector<PairingPinDisplayView> pairing_views{};
+    bool conceal_succeeds{true};
+    std::size_t conceal_calls{0};
 };
 
 void test_success_and_duplicate_suppression() {
@@ -393,6 +409,104 @@ void test_dynamic_compact_footer_fail_closed_boundaries() {
     require(port.views.size() == 1,
             "rejected dynamic footer does not replace boot view");
 }
+
+void test_pairing_pin_is_transient_and_clear_restores_latest_footer() {
+    using Page = opentrail::ui::compact_status_footer::Page;
+
+    FakeDisplayPort port;
+    StartupDisplayOwner owner{port};
+    PairingPinDisplayPortAdapter pairing_display{owner};
+    require(owner.start(), "pairing display start");
+
+    Page initial_footer{};
+    initial_footer.columns[25] = 0x11;
+    initial_footer.columns[75] = 0x22;
+    initial_footer.columns[113] = 0x33;
+    require(owner.show_footer(
+                StartupDisplayFrame::ble_advertising, initial_footer),
+            "pairing background footer accepted");
+
+    const std::array<char, 6> digits{'0', '4', '1', '9', '0', '7'};
+    require(pairing_display.show_pairing_pin(digits),
+            "six-digit pairing page accepted");
+    require(port.pairing_views.size() == 1,
+            "pairing page rendered exactly once");
+    require(port.pairing_views.back().digits == digits,
+            "pairing renderer receives exact leading-zero digits");
+    require(port.pairing_views.back().has_footer &&
+                port.pairing_views.back().footer.columns ==
+                    initial_footer.columns,
+            "pairing page preserves exact compact footer");
+    require(port.views.size() == 2,
+            "pairing page does not mutate ordinary view history");
+    auto status = owner.status();
+    require(status.available &&
+                status.frame == StartupDisplayFrame::ble_advertising &&
+                status.render_count == 3,
+            "status exposes only ordinary frame and render count");
+
+    auto latest_footer = initial_footer;
+    latest_footer.columns[25] = 0x44;
+    require(owner.show_footer(
+                StartupDisplayFrame::ble_connected, latest_footer),
+            "latest ordinary footer retained behind pairing page");
+    require(port.views.size() == 2,
+            "ordinary update cannot erase an active pairing page");
+    status = owner.status();
+    require(status.frame == StartupDisplayFrame::ble_connected &&
+                status.render_count == 3,
+            "hidden ordinary update changes no physical render count");
+
+    require(pairing_display.clear_pairing_pin(),
+            "pairing page clear accepted");
+    require(port.views.size() == 3 &&
+                port.views.back().frame ==
+                    StartupDisplayFrame::ble_connected &&
+                port.views.back().footer.columns == latest_footer.columns,
+            "clear restores latest normal BLE/footer view");
+    require(owner.status().render_count == 4,
+            "clear records only the restoring physical render");
+    require(pairing_display.clear_pairing_pin(),
+            "duplicate clear remains idempotent");
+    require(port.views.size() == 3,
+            "duplicate clear causes no redraw");
+
+    const std::array<char, 6> invalid{'1', '2', '3', 'X', '5', '6'};
+    require(!pairing_display.show_pairing_pin(invalid),
+            "non-decimal PIN rejected");
+    require(port.pairing_views.size() == 1 && owner.status().available,
+            "invalid PIN never reaches renderer or contains display");
+
+    FakeDisplayPort failing_port;
+    StartupDisplayOwner failing_owner{failing_port};
+    PairingPinDisplayPortAdapter failing_adapter{failing_owner};
+    require(failing_owner.start(), "pairing failure setup");
+    failing_port.pairing_render_succeeds = false;
+    require(!failing_adapter.show_pairing_pin(digits),
+            "pairing render failure returned");
+    require(!failing_owner.status().available,
+            "pairing render failure latches local display unavailable");
+    require(failing_port.conceal_calls == 1,
+            "pairing render failure invokes emergency concealment");
+
+    FakeDisplayPort clear_failure_port;
+    StartupDisplayOwner clear_failure_owner{clear_failure_port};
+    PairingPinDisplayPortAdapter clear_failure_adapter{clear_failure_owner};
+    require(clear_failure_owner.start(), "pairing clear failure setup");
+    require(clear_failure_owner.show_footer(
+                StartupDisplayFrame::ble_advertising, initial_footer),
+            "pairing clear failure background accepted");
+    require(clear_failure_adapter.show_pairing_pin(digits),
+            "pairing clear failure PIN rendered");
+    clear_failure_port.failing_render_call =
+        clear_failure_port.views.size() + 1;
+    require(!clear_failure_adapter.clear_pairing_pin(),
+            "failed footer restore returned");
+    require(clear_failure_port.conceal_calls == 1,
+            "failed footer restore invokes emergency concealment");
+    require(!clear_failure_owner.status().available,
+            "failed footer restore latches display unavailable");
+}
 }  // namespace
 
 int main() {
@@ -404,6 +518,7 @@ int main() {
     test_compact_footer_placeholder_mapping();
     test_dynamic_compact_footer_observations_and_redraw();
     test_dynamic_compact_footer_fail_closed_boundaries();
-    std::cout << "8 Heltec startup display groups passed.\n";
+    test_pairing_pin_is_transient_and_clear_restores_latest_footer();
+    std::cout << "9 Heltec startup display groups passed.\n";
     return 0;
 }

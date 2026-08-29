@@ -88,6 +88,10 @@ BATTERY_HEADER = TARGET / "main" / "heltec_v4_battery.hpp"
 BATTERY_SOURCE = TARGET / "main" / "heltec_v4_battery.cpp"
 GNSS_HEADER = TARGET / "main" / "heltec_v4_gnss.hpp"
 GNSS_SOURCE = TARGET / "main" / "heltec_v4_gnss.cpp"
+PAIRING_INPUT_HEADER = TARGET / "main" / "heltec_v4_pairing_input.hpp"
+PAIRING_INPUT_SOURCE = TARGET / "main" / "heltec_v4_pairing_input.cpp"
+SECURE_RANDOM_HEADER = TARGET / "main" / "heltec_v4_secure_random.hpp"
+SECURE_RANDOM_SOURCE = TARGET / "main" / "heltec_v4_secure_random.cpp"
 DISPLAY_ADAPTER_HEADER = TARGET / "main" / "heltec_v4_oled.hpp"
 DISPLAY_ADAPTER = TARGET / "main" / "heltec_v4_oled.cpp"
 DISPLAY_LOGO = TARGET / "main" / "trail_startup_logo.hpp"
@@ -133,6 +137,10 @@ def test_contract() -> None:
         "main/heltec_v4_battery.hpp",
         "main/heltec_v4_gnss.cpp",
         "main/heltec_v4_gnss.hpp",
+        "main/heltec_v4_pairing_input.cpp",
+        "main/heltec_v4_pairing_input.hpp",
+        "main/heltec_v4_secure_random.cpp",
+        "main/heltec_v4_secure_random.hpp",
         "main/heltec_v4_oled.cpp",
         "main/heltec_v4_oled.hpp",
         "main/trail_startup_logo.hpp",
@@ -284,6 +292,14 @@ def test_contract() -> None:
         "bounded_usb_heartbeat_physically_observed",
         "nimble_runtime_startup_physically_reached",
         "ble_service_advertising_physically_observed",
+        "ble_pairing_window_host_tested",
+        "ble_pairing_window_build_linked",
+        "ble_pairing_window_secure_random_build_linked",
+        "ble_pairing_input_gpio0_build_linked",
+        "ble_pairing_input_physically_observed",
+        "ble_pairing_six_digit_display_physically_observed",
+        "ble_pairing_timeout_concealment_physically_observed",
+        "ble_pairing_reset_concealment_physically_observed",
         "oled_startup_display_owner_host_tested",
         "oled_startup_display_build_linked",
         "oled_compact_status_footer_host_tested",
@@ -373,6 +389,18 @@ def test_contract() -> None:
             capabilities["nimble_runtime_startup_physically_reached"] is True and
             capabilities["ble_service_advertising_physically_observed"] is True,
             "physical heartbeat, runtime start, and BLE advertisement must be admitted")
+    require(capabilities["ble_pairing_window_host_tested"] is True and
+            capabilities["ble_pairing_window_build_linked"] is True and
+            capabilities["ble_pairing_window_secure_random_build_linked"] is True and
+            capabilities["ble_pairing_input_gpio0_build_linked"] is True,
+            "fresh local pairing-window logic, entropy, and GPIO0 input must be build-admitted")
+    require(capabilities["ble_pairing_input_physically_observed"] is True and
+            capabilities["ble_pairing_six_digit_display_physically_observed"] is True and
+            capabilities["ble_pairing_timeout_concealment_physically_observed"] is True and
+            capabilities["ble_pairing_reset_concealment_physically_observed"] is True and
+            capabilities["ble_pairing_android_exchange_physically_observed"] is False and
+            capabilities["ble_pairing_bond_ownership_physically_observed"] is False,
+            "physical local-window evidence must not claim Android exchange or bond ownership")
     require(capabilities["oled_startup_display_owner_host_tested"] is True and
             capabilities["oled_startup_display_build_linked"] is True and
             capabilities["oled_startup_logo_coded"] is True and
@@ -926,8 +954,8 @@ def test_protected_root_key_roster_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 26,
-            "non-injection gate must cover the exact 26-source target build")
+    require(len(linked_source_tokens) == 29,
+            "non-injection gate must cover the exact 29-source target build")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -939,7 +967,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 25,
+    require(len(other_linked_sources) == 28,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1001,7 +1029,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 26,
+    require(len(linked_source_tokens) == 29,
             "configuration/security non-injection gate must cover 26 sources")
     other_linked_sources = []
     for token in linked_source_tokens:
@@ -1014,7 +1042,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 25,
+    require(len(other_linked_sources) == 28,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1122,6 +1150,33 @@ def test_display_surface() -> None:
     require("draw_status_text(pixels, startup_display_text(view.frame))" in adapter and
             'return "SELF CHECK FAIL"' in owner,
             "logo/self-check fallback path must remain explicit")
+    for required in (
+        'kPairingLabel[] = "PAIR"',
+        "kPairingDigitsScale = 2",
+        "view.digits.data()",
+        "view.digits.size()",
+        "(kDisplayWidth - pixel_width) / 2",
+        "pixels.fill(0)",
+        'record_failure("pairing-draw", result)',
+    ):
+        require(required in adapter,
+                f"pairing OLED page is missing: {required}")
+    for digit in range(10):
+        require(f"case '{digit}':" in adapter,
+                f"pairing OLED font is missing digit {digit}")
+    require("PairingPinDisplayPortAdapter final" in owner_header and
+            "CompanionPairingPinDisplayPort" in owner_header and
+            "pairing_view.digits.fill('\\0')" in owner and
+            "pairing_pin_visible_" in owner_header and
+            "port_.render(view_)" in owner and
+            "port_.conceal()" in owner and
+            "bool HeltecV4Oled::conceal()" in adapter and
+            "esp_lcd_panel_disp_on_off(panel_, false)" in adapter and
+            "1 - kHeltecV4VextEnableLevel" in adapter,
+            "target pairing display must remain transient and restore normal view")
+    require(re.search(r"ESP_LOG[^\n]*(digits|pin|passkey)", adapter,
+                      re.IGNORECASE) is None,
+            "pairing PIN must not enter OLED logs")
     require("kWidth = 128" in footer_header and
             "render_text(page, 1U, fields.battery)" in footer and
             "render_text(page, 51U, fields.gps)" in footer and
@@ -1185,9 +1240,9 @@ def test_display_surface() -> None:
     display_start = source.index("observe_display_result(g_startup_display.start())")
     self_check_start = source.index("if (!run_companion_codec_self_check() ||")
     pass_log = source.index("companion boot self-check PASS")
-    runtime_start = source.index("start_companion_nimble_runtime(started_at_ms)")
+    runtime_start = source.index("start_companion_nimble_runtime(")
     runtime_service = source.index("service_companion_nimble_runtime(elapsed_ms)")
-    typed_status = source.index("companion_nimble_runtime_status().phase")
+    typed_status = source.index("const auto runtime_status =")
     require(display_start < self_check_start < pass_log < runtime_start <
             runtime_service < typed_status,
             "logo, self-check, runtime, and typed status order changed")
@@ -1294,7 +1349,7 @@ def test_application_surface() -> None:
     gatt_definition_call = source.index(
         "companion_nimble_gatt_definition_self_check()")
     pass_log = source.index("companion boot self-check PASS")
-    runtime_start = source.index("start_companion_nimble_runtime(started_at_ms)")
+    runtime_start = source.index("start_companion_nimble_runtime(")
     startup_log = source.index("companion runtime started")
     heartbeat_log = source.index("heartbeat elapsed_ms=%llu")
     require(self_check_call < coordinator_call < gatt_session_call < gatt_authorization_call < gatt_adapter_call < authorization_storage_call < runtime_owner_check_call < gatt_definition_call < pass_log < runtime_start < startup_log < heartbeat_log,
@@ -1345,7 +1400,7 @@ def test_application_surface() -> None:
     for required in (
         "nimble_port_init", "register_companion_nimble_gatt_service",
         "xTaskCreatePinnedToCore", "ble_gap_adv_start",
-        "BLE_HS_IO_NO_INPUT_OUTPUT", "sm_bonding = 1", "sm_mitm = 1",
+        "BLE_HS_IO_DISPLAY_ONLY", "sm_bonding = 1", "sm_mitm = 1",
         "sm_sc = 1", "StaticQueue_t", "std::atomic<bool>",
         "nvs_encryption_not_configured", "connection_termination_failed",
         "ble_gap_terminate", "15000", "2000",
@@ -1353,6 +1408,11 @@ def test_application_surface() -> None:
     ):
         require(required in nimble_runtime,
                 f"missing bounded NimBLE runtime gate: {required}")
+    sdkconfig_defaults = (TARGET / "sdkconfig.defaults").read_text(
+        encoding="utf-8")
+    require("CONFIG_BT_NIMBLE_MAX_BONDS=1" in sdkconfig_defaults and
+            "CONFIG_LOG_MAXIMUM_LEVEL=3" in sdkconfig_defaults,
+            "pairing build must retain one transient bond and compile out DEBUG passkey logs")
     require("fields.name" not in nimble_runtime and
             "fields.mfg_data" not in nimble_runtime and
             "ble_hs_id_copy_addr" not in nimble_runtime and
@@ -1380,9 +1440,45 @@ def test_application_surface() -> None:
         nimble_runtime.index("case BLE_GAP_EVENT_CONNECT"):
         nimble_runtime.index("case BLE_GAP_EVENT_DISCONNECT")
     ]
-    require("ble_gap_terminate" not in connect_case and
-            "RuntimeEventKind::connection_opened" in connect_case,
-            "public link connect must be queued without immediate termination")
+    require("RuntimeEventKind::connection_opened" in connect_case and
+            "security_initiation_accepted" in connect_case and
+            "pairing_open" in connect_case,
+            "public link must remain queued while an open PIN window initiates security")
+    for required in (
+        "BLE_GAP_EVENT_PASSKEY_ACTION", "BLE_SM_IOACT_DISP",
+        "ble_sm_inject_io", "BLE_GAP_EVENT_ENC_CHANGE",
+        "description.sec_state.encrypted", "description.sec_state.authenticated",
+        "description.sec_state.bonded", "BLE_SM_PAIR_KEY_SZ_MAX",
+        "CompanionPairingWindow", "xSemaphoreCreateMutexStatic",
+    ):
+        require(required in nimble_runtime,
+                f"missing dynamic pairing runtime gate: {required}")
+    for required in (
+        "BLE_HS_EALREADY", "BLE_GAP_EVENT_TERM_FAILURE",
+        "handle_passkey_action_deferred_cleanup",
+        "exact_active_attempt", "terminate_connection_or_contain",
+    ):
+        require(required in nimble_runtime,
+                f"missing fail-closed pairing integration gate: {required}")
+    enc_case = nimble_runtime[
+        nimble_runtime.index("case BLE_GAP_EVENT_ENC_CHANGE"):
+        nimble_runtime.index("default:")
+    ]
+    require("companion_nimble_gatt_gap_event" in enc_case and
+            "if (exact_active_attempt)" in enc_case,
+            "encryption changes must update GATT security and only close the exact attempt")
+    reset_case = nimble_runtime[
+        nimble_runtime.index("case RuntimeEventKind::host_reset"):
+        nimble_runtime.index("case RuntimeEventKind::advertising_interrupted")
+    ]
+    require("kCompanionBleInvalidConnectionHandle" in reset_case and
+            "++g_pairing_transport_generation" in reset_case and
+            "g_pairing_window->restart()" in reset_case,
+            "host reset must invalidate stale transport state and clear the PIN")
+    require("static_passkey" not in nimble_runtime.lower() and
+            re.search(r"ESP_LOG[^\n]*(pin|passkey)", nimble_runtime,
+                      re.IGNORECASE) is None,
+            "runtime must not use or log a static/dynamic PIN")
     for required in (
         "operation_active_", "reentry_observed_", "callback_overflow",
         "max_restart_attempts", "restart_token", "contain_stack",
@@ -1561,7 +1657,7 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 26,
+    require(cmake.count('.cpp"') == 29,
             "target source set must remain thirteen target, twelve companion, and one UI source")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
@@ -2031,6 +2127,83 @@ def test_automatic_termination_acceptance_surface() -> None:
     )
 
 
+def test_pairing_input_surface() -> None:
+    header = PAIRING_INPUT_HEADER.read_text(encoding="utf-8")
+    source = PAIRING_INPUT_SOURCE.read_text(encoding="utf-8")
+
+    for required in (
+        "kHeltecV4PairingButtonGpio = 0",
+        "kHeltecV4PairingButtonPressedLevel = 0",
+        "kHeltecV4PairingButtonDebounceMs = 40",
+        "kHeltecV4PairingButtonHoldMs = 3'000",
+        "long_press_released",
+        "void reset(bool raw_pressed, std::uint64_t now_ms)",
+        "PairingInputEvent observe(",
+        "PairingInputEvent poll(std::uint64_t now_ms)",
+    ):
+        require(required in header,
+                f"pairing input header is missing: {required}")
+
+    for required in (
+        "GPIO_NUM_0",
+        "GPIO_MODE_INPUT",
+        "GPIO_PULLUP_ENABLE",
+        "GPIO_PULLDOWN_DISABLE",
+        "GPIO_INTR_DISABLE",
+        "now_ms < last_observed_ms_",
+        "reset(raw_pressed, now_ms)",
+        "now_ms - raw_since_ms_ < kHeltecV4PairingButtonDebounceMs",
+        "held_ms < kHeltecV4PairingButtonHoldMs",
+        "PairingInputEvent::long_press_released",
+    ):
+        require(required in source,
+                f"pairing input source is missing: {required}")
+
+    combined = header + "\n" + source
+    for forbidden in (
+        "gpio_isr_handler_add",
+        "gpio_install_isr_service",
+        "xTaskCreate",
+        "vTaskDelay",
+        "esp_timer_get_time",
+    ):
+        require(forbidden not in combined,
+                f"pairing input must remain caller-polled: {forbidden}")
+
+    app_main = SOURCE.read_text(encoding="utf-8")
+    main_cmake = MAIN_CMAKE.read_text(encoding="utf-8")
+    require("heltec_v4_pairing_input.hpp" in app_main and
+            "g_pairing_input.poll(elapsed_ms)" in app_main and
+            "PairingInputEvent::long_press_released" in app_main,
+            "pairing input must be polled by the single app_main owner")
+    require('"heltec_v4_pairing_input.cpp"' in main_cmake,
+            "pairing input must be admitted into the target")
+
+
+def test_secure_random_surface() -> None:
+    header = SECURE_RANDOM_HEADER.read_text(encoding="utf-8")
+    source = SECURE_RANDOM_SOURCE.read_text(encoding="utf-8")
+    for required in (
+        "final : public security::SecureRandomSource",
+        "set_entropy_state", "state() const override", "fill(",
+        "kMaximumSecureRandomRequestBytes", "esp_fill_random",
+    ):
+        require(required in header + "\n" + source,
+                f"secure random adapter is missing: {required}")
+    for forbidden in ("ESP_LOG", "printf", "snprintf", "%06"):
+        require(forbidden not in header + "\n" + source,
+                f"secure random adapter must retain/log no PIN: {forbidden}")
+    app_main = SOURCE.read_text(encoding="utf-8")
+    main_cmake = MAIN_CMAKE.read_text(encoding="utf-8")
+    require("HeltecV4SecureRandom g_pairing_random" in app_main and
+            "set_entropy_state" in app_main,
+            "app owner must gate target entropy on synchronized NimBLE state")
+    require('"heltec_v4_secure_random.cpp"' in main_cmake and
+            '"${OPENTRAIL_COMPONENT_ROOT}/security/include"' in main_cmake and
+            "companion_pairing_window.cpp" in main_cmake,
+            "target build must admit RNG and shared pairing component")
+
+
 def main() -> int:
     tests = (test_contract, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
@@ -2040,7 +2213,8 @@ def main() -> int:
              test_protected_root_configuration_security_adapter_surface,
              test_display_surface,
              test_application_surface, test_build_only_tooling,
-             test_automatic_termination_acceptance_surface)
+             test_automatic_termination_acceptance_surface,
+             test_pairing_input_surface, test_secure_random_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

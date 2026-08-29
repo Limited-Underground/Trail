@@ -23,9 +23,22 @@ constexpr std::size_t kDisplayHeight = 64;
 constexpr std::size_t kStatusPage = 7;
 constexpr std::size_t kGlyphWidth = 5;
 constexpr std::size_t kGlyphAdvance = 6;
+constexpr std::size_t kPairingLabelY = 5;
+constexpr std::size_t kPairingDigitsY = 25;
+constexpr std::size_t kPairingDigitsScale = 2;
 
 std::array<std::uint8_t, kGlyphWidth> glyph_for(char value) {
     switch (value) {
+        case '0': return {0x3E, 0x51, 0x49, 0x45, 0x3E};
+        case '1': return {0x00, 0x42, 0x7F, 0x40, 0x00};
+        case '2': return {0x42, 0x61, 0x51, 0x49, 0x46};
+        case '3': return {0x21, 0x41, 0x45, 0x4B, 0x31};
+        case '4': return {0x18, 0x14, 0x12, 0x7F, 0x10};
+        case '5': return {0x27, 0x45, 0x45, 0x45, 0x39};
+        case '6': return {0x3C, 0x4A, 0x49, 0x49, 0x30};
+        case '7': return {0x01, 0x71, 0x09, 0x05, 0x03};
+        case '8': return {0x36, 0x49, 0x49, 0x49, 0x36};
+        case '9': return {0x06, 0x49, 0x49, 0x29, 0x1E};
         case 'A': return {0x7E, 0x11, 0x11, 0x11, 0x7E};
         case 'B': return {0x7F, 0x49, 0x49, 0x49, 0x36};
         case 'C': return {0x3E, 0x41, 0x41, 0x41, 0x22};
@@ -53,6 +66,62 @@ std::array<std::uint8_t, kGlyphWidth> glyph_for(char value) {
         case 'Y': return {0x03, 0x04, 0x78, 0x04, 0x03};
         case 'Z': return {0x61, 0x51, 0x49, 0x45, 0x43};
         default: return {0, 0, 0, 0, 0};
+    }
+}
+
+void set_pixel(std::array<std::uint8_t, kTrailStartupLogoBytes>& frame,
+               std::size_t x,
+               std::size_t y) {
+    if (x >= kDisplayWidth || y >= kDisplayHeight) return;
+    frame[(y / 8) * kDisplayWidth + x] |=
+        static_cast<std::uint8_t>(1U << (y % 8));
+}
+
+void draw_scaled_text(
+    std::array<std::uint8_t, kTrailStartupLogoBytes>& frame,
+    const char* text,
+    std::size_t length,
+    std::size_t y,
+    std::size_t scale) {
+    if (length == 0 || scale == 0) return;
+    const auto pixel_width = length * kGlyphAdvance * scale - scale;
+    const auto start_x = pixel_width < kDisplayWidth
+        ? (kDisplayWidth - pixel_width) / 2
+        : 0;
+    for (std::size_t index = 0; index < length; ++index) {
+        const auto glyph = glyph_for(text[index]);
+        const auto glyph_x = start_x + index * kGlyphAdvance * scale;
+        for (std::size_t column = 0; column < glyph.size(); ++column) {
+            for (std::size_t row = 0; row < 7; ++row) {
+                if ((glyph[column] & (1U << row)) == 0) continue;
+                for (std::size_t dx = 0; dx < scale; ++dx) {
+                    for (std::size_t dy = 0; dy < scale; ++dy) {
+                        set_pixel(frame, glyph_x + column * scale + dx,
+                                  y + row * scale + dy);
+                    }
+                }
+            }
+        }
+    }
+}
+
+bool pairing_digits_valid(const std::array<char, 6>& digits) {
+    return std::all_of(digits.begin(), digits.end(), [](char digit) {
+        return digit >= '0' && digit <= '9';
+    });
+}
+
+void draw_pairing_page(
+    std::array<std::uint8_t, kTrailStartupLogoBytes>& pixels,
+    const PairingPinDisplayView& view) {
+    pixels.fill(0);
+    constexpr char kPairingLabel[] = "PAIR";
+    draw_scaled_text(pixels, kPairingLabel, 4, kPairingLabelY, 1);
+    draw_scaled_text(pixels, view.digits.data(), view.digits.size(),
+                     kPairingDigitsY, kPairingDigitsScale);
+    if (view.has_footer) {
+        std::copy(view.footer.columns.begin(), view.footer.columns.end(),
+                  pixels.begin() + kStatusPage * kDisplayWidth);
     }
 }
 
@@ -167,6 +236,42 @@ bool HeltecV4Oled::render(const StartupDisplayView& view) {
     const auto result = esp_lcd_panel_draw_bitmap(
         panel_, 0, 0, kDisplayWidth, kDisplayHeight, pixels.data());
     return result == ESP_OK || record_failure("panel-draw", result);
+}
+
+bool HeltecV4Oled::render_pairing_pin(const PairingPinDisplayView& view) {
+    if (!initialized_ || panel_ == nullptr ||
+        !pairing_digits_valid(view.digits)) {
+        return false;
+    }
+    std::array<std::uint8_t, kTrailStartupLogoBytes> pixels{};
+    draw_pairing_page(pixels, view);
+    const auto result = esp_lcd_panel_draw_bitmap(
+        panel_, 0, 0, kDisplayWidth, kDisplayHeight, pixels.data());
+    pixels.fill(0);
+    return result == ESP_OK || record_failure("pairing-draw", result);
+}
+
+bool HeltecV4Oled::conceal() {
+    bool concealed = false;
+    if (panel_ != nullptr) {
+        std::array<std::uint8_t, kTrailStartupLogoBytes> blank{};
+        if (esp_lcd_panel_draw_bitmap(
+                panel_, 0, 0, kDisplayWidth, kDisplayHeight,
+                blank.data()) == ESP_OK) {
+            concealed = true;
+        }
+        blank.fill(0);
+        if (esp_lcd_panel_disp_on_off(panel_, false) == ESP_OK) {
+            concealed = true;
+        }
+    }
+    if (gpio_set_level(
+            static_cast<gpio_num_t>(kHeltecV4VextControlGpio),
+            1 - kHeltecV4VextEnableLevel) == ESP_OK) {
+        concealed = true;
+    }
+    initialized_ = false;
+    return concealed;
 }
 
 }  // namespace opentrail::target::heltec_v4_bench

@@ -21,6 +21,9 @@ class HeltecV4Oled final : public StartupDisplayPort {
 public:
     [[nodiscard]] bool initialize() override;
     [[nodiscard]] bool render(const StartupDisplayView& view) override;
+    [[nodiscard]] bool render_pairing_pin(
+        const PairingPinDisplayView& view) override;
+    [[nodiscard]] bool conceal() override;
 
 private:
     [[nodiscard]] bool record_failure(const char* step, int error_code);

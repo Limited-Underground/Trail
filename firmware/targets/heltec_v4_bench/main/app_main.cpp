@@ -13,7 +13,10 @@
 #include "heltec_v4_battery.hpp"
 #include "heltec_v4_gnss.hpp"
 #include "heltec_v4_oled.hpp"
+#include "heltec_v4_pairing_input.hpp"
+#include "heltec_v4_secure_random.hpp"
 #include "opentrail/companion_protocol.hpp"
+#include "opentrail/companion_pairing_window.hpp"
 #include "opentrail/companion_semantics.hpp"
 
 namespace {
@@ -24,6 +27,10 @@ using opentrail::target::heltec_v4_bench::StartupDisplayFrame;
 using opentrail::target::heltec_v4_bench::StartupDisplayOwner;
 using opentrail::target::heltec_v4_bench::startup_display_frame_for_ble_phase;
 using opentrail::target::heltec_v4_bench::companion_nimble_runtime_status;
+using opentrail::target::heltec_v4_bench::PairingInputEvent;
+using opentrail::target::heltec_v4_bench::PairingPinDisplayPortAdapter;
+using opentrail::target::heltec_v4_bench::HeltecV4PairingInput;
+using opentrail::target::heltec_v4_bench::HeltecV4SecureRandom;
 
 constexpr char kLogTag[] = "ot_bench";
 constexpr std::uint32_t kHeartbeatPeriodMs = 5000;
@@ -33,9 +40,15 @@ constexpr std::uint64_t kBatteryFreshForMs = 60'000;
 constexpr std::uint64_t kGnssFreshForMs = 5'000;
 HeltecV4Oled g_oled_port;
 StartupDisplayOwner g_startup_display{g_oled_port};
+PairingPinDisplayPortAdapter g_pairing_display{g_startup_display};
+HeltecV4SecureRandom g_pairing_random;
+opentrail::companion::CompanionPairingWindow g_pairing_window{
+    g_pairing_random, g_pairing_display};
+HeltecV4PairingInput g_pairing_input;
 HeltecV4Gnss g_gnss;
 opentrail::ui::compact_status_footer::Metric g_battery_percent{};
 bool g_display_failure_logged{false};
+std::uint64_t g_pairing_physical_event{0};
 
 void observe_display_result(bool succeeded) {
     if (!succeeded && !g_display_failure_logged) {
@@ -167,6 +180,8 @@ bool run_companion_codec_self_check() {
 }
 
 [[noreturn]] void contain_runtime_failure() {
+    (void)opentrail::target::heltec_v4_bench::
+        fault_companion_pairing_window();
     observe_display_result(
         g_startup_display.show(StartupDisplayFrame::ble_error));
     ESP_LOGE(kLogTag, "companion runtime FAIL");
@@ -203,11 +218,16 @@ extern "C" void app_main() {
     const auto started_at_ms =
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
     if (opentrail::target::heltec_v4_bench::
-            start_companion_nimble_runtime(started_at_ms) !=
+            start_companion_nimble_runtime(
+                started_at_ms, g_pairing_window) !=
         opentrail::companion::CompanionBleRuntimeError::none) {
         contain_runtime_failure();
     }
     ESP_LOGI(kLogTag, "companion runtime started");
+
+    if (!g_pairing_input.initialize(started_at_ms)) {
+        contain_runtime_failure();
+    }
 
     if (!g_gnss.initialize()) {
         ESP_LOGW(kLogTag, "GNSS unavailable; GPS status remains unknown");
@@ -227,6 +247,57 @@ extern "C" void app_main() {
         if (runtime_result !=
             opentrail::companion::CompanionBleRuntimeError::none) {
             contain_runtime_failure();
+        }
+        const auto runtime_status = companion_nimble_runtime_status();
+        using opentrail::companion::CompanionBleRuntimePhase;
+        const bool entropy_ready =
+            runtime_status.phase == CompanionBleRuntimePhase::advertising ||
+            runtime_status.phase == CompanionBleRuntimePhase::connected;
+        g_pairing_random.set_entropy_state(
+            entropy_ready
+                ? opentrail::security::EntropyState::ready
+                : opentrail::security::EntropyState::not_ready);
+        const auto pairing_service =
+            opentrail::target::heltec_v4_bench::
+                service_companion_pairing_window(elapsed_ms);
+        if (pairing_service !=
+                opentrail::companion::CompanionPairingWindowError::none &&
+            pairing_service !=
+                opentrail::companion::CompanionPairingWindowError::
+                    window_expired) {
+            contain_runtime_failure();
+        }
+        if (g_pairing_input.poll(elapsed_ms) ==
+            PairingInputEvent::long_press_released) {
+            ++g_pairing_physical_event;
+            if (g_pairing_physical_event == 0) ++g_pairing_physical_event;
+            const auto open_result =
+                opentrail::target::heltec_v4_bench::
+                    open_companion_pairing_window(
+                        elapsed_ms,
+                        g_pairing_physical_event,
+                        opentrail::companion::
+                            kCompanionPairingMinimumHoldMs);
+            if (open_result ==
+                    opentrail::companion::CompanionPairingWindowError::
+                        display_failed ||
+                open_result ==
+                    opentrail::companion::CompanionPairingWindowError::
+                        display_clear_failed ||
+                open_result ==
+                    opentrail::companion::CompanionPairingWindowError::
+                        clock_rollback ||
+                open_result ==
+                    opentrail::companion::CompanionPairingWindowError::
+                        deadline_overflow ||
+                open_result ==
+                    opentrail::companion::CompanionPairingWindowError::
+                        entropy_failed ||
+                open_result ==
+                    opentrail::companion::CompanionPairingWindowError::
+                        random_rejection_exhausted) {
+                contain_runtime_failure();
+            }
         }
         g_gnss.service(elapsed_ms);
         if (elapsed_ms >= next_battery_sample_ms) {
@@ -249,7 +320,7 @@ extern "C" void app_main() {
         if (render_now_ms - boot_started_at_ms >= kMinimumLogoPeriodMs) {
             observe_display_result(g_startup_display.show_compact_status(
                 startup_display_frame_for_ble_phase(
-                    companion_nimble_runtime_status().phase),
+                    runtime_status.phase),
                 compact_status_snapshot(render_now_ms)));
         }
         if (elapsed_ms >= next_heartbeat_ms) {

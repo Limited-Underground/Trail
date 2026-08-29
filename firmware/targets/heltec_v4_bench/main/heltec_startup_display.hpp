@@ -1,8 +1,10 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 
 #include "opentrail/companion_ble_runtime_owner.hpp"
+#include "opentrail/companion_pairing_window.hpp"
 #include "opentrail/compact_status_footer.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
@@ -29,6 +31,14 @@ struct StartupDisplayView {
     ui::compact_status_footer::Page footer{};
 };
 
+// Ephemeral render-only view. The owner never retains this object or exposes
+// its digits through StartupDisplayStatus.
+struct PairingPinDisplayView {
+    std::array<char, 6> digits{};
+    bool has_footer{false};
+    ui::compact_status_footer::Page footer{};
+};
+
 // Current target observations used to build the fixed compact footer. The BLE
 // observation remains the StartupDisplayFrame argument so the visible frame,
 // footer code, and runtime-owner phase cannot disagree.
@@ -49,6 +59,12 @@ public:
     virtual ~StartupDisplayPort() = default;
     [[nodiscard]] virtual bool initialize() = 0;
     [[nodiscard]] virtual bool render(const StartupDisplayView& view) = 0;
+    [[nodiscard]] virtual bool render_pairing_pin(
+        const PairingPinDisplayView& view) = 0;
+    // Emergency best-effort concealment that remains callable after an
+    // ordinary render failure. Implementations must not depend on the normal
+    // display-owner availability latch.
+    [[nodiscard]] virtual bool conceal() = 0;
 };
 
 // Best-effort owner for the small target-local startup/status display. A
@@ -66,6 +82,8 @@ public:
     [[nodiscard]] bool show_footer(
         StartupDisplayFrame frame,
         const ui::compact_status_footer::Page& footer);
+    [[nodiscard]] bool show_pairing_pin(const std::array<char, 6>& digits);
+    [[nodiscard]] bool clear_pairing_pin();
     [[nodiscard]] StartupDisplayStatus status() const { return status_; }
 
 private:
@@ -76,6 +94,23 @@ private:
     StartupDisplayView view_{};
     bool started_{false};
     bool has_view_{false};
+    bool pairing_pin_visible_{false};
+};
+
+// Narrow target adapter for the pairing-window component. It retains no PIN;
+// StartupDisplayOwner forwards digits directly to the physical display.
+class PairingPinDisplayPortAdapter final
+    : public companion::CompanionPairingPinDisplayPort {
+public:
+    explicit PairingPinDisplayPortAdapter(StartupDisplayOwner& display)
+        : display_(display) {}
+
+    [[nodiscard]] bool show_pairing_pin(
+        const std::array<char, 6>& digits) override;
+    [[nodiscard]] bool clear_pairing_pin() override;
+
+private:
+    StartupDisplayOwner& display_;
 };
 
 [[nodiscard]] StartupDisplayFrame startup_display_frame_for_ble_phase(

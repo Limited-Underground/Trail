@@ -93,7 +93,7 @@ SOURCE_BINDINGS: tuple[tuple[str, str], ...] = (
     ),
     (
         "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
-        "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb",
+        "9186abaa6bd99429bb6d7d32f52f772b02dc122145438dc1547d2b94b948fe4a",
     ),
     (
         "tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/"

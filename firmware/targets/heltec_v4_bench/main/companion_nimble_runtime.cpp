@@ -11,6 +11,7 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "host/ble_gap.h"
 #include "host/ble_hs.h"
@@ -114,12 +115,16 @@ enum class RuntimeEventKind : std::uint8_t {
     connection_opened,
     connection_closed,
     connection_termination_failed,
+    pairing_completed,
+    pairing_failed,
+    pairing_closed,
 };
 
 struct RuntimeEvent {
     RuntimeEventKind kind{RuntimeEventKind::host_reset};
     std::uint16_t connection_handle{kCompanionBleInvalidConnectionHandle};
     std::uint64_t observed_at_ms{0};
+    std::uint64_t transport_generation{0};
 };
 
 StaticQueue_t g_event_queue_control{};
@@ -128,11 +133,42 @@ std::array<std::uint8_t, kCallbackQueueCapacity * sizeof(RuntimeEvent)>
 QueueHandle_t g_event_queue = nullptr;
 std::atomic<bool> g_event_overflow{false};
 std::atomic<bool> g_host_exited{false};
+StaticSemaphore_t g_pairing_mutex_control{};
+SemaphoreHandle_t g_pairing_mutex = nullptr;
+CompanionPairingWindow* g_pairing_window = nullptr;
+std::uint16_t g_pairing_connection_handle{
+    kCompanionBleInvalidConnectionHandle};
+std::uint64_t g_pairing_transport_generation{0};
+
+class PairingLock final {
+public:
+    explicit PairingLock(TickType_t wait_ticks)
+        : locked_(g_pairing_mutex != nullptr &&
+                  xSemaphoreTake(g_pairing_mutex, wait_ticks) == pdTRUE) {}
+    ~PairingLock() {
+        if (locked_) (void)xSemaphoreGive(g_pairing_mutex);
+    }
+    [[nodiscard]] bool locked() const { return locked_; }
+
+private:
+    bool locked_{false};
+};
+
+CompanionPairingCandidate active_pairing_candidate(
+    std::uint16_t connection_handle) {
+    if (connection_handle != g_pairing_connection_handle ||
+        g_pairing_transport_generation == 0) {
+        return {};
+    }
+    return {connection_handle, g_pairing_transport_generation};
+}
 
 int runtime_gap_event(ble_gap_event* event, void* argument);
 void runtime_on_sync();
 void runtime_on_reset(int reason);
 void runtime_host_task(void* argument);
+bool queue_event(RuntimeEvent event);
+std::uint64_t current_ms();
 
 class EspNimbleRuntimePort final : public CompanionBleRuntimePort {
 public:
@@ -148,7 +184,7 @@ public:
         if (!stack_initialized_ || host_started_) return false;
         ble_hs_cfg.reset_cb = runtime_on_reset;
         ble_hs_cfg.sync_cb = runtime_on_sync;
-        ble_hs_cfg.sm_io_cap = BLE_HS_IO_NO_INPUT_OUTPUT;
+        ble_hs_cfg.sm_io_cap = BLE_HS_IO_DISPLAY_ONLY;
         ble_hs_cfg.sm_bonding = 1;
         ble_hs_cfg.sm_mitm = 1;
         ble_hs_cfg.sm_sc = 1;
@@ -257,6 +293,28 @@ private:
 EspNimbleRuntimePort g_runtime_port;
 CompanionBleRuntimeOwner g_runtime_owner{g_runtime_port, kRuntimePolicy};
 
+class NimblePairingPasskeyPort final : public CompanionPairingPasskeyPort {
+public:
+    bool inject_display_passkey(
+        CompanionPairingCandidate candidate,
+        std::uint32_t passkey) override {
+        if (!(candidate == active_pairing_candidate(
+                              candidate.connection_handle)) ||
+            passkey >= kCompanionPairingPasskeyCount) {
+            return false;
+        }
+        ble_sm_io input{};
+        input.action = BLE_SM_IOACT_DISP;
+        input.passkey = passkey;
+        const auto result =
+            ble_sm_inject_io(candidate.connection_handle, &input);
+        input.passkey = 0;
+        return result == 0;
+    }
+};
+
+NimblePairingPasskeyPort g_pairing_passkey_port;
+
 std::uint64_t current_ms() {
     return static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
 }
@@ -268,6 +326,23 @@ bool queue_event(RuntimeEvent event) {
         return false;
     }
     return true;
+}
+
+bool terminate_connection_or_contain(
+    std::uint16_t connection_handle,
+    std::uint64_t observed_at_ms) {
+    if (ble_gap_terminate(connection_handle,
+                          BLE_ERR_REM_USER_CONN_TERM) == 0) {
+        return true;
+    }
+    (void)queue_event({RuntimeEventKind::connection_termination_failed,
+                      connection_handle, observed_at_ms});
+    return false;
+}
+
+bool security_initiation_accepted(std::uint16_t connection_handle) {
+    const auto result = ble_gap_security_initiate(connection_handle);
+    return result == 0 || result == BLE_HS_EALREADY;
 }
 
 void runtime_on_sync() {
@@ -303,22 +378,70 @@ int runtime_gap_event(ble_gap_event* event, void*) {
                                                   &g_callback_adapter);
             const bool adapter_connected =
                 companion_nimble_gatt_adapter_status().connected;
-            const bool queued = queue_event({RuntimeEventKind::connection_opened,
-                                             event->connect.conn_handle,
-                                             observed});
+            bool pairing_open = false;
+            std::uint64_t pairing_generation = 0;
+            {
+                PairingLock lock{pdMS_TO_TICKS(50)};
+                if (lock.locked() && g_pairing_window != nullptr) {
+                    g_pairing_connection_handle =
+                        event->connect.conn_handle;
+                    ++g_pairing_transport_generation;
+                    if (g_pairing_transport_generation == 0) {
+                        ++g_pairing_transport_generation;
+                    }
+                    pairing_open = g_pairing_window->status().phase ==
+                                   CompanionPairingWindowPhase::open;
+                    pairing_generation = g_pairing_transport_generation;
+                } else {
+                    g_event_overflow.store(true,
+                                           std::memory_order_release);
+                }
+            }
+            const bool queued = queue_event({
+                RuntimeEventKind::connection_opened,
+                event->connect.conn_handle,
+                observed,
+                pairing_generation});
             if (!adapter_connected || !queued) {
                 g_event_overflow.store(true, std::memory_order_release);
             }
+            if (pairing_open && !security_initiation_accepted(
+                                    event->connect.conn_handle)) {
+                (void)queue_event({
+                    RuntimeEventKind::pairing_closed,
+                    event->connect.conn_handle,
+                    observed,
+                    pairing_generation});
+                (void)terminate_connection_or_contain(
+                    event->connect.conn_handle, observed);
+            }
             return 0;
         }
-        case BLE_GAP_EVENT_DISCONNECT:
+        case BLE_GAP_EVENT_DISCONNECT: {
             // OT-052 releases its exact session/indication state before the
             // runtime owner can schedule re-advertising.
             (void)companion_nimble_gatt_gap_event(event,
                                                   &g_callback_adapter);
-            (void)queue_event({RuntimeEventKind::connection_closed,
-                              event->disconnect.conn.conn_handle, observed});
+            std::uint64_t pairing_generation = 0;
+            {
+                PairingLock lock{pdMS_TO_TICKS(50)};
+                if (lock.locked() && g_pairing_connection_handle ==
+                                         event->disconnect.conn.conn_handle) {
+                    pairing_generation = g_pairing_transport_generation;
+                    g_pairing_connection_handle =
+                        kCompanionBleInvalidConnectionHandle;
+                } else if (!lock.locked()) {
+                    g_event_overflow.store(true,
+                                           std::memory_order_release);
+                }
+            }
+            (void)queue_event({
+                RuntimeEventKind::connection_closed,
+                event->disconnect.conn.conn_handle,
+                observed,
+                pairing_generation});
             return 0;
+        }
         case BLE_GAP_EVENT_ADV_COMPLETE:
             (void)queue_event({RuntimeEventKind::advertising_interrupted,
                               kCompanionBleInvalidConnectionHandle, observed});
@@ -327,10 +450,118 @@ int runtime_gap_event(ble_gap_event* event, void*) {
             // Never delete/replace a bond without the protected physical
             // replacement authority that OT-054 has not admitted.
             return BLE_GAP_REPEAT_PAIRING_IGNORE;
-        case BLE_GAP_EVENT_PASSKEY_ACTION:
-            // No physical comparison/input adapter is admitted. With MITM
-            // required, doing nothing fails pairing closed.
+        case BLE_GAP_EVENT_TERM_FAILURE:
+            (void)queue_event({
+                RuntimeEventKind::connection_termination_failed,
+                event->term_failure.conn_handle,
+                observed});
             return 0;
+        case BLE_GAP_EVENT_PASSKEY_ACTION: {
+            if (event->passkey.params.action != BLE_SM_IOACT_DISP) {
+                std::uint64_t pairing_generation = 0;
+                {
+                    PairingLock lock{pdMS_TO_TICKS(50)};
+                    if (lock.locked()) {
+                        pairing_generation =
+                            active_pairing_candidate(
+                                event->passkey.conn_handle)
+                                .transport_generation;
+                    } else {
+                        g_event_overflow.store(true,
+                                               std::memory_order_release);
+                    }
+                }
+                (void)queue_event({
+                    RuntimeEventKind::pairing_closed,
+                    event->passkey.conn_handle,
+                    observed,
+                    pairing_generation});
+                (void)terminate_connection_or_contain(
+                    event->passkey.conn_handle, observed);
+                return 0;
+            }
+            bool accepted = false;
+            CompanionPairingWindowError action_result{
+                CompanionPairingWindowError::window_not_available};
+            std::uint64_t pairing_generation = 0;
+            {
+                PairingLock lock{pdMS_TO_TICKS(50)};
+                if (lock.locked() && g_pairing_window != nullptr) {
+                    const auto candidate = active_pairing_candidate(
+                        event->passkey.conn_handle);
+                    pairing_generation = candidate.transport_generation;
+                    action_result = g_pairing_window->
+                        handle_passkey_action_deferred_cleanup(
+                            observed, candidate,
+                            g_pairing_passkey_port);
+                    accepted = action_result ==
+                               CompanionPairingWindowError::none;
+                } else {
+                    g_event_overflow.store(true,
+                                           std::memory_order_release);
+                }
+            }
+            if (!accepted) {
+                (void)queue_event({
+                    action_result == CompanionPairingWindowError::
+                                         passkey_injection_failed
+                        ? RuntimeEventKind::pairing_failed
+                        : RuntimeEventKind::pairing_closed,
+                    event->passkey.conn_handle,
+                    observed,
+                    pairing_generation});
+                (void)terminate_connection_or_contain(
+                    event->passkey.conn_handle, observed);
+            }
+            return 0;
+        }
+        case BLE_GAP_EVENT_ENC_CHANGE: {
+            (void)companion_nimble_gatt_gap_event(event,
+                                                  &g_callback_adapter);
+            ble_gap_conn_desc description{};
+            const bool exact_secure_bond =
+                event->enc_change.status == 0 &&
+                ble_gap_conn_find(
+                    event->enc_change.conn_handle, &description) == 0 &&
+                description.sec_state.encrypted != 0 &&
+                description.sec_state.authenticated != 0 &&
+                description.sec_state.bonded != 0 &&
+                description.sec_state.key_size == BLE_SM_PAIR_KEY_SZ_MAX;
+            std::uint64_t pairing_generation = 0;
+            bool exact_active_attempt = false;
+            {
+                PairingLock lock{pdMS_TO_TICKS(50)};
+                if (lock.locked() && g_pairing_window != nullptr) {
+                    const auto candidate = active_pairing_candidate(
+                        event->enc_change.conn_handle);
+                    exact_active_attempt =
+                        candidate.transport_generation != 0 &&
+                        g_pairing_window->status().phase ==
+                            CompanionPairingWindowPhase::attempt_active;
+                    if (exact_active_attempt) {
+                        pairing_generation =
+                            candidate.transport_generation;
+                    }
+                } else {
+                    g_event_overflow.store(true,
+                                           std::memory_order_release);
+                }
+            }
+            if (exact_active_attempt) {
+                (void)queue_event({
+                    exact_secure_bond
+                        ? RuntimeEventKind::pairing_completed
+                        : RuntimeEventKind::pairing_failed,
+                    event->enc_change.conn_handle,
+                    observed,
+                    pairing_generation});
+            }
+            if (!exact_secure_bond) {
+                (void)terminate_connection_or_contain(
+                    event->enc_change.conn_handle, observed);
+            }
+            return 0;
+        }
         default:
             return companion_nimble_gatt_gap_event(event,
                                                    &g_callback_adapter);
@@ -342,6 +573,24 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
         case RuntimeEventKind::host_sync:
             return g_runtime_owner.host_synced(event.observed_at_ms);
         case RuntimeEventKind::host_reset:
+            {
+                PairingLock lock{pdMS_TO_TICKS(50)};
+                if (!lock.locked() || g_pairing_window == nullptr) {
+                    return CompanionBleRuntimeError::callback_queue_overflow;
+                }
+                g_pairing_connection_handle =
+                    kCompanionBleInvalidConnectionHandle;
+                ++g_pairing_transport_generation;
+                if (g_pairing_transport_generation == 0) {
+                    ++g_pairing_transport_generation;
+                }
+                const auto pairing_result =
+                    g_pairing_window->restart();
+                if (pairing_result !=
+                    CompanionPairingWindowError::none) {
+                    return CompanionBleRuntimeError::invalid_argument;
+                }
+            }
             return g_runtime_owner.host_reset();
         case RuntimeEventKind::advertising_interrupted:
             return g_runtime_owner.advertising_interrupted(
@@ -350,18 +599,93 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
             return g_runtime_owner.connection_opened(
                 event.connection_handle, event.observed_at_ms);
         case RuntimeEventKind::connection_closed:
+            {
+                PairingLock lock{pdMS_TO_TICKS(50)};
+                if (!lock.locked()) {
+                    return CompanionBleRuntimeError::callback_queue_overflow;
+                }
+                if (g_pairing_window != nullptr) {
+                    const auto phase = g_pairing_window->status().phase;
+                    if (phase != CompanionPairingWindowPhase::closed &&
+                        phase != CompanionPairingWindowPhase::faulted) {
+                        const auto result = g_pairing_window->disconnect(
+                            event.observed_at_ms,
+                            {event.connection_handle,
+                             event.transport_generation});
+                        if (result != CompanionPairingWindowError::none) {
+                            return CompanionBleRuntimeError::invalid_argument;
+                        }
+                    }
+                }
+            }
             return g_runtime_owner.connection_closed(
                 event.connection_handle, event.observed_at_ms);
         case RuntimeEventKind::connection_termination_failed:
             return g_runtime_owner.connection_termination_failed(
                 event.connection_handle);
+        case RuntimeEventKind::pairing_completed:
+        case RuntimeEventKind::pairing_failed: {
+            PairingLock lock{pdMS_TO_TICKS(50)};
+            if (!lock.locked() || g_pairing_window == nullptr) {
+                return CompanionBleRuntimeError::callback_queue_overflow;
+            }
+            const auto phase = g_pairing_window->status().phase;
+            if (phase == CompanionPairingWindowPhase::closed ||
+                phase == CompanionPairingWindowPhase::faulted) {
+                return CompanionBleRuntimeError::none;
+            }
+            const auto result = g_pairing_window->finish_attempt(
+                event.observed_at_ms,
+                {event.connection_handle, event.transport_generation},
+                event.kind == RuntimeEventKind::pairing_completed
+                    ? CompanionPairingAttemptTerminal::secure_bond_complete
+                    : CompanionPairingAttemptTerminal::pairing_failed);
+            if (result == CompanionPairingWindowError::none) {
+                return CompanionBleRuntimeError::none;
+            }
+            if (result == CompanionPairingWindowError::window_expired) {
+                return g_runtime_port.terminate_connection(
+                           event.connection_handle)
+                    ? CompanionBleRuntimeError::none
+                    : g_runtime_owner.connection_termination_failed(
+                          event.connection_handle);
+            }
+            return CompanionBleRuntimeError::invalid_argument;
+        }
+        case RuntimeEventKind::pairing_closed: {
+            PairingLock lock{pdMS_TO_TICKS(50)};
+            if (!lock.locked() || g_pairing_window == nullptr) {
+                return CompanionBleRuntimeError::callback_queue_overflow;
+            }
+            const auto phase = g_pairing_window->status().phase;
+            if (phase == CompanionPairingWindowPhase::closed ||
+                phase == CompanionPairingWindowPhase::faulted) {
+                return CompanionBleRuntimeError::none;
+            }
+            const auto result = g_pairing_window->disconnect(
+                event.observed_at_ms,
+                {event.connection_handle, event.transport_generation});
+            return result == CompanionPairingWindowError::none
+                ? CompanionBleRuntimeError::none
+                : CompanionBleRuntimeError::invalid_argument;
+        }
     }
     return CompanionBleRuntimeError::invalid_argument;
 }
 
 }  // namespace
 
-CompanionBleRuntimeError start_companion_nimble_runtime(std::uint64_t now_ms) {
+CompanionBleRuntimeError start_companion_nimble_runtime(
+    std::uint64_t now_ms,
+    CompanionPairingWindow& pairing_window) {
+    if (g_pairing_mutex == nullptr) {
+        g_pairing_mutex = xSemaphoreCreateMutexStatic(
+            &g_pairing_mutex_control);
+    }
+    if (g_pairing_mutex == nullptr || g_pairing_window != nullptr) {
+        return CompanionBleRuntimeError::invalid_argument;
+    }
+    g_pairing_window = &pairing_window;
     if (g_event_queue == nullptr) {
         g_event_queue = xQueueCreateStatic(
             kCallbackQueueCapacity, sizeof(RuntimeEvent),
@@ -400,7 +724,7 @@ CompanionBleRuntimeError service_companion_nimble_runtime(
         if (result != CompanionBleRuntimeError::none &&
             result != CompanionBleRuntimeError::wrong_connection &&
             result != CompanionBleRuntimeError::stale_restart) {
-            return result;
+            return g_runtime_owner.callback_overflow();
         }
     }
     auto status = g_runtime_owner.status();
@@ -417,6 +741,68 @@ CompanionBleRuntimeError service_companion_nimble_runtime(
 
 CompanionBleRuntimeStatus companion_nimble_runtime_status() {
     return g_runtime_owner.status();
+}
+
+CompanionPairingWindowError open_companion_pairing_window(
+    std::uint64_t now_ms,
+    std::uint64_t physical_event,
+    std::uint64_t hold_ms) {
+    CompanionPairingWindowError result{
+        CompanionPairingWindowError::window_not_available};
+    std::uint16_t connected_handle{kCompanionBleInvalidConnectionHandle};
+    {
+        PairingLock lock{pdMS_TO_TICKS(50)};
+        if (!lock.locked() || g_pairing_window == nullptr) {
+            return CompanionPairingWindowError::window_not_available;
+        }
+        result = g_pairing_window->open_window(
+            now_ms, physical_event, hold_ms, true,
+            CompanionPairingPurpose::claim);
+        connected_handle = g_pairing_connection_handle;
+    }
+    if (result != CompanionPairingWindowError::none) return result;
+
+    if (connected_handle != kCompanionBleInvalidConnectionHandle &&
+        !security_initiation_accepted(connected_handle)) {
+        {
+            PairingLock lock{pdMS_TO_TICKS(50)};
+            if (!lock.locked() || g_pairing_window == nullptr) {
+                return CompanionPairingWindowError::window_not_available;
+            }
+            const auto closed = g_pairing_window->disconnect(
+                now_ms, active_pairing_candidate(connected_handle));
+            if (closed != CompanionPairingWindowError::none) {
+                return closed;
+            }
+        }
+        (void)terminate_connection_or_contain(
+            connected_handle, now_ms);
+        return CompanionPairingWindowError::window_not_available;
+    }
+    return CompanionPairingWindowError::none;
+}
+
+CompanionPairingWindowError service_companion_pairing_window(
+    std::uint64_t now_ms) {
+    PairingLock lock{pdMS_TO_TICKS(50)};
+    if (!lock.locked() || g_pairing_window == nullptr) {
+        return CompanionPairingWindowError::window_not_available;
+    }
+    return g_pairing_window->service(now_ms);
+}
+
+CompanionPairingWindowError fault_companion_pairing_window() {
+    PairingLock lock{pdMS_TO_TICKS(50)};
+    if (!lock.locked() || g_pairing_window == nullptr) {
+        return CompanionPairingWindowError::window_not_available;
+    }
+    return g_pairing_window->fault();
+}
+
+CompanionPairingWindowStatus companion_pairing_window_status() {
+    PairingLock lock{0};
+    if (!lock.locked() || g_pairing_window == nullptr) return {};
+    return g_pairing_window->status();
 }
 
 }  // namespace opentrail::target::heltec_v4_bench

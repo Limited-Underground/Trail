@@ -52,7 +52,8 @@ ABORT_RECEIPT_PATH = (
 
 RUNNER_SHA256 = "e06fa00ccef1aeea167286698d64bdd546a09406921dd074009d7174a5366993"
 APP_SOURCE_SHA256 = "fac7a9375a5dba5366215dc0eab0a03a83cfd22fd50a2ac563f1c378cb7aae2b"
-COMMON_CONFIG_SHA256 = "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb"
+HISTORICAL_COMMON_CONFIG_SHA256 = "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb"
+CURRENT_COMMON_CONFIG_SHA256 = "9186abaa6bd99429bb6d7d32f52f772b02dc122145438dc1547d2b94b948fe4a"
 BUILD_RECIPE_SHA256 = "c109392296cf313f276bf0121629eeec2db8bf75773f76ca8086fa2f1a04e5cb"
 IMMUTABLE_BUNDLE_SHA256 = "cc1d88aa9f5e45c3b13a1f229b767fcbf8e7dd383a75309e335f5397ddc780f7"
 ABORT_RECEIPT_SHA256 = "1f6a75e2941045eb3585161769bb2a3ae544b1192d04594dc9d9bec53d77212c"
@@ -328,7 +329,7 @@ def inspect() -> Inspection:
         } not in source_inputs
         or {
             "path": "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
-            "raw_sha256": COMMON_CONFIG_SHA256,
+            "raw_sha256": HISTORICAL_COMMON_CONFIG_SHA256,
         } not in source_inputs
         or type(bundle_images) is not dict
         or bundle_images.get("benchmark") != {
@@ -353,7 +354,7 @@ def inspect() -> Inspection:
     ):
         raise InspectionError("public_abort_lineage_mismatch")
 
-    config = _read_pinned(COMMON_CONFIG_PATH, COMMON_CONFIG_SHA256).decode("utf-8")
+    config = _read_pinned(COMMON_CONFIG_PATH, CURRENT_COMMON_CONFIG_SHA256).decode("utf-8")
     config_lines = set(config.splitlines())
     conflict = {
         "CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y",

@@ -15,6 +15,8 @@ idf_component_register(
         "heltec_v4_battery.cpp"
         "heltec_v4_gnss.cpp"
         "heltec_v4_oled.cpp"
+        "heltec_v4_pairing_input.cpp"
+        "heltec_v4_secure_random.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_protocol.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_semantics.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_request_coordinator.cpp"
@@ -27,11 +29,13 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_authorization_persistence.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_authorization_protected_kv_media.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_ble_runtime_owner.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_pairing_window.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_public_link_info.cpp"
     INCLUDE_DIRS
         "${OPENTRAIL_COMPONENT_ROOT}/ui/include"
         "."
         "${OPENTRAIL_COMPONENT_ROOT}/companion/include"
+        "${OPENTRAIL_COMPONENT_ROOT}/security/include"
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/include"
         "${OPENTRAIL_COMPONENT_ROOT}/radio/include"
     REQUIRES
@@ -41,6 +45,7 @@ idf_component_register(
         esp_adc
         esp_partition
         esp_security
+        esp_system
         esp_timer
         esp_driver_gpio
         esp_driver_i2c

@@ -10,6 +10,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+HISTORICAL_COMMON_CONFIG_SHA256 = "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb"
+CURRENT_COMMON_CONFIG_SHA256 = "9186abaa6bd99429bb6d7d32f52f772b02dc122145438dc1547d2b94b948fe4a"
 CRYPTO = ROOT / "tests/benchmarks/crypto"
 PREPARATION = CRYPTO / "OT-123-OT005-MONOCYPHER-COMPARISON-PREPARATION-V0.json"
 CONTRACT = CRYPTO / "OT-123-OT005-MATCHED-RESOURCE-ACCOUNTING-CONTRACT-V0.json"
@@ -151,7 +153,6 @@ class Ot123MonocypherPreparationTests(unittest.TestCase):
             "benchmark_top_cmake_sha256": CRYPTO / "esp_idf/ot121_candidate_benchmarks/monocypher/CMakeLists.txt",
             "benchmark_main_cmake_sha256": CRYPTO / "esp_idf/ot121_candidate_benchmarks/monocypher/main/CMakeLists.txt",
             "partition_raw_sha256": CRYPTO / "esp_idf/ot121_candidate_benchmarks/monocypher/partitions.csv",
-            "common_sdkconfig_defaults_sha256": ROOT / "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
             "reproducible_defaults_sha256": CRYPTO / "esp_idf/ot120_candidate_builds/reproducible.defaults",
             "continuation_parent_raw_sha256": CRYPTO / "OT-122-OT005-LIBSODIUM-NOISE-RESOURCE-EXECUTION-RECEIPT-V0.json",
             "shared_frame_header_sha256": CRYPTO / "esp_idf/ot121_candidate_benchmarks/include/ot121_benchmark_frame.h",
@@ -164,6 +165,14 @@ class Ot123MonocypherPreparationTests(unittest.TestCase):
         }
         for key, path in paths.items():
             self.assertEqual(sha(path), bindings[key], key)
+        self.assertEqual(
+            bindings["common_sdkconfig_defaults_sha256"],
+            HISTORICAL_COMMON_CONFIG_SHA256,
+        )
+        self.assertEqual(
+            sha(ROOT / "firmware/targets/heltec_v4_bench/sdkconfig.defaults"),
+            CURRENT_COMMON_CONFIG_SHA256,
+        )
         runner = (ROOT / "tools/ot123_monocypher_runner.py").read_text(encoding="utf-8")
         self.assertIn('BENCHMARK_SHA256 = "5e075fb791a658546fca714fc60de095ecbf14f7c443f414d3ac8642965a3b64"', runner)
         self.assertIn("BENCHMARK_BYTES = 186_640", runner)
@@ -205,7 +214,11 @@ class Ot123MonocypherPreparationTests(unittest.TestCase):
             {item["path"] for item in self.recipe["inputs"]}, expected_inputs
         )
         for item in self.recipe["inputs"]:
-            self.assertEqual(sha(ROOT / item["path"]), item["raw_sha256"])
+            if item["path"] == "firmware/targets/heltec_v4_bench/sdkconfig.defaults":
+                self.assertEqual(item["raw_sha256"], HISTORICAL_COMMON_CONFIG_SHA256)
+                self.assertEqual(sha(ROOT / item["path"]), CURRENT_COMMON_CONFIG_SHA256)
+            else:
+                self.assertEqual(sha(ROOT / item["path"]), item["raw_sha256"])
         public_text = RECIPE.read_text(encoding="utf-8")
         self.assertIsNone(PRIVATE.search(public_text))
         self.assertNotIn("run-a", public_text.lower())
