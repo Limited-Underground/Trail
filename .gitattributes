@@ -349,3 +349,9 @@ tests/hardware/OT-162-2026-08-28.md text eol=lf
 tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
 tools/ot162_noise_xk_radio_execution_authority.py text eol=lf
 tests/host/ot162_noise_xk_radio_execution_authority_tests.py text eol=lf
+
+# OT-163 keeps the consumed OT-162 authority and restored radio-abort record deterministic.
+docs/decisions/0099-record-ot163-noise-xk-radio-execution-abort.md text eol=lf
+tests/benchmarks/crypto/OT-163-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json text eol=lf
+tests/hardware/OT-163-2026-08-28.md text eol=lf
+tests/host/ot163_noise_xk_radio_abort_record_tests.py text eol=lf

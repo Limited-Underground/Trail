@@ -1065,7 +1065,7 @@ OT-143 leaves OT-142 and every frozen predecessor immutable and binds the exact 
 
 OT-144 records that the accepted OT-143 layers do not form one executable image boundary. The preparation and authority pin the corrected 149,824-byte OT-142 application, but the coordinator invoked by the adapter still requires the historical 149,920-byte OT-139 application. The OT-143 authority remains unconsumed because no journal or receipt exists, yet it is non-executable and grants no hardware step. Decision 0080 and every OT-143 artifact remain immutable. A fresh OT-144 coordinator, adapter, validator, and preparation bind the corrected application consistently and add a real-file cross-layer rejection gate. This is host-only correction, not authority: fresh separate explicit non-reusable one-attempt authority remains mandatory before device access.
 
-OT-145 accepts the fresh explicitly approved authority for that unchanged OT-144 preparation. The authority binds the corrected 149,824-byte application, exact Trail restoration image, OT-144 coordinator/adapter, frozen OT-135 transport, strict parser/schema, and all accepted preflight, privacy, and restoration boundaries. It permits exactly one two-node application-only attempt from this workspace, is consumed on success or abort, is non-reusable, grants no continuation, permits no radio use, and remains unexecuted. Both installed Trail applications must pass exact readback/reset before journal creation or any write, and every touched node must restore/readback/hard-reset exactly to Trail. The fixed private OT-144 journal is the workspace-local consumption boundary; no journal or terminal receipt exists at acceptance. OT-143 remains immutable, unconsumed, and non-executable and grants no inherited attempt.
+OT-145 accepts the fresh explicitly approved authority for that unchanged OT-144 preparation. The authority binds the corrected 149,824-byte application, exact Trail restoration image, OT-144 coordinator/adapter, frozen OT-135 transport, strict parser/schema, and all accepted preflight, privacy, and restoration boundaries. At acceptance it permitted exactly one two-node application-only attempt from this workspace, was consumable on success or abort, was non-reusable, granted no continuation, permitted no radio use, and remained unexecuted; OT-146 later consumed it successfully. Both installed Trail applications had to pass exact readback/reset before journal creation or any write, and every touched node had to restore/readback/hard-reset exactly to Trail. The fixed private OT-144 journal is the workspace-local consumption boundary; no journal or terminal receipt existed at acceptance. OT-143 remains immutable, unconsumed, and non-executable and grants no inherited attempt.
 
 OT-146 consumes the OT-145 authority on its single permitted two-node application-only attempt. Both anonymous nodes pass benchmark readback, all five admitted Monocypher comparison operations with 100 data-cache-conditioned and 100 warm samples per operation, and strict validation of the complete 1,014-frame stream. Each touched node then restores, reads back, and hard-resets exactly to Trail, and both displays return. Radio remains unused and recovery is unnecessary. The result supplies the missing bounded Monocypher comparison measurement but does not itself complete Phase 2 or select a candidate, library/suite, handshake/KDF, or packet-v1 wire format. No further Monocypher hardware attempt is authorized; the next boundary is independent host-only Phase 2 admission and explicit cryptographic/wire selection before implementation.
 
@@ -1613,14 +1613,26 @@ read back, and hard-reset exactly to Trail on success or abort. Recovery is
 restore-only, requires no benchmark image, and never opens the radio.
 
 OT-162 creates no fresh coordinator, adapter, journal, execution-receipt,
-recovery-receipt, or runtime-private namespace. Future execution continues to
-use the accepted OT-160 private filenames and `OT160NXJ0` / `OT160NXCR0`
-schemas. The authority remains unexecuted, is consumed on success or abort, is
-non-reusable, and grants no continuation; OT-163 is the sole permitted
-execution step. The unused OT-158 authority remains permanently bound to the
-defective OT-157 composition and cannot transfer. No result, selection, Phase 2
-or Phase 3 completion, readiness, support, release, regulatory, production, or
-score claim changes.
+recovery-receipt, or runtime-private namespace. Its later execution uses the
+accepted OT-160 private filenames and `OT160NXJ0` / `OT160NXCR0` schemas. At
+acceptance the authority remained unexecuted, was consumable on success or
+abort, was non-reusable, and granted no continuation; OT-163 was the sole
+permitted execution step. The unused OT-158 authority remains permanently bound
+to the defective OT-157 composition and cannot transfer. OT-162 itself changes
+no result, selection, Phase 2 or Phase 3 completion, readiness, support,
+release, regulatory, production, or score claim.
+
+OT-163 consumes that sole authority exactly once and fails closed as
+`noise_xk_radio_execution_aborted` / `radio_run_failed` at the allowlisted
+`restart_ack_a` stage. Both anonymous nodes restore, read back, and hard-reset
+exactly to Trail; `restoration_complete=true`, recovery is unnecessary, no
+recovery receipt exists, and the owner confirms both Trail logos. The abort
+admits no benchmark or radio-cost result. The authority is non-reusable and
+grants no retry or continuation; no fresh Noise XK radio attempt is authorized.
+Phase 2 remains incomplete, with its remaining crypto measurement and admission
+gates still open. The next owner-prioritized implementation is fresh-window
+six-digit BLE pairing firmware. No readiness, support, release, regulatory,
+production, score, or website-status claim changes.
 
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and

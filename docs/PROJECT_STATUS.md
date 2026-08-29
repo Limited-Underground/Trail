@@ -9,7 +9,9 @@ Status date: 2026-08-28
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
 
-OT-162 accepts the owner-approved host-only `OT162NXRA0` authority for exactly one later two-node application-only attempt against the exact OT-161 corrected bundle. The 4,545-byte canonical authority has raw SHA-256 `58964547c9f38ff2688da14f31421216eb2bc2705916abeee75e202ffa876a58` and canonical payload SHA-256 `e1b16623d3b9059e6b190a37bc5c7e727479cba872d7f95232336996402d4e79`. It binds the exact OT-161 preparation, OT-156 runner/runtime, OT-160 coordinator/adapter and private-state boundary, benchmark and Trail applications, anonymous roles, frozen US915 profile, and complete reset-aware execution/restoration contract. Success or abort consumes the authority; it is non-reusable, grants no continuation, and remains unexecuted. OT-163 is the sole permitted execution step. Focused authority validation passes 10/10, the exact OT-153/157/160/161/162 chain passes 56/56, the raw-byte audit passes 274/274, and the complete Windows Host matrix passes locally with exit 0. OT-158 remains permanently bound to defective OT-157 and cannot transfer. No device, endpoint, serial, reset, flash, radio, phone, private journal, terminal receipt, result, selection, Phase 2 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%, and no website update is required. See [Decision 0098](decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md), [OT-162 evidence](../tests/hardware/OT-162-2026-08-28.md), and the [canonical authority](../tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json).
+OT-163 consumes the sole OT-162-authorized attempt exactly once and fails closed as `noise_xk_radio_execution_aborted` / `radio_run_failed` at the allowlisted `restart_ack_a` stage. Both anonymous nodes restored, read back, and hard-reset exactly to Trail; `restoration_complete=true`, recovery was unnecessary, no recovery receipt exists, and the owner visually confirmed both Trail logos. No benchmark or radio-cost result is admitted. The authority is non-reusable, grants no retry or continuation, and no fresh Noise XK radio attempt is authorized. Phase 2 remains incomplete. The next owner-prioritized implementation is fresh-window six-digit BLE pairing firmware, while the remaining crypto measurement and admission gates stay open. V1 remains exact 43.75%/displayed 44%, and no website update is required. See [Decision 0099](decisions/0099-record-ot163-noise-xk-radio-execution-abort.md), [OT-163 evidence](../tests/hardware/OT-163-2026-08-28.md), and the [sanitized abort receipt](../tests/benchmarks/crypto/OT-163-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json).
+
+OT-162 accepts the owner-approved host-only `OT162NXRA0` authority for exactly one later two-node application-only attempt against the exact OT-161 corrected bundle. The 4,545-byte canonical authority has raw SHA-256 `58964547c9f38ff2688da14f31421216eb2bc2705916abeee75e202ffa876a58` and canonical payload SHA-256 `e1b16623d3b9059e6b190a37bc5c7e727479cba872d7f95232336996402d4e79`. It binds the exact OT-161 preparation, OT-156 runner/runtime, OT-160 coordinator/adapter and private-state boundary, benchmark and Trail applications, anonymous roles, frozen US915 profile, and complete reset-aware execution/restoration contract. At OT-162 acceptance, success or abort would consume the non-reusable authority, which granted no continuation and remained unexecuted; OT-163 was its sole permitted execution step and later consumed it. Focused authority validation passes 10/10, the exact OT-153/157/160/161/162 chain passes 56/56, the raw-byte audit passes 274/274, and the complete Windows Host matrix passes locally with exit 0. OT-158 remains permanently bound to defective OT-157 and cannot transfer. No device, endpoint, serial, reset, flash, radio, phone, private journal, terminal receipt, result, selection, Phase 2 completion, readiness, support, release, regulatory, or score claim changed at OT-162. V1 remained exact 43.75%/displayed 44%, and no website update was required. See [Decision 0098](decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md), [OT-162 evidence](../tests/hardware/OT-162-2026-08-28.md), and the [canonical authority](../tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json).
 
 OT-161 freezes the exact corrected host-only Noise XK executable/restoration bundle. The canonical `OT161NXBP0` preparation binds the already accepted OT-160 coordinator/adapter, exact OT-156 runner/runtime, unchanged OT-153 firmware/build lineage, and exact Trail restoration application. It does not create fresh OT-161 coordinator, adapter, journal, execution-receipt, or recovery-receipt namespaces: the runtime retains its accepted `OT160NXJ0` / `OT160NXCR0` boundary. The OT-161 bundle suite passes 11/11, the focused OT-153/157/160/161 chain passes 46/46, the raw-byte audit passes 269/269, and the complete Windows Host matrix passes locally with exit 0. OT-161 creates no authority and performs no physical device operation; OT-162 must separately accept fresh explicit non-reusable authority before corrected hardware execution. The unused OT-158 authority remains permanently bound to the defective OT-157 composition and cannot transfer. No result, selection, Phase 2 completion, readiness, support, release, regulatory, score, or website status changes. V1 remains exact 43.75%/displayed 44%. See [Decision 0097](decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md), [OT-161 evidence](../tests/hardware/OT-161-2026-08-28.md), and the [canonical preparation](../tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json).
 
@@ -2633,7 +2635,7 @@ radio/task binding, reboot/power-loss, and field behavior remain open.
 
 | Item | Current status | Required evidence |
 | --- | --- | --- |
-| Two Heltec V4 LoRa-capable boards | Both experimental bench nodes have independently admitted exact received `HTIT-WB32LAF` / `V4.2` profiles and run the identical OT-115 `heltec_v4_bench` image. Both full-image writes verified and one bounded OpenTrail heartbeat was observed from each. OT-114 direct-radio evidence remains valid historical evidence. | OT-119 completes only the second-node exact-profile and benchmark phase-zero gate. Battery, GNSS, and LoRa activity remain unbound in the current footer. Protected storage, GATT authorization, production UI/GNSS binding, field range/endurance, exact RF output/EIRP, regulatory acceptance, compatibility, and support remain open. See `tests/hardware/OT-119-2026-08-22.md`, `tests/hardware/OT-115-2026-08-21.md`, and `hardware/INVENTORY.md`. |
+| Two Heltec V4 LoRa-capable boards | Both experimental bench nodes have independently admitted exact received `HTIT-WB32LAF` / `V4.2` profiles and now run the identical OT-147 `heltec_v4_bench` image. Each exact 500,944-byte application was independently read back, and the owner confirmed both displays showing live `BAT` and `GPS` values. OT-114 direct-radio and OT-115 placeholder-footer evidence remain valid time-bounded history. | Battery percentage is an approximate voltage-derived estimate, not a calibrated fuel-gauge result; the satellite count does not prove GNSS fix, accuracy, or fix-loss behavior. LoRa activity-arrow binding, protected storage, authenticated GATT/pairing, production UI/GNSS behavior, field range/endurance, exact RF output/EIRP, regulatory acceptance, compatibility, and support remain open. See `tests/hardware/OT-119-2026-08-22.md`, `tests/hardware/OT-147-2026-08-26.md`, and `hardware/INVENTORY.md`. |
 | Seeed SenseCAP solar node | Runtime-identified as **Seeed SenseCap Solar**, USB `VID 2886:0059`, running MeshCore Repeater `v1.16.0-07a3ca9` at 910.525 MHz/BW 62.5/SF7/CR5/22 dBm with repeat enabled. The owner purchase record is SenseCAP Solar Node **P1-Pro**, ASIN `B0FMDHBWX8`; Seeed's current MeshCore product maps that variant to SKU `100023690` with XIAO nRF52840 Plus, Wio-SX1262, L76K GNSS, and battery. Its coordinate-free GNSS status progressed from active/no-fix/0 satellites to a live fix, with later checks at 4, 7, and 8 satellites. Both Heltecs received its advert and remotely read its synchronized clock. A temporary private-channel run produced exactly +2 flood RX/+2 flood TX. Explicit one-hop direct routes then succeeded both ways; with repeat off, the same route failed with +1 direct RX/+0 direct TX and no destination message, proving the repeater was required. A non-secret channel lease passed real stopped-session recovery. The 300-minute alternating close-bench run delivered 300/300 (150 each direction), zero loss/duplicates/errors, 229.8-312.1 ms latency, exact +300 repeater flood RX/TX, repeat preserved, empty queues, and verified exact-name channel/journal cleanup. OT-017D added exact aggregate +4 flood RX/+4 flood TX while two role-reversed alert/ACK cycles passed; repeat remained on and errors stayed zero. See `tests/hardware/OT-003A-2026-08-12.md`, `tests/hardware/OT-009-2026-08-08.md`, `tests/hardware/OT-009A-2026-08-09.md`, and `tests/hardware/OT-017D-2026-08-09.md`. | Exact received label/revision and internals, physical GPS/antenna details, GNSS accuracy/cold-start/loss/power behavior, solar endurance, physical field behavior/range, and regulatory validation remain. |
 | Wio Tracker L1 Pro for MeshCore | Owner reports the unit arrived after already being flashed as USB Companion and configured for a USA frequency plan; shipping/pre-write state was not preserved or verified. Windows reported public USB model `Seeed Wio Tracker L1`, family `2886:1667`; fixed read-only MeshCLI returned USB Companion `v1.17.0-727fc05` build 09-Aug-2026, repeat false, 910.525 MHz/BW 62.5 kHz/SF7/CR5/configured and maximum 22 dBm, 4.111 V, and zero errors/queue/packets/airtime/receive errors. Three more cycles kept public model/firmware/profile and zero error/traffic state stable while uptime increased. GNSS was detected but inactive with no GPS telemetry. A non-transmitting comparison matched channel 0 and absent default-scope state only in memory, confirmed distinct identities without emitting them, and found clocks within one second. No transient port, identity, secret, or coordinate is retained. C# and Python loaders now recognize the family; three built-in live refreshes and three exact-roster source-free external UI Automation cycles returned one Heltec, one SenseCAP, and one Wio, all runtime-identified and zero ready. See `tests/hardware/OT-020-2026-08-13.md`. | OT-020 is `partial` and the unit is only `experimented`. Exact label/SKU/revision, pre-write state, antenna/RF/regulatory evidence, over-air interoperability, GNSS activation/fix/loss, power/endurance, BLE, DFU/recovery, and clean-machine evidence remain. The package result is loader recognition evidence only, not hardware compatibility or support |
 | Two Waveshare ESP32-S3 1.75-inch round AMOLED touch boards | Owner reports two ordered; not received or tested. The product family is advertised as 466x466 touch with ESP32-S3R8, 8 MB PSRAM, 16 MB flash, and standard/case/GPS variants; exact ordered and received variant remains unconfirmed | Preserve shipping firmware/recovery evidence; confirm exact labels/variant, display/touch/storage interfaces, usable memory, power/thermal behavior, and map/peer/alert rendering under OT-018 |
@@ -2811,24 +2813,16 @@ not treated as proof of authorization.
 - OpenGauge authenticated on-device transport, peer/key lifecycle, persistent replay/outbox state, failure UX, and direct radio integration; the v0 semantic schema/policy is host-tested and OT-017D/OT-017E supply bounded physical byte and host-component completion evidence
 - Field-session repetition count, movement/terrain profiles, acceptance
   thresholds, and the final position/status cadence after measured contention
-- OT-101 is partial with a target-neutral host-only prototype/contract for the
-  owner-finalized compact Heltec footer, `BAT:100% GPS:12 BLE:C`, plus one
-  transient latest-direction field: `↑` for an injected accepted TX event,
-  `↓` for an injected accepted RX event, and blank while idle, unsupported,
-  future-dated, or expired. Invalid, stale, unavailable, future, or out-of-range
-  battery/GPS observations render as `--`; BLE uses bounded codes with a
-  legend. Exact glyph, formatter, width/layout, golden-page,
-  validity/freshness, code, latest-direction, monotonic-expiry, and rejection
-  behavior pass 12 warning-free host groups from `tests/host_support`. OT-101A
-  adds pure target-neutral adapters from the existing power assessment and BLE
-  runtime status. Ten adapter groups prove separate assessment/render clock
-  handling, delayed-sample expiry, regressive-clock rejection,
-  fail-closed power mapping, and the bounded `-`/`S`/`A`/`C`/`R`/`E` BLE
-  mapping; composition deliberately keeps GPS unavailable and activity blank.
-  The prototype and adapters remain outside the firmware tree; current target
-  renderer/OLED, battery, GNSS-satellite, BLE transport, and radio bindings are
-  absent, so no firmware, target-build, device, flash, telemetry, traffic,
-  physical-display, support, regulatory, or score result is claimed
+- OT-101 and OT-101A remain the host-tested compact-footer contract and adapter
+  foundation. OT-115 later linked the footer into the Heltec target with live
+  BLE status but placeholder battery/GPS fields. OT-147 now supplies the current
+  physical target evidence: both anonymous Heltecs run the identical image and
+  visibly render live approximate battery percentage and GNSS satellite count.
+  Invalid or unavailable values still fail closed as `--`, BLE remains bounded
+  to its compact codes, and LoRa activity-arrow binding remains absent. The
+  current evidence does not establish calibrated charge state, GNSS fix or
+  accuracy, fix-loss behavior, authenticated pairing/GATT, production UI,
+  support, regulatory acceptance, field readiness, or score credit
 
 ### Governance
 
@@ -2872,44 +2866,36 @@ independently admits the exact `OT-DEV-002` profile and completes phase 0. All t
 API/configuration registries are populated, OT-120 later accepts every retained
 candidate import/build anchor, and current source/API-config/import counts are
 `3/3/3`. Phase 0 and phase 1 are complete. Monocypher and mbedTLS/PSA remain
-structurally nonselectable. Measurement remains blocked only by absent fresh
-execution authority; no support, compatibility, regulatory, benchmark,
-selection, or score claim is added. The next security checkpoint is to run the
-exact candidate comparison only under fresh separate authority,
-followed by explicit suite/library, handshake/KDF, and packet-v1 wire selection. Pairing/replacement
-and secure-LoRa target/Android
-implementation, physical acceptance, and the coherent two-pair run remain
-separately authorized later gates. Continue the partially
+structurally nonselectable. OT-121/OT-122 admit bounded libsodium measurements,
+OT-146 admits the bounded Monocypher comparison, and OT-150 admits matched
+resource evidence. OT-163 admits no Noise XK radio-cost result after its sole
+authority fails closed and restores both nodes exactly. Phase 2 therefore
+remains incomplete; corrected mbedTLS/PSA execution, Noise XK radio-cost
+measurement, independent reconciliation/admission, and explicit suite/library,
+handshake/KDF, and packet-v1 wire selection remain open. The next
+owner-prioritized implementation is fresh-window six-digit BLE pairing firmware;
+remaining crypto work stays open rather than being treated as completed.
+Secure-LoRa target/Android implementation, physical acceptance, and the coherent
+two-pair run remain later gates. Continue the partially
 executed OT-020 procedure without reconstructing the Wio's unpreserved shipping
 state.
 Authenticated on-device transport, protected target state, physical restart and
 power-failure injection, GPS evidence, field performance, and direct-radio
 airtime remain explicit later gates.
 
-OT-101 remains partial. A target-neutral host-only prototype/contract under
-`tests/host_support` formats `BAT:100% GPS:12 BLE:C` within one exact
-128-column by 8-row page plus one transient latest-direction field: `↑` for an
-injected accepted TX event, `↓` for an injected accepted RX event, and blank
-while idle, unsupported, future-dated, or expired. Every unavailable, invalid,
-stale, future, or out-of-range battery/GPS value renders as `--`; BLE uses the
-bounded documented codes `-`, `S`, `A`, `C`, `R`, and `E`. Twelve warning-free
-host groups cover exact glyphs, formatter and widths, golden layout, validity
-and freshness, BLE codes, latest-direction replacement, monotonic expiry,
-regressive-time rejection, unsupported transport, and clear behavior.
-OT-101A adds pure host adapters from `power::PowerAssessment` and
-`companion::CompanionBleRuntimeStatus`. Valid battery values reconstruct the
-original observation time from the assessment time; a separate render time
-controls freshness, so delayed composition expires the old sample instead of
-refreshing it. Underflow, render time before assessment time, and invalid or unavailable
-assessments fail closed. Known BLE phases map
-only to `-`, `S`, `A`, `C`, `R`, and `E`; terminal errors win and unknown
-phases are unavailable. Ten adapter groups pass, while the existing twelve
-footer groups remain green. Adapter composition has no GPS source and uses an
-unsupported activity owner, producing `GPS:--` and a blank arrow in every tested
-case. No accepted real-transport source exists. The prototype and adapters remain
-deliberately outside the firmware tree, and the current Heltec target has no
-renderer/OLED, battery-percentage, GNSS-satellite-count, BLE transport, or
-radio-event binding. No firmware or target build, device access, flash,
-telemetry, traffic, physical-display, support, regulatory, or score claim
-follows. See [OT-101 evidence](../tests/hardware/OT-101-2026-08-21.md) and
-[OT-101A evidence](../tests/hardware/OT-101A-2026-08-21.md).
+OT-101 and OT-101A establish the target-neutral compact-footer contract and
+host adapters: `BAT:100% GPS:12 BLE:C`, fail-closed `--` values, bounded BLE
+codes, and one transient direction field. OT-115 later provides the first
+physical target-renderer/OLED and live-BLE-status evidence with battery/GPS
+placeholders. OT-147 supersedes only that placeholder state for the current
+experimental image: both anonymous Heltecs independently pass exact application
+readback and visibly render live approximate battery percentage and GNSS
+satellite count. The battery value is not calibrated charge-state evidence, and
+the satellite count does not prove fix, accuracy, or fix-loss behavior. The
+LoRa activity field remains unbound. This lineage supplies bounded experimental
+display evidence, not authenticated pairing/GATT, production firmware, support,
+regulatory acceptance, field readiness, or score credit. See [OT-101
+evidence](../tests/hardware/OT-101-2026-08-21.md), [OT-101A
+evidence](../tests/hardware/OT-101A-2026-08-21.md), [OT-115
+evidence](../tests/hardware/OT-115-2026-08-21.md), and [OT-147
+evidence](../tests/hardware/OT-147-2026-08-26.md).

@@ -2399,6 +2399,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OT162NXRA0 corrected Noise XK radio preparation/authority tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\ot163_noise_xk_radio_abort_record_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('OT163NXAR0 Noise XK radio abort-record tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_matched_resource_accounting_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OTMRAC1/OTMRAR1 matched-resource successor tests failed with exit code {0}.' -f $LASTEXITCODE)

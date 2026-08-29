@@ -303,6 +303,10 @@ tests/hardware/OT-162-2026-08-28.md|4158|37db767c62a81e6178700c968b39fa7484f8ae5
 tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json|4545|58964547c9f38ff2688da14f31421216eb2bc2705916abeee75e202ffa876a58|lf|lf|none|lf
 tools/ot162_noise_xk_radio_execution_authority.py|24371|0c09dd2c0d1e2a95b5227cbac2f433e7163fe38419b9e59776f290acafa6e555|lf|lf|none|lf
 tests/host/ot162_noise_xk_radio_execution_authority_tests.py|15012|c970abe5327e5e494b7ab4f62685961ace9c6e941dab18b14dcf741cc93c6e13|lf|lf|none|lf
+docs/decisions/0099-record-ot163-noise-xk-radio-execution-abort.md|3782|33144fa2f3f1463d7b05b785bee48953f5c002264f4b8b19f3403021c236cb71|lf|lf|none|lf
+tests/benchmarks/crypto/OT-163-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json|3455|e9927cd3f3b266cd3cec6cbfeac2d0e400c036efa07b791eff857b2217988ca8|lf|lf|none|lf
+tests/hardware/OT-163-2026-08-28.md|4258|cf4b78f44b2c871e833fdfef0e3462201c93198295892bc35a66bc46a101743f|lf|lf|none|lf
+tests/host/ot163_noise_xk_radio_abort_record_tests.py|5492|6aa859371268a053ce9691493d2b321e56224f9a84710e3760fccb475ac86e2e|lf|lf|none|lf
 """.strip()
 
 
