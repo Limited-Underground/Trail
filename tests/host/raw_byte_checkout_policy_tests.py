@@ -292,12 +292,17 @@ tests/hardware/OT-160-2026-08-28.md|5142|12cf0d494505928f42d8a014b3a16583d9f5cc7
 tools/ot160_noise_xk_radio_coordinator.py|7264|444528fd341b3d55f3a5b3224b217620e1b37e3c7960d224aefbe01d9953a02d|lf|lf|none|lf
 tools/ot160_noise_xk_radio_hardware_adapter.py|3952|24d75806cdf7ae28c47fe427cac12a7ef3564d76d68a926ad58bd610c9e8f4b9|lf|lf|none|lf
 tests/host/ot160_noise_xk_radio_coordinator_tests.py|19421|4979348106afec502bc436adb45c755d5ae04dc8d2ffa22000427f21d3eee788|lf|lf|none|lf
-tests/host/ot160_noise_xk_radio_hardware_adapter_tests.py|10833|c12a59cad654f484d2d4e8a84833c0145804fa1c9c1d1667ae0f46aec5c3201b|lf|lf|none|lf
+tests/host/ot160_noise_xk_radio_hardware_adapter_tests.py|11475|83f383369b0e24a32c7b50753a0f140649db4f267f7a78c9a353e62adaa7fe21|lf|lf|none|lf
 docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md|4756|22099f697f027191962d9e8a5001b8224107bdb11d22ee945d51e6de64a24269|lf|lf|none|lf
 tests/hardware/OT-161-2026-08-28.md|4211|c6c344df29d3408609665601173981a96d46b069c41cfc9b4fb02fcf946735a4|lf|lf|none|lf
 tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json|6113|942f7bda82273e8d06901827934eac6dc2c30ac3135ba614c2067eecb8cb171c|lf|lf|none|lf
 tools/ot161_noise_xk_radio_bundle.py|16818|71668a4d9e7050b10a8aa39cde9caa9078d50313a1ced150a43d4979e00a72a5|lf|lf|none|lf
 tests/host/ot161_noise_xk_radio_bundle_tests.py|17900|ba5bfe8396dd25e0c4c2543c4705156aa9b5f4d5f1d18bd327d291dcd44fd77b|lf|lf|none|lf
+docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md|4332|d04580abb64361554e8d4d082f55a15f303353d6438c6c74b2f14e2498311a42|lf|lf|none|lf
+tests/hardware/OT-162-2026-08-28.md|4158|37db767c62a81e6178700c968b39fa7484f8ae59a93eef84170e9d3831d01d51|lf|lf|none|lf
+tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json|4545|58964547c9f38ff2688da14f31421216eb2bc2705916abeee75e202ffa876a58|lf|lf|none|lf
+tools/ot162_noise_xk_radio_execution_authority.py|24371|0c09dd2c0d1e2a95b5227cbac2f433e7163fe38419b9e59776f290acafa6e555|lf|lf|none|lf
+tests/host/ot162_noise_xk_radio_execution_authority_tests.py|15012|c970abe5327e5e494b7ab4f62685961ace9c6e941dab18b14dcf741cc93c6e13|lf|lf|none|lf
 """.strip()
 
 

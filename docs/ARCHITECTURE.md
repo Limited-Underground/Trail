@@ -1598,6 +1598,30 @@ from the defective OT-157 composition. OT-161 grants no device, reset, flash,
 radio, benchmark, or execution authority; OT-162 is the separate fresh explicit
 non-reusable authority gate before any corrected hardware work.
 
+OT-162 accepts that separate fresh owner-approved authority as canonical
+`OT162NXRA0` version 0. It binds the exact OT-161 preparation, OT-156 runner and
+reconnectable runtime, OT-160 corrected coordinator and concrete adapter,
+296,640-byte benchmark application, exact 500,944-byte Trail restoration
+application, anonymous roles, frozen US915 profile, and complete reset-aware
+execution/restoration contract. The authority permits exactly one later
+two-node application-only attempt at `0x10000`: A-to-B then B-to-A, with one
+baseline and one bounded whole-handshake restart per direction, for at most 14
+transmissions, 736 radio-payload bytes, and 1,447,424 microseconds theoretical
+airtime. Both installed Trail applications must pass exact readback and reset
+before private one-use state or a first write; every touched node must restore,
+read back, and hard-reset exactly to Trail on success or abort. Recovery is
+restore-only, requires no benchmark image, and never opens the radio.
+
+OT-162 creates no fresh coordinator, adapter, journal, execution-receipt,
+recovery-receipt, or runtime-private namespace. Future execution continues to
+use the accepted OT-160 private filenames and `OT160NXJ0` / `OT160NXCR0`
+schemas. The authority remains unexecuted, is consumed on success or abort, is
+non-reusable, and grants no continuation; OT-163 is the sole permitted
+execution step. The unused OT-158 authority remains permanently bound to the
+defective OT-157 composition and cannot transfer. No result, selection, Phase 2
+or Phase 3 completion, readiness, support, release, regulatory, production, or
+score claim changes.
+
 Update recovery uses a separate host-tested `OTRD0/v0` diagnostic adapter. One
 coherent redacted boot/save/transition status becomes one fixed 32-bit word and
 one canonical message through the existing logger. Generation values and all

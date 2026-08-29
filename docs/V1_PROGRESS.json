@@ -108,8 +108,9 @@
         ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
         ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
         ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
+        ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md"
       ],
-      "next_gate": "Accept fresh explicit non-reusable authority as OT-162 for the exact OT-161 corrected bundle before any corrected radio attempt; separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
+      "next_gate": "Execute the sole OT-162-authorized two-node application-only Noise XK radio attempt against the exact OT-161 corrected bundle as OT-163; separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
     },
     {
       "id": "core-firmware",
@@ -214,8 +215,9 @@
         ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
         ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
         ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
+        ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md"
       ],
-      "next_gate": "Accept fresh explicit non-reusable authority as OT-162 for the exact OT-161 corrected bundle before any corrected radio attempt, while corrected mbedTLS/PSA execution, LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
+      "next_gate": "Execute the sole OT-162-authorized two-node application-only Noise XK radio attempt against the exact OT-161 corrected bundle as OT-163, while corrected mbedTLS/PSA execution, LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
     },
     {
       "id": "first-complete-unit",
@@ -299,8 +301,9 @@
             ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
             ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
+            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md"
           ],
-          "next_gate": "Accept fresh explicit non-reusable authority as OT-162 for the exact OT-161 corrected bundle before any corrected radio attempt; separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
+          "next_gate": "Execute the sole OT-162-authorized two-node application-only Noise XK radio attempt against the exact OT-161 corrected bundle as OT-163; separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
         },
         {
           "id": "core-firmware",
@@ -369,8 +372,9 @@
             ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
             ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
+            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md"
           ],
-          "next_gate": "Accept fresh explicit non-reusable authority as OT-162 for the exact OT-161 corrected bundle before any corrected radio attempt, while corrected mbedTLS/PSA execution, LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
+          "next_gate": "Execute the sole OT-162-authorized two-node application-only Noise XK radio attempt against the exact OT-161 corrected bundle as OT-163, while corrected mbedTLS/PSA execution, LoRa activity, battery/GNSS acceptance, and remaining field gates stay separate."
         },
         {
           "id": "android-companion",
@@ -427,8 +431,9 @@
             ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
             ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
+            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md"
           ],
-          "next_gate": "Accept fresh explicit non-reusable authority as OT-162 for the exact OT-161 corrected bundle before any corrected radio attempt; separately complete corrected mbedTLS/PSA execution and the remaining Phase 2 gates before independent reconciliation and explicit selection."
+          "next_gate": "Execute the sole OT-162-authorized two-node application-only Noise XK radio attempt against the exact OT-161 corrected bundle as OT-163; separately complete corrected mbedTLS/PSA execution and the remaining Phase 2 gates before independent reconciliation and explicit selection."
         }
       ],
       "change_log": [
@@ -864,6 +869,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Accepted OT-161 as the exact corrected host-only Noise XK executable/restoration bundle. The accepted OT-160 coordinator/adapter, exact OT-156 runner/runtime, unchanged OT-153 firmware/build lineage, and exact Trail restoration application are hash-locked without creating a fresh runtime namespace. OT-161 grants no authority and adds no hardware, radio attempt, result, selection, Phase 2 completion, readiness, or score claim. The unused OT-158 authority remains bound to defective OT-157 and cannot transfer; OT-162 is the separate fresh authority gate. Every milestone completion remains unchanged: Android 60%, V1 Companion exact 43.75% / displayed 44%, and V1.5/V2 unmeasured."
+        },
+        {
+          "date": "2026-08-28",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Accepted the owner-approved OT-162 host-only non-reusable authority, bound to the exact OT-161 corrected executable/restoration bundle, for exactly one later two-node application-only Noise XK radio attempt. The authority remains unexecuted, is consumed on success or abort, grants no continuation, and OT-163 is the sole permitted execution step. No device, endpoint, serial, reset, flash, radio, phone, private journal, terminal receipt, result, selection, Phase 2 completion, readiness, or score claim was added. Every milestone completion remains unchanged: Android 60%, V1 Companion exact 43.75% / displayed 44%, and V1.5/V2 unmeasured."
         }
     ]
     },
@@ -1259,6 +1270,11 @@
       "date": "2026-08-28",
       "overall": 32,
       "reason": "Accepted OT-161 as the exact corrected host-only Noise XK executable/restoration bundle binding the accepted OT-160 coordinator/adapter, exact OT-156 runner/runtime, unchanged OT-153 firmware/build lineage, and exact Trail restoration application. No authority, physical attempt, result, selection, Phase 2 completion, readiness, or historical standalone milestone completion changes; the unused OT-158 authority remains nontransferable and OT-162 is the separate fresh authority gate. The baseline remains exact 31.75% / displayed 32%."
+    },
+    {
+      "date": "2026-08-28",
+      "overall": 32,
+      "reason": "Accepted the owner-approved OT-162 host-only non-reusable authority, bound to the exact OT-161 corrected executable/restoration bundle, for exactly one later two-node application-only Noise XK radio attempt. The authority remains unexecuted, is consumed on success or abort, grants no continuation, and OT-163 is the sole permitted execution step. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
     }
   ]
 }

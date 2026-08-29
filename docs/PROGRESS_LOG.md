@@ -6,6 +6,14 @@ public chronology.
 
 ## 2026-08-28
 
+### OT-162 corrected Noise XK one-attempt authority
+
+- Accepted the owner-approved host-only `OT162NXRA0` authority for the exact OT-161 corrected executable/restoration bundle. The 4,545-byte canonical record has raw SHA-256 `58964547c9f38ff2688da14f31421216eb2bc2705916abeee75e202ffa876a58` and canonical payload SHA-256 `e1b16623d3b9059e6b190a37bc5c7e727479cba872d7f95232336996402d4e79`.
+- The authority permits exactly one later two-node application-only attempt: both role directions, one baseline and one forced whole-handshake restart per direction, 14 transmissions, 736 radio-payload bytes, and 1,447,424 microseconds theoretical airtime. The accepted OT-160 private one-use state consumes it on success or abort; it is non-reusable, grants no continuation, and requires exact Trail restore/readback/hard-reset of every touched node.
+- Focused authority validation passes 10/10, the exact OT-153 bundle, OT-157 bundle, OT-160 coordinator/adapter, OT-161 bundle, and OT-162 authority chain passes 56/56, the raw-byte audit passes 274/274, and the complete Windows Host matrix passes locally with exit 0.
+- OT-162 performs no device, endpoint, serial, reset, flash, radio, phone, journal, receipt, benchmark, or cryptographic operation. OT-163 is the sole permitted execution step; the unused OT-158 authority remains permanently bound to defective OT-157 and cannot transfer.
+- No result, candidate/library/suite/handshake/KDF/Packet-v1 selection, Phase 2 or Phase 3 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%; the historical baseline remains exact 31.75%/displayed 32%. No website update is required. See [Decision 0098](decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md), [evidence](../tests/hardware/OT-162-2026-08-28.md), and the [canonical authority](../tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json).
+
 ### OT-161 corrected Noise XK executable/restoration bundle
 
 - Froze the exact corrected host-only bundle around the already accepted OT-160 coordinator and adapter, exact OT-156 runner/runtime, unchanged OT-153 firmware/build lineage, and exact Trail restoration application.

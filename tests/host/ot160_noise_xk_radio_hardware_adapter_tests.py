@@ -232,6 +232,17 @@ class Tests(unittest.TestCase):
             adapter.FUTURE_AUTHORITY_PATH.name,
             "OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json",
         )
+        authority_contract = adapter._load_authority_contract()
+        self.assertEqual(
+            authority_contract.AUTHORITY_RELATIVE,
+            adapter.FUTURE_AUTHORITY_RELATIVE,
+        )
+        authority_raw = adapter.FUTURE_AUTHORITY_PATH.read_bytes()
+        authority = authority_contract.decode_canonical(authority_raw, "authority")
+        self.assertEqual(authority["schema"], "OT162NXRA0")
+        self.assertEqual(authority["authority_id"], authority_contract.AUTHORITY_ID)
+        self.assertEqual(authority["status"], "authorized_one_attempt_not_executed")
+        self.assertFalse(authority["consumption"]["reusable"])
         with tempfile.TemporaryDirectory(prefix="ot160-missing-authority-") as directory:
             missing_root = Path(directory)
             with (

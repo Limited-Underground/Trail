@@ -342,3 +342,10 @@ tests/hardware/OT-161-2026-08-28.md text eol=lf
 tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json text eol=lf
 tools/ot161_noise_xk_radio_bundle.py text eol=lf
 tests/host/ot161_noise_xk_radio_bundle_tests.py text eol=lf
+
+# OT-162 freezes deterministic one-attempt corrected Noise XK radio authority bytes.
+docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md text eol=lf
+tests/hardware/OT-162-2026-08-28.md text eol=lf
+tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json text eol=lf
+tools/ot162_noise_xk_radio_execution_authority.py text eol=lf
+tests/host/ot162_noise_xk_radio_execution_authority_tests.py text eol=lf
