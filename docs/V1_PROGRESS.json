@@ -252,7 +252,7 @@
       "id": "v1-companion",
       "name": "V1 Companion",
       "status": "measured",
-      "as_of": "2026-08-28",
+      "as_of": "2026-08-29",
       "definition": "A complete V1 Companion release means exactly two supported Heltec LoRa devices and two approved Android phones, one physically authorized phone per Heltec, exchange authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE with restart, disconnect, rejection, retry, recovery, and one exact signed Android release physically accepted without relay, server, or internet dependency.",
       "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
       "milestones": [
@@ -1281,6 +1281,11 @@
       "date": "2026-08-28",
       "overall": 32,
       "reason": "Accepted the owner-approved OT-162 host-only non-reusable authority, bound to the exact OT-161 corrected executable/restoration bundle, for exactly one later two-node application-only Noise XK radio attempt. The authority remains unexecuted, is consumed on success or abort, grants no continuation, and OT-163 is the sole permitted execution step. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
+    },
+    {
+      "date": "2026-08-29",
+      "overall": 32,
+      "reason": "Accepted OT-164 after the corrected reproducible application was installed and independently read back on both anonymous Heltec nodes and the owner physically accepted short-press rejection, three-second hold/release opening, six-digit local display, approximately 30-second concealment, and reset concealment without reporting a PIN. Android pairing, bond ownership/persistence, reconnect, replacement, protected GATT, end-to-end operation, support, and field readiness remain open. No historical standalone milestone completion changes, so the baseline remains exact 31.75% / displayed 32%."
     }
   ]
 }
