@@ -632,7 +632,10 @@ class BleCompanionRuntime(
                 lease.close()
                 gattLease = null
             }
-            if (generation == callbackGeneration) {
+            if (
+                generation == callbackGeneration &&
+                (state is BleRuntimeState.Connecting || state is BleRuntimeState.Reconnecting)
+            ) {
                 handleConnectionFailure(companion, BleRuntimeFailure.CONNECTION_START_FAILED, transient = true)
             }
         } else if (

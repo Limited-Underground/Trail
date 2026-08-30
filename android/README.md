@@ -34,9 +34,10 @@ OT-089 permanently changes the V1 private-pilot topology from four phones to
 exactly two approved phones, one per supported Heltec. It adopts practical
 physical-presence authorization with a fresh locally displayed six-digit PIN,
 authenticated BLE Secure Connections pairing/bonding, saved-bond reconnect,
-and confirmed phone replacement. The exact Android and device workflows remain
-unimplemented and physically unaccepted. No PIN, phone, pairing, install,
-signing, or device operation occurred in OT-089.
+and confirmed phone replacement. OT-164 physically accepts only the target-side
+local display window. OT-165 now host-validates the Android initial OS-bond
+coordinator, while durable device ownership, reconnect, replacement, protected
+GATT, and physical phone acceptance remain open.
 
 The visible working product name is `Limited Underground Trail`. The stable,
 technical application and package namespace is
@@ -108,6 +109,11 @@ protocol or package identity.
   Replacement requires the distinct replaced result, and the phone cannot invent
   ownership. Mode changes, permission loss, lifecycle stop, and destroy cancel the
   claim and suppress stale results.
+- OT-165 inserts one Android OS-owned initial bond attempt before the existing
+  GATT path. It binds the exact opaque endpoint and facade generation, requires
+  this fresh attempt to observe `BOND_BONDING` before exact `BOND_BONDED`, and
+  has no automatic pairing retry. Android's system UI exclusively owns passkey
+  entry; the app does not intercept, set, display, log, or store the PIN.
 - Protected-read, claim, and lifecycle tests remain host-only. The visible
   physical-control instructions and deterministic tests do not prove a button
   press, bonding, application authorization, phone replacement, radio continuity,
@@ -151,9 +157,10 @@ raw addresses, names, identifiers, status codes, and exception text do not enter
 UI state.
 
 The concrete gap to a first real Ready session is therefore explicit: start and
-advertise the accepted target service/controller, bind the provisional lifecycle
-to exact target security, physical-control, private-binding, and persistence
-events, then run the exact app against that device firmware. The
+advertise the accepted target service/controller, bind durable bond ownership,
+private authorization, persistence, reconnect, and replacement to the accepted
+target security and physical-control events, then run the exact app against
+that device firmware. The
 current tests validate the pure mode, foreground-service admission/ownership,
 lifecycle, permission, notification-visibility, binder generation, token,
 authorization codec/tracker,

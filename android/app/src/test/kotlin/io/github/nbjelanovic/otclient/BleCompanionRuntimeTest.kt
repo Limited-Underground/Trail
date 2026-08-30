@@ -478,6 +478,32 @@ class BleCompanionRuntimeTest {
         assertTrue(scan.closed)
     }
 
+    @Test
+    fun synchronousTerminalBondStartFailureCannotScheduleAutomaticRetry() {
+        val cases = listOf(
+            BleGattFailure.BOND_REQUIRED to BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,
+            BleGattFailure.PERMISSION_REVOKED to BleRuntimeFailure.CONNECTION_START_FAILED,
+        )
+        for ((gattFailure, runtimeFailure) in cases) {
+            val scheduler = TestRuntimeScheduler()
+            val facade = TestBluetoothFacade(
+                gattStartEvent = BleGattEvent.Failed(gattFailure),
+                gattStartResult = false,
+            )
+            val runtime = BleCompanionRuntime(facade, scheduler)
+            runtime.onLifecycleStart()
+            runtime.requestScan()
+            facade.scans.single().emit(BleScanEvent.Candidate(CANDIDATE))
+            assertEquals(CANDIDATE, runtime.beginAuthorization(CANDIDATE.endpointToken))
+            assertTrue(runtime.authorizationAccepted(CANDIDATE.endpointToken))
+
+            assertEquals(runtimeFailure, assertIs<BleRuntimeState.Failed>(runtime.state).reason)
+            assertEquals(1, facade.connections.size)
+            assertTrue(facade.connections.single().closed)
+            assertTrue(scheduler.pending.none { !it.closed && !it.ran })
+        }
+    }
+
     private class Fixture(
         val facade: TestBluetoothFacade = TestBluetoothFacade(),
         scheduler: TestRuntimeScheduler = TestRuntimeScheduler(),
@@ -526,7 +552,10 @@ class BleCompanionRuntimeTest {
         }
     }
 
-    private class TestBluetoothFacade : AndroidBluetoothFacade {
+    private class TestBluetoothFacade(
+        private val gattStartEvent: BleGattEvent? = null,
+        private val gattStartResult: Boolean = true,
+    ) : AndroidBluetoothFacade {
         var preflight = BlePreflight()
         val scans = mutableListOf<TestScanLease>()
         val connections = mutableListOf<TestGattLease>()
@@ -537,7 +566,7 @@ class BleCompanionRuntimeTest {
             TestScanLease(observer).also(scans::add)
 
         override fun createConnection(endpointToken: String, observer: (BleGattEvent) -> Unit): BleGattLease =
-            TestGattLease(endpointToken, observer).also(connections::add)
+            TestGattLease(endpointToken, observer, gattStartEvent, gattStartResult).also(connections::add)
     }
 
     private class TestScanLease(private val observer: (BleScanEvent) -> Unit) : BleScanLease {
@@ -551,6 +580,8 @@ class BleCompanionRuntimeTest {
     private class TestGattLease(
         val endpointToken: String,
         private val observer: (BleGattEvent) -> Unit,
+        private val startEvent: BleGattEvent? = null,
+        private val startResult: Boolean = true,
     ) : BleGattLease {
         var started = false
         var closed = false
@@ -559,7 +590,11 @@ class BleCompanionRuntimeTest {
         var streamSubscriptions = 0
         val commands = mutableListOf<ByteArray>()
 
-        override fun start(): Boolean = true.also { started = true }
+        override fun start(): Boolean {
+            started = true
+            startEvent?.let(observer)
+            return startResult
+        }
         override fun requestMtu(mtu: Int): Boolean = true.also { requestedMtus += mtu }
         override fun readProtocolInfo(): Boolean = true.also { protocolInfoReads += 1 }
         override fun subscribeStreamIndications(): Boolean = true.also { streamSubscriptions += 1 }

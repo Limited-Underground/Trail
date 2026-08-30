@@ -1660,6 +1660,20 @@ remain gates.
 
 ## Architecture gates before product firmware
 
+OT-165 adds the Android production system-bond admission between exact candidate
+selection and the existing GATT path. One attempt is bound to the opaque
+endpoint token and a monotonic facade generation. Already bonded candidates may
+continue directly; a fresh attempt registers a non-exported receiver, delegates
+passkey entry entirely to Android's system UI, and requires this attempt's
+`BOND_BONDING` transition before exact-device `BOND_BONDED`. Cancellation,
+permission loss, timeout, lifecycle close, disconnect, wrong callbacks, and
+synchronous start rejection are terminal and cannot schedule an automatic
+pairing retry. No app PIN/passkey surface exists. This is host/build evidence,
+not durable device bond ownership, reconnect, replacement cleanup, target
+protected GATT, physical phone pairing, or end-to-end acceptance. See
+[Decision 0101](decisions/0101-accept-ot165-android-system-bond-coordinator.md)
+and [OT-165 evidence](../tests/hardware/OT-165-2026-08-30.md).
+
 1. Retain the accepted exact `OT-DEV-001` board/revision profile while separately confirming the final radio region, frequency plan, installed antenna, and legal operating constraints; other intended supported boards still need their own exact profiles.
 2. Measure two-node LoRa airtime, loss, latency, and usable payload behavior across candidate settings.
 3. Define identity/security threat model and packet-size budget.

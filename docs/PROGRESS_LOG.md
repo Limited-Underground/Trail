@@ -4,6 +4,16 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-30
+
+### OT-165 Android initial system-bond coordinator
+
+- Added one Android OS-owned initial bond attempt bound to the exact selected opaque candidate and facade generation. A fresh attempt must observe `BOND_BONDING` before exact `BOND_BONDED`; an already bonded exact candidate may continue to GATT.
+- Android's system UI exclusively owns passkey entry. The application adds no PIN/passkey interception, setter, display, log, or storage path.
+- Cancellation/failure, permission loss, 30-second timeout, lifecycle close, disconnect, callback mismatch, and synchronous start rejection terminate fail-closed without automatic pairing retry.
+- Focused tests pass 24/24. The complete Android foundation matrix records 262 test executions with zero failures and passes debug/release lint, APK builds, and unsigned release inspection. No phone or hardware ran.
+- Durable ownership and persistence, reconnect, replacement cleanup, protected GATT, physical two-phone acceptance, end-to-end operation, support, and field readiness remain open. Android remains 60%; V1 remains exact 43.75%/displayed 44%. No website update is required. See [Decision 0101](decisions/0101-accept-ot165-android-system-bond-coordinator.md) and [evidence](../tests/hardware/OT-165-2026-08-30.md).
+
 ## 2026-08-29
 
 ### OT-164 two-node fresh BLE pairing-window acceptance

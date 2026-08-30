@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-29
+Status date: 2026-08-30
 
 ## Conceptual goals
 
@@ -8,6 +8,23 @@ Status date: 2026-08-29
 - Portable, vehicle, repeater, and larger touchscreen configurations
 - Priority emergency/status messages, store-forward where useful, and graceful disconnection
 - Offline local maps and a normalized OpenGauge critical-alert input
+
+OT-165 accepts the host-validated Android initial system-bond coordinator. One
+OS-owned attempt is bound to the exact selected opaque endpoint and facade
+generation; a fresh attempt must observe `BOND_BONDING` before exact
+`BOND_BONDED`, while an already bonded exact candidate may continue to GATT.
+Android exclusively owns passkey entry, and the app adds no PIN/passkey
+interception, setter, display, log, or storage path. Cancellation/failure,
+permission loss, timeout, lifecycle close, disconnect, mismatch, and
+synchronous start rejection terminate without automatic pairing retry.
+Focused validation passes 24/24; the complete Android foundation matrix records
+262 test executions with zero failures plus debug/release lint, APK builds, and
+unsigned-release inspection. No phone or hardware ran. Durable ownership and
+persistence, reconnect, replacement cleanup, target protected GATT, physical
+pairing, end-to-end operation, support, and field readiness remain open.
+Android remains 60%; V1 remains exact 43.75%/displayed 44%. See
+[Decision 0101](decisions/0101-accept-ot165-android-system-bond-coordinator.md)
+and [OT-165 evidence](../tests/hardware/OT-165-2026-08-30.md).
 
 OT-164 consumes its corrected V1 authority successfully after both anonymous Heltec nodes independently pre-read the rejected V0 image, received exactly one application-only write, read back the identical 507,296-byte corrected image, and returned to the display. The owner physically accepted short-press rejection, three-second hold/release opening, six displayed digits, approximately 30-second concealment, and reset concealment on both devices without reporting either PIN. The authority is non-reusable and grants no continuation. Android pairing/passkey exchange, bond ownership and persistence, reconnect, replacement, protected GATT, end-to-end messaging, support, and field readiness remain open. V1 remains exact 43.75%/displayed 44%. See [Decision 0100](decisions/0100-accept-ot164-fresh-ble-pairing-window.md), [OT-164 evidence](../tests/hardware/OT-164-2026-08-29.md), and the [V1 receipt](../tests/benchmarks/display/OT-164-HELTEC-V4-BLE-PAIRING-WINDOW-EXECUTION-RECEIPT-V1.json).
 
