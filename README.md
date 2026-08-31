@@ -1,267 +1,168 @@
-# OpenTrail
+# Limited Underground Trail
 
-[![Host validation](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml/badge.svg)](https://github.com/nbjelanovic/OpenTrail/actions/workflows/host-validation.yml)
+[![Host validation](https://github.com/Limited-Underground/Trail/actions/workflows/host-validation.yml/badge.svg)](https://github.com/Limited-Underground/Trail/actions/workflows/host-validation.yml)
 
-OpenTrail is a free and open-source ESP32/LoRa platform for off-grid group communication, location awareness, and safety alerts. It is intended to keep a small group useful when cellular service and internet access are unavailable.
+Limited Underground Trail is a free and open-source ESP32/LoRa platform for
+off-grid group communication, location awareness, and safety alerts. It is
+intended to keep a small group useful when cellular service and internet access
+are unavailable.
 
-The base design is a self-contained portable client with its own power, display, input, radio, and GNSS-aware group status. Repeaters, remote archives, vehicle alerts, larger displays, and offline maps are optional additions—not requirements for basic operation.
+The base design is a self-contained portable client with its own power, display,
+input, radio, and GNSS-aware group status. Repeaters, remote archives, vehicle
+alerts, larger displays, and offline maps are optional additions, not
+requirements for basic operation.
 
-> **Working names:** `Limited Underground` is the parent identity and `Limited Underground Trail` is the Android application and product family. The provisional tiers are `Trail Essential` (screenless, phone-required LoRa companion), `Trail Gold` (one touchscreen), `Trail Platinum` (two displays), and `Trail Repeater`. The shared desktop utility is `Limited Underground Firmware Loader`, visibly marked `Preview` and `Inspection only` until real writing and recovery pass. All names await professional clearance; no `®` is used. `OpenTrail` remains the repository/engineering name, and existing folders, namespaces, `OT-*` records, protocols, GATT/schema/crypto identifiers, and device IDs remain stable. See [Decision 0008](docs/decisions/0008-limited-underground-trail-working-product-family.md).
+> **Working names:** Limited Underground is the parent identity and Limited
+> Underground Trail is the product family. Names remain provisional pending
+> professional clearance. Stable `OpenTrail`, `OT-*`, protocol, schema,
+> package, cryptographic, and device identifiers are not renamed. See
+> [Decision 0008](docs/decisions/0008-limited-underground-trail-working-product-family.md).
 
 ## Project status
 
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and two experimentally flashed Heltec targets |
-| Latest increment | OT-165 host-validates the Android initial OS-bond coordinator for one exact selected opaque candidate. Android exclusively owns passkey entry; fresh success requires this attempt's `BOND_BONDING` then exact `BOND_BONDED`, and failure cannot automatically retry. No phone or hardware ran. Durable ownership, reconnect, replacement, protected GATT, and physical pairing remain separate. V1 remains exact 43.75%/displayed 44%. |
-| Proven so far | Both anonymous Heltec test units run the identical 507,296-byte OT-164 experimental image and physically accept its bounded local six-digit pairing window. OT-165 separately proves the host/build Android initial system-bond admission without exposing a PIN. Battery remains approximate; GPS satellite count is not fix proof; durable bond ownership, LoRa activity-arrow binding, protected GATT, power endurance, supported hardware, production firmware, end-to-end operation, and field readiness remain unproven. Android remains 60%, V1 exact 43.75%/displayed 44%, the historical baseline exact 31.75%/displayed 32%, and V1.5 and V2 remain unmeasured |
-| Planned first release | Two supported Heltec device-and-Android-phone pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE; V1.5 later proves four supported nodes with mixed hardware allowed |
-| Not yet proven | Production firmware, supported client hardware, authenticated on-device transport, protected keys, complete-client GNSS/UI, field range, power endurance, or regulatory acceptance |
+| Latest increment | OT-165 host-validates Android's initial system-bond coordinator for one exact selected device. Android owns passkey entry; a fresh success requires this attempt's `BOND_BONDING` followed by `BOND_BONDED`, and failure cannot retry automatically |
+| Proven so far | Both anonymous Heltec test units run the identical OT-164 experimental image and physically accept its bounded local six-digit pairing window. OT-165 separately proves the Android host/build admission path without exposing a PIN |
+| Planned V1 | Two supported Heltec-and-Android pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE |
+| Not yet proven | Durable bond ownership and replacement, protected GATT, authenticated on-device LoRa, full two-phone operation, supported hardware, production firmware, power endurance, field range, or regulatory acceptance |
 
-OpenTrail is not production-ready, and no hardware is currently listed as supported. See the [dated progress log](docs/PROGRESS_LOG.md) for recent work and the [engineering backlog](tasks/BACKLOG.md) for exact acceptance evidence and remaining gates.
+Android remains 60% complete. V1 remains exact 43.75% and is displayed as 44%.
+Trail is not production-ready, and no hardware is currently listed as
+supported.
 
 ## Start here
 
-- [Documentation guide](docs/README.md) — organized entry point for every project area
-- [Architecture](docs/ARCHITECTURE.md) — system layers, roles, interfaces, and failure boundaries
-- [Product boundaries](docs/PRODUCT_BOUNDARIES_V0.md) — base system versus optional additions
-- [Project status and open decisions](docs/PROJECT_STATUS.md) — current assumptions, evidence, and unresolved choices
-- [Future concepts](docs/FUTURE_CONCEPTS.md) — unscheduled post-release ideas and accepted directions with no progress credit
-- [Dated progress log](docs/PROGRESS_LOG.md) — public chronology, newest day first
-- [Engineering backlog](tasks/BACKLOG.md) — work-item status and acceptance evidence
-- [Hardware inventory](hardware/INVENTORY.md) — available, ordered, missing, and unverified equipment
+- [Documentation guide](docs/README.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Product boundaries](docs/PRODUCT_BOUNDARIES_V0.md)
+- [Project status](docs/PROJECT_STATUS.md)
+- [Future concepts](docs/FUTURE_CONCEPTS.md)
+- [V1 progress](docs/V1_PROGRESS.json)
+- [Progress log](docs/PROGRESS_LOG.md)
+- [Engineering backlog](tasks/BACKLOG.md)
+- [Hardware inventory](hardware/INVENTORY.md)
 - [Contributing](CONTRIBUTING.md) and [security reporting](SECURITY.md)
 
-## Release boundary
+## V1 release boundary
 
-The permanent V1 Companion goal is two supported Heltec LoRa devices and two
-approved Android phones, one physically authorized phone per Heltec. The exact
-end-to-end chain is Phone A ⇄ BLE ⇄ Heltec A ⇄ direct LoRa ⇄ Heltec B ⇄ BLE ⇄
-Phone B. V1 must physically accept practical PIN-based authorization and phone
-replacement, authenticated/encrypted bidirectional messaging, rejection and
-bounded retry/recovery, and one exact signed Android artifact on both phones.
-It has no relay, server, or internet dependency.
+V1 Companion requires this physical path in both directions:
 
-[Decision 0033](docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
-accepts that factory reset, reflashing, invasive access, or old-flash restore
-may reset or roll back ownership. V1 does not require a secure element or claim
-rollback-proof authorization against physical firmware-writing access.
+```text
+Phone A <-> BLE <-> Heltec A <-> direct LoRa <-> Heltec B <-> BLE <-> Phone B
+```
 
-[Decision 0035](docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md)
-and [`OTSL0/v0`](docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md) freeze the
-algorithm-neutral secure-LoRa lifecycle/admission semantics without selecting
-cryptography or packet v1. [Decision 0037](docs/decisions/0037-pre-crypto-build-baseline.md)
-and the accepted [`OTCBL0/v0` evidence](tests/hardware/OT-093-2026-08-20.md)
-freeze the reproducible zero-candidate target build only.
-[Decision 0038](docs/decisions/0038-host-only-ot005-candidate-readiness-contract.md)
-and the accepted [`OTCBR0/v0` evidence](tests/hardware/OT-094-2026-08-20.md)
-now freeze the separate host-only readiness admission contract. All six closure
-requirements remain blocked, so the historical OT-005 plan is still
-`draft_blocked`; a self-declared legacy `ready` plan grants no template or pass.
-[Decision 0039](docs/decisions/0039-host-only-candidate-source-lock-admission-contract.md)
-and the accepted [`OTCSL0/v0` evidence](tests/hardware/OT-095-2026-08-20.md)
-freeze the source-lock admission rules without accepting, acquiring, or importing
-any candidate source. All six readiness requirements remain blocked.
-[Decision 0040](docs/decisions/0040-host-only-mbedtls-psa-static-eligibility.md)
-and [OT-096 evidence](tests/hardware/OT-096-2026-08-20.md) record the bounded
-5/8 static result; final configuration and all six blockers remain unresolved.
-[Decision 0041](docs/decisions/0041-license-aware-source-lock-admission-v1.md)
-and [OT-097 evidence](tests/hardware/OT-097-2026-08-20.md) freeze the
-license-aware `OTCSL0/v1` admission policy. Version 0 remains historical but
-cannot admit a future source lock; version 1 requires separate upstream SPDX,
-project-choice, complete-inventory, and inventory-digest evidence.
-[Decision 0042](docs/decisions/0042-external-candidate-acquisition-static-inspection.md)
-and [OT-098 evidence](tests/hardware/OT-098-2026-08-20.md) record exact
-acquisition and static inspection of the two external candidates: libsodium
-has 7/8 and Monocypher 5/8 source operations. Signature trust, complete
-inventories, project locks, final configuration, import, benchmark, and
-selection remain unresolved or absent; all six blockers remain open.
-[Decision 0043](docs/decisions/0043-libsodium-managed-import-evidence.md)
-and [OT-099 evidence](tests/hardware/OT-099-2026-08-20.md) record complete
-managed-import evidence and an isolated generic ESP32-S3 build pass. The
-candidate archive entered the link graph but probe symbols were not retained.
-Source-lock admission remains pending and all six blockers remain open.
-[Decision 0044](docs/decisions/0044-libsodium-source-lock-admission-delta.md)
-and [OT-100 evidence](tests/hardware/OT-100-2026-08-20.md) now accept only that
-exact libsodium source lock. OT-094 and OT-097 remain historical six-blocker
-records; OT-100 records the prior five-blocker state.
-[Decision 0045](docs/decisions/0045-monocypher-source-lock-admission-delta.md)
-and [OT-102 evidence](tests/hardware/OT-102-2026-08-20.md) accept the exact
-Monocypher 4.0.3 source lock under the owner-selected `BSD-2-Clause` branch.
-[Decision 0046](docs/decisions/0046-exact-received-target-profile-admission-delta.md)
-and [OT-103 evidence](tests/hardware/OT-103-2026-08-20.md) then accept the exact
-received `OT-DEV-001` profile without granting support, compatibility,
-regulatory acceptance, or radio-profile authority. Historical six-blocker and
-prior current four-blocker states remain recorded; three current requirements
-remain, readiness is still blocked, and every API/configuration and
-candidate-import anchor remains empty. Decision 0047 and OT-105 evidence then accept the exact installed pinned ESP-IDF v6.0.2 / mbedTLS 4.1.0 source dependency lock. OT-105 closes no requirement: historical six-, prior five-, prior four-, prior three-, and current three-blocker states remain recorded. Accepted source/API-configuration/candidate-import counts are `3/0/0`, while OT-096 remains 5/8 and the composite API/configuration blocker stays open. See [Decision 0047](docs/decisions/0047-host-only-mbedtls-psa-source-lock-admission-delta.md) and [OT-105 evidence](tests/hardware/OT-105-2026-08-21.md).
+Each Heltec has one physically authorized phone. Acceptance includes practical
+PIN-based authorization and replacement, authenticated and encrypted
+bidirectional messaging, explicit rejection and bounded recovery, and one exact
+signed Android artifact installed on both approved phones. V1 has no server,
+internet, or relay dependency.
 
-[Decision 0049](docs/decisions/0049-versioned-per-candidate-api-configuration-acceptance-contract.md) and [OT-108 evidence](tests/hardware/OT-108-2026-08-21.md) freeze the append-only `OTCAC0/v1` successor boundary. Candidate-specific OT-107 sdkconfig digests replace the obsolete common-sdkconfig assumption; complete operation coverage is required for structural selection eligibility, while a strict partial comparison remains measurable only for evidenced operations and cannot be selected. All API/configuration evidence registries remain empty, counts stay `3/0/0`, the same two blockers remain, and readiness stays blocked.
+Factory reset, reflashing, invasive access, or restoring old flash may reset or
+roll back ownership; V1 does not claim resistance to physical firmware-writing
+access. V1.5 separately requires four supported interoperable nodes. A future V2
+may move the primary interface to a dedicated touchscreen client.
 
-[Decision 0050](docs/decisions/0050-host-only-mbedtls-psa-api-configuration-admission.md) and [OT-109 evidence](tests/hardware/OT-109-2026-08-21.md) admit the exact host-only mbedTLS/PSA five-of-eight comparison-only result. The [generated operation bundle](tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-OPERATION-EVIDENCE-V0.json), [candidate evidence](tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-EVIDENCE-V2.json), and [append-only admission](tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-ADMISSION-DELTA-V0.json) bind the exact accepted source, candidate-specific sdkconfig, and five purpose-distinct eligible operations. The partial comparison remains structurally nonselectable; Ed25519 sign/verify and Noise XK remain unavailable. Counts become `3/1/0`; only the direct-radio region/MTU/full-PHY requirement remains, readiness stays blocked, and no score changes.
-
-[Decision 0052](docs/decisions/0052-host-only-us915-direct-radio-profile-execution-contract-v1.md), [Decision 0053](docs/decisions/0053-admit-us915-direct-radio-profile-evidence-v1.md), and [OT-114 evidence](tests/hardware/OT-114-2026-08-21.md) supersede the prior current blocker state without rewriting its history. The exact two-node US915 close-bench result closes only `direct_radio_mtu_phy_region_unresolved`; counts remain `3/1/0`, readiness and scores do not advance, and a successor readiness decision plus new executable benchmark plan remain required before comparison execution or selection.
-
-[Decision 0054](docs/decisions/0054-successor-crypto-benchmark-readiness-and-execution-plan.md) and [OT-116 evidence](tests/hardware/OT-116-2026-08-22.md) accept the append-only `OTCBR1/v0` successor review and freeze the `OTCBX1/v1` phased execution contract. All six historical OT-094 requirements now have accepted closure evidence, but at OT-116 acceptance benchmark measurement remained blocked: counts were `3/1/0`, libsodium and Monocypher lacked candidate-specific API/configuration admission, every candidate lacked an accepted retained import/build anchor, the second measurement node lacked exact-profile admission, and execution authority was false. The contract is executable as a fail-closed procedure only after those preflights and fresh authority; it makes no crypto selection and changes no score.
-
-[Decision 0055](docs/decisions/0055-host-only-libsodium-api-configuration-admission.md) and [OT-117 evidence](tests/hardware/OT-117-2026-08-22.md) accept complete eight-of-eight host-only libsodium API/configuration evidence, including the hash-bound benchmark-only `OTNXK0/v0` Noise XK composition. Current source/API-configuration/import counts advance to `3/2/0`. Libsodium is structurally selection eligible but is neither selected nor authorized for execution. At OT-117 acceptance, Phase 0 and measurement remained blocked pending Monocypher API/configuration, second-node exact-profile admission, every retained import/build anchor, and fresh execution authority; no benchmark, device, selection, or score claim changes.
-
-[Decision 0056](docs/decisions/0056-host-only-monocypher-api-configuration-admission.md) and [OT-118 evidence](tests/hardware/OT-118-2026-08-22.md) accept strict five-of-eight host-only Monocypher API/configuration evidence for comparison measurement only. SHA-256, HKDF-SHA256, and Noise XK remain unavailable, so Monocypher is structurally nonselectable. All three API/configuration registries are populated and current source/API-configuration/import counts advance to `3/3/0`. At OT-118 acceptance, Phase 0 remained incomplete only because the second measurement node lacked exact-profile admission; every retained import/build anchor and fresh execution authority also remained absent. No benchmark, device, selection, or score claim changes.
-
-[Decision 0057](docs/decisions/0057-second-measurement-node-exact-profile-admission.md) and [OT-119 evidence](tests/hardware/OT-119-2026-08-22.md) independently admit OT-DEV-002 as the second exact-profile measurement node. One bounded read-only USB/ROM observation records only sanitized ESP32-S3, revision v0.2, 40 MHz crystal, 2 MiB embedded PSRAM, and 16 MiB flash facts; owner-supplied physical evidence associates `HTIT-WB32LAF` and `V4.2` with that same unit. No private identifier, raw photo, raw probe output, flash read, persistent change, radio/key operation, or benchmark is retained or claimed. At OT-119 acceptance, the exact-profile registry contained two units, Phase 0 was complete, and counts were `3/3/0`; measurement remained blocked only by absent retained candidate import/build admissions and fresh execution authority. No support, compatibility, regulatory, selection, or score claim changes.
-
-[Decision 0058](docs/decisions/0058-retained-candidate-import-build-admission.md) and [OT-120 evidence](tests/hardware/OT-120-2026-08-22.md) accept the atomic retained import/build admission for all three candidates. Six fresh computer-only ESP-IDF 6.0.2 builds reproduce the accepted candidate sdkconfigs with zero warnings and equal two-run artifact tuples. Counts advance to `3/3/3`; Phase 1 is complete. Measurement remains false and blocked only by absent fresh execution authority. Libsodium remains structurally eligible but unselected; mbedTLS/PSA and Monocypher remain five-of-eight, comparison-only, and structurally nonselectable. No benchmark, hardware, radio, key/entropy, selection, implementation, support, compatibility, regulatory, physical, or score claim changes.
-
-[Decision 0059](docs/decisions/0059-one-time-phase-two-benchmark-execution-authority.md), [Decision 0060](docs/decisions/0060-bounded-libsodium-local-primitives-checkpoint.md), and [OT-121 evidence](tests/hardware/OT-121-2026-08-23.md) record the first bounded Phase 2 execution checkpoint. The privacy-safe `OT121LPER1/v1` receipt proves that both admitted anonymous nodes passed all seven libsodium local primitives with 100 data-cache-conditioned and 100 warm samples per operation, and that benchmark readback, capture validation, exact Trail restoration, restore readback, and reset passed on both. This is not complete Phase 2 or Phase 3 admission: no Noise XK, radio, cross-candidate comparison, resource result, suite/wire selection, support, compatibility, regulatory, production, or score claim is added.
-
-[Decision 0061](docs/decisions/0061-bounded-libsodium-noise-resource-checkpoint.md) and [OT-122 evidence](tests/hardware/OT-122-2026-08-23.md) record the continuation checkpoint. Both anonymous nodes pass 8/8 operations including complete benchmark-only Noise XK, with 100 conditioned and 100 warm samples per operation. Both independently report 0 bytes peak dynamic heap, 4,312 bytes maximum stack use, and 0 watchdog resets, and both restore exactly to Trail. The receipt remains `phase_two_complete=false` and `radio_used=false`; other candidates, radio, the matched linked-flash/static-RAM admission, Phase 3, and explicit selection remain open.
-
-[Decision 0062](docs/decisions/0062-monocypher-comparison-benchmark-preparation.md) and [OT-123 evidence](tests/hardware/OT-123-2026-08-23.md) accept the computer-only Monocypher comparison preparation checkpoint. The exact 5-of-8, structurally nonselectable target has reproducible two-build evidence, fixed RFC known-answer gates, a strict 1,014-frame parser/schema, and a recovery-safe two-node runner. No hardware run occurred, and the matched control, linked-flash/static-RAM deltas, radio, Phase 3, and selection remain open.
-
-[Decision 0068](docs/decisions/0068-host-only-monocypher-start-ready-protocol-correction.md) and [OT-129 evidence](tests/hardware/OT-129-2026-08-24.md) accept the computer-only successor protocol correction required by OT-128. Exact retrying START and drained READY replace the blind startup delay; partial bytes survive read timeouts; endpoint lifecycle is either observed re-enumeration or three stable-present polls; bounded startup chatter and privacy-safe failure categories fail closed; and the real unchanged 1,014-frame parser is exercised. No hardware or flash occurred. At that checkpoint, a new immutable firmware/runner/restoration binding and fresh non-reusable authority remained mandatory before another attempt.
-
-[Decision 0069](docs/decisions/0069-freeze-monocypher-execution-bundle-and-one-attempt-authority.md) and [OT-130 evidence](tests/hardware/OT-130-2026-08-24.md) now accept that exact immutable binding and a fresh non-reusable one-attempt authority. The bundle pins the OT-129 firmware inputs and six-file output tuple, transport, parser/schema, restoration-safe coordinator, and exact Trail image; two fresh cache-disabled ESP-IDF 6.0.2 builds match, and coordinator plus authority tests each pass 11/11. At the OT-130 checkpoint, no hardware, flash, benchmark, or radio occurred; the authority was unexecuted, and the next permitted device step is only the authorized two-node attempt with exact Trail restoration of both nodes on success or abort.
-
-[Decision 0070](docs/decisions/0070-record-ot131-monocypher-execution-abort.md) and [OT-131 evidence](tests/hardware/OT-131-2026-08-24.md) record the successor executable boundary and its single consumed attempt. Node A passed benchmark readback, capture failed closed as `capture_failed` / `preamble_invalid` after one complete non-frame line, and Node A restored/readback/reset exactly to Trail. Node B was never benchmark-flashed and remained on Trail; restoration completed and the owner visually confirmed both Trail logos. The closed diagnostics do not disclose the preamble or prove a physical root cause. No result, radio, selection, Phase 2 completion, support, regulatory, production, end-to-end, or score claim is added. No further Monocypher hardware attempt is authorized.
-
-[Decision 0076](docs/decisions/0076-record-ot137-ot136-execution-abort.md) and [OT-137 evidence](tests/hardware/OT-137-2026-08-25.md) record the single OT-136-authorized attempt. Node A passed benchmark readback before capture failed closed as `capture_failed` / `preamble_invalid`. Two 512-byte reads observed 1,024 bytes; 11 complete opaque pre-READY records remained within the accepted complete-record allowance, then remaining partial pre-READY data crossed the 512-byte bound before any result frame. Node A restored/readback/reset exactly to Trail, Node B was never benchmark-written after preflight and remained on Trail, and the owner confirmed both logos after the abort. The [sanitized abort receipt](tests/benchmarks/crypto/OT-137-OT005-MONOCYPHER-EXECUTION-ABORT-RECEIPT-V0.json) consumes the authority without admitting a result, radio evidence, selection, Phase 2 completion, support, regulatory, production, end-to-end, or score credit. No further Monocypher hardware attempt is authorized; next investigate the bounded partial-data/live boot-control boundary host-only before any new successor and fresh explicit one-attempt authority.
-
-[Decision 0077](docs/decisions/0077-classify-monocypher-boot-control-transport-conflict.md) and [OT-138 evidence](tests/hardware/OT-138-2026-08-25.md) accept the host-only classification of that boundary. Fabricated bytes reproduce the exact public OT-137 counters and prove that the frozen runner can charge already queued startup traffic to its post-START 512-byte preamble budget and abort before a START retry becomes due. The accepted configuration structurally shares USB Serial/JTAG between startup console output and the later direct control protocol, although the unretained OT-137 bytes remain unconfirmed. The next gate is a host-only, console-isolated quiet-target build with two fresh matching artifact tuples; the 512-byte/time, exact READY/frame, privacy, and real-parser boundaries remain unchanged. OT-138 creates no firmware successor, executable bundle, authority, or hardware attempt.
-
-[Decision 0078](docs/decisions/0078-accept-reproducible-monocypher-quiet-target.md) and [OT-139 evidence](tests/hardware/OT-139-2026-08-25.md) accept that separate host-only quiet target. It compiles the frozen OT-129 application/control sources by reference, resolves both ESP-IDF consoles and bootloader/default/maximum application logging to none, retains the direct USB Serial/JTAG driver, and reproduces the same application BIN/ELF/map, bootloader BIN, partition-table BIN, and sdkconfig tuple in two fresh cache-disabled builds. Normal ROM logging remains unchanged, so endpoint silence from reset is not claimed. OT-139 creates no executable binding or authority; before device access, the next gate must separately freeze the exact bundle and accept a fresh explicit non-reusable one-attempt authority.
-
-[Decision 0079](docs/decisions/0079-freeze-ot140-quiet-target-bundle-and-authority.md) and [OT-140 evidence](tests/hardware/OT-140-2026-08-25.md) accept that exact immutable binding and a fresh explicitly approved non-reusable one-attempt authority. The bundle independently verifies the complete OT-139 six-file tuple, pinned toolchain/source evidence, frozen OT-135 transport, strict parser/schema, fresh coordinator/private namespace, concrete adapter, and exact Trail restoration image. Only the application BIN may be written at `0x10000`; all other build artifacts are provenance-only. The authority remains unexecuted and permits only one two-node application-only attempt from this workspace with exact restoration of every touched node. No hardware, result, radio, selection, Phase 2 completion, or score claim is added, and normal ROM logging still prevents any endpoint-silence claim.
-
-OT-142 records that the OT-140 authority was consumed by one fail-closed attempt with exact restoration and no admitted result. Host investigation traced the failure to a malformed RFC 8032 seed in the benchmark-only fixture—not to either device or the pinned Monocypher implementation. The corrected successor changes only that seed, verifies the RFC vector through the real library, reproduces the same build tuple twice, and passes the complete Windows host matrix. OT-143 later supplies the required immutable binding and fresh explicit one-attempt authority; completion and score remain unchanged.
-
-[Decision 0080](docs/decisions/0080-freeze-ot143-corrected-target-bundle-and-authority.md) and [OT-143 evidence](tests/hardware/OT-143-2026-08-26.md) accept that exact corrected-target binding and one fresh explicitly approved non-reusable authority. The bundle independently verifies the corrected six-file tuple, pinned ESP-IDF/source evidence, frozen OT-135 transport, strict parser/schema, fresh coordinator/private namespace, concrete adapter, and exact Trail restoration image. Only the 149,824-byte application BIN may be written at `0x10000`; all other build artifacts are provenance-only. The authority remains unexecuted and permits only one two-node application-only attempt from this workspace with exact restoration of every touched node. No hardware, result, radio, selection, Phase 2 completion, score, or website status claim is added, and normal ROM logging still prevents any endpoint-silence claim.
-
-[Decision 0081](docs/decisions/0081-correct-ot143-runtime-binding-before-hardware.md) and [OT-144 evidence](tests/hardware/OT-144-2026-08-26.md) record that the OT-143 authority is unconsumed but non-executable: its preparation and authority pin the 149,824-byte corrected OT-142 application while its coordinator still pins the 149,920-byte OT-139 image. No journal or receipt exists and no device I/O occurred. OT-144 preserves Decision 0080 and every OT-143 artifact unchanged, supplies a fresh host-only runtime/preparation that consistently pins the corrected image, and requires fresh separate explicit non-reusable authority before hardware access.
-
-[Decision 0082](docs/decisions/0082-accept-ot145-one-attempt-authority.md) and [OT-145 evidence](tests/hardware/OT-145-2026-08-26.md) accept the fresh explicitly approved `OT144MOAA0` authority for that unchanged OT-144 preparation. Raw SHA-256 `29c84ae8de494be2ac08e35cdeba5c4409f9381bc4f457a29cef64fb391afe31` binds the corrected 149,824-byte application, exact Trail restoration image, OT-144 runtime/adapter, and all accepted fail-closed boundaries. At acceptance the authority was unexecuted and permitted only one two-node application-only attempt from this workspace; OT-146 later consumed that attempt successfully. It remains non-reusable, grants no continuation, and permitted no radio use. At the OT-145 checkpoint no device I/O or private journal/receipt existed, and no result, selection, Phase 2 completion, score, or website status claim changed.
-
-[Decision 0083](docs/decisions/0083-record-ot146-ot145-monocypher-execution-success.md), [OT-146 evidence](tests/hardware/OT-146-2026-08-26.md), and the [sanitized execution receipt](tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json) record the single OT-145-authorized attempt as successful and consumed. Both anonymous nodes passed benchmark readback, all five admitted Monocypher comparison operations with 100 data-cache-conditioned and 100 warm samples per operation, strict 1,014-frame capture validation, exact Trail restore readback, and hard reset; the owner confirmed both displays back on. Radio remained unused. The bounded result is admitted without completing Phase 2 or selecting a candidate, suite/library, handshake/KDF, or packet-v1 wire format. No further Monocypher hardware attempt is authorized. V1 remains exact 43.75%/displayed 44%.
-
-[Decision 0084](docs/decisions/0084-reconcile-incomplete-phase-two-before-selection.md), [OT-148 evidence](tests/hardware/OT-148-2026-08-26.md), and the [fail-closed reconciliation](tests/benchmarks/crypto/OT-148-OT005-PHASE-TWO-CORPUS-RECONCILIATION-V0.json) supersede only Decision 0083's premature forward-looking phrase “completed Phase 2 evidence.” The frozen plan still requires mbedTLS/PSA target measurement, matched linked-flash/static-RAM admission, Noise XK radio-cost evidence, all eight named gates, private raw-trace custody, and a separate Phase 3 admission. Libsodium 1.0.22 is the evidence-backed recommendation because it alone has admitted 8/8 coverage and structural eligibility, but no library, suite, handshake/KDF, or Packet-v1 wire selection is accepted. No hardware authority, device access, score, or immediate website update is added.
-
-[Decision 0085](docs/decisions/0085-prepare-mbedtls-psa-target-and-resource-successor.md), [OT-149 evidence](tests/hardware/OT-149-2026-08-26.md), the [target preparation](tests/benchmarks/crypto/OT-149-OT005-MBEDTLS-PSA-TARGET-PREPARATION-V0.json), and the [resource successor](tests/benchmarks/crypto/OT-149-OT005-MATCHED-RESOURCE-ACCOUNTING-SUCCESSOR-V1.json) close only the missing host preparation boundary. The new target measures exactly the five admitted mbedTLS/PSA operations, has exact known-answer and negative gates, uses the proven START/READY transport, and emits exactly 1,015 strict frames. Candidate and no-candidate control compile from the same accepted configuration lineage plus the same narrow quiet-console delta and resolve to identical generated sdkconfig bytes. The resource successor admits exact positive, zero, or negative linked-flash/static-RAM deltas without coercion. No device execution, matched size result, Noise XK radio measurement, selection, Phase 2 completion, or score credit is added.
-
-[Decision 0086](docs/decisions/0086-freeze-ot150-mbedtls-psa-executable-resource-bundle.md), [OT-150 evidence](tests/hardware/OT-150-2026-08-27.md), the [canonical preparation](tests/benchmarks/crypto/OT-150-OT005-MBEDTLS-PSA-EXECUTABLE-RESOURCE-BUNDLE-PREPARATION-V0.json), and the [matched-resource result](tests/benchmarks/crypto/OT-150-OT005-MATCHED-RESOURCE-RESULT-V1.json) accept the deterministic host-only successor without promoting the OT-149 compile snapshots. Candidate A/B and matched control A/B build from initially absent directories with fixed `PROJECT_VER=ot150-mbedtls-psa-v0`, explicit no-ccache policy, 1,199/1,199 build steps, zero compiler warnings, and exact per-side reproduction. The preparation freezes each side's strict six-role executable tuple plus matched shared sdkconfig, bootloader, and partition identities. Candidate/control linked flash is 245,466/145,834 bytes (`+99,632`); static RAM is 50,187/49,035 bytes (`+1,152`). A future authority may permit only the candidate application at `0x10000` and must bind the exact 500,944-byte OT-147 restore image, SHA-256 `f2a58414f82eed585ba90bf7671b06c8ebfaa82e8b23f6ac2093de95143b4e0e`. OT-150 creates no authority and adds no hardware, radio, selection, Phase 2 completion, readiness, or score claim. V1 remains exact 43.75%/displayed 44%; no website update is required.
-
-[Decision 0087](docs/decisions/0087-record-ot150-abort-and-correct-mbedtls-psa-successor.md), [OT-151 evidence](tests/hardware/OT-151-2026-08-27.md), and the [sanitized abort receipt](tests/benchmarks/crypto/OT-151-OT005-MBEDTLS-PSA-EXECUTION-ABORT-RECEIPT-V0.json) record the sole OT-150-authorized attempt. Node A passed benchmark readback before the frozen host reported `capture_failed` / `frame_count_incomplete`; Node A then restored/readback/reset exactly to Trail, Node B was never benchmark-written and remained on Trail, and the owner confirmed both logos. Exact byte accounting plus frozen-ELF inspection prove a deterministic benchmark-fixture defect: the all-zero X25519 peer correctly returned `PSA_ERROR_INVALID_ARGUMENT`, while the fixture incorrectly also required error `output_length == 0` even though pinned TF-PSA deliberately reports the full randomized failure-buffer size. OT-151 leaves every OT-150 input immutable, corrects only that assertion in a separate target, and adds strict immediate classification of canonical early terminal failure transcripts without weakening the 1,015-frame success contract. The authority is consumed; no new device attempt, result, radio, selection, Phase 2 completion, readiness, or score claim is added. No website update is required.
-
-[Decision 0088](docs/decisions/0088-prepare-noise-xk-radio-cost-measurement.md), [OT-152 evidence](tests/hardware/OT-152-2026-08-27.md), and the [canonical preparation](tests/benchmarks/crypto/OT-152-OT005-LIBSODIUM-NOISE-XK-RADIO-COST-PREPARATION-V0.json) freeze the exact benchmark-only radio-cost contract: three raw 48/48/64-byte messages, both physical role directions, and one bounded whole-handshake restart per direction. [Decision 0089](docs/decisions/0089-freeze-noise-xk-radio-executable-bundle.md), [OT-153 evidence](tests/hardware/OT-153-2026-08-27.md), and the [OT-153 canonical preparation](tests/benchmarks/crypto/OT-153-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json) now bind that contract to reproducible ESP32-S3 firmware, the strict runner, simultaneous restoration-safe coordinator, concrete fail-closed adapter, and exact Trail restoration application. OT-153 is host-only, creates no execution authority, and performs no device, flash, radio, or physical measurement. OT-154 must separately accept fresh explicit non-reusable one-attempt owner authority. No candidate/library/suite/handshake/KDF/Packet-v1 selection, Phase 2 completion, readiness, support, release, regulatory, or score claim changes. V1 remains exact 43.75%/displayed 44%; no website update is required.
-
-[Decision 0090](docs/decisions/0090-accept-ot154-noise-xk-radio-one-attempt-authority.md), [OT-154 evidence](tests/hardware/OT-154-2026-08-27.md), and the [canonical authority](tests/benchmarks/crypto/OT-154-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json) accept the explicitly owner-approved `OT154NXRA0` authority for the unchanged OT-153 bundle. The 3,330-byte authority has raw SHA-256 `d792bd6814d03a196f74fdda5a675386e74b02e7e65335892a57f51a7dc5beb0` and permitted exactly one two-node application-only radio attempt from this workspace. OT-155 later consumed that authority on a fail-closed abort; it is non-reusable and grants no continuation. At OT-154 acceptance no device, flash, reset, radio, phone, private journal, result, selection, Phase 2 completion, readiness, or score claim changed; no website update was required.
-
-[Decision 0091](docs/decisions/0091-record-ot155-noise-xk-radio-execution-abort.md), [OT-155 evidence](tests/hardware/OT-155-2026-08-27.md), and the [sanitized abort receipt](tests/benchmarks/crypto/OT-155-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json) record the sole OT-154-authorized attempt. Both anonymous nodes pass installed-Trail preflight/reset and benchmark readback/reset before the bound radio path is invoked. The attempt fails closed as `radio_run_failed` with no validated radio result, then both nodes pass exact Trail restoration readback/reset. Restoration is complete and recovery is not required. The OT-154 authority is consumed and non-reusable; the current evidence does not establish the exact failed substage or a host, USB, firmware, or physical-radio root cause. No result, selection, Phase 2 completion, readiness, or score claim changes. OT-156 later satisfies the separate host-only reset/reconnect and safe-stage correction gate; no website update is required.
-
-[Decision 0092](docs/decisions/0092-accept-ot156-reset-aware-noise-xk-radio-host-correction.md) and [OT-156 evidence](tests/hardware/OT-156-2026-08-27.md) accept the separate reset-aware host successor without touching hardware. Both `RESTART` acknowledgements precede either reopen; each obsolete handle is discarded before a bounded fresh open; both complete post-reboot contracts precede every radio verb; and stale queued receipts cannot cross the reset boundary. Sixteen allowlisted stage codes replace raw exception detail, while the fixed-token public result, command order, command count, and per-verb counts remain byte-exact to the frozen OT-153 happy path. The adversarial OT-156 suites pass 17/17, the frozen OT-153 regression chain passes 52/52, and the complete Windows Host matrix passes locally with exit 0. This proves the successor behavior, not the physical OT-155 root cause. OT-157 must freeze a fresh executable/restoration bundle around the successor before a still-later task may accept fresh authority. No device, firmware, radio, result, selection, Phase 2 completion, readiness, or score claim changes; no website update is required.
-
-[Decision 0093](docs/decisions/0093-freeze-ot157-reset-aware-noise-xk-radio-executable-bundle.md), [OT-157 evidence](tests/hardware/OT-157-2026-08-28.md), and the [canonical preparation](tests/benchmarks/crypto/OT-157-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json) accept the host-only reset-aware executable/restoration successor. The exact OT-156 runner/runtime is bound to fresh OT-157 coordinator, adapter, journal, execution-receipt, and recovery-receipt namespaces; the unchanged OT-153 firmware and exact Trail restoration application remain hash-locked. Restoration remains independent and unconditional, and only sixteen allowlisted failure stages may enter sanitized receipts. Focused OT-157 suites pass 23/23, OT-156 suites pass 17/17, the frozen OT-153 chain passes 75/75, and the complete Windows Host matrix passes locally with exit 0. OT-157 creates no authority and touches no hardware; OT-158 is the separate fresh explicit non-reusable one-attempt authority gate. No result, selection, Phase 2 completion, readiness, support, release, regulatory, score, or website status changes. V1 remains exact 43.75%/displayed 44%.
-
-[Decision 0094](docs/decisions/0094-accept-ot158-noise-xk-radio-one-attempt-authority.md), [OT-158 evidence](tests/hardware/OT-158-2026-08-28.md), and the [canonical authority](tests/benchmarks/crypto/OT-158-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json) accept the owner-approved `OT158NXRA0` authority for that exact OT-157 bundle. The 4,545-byte authority has raw SHA-256 `b696598cfdd71d04c2685dc50d74da5cd435ff064a6c1c5ffa985e490f4070f1` and canonical payload SHA-256 `1cc9b0965cec4ffc5eab87d0045aa5ee5e73e65d75e204ca338cfb2b8ffeac0d`; focused authority tests pass 10/10, the complete OT-153-through-OT-158 Noise XK chain passes 139/139, the raw-byte audit passes 254/254, and the complete Windows Host matrix passes locally with exit 0. The authority permits exactly one later two-node application-only radio attempt from this workspace. It is consumed on success or abort, is non-reusable, grants no continuation, and remains unexecuted. OT-159 is the sole permitted execution step. No device, endpoint, serial, flash, reset, radio, phone, private journal, result, selection, Phase 2 completion, readiness, or score claim changes; no website update is required.
-
-[Decision 0095](docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md), [OT-159 evidence](tests/hardware/OT-159-2026-08-28.md), and the [sanitized blockage record](tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json) record the deterministic pre-consumption blockage. Both anonymous nodes passed direct exact-Trail application readback and reset, but both official OT-157-bound preflight attempts failed before journal creation because the successor file-hash helper shadows the inherited byte-hash helper used for application bytes. No benchmark write, radio operation, execution or recovery receipt, result, or authority consumption occurred. Focused OT-157-through-OT-159 regression validation passes 40/40, the raw-byte audit passes 258/258, and the complete Windows Host matrix exits 0. The OT-158 authority remains unused but cannot be repurposed for corrected host code; OT-160 must create the minimal host-only successor before a new bundle and fresh authority. No selection, Phase 2 completion, readiness, score, or website status changes.
-
-[Decision 0096](docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md) and [OT-160 evidence](tests/hardware/OT-160-2026-08-28.md) accept the minimal host-only correction. The successor uses `_source_sha256(Path)` for source locks and exposes the immutable OT-153 `_sha256(bytes)` application-readback helper unchanged. The real composed preflight path reads and resets both mocked anonymous roles for exact, corrupt, and short readbacks; exact bytes pass, while corrupt and short bytes fail closed as `preflight_failed`. No write, radio open, journal, receipt, physical device operation, bundle, or authority occurs. Focused OT-160 validation passes 13/13 and the raw-byte audit passes 264/264. OT-161 must freeze the exact corrected executable/restoration bundle, and OT-162 must separately accept fresh explicit non-reusable authority before hardware execution. No result, selection, Phase 2 completion, readiness, score, or website status changes.
-
-[Decision 0097](docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md), [OT-161 evidence](tests/hardware/OT-161-2026-08-28.md), and the [canonical preparation](tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json) freeze the exact corrected host-only executable/restoration bundle. The accepted OT-160 coordinator and adapter remain byte-exact and retain their `OT160NXJ0` / `OT160NXCR0` private-state boundary; the exact OT-156 runner/runtime, unchanged OT-153 firmware/build lineage, and exact Trail restoration application are hash-locked without duplication or rebuild. The OT-161 bundle suite passes 11/11, the focused OT-153/157/160/161 chain passes 46/46, the authoritative raw-byte audit passes 269/269, and the complete Windows Host matrix passes locally with exit 0. OT-161 creates no authority and touches no hardware; OT-162 must separately accept fresh explicit non-reusable authority before any corrected hardware execution. The unused OT-158 authority remains permanently bound to the defective OT-157 composition and cannot transfer. No result, selection, Phase 2 completion, readiness, support, release, regulatory, score, or website status changes. V1 remains exact 43.75%/displayed 44%.
-
-[Decision 0098](docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md), [OT-162 evidence](tests/hardware/OT-162-2026-08-28.md), and the [canonical authority](tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json) accept the owner-approved `OT162NXRA0` authority for that exact OT-161 corrected bundle. The 4,545-byte record has raw SHA-256 `58964547c9f38ff2688da14f31421216eb2bc2705916abeee75e202ffa876a58` and canonical payload SHA-256 `e1b16623d3b9059e6b190a37bc5c7e727479cba872d7f95232336996402d4e79`. It binds the exact OT-156 runner/runtime, OT-160 coordinator/adapter and private-state boundary, benchmark and Trail applications, anonymous roles, reset-aware lifecycle, and one-use consumption. At acceptance the authority permitted exactly one later two-node application-only attempt, was consumable on success or abort, was non-reusable, granted no continuation, and remained unexecuted; OT-163 was the sole permitted execution step and later consumed it. Focused authority tests pass 10/10, the exact focused chain passes 56/56, the raw-byte audit passes 274/274, and the complete Windows Host matrix passes locally with exit 0. OT-158 remains permanently bound to defective OT-157 and cannot transfer. No device, endpoint, serial, flash, reset, radio, phone, private journal, result, selection, Phase 2 completion, readiness, score, or website status changed at OT-162.
-
-[Decision 0099](docs/decisions/0099-record-ot163-noise-xk-radio-execution-abort.md), [OT-163 evidence](tests/hardware/OT-163-2026-08-28.md), and the [sanitized abort receipt](tests/benchmarks/crypto/OT-163-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTION-ABORT-RECEIPT-V0.json) record the sole OT-162-authorized attempt as consumed and fail-closed at the allowlisted `restart_ack_a` stage. Every touched node restored, read back, and hard-reset exactly to Trail; recovery was unnecessary, and the owner visually confirmed both Trail logos. No benchmark or radio-cost result is admitted. The authority is non-reusable, grants no retry or continuation, and no fresh Noise XK radio attempt is authorized. Phase 2 remains incomplete. The next owner-prioritized implementation is fresh-window six-digit BLE pairing firmware; remaining crypto measurement and admission work stays open. V1 remains exact 43.75%/displayed 44%, and no website update is required.
-
-[Decision 0075](docs/decisions/0075-freeze-ot136-immutable-successor-binding-and-authority.md) and [OT-136 evidence](tests/hardware/OT-136-2026-08-25.md) accept the immutable OT-135 executable successor and a fresh authority without executing it. The bundle binds the exact byte-bounded runner, unchanged strict parser/schema, fresh coordinator/private-state namespace, concrete adapter, exact benchmark application, and exact Trail restoration application. The authority permits exactly one two-node application-only attempt from this workspace, is consumed on success or abort, is non-reusable, and grants no continuation. This one-use guarantee is workspace-local operational state, not a global, hardware-backed, signed, or copy-proof mechanism. At the OT-136 checkpoint no device, flash, benchmark, radio, result, selection, Phase 2 completion, or score claim was added, and only that bounded attempt was permitted. OT-137 later consumed the authority on an exactly restored fail-closed abort; no Monocypher hardware attempt is currently authorized.
-
-[Decision 0074](docs/decisions/0074-host-only-monocypher-byte-bounded-preamble-correction.md) and [OT-135 evidence](tests/hardware/OT-135-2026-08-25.md) accept the host-only successor for the OT-133 boundary. Complete opaque pre-READY records are now bounded by the unchanged cumulative 512-byte budget and fixed control deadline rather than an independent line ceiling; nine fabricated records totaling exactly 512 bytes and more than nine short records inside the budget pass, while byte 513 and every existing READY/frame violation fail closed. OT-129 through OT-133 remain immutable, the real 1,014-frame parser is unchanged, and 14/14 OT-135 tests plus the frozen OT-132 suite pass. No device, flash, benchmark, radio, execution authority, result, selection, Phase 2 completion, or score claim is added. The next device gate is a new immutable executable binding and fresh non-reusable one-attempt authority.
-
-[Decision 0072](docs/decisions/0072-record-ot133-immutable-successor-execution-abort.md) and [OT-133 evidence](tests/hardware/OT-133-2026-08-24.md) accept the fresh immutable OT-132 successor bundle and record its single consumed attempt. Node A passed benchmark readback before `capture_failed` / `preamble_invalid`; one 512-byte read contained nine complete pre-READY records, exceeding the frozen eight-record cap before any frame was accepted. Node A restored/readback/reset exactly to Trail, Node B was never benchmark-written after preflight and remained on Trail, and the owner confirmed both Trail logos. The [sanitized abort receipt](tests/benchmarks/crypto/OT-133-OT005-MONOCYPHER-EXECUTION-ABORT-RECEIPT-V0.json) admits no result, radio, selection, Phase 2 completion, or score credit. No further Monocypher hardware attempt is authorized; next correct and adversarially test the nine-record boundary host-only, then require a new immutable successor and fresh one-attempt authority before device access.
-
-[Decision 0071](docs/decisions/0071-host-only-monocypher-opaque-preamble-correction.md) and [OT-132 evidence](tests/hardware/OT-132-2026-08-24.md) accept a new host-only successor runner for the bounded OT-131 failure. Complete pre-READY records may be opaque only within the unchanged eight-record/512-byte limits; exact READY, frame-before-READY rejection, post-READY strictness, fixed deadlines, privacy-safe counters, and the unchanged real 1,014-frame parser remain enforced. Fourteen adversarial tests and all frozen OT-129 through OT-131 regression gates pass. No hardware, flash, benchmark, radio, execution authority, result, selection, Phase 2 completion, or score claim is added. OT-131 remains consumed; a new immutable executable binding and fresh explicit one-attempt authority are required before any device access.
-
-[Decision 0063](docs/decisions/0063-monocypher-comparison-execution-abort.md) through [Decision 0067](docs/decisions/0067-record-monocypher-second-corrective-retry-abort.md) preserve three aborted Monocypher attempts without admitting a result. [OT-128 evidence](tests/hardware/OT-128-2026-08-24.md) records that both installed Trail applications passed preflight, only Node A was benchmark-written, every touched node was restored exactly, and a later non-writing reset returned both USB endpoints. After the immutable receipt was prepared, the owner visually confirmed both Trail displays on. The private receipt cannot distinguish endpoint re-enumeration, partial input, read failure, incomplete frames, or semantic rejection, so the physical root cause remains unconfirmed. Source inspection requires a host/device start-ready handshake, partial-byte accumulation, verified endpoint lifecycle, and privacy-safe failure classification before any fresh authority. Decision 0066 was consumed and, at that checkpoint, no Monocypher hardware attempt was authorized.
-
-[Decision 0048](docs/decisions/0048-host-only-final-candidate-build-configuration-admission.md) and [OT-107 evidence](tests/hardware/OT-107-2026-08-21.md) accept the owner-approved final per-candidate configuration. Exact reproducible sdkconfig digests are now bound separately for libsodium, mbedTLS/PSA, and Monocypher. OT-107 closes only `final_candidate_build_configuration_unresolved`; the mbedTLS/PSA API/configuration and direct-radio region/MTU/full-PHY requirements remain open. Counts stay `3/0/0`, OT-096 stays 5/8, readiness stays blocked, and the historical plan stays `draft_blocked`. OT-109 later closes the API/configuration requirement and OT-114 later closes the direct-radio requirement. OT-117 and OT-118 later populate all three candidate API/configuration registries, OT-119 admits the second node's exact profile and completes Phase 0, and OT-120 accepts all retained candidate import/build evidence and completes Phase 1, and OT-121/OT-122 partially exercise Phase 2 with two-node libsodium local-primitives, Noise XK, and runtime-resource checkpoints. OT-131 records its successor executable attempt as aborted and exactly restored; OT-132 accepts the host-only opaque-preamble correction; OT-133 binds that successor and consumes its one attempt on the nine-record/eight-record fail-closed boundary with exact restoration and no result. OT-135 accepts the host-only byte-bounded successor while leaving all consumed history immutable; OT-136 binds that exact successor into a fresh executable boundary and accepts one workspace-local non-reusable authority; OT-137 consumes that authority on a fail-closed, exactly restored abort without admitting a result; OT-138 through OT-146 later resolve that Monocypher branch through host-only classification, a corrected bundle, and one successful comparison; OT-163 later consumes the separate OT-162 Noise XK radio authority on an exactly restored fail-closed abort with no admitted result; complete the remaining candidate, radio, and matched linked-flash/static-RAM measurements only under separately explicit authority before a separate Phase 3 admission and explicit
-suite/wire decision. Implementation and physical acceptance remain
-separately authorized.
-
-[OT-106 evidence](tests/hardware/OT-106-2026-08-21.md) records the separate
-compact-footer target-linkage build. Both fresh computer-only builds used the
-exact 309-file staged input, exited with zero warnings, and produced identical
-ordered artifact tuples; no device or radio operation ran. All five accepted
-OT-093 files remain byte-for-byte unchanged. Its frozen `3837dbce...` mixed-EOL
-raw-working-tree digest remains an immutable one-time historical digest whose
-per-line map was not recorded and is therefore non-reconstructible. The
-successor record's separately reproducible `c84ba0e3...` Git-blob transform
-aggregate describes a deterministic isolated checkout; it is distinct from
-and does not replace or reconstruct `3837dbce...`.
-
-V1.5 is the separate four-supported-node interoperability milestone. Any
-compatible mix of supported hardware is allowed and heterogeneous evidence is
-preferred; four identical supported nodes remain eligible. Four phones are not
-required. Any mesh claim requires a physical three-radio relay path. See the
-[canonical V1/V1.5 scope](docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md).
-
-The future V2 Integrated goal still moves the interface onto a dedicated
-touchscreen client. Historical four-person standalone pilot artifacts remain
-preserved for their original scope; they no longer define V1 Companion.
+The exact scope and current evidence live in
+[Decision 0033](docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md),
+[the V1/V1.5 acceptance scope](docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md),
+[project status](docs/PROJECT_STATUS.md), [progress](docs/V1_PROGRESS.json),
+[the dated log](docs/PROGRESS_LOG.md), and [the backlog](tasks/BACKLOG.md).
+Host-tested contracts and bench evidence do not establish field readiness.
 
 ## How it fits together
 
 ```text
-       self-contained client(s)
-   display + input + GNSS + LoRa
-               |
-       direct group traffic
-               |
-      optional single repeater
+Phone / local display
+        |
+       BLE
+        |
+ self-contained Trail client
+        |
+   direct LoRa traffic
+        |
+ another Trail client
 
-Optional, fail-independent additions:
-archive service | OpenGauge alerts | offline maps / larger display
+Optional: repeater | archive service | Limited Underground Display alerts |
+          offline maps and larger screens
 ```
 
-- **Clients** originate and receive compact messages, positions, status, and alerts.
-- An optional **repeater** may forward eligible immutable traffic once; it cannot become a base-system dependency.
-- An optional **archive** may retain selected breadcrumbs only while explicitly enabled; base radio operation remains independent.
-- **OpenGauge** may provide normalized critical events, never raw CAN/J1939 traffic.
-- **Offline maps and larger displays** add local context and never travel over LoRa.
+- Clients originate and receive compact messages, positions, status, and alerts.
+- An optional repeater may forward eligible immutable traffic once.
+- An optional archive retains selected breadcrumbs only while explicitly enabled.
+- Limited Underground Display may provide normalized critical events, never raw
+  CAN/J1939 traffic.
+- Offline maps and larger displays add local context and never travel over LoRa.
 
 ## Intended capabilities
 
-- Compact LoRa messaging, position/status sharing, priority alerts, and controlled relaying
-- Explicit start/stop privacy controls and graceful behavior when GPS or peers disappear
-- Portable, vehicle-mounted, fixed-repeater, and larger touchscreen forms over shared protocols
+- Compact LoRa messaging, position/status sharing, priority alerts, and
+  controlled relaying
+- Explicit privacy controls and graceful behavior when GPS or peers disappear
+- Portable, vehicle-mounted, fixed-repeater, and touchscreen forms over shared
+  protocols
 - Locally transferred offline maps from a licensed, replaceable package source
-- Quick group-defined alerts for emergencies, medical needs, recovery, disabled vehicles, fuel/tools, and other field events
-- A versioned interface for normalized critical alerts from OpenGauge or other approved producers
+- Group-defined quick alerts and versioned normalized critical-event input
 
-These are product goals unless the linked evidence explicitly says otherwise.
+These are product goals unless linked evidence explicitly proves them.
 
 ## Hardware status
 
-The available bench inventory contains two assembled Heltec V4 OLED units. Both now run the identical experimental OT-147 `heltec_v4_bench` application: each exact 500,944-byte image was independently read back after its application-only flash, and the owner visually confirmed both displays showing live `BAT` and `GPS` values after reset. Battery percentage is an approximate voltage-derived estimate rather than a calibrated fuel-gauge result, and the displayed satellite count does not prove GNSS fix, position accuracy, or fix-loss behavior. The earlier OT-115 two-unit placeholder view and close photo remain time-bounded evidence, and `OT-DEV-001` retains its earlier startup, advertising, fixed public BLE read, `BLE CONNECTED`, disconnect, and advertising-return evidence. The inventory also contains one packaged Seeed SenseCAP Solar P1-Pro MeshCore repeater and one owner-reported Wio Tracker L1 Pro candidate. A privacy-safe USB check shows both Heltecs detect and activate their connected GNSS hardware and emit GPS telemetry; the SenseCAP reached a live fix, with subsequent checks increasing through four, seven, and eight satellites. The Wio's first read-only pass identified public USB model `Seeed Wio Tracker L1`, USB Companion `v1.17.0-727fc05`, the configured 910.525 MHz/BW 62.5 kHz/SF7/CR5/22 dBm profile, zero error/traffic counters across four cycles, and GNSS detected but inactive. No coordinates, identities, channel values, or transient ports were published, and the Wio did not transmit. Exact Wio label/revision and pre-write state, over-air interoperability, GNSS fix/loss, RF/regulatory fit, power/endurance, BLE, LoRa activity-arrow binding, and recovery remain open. The accepted OLED evidence is not interactive UI or supported-hardware evidence. The Heltec kits and Wio are bench candidates, not the frozen board-level parts for the first complete touchscreen client. The integrated solar SenseCAP may be evaluated for V1.5 or a future relay claim; exact two-pair V1 firmware, security, and physical acceptance remain open.
+Two assembled Heltec V4 OLED bench candidates run the identical 507,296-byte
+OT-164 experimental application and expose the bounded local six-digit pairing
+window. Their battery percentage is an approximate voltage-derived estimate,
+and the displayed GPS satellite count does not prove a fix, position accuracy,
+or fix-loss behavior. The Wio Tracker L1 Pro and SenseCAP hardware remain
+candidates. No Trail hardware is supported yet; authenticated end-to-end
+operation, RF/regulatory fit, range, endurance, recovery, and field use remain
+unproven.
 
-See the [hardware inventory](hardware/INVENTORY.md), [regulatory reconciliation](hardware/HARDWARE_REGULATORY_INVENTORY_2026-08-10.md), and partially executed [Wio Tracker bring-up procedure](hardware/WIO_TRACKER_L1_PRO_BRINGUP.md). A radio preset or in-band frequency alone is not proof of legal operation.
+See the [hardware inventory](hardware/INVENTORY.md), [regulatory
+reconciliation](hardware/HARDWARE_REGULATORY_INVENTORY_2026-08-10.md), and
+[Wio Tracker procedure](hardware/WIO_TRACKER_L1_PRO_BRINGUP.md). An in-band
+frequency or radio preset alone is not proof of legal operation.
+
+## Build and validate
+
+On Windows, run the complete host matrix from the repository root:
+
+```powershell
+.\tools\Test-Host.ps1
+```
+
+Run the Android foundation matrix from `android`:
+
+```powershell
+.\Test-AndroidFoundation.ps1
+```
+
+See [development setup](docs/DEVELOPMENT.md) for toolchain details.
 
 ## Repository layout
 
 | Path | Purpose |
 | --- | --- |
-| `docs/` | Architecture, product boundaries, decisions, specifications, and dated project records |
-| `android/` | Native Android Local-test shell plus production-shaped BLE ownership, authorization, and renderer-neutral presentation layers |
-| `firmware/components/` | Hardware-independent, host-testable protocol and state components |
-| `firmware/targets/` | Separately composed applications for defined boards and roles |
-| `hardware/` | Inventory, bring-up procedures, power/RF details, and compatibility evidence |
-| `tests/` | Host, fixture, integration, and physical hardware evidence |
-| `tools/` | Validation, planning, diagnostics, and evidence utilities |
-| `prototypes/` | Time-bounded experiments that are not production architecture |
-| `tasks/` | Prioritized engineering backlog and acceptance criteria |
+| `docs/` | Architecture, decisions, specifications, and dated records |
+| `android/` | Native Android client and validation |
+| `firmware/components/` | Hardware-independent, host-testable components |
+| `firmware/targets/` | Applications composed for defined boards and roles |
+| `hardware/` | Inventory, procedures, power/RF details, and compatibility evidence |
+| `tests/` | Host, integration, and physical evidence |
+| `tools/` | Validation, diagnostics, and evidence utilities |
+| `tasks/` | Prioritized backlog and acceptance criteria |
 
 ## Safety and privacy boundary
 
-OpenTrail is a supplemental communication and awareness aid, not a guaranteed rescue system. Missing GPS, maps, UI, peers, repeaters, archives, or OpenGauge data must degrade independently. Real location sharing and any archive capture require explicit user control, and public evidence must remain privacy-safe.
+Trail is a supplemental communication and awareness aid, not a guaranteed rescue
+system. Missing GPS, maps, UI, peers, repeaters, archives, or Limited Underground
+Display data must degrade independently. Real location sharing and archive
+capture require explicit user control, and public evidence must remain
+privacy-safe.
 
 ## License and contributions
 
-OpenTrail is licensed under the [Apache License 2.0](LICENSE). Contributions are welcome through GitHub issues and pull requests; read [CONTRIBUTING.md](CONTRIBUTING.md) first and use [SECURITY.md](SECURITY.md) for sensitive reports.
+Trail is licensed under the [Apache License 2.0](LICENSE). Contributions are
+welcome through GitHub issues and pull requests; read
+[CONTRIBUTING.md](CONTRIBUTING.md) first and use [SECURITY.md](SECURITY.md) for
+sensitive reports.

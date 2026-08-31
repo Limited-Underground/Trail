@@ -9,7 +9,7 @@ Status date: 2026-08-10
 | Public project name | `[PUBLIC PROJECT NAME]` — not selected |
 | Engineering/repository name | OpenTrail |
 | Umbrella identity/domain | Limited Underground / `limitedunderground.com` |
-| Repository | https://github.com/nbjelanovic/OpenTrail |
+| Repository | https://github.com/Limited-Underground/Trail |
 | License | Apache License 2.0 |
 | Legal applicant/payee | To be confirmed; all funding and hardware outreach is on hold |
 | Current phase | Architecture, deterministic host components, and bounded bench proof |

@@ -61,7 +61,7 @@ exclusive access, hidden test failures, or a production recommendation. Public
 statements will distinguish donated equipment from independently measured
 evidence.
 
-Repository: https://github.com/nbjelanovic/OpenTrail
+Repository: https://github.com/Limited-Underground/Trail
 
 Umbrella domain: https://limitedunderground.com
 

@@ -4,6 +4,22 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-08-31
+
+### Limited Underground organization migration
+
+- Transferred the public repository into the `Limited-Underground`
+  organization and renamed it from `OpenTrail` to `Trail`. GitHub repository
+  ID `1328309614`, public visibility, `main` history, two forks, two merged pull
+  requests, Host validation history, and the exact OT-165 commit were
+  preserved; the former URL redirects to
+  <https://github.com/Limited-Underground/Trail>.
+- Replaced the oversized README release chronology with a concise V1/V1.5/V2
+  boundary and links to the canonical decisions, evidence, progress, and
+  backlog. Updated the stale hardware summary to OT-164 while preserving
+  `OpenTrail`, `OT-*`, protocol, schema, package, cryptographic, and device
+  identifiers. No hardware, V1 score, readiness, or website status changed.
+
 ## 2026-08-30
 
 ### OT-165 Android initial system-bond coordinator

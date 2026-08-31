@@ -1,6 +1,16 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-30
+Status date: 2026-08-31
+
+Public repository: <https://github.com/Limited-Underground/Trail>
+
+The repository moved from `nbjelanovic/OpenTrail` into the Limited Underground
+organization and was renamed `Trail`. GitHub repository ID `1328309614`, public
+visibility, `main` history, two forks, two merged pull requests, workflow
+history, and the exact OT-165 commit were preserved. The former URL redirects
+to the current repository. Stable `OpenTrail`, `OT-*`, protocol, schema,
+package, cryptographic, and device identifiers remain unchanged. This
+administrative migration changes no hardware, V1 evidence, or readiness claim.
 
 ## Conceptual goals
 
