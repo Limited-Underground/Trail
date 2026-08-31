@@ -47,6 +47,19 @@ public partial class VirtualLcdWindow : Window
     internal ISimulatorClientPresenter Presenter => presenter;
     internal PortableUiOffer? CurrentOffer => currentOffer;
     internal IReadOnlyList<Button> ActionButtons => actionButtons;
+    internal bool InteractiveCommandReadyForTest
+    {
+        get
+        {
+            lock (snapshotRefreshSync)
+            {
+                return !interactiveCommandPending &&
+                    pendingSnapshotRefresh is null &&
+                    !snapshotRefreshDrainScheduled &&
+                    commandGate.CurrentCount == 1;
+            }
+        }
+    }
     internal Task DispatchCommittedRequestForTestAsync(PortableUiProtocolResult result) =>
         DispatchCommittedRequestAsync(result);
     private sealed record RenderedAction(PortableUiPrimitive Primitive, uint Generation, uint Revision);

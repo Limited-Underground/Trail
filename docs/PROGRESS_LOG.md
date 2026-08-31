@@ -23,8 +23,13 @@ public chronology.
   the smallest app slot free, and the complete Windows Host matrix exits 0.
   Historical benchmark inputs are now detached from mutable current Heltec
   configuration by a first-stage 6-group dependency gate; the authoritative
-  raw-byte audit passes 291/291. No hardware or phone ran, V1 remains exact
-  43.75%/displayed 44%, and no website update is required. See
+  raw-byte audit passes 291/291. The first remote publication run also exposed
+  and led to a deterministic correction of an older simulator-test click/busy
+  synchronization race; explicit test service points and exact native row/action
+  readiness preserve duplicate-input rejection. Five consecutive simulator
+  suite repeats and the complete Host matrix pass after the correction. No
+  hardware or phone ran, V1 remains exact 43.75%/displayed 44%, and no website
+  update is required. See
   [Decision 0102](decisions/0102-accept-ot166-heltec-v1-bond-owner-integration.md)
   and [evidence](../tests/hardware/OT-166-2026-08-31.md).
 

@@ -512,12 +512,17 @@ internal static class Program
     private static void DualLcdNativeRequestCrossesLocalBridge()
     {
         var simulator = OpenTrail.Simulator.Core.LocalLoopbackSimulator.Create();
+        static Task NoAutomaticService(CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        }
         var a = new CoreSimulatorClientPresenter(
             simulator.Bridge, OpenTrail.Simulator.Core.SimulatorClientId.A,
-            Dispatcher.CurrentDispatcher);
+            Dispatcher.CurrentDispatcher, NoAutomaticService, TimeSpan.FromSeconds(10));
         var b = new CoreSimulatorClientPresenter(
             simulator.Bridge, OpenTrail.Simulator.Core.SimulatorClientId.B,
-            Dispatcher.CurrentDispatcher);
+            Dispatcher.CurrentDispatcher, NoAutomaticService, TimeSpan.FromSeconds(10));
         var windowA = new VirtualLcdWindow(a, new NativePortableUiSession(NativePath));
         var windowB = new VirtualLcdWindow(b, new NativePortableUiSession(NativePath));
         try
@@ -529,23 +534,42 @@ internal static class Program
             PumpUntil(() => windowA.CurrentOffer is not null && windowB.CurrentOffer is not null);
 
             windowA.ActionButtons[1].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-            PumpUntil(() => windowA.CurrentOffer?.Screen == 7);
+            PumpUntilInteractiveReady(windowA, 7);
             windowA.ActionButtons[2].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-            PumpUntil(() => windowA.CurrentOffer?.Screen == 10);
+            PumpUntilInteractiveReady(windowA, 10);
             windowA.ActionButtons[0].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-            PumpUntil(() => windowA.CurrentOffer?.Screen == 11);
+            PumpUntilInteractiveReady(windowA, 11);
             windowA.ActionButtons[0].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            PumpUntilInteractiveReady(windowA, 8);
+            simulator.Bridge.ServiceAsync(OpenTrail.Simulator.Core.SimulatorClientId.A)
+                .AsTask().GetAwaiter().GetResult();
+            simulator.Bridge.ServiceAsync(OpenTrail.Simulator.Core.SimulatorClientId.B)
+                .AsTask().GetAwaiter().GetResult();
             PumpUntil(() => b.Snapshot.Messages.Any(message =>
                 message.Direction == SimulatorUiMessageDirection.Inbound &&
                 message.Kind == SimulatorUiMessageKind.Chat &&
                 message.Text == "Checking in"));
+            PumpUntil(() => windowB.InteractiveCommandReadyForTest);
 
             windowB.ActionButtons[1].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-            PumpUntil(() => windowB.CurrentOffer?.Screen == 7);
+            PumpUntilInteractiveReady(windowB, 7);
             windowB.ActionButtons[0].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-            PumpUntil(() => windowB.CurrentOffer?.Screen == 8);
+            PumpUntilInteractiveReady(windowB, 8);
+            var inboxOffer = windowB.CurrentOffer!;
+            Require(inboxOffer.Messages.ListKind == 1,
+                $"Client B native inbox list kind was {inboxOffer.Messages.ListKind}, not 1.");
+            Require(inboxOffer.Messages.Rows.Count > 0 &&
+                    inboxOffer.Messages.Rows[0].TextIndex == 0,
+                "Client B native inbox did not present row 0 with owned text index 0.");
+            Require(inboxOffer.OwnedTexts.Count > 0 &&
+                    inboxOffer.OwnedTexts[0].Text == "NEW: Checking in",
+                $"Client B native inbox row text was '{inboxOffer.OwnedTexts.FirstOrDefault()?.Text ?? "<missing>"}'.");
+            Require(inboxOffer.Actions.Count > 0 &&
+                    inboxOffer.Actions[0] == new PortableUiActionBinding(25, true) &&
+                    windowB.ActionButtons[0].IsEnabled,
+                "Client B native inbox row 0 action was not the enabled action 25.");
             windowB.ActionButtons[0].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-            PumpUntil(() => windowB.CurrentOffer?.Screen == 9);
+            PumpUntilInteractiveReady(windowB, 9);
             Require(windowB.CurrentOffer!.OwnedTexts.Any(text => text.Text == "Checking in"),
                 "Client B did not render the exact native-owned inbound message text.");
             SaveRenderedWindow(windowA, "opentrail-client-a-after-send.png");
@@ -653,6 +677,9 @@ internal static class Program
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
         while (!condition()) { if (DateTime.UtcNow >= deadline) throw new TimeoutException(); PumpDispatcher(); Thread.Sleep(10); }
     }
+
+    private static void PumpUntilInteractiveReady(VirtualLcdWindow window, int screen) =>
+        PumpUntil(() => window.CurrentOffer?.Screen == screen && window.InteractiveCommandReadyForTest);
 
     private static void Run(string name, Action test) { test(); ++passed; Console.WriteLine($"PASS {name}"); }
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
