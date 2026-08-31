@@ -12,6 +12,25 @@ to the current repository. Stable `OpenTrail`, `OT-*`, protocol, schema,
 package, cryptographic, and device identifiers remain unchanged. This
 administrative migration changes no hardware, V1 evidence, or readiness claim.
 
+OT-166 accepts the build-linked Heltec V4 durable V1 BLE bond-owner path. The
+target initializes a dedicated ordinary NVS partition without erase recovery,
+persists NimBLE Secure Connections bonds, stores one byte-exact `OTV1/v0`
+owner record, and reconciles that record against an exact zero-or-one private
+bond inventory before starting the NimBLE host. Only the exact live encrypted,
+authenticated, bonded controller can promote normal GATT commands. Replay,
+inventory drift, ambiguous storage, callback reentry, extra bonds, and owner
+mismatch fail closed. Replacement, erase/repair, and the protected `OAP0` path
+remain inactive. Focused owner/runtime/target/self-check validation passes and
+the ESP-IDF v6.0.2 target build produces a 539,232-byte application with 90%
+of the smallest app slot free. The complete Windows Host matrix exits 0 after
+a new first-stage historical/live target dependency gate prevents frozen
+benchmark recipes from consuming mutable current Heltec inputs. No hardware or
+phone ran; physical pairing,
+power-cut persistence, reconnect, replacement cleanup, and two-phone
+end-to-end acceptance remain open. V1 stays exact 43.75%/displayed 44%. See
+[Decision 0102](decisions/0102-accept-ot166-heltec-v1-bond-owner-integration.md)
+and [OT-166 evidence](../tests/hardware/OT-166-2026-08-31.md).
+
 ## Conceptual goals
 
 - Offline group communication and location awareness using ESP32 and LoRa

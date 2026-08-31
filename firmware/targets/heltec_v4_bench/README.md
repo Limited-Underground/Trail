@@ -133,13 +133,13 @@ The callback adapter supplies those event bindings. The deterministic boot
 self-check uses fixed in-memory evidence instead of calling NimBLE; only after
 that check passes is the real runtime startup path reached.
 
-The restricted authorization lifecycle and real callback composition are
-build-linked and exercised only by deterministic in-memory boot checks. If a
-future application installs this exact path, both a new secure bond and a
-secure reconnect by an existing owner use protected v0.1 Protocol Info and
-Claim Start; there is no v0.0 reconnect shortcut. The injected trusted binding,
-authorization/persistence authority, physical-presence decision source, and
-timer owner remain outside this increment, so no live claim path exists yet.
+OT-166 installs the restricted authorization lifecycle into the target runtime.
+Both a new secure bond and a secure reconnect by the existing owner use
+protected v0.1 Protocol Info and Claim Start; there is no v0.0 reconnect
+shortcut. Normal commands remain closed until the exact Accepted indication is
+confirmed and that same connection is promoted. Disconnect releases only the
+live controller lease; durable ownership remains bound to the exact private
+NimBLE bond reference.
 
 If executed, the application is coded to initialize NimBLE, install the exact
 GATT/GAP callbacks, register the protected service, and advertise only the
@@ -151,16 +151,19 @@ into a fixed eight-entry queue and consumed by the single `app_main` runtime
 owner; queue overflow, startup timeout, host reset, or restart exhaustion
 contains the stack without an unbounded retry loop.
 
-Protected authorization storage remains denied by the exact current preflight.
-The configured Secure Connections, MITM, bonding, no-input/no-output, and
-no-store settings therefore do not provide a usable pairing or secure bond in
-this increment. OT-085 keeps one connection open for at most 15 seconds so the
+Protected `OAP0` authorization storage remains denied by the exact current
+preflight and is not used as persistent authority by OT-166. The separate
+ordinary V1 path initializes the dedicated `nvs` partition without erase
+recovery, enables persistent NimBLE Secure Connections bonding, and stores one
+32-byte `OTV1/v0` record in `ot_v1_owner/owner_v0`. The historical OAP0 boot
+self-check remains deterministic and memory-only. OT-085 keeps one connection
+open for at most 15 seconds so the
 fixed public value can be read and `BLE CONNECTED` can be presented. The owner
 then waits while the runtime owner requests exact-link termination and requires
 its matching disconnect callback within two seconds; failure contains the
 runtime, while success enters
-the existing bounded advertising restart. Claims and normal commands remain
-closed for the lifetime of this composition. OT-085A physically accepted the
+the existing bounded advertising restart. Claims remain available while normal
+commands stay closed until exact authorization promotion. OT-085A physically accepted the
 phone-driven disconnect path: one Android 13 phone matched the exact READ-only
 value, the owner observed the connected-to-advertising OLED lifecycle, and the
 same in-memory endpoint was rediscovered. OT-085B then physically accepted the
@@ -179,11 +182,12 @@ an independently rollback-resistant generation floor, and return exact
 readback. A pre-write failure guarantees no durable change; any possible
 post-write failure is uncertain and latches authorization closed.
 
-Private bond binding accepts only a protected bond-store reference and bond
-generation, never a public address, peer value, raw bond key, or logged value.
-A separately provisioned device-secret PRF must produce the opaque owner token;
-re-pairing must allocate a new private reference or generation. The current
-candidate has none of those live adapters. OT-063 replaces placeholder
+The live ordinary V1 bond binding exports only an opaque 128-bit reference
+derived through domain-separated SHA-256 from the authenticated SC LTK; public
+addresses, peer values, and raw bond keys remain target-private and unlogged.
+The separate protected `OAP0` design still requires its own provisioned
+device-secret PRF, rollback floor, and protected media and remains inactive as
+persistent authority. OT-063 replaces placeholder
 configuration booleans with a target-linked read-only admission probe. Under the
 current configuration it returns `nvs_encryption_not_configured` before any
 partition, eFuse, or HMAC read. If a later reviewed configuration enables the

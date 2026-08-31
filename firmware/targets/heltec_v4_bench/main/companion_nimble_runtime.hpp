@@ -4,6 +4,7 @@
 
 #include "opentrail/companion_ble_runtime_owner.hpp"
 #include "opentrail/companion_pairing_window.hpp"
+#include "opentrail/secure_random.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 
@@ -16,7 +17,8 @@ namespace opentrail::target::heltec_v4_bench {
 [[nodiscard]] companion::CompanionBleRuntimeError
 start_companion_nimble_runtime(
     std::uint64_t now_ms,
-    companion::CompanionPairingWindow& pairing_window);
+    companion::CompanionPairingWindow& pairing_window,
+    security::SecureRandomSource& random);
 
 // Drains at most the fixed callback queue capacity, services bounded
 // re-advertising and the host-sync watchdog, and performs no device logging.

@@ -130,6 +130,14 @@ SOURCE_BINDINGS: tuple[tuple[str, str], ...] = (
     ),
 )
 
+HISTORICAL_SOURCE_STORAGE: dict[str, tuple[str, str]] = {
+    "firmware/targets/heltec_v4_bench/sdkconfig.defaults": (
+        "tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/"
+        "historical_common_sdkconfig_ot130.defaults",
+        "c1fd94c8979e5a7bb9b19753beb633da99f6edf86dc932c93d281ff2b99aa8b9",
+    ),
+}
+
 RUNTIME_BINDINGS: tuple[tuple[str, str, str], ...] = (
     (
         "protocol_transport",
@@ -245,8 +253,11 @@ def _safe_file(path: Path, label: str) -> bytes:
 
 
 def _fixed_binding(relative: str, expected_sha256: str) -> dict[str, Any]:
-    raw = _safe_file(ROOT / relative, "bound input")
-    if _sha256(raw) != expected_sha256:
+    storage_relative, storage_sha256 = HISTORICAL_SOURCE_STORAGE.get(
+        relative, (relative, expected_sha256)
+    )
+    raw = _safe_file(ROOT / storage_relative, "bound input")
+    if _sha256(raw) != storage_sha256:
         raise ContractError("bound input digest mismatch")
     return {"path": relative, "raw_sha256": expected_sha256}
 

@@ -889,7 +889,7 @@ bool run_companion_ble_runtime_owner_self_check() {
     const auto restart = owner.status();
     if (restart.phase != CompanionBleRuntimePhase::restart_wait ||
         restart.restart_token == 0 || port.advertise_calls_ != 1 ||
-        !restart.authorization_claims_closed ||
+        restart.authorization_claims_closed ||
         !restart.normal_commands_closed) {
         return false;
     }
@@ -903,6 +903,8 @@ bool run_companion_ble_runtime_owner_self_check() {
     return restored.phase == CompanionBleRuntimePhase::advertising &&
            restored.restart_token == 0 &&
            restored.restart_attempts == 0 &&
+           !restored.authorization_claims_closed &&
+           restored.normal_commands_closed &&
            port.advertise_calls_ == 2 && port.terminate_calls_ == 0 &&
            port.contain_calls_ == 0;
 }

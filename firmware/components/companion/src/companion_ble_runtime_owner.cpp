@@ -59,6 +59,8 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::contain(
     status_.connection_handle = kCompanionBleInvalidConnectionHandle;
     status_.restart_token = 0;
     status_.termination_pending = false;
+    status_.authorization_claims_closed = true;
+    status_.normal_commands_closed = true;
     if (!port_.contain_stack()) {
         status_.terminal_error =
             CompanionBleRuntimeError::stack_shutdown_failed;
@@ -69,7 +71,7 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::contain(
 
 CompanionBleRuntimeError CompanionBleRuntimeOwner::start(
     std::uint64_t now_ms,
-    bool authorization_admission_denied) {
+    bool authorization_path_ready) {
     if (!enter_operation()) {
         return CompanionBleRuntimeError::reentrant_call;
     }
@@ -77,7 +79,7 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::start(
         leave_operation();
         return CompanionBleRuntimeError::already_started;
     }
-    if (!valid_policy() || !authorization_admission_denied ||
+    if (!valid_policy() || !authorization_path_ready ||
         !add_deadline(now_ms, policy_.host_sync_timeout_ms,
                       host_sync_deadline_ms_)) {
         leave_operation();
@@ -110,6 +112,8 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::start(
     // A real integration must additionally serialize that task against this
     // owner; staging prevents a queued sync callback from seeing dormant.
     status_.phase = CompanionBleRuntimePhase::waiting_for_host_sync;
+    status_.authorization_claims_closed = false;
+    status_.normal_commands_closed = true;
     if (!port_.start_host_task() || reentry_observed_) {
         const auto result = contain(
             reentry_observed_ ? CompanionBleRuntimeError::reentrant_call
@@ -202,6 +206,7 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::connection_opened(
     status_.connection_handle = connection_handle;
     status_.restart_token = 0;
     status_.termination_pending = false;
+    status_.normal_commands_closed = true;
     leave_operation();
     return CompanionBleRuntimeError::none;
 }
@@ -231,6 +236,7 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::connection_closed(
     }
     status_.connection_handle = kCompanionBleInvalidConnectionHandle;
     status_.termination_pending = false;
+    status_.normal_commands_closed = true;
     status_.restart_attempts = 0;
     const auto result = next_restart(now_ms);
     leave_operation();
@@ -301,6 +307,7 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::service_watchdog(
         return result;
     }
     if (status_.phase == CompanionBleRuntimePhase::connected &&
+        status_.normal_commands_closed &&
         !status_.termination_pending &&
         deadline_reached(now_ms, public_link_deadline_ms_)) {
         if (!add_deadline(now_ms, policy_.termination_ack_timeout_ms,
@@ -334,6 +341,40 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::service_watchdog(
                             : CompanionBleRuntimeError::none;
     leave_operation();
     return result;
+}
+
+CompanionBleRuntimeError CompanionBleRuntimeOwner::renew_connection_window(
+    std::uint16_t connection_handle,
+    std::uint64_t now_ms) {
+    if (!enter_operation()) {
+        return CompanionBleRuntimeError::reentrant_call;
+    }
+    if (status_.phase != CompanionBleRuntimePhase::connected ||
+        status_.termination_pending ||
+        connection_handle != status_.connection_handle ||
+        !add_deadline(now_ms, policy_.public_link_window_ms,
+                      public_link_deadline_ms_)) {
+        leave_operation();
+        return CompanionBleRuntimeError::wrong_connection;
+    }
+    leave_operation();
+    return CompanionBleRuntimeError::none;
+}
+
+CompanionBleRuntimeError CompanionBleRuntimeOwner::authorize_connection(
+    std::uint16_t connection_handle) {
+    if (!enter_operation()) {
+        return CompanionBleRuntimeError::reentrant_call;
+    }
+    if (status_.phase != CompanionBleRuntimePhase::connected ||
+        status_.termination_pending ||
+        connection_handle != status_.connection_handle) {
+        leave_operation();
+        return CompanionBleRuntimeError::wrong_connection;
+    }
+    status_.normal_commands_closed = false;
+    leave_operation();
+    return CompanionBleRuntimeError::none;
 }
 
 CompanionBleRuntimeError CompanionBleRuntimeOwner::host_reset() {

@@ -612,8 +612,22 @@ int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
             }
             if (event->notify_tx.status == BLE_HS_EDONE) {
                 if (refresh_security(event->notify_tx.conn_handle) == 0) {
-                    (void)g_adapter->complete_indication(
-                        pending, true, now_ms());
+                    const auto observed_at_ms = now_ms();
+                    if (g_adapter->complete_indication(
+                            pending, true, observed_at_ms) ==
+                        CompanionGattAdapterError::none) {
+                        const auto state = g_adapter->status();
+                        if (state.lifecycle.phase ==
+                            CompanionGattAuthorizationPhase::
+                                awaiting_authority) {
+                            (void)companion_nimble_gatt_resolve_claim(
+                                pending.connection_handle,
+                                pending.transport_generation,
+                                pending.session_nonce,
+                                pending.exchange_id,
+                                observed_at_ms);
+                        }
+                    }
                 }
             } else if (event->notify_tx.status == BLE_HS_ETIMEOUT) {
                 (void)g_adapter->service_timeout(pending, now_ms());

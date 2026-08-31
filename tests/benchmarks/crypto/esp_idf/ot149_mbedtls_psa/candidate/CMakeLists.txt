@@ -3,12 +3,11 @@ cmake_minimum_required(VERSION 3.16)
 set(IDF_TARGET "esp32s3" CACHE STRING "OpenTrail OT-149 target" FORCE)
 get_filename_component(OT149_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 get_filename_component(OT149_ESP_IDF_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
-get_filename_component(OT149_REPO_ROOT "${OT149_ESP_IDF_ROOT}/../../../.." ABSOLUTE)
 set(SDKCONFIG "${CMAKE_BINARY_DIR}/sdkconfig" CACHE FILEPATH "OT-149 generated sdkconfig" FORCE)
 set(
     SDKCONFIG_DEFAULTS
-    "${OT149_REPO_ROOT}/firmware/targets/heltec_v4_bench/sdkconfig.defaults;${OT149_ESP_IDF_ROOT}/ot120_candidate_builds/reproducible.defaults;${OT149_ESP_IDF_ROOT}/ot120_candidate_builds/esp_idf_mbedtls_psa/sdkconfig.overlay;${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults"
-    CACHE STRING "OT-149 admitted configuration plus quiet transport successor" FORCE
+    "${OT149_ROOT}/common/heltec_v4_sdkconfig.defaults;${OT149_ESP_IDF_ROOT}/ot120_candidate_builds/reproducible.defaults;${OT149_ESP_IDF_ROOT}/ot120_candidate_builds/esp_idf_mbedtls_psa/sdkconfig.overlay;${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults"
+    CACHE STRING "Immutable OT-149 configuration plus quiet transport successor" FORCE
 )
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)

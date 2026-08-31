@@ -438,11 +438,13 @@ $requiredNimbleSelections = @(
     'CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y',
     'CONFIG_BT_NIMBLE_GATT_SERVER=y',
     'CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1',
+    'CONFIG_BT_NIMBLE_MAX_BONDS=2',
     'CONFIG_BT_NIMBLE_SECURITY_ENABLE=y',
     'CONFIG_BT_NIMBLE_SM_SC=y',
     'CONFIG_BT_NIMBLE_LL_CFG_FEAT_LE_ENCRYPTION=y',
     'CONFIG_BT_NIMBLE_SM_LVL=3',
-    'CONFIG_BT_NIMBLE_SM_SC_ONLY=1'
+    'CONFIG_BT_NIMBLE_SM_SC_ONLY=1',
+    'CONFIG_BT_NIMBLE_NVS_PERSIST=y'
 )
 $forbiddenNimbleSelections = @(
     'CONFIG_BT_NIMBLE_ROLE_CENTRAL=y',
@@ -450,8 +452,7 @@ $forbiddenNimbleSelections = @(
     'CONFIG_BT_NIMBLE_ROLE_OBSERVER=y',
     'CONFIG_BT_NIMBLE_GATT_CLIENT=y',
     'CONFIG_BT_NIMBLE_SM_LEGACY=y',
-    'CONFIG_BT_NIMBLE_SM_SC_DEBUG_KEYS=y',
-    'CONFIG_BT_NIMBLE_NVS_PERSIST=y'
+    'CONFIG_BT_NIMBLE_SM_SC_DEBUG_KEYS=y'
 )
 $requiresTargetSelection = $true
 if (Test-Path -LiteralPath $sdkconfigPath -PathType Leaf) {
@@ -619,6 +620,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 $expectedPartitionRows = @(
     @{ Name = 'otadata'; Type = 'data'; SubType = 'ota'; Offset = 0x9000; Size = 0x2000 },
+    @{ Name = 'nvs'; Type = 'data'; SubType = 'nvs'; Offset = 0xD000; Size = 0x3000 },
     @{ Name = 'factory'; Type = 'app'; SubType = 'factory'; Offset = 0x10000; Size = 0x4F0000 },
     @{ Name = 'ota_0'; Type = 'app'; SubType = 'ota_0'; Offset = 0x500000; Size = 0x500000 },
     @{ Name = 'ota_1'; Type = 'app'; SubType = 'ota_1'; Offset = 0xA00000; Size = 0x500000 },
@@ -689,6 +691,8 @@ foreach ($requiredObject in @(
     'companion_boot_self_check.cpp.obj',
     'companion_nimble_gatt.cpp.obj',
     'companion_nimble_runtime.cpp.obj',
+    'companion_v1_heltec_adapters.cpp.obj',
+    'companion_v1_bond_owner.cpp.obj',
     'companion_authorization_storage.cpp.obj',
     'companion_ble_runtime_owner.cpp.obj',
     'companion_public_link_info.cpp.obj',
@@ -821,10 +825,13 @@ $evidence = [ordered]@{
     configured_psram_mode = 'QUAD'
     configured_psram_frequency_mhz = 80
     physical_psram_interface_and_frequency_verified = $false
-    partition_layout = 'OTHP0/v0'
+    partition_layout = 'OTHP0/v1'
     factory_slot_bytes = 5177344
     ota_slot_bytes = 5242880
     reserved_ot_state_bytes = 1048576
+    ordinary_v1_nvs_bytes = 12288
+    nimble_bond_persistence = 'BUILD-LINKED'
+    companion_v1_owner = 'BUILD-LINKED-ORDINARY-NVS-NOT-OAP0'
     partition_binary_verified = $partitionBinaryVerified
     image_header_flash_mode = 'DIO-bootstrap'
     image_header_flash_size = '16MB'
@@ -862,13 +869,13 @@ $evidence = [ordered]@{
     companion_command_dispatch = 'BUILD-LINKED-PREFLIGHT-DENIED-NOT-RUN'
     nimble_controller = 'CODED-BUILD-LINKED-NOT-RUN'
     advertising = 'CODED-PRIVATE-SERVICE-ONLY-NOT-RUN'
-    application_authorization = 'NOT-INJECTED'
+    application_authorization = 'BUILD-LINKED-V1-OWNER-BRIDGE-NOT-RUN'
     oled_startup_display = 'CODED-BUILD-LINKED-NOT-RUN'
     oled_controller_candidate = 'SSD1315-COMPATIBLE-128X64-NOT-PHYSICALLY-VERIFIED'
     oled_logo_source_sha256 = (Get-FileHash -LiteralPath $logoPath -Algorithm SHA256).Hash
     oled_ble_phase_status = 'HOST-TESTED-BUILD-LINKED-NOT-RUN'
     protected_nvs = 'NOT-INITIALIZED-NOT-VERIFIED'
-    private_bond_store = 'NOT-IMPLEMENTED'
+    private_bond_store = 'NIMBLE-NVS-BUILD-LINKED-NOT-RUN'
     binding_prf_key = 'NOT-PROVISIONED-NOT-VERIFIED'
     rollback_floor = 'NOT-IMPLEMENTED'
     framework_log_surface = 'UNREVIEWED-RUNTIME'

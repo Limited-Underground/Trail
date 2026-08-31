@@ -101,12 +101,12 @@ CompanionBleRuntimeOwner ready_owner(FakePort& port) {
     return owner;
 }
 
-void test_start_requires_closed_authorization_and_policy() {
+void test_start_requires_ready_authorization_and_policy() {
     FakePort port{};
     CompanionBleRuntimeOwner owner{port, {10, 5, 3}};
     require(owner.start(1, false) ==
                 CompanionBleRuntimeError::invalid_argument,
-            "open authorization rejected");
+            "missing authorization path rejected");
     require(port.calls.empty(), "invalid start no port calls");
     FakePort second_port{};
     CompanionBleRuntimeOwner invalid{second_port, {0, 5, 3}};
@@ -115,7 +115,7 @@ void test_start_requires_closed_authorization_and_policy() {
             "invalid policy rejected");
 }
 
-void test_exact_start_order_and_permanent_closed_status() {
+void test_exact_start_order_and_claim_ready_status() {
     FakePort port{};
     CompanionBleRuntimeOwner owner{port, {10, 5, 3}};
     require(owner.start(100, true) == CompanionBleRuntimeError::none,
@@ -126,9 +126,9 @@ void test_exact_start_order_and_permanent_closed_status() {
     const auto status = owner.status();
     require(status.phase == CompanionBleRuntimePhase::waiting_for_host_sync,
             "waiting sync");
-    require(status.authorization_claims_closed &&
+    require(!status.authorization_claims_closed &&
                 status.normal_commands_closed,
-            "all commands closed");
+            "claims ready while normal commands remain closed");
     require(owner.start(101, true) ==
                 CompanionBleRuntimeError::already_started,
             "one owner start");
@@ -370,9 +370,44 @@ void test_public_link_window_terminates_then_requires_ack() {
             "termination acknowledged by exact disconnect");
     require(!owner.status().termination_pending,
             "disconnect clears termination pending");
-    require(owner.status().authorization_claims_closed &&
+    require(!owner.status().authorization_claims_closed &&
                 owner.status().normal_commands_closed,
-            "public window grants no command authority");
+            "public window grants no normal command authority");
+}
+
+void test_pairing_renewal_and_exact_authorization() {
+    FakePort port{};
+    CompanionBleRuntimeOwner owner{port, {10, 5, 3, 15, 2}};
+    require(owner.start(1, true) == CompanionBleRuntimeError::none,
+            "renew start");
+    require(owner.host_synced(2) == CompanionBleRuntimeError::none,
+            "renew sync");
+    require(owner.connection_opened(7, 3) == CompanionBleRuntimeError::none,
+            "renew connection");
+    require(owner.renew_connection_window(8, 10) ==
+                CompanionBleRuntimeError::wrong_connection,
+            "wrong renewal denied");
+    require(owner.renew_connection_window(7, 10) ==
+                CompanionBleRuntimeError::none,
+            "exact renewal accepted");
+    require(owner.service_watchdog(24) == CompanionBleRuntimeError::none &&
+                port.terminated == kCompanionBleInvalidConnectionHandle,
+            "renewed link remains open");
+    require(owner.authorize_connection(8) ==
+                CompanionBleRuntimeError::wrong_connection,
+            "wrong authorization denied");
+    require(owner.authorize_connection(7) == CompanionBleRuntimeError::none,
+            "exact authorization accepted");
+    require(!owner.status().normal_commands_closed,
+            "normal commands open only after exact authorization");
+    require(owner.service_watchdog(1000) == CompanionBleRuntimeError::none &&
+                port.terminated == kCompanionBleInvalidConnectionHandle,
+            "authorized connection is not public-window terminated");
+    require(owner.connection_closed(7, 1001) ==
+                CompanionBleRuntimeError::none,
+            "authorized disconnect accepted");
+    require(owner.status().normal_commands_closed,
+            "disconnect recloses normal commands");
 }
 
 void test_public_link_termination_failures_contain() {
@@ -413,8 +448,8 @@ void test_public_link_termination_failures_contain() {
 }  // namespace
 
 int main() {
-    test_start_requires_closed_authorization_and_policy();
-    test_exact_start_order_and_permanent_closed_status();
+    test_start_requires_ready_authorization_and_policy();
+    test_exact_start_order_and_claim_ready_status();
     test_each_partial_start_failure_contains();
     test_sync_configures_then_advertises();
     test_sync_failures_and_deadline_contain();
@@ -427,7 +462,8 @@ int main() {
     test_each_start_callback_reentry_contains();
     test_advertising_and_termination_reentry_contains();
     test_public_link_window_terminates_then_requires_ack();
+    test_pairing_renewal_and_exact_authorization();
     test_public_link_termination_failures_contain();
-    std::cout << "companion BLE runtime owner tests passed: 15 groups\n";
+    std::cout << "companion BLE runtime owner tests passed: 16 groups\n";
     return 0;
 }

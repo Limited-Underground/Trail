@@ -7,6 +7,7 @@
 
 #include "companion_authorization_storage.hpp"
 #include "companion_nimble_gatt.hpp"
+#include "companion_v1_heltec_adapters.hpp"
 #include "esp_err.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -16,6 +17,7 @@
 #include "host/ble_gap.h"
 #include "host/ble_hs.h"
 #include "host/ble_sm.h"
+#include "host/ble_store.h"
 #include "host/ble_uuid.h"
 #include "host/util/util.h"
 #include "nimble/nimble_port.h"
@@ -23,6 +25,8 @@
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
 #include "opentrail/companion_gatt_authorization_adapter.hpp"
+#include "opentrail/companion_v1_bond_owner.hpp"
+#include "nvs_flash.h"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
@@ -58,55 +62,83 @@ public:
     }
 };
 
-class DeniedBindingAuthority final
-    : public CompanionGattTrustedBindingAuthority {
-public:
-    CompanionGattTrustedBindingResult resolve(
-        std::uint16_t,
-        std::uint64_t) override {
-        return {CompanionGattTrustedBindingError::not_ready, {}, 0};
-    }
-};
-
-class DeniedCorrelationIssuer final
+class BootLocalCorrelationIssuer final
     : public CompanionGattAuthorizationCorrelationIssuer {
 public:
-    CompanionGattAuthorizationCorrelationResult issue(
-        const CompanionGattAuthorizationCorrelationContext&) override {
-        return {CompanionGattAuthorizationCorrelationError::not_ready, {}};
-    }
-};
+    explicit BootLocalCorrelationIssuer(
+        security::SecureRandomSource& random) : random_(random) {}
 
-class DeniedAuthorizationAuthority final
-    : public CompanionGattAuthorizationAuthority {
-public:
-    CompanionGattAuthorizationDecision apply_claim(
-        CompanionAuthorizationPurpose,
-        const CompanionControllerClaim&,
-        std::uint64_t) override {
-        return {CompanionGattAuthorizationAuthorityError::not_ready,
-                CompanionAuthorizationClaimOutcome::denied,
-                CompanionAuthorizationDenyReason::unknown, 0};
+    CompanionGattAuthorizationCorrelationResult issue(
+        const CompanionGattAuthorizationCorrelationContext& context) override {
+        if (operation_active_ || context.transport_generation == 0 ||
+            context.session_nonce == 0 || context.exchange_id == 0 ||
+            next_ == 0) {
+            return {CompanionGattAuthorizationCorrelationError::failed, {}};
+        }
+        operation_active_ = true;
+        if (!seed_ready_) {
+            if (random_.state() == security::EntropyState::not_ready) {
+                operation_active_ = false;
+                return {CompanionGattAuthorizationCorrelationError::not_ready,
+                        {}};
+            }
+            if (random_.state() != security::EntropyState::ready) {
+                operation_active_ = false;
+                return {CompanionGattAuthorizationCorrelationError::failed,
+                        {}};
+            }
+            const auto filled = random_.fill(seed_.data(), seed_.size());
+            if (!filled.ok() || filled.bytes_written != seed_.size()) {
+                seed_.fill(0);
+                operation_active_ = false;
+                return {filled.error ==
+                                security::RandomFillError::entropy_not_ready
+                            ? CompanionGattAuthorizationCorrelationError::
+                                  not_ready
+                            : CompanionGattAuthorizationCorrelationError::
+                                  failed,
+                        {}};
+            }
+            bool any = false;
+            for (const auto byte : seed_) any = any || byte != 0;
+            if (!any) seed_[0] = 0x80U;
+            seed_ready_ = true;
+        }
+        CompanionAuthorizationCorrelation correlation{};
+        std::copy(seed_.begin(), seed_.end(), correlation.bytes.begin());
+        for (std::size_t index = 0; index < sizeof(next_); ++index) {
+            correlation.bytes[8 + index] = static_cast<std::uint8_t>(
+                next_ >> ((sizeof(next_) - 1U - index) * 8U));
+        }
+        ++next_;
+        operation_active_ = false;
+        return {CompanionGattAuthorizationCorrelationError::none,
+                correlation};
     }
-    CompanionGattAuthorizationAuthorityError release_connection(
-        std::uint64_t) override {
-        return CompanionGattAuthorizationAuthorityError::failed;
-    }
+
+private:
+    security::SecureRandomSource& random_;
+    std::array<std::uint8_t, 8> seed_{};
+    std::uint64_t next_{1};
+    bool seed_ready_{false};
+    bool operation_active_{false};
 };
 
 DeniedSnapshotAuthority g_snapshot_authority;
 DeniedActionAuthority g_action_authority;
 CompanionRequestCoordinator g_request_coordinator{
     g_snapshot_authority, g_action_authority};
-DeniedBindingAuthority g_binding_authority;
-DeniedCorrelationIssuer g_correlation_issuer;
-DeniedAuthorizationAuthority g_authorization_authority;
-CompanionGattAuthorizationCallbackAdapter g_callback_adapter{
-    g_request_coordinator,
-    companion_nimble_gatt_indication_port(),
-    g_binding_authority,
-    g_correlation_issuer,
-    g_authorization_authority};
+CompanionGattAuthorizationCallbackAdapter* g_callback_adapter = nullptr;
+CompanionV1BondOwnerBridge* g_v1_owner_bridge = nullptr;
+opentrail::targets::heltec_v4_bench::
+    HeltecV4CompanionV1NimbleBondAdapter* g_v1_bond_adapter = nullptr;
+std::atomic<bool> g_initial_pairing_allowed{false};
+
+int reject_nimble_store_overflow(ble_store_status_event* event, void*) {
+    return event != nullptr && event->event_code == BLE_STORE_EVENT_OVERFLOW
+               ? BLE_HS_ESTORE_CAP
+               : BLE_HS_ENOTSUP;
+}
 
 enum class RuntimeEventKind : std::uint8_t {
     host_sync = 1,
@@ -115,6 +147,7 @@ enum class RuntimeEventKind : std::uint8_t {
     connection_opened,
     connection_closed,
     connection_termination_failed,
+    connection_authorized,
     pairing_completed,
     pairing_failed,
     pairing_closed,
@@ -181,7 +214,8 @@ public:
     }
 
     bool configure_secure_connections_bonding() override {
-        if (!stack_initialized_ || host_started_) return false;
+        if (!stack_initialized_ || host_started_ ||
+            g_v1_owner_bridge == nullptr) return false;
         ble_hs_cfg.reset_cb = runtime_on_reset;
         ble_hs_cfg.sync_cb = runtime_on_sync;
         ble_hs_cfg.sm_io_cap = BLE_HS_IO_DISPLAY_ONLY;
@@ -192,9 +226,15 @@ public:
             BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
         ble_hs_cfg.sm_their_key_dist =
             BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
-        // No store callback is installed: OT-054 protected storage admission
-        // is denied, so a transient stack bond is never authority evidence.
-        ble_hs_cfg.store_status_cb = nullptr;
+        // Persistence is provided by ESP-IDF's configured NimBLE NVS store.
+        // Capacity failure is terminal for the write; never evict the owner.
+        ble_hs_cfg.store_status_cb = reject_nimble_store_overflow;
+        ble_hs_cfg.store_status_arg = nullptr;
+        const auto restored = g_v1_owner_bridge->restore();
+        if (!restored.accepted()) return false;
+        g_initial_pairing_allowed.store(
+            restored.phase == CompanionV1BondOwnerPhase::closed_unowned,
+            std::memory_order_release);
         return true;
     }
 
@@ -202,7 +242,8 @@ public:
         if (!stack_initialized_ || host_started_) return false;
         ble_svc_gap_init();
         ble_svc_gatt_init();
-        return register_companion_nimble_gatt_service(&g_callback_adapter) == 0;
+        return g_callback_adapter != nullptr &&
+               register_companion_nimble_gatt_service(g_callback_adapter) == 0;
     }
 
     bool start_host_task() override {
@@ -375,7 +416,7 @@ int runtime_gap_event(ble_gap_event* event, void*) {
                 return 0;
             }
             (void)companion_nimble_gatt_gap_event(event,
-                                                  &g_callback_adapter);
+                                                  g_callback_adapter);
             const bool adapter_connected =
                 companion_nimble_gatt_adapter_status().connected;
             bool pairing_open = false;
@@ -421,7 +462,7 @@ int runtime_gap_event(ble_gap_event* event, void*) {
             // OT-052 releases its exact session/indication state before the
             // runtime owner can schedule re-advertising.
             (void)companion_nimble_gatt_gap_event(event,
-                                                  &g_callback_adapter);
+                                                  g_callback_adapter);
             std::uint64_t pairing_generation = 0;
             {
                 PairingLock lock{pdMS_TO_TICKS(50)};
@@ -517,9 +558,9 @@ int runtime_gap_event(ble_gap_event* event, void*) {
         }
         case BLE_GAP_EVENT_ENC_CHANGE: {
             (void)companion_nimble_gatt_gap_event(event,
-                                                  &g_callback_adapter);
+                                                  g_callback_adapter);
             ble_gap_conn_desc description{};
-            const bool exact_secure_bond =
+            bool exact_secure_bond =
                 event->enc_change.status == 0 &&
                 ble_gap_conn_find(
                     event->enc_change.conn_handle, &description) == 0 &&
@@ -548,6 +589,27 @@ int runtime_gap_event(ble_gap_event* event, void*) {
                 }
             }
             if (exact_active_attempt) {
+                if (exact_secure_bond && g_v1_owner_bridge != nullptr &&
+                    g_v1_bond_adapter != nullptr) {
+                    const auto inventory = g_v1_bond_adapter->snapshot();
+                    const auto owner_status = g_v1_owner_bridge->status();
+                    if (inventory.error !=
+                            CompanionV1BondInventoryError::none ||
+                        inventory.bond_count != 1 ||
+                        !valid_bond_identity(
+                            inventory.private_references[0]) ||
+                        valid_bond_identity(
+                            inventory.private_references[1]) ||
+                        owner_status.phase !=
+                            CompanionV1BondOwnerPhase::closed_unowned ||
+                        !g_v1_owner_bridge->accept_initial_bond(
+                             inventory.private_references[0]).accepted()) {
+                        exact_secure_bond = false;
+                    } else {
+                        g_initial_pairing_allowed.store(
+                            false, std::memory_order_release);
+                    }
+                }
                 (void)queue_event({
                     exact_secure_bond
                         ? RuntimeEventKind::pairing_completed
@@ -562,9 +624,19 @@ int runtime_gap_event(ble_gap_event* event, void*) {
             }
             return 0;
         }
-        default:
-            return companion_nimble_gatt_gap_event(event,
-                                                   &g_callback_adapter);
+        default: {
+            const auto result = companion_nimble_gatt_gap_event(
+                event, g_callback_adapter);
+            const auto adapter = companion_nimble_gatt_adapter_status();
+            if (event->type == BLE_GAP_EVENT_NOTIFY_TX &&
+                adapter.connected &&
+                adapter.lifecycle.application_authorized) {
+                (void)queue_event({RuntimeEventKind::connection_authorized,
+                                  event->notify_tx.conn_handle,
+                                  observed});
+            }
+            return result;
+        }
     }
 }
 
@@ -623,6 +695,9 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
         case RuntimeEventKind::connection_termination_failed:
             return g_runtime_owner.connection_termination_failed(
                 event.connection_handle);
+        case RuntimeEventKind::connection_authorized:
+            return g_runtime_owner.authorize_connection(
+                event.connection_handle);
         case RuntimeEventKind::pairing_completed:
         case RuntimeEventKind::pairing_failed: {
             PairingLock lock{pdMS_TO_TICKS(50)};
@@ -677,7 +752,8 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
 
 CompanionBleRuntimeError start_companion_nimble_runtime(
     std::uint64_t now_ms,
-    CompanionPairingWindow& pairing_window) {
+    CompanionPairingWindow& pairing_window,
+    security::SecureRandomSource& random) {
     if (g_pairing_mutex == nullptr) {
         g_pairing_mutex = xSemaphoreCreateMutexStatic(
             &g_pairing_mutex_control);
@@ -694,11 +770,34 @@ CompanionBleRuntimeError start_companion_nimble_runtime(
     if (g_event_queue == nullptr) {
         return CompanionBleRuntimeError::callback_queue_overflow;
     }
+    // The ordinary default NVS partition owns only the NimBLE bond and OTV1
+    // record. Any initialization error fails closed; never erase and retry.
+    if (nvs_flash_init() != ESP_OK) {
+        return CompanionBleRuntimeError::invalid_argument;
+    }
     const auto admission = companion_authorization_storage_preflight();
     if (admission != CompanionAuthorizationTargetAdmissionError::
                          nvs_encryption_not_configured) {
         return CompanionBleRuntimeError::invalid_argument;
     }
+    static opentrail::targets::heltec_v4_bench::
+        HeltecV4CompanionV1OwnerStorage owner_storage;
+    static opentrail::targets::heltec_v4_bench::
+        HeltecV4CompanionV1NimbleBondAdapter bond_adapter{random};
+    static CompanionV1BondOwnerBridge owner_bridge{
+        owner_storage, bond_adapter};
+    static BootLocalCorrelationIssuer correlation_issuer{random};
+    static CompanionV1GattAuthorizationAuthority authorization_authority{
+        owner_bridge, 0};
+    static CompanionGattAuthorizationCallbackAdapter callback_adapter{
+        g_request_coordinator,
+        companion_nimble_gatt_indication_port(),
+        bond_adapter,
+        correlation_issuer,
+        authorization_authority};
+    g_v1_bond_adapter = &bond_adapter;
+    g_v1_owner_bridge = &owner_bridge;
+    g_callback_adapter = &callback_adapter;
     return g_runtime_owner.start(now_ms, true);
 }
 
@@ -736,6 +835,22 @@ CompanionBleRuntimeError service_companion_nimble_runtime(
             return result;
         }
     }
+    bool pairing_active = false;
+    {
+        PairingLock lock{pdMS_TO_TICKS(50)};
+        if (!lock.locked() || g_pairing_window == nullptr) {
+            return CompanionBleRuntimeError::callback_queue_overflow;
+        }
+        const auto phase = g_pairing_window->status().phase;
+        pairing_active = phase == CompanionPairingWindowPhase::open ||
+                         phase == CompanionPairingWindowPhase::attempt_active;
+    }
+    if (pairing_active &&
+        status.phase == CompanionBleRuntimePhase::connected) {
+        const auto renewed = g_runtime_owner.renew_connection_window(
+            status.connection_handle, now_ms);
+        if (renewed != CompanionBleRuntimeError::none) return renewed;
+    }
     return g_runtime_owner.service_watchdog(now_ms);
 }
 
@@ -749,6 +864,9 @@ CompanionPairingWindowError open_companion_pairing_window(
     std::uint64_t hold_ms) {
     CompanionPairingWindowError result{
         CompanionPairingWindowError::window_not_available};
+    if (!g_initial_pairing_allowed.load(std::memory_order_acquire)) {
+        return CompanionPairingWindowError::window_not_available;
+    }
     std::uint16_t connected_handle{kCompanionBleInvalidConnectionHandle};
     {
         PairingLock lock{pdMS_TO_TICKS(50)};

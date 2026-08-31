@@ -42,8 +42,8 @@ class Ot123MonocypherHarnessTests(unittest.TestCase):
         ):
             self.assertTrue((MONOCYPHER / relative).is_file(), relative)
         self.assertEqual(
-            (MONOCYPHER / "partitions.csv").read_bytes(),
-            (REPO / "firmware/targets/heltec_v4_bench/partitions.csv").read_bytes(),
+            hashlib.sha256((MONOCYPHER / "partitions.csv").read_bytes()).hexdigest(),
+            "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389",
         )
         for relative, expected in SOURCE_HASHES.items():
             self.assertEqual(hashlib.sha256((REPO / relative).read_bytes()).hexdigest(), expected)

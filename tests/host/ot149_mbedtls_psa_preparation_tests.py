@@ -13,8 +13,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 HISTORICAL_COMMON_CONFIG_BYTES = 1409
 HISTORICAL_COMMON_CONFIG_SHA256 = "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb"
-CURRENT_COMMON_CONFIG_BYTES = 1467
-CURRENT_COMMON_CONFIG_SHA256 = "9186abaa6bd99429bb6d7d32f52f772b02dc122145438dc1547d2b94b948fe4a"
+HISTORICAL_TOP_CMAKE = {
+    "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/candidate/CMakeLists.txt",
+    "tests/benchmarks/crypto/esp_idf/ot149_mbedtls_psa/control/CMakeLists.txt",
+}
+HISTORICAL_TOP_CMAKE_BYTES = 1528
+HISTORICAL_TOP_CMAKE_SHA256 = (
+    "be533296c54c2a0d91c6f0c1c5c8f10197b96886fb5d6cac04e31ae0344474e2"
+)
 RECORD = (
     ROOT
     / "tests/benchmarks/crypto"
@@ -95,13 +101,15 @@ class Tests(unittest.TestCase):
             path = entry["path"]
             self.assertNotIn(path, seen)
             seen.add(path)
-            raw = (ROOT / path).read_bytes()
             if path == "firmware/targets/heltec_v4_bench/sdkconfig.defaults":
                 self.assertEqual(entry["bytes"], HISTORICAL_COMMON_CONFIG_BYTES)
                 self.assertEqual(entry["sha256"], HISTORICAL_COMMON_CONFIG_SHA256)
-                self.assertEqual(len(raw), CURRENT_COMMON_CONFIG_BYTES)
-                self.assertEqual(hashlib.sha256(raw).hexdigest(), CURRENT_COMMON_CONFIG_SHA256)
                 continue
+            if path in HISTORICAL_TOP_CMAKE:
+                self.assertEqual(entry["bytes"], HISTORICAL_TOP_CMAKE_BYTES)
+                self.assertEqual(entry["sha256"], HISTORICAL_TOP_CMAKE_SHA256)
+                continue
+            raw = (ROOT / path).read_bytes()
             if "bytes" in entry:
                 self.assertEqual(len(raw), entry["bytes"], path)
             expected = entry.get("raw_sha256", entry.get("sha256"))

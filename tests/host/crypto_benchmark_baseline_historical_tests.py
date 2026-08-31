@@ -5,9 +5,12 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import io
 import json
 import os
 import re
+import tarfile
+import tempfile
 
 import subprocess
 import sys
@@ -22,6 +25,7 @@ RECORD = ROOT / "tests/benchmarks/crypto/OT-093-HISTORICAL-SUCCESSOR-V0.json"
 RECORD_SHA256 = "1e3c03820cba83b18bcb1a3a7b8fecad9425a3397d759e1bf173d374f329296a"
 BASE_COMMIT = "0afac6b1cf3d142aca2f2cae98264f80ee801989"
 ACCEPTANCE_COMMIT = "e144e683d5a07fb4e305f95895f4f07cffb2d869"
+HISTORICAL_SUITE_COMMIT = "077e8e8d05151f8e8bcd052b138d54488f0af8cf"
 SCOPES = ("firmware/components", "firmware/targets/heltec_v4_bench")
 TREE_COUNT = 307
 TREE_SHA256 = "6738195a7da53eb3d03c4a47552f6c0b6489559a2d81c0ba068489fe9faf7bc3"
@@ -188,18 +192,52 @@ def validate_record(value: dict[str, Any]) -> None:
 def verify_frozen_files(value: dict[str, Any]) -> None:
     validate_record(value)
     for expected, item in zip(FROZEN_FILES, value["frozen_suite"]["raw_files"]):
-        _, relative, size, digest = expected
-        path = ROOT.joinpath(*relative.split("/"))
-        try:
-            if path.is_symlink():
-                raise HarnessError("frozen OT-093 file type mismatch")
-            resolved = path.resolve(strict=True)
-            resolved.relative_to(ROOT.resolve(strict=True))
-            raw = resolved.read_bytes()
-        except (OSError, ValueError) as exc:
-            raise HarnessError("frozen OT-093 file unavailable") from exc
-        if resolved.is_symlink() or len(raw) != size or _sha256(raw) != digest or item["sha256"] != digest:
+        role, relative, size, digest = expected
+        rows = _tree(HISTORICAL_SUITE_COMMIT, (relative,))
+        if len(rows) != 1 or rows[0][2] != relative:
+            raise HarnessError("frozen OT-093 file tree mismatch")
+        raw = _git_bytes("cat-file", "blob", rows[0][1])
+        if item["sha256"] != digest:
             raise HarnessError("frozen OT-093 file hash mismatch")
+        if role == "helper":
+            # OT-093 accepted a one-time mixed-EOL working-file digest whose
+            # per-line transform was not retained and is not reconstructible.
+            # Its canonical Git blob and deterministic CRLF checkout are
+            # independently locked by verify_historical_inputs/manifest.
+            helper = value["inputs"]["build_helper"]
+            if (size != item["bytes"] or
+                    digest != helper["frozen_working_raw_sha256"]):
+                raise HarnessError("frozen OT-093 helper record mismatch")
+            continue
+        if len(raw) != size or _sha256(raw) != digest:
+            raise HarnessError("frozen OT-093 file hash mismatch")
+
+
+def historical_checkout() -> tempfile.TemporaryDirectory[str]:
+    _require_commit(HISTORICAL_SUITE_COMMIT)
+    archive = _git_bytes(
+        "-c", "core.autocrlf=false", "archive", "--format=tar",
+        HISTORICAL_SUITE_COMMIT,
+    )
+    directory = tempfile.TemporaryDirectory(prefix="ot093-historical-")
+    root = Path(directory.name).resolve()
+    try:
+        with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as source:
+            members = source.getmembers()
+            for member in members:
+                path = _safe_path(member.name.rstrip("/"), "archive member")
+                destination = (root / Path(*path.split("/"))).resolve()
+                try:
+                    destination.relative_to(root)
+                except ValueError as exc:
+                    raise HarnessError("archive member path rejected") from exc
+                if not (member.isdir() or member.isfile()):
+                    raise HarnessError("archive member type rejected")
+            source.extractall(root, members=members, filter="data")
+    except Exception:
+        directory.cleanup()
+        raise
+    return directory
 
 
 def _git_bytes(
@@ -324,8 +362,8 @@ def verify_historical_manifest(value: dict[str, Any]) -> None:
     if _sha256(transformed_helper) != helper["checkout_raw_sha256"]:
         raise HarnessError("helper reconstruction mismatch")
 
-def _load_original_tests() -> ModuleType:
-    path = ROOT / FROZEN_FILES[3][1]
+def _load_original_tests(historical_root: Path) -> ModuleType:
+    path = historical_root / FROZEN_FILES[3][1]
     spec = importlib.util.spec_from_file_location("ot093_frozen_tests", path)
     if spec is None or spec.loader is None:
         raise HarnessError("frozen tests unavailable")
@@ -345,10 +383,11 @@ def main() -> int:
     try:
         value = load_record()
         verify_frozen_files(value)
-        module = _load_original_tests()
-        for name in EXECUTED_TESTS:
-            current = name
-            getattr(module, name)()
+        with historical_checkout() as checkout:
+            module = _load_original_tests(Path(checkout))
+            for name in EXECUTED_TESTS:
+                current = name
+                getattr(module, name)()
         current = REPLACEMENT_TESTS[0]
         verify_historical_inputs(value)
         current = REPLACEMENT_TESTS[1]

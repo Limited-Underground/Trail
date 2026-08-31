@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 import re
 import unittest
@@ -18,6 +19,11 @@ ROOT = (
     / "ot149_mbedtls_psa"
 )
 COMMON = ROOT / "common"
+HISTORICAL_BASE_DEFAULTS = COMMON / "heltec_v4_sdkconfig.defaults"
+HISTORICAL_BASE_DEFAULTS_BYTES = 1368
+HISTORICAL_BASE_DEFAULTS_SHA256 = (
+    "84d54e5d730ba28ceba0c97831a477303db128d63ede7575bec52013770d70c0"
+)
 CANDIDATE = ROOT / "candidate"
 CONTROL = ROOT / "control"
 SHARED = (
@@ -43,6 +49,7 @@ class Ot149MbedtlsPsaHarnessTests(unittest.TestCase):
         required = [
             COMMON / "app_main.c",
             COMMON / "ot149_candidate_api.h",
+            HISTORICAL_BASE_DEFAULTS,
             CANDIDATE / "CMakeLists.txt",
             CANDIDATE / "sdkconfig.defaults",
             CANDIDATE / "partitions.csv",
@@ -80,12 +87,15 @@ class Ot149MbedtlsPsaHarnessTests(unittest.TestCase):
         self.assertEqual(candidate_top, control_top)
         self.assertIn('set(SDKCONFIG "${CMAKE_BINARY_DIR}/sdkconfig"', candidate_top)
         for marker in (
-            "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
+            "${OT149_ROOT}/common/heltec_v4_sdkconfig.defaults",
             "ot120_candidate_builds/reproducible.defaults",
             "ot120_candidate_builds/esp_idf_mbedtls_psa/sdkconfig.overlay",
             "${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults",
         ):
             self.assertIn(marker, candidate_top)
+        self.assertNotIn(
+            "firmware/targets/heltec_v4_bench/sdkconfig.defaults", candidate_top
+        )
         self.assertIn("set(OT149_EXPECTED_SDKCONFIG_BYTES 106890)", candidate_top)
         self.assertIn(
             'set(OT149_EXPECTED_SDKCONFIG_SHA256 "00fd8a75e1df36e7cb4d4aa2275492297e1300383e15cbbf2d4a6284dd99d85e")',
@@ -114,6 +124,29 @@ class Ot149MbedtlsPsaHarnessTests(unittest.TestCase):
             self.assertIn("ot129_control_protocol.c", text)
             self.assertIn("ot121_candidate_benchmarks/include", text)
             self.assertIn("-Wall -Wextra -Werror", text)
+
+    def test_historical_base_defaults_are_byte_pinned_and_source_shaped(self) -> None:
+        raw = HISTORICAL_BASE_DEFAULTS.read_bytes()
+        self.assertEqual(len(raw), HISTORICAL_BASE_DEFAULTS_BYTES)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), HISTORICAL_BASE_DEFAULTS_SHA256)
+        self.assertFalse(raw.startswith(b"\xef\xbb\xbf"))
+        self.assertNotIn(b"\r", raw)
+        self.assertTrue(raw.endswith(b"\n"))
+
+        defaults = raw.decode("utf-8")
+        for marker in (
+            "CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1",
+            "CONFIG_BT_NIMBLE_SECURITY_ENABLE=y",
+            "CONFIG_BT_NIMBLE_SM_SC=y",
+            "CONFIG_BT_NIMBLE_SM_SC_ONLY=1",
+            "CONFIG_BT_NIMBLE_NVS_PERSIST=n",
+        ):
+            self.assertEqual(defaults.count(marker), 1, marker)
+        for later_active_target_marker in (
+            "CONFIG_BT_NIMBLE_MAX_BONDS=2",
+            "CONFIG_BT_NIMBLE_NVS_PERSIST=y",
+        ):
+            self.assertNotIn(later_active_target_marker, defaults)
 
     def test_only_candidate_links_or_references_mbedtls_psa(self) -> None:
         candidate_cmake = (CANDIDATE / "main" / "CMakeLists.txt").read_text(

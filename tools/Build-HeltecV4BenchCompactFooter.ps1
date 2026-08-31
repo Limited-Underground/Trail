@@ -8,6 +8,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# This file is retained as accepted OT-106 historical evidence. Its original
+# build inputs are available from the exact Git commit below; running it from a
+# later checkout would mix current firmware with an OT-106 label.
+throw ('OT-106 historical build helper is archived. Reproduce it only from ' +
+    'Git commit 1099fd352f9ca7a330f340e97af910d0353054d7.')
+
 $requiredIdfVersion = 'ESP-IDF v6.0.2'
 $requiredIdfCommit = '7101770dc6db2667b3c477cc31365dd1acd6db4e'
 $requiredIdfToolSha256 = '5f703be3a915433f63206a28260357ad807ec83ae0a8589c684c9c08516a7a40'

@@ -6,6 +6,28 @@ public chronology.
 
 ## 2026-08-31
 
+### OT-166 Heltec durable V1 BLE bond-owner integration
+
+- Added the dedicated ordinary `OTV1/v0` owner record and persistent NimBLE
+  Secure Connections bond store without activating the protected `OAP0` path.
+- Boot now admits only an exact empty record/empty bond inventory or one exact
+  record/one exact private bond reference. Initial commit requires byte-exact
+  readback and a fresh post-commit inventory; every controller authorization
+  rechecks that inventory.
+- Protected GATT normal commands remain closed until the exact live controller
+  completes the authorization indication. Replay, drift, extra bonds,
+  ambiguous storage, wrong owner, stale session, and callback reentry fail
+  closed. Replacement and automatic erase/repair remain deferred.
+- Focused owner/runtime/target/self-check validation passes. The complete
+  ESP-IDF v6.0.2 target build produces a 539,232-byte application with 90% of
+  the smallest app slot free, and the complete Windows Host matrix exits 0.
+  Historical benchmark inputs are now detached from mutable current Heltec
+  configuration by a first-stage 6-group dependency gate; the authoritative
+  raw-byte audit passes 291/291. No hardware or phone ran, V1 remains exact
+  43.75%/displayed 44%, and no website update is required. See
+  [Decision 0102](decisions/0102-accept-ot166-heltec-v1-bond-owner-integration.md)
+  and [evidence](../tests/hardware/OT-166-2026-08-31.md).
+
 ### Limited Underground organization migration
 
 - Transferred the public repository into the `Limited-Underground`

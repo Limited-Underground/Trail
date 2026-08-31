@@ -87,10 +87,6 @@ class Ot121CandidateBenchmarkHarnessTests(unittest.TestCase):
         ]
         self.assertEqual(operation_rules, [OPERATIONS, OPERATIONS])
         self.assertEqual(
-            (LIBSODIUM / "partitions.csv").read_bytes(),
-            (REPO / "firmware" / "targets" / "heltec_v4_bench" / "partitions.csv").read_bytes(),
-        )
-        self.assertEqual(
             hashlib.sha256((LIBSODIUM / "partitions.csv").read_bytes()).hexdigest(),
             "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389",
         )

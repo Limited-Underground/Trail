@@ -33,6 +33,37 @@ if (-not $compiler) {
 $compilerDirectory = Split-Path -Parent $compiler
 $env:Path = "$compilerDirectory;$env:Path"
 
+$python = Get-Command python -ErrorAction SilentlyContinue
+if ($null -eq $python) {
+    throw 'Python was not found for the OpenTrail host validation matrix.'
+}
+
+# Run checkout-sensitive target and frozen-harness contracts before the long
+# native matrix so structural target changes fail in seconds, not at the end.
+$fastStructuralTests = @(
+    @{ File = 'historical_target_dependency_boundary_tests.py'; Failure = 'Historical/live target dependency boundary tests failed.' },
+    @{ File = 'crypto_benchmark_baseline_historical_tests.py'; Failure = 'OTCBL0 historical successor tests failed.' },
+    @{ File = 'crypto_benchmark_baseline_historical_harness_tests.py'; Failure = 'OTCBL0 historical successor tamper tests failed.' },
+    @{ File = 'raw_byte_checkout_policy_tests.py'; Failure = 'Authoritative raw-byte checkout policy tests failed.' },
+    @{ File = 'heltec_v4_bench_target_tests.py'; Failure = 'Heltec V4 bench target admission tests failed.' },
+    @{ File = 'heltec_v4_bench_partition_transition_tests.py'; Failure = 'Heltec V4 protected-storage transition admission tests failed.' },
+    @{ File = 'ot120_candidate_build_harness_tests.py'; Failure = 'OT-120 candidate build-harness tests failed.' },
+    @{ File = 'ot121_candidate_benchmark_harness_tests.py'; Failure = 'OT-121/OT-123 candidate benchmark-harness tests failed.' },
+    @{ File = 'ot123_monocypher_candidate_benchmark_harness_tests.py'; Failure = 'OT-123 Monocypher benchmark-harness tests failed.' },
+    @{ File = 'ot123_monocypher_preparation_tests.py'; Failure = 'OT-123 Monocypher preparation tests failed.' },
+    @{ File = 'ot130_monocypher_bundle_authority_tests.py'; Failure = 'OT-130 Monocypher immutable bundle/authority host tests failed.' },
+    @{ File = 'ot138_monocypher_boot_control_investigation_tests.py'; Failure = 'OT-138 Monocypher boot/control investigation host tests failed.' },
+    @{ File = 'ot149_mbedtls_psa_preparation_tests.py'; Failure = 'OT-149 mbedTLS/PSA preparation tests failed.' },
+    @{ File = 'ot149_mbedtls_psa_harness_tests.py'; Failure = 'OT-149 mbedTLS/PSA harness tests failed.' },
+    @{ File = 'ot151_mbedtls_psa_corrected_target_tests.py'; Failure = 'OT-151 mbedTLS/PSA corrected-target tests failed.' }
+)
+foreach ($test in $fastStructuralTests) {
+    & $python.Source (Join-Path $projectRoot "tests\host\$($test.File)")
+    if ($LASTEXITCODE -ne 0) {
+        throw $test.Failure
+    }
+}
+
 function Invoke-ExpectedNativeFailure {
     param(
         [Parameter(Mandatory = $true)]
@@ -460,6 +491,20 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_authorization.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_authorization_adapter.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_gatt_authorization_adapter_tests.cpp')
+        )
+    },
+    @{
+        Name = 'V1 durable bond owner and protected GATT admission'
+        Output = Join-Path $buildDirectory 'companion_v1_bond_owner_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_session.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_authorization_wire.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_gatt_authorization.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_v1_bond_owner.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_v1_bond_owner_tests.cpp')
         )
     },
     @{
@@ -1897,24 +1942,9 @@ if ($malformedUnified.ExitCode -eq 0 -or
     throw 'Unified diagnostic CLI malformed-record smoke test failed.'
 }
 
-$python = Get-Command python -ErrorAction SilentlyContinue
-if ($null -eq $python) {
-    throw 'Python was not found for MeshCore channel lease host tests.'
-}
-
-& $python.Source (Join-Path $projectRoot 'tests\host\raw_byte_checkout_policy_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw 'Authoritative raw-byte checkout policy tests failed.'
-}
-
 & $python.Source (Join-Path $projectRoot 'tests\host\host_validation_checkout_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Host validation history checkout tests failed.'
-}
-
-& $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_bench_target_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw 'Heltec V4 bench target admission tests failed.'
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\ot147_heltec_v4_live_status_authority_tests.py')
@@ -1950,11 +1980,6 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\protected_storage_transition_evidence_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'Protected-storage transition evidence verifier tests failed.'
-}
-
-& $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_bench_partition_transition_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw 'Heltec V4 protected-storage transition admission tests failed.'
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_protected_storage_recovery_bundle_tests.py')
@@ -2123,23 +2148,9 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw ('OTCIBC1 candidate import/build admission tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
-& $python.Source (Join-Path $projectRoot 'tests\host\ot120_candidate_build_harness_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw ('OT-120 candidate build-harness tests failed with exit code {0}.' -f $LASTEXITCODE)
-}
-& $python.Source (Join-Path $projectRoot 'tests\host\ot121_candidate_benchmark_harness_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw ('OT-121/OT-123 candidate benchmark-harness tests failed with exit code {0}.' -f $LASTEXITCODE)
-}
-
 & $python.Source (Join-Path $projectRoot 'tests\host\ot121_local_primitive_frame_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-121 local-primitive frame tests failed with exit code {0}.' -f $LASTEXITCODE)
-}
-
-& $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_candidate_benchmark_harness_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw ('OT-123 Monocypher benchmark-harness tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_frame_tests.py')
@@ -2190,10 +2201,6 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\ot135_monocypher_protocol_runner_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-135 Monocypher byte-bounded opaque-preamble protocol runner host tests failed.'
-}
-& $python.Source (Join-Path $projectRoot 'tests\host\ot138_monocypher_boot_control_investigation_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw 'OT-138 Monocypher boot/control investigation host tests failed.'
 }
 & $python.Source (Join-Path $projectRoot 'tests\host\ot139_monocypher_quiet_target_tests.py')
 if ($LASTEXITCODE -ne 0) {
@@ -2251,10 +2258,6 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-130 Monocypher restoration-safe coordinator host tests failed.'
 }
-& $python.Source (Join-Path $projectRoot 'tests\host\ot130_monocypher_bundle_authority_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw 'OT-130 Monocypher immutable bundle/authority host tests failed.'
-}
 & $python.Source (Join-Path $projectRoot 'tests\host\ot131_monocypher_execution_authority_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-131 Monocypher executable bundle/authority host tests failed.'
@@ -2303,11 +2306,6 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-146 Monocypher success record host tests failed.'
 }
-& $python.Source (Join-Path $projectRoot 'tests\host\ot123_monocypher_preparation_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw ('OT-123 Monocypher preparation tests failed with exit code {0}.' -f $LASTEXITCODE)
-}
-
 & $python.Source (Join-Path $projectRoot 'tests\host\crypto_radio_profile_contract_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OTRPF0 direct-radio profile evidence-contract tests failed with exit code {0}.' -f $LASTEXITCODE)
@@ -2448,11 +2446,6 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OT-149 mbedTLS/PSA strict-frame tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
-& $python.Source (Join-Path $projectRoot 'tests\host\ot149_mbedtls_psa_preparation_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw ('OT-149 mbedTLS/PSA preparation tests failed with exit code {0}.' -f $LASTEXITCODE)
-}
-
 & $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_builder_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-150 mbedTLS/PSA four-build orchestration tests failed with exit code {0}.' -f $LASTEXITCODE)
@@ -2507,16 +2500,6 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_v4_radio_diag_source_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('Heltec V4 radio diagnostic source tests failed with exit code {0}.' -f $LASTEXITCODE)
-}
-
-& $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_historical_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw "OTCBL0 historical successor tests failed with exit code $LASTEXITCODE."
-}
-
-& $python.Source (Join-Path $projectRoot 'tests\host\crypto_benchmark_baseline_historical_harness_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw "OTCBL0 historical successor tamper tests failed with exit code $LASTEXITCODE."
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\heltec_compact_footer_build_evidence_tests.py')

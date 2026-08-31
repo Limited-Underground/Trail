@@ -79,9 +79,9 @@ public:
 
 // Single-owner, externally serialized state machine. This guard protects only
 // synchronous callback reentry; it is not a task/thread synchronization
-// primitive. The current production composition must pass
-// authorization_admission_denied=true. The owner never upgrades that denial,
-// so claims and normal commands remain closed for its entire lifetime.
+// primitive. Startup requires an installed fail-closed authorization path.
+// Claims are then admitted by the GATT lifecycle while normal commands remain
+// closed until the exact live connection is promoted.
 class CompanionBleRuntimeOwner {
 public:
     CompanionBleRuntimeOwner(CompanionBleRuntimePort& port,
@@ -89,7 +89,7 @@ public:
 
     [[nodiscard]] CompanionBleRuntimeError start(
         std::uint64_t now_ms,
-        bool authorization_admission_denied);
+        bool authorization_path_ready);
     [[nodiscard]] CompanionBleRuntimeError host_synced(std::uint64_t now_ms);
     [[nodiscard]] CompanionBleRuntimeError connection_opened(
         std::uint16_t connection_handle,
@@ -104,6 +104,11 @@ public:
         std::uint64_t now_ms);
     [[nodiscard]] CompanionBleRuntimeError service_watchdog(
         std::uint64_t now_ms);
+    [[nodiscard]] CompanionBleRuntimeError renew_connection_window(
+        std::uint16_t connection_handle,
+        std::uint64_t now_ms);
+    [[nodiscard]] CompanionBleRuntimeError authorize_connection(
+        std::uint16_t connection_handle);
     [[nodiscard]] CompanionBleRuntimeError host_reset();
     [[nodiscard]] CompanionBleRuntimeError callback_overflow();
     [[nodiscard]] CompanionBleRuntimeError connection_termination_failed(

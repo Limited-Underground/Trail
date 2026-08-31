@@ -23,6 +23,8 @@ def normalized(path: Path) -> str:
 def test_exact_file_set_and_overlays() -> None:
     expected = {
         "README.md",
+        "historical_common_sdkconfig_ot120.defaults",
+        "historical_common_sdkconfig_ot130.defaults",
         "reproducible.defaults",
         "espressif_libsodium/CMakeLists.txt",
         "espressif_libsodium/sdkconfig.overlay",
@@ -50,9 +52,18 @@ def test_exact_file_set_and_overlays() -> None:
     assert sha(HARNESS / "reproducible.defaults") == (
         "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6"
     )
-    target_partition = normalized(ROOT / "firmware/targets/heltec_v4_bench/partitions.csv")
+    assert sha(HARNESS / "historical_common_sdkconfig_ot120.defaults") == (
+        "84d54e5d730ba28ceba0c97831a477303db128d63ede7575bec52013770d70c0"
+    )
+    assert sha(HARNESS / "historical_common_sdkconfig_ot130.defaults") == (
+        "c1fd94c8979e5a7bb9b19753beb633da99f6edf86dc932c93d281ff2b99aa8b9"
+    )
+    expected_partition_sha256 = (
+        "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+    )
     for candidate in ("espressif_libsodium", "esp_idf_mbedtls_psa", "monocypher"):
-        assert normalized(HARNESS / candidate / "partitions.csv") == target_partition
+        partition = normalized(HARNESS / candidate / "partitions.csv").encode("utf-8")
+        assert hashlib.sha256(partition).hexdigest() == expected_partition_sha256
 
 
 def test_exact_operation_anchor_partitions() -> None:
@@ -93,6 +104,12 @@ def test_orchestrator_is_fail_closed_and_host_only() -> None:
     assert "$env:IDF_COMPONENT_MANAGER = '0'" in source
     assert "'--no-ccache'" in source
     assert "$commonDefaults;$reproducibleDefaults" in source
+    assert "historical_common_sdkconfig_ot120.defaults" in source
+    assert "84d54e5d730ba28ceba0c97831a477303db128d63ede7575bec52013770d70c0" in source
+    assert "firmware\\targets\\heltec_v4_bench\\sdkconfig.defaults" not in source
+    assert "$partitionSource = Join-Path $harnessRoot 'espressif_libsodium\\partitions.csv'" in source
+    assert "firmware\\targets\\heltec_v4_bench\\partitions.csv" not in source
+    assert "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621" in source
     assert "'PROJECT_VER=ot107-config-v0'" in source
     assert "foreach ($run in @('A', 'B'))" in source
     assert "Sort-Object { [string]$_['logical_path'] }" in source

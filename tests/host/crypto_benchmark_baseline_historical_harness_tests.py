@@ -27,7 +27,8 @@ def test_exact_record_frozen_files_and_test_discovery() -> None:
     value = harness.load_record()
     harness.validate_record(value)
     harness.verify_frozen_files(value)
-    module = harness._load_original_tests()
+    with harness.historical_checkout() as checkout:
+        module = harness._load_original_tests(Path(checkout))
     discovered = {
         name for name, candidate in vars(module).items()
         if name.startswith("test_") and callable(candidate)

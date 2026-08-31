@@ -219,7 +219,7 @@ extern "C" void app_main() {
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
     if (opentrail::target::heltec_v4_bench::
             start_companion_nimble_runtime(
-                started_at_ms, g_pairing_window) !=
+                started_at_ms, g_pairing_window, g_pairing_random) !=
         opentrail::companion::CompanionBleRuntimeError::none) {
         contain_runtime_failure();
     }

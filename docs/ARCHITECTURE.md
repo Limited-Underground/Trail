@@ -1660,6 +1660,23 @@ remain gates.
 
 ## Architecture gates before product firmware
 
+OT-166 installs the device half of initial V1 ownership into the Heltec target.
+An ordinary 32-byte `OTV1/v0` record in a dedicated NVS namespace stores only
+generation and an opaque private reference derived from the authenticated
+Secure Connections LTK. Boot admits exactly empty/empty or one matching
+record/one matching NimBLE bond; all other snapshots require reconciliation
+and keep authorization closed. Initial ownership commits only from absence,
+requires exact readback and a fresh matching inventory, and every later
+controller authorization rechecks the inventory. Protected GATT normal commands
+open only for the exact promoted live connection. Boot and session challenges,
+strict monotonic session admission, and exact active-duplicate handling reject
+replay after release. This ordinary V1 path does not activate the separate
+rollback-protected `OAP0` design and performs no replacement, erasure, repair,
+or orphan cleanup. Calls are externally serialized on the NimBLE host context.
+Physical persistence/reconnect and owner replacement remain separate gates. See
+[Decision 0102](decisions/0102-accept-ot166-heltec-v1-bond-owner-integration.md)
+and [OT-166 evidence](../tests/hardware/OT-166-2026-08-31.md).
+
 OT-165 adds the Android production system-bond admission between exact candidate
 selection and the existing GATT path. One attempt is bound to the opaque
 endpoint token and a monotonic facade generation. Already bonded candidates may

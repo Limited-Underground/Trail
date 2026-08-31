@@ -11,7 +11,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 HISTORICAL_COMMON_CONFIG_SHA256 = "a747ed37ec7be4dd1199f52af43395ff58ac92f897b2c35ac73b0a0ed6cf6ecb"
-CURRENT_COMMON_CONFIG_SHA256 = "9186abaa6bd99429bb6d7d32f52f772b02dc122145438dc1547d2b94b948fe4a"
 CRYPTO = ROOT / "tests/benchmarks/crypto"
 PREPARATION = CRYPTO / "OT-123-OT005-MONOCYPHER-COMPARISON-PREPARATION-V0.json"
 CONTRACT = CRYPTO / "OT-123-OT005-MATCHED-RESOURCE-ACCOUNTING-CONTRACT-V0.json"
@@ -169,10 +168,6 @@ class Ot123MonocypherPreparationTests(unittest.TestCase):
             bindings["common_sdkconfig_defaults_sha256"],
             HISTORICAL_COMMON_CONFIG_SHA256,
         )
-        self.assertEqual(
-            sha(ROOT / "firmware/targets/heltec_v4_bench/sdkconfig.defaults"),
-            CURRENT_COMMON_CONFIG_SHA256,
-        )
         runner = (ROOT / "tools/ot123_monocypher_runner.py").read_text(encoding="utf-8")
         self.assertIn('BENCHMARK_SHA256 = "5e075fb791a658546fca714fc60de095ecbf14f7c443f414d3ac8642965a3b64"', runner)
         self.assertIn("BENCHMARK_BYTES = 186_640", runner)
@@ -216,7 +211,6 @@ class Ot123MonocypherPreparationTests(unittest.TestCase):
         for item in self.recipe["inputs"]:
             if item["path"] == "firmware/targets/heltec_v4_bench/sdkconfig.defaults":
                 self.assertEqual(item["raw_sha256"], HISTORICAL_COMMON_CONFIG_SHA256)
-                self.assertEqual(sha(ROOT / item["path"]), CURRENT_COMMON_CONFIG_SHA256)
             else:
                 self.assertEqual(sha(ROOT / item["path"]), item["raw_sha256"])
         public_text = RECIPE.read_text(encoding="utf-8")

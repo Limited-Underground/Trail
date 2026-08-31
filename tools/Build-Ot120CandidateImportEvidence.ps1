@@ -74,15 +74,22 @@ if ($contract.schema -ne 'OTCIBC1' -or $contract.version -ne 1 -or
 }
 
 $harnessRoot = Join-Path $projectRoot 'tests\benchmarks\crypto\esp_idf\ot120_candidate_builds'
-$commonDefaults = Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\sdkconfig.defaults'
+$commonDefaults = Join-Path $harnessRoot 'historical_common_sdkconfig_ot120.defaults'
 $reproducibleDefaults = Join-Path $harnessRoot 'reproducible.defaults'
-$partitionSource = Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\partitions.csv'
+$partitionSource = Join-Path $harnessRoot 'espressif_libsodium\partitions.csv'
 Assert-ExactFile $commonDefaults 'accepted common sdkconfig defaults'
+if ((Get-Sha256 $commonDefaults) -ne '84d54e5d730ba28ceba0c97831a477303db128d63ede7575bec52013770d70c0') {
+    throw 'Frozen OT-120 common sdkconfig defaults digest mismatch.'
+}
 Assert-ExactFile $reproducibleDefaults 'accepted reproducible sdkconfig defaults'
 if ((Get-Sha256 $reproducibleDefaults) -ne '995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6') {
     throw 'Accepted reproducible sdkconfig defaults digest mismatch.'
 }
-Assert-ExactFile $partitionSource 'accepted partition table'
+Assert-ExactFile $partitionSource 'frozen OT-120 benchmark partition table'
+if ((Get-Sha256 $partitionSource) -ne
+        '973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621') {
+    throw 'Frozen OT-120 benchmark partition-table digest mismatch.'
+}
 
 $candidateSpecs = @(
     [ordered]@{
@@ -161,7 +168,7 @@ foreach ($candidate in $candidateSpecs) {
     Assert-ExactFile (Join-Path $candidate.project 'partitions.csv') "$($candidate.id) partition table"
     if ((Get-NormalizedLfText (Join-Path $candidate.project 'partitions.csv')) -cne
         (Get-NormalizedLfText $partitionSource)) {
-        throw "$($candidate.id) partition table differs from the accepted target table."
+        throw "$($candidate.id) partition table differs from the frozen OT-120 table."
     }
     if ($candidate.overlay) {
         Assert-ExactFile $candidate.overlay "$($candidate.id) sdkconfig overlay"

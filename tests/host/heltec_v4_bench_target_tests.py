@@ -22,6 +22,10 @@ SOURCE = TARGET / "main" / "app_main.cpp"
 SELF_CHECK = TARGET / "main" / "companion_boot_self_check.cpp"
 NIMBLE_GATT = TARGET / "main" / "companion_nimble_gatt.cpp"
 NIMBLE_RUNTIME = TARGET / "main" / "companion_nimble_runtime.cpp"
+V1_HELTEC_ADAPTER_HEADER = (
+    TARGET / "main" / "companion_v1_heltec_adapters.hpp")
+V1_HELTEC_ADAPTER = (
+    TARGET / "main" / "companion_v1_heltec_adapters.cpp")
 ANDROID_TERMINATION_POLICY = (
     ROOT / "android" / "app" / "src" / "debug" / "kotlin" / "io" /
     "github" / "nbjelanovic" / "otclient" /
@@ -130,6 +134,8 @@ def test_contract() -> None:
         "main/companion_nimble_gatt.hpp",
         "main/companion_nimble_runtime.cpp",
         "main/companion_nimble_runtime.hpp",
+        "main/companion_v1_heltec_adapters.cpp",
+        "main/companion_v1_heltec_adapters.hpp",
         "partitions.csv",
         "main/heltec_startup_display.cpp",
         "main/heltec_startup_display.hpp",
@@ -231,6 +237,8 @@ def test_contract() -> None:
         "ota_slot_count": 2,
         "reserved_state_partition": "ot_state",
         "reserved_state_bytes": 1048576,
+        "ordinary_v1_nvs_partition": "nvs",
+        "ordinary_v1_nvs_bytes": 12288,
         "ends_at_flash_boundary": True,
         "updater_authority": False,
         "ota_authority": False,
@@ -279,6 +287,10 @@ def test_contract() -> None:
         "protected_root_configuration_security_adapter_build_compiled",
         "nimble_runtime_owner_build_linked",
         "nimble_runtime_startup_coded",
+        "nimble_bond_persistence_build_linked",
+        "companion_v1_owner_bridge_build_linked",
+        "companion_v1_owner_target_adapters_build_linked",
+        "companion_v1_owner_runtime_injected",
         "companion_public_link_info_build_linked",
         "public_link_characteristic_runtime_coded",
         "bounded_public_link_window_host_tested",
@@ -372,6 +384,13 @@ def test_contract() -> None:
             capabilities["nimble_runtime_startup_coded"] is True and
             capabilities["private_service_advertising_coded"] is True,
             "bounded NimBLE runtime code must be explicitly admitted")
+    require(capabilities["nimble_bond_persistence_build_linked"] is True and
+            capabilities["companion_v1_owner_bridge_build_linked"] is True and
+            capabilities[
+                "companion_v1_owner_target_adapters_build_linked"] is True and
+            capabilities["companion_v1_owner_runtime_injected"] is True and
+            capabilities["companion_v1_owner_physically_observed"] is False,
+            "OT-166 V1 owner path must be build/runtime admitted without physical proof")
     require(capabilities["companion_public_link_info_build_linked"] is True and
             capabilities["public_link_characteristic_runtime_coded"] is True and
             capabilities["bounded_public_link_window_host_tested"] is True and
@@ -682,15 +701,17 @@ def test_physical_flash_plan() -> None:
 
 def test_recovery_partition_layout() -> None:
     lines = PARTITIONS.read_text(encoding="utf-8").splitlines()
-    require(lines[:4] == [
-        "# OpenTrail Heltec V4 bench recovery layout OTHP0/v0.",
-        "# Build-only layout: no updater, OTA, storage, or recovery authority is implemented.",
+    require(lines[:5] == [
+        "# OpenTrail Heltec V4 bench recovery layout OTHP0/v1.",
+        "# Ordinary V1 NVS stores the NimBLE bond and opaque owner record. It is not the",
+        "# historical encrypted OAP0 rollback-floor authority and grants no replacement.",
         "# The application-owned 0x40 partition type avoids ESP-IDF-reserved data subtypes.",
         "# Name, Type, SubType, Offset, Size, Flags",
-    ], "partition layout must retain its exact version and denied-authority boundary")
+    ], "partition layout must retain its exact V1 ordinary-storage boundary")
     rows = list(csv.reader(line for line in lines if line and not line.startswith("#")))
     require(rows == [
         ["otadata", "data", "ota", "0x9000", "0x2000", ""],
+        ["nvs", "data", "nvs", "0xd000", "0x3000", ""],
         ["factory", "app", "factory", "0x10000", "0x4f0000", ""],
         ["ota_0", "app", "ota_0", "0x500000", "0x500000", ""],
         ["ota_1", "app", "ota_1", "0xa00000", "0x500000", ""],
@@ -779,10 +800,11 @@ def test_protected_storage_candidate_plan() -> None:
     defaults = DEFAULTS.read_text(encoding="utf-8")
     contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
     require("ot_auth" not in active_partitions and
+            "nvs,data,nvs,0xd000,0x3000," in active_partitions and
             "CONFIG_NVS_ENCRYPTION=y" not in defaults and
             contract["capabilities"]["storage"] is False and
             contract["partition_layout"]["storage_authority"] is False,
-            "active target storage and authority must remain unchanged")
+            "ordinary V1 state must remain distinct from the dormant protected OAP0 plan")
 
 
 def test_authorization_nvs_backend_surface() -> None:
@@ -900,6 +922,103 @@ def test_authorization_nvs_backend_surface() -> None:
             "inactive NVS context must not enter target runtime composition")
 
 
+def test_v1_heltec_adapters_surface() -> None:
+    header = V1_HELTEC_ADAPTER_HEADER.read_text(encoding="utf-8")
+    source = V1_HELTEC_ADAPTER.read_text(encoding="utf-8")
+    combined = header + "\n" + source
+
+    for required in (
+        'kCompanionV1OwnerNvsNamespace[] = "ot_v1_owner"',
+        'kCompanionV1OwnerNvsKey[] = "owner_v0"',
+        "public companion::CompanionV1OwnerStoragePort",
+        "CompanionV1OwnerStorageSnapshot load() override",
+        "commit_absent_and_readback(",
+        "public companion::CompanionV1BondInventoryPort",
+        "public companion::CompanionGattTrustedBindingAuthority",
+        "CompanionV1BondInventorySnapshot snapshot()",
+        "CompanionGattTrustedBindingResult resolve(",
+    ):
+        require(required in header,
+                f"missing V1 Heltec adapter surface: {required}")
+
+    for required in (
+        "nvs_open(kCompanionV1OwnerNvsNamespace, NVS_READWRITE",
+        "nvs_get_blob(handle_, kCompanionV1OwnerNvsKey",
+        "nvs_set_blob(handle_, kCompanionV1OwnerNvsKey",
+        "nvs_commit(handle_)",
+        "committed.record != record",
+        "ble_store_util_bonded_peers",
+        "ble_store_read_our_sec",
+        "kMaximumBondReferences = 2",
+        'kBondReferenceDomain[] = "OpenTrail/V1/bond-ref"',
+        "psa_crypto_init()",
+        "psa_hash_compute(PSA_ALG_SHA_256",
+        "hash_error != PSA_SUCCESS || digest_size != digest.size()",
+        "exact_authenticated_sc_ltk",
+        "ble_gap_conn_find",
+        "secure_clear(&security_record, sizeof(security_record))",
+        "secure_clear(derivation.data(), derivation.size())",
+        "secure_clear(digest.data(), digest.size())",
+        "ScopedOperation operation(operation_active_)",
+    ):
+        require(required in source,
+                f"missing V1 Heltec adapter gate: {required}")
+
+    resolve = source[source.index(
+        "HeltecV4CompanionV1NimbleBondAdapter::resolve("):]
+    for required in (
+        "next_session_challenge_{1}",
+        "if (next_session_challenge_ == 0)",
+        "const std::uint64_t session_challenge = next_session_challenge_++",
+        "claim.session_challenge = session_challenge",
+    ):
+        require(required in header + "\n" + resolve,
+                f"missing boot-local monotonic session challenge gate: {required}")
+    require(resolve.index("return cached_result_") <
+            resolve.index("if (next_session_challenge_ == 0)") <
+            resolve.index("next_session_challenge_++") <
+            resolve.index("cached_ = true"),
+            "same tuple must return cached challenge and only a successful new tuple may advance it")
+    require("sizeof(std::uint64_t) + sizeof(std::uint32_t)" in resolve and
+            "force_nonzero(session_challenge)" not in resolve,
+            "session challenge must come only from the monotonic counter, not random bytes")
+
+    mutation_tail = source[
+        source.index("if (nvs_set_blob("):
+        source.index("HeltecV4CompanionV1NimbleBondAdapter::")
+    ]
+    require(mutation_tail.index("nvs_set_blob(") <
+            mutation_tail.index("nvs_commit(") <
+            mutation_tail.index("committed.record != record"),
+            "V1 owner commit must set, commit, then require byte-exact readback")
+    require(mutation_tail.count(
+                "CompanionV1OwnerStorageError::uncertain") >= 3 and
+            "CompanionV1OwnerStorageError::failed" not in mutation_tail and
+            "CompanionV1OwnerStorageError::not_ready" not in mutation_tail and
+            "CompanionV1OwnerStorageError::conflict" not in mutation_tail,
+            "every failure after V1 owner mutation begins must remain uncertain")
+
+    require(header.count("OAP0") == 1 and "OAP0" not in source and
+            "CompanionAuthorizationProtectedStore" not in combined and
+            "nvs_open_from_partition" not in combined and
+            "ot_auth" not in combined,
+            "ordinary V1 owner storage must have no protected OAP0 API or partition path")
+    for forbidden in (
+        "nvs_erase", "nvs_flash_", "ESP_LOG", "printf(", "puts(",
+        "ble_addr_t", "ble_store_value_sec", "peer_id_addr", "ltk",
+    ):
+        require(forbidden not in header,
+                f"V1 adapter header exposes forbidden private surface: {forbidden}")
+    for forbidden in ("nvs_erase", "ESP_LOG", "printf(", "puts("):
+        require(forbidden not in source,
+                f"V1 adapter gained erase or logging surface: {forbidden}")
+
+    cmake = MAIN_CMAKE.read_text(encoding="utf-8")
+    require('"companion_v1_heltec_adapters.cpp"' in cmake and
+            "companion/src/companion_v1_bond_owner.cpp" in cmake,
+            "target must link both the V1 Heltec adapters and shared bond owner")
+
+
 def test_protected_root_key_roster_adapter_surface() -> None:
     header = PROTECTED_ROOT_KEY_ROSTER_HEADER.read_text(encoding="utf-8")
     source = PROTECTED_ROOT_KEY_ROSTER.read_text(encoding="utf-8")
@@ -954,8 +1073,8 @@ def test_protected_root_key_roster_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 29,
-            "non-injection gate must cover the exact 29-source target build")
+    require(len(linked_source_tokens) == 31,
+            "non-injection gate must cover the exact 31-source target build")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -967,7 +1086,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 28,
+    require(len(other_linked_sources) == 30,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1029,8 +1148,8 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 29,
-            "configuration/security non-injection gate must cover 26 sources")
+    require(len(linked_source_tokens) == 31,
+            "configuration/security non-injection gate must cover 31 sources")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_configuration_security_adapter.cpp":
@@ -1042,7 +1161,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 28,
+    require(len(other_linked_sources) == 30,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1410,7 +1529,8 @@ def test_application_surface() -> None:
                 f"missing bounded NimBLE runtime gate: {required}")
     sdkconfig_defaults = (TARGET / "sdkconfig.defaults").read_text(
         encoding="utf-8")
-    require("CONFIG_BT_NIMBLE_MAX_BONDS=1" in sdkconfig_defaults and
+    require("CONFIG_BT_NIMBLE_MAX_BONDS=2" in sdkconfig_defaults and
+            "policy still admits exactly one" in sdkconfig_defaults and
             "CONFIG_LOG_MAXIMUM_LEVEL=3" in sdkconfig_defaults,
             "pairing build must retain one transient bond and compile out DEBUG passkey logs")
     require("fields.name" not in nimble_runtime and
@@ -1635,8 +1755,10 @@ def test_application_surface() -> None:
         "companion/src/companion_authorization.cpp",
         "companion/src/companion_authorization_persistence.cpp",
         "companion/src/companion_authorization_protected_kv_media.cpp",
+        "companion/src/companion_v1_bond_owner.cpp",
         "companion_authorization_nvs_backend.cpp",
         "companion_authorization_nvs_context.cpp",
+        "companion_v1_heltec_adapters.cpp",
         "companion_protected_root_key_roster_adapter.cpp",
         "companion_protected_root_configuration_security_adapter.cpp",
         "companion/src/companion_ble_runtime_owner.cpp",
@@ -1657,8 +1779,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 29,
-            "target source set must remain thirteen target, twelve companion, and one UI source")
+    require(cmake.count('.cpp"') == 31,
+            "target source set must remain sixteen target, fourteen companion, and one UI source")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
@@ -1749,6 +1871,7 @@ def test_build_only_tooling() -> None:
         "CONFIG_BT_NIMBLE_LL_CFG_FEAT_LE_ENCRYPTION=y",
         "CONFIG_BT_NIMBLE_SM_LVL=3",
         "CONFIG_BT_NIMBLE_SM_SC_ONLY=1",
+        "CONFIG_BT_NIMBLE_NVS_PERSIST=y",
     )
     forbidden_nimble = (
         "CONFIG_BT_NIMBLE_ROLE_CENTRAL=y",
@@ -1757,7 +1880,6 @@ def test_build_only_tooling() -> None:
         "CONFIG_BT_NIMBLE_GATT_CLIENT=y",
         "CONFIG_BT_NIMBLE_SM_LEGACY=y",
         "CONFIG_BT_NIMBLE_SM_SC_DEBUG_KEYS=y",
-        "CONFIG_BT_NIMBLE_NVS_PERSIST=y",
     )
     for option in required_nimble:
         require(option in defaults,
@@ -1884,7 +2006,10 @@ def test_build_only_tooling() -> None:
             "build helper must reject or regenerate a stale generated profile")
     require("observed_flash_size_bytes = 16777216" in script and
             "observed_psram_size_bytes = 2097152" in script and
-            "partition_layout = 'OTHP0/v0'" in script,
+            "partition_layout = 'OTHP0/v1'" in script and
+            "ordinary_v1_nvs_bytes = 12288" in script and
+            "nimble_bond_persistence = 'BUILD-LINKED'" in script and
+            "companion_v1_owner = 'BUILD-LINKED-ORDINARY-NVS-NOT-OAP0'" in script,
             "build evidence must record the exact memory/layout profile")
     require("image_header_flash_mode = 'DIO-bootstrap'" in script and
             "image_header_flash_size = '16MB'" in script and
@@ -2002,8 +2127,8 @@ def test_build_only_tooling() -> None:
             "build evidence must hash the exact admitted startup logo source")
     require("nimble_controller = 'CODED-BUILD-LINKED-NOT-RUN'" in script and
             "advertising = 'CODED-PRIVATE-SERVICE-ONLY-NOT-RUN'" in script and
-            "application_authorization = 'NOT-INJECTED'" in script,
-            "build evidence must preserve the closed runtime boundary")
+            "application_authorization = 'BUILD-LINKED-V1-OWNER-BRIDGE-NOT-RUN'" in script,
+            "build evidence must distinguish linked V1 authorization from runtime proof")
     require("companion_protocol.cpp.obj" in script and
             "companion_semantics.cpp.obj" in script and
             "companion_request_coordinator.cpp.obj" in script and
@@ -2029,10 +2154,10 @@ def test_build_only_tooling() -> None:
     require("companion_protected_root_configuration_security_adapter.cpp.obj" in script,
             "build helper must verify the inactive configuration/security object")
     require("protected_nvs = 'NOT-INITIALIZED-NOT-VERIFIED'" in script and
-            "private_bond_store = 'NOT-IMPLEMENTED'" in script and
+            "private_bond_store = 'NIMBLE-NVS-BUILD-LINKED-NOT-RUN'" in script and
             "binding_prf_key = 'NOT-PROVISIONED-NOT-VERIFIED'" in script and
             "rollback_floor = 'NOT-IMPLEMENTED'" in script,
-            "build evidence must preserve exact security-provisioning gaps")
+            "build evidence must distinguish ordinary V1 bonding from protected OAP0 gaps")
     require("heltec_startup_display.cpp.obj" in script and
             "heltec_v4_oled.cpp.obj" in script,
             "build helper must verify OLED owner and adapter objects in the link map")
@@ -2209,6 +2334,7 @@ def main() -> int:
              test_physical_flash_plan, test_recovery_partition_layout,
              test_protected_storage_candidate_plan,
              test_authorization_nvs_backend_surface,
+             test_v1_heltec_adapters_surface,
              test_protected_root_key_roster_adapter_surface,
              test_protected_root_configuration_security_adapter_surface,
              test_display_surface,

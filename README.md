@@ -23,10 +23,10 @@ requirements for basic operation.
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and two experimentally flashed Heltec targets |
-| Latest increment | OT-165 host-validates Android's initial system-bond coordinator for one exact selected device. Android owns passkey entry; a fresh success requires this attempt's `BOND_BONDING` followed by `BOND_BONDED`, and failure cannot retry automatically |
-| Proven so far | Both anonymous Heltec test units run the identical OT-164 experimental image and physically accept its bounded local six-digit pairing window. OT-165 separately proves the Android host/build admission path without exposing a PIN |
+| Latest increment | OT-166 build-links the Heltec V4 durable one-owner BLE bridge: ordinary NVS owner record, persistent NimBLE Secure Connections bonds, exact boot reconciliation, protected-GATT promotion, and replay/inventory-drift rejection |
+| Proven so far | Both anonymous Heltec test units run the identical OT-164 experimental image and physically accept its bounded local six-digit pairing window. OT-165 proves Android's OS-owned initial bond path, and OT-166 proves the matching device firmware path by host tests and a complete ESP-IDF target build |
 | Planned V1 | Two supported Heltec-and-Android pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE |
-| Not yet proven | Durable bond ownership and replacement, protected GATT, authenticated on-device LoRa, full two-phone operation, supported hardware, production firmware, power endurance, field range, or regulatory acceptance |
+| Not yet proven | Physical durable bond/reconnect behavior, owner replacement and old-bond removal, physical protected GATT, authenticated on-device LoRa, full two-phone operation, supported hardware, production firmware, power endurance, field range, or regulatory acceptance |
 
 Android remains 60% complete. V1 remains exact 43.75% and is displayed as 44%.
 Trail is not production-ready, and no hardware is currently listed as

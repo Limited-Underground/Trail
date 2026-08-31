@@ -69,6 +69,7 @@ class Fixture:
         return (
             mock.patch.object(contract, "ROOT", self.root),
             mock.patch.object(contract, "SOURCE_BINDINGS", self.source),
+            mock.patch.object(contract, "HISTORICAL_SOURCE_STORAGE", {}),
             mock.patch.object(contract, "RUNTIME_BINDINGS", self.runtime),
             mock.patch.object(contract, "LINEAGE_BINDINGS", self.lineage),
             mock.patch.object(contract, "COORDINATOR_RELATIVE", self.coordinator_relative),
@@ -87,10 +88,26 @@ class ContractTests(unittest.TestCase):
             stack(patcher)
 
     def test_01_all_current_fixed_repository_bindings_match(self) -> None:
+        historical_config = (
+            "firmware/targets/heltec_v4_bench/sdkconfig.defaults",
+            "9186abaa6bd99429bb6d7d32f52f772b02dc122145438dc1547d2b94b948fe4a",
+        )
+        self.assertIn(historical_config, contract.SOURCE_BINDINGS)
+        storage_path, storage_sha256 = contract.HISTORICAL_SOURCE_STORAGE[
+            historical_config[0]
+        ]
+        self.assertEqual(
+            sha256((ROOT / storage_path).read_bytes()),
+            storage_sha256,
+        )
         sources = contract._ordered_bindings(contract.SOURCE_BINDINGS)
         runtime = contract._named_bindings(contract.RUNTIME_BINDINGS)
         lineage = contract._named_bindings(contract.LINEAGE_BINDINGS)
         self.assertEqual(len(sources), 15)
+        self.assertIn(
+            {"path": historical_config[0], "raw_sha256": historical_config[1]},
+            sources,
+        )
         self.assertEqual(
             set(runtime), {"protocol_transport", "frame_parser", "frame_schema"}
         )

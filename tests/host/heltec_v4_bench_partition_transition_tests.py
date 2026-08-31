@@ -100,10 +100,28 @@ def test_exact_layout_transition() -> None:
             candidate["flash_size_bytes"] == 16777216,
             "candidate layout identity changed")
 
-    require(sha256(ACTIVE_TABLE) == source["sha256"] and
-            ACTIVE_TABLE.stat().st_size == source["byte_length"] and
-            table_rows(ACTIVE_TABLE) == source["rows"],
-            "active OTHP0 table no longer matches the transition contract")
+    active_rows = table_rows(ACTIVE_TABLE)
+    require(sha256(ACTIVE_TABLE) ==
+            "9C27FD7E647ACE6EB32524281BFAA52CD370419FEC2457F1ACDEBC6B0CBFA52A" and
+            ACTIVE_TABLE.stat().st_size == 557,
+            "active OTHP0/v1 table identity changed")
+    require(active_rows == [
+        {"name": "otadata", "type": "data", "subtype": "ota",
+         "offset": 36864, "size_bytes": 8192, "flags": []},
+        {"name": "nvs", "type": "data", "subtype": "nvs",
+         "offset": 53248, "size_bytes": 12288, "flags": []},
+        {"name": "factory", "type": "app", "subtype": "factory",
+         "offset": 65536, "size_bytes": 5177344, "flags": []},
+        {"name": "ota_0", "type": "app", "subtype": "ota_0",
+         "offset": 5242880, "size_bytes": 5242880, "flags": []},
+        {"name": "ota_1", "type": "app", "subtype": "ota_1",
+         "offset": 10485760, "size_bytes": 5242880, "flags": []},
+        {"name": "ot_state", "type": "0x40", "subtype": "0x00",
+         "offset": 15728640, "size_bytes": 1048576, "flags": []},
+    ], "active OTHP0/v1 rows changed")
+    require([row for row in active_rows if row["name"] != "nvs"] ==
+            source["rows"],
+            "OTHP0/v1 must differ from the historical source only by ordinary NVS")
     require(sha256(CANDIDATE_TABLE) == candidate["sha256"] and
             CANDIDATE_TABLE.stat().st_size == candidate["byte_length"] and
             table_rows(CANDIDATE_TABLE) == candidate["rows"],
@@ -111,6 +129,11 @@ def test_exact_layout_transition() -> None:
 
     require(source["rows"][:-1] == candidate["rows"][:4],
             "transition must preserve every partition before the final 1 MiB")
+    require(active_rows[:4] != candidate["rows"][:4] and
+            plan["promotion_admission"]["current_result"] == "DENY" and
+            plan["promotion_admission"]["partition_table_promotion_authorized"]
+            is False,
+            "historical OTPS0/v0 must not admit transition from active OTHP0/v1")
     source_tail = source["rows"][-1]
     candidate_tail = candidate["rows"][4:]
     require(source_tail == {
