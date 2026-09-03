@@ -29,6 +29,7 @@ OpenTrail is in architecture and proof-of-concept planning. Capabilities in the 
 8. Record hardware model, radio region/frequency plan, firmware version, test setup, and observed result for hardware tests.
 9. Keep LoRa payloads compact. Do not transport map data or high-rate vehicle telemetry over LoRa.
 10. Do not use public OpenStreetMap tile servers for bulk/offline downloads. Verify provider, license, attribution, and redistribution terms before selecting a map pipeline.
+11. Before implementing or materially changing any firmware target, read and apply `docs/firmware-porting-lessons.md`. Record the applicable preflight results and a reason for each skipped item; do not begin hardware execution while an applicable checklist gate is unresolved.
 
 ## Validation expectations
 
@@ -52,7 +53,7 @@ Update the backlog status and the project status/open questions whenever a decis
 
 ## Completion and publication gate
 
-- Follow the workspace-wide completion and publication gate in `D:\ESP32\AGENTS.md`.
+- Follow the workspace-wide guidance in `C:\lu\AGENTS.md`; current state and publication authority are recorded under `C:\lu\.tracker`.
 - Once an OpenTrail task is implemented and validated, update every affected canonical record and dated public progress entry, commit and push the relevant public-ready OpenTrail changes, and verify the remote commit before calling the task complete.
 - If accepted evidence changes public project status or V1 progress, synchronize and validate the Limited Underground website projection, commit and push the website update, deploy it, and verify the live OpenTrail status before calling the task complete.
 - If no public website status changed, say so explicitly in the completion report. If any required push, synchronization, deployment, or verification is blocked, report `implementation complete; publication pending` and identify the remaining step.

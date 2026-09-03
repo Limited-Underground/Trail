@@ -17,6 +17,8 @@ dist/
 artifacts/
 bin/
 obj/
+firmware/targets/*/sdkconfig
+firmware/targets/*/sdkconfig.old
 
 # Local configuration and secrets
 .env
