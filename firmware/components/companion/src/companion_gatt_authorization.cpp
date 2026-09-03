@@ -378,7 +378,7 @@ CompanionGattAuthorizationLifecycle::update_connection_evidence(
                      bound_evidence_.controller_claim) ||
          !evidence.controller_claim.link_encrypted ||
          !evidence.controller_claim.authenticated_bond ||
-         evidence.att_mtu < kCompanionAuthorizationMinimumAttMtu)) {
+         evidence.att_mtu < bound_evidence_.att_mtu)) {
         const auto contained = contain(true);
         return contained == CompanionGattAuthorizationError::none
                    ? CompanionGattAuthorizationError::insecure_link
@@ -433,7 +433,7 @@ CompanionGattAuthorizationLifecycle::open_provisional_session(
     if (device_generated_session_nonce == 0) {
         return CompanionGattAuthorizationError::session_nonce_invalid;
     }
-    if (device_generated_session_nonce <= last_session_nonce_) {
+    if (device_generated_session_nonce == last_session_nonce_) {
         return CompanionGattAuthorizationError::session_nonce_reused;
     }
     session_nonce_ = device_generated_session_nonce;

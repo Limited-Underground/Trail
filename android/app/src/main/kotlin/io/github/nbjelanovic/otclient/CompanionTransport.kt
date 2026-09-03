@@ -288,6 +288,11 @@ internal class FakeCompanionTransport(
                 kind = request.kind,
                 disposition = CompanionActionDisposition.ADMITTED,
             ) to current.copy(revision = nextRevision, positionSharing = CompanionPositionSharingState.STOPPED)
+            CompanionActionKind.FACTORY_RESET -> CompanionActionResult(
+                kind = request.kind,
+                disposition = CompanionActionDisposition.REJECTED,
+                rejectReason = CompanionActionRejectReason.UNSUPPORTED_ACTION,
+            ) to current
         }
     }
 }

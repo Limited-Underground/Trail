@@ -243,10 +243,6 @@ class TrailConnectedDeviceService : Service() {
             assertMainThread()
             attached?.authorize(endpointToken)
         }
-        override fun replaceLostPhone(endpointToken: String) {
-            assertMainThread()
-            attached?.replaceLostPhone(endpointToken)
-        }
         override fun disconnect() {
             assertMainThread()
             attached?.disconnect()
@@ -254,6 +250,22 @@ class TrailConnectedDeviceService : Service() {
         override fun submitAction(request: io.github.nbjelanovic.otprotocol.CompanionActionRequest): Boolean {
             assertMainThread()
             return attached?.submitAction(request) == true
+        }
+        override fun requestFactoryResetConfirmation(): Boolean {
+            assertMainThread()
+            return attached?.requestFactoryResetConfirmation() == true
+        }
+        override fun cancelFactoryResetConfirmation() {
+            assertMainThread()
+            attached?.cancelFactoryResetConfirmation()
+        }
+        override fun confirmFactoryReset(): Boolean {
+            assertMainThread()
+            return attached?.confirmFactoryReset() == true
+        }
+        override fun retryFactoryResetVerification(): Boolean {
+            assertMainThread()
+            return attached?.retryFactoryResetVerification() == true
         }
 
         private fun unavailableState() = TrailAppUiState.BluetoothDevice(

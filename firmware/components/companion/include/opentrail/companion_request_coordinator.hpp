@@ -19,6 +19,7 @@ enum class CompanionAuthorityError : std::uint8_t {
     none = 0,
     not_ready,
     failed,
+    outcome_unknown,
 };
 
 struct CompanionSnapshotAuthorityResult {
@@ -63,7 +64,9 @@ public:
     [[nodiscard]] virtual CompanionActionAuthorityResult prepare_action(
         const CompanionActionRequest& request) = 0;
     // The adapter may mutate state only when returning none. not_ready or
-    // failed guarantees that no action was applied or queued. A rejected
+    // failed guarantees that no action was applied or queued. outcome_unknown
+    // means a durable commit may have begun and the adapter has entered a
+    // fail-closed recovery state; no response may be emitted. A rejected
     // prepared result must never apply or queue the user action. Commit owns
     // any reservation and must consume/release the token on every outcome.
     [[nodiscard]] virtual CompanionAuthorityError commit_action(

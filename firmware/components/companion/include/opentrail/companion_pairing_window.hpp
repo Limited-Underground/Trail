@@ -8,13 +8,17 @@
 namespace opentrail::companion {
 
 inline constexpr std::uint64_t kCompanionPairingMinimumHoldMs = 3000;
-inline constexpr std::uint64_t kCompanionPairingWindowMs = 30000;
+inline constexpr std::uint64_t kCompanionPairingWindowMs = 60000;
 inline constexpr std::uint32_t kCompanionPairingPasskeyCount = 1000000;
 inline constexpr std::uint8_t kCompanionPairingMaximumRandomDraws = 16;
 
-enum class CompanionPairingPurpose : std::uint8_t { claim = 0, replacement };
 enum class CompanionPairingWindowPhase : std::uint8_t {
-    closed = 0, open, attempt_active, faulted,
+    closed = 0,
+    open,
+    attempt_active,
+    secure_bond_terminal_reserved,
+    candidate_cleanup_required,
+    faulted,
 };
 enum class CompanionPairingWindowError : std::uint8_t {
     none = 0, invalid_argument, reentrant_call, faulted,
@@ -23,6 +27,7 @@ enum class CompanionPairingWindowError : std::uint8_t {
     random_rejection_exhausted, display_failed, display_clear_failed,
     window_closed, window_expired, attempt_already_consumed,
     candidate_mismatch, passkey_injection_failed, terminal_not_pending,
+    candidate_cleanup_required, candidate_cleanup_not_pending,
 };
 enum class CompanionPairingAttemptTerminal : std::uint8_t {
     secure_bond_complete = 0, pairing_failed, cancelled,
@@ -41,7 +46,6 @@ struct CompanionPairingCandidate {
 
 struct CompanionPairingWindowStatus {
     CompanionPairingWindowPhase phase{CompanionPairingWindowPhase::closed};
-    CompanionPairingPurpose purpose{CompanionPairingPurpose::claim};
     bool passkey_displayed{false};
     bool attempt_consumed{false};
 };
@@ -72,10 +76,14 @@ class CompanionPairingWindow {
 public:
     CompanionPairingWindow(security::SecureRandomSource& random,
                            CompanionPairingPinDisplayPort& display);
+    // Current V1 entry point for a freshly unowned boot. Ownership admission
+    // belongs to the target composition; this component accepts only one
+    // nonzero, boot-local event and never infers ownership itself.
+    [[nodiscard]] CompanionPairingWindowError open_unowned_boot_window(
+        std::uint64_t now_ms, std::uint64_t boot_event);
     [[nodiscard]] CompanionPairingWindowError open_window(
         std::uint64_t now_ms, std::uint64_t physical_event,
-        std::uint64_t hold_ms, bool released,
-        CompanionPairingPurpose purpose);
+        std::uint64_t hold_ms, bool released);
     [[nodiscard]] CompanionPairingWindowError service(std::uint64_t now_ms);
     [[nodiscard]] CompanionPairingWindowError handle_passkey_action(
         std::uint64_t now_ms, CompanionPairingCandidate candidate,
@@ -87,9 +95,21 @@ public:
     handle_passkey_action_deferred_cleanup(
         std::uint64_t now_ms, CompanionPairingCandidate candidate,
         CompanionPairingPasskeyPort& passkey_port);
+    // Called synchronously from the BLE encryption-change callback before any
+    // durable owner publication. It validates the exact candidate and strict
+    // window deadline, records that a bond now exists, and performs no OLED
+    // I/O. A successful reservation remains terminally admissible while the
+    // serialized owner later clears the displayed PIN with finish_attempt().
+    [[nodiscard]] CompanionPairingWindowError
+    reserve_secure_bond_terminal(
+        std::uint64_t now_ms, CompanionPairingCandidate candidate);
     [[nodiscard]] CompanionPairingWindowError finish_attempt(
         std::uint64_t now_ms, CompanionPairingCandidate candidate,
         CompanionPairingAttemptTerminal terminal);
+    // Called only after external deletion and fresh absence verification of
+    // the exact cleanup candidate. It performs no bond or storage mutation.
+    [[nodiscard]] CompanionPairingWindowError complete_candidate_cleanup(
+        CompanionPairingCandidate candidate);
     [[nodiscard]] CompanionPairingWindowError disconnect(
         std::uint64_t now_ms, CompanionPairingCandidate candidate);
     [[nodiscard]] CompanionPairingWindowError restart();
@@ -108,6 +128,8 @@ private:
         bool defer_cleanup);
     [[nodiscard]] CompanionPairingWindowError close_window(
         CompanionPairingWindowError result);
+    [[nodiscard]] CompanionPairingWindowError require_candidate_cleanup(
+        CompanionPairingWindowError result);
     [[nodiscard]] CompanionPairingWindowError contain_fault(
         CompanionPairingWindowError result);
     void clear_private_state();
@@ -122,6 +144,8 @@ private:
     std::uint64_t last_physical_event_{0};
     bool clock_initialized_{false};
     bool candidate_bound_{false};
+    bool candidate_bonded_{false};
+    bool unowned_boot_window_consumed_{false};
     bool operation_active_{false};
 };
 

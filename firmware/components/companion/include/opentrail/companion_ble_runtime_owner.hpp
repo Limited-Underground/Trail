@@ -53,6 +53,10 @@ struct CompanionBleRuntimeStatus {
     CompanionBleRuntimeError terminal_error{CompanionBleRuntimeError::none};
     bool authorization_claims_closed{true};
     bool normal_commands_closed{true};
+    // True only after the platform port confirms that its BLE host/controller
+    // containment completed. The contained phase alone is not sufficient:
+    // it also represents a fail-closed terminal state after shutdown failure.
+    bool stack_shutdown_complete{false};
     std::uint16_t connection_handle{kCompanionBleInvalidConnectionHandle};
     std::uint64_t restart_token{0};
     std::uint8_t restart_attempts{0};

@@ -46,6 +46,7 @@ $fastStructuralTests = @(
     @{ File = 'crypto_benchmark_baseline_historical_harness_tests.py'; Failure = 'OTCBL0 historical successor tamper tests failed.' },
     @{ File = 'raw_byte_checkout_policy_tests.py'; Failure = 'Authoritative raw-byte checkout policy tests failed.' },
     @{ File = 'heltec_v4_bench_target_tests.py'; Failure = 'Heltec V4 bench target admission tests failed.' },
+    @{ File = 'heltec_v4_factory_reset_storage_tests.py'; Failure = 'Heltec V4 factory-reset storage admission tests failed.' },
     @{ File = 'heltec_v4_bench_partition_transition_tests.py'; Failure = 'Heltec V4 protected-storage transition admission tests failed.' },
     @{ File = 'ot120_candidate_build_harness_tests.py'; Failure = 'OT-120 candidate build-harness tests failed.' },
     @{ File = 'ot121_candidate_benchmark_harness_tests.py'; Failure = 'OT-121/OT-123 candidate benchmark-harness tests failed.' },
@@ -440,6 +441,34 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\security\test_support\fake_secure_random.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_pairing_window.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_pairing_window_tests.cpp')
+        )
+    },
+    @{
+        Name = 'companion physical factory-reset gesture'
+        Output = Join-Path $buildDirectory 'companion_factory_reset_gesture_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_factory_reset_gesture.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_factory_reset_gesture_tests.cpp')
+        )
+    },
+    @{
+        Name = 'durable device factory-reset executor'
+        Output = Join-Path $buildDirectory 'device_factory_reset_executor_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\device_factory_reset_executor.cpp'),
+            (Join-Path $projectRoot 'tests\host\device_factory_reset_executor_tests.cpp')
+        )
+    },
+    @{
+        Name = 'protected companion factory-reset command authority'
+        Output = Join-Path $buildDirectory 'companion_factory_reset_authority_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\device_factory_reset_executor.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_factory_reset_authority.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_factory_reset_authority_tests.cpp')
         )
     },
     @{

@@ -2,6 +2,15 @@
 
 Status: deterministic host-tested lifecycle-routing contract, 2026-08-11
 
+> **Superseded for whole-device V1 factory reset (2026-09-02):**
+> [Decision 0103](../decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md)
+> and [`DEVICE_FACTORY_RESET_V1`](../platform/DEVICE_FACTORY_RESET_V1.md)
+> supersede the ordinary-reset preservation route below. Whole-device V1
+> factory reset erases user-selected or transferred map packages, selectors,
+> indexes, activation history, protected map history, and recovery metadata.
+> The policy below remains immutable historical host evidence for its exact v0
+> map-domain lifecycle behavior.
+
 This policy closes an ambiguity between ordinary factory reset, authorized map
 selector reseed, loss or replacement of the protected-generation source on the
 same physical device, and replacement of the whole device. These events are

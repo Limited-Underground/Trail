@@ -1,5 +1,6 @@
 package io.github.nbjelanovic.otclient
 
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -46,12 +47,29 @@ class AndroidBlePlatformPolicyTest {
     }
 
     @Test
-    fun concretePlatformPlanIsExactBoundedAndUsesOpaqueTokens() {
-        assertEquals(CompanionGattV0Contract.SERVICE_UUID, AndroidBlePlatformPlan.SERVICE_UUID)
+    fun concretePlatformPlanSeparatesPairableDiscoveryFromGattAndUsesOpaqueTokens() {
+        assertEquals(CompanionGattV0Contract.SERVICE_UUID, AndroidBlePlatformPlan.GATT_SERVICE_UUID)
+        assertEquals(
+            CompanionGattV0Contract.SERVICE_UUID,
+            AndroidBlePlatformPlan.RETURNING_OWNER_ADVERTISING_UUID,
+        )
+        assertEquals(
+            CompanionGattV0Contract.PAIRABLE_ADVERTISING_UUID,
+            AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID,
+        )
+        assertEquals(
+            "5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d0",
+            AndroidBlePlatformPlan.GATT_SERVICE_UUID,
+        )
+        assertEquals(
+            "5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d1",
+            AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID,
+        )
+        assertFalse(AndroidBlePlatformPlan.GATT_SERVICE_UUID == AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID)
         assertFalse(AndroidBlePlatformPlan.AUTO_CONNECT)
         assertEquals(2, AndroidBlePlatformPlan.TRANSPORT_LE)
         assertEquals(2, AndroidBlePlatformPlan.WRITE_TYPE_WITH_RESPONSE)
-        assertEquals(15_000L, AndroidBlePlatformPlan.SCAN_WINDOW_MILLIS)
+        assertEquals(30_000L, AndroidBlePlatformPlan.SCAN_WINDOW_MILLIS)
         assertTrue(AndroidBlePlatformPlan.enableIndicationValue().contentEquals(byteArrayOf(0x02, 0x00)))
         assertTrue(OpaqueEndpointTokenPolicy.accepts("opaque", emptyList()))
         assertFalse(OpaqueEndpointTokenPolicy.accepts("", emptyList()))
@@ -60,6 +78,33 @@ class AndroidBlePlatformPolicyTest {
         val generated = ArrayDeque(listOf("", "duplicate", "x".repeat(MAX_ENDPOINT_TOKEN_CHARS + 1), "opaque-2"))
         assertEquals("opaque-2", OpaqueEndpointTokenPolicy.generate(listOf("duplicate")) { generated.removeFirst() })
         assertEquals(null, OpaqueEndpointTokenPolicy.generate(listOf("same")) { "same" })
+    }
+
+    @Test
+    fun addDeviceAdmissionRequiresD1AndRejectsOwnedD0Only() {
+        val gattD0 = UUID.fromString(AndroidBlePlatformPlan.GATT_SERVICE_UUID)
+        val pairableD1 = UUID.fromString(AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID)
+        val unrelated = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb")
+
+        assertFalse(AndroidPairableAdvertisementPolicy.accepts(emptyList()))
+        assertFalse(AndroidPairableAdvertisementPolicy.accepts(listOf(gattD0)))
+        assertFalse(AndroidPairableAdvertisementPolicy.accepts(listOf(unrelated, gattD0)))
+        assertTrue(AndroidPairableAdvertisementPolicy.accepts(listOf(pairableD1)))
+        assertFalse(AndroidPairableAdvertisementPolicy.accepts(listOf(gattD0, pairableD1)))
+    }
+
+    @Test
+    fun returningOwnerAdmissionRequiresBondedD0AndRejectsEveryD1Result() {
+        val gattD0 = UUID.fromString(AndroidBlePlatformPlan.GATT_SERVICE_UUID)
+        val pairableD1 = UUID.fromString(AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID)
+        val unrelated = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb")
+
+        assertFalse(AndroidReturningOwnerAdvertisementPolicy.accepts(emptyList(), bonded = true))
+        assertFalse(AndroidReturningOwnerAdvertisementPolicy.accepts(listOf(gattD0), bonded = false))
+        assertFalse(AndroidReturningOwnerAdvertisementPolicy.accepts(listOf(unrelated), bonded = true))
+        assertFalse(AndroidReturningOwnerAdvertisementPolicy.accepts(listOf(pairableD1), bonded = true))
+        assertFalse(AndroidReturningOwnerAdvertisementPolicy.accepts(listOf(gattD0, pairableD1), bonded = true))
+        assertTrue(AndroidReturningOwnerAdvertisementPolicy.accepts(listOf(unrelated, gattD0), bonded = true))
     }
 
     @Test

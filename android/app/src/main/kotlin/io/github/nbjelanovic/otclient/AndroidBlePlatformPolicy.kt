@@ -2,16 +2,44 @@ package io.github.nbjelanovic.otclient
 
 import io.github.nbjelanovic.otprotocol.COMPANION_AUTHORIZATION_PROTOCOL_INFO_BYTES
 import io.github.nbjelanovic.otprotocol.COMPANION_PROTOCOL_INFO_BYTES
+import java.util.UUID
 
 internal const val ANDROID_BLE_MINIMUM_API = 31
 
 data object AndroidBlePlatformPlan {
-    const val SERVICE_UUID = CompanionGattV0Contract.SERVICE_UUID
+    const val GATT_SERVICE_UUID = CompanionGattV0Contract.SERVICE_UUID
+    const val RETURNING_OWNER_ADVERTISING_UUID = CompanionGattV0Contract.SERVICE_UUID
+    const val PAIRABLE_ADVERTISING_UUID = CompanionGattV0Contract.PAIRABLE_ADVERTISING_UUID
     const val AUTO_CONNECT = false
     const val TRANSPORT_LE = 2
     const val WRITE_TYPE_WITH_RESPONSE = 2
-    const val SCAN_WINDOW_MILLIS = 15_000L
+    const val SCAN_WINDOW_MILLIS = 30_000L
     fun enableIndicationValue(): ByteArray = byteArrayOf(0x02, 0x00)
+}
+
+/** Add Device admits only the advertising-only D1 marker, never the owned D0 GATT UUID by itself. */
+internal object AndroidPairableAdvertisementPolicy {
+    private val gattServiceUuid = UUID.fromString(AndroidBlePlatformPlan.GATT_SERVICE_UUID)
+    private val pairableAdvertisingUuid = UUID.fromString(AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID)
+
+    fun accepts(advertisedServiceUuids: Collection<UUID>): Boolean =
+        advertisedServiceUuids.any { it == pairableAdvertisingUuid } &&
+            advertisedServiceUuids.none { it == gattServiceUuid }
+}
+
+/**
+ * Returning-owner discovery is intentionally disjoint from Add Device. It accepts only the owned
+ * D0 advertisement from a device that is already in Android's bonded-device inventory, and rejects
+ * any result that also exposes D1 because D1 is reserved for the unowned authorization window.
+ */
+internal object AndroidReturningOwnerAdvertisementPolicy {
+    private val returningOwnerAdvertisingUuid = UUID.fromString(AndroidBlePlatformPlan.RETURNING_OWNER_ADVERTISING_UUID)
+    private val pairableAdvertisingUuid = UUID.fromString(AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID)
+
+    fun accepts(advertisedServiceUuids: Collection<UUID>, bonded: Boolean): Boolean =
+        bonded &&
+            advertisedServiceUuids.any { it == returningOwnerAdvertisingUuid } &&
+            advertisedServiceUuids.none { it == pairableAdvertisingUuid }
 }
 
 object OpaqueEndpointTokenPolicy {

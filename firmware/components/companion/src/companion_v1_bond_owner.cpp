@@ -116,6 +116,41 @@ bool exact_empty_inventory(const CompanionV1BondInventorySnapshot& inventory) {
            !valid_bond_identity(inventory.private_references[1]);
 }
 
+bool exact_single_orphan(
+    const CompanionV1BondInventorySnapshot& inventory,
+    CompanionBondIdentityToken& orphan) {
+    if (inventory.error != CompanionV1BondInventoryError::none ||
+        inventory.bond_count != 1 ||
+        !valid_bond_identity(inventory.private_references[0]) ||
+        valid_bond_identity(inventory.private_references[1])) {
+        return false;
+    }
+    orphan = inventory.private_references[0];
+    return true;
+}
+
+bool exact_owner_plus_orphan(
+    const CompanionV1BondInventorySnapshot& inventory,
+    CompanionBondIdentityToken owner,
+    CompanionBondIdentityToken& orphan) {
+    if (inventory.error != CompanionV1BondInventoryError::none ||
+        inventory.bond_count != 2 ||
+        !valid_bond_identity(inventory.private_references[0]) ||
+        !valid_bond_identity(inventory.private_references[1]) ||
+        inventory.private_references[0] == inventory.private_references[1]) {
+        return false;
+    }
+    if (inventory.private_references[0] == owner) {
+        orphan = inventory.private_references[1];
+        return true;
+    }
+    if (inventory.private_references[1] == owner) {
+        orphan = inventory.private_references[0];
+        return true;
+    }
+    return false;
+}
+
 bool all_zero(const std::array<std::uint8_t,
                                kCompanionV1OwnerRecordBytes>& value) {
     return std::all_of(value.begin(), value.end(),
@@ -129,6 +164,12 @@ CompanionV1BondOwnerBridge::CompanionV1BondOwnerBridge(
     CompanionV1BondInventoryPort& inventory)
     : storage_(storage), inventory_(inventory) {}
 
+CompanionV1BondOwnerBridge::CompanionV1BondOwnerBridge(
+    CompanionV1OwnerStoragePort& storage,
+    CompanionV1BondInventoryPort& inventory,
+    CompanionV1BondCleanupPort& cleanup)
+    : storage_(storage), inventory_(inventory), cleanup_(&cleanup) {}
+
 CompanionV1BondOwnerResult CompanionV1BondOwnerBridge::reject(
     CompanionV1BondOwnerError error) {
     if (error == CompanionV1BondOwnerError::reentrant_call) {
@@ -141,6 +182,7 @@ void CompanionV1BondOwnerBridge::require_reconciliation(
     CompanionV1BondOwnerError error) {
     phase_ = CompanionV1BondOwnerPhase::reconcile_required;
     owner_ = {};
+    candidate_ = {};
     generation_ = 0;
     active_controller_binding_ = 0;
     persistence_uncertain_ =
@@ -177,10 +219,31 @@ CompanionV1BondOwnerResult CompanionV1BondOwnerBridge::restore() {
         return reject(CompanionV1BondOwnerError::not_ready);
     }
     if (!stored.record_present) {
-        if (!all_zero(stored.record) || !exact_empty_inventory(bonds)) {
+        if (!all_zero(stored.record)) {
             require_reconciliation(
                 CompanionV1BondOwnerError::bond_inventory_mismatch);
             return reject(CompanionV1BondOwnerError::bond_inventory_mismatch);
+        }
+        if (!exact_empty_inventory(bonds)) {
+            CompanionBondIdentityToken orphan{};
+            if (cleanup_ == nullptr || !exact_single_orphan(bonds, orphan)) {
+                require_reconciliation(
+                    CompanionV1BondOwnerError::bond_inventory_mismatch);
+                return reject(
+                    CompanionV1BondOwnerError::bond_inventory_mismatch);
+            }
+            const auto removed = cleanup_->remove_exact_and_verify(orphan);
+            if (reentry_observed_ ||
+                removed.error != CompanionV1BondCleanupError::none ||
+                !exact_empty_inventory(removed.verified_inventory)) {
+                const auto error = reentry_observed_
+                                       ? CompanionV1BondOwnerError::
+                                             reentrant_call
+                                       : CompanionV1BondOwnerError::
+                                             bond_cleanup_failed;
+                require_reconciliation(error);
+                return reject(error);
+            }
         }
         phase_ = CompanionV1BondOwnerPhase::closed_unowned;
         return {CompanionV1BondOwnerError::none, phase_};
@@ -192,9 +255,25 @@ CompanionV1BondOwnerResult CompanionV1BondOwnerBridge::restore() {
         return reject(CompanionV1BondOwnerError::record_invalid);
     }
     if (!exact_inventory(bonds, owner)) {
-        require_reconciliation(
-            CompanionV1BondOwnerError::bond_inventory_mismatch);
-        return reject(CompanionV1BondOwnerError::bond_inventory_mismatch);
+        CompanionBondIdentityToken orphan{};
+        if (cleanup_ == nullptr ||
+            !exact_owner_plus_orphan(bonds, owner, orphan)) {
+            require_reconciliation(
+                CompanionV1BondOwnerError::bond_inventory_mismatch);
+            return reject(
+                CompanionV1BondOwnerError::bond_inventory_mismatch);
+        }
+        const auto removed = cleanup_->remove_exact_and_verify(orphan);
+        if (reentry_observed_ ||
+            removed.error != CompanionV1BondCleanupError::none ||
+            !exact_inventory(removed.verified_inventory, owner)) {
+            const auto error = reentry_observed_
+                                   ? CompanionV1BondOwnerError::reentrant_call
+                                   : CompanionV1BondOwnerError::
+                                         bond_cleanup_failed;
+            require_reconciliation(error);
+            return reject(error);
+        }
     }
     owner_ = owner;
     generation_ = generation;
@@ -236,7 +315,13 @@ CompanionV1BondOwnerResult CompanionV1BondOwnerBridge::accept_initial_bond(
         const auto error = committed.error == CompanionV1OwnerStorageError::none
                                ? CompanionV1BondOwnerError::storage_uncertain
                                : map_storage_error(committed.error);
-        require_reconciliation(error);
+        if (committed.error != CompanionV1OwnerStorageError::uncertain &&
+            committed.error != CompanionV1OwnerStorageError::none) {
+            candidate_ = private_reference;
+            phase_ = CompanionV1BondOwnerPhase::candidate_cleanup_required;
+        } else {
+            require_reconciliation(error);
+        }
         return reject(error);
     }
     const auto confirmed_bonds = inventory_.snapshot();
@@ -264,8 +349,8 @@ CompanionV1BondOwnerResult CompanionV1BondOwnerBridge::authorize_controller(
     if (phase_ == CompanionV1BondOwnerPhase::not_restored) {
         return reject(CompanionV1BondOwnerError::not_restored);
     }
-    if (phase_ == CompanionV1BondOwnerPhase::reconcile_required ||
-        phase_ == CompanionV1BondOwnerPhase::closed_unowned) {
+    if (phase_ != CompanionV1BondOwnerPhase::closed_owned &&
+        phase_ != CompanionV1BondOwnerPhase::controller_active) {
         return reject(CompanionV1BondOwnerError::not_ready);
     }
     if (!valid_bond_identity(private_reference) || controller_binding == 0) {
@@ -312,10 +397,52 @@ CompanionV1BondOwnerResult CompanionV1BondOwnerBridge::release_controller(
     return {CompanionV1BondOwnerError::none, phase_};
 }
 
+CompanionV1BondOwnerResult
+CompanionV1BondOwnerBridge::complete_pending_cleanup() {
+    if (operation_active_) {
+        return reject(CompanionV1BondOwnerError::reentrant_call);
+    }
+    if (phase_ != CompanionV1BondOwnerPhase::candidate_cleanup_required ||
+        cleanup_ == nullptr) {
+        return reject(CompanionV1BondOwnerError::not_ready);
+    }
+    const auto removal_reference = candidate_;
+    if (!valid_bond_identity(removal_reference) ||
+        (valid_bond_identity(owner_) && removal_reference == owner_)) {
+        require_reconciliation(CompanionV1BondOwnerError::bond_cleanup_failed);
+        return reject(CompanionV1BondOwnerError::bond_cleanup_failed);
+    }
+
+    reentry_observed_ = false;
+    ScopedOperation operation(operation_active_);
+    const auto removed = cleanup_->remove_exact_and_verify(removal_reference);
+    if (reentry_observed_) {
+        require_reconciliation(CompanionV1BondOwnerError::reentrant_call);
+        return reject(CompanionV1BondOwnerError::reentrant_call);
+    }
+    const bool verified = valid_bond_identity(owner_)
+                              ? exact_inventory(removed.verified_inventory,
+                                                owner_)
+                              : exact_empty_inventory(
+                                    removed.verified_inventory);
+    if (removed.error != CompanionV1BondCleanupError::none || !verified) {
+        require_reconciliation(CompanionV1BondOwnerError::bond_cleanup_failed);
+        return reject(CompanionV1BondOwnerError::bond_cleanup_failed);
+    }
+    candidate_ = {};
+    phase_ = valid_bond_identity(owner_)
+                 ? CompanionV1BondOwnerPhase::closed_owned
+                 : CompanionV1BondOwnerPhase::closed_unowned;
+    return {CompanionV1BondOwnerError::none, phase_};
+}
+
 CompanionV1BondOwnerStatus CompanionV1BondOwnerBridge::status() const {
-    return {phase_,
-            phase_ == CompanionV1BondOwnerPhase::closed_owned ||
-                phase_ == CompanionV1BondOwnerPhase::controller_active,
+    const bool owner_present = valid_bond_identity(owner_) &&
+        (phase_ == CompanionV1BondOwnerPhase::closed_owned ||
+                phase_ == CompanionV1BondOwnerPhase::controller_active ||
+                phase_ == CompanionV1BondOwnerPhase::
+                              candidate_cleanup_required);
+    return {phase_, owner_present,
             phase_ == CompanionV1BondOwnerPhase::controller_active,
             persistence_uncertain_, generation_};
 }
@@ -338,6 +465,11 @@ CompanionV1GattAuthorizationAuthority::apply_claim(
     }
     reentry_observed_ = false;
     ScopedOperation operation(operation_active_);
+    if (purpose == CompanionAuthorizationPurpose::replace_controller) {
+        return {CompanionGattAuthorizationAuthorityError::none,
+                CompanionAuthorizationClaimOutcome::denied,
+                CompanionAuthorizationDenyReason::unsupported, 0};
+    }
     if (purpose != CompanionAuthorizationPurpose::authorize_controller) {
         return {CompanionGattAuthorizationAuthorityError::none,
                 CompanionAuthorizationClaimOutcome::denied,

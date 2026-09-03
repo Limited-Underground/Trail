@@ -67,6 +67,7 @@ class CompanionProtocolCodecTest {
         assertEquals(CompanionCodecError.MALFORMED, CompanionProtocolCodec.decodeProtocolInfo(canonical.copyOf(15)).error)
         assertEquals(CompanionCodecError.UNSUPPORTED_VERSION, CompanionProtocolCodec.decodeProtocolInfo(canonical.changed(5, 1)).error)
         assertEquals(CompanionCodecError.UNKNOWN_ROLE, CompanionProtocolCodec.decodeProtocolInfo(canonical.changed(6, 0xff)).error)
+        assertEquals(CompanionCodecError.UNKNOWN_CAPABILITY, CompanionProtocolCodec.decodeProtocolInfo(canonical.changed(7, 0x10)).error)
         assertEquals(CompanionCodecError.UNKNOWN_CAPABILITY, CompanionProtocolCodec.decodeProtocolInfo(canonical.changed(7, 0x80)).error)
         assertEquals(CompanionCodecError.RESERVED_BITS_SET, CompanionProtocolCodec.decodeProtocolInfo(canonical.changed(14, 1)).error)
     }

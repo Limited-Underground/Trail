@@ -101,7 +101,7 @@ bool known_position(CompanionPositionSharingState value) {
 
 bool known_action(CompanionActionKind value) {
     return value >= CompanionActionKind::quick_status &&
-           value <= CompanionActionKind::stop_position_sharing;
+           value <= CompanionActionKind::factory_reset;
 }
 
 bool known_quick_status(protocol::QuickStatusKind value) {
@@ -151,6 +151,11 @@ CompanionSemanticCodecError validate_action(
         return critical_alert_id != 0
                    ? CompanionSemanticCodecError::none
                    : CompanionSemanticCodecError::invalid_alert_id;
+    }
+    if (kind == CompanionActionKind::factory_reset) {
+        return critical_alert_id != 0
+                   ? CompanionSemanticCodecError::none
+                   : CompanionSemanticCodecError::incoherent_action;
     }
     return critical_alert_id == 0
                ? CompanionSemanticCodecError::none

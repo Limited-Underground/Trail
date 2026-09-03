@@ -12,6 +12,10 @@ TARGET_ADAPTER = (
     ROOT / "firmware" / "targets" / "heltec_v4_bench" / "main" /
     "companion_nimble_gatt.cpp"
 )
+TARGET_RUNTIME = (
+    ROOT / "firmware" / "targets" / "heltec_v4_bench" / "main" /
+    "companion_nimble_runtime.cpp"
+)
 
 
 def require(condition: bool, message: str) -> None:
@@ -37,18 +41,91 @@ def main() -> int:
     gap_path = host_source / "ble_gap.c"
     gatts_path = host_source / "ble_gatts.c"
     gattc_path = host_source / "ble_gattc.c"
+    gatt_service_path = (
+        arguments.idf_path / "components" / "bt" / "host" / "nimble" /
+        "nimble" / "nimble" / "host" / "services" / "gatt" / "src" /
+        "ble_svc_gatt.c"
+    )
     port_path = (
         arguments.idf_path / "components" / "bt" / "host" / "nimble" /
         "nimble" / "porting" / "nimble" / "src" / "nimble_port.c"
     )
-    for path in (gap_path, gatts_path, gattc_path, port_path, TARGET_ADAPTER):
+    for path in (
+        gap_path,
+        gatts_path,
+        gattc_path,
+        gatt_service_path,
+        port_path,
+        TARGET_ADAPTER,
+        TARGET_RUNTIME,
+    ):
         require(path.is_file(), f"required pinned source is missing: {path.name}")
 
     gap = gap_path.read_text(encoding="utf-8")
     gatts = gatts_path.read_text(encoding="utf-8")
     gattc = gattc_path.read_text(encoding="utf-8")
+    gatt_service = gatt_service_path.read_text(encoding="utf-8")
     adapter = TARGET_ADAPTER.read_text(encoding="utf-8")
+    runtime = TARGET_RUNTIME.read_text(encoding="utf-8")
     port = port_path.read_text(encoding="utf-8")
+
+    service_changed_definition = function_body(
+        gatt_service,
+        "ble_svc_gatt_changed(uint16_t start_handle, uint16_t end_handle)",
+        "ble_svc_gatt_changed_handle(void)")
+    require("BLE_GATT_CHR_F_INDICATE" in gatt_service and
+            "ble_gatts_chr_updated(ble_svc_gatt_changed_val_handle);" in
+            service_changed_definition,
+            "pinned Service Changed must remain an indication-backed pending update")
+
+    encryption_event = function_body(
+        gap,
+        "ble_gap_enc_event(uint16_t conn_handle, int status,",
+        "ble_gap_identity_event")
+    application_encryption_callback = encryption_event.index(
+        "ble_gap_call_conn_event_cb(&event, conn_handle);")
+    restore_bonded_cccds = encryption_event.index(
+        "ble_gatts_bonding_restored(conn_handle);")
+    require(application_encryption_callback < restore_bonded_cccds,
+            "pinned NimBLE must restore bonded CCCDs after the app encryption callback")
+
+    bonding_restored = function_body(
+        gatts,
+        "ble_gatts_bonding_restored(uint16_t conn_handle)",
+        "ble_gatts_find_svc_entry_by_uuid")
+    restored_changed = bonding_restored.index("if (cccd_value.value_changed)")
+    restored_subscription = bonding_restored.index(
+        "BLE_GAP_SUBSCRIBE_REASON_RESTORE")
+    restored_indication = bonding_restored.index(
+        "ble_gatts_indicate(conn_handle, cccd_value.chr_val_handle);")
+    require(restored_changed < restored_subscription < restored_indication,
+            "pinned NimBLE must expose the restored pending-indication race")
+
+    require("clear_pending_cccd_value_changes()" in runtime,
+            "Heltec startup lacks pending CCCD value-change sanitation")
+    sanitizer = function_body(
+        runtime,
+        "clear_pending_cccd_value_changes()",
+        "fail_security_configuration")
+    require("ble_store_read_cccd(" in sanitizer and
+            "cccd.value_changed = 0;" in sanitizer and
+            "ble_store_write_cccd(&cccd)" in sanitizer,
+            "Heltec startup must clear only pending CCCD value-change state")
+    require("cccd.flags =" not in sanitizer and
+            "ble_store_delete_cccd" not in sanitizer and
+            "ble_store_clear" not in sanitizer,
+            "pending-update sanitation must preserve subscriptions and bonds")
+    configure_security = function_body(
+        runtime,
+        "bool configure_secure_connections_bonding() override",
+        "bool register_protected_service() override")
+    store_initialized = configure_security.index("ble_store_config_init();")
+    pending_updates_cleared = configure_security.index(
+        "clear_pending_cccd_value_changes()")
+    store_exposed = configure_security.index(
+        "g_factory_reset_bonds->set_store_access_ready(true);")
+    require(store_initialized < pending_updates_cleared < store_exposed,
+            "pending CCCD updates must clear after store init and before host exposure")
 
     broken = function_body(
         gap,

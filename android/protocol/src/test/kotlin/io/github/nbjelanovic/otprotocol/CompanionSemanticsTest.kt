@@ -93,6 +93,48 @@ class CompanionSemanticsTest {
     }
 
     @Test
+    fun factoryResetUsesExactKindFiveAndNonzeroLittleEndianReceipt() {
+        val request = CompanionActionRequest(
+            CompanionActionKind.FACTORY_RESET,
+            factoryResetReceipt = 0x1122334455667788uL,
+        )
+        val encoded = CompanionSemanticCodec.encodeActionRequest(request)
+
+        assertTrue(encoded.isSuccess)
+        assertContentEquals(vectors.getValue("factory_reset_receipt"), encoded.value)
+        assertEquals(request, CompanionSemanticCodec.decodeActionRequest(encoded.value!!).value)
+        assertEquals(
+            CompanionSemanticCodecError.RESERVED_BITS_SET,
+            CompanionSemanticCodec.decodeActionRequest(encoded.value!!.changed(7, 1)).error,
+        )
+        assertEquals(
+            CompanionSemanticCodecError.INCOHERENT_ACTION,
+            CompanionSemanticCodec.encodeActionRequest(request.copy(criticalAlertId = 1uL)).error,
+        )
+        assertEquals(
+            CompanionSemanticCodecError.INCOHERENT_ACTION,
+            CompanionSemanticCodec.encodeActionRequest(request.copy(factoryResetReceipt = 0uL)).error,
+        )
+        assertEquals(
+            CompanionSemanticCodecError.RESERVED_BITS_SET,
+            CompanionSemanticCodec.decodeActionRequest(encoded.value!!.changed(16, 1)).error,
+        )
+        val admitted = CompanionActionResult(
+            kind = CompanionActionKind.FACTORY_RESET,
+            factoryResetReceipt = request.factoryResetReceipt,
+            disposition = CompanionActionDisposition.ADMITTED,
+        )
+        assertContentEquals(
+            vectors.getValue("admitted_factory_reset_receipt"),
+            CompanionSemanticCodec.encodeActionResult(admitted).value,
+        )
+        assertEquals(
+            admitted,
+            CompanionSemanticCodec.decodeActionResult(vectors.getValue("admitted_factory_reset_receipt")).value,
+        )
+    }
+
+    @Test
     fun actionRequestsRejectUnknownAmbiguousAndReservedValues() {
         assertEquals(
             CompanionSemanticCodecError.INVALID_ALERT_ID,

@@ -22,9 +22,12 @@ interface TrailUiController {
     fun startBluetoothService()
     fun scanBluetoothDevices()
     fun selectBluetoothDevice(endpointToken: String)
-    fun replaceLostPhoneWithBluetoothDevice(endpointToken: String)
     fun disconnectBluetoothDevice()
     fun submitBluetoothAction(request: CompanionActionRequest): Boolean
+    fun requestFactoryResetConfirmation(): Boolean = false
+    fun cancelFactoryResetConfirmation() = Unit
+    fun confirmFactoryReset(): Boolean = false
+    fun retryFactoryResetVerification(): Boolean = false
 }
 
 interface TrailLifecycleController : AutoCloseable {

@@ -4,6 +4,11 @@
 - **Date:** 2026-08-29
 - **Scope:** Two experimental Heltec V4 bench nodes; local BLE pairing-window input and display behavior
 
+> **Historical evidence notice (2026-09-02):** The accepted OT-164 physical
+> observations below remain unchanged. [Decision 0103](0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md)
+> supersedes the observed 3-second/30-second interaction as current V1 UX with
+> one automatic 60-second window on verified unowned boot.
+
 ## Context
 
 OT-090 froze the target-neutral pairing and replacement contract, but the

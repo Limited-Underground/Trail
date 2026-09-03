@@ -4,6 +4,11 @@
 - **Date:** 2026-08-31
 - **Scope:** Build-linked device-side durable ownership for initial V1 BLE pairing
 
+> **Current V1 clarification (2026-09-02):** OT-166 remains accepted historical
+> evidence for durable initial ownership and reconnect. Decision 0103 supersedes
+> the later OT-167 replacement wording below: V1 has no replacement path;
+> OT-168 owns destructive factory reset and unowned-boot pairing integration.
+
 ## Context
 
 OT-164 physically accepted the local six-digit pairing window and OT-165

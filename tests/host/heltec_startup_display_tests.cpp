@@ -507,6 +507,145 @@ void test_pairing_pin_is_transient_and_clear_restores_latest_footer() {
     require(!clear_failure_owner.status().available,
             "failed footer restore latches display unavailable");
 }
+
+void test_factory_reset_overlay_suppresses_redraw_and_restores_latest_view() {
+    using Page = opentrail::ui::compact_status_footer::Page;
+
+    FakeDisplayPort recovery_port;
+    StartupDisplayOwner recovery_owner{recovery_port};
+    require(recovery_owner.start(), "factory-reset recovery display start");
+    require(recovery_owner.show_factory_reset_in_progress(),
+            "cold-boot committed reset renders in-progress directly");
+    require(recovery_port.views.size() == 2 &&
+                recovery_port.views.back().frame ==
+                    StartupDisplayFrame::factory_resetting,
+            "cold-boot reset never renders the pre-commit confirmation");
+    require(!recovery_owner.clear_factory_reset_confirmation(),
+            "cold-boot committed reset cannot be cancelled");
+
+    FakeDisplayPort port;
+    StartupDisplayOwner owner{port};
+    require(owner.start(), "factory-reset display start");
+
+    Page initial_footer{};
+    initial_footer.columns[25] = 0x11;
+    require(owner.show_footer(
+                StartupDisplayFrame::ble_advertising, initial_footer),
+            "factory-reset background accepted");
+    require(!owner.show(StartupDisplayFrame::factory_reset_confirmation) &&
+                !owner.show(StartupDisplayFrame::factory_resetting),
+            "ordinary display path cannot bypass reset-overlay ownership");
+    require(port.views.size() == 2,
+            "rejected reset frames cause no ordinary redraw");
+    require(owner.show_factory_reset_confirmation(),
+            "factory-reset confirmation rendered");
+    require(port.views.size() == 3 &&
+                port.views.back().frame ==
+                    StartupDisplayFrame::factory_reset_confirmation &&
+                !port.views.back().has_footer,
+            "confirmation is a full-screen transient overlay");
+    require(std::string(startup_display_text(
+                StartupDisplayFrame::factory_reset_confirmation)) ==
+                "ERASE ALL TRAIL DATA?",
+            "factory-reset confirmation copy is exact");
+    require(owner.show_factory_reset_confirmation(),
+            "duplicate factory-reset confirmation accepted");
+    require(port.views.size() == 3,
+            "duplicate factory-reset confirmation suppressed");
+
+    auto latest_footer = initial_footer;
+    latest_footer.columns[75] = 0x22;
+    require(owner.show_footer(
+                StartupDisplayFrame::ble_connected, latest_footer),
+            "latest ordinary view retained behind reset overlay");
+    require(port.views.size() == 3,
+            "ordinary redraw suppressed during reset confirmation");
+    require(owner.status().frame == StartupDisplayFrame::ble_connected &&
+                owner.status().render_count == 3,
+            "suppressed ordinary update advances only retained status");
+
+    require(owner.clear_factory_reset_confirmation(),
+            "factory-reset cancellation restores normal view");
+    require(port.views.size() == 4 &&
+                port.views.back().frame ==
+                    StartupDisplayFrame::ble_connected &&
+                port.views.back().has_footer &&
+                port.views.back().footer.columns == latest_footer.columns,
+            "cancellation restores exact latest normal view");
+    require(owner.status().render_count == 4,
+            "restoration counts one physical render");
+    require(owner.clear_factory_reset_confirmation(),
+            "duplicate factory-reset cancellation is idempotent");
+    require(port.views.size() == 4,
+            "duplicate cancellation causes no redraw");
+
+    require(owner.show_factory_reset_confirmation(),
+            "second factory-reset confirmation rendered");
+    require(owner.show_factory_reset_in_progress(),
+            "factory-reset in-progress frame rendered");
+    require(port.views.size() == 6 &&
+                port.views.back().frame ==
+                    StartupDisplayFrame::factory_resetting &&
+                std::string(startup_display_text(
+                    port.views.back().frame)) == "RESETTING",
+            "resetting frame is exact");
+    require(owner.show_factory_reset_in_progress(),
+            "duplicate resetting frame accepted");
+    require(port.views.size() == 6,
+            "duplicate resetting frame suppressed");
+    require(!owner.clear_factory_reset_confirmation(),
+            "in-progress reset cannot be cancelled");
+    require(port.views.size() == 6,
+            "in-progress cancellation attempt does not restore normal view");
+
+    require(owner.show(StartupDisplayFrame::ble_advertising),
+            "ordinary state remains retainable while resetting");
+    require(port.views.size() == 6 &&
+                owner.status().frame ==
+                    StartupDisplayFrame::ble_advertising,
+            "resetting overlay suppresses ordinary physical redraw");
+}
+
+void test_factory_reset_render_and_restore_failures_conceal() {
+    FakeDisplayPort prompt_failure;
+    StartupDisplayOwner prompt_owner{prompt_failure};
+    require(prompt_owner.start(), "prompt-render failure setup");
+    prompt_failure.failing_render_call = 2;
+    require(!prompt_owner.show_factory_reset_confirmation(),
+            "prompt-render failure returned");
+    require(prompt_failure.conceal_calls == 1 &&
+                !prompt_owner.status().available,
+            "prompt-render failure conceals and latches unavailable");
+
+    FakeDisplayPort resetting_failure;
+    StartupDisplayOwner resetting_owner{resetting_failure};
+    require(resetting_owner.start(), "resetting-render failure setup");
+    require(resetting_owner.show_factory_reset_confirmation(),
+            "resetting-render prompt setup");
+    resetting_failure.failing_render_call =
+        resetting_failure.views.size() + 1;
+    require(!resetting_owner.show_factory_reset_in_progress(),
+            "resetting-render failure returned");
+    require(resetting_failure.conceal_calls == 1 &&
+                !resetting_owner.status().available,
+            "resetting-render failure conceals and latches unavailable");
+
+    FakeDisplayPort restore_failure;
+    StartupDisplayOwner restore_owner{restore_failure};
+    require(restore_owner.start(), "reset-restore failure setup");
+    require(restore_owner.show(StartupDisplayFrame::ble_advertising),
+            "reset-restore normal view setup");
+    require(restore_owner.show_factory_reset_confirmation(),
+            "reset-restore prompt setup");
+    require(restore_owner.show(StartupDisplayFrame::ble_connected),
+            "reset-restore latest hidden view setup");
+    restore_failure.failing_render_call = restore_failure.views.size() + 1;
+    require(!restore_owner.clear_factory_reset_confirmation(),
+            "reset-restore failure returned");
+    require(restore_failure.conceal_calls == 1 &&
+                !restore_owner.status().available,
+            "reset-restore failure conceals and latches unavailable");
+}
 }  // namespace
 
 int main() {
@@ -519,6 +658,8 @@ int main() {
     test_dynamic_compact_footer_observations_and_redraw();
     test_dynamic_compact_footer_fail_closed_boundaries();
     test_pairing_pin_is_transient_and_clear_restores_latest_footer();
-    std::cout << "9 Heltec startup display groups passed.\n";
+    test_factory_reset_overlay_suppresses_redraw_and_restores_latest_view();
+    test_factory_reset_render_and_restore_failures_conceal();
+    std::cout << "11 Heltec startup display groups passed.\n";
     return 0;
 }

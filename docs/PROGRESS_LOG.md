@@ -4,6 +4,83 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-09-03
+
+### Saved-owner reconnect correction remains unaccepted
+
+- The previously accepted clean first-connection baseline remains: passkey
+  bond, protected negotiation, claim, mandatory Snapshot, and Ready.
+- A test-first Heltec startup change attempted to consume restored CCCD
+  `value_changed` state before host exposure. Focused target tests, the complete
+  affected host matrix, and an ESP-IDF 6.0.2 ESP32-S3 build passed; the verified
+  551,584-byte application was flashed only to the selected test Heltec.
+- A fresh Note20 attempt preserved app data and the Android bond, force-stopped
+  the old app/service owner, ran the full returning-owner scan, admitted one
+  candidate, and connected at the link layer. Android service discovery again
+  received ATT `0x1d`, logged the incorrect-discovery-opcode warning, produced
+  an empty GATT database, and closed before ProtocolInfo. No authorization,
+  Snapshot, command, reset/re-pair, second-device, or downstream workaround was
+  attempted.
+- The correction is not physically accepted. Hardware work pauses until a
+  narrower source/runtime cause is proved with a failing test.
+- Finished-app behavior is now explicit: with an authorized bond, opening the
+  app automatically enters production Bluetooth, starts or attaches its
+  service, reconnects, and reaches Ready with zero additional taps. The current
+  mode chooser, service-start button, and production-visible Local test mode are
+  development scaffolding. V1 progress does not change, and no website update
+  is required.
+
+## 2026-09-02
+
+### OT-168 host implementation checkpoint
+
+- Implemented the shared reset gesture/executor/authority, Heltec storage and
+  target bindings, automatic 60-second D1 enrollment, protected D0 saved-owner
+  reconnect, Android reset/settings flow, and the privacy-safe reset receipt.
+- The app creates one random nonzero u64 receipt, encodes it little-endian in
+  the `OTA0/v0` subject, and requires an exact `OTR0/v0` echo. `ADMITTED`
+  records durable intent only. Only after verified cleanup may the next D1 scan
+  response expose `OTRR` + version `0x01` + that receipt. It is correlation,
+  not identity or authorization. Unknown outcomes verify the retained receipt
+  without resubmitting reset.
+- Final focused firmware evidence is green: Heltec reset storage passes,
+  target admission passes 15/15, companion semantics passes 14/14, the reset
+  executor passes 17 scenario groups, the physical gesture passes 9 groups,
+  and reset authority passes 7 groups. The pinned ESP-IDF v6.0.2 application
+  is 549,184 bytes, SHA-256
+  `90FE9479653F16000D71BC7AA76EA3ECB41F6FF0B4CF7A263E6056E054AC0454`,
+  with 89% of its application slot free.
+- The post-audit Android foundation gate is green: `BUILD SUCCESSFUL` in 57
+  seconds, 137 actionable tasks (10 executed and 127 up-to-date), and 347
+  protocol/debug/release tests with zero failures, errors, or skipped tests.
+  Debug/release lint and assembly, instrumentation assembly, and unsigned-
+  release inspection pass. The final 8,508,592-byte unsigned release APK has
+  SHA-256
+  `56897297b7512ef4a3fdc35a256d3a2e59fddd7b78b9efa2fc8ee69f1e15e1d3`.
+- The complete Host matrix remains pending and is not claimed by this
+  checkpoint.
+- Power-interruption acceptance, both-device physical reset/pair/reconnect
+  evidence, and coherent two-phone evidence remain open. OT-168 stays partial,
+  Android remains 60%, and V1 remains exact 43.75% / displayed 44%. The owner
+  deferred all website inspection/update until the two-device/two-phone
+  milestone, so no website update is required here.
+
+### OT-168 V1 factory-reset and boot-pairing design in progress
+
+- Decision 0103 accepts `DEVICE_FACTORY_RESET_V1` as current product authority:
+  no phone replacement, one automatic fresh-PIN 60-second pairing window on
+  verified unowned boot, and PIN-free saved-owner reconnect on owned boot.
+- Authorized-app reset requires explicit in-app confirmation but no Heltec
+  confirmation. Lost-phone recovery requires a 10-second hold, LCD warning,
+  release, and one short press within 10 seconds.
+- Both routes converge on fail-closed verified deletion of all user data, maps,
+  and BLE bonds before unowned restart. Historical OT-090/164/165/166 and map-
+  policy evidence remains unchanged and is marked superseded only as current
+  product authority.
+- Implementation, validation, interruption recovery, physical acceptance, and
+  two-phone evidence remain pending. Completion and website status do not
+  change.
+
 ## 2026-08-31
 
 ### OT-166 Heltec durable V1 BLE bond-owner integration

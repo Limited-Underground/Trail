@@ -3,6 +3,13 @@
 Status: deterministic host-tested authorization handoff, 2026-08-11. No reset
 executor, credential verifier, or on-device authentication exists.
 
+> **Current V1 boundary (2026-09-02):** This map-domain handoff remains
+> historical evidence for protected-source replacement and new-device
+> commissioning. [Decision 0103](../decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md)
+> routes whole-device factory reset through
+> [`DEVICE_FACTORY_RESET_V1`](../platform/DEVICE_FACTORY_RESET_V1.md), which
+> erases user map state and does not consume either authorization scope below.
+
 This boundary implements the authority handoff required by the
 [reset/replacement policy](OFFLINE_MAP_SELECTOR_RESET_REPLACEMENT_POLICY_V0.md)
 without implementing either destructive operation. It can mint one boot-local,

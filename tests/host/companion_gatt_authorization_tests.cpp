@@ -382,13 +382,13 @@ void test_protocol_info_exact_vector_and_strict_decode() {
     static_assert(kCompanionAuthorizationMaxResponseBytes == 48);
     static_assert(kCompanionAuthorizationMinimumAttMtu == 51);
     const CompanionAuthorizationProtocolInfo info{
-        CompanionDeviceRole::screenless_client, 0x1F, 128, 151, 16, 1,
+        CompanionDeviceRole::screenless_client, 0x3F, 128, 151, 16, 1,
         kSession};
     std::array<std::uint8_t, 20> encoded{};
     EXPECT(encode_companion_authorization_protocol_info(
                info, {encoded.data(), encoded.size()}).encoded());
     const std::array<std::uint8_t, 20> expected{
-        0x4F, 0x54, 0x42, 0x30, 0x00, 0x01, 0x01, 0x1F,
+        0x4F, 0x54, 0x42, 0x30, 0x00, 0x01, 0x01, 0x3F,
         0x80, 0x00, 0x97, 0x00, 0x10, 0x01, 0x44, 0x33,
         0x22, 0x11, 0x00, 0x00};
     EXPECT(encoded == expected);
@@ -450,6 +450,9 @@ void test_secure_protocol_read_and_exact_handle_gate() {
     EXPECT(harness.lifecycle.open_provisional_session(
                kConnection, kGeneration, kSession) ==
            CompanionGattAuthorizationError::none);
+    EXPECT(harness.lifecycle.update_connection_evidence(
+               kConnection, kGeneration, evidence(23)) ==
+           CompanionGattAuthorizationError::none);
     std::array<std::uint8_t, 20> info{};
     EXPECT(harness.lifecycle.read_protocol_info(
                kConnection, kGeneration, 99,
@@ -459,6 +462,13 @@ void test_secure_protocol_read_and_exact_handle_gate() {
                kConnection, kGeneration, kHandles.protocol_info_value,
                {info.data(), info.size()}).error ==
            CompanionGattAuthorizationError::none);
+    EXPECT(harness.lifecycle.update_connection_evidence(
+               kConnection, kGeneration,
+               evidence(kCompanionAuthorizationMinimumAttMtu)) ==
+           CompanionGattAuthorizationError::none);
+    EXPECT(harness.lifecycle.update_connection_evidence(
+               kConnection, kGeneration, evidence(23)) ==
+           CompanionGattAuthorizationError::insecure_link);
 }
 
 void test_mtu_50_rejects_and_51_accepts_before_mutation() {
@@ -860,6 +870,33 @@ void test_changed_private_claim_evidence_contains() {
     EXPECT(harness.authorization.apply_calls == 0);
 }
 
+void test_fresh_lower_nonce_reconnects_but_exact_reuse_fails() {
+    Harness harness;
+    harness.register_and_connect();
+    EXPECT(harness.lifecycle.disconnect(kConnection, kGeneration) ==
+           CompanionGattAuthorizationError::none);
+    EXPECT(harness.lifecycle.connect(kConnection, kGeneration + 1U) ==
+           CompanionGattAuthorizationError::none);
+    EXPECT(harness.lifecycle.update_connection_evidence(
+               kConnection, kGeneration + 1U, evidence()) ==
+           CompanionGattAuthorizationError::none);
+    constexpr std::uint32_t kFreshLowerSession = kSession - 1U;
+    EXPECT(harness.lifecycle.open_provisional_session(
+               kConnection, kGeneration + 1U, kFreshLowerSession) ==
+           CompanionGattAuthorizationError::none);
+
+    EXPECT(harness.lifecycle.disconnect(kConnection, kGeneration + 1U) ==
+           CompanionGattAuthorizationError::none);
+    EXPECT(harness.lifecycle.connect(kConnection, kGeneration + 2U) ==
+           CompanionGattAuthorizationError::none);
+    EXPECT(harness.lifecycle.update_connection_evidence(
+               kConnection, kGeneration + 2U, evidence()) ==
+           CompanionGattAuthorizationError::none);
+    EXPECT(harness.lifecycle.open_provisional_session(
+               kConnection, kGeneration + 2U, kFreshLowerSession) ==
+           CompanionGattAuthorizationError::session_nonce_reused);
+}
+
 void test_stale_resolve_and_timeout_cannot_touch_reopened_generation() {
     Harness harness;
     harness.open_claim_path();
@@ -1016,6 +1053,7 @@ int main() {
     test_claim_and_terminal_timeouts_never_promote();
     test_replace_requires_replace_outcome_and_promotes();
     test_changed_private_claim_evidence_contains();
+    test_fresh_lower_nonce_reconnects_but_exact_reuse_fails();
     test_stale_resolve_and_timeout_cannot_touch_reopened_generation();
     test_all_injected_callbacks_are_reentry_closed();
     test_reentry_and_reservation_failures_are_contained();

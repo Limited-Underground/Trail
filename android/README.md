@@ -30,19 +30,84 @@ satisfied; three remain. The result is not an accepted, signed, installable,
 distributable, supported, reproducible, production-ready, or operationally
 accepted release candidate.
 
-OT-089 permanently changes the V1 private-pilot topology from four phones to
-exactly two approved phones, one per supported Heltec. It adopts practical
+OT-089 historically changed the V1 private-pilot topology from four phones to
+exactly two approved phones, one per supported Heltec. It adopted practical
 physical-presence authorization with a fresh locally displayed six-digit PIN,
 authenticated BLE Secure Connections pairing/bonding, saved-bond reconnect,
 and confirmed phone replacement. OT-164 physically accepts only the target-side
 local display window. OT-165 now host-validates the Android initial OS-bond
 coordinator, while durable device ownership, reconnect, replacement, protected
 GATT, and physical phone acceptance remain open.
+Decision 0103 supersedes that replacement behavior for the current V1; the
+accepted historical OT-089/164/165 evidence remains unchanged.
 
 The visible working product name is `Limited Underground Trail`. The stable,
 technical application and package namespace is
 `io.github.nbjelanovic.otclient`; customer-facing working names do not enter the
 protocol or package identity.
+
+## Current OT-168 V1 pairing, reconnect, and reset authority
+
+The following current-product rules supersede the historical authorize/replace
+presentation described later in this file. They now have final host Android
+foundation evidence, but not physical or release acceptance:
+
+- A verified unowned Trail device automatically exposes the pairable `D1`
+  advertising marker and one fresh six-digit PIN for exactly 60 seconds.
+  Android Add Device scans and revalidates `D1` only. Expiry removes `D1` and
+  conceals the PIN; a later unowned boot creates a new window and PIN.
+- An owned ordinary boot exposes no `D1` and no PIN. Returning-owner discovery
+  accepts only the normal protected `D0` service among Android's currently
+  bonded devices, and proceeds only when exactly one candidate is observed.
+  Zero, multiple, unbonded, D1-only, or mixed D0/D1 candidates fail closed.
+- Returning-owner reconnect never calls `createBond`, never requests a PIN, and
+  does not persist a BLE address, MAC, or private pairing identifier. Android's
+  bond is only a prerequisite: protected normal `ProtocolInfo` and the device's
+  current owner authorization must both pass before the UI may publish `Ready`.
+- There is no replace-lost-phone route. An authorized connected app may later
+  request complete factory reset after explicit destructive in-app confirmation;
+  once the device accepts that command, no Heltec confirmation is required.
+  Physical recovery is a 10-second hold, LCD warning, release, and short press
+  within 10 seconds.
+- Both reset routes remove all prior-user Trail data, bonds, keys, groups,
+  messages, location/history, configuration, and user map state. They retain
+  firmware, boot/update trust, immutable hardware identity, and non-user board
+  calibration. Cleanup must be verified before rebooting unowned into the new
+  60-second pairing window.
+- App reset creates one random nonzero 64-bit receipt, places it little-endian
+  in the `OTA0/v0` subject slot, and requires an exact `OTR0/v0` echo.
+  `ADMITTED` means only that durable reset intent was accepted; it is not a
+  completion response.
+- After verified cleanup, the next D1 scan response exposes the exact
+  13-byte payload `OTRR` + version `0x01` + that same little-endian receipt.
+  This value only correlates the reset. It identifies and authorizes nobody,
+  grants no pairing or GATT access, and is accepted only by exact receipt match.
+- The app persists only the receipt plus one coherent bounded issued/expiry
+  window with an exact 120-second maximum. Clock rollback, corrupt bounds, or
+  expiry clear it fail closed. The store contains no Bluetooth address,
+  endpoint, device/user identity, or PIN. Disconnect, timeout, malformed
+  response, or another unknown command
+  outcome retains that record and verifies without resubmitting the destructive
+  command. Explicit rejection remains nonretryable.
+- Android uses no hidden or reflective `removeBond` API. If the system retains
+  the old bond after verified reset, the completion screen opens Android
+  Bluetooth settings so the user can forget it.
+
+The full authority is [Decision 0103](../docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md)
+and [`DEVICE_FACTORY_RESET_V1`](../docs/platform/DEVICE_FACTORY_RESET_V1.md).
+Focused Android tests cover the receipt codec, strict exact-match verification,
+unknown-outcome resume, bounded app-private receipt persistence, Settings-only
+destructive confirmation, and stale-bond guidance. The final audit correction
+suites pass 30/30 (receipt store 3/3, presentation 4/4, and controller 23/23).
+The post-audit Android foundation gate is green: `BUILD SUCCESSFUL` in 57
+seconds with 137 actionable tasks (10 executed and 127 up-to-date), and 347
+protocol/debug/release unit tests report zero failures, errors, or skipped
+tests. Debug/release lint, debug and instrumentation assembly, release
+assembly, and unsigned-release inspection pass. The final unsigned release APK
+is 8,508,592 bytes with SHA-256
+`56897297b7512ef4a3fdc35a256d3a2e59fddd7b78b9efa2fc8ee69f1e15e1d3`.
+OT-168 remains partial pending the complete Host matrix, power-interruption
+recovery, both-device physical acceptance, and coherent two-phone evidence.
 
 ## What runs today
 
@@ -100,20 +165,25 @@ protocol or package identity.
   authentication. Only a successful read of the exact current ProtocolInfo
   characteristic, protected by the device's ATT access rules, can admit the
   provisional v0.1 claim path. There is no silent downgrade to fake mode.
-- Bluetooth selection explicitly asks either to authorize this phone or replace
-  a lost phone. A bounded 30-second state machine accepts only a bounded,
+- Historical OT-047 Bluetooth selection explicitly asked either to authorize
+  this phone or replace a lost phone. A bounded 30-second state machine accepts
+  only a bounded,
   lease-local event token and an exact authoritative pending, accepted, denied,
   or replaced result, plus a local expired/uncertain state. The device-issued
   128-bit wire correlation remains private inside the strict response tracker; it
   never enters controller/UI state and is neither displayed nor persisted.
   Replacement requires the distinct replaced result, and the phone cannot invent
   ownership. Mode changes, permission loss, lifecycle stop, and destroy cancel the
-  claim and suppress stale results.
-- OT-165 inserts one Android OS-owned initial bond attempt before the existing
-  GATT path. It binds the exact opaque endpoint and facade generation, requires
+  claim and suppress stale results. This preserved path is not the current V1 UI
+  or replacement authority.
+- OT-165 historically inserted one Android OS-owned initial bond attempt before
+  the existing GATT path. It binds the exact opaque endpoint and facade
+  generation, requires
   this fresh attempt to observe `BOND_BONDING` before exact `BOND_BONDED`, and
   has no automatic pairing retry. Android's system UI exclusively owns passkey
-  entry; the app does not intercept, set, display, log, or store the PIN.
+  entry; the app does not intercept, set, display, log, or store the PIN. Current
+  returning-owner reconnect is the separate D0-and-existing-bond route above and
+  never starts this bond flow.
 - Protected-read, claim, and lifecycle tests remain host-only. The visible
   physical-control instructions and deterministic tests do not prove a button
   press, bonding, application authorization, phone replacement, radio continuity,
@@ -156,11 +226,12 @@ service; rebinding only observes its current bounded public state. Platform erro
 raw addresses, names, identifiers, status codes, and exception text do not enter
 UI state.
 
-The concrete gap to a first real Ready session is therefore explicit: start and
-advertise the accepted target service/controller, bind durable bond ownership,
-private authorization, persistence, reconnect, and replacement to the accepted
-target security and physical-control events, then run the exact app against
-that device firmware. The
+The concrete gap to a first real Ready session is therefore explicit: finish and
+validate D1-only fresh enrollment, durable bond ownership, D0-only returning-
+owner discovery, private authorization, persistence, protected `ProtocolInfo`,
+and complete reset behavior against the accepted target security and physical-
+control events, then run the exact app against that device firmware. No
+replacement path is part of current V1. The
 current tests validate the pure mode, foreground-service admission/ownership,
 lifecycle, permission, notification-visibility, binder generation, token,
 authorization codec/tracker,
@@ -287,10 +358,13 @@ remain blocked.
 supersedes only the four-phone scope and the independent monotonic
 authorization floor as V1 prerequisites. The Android release gate now binds
 the same exact signed candidate to both approved V1 phones. Practical pairing,
-replacement, protected control, and direct-LoRa messaging remain separate
+protected control, and direct-LoRa messaging remain separate
 unimplemented and physically unaccepted V1 gates. The disclosed V1 limit is
 that physical reflashing, reset, invasive access, or old-flash restoration may
 reset or roll back ownership.
+Decision 0103 later supersedes the historical replacement route: current V1
+uses destructive factory reset and the D1 enrollment/D0 saved-owner reconnect
+split above.
 
 A Google Play path is outside OT-086. It requires a separate decision and plan,
 a fresh recheck of the then-current Play target-API policy, and any required
@@ -300,14 +374,18 @@ The next Android release-track gate is to satisfy the accepted plan's three
 remaining prerequisites and execute its complete private-sideload evidence sequence under
 separately authorized signing, phone, installation, and distribution
 operations. Missing, stale, mixed, skipped, private, or contradictory evidence
-must remain blocked; practical one-phone-per-Heltec authorization and `Ready`
+must remain blocked; current D1 enrollment, D0 returning-owner reconnect,
+practical one-phone-per-Heltec authorization, destructive reset, and `Ready`
 remain a separate V1 hardware gate.
 
 The platform contract follows the official Android documentation for
 [Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions),
-[service-UUID scan filters](https://developer.android.com/reference/android/bluetooth/le/ScanFilter.Builder),
+[Bluetooth LE scanning](https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner),
 [BluetoothGatt operations](https://developer.android.com/reference/android/bluetooth/BluetoothGatt),
 and [BluetoothGatt callbacks](https://developer.android.com/reference/android/bluetooth/BluetoothGattCallback).
+Trail uses one bounded unfiltered platform scan because Android shares a limited
+controller-filter pool with system services. Exact D1 enrollment, bonded D0
+returning-owner, and reset-receipt admission remain fail-closed software checks.
 The OT-055 foreground boundary also follows the official Android guidance for
 [launching foreground services](https://developer.android.com/develop/background-work/services/fgs/launch),
 [connected-device service types](https://developer.android.com/develop/background-work/services/fgs/service-types),

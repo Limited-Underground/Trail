@@ -10,7 +10,8 @@ const val COMPANION_FRAGMENT_HEADER_BYTES = 20
 const val COMPANION_MAX_FRAGMENT_PAYLOAD_BYTES = 128
 const val COMPANION_MAX_FRAGMENT_COUNT = 16
 const val COMPANION_MINIMUM_ATT_MTU = 151
-const val COMPANION_KNOWN_CAPABILITY_MASK = 0x0f
+const val COMPANION_FACTORY_RESET_CAPABILITY = 0x20
+const val COMPANION_KNOWN_CAPABILITY_MASK = 0x2f
 
 enum class CompanionDeviceRole(val wireValue: Int) {
     SCREENLESS_CLIENT(1);
@@ -189,7 +190,7 @@ object CompanionProtocolCodec {
     }
 
     private fun validateInfo(info: CompanionProtocolInfo): CompanionCodecError? {
-        if (info.capabilities !in 0..COMPANION_KNOWN_CAPABILITY_MASK) {
+        if (info.capabilities < 0 || (info.capabilities and COMPANION_KNOWN_CAPABILITY_MASK.inv()) != 0) {
             return CompanionCodecError.UNKNOWN_CAPABILITY
         }
         if (

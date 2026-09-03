@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "opentrail/companion_protocol.hpp"
+#include "opentrail/companion_reset_receipt.hpp"
 #include "opentrail/companion_semantics.hpp"
 
 namespace {
@@ -47,6 +48,11 @@ CompanionActionRequest alert(std::uint64_t alert_id) {
 
 CompanionActionRequest position(CompanionActionKind kind) {
     return {kind, QuickStatusKind::ok, 0};
+}
+
+CompanionActionRequest factory_reset() {
+    return {CompanionActionKind::factory_reset, QuickStatusKind::ok,
+            UINT64_C(0x1122334455667788)};
 }
 
 void test_semantic_records_fit_one_v0_command_fragment() {
@@ -279,6 +285,78 @@ void test_position_start_and_stop_are_explicit_distinct_intents() {
         EXPECT(decoded.value.kind == kind);
         EXPECT(decoded.value.critical_alert_id == 0);
     }
+}
+
+void test_factory_reset_has_exact_receipt_vectors() {
+    const std::array<std::uint8_t, kCompanionActionRequestBytes>
+        expected_request{
+            0x4F, 0x54, 0x41, 0x30, 0x00, 0x00, 0x05, 0x00,
+            0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11,
+            0x00, 0x00, 0x00, 0x00,
+        };
+    std::array<std::uint8_t, kCompanionActionRequestBytes> request_bytes{};
+    EXPECT(encode_companion_action_request(
+               factory_reset(),
+               {request_bytes.data(), request_bytes.size()}).encoded());
+    EXPECT(request_bytes == expected_request);
+    const auto decoded_request = decode_companion_action_request(
+        {request_bytes.data(), request_bytes.size()});
+    EXPECT(decoded_request.decoded());
+    EXPECT(decoded_request.value.kind == CompanionActionKind::factory_reset);
+    EXPECT(decoded_request.value.critical_alert_id ==
+           UINT64_C(0x1122334455667788));
+
+    const CompanionActionResult admitted{
+        CompanionActionKind::factory_reset,
+        QuickStatusKind::ok,
+        UINT64_C(0x1122334455667788),
+        CompanionActionDisposition::admitted,
+        CompanionActionRejectReason::none,
+    };
+    const std::array<std::uint8_t, kCompanionActionResultBytes>
+        expected_result{
+            0x4F, 0x54, 0x52, 0x30, 0x00, 0x00, 0x01, 0x00,
+            0x05, 0x00, 0x00, 0x00, 0x88, 0x77, 0x66, 0x55,
+            0x44, 0x33, 0x22, 0x11,
+        };
+    std::array<std::uint8_t, kCompanionActionResultBytes> result_bytes{};
+    EXPECT(encode_companion_action_result(
+               admitted,
+               {result_bytes.data(), result_bytes.size()}).encoded());
+    EXPECT(result_bytes == expected_result);
+    const auto decoded_result = decode_companion_action_result(
+        {result_bytes.data(), result_bytes.size()});
+    EXPECT(decoded_result.decoded());
+    EXPECT(decoded_result.value.kind == CompanionActionKind::factory_reset);
+    EXPECT(decoded_result.value.disposition ==
+           CompanionActionDisposition::admitted);
+    EXPECT(decoded_result.value.critical_alert_id ==
+           UINT64_C(0x1122334455667788));
+
+    const auto service_data = encode_companion_reset_receipt_service_data(
+        UINT64_C(0x1122334455667788));
+    const std::array<std::uint8_t,
+                     kCompanionResetReceiptServiceDataBytes>
+        expected_service_data{
+            0xD1, 0xB7, 0x43, 0x1F, 0x4F, 0x0C, 0x10, 0xA2,
+            0xA3, 0x4E, 0x6B, 0x7C, 0x00, 0x2A, 0x0F, 0x5E,
+            'O', 'T', 'R', 'R', 0x01,
+            0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11,
+        };
+    EXPECT(service_data.valid);
+    EXPECT(service_data.bytes == expected_service_data);
+    EXPECT(!encode_companion_reset_receipt_service_data(0).valid);
+
+    auto changed = request_bytes;
+    changed[7] = 1;
+    EXPECT(decode_companion_action_request(
+               {changed.data(), changed.size()}).error ==
+           CompanionSemanticCodecError::reserved_bits_set);
+    changed = request_bytes;
+    for (std::size_t index = 8; index < 16; ++index) changed[index] = 0;
+    EXPECT(decode_companion_action_request(
+               {changed.data(), changed.size()}).error ==
+           CompanionSemanticCodecError::incoherent_action);
 }
 
 void test_action_requests_reject_ambiguous_or_unknown_values() {
@@ -524,6 +602,7 @@ int main() {
     test_four_canonical_quick_status_ids_round_trip();
     test_critical_acknowledgement_preserves_exact_device_alert_id();
     test_position_start_and_stop_are_explicit_distinct_intents();
+    test_factory_reset_has_exact_receipt_vectors();
     test_action_requests_reject_ambiguous_or_unknown_values();
     test_outbound_action_result_means_queued_not_delivered();
     test_local_and_rejected_results_are_typed_and_coherent();
@@ -535,6 +614,6 @@ int main() {
                   << " companion semantic codec assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 13 companion semantic payload scenario groups\n";
+    std::cout << "PASS: 14 companion semantic payload scenario groups\n";
     return EXIT_SUCCESS;
 }

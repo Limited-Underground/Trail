@@ -11,7 +11,6 @@ internal const val INVALID_AUTHORIZATION_RESULT_PUBLIC_TEXT =
 
 enum class DeviceAuthorizationPurpose {
     AUTHORIZE_THIS_PHONE,
-    REPLACE_LOST_PHONE,
 }
 
 sealed interface DeviceAuthorizationClaimEvent {
@@ -21,7 +20,6 @@ sealed interface DeviceAuthorizationClaimEvent {
     data class Pending(override val claimToken: String) : DeviceAuthorizationClaimEvent
     data class Accepted(override val claimToken: String) : DeviceAuthorizationClaimEvent
     data class Denied(override val claimToken: String) : DeviceAuthorizationClaimEvent
-    data class Replaced(override val claimToken: String) : DeviceAuthorizationClaimEvent
     /** Local transport outcome before an authoritative Pending; never a device denial. */
     data class Unavailable(override val claimToken: String) : DeviceAuthorizationClaimEvent
     /** Exact protected ProtocolInfo did not advertise the accepted claim contract. */
@@ -89,7 +87,6 @@ sealed interface DeviceAuthorizationUiState {
     data class InvalidResult(val purpose: DeviceAuthorizationPurpose) : DeviceAuthorizationUiState
     /** Timeout is uncertainty, never evidence that device authority was unchanged or rolled back. */
     data class Expired(val purpose: DeviceAuthorizationPurpose) : DeviceAuthorizationUiState
-    data class Replaced(val companion: BleDiscoveredCompanion) : DeviceAuthorizationUiState
     data class Unavailable(val purpose: DeviceAuthorizationPurpose) : DeviceAuthorizationUiState
     data class Unsupported(val purpose: DeviceAuthorizationPurpose) : DeviceAuthorizationUiState
     data class AuthorityUnknown(val purpose: DeviceAuthorizationPurpose) : DeviceAuthorizationUiState

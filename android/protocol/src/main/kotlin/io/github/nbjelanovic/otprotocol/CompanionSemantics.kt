@@ -36,7 +36,7 @@ enum class CompanionQuickStatus(val wireValue: Int) {
 }
 
 enum class CompanionActionKind(val wireValue: Int) {
-    QUICK_STATUS(1), ACKNOWLEDGE_CRITICAL_ALERT(2), START_POSITION_SHARING(3), STOP_POSITION_SHARING(4);
+    QUICK_STATUS(1), ACKNOWLEDGE_CRITICAL_ALERT(2), START_POSITION_SHARING(3), STOP_POSITION_SHARING(4), FACTORY_RESET(5);
 
     companion object { fun fromWire(value: Int) = entries.firstOrNull { it.wireValue == value } }
 }
@@ -95,12 +95,14 @@ data class CompanionActionRequest(
     val kind: CompanionActionKind,
     val quickStatus: CompanionQuickStatus = CompanionQuickStatus.OK,
     val criticalAlertId: ULong = 0uL,
+    val factoryResetReceipt: ULong = 0uL,
 )
 
 data class CompanionActionResult(
     val kind: CompanionActionKind,
     val quickStatus: CompanionQuickStatus = CompanionQuickStatus.OK,
     val criticalAlertId: ULong = 0uL,
+    val factoryResetReceipt: ULong = 0uL,
     val disposition: CompanionActionDisposition,
     val rejectReason: CompanionActionRejectReason = CompanionActionRejectReason.NONE,
 )
@@ -171,7 +173,12 @@ object CompanionSemanticCodec {
         actionRequestMagic.copyInto(output)
         output[6] = request.kind.wireValue.toByte()
         output[7] = if (request.kind == CompanionActionKind.QUICK_STATUS) request.quickStatus.wireValue.toByte() else 0
-        writeU64Le(output, 8, request.criticalAlertId)
+        val subject = when (request.kind) {
+            CompanionActionKind.ACKNOWLEDGE_CRITICAL_ALERT -> request.criticalAlertId
+            CompanionActionKind.FACTORY_RESET -> request.factoryResetReceipt
+            else -> 0uL
+        }
+        writeU64Le(output, 8, subject)
         return SemanticCodecResult.success(output)
     }
 
@@ -191,7 +198,13 @@ object CompanionSemanticCodec {
             ?: if (kind == CompanionActionKind.QUICK_STATUS) {
                 return SemanticCodecResult.failure(CompanionSemanticCodecError.INVALID_QUICK_STATUS)
             } else CompanionQuickStatus.OK
-        val request = CompanionActionRequest(kind, quickStatus, encoded.readU64Le(8))
+        val subject = encoded.readU64Le(8)
+        val request = CompanionActionRequest(
+            kind = kind,
+            quickStatus = quickStatus,
+            criticalAlertId = if (kind == CompanionActionKind.ACKNOWLEDGE_CRITICAL_ALERT) subject else 0uL,
+            factoryResetReceipt = if (kind == CompanionActionKind.FACTORY_RESET) subject else 0uL,
+        )
         validateAction(request)?.let { return SemanticCodecResult.failure(it) }
         return SemanticCodecResult.success(request)
     }
@@ -204,7 +217,12 @@ object CompanionSemanticCodec {
         output[7] = result.rejectReason.wireValue.toByte()
         output[8] = result.kind.wireValue.toByte()
         output[9] = if (result.kind == CompanionActionKind.QUICK_STATUS) result.quickStatus.wireValue.toByte() else 0
-        writeU64Le(output, 12, result.criticalAlertId)
+        val subject = when (result.kind) {
+            CompanionActionKind.ACKNOWLEDGE_CRITICAL_ALERT -> result.criticalAlertId
+            CompanionActionKind.FACTORY_RESET -> result.factoryResetReceipt
+            else -> 0uL
+        }
+        writeU64Le(output, 12, subject)
         return SemanticCodecResult.success(output)
     }
 
@@ -228,10 +246,12 @@ object CompanionSemanticCodec {
             ?: if (kind == CompanionActionKind.QUICK_STATUS) {
                 return SemanticCodecResult.failure(CompanionSemanticCodecError.INVALID_QUICK_STATUS)
             } else CompanionQuickStatus.OK
+        val subject = encoded.readU64Le(12)
         val result = CompanionActionResult(
             kind = kind,
             quickStatus = quickStatus,
-            criticalAlertId = encoded.readU64Le(12),
+            criticalAlertId = if (kind == CompanionActionKind.ACKNOWLEDGE_CRITICAL_ALERT) subject else 0uL,
+            factoryResetReceipt = if (kind == CompanionActionKind.FACTORY_RESET) subject else 0uL,
             disposition = disposition,
             rejectReason = rejectReason,
         )
@@ -269,14 +289,30 @@ object CompanionSemanticCodec {
     }
 
     private fun validateAction(request: CompanionActionRequest): CompanionSemanticCodecError? = when (request.kind) {
-        CompanionActionKind.QUICK_STATUS -> if (request.criticalAlertId == 0uL) null else CompanionSemanticCodecError.INCOHERENT_ACTION
-        CompanionActionKind.ACKNOWLEDGE_CRITICAL_ALERT -> if (request.criticalAlertId != 0uL) null else CompanionSemanticCodecError.INVALID_ALERT_ID
+        CompanionActionKind.QUICK_STATUS ->
+            if (request.criticalAlertId == 0uL && request.factoryResetReceipt == 0uL) null
+            else CompanionSemanticCodecError.INCOHERENT_ACTION
+        CompanionActionKind.ACKNOWLEDGE_CRITICAL_ALERT ->
+            if (request.criticalAlertId != 0uL && request.factoryResetReceipt == 0uL) null
+            else CompanionSemanticCodecError.INVALID_ALERT_ID
         CompanionActionKind.START_POSITION_SHARING,
-        CompanionActionKind.STOP_POSITION_SHARING -> if (request.criticalAlertId == 0uL) null else CompanionSemanticCodecError.INCOHERENT_ACTION
+        CompanionActionKind.STOP_POSITION_SHARING,
+        -> if (request.criticalAlertId == 0uL && request.factoryResetReceipt == 0uL) null
+        else CompanionSemanticCodecError.INCOHERENT_ACTION
+        CompanionActionKind.FACTORY_RESET ->
+            if (request.criticalAlertId == 0uL && request.factoryResetReceipt != 0uL) null
+            else CompanionSemanticCodecError.INCOHERENT_ACTION
     }
 
     private fun validateResult(result: CompanionActionResult): CompanionSemanticCodecError? {
-        validateAction(CompanionActionRequest(result.kind, result.quickStatus, result.criticalAlertId))?.let { return it }
+        validateAction(
+            CompanionActionRequest(
+                result.kind,
+                result.quickStatus,
+                result.criticalAlertId,
+                result.factoryResetReceipt,
+            ),
+        )?.let { return it }
         val outbound = result.kind == CompanionActionKind.QUICK_STATUS || result.kind == CompanionActionKind.ACKNOWLEDGE_CRITICAL_ALERT
         if (result.disposition == CompanionActionDisposition.REJECTED) {
             if (result.rejectReason == CompanionActionRejectReason.NONE) return CompanionSemanticCodecError.INCOHERENT_RESULT

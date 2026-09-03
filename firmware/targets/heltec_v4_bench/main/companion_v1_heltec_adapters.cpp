@@ -88,6 +88,12 @@ struct PrivateBondReferenceResult {
     companion::CompanionBondIdentityToken reference{};
 };
 
+struct PrivatePeerIdentityResult {
+    PrivateBondReferenceError error{PrivateBondReferenceError::not_ready};
+    ble_addr_t private_peer_identity{};
+    std::uint8_t bond_count{0};
+};
+
 bool exact_authenticated_sc_ltk(const ble_store_value_sec& value) {
     return value.ltk_present != 0 && value.authenticated != 0 &&
            value.sc != 0 &&
@@ -191,6 +197,49 @@ companion::CompanionV1BondInventorySnapshot nimble_bond_snapshot() {
             derived.reference;
     }
     result.error = companion::CompanionV1BondInventoryError::none;
+    result.bond_count = static_cast<std::uint8_t>(bond_count);
+    return result;
+}
+
+PrivatePeerIdentityResult find_exact_private_peer_identity(
+    companion::CompanionBondIdentityToken private_reference) {
+    PrivatePeerIdentityResult result{};
+    std::array<ble_addr_t, kMaximumBondReferences> private_peer_identities{};
+    int bond_count = 0;
+    const int inventory_error = ble_store_util_bonded_peers(
+        private_peer_identities.data(), &bond_count,
+        static_cast<int>(private_peer_identities.size()));
+    if (inventory_error == BLE_HS_ENOTSUP) {
+        result.error = PrivateBondReferenceError::not_ready;
+        return result;
+    }
+    if (inventory_error != 0 || bond_count < 0 ||
+        bond_count > static_cast<int>(private_peer_identities.size())) {
+        result.error = PrivateBondReferenceError::failed;
+        return result;
+    }
+
+    std::uint8_t matches = 0;
+    for (int index = 0; index < bond_count; ++index) {
+        const auto derived = derive_private_reference(
+            private_peer_identities[static_cast<std::size_t>(index)]);
+        if (derived.error != PrivateBondReferenceError::none) {
+            result = {};
+            result.error = derived.error;
+            return result;
+        }
+        if (derived.reference == private_reference) {
+            ++matches;
+            result.private_peer_identity =
+                private_peer_identities[static_cast<std::size_t>(index)];
+        }
+    }
+    if (matches != 1) {
+        result = {};
+        result.error = PrivateBondReferenceError::failed;
+        return result;
+    }
+    result.error = PrivateBondReferenceError::none;
     result.bond_count = static_cast<std::uint8_t>(bond_count);
     return result;
 }
@@ -348,6 +397,60 @@ HeltecV4CompanionV1NimbleBondAdapter::
 companion::CompanionV1BondInventorySnapshot
 HeltecV4CompanionV1NimbleBondAdapter::snapshot() {
     return nimble_bond_snapshot();
+}
+
+companion::CompanionV1BondCleanupResult
+HeltecV4CompanionV1NimbleBondAdapter::remove_exact_and_verify(
+    companion::CompanionBondIdentityToken private_reference) {
+    if (operation_active_ ||
+        !companion::valid_bond_identity(private_reference)) {
+        return {companion::CompanionV1BondCleanupError::failed, {}};
+    }
+
+    ScopedOperation operation(operation_active_);
+    auto exact_peer = find_exact_private_peer_identity(private_reference);
+    if (exact_peer.error == PrivateBondReferenceError::not_ready) {
+        secure_clear(&exact_peer.private_peer_identity,
+                     sizeof(exact_peer.private_peer_identity));
+        return {companion::CompanionV1BondCleanupError::not_ready, {}};
+    }
+    if (exact_peer.error != PrivateBondReferenceError::none) {
+        secure_clear(&exact_peer.private_peer_identity,
+                     sizeof(exact_peer.private_peer_identity));
+        return {companion::CompanionV1BondCleanupError::failed, {}};
+    }
+
+    if (reference_seen_ && reference_ == private_reference) {
+        reference_seen_ = false;
+        cached_ = false;
+        reference_ = {};
+        cached_result_ = {};
+    }
+    const std::uint8_t prior_bond_count = exact_peer.bond_count;
+    const int delete_error =
+        ble_store_util_delete_peer(&exact_peer.private_peer_identity);
+    secure_clear(&exact_peer.private_peer_identity,
+                 sizeof(exact_peer.private_peer_identity));
+    if (delete_error == BLE_HS_ENOTSUP) {
+        return {companion::CompanionV1BondCleanupError::not_ready, {}};
+    }
+    if (delete_error != 0) {
+        return {companion::CompanionV1BondCleanupError::uncertain, {}};
+    }
+
+    const auto verified = nimble_bond_snapshot();
+    if (verified.error != companion::CompanionV1BondInventoryError::none ||
+        prior_bond_count == 0 ||
+        verified.bond_count + 1U != prior_bond_count) {
+        return {companion::CompanionV1BondCleanupError::uncertain, verified};
+    }
+    for (std::uint8_t index = 0; index < verified.bond_count; ++index) {
+        if (verified.private_references[index] == private_reference) {
+            return {companion::CompanionV1BondCleanupError::uncertain,
+                    verified};
+        }
+    }
+    return {companion::CompanionV1BondCleanupError::none, verified};
 }
 
 companion::CompanionGattTrustedBindingResult

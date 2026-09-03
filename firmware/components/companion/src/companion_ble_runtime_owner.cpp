@@ -61,7 +61,9 @@ CompanionBleRuntimeError CompanionBleRuntimeOwner::contain(
     status_.termination_pending = false;
     status_.authorization_claims_closed = true;
     status_.normal_commands_closed = true;
-    if (!port_.contain_stack()) {
+    status_.stack_shutdown_complete = false;
+    status_.stack_shutdown_complete = port_.contain_stack();
+    if (!status_.stack_shutdown_complete) {
         status_.terminal_error =
             CompanionBleRuntimeError::stack_shutdown_failed;
         return CompanionBleRuntimeError::stack_shutdown_failed;

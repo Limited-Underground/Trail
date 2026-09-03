@@ -183,7 +183,7 @@ tests/host/ot164_heltec_v4_ble_pairing_window_v0_receipt_tests.py|4739|a11cbbea5
 tests/host/ot164_heltec_v4_ble_pairing_window_v1_authority_tests.py|5788|9fad2c29d46ab9a1dc2343bf1e9f3b3ae0a63799209c485943a3c7f788bb45cd|lf|lf|none|lf
 tests/benchmarks/display/OT-164-HELTEC-V4-BLE-PAIRING-WINDOW-EXECUTION-RECEIPT-V1.json|2890|3a6410b36eee38378c5a0c741a40c7eda567f105bfe9d6ded7411060b7169dca|lf|lf|none|lf
 tests/host/ot164_heltec_v4_ble_pairing_window_v1_success_record_tests.py|5295|07c7ead2a92f1c68c6c359de8d7800640e816f58d31b60b0e251aec8c079de7d|lf|lf|none|lf
-docs/decisions/0100-accept-ot164-fresh-ble-pairing-window.md|2809|e77ddb3f20ec594781597df047a23c357da31501d8ea9ef5bb8e47641d71584f|lf|lf|none|lf
+docs/decisions/0100-accept-ot164-fresh-ble-pairing-window.md|3134|5116d232d4993ca8c6c7115fceadea2d74ca3473c9ecd32d6de48ec7ac716a79|lf|lf|none|lf
 tests/hardware/OT-164-2026-08-29.md|3083|dcdc79ce1882b9138b0d4bbfc8c95c988b4425fd5567dfd1d4aba7dd8c33db96|lf|lf|none|lf
 tests/benchmarks/crypto/OT-148-OT005-PHASE-TWO-CORPUS-RECONCILIATION-V0.json|6249|beddc729f8449c3f2e3a09f62ba6947312f4e1893eee38abfa7a9a616f1bae1c|lf|lf|none|lf
 tools/crypto_phase_two_reconciliation.py|10959|f4fa81e2633d2e8da6109b129f53b686f45725da5ade9cab34c8dd161533c8b2|lf|lf|none|lf

@@ -5,6 +5,15 @@
 - Work item: OT-089
 - Scope: V1 Companion, V1.5 interoperability, BLE authorization, and LoRa security
 
+> **Current V1 supersession (2026-09-02):**
+> [Decision 0103](0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md) and
+> [`DEVICE_FACTORY_RESET_V1`](../platform/DEVICE_FACTORY_RESET_V1.md) replace
+> only this decision's pairing-window and phone-replacement clauses. V1 now
+> pairs automatically for 60 seconds on verified unowned boot, keeps owned boot
+> PIN-free, and uses destructive app/physical factory reset with no replacement
+> or lost-phone transfer. The topology, practical physical-access limitation,
+> secure-LoRa boundary, and historical evidence below remain unchanged.
+
 ## Context
 
 The earlier V1 Companion plan required four device-phone pairs and treated an

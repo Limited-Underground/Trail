@@ -5,6 +5,12 @@
 - Work item: OT-090
 - Scope: V1 Companion physical-presence BLE pairing, reconnect, and phone replacement
 
+> **Superseded as current V1 product behavior (2026-09-02):**
+> [Decision 0103](0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md) removes
+> phone replacement and replaces the manual 3-second/30-second opening rule with
+> one automatic 60-second pairing window on verified unowned boot. This decision
+> and `OTBP0/v0` remain immutable historical host-test evidence.
+
 ## Context
 
 [Decision 0033](0033-permanent-v1-v1-5-scope-and-security-boundary.md)

@@ -21,6 +21,10 @@ bool StartupDisplayOwner::start() {
 }
 
 bool StartupDisplayOwner::show(StartupDisplayFrame frame) {
+    if (frame == StartupDisplayFrame::factory_reset_confirmation ||
+        frame == StartupDisplayFrame::factory_resetting) {
+        return false;
+    }
     StartupDisplayView view{};
     view.frame = frame;
     view.has_footer = startup_display_compact_footer_page(frame, view.footer);
@@ -55,7 +59,8 @@ bool StartupDisplayOwner::show_footer(
 
 bool StartupDisplayOwner::show_pairing_pin(
     const std::array<char, 6>& digits) {
-    if (!started_ || !status_.available) {
+    if (!started_ || !status_.available ||
+        factory_reset_overlay_ != FactoryResetOverlay::none) {
         return false;
     }
     for (const auto digit : digits) {
@@ -101,6 +106,77 @@ bool StartupDisplayOwner::clear_pairing_pin() {
     return true;
 }
 
+bool StartupDisplayOwner::show_factory_reset_confirmation() {
+    if (!started_ || !status_.available || pairing_pin_visible_) {
+        return false;
+    }
+    if (factory_reset_overlay_ == FactoryResetOverlay::confirmation) {
+        return true;
+    }
+    if (factory_reset_overlay_ != FactoryResetOverlay::none) {
+        return false;
+    }
+
+    StartupDisplayView overlay{};
+    overlay.frame = StartupDisplayFrame::factory_reset_confirmation;
+    if (!port_.render(overlay)) {
+        (void)port_.conceal();
+        factory_reset_overlay_ = FactoryResetOverlay::none;
+        status_.available = false;
+        return false;
+    }
+    factory_reset_overlay_ = FactoryResetOverlay::confirmation;
+    ++status_.render_count;
+    return true;
+}
+
+bool StartupDisplayOwner::clear_factory_reset_confirmation() {
+    if (!started_ || !status_.available) {
+        return false;
+    }
+    if (factory_reset_overlay_ == FactoryResetOverlay::none) {
+        return true;
+    }
+    if (factory_reset_overlay_ != FactoryResetOverlay::none &&
+        factory_reset_overlay_ != FactoryResetOverlay::confirmation) {
+        return false;
+    }
+    if (!has_view_ || !port_.render(view_)) {
+        (void)port_.conceal();
+        factory_reset_overlay_ = FactoryResetOverlay::none;
+        status_.available = false;
+        return false;
+    }
+    factory_reset_overlay_ = FactoryResetOverlay::none;
+    ++status_.render_count;
+    return true;
+}
+
+bool StartupDisplayOwner::show_factory_reset_in_progress() {
+    if (!started_ || !status_.available || pairing_pin_visible_) {
+        return false;
+    }
+    if (factory_reset_overlay_ == FactoryResetOverlay::resetting) {
+        return true;
+    }
+    if (factory_reset_overlay_ != FactoryResetOverlay::none &&
+        factory_reset_overlay_ != FactoryResetOverlay::confirmation) {
+        return false;
+    }
+
+    StartupDisplayView overlay{};
+    overlay.frame = StartupDisplayFrame::factory_resetting;
+    if (!port_.render(overlay)) {
+        (void)port_.conceal();
+        factory_reset_overlay_ = FactoryResetOverlay::none;
+        status_.available = false;
+        return false;
+    }
+    factory_reset_overlay_ = FactoryResetOverlay::resetting;
+    ++status_.render_count;
+    return true;
+}
+
 bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
     if (!started_ || !status_.available) {
         return false;
@@ -110,7 +186,8 @@ bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
         (!view.has_footer || view_.footer.columns == view.footer.columns)) {
         return true;
     }
-    if (pairing_pin_visible_) {
+    if (pairing_pin_visible_ ||
+        factory_reset_overlay_ != FactoryResetOverlay::none) {
         view_ = view;
         has_view_ = true;
         status_.frame = view.frame;
@@ -191,6 +268,8 @@ bool startup_display_compact_footer_page(
             break;
         case StartupDisplayFrame::logo:
         case StartupDisplayFrame::self_check_failed:
+        case StartupDisplayFrame::factory_reset_confirmation:
+        case StartupDisplayFrame::factory_resetting:
         default:
             page = {};
             return false;
@@ -225,6 +304,10 @@ const char* startup_display_text(StartupDisplayFrame frame) {
             return "BLE RETRYING";
         case StartupDisplayFrame::ble_error:
             return "BLE ERROR";
+        case StartupDisplayFrame::factory_reset_confirmation:
+            return "ERASE ALL TRAIL DATA?";
+        case StartupDisplayFrame::factory_resetting:
+            return "RESETTING";
     }
     return "BLE ERROR";
 }

@@ -141,6 +141,26 @@ class ConnectedDeviceServiceTest {
     }
 
     @Test
+    fun activityLifecycleStopCancelsServiceOwnedFactoryResetConfirmationBeforeUnbinding() {
+        val fixture = fixture()
+        val port = FakePort(22).also {
+            it.state = it.state.copy(factoryResetConfirmationVisible = true)
+        }
+        fixture.controller.onLifecycleStart()
+        fixture.controller.chooseBluetoothDeviceMode()
+        fixture.controller.startBluetoothService()
+        fixture.connector.emit(0, ConnectedDeviceServiceConnection.Connected(port))
+        assertTrue(assertIs<TrailAppUiState.BluetoothDevice>(fixture.controller.state).factoryResetConfirmationVisible)
+
+        fixture.controller.onLifecycleStop()
+
+        assertEquals(1, port.cancelFactoryResetConfirmationCount)
+        assertEquals(1, port.observationCloseCount)
+        assertFalse(assertIs<TrailAppUiState.BluetoothDevice>(fixture.controller.state).factoryResetConfirmationVisible)
+        fixture.controller.close()
+    }
+
+    @Test
     fun newActivityOwnerRestoresNoServiceOrClaimAndDoesNotAutoBind() {
         val connector = FakeConnector()
         val first = fixture(connector = connector)
@@ -525,6 +545,7 @@ class ConnectedDeviceServiceTest {
         )
         var observationCloseCount = 0
         var authorizeCount = 0
+        var cancelFactoryResetConfirmationCount = 0
         private var observer: ((TrailAppUiState.BluetoothDevice) -> Unit)? = null
 
         override fun observe(
@@ -548,9 +569,12 @@ class ConnectedDeviceServiceTest {
         override fun authorize(endpointToken: String) {
             authorizeCount += 1
         }
-        override fun replaceLostPhone(endpointToken: String) = Unit
         override fun disconnect() = Unit
         override fun submitAction(request: CompanionActionRequest): Boolean = true
+        override fun cancelFactoryResetConfirmation() {
+            cancelFactoryResetConfirmationCount += 1
+            emit(state.copy(factoryResetConfirmationVisible = false))
+        }
     }
 
     private class FakeServiceController : TrailServiceController {
@@ -609,7 +633,6 @@ class ConnectedDeviceServiceTest {
         override fun refreshPermissionState() = Unit
         override fun startBluetoothService() = Unit
         override fun selectBluetoothDevice(endpointToken: String) = Unit
-        override fun replaceLostPhoneWithBluetoothDevice(endpointToken: String) = Unit
         override fun disconnectBluetoothDevice() = Unit
         override fun submitBluetoothAction(request: CompanionActionRequest): Boolean = false
     }

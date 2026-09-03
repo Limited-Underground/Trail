@@ -12,6 +12,15 @@ Authority: [Decision 0034](../decisions/0034-host-tested-ble-pairing-replacement
 under the permanent [Decision 0033](../decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
 V1 boundary.
 
+> **Superseded as current V1 product authority (2026-09-02):**
+> [Decision 0103](../decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md)
+> and [`DEVICE_FACTORY_RESET_V1`](DEVICE_FACTORY_RESET_V1.md) remove the phone-
+> replacement flow and replace the manual 3-second/30-second opening rule with
+> one automatic 60-second pairing window on verified unowned boot. An owned
+> boot is PIN-free; lost-phone recovery requires destructive factory reset.
+> This frozen `OTBP0/v0` document and its tests remain immutable historical
+> evidence of the exact contract they validated.
+
 ## Purpose and nonclaim
 
 This contract freezes the practical physical-presence pairing, reconnect, and

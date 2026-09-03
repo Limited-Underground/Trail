@@ -9,29 +9,29 @@ evidence exists,
 
 ## Current V1 supersession notice
 
-[Decision 0033](../decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
-preserves this host/build evidence but supersedes the independent monotonic
-rollback floor as a V1 prerequisite. Current V1 must instead implement a
-normally closed exact 30-second window opened by holding the designated target-
-neutral local input for at least 3000 ms and releasing it. Each window receives
-one fresh uniformly sampled, locally displayed six-decimal-digit passkey and
-admits one Bluetooth LE Secure Connections-only, MITM-authenticated passkey
-pairing attempt with bonding and an exact 16-byte/128-bit key. One current controller, saved-
-bond reconnect, and replacement confirmed by a second qualifying hold/release
-before the original deadline use ordinary application-protected storage.
-Factory reset, reflashing, invasive physical access, or an
-old-flash restore may reset/roll back ownership. OT-090 now freezes and
-host-tests the separate exact [`OTBP0/v0`](BLE_PAIRING_REPLACEMENT_V0.md)
-pairing/reconnect/replacement state contract. Target and Android implementation,
-ordinary application-protected storage binding, physical pairing/replacement,
-and protected-control acceptance remain open; no older host result is
-relabelled as evidence for them.
+[Decision 0103](../decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md)
+and [`DEVICE_FACTORY_RESET_V1`](DEVICE_FACTORY_RESET_V1.md) preserve this
+host/build evidence but supersede the former V1 replacement and manual-window
+behavior. Current V1 pairing is available only on verified unowned boot, which
+automatically opens exactly one 60-second window with one fresh locally
+displayed six-decimal-digit passkey and D1 advertising marker. An owned boot
+exposes no D1 or PIN and accepts only the saved controller. Returning-owner
+discovery requires exactly one observed D0 candidate already present in
+Android's current bonded-device set; it never creates a bond or uses a PIN, and
+protected normal `ProtocolInfo` plus device-owner authorization must pass before
+`Ready`. V1 has no phone-replacement or lost-phone transfer path.
+The authorized app may request destructive reset after explicit in-app
+confirmation without a Heltec confirmation; physical recovery requires the
+10-second hold, warning, release, and short press within 10 seconds. Both paths
+must erase and verify all user data and BLE bonds before returning to unowned
+pairing. OT-090 and `OTBP0/v0` remain historical host evidence. Target and
+Android integration, power-interruption recovery, physical reset, and
+protected-control acceptance remain open; no older host result is relabelled as
+evidence for them.
 
-Everything below this notice describes the preserved pre-Decision-0033
-rollback-floor-based host/build slices unless an OT-090 cross-reference says
-otherwise. Those exact records, tokens, claim/revoke/reset actions, and trusted-
-generation requirements are not silently reinterpreted as the practical
-`OTBP0/v0` V1 implementation.
+Everything below this notice describes preserved historical host/build slices.
+Those exact records, tokens, claim/revoke/reset actions, and trusted-generation
+requirements are not silently reinterpreted as the current V1 implementation.
 
 ## Preserved historical authority boundary
 

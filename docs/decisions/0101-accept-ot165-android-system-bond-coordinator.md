@@ -4,6 +4,11 @@
 - **Date:** 2026-08-30
 - **Scope:** Android initial system pairing admission for one exact selected BLE candidate
 
+> **Current V1 clarification (2026-09-02):** OT-165 remains accepted historical
+> implementation evidence for Android-owned passkey entry. Decision 0103 makes
+> that initial attempt eligible only during the device's automatic 60-second
+> unowned-boot window and provides no phone-replacement path.
+
 ## Context
 
 OT-164 physically accepted the target-side fresh six-digit pairing window, but

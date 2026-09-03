@@ -1,6 +1,7 @@
 package io.github.nbjelanovic.otclient
 
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
+import io.github.nbjelanovic.otprotocol.COMPANION_FACTORY_RESET_CAPABILITY
 
 enum class TrailConnectionMode {
     LOCAL_TEST,
@@ -17,6 +18,8 @@ fun interface NearbyDevicesPermissionReader {
     fun current(): NearbyDevicesPermissionState
 }
 
+internal const val FACTORY_RESET_CONFIRMATION_FRESHNESS_MILLIS = 30_000L
+
 sealed interface TrailAppUiState {
     data object ChooseMode : TrailAppUiState
 
@@ -28,6 +31,7 @@ sealed interface TrailAppUiState {
         val permissionRequestInFlight: Boolean,
         val permissionWasDenied: Boolean,
         val authorizationState: DeviceAuthorizationUiState,
+        val factoryResetConfirmationVisible: Boolean = false,
         val serviceState: ConnectedDeviceServiceUiState = ConnectedDeviceServiceUiState.START_REQUIRED,
         val notificationPermissionState: NotificationPermissionState = NotificationPermissionState.NOT_REQUIRED,
         val serviceFailure: ConnectedDeviceServiceStartFailure? = null,
@@ -60,6 +64,10 @@ class TrailAppController(
     private var deferredLifecycleActive: Boolean? = null
     private var closeDeferred = false
     private var authorizationState: DeviceAuthorizationUiState = DeviceAuthorizationUiState.None
+    private var factoryResetConfirmation: FactoryResetConfirmationAuthority? = null
+    private var factoryResetConfirmationDeadline: BleReconnectLease? = null
+    private var factoryResetConfirmationGeneration = 0L
+    private var deferredFactoryResetConfirmationExpiryGeneration: Long? = null
     private var authorizationGeneration = 0L
     private var activeAuthorizationGeneration = 0L
     private var authorizationClaimToken: String? = null
@@ -95,6 +103,12 @@ class TrailAppController(
         ) : DeferredAuthorizationCallback
     }
 
+    private data class FactoryResetConfirmationAuthority(
+        val endpointToken: String,
+        val sessionNonce: Long,
+        val generation: Long,
+    )
+
     init {
         requireOwnerThread()
         localController.observe(::onLocalState)
@@ -113,6 +127,7 @@ class TrailAppController(
     override fun chooseLocalTestMode() {
         requireOwnerThread()
         if (!canMutate()) return
+        clearFactoryResetConfirmation()
         mode = TrailConnectionMode.LOCAL_TEST
         permissionRequestInFlight = false
         releaseAuthorization(DeviceAuthorizationUiState.None)
@@ -123,6 +138,7 @@ class TrailAppController(
     override fun chooseBluetoothDeviceMode() {
         requireOwnerThread()
         if (!canMutate()) return
+        clearFactoryResetConfirmation()
         mode = TrailConnectionMode.BLUETOOTH_DEVICE
         releaseLocalSession()
         releaseAuthorization(DeviceAuthorizationUiState.None)
@@ -134,6 +150,7 @@ class TrailAppController(
     override fun returnToModeChoice() {
         requireOwnerThread()
         if (!canMutate()) return
+        clearFactoryResetConfirmation()
         mode = null
         permissionRequestInFlight = false
         releaseLocalSession()
@@ -240,14 +257,10 @@ class TrailAppController(
         beginDeviceAuthorization(endpointToken, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
     }
 
-    override fun replaceLostPhoneWithBluetoothDevice(endpointToken: String) {
-        requireOwnerThread()
-        beginDeviceAuthorization(endpointToken, DeviceAuthorizationPurpose.REPLACE_LOST_PHONE)
-    }
-
     override fun disconnectBluetoothDevice() {
         requireOwnerThread()
         if (mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate()) {
+            clearFactoryResetConfirmation()
             releaseAuthorization(DeviceAuthorizationUiState.None)
             bluetoothRuntime.disconnect()
         }
@@ -256,6 +269,76 @@ class TrailAppController(
     override fun submitBluetoothAction(request: CompanionActionRequest): Boolean {
         requireOwnerThread()
         return mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.submitAction(request)
+    }
+
+    override fun requestFactoryResetConfirmation(): Boolean {
+        requireOwnerThread()
+        if (mode != TrailConnectionMode.BLUETOOTH_DEVICE || !canMutate()) return false
+        val ready = bluetoothRuntime.state as? BleRuntimeState.Ready ?: return false
+        if ((ready.session.protocolInfo.capabilities and COMPANION_FACTORY_RESET_CAPABILITY) == 0) return false
+        clearFactoryResetConfirmation()
+        val generation = nextFactoryResetConfirmationGeneration() ?: run {
+            publishBluetooth()
+            return false
+        }
+        factoryResetConfirmation = FactoryResetConfirmationAuthority(
+            ready.session.companion.endpointToken,
+            ready.session.sessionNonce,
+            generation,
+        )
+        val deadline = try {
+            authorizationScheduler.schedule(FACTORY_RESET_CONFIRMATION_FRESHNESS_MILLIS) {
+                onFactoryResetConfirmationExpired(generation)
+            }
+        } catch (_: Exception) {
+            clearFactoryResetConfirmation()
+            publishBluetooth()
+            return false
+        }
+        if (!closed && factoryResetConfirmation?.generation == generation) {
+            factoryResetConfirmationDeadline = deadline
+        } else {
+            try {
+                deadline.close()
+            } catch (_: Exception) {
+                // The returned timer has no authority even if adapter cleanup reports failure.
+            }
+            return false
+        }
+        publishBluetooth()
+        return true
+    }
+
+    override fun cancelFactoryResetConfirmation() {
+        requireOwnerThread()
+        if (!canMutate() || factoryResetConfirmation == null) return
+        clearFactoryResetConfirmation()
+        publishBluetooth()
+    }
+
+    override fun confirmFactoryReset(): Boolean {
+        requireOwnerThread()
+        if (mode != TrailConnectionMode.BLUETOOTH_DEVICE || !canMutate()) return false
+        val confirmation = factoryResetConfirmation ?: return false
+        val ready = bluetoothRuntime.state as? BleRuntimeState.Ready
+        val stillExactSession =
+            ready?.session?.companion?.endpointToken == confirmation.endpointToken &&
+                ready.session.sessionNonce == confirmation.sessionNonce
+        clearFactoryResetConfirmation()
+        if (!stillExactSession) {
+            publishBluetooth()
+            return false
+        }
+        val submitted = bluetoothRuntime.submitFactoryReset()
+        if (!submitted) publishBluetooth()
+        return submitted
+    }
+
+    override fun retryFactoryResetVerification(): Boolean {
+        requireOwnerThread()
+        return mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            canMutate() &&
+            bluetoothRuntime.retryFactoryResetVerification()
     }
 
     override fun onLifecycleStart() {
@@ -274,6 +357,7 @@ class TrailAppController(
         if (deliveringObserver) {
             deferredLifecycleActive = false
         } else {
+            clearFactoryResetConfirmation()
             expirePendingAuthorization()
             bluetoothRuntime.onLifecycleStop()
         }
@@ -296,6 +380,7 @@ class TrailAppController(
         permissionRequestInFlight = false
         deferredLifecycleActive = null
         closeDeferred = false
+        clearFactoryResetConfirmation()
         releaseLocalSession()
         releaseAuthorization(DeviceAuthorizationUiState.None)
         localController.observe(null)
@@ -312,6 +397,15 @@ class TrailAppController(
 
     private fun onBluetoothState(next: BleRuntimeState) {
         requireOwnerThread()
+        factoryResetConfirmation?.let { confirmation ->
+            val ready = next as? BleRuntimeState.Ready
+            if (
+                ready?.session?.companion?.endpointToken != confirmation.endpointToken ||
+                ready.session.sessionNonce != confirmation.sessionNonce
+            ) {
+                clearFactoryResetConfirmation()
+            }
+        }
         if (!closed && mode == TrailConnectionMode.BLUETOOTH_DEVICE) publishBluetooth(next)
     }
 
@@ -323,6 +417,7 @@ class TrailAppController(
                 permissionRequestInFlight = permissionRequestInFlight,
                 permissionWasDenied = permissionWasDenied,
                 authorizationState = authorizationState,
+                factoryResetConfirmationVisible = factoryResetConfirmation != null,
             ),
         )
     }
@@ -352,6 +447,7 @@ class TrailAppController(
             deliveringObserver = false
             drainDeferredLifecycle()
             drainDeferredAuthorizationCallbacks()
+            drainDeferredFactoryResetConfirmationExpiry()
         }
     }
 
@@ -372,10 +468,47 @@ class TrailAppController(
         when (requestedLifecycleState) {
             true -> bluetoothRuntime.onLifecycleStart()
             false -> {
+                clearFactoryResetConfirmation()
                 expirePendingAuthorization()
                 bluetoothRuntime.onLifecycleStop()
             }
             null -> Unit
+        }
+    }
+
+    private fun nextFactoryResetConfirmationGeneration(): Long? {
+        if (factoryResetConfirmationGeneration == Long.MAX_VALUE) return null
+        factoryResetConfirmationGeneration += 1
+        return factoryResetConfirmationGeneration
+    }
+
+    private fun onFactoryResetConfirmationExpired(generation: Long) {
+        requireOwnerThread()
+        if (closed || factoryResetConfirmation?.generation != generation) return
+        if (deliveringObserver) {
+            deferredFactoryResetConfirmationExpiryGeneration = generation
+            return
+        }
+        clearFactoryResetConfirmation()
+        if (mode == TrailConnectionMode.BLUETOOTH_DEVICE) publishBluetooth()
+    }
+
+    private fun drainDeferredFactoryResetConfirmationExpiry() {
+        if (deliveringObserver || closed) return
+        val generation = deferredFactoryResetConfirmationExpiryGeneration ?: return
+        deferredFactoryResetConfirmationExpiryGeneration = null
+        onFactoryResetConfirmationExpired(generation)
+    }
+
+    private fun clearFactoryResetConfirmation() {
+        factoryResetConfirmation = null
+        deferredFactoryResetConfirmationExpiryGeneration = null
+        val deadline = factoryResetConfirmationDeadline
+        factoryResetConfirmationDeadline = null
+        try {
+            deadline?.close()
+        } catch (_: Exception) {
+            // Local reset authority is already invalidated before timer cleanup is attempted.
         }
     }
 
@@ -538,18 +671,6 @@ class TrailAppController(
                     return
                 }
                 finishAuthorizationDenied(purpose)
-            }
-            is DeviceAuthorizationClaimEvent.Replaced -> {
-                if (
-                    purpose != DeviceAuthorizationPurpose.REPLACE_LOST_PHONE ||
-                    !matchesActiveAuthorizationToken(event.claimToken)
-                ) {
-                    finishAuthorizationInvalidResult(purpose)
-                    return
-                }
-                finishAuthorizationLease()
-                authorizationState = DeviceAuthorizationUiState.Replaced(candidate)
-                if (!bluetoothRuntime.authorizationAccepted(candidate.endpointToken)) publishBluetooth()
             }
             is DeviceAuthorizationClaimEvent.Unavailable -> {
                 if (authorizationState !is DeviceAuthorizationUiState.Starting) {

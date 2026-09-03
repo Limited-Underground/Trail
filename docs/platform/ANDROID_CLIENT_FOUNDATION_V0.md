@@ -14,6 +14,19 @@ advertisement-visibility evidence only—not GATT, authorization, Ready, LoRa, o
 supported-hardware evidence. OT-062 adds only exact artwork packaging and one
 owner-accepted physical visual observation.
 
+> **Current V1 supersession:** Decision 0103 and
+> [`DEVICE_FACTORY_RESET_V1`](DEVICE_FACTORY_RESET_V1.md) replace the historical
+> authorize/replace-lost-phone presentation below. V1 now uses one automatic
+> 60-second D1 pairing window on verified unowned boot and a separate PIN-free
+> returning-owner route that accepts exactly one observed D0 candidate from
+> Android's currently bonded devices. Returning reconnect never calls
+> `createBond`, and protected normal `ProtocolInfo` plus current device-owner
+> authorization must pass before `Ready`. An owned boot exposes no D1 or PIN.
+> Destructive app/physical factory reset is the only recovery route. The existing
+> OT-047-era text and tests remain historical implementation evidence and are not
+> rewritten here. OT-168 remains partial pending complete validation and physical
+> evidence.
+
 ## Accepted boundary
 
 The accepted Android foundation has twelve layers:

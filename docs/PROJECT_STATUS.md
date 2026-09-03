@@ -1,6 +1,6 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-08-31
+Status date: 2026-09-02
 
 Public repository: <https://github.com/Limited-Underground/Trail>
 
@@ -11,6 +11,59 @@ history, and the exact OT-165 commit were preserved. The former URL redirects
 to the current repository. Stable `OpenTrail`, `OT-*`, protocol, schema,
 package, cryptographic, and device identifiers remain unchanged. This
 administrative migration changes no hardware, V1 evidence, or readiness claim.
+
+OT-168 is the active partial V1 factory-reset and boot-pairing increment.
+[Decision 0103](decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md)
+and [`DEVICE_FACTORY_RESET_V1`](platform/DEVICE_FACTORY_RESET_V1.md) remain the
+current authority: no phone replacement; one automatic 60-second D1/fresh-PIN
+window only on verified unowned boot; PIN-free D0 saved-owner reconnect; app
+reset after explicit confirmation without Heltec confirmation; and physical
+reset by a 10-second hold, warning, release, and short press within 10 seconds.
+Both routes converge on one fail-closed complete user-data, map, and BLE-bond
+wipe before unowned restart.
+
+The implemented app-reset correlation is privacy-safe and non-authorizing. The
+app places a random nonzero 64-bit receipt little-endian in the `OTA0/v0`
+subject slot, and the device must echo it exactly in `OTR0/v0`. `ADMITTED`
+means only that the durable reset intent was accepted, never that erasure is
+complete. After verified cleanup, the next D1 window carries the exact 13-byte
+service-data payload `OTRR` + version `0x01` + the same little-endian receipt.
+The app persists only that receipt and one coherent issued/expiry window of at
+most 120 seconds; rollback, corrupt bounds, or expiry clear it fail closed. It
+persists no address, endpoint, device/user identity, or PIN. Unknown
+command outcomes retain the receipt and verify without resubmitting the reset.
+Only an exact receipt match can complete verification, and the receipt grants
+no pairing, GATT, or owner authority. Android never uses hidden bond-removal
+APIs; a stale system bond is removed through Android Bluetooth settings after
+verified reset.
+
+The Heltec binding records intent, state, and receipt in one versioned 16-byte
+`OTFR` blob at `ot_reset_v1/record_v1`. Its single-key whole-record
+transitions preserve only old/new records across power loss. A pending receipt
+is erased, committed, and read back absent before its RAM copy may appear in
+`OTRR`; transient consumption uncertainty reboots into fresh reconciliation
+without opening normal BLE.
+
+Final focused firmware evidence is green: Heltec reset storage passes, Heltec
+target admission passes 15/15, companion semantics passes 14/14, the reset
+executor passes 17 scenario groups, the physical gesture passes 9 groups, and
+the reset authority passes 7 groups. The final pinned ESP-IDF v6.0.2 Heltec
+application is 549,184 bytes with SHA-256
+`90FE9479653F16000D71BC7AA76EA3ECB41F6FF0B4CF7A263E6056E054AC0454`
+and 89% of the application slot free.
+
+The post-audit Android foundation gate is also green: `BUILD SUCCESSFUL` in 57
+seconds with 137 actionable tasks (10 executed and 127 up-to-date), 347
+protocol/debug/release unit tests with zero failures, errors, or skipped tests,
+debug/release lint and assembly, instrumentation assembly, and unsigned-release
+inspection. The final unsigned release APK is 8,508,592 bytes with SHA-256
+`56897297b7512ef4a3fdc35a256d3a2e59fddd7b78b9efa2fc8ee69f1e15e1d3`.
+The complete Host matrix, power-interruption acceptance, physical acceptance
+on both Heltecs, and coherent two-phone evidence remain pending. OT-168 stays
+partial; Android remains 60%; V1 remains exact 43.75%/displayed 44%.
+Historical 30-second/replacement observations stay immutable. The owner
+deferred website inspection and synchronization until the two-device/two-phone
+milestone, so no website update is required here.
 
 OT-166 accepts the build-linked Heltec V4 durable V1 BLE bond-owner path. The
 target initializes a dedicated ordinary NVS partition without erase recovery,
@@ -2920,9 +2973,12 @@ resource evidence. OT-163 admits no Noise XK radio-cost result after its sole
 authority fails closed and restores both nodes exactly. Phase 2 therefore
 remains incomplete; corrected mbedTLS/PSA execution, Noise XK radio-cost
 measurement, independent reconciliation/admission, and explicit suite/library,
-handshake/KDF, and packet-v1 wire selection remain open. The next
-owner-prioritized implementation is fresh-window six-digit BLE pairing firmware;
-remaining crypto work stays open rather than being treated as completed.
+handshake/KDF, and packet-v1 wire selection remain open. The active owner-
+prioritized increment is OT-168 implementation and validation of the approved
+factory-reset and unowned-boot pairing contract. It must not reintroduce
+replacement or claim completion before host, Android, target, power-
+interruption, and physical acceptance pass. Remaining crypto work stays open
+rather than being treated as completed.
 Secure-LoRa target/Android implementation, physical acceptance, and the coherent
 two-pair run remain later gates. Continue the partially
 executed OT-020 procedure without reconstructing the Wio's unpreserved shipping
@@ -2947,3 +3003,67 @@ evidence](../tests/hardware/OT-101-2026-08-21.md), [OT-101A
 evidence](../tests/hardware/OT-101A-2026-08-21.md), [OT-115
 evidence](../tests/hardware/OT-115-2026-08-21.md), and [OT-147
 evidence](../tests/hardware/OT-147-2026-08-26.md).
+
+## 2026-09-03 live BLE snapshot-adapter finding
+
+A clean selected-Heltec/Note20 run advanced beyond the previously recorded
+protected-read failure: encrypted passkey bond, ProtocolInfo, MTU 151, Stream
+subscription, claim Pending/Accepted, both indication confirmations, and session
+promotion were observed. The mandatory first normal Command was the Android
+SNAPSHOT_REQUEST and failed deterministically as firmware error 34.
+
+Source inspection identified the direct cause: the Heltec runtime's sole live
+request coordinator was composed with `DeniedSnapshotAuthority`, which always
+returned `not_ready`. The target now uses the stateless fixed truthful authority
+while retaining the denied class for deliberate negative configurations. The
+focused C++ lifecycle regression passes 12 groups, the focused Android
+same-session Snapshot-to-Ready regression passes, all 16 target-admission groups
+pass, and the complete host matrix exits 0. ESP-IDF 6.0.2 builds the 551,472-byte
+esp32s3 application with SHA-256
+`ECCEA30BCB0FCA5A85C870A2EAB5C79FBC1D766BE08455C186EE6A81CE980669`.
+No flash or new hardware run is claimed; physical Snapshot-to-Ready remains
+pending, and live QUICK_STATUS remains unsupported independently of this fix.
+See [the Heltec snapshot authority mapping](testing/HELTEC_V4_SNAPSHOT_AUTHORITY_MAPPING.md).
+
+## 2026-09-03 returning-owner service-discovery correction
+
+The clean Note20/Heltec path subsequently reached Snapshot and Ready and is the
+accepted first-connection baseline. A separate immediate saved-bond reconnect
+connected successfully at the BLE link layer but failed during service
+discovery. The diagnostic app reported identity-free
+`BLE-GATT-PLATFORM-FAILURE`; address-redacted Android system logs recorded ATT
+opcode `0x1d`, an incorrect-discovery-opcode warning, no server cache, and an
+empty GATT database before the app closed the connection.
+
+Pinned ESP-IDF 6.0.2 source proves that bonded CCCD restoration can emit a
+pending indication synchronously when its persisted `value_changed` bit is set.
+This occurs without an OpenTrail command. A test-first Heltec correction now
+clears only those pending bits after NimBLE store initialization and before
+host exposure. It preserves bonds, CCCD records and subscription flags, the
+standard GATT service and handles, Android policy, security, authorization, and
+all command-driven indication behavior; any store inconsistency fails startup
+closed.
+
+The pinned-source regression first failed on the missing safeguard and now
+passes. All 16 Heltec target-admission groups pass. The complete host validation
+sequence passes after removing one machine-local SDK path from this handoff,
+and ESP-IDF 6.0.2 builds the ESP32-S3 application with no compiler or linker
+warnings. The current image is 551,584 bytes with SHA-256
+`B34C95FEC6CA2D319A914292E1D04466A1276D52C5D52B144B42CBDF365684E6`.
+The 551,584-byte application was then written only at `0x10000` on the selected
+test Heltec and independently verified; the second Heltec and all nonapplication
+partitions were untouched. A fresh, app/service-force-stopped Note20 attempt
+retained the saved bond, ran the full returning-owner scan, admitted one
+candidate, and connected at the BLE link layer. Service discovery nevertheless
+received the same ATT `0x1d`, produced the same incorrect-opcode/empty-database
+failure, and closed before ProtocolInfo. The startup sanitation is therefore
+not physically accepted, and no downstream authorization or Snapshot test is
+claimed. Hardware work is paused pending a narrower read-only diagnosis.
+
+The finished Android requirement is now explicit: opening the app with an
+already authorized bond must automatically select the production Bluetooth
+path, start or attach its service, reconnect, and reach Ready with zero further
+user interaction. The current mode chooser, explicit service-start button, and
+production-visible Local test entry are development scaffolding, not accepted
+V1 UX. See [the returning-owner reconnect
+mapping](testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md).

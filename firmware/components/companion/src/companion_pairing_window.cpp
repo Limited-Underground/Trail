@@ -96,9 +96,24 @@ void CompanionPairingWindow::clear_private_state() {
     secure_clear(&passkey_, sizeof(passkey_));
     candidate_ = {};
     candidate_bound_ = false;
+    candidate_bonded_ = false;
     deadline_ms_ = 0;
     status_.passkey_displayed = false;
     status_.attempt_consumed = false;
+}
+
+CompanionPairingWindowError
+CompanionPairingWindow::require_candidate_cleanup(
+    CompanionPairingWindowError result) {
+    const bool needed_clear = status_.passkey_displayed;
+    secure_clear(&passkey_, sizeof(passkey_));
+    deadline_ms_ = 0;
+    status_.passkey_displayed = false;
+    status_.phase = CompanionPairingWindowPhase::candidate_cleanup_required;
+    if (needed_clear && !display_.clear_pairing_pin()) {
+        return CompanionPairingWindowError::display_clear_failed;
+    }
+    return result;
 }
 
 CompanionPairingWindowError CompanionPairingWindow::close_window(
@@ -115,6 +130,9 @@ CompanionPairingWindowError CompanionPairingWindow::close_window(
 
 CompanionPairingWindowError CompanionPairingWindow::contain_fault(
     CompanionPairingWindowError result) {
+    if (candidate_bonded_) {
+        return require_candidate_cleanup(result);
+    }
     const bool needed_clear = status_.passkey_displayed;
     clear_private_state();
     status_.phase = CompanionPairingWindowPhase::faulted;
@@ -125,8 +143,7 @@ CompanionPairingWindowError CompanionPairingWindow::contain_fault(
 
 CompanionPairingWindowError CompanionPairingWindow::open_window(
     std::uint64_t now_ms, std::uint64_t physical_event,
-    std::uint64_t hold_ms, bool released,
-    CompanionPairingPurpose purpose) {
+    std::uint64_t hold_ms, bool released) {
     if (!enter_operation()) return CompanionPairingWindowError::reentrant_call;
     const auto observed = observe_time(now_ms);
     if (observed != CompanionPairingWindowError::none) {
@@ -138,10 +155,6 @@ CompanionPairingWindowError CompanionPairingWindow::open_window(
     if (status_.phase != CompanionPairingWindowPhase::closed) {
         leave_operation();
         return CompanionPairingWindowError::window_not_available;
-    }
-    if (purpose != CompanionPairingPurpose::claim &&
-        purpose != CompanionPairingPurpose::replacement) {
-        leave_operation(); return CompanionPairingWindowError::invalid_argument;
     }
     if (hold_ms < kCompanionPairingMinimumHoldMs || !released) {
         leave_operation();
@@ -179,11 +192,24 @@ CompanionPairingWindowError CompanionPairingWindow::open_window(
     secure_clear(&sampled_passkey, sizeof(sampled_passkey));
     deadline_ms_ = now_ms + kCompanionPairingWindowMs;
     status_.phase = CompanionPairingWindowPhase::open;
-    status_.purpose = purpose;
     status_.passkey_displayed = true;
     status_.attempt_consumed = false;
     leave_operation();
     return CompanionPairingWindowError::none;
+}
+
+CompanionPairingWindowError
+CompanionPairingWindow::open_unowned_boot_window(
+    std::uint64_t now_ms, std::uint64_t boot_event) {
+    if (unowned_boot_window_consumed_) {
+        return CompanionPairingWindowError::attempt_already_consumed;
+    }
+    const auto result = open_window(now_ms, boot_event,
+                                    kCompanionPairingMinimumHoldMs, true);
+    if (result == CompanionPairingWindowError::none) {
+        unowned_boot_window_consumed_ = true;
+    }
+    return result;
 }
 
 CompanionPairingWindowError CompanionPairingWindow::service(
@@ -199,8 +225,10 @@ CompanionPairingWindowError CompanionPairingWindow::service(
     if ((status_.phase == CompanionPairingWindowPhase::open ||
          status_.phase == CompanionPairingWindowPhase::attempt_active) &&
         now_ms >= deadline_ms_) {
-        const auto result = close_window(
-            CompanionPairingWindowError::window_expired);
+        const auto result = candidate_bonded_
+            ? require_candidate_cleanup(
+                  CompanionPairingWindowError::candidate_cleanup_required)
+            : close_window(CompanionPairingWindowError::window_expired);
         leave_operation(); return result;
     }
     leave_operation();
@@ -246,10 +274,23 @@ CompanionPairingWindow::handle_passkey_action_impl(
     if (status_.phase == CompanionPairingWindowPhase::closed) {
         leave_operation(); return CompanionPairingWindowError::window_closed;
     }
-    if (now_ms >= deadline_ms_) {
-        const auto result = defer_cleanup
-            ? CompanionPairingWindowError::window_expired
-            : close_window(CompanionPairingWindowError::window_expired);
+    if (status_.phase ==
+        CompanionPairingWindowPhase::candidate_cleanup_required) {
+        leave_operation();
+        return CompanionPairingWindowError::candidate_cleanup_required;
+    }
+    if ((status_.phase == CompanionPairingWindowPhase::open ||
+         status_.phase == CompanionPairingWindowPhase::attempt_active) &&
+        now_ms >= deadline_ms_) {
+        const auto result = candidate_bonded_
+            ? (defer_cleanup
+                   ? CompanionPairingWindowError::candidate_cleanup_required
+                   : require_candidate_cleanup(
+                         CompanionPairingWindowError::
+                             candidate_cleanup_required))
+            : (defer_cleanup
+                   ? CompanionPairingWindowError::window_expired
+                   : close_window(CompanionPairingWindowError::window_expired));
         leave_operation(); return result;
     }
     if (!valid_candidate(candidate)) {
@@ -277,10 +318,78 @@ CompanionPairingWindow::handle_passkey_action_impl(
     return CompanionPairingWindowError::none;
 }
 
+CompanionPairingWindowError
+CompanionPairingWindow::reserve_secure_bond_terminal(
+    std::uint64_t now_ms, CompanionPairingCandidate candidate) {
+    if (!enter_operation()) return CompanionPairingWindowError::reentrant_call;
+    // This path runs in the synchronous NimBLE callback. Observe the clock and
+    // mutate only private state; display cleanup belongs to the serialized
+    // owner after durable owner publication has succeeded or been contained.
+    if (clock_initialized_ && now_ms < last_now_ms_) {
+        leave_operation();
+        return CompanionPairingWindowError::clock_rollback;
+    }
+    clock_initialized_ = true;
+    last_now_ms_ = now_ms;
+    if (status_.phase == CompanionPairingWindowPhase::faulted) {
+        leave_operation(); return CompanionPairingWindowError::faulted;
+    }
+    if (status_.phase == CompanionPairingWindowPhase::closed) {
+        leave_operation(); return CompanionPairingWindowError::window_closed;
+    }
+    if (status_.phase ==
+        CompanionPairingWindowPhase::candidate_cleanup_required) {
+        leave_operation();
+        return CompanionPairingWindowError::candidate_cleanup_required;
+    }
+    if (status_.phase != CompanionPairingWindowPhase::attempt_active ||
+        !candidate_bound_) {
+        leave_operation();
+        return CompanionPairingWindowError::terminal_not_pending;
+    }
+    if (!valid_candidate(candidate) || !(candidate == candidate_)) {
+        leave_operation();
+        return CompanionPairingWindowError::candidate_mismatch;
+    }
+
+    // NimBLE has already created the exact candidate bond by this callback.
+    // From this point, every non-success path must retain cleanup authority.
+    candidate_bonded_ = true;
+    secure_clear(&passkey_, sizeof(passkey_));
+    if (now_ms >= deadline_ms_) {
+        status_.phase =
+            CompanionPairingWindowPhase::candidate_cleanup_required;
+        leave_operation();
+        return CompanionPairingWindowError::window_expired;
+    }
+    status_.phase =
+        CompanionPairingWindowPhase::secure_bond_terminal_reserved;
+    leave_operation();
+    return CompanionPairingWindowError::none;
+}
+
 CompanionPairingWindowError CompanionPairingWindow::finish_attempt(
     std::uint64_t now_ms, CompanionPairingCandidate candidate,
     CompanionPairingAttemptTerminal terminal) {
     if (!enter_operation()) return CompanionPairingWindowError::reentrant_call;
+    if (status_.phase ==
+        CompanionPairingWindowPhase::secure_bond_terminal_reserved) {
+        if (!valid_candidate(candidate) || !(candidate == candidate_)) {
+            leave_operation();
+            return CompanionPairingWindowError::candidate_mismatch;
+        }
+        if (!valid_terminal(terminal)) {
+            leave_operation();
+            return CompanionPairingWindowError::invalid_argument;
+        }
+        const auto result =
+            terminal == CompanionPairingAttemptTerminal::secure_bond_complete
+                ? close_window(CompanionPairingWindowError::none)
+                : require_candidate_cleanup(
+                      CompanionPairingWindowError::candidate_cleanup_required);
+        leave_operation();
+        return result;
+    }
     const auto observed = observe_time(now_ms);
     if (observed != CompanionPairingWindowError::none) {
         leave_operation(); return observed;
@@ -291,9 +400,16 @@ CompanionPairingWindowError CompanionPairingWindow::finish_attempt(
     if ((status_.phase == CompanionPairingWindowPhase::open ||
          status_.phase == CompanionPairingWindowPhase::attempt_active) &&
         now_ms >= deadline_ms_) {
-        const auto result = close_window(
-            CompanionPairingWindowError::window_expired);
+        const auto result = candidate_bonded_
+            ? require_candidate_cleanup(
+                  CompanionPairingWindowError::candidate_cleanup_required)
+            : close_window(CompanionPairingWindowError::window_expired);
         leave_operation(); return result;
+    }
+    if (status_.phase ==
+        CompanionPairingWindowPhase::candidate_cleanup_required) {
+        leave_operation();
+        return CompanionPairingWindowError::candidate_cleanup_required;
     }
     if (status_.phase != CompanionPairingWindowPhase::attempt_active ||
         !candidate_bound_) {
@@ -306,6 +422,28 @@ CompanionPairingWindowError CompanionPairingWindow::finish_attempt(
     }
     if (!valid_terminal(terminal)) {
         leave_operation(); return CompanionPairingWindowError::invalid_argument;
+    }
+    const auto result = close_window(CompanionPairingWindowError::none);
+    leave_operation();
+    return result;
+}
+
+CompanionPairingWindowError
+CompanionPairingWindow::complete_candidate_cleanup(
+    CompanionPairingCandidate candidate) {
+    if (!enter_operation()) return CompanionPairingWindowError::reentrant_call;
+    if (status_.phase == CompanionPairingWindowPhase::faulted) {
+        leave_operation(); return CompanionPairingWindowError::faulted;
+    }
+    if (status_.phase !=
+            CompanionPairingWindowPhase::candidate_cleanup_required ||
+        !candidate_bound_ || !candidate_bonded_) {
+        leave_operation();
+        return CompanionPairingWindowError::candidate_cleanup_not_pending;
+    }
+    if (!valid_candidate(candidate) || !(candidate == candidate_)) {
+        leave_operation();
+        return CompanionPairingWindowError::candidate_mismatch;
     }
     const auto result = close_window(CompanionPairingWindowError::none);
     leave_operation();
@@ -325,9 +463,16 @@ CompanionPairingWindowError CompanionPairingWindow::disconnect(
     if (status_.phase == CompanionPairingWindowPhase::closed) {
         leave_operation(); return CompanionPairingWindowError::window_closed;
     }
+    if (status_.phase ==
+        CompanionPairingWindowPhase::candidate_cleanup_required) {
+        leave_operation();
+        return CompanionPairingWindowError::candidate_cleanup_required;
+    }
     if (now_ms >= deadline_ms_) {
-        const auto result = close_window(
-            CompanionPairingWindowError::window_expired);
+        const auto result = candidate_bonded_
+            ? require_candidate_cleanup(
+                  CompanionPairingWindowError::candidate_cleanup_required)
+            : close_window(CompanionPairingWindowError::window_expired);
         leave_operation(); return result;
     }
     if (candidate_bound_ &&
@@ -335,14 +480,21 @@ CompanionPairingWindowError CompanionPairingWindow::disconnect(
         leave_operation();
         return CompanionPairingWindowError::candidate_mismatch;
     }
-    const auto result = close_window(CompanionPairingWindowError::none);
+    const auto result = candidate_bonded_
+        ? require_candidate_cleanup(
+              CompanionPairingWindowError::candidate_cleanup_required)
+        : close_window(CompanionPairingWindowError::none);
     leave_operation();
     return result;
 }
 
 CompanionPairingWindowError CompanionPairingWindow::restart() {
     if (!enter_operation()) return CompanionPairingWindowError::reentrant_call;
-    const auto result = close_window(CompanionPairingWindowError::none);
+    const bool cleanup_required = candidate_bonded_;
+    const auto result = close_window(
+        cleanup_required
+            ? CompanionPairingWindowError::candidate_cleanup_required
+            : CompanionPairingWindowError::none);
     clock_initialized_ = false;
     last_now_ms_ = 0;
     last_physical_event_ = 0;

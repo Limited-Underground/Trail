@@ -32,27 +32,26 @@ Phone A ⇄ BLE ⇄ Heltec A ⇄ direct LoRa ⇄ Heltec B ⇄ BLE ⇄ Phone B
 
 ## V1 authorization gate
 
-OT-090 freezes and host-tests `OTBP0/v0`, the exact state contract for normally
-closed pairing admission. Holding the designated target-neutral local input for
-at least 3000 ms and releasing it opens one exact 30-second, one-attempt,
-single-candidate window; no GPIO/button mapping is selected. Each admitted
-window receives one fresh uniformly sampled, locally displayed six-decimal-
-digit passkey. Pairing is Bluetooth LE Secure Connections-only, MITM passkey-
-authenticated and bonded with an exact 16-byte/128-bit key; legacy pairing, `Just Works`, and
-static/debug passkeys are denied. Saved-bond reconnect rechecks link security
-and separate application authorization without rewriting ownership.
+Decision 0103 and `DEVICE_FACTORY_RESET_V1` are the current V1 pairing and
+recovery authority. A verified unowned boot automatically opens exactly one
+60-second, one-attempt, single-candidate window and displays one fresh uniformly
+sampled six-decimal-digit passkey. Pairing is Bluetooth LE Secure Connections-
+only, MITM passkey-authenticated and bonded with an exact 16-byte/128-bit key;
+legacy pairing, `Just Works`, and static/debug passkeys are denied. An owned
+boot is PIN-free. Saved-owner reconnect rechecks link security and separate
+application authorization without rewriting ownership.
 
-Replacement requires a second qualifying hold/release after the candidate
-secure bond and before the original deadline. Candidate commit and exact
-readback precede old-authorization invalidation; old-bond removal and verified
-absence precede new-controller publication. Abort, expiry, interruption, or
-known pre-mutation failure preserves the exact prior owner only after candidate-
-bond removal and verified absence. Ambiguous commit, readback, candidate
-cleanup, or old-bond cleanup publishes neither controller. Restart closes
-transient state. Target, Android,
-storage, pairing, replacement, and physical acceptance remain open. No PIN,
-key, private bond reference, address, phone ID, physical-event token, or device
-ID may enter ordinary logs or public evidence.
+V1 has no phone-replacement or lost-phone transfer flow. The authorized app may
+request destructive factory reset after explicit in-app confirmation without a
+Heltec confirmation. Physical lost-phone recovery requires a continuous
+10-second hold, the LCD warning, release, and one short press within the next
+10 seconds. Both paths must use the same fail-closed durable commit, complete
+user-data and BLE-bond deletion, absence verification, and unowned restart.
+Cancellation or power loss before commit preserves the prior owner and data;
+uncertainty after commit resumes cleanup on boot and publishes no normal access.
+Target, Android, storage, reset integration, power-interruption, and physical
+acceptance remain open. No PIN, key, private bond reference, address, phone ID,
+physical-event token, or device ID may enter ordinary logs or public evidence.
 
 The implementation may use ordinary application-protected storage. Factory
 reset, flash replacement/restoration, reflashing, or invasive access may reset
@@ -93,11 +92,13 @@ evidence gates.
 
 The same frozen candidates, configurations, and evidence set must prove:
 
-- distinct fresh pairing PINs for A and B, bounded window expiry, and restart
-  reconnects;
+- distinct fresh 60-second boot pairing PINs for unowned A and B, bounded
+  expiry, owned restart remaining PIN-free, and saved-owner reconnects;
 - cross-pair control denial and no protected data/commands for unauthorized
   attempts;
-- one complete phone replacement and rejection of the old authorization;
+- both authorized-app and physical factory reset, complete user-data/map/bond
+  erasure, interruption recovery, old-phone rejection, and fresh unowned
+  pairing after verified reset;
 - exact Phone A → Heltec A → Heltec B → Phone B message delivery and an exact
   reply in the reverse direction;
 - addressed-recipient isolation, no duplicate presentation, and rejection of
@@ -153,8 +154,9 @@ node's exact profile and completes phase 0, and OT-120 accepts every retained
 candidate import/build anchor and completes phase 1 at `3/3/3`. Next run the
 exact benchmark under fresh separate authority, then accept the crypto
 suite/library, handshake/KDF, and packet-v1 wire selection.
-Then implement and physically accept the frozen pairing/replacement and selected
-secure-LoRa paths under separate authority; complete the Android message flow;
+Then implement and physically accept the frozen unowned-boot pairing/factory-
+reset contract and selected secure-LoRa paths under separate authority; complete
+the Android message flow;
 run complete two-pair V1 acceptance; finish the signed Android gate; then
 publish V1. Four-node interoperability and any mesh claim remain V1.5.
 

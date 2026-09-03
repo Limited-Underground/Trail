@@ -72,9 +72,8 @@ struct Fixture {
     }
     CompanionPairingWindowError open(
         std::uint64_t now = 0, std::uint64_t event = 1,
-        std::uint64_t hold = 3000, bool released = true,
-        CompanionPairingPurpose purpose = CompanionPairingPurpose::claim) {
-        return window.open_window(now, event, hold, released, purpose);
+        std::uint64_t hold = 3000, bool released = true) {
+        return window.open_window(now, event, hold, released);
     }
     FakeSecureRandomSource random;
     Display display;
@@ -92,8 +91,30 @@ void exact_gesture_and_zero_padding() {
            (std::array<char, 6>{'0', '0', '0', '0', '4', '2'}));
     const auto status = value.window.status();
     EXPECT(status.phase == CompanionPairingWindowPhase::open);
-    EXPECT(status.purpose == CompanionPairingPurpose::claim);
     EXPECT(status.passkey_displayed && !status.attempt_consumed);
+}
+
+void unowned_boot_opens_one_fresh_sixty_second_window() {
+    Fixture value;
+    value.word(314159);
+    EXPECT(value.window.open_unowned_boot_window(10, 1) ==
+           CompanionPairingWindowError::none);
+    EXPECT(value.display.digits ==
+           (std::array<char, 6>{'3', '1', '4', '1', '5', '9'}));
+    EXPECT(value.window.service(10 + kCompanionPairingWindowMs - 1) ==
+           CompanionPairingWindowError::none);
+    EXPECT(value.window.service(10 + kCompanionPairingWindowMs) ==
+           CompanionPairingWindowError::window_expired);
+    EXPECT(value.display.clears == 1);
+
+    value.word(271828);
+    EXPECT(value.window.open_unowned_boot_window(
+               10 + kCompanionPairingWindowMs + 1, 1) ==
+           CompanionPairingWindowError::attempt_already_consumed);
+    EXPECT(value.window.open_unowned_boot_window(
+               10 + kCompanionPairingWindowMs + 1, 2) ==
+           CompanionPairingWindowError::attempt_already_consumed);
+    EXPECT(value.display.shows == 1);
 }
 
 void rejected_gestures_and_event_replay() {
@@ -144,9 +165,9 @@ void exact_deadline() {
     Fixture value;
     value.word(1);
     EXPECT(value.open(10) == CompanionPairingWindowError::none);
-    EXPECT(value.window.service(30009) == CompanionPairingWindowError::none);
+    EXPECT(value.window.service(60009) == CompanionPairingWindowError::none);
     EXPECT(value.window.status().phase == CompanionPairingWindowPhase::open);
-    EXPECT(value.window.service(30010) ==
+    EXPECT(value.window.service(60010) ==
            CompanionPairingWindowError::window_expired);
     EXPECT(value.window.status().phase == CompanionPairingWindowPhase::closed);
     EXPECT(!value.window.status().passkey_displayed);
@@ -193,12 +214,12 @@ void callback_safe_path_defers_all_display_cleanup() {
     EXPECT(expired.open(10) == CompanionPairingWindowError::none);
     PasskeyPort port;
     EXPECT(expired.window.handle_passkey_action_deferred_cleanup(
-               30010, candidate, port) ==
+               60010, candidate, port) ==
            CompanionPairingWindowError::window_expired);
     EXPECT(expired.display.clears == 0);
     EXPECT(expired.window.status().phase ==
            CompanionPairingWindowPhase::open);
-    EXPECT(expired.window.service(30010) ==
+    EXPECT(expired.window.service(60010) ==
            CompanionPairingWindowError::window_expired);
     EXPECT(expired.display.clears == 1);
 
@@ -231,22 +252,17 @@ void callback_safe_path_defers_all_display_cleanup() {
 }
 
 void terminal_and_disconnect_binding() {
-    Fixture complete;
-    complete.word(10);
-    EXPECT(complete.open(0, 1, 3000, true,
-                         CompanionPairingPurpose::replacement) ==
-           CompanionPairingWindowError::none);
+    Fixture claim;
+    claim.word(9);
+    EXPECT(claim.open() == CompanionPairingWindowError::none);
     PasskeyPort port;
-    EXPECT(complete.window.handle_passkey_action(1, candidate, port) ==
+    EXPECT(claim.window.handle_passkey_action(1, candidate, port) ==
            CompanionPairingWindowError::none);
-    EXPECT(complete.window.finish_attempt(
-               2, other, CompanionPairingAttemptTerminal::pairing_failed) ==
-           CompanionPairingWindowError::candidate_mismatch);
-    EXPECT(complete.window.finish_attempt(
+    EXPECT(claim.window.finish_attempt(
                2, candidate,
                CompanionPairingAttemptTerminal::secure_bond_complete) ==
            CompanionPairingWindowError::none);
-    EXPECT(complete.window.status().phase == CompanionPairingWindowPhase::closed);
+    EXPECT(claim.window.status().phase == CompanionPairingWindowPhase::closed);
 
     Fixture disconnected;
     disconnected.word(11);
@@ -259,6 +275,100 @@ void terminal_and_disconnect_binding() {
            CompanionPairingWindowError::none);
 }
 
+void bonded_candidate_interruptions_require_external_cleanup() {
+    PasskeyPort port;
+
+    Fixture aborted;
+    aborted.word(26);
+    EXPECT(aborted.open() == CompanionPairingWindowError::none);
+    EXPECT(aborted.window.handle_passkey_action_deferred_cleanup(
+               1, candidate, port) == CompanionPairingWindowError::none);
+    EXPECT(aborted.window.reserve_secure_bond_terminal(2, candidate) ==
+           CompanionPairingWindowError::none);
+    EXPECT(aborted.window.finish_attempt(
+               2, candidate, CompanionPairingAttemptTerminal::pairing_failed) ==
+           CompanionPairingWindowError::candidate_cleanup_required);
+    EXPECT(aborted.window.status().phase ==
+           CompanionPairingWindowPhase::candidate_cleanup_required);
+
+    Fixture disconnected;
+    disconnected.word(27);
+    EXPECT(disconnected.open() == CompanionPairingWindowError::none);
+    EXPECT(disconnected.window.handle_passkey_action_deferred_cleanup(
+               1, candidate, port) == CompanionPairingWindowError::none);
+    EXPECT(disconnected.window.reserve_secure_bond_terminal(2, candidate) ==
+           CompanionPairingWindowError::none);
+    EXPECT(disconnected.window.disconnect(3, candidate) ==
+           CompanionPairingWindowError::candidate_cleanup_required);
+    EXPECT(disconnected.window.status().phase ==
+           CompanionPairingWindowPhase::candidate_cleanup_required);
+
+    Fixture restarted;
+    restarted.word(28);
+    EXPECT(restarted.open() == CompanionPairingWindowError::none);
+    EXPECT(restarted.window.handle_passkey_action_deferred_cleanup(
+               1, candidate, port) == CompanionPairingWindowError::none);
+    EXPECT(restarted.window.reserve_secure_bond_terminal(2, candidate) ==
+           CompanionPairingWindowError::none);
+    EXPECT(restarted.window.restart() ==
+           CompanionPairingWindowError::candidate_cleanup_required);
+    EXPECT(restarted.window.status().phase ==
+           CompanionPairingWindowPhase::closed);
+}
+
+void candidate_cleanup_completion_requires_exact_bound_candidate() {
+    Fixture open_only;
+    open_only.word(32);
+    EXPECT(open_only.open() ==
+           CompanionPairingWindowError::none);
+    EXPECT(open_only.window.complete_candidate_cleanup(candidate) ==
+           CompanionPairingWindowError::candidate_cleanup_not_pending);
+    EXPECT(open_only.window.status().phase ==
+           CompanionPairingWindowPhase::open);
+
+    Fixture value;
+    value.word(33);
+    EXPECT(value.open(100, 100) ==
+           CompanionPairingWindowError::none);
+    PasskeyPort port;
+    EXPECT(value.window.handle_passkey_action_deferred_cleanup(
+               101, candidate, port) ==
+           CompanionPairingWindowError::none);
+    EXPECT(value.window.reserve_secure_bond_terminal(102, candidate) ==
+           CompanionPairingWindowError::none);
+    EXPECT(value.window.finish_attempt(
+               103, candidate, CompanionPairingAttemptTerminal::cancelled) ==
+           CompanionPairingWindowError::candidate_cleanup_required);
+    EXPECT(value.window.complete_candidate_cleanup(other) ==
+           CompanionPairingWindowError::candidate_mismatch);
+    EXPECT(value.window.status().phase ==
+           CompanionPairingWindowPhase::candidate_cleanup_required);
+    EXPECT(value.window.complete_candidate_cleanup(candidate) ==
+           CompanionPairingWindowError::none);
+    const auto status = value.window.status();
+    EXPECT(status.phase == CompanionPairingWindowPhase::closed);
+    EXPECT(!status.passkey_displayed && !status.attempt_consumed);
+    EXPECT(value.display.clears == 1);
+    EXPECT(value.window.complete_candidate_cleanup(candidate) ==
+           CompanionPairingWindowError::candidate_cleanup_not_pending);
+    EXPECT(value.window.restart() == CompanionPairingWindowError::none);
+}
+
+void pairing_failure_before_bond_closes_without_cleanup() {
+    Fixture value;
+    value.word(29);
+    EXPECT(value.open() ==
+           CompanionPairingWindowError::none);
+    PasskeyPort port;
+    EXPECT(value.window.handle_passkey_action(1, candidate, port) ==
+           CompanionPairingWindowError::none);
+    EXPECT(value.window.finish_attempt(
+               2, candidate,
+               CompanionPairingAttemptTerminal::pairing_failed) ==
+           CompanionPairingWindowError::none);
+    EXPECT(value.window.status().phase == CompanionPairingWindowPhase::closed);
+}
+
 void exact_deadline_precedes_terminal_or_candidate_validation() {
     Fixture terminal;
     terminal.word(23);
@@ -267,7 +377,7 @@ void exact_deadline_precedes_terminal_or_candidate_validation() {
     EXPECT(terminal.window.handle_passkey_action(1, candidate, port) ==
            CompanionPairingWindowError::none);
     EXPECT(terminal.window.finish_attempt(
-               30000, other,
+               60000, other,
                static_cast<CompanionPairingAttemptTerminal>(0xFF)) ==
            CompanionPairingWindowError::window_expired);
     EXPECT(terminal.window.status().phase ==
@@ -279,11 +389,54 @@ void exact_deadline_precedes_terminal_or_candidate_validation() {
     EXPECT(disconnected.open() == CompanionPairingWindowError::none);
     EXPECT(disconnected.window.handle_passkey_action(
                1, candidate, port) == CompanionPairingWindowError::none);
-    EXPECT(disconnected.window.disconnect(30000, other) ==
+    EXPECT(disconnected.window.disconnect(60000, other) ==
            CompanionPairingWindowError::window_expired);
     EXPECT(disconnected.window.status().phase ==
            CompanionPairingWindowPhase::closed);
     EXPECT(disconnected.display.clears == 1);
+}
+
+void secure_bond_terminal_reservation_enforces_exact_deadline() {
+    Fixture admitted;
+    admitted.word(25);
+    EXPECT(admitted.open() == CompanionPairingWindowError::none);
+    PasskeyPort port;
+    EXPECT(admitted.window.handle_passkey_action_deferred_cleanup(
+               1, candidate, port) == CompanionPairingWindowError::none);
+    EXPECT(admitted.window.reserve_secure_bond_terminal(
+               59999, candidate) == CompanionPairingWindowError::none);
+    EXPECT(admitted.window.status().phase ==
+           CompanionPairingWindowPhase::secure_bond_terminal_reserved);
+    EXPECT(admitted.display.clears == 0);
+    // Owner-context service may observe a later clock before it drains the
+    // terminal event. The already-admitted 59,999 ms terminal stays valid and
+    // serialized completion owns the one OLED clear.
+    EXPECT(admitted.window.service(70000) == CompanionPairingWindowError::none);
+    EXPECT(admitted.window.finish_attempt(
+               59999, candidate,
+               CompanionPairingAttemptTerminal::secure_bond_complete) ==
+           CompanionPairingWindowError::none);
+    EXPECT(admitted.window.status().phase ==
+           CompanionPairingWindowPhase::closed);
+    EXPECT(admitted.display.clears == 1);
+
+    Fixture expired;
+    expired.word(26);
+    EXPECT(expired.open() == CompanionPairingWindowError::none);
+    EXPECT(expired.window.handle_passkey_action_deferred_cleanup(
+               1, candidate, port) == CompanionPairingWindowError::none);
+    EXPECT(expired.window.reserve_secure_bond_terminal(
+               60000, candidate) ==
+           CompanionPairingWindowError::window_expired);
+    EXPECT(expired.window.status().phase ==
+           CompanionPairingWindowPhase::candidate_cleanup_required);
+    EXPECT(expired.window.status().passkey_displayed);
+    EXPECT(expired.display.clears == 0);
+    EXPECT(expired.window.finish_attempt(
+               60000, candidate,
+               CompanionPairingAttemptTerminal::secure_bond_complete) ==
+           CompanionPairingWindowError::candidate_cleanup_required);
+    EXPECT(expired.display.clears == 0);
 }
 
 void restart_clock_and_fault_closure() {
@@ -303,7 +456,7 @@ void restart_clock_and_fault_closure() {
 
     Fixture overflow;
     overflow.word(15);
-    EXPECT(overflow.open(std::numeric_limits<std::uint64_t>::max() - 29999) ==
+    EXPECT(overflow.open(std::numeric_limits<std::uint64_t>::max() - 59999) ==
            CompanionPairingWindowError::deadline_overflow);
     EXPECT(overflow.window.status().phase == CompanionPairingWindowPhase::faulted);
 
@@ -329,7 +482,7 @@ void display_failures_contain() {
     clear.word(18);
     EXPECT(clear.open() == CompanionPairingWindowError::none);
     clear.display.clear_ok = false;
-    EXPECT(clear.window.service(30000) ==
+    EXPECT(clear.window.service(60000) ==
            CompanionPairingWindowError::display_clear_failed);
     EXPECT(clear.window.status().phase == CompanionPairingWindowPhase::faulted);
     EXPECT(!clear.window.status().passkey_displayed);
@@ -337,8 +490,7 @@ void display_failures_contain() {
 
 void reenter(void* context) {
     auto* window = static_cast<CompanionPairingWindow*>(context);
-    EXPECT(window->open_window(1, 2, 3000, true,
-                              CompanionPairingPurpose::claim) ==
+    EXPECT(window->open_window(1, 2, 3000, true) ==
            CompanionPairingWindowError::reentrant_call);
 }
 void reentrant_open_is_denied() {
@@ -354,6 +506,7 @@ void reentrant_open_is_denied() {
 
 int main() {
     exact_gesture_and_zero_padding();
+    unowned_boot_opens_one_fresh_sixty_second_window();
     rejected_gestures_and_event_replay();
     unbiased_sampling_and_entropy_failure();
     exact_deadline();
@@ -361,7 +514,11 @@ int main() {
     injection_failure_consumes_window();
     callback_safe_path_defers_all_display_cleanup();
     terminal_and_disconnect_binding();
+    bonded_candidate_interruptions_require_external_cleanup();
+    candidate_cleanup_completion_requires_exact_bound_candidate();
+    pairing_failure_before_bond_closes_without_cleanup();
     exact_deadline_precedes_terminal_or_candidate_validation();
+    secure_bond_terminal_reservation_enforces_exact_deadline();
     restart_clock_and_fault_closure();
     display_failures_contain();
     reentrant_open_is_denied();
@@ -369,6 +526,6 @@ int main() {
         std::cerr << failures << " pairing-window assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 12 companion pairing-window groups\n";
+    std::cout << "PASS: 17 companion pairing-window groups\n";
     return EXIT_SUCCESS;
 }

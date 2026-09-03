@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include "esp_log.h"
+#include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -13,7 +14,7 @@
 #include "heltec_v4_battery.hpp"
 #include "heltec_v4_gnss.hpp"
 #include "heltec_v4_oled.hpp"
-#include "heltec_v4_pairing_input.hpp"
+#include "heltec_v4_factory_reset_input.hpp"
 #include "heltec_v4_secure_random.hpp"
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_pairing_window.hpp"
@@ -27,9 +28,9 @@ using opentrail::target::heltec_v4_bench::StartupDisplayFrame;
 using opentrail::target::heltec_v4_bench::StartupDisplayOwner;
 using opentrail::target::heltec_v4_bench::startup_display_frame_for_ble_phase;
 using opentrail::target::heltec_v4_bench::companion_nimble_runtime_status;
-using opentrail::target::heltec_v4_bench::PairingInputEvent;
+using opentrail::companion::CompanionFactoryResetGestureEvent;
 using opentrail::target::heltec_v4_bench::PairingPinDisplayPortAdapter;
-using opentrail::target::heltec_v4_bench::HeltecV4PairingInput;
+using opentrail::target::heltec_v4_bench::HeltecV4FactoryResetInput;
 using opentrail::target::heltec_v4_bench::HeltecV4SecureRandom;
 
 constexpr char kLogTag[] = "ot_bench";
@@ -44,11 +45,10 @@ PairingPinDisplayPortAdapter g_pairing_display{g_startup_display};
 HeltecV4SecureRandom g_pairing_random;
 opentrail::companion::CompanionPairingWindow g_pairing_window{
     g_pairing_random, g_pairing_display};
-HeltecV4PairingInput g_pairing_input;
+HeltecV4FactoryResetInput g_factory_reset_input;
 HeltecV4Gnss g_gnss;
 opentrail::ui::compact_status_footer::Metric g_battery_percent{};
 bool g_display_failure_logged{false};
-std::uint64_t g_pairing_physical_event{0};
 
 void observe_display_result(bool succeeded) {
     if (!succeeded && !g_display_failure_logged) {
@@ -89,7 +89,7 @@ bool run_companion_codec_self_check() {
     };
     constexpr std::array<std::uint8_t, kCompanionProtocolInfoBytes>
         kExpectedInfo{
-            0x4F, 0x54, 0x42, 0x30, 0x00, 0x00, 0x01, 0x0F,
+            0x4F, 0x54, 0x42, 0x30, 0x00, 0x00, 0x01, 0x2F,
             0x80, 0x00, 0x97, 0x00, 0x10, 0x01, 0x00, 0x00,
         };
     std::array<std::uint8_t, kCompanionProtocolInfoBytes> encoded_info{};
@@ -182,11 +182,60 @@ bool run_companion_codec_self_check() {
 [[noreturn]] void contain_runtime_failure() {
     (void)opentrail::target::heltec_v4_bench::
         fault_companion_pairing_window();
+    const bool ble_containment_verified =
+        opentrail::target::heltec_v4_bench::
+            contain_companion_nimble_runtime_for_recovery();
     observe_display_result(
         g_startup_display.show(StartupDisplayFrame::ble_error));
     ESP_LOGE(kLogTag, "companion runtime FAIL");
     while (true) {
-        vTaskSuspend(nullptr);
+        const auto now_ms =
+            static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+        if (!ble_containment_verified) {
+            vTaskDelay(pdMS_TO_TICKS(100));
+            continue;
+        }
+        const auto reset_event = g_factory_reset_input.poll(now_ms);
+        if (reset_event ==
+            CompanionFactoryResetGestureEvent::prompt_requested) {
+            if (!g_startup_display.show_factory_reset_confirmation()) {
+                (void)g_factory_reset_input.cancel(now_ms);
+            }
+        } else if (reset_event ==
+                   CompanionFactoryResetGestureEvent::prompt_cancelled) {
+            observe_display_result(
+                g_startup_display.clear_factory_reset_confirmation());
+        } else if (reset_event ==
+                   CompanionFactoryResetGestureEvent::commit_requested) {
+            const auto reset_result =
+                opentrail::target::heltec_v4_bench::
+                    begin_contained_companion_factory_reset_recovery();
+            const bool verified_intent =
+                reset_result.accepted() &&
+                reset_result.phase ==
+                    opentrail::companion::DeviceFactoryResetPhase::
+                        cleanup_required;
+            const bool reconciliation_required =
+                reset_result.phase ==
+                opentrail::companion::DeviceFactoryResetPhase::
+                    reconciliation_required;
+            if (verified_intent) {
+                (void)g_startup_display.show_factory_reset_in_progress();
+            }
+            if (verified_intent || reconciliation_required) {
+                vTaskDelay(pdMS_TO_TICKS(50));
+                esp_restart();
+            }
+            // A known noncommit or invalid request never leaves containment
+            // and never boots the old state. Restore BLE:E and require the
+            // complete physical gesture again.
+            observe_display_result(
+                g_startup_display.clear_factory_reset_confirmation());
+            (void)g_factory_reset_input.rearm_after_noncommit(now_ms);
+        }
+        // No BLE, GNSS, battery, heartbeat, pairing, or normal command
+        // service runs in this containment loop.
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
@@ -217,17 +266,30 @@ extern "C" void app_main() {
     ESP_LOGI(kLogTag, "companion boot self-check PASS");
     const auto started_at_ms =
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
-    if (opentrail::target::heltec_v4_bench::
-            start_companion_nimble_runtime(
-                started_at_ms, g_pairing_window, g_pairing_random) !=
+    if (!g_factory_reset_input.initialize(started_at_ms)) {
+        contain_runtime_failure();
+    }
+    g_pairing_random.set_entropy_state(
+        opentrail::security::EntropyState::ready);
+    const auto runtime_start_result =
+        opentrail::target::heltec_v4_bench::start_companion_nimble_runtime(
+            started_at_ms, g_pairing_window, g_pairing_random,
+            g_startup_display);
+    if (runtime_start_result !=
         opentrail::companion::CompanionBleRuntimeError::none) {
+        ESP_LOGE(kLogTag, "companion runtime start error=%u",
+                 static_cast<unsigned>(runtime_start_result));
+        ESP_LOGE(kLogTag, "companion security stage=%u",
+                 static_cast<unsigned>(
+                     opentrail::target::heltec_v4_bench::
+                         companion_nimble_security_failure_stage()));
+        ESP_LOGE(kLogTag, "companion security detail=%u",
+                 static_cast<unsigned>(
+                     opentrail::target::heltec_v4_bench::
+                         companion_nimble_security_failure_detail()));
         contain_runtime_failure();
     }
     ESP_LOGI(kLogTag, "companion runtime started");
-
-    if (!g_pairing_input.initialize(started_at_ms)) {
-        contain_runtime_failure();
-    }
 
     if (!g_gnss.initialize()) {
         ESP_LOGW(kLogTag, "GNSS unavailable; GPS status remains unknown");
@@ -249,14 +311,6 @@ extern "C" void app_main() {
             contain_runtime_failure();
         }
         const auto runtime_status = companion_nimble_runtime_status();
-        using opentrail::companion::CompanionBleRuntimePhase;
-        const bool entropy_ready =
-            runtime_status.phase == CompanionBleRuntimePhase::advertising ||
-            runtime_status.phase == CompanionBleRuntimePhase::connected;
-        g_pairing_random.set_entropy_state(
-            entropy_ready
-                ? opentrail::security::EntropyState::ready
-                : opentrail::security::EntropyState::not_ready);
         const auto pairing_service =
             opentrail::target::heltec_v4_bench::
                 service_companion_pairing_window(elapsed_ms);
@@ -267,37 +321,32 @@ extern "C" void app_main() {
                     window_expired) {
             contain_runtime_failure();
         }
-        if (g_pairing_input.poll(elapsed_ms) ==
-            PairingInputEvent::long_press_released) {
-            ++g_pairing_physical_event;
-            if (g_pairing_physical_event == 0) ++g_pairing_physical_event;
-            const auto open_result =
-                opentrail::target::heltec_v4_bench::
-                    open_companion_pairing_window(
-                        elapsed_ms,
-                        g_pairing_physical_event,
-                        opentrail::companion::
-                            kCompanionPairingMinimumHoldMs);
-            if (open_result ==
-                    opentrail::companion::CompanionPairingWindowError::
-                        display_failed ||
-                open_result ==
-                    opentrail::companion::CompanionPairingWindowError::
-                        display_clear_failed ||
-                open_result ==
-                    opentrail::companion::CompanionPairingWindowError::
-                        clock_rollback ||
-                open_result ==
-                    opentrail::companion::CompanionPairingWindowError::
-                        deadline_overflow ||
-                open_result ==
-                    opentrail::companion::CompanionPairingWindowError::
-                        entropy_failed ||
-                open_result ==
-                    opentrail::companion::CompanionPairingWindowError::
-                        random_rejection_exhausted) {
-                contain_runtime_failure();
+        const auto reset_event = g_factory_reset_input.poll(elapsed_ms);
+        if (reset_event ==
+            CompanionFactoryResetGestureEvent::prompt_requested) {
+            if (!g_startup_display.show_factory_reset_confirmation()) {
+                (void)g_factory_reset_input.cancel(elapsed_ms);
             }
+        } else if (reset_event ==
+                   CompanionFactoryResetGestureEvent::prompt_cancelled) {
+            observe_display_result(
+                g_startup_display.clear_factory_reset_confirmation());
+        } else if (reset_event ==
+                   CompanionFactoryResetGestureEvent::commit_requested) {
+            // BLE is fully contained before reset intent is committed. Every
+            // result reboots: verified intent resumes cleanup, uncertain
+            // intent is reconciled, and known no-change restores old state.
+            const auto reset_result =
+                opentrail::target::heltec_v4_bench::
+                    begin_companion_factory_reset();
+            if (reset_result.accepted() &&
+                reset_result.phase ==
+                    opentrail::companion::DeviceFactoryResetPhase::
+                        cleanup_required) {
+                (void)g_startup_display.show_factory_reset_in_progress();
+            }
+            vTaskDelay(pdMS_TO_TICKS(50));
+            esp_restart();
         }
         g_gnss.service(elapsed_ms);
         if (elapsed_ms >= next_battery_sample_ms) {

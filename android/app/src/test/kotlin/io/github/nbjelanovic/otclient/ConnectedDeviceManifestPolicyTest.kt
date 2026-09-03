@@ -117,6 +117,317 @@ class ConnectedDeviceManifestPolicyTest {
         }
     }
 
+    @Test
+    fun protectedBluetoothBondBroadcastUsesExportedReceiverAndExactCallbackFilters() {
+        val source = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/AndroidBluetoothGattFacade.kt",
+        ).readText()
+        val registration = source.substring(
+            source.indexOf("private fun registerBondReceiver()"),
+            source.indexOf("private fun handleBondBroadcast"),
+        )
+        assertTrue(registration.contains("IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)"))
+        assertTrue(registration.contains("Context.RECEIVER_EXPORTED"))
+        assertFalse(registration.contains("Context.RECEIVER_NOT_EXPORTED"))
+
+        val callback = source.substring(
+            source.indexOf("private fun handleBondBroadcast"),
+            source.indexOf("private fun handleBondAction"),
+        )
+        assertTrue(callback.contains("intent?.action != BluetoothDevice.ACTION_BOND_STATE_CHANGED"))
+        assertTrue(callback.contains("callbackDevice != device"))
+        assertTrue(callback.contains("handleObservedBondState(state, fromPoll = false)"))
+
+        val timeout = source.substring(
+            source.indexOf("private val bondTimeout"),
+            source.indexOf("private var bondPollActive"),
+        )
+        assertTrue(timeout.contains("!bondAttemptGate.allows(systemBondGeneration)"))
+
+        val poll = source.substring(
+            source.indexOf("private val bondStatePoll"),
+            source.indexOf("private val bondReceiver"),
+        )
+        assertTrue(source.contains("ANDROID_SYSTEM_BOND_POLL_INTERVAL_MILLIS = 100L"))
+        assertTrue(poll.contains("activeGatt !== this@PlatformGattLease"))
+        assertTrue(poll.contains("!bondPollActive"))
+        assertTrue(poll.contains("!bondReceiverRegistered"))
+        assertTrue(poll.contains("!bondAttemptGate.allows(systemBondGeneration)"))
+        assertTrue(poll.contains("currentSystemBondState()"))
+        assertTrue(poll.contains("handleObservedBondState(state, fromPoll = true)"))
+        assertTrue(poll.contains("postDelayed(this, ANDROID_SYSTEM_BOND_POLL_INTERVAL_MILLIS)"))
+        assertTrue(source.contains("mainHandler.post(bondStatePoll)"))
+        assertTrue(source.contains("mainHandler.removeCallbacks(bondStatePoll)"))
+        assertTrue(source.contains("bondAttemptGate.end()"))
+        assertTrue(source.contains("!bondAttemptGate.allows(systemBondGeneration)"))
+        assertTrue(source.contains("systemBond.onBondState(endpointToken, systemBondGeneration, state)"))
+        val start = source.substring(
+            source.indexOf("override fun start(): Boolean"),
+            source.indexOf("private fun requestSystemBond"),
+        )
+        assertFalse(start.contains("bondPrerequisite.latchFreshAttemptProof()"))
+
+        val bondAction = source.substring(
+            source.indexOf("private fun handleBondAction"),
+            source.indexOf("private fun cleanupBondAttempt"),
+        )
+        assertTrue(bondAction.contains("bondPrerequisite.latchFreshAttemptProof()"))
+        assertTrue(source.contains("bondPrerequisite.isSatisfied(currentSystemBondState())"))
+
+        val close = source.substring(
+            source.indexOf("override fun close()", source.indexOf("private inner class PlatformGattLease")),
+            source.indexOf("private fun handleConnectionState"),
+        )
+        assertTrue(close.contains("bondPrerequisite.clear()"))
+
+        val openGatt = source.substring(
+            source.indexOf("private fun openGatt()"),
+            source.indexOf("private fun registerBondReceiver"),
+        )
+        assertTrue(openGatt.indexOf("gatt = opened") < openGatt.indexOf("observer(BleGattEvent.GattOpened)"))
+    }
+
+    @Test
+    fun addDeviceAndReturningOwnerScansAreDisjointWhileGattDiscoveryStaysBoundToD0() {
+        val source = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/AndroidBluetoothGattFacade.kt",
+        ).readText()
+        val scan = source.substring(
+            source.indexOf("private inner class PlatformScanLease"),
+            source.indexOf("private inner class PlatformGattLease"),
+        )
+        assertFalse(source.contains("import android.bluetooth.le.ScanFilter"))
+        assertFalse(scan.contains("ScanFilter.Builder"))
+        assertTrue(scan.contains("scanner.startScan(null, settings, callback)"))
+        assertTrue(scan.contains("AndroidPairableAdvertisementPolicy.accepts"))
+        assertTrue(scan.contains("AndroidReturningOwnerAdvertisementPolicy.accepts"))
+        assertTrue(scan.contains("result.device in bondedDevicesAtStart"))
+        assertTrue(scan.contains("result.device in currentBonds"))
+        assertTrue(scan.contains("currentBondState(result.device) == AndroidSystemBondState.BONDED"))
+        assertTrue(scan.contains("if (purpose == ScanPurpose.RETURNING_OWNER)"))
+        assertTrue(scan.contains("observer(BleScanEvent.Failed(BleGattFailure.PLATFORM_FAILURE))"))
+
+        val discovery = source.substring(
+            source.indexOf("private fun handleServicesDiscovered"),
+            source.indexOf("private fun handleProtocolInfoRead"),
+        )
+        assertTrue(discovery.contains("callbackGatt.getService(gattServiceUuid)"))
+        assertFalse(discovery.contains("getService(pairableAdvertisingUuid)"))
+
+        assertTrue(source.contains("val entry = candidates.entries.singleOrNull"))
+        assertTrue(source.contains("entry.value.allowSystemBondCreation"))
+        assertTrue(
+            source.contains(
+                "purpose == BleConnectionPurpose.INITIAL_AUTHORIZATION && entry.value.allowSystemBondCreation",
+            ),
+        )
+        val gattStart = source.substring(
+            source.indexOf("override fun start()", source.indexOf("private inner class PlatformGattLease")),
+            source.indexOf("private fun requestSystemBond"),
+        )
+        assertTrue(gattStart.contains("if (!allowSystemBondCreation && !alreadyBonded)"))
+        assertTrue(gattStart.contains("fail(BleGattFailure.BOND_REQUIRED)"))
+        assertEquals(1, Regex("""device\.createBond\(\)""").findAll(source).count())
+        val requestSystemBond = source.substring(
+            source.indexOf("private fun requestSystemBond"),
+            source.indexOf("private fun rejectBondStart"),
+        )
+        assertTrue(requestSystemBond.contains("device.createBond()"))
+        assertFalse(source.contains("device.address"))
+    }
+
+    @Test
+    fun freshAuthorizationBondsAndDiscoversOnOneExactGattLease() {
+        val source = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/AndroidBluetoothGattFacade.kt",
+        ).readText()
+        val gattLeaseStart = source.indexOf("private inner class PlatformGattLease")
+        val gattLease = source.substring(gattLeaseStart, source.indexOf("private data class DiscoveredGattProfile"))
+        assertEquals(1, Regex("""device\.connectGatt\(""").findAll(gattLease).count())
+        assertFalse(gattLease.contains("removeBond("))
+
+        val start = source.substring(
+            source.indexOf("override fun start()", gattLeaseStart),
+            source.indexOf("private fun requestSystemBond", gattLeaseStart),
+        )
+        val freshBondBranch = start.substring(
+            start.indexOf("AndroidSystemBondAction.RequestSystemBond"),
+            start.indexOf("AndroidSystemBondAction.ProceedToGatt"),
+        )
+        assertTrue(freshBondBranch.contains("bondRequiredAfterConnect = true"))
+        assertTrue(freshBondBranch.contains("openGatt()"))
+        assertFalse(freshBondBranch.contains("requestSystemBond()"))
+
+        val connection = source.substring(
+            source.indexOf("private fun handleConnectionState", gattLeaseStart),
+            source.indexOf("private fun discoverServicesOnOwnedGatt", gattLeaseStart),
+        )
+        assertTrue(connection.contains("newState == BluetoothProfile.STATE_CONNECTED"))
+        assertTrue(connection.contains("if (bondRequiredAfterConnect)"))
+        assertTrue(connection.contains("requestSystemBond()"))
+        assertFalse(connection.contains("discoverServices()"))
+
+        val requestBond = source.substring(
+            source.indexOf("private fun requestSystemBond", gattLeaseStart),
+            source.indexOf("private fun rejectBondStart", gattLeaseStart),
+        )
+        assertEquals(1, Regex("""device\.createBond\(\)""").findAll(requestBond).count())
+
+        val bondAction = source.substring(
+            source.indexOf("private fun handleBondAction", gattLeaseStart),
+            source.indexOf("private fun cleanupBondAttempt", gattLeaseStart),
+        )
+        val bondedBranch = bondAction.substring(
+            bondAction.indexOf("AndroidSystemBondAction.ProceedToGatt"),
+            bondAction.indexOf("is AndroidSystemBondAction.Failed"),
+        )
+        assertTrue(bondedBranch.contains("bondPrerequisite.latchFreshAttemptProof()"))
+        assertTrue(bondedBranch.contains("discoverServicesOnOwnedGatt()"))
+        assertFalse(bondedBranch.contains("openGatt()"))
+
+        val discovery = source.substring(
+            source.indexOf("private fun discoverServicesOnOwnedGatt", gattLeaseStart),
+            source.indexOf("private fun handleServicesDiscovered", gattLeaseStart),
+        )
+        assertTrue(discovery.contains("val current = gatt ?: return false"))
+        assertTrue(discovery.contains("owns(current)"))
+        assertTrue(discovery.contains("bondedPrerequisiteSatisfied()"))
+        assertTrue(discovery.contains("current.discoverServices()"))
+    }
+
+    @Test
+    fun resetVerificationUsesExactBoundedReceiptWithoutPersistingDeviceIdentity() {
+        val source = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/AndroidBluetoothGattFacade.kt",
+        ).readText()
+        val verificationFactory = source.substring(
+            source.indexOf("override fun createFactoryResetVerificationScan"),
+            source.indexOf("override fun completeFactoryResetVerification"),
+        )
+        assertTrue(verificationFactory.contains("resetReceiptStore.load() != receipt"))
+        assertTrue(verificationFactory.contains("expectedResetReceipt = receipt"))
+        assertTrue(verificationFactory.contains("ANDROID_FACTORY_RESET_VERIFICATION_WINDOW_MILLIS"))
+        assertFalse(verificationFactory.contains("endpointToken"))
+        assertFalse(verificationFactory.contains("BluetoothDevice"))
+
+        val scan = source.substring(
+            source.indexOf("private inner class PlatformScanLease"),
+            source.indexOf("private inner class PlatformGattLease"),
+        )
+        assertFalse(scan.contains("setServiceData("))
+        assertTrue(scan.contains("FactoryResetReceiptAdvertisementCodec.decode"))
+        assertTrue(scan.contains("observedResetReceipt == expectedResetReceipt"))
+        assertTrue(scan.contains("BleScanEvent.FactoryResetReceiptObserved"))
+        assertTrue(scan.contains("if (purpose == ScanPurpose.FACTORY_RESET_VERIFICATION)"))
+        assertFalse(scan.contains("result.device == exactDevice"))
+        assertFalse(scan.contains("exactDevice"))
+
+        val cleanup = source.substring(
+            source.indexOf("override fun completeFactoryResetVerification"),
+            source.indexOf("override fun createConnection"),
+        )
+        assertTrue(cleanup.contains("verifiedResetReceipt != receipt"))
+        assertTrue(cleanup.contains("resetReceiptStore.clearExact(receipt)"))
+        assertTrue(cleanup.contains("FactoryResetLocalCleanupResult.SYSTEM_BOND_REMAINS"))
+
+        val persistence = source.substring(
+            source.indexOf("internal class AndroidFactoryResetReceiptStore"),
+            source.indexOf("object AndroidBlePermissionContract"),
+        )
+        assertTrue(persistence.contains("ANDROID_FACTORY_RESET_RECEIPT_TTL_MILLIS"))
+        assertTrue(persistence.contains("receipt_bits"))
+        assertTrue(persistence.contains("issued_at_epoch_millis"))
+        assertTrue(persistence.contains("expires_at_epoch_millis"))
+        assertTrue(persistence.contains("now >= issuedAt"))
+        assertTrue(persistence.contains("expiry - issuedAt == ANDROID_FACTORY_RESET_RECEIPT_TTL_MILLIS"))
+        assertFalse(persistence.contains("endpointToken"))
+        assertFalse(persistence.contains("BluetoothDevice"))
+        assertFalse(persistence.contains("address"))
+        assertFalse(source.contains("removeBond("))
+        assertFalse(source.contains("device.address"))
+    }
+
+    @Test
+    fun platformScanIsUnfilteredBoundedSingleOwnerAndAlwaysCleansUp() {
+        val source = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/AndroidBluetoothGattFacade.kt",
+        ).readText()
+        val factories = source.substring(
+            source.indexOf("override fun createScan"),
+            source.indexOf("override fun completeFactoryResetVerification"),
+        )
+        assertTrue(factories.contains("activeScan != null || activeGatt != null"))
+        assertTrue(factories.contains("also { activeScan = it }"))
+
+        val scan = source.substring(
+            source.indexOf("private inner class PlatformScanLease"),
+            source.indexOf("private inner class PlatformGattLease"),
+        )
+        assertTrue(scan.contains("private var platformRegistered = false"))
+        assertTrue(scan.contains("scanner.startScan(null, settings, callback)"))
+        assertTrue(scan.contains("mainHandler.postDelayed(timeout, timeoutMillis)"))
+        assertTrue(scan.contains("platformRegistered && activeScan === this"))
+        assertTrue(scan.contains("if (platformRegistered && operationAllowed(AndroidBlePlatformOperation.STOP_SCAN))"))
+        assertTrue(scan.contains("mainHandler.removeCallbacks(timeout)"))
+        assertTrue(scan.contains("stopScan(callback)"))
+        assertTrue(scan.contains("platformRegistered = false"))
+        assertTrue(scan.contains("if (activeScan === this) activeScan = null"))
+        assertTrue(scan.contains("if (leaseClosed) return"))
+
+        val emptyReturningOwner = scan.substring(
+            scan.indexOf("if (purpose == ScanPurpose.RETURNING_OWNER && bondedDevicesAtStart.isEmpty())"),
+            scan.indexOf("val scanner ="),
+        )
+        assertFalse(emptyReturningOwner.contains("platformRegistered = true"))
+        val failure = scan.substring(
+            scan.indexOf("override fun onScanFailed"),
+            scan.indexOf("override fun start()"),
+        )
+        assertTrue(failure.indexOf("closePlatform()") < failure.indexOf("observer(BleScanEvent.Failed"))
+        val completion = scan.substring(scan.indexOf("private fun finish()"))
+        assertTrue(completion.indexOf("closePlatform()") < completion.indexOf("observer(BleScanEvent.Complete)"))
+    }
+
+    @Test
+    fun profileReadyIsDeferredOnceAndBoundToTheExactLiveGattLease() {
+        val source = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/AndroidBluetoothGattFacade.kt",
+        ).readText()
+        val gattLeaseStart = source.indexOf("private inner class PlatformGattLease")
+        val runnableStart = source.indexOf("private val profileReadyRunnable", gattLeaseStart)
+        val runnable = source.substring(
+            runnableStart,
+            source.indexOf("private var leaseClosed", runnableStart),
+        )
+        assertTrue(runnable.contains("val expectedGatt = queuedProfileReadyGatt"))
+        assertTrue(runnable.contains("profileReadyGate.deliver()"))
+        assertTrue(runnable.contains("expectedGatt == null || !owns(expectedGatt)"))
+        assertTrue(runnable.contains("observer(BleGattEvent.ProfileReady)"))
+
+        val discovery = source.substring(
+            source.indexOf("private fun handleServicesDiscovered", gattLeaseStart),
+            source.indexOf("private fun handleProtocolInfoRead", gattLeaseStart),
+        )
+        val duplicateGuard = discovery.indexOf("profileReadyGate.hasStarted()")
+        assertTrue(duplicateGuard >= 0)
+        assertTrue(duplicateGuard < discovery.indexOf("status != BluetoothGatt.GATT_SUCCESS"))
+        assertTrue(duplicateGuard < discovery.indexOf("AndroidGattProfilePolicy.accepts(profile)"))
+        assertTrue(duplicateGuard < discovery.indexOf("operations.acceptProfile()"))
+        assertTrue(discovery.contains("if (!mainHandler.post(profileReadyRunnable))"))
+        assertFalse(discovery.contains("postToMain { observer(BleGattEvent.ProfileReady)"))
+        assertFalse(discovery.contains("observer(BleGattEvent.ProfileReady)"))
+
+        val postRejection = discovery.substring(discovery.indexOf("if (!mainHandler.post(profileReadyRunnable))"))
+        assertTrue(postRejection.contains("profileReadyGate.rejectPost()"))
+        assertTrue(postRejection.contains("fail(BleGattFailure.PLATFORM_FAILURE)"))
+
+        val closeStart = source.indexOf("override fun close()", gattLeaseStart)
+        val close = source.substring(closeStart, source.indexOf("private fun handleConnectionState", closeStart))
+        assertTrue(close.contains("mainHandler.removeCallbacks(profileReadyRunnable)"))
+        assertTrue(close.contains("queuedProfileReadyGatt = null"))
+        assertTrue(close.contains("profileReadyGate.close()"))
+    }
+
     private fun projectFile(path: String): File {
         val direct = File(path)
         if (direct.isFile) return direct

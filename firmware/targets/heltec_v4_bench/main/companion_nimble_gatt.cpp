@@ -1,10 +1,12 @@
 #include "companion_nimble_gatt.hpp"
+#include "companion_nimble_runtime.hpp"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 
+#include "esp_log.h"
 #include "esp_timer.h"
 #include "host/ble_att.h"
 #include "host/ble_gap.h"
@@ -21,13 +23,15 @@ namespace {
 
 using namespace opentrail::companion;
 
+constexpr char kLogTag[] = "companion_gatt";
+
 constexpr std::uint8_t kMinimumKeyBytes =
     kCompanionGattMinimumSecurityKeyBytes;
 
 constexpr std::array<std::uint8_t,
                      kCompanionAuthorizationProtocolInfoBytes>
     kAuthorizationProtocolInfo{
-        0x4F, 0x54, 0x42, 0x30, 0x00, 0x01, 0x01, 0x1F,
+        0x4F, 0x54, 0x42, 0x30, 0x00, 0x01, 0x01, 0x3F,
         0x80, 0x00, 0x97, 0x00, 0x10, 0x01, 0x01, 0x00,
         0x00, 0x00, 0x00, 0x00,
     };
@@ -160,6 +164,7 @@ public:
         const auto result = ble_gatts_indicate_custom(
             connection_handle_, stream_value_handle_, outgoing);
         if (result != 0) {
+            ESP_LOGE(kLogTag, "claim indication submit failed rc=%d", result);
             pending_ = false;
             clear_tuple();
             return CompanionGattSinkError::failed;
@@ -293,6 +298,21 @@ std::uint64_t now_ms() {
                : static_cast<std::uint64_t>(microseconds) / 1000U;
 }
 
+bool is_factory_reset_command(radio::ByteView encoded) {
+    const auto fragment = decode_companion_fragment(encoded);
+    if (!fragment.decoded() ||
+        fragment.fragment.kind != CompanionFrameKind::action_request ||
+        fragment.fragment.fragment_index != 0 ||
+        fragment.fragment.fragment_count != 1) {
+        return false;
+    }
+    const auto action = decode_companion_action_request(
+        {fragment.fragment.payload.data(),
+         fragment.fragment.payload_bytes});
+    return action.decoded() &&
+           action.value.kind == CompanionActionKind::factory_reset;
+}
+
 void registration_callback(ble_gatt_register_ctxt* context, void* argument) {
     if (context == nullptr || argument != g_adapter || g_adapter == nullptr) {
         return;
@@ -405,10 +425,22 @@ int refresh_security(std::uint16_t connection_handle,
                : BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
 }
 
+void queue_verified_gatt_progress(std::uint16_t connection_handle,
+                                  std::uint64_t observed_at_ms) {
+    if (g_adapter == nullptr) return;
+    const auto status = g_adapter->status();
+    if (!status.connected || status.transport_generation == 0) return;
+    observe_companion_verified_gatt_progress(
+        connection_handle, status.transport_generation, observed_at_ms);
+}
+
 int protocol_info_access(std::uint16_t connection_handle,
                          std::uint16_t attribute_handle,
                          ble_gatt_access_ctxt* context,
                          void*) {
+    if (companion_app_factory_reset_blocks_protected_access()) {
+        return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+    }
     if (context == nullptr || context->om == nullptr ||
         context->op != BLE_GATT_ACCESS_OP_READ_CHR ||
         attribute_handle != g_protocol_info_handle) {
@@ -427,9 +459,11 @@ int protocol_info_access(std::uint16_t connection_handle,
         result.encoded_bytes != encoded.size()) {
         return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
     }
-    return os_mbuf_append(context->om, encoded.data(), encoded.size()) == 0
-               ? 0
-               : BLE_ATT_ERR_INSUFFICIENT_RES;
+    if (os_mbuf_append(context->om, encoded.data(), encoded.size()) != 0) {
+        return BLE_ATT_ERR_INSUFFICIENT_RES;
+    }
+    queue_verified_gatt_progress(connection_handle, now_ms());
+    return 0;
 }
 
 int public_link_info_access(std::uint16_t connection_handle,
@@ -457,6 +491,9 @@ int command_access(std::uint16_t connection_handle,
                    std::uint16_t attribute_handle,
                    ble_gatt_access_ctxt* context,
                    void*) {
+    if (companion_app_factory_reset_blocks_protected_access()) {
+        return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+    }
     if (context == nullptr || context->om == nullptr ||
         context->op != BLE_GATT_ACCESS_OP_WRITE_CHR ||
         attribute_handle != g_command_handle) {
@@ -474,10 +511,28 @@ int command_access(std::uint16_t connection_handle,
     if (os_mbuf_copydata(context->om, 0, length, request.data()) != 0) {
         return BLE_ATT_ERR_UNLIKELY;
     }
+    const radio::ByteView encoded{
+        request.data(), static_cast<std::size_t>(length)};
+    const bool reset_command = is_factory_reset_command(encoded);
+    if (reset_command &&
+        !acquire_companion_factory_reset_serialization()) {
+        return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+    }
+    const auto observed_at_ms = now_ms();
     const auto result = g_adapter->service_command(
         connection_handle, attribute_handle,
-        {request.data(), static_cast<std::size_t>(length)}, now_ms());
-    return result.pending() ? 0 : BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+        encoded, observed_at_ms);
+    ESP_LOGI(kLogTag, "claim command disposition=%u error=%u",
+             static_cast<unsigned>(result.disposition),
+             static_cast<unsigned>(result.error));
+    if (reset_command) {
+        observe_companion_app_factory_reset_command(
+            result.pending(), observed_at_ms);
+        release_companion_factory_reset_serialization();
+    }
+    if (!result.pending()) return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+    queue_verified_gatt_progress(connection_handle, observed_at_ms);
+    return 0;
 }
 
 int stream_access(std::uint16_t,
@@ -571,31 +626,53 @@ int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
         return 0;
     }
     switch (event->type) {
-        case BLE_GAP_EVENT_CONNECT:
-            if (event->connect.status == 0 &&
-                ensure_exact_registered_handles()) {
-                (void)g_adapter->connect(event->connect.conn_handle);
+        case BLE_GAP_EVENT_CONNECT: {
+            if (event->connect.status != 0) {
+                return 0;
+            }
+            if (!ensure_exact_registered_handles()) {
+                return static_cast<int>(
+                    CompanionGattAdapterError::not_registered);
+            }
+            const auto connected =
+                g_adapter->connect(event->connect.conn_handle);
+            return static_cast<int>(connected.error);
+        }
+        case BLE_GAP_EVENT_DISCONNECT: {
+            const auto disconnected =
+                g_adapter->disconnect(event->disconnect.conn.conn_handle);
+            if (disconnected == CompanionGattAdapterError::none) {
+                observe_companion_app_factory_reset_response(false);
+            }
+            return static_cast<int>(disconnected);
+        }
+        case BLE_GAP_EVENT_ENC_CHANGE:
+            if (refresh_security(event->enc_change.conn_handle) == 0) {
+                queue_verified_gatt_progress(
+                    event->enc_change.conn_handle, now_ms());
             }
             return 0;
-        case BLE_GAP_EVENT_DISCONNECT:
-            (void)g_adapter->disconnect(event->disconnect.conn.conn_handle);
-            return 0;
-        case BLE_GAP_EVENT_ENC_CHANGE:
-            (void)refresh_security(event->enc_change.conn_handle);
-            return 0;
         case BLE_GAP_EVENT_MTU:
-            if (event->mtu.channel_id == BLE_L2CAP_CID_ATT) {
-                (void)refresh_security(event->mtu.conn_handle);
+            if (event->mtu.channel_id == BLE_L2CAP_CID_ATT &&
+                refresh_security(event->mtu.conn_handle) == 0) {
+                queue_verified_gatt_progress(event->mtu.conn_handle, now_ms());
             }
             return 0;
         case BLE_GAP_EVENT_SUBSCRIBE:
-            if (event->subscribe.attr_handle == g_stream_handle &&
+            if (!companion_app_factory_reset_blocks_protected_access() &&
+                event->subscribe.attr_handle == g_stream_handle &&
                 refresh_security(event->subscribe.conn_handle) == 0) {
-                (void)g_adapter->update_stream_subscription(
+                const auto updated = g_adapter->update_stream_subscription(
                     event->subscribe.conn_handle,
                     event->subscribe.attr_handle,
                     event->subscribe.cur_indicate != 0 &&
                         event->subscribe.cur_notify == 0);
+                if (updated == CompanionGattAdapterError::none &&
+                    event->subscribe.cur_indicate != 0 &&
+                    event->subscribe.cur_notify == 0) {
+                    queue_verified_gatt_progress(
+                        event->subscribe.conn_handle, now_ms());
+                }
             }
             return 0;
         case BLE_GAP_EVENT_NOTIFY_TX: {
@@ -616,6 +693,9 @@ int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
                     if (g_adapter->complete_indication(
                             pending, true, observed_at_ms) ==
                         CompanionGattAdapterError::none) {
+                        queue_verified_gatt_progress(
+                            event->notify_tx.conn_handle, observed_at_ms);
+                        observe_companion_app_factory_reset_response(true);
                         const auto state = g_adapter->status();
                         if (state.lifecycle.phase ==
                             CompanionGattAuthorizationPhase::
@@ -631,25 +711,58 @@ int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
                 }
             } else if (event->notify_tx.status == BLE_HS_ETIMEOUT) {
                 (void)g_adapter->service_timeout(pending, now_ms());
+                observe_companion_app_factory_reset_response(false);
             } else {
                 (void)g_adapter->complete_indication(
                     pending, false, now_ms());
+                observe_companion_app_factory_reset_response(false);
             }
             return 0;
         }
         case BLE_GAP_EVENT_AUTHORIZE: {
             event->authorize.out_response = BLE_GAP_AUTHORIZE_REJECT;
-            if (refresh_security(event->authorize.conn_handle) != 0) {
+            if (companion_app_factory_reset_blocks_protected_access()) {
+                return 0;
+            }
+            const auto refresh =
+                refresh_security(event->authorize.conn_handle);
+            const auto command_write =
+                event->authorize.attr_handle == g_command_handle &&
+                event->authorize.is_read == 0;
+            if (refresh != 0) {
+                if (command_write) {
+                    const auto status = g_adapter->status();
+                    ESP_LOGI(
+                        kLogTag,
+                        "claim authorize refresh=%d accepted=0 connected=%d secure=%d phase=%u info=%d sub=%d pending=%d",
+                        refresh, status.connected, status.secure_bond,
+                        static_cast<unsigned>(status.lifecycle.phase),
+                        status.lifecycle.protocol_info_read,
+                        status.lifecycle.indication_subscribed,
+                        status.lifecycle.response_pending);
+                }
                 return 0;
             }
             const auto operation = event->authorize.is_read != 0
                                        ? CompanionGattAttributeOperation::read
                                        : CompanionGattAttributeOperation::write;
-            if (g_adapter->authorize_attribute(
-                    event->authorize.conn_handle,
-                    event->authorize.attr_handle,
-                    operation)) {
+            const auto accepted = g_adapter->authorize_attribute(
+                event->authorize.conn_handle,
+                event->authorize.attr_handle,
+                operation);
+            if (accepted) {
                 event->authorize.out_response = BLE_GAP_AUTHORIZE_ACCEPT;
+            }
+            if (command_write) {
+                const auto status = g_adapter->status();
+                ESP_LOGI(
+                    kLogTag,
+                    "claim authorize refresh=0 accepted=%d connected=%d secure=%d phase=%u info=%d sub=%d pending=%d",
+                    accepted, status.connected, status.secure_bond,
+                    static_cast<unsigned>(status.lifecycle.phase),
+                    status.lifecycle.protocol_info_read,
+                    status.lifecycle.indication_subscribed,
+                    status.lifecycle.response_pending);
             }
             return 0;
         }
@@ -682,13 +795,17 @@ companion_nimble_gatt_resolve_claim(
             0,
         };
     }
-    return g_adapter->resolve_claim(
+    const auto result = g_adapter->resolve_claim(
         connection_handle,
         transport_generation,
         session_nonce,
         exchange_id,
         security,
         observed_at_ms);
+    if (result.pending()) {
+        queue_verified_gatt_progress(connection_handle, observed_at_ms);
+    }
+    return result;
 }
 
 CompanionGattAdapterError companion_nimble_gatt_service_timeout(

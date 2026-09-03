@@ -52,16 +52,24 @@ class ConnectedDeviceSessionOwner(
         if (!closed) controller.selectBluetoothDevice(endpointToken)
     }
 
-    override fun replaceLostPhone(endpointToken: String) {
-        if (!closed) controller.replaceLostPhoneWithBluetoothDevice(endpointToken)
-    }
-
     override fun disconnect() {
         if (!closed) controller.disconnectBluetoothDevice()
     }
 
     override fun submitAction(request: CompanionActionRequest): Boolean =
         !closed && controller.submitBluetoothAction(request)
+
+    override fun requestFactoryResetConfirmation(): Boolean =
+        !closed && controller.requestFactoryResetConfirmation()
+
+    override fun cancelFactoryResetConfirmation() {
+        if (!closed) controller.cancelFactoryResetConfirmation()
+    }
+
+    override fun confirmFactoryReset(): Boolean = !closed && controller.confirmFactoryReset()
+
+    override fun retryFactoryResetVerification(): Boolean =
+        !closed && controller.retryFactoryResetVerification()
 
     override fun close() {
         if (closed) return

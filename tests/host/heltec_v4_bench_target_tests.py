@@ -26,6 +26,12 @@ V1_HELTEC_ADAPTER_HEADER = (
     TARGET / "main" / "companion_v1_heltec_adapters.hpp")
 V1_HELTEC_ADAPTER = (
     TARGET / "main" / "companion_v1_heltec_adapters.cpp")
+V1_BOND_OWNER_HEADER = (
+    ROOT / "firmware" / "components" / "companion" / "include" /
+    "opentrail" / "companion_v1_bond_owner.hpp")
+V1_BOND_OWNER = (
+    ROOT / "firmware" / "components" / "companion" / "src" /
+    "companion_v1_bond_owner.cpp")
 ANDROID_TERMINATION_POLICY = (
     ROOT / "android" / "app" / "src" / "debug" / "kotlin" / "io" /
     "github" / "nbjelanovic" / "otclient" /
@@ -35,6 +41,15 @@ ANDROID_TERMINATION_INSTRUMENTATION = (
     "github" / "nbjelanovic" / "otclient" /
     "PublicLinkProbeInstrumentation.kt")
 ANDROID_APP_BUILD = ROOT / "android" / "app" / "build.gradle.kts"
+ANDROID_GATT_FACADE = (
+    ROOT / "android" / "app" / "src" / "main" / "kotlin" / "io" /
+    "github" / "nbjelanovic" / "otclient" / "AndroidBluetoothGattFacade.kt")
+ANDROID_BLE_RUNTIME = (
+    ROOT / "android" / "app" / "src" / "main" / "kotlin" / "io" /
+    "github" / "nbjelanovic" / "otclient" / "BleCompanionRuntime.kt")
+ANDROID_BLE_PLATFORM_POLICY = (
+    ROOT / "android" / "app" / "src" / "main" / "kotlin" / "io" /
+    "github" / "nbjelanovic" / "otclient" / "AndroidBlePlatformPolicy.kt")
 BLE_RUNTIME_OWNER = (
     ROOT / "firmware" / "components" / "companion" / "src" /
     "companion_ble_runtime_owner.cpp"
@@ -92,8 +107,20 @@ BATTERY_HEADER = TARGET / "main" / "heltec_v4_battery.hpp"
 BATTERY_SOURCE = TARGET / "main" / "heltec_v4_battery.cpp"
 GNSS_HEADER = TARGET / "main" / "heltec_v4_gnss.hpp"
 GNSS_SOURCE = TARGET / "main" / "heltec_v4_gnss.cpp"
-PAIRING_INPUT_HEADER = TARGET / "main" / "heltec_v4_pairing_input.hpp"
-PAIRING_INPUT_SOURCE = TARGET / "main" / "heltec_v4_pairing_input.cpp"
+FACTORY_RESET_INPUT_HEADER = (
+    TARGET / "main" / "heltec_v4_factory_reset_input.hpp")
+FACTORY_RESET_INPUT_SOURCE = (
+    TARGET / "main" / "heltec_v4_factory_reset_input.cpp")
+FACTORY_RESET_STORAGE_HEADER = (
+    TARGET / "main" / "heltec_v4_factory_reset_storage.hpp")
+FACTORY_RESET_STORAGE_SOURCE = (
+    TARGET / "main" / "heltec_v4_factory_reset_storage.cpp")
+RESET_RECEIPT_HEADER = (
+    ROOT / "firmware" / "components" / "companion" / "include" /
+    "opentrail" / "companion_reset_receipt.hpp")
+PAIRING_WINDOW_HEADER = (
+    ROOT / "firmware" / "components" / "companion" / "include" /
+    "opentrail" / "companion_pairing_window.hpp")
 SECURE_RANDOM_HEADER = TARGET / "main" / "heltec_v4_secure_random.hpp"
 SECURE_RANDOM_SOURCE = TARGET / "main" / "heltec_v4_secure_random.cpp"
 DISPLAY_ADAPTER_HEADER = TARGET / "main" / "heltec_v4_oled.hpp"
@@ -143,6 +170,12 @@ def test_contract() -> None:
         "main/heltec_v4_battery.hpp",
         "main/heltec_v4_gnss.cpp",
         "main/heltec_v4_gnss.hpp",
+        "main/heltec_v4_factory_reset_input.cpp",
+        "main/heltec_v4_factory_reset_input.hpp",
+        "main/heltec_v4_factory_reset_storage.cpp",
+        "main/heltec_v4_factory_reset_storage.hpp",
+        # Retained as dormant history only. The build and application gates
+        # below prove this former 3-second pairing input is unreachable.
         "main/heltec_v4_pairing_input.cpp",
         "main/heltec_v4_pairing_input.hpp",
         "main/heltec_v4_secure_random.cpp",
@@ -169,7 +202,9 @@ def test_contract() -> None:
     observed_files = {
         path.relative_to(TARGET).as_posix()
         for path in TARGET.rglob("*")
-        if path.is_file()
+        if path.is_file() and
+        path.relative_to(TARGET).parts[0] != "build" and
+        path.relative_to(TARGET).as_posix() not in {"sdkconfig", "sdkconfig.old"}
     }
     require(observed_files == expected_files,
             "target file surface changed without admission review")
@@ -925,6 +960,8 @@ def test_authorization_nvs_backend_surface() -> None:
 def test_v1_heltec_adapters_surface() -> None:
     header = V1_HELTEC_ADAPTER_HEADER.read_text(encoding="utf-8")
     source = V1_HELTEC_ADAPTER.read_text(encoding="utf-8")
+    owner_header = V1_BOND_OWNER_HEADER.read_text(encoding="utf-8")
+    owner_source = V1_BOND_OWNER.read_text(encoding="utf-8")
     combined = header + "\n" + source
 
     for required in (
@@ -934,8 +971,10 @@ def test_v1_heltec_adapters_surface() -> None:
         "CompanionV1OwnerStorageSnapshot load() override",
         "commit_absent_and_readback(",
         "public companion::CompanionV1BondInventoryPort",
+        "public companion::CompanionV1BondCleanupPort",
         "public companion::CompanionGattTrustedBindingAuthority",
         "CompanionV1BondInventorySnapshot snapshot()",
+        "remove_exact_and_verify(",
         "CompanionGattTrustedBindingResult resolve(",
     ):
         require(required in header,
@@ -948,6 +987,7 @@ def test_v1_heltec_adapters_surface() -> None:
         "nvs_commit(handle_)",
         "committed.record != record",
         "ble_store_util_bonded_peers",
+        "ble_store_util_delete_peer",
         "ble_store_read_our_sec",
         "kMaximumBondReferences = 2",
         'kBondReferenceDomain[] = "OpenTrail/V1/bond-ref"',
@@ -983,20 +1023,69 @@ def test_v1_heltec_adapters_surface() -> None:
             "force_nonzero(session_challenge)" not in resolve,
             "session challenge must come only from the monotonic counter, not random bytes")
 
-    mutation_tail = source[
-        source.index("if (nvs_set_blob("):
+    initial_commit = source[
+        source.index("HeltecV4CompanionV1OwnerStorage::commit_absent_and_readback("):
         source.index("HeltecV4CompanionV1NimbleBondAdapter::")
     ]
-    require(mutation_tail.index("nvs_set_blob(") <
-            mutation_tail.index("nvs_commit(") <
-            mutation_tail.index("committed.record != record"),
+    initial_mutation_tail = initial_commit[
+        initial_commit.index("if (nvs_set_blob("):
+    ]
+    require(initial_mutation_tail.index("nvs_set_blob(") <
+            initial_mutation_tail.index("nvs_commit(") <
+            initial_mutation_tail.index("committed.record != record"),
             "V1 owner commit must set, commit, then require byte-exact readback")
-    require(mutation_tail.count(
+    require(initial_mutation_tail.count(
                 "CompanionV1OwnerStorageError::uncertain") >= 3 and
-            "CompanionV1OwnerStorageError::failed" not in mutation_tail and
-            "CompanionV1OwnerStorageError::not_ready" not in mutation_tail and
-            "CompanionV1OwnerStorageError::conflict" not in mutation_tail,
+            "CompanionV1OwnerStorageError::failed" not in initial_mutation_tail and
+            "CompanionV1OwnerStorageError::not_ready" not in initial_mutation_tail and
+            "CompanionV1OwnerStorageError::conflict" not in initial_mutation_tail,
             "every failure after V1 owner mutation begins must remain uncertain")
+
+    owner_surfaces = combined + "\n" + owner_header + "\n" + owner_source
+    for forbidden in (
+        "replace_exact_and_readback(",
+        "stage_replacement(",
+        "confirm_replacement(",
+        "abort_replacement(",
+        "authorize_replacement_controller(",
+        "defer_replacement_publication(",
+        "replacement_candidate_staged",
+        "replacement_commit_in_progress",
+        "replacement_cleanup_required",
+        "replacement_ready",
+    ):
+        require(forbidden not in owner_surfaces,
+                f"V1 owner/storage surfaces must expose no phone replacement capability: {forbidden}")
+
+    claim_authority = owner_source[
+        owner_source.index("CompanionV1GattAuthorizationAuthority::apply_claim("):
+        owner_source.index("CompanionV1GattAuthorizationAuthority::release_connection(")
+    ]
+    replacement_gate = (
+        "if (purpose == CompanionAuthorizationPurpose::replace_controller)")
+    require(replacement_gate in claim_authority and
+            "CompanionAuthorizationDenyReason::unsupported" in claim_authority,
+            "legacy replace_controller decode must fail closed as unsupported in V1")
+    require(claim_authority.index(replacement_gate) <
+            claim_authority.index("if (!claim.link_encrypted") <
+            claim_authority.index("owner_.authorize_controller("),
+            "replace_controller must be rejected before claim validation or owner authority")
+    require("CompanionAuthorizationClaimOutcome::replaced" not in claim_authority,
+            "V1 owner authority must never publish a Replaced outcome")
+
+    cleanup = source[
+        source.index("HeltecV4CompanionV1NimbleBondAdapter::remove_exact_and_verify("):
+        source.index("HeltecV4CompanionV1NimbleBondAdapter::resolve(")
+    ]
+    require(cleanup.index("find_exact_private_peer_identity(private_reference)") <
+            cleanup.index("ble_store_util_delete_peer(") and
+            cleanup.index("ble_store_util_delete_peer(") <
+            cleanup.index("const auto verified = nimble_bond_snapshot()") <
+            cleanup.index("verified.bond_count + 1U != prior_bond_count"),
+            "V1 bond cleanup must resolve exactly, delete once, and verify fresh absence")
+    require("ble_store_util_delete_oldest_peer" not in source and
+            "ble_store_clear" not in source,
+            "V1 bond cleanup must expose no broad or oldest-bond eviction")
 
     require(header.count("OAP0") == 1 and "OAP0" not in source and
             "CompanionAuthorizationProtectedStore" not in combined and
@@ -1073,8 +1162,8 @@ def test_protected_root_key_roster_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 31,
-            "non-injection gate must cover the exact 31-source target build")
+    require(len(linked_source_tokens) == 35,
+            "non-injection gate must cover the exact 35-source target build")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -1086,7 +1175,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 30,
+    require(len(other_linked_sources) == 34,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1148,8 +1237,8 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 31,
-            "configuration/security non-injection gate must cover 31 sources")
+    require(len(linked_source_tokens) == 35,
+            "configuration/security non-injection gate must cover 35 sources")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_configuration_security_adapter.cpp":
@@ -1161,7 +1250,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 30,
+    require(len(other_linked_sources) == 34,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1518,15 +1607,85 @@ def test_application_surface() -> None:
     authorization_storage = AUTHORIZATION_STORAGE.read_text(encoding="utf-8")
     for required in (
         "nimble_port_init", "register_companion_nimble_gatt_service",
+        'extern "C" void ble_store_config_init(void);',
+        "ble_store_config_init();",
         "xTaskCreatePinnedToCore", "ble_gap_adv_start",
         "BLE_HS_IO_DISPLAY_ONLY", "sm_bonding = 1", "sm_mitm = 1",
         "sm_sc = 1", "StaticQueue_t", "std::atomic<bool>",
         "nvs_encryption_not_configured", "connection_termination_failed",
-        "ble_gap_terminate", "15000", "2000",
+        "ble_gap_terminate", "45000", "2000",
         "observe_host_run_exit", "host_started_ && !host_run_exited_",
     ):
         require(required in nimble_runtime,
                 f"missing bounded NimBLE runtime gate: {required}")
+    configure_bonding = nimble_runtime[
+        nimble_runtime.index("bool configure_secure_connections_bonding() override"):
+        nimble_runtime.index("bool register_protected_service() override")
+    ]
+    initialize_stack = nimble_runtime[
+        nimble_runtime.index("bool initialize_stack() override"):
+        nimble_runtime.index("bool configure_secure_connections_bonding() override")
+    ]
+    runtime_start_sequence = nimble_runtime[
+        nimble_runtime.index("start_companion_nimble_runtime("):
+        nimble_runtime.index("service_companion_nimble_runtime(")
+    ]
+    owner_start_sequence = runtime_owner[
+        runtime_owner.index("CompanionBleRuntimeOwner::start("):
+        runtime_owner.index("CompanionBleRuntimeOwner::host_synced(")
+    ]
+    require("nimble_port_init()" in initialize_stack and
+            runtime_start_sequence.index("nvs_flash_init()") <
+            runtime_start_sequence.index("g_runtime_owner.start") and
+            owner_start_sequence.index("port_.initialize_stack()") <
+            owner_start_sequence.index(
+                "port_.configure_secure_connections_bonding()"),
+            "NVS must initialize before the owner starts NimBLE, then security/reset restoration")
+    require(configure_bonding.count("ble_store_config_init();") == 1 and
+            "g_factory_reset_marker == nullptr" in configure_bonding and
+            configure_bonding.index("ble_store_config_init();") <
+            configure_bonding.index(
+                "g_factory_reset_bonds->set_store_access_ready(true)") <
+            configure_bonding.index("g_factory_reset_marker->load()") <
+            configure_bonding.index("g_v1_owner_bridge->restore()") <
+            configure_bonding.rindex("g_factory_reset_executor->restore()"),
+            "the live NimBLE store and marker must gate orphan-bond reconciliation before final reset-domain verification")
+    committed_gate = configure_bonding[
+        configure_bonding.index(
+            "if (reset_marker_snapshot.state !="):
+        configure_bonding.index("const auto owner_restored")
+    ]
+    require("DeviceFactoryResetPhase::completion_receipt_pending" in
+                committed_gate and
+            "g_factory_reset_executor->restore()" in committed_gate and
+            "return complete_committed_reset();" in committed_gate and
+            "consume_committed_receipt()" in committed_gate,
+            "a committed marker must resume reset cleanup or consume its completion receipt before restoring an owner")
+    reset_cleanup = configure_bonding[
+        configure_bonding.index(
+            "const auto complete_committed_reset"):
+        configure_bonding.index(
+            "DeviceFactoryResetResult reset_restored")
+    ]
+    require("show_factory_reset_confirmation()" not in reset_cleanup and
+            reset_cleanup.index("show_factory_reset_in_progress()") <
+            reset_cleanup.index("while (true)") <
+            reset_cleanup.index("continue_cleanup()") <
+            reset_cleanup.index(
+                "DeviceFactoryResetPhase::") <
+            reset_cleanup.index("esp_restart()") <
+            reset_cleanup.index("vTaskDelay") and
+            "kFactoryResetRetryDelayMs" in reset_cleanup and
+            "return false" not in reset_cleanup,
+            "cold committed-reset recovery must render RESETTING and retry verified erasure until reboot-unowned")
+    require(owner_start_sequence.index(
+                "port_.configure_secure_connections_bonding()") <
+            owner_start_sequence.index("port_.register_protected_service()") <
+            owner_start_sequence.index("port_.start_host_task()"),
+            "reset and owner restoration must complete before GATT registration and host start")
+    require(nimble_runtime.index("ble_store_config_init();") <
+            nimble_runtime.index("bool start_host_task() override"),
+            "NimBLE store callbacks must initialize before host task start")
     sdkconfig_defaults = (TARGET / "sdkconfig.defaults").read_text(
         encoding="utf-8")
     require("CONFIG_BT_NIMBLE_MAX_BONDS=2" in sdkconfig_defaults and
@@ -1562,8 +1721,51 @@ def test_application_surface() -> None:
     ]
     require("RuntimeEventKind::connection_opened" in connect_case and
             "security_initiation_accepted" in connect_case and
-            "pairing_open" in connect_case,
-            "public link must remain queued while an open PIN window initiates security")
+            "pairing_open" not in connect_case,
+            "every unowned or owned link must immediately initiate Secure Connections")
+    gatt_connect_case = nimble_gatt[
+        nimble_gatt.index("case BLE_GAP_EVENT_CONNECT"):
+        nimble_gatt.index("case BLE_GAP_EVENT_DISCONNECT")
+    ]
+    require("const auto connected" in gatt_connect_case and
+            "g_adapter->connect(event->connect.conn_handle)" in
+                gatt_connect_case and
+            "return static_cast<int>(connected.error)" in
+                gatt_connect_case and
+            "(void)g_adapter->connect" not in gatt_connect_case,
+            "GATT connect dispatch must propagate the exact adapter result")
+    require("adapter_connection_error" in connect_case and
+            "CompanionGattAdapterError::connection_in_use" in connect_case and
+            "terminate_connection_or_contain(" in connect_case and
+            "companion_nimble_gatt_adapter_status().connected" not in
+                connect_case and
+            connect_case.index("adapter_connection_error") <
+            connect_case.index("PairingLock lock") <
+            connect_case.index("RuntimeEventKind::connection_opened") <
+            connect_case.index("security_initiation_accepted"),
+            "a rejected second handle must terminate before pairing, runtime, or security state changes")
+    adapter_rejection = connect_case[
+        connect_case.index("if (adapter_connection_error !="):
+        connect_case.index("std::uint64_t pairing_generation")
+    ]
+    require("CompanionGattAdapterError::connection_in_use" in
+                adapter_rejection and
+            adapter_rejection.index(
+                "CompanionGattAdapterError::connection_in_use") <
+            adapter_rejection.index("g_event_overflow.store") <
+            adapter_rejection.index("terminate_connection_or_contain") and
+            "return 0" in adapter_rejection,
+            "expected second-controller rejection must preserve the original session while terminating only the new handle")
+    disconnect_case = nimble_runtime[
+        nimble_runtime.index("case BLE_GAP_EVENT_DISCONNECT"):
+        nimble_runtime.index("case BLE_GAP_EVENT_ADV_COMPLETE")
+    ]
+    require("adapter_disconnect_error" in disconnect_case and
+            "CompanionGattAdapterError::wrong_connection" in disconnect_case and
+            disconnect_case.index("CompanionGattAdapterError::wrong_connection") <
+            disconnect_case.index("PairingLock lock") <
+            disconnect_case.index("RuntimeEventKind::connection_closed"),
+            "the rejected handle's disconnect callback must not close the original exact session")
     for required in (
         "BLE_GAP_EVENT_PASSKEY_ACTION", "BLE_SM_IOACT_DISP",
         "ble_sm_inject_io", "BLE_GAP_EVENT_ENC_CHANGE",
@@ -1574,7 +1776,8 @@ def test_application_surface() -> None:
         require(required in nimble_runtime,
                 f"missing dynamic pairing runtime gate: {required}")
     for required in (
-        "BLE_HS_EALREADY", "BLE_GAP_EVENT_TERM_FAILURE",
+        "BLE_HS_EALREADY", "BLE_HS_ENOTCONN",
+        "BLE_GAP_EVENT_TERM_FAILURE",
         "handle_passkey_action_deferred_cleanup",
         "exact_active_attempt", "terminate_connection_or_contain",
     ):
@@ -1587,14 +1790,186 @@ def test_application_surface() -> None:
     require("companion_nimble_gatt_gap_event" in enc_case and
             "if (exact_active_attempt)" in enc_case,
             "encryption changes must update GATT security and only close the exact attempt")
+    require(enc_case.index("accept_initial_bond") <
+            enc_case.index("companion_nimble_gatt_gap_event"),
+            "initial-bond owner persistence must precede same-link GATT authorization")
+    for required in (
+        "CompanionPairingWindowPhase::attempt_active",
+        "g_v1_bond_adapter->snapshot()",
+        "inventory.bond_count == 1",
+        "CompanionV1BondOwnerPhase::",
+        "closed_unowned",
+        "g_v1_owner_bridge->accept_initial_bond(",
+        "g_boot_unowned = false",
+        "set_pairable_advertising_state(false)",
+    ):
+        require(required in enc_case,
+                f"initial claim ENC_CHANGE handling is missing: {required}")
+    require(enc_case.index("g_v1_bond_adapter->snapshot()") <
+            enc_case.index("g_v1_owner_bridge->accept_initial_bond(") <
+            enc_case.index("g_boot_unowned = false") <
+            enc_case.index("companion_nimble_gatt_gap_event"),
+            "the exact initial owner must persist and close pairing before same-link GATT evaluation")
+    require(
+        enc_case.index("reserve_secure_bond_terminal(") <
+        enc_case.index("g_v1_bond_adapter->snapshot()") <
+        enc_case.index("g_v1_owner_bridge->accept_initial_bond("),
+        "the strict callback deadline must be reserved before inventory or owner persistence")
+    require(
+        enc_case.index("set_pairable_advertising_state(false)") <
+        enc_case.index("g_orphan_reconciliation_required.store(") and
+        enc_case.index("g_orphan_reconciliation_required.store(") <
+        enc_case.index("companion_nimble_gatt_gap_event"),
+        "a rejected exact bond must clear D1 and schedule reconciliation before any GATT evaluation")
+    orphan_reconciliation_service = nimble_runtime[
+        nimble_runtime.index("g_orphan_reconciliation_required.exchange("):
+        nimble_runtime.index("g_host_exited.exchange(")
+    ]
+    require(
+        orphan_reconciliation_service.index("g_runtime_owner.callback_overflow()") <
+        orphan_reconciliation_service.index("esp_restart()"),
+        "orphan reconciliation must fully contain BLE in owner context before reboot")
+
+    target_pairing_surface = nimble_runtime + "\n" + source
+    for forbidden in (
+        "CompanionPairingPurpose::replacement",
+        "stage_replacement(",
+        "confirm_replacement(",
+        "abort_replacement(",
+        "open_companion_pairing_window(",
+        "g_replacement_",
+        "replacement_confirmation_pending",
+    ):
+        require(forbidden not in target_pairing_surface,
+                f"target must expose claim-only pairing with no lost-phone replacement route: {forbidden}")
+    runtime_start = nimble_runtime[
+        nimble_runtime.index("start_companion_nimble_runtime("):
+        nimble_runtime.index("service_companion_nimble_runtime(")
+    ]
+    require("owner_storage, bond_adapter, bond_adapter" in runtime_start,
+            "target owner bridge must bind exact bond inventory and cleanup to the same adapter")
+    require("ble_npl_event_init(" not in runtime_start,
+            "runtime entry must not touch the NPL event API before initialize_stack")
+
+    pairing_window_header = PAIRING_WINDOW_HEADER.read_text(encoding="utf-8")
+    require("kCompanionPairingWindowMs = 60000" in pairing_window_header,
+            "the automatic unowned boot PIN window must remain exactly 60 seconds")
+    for forbidden in (
+        "CompanionPairingPurpose",
+        "replacement_confirmation_pending",
+        "replacement_confirmed",
+        "confirm_replacement(",
+        "complete_replacement(",
+    ):
+        require(forbidden not in pairing_window_header,
+                f"pairing-window API must not retain phone replacement capability: {forbidden}")
+    require(nimble_runtime.count("open_unowned_boot_window(") == 1,
+            "only host sync may open the one automatic unowned boot window")
+    host_sync_case = nimble_runtime[
+        nimble_runtime.index("case RuntimeEventKind::host_sync"):
+        nimble_runtime.index("case RuntimeEventKind::host_reset")
+    ]
+    require("if (g_boot_unowned)" in host_sync_case and
+            "g_boot_pairing_attempted" in host_sync_case and
+            host_sync_case.index("open_unowned_boot_window(") <
+            host_sync_case.index("g_pairable_advertising.store(true") <
+            host_sync_case.index("g_runtime_owner.host_synced("),
+            "unowned host sync must show a PIN once before pairable advertising starts")
+    require("} else {" in host_sync_case and
+            "set_pairable_advertising_state(false)" in host_sync_case and
+            configure_bonding.index("const bool owner_unowned") <
+            configure_bonding.index("g_boot_unowned = owner_unowned"),
+            "owned boot must not open a PIN or publish the pairable marker")
+
+    advertising_fields = nimble_runtime[
+        nimble_runtime.index("bool configure_advertising_fields()"):
+        nimble_runtime.index("bool stack_initialized_")
+    ]
+    require(nimble_runtime.count("BLE_UUID128_INIT(") == 2 and
+            "0xD0, 0xB7" in nimble_runtime and
+            "0xD1, 0xB7" in nimble_runtime and
+            advertising_fields.index("g_pairable_advertising.load") <
+            advertising_fields.index(
+                "fields.uuids128 = &kAdvertisingUuids[pairable ? 1 : 0]") <
+            advertising_fields.index("fields.num_uuids128 = 1"),
+            "advertising must expose exactly one fixed generic-or-pairable UUID without identity")
+    android_runtime = ANDROID_BLE_RUNTIME.read_text(encoding="utf-8")
+    android_policy = ANDROID_BLE_PLATFORM_POLICY.read_text(encoding="utf-8")
+    android_gatt = ANDROID_GATT_FACADE.read_text(encoding="utf-8")
+    require(
+        'SERVICE_UUID = "5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d0"' in
+        android_runtime and
+        'PAIRABLE_ADVERTISING_UUID = "5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d1"' in
+        android_runtime and
+        "GATT_SERVICE_UUID = CompanionGattV0Contract.SERVICE_UUID" in
+        android_policy and
+        "RETURNING_OWNER_ADVERTISING_UUID = CompanionGattV0Contract.SERVICE_UUID" in
+        android_policy and
+        "PAIRABLE_ADVERTISING_UUID = CompanionGattV0Contract.PAIRABLE_ADVERTISING_UUID" in
+        android_policy,
+        "Android must distinguish the protected D0 GATT service from the D1 pairable marker")
+    require(
+        "scanner.startScan(null, settings, callback)" in android_gatt and
+        "ScanFilter.Builder" not in android_gatt and
+        "setServiceData(ParcelUuid(pairableAdvertisingUuid)" not in android_gatt and
+        "AndroidPairableAdvertisementPolicy.accepts(advertisedUuids)" in android_gatt and
+        "AndroidReturningOwnerAdvertisementPolicy.accepts(advertisedUuids, stillBonded)" in
+            android_gatt and
+        "FactoryResetReceiptAdvertisementCodec.decode(" in android_gatt and
+        "callbackGatt.getService(gattServiceUuid)" in android_gatt,
+        "Android must use one bounded unfiltered platform scan, revalidate D1/D0/reset receipts in software, and keep protected GATT on D0")
+    require(
+        "AndroidPairableAdvertisementPolicy.accepts(advertisedUuids)" in android_gatt and
+        "AndroidReturningOwnerAdvertisementPolicy.accepts(advertisedUuids, stillBonded)" in
+        android_gatt and
+        "result.device in bondedDevicesAtStart" in android_gatt and
+        "result.device in currentBonds" in android_gatt and
+        "allowSystemBondCreation = purpose == ScanPurpose.ADD_DEVICE" in android_gatt and
+        "advertisedServiceUuids.none { it == gattServiceUuid }" in android_policy and
+        "bonded &&" in android_policy and
+        "advertisedServiceUuids.none { it == pairableAdvertisingUuid }" in android_policy,
+        "returning-owner admission must require an existing bond plus D0 and reject D1; Add Device stays D1-only")
+
+    notify_case = nimble_runtime[
+        nimble_runtime.index("default: {"):
+        nimble_runtime.index("CompanionBleRuntimeError apply_event")
+    ]
+    require(notify_case.index("application_authorized") <
+            notify_case.index("RuntimeEventKind::connection_authorized"),
+            "the terminal authorization indication must queue connection authorization")
+
     reset_case = nimble_runtime[
         nimble_runtime.index("case RuntimeEventKind::host_reset"):
         nimble_runtime.index("case RuntimeEventKind::advertising_interrupted")
     ]
     require("kCompanionBleInvalidConnectionHandle" in reset_case and
             "++g_pairing_transport_generation" in reset_case and
-            "g_pairing_window->restart()" in reset_case,
+            "g_pairing_window->restart()" in reset_case and
+            "set_pairable_advertising_state(false)" in reset_case,
             "host reset must invalidate stale transport state and clear the PIN")
+
+    pairing_service = nimble_runtime[
+        nimble_runtime.index("service_companion_pairing_window("):
+        nimble_runtime.index("fault_companion_pairing_window()")
+    ]
+    require(pairing_service.index("g_pairing_window->service(now_ms)") <
+            pairing_service.index("set_pairable_advertising_state(false)") <
+            pairing_service.index(
+                "terminate_connection_or_contain(terminate_handle, now_ms)"),
+            "PIN expiry must clear pairable advertising before terminating an active attempt")
+    pairing_terminal_case = nimble_runtime[
+        nimble_runtime.index("case RuntimeEventKind::pairing_completed"):
+        nimble_runtime.index("case RuntimeEventKind::pairing_closed")
+    ]
+    pairing_closed_case = nimble_runtime[
+        nimble_runtime.index("case RuntimeEventKind::pairing_closed"):
+        nimble_runtime.index("return CompanionBleRuntimeError::invalid_argument;\n}",
+                             nimble_runtime.index(
+                                 "case RuntimeEventKind::pairing_closed"))
+    ]
+    require("set_pairable_advertising_state(false)" in pairing_terminal_case and
+            "set_pairable_advertising_state(false)" in pairing_closed_case,
+            "pairing success, failure, and closure must remove the pairable marker")
     require("static_passkey" not in nimble_runtime.lower() and
             re.search(r"ESP_LOG[^\n]*(pin|passkey)", nimble_runtime,
                       re.IGNORECASE) is None,
@@ -1779,8 +2154,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 31,
-            "target source set must remain sixteen target, fourteen companion, and one UI source")
+    require(cmake.count('.cpp"') == 35,
+            "target source set must remain seventeen target, seventeen companion, and one UI source")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
@@ -2205,10 +2580,10 @@ def test_automatic_termination_acceptance_surface() -> None:
     require(
         re.search(
             r"kRuntimePolicy\s*\{\s*10000\s*,\s*1000\s*,\s*3\s*,"
-            r"\s*15000\s*,\s*2000\s*\}",
+            r"\s*45000\s*,\s*2000\s*\}",
             runtime,
         ) is not None,
-        "target automatic termination policy must remain exactly 15 seconds",
+        "target automatic termination policy must remain exactly 45 seconds",
     )
     require("TARGET_WINDOW_MILLIS = 15_000L" in policy,
             "Android acceptance must pin the exact target window")
@@ -2252,57 +2627,461 @@ def test_automatic_termination_acceptance_surface() -> None:
     )
 
 
-def test_pairing_input_surface() -> None:
-    header = PAIRING_INPUT_HEADER.read_text(encoding="utf-8")
-    source = PAIRING_INPUT_SOURCE.read_text(encoding="utf-8")
+def test_factory_reset_surfaces() -> None:
+    input_header = FACTORY_RESET_INPUT_HEADER.read_text(encoding="utf-8")
+    input_source = FACTORY_RESET_INPUT_SOURCE.read_text(encoding="utf-8")
+    storage_header = FACTORY_RESET_STORAGE_HEADER.read_text(encoding="utf-8")
+    storage_source = FACTORY_RESET_STORAGE_SOURCE.read_text(encoding="utf-8")
+    receipt_header = RESET_RECEIPT_HEADER.read_text(encoding="utf-8")
 
     for required in (
-        "kHeltecV4PairingButtonGpio = 0",
-        "kHeltecV4PairingButtonPressedLevel = 0",
-        "kHeltecV4PairingButtonDebounceMs = 40",
-        "kHeltecV4PairingButtonHoldMs = 3'000",
-        "long_press_released",
-        "void reset(bool raw_pressed, std::uint64_t now_ms)",
-        "PairingInputEvent observe(",
-        "PairingInputEvent poll(std::uint64_t now_ms)",
+        "kHeltecV4FactoryResetButtonGpio = 0",
+        "kHeltecV4FactoryResetButtonPressedLevel = 0",
+        "CompanionFactoryResetGesture gesture_",
+        "CompanionFactoryResetGestureEvent poll(",
+        "CompanionFactoryResetGestureEvent cancel(",
+        "bool rearm_after_noncommit(std::uint64_t now_ms)",
     ):
-        require(required in header,
-                f"pairing input header is missing: {required}")
-
+        require(required in input_header,
+                f"factory-reset input header is missing: {required}")
     for required in (
         "GPIO_NUM_0",
         "GPIO_MODE_INPUT",
         "GPIO_PULLUP_ENABLE",
         "GPIO_PULLDOWN_DISABLE",
         "GPIO_INTR_DISABLE",
-        "now_ms < last_observed_ms_",
-        "reset(raw_pressed, now_ms)",
-        "now_ms - raw_since_ms_ < kHeltecV4PairingButtonDebounceMs",
-        "held_ms < kHeltecV4PairingButtonHoldMs",
-        "PairingInputEvent::long_press_released",
+        "gesture_.reset(factory_reset_button_pressed(), now_ms)",
+        "gesture_.observe(factory_reset_button_pressed(), now_ms)",
+        "gesture_.cancel(factory_reset_button_pressed(), now_ms)",
+        "gesture_.rearm_after_noncommit(",
     ):
-        require(required in source,
-                f"pairing input source is missing: {required}")
-
-    combined = header + "\n" + source
+        require(required in input_source,
+                f"factory-reset input source is missing: {required}")
     for forbidden in (
         "gpio_isr_handler_add",
         "gpio_install_isr_service",
         "xTaskCreate",
         "vTaskDelay",
         "esp_timer_get_time",
+        "CompanionPairingWindow",
+        "nvs_",
+        "esp_partition_erase",
     ):
-        require(forbidden not in combined,
-                f"pairing input must remain caller-polled: {forbidden}")
+        require(forbidden not in input_header + "\n" + input_source,
+                f"factory-reset input must remain a caller-polled GPIO adapter: {forbidden}")
+
+    for required in (
+        'kHeltecV4FactoryResetMarkerNamespace[] = "ot_reset_v1"',
+        'kHeltecV4FactoryResetRecordKey[] = "record_v1"',
+        'kHeltecV4FactoryResetLegacyMarkerKey[] = "intent_v1"',
+        'kHeltecV4FactoryResetLegacyReceiptKey[] = "receipt_v1"',
+        "kHeltecV4FactoryResetRecordBytes = 16",
+        "kHeltecV4FactoryResetRecordVersion = 1",
+        "kHeltecV4FactoryResetMarkerValue = 0xa5",
+        "kHeltecV4FactoryResetReceiptPendingValue = 0x5a",
+        'kHeltecV4FactoryResetStatePartitionLabel[] = "ot_state"',
+        "kHeltecV4FactoryResetStatePartitionType = 0x40",
+        "kHeltecV4FactoryResetStatePartitionSubtype = 0x00",
+        "0x00f00000",
+        "0x00100000",
+        "kHeltecV4FactoryResetHasActiveMapPackageStorage = false",
+        "HeltecV4FactoryResetMarkerStorage final",
+        "HeltecV4FactoryResetUserDomainStorage final",
+        "HeltecV4FactoryResetNimbleBondStorage final",
+        "set_store_access_ready(bool ready)",
+        "std::atomic<bool> store_access_ready_{false}",
+    ):
+        require(required in storage_header,
+                f"factory-reset storage header is missing: {required}")
+    for required in (
+        "nvs_find_key(",
+        "nvs_get_blob(",
+        "nvs_set_blob(",
+        "nvs_erase_key(",
+        "nvs_commit(",
+        "nvs_erase_all(",
+        "nvs_get_used_entry_count(",
+        "esp_partition_find_first(",
+        "esp_partition_erase_range(",
+        "bytes[index] != 0xff",
+        "ble_store_config_read",
+        "ble_store_config_write",
+        "ble_store_config_delete",
+        "ble_store_iterate(",
+        "ble_store_clear()",
+    ):
+        require(required in storage_source,
+                f"factory-reset storage source is missing: {required}")
+
+    marker_commit = storage_source[
+        storage_source.index("commit_intent_and_readback("):
+        storage_source.index("complete_cleanup_and_readback()")
+    ]
+    require(marker_commit.count("set_marker_record(") == 1 and
+            marker_commit.index("set_marker_record(") <
+            marker_commit.index("nvs_commit(") <
+            marker_commit.rindex("read_marker(handle_)"),
+            "reset receipt and intent must use one record, commit, and exact readback")
+    marker_complete = storage_source[
+        storage_source.index("complete_cleanup_and_readback()"):
+        storage_source.index("consume_completion_receipt_and_readback()")
+    ]
+    require("DeviceFactoryResetMarkerState::receipt_pending" in marker_complete and
+            marker_complete.count("set_marker_record(") == 1 and
+            marker_complete.count("nvs_erase_key(") == 1 and
+            marker_complete.index("nvs_commit(") <
+            marker_complete.rindex("read_marker(handle_)"),
+            "app reset cleanup must durably transition to receipt-pending before reboot")
+    marker_consume = storage_source[
+        storage_source.index("consume_completion_receipt_and_readback()"):
+        storage_source.index(
+            "HeltecV4FactoryResetUserDomainStorage::inspect_absence()")
+    ]
+    require(marker_consume.count("nvs_erase_key(") == 1 and
+            marker_consume.index("nvs_erase_key(") <
+            marker_consume.index("nvs_commit(") <
+            marker_consume.rindex("read_marker(handle_)"),
+            "receipt marker may clear only after one record erase, commit, and exact readback")
+    require("nvs_set_u8(" not in marker_commit + marker_complete + marker_consume and
+            "nvs_set_u64(" not in marker_commit + marker_complete + marker_consume,
+            "factory-reset state mutations must never return to split NVS keys")
+    user_erase = storage_source[
+        storage_source.index(
+            "HeltecV4FactoryResetUserDomainStorage::erase_all_and_verify_absent()"):
+        storage_source.index(
+            "HeltecV4FactoryResetNimbleBondStorage::inspect_empty()")
+    ]
+    require(user_erase.index("erase_owner_namespace_and_verify()") <
+            user_erase.index("esp_partition_erase_range(") <
+            user_erase.index("inspect_state_partition()") <
+            user_erase.rindex("inspect_absence()"),
+            "complete owner/state erasure must be verified before reset proceeds")
+    bond_erase = storage_source[
+        storage_source.index(
+            "HeltecV4FactoryResetNimbleBondStorage::erase_all_and_verify_empty()"):
+    ]
+    require("store_access_ready_.load(std::memory_order_acquire)" in
+                storage_source and
+            bond_erase.index("store_access_ready_.load") <
+            bond_erase.index("exact_nimble_store_config_installed()") <
+            bond_erase.index("ble_store_clear()") <
+            bond_erase.index("inspect_nimble_store_empty()"),
+            "all NimBLE bonds must clear only through a live initialized store and installed callbacks")
+    for forbidden in (
+        "nvs_flash_erase",
+        "esp_flash_erase_region",
+        "esp_ota_",
+        "esp_efuse_",
+        "bootloader_",
+    ):
+        require(forbidden not in storage_source,
+                f"factory reset must not gain broad firmware/platform erasure: {forbidden}")
 
     app_main = SOURCE.read_text(encoding="utf-8")
+    nimble_runtime = NIMBLE_RUNTIME.read_text(encoding="utf-8")
     main_cmake = MAIN_CMAKE.read_text(encoding="utf-8")
-    require("heltec_v4_pairing_input.hpp" in app_main and
-            "g_pairing_input.poll(elapsed_ms)" in app_main and
-            "PairingInputEvent::long_press_released" in app_main,
-            "pairing input must be polled by the single app_main owner")
-    require('"heltec_v4_pairing_input.cpp"' in main_cmake,
-            "pairing input must be admitted into the target")
+    for required in (
+        "kCompanionResetReceiptPayloadBytes = 13",
+        "kCompanionResetReceiptServiceDataBytes =",
+        "encode_companion_reset_receipt_service_data",
+        "if (receipt == 0) return encoded",
+        "encoded.bytes[16] = 'O'",
+        "encoded.bytes[17] = 'T'",
+        "encoded.bytes[18] = 'R'",
+        "encoded.bytes[19] = 'R'",
+        "encoded.bytes[20] = 0x01",
+        "receipt >> (index * 8U)",
+        "static_assert(kCompanionResetReceiptServiceDataBytes == 29)",
+    ):
+        require(required in receipt_header,
+                f"reset receipt encoder is missing: {required}")
+    reset_loop = app_main[
+        app_main.rindex("const auto reset_event"):
+        app_main.index("g_gnss.service(elapsed_ms)")
+    ]
+    require("heltec_v4_factory_reset_input.hpp" in app_main and
+            "g_factory_reset_input.poll(elapsed_ms)" in reset_loop and
+            reset_loop.index(
+                "CompanionFactoryResetGestureEvent::prompt_requested") <
+            reset_loop.index("show_factory_reset_confirmation()") <
+            reset_loop.index("g_factory_reset_input.cancel(elapsed_ms)") <
+            reset_loop.index(
+                "CompanionFactoryResetGestureEvent::prompt_cancelled") <
+            reset_loop.index("clear_factory_reset_confirmation()") <
+            reset_loop.index(
+                "CompanionFactoryResetGestureEvent::commit_requested") <
+            reset_loop.index("begin_companion_factory_reset()") <
+            reset_loop.index("reset_result.accepted()") <
+            reset_loop.index("DeviceFactoryResetPhase::") <
+            reset_loop.index("show_factory_reset_in_progress()") <
+            reset_loop.index("esp_restart()"),
+            "app owner must render/cancel the prompt, show progress only for verified intent, and reboot after a contained commit attempt")
+
+    begin_reset = nimble_runtime[
+        nimble_runtime.index("begin_companion_factory_reset()"):
+        nimble_runtime.index("service_companion_pairing_window(")
+    ]
+    require("FactoryResetLock reset_lock" in begin_reset and
+            begin_reset.index("reset_lock.locked()") <
+            begin_reset.index(
+                "DeviceFactoryResetPhase::idle_old_state") and
+            begin_reset.index("g_runtime_owner.callback_overflow()") <
+            begin_reset.index("set_pairable_advertising_state(false)") <
+            begin_reset.index("g_factory_reset_executor->begin()"),
+            "physical reset must serialize with protected reset, contain BLE, then commit its marker")
+
+    contained_recovery = nimble_runtime[
+        nimble_runtime.index(
+            "begin_contained_companion_factory_reset_recovery()"):
+        nimble_runtime.index(
+            "service_companion_pairing_window(",
+            nimble_runtime.index(
+                "begin_contained_companion_factory_reset_recovery()"))
+    ]
+    require("CompanionBleRuntimePhase::contained" in contained_recovery and
+            "stack_shutdown_complete" in contained_recovery and
+            "set_pairable_advertising_state(false)" in contained_recovery and
+            "DeviceFactoryResetPhase::idle_old_state" in contained_recovery and
+            "DeviceFactoryResetPhase::not_restored" in contained_recovery and
+            "DeviceFactoryResetPhase::reconciliation_required" in
+                contained_recovery and
+            "begin_confirmed_recovery()" in contained_recovery and
+            "start_advertising" not in contained_recovery,
+            "contained runtime recovery must remain reset-only and use the physical-recovery executor entry")
+
+    runtime_failure = app_main[
+        app_main.index("[[noreturn]] void contain_runtime_failure()"):
+        app_main.index("}  // namespace")
+    ]
+    require("fault_companion_pairing_window()" in runtime_failure and
+            "contain_companion_nimble_runtime_for_recovery()" in runtime_failure and
+            "if (!ble_containment_verified)" in runtime_failure and
+            "StartupDisplayFrame::ble_error" in runtime_failure and
+            "g_factory_reset_input.poll(now_ms)" in runtime_failure and
+            runtime_failure.index("fault_companion_pairing_window()") <
+            runtime_failure.index("contain_companion_nimble_runtime_for_recovery()") <
+            runtime_failure.index("if (!ble_containment_verified)") <
+            runtime_failure.index("g_factory_reset_input.poll(now_ms)") and
+            runtime_failure.index(
+                "CompanionFactoryResetGestureEvent::prompt_requested") <
+            runtime_failure.index("show_factory_reset_confirmation()") <
+            runtime_failure.index(
+                "CompanionFactoryResetGestureEvent::commit_requested") <
+            runtime_failure.index(
+                "begin_contained_companion_factory_reset_recovery()") <
+            runtime_failure.index("verified_intent") <
+            runtime_failure.index("reconciliation_required") <
+            runtime_failure.index("esp_restart()") <
+            runtime_failure.index("rearm_after_noncommit(now_ms)"),
+            "BLE failure containment must independently verify stack shutdown, reboot only durable/uncertain intent, and otherwise rearm")
+
+    containment_gate = nimble_runtime[
+        nimble_runtime.index("bool contain_companion_nimble_runtime_for_recovery()"):
+        nimble_runtime.index("void observe_companion_app_factory_reset_command(")
+    ]
+    require(containment_gate.index("set_pairable_advertising_state(false)") <
+            containment_gate.index("g_runtime_owner.callback_overflow()") <
+            containment_gate.index("stack_shutdown_complete"),
+            "reset recovery must suppress D1 and independently verify complete BLE shutdown")
+    for forbidden in (
+        "service_companion_nimble_runtime",
+        "service_companion_pairing_window",
+        "g_gnss.service",
+        "battery_read",
+        "heartbeat elapsed_ms",
+    ):
+        require(forbidden not in runtime_failure,
+                f"ordinary runtime work is forbidden in BLE failure containment: {forbidden}")
+
+    input_initialization = app_main[
+        app_main.index("const auto started_at_ms"):
+        app_main.index("ESP_LOGI(kLogTag, \"companion runtime started\")")
+    ]
+    require(input_initialization.index(
+                "g_factory_reset_input.initialize(started_at_ms)") <
+            input_initialization.index("start_companion_nimble_runtime("),
+            "physical reset input must be available before companion runtime startup can fail")
+
+    contain_stack = nimble_runtime[
+        nimble_runtime.index("bool contain_stack() override"):
+        nimble_runtime.index("void observe_host_run_exit()")
+    ]
+    require(contain_stack.index("nimble_port_stop()") <
+            contain_stack.index("FactoryResetLock reset_lock") <
+            contain_stack.index("continue_cleanup()") <
+            contain_stack.index("set_store_access_ready(false)") <
+            contain_stack.index("nimble_port_deinit()") and
+            "CompanionAppFactoryResetPhase::response_confirmed" in
+                contain_stack and
+            "CompanionAppFactoryResetPhase::response_unknown" in
+                contain_stack,
+            "app reset must clean through the live stopped NimBLE store before deinit")
+
+    nimble_gatt = NIMBLE_GATT.read_text(encoding="utf-8")
+    command_access = nimble_gatt[
+        nimble_gatt.rindex("int command_access("):
+        nimble_gatt.rindex("int stream_access(")
+    ]
+    require(command_access.index("is_factory_reset_command(encoded)") <
+            command_access.index(
+                "acquire_companion_factory_reset_serialization()") <
+            command_access.index("g_adapter->service_command(") <
+            command_access.index(
+                "observe_companion_app_factory_reset_command(") <
+            command_access.index(
+                "release_companion_factory_reset_serialization()"),
+            "protected and physical reset entry must share one target mutex")
+
+    cold_cleanup = nimble_runtime[
+        nimble_runtime.index("const auto complete_committed_reset"):
+        nimble_runtime.index("DeviceFactoryResetResult reset_restored")
+    ]
+    require(cold_cleanup.index("while (true)") <
+            cold_cleanup.index("continue_cleanup()") <
+            cold_cleanup.index("esp_restart()") <
+            cold_cleanup.index("vTaskDelay") and
+            "return false" not in cold_cleanup,
+            "a committed reset must retry internally instead of falling into permanent suspend")
+    receipt_retry = cold_cleanup[cold_cleanup.index(
+        "const auto consume_committed_receipt"):]
+    require(receipt_retry.index("while (true)") <
+            receipt_retry.index("consume_completion_receipt()") <
+            receipt_retry.index("vTaskDelay") <
+            receipt_retry.index("esp_restart()") and
+            "return false" not in receipt_retry,
+            "durable receipt consumption must reboot/retry instead of entering BLE-error suspend")
+    receipt_boot = nimble_runtime[
+        nimble_runtime.index("DeviceFactoryResetResult reset_restored"):
+        nimble_runtime.index("const auto owner_restored")
+    ]
+    require(receipt_boot.index("consume_committed_receipt()") <
+            receipt_boot.index("g_boot_reset_receipt.store(") and
+            "DeviceFactoryResetPhase::completion_receipt_pending" in
+                receipt_boot,
+            "boot must consume the durable receipt before publishing it from RAM")
+    advertising = nimble_runtime[
+        nimble_runtime.index("bool configure_advertising_fields()"):
+        nimble_runtime.index("bool stack_initialized_")
+    ]
+    require("fields.uuids128 = &kAdvertisingUuids[pairable ? 1 : 0]" in
+                advertising and
+            "encode_companion_reset_receipt_service_data(receipt)" in
+                advertising and
+            "response.svc_data_uuid128 = encoded.bytes.data()" in
+                advertising and
+            "ble_gap_adv_rsp_set_fields(&response)" in advertising,
+            "D1 must remain primary while the exact OTRR receipt is scan-response service data")
+    observer = nimble_runtime[
+        nimble_runtime.index("void observe_companion_app_factory_reset_command("):
+        nimble_runtime.index("void observe_companion_app_factory_reset_response(")
+    ]
+    require("g_factory_reset_action_authority->status()" in observer and
+            ".protected_operations_blocked" in observer and
+            observer.index("protected_operations_blocked") <
+            observer.index("g_app_factory_reset_phase.compare_exchange_strong"),
+            "a queued rejected reset must not enter runtime containment")
+    require(observer.index(
+                "g_app_factory_reset_response_started_ms.compare_exchange_strong") <
+            observer.index("g_app_factory_reset_phase.compare_exchange_strong"),
+            "reset response timestamp must publish before response-pending phase")
+    require("xQueueOverwrite(g_verified_gatt_progress_queue" in nimble_runtime and
+            "xQueueCreateStatic(\n            1, sizeof(VerifiedGattProgress)" in
+                nimble_runtime,
+            "verified GATT progress must coalesce outside the bounded event queue")
+    apply_event = nimble_runtime[
+        nimble_runtime.index("CompanionBleRuntimeError apply_event("):
+        nimble_runtime.index("}  // namespace")
+    ]
+    require("companion_nimble_gatt_adapter_status()" not in apply_event and
+            "g_owner_gatt_transport_generation" in apply_event,
+            "the owner task must validate GATT progress without reading callback-owned adapter state")
+    for forbidden in (
+        "heltec_v4_pairing_input.hpp",
+        "g_pairing_input",
+        "PairingInputEvent",
+        "open_companion_pairing_window(",
+    ):
+        require(forbidden not in app_main + "\n" + nimble_runtime,
+                f"old manual pairing input must be unreachable: {forbidden}")
+    require('"heltec_v4_pairing_input.cpp"' not in main_cmake and
+            '"heltec_v4_factory_reset_input.cpp"' in main_cmake and
+            '"heltec_v4_factory_reset_storage.cpp"' in main_cmake and
+            "companion_factory_reset_gesture.cpp" in main_cmake and
+            "device_factory_reset_executor.cpp" in main_cmake and
+            "companion_factory_reset_authority.cpp" in main_cmake,
+            "target must unlink old pairing input and link the complete reset path")
+
+
+def test_live_heltec_snapshot_authority_mapping() -> None:
+    runtime = NIMBLE_RUNTIME.read_text(encoding="utf-8")
+
+    denied = re.search(
+        r"class DeniedSnapshotAuthority final.*?^};",
+        runtime,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    require(denied is not None and
+            "CompanionAuthorityError::not_ready" in denied.group(0),
+            "intentional denied snapshot authority must remain available")
+
+    live = re.search(
+        r"^\s*(?P<type>[A-Za-z_][A-Za-z0-9_]*)\s+"
+        r"g_snapshot_authority\s*(?:\{\s*\})?\s*;\s*(?://.*)?$",
+        runtime,
+        flags=re.MULTILINE,
+    )
+    require(live is not None, "missing live Heltec snapshot authority binding")
+    require(live.group("type") == "HeltecV4SnapshotAuthority",
+            "live Heltec runtime must not bind the always-not_ready snapshot authority")
+
+    admitted = re.search(
+        r"class HeltecV4SnapshotAuthority final.*?^};",
+        runtime,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    require(admitted is not None,
+            "missing truthful Heltec snapshot authority")
+    authority = admitted.group(0)
+    require(re.search(
+        r"\bCompanionStatusSnapshot\s+snapshot\s*\{\s*\}\s*;",
+        authority,
+    ) is not None, "Heltec authority must build one explicit snapshot value")
+    assignments = (
+        (r"\bsnapshot\.revision\s*=\s*1(?:[uUlL]{0,3})?\b\s*;",
+         "revision 1"),
+        (r"\bsnapshot\.radio\s*=\s*"
+         r"CompanionRadioState::unavailable\s*;", "radio unavailable"),
+        (r"\bsnapshot\.gnss\s*=\s*CompanionGnssState::unknown\s*;",
+         "GNSS unknown"),
+        (r"\bsnapshot\.power\s*=\s*CompanionPowerState::unknown\s*;",
+         "power unknown"),
+        (r"\bsnapshot\.position_sharing\s*=\s*"
+         r"CompanionPositionSharingState::stopped\s*;",
+         "position sharing stopped"),
+        (r"\bsnapshot\.queued_action_count\s*=\s*0(?:[uUlL]{0,3})?\b\s*;",
+         "empty action queue"),
+        (r"\bsnapshot\.pending_critical_alert_id\s*=\s*"
+         r"0(?:[uUlL]{0,3})?\b\s*;", "no pending critical alert"),
+    )
+    for pattern, description in assignments:
+        require(len(re.findall(pattern, authority)) == 1,
+                f"Heltec snapshot must assign exactly one {description}")
+    require(authority.count("snapshot.") == len(assignments),
+            "Heltec fixed snapshot must not mutate undocumented fields")
+    require(re.search(
+        r"return\s*\{\s*CompanionAuthorityError::none\s*,\s*snapshot\s*\}\s*;",
+        authority,
+    ) is not None,
+            "Heltec authority must return the exact populated snapshot as ready")
+
+    composition = runtime[
+        runtime.index("static CompanionRequestCoordinator request_coordinator{"):
+        runtime.index("static CompanionV1BondOwnerBridge owner_bridge{")
+    ]
+    require("g_snapshot_authority" in composition,
+            "Heltec request coordinator must receive the admitted authority")
+    require("DeniedSnapshotAuthority" not in composition,
+            "Heltec production composition must not receive the denied authority")
 
 
 def test_secure_random_surface() -> None:
@@ -2338,9 +3117,11 @@ def main() -> int:
              test_protected_root_key_roster_adapter_surface,
              test_protected_root_configuration_security_adapter_surface,
              test_display_surface,
-             test_application_surface, test_build_only_tooling,
+             test_application_surface,
+             test_live_heltec_snapshot_authority_mapping,
+             test_build_only_tooling,
              test_automatic_termination_acceptance_surface,
-             test_pairing_input_surface, test_secure_random_surface)
+             test_factory_reset_surfaces, test_secure_random_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

@@ -55,6 +55,7 @@ enum class CompanionActionKind : std::uint8_t {
     acknowledge_critical_alert = 2,
     start_position_sharing = 3,
     stop_position_sharing = 4,
+    factory_reset = 5,
 };
 
 enum class CompanionActionDisposition : std::uint8_t {
@@ -104,8 +105,11 @@ struct CompanionStatusSnapshot {
     std::uint64_t pending_critical_alert_id{0};
 };
 
-// detail is a protocol::QuickStatusKind value only for quick_status. subject_id
-// is the exact device-owned alert ID only for acknowledge_critical_alert.
+// detail is a protocol::QuickStatusKind value only for quick_status. The shared
+// subject slot is the exact device-owned alert ID for acknowledge_critical_alert
+// and a nonzero, app-generated correlation receipt for factory_reset. That
+// receipt is never identity or authorization; protected authorization and
+// destructive user confirmation remain outside this wire record.
 struct CompanionActionRequest {
     CompanionActionKind kind{CompanionActionKind::quick_status};
     protocol::QuickStatusKind quick_status{protocol::QuickStatusKind::ok};

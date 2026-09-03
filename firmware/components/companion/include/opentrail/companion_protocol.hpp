@@ -28,9 +28,10 @@ enum class CompanionCapability : std::uint8_t {
     critical_alert_acknowledgement = 1U << 1U,
     position_state = 1U << 2U,
     message_history = 1U << 3U,
+    factory_reset = 1U << 5U,
 };
 
-inline constexpr std::uint8_t kCompanionKnownCapabilityMask = 0x0FU;
+inline constexpr std::uint8_t kCompanionKnownCapabilityMask = 0x2FU;
 
 enum class CompanionFrameKind : std::uint8_t {
     snapshot_request = 1,

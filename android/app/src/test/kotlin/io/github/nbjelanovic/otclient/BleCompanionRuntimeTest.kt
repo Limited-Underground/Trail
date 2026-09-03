@@ -20,6 +20,7 @@ import io.github.nbjelanovic.otprotocol.CompanionRadioState
 import io.github.nbjelanovic.otprotocol.CompanionSemanticCodec
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -30,12 +31,17 @@ class BleCompanionRuntimeTest {
     @Test
     fun gattContractIdentifiersAreExactAndBrandNeutral() {
         assertEquals("5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d0", CompanionGattV0Contract.SERVICE_UUID)
+        assertEquals(
+            "5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d1",
+            CompanionGattV0Contract.PAIRABLE_ADVERTISING_UUID,
+        )
         assertEquals("5e0f2a01-7c6b-4ea3-a210-0c4f1f43b7d0", CompanionGattV0Contract.PROTOCOL_INFO_UUID)
         assertEquals("5e0f2a02-7c6b-4ea3-a210-0c4f1f43b7d0", CompanionGattV0Contract.COMMAND_UUID)
         assertEquals("5e0f2a03-7c6b-4ea3-a210-0c4f1f43b7d0", CompanionGattV0Contract.STREAM_UUID)
         assertTrue(
             listOf(
                 CompanionGattV0Contract.SERVICE_UUID,
+                CompanionGattV0Contract.PAIRABLE_ADVERTISING_UUID,
                 CompanionGattV0Contract.PROTOCOL_INFO_UUID,
                 CompanionGattV0Contract.COMMAND_UUID,
                 CompanionGattV0Contract.STREAM_UUID,
@@ -54,6 +60,294 @@ class BleCompanionRuntimeTest {
             assertIs<BleRuntimeState.Blocked>(runtime.state).reason,
         )
         assertFalse(runtime.submitAction(quickStatus()))
+    }
+
+    @Test
+    fun oneReturningOwnerCandidateReconnectsThroughProtectedNormalProtocolWithoutAuthorizationClaim() {
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+        val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+
+        runtime.onLifecycleStart()
+        val returningScan = facade.returningOwnerScans.single()
+        assertTrue(returningScan.started)
+        assertIs<BleRuntimeState.FindingReturningOwner>(runtime.state)
+
+        returningScan.emit(BleScanEvent.Candidate(CANDIDATE))
+        assertTrue(facade.connections.isEmpty())
+        returningScan.emit(BleScanEvent.Complete)
+
+        val gatt = facade.connections.single()
+        assertEquals(CANDIDATE.endpointToken, gatt.endpointToken)
+        assertEquals(BleConnectionPurpose.EXISTING_OWNER, gatt.purpose)
+        assertIs<BleRuntimeState.Connecting>(runtime.state)
+        gatt.emit(BleGattEvent.ProfileReady)
+        assertEquals(1, gatt.protocolInfoReads)
+        assertPhase(runtime, BleNegotiationPhase.PROTOCOL_INFO)
+
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfoBytes()))
+        assertEquals(listOf(COMPANION_MINIMUM_ATT_MTU), gatt.requestedMtus)
+        assertPhase(runtime, BleNegotiationPhase.ATT_MTU)
+        gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
+        assertEquals(1, gatt.streamSubscriptions)
+        assertPhase(runtime, BleNegotiationPhase.STREAM_SUBSCRIPTION)
+        gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+        assertPhase(runtime, BleNegotiationPhase.INITIAL_SNAPSHOT)
+        gatt.emit(BleGattEvent.StreamIndication(snapshotEnvelope(sessionNonce = 17, eventId = 1)))
+
+        val ready = assertIs<BleRuntimeState.Ready>(runtime.state)
+        assertEquals(CANDIDATE, ready.session.companion)
+        assertEquals(17, ready.session.sessionNonce)
+    }
+
+    @Test
+    fun returningOwnerDiscoveryWaitsForCompletionAndFailsClosedOnAmbiguity() {
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+        val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+        runtime.onLifecycleStart()
+        val returningScan = facade.returningOwnerScans.single()
+
+        returningScan.emit(BleScanEvent.Candidate(CANDIDATE))
+        assertTrue(facade.connections.isEmpty())
+        returningScan.emit(
+            BleScanEvent.Candidate(BleDiscoveredCompanion("second-authorized", "Authorized device 2")),
+        )
+
+        assertTrue(returningScan.closed)
+        assertEquals(
+            BleRuntimeFailure.RETURNING_OWNER_AMBIGUOUS,
+            assertIs<BleRuntimeState.Failed>(runtime.state).reason,
+        )
+        assertTrue(facade.connections.isEmpty())
+        returningScan.emit(BleScanEvent.Complete)
+        assertIs<BleRuntimeState.Failed>(runtime.state)
+    }
+
+    @Test
+    fun returningOwnerNoMatchReturnsIdleAndWrongOwnerProtectedReadCannotReachReady() {
+        run {
+            val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+            val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+            runtime.onLifecycleStart()
+            facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
+            assertIs<BleRuntimeState.Idle>(runtime.state)
+            assertTrue(facade.connections.isEmpty())
+        }
+        run {
+            val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+            val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+            runtime.onLifecycleStart()
+            facade.returningOwnerScans.single().apply {
+                emit(BleScanEvent.Candidate(CANDIDATE))
+                emit(BleScanEvent.Complete)
+            }
+            val gatt = facade.connections.single()
+            gatt.emit(BleGattEvent.ProfileReady)
+            gatt.emit(BleGattEvent.Failed(BleGattFailure.AUTHORIZATION_REJECTED))
+            assertEquals(
+                BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE,
+                assertIs<BleRuntimeState.Failed>(runtime.state).reason,
+            )
+            assertTrue(gatt.closed)
+        }
+    }
+
+    @Test
+    fun returningOwnerNullConnectionFailsWithoutRetry() {
+        val scheduler = TestRuntimeScheduler()
+        val facade = TestBluetoothFacade(
+            connectionCreationSupported = false,
+            returningOwnerScanSupported = true,
+        )
+        val runtime = BleCompanionRuntime(facade, scheduler)
+
+        runtime.onLifecycleStart()
+        facade.returningOwnerScans.single().apply {
+            emit(BleScanEvent.Candidate(CANDIDATE))
+            emit(BleScanEvent.Complete)
+        }
+
+        val failed = assertIs<BleRuntimeState.Failed>(runtime.state)
+        assertEquals(BleRuntimeFailure.CONNECTION_START_FAILED, failed.reason)
+        assertEquals(BleConnectionDiagnostic.LEASE_UNAVAILABLE, failed.connectionDiagnostic)
+        assertTrue(facade.connections.isEmpty())
+        assertFalse(scheduler.hasOpenTimers())
+    }
+
+    @Test
+    fun returningOwnerStartFailureSchedulesBoundedRetry() {
+        val scheduler = TestRuntimeScheduler()
+        val facade = TestBluetoothFacade(
+            gattStartResult = false,
+            returningOwnerScanSupported = true,
+        )
+        val runtime = BleCompanionRuntime(facade, scheduler)
+
+        runtime.onLifecycleStart()
+        facade.returningOwnerScans.single().apply {
+            emit(BleScanEvent.Candidate(CANDIDATE))
+            emit(BleScanEvent.Complete)
+        }
+
+        val first = facade.connections.single()
+        assertEquals(BleConnectionPurpose.EXISTING_OWNER, first.purpose)
+        assertTrue(first.started)
+        assertTrue(first.closed)
+        val firstRetry = assertIs<BleRuntimeState.Reconnecting>(runtime.state)
+        assertEquals(1, firstRetry.attempt)
+        assertEquals(BleConnectionDiagnostic.START_REJECTED, firstRetry.connectionDiagnostic)
+        assertEquals(1, scheduler.pending.count { !it.closed && !it.ran })
+        assertEquals(1_000L, scheduler.nextOpen().delayMillis)
+
+        scheduler.runNext()
+        assertEquals(2, facade.connections.size)
+        assertTrue(facade.connections.last().closed)
+        val secondRetry = assertIs<BleRuntimeState.Reconnecting>(runtime.state)
+        assertEquals(2, secondRetry.attempt)
+        assertEquals(BleConnectionDiagnostic.START_REJECTED, secondRetry.connectionDiagnostic)
+        assertEquals(1, scheduler.pending.count { !it.closed && !it.ran })
+        assertEquals(2_000L, scheduler.nextOpen().delayMillis)
+    }
+
+    @Test
+    fun returningOwnerEarlyDisconnectCancelsProfileTimerAndSchedulesRetry() {
+        val scheduler = TestRuntimeScheduler()
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+        val runtime = BleCompanionRuntime(facade, scheduler)
+
+        runtime.onLifecycleStart()
+        facade.returningOwnerScans.single().apply {
+            emit(BleScanEvent.Candidate(CANDIDATE))
+            emit(BleScanEvent.Complete)
+        }
+        val first = facade.connections.single()
+        assertEquals(BleConnectionPurpose.EXISTING_OWNER, first.purpose)
+        assertIs<BleRuntimeState.Connecting>(runtime.state)
+        assertEquals(1, scheduler.pending.count { !it.closed && !it.ran })
+
+        first.emit(BleGattEvent.Disconnected)
+
+        assertTrue(first.closed)
+        val retry = assertIs<BleRuntimeState.Reconnecting>(runtime.state)
+        assertEquals(1, retry.attempt)
+        assertEquals(BleConnectionDiagnostic.DISCONNECTED_BEFORE_PROFILE, retry.connectionDiagnostic)
+        assertEquals(1, scheduler.pending.count { !it.closed && !it.ran })
+        assertEquals(1_000L, scheduler.nextOpen().delayMillis)
+
+        scheduler.runNext()
+        assertEquals(2, facade.connections.size)
+        assertEquals(BleConnectionPurpose.EXISTING_OWNER, facade.connections.last().purpose)
+        assertEquals(
+            BleConnectionDiagnostic.DISCONNECTED_BEFORE_PROFILE,
+            assertIs<BleRuntimeState.Reconnecting>(runtime.state).connectionDiagnostic,
+        )
+    }
+
+    @Test
+    fun returningOwnerGattFailuresRetainExactIdentityFreeDiagnosticAndExistingPolicy() {
+        data class Case(
+            val gattFailure: BleGattFailure,
+            val diagnostic: BleConnectionDiagnostic,
+            val runtimeFailure: BleRuntimeFailure,
+            val retries: Boolean,
+        )
+
+        val cases = listOf(
+            Case(
+                BleGattFailure.TRANSIENT_LINK,
+                BleConnectionDiagnostic.GATT_TRANSIENT_LINK,
+                BleRuntimeFailure.CONNECTION_START_FAILED,
+                retries = true,
+            ),
+            Case(
+                BleGattFailure.PERMISSION_REVOKED,
+                BleConnectionDiagnostic.GATT_PERMISSION_REVOKED,
+                BleRuntimeFailure.CONNECTION_START_FAILED,
+                retries = false,
+            ),
+            Case(
+                BleGattFailure.SECURITY_REJECTED,
+                BleConnectionDiagnostic.GATT_SECURITY_REJECTED,
+                BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,
+                retries = false,
+            ),
+            Case(
+                BleGattFailure.BOND_REQUIRED,
+                BleConnectionDiagnostic.GATT_BOND_REQUIRED,
+                BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,
+                retries = false,
+            ),
+            Case(
+                BleGattFailure.AUTHORIZATION_REJECTED,
+                BleConnectionDiagnostic.GATT_AUTHORIZATION_REJECTED,
+                BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE,
+                retries = false,
+            ),
+            Case(
+                BleGattFailure.PLATFORM_FAILURE,
+                BleConnectionDiagnostic.GATT_PLATFORM_FAILURE,
+                BleRuntimeFailure.CONNECTION_START_FAILED,
+                retries = false,
+            ),
+        )
+
+        for (case in cases) {
+            val scheduler = TestRuntimeScheduler()
+            val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+            val runtime = BleCompanionRuntime(facade, scheduler)
+            runtime.onLifecycleStart()
+            facade.returningOwnerScans.single().apply {
+                emit(BleScanEvent.Candidate(CANDIDATE))
+                emit(BleScanEvent.Complete)
+            }
+
+            facade.connections.single().emit(BleGattEvent.Failed(case.gattFailure))
+
+            if (case.retries) {
+                val reconnecting = assertIs<BleRuntimeState.Reconnecting>(runtime.state)
+                assertEquals(case.diagnostic, reconnecting.connectionDiagnostic)
+                assertEquals(1, scheduler.pending.count { !it.closed && !it.ran })
+            } else {
+                val failed = assertIs<BleRuntimeState.Failed>(runtime.state)
+                assertEquals(case.runtimeFailure, failed.reason)
+                assertEquals(case.diagnostic, failed.connectionDiagnostic)
+                assertFalse(scheduler.hasOpenTimers())
+            }
+        }
+    }
+
+    @Test
+    fun returningOwnerCannotSubstituteInjectedSecurityOrPlainProtocolInfoForProtectedOwnerProof() {
+        run {
+            val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+            val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+            runtime.onLifecycleStart()
+            facade.returningOwnerScans.single().apply {
+                emit(BleScanEvent.Candidate(CANDIDATE))
+                emit(BleScanEvent.Complete)
+            }
+            facade.connections.single().emit(BleGattEvent.SecurityEstablished(SECURE_LINK))
+            assertEquals(
+                BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,
+                assertIs<BleRuntimeState.Failed>(runtime.state).reason,
+            )
+        }
+        run {
+            val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+            val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+            runtime.onLifecycleStart()
+            facade.returningOwnerScans.single().apply {
+                emit(BleScanEvent.Candidate(CANDIDATE))
+                emit(BleScanEvent.Complete)
+            }
+            facade.connections.single().apply {
+                emit(BleGattEvent.ProfileReady)
+                emit(BleGattEvent.ProtocolInfoRead(protocolInfoBytes()))
+            }
+            assertEquals(
+                BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,
+                assertIs<BleRuntimeState.Failed>(runtime.state).reason,
+            )
+        }
     }
 
     @Test
@@ -81,6 +375,37 @@ class BleCompanionRuntimeTest {
         assertIs<BleRuntimeState.Inactive>(runtime.state)
         scan.emit(BleScanEvent.Failed(BleGattFailure.PLATFORM_FAILURE))
         assertIs<BleRuntimeState.Inactive>(runtime.state)
+    }
+
+    @Test
+    fun completedScanIsTruthfulReleasesItsLeaseAndCanRescanWithoutOverlap() {
+        val facade = TestBluetoothFacade()
+        val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+        runtime.onLifecycleStart()
+        runtime.requestScan()
+        val first = facade.scans.single()
+
+        first.emit(BleScanEvent.Complete)
+
+        assertTrue(first.closed)
+        assertTrue(assertIs<BleRuntimeState.ScanComplete>(runtime.state).candidates.isEmpty())
+
+        runtime.requestScan()
+        val second = facade.scans.last()
+        assertEquals(2, facade.scans.size)
+        assertTrue(second.started)
+        assertIs<BleRuntimeState.Scanning>(runtime.state)
+
+        first.emit(BleScanEvent.Candidate(CANDIDATE))
+        assertTrue(assertIs<BleRuntimeState.Scanning>(runtime.state).candidates.isEmpty())
+        second.emit(BleScanEvent.Candidate(CANDIDATE))
+        second.emit(BleScanEvent.Complete)
+
+        assertTrue(second.closed)
+        val complete = assertIs<BleRuntimeState.ScanComplete>(runtime.state)
+        assertEquals(listOf(CANDIDATE), complete.candidates)
+        assertEquals(CANDIDATE, runtime.beginAuthorization(CANDIDATE.endpointToken))
+        assertIs<BleRuntimeState.AwaitingAuthorization>(runtime.state)
     }
 
     @Test
@@ -260,15 +585,17 @@ class BleCompanionRuntimeTest {
         val scheduler = TestRuntimeScheduler()
         val fixture = Fixture(scheduler = scheduler, maximumReconnectAttempts = 2)
         val first = fixture.readyGatt(sessionNonce = 31)
+        assertEquals(BleConnectionPurpose.INITIAL_AUTHORIZATION, first.purpose)
         first.emit(BleGattEvent.Disconnected)
         assertEquals(1, assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state).attempt)
         assertTrue(first.closed)
 
         scheduler.runNext()
         val second = fixture.facade.connections.last()
+        assertEquals(BleConnectionPurpose.EXISTING_OWNER, second.purpose)
         first.emit(BleGattEvent.StreamIndication(snapshotEnvelope(99, 99)))
         assertTrue(fixture.runtime.state is BleRuntimeState.Reconnecting)
-        fixture.advanceToInitialSnapshot(second)
+        fixture.advanceReturningOwnerToInitialSnapshot(second)
         second.emit(BleGattEvent.StreamIndication(snapshotEnvelope(31, 12)))
         assertEquals(31, assertIs<BleRuntimeState.Ready>(fixture.runtime.state).session.sessionNonce)
 
@@ -280,10 +607,9 @@ class BleCompanionRuntimeTest {
         scheduler.runNext()
         val fourth = fixture.facade.connections.last()
         fourth.emit(BleGattEvent.Failed(BleGattFailure.TRANSIENT_LINK))
-        assertEquals(
-            BleRuntimeFailure.RECONNECT_EXHAUSTED,
-            assertIs<BleRuntimeState.Failed>(fixture.runtime.state).reason,
-        )
+        val exhausted = assertIs<BleRuntimeState.Failed>(fixture.runtime.state)
+        assertEquals(BleRuntimeFailure.RECONNECT_EXHAUSTED, exhausted.reason)
+        assertEquals(BleConnectionDiagnostic.GATT_TRANSIENT_LINK, exhausted.connectionDiagnostic)
     }
 
     @Test
@@ -331,7 +657,7 @@ class BleCompanionRuntimeTest {
             val fixture = Fixture(scheduler = scheduler)
             fixture.connectGatt()
             val timeout = scheduler.nextOpen()
-            assertEquals(NEGOTIATION_STEP_TIMEOUT_MILLIS, timeout.delayMillis)
+            assertEquals(INITIAL_GATT_PROFILE_TIMEOUT_MILLIS, timeout.delayMillis)
             timeout.run()
             assertEquals(
                 BleRuntimeFailure.NEGOTIATION_TIMEOUT,
@@ -348,6 +674,42 @@ class BleCompanionRuntimeTest {
             timeout.run()
             assertEquals(1, assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state).attempt)
             assertTrue(gatt.closed)
+        }
+    }
+
+    @Test
+    fun duplicateStaleAndLateGattOpenedEventsCannotRenewOrReopenTheTimer() {
+        run {
+            val scheduler = TestRuntimeScheduler()
+            val fixture = Fixture(scheduler = scheduler)
+            val staleGatt = fixture.connectGatt()
+            val firstTimer = scheduler.nextOpen()
+
+            staleGatt.emit(BleGattEvent.Disconnected)
+            val reconnectTimer = scheduler.nextOpen()
+            reconnectTimer.run()
+            val currentGatt = fixture.facade.connections.last()
+            val currentTimer = scheduler.nextOpen()
+
+            staleGatt.emit(BleGattEvent.GattOpened)
+            currentGatt.emit(BleGattEvent.GattOpened)
+            assertTrue(currentTimer === scheduler.nextOpen())
+            assertEquals(INITIAL_GATT_PROFILE_TIMEOUT_MILLIS, currentTimer.delayMillis)
+            assertFalse(currentGatt.closed)
+            assertTrue(firstTimer.closed)
+        }
+
+        run {
+            val scheduler = TestRuntimeScheduler()
+            val fixture = Fixture(scheduler = scheduler)
+            val gatt = fixture.connectGatt()
+            val timer = scheduler.nextOpen()
+
+            fixture.runtime.onLifecycleStop()
+            assertTrue(timer.closed)
+            gatt.emit(BleGattEvent.GattOpened)
+            assertFalse(scheduler.hasOpenTimers())
+            assertIs<BleRuntimeState.Inactive>(fixture.runtime.state)
         }
     }
 
@@ -386,6 +748,188 @@ class BleCompanionRuntimeTest {
             actionTimeout.run()
             assertEquals(accepted, fixture.runtime.state)
         }
+    }
+
+    @Test
+    fun factoryResetHasDedicatedReadyOnlyApiAndExactOta0Payload() {
+        val fixture = Fixture()
+        val gatt = fixture.readyGatt(sessionNonce = 71)
+        val reset = CompanionActionRequest(CompanionActionKind.FACTORY_RESET)
+
+        assertFalse(fixture.runtime.submitAction(reset))
+        assertTrue(fixture.runtime.submitFactoryReset())
+        assertIs<BleRuntimeState.FactoryResetRequesting>(fixture.runtime.state)
+
+        val fragment = CompanionProtocolCodec.decodeFragment(gatt.commands.last()).value!!
+        assertEquals(CompanionFrameKind.ACTION_REQUEST, fragment.kind)
+        assertEquals(71, fragment.sessionNonce)
+        assertEquals(1, fragment.exchangeId)
+        val decoded = CompanionSemanticCodec.decodeActionRequest(fragment.payload).value!!
+        assertEquals(CompanionActionKind.FACTORY_RESET, decoded.kind)
+        assertEquals(RESET_RECEIPT, decoded.factoryResetReceipt)
+        assertEquals(5, fragment.payload[6].toInt())
+        assertEquals(0, fragment.payload[7].toInt())
+        assertContentEquals(
+            byteArrayOf(0x88.toByte(), 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11),
+            fragment.payload.sliceArray(8 until 16),
+        )
+        assertTrue(fragment.payload.sliceArray(16 until fragment.payload.size).all { it.toInt() == 0 })
+        assertTrue(fixture.facade.resetVerificationScans.isEmpty())
+    }
+
+    @Test
+    fun admittedFactoryResetNeedsExactReceiptD1BeforeLocalRecordClears() {
+        val facade = TestBluetoothFacade()
+        facade.factoryResetCleanupResult = FactoryResetLocalCleanupResult.SYSTEM_BOND_REMAINS
+        val fixture = Fixture(facade = facade)
+        val gatt = fixture.readyGatt(sessionNonce = 72)
+
+        assertTrue(fixture.runtime.submitFactoryReset())
+        val admitted = CompanionActionResult(
+            kind = CompanionActionKind.FACTORY_RESET,
+            factoryResetReceipt = RESET_RECEIPT,
+            disposition = CompanionActionDisposition.ADMITTED,
+        )
+        gatt.emit(BleGattEvent.StreamIndication(actionResultEnvelope(72, 1, admitted)))
+        assertIs<BleRuntimeState.FactoryResetErasing>(fixture.runtime.state)
+        assertTrue(facade.factoryResetCleanupReceipts.isEmpty())
+
+        gatt.emit(BleGattEvent.Disconnected)
+        val verification = facade.resetVerificationScans.single()
+        assertTrue(verification.started)
+        assertIs<BleRuntimeState.FactoryResetVerifying>(fixture.runtime.state)
+
+        verification.emit(BleScanEvent.FactoryResetReceiptObserved(RESET_RECEIPT + 1uL))
+        val wrong = assertIs<BleRuntimeState.FactoryResetNotVerified>(fixture.runtime.state)
+        assertEquals(FactoryResetNotVerifiedReason.WRONG_DEVICE_OBSERVED, wrong.reason)
+        assertTrue(wrong.canRetryVerification)
+        assertTrue(facade.factoryResetCleanupReceipts.isEmpty())
+
+        assertTrue(fixture.runtime.retryFactoryResetVerification())
+        facade.resetVerificationScans.last().emit(BleScanEvent.FactoryResetReceiptObserved(RESET_RECEIPT))
+        val complete = assertIs<BleRuntimeState.FactoryResetComplete>(fixture.runtime.state)
+        assertTrue(complete.systemBondRemovalRequired)
+        assertEquals(listOf(RESET_RECEIPT), facade.factoryResetCleanupReceipts)
+    }
+
+    @Test
+    fun factoryResetDisconnectTimeoutAndRejectionNeverReportSuccessOrDiscardRecord() {
+        run {
+            val fixture = Fixture()
+            val gatt = fixture.readyGatt(sessionNonce = 72)
+            gatt.writeResult = false
+            assertFalse(fixture.runtime.submitFactoryReset())
+
+            val uncertain = assertIs<BleRuntimeState.FactoryResetNotVerified>(fixture.runtime.state)
+            assertEquals(FactoryResetNotVerifiedReason.REQUEST_WRITE_UNCERTAIN, uncertain.reason)
+            assertTrue(uncertain.canRetryVerification)
+            assertTrue(fixture.runtime.retryFactoryResetVerification())
+            assertTrue(fixture.facade.resetVerificationScans.single().started)
+            assertTrue(fixture.facade.factoryResetCleanupReceipts.isEmpty())
+        }
+
+        run {
+            val fixture = Fixture()
+            val gatt = fixture.readyGatt(sessionNonce = 73)
+            assertTrue(fixture.runtime.submitFactoryReset())
+            gatt.emit(BleGattEvent.Disconnected)
+
+            val failed = assertIs<BleRuntimeState.FactoryResetNotVerified>(fixture.runtime.state)
+            assertEquals(FactoryResetNotVerifiedReason.CONNECTION_LOST_BEFORE_ACCEPTANCE, failed.reason)
+            assertTrue(failed.canRetryVerification)
+            assertTrue(fixture.facade.factoryResetCleanupReceipts.isEmpty())
+
+            assertTrue(fixture.runtime.retryFactoryResetVerification())
+            assertTrue(fixture.facade.resetVerificationScans.single().started)
+        }
+
+        run {
+            val scheduler = TestRuntimeScheduler()
+            val fixture = Fixture(scheduler = scheduler)
+            fixture.readyGatt(sessionNonce = 74)
+            assertTrue(fixture.runtime.submitFactoryReset())
+            scheduler.nextOpen().run()
+            val timeout = assertIs<BleRuntimeState.FactoryResetNotVerified>(fixture.runtime.state)
+            assertEquals(FactoryResetNotVerifiedReason.RESPONSE_TIMEOUT, timeout.reason)
+            assertTrue(timeout.canRetryVerification)
+            assertTrue(fixture.runtime.retryFactoryResetVerification())
+            assertTrue(fixture.facade.resetVerificationScans.single().started)
+            assertTrue(fixture.facade.factoryResetCleanupReceipts.isEmpty())
+        }
+
+        run {
+            val fixture = Fixture()
+            val gatt = fixture.readyGatt(sessionNonce = 75)
+            assertTrue(fixture.runtime.submitFactoryReset())
+            val rejected = CompanionActionResult(
+                kind = CompanionActionKind.FACTORY_RESET,
+                factoryResetReceipt = RESET_RECEIPT,
+                disposition = CompanionActionDisposition.REJECTED,
+                rejectReason = io.github.nbjelanovic.otprotocol.CompanionActionRejectReason.POLICY_DENIED,
+            )
+            gatt.emit(BleGattEvent.StreamIndication(actionResultEnvelope(75, 1, rejected)))
+            val state = assertIs<BleRuntimeState.FactoryResetNotVerified>(fixture.runtime.state)
+            assertEquals(FactoryResetNotVerifiedReason.REQUEST_REJECTED, state.reason)
+            assertFalse(state.canRetryVerification)
+            assertFalse(fixture.runtime.retryFactoryResetVerification())
+            assertEquals(null, fixture.facade.pendingFactoryResetReceipt)
+            assertTrue(fixture.facade.factoryResetCleanupReceipts.isEmpty())
+        }
+    }
+
+    @Test
+    fun admittedFactoryResetVerificationTimeoutRetainsExactTargetAndCanRetry() {
+        val facade = TestBluetoothFacade()
+        val fixture = Fixture(facade = facade)
+        val gatt = fixture.readyGatt(sessionNonce = 76)
+        assertTrue(fixture.runtime.submitFactoryReset())
+        gatt.emit(
+            BleGattEvent.StreamIndication(
+                actionResultEnvelope(
+                    76,
+                    1,
+                    CompanionActionResult(
+                        kind = CompanionActionKind.FACTORY_RESET,
+                        factoryResetReceipt = RESET_RECEIPT,
+                        disposition = CompanionActionDisposition.ADMITTED,
+                    ),
+                ),
+            ),
+        )
+        gatt.emit(BleGattEvent.Disconnected)
+        facade.resetVerificationScans.single().emit(BleScanEvent.Complete)
+
+        val notVerified = assertIs<BleRuntimeState.FactoryResetNotVerified>(fixture.runtime.state)
+        assertEquals(FactoryResetNotVerifiedReason.VERIFICATION_TIMEOUT, notVerified.reason)
+        assertTrue(notVerified.canRetryVerification)
+        assertTrue(facade.factoryResetCleanupReceipts.isEmpty())
+
+        fixture.runtime.onLifecycleStop()
+        fixture.runtime.onLifecycleStart()
+        assertEquals(2, facade.resetVerificationScans.size)
+        assertTrue(facade.resetVerificationScans.last().started)
+    }
+
+    @Test
+    fun pendingReceiptRecoversWithoutPersistedDeviceIdentityAfterRuntimeRestart() {
+        val facade = TestBluetoothFacade().apply {
+            pendingFactoryResetReceipt = RESET_RECEIPT
+        }
+        val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+
+        runtime.onLifecycleStart()
+
+        assertIs<BleRuntimeState.FactoryResetVerifying>(runtime.state)
+        assertTrue(facade.connections.isEmpty())
+        assertTrue(facade.scans.isEmpty())
+        val verification = facade.resetVerificationScans.single()
+        assertTrue(verification.started)
+
+        verification.emit(BleScanEvent.FactoryResetReceiptObserved(RESET_RECEIPT))
+        val complete = assertIs<BleRuntimeState.FactoryResetComplete>(runtime.state)
+        assertFalse(complete.systemBondRemovalRequired)
+        assertEquals(listOf(RESET_RECEIPT), facade.factoryResetCleanupReceipts)
+        assertEquals(null, facade.pendingFactoryResetReceipt)
     }
 
     @Test
@@ -543,6 +1087,13 @@ class BleCompanionRuntimeTest {
             gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
         }
 
+        fun advanceReturningOwnerToInitialSnapshot(gatt: TestGattLease) {
+            gatt.emit(BleGattEvent.ProfileReady)
+            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfoBytes()))
+            gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
+            gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+        }
+
         fun readyGatt(sessionNonce: Long, initialEventId: Long = 1): TestGattLease {
             val gatt = connectGatt()
             advanceToInitialSnapshot(gatt)
@@ -555,18 +1106,69 @@ class BleCompanionRuntimeTest {
     private class TestBluetoothFacade(
         private val gattStartEvent: BleGattEvent? = null,
         private val gattStartResult: Boolean = true,
+        private val connectionCreationSupported: Boolean = true,
+        private val returningOwnerScanSupported: Boolean = false,
     ) : AndroidBluetoothFacade {
         var preflight = BlePreflight()
         val scans = mutableListOf<TestScanLease>()
+        val returningOwnerScans = mutableListOf<TestScanLease>()
+        val resetVerificationScans = mutableListOf<TestScanLease>()
         val connections = mutableListOf<TestGattLease>()
+        val factoryResetCleanupReceipts = mutableListOf<ULong>()
+        var factoryResetCleanupResult = FactoryResetLocalCleanupResult.CLEARED
+        var pendingFactoryResetReceipt: ULong? = null
 
         override fun preflight(): BlePreflight = preflight
 
         override fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease =
             TestScanLease(observer).also(scans::add)
 
-        override fun createConnection(endpointToken: String, observer: (BleGattEvent) -> Unit): BleGattLease =
-            TestGattLease(endpointToken, observer, gattStartEvent, gattStartResult).also(connections::add)
+        override fun createReturningOwnerScan(observer: (BleScanEvent) -> Unit): BleScanLease? =
+            if (returningOwnerScanSupported) TestScanLease(observer).also(returningOwnerScans::add) else null
+
+        override fun stageFactoryResetReceipt(): ULong? {
+            if (pendingFactoryResetReceipt != null) return null
+            pendingFactoryResetReceipt = RESET_RECEIPT
+            return RESET_RECEIPT
+        }
+
+        override fun loadPendingFactoryResetReceipt(): ULong? = pendingFactoryResetReceipt
+
+        override fun clearPendingFactoryResetReceipt(receipt: ULong): Boolean {
+            if (pendingFactoryResetReceipt != receipt) return false
+            pendingFactoryResetReceipt = null
+            return true
+        }
+
+        override fun createFactoryResetVerificationScan(
+            receipt: ULong,
+            observer: (BleScanEvent) -> Unit,
+        ): BleScanLease? =
+            if (receipt == pendingFactoryResetReceipt) {
+                TestScanLease(observer).also(resetVerificationScans::add)
+            } else {
+                null
+            }
+
+        override fun completeFactoryResetVerification(receipt: ULong): FactoryResetLocalCleanupResult {
+            if (receipt != pendingFactoryResetReceipt) return FactoryResetLocalCleanupResult.FAILED
+            factoryResetCleanupReceipts += receipt
+            if (factoryResetCleanupResult != FactoryResetLocalCleanupResult.FAILED) {
+                pendingFactoryResetReceipt = null
+            }
+            return factoryResetCleanupResult
+        }
+
+        override fun createConnection(
+            endpointToken: String,
+            purpose: BleConnectionPurpose,
+            observer: (BleGattEvent) -> Unit,
+        ): BleGattLease? =
+            if (connectionCreationSupported) {
+                TestGattLease(endpointToken, purpose, observer, gattStartEvent, gattStartResult).also(connections::add)
+            } else {
+                null
+            }
     }
 
     private class TestScanLease(private val observer: (BleScanEvent) -> Unit) : BleScanLease {
@@ -579,6 +1181,7 @@ class BleCompanionRuntimeTest {
 
     private class TestGattLease(
         val endpointToken: String,
+        val purpose: BleConnectionPurpose,
         private val observer: (BleGattEvent) -> Unit,
         private val startEvent: BleGattEvent? = null,
         private val startResult: Boolean = true,
@@ -589,16 +1192,18 @@ class BleCompanionRuntimeTest {
         var protocolInfoReads = 0
         var streamSubscriptions = 0
         val commands = mutableListOf<ByteArray>()
+        var writeResult = true
 
         override fun start(): Boolean {
             started = true
+            if (startResult) observer(BleGattEvent.GattOpened)
             startEvent?.let(observer)
             return startResult
         }
         override fun requestMtu(mtu: Int): Boolean = true.also { requestedMtus += mtu }
         override fun readProtocolInfo(): Boolean = true.also { protocolInfoReads += 1 }
         override fun subscribeStreamIndications(): Boolean = true.also { streamSubscriptions += 1 }
-        override fun writeCommandWithResponse(value: ByteArray): Boolean = true.also { commands += value.copyOf() }
+        override fun writeCommandWithResponse(value: ByteArray): Boolean = writeResult.also { commands += value.copyOf() }
         override fun close() { closed = true }
         fun emit(event: BleGattEvent) = observer(event)
     }
@@ -616,6 +1221,8 @@ class BleCompanionRuntimeTest {
         fun nextOpen(): TestReconnectLease =
             pending.firstOrNull { !it.closed && !it.ran }
                 ?: error("Expected a pending runtime timer")
+
+        fun hasOpenTimers(): Boolean = pending.any { !it.closed && !it.ran }
     }
 
     private class TestReconnectLease(
@@ -639,6 +1246,7 @@ class BleCompanionRuntimeTest {
 
     companion object {
         private val CANDIDATE = BleDiscoveredCompanion("opaque-test-token", "Test companion")
+        private val RESET_RECEIPT = 0x1122334455667788uL
         private val SECURE_LINK = BleSecurityEvidence(
             encrypted = true,
             authenticatedBond = true,

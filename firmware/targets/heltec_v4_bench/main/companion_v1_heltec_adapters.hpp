@@ -50,6 +50,7 @@ private:
 // counter.
 class HeltecV4CompanionV1NimbleBondAdapter final
     : public companion::CompanionV1BondInventoryPort,
+      public companion::CompanionV1BondCleanupPort,
       public companion::CompanionGattTrustedBindingAuthority {
 public:
     explicit HeltecV4CompanionV1NimbleBondAdapter(
@@ -57,6 +58,9 @@ public:
 
     [[nodiscard]] companion::CompanionV1BondInventorySnapshot snapshot()
         override;
+    [[nodiscard]] companion::CompanionV1BondCleanupResult
+    remove_exact_and_verify(
+        companion::CompanionBondIdentityToken private_reference) override;
     [[nodiscard]] companion::CompanionGattTrustedBindingResult resolve(
         std::uint16_t connection_handle,
         std::uint64_t transport_generation) override;

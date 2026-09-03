@@ -10,13 +10,13 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
@@ -24,13 +24,146 @@ import android.os.Looper
 import android.os.ParcelUuid
 import io.github.nbjelanovic.otprotocol.COMPANION_FRAGMENT_HEADER_BYTES
 import io.github.nbjelanovic.otprotocol.COMPANION_MAX_FRAGMENT_PAYLOAD_BYTES
+import java.security.SecureRandom
 import java.util.UUID
 
 internal const val ANDROID_BLE_SCAN_WINDOW_MILLIS = AndroidBlePlatformPlan.SCAN_WINDOW_MILLIS
+internal const val ANDROID_FACTORY_RESET_VERIFICATION_WINDOW_MILLIS = 75_000L
+internal const val ANDROID_FACTORY_RESET_RECEIPT_TTL_MILLIS = 120_000L
+internal const val FACTORY_RESET_RECEIPT_SERVICE_DATA_BYTES = 13
+private const val FACTORY_RESET_RECEIPT_GENERATION_ATTEMPTS = 16
 private const val CLIENT_CONFIGURATION_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 private const val BLUETOOTH_SCAN_PERMISSION = "android.permission.BLUETOOTH_SCAN"
 private const val BLUETOOTH_CONNECT_PERMISSION = "android.permission.BLUETOOTH_CONNECT"
-internal const val ANDROID_SYSTEM_BOND_TIMEOUT_MILLIS = 30_000L
+internal const val ANDROID_SYSTEM_BOND_TIMEOUT_MILLIS = 60_000L
+internal const val ANDROID_SYSTEM_BOND_POLL_INTERVAL_MILLIS = 100L
+
+internal object FactoryResetReceiptAdvertisementCodec {
+    private val magic = byteArrayOf(0x4f, 0x54, 0x52, 0x52)
+
+    fun encode(receipt: ULong): ByteArray? {
+        if (receipt == 0uL) return null
+        return ByteArray(FACTORY_RESET_RECEIPT_SERVICE_DATA_BYTES).also { output ->
+            magic.copyInto(output)
+            output[4] = 0x01
+            repeat(8) { index -> output[5 + index] = (receipt shr (index * 8)).toByte() }
+        }
+    }
+
+    fun decode(payload: ByteArray?): ULong? {
+        if (
+            payload == null ||
+            payload.size != FACTORY_RESET_RECEIPT_SERVICE_DATA_BYTES ||
+            magic.indices.any { payload[it] != magic[it] } ||
+            payload[4].toInt() != 0x01
+        ) return null
+        var receipt = 0uL
+        repeat(8) { index ->
+            receipt = receipt or ((payload[5 + index].toInt() and 0xff).toULong() shl (index * 8))
+        }
+        return receipt.takeIf { it != 0uL }
+    }
+}
+
+internal interface FactoryResetReceiptStorage {
+    fun readLong(key: String): Long?
+    fun writeLongs(values: Map<String, Long>): Boolean
+    fun remove(keys: Set<String>): Boolean
+}
+
+private class SharedPreferencesFactoryResetReceiptStorage(
+    private val preferences: SharedPreferences,
+) : FactoryResetReceiptStorage {
+    override fun readLong(key: String): Long? =
+        if (preferences.contains(key)) preferences.getLong(key, 0L) else null
+
+    override fun writeLongs(values: Map<String, Long>): Boolean {
+        val editor = preferences.edit()
+        values.forEach { (key, value) -> editor.putLong(key, value) }
+        return editor.commit()
+    }
+
+    override fun remove(keys: Set<String>): Boolean {
+        val editor = preferences.edit()
+        keys.forEach(editor::remove)
+        return editor.commit()
+    }
+}
+
+internal class AndroidFactoryResetReceiptStore(
+    private val storage: FactoryResetReceiptStorage,
+    private val nowMillis: () -> Long,
+    private val receiptFactory: () -> ULong,
+) {
+    constructor(
+        context: Context,
+        nowMillis: () -> Long,
+        receiptFactory: () -> ULong,
+    ) : this(
+        SharedPreferencesFactoryResetReceiptStorage(
+            context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE),
+        ),
+        nowMillis,
+        receiptFactory,
+    )
+
+    fun stage(): ULong? {
+        if (load() != null) return null
+        val now = nowMillis()
+        if (now < 0L || now > Long.MAX_VALUE - ANDROID_FACTORY_RESET_RECEIPT_TTL_MILLIS) return null
+        repeat(FACTORY_RESET_RECEIPT_GENERATION_ATTEMPTS) {
+            val receipt = receiptFactory()
+            if (receipt != 0uL) {
+                val committed = storage.writeLongs(
+                    mapOf(
+                        RECEIPT_KEY to receipt.toLong(),
+                        ISSUED_AT_KEY to now,
+                        EXPIRY_KEY to (now + ANDROID_FACTORY_RESET_RECEIPT_TTL_MILLIS),
+                    ),
+                )
+                if (committed) return receipt
+            }
+        }
+        return null
+    }
+
+    fun load(): ULong? {
+        val receiptBits = storage.readLong(RECEIPT_KEY)
+        val issuedAt = storage.readLong(ISSUED_AT_KEY)
+        val expiry = storage.readLong(EXPIRY_KEY)
+        if (receiptBits == null || issuedAt == null || expiry == null) {
+            clearAll()
+            return null
+        }
+        val receipt = receiptBits.toULong()
+        val now = nowMillis()
+        val coherentBounds =
+            issuedAt >= 0L &&
+                expiry >= issuedAt &&
+                expiry - issuedAt == ANDROID_FACTORY_RESET_RECEIPT_TTL_MILLIS &&
+                now >= issuedAt &&
+                now < expiry
+        if (receipt == 0uL || !coherentBounds) {
+            clearAll()
+            return null
+        }
+        return receipt
+    }
+
+    fun clearExact(receipt: ULong): Boolean {
+        if (receipt == 0uL || load() != receipt) return false
+        return clearAll()
+    }
+
+    private fun clearAll(): Boolean = storage.remove(setOf(RECEIPT_KEY, ISSUED_AT_KEY, EXPIRY_KEY))
+
+    companion object {
+        const val PREFERENCES_NAME = "trail_pending_factory_reset_receipt_v1"
+        const val RECEIPT_KEY = "receipt_bits"
+        const val ISSUED_AT_KEY = "issued_at_epoch_millis"
+        const val EXPIRY_KEY = "expires_at_epoch_millis"
+    }
+}
 
 object AndroidBlePermissionContract {
     val runtimePermissions: List<String> = listOf(
@@ -82,37 +215,100 @@ class AndroidBluetoothGattFacade(
     context: Context,
     private val mainHandler: Handler = Handler(Looper.getMainLooper()),
     private val tokenFactory: () -> String = { UUID.randomUUID().toString() },
+    resetReceiptFactory: () -> ULong = { SecureRandom().nextLong().toULong() },
+    nowMillis: () -> Long = System::currentTimeMillis,
 ) : AndroidBluetoothFacade, AutoCloseable {
     private val appContext = context.applicationContext
-    private val serviceUuid = UUID.fromString(CompanionGattV0Contract.SERVICE_UUID)
+    private val gattServiceUuid = UUID.fromString(AndroidBlePlatformPlan.GATT_SERVICE_UUID)
+    private val pairableAdvertisingUuid = UUID.fromString(AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID)
     private val protocolInfoUuid = UUID.fromString(CompanionGattV0Contract.PROTOCOL_INFO_UUID)
     private val commandUuid = UUID.fromString(CompanionGattV0Contract.COMMAND_UUID)
     private val streamUuid = UUID.fromString(CompanionGattV0Contract.STREAM_UUID)
     private val cccdUuid = UUID.fromString(CLIENT_CONFIGURATION_UUID)
+    private val resetReceiptStore = AndroidFactoryResetReceiptStore(appContext, nowMillis, resetReceiptFactory)
     private val candidates = LinkedHashMap<BluetoothDevice, CandidateBinding>()
     private var activeScan: PlatformScanLease? = null
     private var activeGatt: PlatformGattLease? = null
     private var systemBondGeneration: Long = 0
+    private var verifiedResetReceipt: ULong? = null
     private var closed = false
 
     private data class CandidateBinding(
         val endpointToken: String,
         val publicLabel: String,
+        val allowSystemBondCreation: Boolean,
     )
+
+    private enum class ScanPurpose { ADD_DEVICE, RETURNING_OWNER, FACTORY_RESET_VERIFICATION }
 
     override fun preflight(): BlePreflight = AndroidBlePreflightPolicy.evaluate(platformSnapshot())
 
     override fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease? {
         if (!onMainThread() || closed || !preflight().isReady || activeScan != null || activeGatt != null) return null
         candidates.clear()
-        return PlatformScanLease(observer).also { activeScan = it }
+        return PlatformScanLease(observer, ScanPurpose.ADD_DEVICE, emptySet()).also { activeScan = it }
     }
 
-    override fun createConnection(endpointToken: String, observer: (BleGattEvent) -> Unit): BleGattLease? {
+    override fun createReturningOwnerScan(observer: (BleScanEvent) -> Unit): BleScanLease? {
         if (!onMainThread() || closed || !preflight().isReady || activeScan != null || activeGatt != null) return null
-        val device = candidates.entries.singleOrNull { it.value.endpointToken == endpointToken }?.key ?: return null
+        val bondedDevices = currentBondedDevices() ?: return null
+        candidates.clear()
+        return PlatformScanLease(observer, ScanPurpose.RETURNING_OWNER, bondedDevices).also { activeScan = it }
+    }
+
+    override fun stageFactoryResetReceipt(): ULong? =
+        if (onMainThread() && !closed) resetReceiptStore.stage() else null
+
+    override fun loadPendingFactoryResetReceipt(): ULong? =
+        if (onMainThread() && !closed) resetReceiptStore.load() else null
+
+    override fun clearPendingFactoryResetReceipt(receipt: ULong): Boolean =
+        onMainThread() && !closed && resetReceiptStore.clearExact(receipt)
+
+    override fun createFactoryResetVerificationScan(
+        receipt: ULong,
+        observer: (BleScanEvent) -> Unit,
+    ): BleScanLease? {
+        if (!onMainThread() || closed || !preflight().isReady || activeScan != null || activeGatt != null) return null
+        if (receipt == 0uL || resetReceiptStore.load() != receipt) return null
+        return PlatformScanLease(
+            observer = observer,
+            purpose = ScanPurpose.FACTORY_RESET_VERIFICATION,
+            bondedDevicesAtStart = emptySet(),
+            expectedResetReceipt = receipt,
+            timeoutMillis = ANDROID_FACTORY_RESET_VERIFICATION_WINDOW_MILLIS,
+        ).also { activeScan = it }
+    }
+
+    override fun completeFactoryResetVerification(receipt: ULong): FactoryResetLocalCleanupResult {
+        if (!onMainThread() || closed || activeScan != null || activeGatt != null) {
+            return FactoryResetLocalCleanupResult.FAILED
+        }
+        if (receipt == 0uL || verifiedResetReceipt != receipt) return FactoryResetLocalCleanupResult.FAILED
+        if (!resetReceiptStore.clearExact(receipt)) return FactoryResetLocalCleanupResult.FAILED
+        verifiedResetReceipt = null
+        candidates.clear()
+        // The post-reset RPA cannot be linked back to Android's stale bond without retaining private
+        // identity. Prompt the user to remove the old system pairing instead of guessing or using
+        // hidden removeBond APIs.
+        return FactoryResetLocalCleanupResult.SYSTEM_BOND_REMAINS
+    }
+
+    override fun createConnection(
+        endpointToken: String,
+        purpose: BleConnectionPurpose,
+        observer: (BleGattEvent) -> Unit,
+    ): BleGattLease? {
+        if (!onMainThread() || closed || !preflight().isReady || activeScan != null || activeGatt != null) return null
+        val entry = candidates.entries.singleOrNull { it.value.endpointToken == endpointToken } ?: return null
         val generation = nextSystemBondGeneration() ?: return null
-        return PlatformGattLease(endpointToken, generation, device, observer).also { activeGatt = it }
+        return PlatformGattLease(
+            endpointToken,
+            generation,
+            entry.key,
+            purpose == BleConnectionPurpose.INITIAL_AUTHORIZATION && entry.value.allowSystemBondCreation,
+            observer,
+        ).also { activeGatt = it }
     }
 
     override fun close() {
@@ -122,6 +318,7 @@ class AndroidBluetoothGattFacade(
         }
         if (closed) return
         closed = true
+        verifiedResetReceipt = null
         activeScan?.close()
         activeGatt?.close()
         candidates.clear()
@@ -164,6 +361,34 @@ class AndroidBluetoothGattFacade(
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             appContext.checkSelfPermission(BLUETOOTH_SCAN_PERMISSION) == PackageManager.PERMISSION_GRANTED
 
+    @SuppressLint("MissingPermission")
+    private fun currentBondedDevices(): Set<BluetoothDevice>? {
+        if (!operationAllowed(AndroidBlePlatformOperation.CONNECT)) return null
+        val adapter = bluetoothManager()?.adapter ?: return null
+        return try {
+            adapter.bondedDevices.toSet()
+        } catch (_: SecurityException) {
+            null
+        } catch (_: IllegalStateException) {
+            null
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun currentBondState(device: BluetoothDevice): AndroidSystemBondState? {
+        if (!operationAllowed(AndroidBlePlatformOperation.CONNECT)) return null
+        return try {
+            when (device.bondState) {
+                BluetoothDevice.BOND_NONE -> AndroidSystemBondState.NONE
+                BluetoothDevice.BOND_BONDING -> AndroidSystemBondState.BONDING
+                BluetoothDevice.BOND_BONDED -> AndroidSystemBondState.BONDED
+                else -> null
+            }
+        } catch (_: SecurityException) {
+            null
+        }
+    }
+
     private fun operationAllowed(operation: AndroidBlePlatformOperation): Boolean =
         Build.VERSION.SDK_INT >= ANDROID_BLE_MINIMUM_API && AndroidBleOperationPermissionPolicy.allows(
             operation = operation,
@@ -185,8 +410,13 @@ class AndroidBluetoothGattFacade(
 
     private inner class PlatformScanLease(
         private val observer: (BleScanEvent) -> Unit,
+        private val purpose: ScanPurpose,
+        private val bondedDevicesAtStart: Set<BluetoothDevice>,
+        private val expectedResetReceipt: ULong? = null,
+        private val timeoutMillis: Long = ANDROID_BLE_SCAN_WINDOW_MILLIS,
     ) : BleScanLease {
         private var started = false
+        private var platformRegistered = false
         private var leaseClosed = false
         private val timeout = Runnable { finish() }
         private val callback = object : ScanCallback() {
@@ -220,20 +450,33 @@ class AndroidBluetoothGattFacade(
                 preflight().isReady.not() ||
                 !operationAllowed(AndroidBlePlatformOperation.START_SCAN)
             ) return false
+            if (purpose == ScanPurpose.RETURNING_OWNER && bondedDevicesAtStart.isEmpty()) {
+                started = true
+                finish()
+                return true
+            }
+            if (purpose == ScanPurpose.FACTORY_RESET_VERIFICATION && expectedResetReceipt == null) {
+                closePlatform()
+                return false
+            }
             val scanner = bluetoothManager()?.adapter?.bluetoothLeScanner ?: return false
-            val filter = ScanFilter.Builder().setServiceUuid(ParcelUuid(serviceUuid)).build()
             val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build()
             return try {
-                scanner.startScan(listOf(filter), settings, callback)
+                // Android shares a small controller-filter pool with system services. Keep the
+                // registration unfiltered and bounded, then enforce every identity in software.
+                scanner.startScan(null, settings, callback)
                 started = true
-                if (!mainHandler.postDelayed(timeout, ANDROID_BLE_SCAN_WINDOW_MILLIS)) {
+                platformRegistered = true
+                if (!mainHandler.postDelayed(timeout, timeoutMillis)) {
                     closePlatform()
                     return false
                 }
                 true
             } catch (_: SecurityException) {
+                closePlatform()
                 false
             } catch (_: IllegalStateException) {
+                closePlatform()
                 false
             }
         }
@@ -249,7 +492,7 @@ class AndroidBluetoothGattFacade(
         private fun acceptResult(result: ScanResult) {
             when (
                 AndroidBleScanCallbackPolicy.evaluate(
-                    active = !leaseClosed && started && activeScan === this,
+                    active = !leaseClosed && started && platformRegistered && activeScan === this,
                     scanPermissionGranted = operationAllowed(AndroidBlePlatformOperation.START_SCAN),
                 )
             ) {
@@ -261,17 +504,65 @@ class AndroidBluetoothGattFacade(
                 }
                 AndroidBleCallbackAdmission.ACCEPT -> Unit
             }
-            val advertisedServices = result.scanRecord?.serviceUuids ?: return
-            if (advertisedServices.none { it.uuid == serviceUuid }) return
+            val scanRecord = result.scanRecord ?: return
+            val advertisedServices = scanRecord.serviceUuids ?: return
+            val advertisedUuids = advertisedServices.map { it.uuid }
+            val observedResetReceipt = if (purpose == ScanPurpose.FACTORY_RESET_VERIFICATION) {
+                FactoryResetReceiptAdvertisementCodec.decode(
+                    scanRecord.getServiceData(ParcelUuid(pairableAdvertisingUuid)),
+                )
+            } else null
+            val accepted = when (purpose) {
+                ScanPurpose.ADD_DEVICE -> AndroidPairableAdvertisementPolicy.accepts(advertisedUuids)
+                ScanPurpose.RETURNING_OWNER -> {
+                    val currentBonds = currentBondedDevices()
+                    if (currentBonds == null) {
+                        closePlatform()
+                        observer(BleScanEvent.Failed(BleGattFailure.PERMISSION_REVOKED))
+                        return
+                    }
+                    val stillBonded =
+                        result.device in bondedDevicesAtStart &&
+                            result.device in currentBonds &&
+                            currentBondState(result.device) == AndroidSystemBondState.BONDED
+                    AndroidReturningOwnerAdvertisementPolicy.accepts(advertisedUuids, stillBonded)
+                }
+                ScanPurpose.FACTORY_RESET_VERIFICATION ->
+                    observedResetReceipt == expectedResetReceipt &&
+                        AndroidPairableAdvertisementPolicy.accepts(advertisedUuids)
+            }
+            // The platform scan is intentionally unfiltered. Software revalidation is mandatory:
+            // Add Device is D1-only; returning owner is bonded D0-only and rejects D1; reset
+            // verification also requires the exact short-lived receipt.
+            if (!accepted) return
+            if (purpose == ScanPurpose.FACTORY_RESET_VERIFICATION) {
+                verifiedResetReceipt = observedResetReceipt
+                closePlatform()
+                observer(BleScanEvent.FactoryResetReceiptObserved(observedResetReceipt ?: return))
+                return
+            }
             val existing = candidates[result.device]
             val binding = existing ?: if (candidates.size < MAX_DISCOVERED_COMPANIONS) {
                 val endpointToken = OpaqueEndpointTokenPolicy.generate(
                     existing = candidates.values.map(CandidateBinding::endpointToken),
                     factory = tokenFactory,
-                ) ?: return
+                ) ?: run {
+                    // A distinct returning-owner device must never disappear behind token-factory
+                    // exhaustion, because that could turn an ambiguous set into an apparent single.
+                    if (purpose == ScanPurpose.RETURNING_OWNER) {
+                        closePlatform()
+                        observer(BleScanEvent.Failed(BleGattFailure.PLATFORM_FAILURE))
+                    }
+                    return
+                }
                 CandidateBinding(
                     endpointToken = endpointToken,
-                    publicLabel = "Nearby compatible device ${candidates.size + 1}",
+                    publicLabel = if (purpose == ScanPurpose.ADD_DEVICE) {
+                        "Nearby compatible device ${candidates.size + 1}"
+                    } else {
+                        "Authorized device ${candidates.size + 1}"
+                    },
+                    allowSystemBondCreation = purpose == ScanPurpose.ADD_DEVICE,
                 ).also { candidates[result.device] = it }
             } else return
             observer(BleScanEvent.Candidate(BleDiscoveredCompanion(binding.endpointToken, binding.publicLabel)))
@@ -279,7 +570,10 @@ class AndroidBluetoothGattFacade(
 
         private fun finish() {
             if (leaseClosed) return
-            val permissionRevoked = !operationAllowed(AndroidBlePlatformOperation.START_SCAN)
+            val permissionRevoked =
+                !operationAllowed(AndroidBlePlatformOperation.START_SCAN) ||
+                    (purpose == ScanPurpose.RETURNING_OWNER &&
+                        !operationAllowed(AndroidBlePlatformOperation.CONNECT))
             closePlatform()
             if (permissionRevoked) {
                 observer(BleScanEvent.Failed(BleGattFailure.PERMISSION_REVOKED))
@@ -292,7 +586,7 @@ class AndroidBluetoothGattFacade(
             if (leaseClosed) return
             leaseClosed = true
             mainHandler.removeCallbacks(timeout)
-            if (started && operationAllowed(AndroidBlePlatformOperation.STOP_SCAN)) {
+            if (platformRegistered && operationAllowed(AndroidBlePlatformOperation.STOP_SCAN)) {
                 try {
                     bluetoothManager()?.adapter?.bluetoothLeScanner?.stopScan(callback)
                 } catch (_: SecurityException) {
@@ -301,6 +595,7 @@ class AndroidBluetoothGattFacade(
                     // The platform scanner may already be unavailable.
                 }
             }
+            platformRegistered = false
             started = false
             if (activeScan === this) activeScan = null
         }
@@ -310,20 +605,67 @@ class AndroidBluetoothGattFacade(
         private val endpointToken: String,
         private val systemBondGeneration: Long,
         private val device: BluetoothDevice,
+        private val allowSystemBondCreation: Boolean,
         private val observer: (BleGattEvent) -> Unit,
     ) : BleGattLease {
         private val operations = AndroidGattOperationGate()
         private val systemBond = AndroidSystemBondCoordinator()
+        private val bondAttemptGate = AndroidSystemBondAttemptGate(systemBondGeneration)
+        private val bondPrerequisite = AndroidLeaseBondPrerequisite()
+        private val profileReadyGate = AndroidDeferredProfileReadyGate()
+        private var queuedProfileReadyGatt: BluetoothGatt? = null
+        private val profileReadyRunnable = Runnable {
+            val expectedGatt = queuedProfileReadyGatt
+            queuedProfileReadyGatt = null
+            if (!profileReadyGate.deliver()) return@Runnable
+            if (expectedGatt == null || !owns(expectedGatt)) {
+                return@Runnable
+            }
+            observer(BleGattEvent.ProfileReady)
+        }
         private var leaseClosed = false
         private var bondReceiverRegistered = false
         private var gatt: BluetoothGatt? = null
+        private var bondRequiredAfterConnect = false
         private var protocolInfo: BluetoothGattCharacteristic? = null
         private var command: BluetoothGattCharacteristic? = null
         private var stream: BluetoothGattCharacteristic? = null
         private var streamCccd: BluetoothGattDescriptor? = null
         private val bondTimeout = Runnable {
-            if (leaseClosed || activeGatt !== this) return@Runnable
+            if (
+                leaseClosed ||
+                activeGatt !== this ||
+                !bondAttemptGate.allows(systemBondGeneration)
+            ) return@Runnable
             handleBondAction(systemBond.fail(AndroidSystemBondFailure.TIMEOUT))
+        }
+        private var bondPollActive = false
+        private var bondingObserved = false
+        private val bondStatePoll = object : Runnable {
+            override fun run() {
+                if (
+                    leaseClosed ||
+                    activeGatt !== this@PlatformGattLease ||
+                    !bondPollActive ||
+                    !bondReceiverRegistered ||
+                    !bondAttemptGate.allows(systemBondGeneration)
+                ) return
+                val state = currentSystemBondState()
+                if (state == null) {
+                    handleBondAction(systemBond.fail(AndroidSystemBondFailure.PERMISSION_LOST))
+                    return
+                }
+                handleObservedBondState(state, fromPoll = true)
+                if (
+                    !leaseClosed &&
+                    activeGatt === this@PlatformGattLease &&
+                    bondPollActive &&
+                    bondReceiverRegistered &&
+                    !mainHandler.postDelayed(this, ANDROID_SYSTEM_BOND_POLL_INTERVAL_MILLIS)
+                ) {
+                    handleBondAction(systemBond.fail(AndroidSystemBondFailure.START_REJECTED))
+                }
+            }
         }
         private val bondReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -442,14 +784,22 @@ class AndroidBluetoothGattFacade(
                 !operationAllowed(AndroidBlePlatformOperation.CONNECT) ||
                 !operations.beginConnection()
             ) return false
+            val alreadyBonded = bondedPrerequisiteSatisfied()
+            if (!allowSystemBondCreation && !alreadyBonded) {
+                fail(BleGattFailure.BOND_REQUIRED)
+                return true
+            }
             return when (
                 val action = systemBond.start(
                     endpointToken = endpointToken,
                     generation = systemBondGeneration,
-                    alreadyBonded = bondedPrerequisiteSatisfied(),
+                    alreadyBonded = alreadyBonded,
                 )
             ) {
-                AndroidSystemBondAction.RequestSystemBond -> requestSystemBond()
+                AndroidSystemBondAction.RequestSystemBond -> {
+                    bondRequiredAfterConnect = true
+                    openGatt()
+                }
                 AndroidSystemBondAction.ProceedToGatt -> openGatt()
                 AndroidSystemBondAction.Await -> rejectBondStart(AndroidSystemBondFailure.START_REJECTED)
                 is AndroidSystemBondAction.Failed -> rejectBondStart(action.reason)
@@ -460,12 +810,18 @@ class AndroidBluetoothGattFacade(
         private fun requestSystemBond(): Boolean {
             val receiverFailure = registerBondReceiver()
             if (receiverFailure != null) return rejectBondStart(receiverFailure)
+            if (!bondAttemptGate.begin()) return rejectBondStart(AndroidSystemBondFailure.START_REJECTED)
             if (!mainHandler.postDelayed(bondTimeout, ANDROID_SYSTEM_BOND_TIMEOUT_MILLIS)) {
                 return rejectBondStart(AndroidSystemBondFailure.START_REJECTED)
             }
             return try {
                 if (device.createBond()) {
-                    true
+                    bondPollActive = true
+                    if (mainHandler.post(bondStatePoll)) {
+                        true
+                    } else {
+                        rejectBondStart(AndroidSystemBondFailure.START_REJECTED)
+                    }
                 } else {
                     rejectBondStart(AndroidSystemBondFailure.START_REJECTED)
                 }
@@ -492,6 +848,7 @@ class AndroidBluetoothGattFacade(
                     mainHandler,
                 ) ?: return false
                 gatt = opened
+                observer(BleGattEvent.GattOpened)
                 true
             } catch (_: SecurityException) {
                 false
@@ -506,7 +863,9 @@ class AndroidBluetoothGattFacade(
             return try {
                 val filter = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    appContext.registerReceiver(bondReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                    // Bluetooth is a highly privileged framework app, not the system UID. Android
+                    // therefore requires an exported context receiver for its protected broadcasts.
+                    appContext.registerReceiver(bondReceiver, filter, Context.RECEIVER_EXPORTED)
                 } else {
                     @Suppress("DEPRECATION")
                     appContext.registerReceiver(bondReceiver, filter)
@@ -522,7 +881,11 @@ class AndroidBluetoothGattFacade(
 
         @Suppress("DEPRECATION")
         private fun handleBondBroadcast(intent: Intent?) {
-            if (leaseClosed || activeGatt !== this) return
+            if (
+                leaseClosed ||
+                activeGatt !== this ||
+                !bondAttemptGate.allows(systemBondGeneration)
+            ) return
             if (!operationAllowed(AndroidBlePlatformOperation.CONNECT)) {
                 handleBondAction(systemBond.fail(AndroidSystemBondFailure.PERMISSION_LOST))
                 return
@@ -545,6 +908,13 @@ class AndroidBluetoothGattFacade(
                     return
                 }
             }
+            handleObservedBondState(state, fromPoll = false)
+        }
+
+        private fun handleObservedBondState(state: AndroidSystemBondState, fromPoll: Boolean) {
+            if (!bondAttemptGate.allows(systemBondGeneration)) return
+            if (state == AndroidSystemBondState.BONDING) bondingObserved = true
+            if (fromPoll && !AndroidSystemBondPollingPolicy.shouldForward(state, bondingObserved)) return
             handleBondAction(systemBond.onBondState(endpointToken, systemBondGeneration, state))
         }
 
@@ -554,8 +924,10 @@ class AndroidBluetoothGattFacade(
                 AndroidSystemBondAction.RequestSystemBond,
                 -> Unit
                 AndroidSystemBondAction.ProceedToGatt -> {
+                    bondPrerequisite.latchFreshAttemptProof()
+                    bondRequiredAfterConnect = false
                     cleanupBondAttempt()
-                    if (!openGatt()) fail(BleGattFailure.PLATFORM_FAILURE)
+                    if (!discoverServicesOnOwnedGatt()) fail(BleGattFailure.PLATFORM_FAILURE)
                 }
                 is AndroidSystemBondAction.Failed -> {
                     cleanupBondAttempt()
@@ -571,6 +943,9 @@ class AndroidBluetoothGattFacade(
         }
 
         private fun cleanupBondAttempt() {
+            bondAttemptGate.end()
+            bondPollActive = false
+            mainHandler.removeCallbacks(bondStatePoll)
             mainHandler.removeCallbacks(bondTimeout)
             if (!bondReceiverRegistered) return
             bondReceiverRegistered = false
@@ -624,8 +999,13 @@ class AndroidBluetoothGattFacade(
             }
             if (leaseClosed) return
             leaseClosed = true
+            mainHandler.removeCallbacks(profileReadyRunnable)
+            queuedProfileReadyGatt = null
+            profileReadyGate.close()
             systemBond.fail(AndroidSystemBondFailure.LIFECYCLE_ENDED)
             cleanupBondAttempt()
+            bondPrerequisite.clear()
+            bondRequiredAfterConnect = false
             operations.close()
             val current = gatt
             gatt = null
@@ -663,23 +1043,36 @@ class AndroidBluetoothGattFacade(
             }
             if (!requireConnectCallbackPermission()) return
             if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
-                if (!operations.beginDiscovery()) {
+                if (bondRequiredAfterConnect) {
+                    if (!bondAttemptGate.allows(systemBondGeneration) && !requestSystemBond()) {
+                        fail(BleGattFailure.PLATFORM_FAILURE)
+                    }
+                } else if (!discoverServicesOnOwnedGatt()) {
                     fail(BleGattFailure.PLATFORM_FAILURE)
-                    return
                 }
-                val started = try {
-                    callbackGatt.discoverServices()
-                } catch (_: SecurityException) {
-                    false
-                }
-                if (!started) fail(BleGattFailure.PLATFORM_FAILURE)
             } else if (status != BluetoothGatt.GATT_SUCCESS) {
                 fail(BleGattFailure.TRANSIENT_LINK)
             }
         }
 
+        @SuppressLint("MissingPermission")
+        private fun discoverServicesOnOwnedGatt(): Boolean {
+            val current = gatt ?: return false
+            if (!owns(current) || !operationAllowed(AndroidBlePlatformOperation.DISCOVER_SERVICES)) return false
+            if (!bondedPrerequisiteSatisfied() || !operations.beginDiscovery()) return false
+            return try {
+                current.discoverServices()
+            } catch (_: SecurityException) {
+                false
+            }
+        }
+
         private fun handleServicesDiscovered(callbackGatt: BluetoothGatt, status: Int) {
-            if (!owns(callbackGatt) || status != BluetoothGatt.GATT_SUCCESS) {
+            if (!owns(callbackGatt)) return
+            if (profileReadyGate.hasStarted()) {
+                return
+            }
+            if (status != BluetoothGatt.GATT_SUCCESS) {
                 fail(BleGattFailure.PLATFORM_FAILURE)
                 return
             }
@@ -688,7 +1081,7 @@ class AndroidBluetoothGattFacade(
                 return
             }
             val discovered = try {
-                val service = callbackGatt.getService(serviceUuid)
+                val service = callbackGatt.getService(gattServiceUuid)
                 DiscoveredGattProfile(
                     service != null,
                     service?.getCharacteristic(protocolInfoUuid),
@@ -718,7 +1111,11 @@ class AndroidBluetoothGattFacade(
                 streamIndicate = streamCharacteristic.hasProperty(BluetoothGattCharacteristic.PROPERTY_INDICATE),
                 streamHasClientConfigurationDescriptor = cccd != null,
             )
-            if (!AndroidGattProfilePolicy.accepts(profile) || !operations.acceptProfile()) {
+            if (!AndroidGattProfilePolicy.accepts(profile)) {
+                fail(BleGattFailure.PLATFORM_FAILURE)
+                return
+            }
+            if (!operations.acceptProfile()) {
                 fail(BleGattFailure.PLATFORM_FAILURE)
                 return
             }
@@ -730,7 +1127,17 @@ class AndroidBluetoothGattFacade(
                 fail(BleGattFailure.BOND_REQUIRED)
                 return
             }
-            observer(BleGattEvent.ProfileReady)
+            if (!profileReadyGate.begin()) {
+                fail(BleGattFailure.PLATFORM_FAILURE)
+                return
+            }
+            queuedProfileReadyGatt = callbackGatt
+            if (!mainHandler.post(profileReadyRunnable)) {
+                queuedProfileReadyGatt = null
+                if (profileReadyGate.rejectPost()) {
+                    fail(BleGattFailure.PLATFORM_FAILURE)
+                }
+            }
         }
 
         private fun handleProtocolInfoRead(
@@ -848,12 +1255,21 @@ class AndroidBluetoothGattFacade(
         }
 
         @SuppressLint("MissingPermission")
-        private fun bondedPrerequisiteSatisfied(): Boolean {
-            if (!operationAllowed(AndroidBlePlatformOperation.CONNECT)) return false
+        private fun bondedPrerequisiteSatisfied(): Boolean =
+            bondPrerequisite.isSatisfied(currentSystemBondState())
+
+        @SuppressLint("MissingPermission")
+        private fun currentSystemBondState(): AndroidSystemBondState? {
+            if (!operationAllowed(AndroidBlePlatformOperation.CONNECT)) return null
             return try {
-                device.bondState == BluetoothDevice.BOND_BONDED
+                when (device.bondState) {
+                    BluetoothDevice.BOND_NONE -> AndroidSystemBondState.NONE
+                    BluetoothDevice.BOND_BONDING -> AndroidSystemBondState.BONDING
+                    BluetoothDevice.BOND_BONDED -> AndroidSystemBondState.BONDED
+                    else -> null
+                }
             } catch (_: SecurityException) {
-                false
+                null
             }
         }
 

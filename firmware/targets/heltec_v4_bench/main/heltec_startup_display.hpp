@@ -17,6 +17,8 @@ enum class StartupDisplayFrame : std::uint8_t {
     ble_connected,
     ble_retrying,
     ble_error,
+    factory_reset_confirmation,
+    factory_resetting,
 };
 
 struct StartupDisplayStatus {
@@ -84,9 +86,22 @@ public:
         const ui::compact_status_footer::Page& footer);
     [[nodiscard]] bool show_pairing_pin(const std::array<char, 6>& digits);
     [[nodiscard]] bool clear_pairing_pin();
+    // The confirmation and in-progress pages are transient full-screen
+    // overlays. Ordinary status updates continue to replace the retained
+    // normal view without redrawing over either overlay. Cancellation restores
+    // that latest normal view; the in-progress page cannot be cancelled.
+    [[nodiscard]] bool show_factory_reset_confirmation();
+    [[nodiscard]] bool clear_factory_reset_confirmation();
+    [[nodiscard]] bool show_factory_reset_in_progress();
     [[nodiscard]] StartupDisplayStatus status() const { return status_; }
 
 private:
+    enum class FactoryResetOverlay : std::uint8_t {
+        none = 0,
+        confirmation,
+        resetting,
+    };
+
     [[nodiscard]] bool show_view(const StartupDisplayView& view);
 
     StartupDisplayPort& port_;
@@ -95,6 +110,7 @@ private:
     bool started_{false};
     bool has_view_{false};
     bool pairing_pin_visible_{false};
+    FactoryResetOverlay factory_reset_overlay_{FactoryResetOverlay::none};
 };
 
 // Narrow target adapter for the pairing-window component. It retains no PIN;

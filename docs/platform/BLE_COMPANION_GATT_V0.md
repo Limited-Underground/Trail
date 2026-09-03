@@ -16,21 +16,24 @@ authorization, or Ready evidence exists.
 
 ## Current V1 supersession notice
 
-Decision 0033 preserves the codec, lifecycle, and historical authorization
-evidence below while replacing only the V1 authorization prerequisite. V1 no
-longer waits for an independent monotonic floor or secure element. It requires
-a normally closed 30-second pairing/replacement window opened only after a
-designated target-neutral local input is held for at least 3000 ms and released,
-a fresh locally displayed six-decimal-digit passkey, Bluetooth LE Secure
-Connections-only MITM-authenticated passkey pairing/bonding with an exact
-16-byte/128-bit key,
-one current controller, saved-bond reconnect, and confirmed old-phone removal.
-Replacement requires a second qualifying hold/release after candidate bonding
-and before the original deadline. The disclosed limit permits ownership rollback after reset,
-reflash, invasive access, or old-flash restoration. OT-090 now freezes and
-host-tests those exact pairing/reconnect/replacement semantics in
-[`OTBP0/v0`](BLE_PAIRING_REPLACEMENT_V0.md). Target, Android, storage, pairing,
-replacement, protected-control, and physical evidence remain open.
+Decision 0103 preserves the codec, lifecycle, and historical authorization
+evidence below while replacing the current V1 pairing/recovery behavior. A
+verified unowned boot automatically opens exactly one 60-second window with a
+fresh locally displayed six-decimal-digit passkey and pairable D1 advertising
+marker. Pairing remains Bluetooth LE Secure Connections-only, MITM-
+authenticated, bonded, and bound to one current controller. An owned boot
+exposes no D1 or PIN. Saved-owner reconnect searches Android's currently bonded
+devices for exactly one observed D0 candidate, never starts bonding or PIN entry,
+and requires protected normal `ProtocolInfo` plus current device-owner
+authorization before `Ready`.
+V1 has no phone-replacement or lost-phone transfer path. The authorized app may
+request destructive reset after explicit in-app confirmation without a Heltec
+confirmation; physical recovery uses the 10-second hold, warning, release, and
+short press within 10 seconds. Both converge on the complete verified wipe in
+[`DEVICE_FACTORY_RESET_V1`](DEVICE_FACTORY_RESET_V1.md). OT-090 and
+[`OTBP0/v0`](BLE_PAIRING_REPLACEMENT_V0.md) remain historical host evidence.
+Target, Android, reset storage/gesture integration, power-interruption,
+protected-control, and physical evidence remain open.
 
 ## Purpose and authority
 
@@ -60,6 +63,13 @@ name.
 | Protocol info | `5e0f2a01-7c6b-4ea3-a210-0c4f1f43b7d0` | Read | Exact supported version, role, capabilities, and bounds |
 | Command | `5e0f2a02-7c6b-4ea3-a210-0c4f1f43b7d0` | Write With Response only | Phone-to-device snapshot or action request |
 | Stream | `5e0f2a03-7c6b-4ea3-a210-0c4f1f43b7d0` | Indicate and Notify | Device-to-phone snapshots, action results, and events |
+
+The advertising-only pairable marker is
+`5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d1` (`D1`); it is not a replacement GATT
+service. Add Device accepts D1 only during the unowned 60-second window. The
+table's `5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d0` service (`D0`) remains the
+normal protected GATT service and the sole marker admitted for returning-owner
+discovery. A mixed D0/D1 advertisement is invalid.
 
 Normal v0 session traffic on all three characteristics requires an encrypted,
 authenticated, application-authorized connection. The restricted v0.1 claim
@@ -148,15 +158,15 @@ The target adapter may open a session only after it supplies all of:
   workflow.
 
 The host guard treats these as adapter obligations, not as values received from
-the phone. `OTBP0/v0` freezes the target-neutral 3000-ms hold/release gesture,
+the phone. The rest of this paragraph records the historical `OTBP0/v0`
+checkpoint and is superseded for current-product pairing/recovery by the notice
+above. `OTBP0/v0` froze the target-neutral 3000-ms hold/release gesture,
 30-second deadline, locally displayed passkey, secure-connections-only security,
 and second replacement-confirmation gesture. The exact target GPIO/button and
-electrical mapping, OLED adapter, NimBLE binding, and bond-store binding remain
-unselected or unimplemented; ordinary unauthenticated "Just Works" pairing is
-not sufficient evidence for the `authenticated_bond` input. The ordinary
-application-protected owner storage, reset/service path, Android flow, and lost-
-phone replacement must still be implemented and validated on the selected
-devices before production use.
+electrical mapping, OLED adapter, NimBLE binding, and bond-store binding were
+unselected or unimplemented at that checkpoint; ordinary unauthenticated "Just
+Works" pairing was not sufficient evidence for the `authenticated_bond` input.
+Current V1 has no lost-phone replacement and instead follows Decision 0103.
 
 Only one controller binding can hold the boot-local session. The device assigns
 a strictly increasing nonzero boot-local session nonce for each opening and

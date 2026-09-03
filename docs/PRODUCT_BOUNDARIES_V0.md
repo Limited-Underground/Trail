@@ -18,11 +18,19 @@ path must not depend on a repeater, relay, central server, internet connection,
 laptop, map display, vehicle connection, or cloud account. GNSS loss must not
 stop messaging; it removes or visibly stales only position-dependent behavior.
 
-V1 requires practical physical-presence phone authorization and separately
-authenticated/encrypted direct-LoRa messaging. These are current requirements,
-not implemented or accepted capabilities. Factory reset, reflashing, invasive
-access, or old-flash restoration may reset or roll back phone authorization;
-V1 makes no rollback-proof ownership claim against that physical attacker.
+V1 requires a fresh six-digit PIN during one automatic 60-second pairing window
+on verified unowned boot, saved-owner-only reconnect on an owned boot, and
+separately authenticated/encrypted direct-LoRa messaging. There is no V1 phone-
+replacement or lost-phone transfer path. The authorized app can request a
+destructive factory reset after explicit in-app confirmation without a Heltec
+confirmation; lost-phone recovery uses the local 10-second hold, warning,
+release, and short-press confirmation sequence. Both paths erase all user data,
+including maps and BLE bonds, before returning to unowned pairing. These are
+current requirements, not completed capabilities. Factory reset, reflashing,
+invasive access, or old-flash restoration may reset or roll back phone
+authorization; V1 makes no rollback-proof ownership claim against that physical
+attacker. See [Decision 0103](decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md)
+and the [current reset contract](platform/DEVICE_FACTORY_RESET_V1.md).
 
 ## Preserved standalone and later-node boundaries
 

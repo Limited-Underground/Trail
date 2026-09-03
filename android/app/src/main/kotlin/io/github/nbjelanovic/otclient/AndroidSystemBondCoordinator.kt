@@ -6,6 +6,84 @@ internal enum class AndroidSystemBondState {
     BONDED,
 }
 
+internal class AndroidSystemBondAttemptGate(private val generation: Long) {
+    private var active = false
+
+    fun begin(): Boolean {
+        if (active || generation <= 0) return false
+        active = true
+        return true
+    }
+
+    fun allows(generation: Long): Boolean = active && this.generation == generation
+
+    fun end() {
+        active = false
+    }
+}
+
+internal class AndroidLeaseBondPrerequisite {
+    private var freshAttemptProof = false
+
+    fun latchFreshAttemptProof() {
+        freshAttemptProof = true
+    }
+
+    fun isSatisfied(reportedState: AndroidSystemBondState?): Boolean =
+        freshAttemptProof || reportedState == AndroidSystemBondState.BONDED
+
+    fun clear() {
+        freshAttemptProof = false
+    }
+}
+
+internal enum class AndroidDeferredProfileReadyState {
+    IDLE,
+    PENDING,
+    DELIVERED,
+    POST_REJECTED,
+    CLOSED,
+}
+
+/** One-shot authority for deferring ProfileReady beyond the service-discovery callback turn. */
+internal class AndroidDeferredProfileReadyGate {
+    var state: AndroidDeferredProfileReadyState = AndroidDeferredProfileReadyState.IDLE
+        private set
+
+    fun hasStarted(): Boolean = state != AndroidDeferredProfileReadyState.IDLE
+
+    fun begin(): Boolean {
+        if (state != AndroidDeferredProfileReadyState.IDLE) return false
+        state = AndroidDeferredProfileReadyState.PENDING
+        return true
+    }
+
+    fun deliver(): Boolean {
+        if (state != AndroidDeferredProfileReadyState.PENDING) return false
+        state = AndroidDeferredProfileReadyState.DELIVERED
+        return true
+    }
+
+    fun rejectPost(): Boolean {
+        if (state != AndroidDeferredProfileReadyState.PENDING) return false
+        state = AndroidDeferredProfileReadyState.POST_REJECTED
+        return true
+    }
+
+    fun close() {
+        state = AndroidDeferredProfileReadyState.CLOSED
+    }
+}
+
+internal object AndroidSystemBondPollingPolicy {
+    fun shouldForward(state: AndroidSystemBondState, bondingObserved: Boolean): Boolean = when (state) {
+        AndroidSystemBondState.BONDING -> true
+        AndroidSystemBondState.BONDED,
+        AndroidSystemBondState.NONE,
+        -> bondingObserved
+    }
+}
+
 internal enum class AndroidSystemBondFailure {
     START_REJECTED,
     BOND_CANCELLED_OR_FAILED,

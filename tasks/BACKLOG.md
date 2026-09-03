@@ -12,6 +12,7 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
+| OT-168 | partial | Implement V1 factory reset and unowned-boot pairing | Decision 0103 and `DEVICE_FACTORY_RESET_V1` define the current behavior: no replacement/lost-phone transfer; one automatic D1 fresh-PIN 60-second window on verified unowned boot; no D1/PIN on owned boot; PIN-free D0 saved-owner reconnect; authorized-app reset after explicit confirmation without Heltec confirmation; physical reset by 10-second hold, LCD warning, release, and short press within 10 seconds; and one fail-closed complete user-data/map/bond wipe before unowned restart. The implementation adds a nonzero random u64 little-endian reset receipt in the `OTA0/v0` subject, exact `OTR0/v0` echo, intent-only `ADMITTED`, and exact post-cleanup D1 `OTRR`/v1 receipt service data. The receipt is correlation only, never identity or authority; unknown outcomes verify by exact receipt without resubmitting reset, and Android persists only the receipt plus one bounded coherent time window. Final focused firmware evidence is green (storage PASS; target 15/15; companion semantics 14/14; executor 17 groups; physical gesture 9 groups; authority 7 groups), and the pinned ESP-IDF v6.0.2 application is 549,184 bytes with SHA-256 `90FE9479653F16000D71BC7AA76EA3ECB41F6FF0B4CF7A263E6056E054AC0454` and 89% app-slot free. The final Android foundation gate is green with 137 actionable tasks, 347 tests and zero failures/errors/skips, lint/build/artifact inspection, and an 8,508,592-byte unsigned release APK with SHA-256 `56897297b7512ef4a3fdc35a256d3a2e59fddd7b78b9efa2fc8ee69f1e15e1d3`. The complete Host matrix is still pending and is not claimed. Power-interruption, both-device physical, and coherent two-phone acceptance remain pending. OT-168 stays partial; Android remains 60%; V1 stays exact 43.75%/displayed 44%. Historical evidence is unchanged. Website inspection/update is owner-deferred until the two-device/two-phone milestone. See [Decision 0103](../docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md) and the [current contract](../docs/platform/DEVICE_FACTORY_RESET_V1.md). |
 | OT-166 | done | Integrate the Heltec durable V1 BLE bond-owner path | The target now initializes ordinary NVS without erase recovery, enables persistent NimBLE Secure Connections bonding, stores one exact 32-byte `OTV1/v0` owner record in `ot_v1_owner/owner_v0`, derives only an opaque 128-bit private reference from the authenticated SC LTK, reconciles the owner record against an exact zero-or-one bond inventory before the host starts, and promotes normal GATT commands only after an exact fresh controller claim. Replay, inventory drift, ambiguous storage, callback reentry, extra bonds, wrong owners, and stale connections fail closed; replacement/erase/repair and persistent protected `OAP0` authority remain inactive. Focused owner/runtime/target/self-check validation passes, the complete ESP-IDF v6.0.2 Heltec target build produces a 539,232-byte application with 90% of the smallest app slot free, and the complete Windows Host matrix exits 0. A first-stage 6-group dependency gate now rejects historical recipes that consume mutable current Heltec inputs; the authoritative raw-byte audit passes 291/291. No hardware or phone ran; physical pairing, power-cut persistence, reconnect, replacement cleanup, and two-phone end-to-end acceptance remain open. V1 stays exact 43.75%/displayed 44%; no website update is required. See [Decision 0102](../docs/decisions/0102-accept-ot166-heltec-v1-bond-owner-integration.md) and [evidence](../tests/hardware/OT-166-2026-08-31.md). |
 | OT-165 | done | Implement and host-validate Android initial system bonding | The production Android facade now binds one OS-owned bond attempt to the exact selected opaque endpoint and generation, allows the already-bonded path, requires this fresh attempt to observe `BOND_BONDING` before `BOND_BONDED`, and proceeds to existing GATT only after exact success. Android exclusively owns passkey entry; the app has no PIN interception, setter, display, log, or storage path. Cancellation/failure, permission loss, timeout, lifecycle close, disconnect, mismatch, and synchronous start rejection terminate without automatic pairing retry. Focused validation passes 24/24; the complete Android foundation matrix records 262 test executions with zero failures plus debug/release lint, APK builds, and unsigned-release inspection. No phone or hardware ran. Durable ownership/persistence, reconnect, replacement cleanup, protected GATT, physical pairing, end-to-end operation, support, and field readiness remain open. Android remains 60%; V1 remains exact 43.75%/displayed 44%. See [Decision 0101](../docs/decisions/0101-accept-ot165-android-system-bond-coordinator.md) and [evidence](../tests/hardware/OT-165-2026-08-30.md). |
 | OT-164 | done | Implement and physically accept the Heltec fresh six-digit BLE pairing window | The corrected reproducible 507,296-byte application is installed and independently read back on both anonymous Heltec nodes. The owner accepted short-press rejection, three-second hold/release opening, exactly six displayed digits, approximately 30-second concealment, and reset concealment on both devices without recording a PIN. The V0 authority is consumed by its preacceptance concealment-defect abort; the separate corrected V1 authority is consumed by success, non-reusable, and grants no continuation. Android pairing, bond ownership/persistence, reconnect, replacement, protected GATT, end-to-end operation, support, and field readiness remain open. V1 remains exact 43.75%/displayed 44%. See [Decision 0100](../docs/decisions/0100-accept-ot164-fresh-ble-pairing-window.md), [receipt](../tests/benchmarks/display/OT-164-HELTEC-V4-BLE-PAIRING-WINDOW-EXECUTION-RECEIPT-V1.json), and [evidence](../tests/hardware/OT-164-2026-08-29.md). |
@@ -406,3 +407,36 @@ software-forced MeshCore path is proven. OT-017's physical serial/wireless
 adapter, key lifecycle, replay protection, and field failure UX remain
 integration gates rather than semantic-schema work. Security and regulatory
 constraints must remain inputs before any public packet v1 is declared.
+
+## Current bounded implementation gate — 2026-09-03
+
+The clean Note20 first-connection path now physically reaches Snapshot and
+Ready. The next independent gate, immediate saved-bond reconnect, connected at
+the BLE link layer but failed service discovery when Android received ATT
+Handle Value Indication (`0x1d`) and produced an empty GATT database.
+
+Pinned ESP-IDF 6.0.2 source proves that restored bonded CCCDs with
+`value_changed=1` can synchronously emit a pending indication after encryption
+restoration and before discovery completes. The Heltec startup now consumes
+only those pending bits before host exposure while preserving bonds,
+subscriptions, handles, the standard GATT service, security, and Android
+policy. The focused regression, all 16 target-admission groups, the complete
+affected host validation sequence, and the ESP32-S3 build pass. The current
+551,584-byte application has SHA-256
+`B34C95FEC6CA2D319A914292E1D04466A1276D52C5D52B144B42CBDF365684E6`.
+
+The re-enumerated test Heltec received the exact application-only candidate at
+`0x10000`, independently verified. A fresh Note20 returning-owner attempt kept
+the saved bond, ran the full scan, admitted one candidate, opened the BLE link,
+and failed at the same service-discovery `0x1d` collision before ProtocolInfo.
+The CCCD sanitation hypothesis is therefore not accepted. Do not reset/re-pair,
+retry hardware, test downstream authorization/Snapshot behavior, or touch the
+second Heltec until a narrower source/runtime hypothesis has a failing test.
+
+The finished Android reconnect gate additionally requires zero user interaction
+after app launch when an authorized bond exists: automatically choose the
+production Bluetooth path, start or attach the service, reconnect, and reach
+Ready. Remove the current Local test choice from production UI and remove the
+normal-path mode/service-start taps; debug-only test access may be decided
+separately. Exact mapping:
+`docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md`.

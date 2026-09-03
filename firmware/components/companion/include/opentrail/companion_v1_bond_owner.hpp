@@ -58,11 +58,34 @@ public:
     [[nodiscard]] virtual CompanionV1BondInventorySnapshot snapshot() = 0;
 };
 
+enum class CompanionV1BondCleanupError : std::uint8_t {
+    none = 0,
+    not_ready,
+    failed,
+    uncertain,
+};
+
+struct CompanionV1BondCleanupResult {
+    CompanionV1BondCleanupError error{CompanionV1BondCleanupError::not_ready};
+    CompanionV1BondInventorySnapshot verified_inventory{};
+};
+
+// Removes only the bond matching one opaque private reference. Implementations
+// must reject missing or ambiguous matches before mutation, never evict an
+// unrelated bond, and return a fresh inventory snapshot after deletion.
+class CompanionV1BondCleanupPort {
+public:
+    virtual ~CompanionV1BondCleanupPort() = default;
+    [[nodiscard]] virtual CompanionV1BondCleanupResult
+    remove_exact_and_verify(CompanionBondIdentityToken private_reference) = 0;
+};
+
 enum class CompanionV1BondOwnerPhase : std::uint8_t {
     not_restored = 0,
     closed_unowned,
     closed_owned,
     controller_active,
+    candidate_cleanup_required,
     reconcile_required,
 };
 
@@ -79,6 +102,7 @@ enum class CompanionV1BondOwnerError : std::uint8_t {
     owner_mismatch,
     controller_in_use,
     wrong_controller,
+    bond_cleanup_failed,
     unsupported_operation,
     reentrant_call,
 };
@@ -100,15 +124,20 @@ struct CompanionV1BondOwnerResult {
     }
 };
 
-// Fixed-memory owner bridge for the accepted V1 physical-flash threat model.
+// Fixed-memory single-owner bridge for the accepted V1 physical-flash threat
+// model. V1 has no phone-replacement authority.
 // Calls must be externally serialized by one owner context; the reentry guard
 // contains synchronous callback recursion and is not a thread mutex. Absence
-// is the only coherent unowned record. It never performs replacement, erasure,
-// repair, orphan cleanup, or rollback-floor work.
+// is the only coherent unowned record. It removes only an exact orphan or a
+// failed initial-claim bond through the cleanup seam; it never performs broad
+// erasure, speculative repair, owner replacement, or rollback-floor work.
 class CompanionV1BondOwnerBridge {
 public:
     CompanionV1BondOwnerBridge(CompanionV1OwnerStoragePort& storage,
                                CompanionV1BondInventoryPort& inventory);
+    CompanionV1BondOwnerBridge(CompanionV1OwnerStoragePort& storage,
+                               CompanionV1BondInventoryPort& inventory,
+                               CompanionV1BondCleanupPort& cleanup);
 
     [[nodiscard]] CompanionV1BondOwnerResult restore();
     [[nodiscard]] CompanionV1BondOwnerResult accept_initial_bond(
@@ -118,6 +147,9 @@ public:
         std::uint64_t controller_binding);
     [[nodiscard]] CompanionV1BondOwnerResult release_controller(
         std::uint64_t controller_binding);
+    // After a known pre-mutation initial-owner commit failure, remove only the
+    // exact failed-claim bond and verify the expected remaining inventory.
+    [[nodiscard]] CompanionV1BondOwnerResult complete_pending_cleanup();
     [[nodiscard]] CompanionV1BondOwnerStatus status() const;
 
 private:
@@ -127,8 +159,10 @@ private:
 
     CompanionV1OwnerStoragePort& storage_;
     CompanionV1BondInventoryPort& inventory_;
+    CompanionV1BondCleanupPort* cleanup_{nullptr};
     CompanionV1BondOwnerPhase phase_{CompanionV1BondOwnerPhase::not_restored};
     CompanionBondIdentityToken owner_{};
+    CompanionBondIdentityToken candidate_{};
     std::uint32_t generation_{0};
     std::uint64_t active_controller_binding_{0};
     bool persistence_uncertain_{false};
@@ -139,7 +173,8 @@ private:
 // Exact adapter into the existing protected-GATT lifecycle. Initial ownership
 // must already have been committed by accept_initial_bond() after the accepted
 // local pairing window. Bond state alone never reaches this adapter as owner
-// authority, and replacement remains a separate later increment.
+// authority. The retained legacy replace_controller enum is always denied as
+// unsupported by this V1 authority.
 class CompanionV1GattAuthorizationAuthority final
     : public CompanionGattAuthorizationAuthority {
 public:

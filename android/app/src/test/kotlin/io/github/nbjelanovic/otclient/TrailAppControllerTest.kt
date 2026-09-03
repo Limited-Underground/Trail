@@ -3,6 +3,10 @@ package io.github.nbjelanovic.otclient
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import io.github.nbjelanovic.otprotocol.CompanionActionDisposition
+import io.github.nbjelanovic.otprotocol.CompanionActionKind
+import io.github.nbjelanovic.otprotocol.CompanionActionRejectReason
+import io.github.nbjelanovic.otprotocol.CompanionActionResult
 import io.github.nbjelanovic.otprotocol.CompanionFrameKind
 import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimState
 import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimStatus
@@ -327,17 +331,6 @@ class TrailAppControllerTest {
         }
         run {
             val harness = harness()
-            harness.authorization.eventsOnStart = listOf(
-                DeviceAuthorizationClaimEvent.Pending("sync-replaced"),
-                DeviceAuthorizationClaimEvent.Replaced("sync-replaced"),
-            )
-            beginClaim(harness, DeviceAuthorizationPurpose.REPLACE_LOST_PHONE)
-            assertIs<DeviceAuthorizationUiState.Replaced>(bluetoothState(harness).authorizationState)
-            assertEquals(1, harness.facade.connections.size)
-            harness.controller.close()
-        }
-        run {
-            val harness = harness()
             harness.authorization.eventsOnStart = listOf(DeviceAuthorizationClaimEvent.Unavailable("sync-local"))
             beginClaim(harness, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
             assertIs<DeviceAuthorizationUiState.Unavailable>(bluetoothState(harness).authorizationState)
@@ -446,25 +439,6 @@ class TrailAppControllerTest {
         stoppedClaim.emit(DeviceAuthorizationClaimEvent.Unavailable("late-stop"))
         assertEquals(BleRuntimeState.Inactive, stopped.runtime.state)
         stopped.controller.close()
-    }
-
-    @Test
-    fun replacementRequiresExactReplacedOutcomeAndGenericAcceptedFailsClosed() {
-        val rejected = harness()
-        val generic = beginClaim(rejected, DeviceAuthorizationPurpose.REPLACE_LOST_PHONE)
-        generic.emit(DeviceAuthorizationClaimEvent.Pending("replace-1"))
-        generic.emit(DeviceAuthorizationClaimEvent.Accepted("replace-1"))
-        assertIs<DeviceAuthorizationUiState.InvalidResult>(bluetoothState(rejected).authorizationState)
-        assertTrue(rejected.facade.connections.isEmpty())
-        rejected.controller.close()
-
-        val accepted = harness()
-        val replacement = beginClaim(accepted, DeviceAuthorizationPurpose.REPLACE_LOST_PHONE)
-        replacement.emit(DeviceAuthorizationClaimEvent.Pending("replace-2"))
-        replacement.emit(DeviceAuthorizationClaimEvent.Replaced("replace-2"))
-        assertIs<DeviceAuthorizationUiState.Replaced>(bluetoothState(accepted).authorizationState)
-        assertEquals(1, accepted.facade.connections.size)
-        accepted.controller.close()
     }
 
     @Test
@@ -680,6 +654,115 @@ class TrailAppControllerTest {
         throwing.controller.close()
     }
 
+    @Test
+    fun factoryResetConfirmationIsBoundToTheExactReadySessionAndCancelSendsNothing() {
+        val harness = harness()
+        val gatt = beginConnection(harness)
+        makeReady(gatt)
+
+        assertTrue(harness.controller.requestFactoryResetConfirmation())
+        val canceledDeadline = harness.scheduler.leases.last()
+        assertEquals(FACTORY_RESET_CONFIRMATION_FRESHNESS_MILLIS, canceledDeadline.delayMillis)
+        assertTrue(bluetoothState(harness).factoryResetConfirmationVisible)
+        harness.controller.cancelFactoryResetConfirmation()
+        assertTrue(canceledDeadline.closed)
+        assertFalse(bluetoothState(harness).factoryResetConfirmationVisible)
+        assertFalse(harness.controller.confirmFactoryReset())
+        assertTrue(gatt.writes.isEmpty())
+
+        assertTrue(harness.controller.requestFactoryResetConfirmation())
+        val confirmedDeadline = harness.scheduler.leases.last()
+        assertTrue(harness.controller.confirmFactoryReset())
+        assertTrue(confirmedDeadline.closed)
+        assertFalse(bluetoothState(harness).factoryResetConfirmationVisible)
+        assertEquals(1, gatt.writes.size)
+        assertIs<BleRuntimeState.FactoryResetRequesting>(harness.runtime.state)
+        harness.controller.close()
+    }
+
+    @Test
+    fun factoryResetConfirmationIsInvalidatedWhenTheReadySessionGoesStale() {
+        val harness = harness()
+        val gatt = beginConnection(harness)
+        makeReady(gatt)
+
+        assertTrue(harness.controller.requestFactoryResetConfirmation())
+        val staleDeadline = harness.scheduler.leases.last()
+        assertTrue(bluetoothState(harness).factoryResetConfirmationVisible)
+        gatt.emit(BleGattEvent.Disconnected)
+
+        assertTrue(staleDeadline.closed)
+        assertFalse(bluetoothState(harness).factoryResetConfirmationVisible)
+        assertFalse(harness.controller.confirmFactoryReset())
+        assertTrue(gatt.writes.isEmpty())
+        harness.controller.close()
+    }
+
+    @Test
+    fun factoryResetConfirmationExpiresAndLifecycleStopCannotReplayIt() {
+        val expired = harness()
+        val expiredGatt = beginConnection(expired)
+        makeReady(expiredGatt)
+
+        assertTrue(expired.controller.requestFactoryResetConfirmation())
+        val expiry = expired.scheduler.leases.last()
+        assertEquals(FACTORY_RESET_CONFIRMATION_FRESHNESS_MILLIS, expiry.delayMillis)
+        expiry.run()
+
+        assertFalse(bluetoothState(expired).factoryResetConfirmationVisible)
+        assertFalse(expired.controller.confirmFactoryReset())
+        assertTrue(expiredGatt.writes.isEmpty())
+        expired.controller.close()
+
+        val stopped = harness()
+        val stoppedGatt = beginConnection(stopped)
+        makeReady(stoppedGatt)
+        assertTrue(stopped.controller.requestFactoryResetConfirmation())
+        val stoppedDeadline = stopped.scheduler.leases.last()
+
+        stopped.controller.onLifecycleStop()
+
+        assertTrue(stoppedDeadline.closed)
+        assertFalse(bluetoothState(stopped).factoryResetConfirmationVisible)
+        assertFalse(stopped.controller.confirmFactoryReset())
+        assertTrue(stoppedGatt.writes.isEmpty())
+        stopped.controller.close()
+    }
+
+    @Test
+    fun rejectedFactoryResetCanExitWithoutSubmittingAnotherReset() {
+        val harness = harness()
+        val gatt = beginConnection(harness)
+        makeReady(gatt)
+
+        assertTrue(harness.controller.requestFactoryResetConfirmation())
+        assertTrue(harness.controller.confirmFactoryReset())
+        assertEquals(1, gatt.writes.size)
+        gatt.emit(
+            BleGattEvent.StreamIndication(
+                actionResultEnvelope(
+                    sessionNonce = 7,
+                    exchangeId = 1,
+                    result = CompanionActionResult(
+                        kind = CompanionActionKind.FACTORY_RESET,
+                        factoryResetReceipt = RESET_RECEIPT,
+                        disposition = CompanionActionDisposition.REJECTED,
+                        rejectReason = CompanionActionRejectReason.POLICY_DENIED,
+                    ),
+                ),
+            ),
+        )
+        val rejected = assertIs<BleRuntimeState.FactoryResetNotVerified>(harness.runtime.state)
+        assertFalse(rejected.canRetryVerification)
+
+        harness.controller.disconnectBluetoothDevice()
+
+        assertEquals(BleRuntimeState.Idle, harness.runtime.state)
+        assertEquals(1, gatt.writes.size)
+        assertEquals(null, harness.facade.pendingFactoryResetReceipt)
+        harness.controller.close()
+    }
+
     private fun prepareCandidate(harness: Harness) {
         harness.controller.chooseBluetoothDeviceMode()
         harness.controller.scanBluetoothDevices()
@@ -694,8 +777,6 @@ class TrailAppControllerTest {
         when (purpose) {
             DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE ->
                 harness.controller.selectBluetoothDevice(CANDIDATE.endpointToken)
-            DeviceAuthorizationPurpose.REPLACE_LOST_PHONE ->
-                harness.controller.replaceLostPhoneWithBluetoothDevice(CANDIDATE.endpointToken)
         }
         return harness.authorization.leases.last()
     }
@@ -712,7 +793,9 @@ class TrailAppControllerTest {
         val claim = harness.authorization.leases.last()
         claim.emit(DeviceAuthorizationClaimEvent.Pending("device-claim-1"))
         claim.emit(DeviceAuthorizationClaimEvent.Accepted("device-claim-1"))
-        return harness.facade.connections.last()
+        return harness.facade.connections.last().also {
+            it.emit(BleGattEvent.GattOpened)
+        }
     }
 
     private fun makeReady(gatt: TestGattLease) {
@@ -802,12 +885,26 @@ class TrailAppControllerTest {
         var preflight = BlePreflight()
         val scans = mutableListOf<TestScanLease>()
         val connections = mutableListOf<TestGattLease>()
+        var pendingFactoryResetReceipt: ULong? = null
         var closeCount = 0
 
         override fun preflight(): BlePreflight = preflight
+        override fun stageFactoryResetReceipt(): ULong? {
+            if (pendingFactoryResetReceipt != null) return null
+            return 0x1122334455667788uL.also { pendingFactoryResetReceipt = it }
+        }
+        override fun clearPendingFactoryResetReceipt(receipt: ULong): Boolean {
+            if (pendingFactoryResetReceipt != receipt) return false
+            pendingFactoryResetReceipt = null
+            return true
+        }
         override fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease =
             TestScanLease(observer).also(scans::add)
-        override fun createConnection(endpointToken: String, observer: (BleGattEvent) -> Unit): BleGattLease =
+        override fun createConnection(
+            endpointToken: String,
+            purpose: BleConnectionPurpose,
+            observer: (BleGattEvent) -> Unit,
+        ): BleGattLease =
             TestGattLease(endpointToken, observer).also(connections::add)
         override fun close() {
             closeCount += 1
@@ -827,11 +924,12 @@ class TrailAppControllerTest {
         private val observer: (BleGattEvent) -> Unit,
     ) : BleGattLease {
         var closed = false
+        val writes = mutableListOf<ByteArray>()
         override fun start(): Boolean = true
         override fun requestMtu(mtu: Int): Boolean = true
         override fun readProtocolInfo(): Boolean = true
         override fun subscribeStreamIndications(): Boolean = true
-        override fun writeCommandWithResponse(value: ByteArray): Boolean = true
+        override fun writeCommandWithResponse(value: ByteArray): Boolean = true.also { writes += value.copyOf() }
         override fun close() { closed = true }
         fun emit(event: BleGattEvent) = observer(event)
     }
@@ -898,6 +996,7 @@ class TrailAppControllerTest {
     companion object {
         private val CANDIDATE = BleDiscoveredCompanion("opaque-device", "Nearby compatible device 1")
         private val SECURE_LINK = BleSecurityEvidence(true, true, true)
+        private val RESET_RECEIPT = 0x1122334455667788uL
 
         private fun protocolInfoBytes(): ByteArray = CompanionProtocolCodec.encodeProtocolInfo(
             CompanionProtocolInfo(capabilities = REQUIRED_ACTION_CAPABILITIES),
@@ -937,6 +1036,19 @@ class TrailAppControllerTest {
                         queuedActionCount = 0,
                     ),
                 ).value!!,
+            ),
+        ).value!!
+
+        private fun actionResultEnvelope(
+            sessionNonce: Long,
+            exchangeId: Long,
+            result: CompanionActionResult,
+        ): ByteArray = CompanionProtocolCodec.encodeFragment(
+            CompanionFragment(
+                kind = CompanionFrameKind.ACTION_RESULT,
+                sessionNonce = sessionNonce,
+                exchangeId = exchangeId,
+                payload = CompanionSemanticCodec.encodeActionResult(result).value!!,
             ),
         ).value!!
     }

@@ -187,8 +187,10 @@ BLE evidence. None is an eligible release artifact.
 
 ## Separate V1 gates
 
-Decision 0033 makes practical one-phone-per-Heltec authorization a required,
+Decision 0033 keeps practical one-phone-per-Heltec authorization as a required,
 separate V1 gate under the disclosed physical-reflash rollback limitation.
-Passing an operational-release candidate must not imply that pairing,
-replacement, protected control, direct LoRa security, or the coherent two-pair
-V1 acceptance has passed.
+Decision 0103 now requires automatic 60-second pairing only on verified unowned
+boot, PIN-free saved-owner reconnect on owned boot, and destructive app/physical
+factory reset instead of phone replacement. Passing an operational-release
+candidate must not imply that pairing, reset, protected control, direct LoRa
+security, or coherent two-pair V1 acceptance has passed.

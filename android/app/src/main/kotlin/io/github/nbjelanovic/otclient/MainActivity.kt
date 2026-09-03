@@ -48,6 +48,7 @@ import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 import io.github.nbjelanovic.otprotocol.CompanionActionResult
 import io.github.nbjelanovic.otprotocol.CompanionQuickStatus
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
+import io.github.nbjelanovic.otprotocol.COMPANION_FACTORY_RESET_CAPABILITY
 import java.util.Locale
 
 open class MainActivity : ComponentActivity() {
@@ -83,9 +84,15 @@ open class MainActivity : ComponentActivity() {
     }
 }
 
+private data class DeviceSettingsAuthority(
+    val endpointToken: String,
+    val sessionNonce: Long,
+)
+
 @Composable
 fun TrailApp(controller: TrailUiController) {
     var state by remember { mutableStateOf(controller.state) }
+    var deviceSettingsAuthority by remember { mutableStateOf<DeviceSettingsAuthority?>(null) }
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -118,8 +125,31 @@ fun TrailApp(controller: TrailUiController) {
             controller.refreshPermissionState()
         }
     }
+    val openBluetoothSettings = {
+        context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+    }
+    val bluetooth = state as? TrailAppUiState.BluetoothDevice
+    val readySession = (bluetooth?.runtimeState as? BleRuntimeState.Ready)?.session
+    val settingsSession = readySession?.takeIf { session ->
+        deviceSettingsAuthority?.let { authority ->
+            authority.endpointToken == session.companion.endpointToken &&
+                authority.sessionNonce == session.sessionNonce
+        } == true
+    }
 
     Surface(modifier = Modifier.fillMaxSize()) {
+        if (bluetooth?.factoryResetConfirmationVisible == true) {
+            FactoryResetConfirmationScreen(controller)
+            return@Surface
+        }
+        if (settingsSession != null) {
+            DeviceSettingsScreen(
+                session = settingsSession,
+                controller = controller,
+                onBack = { deviceSettingsAuthority = null },
+            )
+            return@Surface
+        }
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -141,6 +171,13 @@ fun TrailApp(controller: TrailUiController) {
                     requestNearbyPermissions = requestNearbyPermissions,
                     requestNotificationPermission = requestNotificationPermission,
                     openAppSettings = openAppSettings,
+                    openBluetoothSettings = openBluetoothSettings,
+                    openDeviceSettings = { session ->
+                        deviceSettingsAuthority = DeviceSettingsAuthority(
+                            session.companion.endpointToken,
+                            session.sessionNonce,
+                        )
+                    },
                 )
             }
         }
@@ -238,6 +275,8 @@ private fun BluetoothDevicePanel(
     requestNearbyPermissions: () -> Unit,
     requestNotificationPermission: () -> Unit,
     openAppSettings: () -> Unit,
+    openBluetoothSettings: () -> Unit,
+    openDeviceSettings: (BleActiveSession) -> Unit,
 ) {
     Text("Bluetooth device mode · no local fallback", style = MaterialTheme.typography.bodySmall)
     when {
@@ -304,11 +343,19 @@ private fun BluetoothDevicePanel(
                     Text("Allow service notifications")
                 }
             }
-            BluetoothAuthorizedRuntimePanel(state, controller, requestNearbyPermissions)
+            BluetoothAuthorizedRuntimePanel(
+                state,
+                controller,
+                requestNearbyPermissions,
+                openBluetoothSettings,
+                openDeviceSettings,
+            )
         }
     }
-    OutlinedButton(onClick = controller::returnToModeChoice, modifier = Modifier.fillMaxWidth()) {
-        Text("Disconnect and change mode")
+    if (!state.runtimeState.isFactoryResetResolutionState()) {
+        OutlinedButton(onClick = controller::returnToModeChoice, modifier = Modifier.fillMaxWidth()) {
+            Text("Disconnect and change mode")
+        }
     }
 }
 
@@ -317,23 +364,23 @@ private fun BluetoothAuthorizedRuntimePanel(
     state: TrailAppUiState.BluetoothDevice,
     controller: TrailUiController,
     requestNearbyPermissions: () -> Unit,
+    openBluetoothSettings: () -> Unit,
+    openDeviceSettings: (BleActiveSession) -> Unit,
 ) {
     when (val authorization = state.authorizationState) {
         DeviceAuthorizationUiState.None -> BluetoothRuntimePanel(
             state.runtimeState,
             controller,
             requestNearbyPermissions,
+            openBluetoothSettings,
+            openDeviceSettings,
         )
         is DeviceAuthorizationUiState.Starting -> {
             val purpose = authorization.purpose
+            val instructions = androidSystemPairingInstructions(purpose)
             StatusCard(
-                if (purpose == DeviceAuthorizationPurpose.REPLACE_LOST_PHONE) {
-                    "Preparing replacement request"
-                } else {
-                    "Preparing authorization request"
-                },
-                "The app is preparing the encrypted, authenticated device path. Do not press the physical " +
-                    "authorization control yet; the 30-second device window has not started.",
+                instructions.startingTitle,
+                instructions.startingBody,
             )
             OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                 Text("Cancel request")
@@ -341,15 +388,10 @@ private fun BluetoothAuthorizedRuntimePanel(
         }
         is DeviceAuthorizationUiState.Pending -> {
             val purpose = authorization.purpose
+            val instructions = androidSystemPairingInstructions(purpose)
             StatusCard(
-                if (purpose == DeviceAuthorizationPurpose.REPLACE_LOST_PHONE) {
-                    "Replacement request waiting for the device"
-                } else {
-                    "Authorization request waiting for the device"
-                },
-                "On the physical device, press its authorization control within 30 seconds. " +
-                    "The device alone decides. This request is not proof that a control was pressed, " +
-                    "a Bluetooth bond exists, or phone authority changed.",
+                instructions.pendingTitle,
+                instructions.pendingBody,
             )
             OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                 Text("Cancel request")
@@ -361,16 +403,13 @@ private fun BluetoothAuthorizedRuntimePanel(
                 "The exact protected device response reported this one claim accepted. Normal use still awaits the " +
                     "exact initial device snapshot/session gate; this host-tested build is not physical-device evidence.",
             )
-            BluetoothRuntimePanel(state.runtimeState, controller, requestNearbyPermissions)
-        }
-        is DeviceAuthorizationUiState.Replaced -> {
-            StatusCard(
-                "Device reported prior phone replaced",
-                "The exact protected device response reported replacement for this claim. The phone did not grant or " +
-                    "revoke authority; normal use still awaits the exact initial snapshot/session gate, and host tests " +
-                    "are not physical proof.",
+            BluetoothRuntimePanel(
+                state.runtimeState,
+                controller,
+                requestNearbyPermissions,
+                openBluetoothSettings,
+                openDeviceSettings,
             )
-            BluetoothRuntimePanel(state.runtimeState, controller, requestNearbyPermissions)
         }
         is DeviceAuthorizationUiState.Denied -> AuthorizationEndedPanel(
             "Device reported request denied",
@@ -425,6 +464,8 @@ private fun BluetoothRuntimePanel(
     state: BleRuntimeState,
     controller: TrailUiController,
     requestNearbyPermissions: () -> Unit,
+    openBluetoothSettings: () -> Unit,
+    openDeviceSettings: (BleActiveSession) -> Unit,
 ) {
     when (state) {
         BleRuntimeState.Inactive -> StatusCard(
@@ -450,12 +491,42 @@ private fun BluetoothRuntimePanel(
             }
         }
         is BleRuntimeState.Scanning -> {
-            StatusCard("Scanning", "Only devices advertising the accepted companion service are listed.")
+            StatusCard(
+                "Scanning",
+                "Only devices in their active unowned pairing window are listed.",
+            )
             LostPhoneGuidance()
             if (state.candidates.isEmpty()) Text("No compatible device found yet.")
             BluetoothCandidateList(state.candidates, controller)
             OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                 Text("Stop scan")
+            }
+        }
+        is BleRuntimeState.ScanComplete -> {
+            StatusCard(
+                "Scan complete",
+                if (state.candidates.isEmpty()) {
+                    "No compatible Trail device was found. Restart an unowned or reset device if its PIN is not showing, then scan again."
+                } else {
+                    "The scan ended. Choose a compatible device found during this scan, or scan again."
+                },
+            )
+            LostPhoneGuidance()
+            BluetoothCandidateList(state.candidates, controller)
+            Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
+                Text("Scan again")
+            }
+        }
+        BleRuntimeState.FindingReturningOwner -> {
+            StatusCard(
+                "Checking for authorized device",
+                "Looking for exactly one nearby device already authorized by this phone. No PIN or new pairing is requested.",
+            )
+            Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
+                Text("Add a new device instead")
+            }
+            OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
+                Text("Stop reconnecting")
             }
         }
         is BleRuntimeState.AwaitingAuthorization -> StatusCard(
@@ -474,18 +545,74 @@ private fun BluetoothRuntimePanel(
                 Text("Cancel connection")
             }
         }
-        is BleRuntimeState.Ready -> BluetoothReadyPanel(state.session, controller)
+        is BleRuntimeState.Ready -> BluetoothReadyPanel(state.session, controller, openDeviceSettings)
+        is BleRuntimeState.FactoryResetRequesting -> StatusCard(
+            "Reset request sent",
+            "Waiting for the exact protected device response. Nothing has been reported as erased or complete.",
+        )
+        is BleRuntimeState.FactoryResetErasing -> StatusCard(
+            "Reset accepted · completion not verified",
+            "The device accepted the durable reset intent. Keep Bluetooth on while it erases data and restarts.",
+        )
+        is BleRuntimeState.FactoryResetVerifying -> StatusCard(
+            "Verifying reset",
+            "Waiting for this exact device to restart and advertise its verified unowned state. Other nearby devices do not count.",
+        )
+        is BleRuntimeState.FactoryResetNotVerified -> {
+            StatusCard("Reset not verified", state.reason.factoryResetPublicText())
+            if (state.canRetryVerification) {
+                Button(
+                    onClick = { controller.retryFactoryResetVerification() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Check this device again") }
+            } else {
+                OutlinedButton(
+                    onClick = controller::disconnectBluetoothDevice,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Return to Bluetooth") }
+            }
+        }
+        is BleRuntimeState.FactoryResetComplete -> {
+            StatusCard(
+                "Factory reset verified",
+                "Local session state cleared. Please navigate to Android Bluetooth Settings to manually remove the system device bond.",
+            )
+            if (state.systemBondRemovalRequired) {
+                StatusCard(
+                    "Remove old Android pairing",
+                    "Android still lists the old Bluetooth bond. Open Bluetooth settings and forget the old Trail pairing before pairing this reset device again.",
+                )
+                Button(onClick = openBluetoothSettings, modifier = Modifier.fillMaxWidth()) {
+                    Text("Open Bluetooth settings")
+                }
+            } else {
+                Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
+                    Text("Add a Trail device")
+                }
+            }
+        }
         is BleRuntimeState.Reconnecting -> {
+            val body = if (state.connectionDiagnostic == null) {
+                "Attempt ${state.attempt} of ${state.maximumAttempts} for ${state.companion.publicLabel}."
+            } else {
+                "Attempt ${state.attempt} of ${state.maximumAttempts} for ${state.companion.publicLabel}.\n" +
+                    "Support code: ${state.connectionDiagnostic.supportCode()}"
+            }
             StatusCard(
                 "Reconnecting",
-                "Attempt ${state.attempt} of ${state.maximumAttempts} for ${state.companion.publicLabel}.",
+                body,
             )
             OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                 Text("Stop reconnecting")
             }
         }
         is BleRuntimeState.Failed -> {
-            StatusCard("Bluetooth connection unavailable", state.reason.publicText())
+            val body = if (state.connectionDiagnostic == null) {
+                state.reason.publicText()
+            } else {
+                "${state.reason.publicText()}\nSupport code: ${state.connectionDiagnostic.supportCode()}"
+            }
+            StatusCard("Bluetooth connection unavailable", body)
             Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
                 Text("Scan again")
             }
@@ -497,10 +624,8 @@ private fun BluetoothRuntimePanel(
 @Composable
 private fun LostPhoneGuidance() {
     StatusCard(
-        "Lost or replaced phone",
-        "A lost phone cannot be removed by this phone alone. Choose Replace lost phone, then use the " +
-            "physical device authorization or reset control. The device decides. Replacement is designed not " +
-            "to erase radio configuration, but this host build does not verify radio continuity.",
+        "Lost authorized phone",
+        LOST_PHONE_RECOVERY_PUBLIC_TEXT,
     )
 }
 
@@ -509,6 +634,9 @@ private fun BluetoothCandidateList(
     candidates: List<BleDiscoveredCompanion>,
     controller: TrailUiController,
 ) {
+    val initialInstructions = androidSystemPairingInstructions(
+        DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE,
+    )
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
         candidates.forEach { candidate ->
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -517,22 +645,67 @@ private fun BluetoothCandidateList(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(candidate.publicLabel)
+                    Text(initialInstructions.beforeActionTitle, style = MaterialTheme.typography.titleSmall)
+                    Text(initialInstructions.beforeActionBody, style = MaterialTheme.typography.bodySmall)
                     Button(
                         onClick = { controller.selectBluetoothDevice(candidate.endpointToken) },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Authorize this phone") }
-                    OutlinedButton(
-                        onClick = { controller.replaceLostPhoneWithBluetoothDevice(candidate.endpointToken) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Replace lost phone") }
                 }
             }
         }
     }
 }
 
+internal const val LOST_PHONE_RECOVERY_PUBLIC_TEXT =
+    "A replacement phone cannot take over an owned device. On the device, hold the physical control for at " +
+        "least 10 seconds, release when prompted, then short-press within 10 seconds to confirm. The physical " +
+        "factory reset erases all Trail user data. After the verified reset reboots the device unowned, its " +
+        "six-digit PIN and pairable window open automatically for 60 seconds; authorize the new phone before " +
+        "the window closes."
+
+internal const val APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT =
+    "This permanently erases the paired phone, device name, settings, groups, messages, saved locations, and offline maps. " +
+        "Firmware and factory hardware data remain. This cannot be undone."
+
+internal data class AndroidSystemPairingInstructions(
+    val beforeActionTitle: String,
+    val beforeActionBody: String,
+    val startingTitle: String,
+    val startingBody: String,
+    val pendingTitle: String,
+    val pendingBody: String,
+)
+
+internal fun androidSystemPairingInstructions(
+    purpose: DeviceAuthorizationPurpose,
+): AndroidSystemPairingInstructions = when (purpose) {
+    DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE -> AndroidSystemPairingInstructions(
+        beforeActionTitle = "Pair a new phone",
+        beforeActionBody =
+            "Restart the unowned or just-reset device if its six-digit PIN is not showing. The PIN and pairable " +
+                "window open automatically for 60 seconds after unowned boot. Then tap Authorize this phone and " +
+                "enter the displayed six digits only in Android's system pairing dialog. Trail never receives " +
+                "or stores the code.",
+        startingTitle = "Android system pairing starting",
+        startingBody =
+            "Keep the automatically opened 60-second PIN window active. If Android asks for a code, enter the " +
+                "six digits shown on the device only in Android's system pairing dialog. If the PIN is no " +
+                "longer showing, cancel, restart the unowned device, and retry. Trail never receives or stores " +
+                "the code.",
+        pendingTitle = "Secure pairing completed",
+        pendingBody =
+            "The device is completing initial phone authorization. Initial authorization does not require a " +
+                "second physical confirmation.",
+    )
+}
+
 @Composable
-private fun BluetoothReadyPanel(session: BleActiveSession, controller: TrailUiController) {
+private fun BluetoothReadyPanel(
+    session: BleActiveSession,
+    controller: TrailUiController,
+    openDeviceSettings: (BleActiveSession) -> Unit,
+) {
     StatusCard(
         "Connected to ${session.companion.publicLabel}",
         "Authenticated companion session. Device state remains authoritative.",
@@ -540,6 +713,12 @@ private fun BluetoothReadyPanel(session: BleActiveSession, controller: TrailUiCo
     SnapshotSummary("Device status", session.snapshot)
     GroupLocationSection(session.groupLocation)
     ActionControls { controller.submitBluetoothAction(it) }
+    OutlinedButton(
+        onClick = { openDeviceSettings(session) },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text("Device settings")
+    }
     if (session.snapshot.pendingCriticalAlertId != 0uL) {
         AcknowledgeAlertButton(session.snapshot.pendingCriticalAlertId) { controller.submitBluetoothAction(it) }
     }
@@ -547,6 +726,103 @@ private fun BluetoothReadyPanel(session: BleActiveSession, controller: TrailUiCo
     OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
         Text("Disconnect Bluetooth device")
     }
+}
+
+@Composable
+private fun DeviceSettingsScreen(
+    session: BleActiveSession,
+    controller: TrailUiController,
+    onBack: () -> Unit,
+) {
+    val supportsFactoryReset =
+        (session.protocolInfo.capabilities and COMPANION_FACTORY_RESET_CAPABILITY) != 0
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Limited Underground", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text("Device settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            StatusCard(
+                "Connected device",
+                "Settings apply only to ${session.companion.publicLabel} in this authenticated session.",
+            )
+            StatusCard(
+                "Factory reset",
+                if (supportsFactoryReset) {
+                    APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT
+                } else {
+                    "This connected firmware does not expose the protected factory-reset capability."
+                },
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            if (supportsFactoryReset) {
+                Button(
+                    onClick = { controller.requestFactoryResetConfirmation() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Review factory reset")
+                }
+            }
+            OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+                Text("Back to device")
+            }
+        }
+    }
+}
+
+@Composable
+private fun FactoryResetConfirmationScreen(controller: TrailUiController) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Limited Underground", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text("Erase all Trail data?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT)
+            StatusCard(
+                "Keep the device nearby",
+                "After you confirm, Trail waits for the protected acceptance and then verifies this exact device restarted unowned. A disconnect or timeout is not shown as success.",
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { controller.confirmFactoryReset() }, modifier = Modifier.fillMaxWidth()) {
+                Text("Erase all Trail data")
+            }
+            OutlinedButton(onClick = controller::cancelFactoryResetConfirmation, modifier = Modifier.fillMaxWidth()) {
+                Text("Cancel")
+            }
+        }
+    }
+}
+
+private fun BleRuntimeState.isFactoryResetResolutionState(): Boolean =
+    this is BleRuntimeState.FactoryResetRequesting ||
+        this is BleRuntimeState.FactoryResetErasing ||
+        this is BleRuntimeState.FactoryResetVerifying ||
+        this is BleRuntimeState.FactoryResetNotVerified
+
+private fun FactoryResetNotVerifiedReason.factoryResetPublicText(): String = when (this) {
+    FactoryResetNotVerifiedReason.REQUEST_WRITE_UNCERTAIN ->
+        "Android could not verify that the protected reset command was accepted. The saved device record was kept."
+    FactoryResetNotVerifiedReason.REQUEST_REJECTED ->
+        "The device rejected the reset request. No reset completion is claimed, and the saved device record was kept."
+    FactoryResetNotVerifiedReason.RESPONSE_TIMEOUT ->
+        "The protected reset response timed out. The result is unknown, not successful, and the saved device record was kept."
+    FactoryResetNotVerifiedReason.CONNECTION_LOST_BEFORE_ACCEPTANCE ->
+        "The connection ended before reset acceptance was proven. The result is unknown, not successful, and the saved device record was kept."
+    FactoryResetNotVerifiedReason.MALFORMED_RESPONSE ->
+        "The reset response was invalid. No success is claimed, and the saved device record was kept."
+    FactoryResetNotVerifiedReason.VERIFICATION_UNAVAILABLE ->
+        "Trail could not verify this exact device after restart. No success is claimed, and the saved device record was kept."
+    FactoryResetNotVerifiedReason.VERIFICATION_TIMEOUT ->
+        "This exact device did not show its verified unowned state before the check ended. No success is claimed, and the saved device record was kept."
+    FactoryResetNotVerifiedReason.WRONG_DEVICE_OBSERVED ->
+        "The observed device did not match the reset target. It was ignored, no success is claimed, and the saved device record was kept."
+    FactoryResetNotVerifiedReason.LOCAL_RECORD_CLEAR_FAILED ->
+        "The reset device was observed unowned, but Trail could not safely remove its saved record. Completion is not claimed."
 }
 
 @Composable
@@ -739,6 +1015,8 @@ private fun BleRuntimeBlock.publicText(): String = when (this) {
 
 private fun BleRuntimeFailure.publicText(): String = when (this) {
     BleRuntimeFailure.SCAN_START_FAILED -> "The Bluetooth scan could not start. No local test data was substituted."
+    BleRuntimeFailure.RETURNING_OWNER_AMBIGUOUS ->
+        "More than one bonded Trail device answered. Reconnect stopped without choosing or storing an identity."
     BleRuntimeFailure.CONNECTION_START_FAILED -> "The selected companion connection ended or could not start."
     BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED -> "The companion did not meet the required security checks."
     BleRuntimeFailure.MTU_NEGOTIATION_FAILED -> "The companion could not negotiate the required message size."
@@ -757,6 +1035,18 @@ private fun BleRuntimeFailure.publicText(): String = when (this) {
         "The selected device does not expose the accepted protected authorization contract."
     BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE ->
         "The protected authorization path is unavailable. This app did not establish device authority."
+}
+
+internal fun BleConnectionDiagnostic.supportCode(): String = when (this) {
+    BleConnectionDiagnostic.LEASE_UNAVAILABLE -> "BLE-LEASE-UNAVAILABLE"
+    BleConnectionDiagnostic.START_REJECTED -> "BLE-OPEN-REJECTED"
+    BleConnectionDiagnostic.DISCONNECTED_BEFORE_PROFILE -> "BLE-DISCONNECTED-BEFORE-PROFILE"
+    BleConnectionDiagnostic.GATT_TRANSIENT_LINK -> "BLE-GATT-TRANSIENT-LINK"
+    BleConnectionDiagnostic.GATT_PERMISSION_REVOKED -> "BLE-GATT-PERMISSION-REVOKED"
+    BleConnectionDiagnostic.GATT_SECURITY_REJECTED -> "BLE-GATT-SECURITY-REJECTED"
+    BleConnectionDiagnostic.GATT_BOND_REQUIRED -> "BLE-GATT-BOND-REQUIRED"
+    BleConnectionDiagnostic.GATT_AUTHORIZATION_REJECTED -> "BLE-GATT-AUTHORIZATION-REJECTED"
+    BleConnectionDiagnostic.GATT_PLATFORM_FAILURE -> "BLE-GATT-PLATFORM-FAILURE"
 }
 
 private fun ConnectedDeviceServiceStartFailure?.publicText(): String = when (this) {

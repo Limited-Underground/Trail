@@ -2,6 +2,12 @@
 
 Status: accepted for host implementation and validation, 2026-08-17.
 
+> **Current V1 supersession (2026-09-02):**
+> [Decision 0103](0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md) removes
+> the replacement path described below. The composition remains historical
+> host evidence for first ownership, reconnect, and fail-closed authority; it is
+> not current authorization for a different phone to replace an owner.
+
 ## Decision
 
 OpenTrail will compose the existing private bond-reference resolver, durable

@@ -1,6 +1,8 @@
 package io.github.nbjelanovic.otclient
 
 import io.github.nbjelanovic.otprotocol.COMPANION_MINIMUM_ATT_MTU
+import io.github.nbjelanovic.otprotocol.COMPANION_FACTORY_RESET_CAPABILITY
+import io.github.nbjelanovic.otprotocol.COMPANION_KNOWN_CAPABILITY_MASK
 import io.github.nbjelanovic.otprotocol.COMPANION_STATUS_SNAPSHOT_BYTES
 import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimOutcome
 import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimStart
@@ -14,6 +16,8 @@ import io.github.nbjelanovic.otprotocol.CompanionAuthorizationWireCodec
 import io.github.nbjelanovic.otprotocol.CompanionAuthorizationWireError
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 import io.github.nbjelanovic.otprotocol.CompanionActionResult
+import io.github.nbjelanovic.otprotocol.CompanionActionDisposition
+import io.github.nbjelanovic.otprotocol.CompanionActionKind
 import io.github.nbjelanovic.otprotocol.CompanionFragment
 import io.github.nbjelanovic.otprotocol.CompanionFrameKind
 import io.github.nbjelanovic.otprotocol.CompanionProtocolCodec
@@ -22,17 +26,23 @@ import io.github.nbjelanovic.otprotocol.CompanionSemanticCodec
 import io.github.nbjelanovic.otprotocol.CompanionSemanticCodecError
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
 
-internal const val REQUIRED_ACTION_CAPABILITIES = 0x07
+internal const val REQUIRED_ACTION_CAPABILITIES = 0x07 or COMPANION_FACTORY_RESET_CAPABILITY
 internal const val MAX_DISCOVERED_COMPANIONS = 16
 internal const val MAX_PUBLIC_LABEL_CHARS = 64
 internal const val MAX_ENDPOINT_TOKEN_CHARS = 256
 internal const val DEFAULT_MAX_RECONNECT_ATTEMPTS = 3
+internal const val INITIAL_GATT_PROFILE_TIMEOUT_MILLIS = 45_000L
 internal const val NEGOTIATION_STEP_TIMEOUT_MILLIS = 15_000L
 internal const val ACTION_RESULT_TIMEOUT_MILLIS = 10_000L
+internal const val FACTORY_RESET_RESTART_TIMEOUT_MILLIS = 20_000L
 internal const val AUTHORIZATION_RESULT_TIMEOUT_MILLIS = 30_000L
+private val RECOVERED_FACTORY_RESET_COMPANION =
+    BleDiscoveredCompanion("pending-reset-verification", "Trail device")
 
 object CompanionGattV0Contract {
     const val SERVICE_UUID = "5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d0"
+    /** Advertising-only marker for the active unowned pairing window; it is not a GATT service. */
+    const val PAIRABLE_ADVERTISING_UUID = "5e0f2a00-7c6b-4ea3-a210-0c4f1f43b7d1"
     const val PROTOCOL_INFO_UUID = "5e0f2a01-7c6b-4ea3-a210-0c4f1f43b7d0"
     const val COMMAND_UUID = "5e0f2a02-7c6b-4ea3-a210-0c4f1f43b7d0"
     const val STREAM_UUID = "5e0f2a03-7c6b-4ea3-a210-0c4f1f43b7d0"
@@ -59,6 +69,7 @@ enum class BleRuntimeBlock {
 
 enum class BleRuntimeFailure {
     SCAN_START_FAILED,
+    RETURNING_OWNER_AMBIGUOUS,
     CONNECTION_START_FAILED,
     SECURITY_REQUIREMENT_FAILED,
     MTU_NEGOTIATION_FAILED,
@@ -74,6 +85,24 @@ enum class BleRuntimeFailure {
     AUTHORIZATION_CONNECTION_LOST,
     AUTHORIZATION_UNSUPPORTED,
     AUTHORIZATION_UNAVAILABLE,
+}
+
+/**
+ * Identity-free support detail for the local Android connection boundary.
+ *
+ * Values must never contain a Bluetooth address, endpoint token, public label, passkey, bond key,
+ * exception text, or vendor status payload.
+ */
+enum class BleConnectionDiagnostic {
+    LEASE_UNAVAILABLE,
+    START_REJECTED,
+    DISCONNECTED_BEFORE_PROFILE,
+    GATT_TRANSIENT_LINK,
+    GATT_PERMISSION_REVOKED,
+    GATT_SECURITY_REJECTED,
+    GATT_BOND_REQUIRED,
+    GATT_AUTHORIZATION_REJECTED,
+    GATT_PLATFORM_FAILURE,
 }
 
 data class BlePreflight(
@@ -102,13 +131,26 @@ enum class BleGattFailure {
     PLATFORM_FAILURE,
 }
 
+private fun BleGattFailure.connectionDiagnostic(): BleConnectionDiagnostic = when (this) {
+    BleGattFailure.TRANSIENT_LINK -> BleConnectionDiagnostic.GATT_TRANSIENT_LINK
+    BleGattFailure.PERMISSION_REVOKED -> BleConnectionDiagnostic.GATT_PERMISSION_REVOKED
+    BleGattFailure.SECURITY_REJECTED -> BleConnectionDiagnostic.GATT_SECURITY_REJECTED
+    BleGattFailure.BOND_REQUIRED -> BleConnectionDiagnostic.GATT_BOND_REQUIRED
+    BleGattFailure.AUTHORIZATION_REJECTED -> BleConnectionDiagnostic.GATT_AUTHORIZATION_REJECTED
+    BleGattFailure.PLATFORM_FAILURE -> BleConnectionDiagnostic.GATT_PLATFORM_FAILURE
+}
+
 sealed interface BleScanEvent {
     data class Candidate(val companion: BleDiscoveredCompanion) : BleScanEvent
+    /** Reset-only correlation proof; never a device identity or authorization credential. */
+    data class FactoryResetReceiptObserved(val receipt: ULong) : BleScanEvent
     data object Complete : BleScanEvent
     data class Failed(val failure: BleGattFailure) : BleScanEvent
 }
 
 sealed interface BleGattEvent {
+    /** Exact lease now owns a non-null GATT transport; this event carries no security proof. */
+    data object GattOpened : BleGattEvent
     /** Exact service and characteristic profile discovered; this event carries no security proof. */
     data object ProfileReady : BleGattEvent
     data class SecurityEstablished(val evidence: BleSecurityEvidence) : BleGattEvent
@@ -120,6 +162,11 @@ sealed interface BleGattEvent {
     data class StreamIndication(val value: ByteArray) : BleGattEvent
     data class Failed(val failure: BleGattFailure) : BleGattEvent
     data object Disconnected : BleGattEvent
+}
+
+enum class BleConnectionPurpose {
+    INITIAL_AUTHORIZATION,
+    EXISTING_OWNER,
 }
 
 interface BleLease : AutoCloseable {
@@ -144,21 +191,52 @@ interface BleGattLease : BleLease {
  * invoke callbacks serially on the runtime owner thread, and must not infer link encryption or MITM
  * authentication from Android bond state. A concrete Android implementation enters the restricted
  * v0.1 claim path only through an exact device-protected ProtocolInfo read. Test facades may emit
- * [BleGattEvent.SecurityEstablished] as injected evidence. Scans expose only the exact
- * [CompanionGattV0Contract.SERVICE_UUID], and connections use only that service and its three fixed
- * characteristics.
+ * [BleGattEvent.SecurityEstablished] as injected evidence. Add Device scans expose only the exact
+ * [CompanionGattV0Contract.PAIRABLE_ADVERTISING_UUID]. The selected scan result's in-memory device
+ * binding is retained for reconnects within this facade session; GATT discovery still requires only
+ * [CompanionGattV0Contract.SERVICE_UUID] and its three fixed characteristics.
  */
 interface AndroidBluetoothFacade {
     fun preflight(): BlePreflight
     fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease?
-    fun createConnection(endpointToken: String, observer: (BleGattEvent) -> Unit): BleGattLease?
+    /** Optional process-restart route; candidates must already be bonded and advertise owned D0 only. */
+    fun createReturningOwnerScan(observer: (BleScanEvent) -> Unit): BleScanLease? = null
+    /** Durably stages one nonzero random receipt before destructive bytes are handed to Android. */
+    fun stageFactoryResetReceipt(): ULong? = null
+    /** Loads an unexpired app-private pending receipt after runtime/service process recovery. */
+    fun loadPendingFactoryResetReceipt(): ULong? = null
+    /** Clears only the exact pending receipt after verified completion, explicit rejection, or expiry. */
+    fun clearPendingFactoryResetReceipt(receipt: ULong): Boolean = false
+    /**
+     * Scans D1 advertisements for an exact receipt match without persisting or matching a MAC,
+     * endpoint token, IRK-derived identity, or Android BluetoothDevice object.
+     */
+    fun createFactoryResetVerificationScan(
+        receipt: ULong,
+        observer: (BleScanEvent) -> Unit,
+    ): BleScanLease? = null
+    /**
+     * Clears the exact pending receipt and app-owned volatile binding only after a matching D1
+     * receipt observation. This never invokes hidden Android bond-removal APIs.
+     */
+    fun completeFactoryResetVerification(receipt: ULong): FactoryResetLocalCleanupResult =
+        FactoryResetLocalCleanupResult.FAILED
+    fun createConnection(
+        endpointToken: String,
+        purpose: BleConnectionPurpose,
+        observer: (BleGattEvent) -> Unit,
+    ): BleGattLease?
 }
 
 /** Production default: no Android Bluetooth implementation and therefore no scan/connect authority. */
 class DisabledAndroidBluetoothFacade : AndroidBluetoothFacade {
     override fun preflight() = BlePreflight(BleRuntimeBlock.ADAPTER_IMPLEMENTATION_MISSING)
     override fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease? = null
-    override fun createConnection(endpointToken: String, observer: (BleGattEvent) -> Unit): BleGattLease? = null
+    override fun createConnection(
+        endpointToken: String,
+        purpose: BleConnectionPurpose,
+        observer: (BleGattEvent) -> Unit,
+    ): BleGattLease? = null
 }
 
 interface BleReconnectLease : AutoCloseable {
@@ -198,11 +276,31 @@ data class BleActiveSession(
     val lastActionResult: CompanionActionResult? = null,
 )
 
+enum class FactoryResetLocalCleanupResult {
+    CLEARED,
+    SYSTEM_BOND_REMAINS,
+    FAILED,
+}
+
+enum class FactoryResetNotVerifiedReason {
+    REQUEST_WRITE_UNCERTAIN,
+    REQUEST_REJECTED,
+    RESPONSE_TIMEOUT,
+    CONNECTION_LOST_BEFORE_ACCEPTANCE,
+    MALFORMED_RESPONSE,
+    VERIFICATION_UNAVAILABLE,
+    VERIFICATION_TIMEOUT,
+    WRONG_DEVICE_OBSERVED,
+    LOCAL_RECORD_CLEAR_FAILED,
+}
+
 sealed interface BleRuntimeState {
     data object Inactive : BleRuntimeState
     data object Idle : BleRuntimeState
     data class Blocked(val reason: BleRuntimeBlock) : BleRuntimeState
     data class Scanning(val candidates: List<BleDiscoveredCompanion>) : BleRuntimeState
+    data class ScanComplete(val candidates: List<BleDiscoveredCompanion>) : BleRuntimeState
+    data object FindingReturningOwner : BleRuntimeState
     data class AwaitingAuthorization(val companion: BleDiscoveredCompanion) : BleRuntimeState
     data class Connecting(val companion: BleDiscoveredCompanion) : BleRuntimeState
     data class Negotiating(
@@ -210,12 +308,25 @@ sealed interface BleRuntimeState {
         val phase: BleNegotiationPhase,
     ) : BleRuntimeState
     data class Ready(val session: BleActiveSession) : BleRuntimeState
+    data class FactoryResetRequesting(val session: BleActiveSession) : BleRuntimeState
+    data class FactoryResetErasing(val companion: BleDiscoveredCompanion) : BleRuntimeState
+    data class FactoryResetVerifying(val companion: BleDiscoveredCompanion) : BleRuntimeState
+    data class FactoryResetNotVerified(
+        val companion: BleDiscoveredCompanion,
+        val reason: FactoryResetNotVerifiedReason,
+        val canRetryVerification: Boolean,
+    ) : BleRuntimeState
+    data class FactoryResetComplete(val systemBondRemovalRequired: Boolean) : BleRuntimeState
     data class Reconnecting(
         val companion: BleDiscoveredCompanion,
         val attempt: Int,
         val maximumAttempts: Int,
+        val connectionDiagnostic: BleConnectionDiagnostic? = null,
     ) : BleRuntimeState
-    data class Failed(val reason: BleRuntimeFailure) : BleRuntimeState
+    data class Failed(
+        val reason: BleRuntimeFailure,
+        val connectionDiagnostic: BleConnectionDiagnostic? = null,
+    ) : BleRuntimeState
     data object Closed : BleRuntimeState
 }
 
@@ -250,6 +361,7 @@ class BleCompanionRuntime(
     private var generation = initialGeneration
     private var scanLease: BleScanLease? = null
     private var gattLease: BleGattLease? = null
+    private var gattOpenedObserved = false
     private var reconnectLease: BleReconnectLease? = null
     private var operationTimeoutLease: BleReconnectLease? = null
     private var selected: BleDiscoveredCompanion? = null
@@ -260,6 +372,7 @@ class BleCompanionRuntime(
     private var lastDeviceEventId = 0L
     private var nextRequestId = firstRequestId
     private var pendingAction: PendingAction? = null
+    private var factoryResetVerificationTarget: FactoryResetVerificationTarget? = null
     private var authorizationProtocolInfo: CompanionAuthorizationProtocolInfo? = null
     private var authorizationSecurityEvidence: BleSecurityEvidence? = null
     private var authorizationTransportGeneration = 0L
@@ -269,6 +382,10 @@ class BleCompanionRuntime(
     private val authorizationTracker = CompanionAuthorizationResponseTracker()
     private var authorizationClaim: RuntimeAuthorizationClaim? = null
     private data class PendingAction(val exchangeId: Long, val request: CompanionActionRequest)
+    private data class FactoryResetVerificationTarget(
+        val receipt: ULong,
+        val companion: BleDiscoveredCompanion?,
+    )
     private data class RuntimeAuthorizationClaim(
         val operationId: Long,
         val companion: BleDiscoveredCompanion,
@@ -306,12 +423,53 @@ class BleCompanionRuntime(
     private fun startNow() {
         if (closed || lifecycleActive) return
         lifecycleActive = true
+        val resetTarget = factoryResetVerificationTarget ?: facade.loadPendingFactoryResetReceipt()?.let { receipt ->
+            if (receipt == 0uL) null else FactoryResetVerificationTarget(receipt, companion = null)
+        }
+        resetTarget?.let {
+            factoryResetVerificationTarget = it
+            beginFactoryResetVerification(it)
+            return
+        }
         val remembered = selected
         if (remembered == null) {
-            publish(BleRuntimeState.Idle)
+            if (!beginReturningOwnerDiscovery()) publish(BleRuntimeState.Idle)
         } else {
-            beginConnection(remembered, isReconnect = true)
+            beginConnection(remembered, isReconnect = true, purpose = BleConnectionPurpose.EXISTING_OWNER)
         }
+    }
+
+    /**
+     * Starts the separate process-restart route when the platform supports it. Absence of platform
+     * support or failed preflight preserves the prior Idle startup behavior; an admitted lease owns
+     * its own state and reports concrete startup/callback failures.
+     */
+    private fun beginReturningOwnerDiscovery(): Boolean {
+        if (!facade.preflight().isReady) return false
+        var callbackGeneration = 0L
+        val candidates = linkedMapOf<String, BleDiscoveredCompanion>()
+        val lease = facade.createReturningOwnerScan { event ->
+            onReturningOwnerScanEvent(callbackGeneration, candidates, event)
+        } ?: return false
+        val nextGeneration = nextGeneration()
+        if (nextGeneration == null) {
+            lease.close()
+            return true
+        }
+        callbackGeneration = nextGeneration
+        scanLease = lease
+        publish(BleRuntimeState.FindingReturningOwner)
+        if (!accepts(callbackGeneration) || scanLease !== lease || state !== BleRuntimeState.FindingReturningOwner) {
+            return true
+        }
+        if (!lease.start()) {
+            lease.close()
+            if (scanLease === lease) scanLease = null
+            if (generation == callbackGeneration) {
+                publish(BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED))
+            }
+        }
+        return true
     }
 
     @Synchronized
@@ -337,6 +495,14 @@ class BleCompanionRuntime(
         requireOwnerThread()
         if (deliveringObserver) return
         if (!lifecycleActive || closed) return
+        val resetTarget = factoryResetVerificationTarget ?: facade.loadPendingFactoryResetReceipt()?.let { receipt ->
+            if (receipt == 0uL) null else FactoryResetVerificationTarget(receipt, companion = null)
+        }
+        resetTarget?.let {
+            factoryResetVerificationTarget = it
+            beginFactoryResetVerification(it)
+            return
+        }
         selected = null
         reconnectAttempt = 0
         invalidateAndRelease()
@@ -369,8 +535,12 @@ class BleCompanionRuntime(
     fun beginAuthorization(endpointToken: String): BleDiscoveredCompanion? {
         requireOwnerThread()
         if (deliveringObserver || !lifecycleActive || closed) return null
-        val scanning = state as? BleRuntimeState.Scanning ?: return null
-        val candidate = scanning.candidates.singleOrNull { it.endpointToken == endpointToken } ?: return null
+        val candidates = when (val current = state) {
+            is BleRuntimeState.Scanning -> current.candidates
+            is BleRuntimeState.ScanComplete -> current.candidates
+            else -> return null
+        }
+        val candidate = candidates.singleOrNull { it.endpointToken == endpointToken } ?: return null
         selected = null
         reconnectAttempt = 0
         scanLease?.close()
@@ -394,7 +564,11 @@ class BleCompanionRuntime(
         if (awaiting.companion.endpointToken != endpointToken) return false
         selected = awaiting.companion
         reconnectAttempt = 0
-        beginConnection(awaiting.companion, isReconnect = false)
+        beginConnection(
+            awaiting.companion,
+            isReconnect = false,
+            purpose = BleConnectionPurpose.INITIAL_AUTHORIZATION,
+        )
         return true
     }
 
@@ -466,7 +640,11 @@ class BleCompanionRuntime(
         claim.started = true
         selected = claim.companion
         reconnectAttempt = 0
-        beginConnection(claim.companion, isReconnect = false)
+        beginConnection(
+            claim.companion,
+            isReconnect = false,
+            purpose = BleConnectionPurpose.INITIAL_AUTHORIZATION,
+        )
         // Once connection startup is admitted, injected/platform callbacks may synchronously reach
         // Pending or a terminal local/device result before beginConnection returns. Those callbacks
         // retain authority, so start must report true even if the claim has already ended.
@@ -494,6 +672,11 @@ class BleCompanionRuntime(
 
     private fun disconnectNow() {
         if (closed) return
+        if (
+            state is BleRuntimeState.FactoryResetRequesting ||
+            state is BleRuntimeState.FactoryResetErasing ||
+            state is BleRuntimeState.FactoryResetVerifying
+        ) return
         selected = null
         reconnectAttempt = 0
         invalidateAndRelease()
@@ -504,10 +687,38 @@ class BleCompanionRuntime(
     @Synchronized
     fun submitAction(request: CompanionActionRequest): Boolean {
         requireOwnerThread()
+        if (request.kind == CompanionActionKind.FACTORY_RESET) return false
+        return submitActionInternal(request, factoryResetAuthorized = false)
+    }
+
+    /**
+     * Dedicated destructive authority. Presentation must obtain explicit confirmation before calling
+     * this method; the generic action API can never submit a factory reset.
+     */
+    @Synchronized
+    fun submitFactoryReset(): Boolean {
+        requireOwnerThread()
+        return submitActionInternal(
+            CompanionActionRequest(CompanionActionKind.FACTORY_RESET),
+            factoryResetAuthorized = true,
+        )
+    }
+
+    private fun submitActionInternal(
+        request: CompanionActionRequest,
+        factoryResetAuthorized: Boolean,
+    ): Boolean {
         if (deliveringObserver) return false
         val ready = state as? BleRuntimeState.Ready ?: return false
         val lease = gattLease ?: return false
         if (pendingAction != null) return false
+        if (
+            request.kind == CompanionActionKind.FACTORY_RESET &&
+            (
+                !factoryResetAuthorized ||
+                    (ready.session.protocolInfo.capabilities and COMPANION_FACTORY_RESET_CAPABILITY) == 0
+                )
+        ) return false
         val requestId = nextRequestId
         if (requestId !in 1..0xffff_ffffL) {
             handleConnectionFailure(
@@ -517,7 +728,18 @@ class BleCompanionRuntime(
             )
             return false
         }
-        val payload = CompanionSemanticCodec.encodeActionRequest(request).value ?: return false
+        val effectiveRequest = if (request.kind == CompanionActionKind.FACTORY_RESET) {
+            val receipt = facade.stageFactoryResetReceipt() ?: return false
+            request.copy(factoryResetReceipt = receipt)
+        } else {
+            request
+        }
+        val payload = CompanionSemanticCodec.encodeActionRequest(effectiveRequest).value ?: run {
+            if (effectiveRequest.kind == CompanionActionKind.FACTORY_RESET) {
+                facade.clearPendingFactoryResetReceipt(effectiveRequest.factoryResetReceipt)
+            }
+            return false
+        }
         val encoded = CompanionProtocolCodec.encodeFragment(
             CompanionFragment(
                 kind = CompanionFrameKind.ACTION_REQUEST,
@@ -525,17 +747,53 @@ class BleCompanionRuntime(
                 exchangeId = requestId,
                 payload = payload,
             ),
-        ).value ?: return false
-
-        // Consume an ID before handing bytes to the platform because a false return can still be uncertain.
-        nextRequestId = requestId + 1
-        pendingAction = PendingAction(requestId, request)
-        if (!lease.writeCommandWithResponse(encoded)) {
-            pendingAction = null
-            failAndRelease(BleRuntimeFailure.ACTION_WRITE_FAILED)
+        ).value ?: run {
+            if (effectiveRequest.kind == CompanionActionKind.FACTORY_RESET) {
+                facade.clearPendingFactoryResetReceipt(effectiveRequest.factoryResetReceipt)
+            }
             return false
         }
-        if (pendingAction?.exchangeId == requestId && state is BleRuntimeState.Ready) {
+
+        if (effectiveRequest.kind == CompanionActionKind.FACTORY_RESET) {
+            // Once bytes are handed to Android, a false/timeout/disconnect result is ambiguous: the
+            // device may still have durably accepted and executed the reset. Retain only the exact
+            // ephemeral target needed to verify its later D1 boot; never infer completion here.
+            factoryResetVerificationTarget = FactoryResetVerificationTarget(
+                effectiveRequest.factoryResetReceipt,
+                ready.session.companion,
+            )
+        }
+        // Consume an ID before handing bytes to the platform because a false return can still be uncertain.
+        nextRequestId = requestId + 1
+        pendingAction = PendingAction(requestId, effectiveRequest)
+        if (!lease.writeCommandWithResponse(encoded)) {
+            if (effectiveRequest.kind == CompanionActionKind.FACTORY_RESET) {
+                // A synchronous callback may already have published the authoritative admitted or
+                // rejected state. Only classify uncertainty while this exact request is still pending.
+                if (pendingAction?.exchangeId == requestId && state is BleRuntimeState.Ready) {
+                    factoryResetNotVerified(
+                        ready.session.companion,
+                        FactoryResetNotVerifiedReason.REQUEST_WRITE_UNCERTAIN,
+                        canRetryVerification = true,
+                    )
+                }
+            } else {
+                pendingAction = null
+                failAndRelease(BleRuntimeFailure.ACTION_WRITE_FAILED)
+            }
+            return false
+        }
+        if (
+            effectiveRequest.kind == CompanionActionKind.FACTORY_RESET &&
+            pendingAction?.exchangeId == requestId &&
+            state is BleRuntimeState.Ready
+        ) {
+            publish(BleRuntimeState.FactoryResetRequesting(ready.session))
+        }
+        if (
+            pendingAction?.exchangeId == requestId &&
+            (state is BleRuntimeState.Ready || state is BleRuntimeState.FactoryResetRequesting)
+        ) {
             armActionTimeout(generation, requestId)
         }
         return true
@@ -556,6 +814,7 @@ class BleCompanionRuntime(
         closed = true
         lifecycleActive = false
         selected = null
+        factoryResetVerificationTarget = null
         invalidateAndRelease()
         authorizationClaim = null
         observer = null
@@ -584,10 +843,11 @@ class BleCompanionRuntime(
                 candidates[candidate.endpointToken] = candidate.copy()
                 publish(BleRuntimeState.Scanning(candidates.values.toList()))
             }
+            is BleScanEvent.FactoryResetReceiptObserved -> Unit
             BleScanEvent.Complete -> {
                 scanLease?.close()
                 scanLease = null
-                publish(BleRuntimeState.Scanning(candidates.values.toList()))
+                publish(BleRuntimeState.ScanComplete(candidates.values.toList()))
             }
             is BleScanEvent.Failed -> {
                 scanLease?.close()
@@ -597,8 +857,66 @@ class BleCompanionRuntime(
         }
     }
 
-    private fun beginConnection(companion: BleDiscoveredCompanion, isReconnect: Boolean) {
+    @Synchronized
+    private fun onReturningOwnerScanEvent(
+        callbackGeneration: Long,
+        candidates: LinkedHashMap<String, BleDiscoveredCompanion>,
+        event: BleScanEvent,
+    ) {
+        requireOwnerThread()
+        if (deliveringObserver) return
+        if (!accepts(callbackGeneration) || state !== BleRuntimeState.FindingReturningOwner) return
+        when (event) {
+            is BleScanEvent.Candidate -> {
+                val candidate = event.companion
+                if (
+                    candidate.endpointToken.isBlank() ||
+                    candidate.endpointToken.length > MAX_ENDPOINT_TOKEN_CHARS ||
+                    candidate.publicLabel.isBlank() ||
+                    candidate.publicLabel.length > MAX_PUBLIC_LABEL_CHARS
+                ) return
+                candidates[candidate.endpointToken] = candidate.copy()
+                if (candidates.size > 1) {
+                    selected = null
+                    scanLease?.close()
+                    scanLease = null
+                    publish(BleRuntimeState.Failed(BleRuntimeFailure.RETURNING_OWNER_AMBIGUOUS))
+                }
+            }
+            is BleScanEvent.FactoryResetReceiptObserved -> Unit
+            BleScanEvent.Complete -> {
+                scanLease?.close()
+                scanLease = null
+                val candidate = candidates.values.singleOrNull()
+                if (candidate == null) {
+                    selected = null
+                    publish(BleRuntimeState.Idle)
+                } else {
+                    selected = candidate
+                    reconnectAttempt = 0
+                    beginConnection(
+                        candidate,
+                        isReconnect = false,
+                        purpose = BleConnectionPurpose.EXISTING_OWNER,
+                    )
+                }
+            }
+            is BleScanEvent.Failed -> {
+                scanLease?.close()
+                scanLease = null
+                publish(BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED))
+            }
+        }
+    }
+
+    private fun beginConnection(
+        companion: BleDiscoveredCompanion,
+        isReconnect: Boolean,
+        purpose: BleConnectionPurpose,
+    ) {
         if (!lifecycleActive || closed) return
+        val priorConnectionDiagnostic =
+            (state as? BleRuntimeState.Reconnecting)?.connectionDiagnostic
         invalidateAndRelease()
         val preflight = facade.preflight()
         if (!preflight.isReady) {
@@ -611,17 +929,27 @@ class BleCompanionRuntime(
         }
         val callbackGeneration = nextGeneration() ?: return
         clearSessionState()
-        val lease = facade.createConnection(companion.endpointToken) { event ->
-            onGattEvent(callbackGeneration, companion, event)
+        val lease = facade.createConnection(companion.endpointToken, purpose) { event ->
+            onGattEvent(callbackGeneration, companion, purpose, event)
         }
         if (lease == null) {
-            handleConnectionFailure(companion, BleRuntimeFailure.CONNECTION_START_FAILED, transient = isReconnect)
+            handleConnectionFailure(
+                companion,
+                BleRuntimeFailure.CONNECTION_START_FAILED,
+                transient = isReconnect,
+                connectionDiagnostic = BleConnectionDiagnostic.LEASE_UNAVAILABLE,
+            )
             return
         }
         gattLease = lease
         publish(
             if (isReconnect) {
-                BleRuntimeState.Reconnecting(companion, reconnectAttempt.coerceAtLeast(1), maximumReconnectAttempts)
+                BleRuntimeState.Reconnecting(
+                    companion,
+                    reconnectAttempt.coerceAtLeast(1),
+                    maximumReconnectAttempts,
+                    priorConnectionDiagnostic,
+                )
             } else {
                 BleRuntimeState.Connecting(companion)
             },
@@ -636,14 +964,13 @@ class BleCompanionRuntime(
                 generation == callbackGeneration &&
                 (state is BleRuntimeState.Connecting || state is BleRuntimeState.Reconnecting)
             ) {
-                handleConnectionFailure(companion, BleRuntimeFailure.CONNECTION_START_FAILED, transient = true)
+                handleConnectionFailure(
+                    companion,
+                    BleRuntimeFailure.CONNECTION_START_FAILED,
+                    transient = true,
+                    connectionDiagnostic = BleConnectionDiagnostic.START_REJECTED,
+                )
             }
-        } else if (
-            generation == callbackGeneration &&
-            gattLease === lease &&
-            (state is BleRuntimeState.Connecting || state is BleRuntimeState.Reconnecting)
-        ) {
-            armNegotiationTimeout(callbackGeneration, null)
         }
     }
 
@@ -651,6 +978,7 @@ class BleCompanionRuntime(
     private fun onGattEvent(
         callbackGeneration: Long,
         companion: BleDiscoveredCompanion,
+        purpose: BleConnectionPurpose,
         event: BleGattEvent,
     ) {
         requireOwnerThread()
@@ -660,46 +988,82 @@ class BleCompanionRuntime(
             return
         }
         if (deliveringObserver) return
+        if (
+            (event is BleGattEvent.Failed || event is BleGattEvent.Disconnected) &&
+            handleFactoryResetTransportEnd(companion)
+        ) return
         when (event) {
+            BleGattEvent.GattOpened -> onGattOpened()
             BleGattEvent.ProfileReady -> onProfileReady(companion)
-            is BleGattEvent.SecurityEstablished -> onSecurity(companion, event.evidence)
+            is BleGattEvent.SecurityEstablished -> {
+                if (purpose == BleConnectionPurpose.EXISTING_OWNER) {
+                    failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+                } else {
+                    onSecurity(companion, event.evidence)
+                }
+            }
             is BleGattEvent.MtuChanged -> onMtu(companion, event.mtu)
-            is BleGattEvent.ProtocolInfoRead -> onProtocolInfo(companion, event.value)
-            is BleGattEvent.ProtectedProtocolInfoRead -> onProtectedProtocolInfo(companion, event.value)
+            is BleGattEvent.ProtocolInfoRead -> {
+                if (purpose == BleConnectionPurpose.EXISTING_OWNER) {
+                    failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+                } else {
+                    onProtocolInfo(companion, event.value)
+                }
+            }
+            is BleGattEvent.ProtectedProtocolInfoRead -> onProtectedProtocolInfo(companion, purpose, event.value)
             BleGattEvent.StreamIndicationsSubscribed -> onStreamSubscribed(companion)
             is BleGattEvent.StreamIndication -> onStreamValue(companion, event.value)
-            is BleGattEvent.Failed -> handleConnectionFailure(
-                companion,
-                if (authorizationClaim != null) {
-                    BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST
-                } else when (event.failure) {
-                    BleGattFailure.SECURITY_REJECTED -> BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED
-                    BleGattFailure.BOND_REQUIRED -> BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED
-                    BleGattFailure.AUTHORIZATION_REJECTED -> BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE
-                    BleGattFailure.PERMISSION_REVOKED -> BleRuntimeFailure.CONNECTION_START_FAILED
-                    BleGattFailure.PLATFORM_FAILURE -> BleRuntimeFailure.CONNECTION_START_FAILED
-                    BleGattFailure.TRANSIENT_LINK -> BleRuntimeFailure.CONNECTION_START_FAILED
-                },
-                transient = authorizationClaim == null && event.failure == BleGattFailure.TRANSIENT_LINK,
-            )
-            BleGattEvent.Disconnected -> handleConnectionFailure(
-                companion,
-                if (authorizationClaim != null) {
-                    BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST
-                } else {
-                    BleRuntimeFailure.CONNECTION_START_FAILED
-                },
-                transient = authorizationClaim == null,
-            )
+            is BleGattEvent.Failed -> {
+                handleConnectionFailure(
+                    companion,
+                    if (authorizationClaim != null) {
+                        BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST
+                    } else when (event.failure) {
+                        BleGattFailure.SECURITY_REJECTED -> BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED
+                        BleGattFailure.BOND_REQUIRED -> BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED
+                        BleGattFailure.AUTHORIZATION_REJECTED -> BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE
+                        BleGattFailure.PERMISSION_REVOKED -> BleRuntimeFailure.CONNECTION_START_FAILED
+                        BleGattFailure.PLATFORM_FAILURE -> BleRuntimeFailure.CONNECTION_START_FAILED
+                        BleGattFailure.TRANSIENT_LINK -> BleRuntimeFailure.CONNECTION_START_FAILED
+                    },
+                    transient = authorizationClaim == null && event.failure == BleGattFailure.TRANSIENT_LINK,
+                    connectionDiagnostic = event.failure.connectionDiagnostic(),
+                )
+            }
+            BleGattEvent.Disconnected -> {
+                val beforeReturningOwnerProfile =
+                    purpose == BleConnectionPurpose.EXISTING_OWNER &&
+                        (state is BleRuntimeState.Connecting || state is BleRuntimeState.Reconnecting)
+                handleConnectionFailure(
+                    companion,
+                    if (authorizationClaim != null) {
+                        BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST
+                    } else {
+                        BleRuntimeFailure.CONNECTION_START_FAILED
+                    },
+                    transient = authorizationClaim == null,
+                    connectionDiagnostic = if (beforeReturningOwnerProfile) {
+                        BleConnectionDiagnostic.DISCONNECTED_BEFORE_PROFILE
+                    } else {
+                        null
+                    },
+                )
+            }
         }
     }
 
-    private fun onProfileReady(companion: BleDiscoveredCompanion) {
+    private fun onGattOpened() {
         if (
-            authorizationClaim == null ||
+            gattOpenedObserved ||
             (state !is BleRuntimeState.Connecting && state !is BleRuntimeState.Reconnecting)
-        ) {
-            failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+        ) return
+        gattOpenedObserved = true
+        armNegotiationTimeout(generation, null, INITIAL_GATT_PROFILE_TIMEOUT_MILLIS)
+    }
+
+    private fun onProfileReady(companion: BleDiscoveredCompanion) {
+        if (state !is BleRuntimeState.Connecting && state !is BleRuntimeState.Reconnecting) {
+            failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
             return
         }
         operationTimeoutLease?.close()
@@ -767,6 +1131,16 @@ class BleCompanionRuntime(
             }
             return
         }
+        if (protocolInfo != null) {
+            publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.STREAM_SUBSCRIPTION))
+            if (!hasActiveGattPhase(BleNegotiationPhase.STREAM_SUBSCRIPTION)) return
+            if (gattLease?.subscribeStreamIndications() != true) {
+                failAndRelease(BleRuntimeFailure.STREAM_SUBSCRIPTION_FAILED)
+            } else if (isPhase(BleNegotiationPhase.STREAM_SUBSCRIPTION)) {
+                armNegotiationTimeout(generation, BleNegotiationPhase.STREAM_SUBSCRIPTION)
+            }
+            return
+        }
         publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.PROTOCOL_INFO))
         if (!hasActiveGattPhase(BleNegotiationPhase.PROTOCOL_INFO)) return
         if (gattLease?.readProtocolInfo() != true) {
@@ -807,9 +1181,21 @@ class BleCompanionRuntime(
         }
     }
 
-    private fun onProtectedProtocolInfo(companion: BleDiscoveredCompanion, value: ByteArray) {
-        if (authorizationClaim == null || !isPhase(BleNegotiationPhase.PROTOCOL_INFO)) {
+    private fun onProtectedProtocolInfo(
+        companion: BleDiscoveredCompanion,
+        purpose: BleConnectionPurpose,
+        value: ByteArray,
+    ) {
+        if (!isPhase(BleNegotiationPhase.PROTOCOL_INFO)) {
             failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            return
+        }
+        if (purpose == BleConnectionPurpose.EXISTING_OWNER && authorizationClaim == null) {
+            acceptReturningOwnerProtocolInfo(companion, value)
+            return
+        }
+        if (purpose != BleConnectionPurpose.INITIAL_AUTHORIZATION || authorizationClaim == null) {
+            failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
             return
         }
         val decoded = CompanionAuthorizationProtocolInfoCodec.decode(value).value
@@ -825,6 +1211,42 @@ class BleCompanionRuntime(
             return
         }
         acceptAuthorizationProtocolInfo(companion, value, deviceProtectedReadAccepted = true)
+    }
+
+    /** Successful protected normal ProtocolInfo is device-enforced owner proof, not a bond inference. */
+    private fun acceptReturningOwnerProtocolInfo(companion: BleDiscoveredCompanion, value: ByteArray) {
+        val decoded = CompanionProtocolCodec.decodeProtocolInfo(value).value
+        if (
+            decoded == null ||
+            (decoded.capabilities and REQUIRED_ACTION_CAPABILITIES) != REQUIRED_ACTION_CAPABILITIES ||
+            decoded.maxFragmentPayloadBytes < COMPANION_STATUS_SNAPSHOT_BYTES
+        ) {
+            failAndRelease(BleRuntimeFailure.PROTOCOL_INFO_FAILED)
+            return
+        }
+        protocolInfo = decoded
+        operationTimeoutLease?.close()
+        operationTimeoutLease = null
+        if (negotiatedMtu > 0) {
+            if (negotiatedMtu < decoded.minimumAttMtu) {
+                failAndRelease(BleRuntimeFailure.MTU_NEGOTIATION_FAILED)
+                return
+            }
+            publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.STREAM_SUBSCRIPTION))
+            if (gattLease?.subscribeStreamIndications() != true) {
+                failAndRelease(BleRuntimeFailure.STREAM_SUBSCRIPTION_FAILED)
+            } else if (isPhase(BleNegotiationPhase.STREAM_SUBSCRIPTION)) {
+                armNegotiationTimeout(generation, BleNegotiationPhase.STREAM_SUBSCRIPTION)
+            }
+            return
+        }
+        publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.ATT_MTU))
+        if (!hasActiveGattPhase(BleNegotiationPhase.ATT_MTU)) return
+        if (gattLease?.requestMtu(COMPANION_MINIMUM_ATT_MTU) != true) {
+            failAndRelease(BleRuntimeFailure.MTU_NEGOTIATION_FAILED)
+        } else if (isPhase(BleNegotiationPhase.ATT_MTU)) {
+            armNegotiationTimeout(generation, BleNegotiationPhase.ATT_MTU)
+        }
     }
 
     private fun acceptAuthorizationProtocolInfo(
@@ -870,7 +1292,7 @@ class BleCompanionRuntime(
         authorizationTransportGeneration = generation
         authorizationProtocolInfo = decoded
         protocolInfo = CompanionProtocolInfo(
-            capabilities = decoded.capabilities and 0x0f,
+            capabilities = decoded.capabilities and COMPANION_KNOWN_CAPABILITY_MASK,
             maxFragmentPayloadBytes = decoded.maxFragmentPayloadBytes,
             minimumAttMtu = decoded.minimumNormalAttMtu,
             maxFragmentCount = decoded.maxFragmentCount,
@@ -905,13 +1327,10 @@ class BleCompanionRuntime(
     }
 
     private fun beginAuthorizationWireClaim(companion: BleDiscoveredCompanion) {
-        val claim = authorizationClaim ?: return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+        if (authorizationClaim == null) return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
         val info = authorizationProtocolInfo ?: return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
         val exchangeId = firstRequestId
-        val purpose = when (claim.purpose) {
-            DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE -> CompanionAuthorizationPurpose.AUTHORIZE_CONTROLLER
-            DeviceAuthorizationPurpose.REPLACE_LOST_PHONE -> CompanionAuthorizationPurpose.REPLACE_CONTROLLER
-        }
+        val purpose = CompanionAuthorizationPurpose.AUTHORIZE_CONTROLLER
         val fragment = CompanionFragment(
             kind = CompanionFrameKind.AUTHORIZATION_CLAIM_START,
             sessionNonce = info.provisionalSessionNonce,
@@ -944,6 +1363,14 @@ class BleCompanionRuntime(
             fragment.payload.size > (protocolInfo?.maxFragmentPayloadBytes ?: 0) ||
             CompanionSemanticCodec.validateSemanticFragment(fragment) != CompanionSemanticCodecError.NONE
         ) {
+            if (state is BleRuntimeState.FactoryResetRequesting) {
+                factoryResetNotVerified(
+                    companion,
+                    FactoryResetNotVerifiedReason.MALFORMED_RESPONSE,
+                    canRetryVerification = true,
+                )
+                return
+            }
             failAndRelease(
                 if (isPhase(BleNegotiationPhase.INITIAL_SNAPSHOT)) {
                     BleRuntimeFailure.INITIAL_SNAPSHOT_FAILED
@@ -955,15 +1382,48 @@ class BleCompanionRuntime(
             acceptInitialSnapshot(companion, fragment)
             return
         }
-        val ready = state as? BleRuntimeState.Ready
-        if (ready == null || fragment.sessionNonce != activeSessionNonce) {
+        val activeSession = when (val current = state) {
+            is BleRuntimeState.Ready -> current.session
+            is BleRuntimeState.FactoryResetRequesting -> current.session
+            else -> null
+        }
+        if (activeSession == null || fragment.sessionNonce != activeSessionNonce) {
+            if (state is BleRuntimeState.FactoryResetRequesting) {
+                factoryResetNotVerified(
+                    companion,
+                    FactoryResetNotVerifiedReason.MALFORMED_RESPONSE,
+                    canRetryVerification = true,
+                )
+                return
+            }
             failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
             return
         }
         when (fragment.kind) {
-            CompanionFrameKind.SNAPSHOT -> acceptSnapshotUpdate(ready, fragment)
-            CompanionFrameKind.ACTION_RESULT -> acceptActionResult(ready, fragment)
-            else -> failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            CompanionFrameKind.SNAPSHOT -> {
+                val ready = state as? BleRuntimeState.Ready
+                if (ready == null) {
+                    factoryResetNotVerified(
+                        companion,
+                        FactoryResetNotVerifiedReason.MALFORMED_RESPONSE,
+                        canRetryVerification = true,
+                    )
+                } else {
+                    acceptSnapshotUpdate(ready, fragment)
+                }
+            }
+            CompanionFrameKind.ACTION_RESULT -> acceptActionResult(activeSession, fragment)
+            else -> {
+                if (state is BleRuntimeState.FactoryResetRequesting) {
+                    factoryResetNotVerified(
+                        companion,
+                        FactoryResetNotVerifiedReason.MALFORMED_RESPONSE,
+                        canRetryVerification = true,
+                    )
+                } else {
+                    failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+                }
+            }
         }
     }
 
@@ -997,11 +1457,11 @@ class BleCompanionRuntime(
                 }
             }
             CompanionAuthorizationResponsePhase.TERMINAL -> {
-                operationTimeoutLease?.close()
-                operationTimeoutLease = null
-                claim.terminal = true
                 when (observation.outcome) {
                     CompanionAuthorizationClaimOutcome.ACCEPTED -> {
+                        operationTimeoutLease?.close()
+                        operationTimeoutLease = null
+                        claim.terminal = true
                         claim.promoted = true
                         emitAuthorizationEvent(
                             claim,
@@ -1010,14 +1470,14 @@ class BleCompanionRuntime(
                         continueAfterAuthorizationPromotion(companion, claim)
                     }
                     CompanionAuthorizationClaimOutcome.REPLACED -> {
-                        claim.promoted = true
-                        emitAuthorizationEvent(
-                            claim,
-                            DeviceAuthorizationClaimEvent.Replaced(claim.publicOperationToken),
-                        )
-                        continueAfterAuthorizationPromotion(companion, claim)
+                        // The protocol codec retains this legacy value for compatibility, but V1
+                        // exposes no replacement claim. It can never promote app authority.
+                        failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
                     }
                     CompanionAuthorizationClaimOutcome.DENIED -> {
+                        operationTimeoutLease?.close()
+                        operationTimeoutLease = null
+                        claim.terminal = true
                         emitAuthorizationEvent(claim, DeviceAuthorizationClaimEvent.Denied(claim.publicOperationToken))
                         if (authorizationClaim?.operationId == claim.operationId) authorizationEnded()
                     }
@@ -1134,7 +1594,7 @@ class BleCompanionRuntime(
         publish(BleRuntimeState.Ready(ready.session.copy(snapshot = snapshot, groupLocation = groupLocation)))
     }
 
-    private fun acceptActionResult(ready: BleRuntimeState.Ready, fragment: CompanionFragment) {
+    private fun acceptActionResult(session: BleActiveSession, fragment: CompanionFragment) {
         val pending = pendingAction
         val result = CompanionSemanticCodec.decodeActionResult(fragment.payload).value
         if (
@@ -1143,25 +1603,226 @@ class BleCompanionRuntime(
             result == null ||
             result.kind != pending.request.kind ||
             result.quickStatus != pending.request.quickStatus ||
-            result.criticalAlertId != pending.request.criticalAlertId
+            result.criticalAlertId != pending.request.criticalAlertId ||
+            result.factoryResetReceipt != pending.request.factoryResetReceipt
         ) {
-            failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            if (pending?.request?.kind == CompanionActionKind.FACTORY_RESET) {
+                factoryResetNotVerified(
+                    session.companion,
+                    FactoryResetNotVerifiedReason.MALFORMED_RESPONSE,
+                    canRetryVerification = true,
+                )
+            } else {
+                failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            }
             return
         }
         pendingAction = null
         operationTimeoutLease?.close()
         operationTimeoutLease = null
-        publish(BleRuntimeState.Ready(ready.session.copy(lastActionResult = result)))
+        if (result.kind == CompanionActionKind.FACTORY_RESET) {
+            if (result.disposition != CompanionActionDisposition.ADMITTED) {
+                factoryResetNotVerified(
+                    session.companion,
+                    FactoryResetNotVerifiedReason.REQUEST_REJECTED,
+                    canRetryVerification = false,
+                )
+                return
+            }
+            val target = factoryResetVerificationTarget
+            if (target == null || target.receipt != result.factoryResetReceipt) {
+                factoryResetNotVerified(
+                    session.companion,
+                    FactoryResetNotVerifiedReason.MALFORMED_RESPONSE,
+                    canRetryVerification = true,
+                )
+                return
+            }
+            publish(BleRuntimeState.FactoryResetErasing(session.companion))
+            armFactoryResetRestartTimeout(generation, target)
+            return
+        }
+        publish(BleRuntimeState.Ready(session.copy(lastActionResult = result)))
+    }
+
+    private fun handleFactoryResetTransportEnd(companion: BleDiscoveredCompanion): Boolean {
+        return when (val current = state) {
+            is BleRuntimeState.FactoryResetRequesting -> {
+                if (current.session.companion.endpointToken != companion.endpointToken) return false
+                factoryResetNotVerified(
+                    companion,
+                    FactoryResetNotVerifiedReason.CONNECTION_LOST_BEFORE_ACCEPTANCE,
+                    canRetryVerification = true,
+                )
+                true
+            }
+            is BleRuntimeState.FactoryResetErasing -> {
+                if (current.companion.endpointToken != companion.endpointToken) return false
+                val target = factoryResetVerificationTarget ?: return false
+                beginFactoryResetVerification(target)
+                true
+            }
+            else -> false
+        }
+    }
+
+    @Synchronized
+    fun retryFactoryResetVerification(): Boolean {
+        requireOwnerThread()
+        if (deliveringObserver || !lifecycleActive || closed) return false
+        val current = state as? BleRuntimeState.FactoryResetNotVerified ?: return false
+        val target = factoryResetVerificationTarget ?: return false
+        if (!current.canRetryVerification) return false
+        beginFactoryResetVerification(target)
+        return state is BleRuntimeState.FactoryResetVerifying
+    }
+
+    private fun beginFactoryResetVerification(target: FactoryResetVerificationTarget) {
+        val companion = target.companion ?: RECOVERED_FACTORY_RESET_COMPANION
+        if (
+            target.receipt == 0uL ||
+            factoryResetVerificationTarget?.receipt != target.receipt ||
+            facade.loadPendingFactoryResetReceipt() != target.receipt
+        ) {
+            factoryResetVerificationTarget = null
+            invalidateAndRelease()
+            publish(
+                BleRuntimeState.FactoryResetNotVerified(
+                    companion,
+                    FactoryResetNotVerifiedReason.VERIFICATION_TIMEOUT,
+                    canRetryVerification = false,
+                ),
+            )
+            return
+        }
+        invalidateAndRelease()
+        if (!lifecycleActive || closed || !facade.preflight().isReady) {
+            factoryResetNotVerified(
+                companion,
+                FactoryResetNotVerifiedReason.VERIFICATION_UNAVAILABLE,
+                canRetryVerification = true,
+            )
+            return
+        }
+        var callbackGeneration = 0L
+        val lease = facade.createFactoryResetVerificationScan(target.receipt) { event ->
+            onFactoryResetVerificationScanEvent(callbackGeneration, target, event)
+        }
+        if (lease == null) {
+            factoryResetNotVerified(
+                companion,
+                FactoryResetNotVerifiedReason.VERIFICATION_UNAVAILABLE,
+                canRetryVerification = true,
+            )
+            return
+        }
+        val nextGeneration = nextGeneration()
+        if (nextGeneration == null) {
+            lease.close()
+            factoryResetNotVerified(
+                companion,
+                FactoryResetNotVerifiedReason.VERIFICATION_UNAVAILABLE,
+                canRetryVerification = true,
+            )
+            return
+        }
+        callbackGeneration = nextGeneration
+        scanLease = lease
+        publish(BleRuntimeState.FactoryResetVerifying(companion))
+        if (
+            !accepts(callbackGeneration) ||
+            scanLease !== lease ||
+            state !is BleRuntimeState.FactoryResetVerifying
+        ) return
+        if (!lease.start()) {
+            lease.close()
+            if (scanLease === lease) scanLease = null
+            factoryResetNotVerified(
+                companion,
+                FactoryResetNotVerifiedReason.VERIFICATION_UNAVAILABLE,
+                canRetryVerification = true,
+            )
+        }
+    }
+
+    @Synchronized
+    private fun onFactoryResetVerificationScanEvent(
+        callbackGeneration: Long,
+        target: FactoryResetVerificationTarget,
+        event: BleScanEvent,
+    ) {
+        requireOwnerThread()
+        if (deliveringObserver || !accepts(callbackGeneration)) return
+        val companion = target.companion ?: RECOVERED_FACTORY_RESET_COMPANION
+        if (state !is BleRuntimeState.FactoryResetVerifying) return
+        if (factoryResetVerificationTarget?.receipt != target.receipt) return
+        when (event) {
+            is BleScanEvent.FactoryResetReceiptObserved -> {
+                if (event.receipt != target.receipt) {
+                    factoryResetNotVerified(
+                        companion,
+                        FactoryResetNotVerifiedReason.WRONG_DEVICE_OBSERVED,
+                        canRetryVerification = true,
+                    )
+                    return
+                }
+                scanLease?.close()
+                scanLease = null
+                val cleanup = facade.completeFactoryResetVerification(target.receipt)
+                when (cleanup) {
+                    FactoryResetLocalCleanupResult.FAILED -> factoryResetNotVerified(
+                        companion,
+                        FactoryResetNotVerifiedReason.LOCAL_RECORD_CLEAR_FAILED,
+                        canRetryVerification = true,
+                    )
+                    FactoryResetLocalCleanupResult.CLEARED,
+                    FactoryResetLocalCleanupResult.SYSTEM_BOND_REMAINS,
+                    -> {
+                        val systemBondRemovalRequired =
+                            cleanup == FactoryResetLocalCleanupResult.SYSTEM_BOND_REMAINS
+                        factoryResetVerificationTarget = null
+                        selected = null
+                        invalidateAndRelease()
+                        publish(BleRuntimeState.FactoryResetComplete(systemBondRemovalRequired))
+                    }
+                }
+            }
+            is BleScanEvent.Candidate -> Unit
+            BleScanEvent.Complete -> factoryResetNotVerified(
+                companion,
+                FactoryResetNotVerifiedReason.VERIFICATION_TIMEOUT,
+                canRetryVerification = true,
+            )
+            is BleScanEvent.Failed -> factoryResetNotVerified(
+                companion,
+                FactoryResetNotVerifiedReason.VERIFICATION_UNAVAILABLE,
+                canRetryVerification = true,
+            )
+        }
+    }
+
+    private fun factoryResetNotVerified(
+        companion: BleDiscoveredCompanion,
+        reason: FactoryResetNotVerifiedReason,
+        canRetryVerification: Boolean,
+    ) {
+        invalidateAndRelease()
+        if (!canRetryVerification) {
+            factoryResetVerificationTarget?.let { facade.clearPendingFactoryResetReceipt(it.receipt) }
+            factoryResetVerificationTarget = null
+        }
+        publish(BleRuntimeState.FactoryResetNotVerified(companion, reason, canRetryVerification))
     }
 
     private fun handleConnectionFailure(
         companion: BleDiscoveredCompanion,
         reason: BleRuntimeFailure,
         transient: Boolean,
+        connectionDiagnostic: BleConnectionDiagnostic? = null,
     ) {
         val authorizationWasActive = authorizationClaim != null
         if (authorizationWasActive) {
-            finishAuthorizationTransportFailure(reason)
+            finishAuthorizationTransportFailure(reason, connectionDiagnostic)
             return
         }
         operationTimeoutLease?.close()
@@ -1171,18 +1832,30 @@ class BleCompanionRuntime(
         clearSessionState()
         if (!transient || !lifecycleActive || selected?.endpointToken != companion.endpointToken) {
             selected = null
-            publish(BleRuntimeState.Failed(reason))
+            publish(BleRuntimeState.Failed(reason, connectionDiagnostic))
             return
         }
         if (reconnectAttempt >= maximumReconnectAttempts) {
             selected = null
-            publish(BleRuntimeState.Failed(BleRuntimeFailure.RECONNECT_EXHAUSTED))
+            publish(
+                BleRuntimeState.Failed(
+                    BleRuntimeFailure.RECONNECT_EXHAUSTED,
+                    connectionDiagnostic,
+                ),
+            )
             return
         }
         reconnectAttempt += 1
         val attempt = reconnectAttempt
         val scheduleGeneration = nextGeneration() ?: return
-        publish(BleRuntimeState.Reconnecting(companion, attempt, maximumReconnectAttempts))
+        publish(
+            BleRuntimeState.Reconnecting(
+                companion,
+                attempt,
+                maximumReconnectAttempts,
+                connectionDiagnostic,
+            ),
+        )
         if (
             !accepts(scheduleGeneration) ||
             selected?.endpointToken != companion.endpointToken ||
@@ -1208,7 +1881,7 @@ class BleCompanionRuntime(
             selected?.endpointToken != companion.endpointToken
         ) return
         reconnectLease = null
-        beginConnection(companion, isReconnect = true)
+        beginConnection(companion, isReconnect = true, purpose = BleConnectionPurpose.EXISTING_OWNER)
     }
 
     private fun reconnectDelayMillis(attempt: Int): Long = 1_000L shl (attempt - 1).coerceAtMost(3)
@@ -1249,13 +1922,51 @@ class BleCompanionRuntime(
         requireOwnerThread()
         if (deliveringObserver) return
         if (accepts(callbackGeneration) && pendingAction?.exchangeId == exchangeId) {
-            val companion = (state as? BleRuntimeState.Ready)?.session?.companion
+            val pending = pendingAction
+            val companion = when (val current = state) {
+                is BleRuntimeState.Ready -> current.session.companion
+                is BleRuntimeState.FactoryResetRequesting -> current.session.companion
+                else -> null
+            }
+            if (pending?.request?.kind == CompanionActionKind.FACTORY_RESET && companion != null) {
+                factoryResetNotVerified(
+                    companion,
+                    FactoryResetNotVerifiedReason.RESPONSE_TIMEOUT,
+                    canRetryVerification = true,
+                )
+                return
+            }
             if (companion == null) {
                 failAndRelease(BleRuntimeFailure.ACTION_RESULT_TIMEOUT)
             } else {
                 handleConnectionFailure(companion, BleRuntimeFailure.ACTION_RESULT_TIMEOUT, transient = true)
             }
         }
+    }
+
+    private fun armFactoryResetRestartTimeout(
+        callbackGeneration: Long,
+        target: FactoryResetVerificationTarget,
+    ) {
+        operationTimeoutLease?.close()
+        operationTimeoutLease = scheduler.schedule(FACTORY_RESET_RESTART_TIMEOUT_MILLIS) {
+            onFactoryResetRestartTimeout(callbackGeneration, target)
+        }
+    }
+
+    @Synchronized
+    private fun onFactoryResetRestartTimeout(
+        callbackGeneration: Long,
+        target: FactoryResetVerificationTarget,
+    ) {
+        requireOwnerThread()
+        if (
+            deliveringObserver ||
+            !accepts(callbackGeneration) ||
+            factoryResetVerificationTarget?.receipt != target.receipt ||
+            state !is BleRuntimeState.FactoryResetErasing
+        ) return
+        beginFactoryResetVerification(target)
     }
 
     private fun isPhase(phase: BleNegotiationPhase): Boolean =
@@ -1275,13 +1986,16 @@ class BleCompanionRuntime(
         publish(BleRuntimeState.Failed(reason))
     }
 
-    private fun finishAuthorizationTransportFailure(reason: BleRuntimeFailure) {
+    private fun finishAuthorizationTransportFailure(
+        reason: BleRuntimeFailure,
+        connectionDiagnostic: BleConnectionDiagnostic? = null,
+    ) {
         val claim = authorizationClaim ?: return
         if (claim.terminal) {
             selected = null
             invalidateAndRelease()
             authorizationClaim = null
-            publish(BleRuntimeState.Failed(reason))
+            publish(BleRuntimeState.Failed(reason, connectionDiagnostic))
             return
         }
         val event = when {
@@ -1294,7 +2008,7 @@ class BleCompanionRuntime(
         selected = null
         invalidateAndRelease()
         authorizationClaim = null
-        publish(BleRuntimeState.Failed(reason))
+        publish(BleRuntimeState.Failed(reason, connectionDiagnostic))
         emitDetachedAuthorizationEvent(claim, event)
     }
 
@@ -1346,6 +2060,7 @@ class BleCompanionRuntime(
     }
 
     private fun clearSessionState() {
+        gattOpenedObserved = false
         negotiatedMtu = 0
         protocolInfo = null
         activeSessionNonce = 0

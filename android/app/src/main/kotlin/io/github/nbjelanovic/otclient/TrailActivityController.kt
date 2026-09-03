@@ -183,8 +183,6 @@ class TrailActivityController(
 
     override fun scanBluetoothDevices() = bluetoothOnly { it.scan() }
     override fun selectBluetoothDevice(endpointToken: String) = bluetoothOnly { it.authorize(endpointToken) }
-    override fun replaceLostPhoneWithBluetoothDevice(endpointToken: String) =
-        bluetoothOnly { it.replaceLostPhone(endpointToken) }
     override fun disconnectBluetoothDevice() = bluetoothOnly { it.disconnect() }
     override fun submitBluetoothAction(request: CompanionActionRequest): Boolean {
         requireOwnerThread()
@@ -193,6 +191,22 @@ class TrailActivityController(
         } else {
             false
         }
+    }
+    override fun requestFactoryResetConfirmation(): Boolean {
+        requireOwnerThread()
+        return canMutate() && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            port?.requestFactoryResetConfirmation() == true
+    }
+    override fun cancelFactoryResetConfirmation() = bluetoothOnly { it.cancelFactoryResetConfirmation() }
+    override fun confirmFactoryReset(): Boolean {
+        requireOwnerThread()
+        return canMutate() && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            port?.confirmFactoryReset() == true
+    }
+    override fun retryFactoryResetVerification(): Boolean {
+        requireOwnerThread()
+        return canMutate() && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            port?.retryFactoryResetVerification() == true
     }
 
     override fun onLifecycleStart() {
@@ -222,6 +236,7 @@ class TrailActivityController(
     }
 
     private fun onLifecycleStopNow() {
+        cancelServiceOwnedFactoryResetConfirmation()
         lifecycleActive = false
         if (serviceRequested && !serviceLaunchSubmitted) {
             serviceRequested = false
@@ -245,6 +260,7 @@ class TrailActivityController(
     private fun closeNow() {
         if (closed) return
         closed = true
+        cancelServiceOwnedFactoryResetConfirmation()
         observer = null
         localController.observe(null)
         releaseLocalSession()
@@ -376,6 +392,7 @@ class TrailActivityController(
 
     private fun stopServiceIfOwned(forceStop: Boolean = false) {
         val hadRequest = serviceRequested || binding != null || port != null
+        cancelServiceOwnedFactoryResetConfirmation()
         unbindObservation()
         serviceRequested = false
         serviceLaunchSubmitted = false
@@ -396,8 +413,9 @@ class TrailActivityController(
     }
 
     private fun publishBluetooth() {
-        val runtime = port?.state?.runtimeState ?: BleRuntimeState.Idle
-        val authorization = port?.state?.authorizationState ?: DeviceAuthorizationUiState.None
+        val portState = port?.state
+        val runtime = portState?.runtimeState ?: BleRuntimeState.Idle
+        val authorization = portState?.authorizationState ?: DeviceAuthorizationUiState.None
         publish(
             TrailAppUiState.BluetoothDevice(
                 runtimeState = runtime,
@@ -405,11 +423,20 @@ class TrailActivityController(
                 permissionRequestInFlight = permissionRequestInFlight,
                 permissionWasDenied = permissionWasDenied,
                 authorizationState = authorization,
+                factoryResetConfirmationVisible = portState?.factoryResetConfirmationVisible == true,
                 serviceState = serviceState,
                 notificationPermissionState = notificationPermissionState,
                 serviceFailure = serviceFailure,
             ),
         )
+    }
+
+    private fun cancelServiceOwnedFactoryResetConfirmation() {
+        try {
+            port?.cancelFactoryResetConfirmation()
+        } catch (_: Exception) {
+            // The service-side freshness deadline still bounds authority if the in-process adapter fails.
+        }
     }
 
     private fun onLocalState(next: CompanionUiState) {

@@ -27,23 +27,28 @@ Application and protocol logic must depend on interfaces, not concrete boards. P
 Decision 0028 historically deferred rollback-proof companion authorization on
 the current Heltec because no independent monotonic floor was available.
 [Decision 0033](decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)
-now supersedes only that floor as a V1 prerequisite. V1 uses practical
-physical-presence authorization: normally closed pairing, a short deliberate
-window, one fresh locally displayed six-digit PIN, authenticated BLE Secure
-Connections pairing/bonding, one current controller, and confirmed
-replacement. Factory reset, reflashing, invasive access, or old-flash restore
-may reset or roll back ownership; V1 makes no contrary claim. Existing stronger
-protected-storage/floor foundations remain historical and optional future
-hardening. [Decision 0034](decisions/0034-host-tested-ble-pairing-replacement-contract.md)
-and [`OTBP0/v0`](platform/BLE_PAIRING_REPLACEMENT_V0.md) now freeze and
-host-test the exact pairing, reconnect, replacement, timeout, restart, and
-fail-closed persistence semantics. A designated target-neutral local input held
-for at least 3000 ms and released opens one exact 30-second window; confirmed
-replacement requires a second qualifying hold/release after the candidate
-secure bond and before that original deadline. This selects no GPIO/button
-mapping. Pairing is Secure Connections-only, MITM passkey-authenticated and
-bonded with an exact 16-byte/128-bit key. No target, Android, storage, pairing,
-protected-control, or physical capability is implemented or accepted.
+superseded only that floor as a V1 prerequisite. [Decision 0103](decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md)
+now supplies the current V1 pairing and recovery behavior. A verified unowned
+boot automatically opens exactly one 60-second window with one fresh locally
+displayed six-digit PIN and the pairable `D1` advertising marker. Pairing is
+Secure Connections-only, MITM passkey-authenticated and bonded with an exact
+16-byte/128-bit key. The normal protected GATT service remains `D0`. An owned
+boot exposes no `D1` or PIN and accepts only its saved authorized phone. The
+returning Android path intersects observed `D0` advertisements with the current
+bonded-device set, requires exactly one candidate, never creates a bond, and
+requires protected normal `ProtocolInfo` plus device-owner authorization before
+`Ready`; V1 has no phone-
+replacement or lost-phone transfer path. The authorized app may initiate a
+destructive reset after explicit in-app confirmation without Heltec
+confirmation. Physical lost-phone recovery requires a 10-second hold, LCD
+warning, release, and short press within 10 seconds. Both paths converge on
+verified deletion of all user data and BLE bonds, including user map state,
+before a restart may publish an unowned pairing window. The exact fail-closed
+commit/recovery rules are frozen in
+[`DEVICE_FACTORY_RESET_V1`](platform/DEVICE_FACTORY_RESET_V1.md). Decision 0034
+and [`OTBP0/v0`](platform/BLE_PAIRING_REPLACEMENT_V0.md) remain historical host
+evidence only. OT-168 implementation, Android, target, power-interruption, and
+physical acceptance remain pending.
 
 [Decision 0029](decisions/0029-bounded-read-only-ble-link-status.md) permits one
 narrow exception for non-privileged link proof: a fixed, identical-across-units
@@ -238,6 +243,10 @@ fallback to the fake transport. One lifecycle binding releases runtime/facade
 leases on stop or destroy, including observer-triggered cleanup. At OT-045
 acceptance the injected application-security authority remained deny-all, so this was production-shaped
 UI/lifecycle evidence rather than a successful device connection.
+
+The following OT-046/OT-047 paragraphs are preserved historical implementation
+evidence. Their replacement UI is not current V1 product authority under
+Decision 0103.
 
 OT-046 defines the device-owned one-phone authorization policy without binding
 a target. A trusted lower BLE bond authority supplies a stable opaque 128-bit
@@ -1279,18 +1288,16 @@ and the recovered map is published only after exact protected readback. Initial
 source failure reaches no selector storage; every post-save trust conflict or
 uncertainty remains ambiguous-mapless for fresh-boot reconciliation.
 
-The [reset/replacement lifecycle policy](maps/OFFLINE_MAP_SELECTOR_RESET_REPLACEMENT_POLICY_V0.md)
-keeps ordinary factory reset, authorized selector reseed, same-device protected-
-source recovery, and whole-device commissioning separate. Ordinary reset
-preserves selector records plus protected map history. Selector reseed is
-routed only while protected history is intact; a temporarily unavailable source
-blocks selector access, and a missing or replaced source on the same device
-requires future independent external recovery instead of becoming first use.
-Independently established blank replacement hardware may route only to future
-fresh-domain commissioning, while retained selector import is rejected. The
-fixed-shape classifier grants no erase, protected-reset, generation-lowering,
-credential, or migration authority. Ten host groups pass; continuity evidence
-and execution authority remain target gates.
+The historical [reset/replacement lifecycle policy](maps/OFFLINE_MAP_SELECTOR_RESET_REPLACEMENT_POLICY_V0.md)
+keeps selector reseed, protected-source recovery, and new-device commissioning
+separate, and its exact v0 host evidence remains valid. Decision 0103 supersedes
+only that policy's ordinary-factory-reset preservation rule. Current whole-
+device V1 factory reset erases user-selected or transferred map packages,
+selectors, indexes, activation history, protected map history, and recovery
+metadata. Only an immutable factory-supplied public asset with no user-specific
+state may remain. Map-domain recovery and commissioning retain their separate
+authorization boundaries; the reset executor gains no selector reseed,
+generation-lowering, credential, or retained-state import authority.
 
 The [protected-domain authorization handoff](maps/OFFLINE_MAP_SELECTOR_DOMAIN_AUTHORIZATION_V0.md)
 derives either same-device domain replacement or blank-new-device commissioning
@@ -1673,9 +1680,18 @@ strict monotonic session admission, and exact active-duplicate handling reject
 replay after release. This ordinary V1 path does not activate the separate
 rollback-protected `OAP0` design and performs no replacement, erasure, repair,
 or orphan cleanup. Calls are externally serialized on the NimBLE host context.
-Physical persistence/reconnect and owner replacement remain separate gates. See
+Physical persistence/reconnect remains a separate gate. OT-168 is the active
+factory-reset and boot-pairing implementation/validation increment; it does not
+authorize owner replacement. See
 [Decision 0102](decisions/0102-accept-ot166-heltec-v1-bond-owner-integration.md)
-and [OT-166 evidence](../tests/hardware/OT-166-2026-08-31.md).
+and [OT-166 evidence](../tests/hardware/OT-166-2026-08-31.md), then
+[Decision 0103](decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md).
+Its current cross-layer contract separates D1-only fresh enrollment from
+D0-only returning-owner discovery. The latter accepts exactly one observed
+currently bonded candidate, never starts bonding or a PIN exchange, and must
+pass protected normal `ProtocolInfo` and device-owner authorization before
+`Ready`. This contract remains unaccepted until the required Android, target,
+interruption, and physical evidence passes.
 
 OT-165 adds the Android production system-bond admission between exact candidate
 selection and the existing GATT path. One attempt is bound to the opaque

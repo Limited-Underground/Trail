@@ -146,6 +146,8 @@ void test_each_partial_start_failure_contains() {
                 "partial failure rejected");
         require(owner.status().phase == CompanionBleRuntimePhase::contained,
                 "partial failure contained");
+        require(owner.status().stack_shutdown_complete,
+                "partial failure verifies stack shutdown");
         require(port.contain_calls == 1, "contain exactly once");
     }
 }
@@ -260,6 +262,8 @@ void test_watchdog_and_host_reset_are_terminal() {
             "host reset contained");
     require(reset_owner.status().phase == CompanionBleRuntimePhase::contained,
             "reset terminal");
+    require(reset_owner.status().stack_shutdown_complete,
+            "reset verifies stack shutdown");
     require(reset_owner.host_reset() == CompanionBleRuntimeError::contained,
             "repeated reset is idempotent");
     require(reset_owner.callback_overflow() ==
@@ -297,6 +301,8 @@ void test_shutdown_failure_is_terminal_and_attempted_once() {
     require(owner.status().terminal_error ==
                 CompanionBleRuntimeError::stack_shutdown_failed,
             "shutdown failure latched");
+    require(!owner.status().stack_shutdown_complete,
+            "failed shutdown is never reported complete");
     require(owner.callback_overflow() == CompanionBleRuntimeError::contained,
             "shutdown failure containment remains idempotent");
     require(port.contain_calls == 1, "failed shutdown attempted once");

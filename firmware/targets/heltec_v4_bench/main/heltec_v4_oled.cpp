@@ -26,6 +26,9 @@ constexpr std::size_t kGlyphAdvance = 6;
 constexpr std::size_t kPairingLabelY = 5;
 constexpr std::size_t kPairingDigitsY = 25;
 constexpr std::size_t kPairingDigitsScale = 2;
+constexpr std::size_t kFactoryResetFirstLineY = 13;
+constexpr std::size_t kFactoryResetSecondLineY = 35;
+constexpr std::size_t kFactoryResettingY = 25;
 
 std::array<std::uint8_t, kGlyphWidth> glyph_for(char value) {
     switch (value) {
@@ -65,6 +68,7 @@ std::array<std::uint8_t, kGlyphWidth> glyph_for(char value) {
         case 'X': return {0x63, 0x14, 0x08, 0x14, 0x63};
         case 'Y': return {0x03, 0x04, 0x78, 0x04, 0x03};
         case 'Z': return {0x61, 0x51, 0x49, 0x45, 0x43};
+        case '?': return {0x02, 0x01, 0x51, 0x09, 0x06};
         default: return {0, 0, 0, 0, 0};
     }
 }
@@ -123,6 +127,27 @@ void draw_pairing_page(
         std::copy(view.footer.columns.begin(), view.footer.columns.end(),
                   pixels.begin() + kStatusPage * kDisplayWidth);
     }
+}
+
+void draw_factory_reset_page(
+    std::array<std::uint8_t, kTrailStartupLogoBytes>& pixels,
+    StartupDisplayFrame frame) {
+    pixels.fill(0);
+    if (frame == StartupDisplayFrame::factory_reset_confirmation) {
+        constexpr char kFirstLine[] = "ERASE ALL";
+        constexpr char kSecondLine[] = "TRAIL DATA?";
+        draw_scaled_text(
+            pixels, kFirstLine, sizeof(kFirstLine) - 1,
+            kFactoryResetFirstLineY, 1);
+        draw_scaled_text(
+            pixels, kSecondLine, sizeof(kSecondLine) - 1,
+            kFactoryResetSecondLineY, 1);
+        return;
+    }
+    constexpr char kResetting[] = "RESETTING";
+    draw_scaled_text(
+        pixels, kResetting, sizeof(kResetting) - 1,
+        kFactoryResettingY, 2);
 }
 
 void draw_status_text(std::array<std::uint8_t, kTrailStartupLogoBytes>& frame,
@@ -232,7 +257,12 @@ bool HeltecV4Oled::initialize() {
 bool HeltecV4Oled::render(const StartupDisplayView& view) {
     if (!initialized_ || panel_ == nullptr) return false;
     auto pixels = kTrailStartupLogoSsd1306;
-    draw_frame_footer(pixels, view);
+    if (view.frame == StartupDisplayFrame::factory_reset_confirmation ||
+        view.frame == StartupDisplayFrame::factory_resetting) {
+        draw_factory_reset_page(pixels, view.frame);
+    } else {
+        draw_frame_footer(pixels, view);
+    }
     const auto result = esp_lcd_panel_draw_bitmap(
         panel_, 0, 0, kDisplayWidth, kDisplayHeight, pixels.data());
     return result == ESP_OK || record_failure("panel-draw", result);

@@ -51,7 +51,7 @@ CompanionSessionEvidence evidence(std::uint64_t binding = 7) {
 
 void test_protocol_info_has_one_canonical_vector() {
     const std::array<std::uint8_t, kCompanionProtocolInfoBytes> expected{
-        0x4F, 0x54, 0x42, 0x30, 0x00, 0x00, 0x01, 0x0F,
+        0x4F, 0x54, 0x42, 0x30, 0x00, 0x00, 0x01, 0x2F,
         0x80, 0x00, 0x97, 0x00, 0x10, 0x01, 0x00, 0x00,
     };
     std::array<std::uint8_t, kCompanionProtocolInfoBytes> encoded{};
@@ -70,6 +70,21 @@ void test_protocol_info_has_one_canonical_vector() {
     EXPECT(decoded.info.minimum_att_mtu == 151);
     EXPECT(decoded.info.max_fragment_count == 16);
     EXPECT(decoded.info.max_active_controllers == 1);
+
+    auto legacy_subset = encoded;
+    legacy_subset[7] = 0x0F;
+    const auto legacy = decode_companion_protocol_info(
+        {legacy_subset.data(), legacy_subset.size()});
+    EXPECT(legacy.decoded());
+    EXPECT((legacy.info.capabilities &
+            static_cast<std::uint8_t>(
+                CompanionCapability::factory_reset)) == 0);
+
+    auto unknown = encoded;
+    unknown[7] = 0x40;
+    EXPECT(decode_companion_protocol_info(
+               {unknown.data(), unknown.size()}).error ==
+           CompanionCodecError::unknown_capability);
 }
 
 void test_protocol_info_encode_is_bounded_and_atomic() {

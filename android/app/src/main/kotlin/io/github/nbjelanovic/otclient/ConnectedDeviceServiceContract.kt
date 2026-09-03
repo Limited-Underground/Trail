@@ -84,7 +84,10 @@ interface ConnectedDeviceSessionPort {
     fun refreshPermissionState()
     fun scan()
     fun authorize(endpointToken: String)
-    fun replaceLostPhone(endpointToken: String)
     fun disconnect()
     fun submitAction(request: CompanionActionRequest): Boolean
+    fun requestFactoryResetConfirmation(): Boolean = false
+    fun cancelFactoryResetConfirmation() = Unit
+    fun confirmFactoryReset(): Boolean = false
+    fun retryFactoryResetVerification(): Boolean = false
 }

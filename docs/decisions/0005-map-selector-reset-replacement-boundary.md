@@ -4,6 +4,14 @@ Status: accepted architecture direction; common preparation and stable
 activation implemented, target authority and physical composition pending,
 2026-08-11
 
+> **Superseded for whole-device V1 factory reset (2026-09-02):**
+> [Decision 0103](0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md) and
+> [`DEVICE_FACTORY_RESET_V1`](../platform/DEVICE_FACTORY_RESET_V1.md) supersede
+> the ordinary-reset map-preservation rule below. Whole-device V1 factory reset
+> erases user map packages, selectors, indexes, protected history, and recovery
+> metadata. The original decision remains immutable historical host evidence
+> for its exact map-domain policy version.
+
 ## Decision
 
 OpenTrail will keep ordinary factory reset, authorized selector service reseed,

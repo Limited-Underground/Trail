@@ -334,6 +334,34 @@ void test_registration_security_and_protocol_info() {
     EXPECT(status.lifecycle.indication_subscribed);
 }
 
+void test_second_connection_rejection_preserves_exact_original_session() {
+    Harness h;
+    const auto first_generation = h.connect_and_secure();
+    h.read_and_subscribe();
+    const auto before = h.adapter.status();
+
+    const auto rejected = h.adapter.connect(kConnection + 1);
+    EXPECT(rejected.error == CompanionGattAdapterError::connection_in_use);
+    EXPECT(rejected.transport_generation == 0);
+
+    const auto after = h.adapter.status();
+    EXPECT(after.connected);
+    EXPECT(after.secure_bond);
+    EXPECT(after.transport_generation == first_generation);
+    EXPECT(after.transport_generation == before.transport_generation);
+    EXPECT(after.lifecycle.phase == before.lifecycle.phase);
+    EXPECT(after.lifecycle.protocol_info_read);
+    EXPECT(after.lifecycle.indication_subscribed);
+    EXPECT(h.adapter.refresh_security(kConnection + 1, secure()) ==
+           CompanionGattAdapterError::wrong_connection);
+    EXPECT(h.adapter.disconnect(kConnection + 1) ==
+           CompanionGattAdapterError::wrong_connection);
+    EXPECT(h.adapter.refresh_security(kConnection, secure()) ==
+           CompanionGattAdapterError::none);
+    EXPECT(h.adapter.disconnect(kConnection) ==
+           CompanionGattAdapterError::none);
+}
+
 void test_security_and_private_binding_fail_closed() {
     for (std::uint8_t variant = 0; variant < 4; ++variant) {
         Harness h;
@@ -407,6 +435,55 @@ void test_claim_only_before_promotion_and_exact_promotion() {
     EXPECT(h.adapter.complete_indication(terminal_tuple, true, 3) ==
            CompanionGattAdapterError::none);
     EXPECT(h.adapter.status().lifecycle.application_authorized);
+}
+
+void test_successful_claim_accepts_first_snapshot_request() {
+    Harness h;
+    const auto generation = h.connect_and_secure();
+    h.read_and_subscribe();
+
+    const auto pending = h.begin_claim();
+    EXPECT(h.adapter.complete_indication(pending, true, 1) ==
+           CompanionGattAdapterError::none);
+    const auto terminal = h.adapter.resolve_claim(
+        kConnection, generation, kSession, 1, secure(), 2);
+    EXPECT(terminal.pending());
+    EXPECT(h.adapter.complete_indication(
+               h.adapter.status().pending, true, 3) ==
+           CompanionGattAdapterError::none);
+    EXPECT(h.adapter.status().lifecycle.phase ==
+           CompanionGattAuthorizationPhase::promoted);
+    EXPECT(h.adapter.status().lifecycle.normal_session_active);
+
+    const auto snapshot = h.adapter.service_command(
+        kConnection, kHandles.command_value,
+        {kSnapshotRequest.data(), kSnapshotRequest.size()}, 4);
+    EXPECT(snapshot.pending());
+    EXPECT(snapshot.disposition ==
+           CompanionGattAuthorizationRequestDisposition::
+               normal_indication_pending);
+    EXPECT(snapshot.error == CompanionGattAuthorizationError::none);
+    EXPECT(h.port.pending);
+
+    const auto response = decode_companion_fragment(
+        {h.port.response.data(), h.port.response_bytes});
+    EXPECT(response.decoded());
+    EXPECT(response.fragment.kind == CompanionFrameKind::snapshot);
+    EXPECT(response.fragment.session_nonce == kSession);
+    EXPECT(response.fragment.exchange_id == 2);
+    const auto decoded_snapshot = decode_companion_status_snapshot(
+        {response.fragment.payload.data(),
+         response.fragment.payload_bytes});
+    EXPECT(decoded_snapshot.decoded());
+    EXPECT(decoded_snapshot.value.revision != 0);
+
+    EXPECT(h.adapter.complete_indication(
+               h.adapter.status().pending, true, 5) ==
+           CompanionGattAdapterError::none);
+    EXPECT(h.adapter.status().lifecycle.phase ==
+           CompanionGattAuthorizationPhase::promoted);
+    EXPECT(h.adapter.status().lifecycle.normal_session_active);
+    EXPECT(!h.adapter.status().pending.valid);
 }
 
 void test_resolve_requires_fresh_security_and_binding() {
@@ -642,15 +719,17 @@ void test_wrong_connection_generation_and_malformed_inputs() {
 
 int main() {
     test_registration_security_and_protocol_info();
+    test_second_connection_rejection_preserves_exact_original_session();
     test_security_and_private_binding_fail_closed();
     test_exact_attribute_and_subscription_binding();
     test_claim_only_before_promotion_and_exact_promotion();
+    test_successful_claim_accepts_first_snapshot_request();
     test_resolve_requires_fresh_security_and_binding();
     test_completion_requires_exact_full_tuple();
     test_disconnect_reuse_rejects_stale_completion();
     test_unsubscribe_and_timeout_contain();
     test_reentry_is_rejected_across_injected_callbacks();
     test_wrong_connection_generation_and_malformed_inputs();
-    std::cout << "PASS: 10 companion GATT authorization adapter groups\n";
+    std::cout << "PASS: 12 companion GATT authorization adapter groups\n";
     return 0;
 }

@@ -23,10 +23,10 @@ requirements for basic operation.
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and two experimentally flashed Heltec targets |
-| Latest increment | OT-166 build-links the Heltec V4 durable one-owner BLE bridge: ordinary NVS owner record, persistent NimBLE Secure Connections bonds, exact boot reconciliation, protected-GATT promotion, and replay/inventory-drift rejection |
-| Proven so far | Both anonymous Heltec test units run the identical OT-164 experimental image and physically accept its bounded local six-digit pairing window. OT-165 proves Android's OS-owned initial bond path, and OT-166 proves the matching device firmware path by host tests and a complete ESP-IDF target build |
+| Latest increment | OT-168 now has the owner-approved factory-reset/boot-pairing contract, final focused firmware and Android foundation evidence, and one final pinned ESP-IDF target artifact; complete Host, physical, interruption, and coherent two-phone acceptance remain pending |
+| Proven so far | Focused reset storage/target, companion semantics, reset executor/gesture/authority, 60-second D1 enrollment, D0 returning-owner, and privacy-safe receipt tests pass. The final 549,184-byte Heltec application has SHA-256 `90FE9479653F16000D71BC7AA76EA3ECB41F6FF0B4CF7A263E6056E054AC0454` and 89% app-slot free. The final Android foundation gate passes 137 actionable tasks and 347 tests with zero failures/errors/skips; the inspected 8,508,592-byte unsigned release APK has SHA-256 `56897297b7512ef4a3fdc35a256d3a2e59fddd7b78b9efa2fc8ee69f1e15e1d3` |
 | Planned V1 | Two supported Heltec-and-Android pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE |
-| Not yet proven | Physical durable bond/reconnect behavior, owner replacement and old-bond removal, physical protected GATT, authenticated on-device LoRa, full two-phone operation, supported hardware, production firmware, power endurance, field range, or regulatory acceptance |
+| Not yet proven | Physical durable bond/reconnect behavior, destructive app/physical reset execution, power-interruption recovery, verified on-device user-data erasure, automatic unowned-boot pairing on both units, physical protected GATT, authenticated on-device LoRa, full two-phone operation, supported hardware, production firmware, power endurance, field range, or regulatory acceptance |
 
 Android remains 60% complete. V1 remains exact 43.75% and is displayed as 44%.
 Trail is not production-ready, and no hardware is currently listed as
@@ -53,8 +53,24 @@ V1 Companion requires this physical path in both directions:
 Phone A <-> BLE <-> Heltec A <-> direct LoRa <-> Heltec B <-> BLE <-> Phone B
 ```
 
-Each Heltec has one physically authorized phone. Acceptance includes practical
-PIN-based authorization and replacement, authenticated and encrypted
+Each Heltec has one authorized phone. A verified unowned boot automatically
+opens exactly one 60-second window with a fresh locally displayed six-digit PIN;
+the app discovers that enrollment window through the pairable `D1` marker. An
+owned boot is PIN-free and accepts only the saved phone. Returning-owner
+discovery considers currently bonded devices advertising the normal protected
+`D0` service, requires exactly one candidate, never creates a new bond, and
+requires protected `ProtocolInfo` plus device-owner authorization before
+`Ready`. V1 has no phone-
+replacement or lost-phone transfer flow. Recovery is a destructive factory
+reset initiated either by the authorized app without Heltec confirmation or by
+the local 10-second hold, warning, release, and short-press confirmation
+sequence. Both paths erase all user data, including maps, before returning to
+the unowned pairing state. App reset uses a random nonzero 64-bit little-endian
+receipt: the device echoes it only after durable intent admission, then exposes
+the exact receipt in the next D1 scan response after verified cleanup. The
+receipt correlates that reset only; it is neither identity nor authorization.
+Unknown outcomes are verified without resubmitting the destructive command.
+Acceptance also requires authenticated and encrypted
 bidirectional messaging, explicit rejection and bounded recovery, and one exact
 signed Android artifact installed on both approved phones. V1 has no server,
 internet, or relay dependency.

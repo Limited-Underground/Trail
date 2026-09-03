@@ -410,15 +410,52 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
     for branch in branches:
         assert exclusions(branch) == expected_exclusions
 
-    production_sources = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in sorted((main / "kotlin").rglob("*.kt"))
+    production_paths = sorted((main / "kotlin").rglob("*.kt"))
+    production_by_path = {
+        path: path.read_text(encoding="utf-8") for path in production_paths
+    }
+    production_sources = "\n".join(production_by_path.values())
+
+    # OT-168 has one deliberately durable, non-identifying reset-correlation
+    # receipt. Admit only its exact MODE_PRIVATE synchronous backend. Backup and
+    # device-transfer exclusion above remains mandatory, and any second use of
+    # SharedPreferences anywhere in production still fails this boundary.
+    gatt_facade_path = (
+        main
+        / "kotlin"
+        / "io"
+        / "github"
+        / "nbjelanovic"
+        / "otclient"
+        / "AndroidBluetoothGattFacade.kt"
     )
+    gatt_facade = production_by_path[gatt_facade_path]
+    assert all(
+        "SharedPreferences" not in source
+        for path, source in production_by_path.items()
+        if path != gatt_facade_path
+    )
+    assert gatt_facade.count("SharedPreferences") == 5
+    for required in (
+        "import android.content.SharedPreferences",
+        "private class SharedPreferencesFactoryResetReceiptStorage(",
+        "private val preferences: SharedPreferences,",
+        "SharedPreferencesFactoryResetReceiptStorage(",
+        "context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)",
+        "values.forEach { (key, value) -> editor.putLong(key, value) }",
+        "keys.forEach(editor::remove)",
+        "return editor.commit()",
+        'PREFERENCES_NAME = "trail_pending_factory_reset_receipt_v1"',
+        'RECEIPT_KEY = "receipt_bits"',
+        'ISSUED_AT_KEY = "issued_at_epoch_millis"',
+        'EXPIRY_KEY = "expires_at_epoch_millis"',
+        "ANDROID_FACTORY_RESET_RECEIPT_TTL_MILLIS = 120_000L",
+    ):
+        assert required in gatt_facade
     for forbidden in (
         "android.util.Log",
         "Timber.",
         "println(",
-        "SharedPreferences",
         "DataStore",
         "RoomDatabase",
         "SQLiteDatabase",

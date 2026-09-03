@@ -1,5 +1,32 @@
 # Heltec V4 bench candidate target
 
+## Current OT-167/OT-168 state (2026-09-02)
+
+This target remains experimental bench hardware, not declared supported or
+field-ready. The current source and pinned ESP-IDF build now bind live battery
+and GNSS observations into the compact footer, while unavailable observations
+continue to render as fail-closed placeholders.
+
+A freshly reset, unowned device opens exactly one 60-second enrollment window
+at boot. During that window it displays one six-digit PIN and advertises the
+dedicated D1 pairable marker; protected GATT remains the separate D0 service.
+An owned ordinary boot does not display a PIN or advertise D1. A returning
+authorized Android phone follows a separate bonded-D0 discovery path and must
+complete a protected normal `ProtocolInfo` read before the app can report
+`Ready`; that path never creates a new bond or requests a PIN.
+
+The physical factory-reset path is build-linked but not yet physically
+accepted: hold the Heltec button for 10 seconds, release when `Erase all Trail
+data?` appears, then short-press within 10 seconds to commit. Its durable
+cleanup contract removes prior-user Trail state and retains firmware,
+boot/OTA trust, hardware identity, and calibration. V1 has no phone-replacement
+path. OT-168 remains partial until the complete reset, reconnect, two-device,
+and two-phone hardware acceptance is recorded.
+
+The entries below are dated historical evidence and retain the narrower claims
+that were true when each increment was accepted; they do not override this
+current-status section.
+
 Status: experimentally flashed on both Heltec bench units with bounded USB
 runtime and the physically accepted compact placeholder footer. `OT-DEV-001`
 also retains its earlier BLE service, public-read, and link-status evidence; not
