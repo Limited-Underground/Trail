@@ -42,6 +42,22 @@ internal object AndroidReturningOwnerAdvertisementPolicy {
             advertisedServiceUuids.none { it == pairableAdvertisingUuid }
 }
 
+/**
+ * Android resolves a bonded peer's private advertising address before reporting its live bond
+ * state. Do not compare the scan-time BluetoothDevice object with a bonded-device snapshot: that
+ * equality remains address-shaped and can reject a valid resolved private address.
+ */
+internal object AndroidReturningOwnerBondAdmissionPolicy {
+    fun accepts(
+        hadBondedInventoryAtStart: Boolean,
+        hasCurrentBondedInventory: Boolean,
+        scanResultBondState: AndroidSystemBondState?,
+    ): Boolean =
+        hadBondedInventoryAtStart &&
+            hasCurrentBondedInventory &&
+            scanResultBondState == AndroidSystemBondState.BONDED
+}
+
 object OpaqueEndpointTokenPolicy {
     private const val MAX_GENERATION_ATTEMPTS = 4
 
@@ -168,6 +184,7 @@ internal class AndroidGattOperationGate {
 
     fun beginConnection() = move(AndroidGattStage.NEW, AndroidGattStage.CONNECTING)
     fun beginDiscovery() = move(AndroidGattStage.CONNECTING, AndroidGattStage.DISCOVERING)
+    fun retryDiscoveryAfterServiceChanged(): Boolean = stage == AndroidGattStage.DISCOVERING
     fun acceptProfile() = move(AndroidGattStage.DISCOVERING, AndroidGattStage.PROFILE_READY)
     fun beginMtuRequest(): Boolean {
         if (stage != AndroidGattStage.PROFILE_READY && stage != AndroidGattStage.PROTOCOL_INFO_READY) return false
@@ -216,6 +233,98 @@ internal class AndroidGattOperationGate {
         if (stage != expected) return false
         stage = next
         return true
+    }
+}
+
+internal enum class AndroidServiceChangedDiscoveryAction {
+    WAIT,
+    ACCEPT_PROFILE,
+    SCHEDULE_FAILURE_GRACE,
+    SCHEDULE_REDISCOVERY,
+    CANCEL_FAILURE_AND_SCHEDULE_REDISCOVERY,
+    FAIL,
+}
+
+private enum class AndroidServiceChangedDiscoveryStage {
+    INITIAL_DISCOVERY,
+    INITIAL_FAILURE_GRACE,
+    SERVICE_CHANGED_WAITING_INITIAL_RESULT,
+    REDISCOVERY_PENDING,
+    REDISCOVERING,
+    ACCEPTED,
+    FAILED,
+    CLOSED,
+}
+
+/** Allows one ordered rediscovery when Android reports that its remote GATT cache is stale. */
+internal class AndroidServiceChangedDiscoveryGate {
+    private var stage = AndroidServiceChangedDiscoveryStage.INITIAL_DISCOVERY
+
+    fun onServiceChanged(): AndroidServiceChangedDiscoveryAction = when (stage) {
+        AndroidServiceChangedDiscoveryStage.INITIAL_DISCOVERY -> {
+            stage = AndroidServiceChangedDiscoveryStage.SERVICE_CHANGED_WAITING_INITIAL_RESULT
+            AndroidServiceChangedDiscoveryAction.WAIT
+        }
+        AndroidServiceChangedDiscoveryStage.INITIAL_FAILURE_GRACE -> {
+            stage = AndroidServiceChangedDiscoveryStage.REDISCOVERY_PENDING
+            AndroidServiceChangedDiscoveryAction.CANCEL_FAILURE_AND_SCHEDULE_REDISCOVERY
+        }
+        else -> fail()
+    }
+
+    fun onDiscoveryResult(profileAccepted: Boolean): AndroidServiceChangedDiscoveryAction = when (stage) {
+        AndroidServiceChangedDiscoveryStage.INITIAL_DISCOVERY -> {
+            if (profileAccepted) {
+                stage = AndroidServiceChangedDiscoveryStage.ACCEPTED
+                AndroidServiceChangedDiscoveryAction.ACCEPT_PROFILE
+            } else {
+                stage = AndroidServiceChangedDiscoveryStage.INITIAL_FAILURE_GRACE
+                AndroidServiceChangedDiscoveryAction.SCHEDULE_FAILURE_GRACE
+            }
+        }
+        AndroidServiceChangedDiscoveryStage.SERVICE_CHANGED_WAITING_INITIAL_RESULT -> {
+            stage = AndroidServiceChangedDiscoveryStage.REDISCOVERY_PENDING
+            AndroidServiceChangedDiscoveryAction.SCHEDULE_REDISCOVERY
+        }
+        AndroidServiceChangedDiscoveryStage.REDISCOVERING -> {
+            if (profileAccepted) {
+                stage = AndroidServiceChangedDiscoveryStage.ACCEPTED
+                AndroidServiceChangedDiscoveryAction.ACCEPT_PROFILE
+            } else {
+                fail()
+            }
+        }
+        else -> fail()
+    }
+
+    fun onFailureGraceExpired(): AndroidServiceChangedDiscoveryAction =
+        if (stage == AndroidServiceChangedDiscoveryStage.INITIAL_FAILURE_GRACE) {
+            stage = AndroidServiceChangedDiscoveryStage.REDISCOVERY_PENDING
+            AndroidServiceChangedDiscoveryAction.SCHEDULE_REDISCOVERY
+        } else {
+            fail()
+        }
+
+    fun beginRediscovery(): Boolean {
+        if (stage != AndroidServiceChangedDiscoveryStage.REDISCOVERY_PENDING) {
+            if (stage != AndroidServiceChangedDiscoveryStage.CLOSED) {
+                stage = AndroidServiceChangedDiscoveryStage.FAILED
+            }
+            return false
+        }
+        stage = AndroidServiceChangedDiscoveryStage.REDISCOVERING
+        return true
+    }
+
+    fun close() {
+        stage = AndroidServiceChangedDiscoveryStage.CLOSED
+    }
+
+    private fun fail(): AndroidServiceChangedDiscoveryAction {
+        if (stage != AndroidServiceChangedDiscoveryStage.CLOSED) {
+            stage = AndroidServiceChangedDiscoveryStage.FAILED
+        }
+        return AndroidServiceChangedDiscoveryAction.FAIL
     }
 }
 

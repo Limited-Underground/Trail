@@ -1922,8 +1922,12 @@ def test_application_surface() -> None:
         "AndroidPairableAdvertisementPolicy.accepts(advertisedUuids)" in android_gatt and
         "AndroidReturningOwnerAdvertisementPolicy.accepts(advertisedUuids, stillBonded)" in
         android_gatt and
-        "result.device in bondedDevicesAtStart" in android_gatt and
-        "result.device in currentBonds" in android_gatt and
+        "AndroidReturningOwnerBondAdmissionPolicy.accepts" in android_gatt and
+        "hadBondedInventoryAtStart = bondedDevicesAtStart.isNotEmpty()" in android_gatt and
+        "hasCurrentBondedInventory = currentBonds.isNotEmpty()" in android_gatt and
+        "scanResultBondState = currentBondState(result.device)" in android_gatt and
+        "result.device in bondedDevicesAtStart" not in android_gatt and
+        "result.device in currentBonds" not in android_gatt and
         "allowSystemBondCreation = purpose == ScanPurpose.ADD_DEVICE" in android_gatt and
         "advertisedServiceUuids.none { it == gattServiceUuid }" in android_policy and
         "bonded &&" in android_policy and
@@ -2212,6 +2216,7 @@ def test_build_only_tooling() -> None:
         "CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y",
         "CONFIG_ESPTOOLPY_HEADER_FLASHSIZE_UPDATE=n",
         "CONFIG_PARTITION_TABLE_CUSTOM=y",
+        "CONFIG_APP_REPRODUCIBLE_BUILD=y",
         'CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"',
         "CONFIG_SPIRAM=y",
         "CONFIG_SPIRAM_MODE_QUAD=y",
@@ -2238,7 +2243,9 @@ def test_build_only_tooling() -> None:
         "CONFIG_BT_ENABLED=y",
         "CONFIG_BT_CONTROLLER_ENABLED=y",
         "CONFIG_BT_NIMBLE_ENABLED=y",
+        "CONFIG_BT_NIMBLE_ROLE_CENTRAL=y",
         "CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y",
+        "CONFIG_BT_NIMBLE_GATT_CLIENT=y",
         "CONFIG_BT_NIMBLE_GATT_SERVER=y",
         "CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1",
         "CONFIG_BT_NIMBLE_SECURITY_ENABLE=y",
@@ -2249,10 +2256,8 @@ def test_build_only_tooling() -> None:
         "CONFIG_BT_NIMBLE_NVS_PERSIST=y",
     )
     forbidden_nimble = (
-        "CONFIG_BT_NIMBLE_ROLE_CENTRAL=y",
         "CONFIG_BT_NIMBLE_ROLE_BROADCASTER=y",
         "CONFIG_BT_NIMBLE_ROLE_OBSERVER=y",
-        "CONFIG_BT_NIMBLE_GATT_CLIENT=y",
         "CONFIG_BT_NIMBLE_SM_LEGACY=y",
         "CONFIG_BT_NIMBLE_SM_SC_DEBUG_KEYS=y",
     )
@@ -2262,6 +2267,24 @@ def test_build_only_tooling() -> None:
     for option in forbidden_nimble:
         require(option not in defaults,
                 f"forbidden NimBLE selection enabled: {option}")
+
+    target_production_sources = "\n".join(
+        path.read_text(encoding="utf-8")
+        for pattern in ("*.cpp", "*.hpp")
+        for path in sorted((TARGET / "main").glob(pattern))
+    )
+    for forbidden_central_call in (
+        "ble_gap_disc(",
+        "ble_gap_ext_disc(",
+        "ble_gap_connect(",
+        "ble_gap_ext_connect(",
+        "ble_gattc_disc_",
+        "ble_gattc_read",
+        "ble_gattc_write",
+    ):
+        require(forbidden_central_call not in target_production_sources,
+                "Heltec must compile peer-indication receive support without "
+                f"initiating central behavior: {forbidden_central_call}")
 
     script = BUILD_SCRIPT.read_text(encoding="utf-8")
     require("ESP-IDF v6.0.2" in script, "build script must pin ESP-IDF")

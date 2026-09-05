@@ -26,6 +26,39 @@ Every concept uses these fields:
 planning. It does not mean the concept is scheduled, implemented, available,
 supported, or physically accepted.
 
+## Optional client/repeater mode on user devices
+
+- **Name:** Optional client/repeater mode on supported user devices
+- **Summary:** Owner reaffirmed on 2026-09-04 that a user's device should be
+  selectable as a repeater while retaining its normal client functions, rather
+  than requiring a dedicated repeater product. Aim for every supported user
+  device where its hardware and validated firmware can support both roles.
+  Strongly recommend external power or a suitably sized battery backup for
+  sustained relay use; do not prescribe capacity or runtime before measurement.
+- **Status:** accepted direction
+- **Earliest eligible milestone:** Priority post-V1 candidate, assessed for
+  V1.5 alongside supported-node interoperability. The owner is open to V1 if
+  inexpensive, but no estimate or V1 scope expansion is accepted here. V1
+  inclusion would require an explicit successor to Decision 0033; this is not
+  automatically deferred until after V2.
+- **Dependencies:** Reviewed secure forwarding construction, explicit opt-in
+  role control, bounded forwarding and duplicate/replay suppression, airtime
+  limits, fair client/relay scheduling, and measured power consumption.
+- **Safety, privacy, and security boundaries:** No unrestricted flooding or
+  weakening of endpoint authentication/encryption. Normal client use must
+  survive relay disablement, power loss, and relay departure. Define battery
+  warnings and low-power behavior from measured hardware evidence; do not
+  claim an unmeasured universal battery threshold or range improvement.
+- **Schedule and progress boundary:** Unscheduled enhancement direction, not
+  implemented or validated and no completion credit. Acceptance needs a real
+  three-radio sender-relay-receiver path with relay-disabled negative control,
+  simultaneous client traffic, packet/loss/duplicate/latency/airtime accounting,
+  and power-loss, restart, and battery operation tests on each claimed target.
+- **Decision and evidence links:** Owner request 2026-09-04;
+  [existing node roles](ARCHITECTURE.md#proposed-node-roles);
+  [Decision 0033](decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md).
+  Historical forwarding experiments are not acceptance of this combined mode.
+
 ## Logo-first idle display and button-driven status pages
 
 - **Name:** Logo-first idle display and button-driven status pages

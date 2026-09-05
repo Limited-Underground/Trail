@@ -49,8 +49,17 @@ protocol or package identity.
 ## Current OT-168 V1 pairing, reconnect, and reset authority
 
 The following current-product rules supersede the historical authorize/replace
-presentation described later in this file. They now have final host Android
-foundation evidence, but not physical or release acceptance:
+presentation described later in this file. They have host Android foundation
+evidence and bounded single-pair physical acceptance, not release acceptance:
+
+On 2026-09-04 the retained Note20/Heltec pair passed saved-owner authorization,
+mandatory Snapshot/Ready, app-process persistence, and automatic warm-reset
+reconnect without a new PIN. A 277.680-second ROM absence then exhausted the
+three quick retries; no new attempt occurred during the 78.664-second post-reset
+observation. Periodic saved-owner rediscovery while the app is open is next,
+not implemented. Cold-power recovery, destructive reset, production zero-tap
+launch, and coherent two-pair acceptance remain open. See
+[dated evidence](../tests/hardware/OT-168-2026-09-04.md).
 
 - A verified unowned Trail device automatically exposes the pairable `D1`
   advertising marker and one fresh six-digit PIN for exactly 60 seconds.
@@ -99,14 +108,15 @@ Focused Android tests cover the receipt codec, strict exact-match verification,
 unknown-outcome resume, bounded app-private receipt persistence, Settings-only
 destructive confirmation, and stale-bond guidance. The final audit correction
 suites pass 30/30 (receipt store 3/3, presentation 4/4, and controller 23/23).
-The post-audit Android foundation gate is green: `BUILD SUCCESSFUL` in 57
-seconds with 137 actionable tasks (10 executed and 127 up-to-date), and 347
+The publication Android foundation gate is green with 137 actionable tasks
+(87 executed and 50 cached), and 371
 protocol/debug/release unit tests report zero failures, errors, or skipped
 tests. Debug/release lint, debug and instrumentation assembly, release
 assembly, and unsigned-release inspection pass. The final unsigned release APK
-is 8,508,592 bytes with SHA-256
-`56897297b7512ef4a3fdc35a256d3a2e59fddd7b78b9efa2fc8ee69f1e15e1d3`.
-OT-168 remains partial pending the complete Host matrix, power-interruption
+is 8,524,976 bytes with SHA-256
+`930c67dfa5268b4e47ddf1167fbffb35418d77442ee5d6b408672e8cd79dde7a`.
+This unsigned APK was inspected but not installed or physically accepted.
+The complete Host matrix passed. OT-168 remains partial pending power-interruption
 recovery, both-device physical acceptance, and coherent two-phone evidence.
 
 ## What runs today

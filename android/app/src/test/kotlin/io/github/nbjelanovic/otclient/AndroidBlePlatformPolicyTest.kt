@@ -108,6 +108,52 @@ class AndroidBlePlatformPolicyTest {
     }
 
     @Test
+    fun returningOwnerBondAdmissionUsesAndroidResolvedBondStateInsteadOfScanObjectIdentity() {
+        assertTrue(
+            AndroidReturningOwnerBondAdmissionPolicy.accepts(
+                hadBondedInventoryAtStart = true,
+                hasCurrentBondedInventory = true,
+                scanResultBondState = AndroidSystemBondState.BONDED,
+            ),
+        )
+        assertFalse(
+            AndroidReturningOwnerBondAdmissionPolicy.accepts(
+                hadBondedInventoryAtStart = false,
+                hasCurrentBondedInventory = true,
+                scanResultBondState = AndroidSystemBondState.BONDED,
+            ),
+        )
+        assertFalse(
+            AndroidReturningOwnerBondAdmissionPolicy.accepts(
+                hadBondedInventoryAtStart = true,
+                hasCurrentBondedInventory = false,
+                scanResultBondState = AndroidSystemBondState.BONDED,
+            ),
+        )
+        assertFalse(
+            AndroidReturningOwnerBondAdmissionPolicy.accepts(
+                hadBondedInventoryAtStart = true,
+                hasCurrentBondedInventory = true,
+                scanResultBondState = AndroidSystemBondState.BONDING,
+            ),
+        )
+        assertFalse(
+            AndroidReturningOwnerBondAdmissionPolicy.accepts(
+                hadBondedInventoryAtStart = true,
+                hasCurrentBondedInventory = true,
+                scanResultBondState = AndroidSystemBondState.NONE,
+            ),
+        )
+        assertFalse(
+            AndroidReturningOwnerBondAdmissionPolicy.accepts(
+                hadBondedInventoryAtStart = true,
+                hasCurrentBondedInventory = true,
+                scanResultBondState = null,
+            ),
+        )
+    }
+
+    @Test
     fun platformOperationsUseThePermissionThatAndroidAssignsToThem() {
         for (operation in listOf(AndroidBlePlatformOperation.START_SCAN, AndroidBlePlatformOperation.STOP_SCAN)) {
             assertTrue(AndroidBleOperationPermissionPolicy.allows(operation, true, false))
@@ -187,6 +233,72 @@ class AndroidBlePlatformPolicyTest {
         gate.close()
         assertFalse(gate.beginConnection())
         assertFalse(gate.acceptsStreamIndication())
+    }
+
+    @Test
+    fun serviceChangedRecoveryConsumesTheInitialResultAndAllowsExactlyOneRediscovery() {
+        val changedFirst = AndroidServiceChangedDiscoveryGate()
+        assertEquals(AndroidServiceChangedDiscoveryAction.WAIT, changedFirst.onServiceChanged())
+        assertEquals(
+            AndroidServiceChangedDiscoveryAction.SCHEDULE_REDISCOVERY,
+            changedFirst.onDiscoveryResult(profileAccepted = false),
+        )
+        assertTrue(changedFirst.beginRediscovery())
+        assertEquals(
+            AndroidServiceChangedDiscoveryAction.ACCEPT_PROFILE,
+            changedFirst.onDiscoveryResult(profileAccepted = true),
+        )
+        assertEquals(AndroidServiceChangedDiscoveryAction.FAIL, changedFirst.onServiceChanged())
+
+        val resultFirst = AndroidServiceChangedDiscoveryGate()
+        assertEquals(
+            AndroidServiceChangedDiscoveryAction.SCHEDULE_FAILURE_GRACE,
+            resultFirst.onDiscoveryResult(profileAccepted = false),
+        )
+        assertEquals(
+            AndroidServiceChangedDiscoveryAction.CANCEL_FAILURE_AND_SCHEDULE_REDISCOVERY,
+            resultFirst.onServiceChanged(),
+        )
+        assertTrue(resultFirst.beginRediscovery())
+        assertEquals(
+            AndroidServiceChangedDiscoveryAction.FAIL,
+            resultFirst.onDiscoveryResult(profileAccepted = false),
+        )
+        assertFalse(resultFirst.beginRediscovery())
+    }
+
+    @Test
+    fun serviceChangedRecoveryKeepsCleanDiscoveryAndFailureBoundariesExact() {
+        val clean = AndroidServiceChangedDiscoveryGate()
+        assertEquals(
+            AndroidServiceChangedDiscoveryAction.ACCEPT_PROFILE,
+            clean.onDiscoveryResult(profileAccepted = true),
+        )
+        assertEquals(AndroidServiceChangedDiscoveryAction.FAIL, clean.onServiceChanged())
+
+        val noChange = AndroidServiceChangedDiscoveryGate()
+        assertEquals(
+            AndroidServiceChangedDiscoveryAction.SCHEDULE_FAILURE_GRACE,
+            noChange.onDiscoveryResult(profileAccepted = false),
+        )
+        assertEquals(
+            AndroidServiceChangedDiscoveryAction.SCHEDULE_REDISCOVERY,
+            noChange.onFailureGraceExpired(),
+        )
+        assertTrue(noChange.beginRediscovery())
+        assertEquals(
+            AndroidServiceChangedDiscoveryAction.FAIL,
+            noChange.onDiscoveryResult(profileAccepted = false),
+        )
+
+        val repeated = AndroidServiceChangedDiscoveryGate()
+        assertEquals(AndroidServiceChangedDiscoveryAction.WAIT, repeated.onServiceChanged())
+        assertEquals(AndroidServiceChangedDiscoveryAction.FAIL, repeated.onServiceChanged())
+
+        val closed = AndroidServiceChangedDiscoveryGate()
+        closed.close()
+        assertEquals(AndroidServiceChangedDiscoveryAction.FAIL, closed.onServiceChanged())
+        assertFalse(closed.beginRediscovery())
     }
 
     @Test

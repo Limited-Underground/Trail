@@ -4,6 +4,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import io.github.nbjelanovic.otprotocol.COMPANION_MINIMUM_ATT_MTU
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimOutcome
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimResult
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimState
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationClaimStatus
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationCorrelation
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationDenyReason
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationProtocolInfo
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationProtocolInfoCodec
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationPurpose
+import io.github.nbjelanovic.otprotocol.CompanionAuthorizationWireCodec
 import io.github.nbjelanovic.otprotocol.CompanionActionDisposition
 import io.github.nbjelanovic.otprotocol.CompanionActionKind
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
@@ -63,7 +73,7 @@ class BleCompanionRuntimeTest {
     }
 
     @Test
-    fun oneReturningOwnerCandidateReconnectsThroughProtectedNormalProtocolWithoutAuthorizationClaim() {
+    fun oneReturningOwnerCandidateReconnectsThroughFreshProtectedClaimWithoutAnotherPin() {
         val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
         val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
 
@@ -84,14 +94,23 @@ class BleCompanionRuntimeTest {
         assertEquals(1, gatt.protocolInfoReads)
         assertPhase(runtime, BleNegotiationPhase.PROTOCOL_INFO)
 
-        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfoBytes()))
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(17)))
         assertEquals(listOf(COMPANION_MINIMUM_ATT_MTU), gatt.requestedMtus)
         assertPhase(runtime, BleNegotiationPhase.ATT_MTU)
         gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
         assertEquals(1, gatt.streamSubscriptions)
         assertPhase(runtime, BleNegotiationPhase.STREAM_SUBSCRIPTION)
         gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+        assertPhase(runtime, BleNegotiationPhase.AUTHORIZATION_CLAIM)
+        assertEquals(1, gatt.commands.size)
+        assertEquals(
+            CompanionFrameKind.AUTHORIZATION_CLAIM_START,
+            CompanionProtocolCodec.decodeFragment(gatt.commands.single()).value?.kind,
+        )
+        gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(17)))
+        gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(17)))
         assertPhase(runtime, BleNegotiationPhase.INITIAL_SNAPSHOT)
+        assertEquals(2, gatt.commands.size)
         gatt.emit(BleGattEvent.StreamIndication(snapshotEnvelope(sessionNonce = 17, eventId = 1)))
 
         val ready = assertIs<BleRuntimeState.Ready>(runtime.state)
@@ -595,8 +614,8 @@ class BleCompanionRuntimeTest {
         assertEquals(BleConnectionPurpose.EXISTING_OWNER, second.purpose)
         first.emit(BleGattEvent.StreamIndication(snapshotEnvelope(99, 99)))
         assertTrue(fixture.runtime.state is BleRuntimeState.Reconnecting)
-        fixture.advanceReturningOwnerToInitialSnapshot(second)
-        second.emit(BleGattEvent.StreamIndication(snapshotEnvelope(31, 12)))
+        fixture.advanceReturningOwnerToInitialSnapshot(second, sessionNonce = 31)
+        second.emit(BleGattEvent.StreamIndication(snapshotEnvelope(31, 1)))
         assertEquals(31, assertIs<BleRuntimeState.Ready>(fixture.runtime.state).session.sessionNonce)
 
         // The phone cannot distinguish a device reboot from a same-valued boot-local nonce.
@@ -1087,11 +1106,13 @@ class BleCompanionRuntimeTest {
             gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
         }
 
-        fun advanceReturningOwnerToInitialSnapshot(gatt: TestGattLease) {
+        fun advanceReturningOwnerToInitialSnapshot(gatt: TestGattLease, sessionNonce: Long) {
             gatt.emit(BleGattEvent.ProfileReady)
-            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfoBytes()))
+            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(sessionNonce)))
             gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
             gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+            gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(sessionNonce)))
+            gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(sessionNonce)))
         }
 
         fun readyGatt(sessionNonce: Long, initialEventId: Long = 1): TestGattLease {
@@ -1252,6 +1273,46 @@ class BleCompanionRuntimeTest {
             authenticatedBond = true,
             applicationAuthorized = true,
         )
+        private val AUTHORIZATION_CORRELATION =
+            CompanionAuthorizationCorrelation(ByteArray(16) { (0xa0 + it).toByte() })
+
+        private fun authorizationProtocolInfoBytes(sessionNonce: Long): ByteArray =
+            CompanionAuthorizationProtocolInfoCodec.encode(
+                CompanionAuthorizationProtocolInfo(provisionalSessionNonce = sessionNonce),
+            ).value!!
+
+        private fun authorizationPendingEnvelope(sessionNonce: Long): ByteArray =
+            CompanionProtocolCodec.encodeFragment(
+                CompanionFragment(
+                    kind = CompanionFrameKind.AUTHORIZATION_CLAIM_STATUS,
+                    sessionNonce = sessionNonce,
+                    exchangeId = 1,
+                    payload = CompanionAuthorizationWireCodec.encodeClaimStatus(
+                        CompanionAuthorizationClaimStatus(
+                            CompanionAuthorizationPurpose.AUTHORIZE_CONTROLLER,
+                            CompanionAuthorizationClaimState.PENDING,
+                            AUTHORIZATION_CORRELATION,
+                        ),
+                    ).value!!,
+                ),
+            ).value!!
+
+        private fun authorizationAcceptedEnvelope(sessionNonce: Long): ByteArray =
+            CompanionProtocolCodec.encodeFragment(
+                CompanionFragment(
+                    kind = CompanionFrameKind.AUTHORIZATION_CLAIM_RESULT,
+                    sessionNonce = sessionNonce,
+                    exchangeId = 1,
+                    payload = CompanionAuthorizationWireCodec.encodeClaimResult(
+                        CompanionAuthorizationClaimResult(
+                            CompanionAuthorizationPurpose.AUTHORIZE_CONTROLLER,
+                            CompanionAuthorizationClaimOutcome.ACCEPTED,
+                            CompanionAuthorizationDenyReason.NONE,
+                            AUTHORIZATION_CORRELATION,
+                        ),
+                    ).value!!,
+                ),
+            ).value!!
 
         private fun protocolInfoBytes(
             capabilities: Int = REQUIRED_ACTION_CAPABILITIES,

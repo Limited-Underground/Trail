@@ -23,12 +23,14 @@ requirements for basic operation.
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and two experimentally flashed Heltec targets |
-| Latest increment | OT-168 now has the owner-approved factory-reset/boot-pairing contract, final focused firmware and Android foundation evidence, and one final pinned ESP-IDF target artifact; complete Host, physical, interruption, and coherent two-phone acceptance remain pending |
-| Proven so far | Focused reset storage/target, companion semantics, reset executor/gesture/authority, 60-second D1 enrollment, D0 returning-owner, and privacy-safe receipt tests pass. The final 549,184-byte Heltec application has SHA-256 `90FE9479653F16000D71BC7AA76EA3ECB41F6FF0B4CF7A263E6056E054AC0454` and 89% app-slot free. The final Android foundation gate passes 137 actionable tasks and 347 tests with zero failures/errors/skips; the inspected 8,508,592-byte unsigned release APK has SHA-256 `56897297b7512ef4a3fdc35a256d3a2e59fddd7b78b9efa2fc8ee69f1e15e1d3` |
-| Planned V1 | Two supported Heltec-and-Android pairs exchanging authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE |
-| Not yet proven | Physical durable bond/reconnect behavior, destructive app/physical reset execution, power-interruption recovery, verified on-device user-data erasure, automatic unowned-boot pairing on both units, physical protected GATT, authenticated on-device LoRa, full two-phone operation, supported hardware, production firmware, power endurance, field range, or regulatory acceptance |
+| Latest increment | OT-168 remains partial. One Heltec/Note20 pair now passes saved-owner authorization through Ready, app-process persistence, and automatic warm-reset reconnect. A prolonged ROM absence reproduced terminal retry exhaustion; periodic recovery is not yet implemented |
+| Proven so far | Focused Android/firmware tests and the complete Host matrix pass. Two empty-output-directory builds reproduce the canonical 563,824-byte application SHA-256 `91D4CEB48CCFBCD21AC97CE604C48FBCCA04D70408D2BF749C90CB053AD04824`; the retained test unit received an exact application-only write/readback. The existing Android app retained its owner/bond and reached fresh authorization plus mandatory Snapshot without a new PIN. Warm-reset link recovery measured 1.493 seconds, not full Ready latency. See the [dated physical evidence](tests/hardware/OT-168-2026-09-04.md) for artifact identities and limits |
+| Planned V1 | Two Heltec devices exchanging authenticated, encrypted messages over LoRa. Each device connects to its own Android phone for displaying information and controlling actions such as sending messages and sharing location. Bluetooth connects each phone to its own device; communication between the two devices uses LoRa. |
+| Not yet proven | Automatic long-absence recovery, true cold-power recovery, production zero-tap launch, destructive app/physical reset and erasure recovery, automatic unowned-boot pairing on both units, authenticated on-device LoRa, coherent two-phone operation, calibrated battery percentage, supported hardware, production firmware, endurance, field range, or regulatory acceptance |
 
-Android remains 60% complete. V1 remains exact 43.75% and is displayed as 44%.
+The accepted firmware build pair embeds pre-publication version `110e543-dirty`;
+its hash is not a clean-commit rebuild guarantee. Completion is calculated only
+from the [canonical V1 record](docs/V1_PROGRESS.json).
 Trail is not production-ready, and no hardware is currently listed as
 supported.
 

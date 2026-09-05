@@ -37,6 +37,7 @@ private const val BLUETOOTH_SCAN_PERMISSION = "android.permission.BLUETOOTH_SCAN
 private const val BLUETOOTH_CONNECT_PERMISSION = "android.permission.BLUETOOTH_CONNECT"
 internal const val ANDROID_SYSTEM_BOND_TIMEOUT_MILLIS = 60_000L
 internal const val ANDROID_SYSTEM_BOND_POLL_INTERVAL_MILLIS = 100L
+private const val ANDROID_SERVICE_CHANGED_FAILURE_GRACE_MILLIS = 250L
 
 internal object FactoryResetReceiptAdvertisementCodec {
     private val magic = byteArrayOf(0x4f, 0x54, 0x52, 0x52)
@@ -521,10 +522,11 @@ class AndroidBluetoothGattFacade(
                         observer(BleScanEvent.Failed(BleGattFailure.PERMISSION_REVOKED))
                         return
                     }
-                    val stillBonded =
-                        result.device in bondedDevicesAtStart &&
-                            result.device in currentBonds &&
-                            currentBondState(result.device) == AndroidSystemBondState.BONDED
+                    val stillBonded = AndroidReturningOwnerBondAdmissionPolicy.accepts(
+                        hadBondedInventoryAtStart = bondedDevicesAtStart.isNotEmpty(),
+                        hasCurrentBondedInventory = currentBonds.isNotEmpty(),
+                        scanResultBondState = currentBondState(result.device),
+                    )
                     AndroidReturningOwnerAdvertisementPolicy.accepts(advertisedUuids, stillBonded)
                 }
                 ScanPurpose.FACTORY_RESET_VERIFICATION ->
@@ -622,6 +624,31 @@ class AndroidBluetoothGattFacade(
                 return@Runnable
             }
             observer(BleGattEvent.ProfileReady)
+        }
+        private val serviceChangedDiscovery = AndroidServiceChangedDiscoveryGate()
+        private var serviceChangedFailureGatt: BluetoothGatt? = null
+        private var serviceRediscoveryGatt: BluetoothGatt? = null
+        private val serviceChangedFailureGrace = Runnable {
+            val expectedGatt = serviceChangedFailureGatt
+            serviceChangedFailureGatt = null
+            if (expectedGatt == null || !owns(expectedGatt)) return@Runnable
+            if (
+                serviceChangedDiscovery.onFailureGraceExpired() ==
+                AndroidServiceChangedDiscoveryAction.SCHEDULE_REDISCOVERY
+            ) {
+                scheduleServiceRediscovery(expectedGatt)
+            } else {
+                fail(BleGattFailure.PLATFORM_FAILURE)
+            }
+        }
+        private val serviceRediscovery = Runnable {
+            val expectedGatt = serviceRediscoveryGatt
+            serviceRediscoveryGatt = null
+            if (expectedGatt == null || !owns(expectedGatt)) return@Runnable
+            if (!requireConnectCallbackPermission()) return@Runnable
+            if (!serviceChangedDiscovery.beginRediscovery() || !retryDiscoveryAfterServiceChanged()) {
+                fail(BleGattFailure.PLATFORM_FAILURE)
+            }
         }
         private var leaseClosed = false
         private var bondReceiverRegistered = false
@@ -768,11 +795,7 @@ class AndroidBluetoothGattFacade(
             }
 
             override fun onServiceChanged(callbackGatt: BluetoothGatt) {
-                postToMain {
-                    if (!owns(callbackGatt)) return@postToMain
-                    if (!requireConnectCallbackPermission()) return@postToMain
-                    fail(BleGattFailure.PLATFORM_FAILURE)
-                }
+                postToMain { handleServiceChanged(callbackGatt) }
             }
         }
 
@@ -1002,6 +1025,11 @@ class AndroidBluetoothGattFacade(
             mainHandler.removeCallbacks(profileReadyRunnable)
             queuedProfileReadyGatt = null
             profileReadyGate.close()
+            mainHandler.removeCallbacks(serviceChangedFailureGrace)
+            mainHandler.removeCallbacks(serviceRediscovery)
+            serviceChangedFailureGatt = null
+            serviceRediscoveryGatt = null
+            serviceChangedDiscovery.close()
             systemBond.fail(AndroidSystemBondFailure.LIFECYCLE_ENDED)
             cleanupBondAttempt()
             bondPrerequisite.clear()
@@ -1060,37 +1088,74 @@ class AndroidBluetoothGattFacade(
             val current = gatt ?: return false
             if (!owns(current) || !operationAllowed(AndroidBlePlatformOperation.DISCOVER_SERVICES)) return false
             if (!bondedPrerequisiteSatisfied() || !operations.beginDiscovery()) return false
-            return try {
-                current.discoverServices()
-            } catch (_: SecurityException) {
-                false
+            return requestServiceDiscovery(current)
+        }
+
+        @SuppressLint("MissingPermission")
+        private fun retryDiscoveryAfterServiceChanged(): Boolean {
+            val current = gatt ?: return false
+            if (!owns(current) || !operationAllowed(AndroidBlePlatformOperation.DISCOVER_SERVICES)) return false
+            if (!bondedPrerequisiteSatisfied() || !operations.retryDiscoveryAfterServiceChanged()) return false
+            return requestServiceDiscovery(current)
+        }
+
+        @SuppressLint("MissingPermission")
+        private fun requestServiceDiscovery(current: BluetoothGatt): Boolean = try {
+            current.discoverServices()
+        } catch (_: SecurityException) {
+            false
+        } catch (_: IllegalStateException) {
+            false
+        }
+
+        private fun handleServiceChanged(callbackGatt: BluetoothGatt) {
+            if (!owns(callbackGatt)) return
+            if (!requireConnectCallbackPermission()) return
+            when (serviceChangedDiscovery.onServiceChanged()) {
+                AndroidServiceChangedDiscoveryAction.WAIT -> Unit
+                AndroidServiceChangedDiscoveryAction.CANCEL_FAILURE_AND_SCHEDULE_REDISCOVERY -> {
+                    mainHandler.removeCallbacks(serviceChangedFailureGrace)
+                    serviceChangedFailureGatt = null
+                    scheduleServiceRediscovery(callbackGatt)
+                }
+                else -> fail(BleGattFailure.PLATFORM_FAILURE)
+            }
+        }
+
+        private fun scheduleServiceRediscovery(callbackGatt: BluetoothGatt) {
+            protocolInfo = null
+            command = null
+            stream = null
+            streamCccd = null
+            serviceRediscoveryGatt = callbackGatt
+            if (!mainHandler.post(serviceRediscovery)) {
+                serviceRediscoveryGatt = null
+                fail(BleGattFailure.PLATFORM_FAILURE)
             }
         }
 
         private fun handleServicesDiscovered(callbackGatt: BluetoothGatt, status: Int) {
             if (!owns(callbackGatt)) return
-            if (profileReadyGate.hasStarted()) {
-                return
-            }
-            if (status != BluetoothGatt.GATT_SUCCESS) {
-                fail(BleGattFailure.PLATFORM_FAILURE)
-                return
-            }
+            if (profileReadyGate.hasStarted()) return
             if (!operationAllowed(AndroidBlePlatformOperation.DISCOVER_SERVICES)) {
                 fail(BleGattFailure.PERMISSION_REVOKED)
                 return
             }
-            val discovered = try {
-                val service = callbackGatt.getService(gattServiceUuid)
-                DiscoveredGattProfile(
-                    service != null,
-                    service?.getCharacteristic(protocolInfoUuid),
-                    service?.getCharacteristic(commandUuid),
-                    service?.getCharacteristic(streamUuid),
-                )
-            } catch (_: SecurityException) {
-                fail(BleGattFailure.PERMISSION_REVOKED)
-                return
+            val discovered = if (status == BluetoothGatt.GATT_SUCCESS) {
+                try {
+                    val service = callbackGatt.getService(gattServiceUuid)
+                    DiscoveredGattProfile(
+                        service != null,
+                        service?.getCharacteristic(protocolInfoUuid),
+                        service?.getCharacteristic(commandUuid),
+                        service?.getCharacteristic(streamUuid),
+                    )
+                } catch (_: SecurityException) {
+                    fail(BleGattFailure.PERMISSION_REVOKED)
+                    return
+                }
+            } else {
+                DiscoveredGattProfile(false, null, null, null)
             }
             val info = discovered.protocolInfo
             val commandCharacteristic = discovered.command
@@ -1111,35 +1176,50 @@ class AndroidBluetoothGattFacade(
                 streamIndicate = streamCharacteristic.hasProperty(BluetoothGattCharacteristic.PROPERTY_INDICATE),
                 streamHasClientConfigurationDescriptor = cccd != null,
             )
-            if (!AndroidGattProfilePolicy.accepts(profile)) {
-                fail(BleGattFailure.PLATFORM_FAILURE)
-                return
-            }
-            if (!operations.acceptProfile()) {
-                fail(BleGattFailure.PLATFORM_FAILURE)
-                return
-            }
-            protocolInfo = info
-            command = commandCharacteristic
-            stream = streamCharacteristic
-            streamCccd = cccd
-            if (!bondedPrerequisiteSatisfied()) {
-                fail(BleGattFailure.BOND_REQUIRED)
-                return
-            }
-            if (!profileReadyGate.begin()) {
-                fail(BleGattFailure.PLATFORM_FAILURE)
-                return
-            }
-            queuedProfileReadyGatt = callbackGatt
-            if (!mainHandler.post(profileReadyRunnable)) {
-                queuedProfileReadyGatt = null
-                if (profileReadyGate.rejectPost()) {
-                    fail(BleGattFailure.PLATFORM_FAILURE)
+            val profileAccepted = status == BluetoothGatt.GATT_SUCCESS && AndroidGattProfilePolicy.accepts(profile)
+            when (serviceChangedDiscovery.onDiscoveryResult(profileAccepted)) {
+                AndroidServiceChangedDiscoveryAction.ACCEPT_PROFILE -> {
+                    if (!profileAccepted || !operations.acceptProfile()) {
+                        fail(BleGattFailure.PLATFORM_FAILURE)
+                        return
+                    }
+                    protocolInfo = info
+                    command = commandCharacteristic
+                    stream = streamCharacteristic
+                    streamCccd = cccd
+                    if (!bondedPrerequisiteSatisfied()) {
+                        fail(BleGattFailure.BOND_REQUIRED)
+                        return
+                    }
+                    if (!profileReadyGate.begin()) {
+                        fail(BleGattFailure.PLATFORM_FAILURE)
+                        return
+                    }
+                    queuedProfileReadyGatt = callbackGatt
+                    if (!mainHandler.post(profileReadyRunnable)) {
+                        queuedProfileReadyGatt = null
+                        if (profileReadyGate.rejectPost()) {
+                            fail(BleGattFailure.PLATFORM_FAILURE)
+                        }
+                    }
                 }
+                AndroidServiceChangedDiscoveryAction.SCHEDULE_FAILURE_GRACE -> {
+                    serviceChangedFailureGatt = callbackGatt
+                    if (!mainHandler.postDelayed(
+                            serviceChangedFailureGrace,
+                            ANDROID_SERVICE_CHANGED_FAILURE_GRACE_MILLIS,
+                        )
+                    ) {
+                        serviceChangedFailureGatt = null
+                        serviceChangedDiscovery.onFailureGraceExpired()
+                        fail(BleGattFailure.PLATFORM_FAILURE)
+                    }
+                }
+                AndroidServiceChangedDiscoveryAction.SCHEDULE_REDISCOVERY ->
+                    scheduleServiceRediscovery(callbackGatt)
+                else -> fail(BleGattFailure.PLATFORM_FAILURE)
             }
         }
-
         private fun handleProtocolInfoRead(
             callbackGatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,

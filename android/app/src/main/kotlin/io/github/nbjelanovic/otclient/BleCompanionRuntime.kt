@@ -392,6 +392,7 @@ class BleCompanionRuntime(
         val purpose: DeviceAuthorizationPurpose,
         val publicOperationToken: String,
         val observer: (DeviceAuthorizationClaimEvent) -> Unit,
+        val automaticReturningOwner: Boolean = false,
         var started: Boolean = false,
         var terminal: Boolean = false,
         var promoted: Boolean = false,
@@ -892,13 +893,7 @@ class BleCompanionRuntime(
                     selected = null
                     publish(BleRuntimeState.Idle)
                 } else {
-                    selected = candidate
-                    reconnectAttempt = 0
-                    beginConnection(
-                        candidate,
-                        isReconnect = false,
-                        purpose = BleConnectionPurpose.EXISTING_OWNER,
-                    )
+                    beginReturningOwnerConnection(candidate, isReconnect = false)
                 }
             }
             is BleScanEvent.Failed -> {
@@ -974,6 +969,41 @@ class BleCompanionRuntime(
         }
     }
 
+    /**
+     * A saved bond removes the PIN/pairing step, but it does not replace the device-authoritative
+     * application claim required for each fresh GATT session. Keep that claim internal so a
+     * returning owner reconnects without UI interaction while using the same protected wire path
+     * as first authorization.
+     */
+    private fun beginReturningOwnerConnection(
+        companion: BleDiscoveredCompanion,
+        isReconnect: Boolean,
+    ) {
+        if (authorizationClaim != null || authorizationOperationCounter == Long.MAX_VALUE) {
+            selected = null
+            publish(BleRuntimeState.Failed(BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED))
+            return
+        }
+        authorizationOperationCounter += 1
+        val operationId = authorizationOperationCounter
+        authorizationClaim = RuntimeAuthorizationClaim(
+            operationId = operationId,
+            companion = companion,
+            purpose = DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE,
+            publicOperationToken = "returning-owner-$operationId",
+            observer = {},
+            automaticReturningOwner = true,
+            started = true,
+        )
+        selected = companion
+        if (!isReconnect) reconnectAttempt = 0
+        beginConnection(
+            companion,
+            isReconnect = isReconnect,
+            purpose = BleConnectionPurpose.EXISTING_OWNER,
+        )
+    }
+
     @Synchronized
     private fun onGattEvent(
         callbackGeneration: Long,
@@ -1014,9 +1044,10 @@ class BleCompanionRuntime(
             BleGattEvent.StreamIndicationsSubscribed -> onStreamSubscribed(companion)
             is BleGattEvent.StreamIndication -> onStreamValue(companion, event.value)
             is BleGattEvent.Failed -> {
+                val claimOwnsFailure = authorizationClaimOwnsFailure()
                 handleConnectionFailure(
                     companion,
-                    if (authorizationClaim != null) {
+                    if (claimOwnsFailure) {
                         BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST
                     } else when (event.failure) {
                         BleGattFailure.SECURITY_REJECTED -> BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED
@@ -1026,22 +1057,23 @@ class BleCompanionRuntime(
                         BleGattFailure.PLATFORM_FAILURE -> BleRuntimeFailure.CONNECTION_START_FAILED
                         BleGattFailure.TRANSIENT_LINK -> BleRuntimeFailure.CONNECTION_START_FAILED
                     },
-                    transient = authorizationClaim == null && event.failure == BleGattFailure.TRANSIENT_LINK,
+                    transient = !claimOwnsFailure && event.failure == BleGattFailure.TRANSIENT_LINK,
                     connectionDiagnostic = event.failure.connectionDiagnostic(),
                 )
             }
             BleGattEvent.Disconnected -> {
+                val claimOwnsFailure = authorizationClaimOwnsFailure()
                 val beforeReturningOwnerProfile =
                     purpose == BleConnectionPurpose.EXISTING_OWNER &&
                         (state is BleRuntimeState.Connecting || state is BleRuntimeState.Reconnecting)
                 handleConnectionFailure(
                     companion,
-                    if (authorizationClaim != null) {
+                    if (claimOwnsFailure) {
                         BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST
                     } else {
                         BleRuntimeFailure.CONNECTION_START_FAILED
                     },
-                    transient = authorizationClaim == null,
+                    transient = !claimOwnsFailure,
                     connectionDiagnostic = if (beforeReturningOwnerProfile) {
                         BleConnectionDiagnostic.DISCONNECTED_BEFORE_PROFILE
                     } else {
@@ -1050,6 +1082,11 @@ class BleCompanionRuntime(
                 )
             }
         }
+    }
+
+    private fun authorizationClaimOwnsFailure(): Boolean {
+        val claim = authorizationClaim ?: return false
+        return !claim.automaticReturningOwner || claim.pendingReported || claim.terminal
     }
 
     private fun onGattOpened() {
@@ -1194,7 +1231,10 @@ class BleCompanionRuntime(
             acceptReturningOwnerProtocolInfo(companion, value)
             return
         }
-        if (purpose != BleConnectionPurpose.INITIAL_AUTHORIZATION || authorizationClaim == null) {
+        if (
+            authorizationClaim == null ||
+            (purpose != BleConnectionPurpose.INITIAL_AUTHORIZATION && purpose != BleConnectionPurpose.EXISTING_OWNER)
+        ) {
             failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
             return
         }
@@ -1213,7 +1253,7 @@ class BleCompanionRuntime(
         acceptAuthorizationProtocolInfo(companion, value, deviceProtectedReadAccepted = true)
     }
 
-    /** Successful protected normal ProtocolInfo is device-enforced owner proof, not a bond inference. */
+    /** Legacy branch retained for configurations that expose the protected normal v0.0 record. */
     private fun acceptReturningOwnerProtocolInfo(companion: BleDiscoveredCompanion, value: ByteArray) {
         val decoded = CompanionProtocolCodec.decodeProtocolInfo(value).value
         if (
@@ -1820,11 +1860,15 @@ class BleCompanionRuntime(
         transient: Boolean,
         connectionDiagnostic: BleConnectionDiagnostic? = null,
     ) {
-        val authorizationWasActive = authorizationClaim != null
-        if (authorizationWasActive) {
+        val activeClaim = authorizationClaim
+        if (
+            activeClaim != null &&
+            (!activeClaim.automaticReturningOwner || activeClaim.pendingReported || activeClaim.terminal)
+        ) {
             finishAuthorizationTransportFailure(reason, connectionDiagnostic)
             return
         }
+        if (activeClaim?.automaticReturningOwner == true) authorizationClaim = null
         operationTimeoutLease?.close()
         operationTimeoutLease = null
         gattLease?.close()
@@ -1881,7 +1925,7 @@ class BleCompanionRuntime(
             selected?.endpointToken != companion.endpointToken
         ) return
         reconnectLease = null
-        beginConnection(companion, isReconnect = true, purpose = BleConnectionPurpose.EXISTING_OWNER)
+        beginReturningOwnerConnection(companion, isReconnect = true)
     }
 
     private fun reconnectDelayMillis(attempt: Int): Long = 1_000L shl (attempt - 1).coerceAtMost(3)

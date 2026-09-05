@@ -334,9 +334,6 @@ public:
         // one safe orphan-bond shape left by an interrupted initial claim;
         // the reset executor then verifies the reconciled domains itself.
         ble_store_config_init();
-        if (!clear_pending_cccd_value_changes()) {
-            return fail_security_configuration(10);
-        }
         g_factory_reset_bonds->set_store_access_ready(true);
         const auto reset_marker_snapshot = g_factory_reset_marker->load();
         if (reset_marker_snapshot.error !=
@@ -488,7 +485,7 @@ public:
     }
 
     bool configure_public_service_advertising() override {
-        if (!host_started_) return false;
+        if (!host_started_ || !clear_pending_cccd_value_changes()) return false;
         if (ble_hs_util_ensure_addr(1) != 0 ||
             ble_hs_id_infer_auto(1, &own_address_type_) != 0) {
             return false;

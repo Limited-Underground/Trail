@@ -41,6 +41,7 @@ if ($null -eq $python) {
 # Run checkout-sensitive target and frozen-harness contracts before the long
 # native matrix so structural target changes fail in seconds, not at the end.
 $fastStructuralTests = @(
+    @{ File = 'heltec_development_identity_tests.py'; Failure = 'Development device identity tests failed.' },
     @{ File = 'historical_target_dependency_boundary_tests.py'; Failure = 'Historical/live target dependency boundary tests failed.' },
     @{ File = 'crypto_benchmark_baseline_historical_tests.py'; Failure = 'OTCBL0 historical successor tests failed.' },
     @{ File = 'crypto_benchmark_baseline_historical_harness_tests.py'; Failure = 'OTCBL0 historical successor tamper tests failed.' },

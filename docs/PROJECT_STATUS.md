@@ -1,6 +1,48 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-09-02
+Status date: 2026-09-04
+
+Roadmap clarification (2026-09-04): the owner reaffirmed optional combined
+client/repeater operation on supported user devices, with external power or
+adequate battery backup strongly recommended. The existing architecture already
+names this role; its explicit [future-concept entry](FUTURE_CONCEPTS.md#optional-clientrepeater-mode-on-user-devices)
+now records the power recommendation and acceptance gates. Priority post-V1 /
+V1.5 assessment is proposed; no V1 scope change, implementation, schedule, or
+progress credit is claimed.
+
+Latest physical checkpoint: the owner-authorized canonical application-only
+write and independent SHA-256 readback passed on privately identified
+`OT-DEV-001`. The owner confirmed display return. One saved-owner reconnect on
+the existing Note20 installation then reached authenticated Ready with its
+mandatory device Snapshot and remained connected at the follow-up check.
+The app retained its saved bond and owner data; no new PIN was required.
+Follow-up tests now also pass app-process death/relaunch and one normal
+physical Heltec RESET with automatic reconnect and no phone input. The new BLE
+link was established 1.493 seconds after the old-link callback; full Ready
+latency was not instrumented. Fresh authenticated Ready and Snapshot were
+confirmed after each restart.
+This supersedes the earlier write/reconnect-pending statements below, which
+describe the preceding attempts. True cold-power recovery, prolonged
+out-of-range return, factory-reset recovery, production automatic launch, and
+two-device/two-phone acceptance remain open. Current reconnect code makes only
+three attempts before terminal `RECONNECT_EXHAUSTED`; it does not yet provide
+persistent battery-conscious rediscovery after an extended absence.
+The owner-directed ROM absence now physically confirms that limitation:
+three attempts exhausted approximately 22 seconds after link loss; the Heltec
+returned normally after approximately 4 minutes 38 seconds, but the untouched
+Note20 app still had not retried 78.664 seconds after the reset command.
+The display is on and the app was left in terminal failure. No firmware,
+bond, or app data was changed. Periodic saved-owner rediscovery is next.
+OT-168 remains partial and V1 completion remains exact 43.75% / displayed 44%.
+See [the dated hardware evidence](../tests/hardware/OT-168-2026-09-04.md).
+
+Owner-requested follow-up (2026-09-04): the Heltec battery percentage appears
+incorrect to the owner. This is a reported concern, not yet a measured defect.
+Audit voltage acquisition/calibration and the percentage conversion, then
+compare with measured pack voltage and controlled charge/use observations,
+including USB/charging versus battery-only operation. OT-147 accepted visible
+approximate indication, not calibrated state of charge. This separate follow-up
+does not interrupt reconnect work or add completion credit.
 
 Public repository: <https://github.com/Limited-Underground/Trail>
 
@@ -52,18 +94,64 @@ application is 549,184 bytes with SHA-256
 `90FE9479653F16000D71BC7AA76EA3ECB41F6FF0B4CF7A263E6056E054AC0454`
 and 89% of the application slot free.
 
-The post-audit Android foundation gate is also green: `BUILD SUCCESSFUL` in 57
+Historical pre-successor Android foundation gate: `BUILD SUCCESSFUL` in 57
 seconds with 137 actionable tasks (10 executed and 127 up-to-date), 347
 protocol/debug/release unit tests with zero failures, errors, or skipped tests,
 debug/release lint and assembly, instrumentation assembly, and unsigned-release
-inspection. The final unsigned release APK is 8,508,592 bytes with SHA-256
+inspection. That predecessor unsigned release APK is 8,508,592 bytes with SHA-256
 `56897297b7512ef4a3fdc35a256d3a2e59fddd7b78b9efa2fc8ee69f1e15e1d3`.
-The complete Host matrix, power-interruption acceptance, physical acceptance
-on both Heltecs, and coherent two-phone evidence remain pending. OT-168 stays
-partial; Android remains 60%; V1 remains exact 43.75%/displayed 44%.
+Power-interruption acceptance, physical acceptance on both Heltecs, and coherent
+two-phone evidence remain pending. OT-168 stays partial; Android remains 60%;
+V1 remains exact 43.75%/displayed 44%.
 Historical 30-second/replacement observations stay immutable. The owner
-deferred website inspection and synchronization until the two-device/two-phone
-milestone, so no website update is required here.
+previously deferred website inspection and synchronization until the two-device/two-phone
+milestone. The 2026-09-04 publication authorization supersedes that deferral;
+the publication validation refresh below records the current 371-test artifact.
+
+The saved-owner reconnect successor now has one physical Note20/OT-DEV-001
+Ready acceptance after canonical write/readback. The Heltec clears restored
+CCCD `value_changed` state after NimBLE
+host synchronization and compiles only the client receive machinery needed to
+confirm a peer Service Changed indication; static checks forbid central
+operations. Android allows one same-GATT rediscovery with a 250 ms ordering
+grace and performs a fresh connection-local authorization claim with the
+retained owner secret without requesting a new PIN. Returning-owner discovery
+requires bonded inventories at scan start and callback time plus the scanned
+peer's live `BOND_BONDED` state; because private-address resolution prevents a
+reliable earlier-snapshot identity comparison, protected admission continues to
+depend on the application authorization secret. Focused tests, all 16 target
+groups, the 291-input raw-byte audit, and the complete Host matrix pass. A
+test-first preflight now requires reproducible application builds, and two
+initially absent, cache-disabled ESP-IDF 6.0.2 builds reproduce the complete
+application/ELF/map/bootloader/partition/configuration tuple. The canonical
+563,824-byte application has SHA-256
+`91D4CEB48CCFBCD21AC97CE604C48FBCCA04D70408D2BF749C90CB053AD04824`
+and 89% app-slot free. The installed Android debug APK exactly matches the
+local candidate. An initial no-write hardware preflight could not read either
+anonymous endpoint. On the second gate, exactly one anonymous endpoint was
+present in ROM mode and the complete 5,177,344-byte factory application range
+was read, but its first 551,584 bytes did not match the recorded retained-unit
+application. Qualification stopped before any write; the temporary read was
+removed and Android was not started or changed. After one requested normal
+reset, the owner reported the display restored and confirmed with certainty
+that this was the same retained phone-test unit.
+
+Host audit validates the original hash method. The owner-directed successor now
+binds the factory ESP32-S3 base MAC privately to `OT-DEV-001`, matches that
+identity again after a retained 5,177,344-byte application-range read, and
+validates the leading image. The range SHA-256 is
+`BC2421E0D11AE84FD38C17F49A182E1215DAF5F9BD38BDFA62DD8178092D1EFF`.
+Its first 563,824 bytes exactly match the local pre-reproducible build
+`587A2D55D68EF8C19E9D48308EDD4B7AD6D4495F43A5618BD71335ED66BD0E81`.
+That image differs from the canonical reproducible `91D4CEB4...` candidate at
+only the 32-byte embedded ELF digest and its dependent checksum/validation hash.
+The old `B34C95FE...` expectation was stale; unexplained flash drift is excluded.
+No write or Android action occurred. The software run command did not restore
+the display; one owner-performed normal reset with BOOT released then restored
+it. The subsequent authorized application-only write/readback and one
+saved-owner reconnect passed as recorded above. OT-168 stays partial, Android
+stays 60%, and V1 stays exact
+43.75%/displayed 44%.
 
 OT-166 accepts the build-linked Heltec V4 durable V1 BLE bond-owner path. The
 target initializes a dedicated ordinary NVS partition without erase recovery,
@@ -3067,3 +3155,27 @@ user interaction. The current mode chooser, explicit service-start button, and
 production-visible Local test entry are development scaffolding, not accepted
 V1 UX. See [the returning-owner reconnect
 mapping](testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md).
+
+## Publication validation refresh — 2026-09-04
+
+The owner authorized repository and website synchronization, superseding the
+prior website deferral for this checkpoint. The current Android task matrix
+passes 137 actionable tasks (87 executed, 50 cached), 371 protocol/debug/release
+unit tests with zero failures/errors/skips, debug/release lint, and all requested
+assemblies. Unsigned release inspection passes for the 8,524,976-byte artifact
+SHA-256 `930c67dfa5268b4e47ddf1167fbffb35418d77442ee5d6b408672e8cd79dde7a`.
+This is a build/inspection result only: the APK was not installed, signed for
+release, or physically accepted. Hardware observations remain bound to the
+retained `3DDB3F59...` debug APK and `91D4CEB4...` pre-publication firmware.
+The firmware embeds `110e543-dirty`; two matching empty-output-directory builds
+are not a guarantee that a later clean Git version yields the same hash.
+Earlier 549,184-byte/90FE firmware and 347-test/5689 release summaries are
+historical pre-successor checkpoints, not the current publication artifacts.
+
+Exact next task: implement periodic saved-owner rediscovery while the app is
+open after quick retries, respecting explicit disconnect, then repeat the same
+prolonged-absence physical test without phone input. Next acceptance is true
+cold-power recovery accounting for USB and battery, then factory reset and
+coherent two-pair operation. Android cleanup and battery-percentage calibration
+remain recorded follow-ups. No production feature or device was changed by
+this publication validation; completion is unchanged.

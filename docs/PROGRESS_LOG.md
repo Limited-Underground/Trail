@@ -4,6 +4,112 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-09-04
+
+### Repository and website synchronization authorized
+
+- The owner requested publication of the validated checkpoint, current local
+  records, and website, superseding the earlier website deferral for this
+  synchronization. No unfinished feature receives completion credit.
+- Current public copy distinguishes single-pair saved-owner/warm-reset passes
+  from the failed long-absence recovery test. Periodic reconnect, true cold
+  power recovery, factory reset, and coherent two-pair acceptance remain open.
+- The Android cleanup review and battery-percentage accuracy investigation
+  are recorded follow-ups, not implemented or validated improvements.
+
+### Extended absence exposes the remaining reconnect gap
+
+- With the Note20 app untouched, the same Heltec spent approximately 4 minutes
+  38 seconds in ROM before normal reset and owner-confirmed display return.
+- Three reconnect attempts exhausted approximately 22 seconds after link loss.
+  The app stayed in terminal failure and made no new attempt during the
+  78.664-second post-reset observation. Automatic long-absence recovery fails
+  on this build; periodic saved-owner rediscovery is still required.
+- No firmware, bond, or app data changed. Earlier short-restart passes remain
+  valid; V1 stays exact 43.75% / displayed 44%. No public website status changed;
+  synchronization remains owner-deferred to the two-pair milestone.
+
+### App-process and warm-reset persistence pass on the same pair
+
+- Force-stopping and cold-launching the existing Note20 app preserved the saved
+  owner. After the current mode chooser, a fresh GATT session passed discovery,
+  authorization, and mandatory Snapshot/Ready. The follow-up remained connected.
+- One normal physical Heltec RESET with BOOT untouched and USB connected also
+  recovered automatically with no phone input. The new BLE link followed the
+  old-link callback by 1.493 seconds; discovery and MTU151 passed, and Ready was
+  confirmed. Exact full Ready latency was not instrumented.
+- The current implementation stops after three reconnect attempts. Automatic
+  return following prolonged absence remains a gap, distinct from these short
+  restart tests. Cold-power removal, factory-reset recovery, production zero-tap
+  launch, and coherent two-pair acceptance remain open. V1 stays 43.75% / 44%.
+
+### One saved-owner reconnect reaches authenticated Ready
+
+- After the owner authorized the update, fresh device identity and installed
+  bytes matched, including after the reported power interruption. No write
+  was in progress when that interruption occurred.
+- The canonical 563,824-byte `91D4CEB4...` application was written to
+  `OT-DEV-001` at `0x10000` and independently read back with an exact SHA-256
+  match. The 1,424-byte sector tail remained erased, and no write retry occurred.
+- The owner confirmed the display returned. The unchanged Note20/Android 13
+  app retained its saved bond and owner data, performed one saved-owner scan,
+  and reached authenticated Ready with the mandatory Snapshot without a new
+  PIN. Successful discovery and the stable follow-up screen are retained as
+  local evidence; the owner also confirmed the connection.
+- Deliberate reboot persistence, factory-reset recovery, production automatic
+  launch, and coherent two-device/two-phone acceptance remain open. OT-168 is
+  partial; Android remains 60%; V1 remains exact 43.75% / displayed 44%.
+  Website synchronization remains owner-deferred to the two-pair milestone.
+
+### Saved-owner reconnect successor is host-validated
+
+- Source review found that pinned NimBLE can reload persisted CCCDs during a
+  second store initialization after the rejected startup sanitation. The
+  successor clears only `value_changed` after host synchronization and before
+  advertising, while preserving bonds and subscriptions and failing closed on
+  inconsistent storage.
+- The target compiles the NimBLE client receive path needed to confirm a peer
+  Service Changed indication while static checks forbid central operations.
+  Android permits one same-GATT rediscovery with a 250 ms callback/result grace,
+  uses no hidden cache refresh or rebonding, and performs a fresh claim with the
+  retained owner secret on every connection without requesting a new PIN.
+- Returning-owner discovery requires bonded inventories at scan start and
+  callback time plus the scanned peer's live `BOND_BONDED` state. Android
+  private-address resolution prevents reliable membership comparison with the
+  earlier snapshot, so protected session admission still depends on the
+  application authorization secret.
+- Focused Android tests, all 16 target groups, the pinned NimBLE-order test, the
+  291-input raw-byte audit, and the complete Host matrix pass.
+- A test-first preflight added exact reproducible-build admission. Two initially
+  absent, cache-disabled ESP-IDF 6.0.2 builds reproduce the full artifact tuple;
+  the canonical 563,824-byte application has SHA-256
+  `91D4CEB48CCFBCD21AC97CE604C48FBCCA04D70408D2BF749C90CB053AD04824`
+  and 89% app-slot free.
+- The installed Android debug APK exactly matches the local candidate. An
+  initial no-write hardware preflight could not read either anonymous endpoint.
+  On the second gate, exactly one anonymous endpoint was present in ROM mode
+  and the complete 5,177,344-byte factory application range was read, but its
+  first 551,584 bytes did not match the recorded retained-unit application.
+  Qualification stopped before any write; the temporary read was removed and
+  Android was not started or changed. After one requested normal reset, the
+  owner reported the display restored and confirmed with certainty that this
+  was the same retained phone-test unit.
+- Host audit validates the original hash method. The owner-directed successor
+  enrolls the factory ESP32-S3 base MAC privately as `OT-DEV-001`, matches it
+  again after the read, and retains the exact 5,177,344-byte application range
+  with SHA-256 `BC2421E0D11AE84FD38C17F49A182E1215DAF5F9BD38BDFA62DD8178092D1EFF`.
+- The range's first 563,824 bytes exactly match local pre-reproducible build
+  `587A2D55...`. It and canonical reproducible candidate `91D4CEB4...` differ at
+  only 65 bytes: the embedded ELF digest and dependent checksum/validation hash.
+  The earlier `B34C95FE...` expectation was stale; unknown flash drift is ruled
+  out.
+- No write or Android action occurred. The software run command did not restore
+  the display; one owner-performed normal reset with BOOT released then restored
+  it. A newly authorized exact application-only write/readback is the next
+  firmware gate. OT-168 stays partial; Android stays 60%; V1 stays exact
+  43.75%/displayed 44%. The website remains owner-deferred until the two-device/
+  two-phone milestone.
+
 ## 2026-09-03
 
 ### Saved-owner reconnect correction remains unaccepted

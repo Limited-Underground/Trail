@@ -201,9 +201,10 @@ class ConnectedDeviceManifestPolicyTest {
         assertTrue(scan.contains("scanner.startScan(null, settings, callback)"))
         assertTrue(scan.contains("AndroidPairableAdvertisementPolicy.accepts"))
         assertTrue(scan.contains("AndroidReturningOwnerAdvertisementPolicy.accepts"))
-        assertTrue(scan.contains("result.device in bondedDevicesAtStart"))
-        assertTrue(scan.contains("result.device in currentBonds"))
-        assertTrue(scan.contains("currentBondState(result.device) == AndroidSystemBondState.BONDED"))
+        assertTrue(scan.contains("AndroidReturningOwnerBondAdmissionPolicy.accepts"))
+        assertTrue(scan.contains("currentBondState(result.device)"))
+        assertFalse(scan.contains("result.device in bondedDevicesAtStart"))
+        assertFalse(scan.contains("result.device in currentBonds"))
         assertTrue(scan.contains("if (purpose == ScanPurpose.RETURNING_OWNER)"))
         assertTrue(scan.contains("observer(BleScanEvent.Failed(BleGattFailure.PLATFORM_FAILURE))"))
 
@@ -293,6 +294,30 @@ class ConnectedDeviceManifestPolicyTest {
         assertTrue(discovery.contains("owns(current)"))
         assertTrue(discovery.contains("bondedPrerequisiteSatisfied()"))
         assertTrue(discovery.contains("current.discoverServices()"))
+    }
+
+    @Test
+    fun serviceChangedUsesOneSameGattRediscoveryWithoutRebondingOrHiddenRefresh() {
+        val source = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/AndroidBluetoothGattFacade.kt",
+        ).readText()
+        val leaseStart = source.indexOf("private inner class PlatformGattLease")
+        val lease = source.substring(leaseStart, source.indexOf("private data class DiscoveredGattProfile"))
+        val callback = lease.substring(
+            lease.indexOf("override fun onServiceChanged"),
+            lease.indexOf("override fun start()"),
+        )
+        assertTrue(callback.contains("handleServiceChanged(callbackGatt)"))
+        assertFalse(callback.contains("fail(BleGattFailure.PLATFORM_FAILURE)"))
+        assertTrue(lease.contains("AndroidServiceChangedDiscoveryGate()"))
+        assertTrue(lease.contains("retryDiscoveryAfterServiceChanged()"))
+        assertTrue(lease.contains("current.discoverServices()"))
+        assertTrue(lease.contains("mainHandler.removeCallbacks(serviceChangedFailureGrace)"))
+        assertTrue(lease.contains("mainHandler.removeCallbacks(serviceRediscovery)"))
+        assertFalse(lease.contains("refresh()"))
+        assertEquals(1, Regex("""device\.connectGatt\(""").findAll(lease).count())
+        assertEquals(1, Regex("""device\.createBond\(\)""").findAll(lease).count())
+        assertFalse(lease.contains("removeBond("))
     }
 
     @Test
@@ -410,7 +435,7 @@ class ConnectedDeviceManifestPolicyTest {
         )
         val duplicateGuard = discovery.indexOf("profileReadyGate.hasStarted()")
         assertTrue(duplicateGuard >= 0)
-        assertTrue(duplicateGuard < discovery.indexOf("status != BluetoothGatt.GATT_SUCCESS"))
+        assertTrue(duplicateGuard < discovery.indexOf("val profileAccepted = status == BluetoothGatt.GATT_SUCCESS"))
         assertTrue(duplicateGuard < discovery.indexOf("AndroidGattProfilePolicy.accepts(profile)"))
         assertTrue(duplicateGuard < discovery.indexOf("operations.acceptProfile()"))
         assertTrue(discovery.contains("if (!mainHandler.post(profileReadyRunnable))"))

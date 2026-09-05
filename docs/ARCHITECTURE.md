@@ -34,8 +34,11 @@ displayed six-digit PIN and the pairable `D1` advertising marker. Pairing is
 Secure Connections-only, MITM passkey-authenticated and bonded with an exact
 16-byte/128-bit key. The normal protected GATT service remains `D0`. An owned
 boot exposes no `D1` or PIN and accepts only its saved authorized phone. The
-returning Android path intersects observed `D0` advertisements with the current
-bonded-device set, requires exactly one candidate, never creates a bond, and
+returning Android path requires a bonded inventory at scan start and callback
+time plus the scanned peer's live bonded state. Android private-address
+resolution prevents reliable address equality against an earlier inventory;
+protected admission still requires the retained owner secret. It requires
+exactly one candidate, never creates a bond, and
 requires protected normal `ProtocolInfo` plus device-owner authorization before
 `Ready`; V1 has no phone-
 replacement or lost-phone transfer path. The authorized app may initiate a
@@ -47,8 +50,11 @@ before a restart may publish an unowned pairing window. The exact fail-closed
 commit/recovery rules are frozen in
 [`DEVICE_FACTORY_RESET_V1`](platform/DEVICE_FACTORY_RESET_V1.md). Decision 0034
 and [`OTBP0/v0`](platform/BLE_PAIRING_REPLACEMENT_V0.md) remain historical host
-evidence only. OT-168 implementation, Android, target, power-interruption, and
-physical acceptance remain pending.
+evidence only. OT-168 now has host-tested implementation and bounded
+single-pair saved-owner, app-process, and warm-reset physical acceptance.
+Long-absence recovery exhausted retries in the current build; periodic
+rediscovery, cold power, destructive reset/erasure, and two-pair acceptance
+remain open. See [the current mapping](testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md).
 
 [Decision 0029](decisions/0029-bounded-read-only-ble-link-status.md) permits one
 narrow exception for non-privileged link proof: a fixed, identical-across-units

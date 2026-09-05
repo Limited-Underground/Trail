@@ -1,6 +1,6 @@
 # OpenTrail Hardware Inventory
 
-Last updated: 2026-08-29
+Last updated: 2026-09-04
 
 Compatibility states used here:
 
@@ -24,6 +24,14 @@ Current evidence roles are deliberately different:
   not a validated or supported client.
 - The first complete client remains a separate hardware freeze covering its
   board, touchscreen, controls, power, enclosure, GNSS, and antenna system.
+
+For development, each Heltec bench unit uses its factory-programmed ESP32-S3
+base MAC as the durable electronic key mapped to its `OT-DEV-###` label. Exact
+values are stored in the ignored local development registry, not this public
+inventory, GitHub, shipped firmware/Android data, protocol fields, or customer
+logs/UI. Every device read or write must re-read and exactly match that binding
+after fresh isolation and enumeration; a port name or BLE advertising address
+is never sufficient identity.
 
 See the
 [2026-08-10 hardware and US regulatory reconciliation](HARDWARE_REGULATORY_INVENTORY_2026-08-10.md)
@@ -82,8 +90,9 @@ Connected directly to the development laptop for bounded inventory beginning 202
 | Flash encryption | Disabled | `esptool 5.3.1 get-security-info` |
 | State during query | ROM USB/UART download bootloader | ROM serial banner and query connection |
 | Normal application USB | Espressif application USB `VID 303A`, `PID 0002`; transient port assignment omitted | Windows enumeration after normal boot |
-| Current installed application | Experimental OpenTrail `heltec_v4_bench`; 507,296-byte application, SHA-256 `69AE6546724D2EBBD6A3B8A133D1FC267383839C632B3B73E6A1CA72ABF4678A` | OT-164 corrected application-only writes, independent exact readbacks, and owner-confirmed display returns succeeded on both anonymous bench nodes |
-| Current bounded runtime | Live `BAT` and `GPS` status remains visible. The owner physically accepted short-press rejection, GPIO0 three-second hold/release opening, local six-digit `PAIR` display, approximately 30-second concealment, and reset concealment without reporting a PIN. Android pairing, bonding, replacement, and protected GATT remain unproven | [OT-164 evidence](../tests/hardware/OT-164-2026-08-29.md), [OT-147 evidence](../tests/hardware/OT-147-2026-08-26.md), and [Decision 0100](../docs/decisions/0100-accept-ot164-fresh-ble-pairing-window.md) |
+| Development electronic identity | Verified prospectively on 2026-09-04: one isolated ESP32-S3 factory base MAC is bound to `OT-DEV-001` in the ignored local registry and matched before and after the canonical application write/readback. The raw value remains private and is not public or production data. | [Development identity procedure](../docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md) and [OT-168 evidence](../tests/hardware/OT-168-2026-09-04.md) |
+| Current installed application | Exact canonical reproducible saved-owner successor: 563,824 bytes at `0x10000`, SHA-256 `91D4CEB48CCFBCD21AC97CE604C48FBCCA04D70408D2BF749C90CB053AD04824`, written application-only and independently read back at the exact length on 2026-09-04. The erase ended at `0x99FFF`; its 1,424-byte tail was all `0xFF` before and after. No esptool retry occurred. The retained private full application-range recovery capture remains SHA-256 `BC2421E0D11AE84FD38C17F49A182E1215DAF5F9BD38BDFA62DD8178092D1EFF`. | [OT-168 evidence](../tests/hardware/OT-168-2026-09-04.md) and [returning-owner mapping](../docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md) |
+| Current bounded runtime | The owner confirmed the display returned after the completed write/readback gate and one normal physical reset with BOOT released. The same retained Note20 then passed one immediate saved-owner reconnect through authenticated Ready. It subsequently passed retained-owner persistence after complete app-process death using the current mode chooser, with no assistant service-start tap, and automatic reconnect through Ready after one brief physical RESET with BOOT untouched and USB attached. The old-link-callback-to-new-link interval was approximately 1.493 seconds; exact full Ready latency was not instrumented. The mandatory Snapshot remained radio unavailable, GNSS unknown, power unknown, position stopped, and queued 0. No new PIN, re-pair, app-data clear, reinstall, flash, ROM read, erase, radio operation, or phone input after RESET occurred. This is warm-reset evidence, not finished zero-tap launch, cold power-removal, factory-reset, second-pairing, or two-unit acceptance. A later 277.680-second verified-ROM-entry-to-reset-completion absence reproduced terminal retry exhaustion: the owner confirmed normal display return, but the untouched Note20 app made no new reconnect and remained failed 78.664 seconds after reset completion. This separate no-flash test leaves the hardware display on and app disconnected; periodic recovery remains unimplemented. | [OT-168 evidence](../tests/hardware/OT-168-2026-09-04.md), [returning-owner mapping](../docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md), [OT-164 evidence](../tests/hardware/OT-164-2026-08-29.md), and [OT-147 evidence](../tests/hardware/OT-147-2026-08-26.md) |
 | Protected-storage source proof | A bounded read-only operation matched the exact installed 3,072-byte partition table and verified that the complete 1 MiB source region was all `0xFF`; it retained no raw bytes or private binding details, and its temporary executor was deleted. Manual RST returned the Trail logo and `BLE ADVERTISING`. This satisfies only the OT-070 source prerequisite | [OT-074 evidence](../tests/hardware/OT-074-2026-08-17.md) |
 | Prior installed application | MeshCore `v1.16.0-07a3ca9` | Historical application strings and pre-OT-061 public runtime evidence |
 | Exact application recovery artifact | The complete 470,928-byte OT-064 factory application was captured read-only and independently verified after connection close; SHA-256 `A7D8E672CF9169F1D1D4E86EEFF80399C47A145E7D64904C207DD5F1B23F359B`; retained only as a private ignored recovery artifact, with no restore/write authority | [OT-076 evidence](../tests/hardware/OT-076-2026-08-17.md) |
@@ -185,8 +194,9 @@ Connected independently to the development laptop and queried read-only over USB
 | SPI flash | 16 MiB | OT-119 privacy-safe ROM observation; no flash bytes were read |
 | Crystal | 40 MHz | OT-119 privacy-safe ROM observation |
 | Application USB | Espressif application USB `VID 303A`, `PID 0002`; transient port assignment omitted | Windows/pySerial enumeration |
-| Current installed application | Experimental OpenTrail `heltec_v4_bench`; 507,296-byte application, SHA-256 `69AE6546724D2EBBD6A3B8A133D1FC267383839C632B3B73E6A1CA72ABF4678A` | OT-164 corrected application-only writes, independent exact readbacks, and owner-confirmed display returns succeeded on both anonymous bench nodes |
-| Current bounded runtime | Live `BAT` and `GPS` status remains visible. The owner physically accepted short-press rejection, GPIO0 three-second hold/release opening, local six-digit `PAIR` display, approximately 30-second concealment, and reset concealment without reporting a PIN. Android pairing, bonding, replacement, and protected GATT remain unproven | [OT-164 evidence](../tests/hardware/OT-164-2026-08-29.md), [OT-147 evidence](../tests/hardware/OT-147-2026-08-26.md), and [Decision 0100](../docs/decisions/0100-accept-ot164-fresh-ble-pairing-window.md) |
+| Development electronic identity | Pending one isolated `read-mac` enrollment into the ignored local registry. The second unit must produce a distinct base MAC before the two named mappings are accepted. | [Development identity procedure](../docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md) |
+| Current installed application | Current image remains unresolved. OT-164 installed and verified the 507,296-byte `69AE6546...` application on both anonymous nodes, but no fresh read binds that historical image to `OT-DEV-002`. The later phone-test successor is now prospectively mapped to `OT-DEV-001`; do not infer the second unit's present image until its distinct private base-MAC enrollment and read pass. | [OT-164 evidence](../tests/hardware/OT-164-2026-08-29.md), [returning-owner mapping](../docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md), and [OT-168 evidence](../tests/hardware/OT-168-2026-09-04.md) |
+| Current bounded runtime | Populated `BAT`/`GPS` and pairing-window behavior remain historical accepted evidence. No 2026-09-04 observation is assigned to this named row until the private electronic mapping is established. | [OT-164 evidence](../tests/hardware/OT-164-2026-08-29.md), [OT-147 evidence](../tests/hardware/OT-147-2026-08-26.md), and [OT-168 evidence](../tests/hardware/OT-168-2026-09-04.md) |
 | Prior MeshCore firmware/role | USB Companion `v1.16.0-07a3ca9`, firmware date 06-Jun-2026; 350 contacts, 40 channels; repeat disabled; path-hash mode 0 | Historical MeshCLI evidence before OT-112 |
 | Prior MeshCore radio configuration | User-applied USA/Canada preset: 910.525 MHz, 62.5 kHz bandwidth, SF7, CR5, 10 dBm transmit power; maximum reported 22 dBm | Historical filtered `meshcli infos` query before OT-112 |
 | Telemetry/contact defaults | Environment, location, and base telemetry disabled; manual contact addition disabled | Filtered `meshcli infos` query |

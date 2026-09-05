@@ -18,6 +18,7 @@ TARGET_RUNTIME = (
 )
 
 
+
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
@@ -38,6 +39,8 @@ def main() -> int:
         arguments.idf_path / "components" / "bt" / "host" / "nimble" /
         "nimble" / "nimble" / "host" / "src"
     )
+    att_path = host_source / "ble_att.c"
+    att_server_path = host_source / "ble_att_svr.c"
     gap_path = host_source / "ble_gap.c"
     gatts_path = host_source / "ble_gatts.c"
     gattc_path = host_source / "ble_gattc.c"
@@ -46,28 +49,69 @@ def main() -> int:
         "nimble" / "nimble" / "host" / "services" / "gatt" / "src" /
         "ble_svc_gatt.c"
     )
+    startup_path = host_source / "ble_hs_startup.c"
+    privacy_path = host_source / "ble_hs_pvcy.c"
+    store_config_path = (
+        arguments.idf_path / "components" / "bt" / "host" / "nimble" /
+        "nimble" / "nimble" / "host" / "store" / "config" / "src" /
+        "ble_store_config.c"
+    )
+    store_nvs_path = store_config_path.with_name("ble_store_nvs.c")
     port_path = (
         arguments.idf_path / "components" / "bt" / "host" / "nimble" /
         "nimble" / "porting" / "nimble" / "src" / "nimble_port.c"
     )
     for path in (
+        att_path,
+        att_server_path,
         gap_path,
         gatts_path,
         gattc_path,
         gatt_service_path,
+        startup_path,
+        privacy_path,
+        store_config_path,
+        store_nvs_path,
         port_path,
         TARGET_ADAPTER,
         TARGET_RUNTIME,
     ):
         require(path.is_file(), f"required pinned source is missing: {path.name}")
 
+    att = att_path.read_text(encoding="utf-8")
+    att_server = att_server_path.read_text(encoding="utf-8")
     gap = gap_path.read_text(encoding="utf-8")
     gatts = gatts_path.read_text(encoding="utf-8")
     gattc = gattc_path.read_text(encoding="utf-8")
     gatt_service = gatt_service_path.read_text(encoding="utf-8")
+    startup = startup_path.read_text(encoding="utf-8")
+    privacy = privacy_path.read_text(encoding="utf-8")
+    store_config = store_config_path.read_text(encoding="utf-8")
+    store_nvs = store_nvs_path.read_text(encoding="utf-8")
     adapter = TARGET_ADAPTER.read_text(encoding="utf-8")
     runtime = TARGET_RUNTIME.read_text(encoding="utf-8")
+
     port = port_path.read_text(encoding="utf-8")
+
+    gatt_client_dispatch = att[
+        att.index("#if MYNEWT_VAL(BLE_GATTC)"):
+        att.index("#if MYNEWT_VAL(BLE_GATTS)")
+    ]
+    require("{ BLE_ATT_OP_INDICATE_REQ,         ble_att_svr_rx_indicate }" in
+            gatt_client_dispatch,
+            "GATT-client support must register incoming indications")
+    build_indication_response = function_body(
+        att_server,
+        "ble_att_svr_build_indicate_rsp(struct os_mbuf **rxom",
+        "ble_att_svr_rx_indicate(uint16_t conn_handle")
+    receive_indication = function_body(
+        att_server,
+        "ble_att_svr_rx_indicate(uint16_t conn_handle",
+        "ble_att_svr_move_entries")
+    require("BLE_ATT_OP_INDICATE_RSP" in build_indication_response and
+            "ble_att_svr_build_indicate_rsp" in receive_indication and
+            "ble_att_svr_tx_rsp" in receive_indication,
+            "incoming indications must build and transmit a confirmation")
 
     service_changed_definition = function_body(
         gatt_service,
@@ -107,6 +151,37 @@ def main() -> int:
         runtime,
         "clear_pending_cccd_value_changes()",
         "fail_security_configuration")
+    require("ble_hs_cfg.store_gen_key_cb" not in runtime and
+            "ble_hs_pvcy_set_default_irk();" in startup,
+            "Heltec must retain the pinned default-IRK startup path")
+    default_irk = function_body(
+        privacy,
+        "void ble_hs_pvcy_set_default_irk(void)",
+        "ble_hs_pvcy_set_our_irk")
+    require("#if MYNEWT_VAL(BLE_STATIC_TO_DYNAMIC)" in default_irk and
+            "ble_store_config_init();" in default_irk,
+            "pinned privacy startup must expose the second store initialization")
+    store_init = function_body(
+        store_config,
+        "ble_store_config_init(void)",
+        "ble_store_config_deinit(void)")
+    require("ble_store_config_num_cccds = 0;" in store_init and
+            "ble_store_config_conf_init();" in store_init,
+            "second store initialization must reset RAM before restoring NVS")
+    restore_sec = function_body(
+        store_nvs,
+        "ble_nvs_restore_sec_keys(void)",
+        "ble_nvs_restore_peer_records(void)")
+    require("populate_db_from_nvs(BLE_STORE_OBJ_TYPE_CCCD" in restore_sec,
+            "pinned NVS restore must reload persisted CCCD records")
+    persist_cccds = function_body(
+        store_nvs,
+        "int ble_store_config_persist_cccds(void)",
+        "int ble_store_config_persist_csfcs(void)")
+    require("nvs_count < ble_store_config_num_cccds" in persist_cccds and
+            "nvs_count > ble_store_config_num_cccds" in persist_cccds and
+            "return 0;" in persist_cccds,
+            "pinned equal-count CCCD writes must retain the reload hazard")
     require("ble_store_read_cccd(" in sanitizer and
             "cccd.value_changed = 0;" in sanitizer and
             "ble_store_write_cccd(&cccd)" in sanitizer,
@@ -119,13 +194,17 @@ def main() -> int:
         runtime,
         "bool configure_secure_connections_bonding() override",
         "bool register_protected_service() override")
-    store_initialized = configure_security.index("ble_store_config_init();")
-    pending_updates_cleared = configure_security.index(
+    require("clear_pending_cccd_value_changes()" not in configure_security,
+            "pre-host sanitation is invalidated by the pinned second store initialization")
+    configure_advertising = function_body(
+        runtime,
+        "bool configure_public_service_advertising() override",
+        "bool start_advertising() override")
+    pending_updates_cleared = configure_advertising.index(
         "clear_pending_cccd_value_changes()")
-    store_exposed = configure_security.index(
-        "g_factory_reset_bonds->set_store_access_ready(true);")
-    require(store_initialized < pending_updates_cleared < store_exposed,
-            "pending CCCD updates must clear after store init and before host exposure")
+    address_ready = configure_advertising.index("ble_hs_util_ensure_addr(1)")
+    require(pending_updates_cleared < address_ready,
+            "pending CCCD updates must clear after host sync and before advertising")
 
     broken = function_body(
         gap,
