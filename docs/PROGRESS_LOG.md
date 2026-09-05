@@ -6,6 +6,21 @@ public chronology.
 
 ## 2026-09-04
 
+### Periodic saved-owner reconnect passes the short physical test
+
+- After three quick retries, the app now waits 15 seconds between five-second
+  saved-owner discovery scans. Cancellation, lifecycle changes, and failed
+  authorization stop or suspend recovery; every return needs a fresh Snapshot.
+- The retained Heltec/Note20 pair recovered automatically after 65.866 seconds
+  in ROM. One empty scan was followed by a second scan that found the restored
+  device. No phone input was needed. Link returned 1.220 seconds after reset
+  completion; authenticated Ready was observed within 8.373 seconds and remained
+  stable at the follow-up check.
+- The full Android matrix passes 385 tests, lint/build, and unsigned-artifact
+  inspection. Firmware was unchanged. Cold-power, reset, and two-pair gates
+  remain open; milestone completion is unchanged.
+- [Test setup, artifacts, timing, and limits](../tests/hardware/OT-168-PERIODIC-2026-09-04.md).
+
 ### Repository and website synchronization authorized
 
 - The owner requested publication of the validated checkpoint, current local

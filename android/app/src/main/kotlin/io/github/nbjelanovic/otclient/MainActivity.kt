@@ -592,14 +592,19 @@ private fun BluetoothRuntimePanel(
             }
         }
         is BleRuntimeState.Reconnecting -> {
-            val body = if (state.connectionDiagnostic == null) {
-                "Attempt ${state.attempt} of ${state.maximumAttempts} for ${state.companion.publicLabel}."
+            val progress = if (state.periodic) {
+                "Trying ${state.companion.publicLabel} again, with a 15-second wait between attempts. Keep the app open."
             } else {
-                "Attempt ${state.attempt} of ${state.maximumAttempts} for ${state.companion.publicLabel}.\n" +
+                "Attempt ${state.attempt} of ${state.maximumAttempts} for ${state.companion.publicLabel}."
+            }
+            val body = if (state.connectionDiagnostic == null) {
+                progress
+            } else {
+                progress + "\n" +
                     "Support code: ${state.connectionDiagnostic.supportCode()}"
             }
             StatusCard(
-                "Reconnecting",
+                if (state.periodic) "Waiting for device" else "Reconnecting",
                 body,
             )
             OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {

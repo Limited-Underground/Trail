@@ -729,6 +729,15 @@ preflight.
 
 ## Proposed node roles
 
+Android reconnect control (2026-09-04): after the existing three fast attempts,
+an active service uses a 15-second idle delay followed by a five-second bonded
+saved-owner scan. It refreshes the opaque endpoint each cycle, saturates the
+fast counter, and returns to the fast phase only after successful Snapshot.
+Lifecycle stop/disconnect close active leases; periodic lifecycle resume starts
+fresh discovery. Ambiguity, security/permission failure, and authorization
+Pending loss do not become unlimited retries. Physical evidence is recorded in
+[OT-168 periodic reconnect](../tests/hardware/OT-168-PERIODIC-2026-09-04.md).
+
 - **Client:** originates and consumes user messages, alerts, and positions.
 - **Client/Repeater:** a client explicitly configured to forward eligible traffic under controlled rules.
 - **Fixed relay:** powered or solar relay optimized for availability and forwarding.

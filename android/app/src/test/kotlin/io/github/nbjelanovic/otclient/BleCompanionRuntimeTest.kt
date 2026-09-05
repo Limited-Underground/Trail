@@ -626,9 +626,170 @@ class BleCompanionRuntimeTest {
         scheduler.runNext()
         val fourth = fixture.facade.connections.last()
         fourth.emit(BleGattEvent.Failed(BleGattFailure.TRANSIENT_LINK))
-        val exhausted = assertIs<BleRuntimeState.Failed>(fixture.runtime.state)
-        assertEquals(BleRuntimeFailure.RECONNECT_EXHAUSTED, exhausted.reason)
-        assertEquals(BleConnectionDiagnostic.GATT_TRANSIENT_LINK, exhausted.connectionDiagnostic)
+        val waiting = assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state)
+        assertTrue(waiting.periodic)
+        assertEquals(BleConnectionDiagnostic.GATT_TRANSIENT_LINK, waiting.connectionDiagnostic)
+        assertEquals(15_000L, scheduler.nextOpen().delayMillis)
+    }
+
+    @Test
+    fun periodicRecoveryWaitsFifteenSecondsRefreshesEndpointAndRequiresFreshSnapshot() {
+        val scheduler = TestRuntimeScheduler()
+        val fixture = Fixture(TestBluetoothFacade(returningOwnerScanSupported = true), scheduler)
+        fixture.exhaustFastRetries(scheduler)
+        val initialScans = fixture.facade.returningOwnerScans.size
+        scheduler.advanceBy(14_999)
+        assertEquals(initialScans, fixture.facade.returningOwnerScans.size)
+        scheduler.advanceBy(1)
+        assertEquals(initialScans + 1, fixture.facade.returningOwnerScans.size)
+        fixture.facade.returningOwnerScans.last().emit(BleScanEvent.Complete)
+        assertTrue(assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state).periodic)
+        assertEquals(15_000L, scheduler.nextOpen().delayMillis)
+        scheduler.advanceBy(15_000)
+        val scan = fixture.facade.returningOwnerScans.last()
+        val refreshed = CANDIDATE.copy(endpointToken = "fresh-returning-endpoint")
+        scan.emit(BleScanEvent.Candidate(refreshed))
+        scan.emit(BleScanEvent.Complete)
+        val gatt = fixture.facade.connections.last()
+        assertEquals(BleConnectionPurpose.EXISTING_OWNER, gatt.purpose)
+        assertEquals(refreshed, assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state).companion)
+        fixture.advanceReturningOwnerToInitialSnapshot(gatt, sessionNonce = 73)
+        assertFalse(fixture.runtime.state is BleRuntimeState.Ready)
+        gatt.emit(BleGattEvent.StreamIndication(snapshotEnvelope(73, 1)))
+        assertIs<BleRuntimeState.Ready>(fixture.runtime.state)
+        assertFalse(scheduler.hasOpenTimers())
+        gatt.emit(BleGattEvent.Disconnected)
+        val fast = assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state)
+        assertFalse(fast.periodic)
+        assertEquals(1, fast.attempt)
+        assertEquals(1_000L, scheduler.nextOpen().delayMillis)
+    }
+
+    @Test
+    fun repeatedPeriodicFailuresNeverRestartFastBurstOrAccumulateLeases() {
+        val scheduler = TestRuntimeScheduler()
+        val fixture = Fixture(TestBluetoothFacade(returningOwnerScanSupported = true), scheduler)
+        fixture.exhaustFastRetries(scheduler)
+        repeat(100) {
+            assertEquals(15_000L, scheduler.nextOpen().delayMillis)
+            scheduler.advanceBy(15_000)
+            val scan = fixture.facade.returningOwnerScans.last()
+            scan.emit(BleScanEvent.Candidate(CANDIDATE))
+            scan.emit(BleScanEvent.Complete)
+            fixture.facade.connections.last().emit(BleGattEvent.Failed(BleGattFailure.TRANSIENT_LINK))
+            assertTrue(assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state).periodic)
+            assertEquals(3, assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state).attempt)
+            assertEquals(1, scheduler.pending.count { !it.closed && !it.ran })
+            assertTrue(fixture.facade.connections.all { it.closed })
+        }
+    }
+
+    @Test
+    fun disconnectStopAndCloseCancelEveryPeriodicPhase() {
+        for (phase in 0..2) for (control in 0..2) {
+            val scheduler = TestRuntimeScheduler()
+            val fixture = Fixture(TestBluetoothFacade(returningOwnerScanSupported = true), scheduler)
+            fixture.exhaustFastRetries(scheduler)
+            if (phase >= 1) scheduler.advanceBy(15_000)
+            val scan = fixture.facade.returningOwnerScans.last()
+            if (phase == 2) {
+                scan.emit(BleScanEvent.Candidate(CANDIDATE))
+                scan.emit(BleScanEvent.Complete)
+            }
+            when (control) {
+                0 -> fixture.runtime.disconnect()
+                1 -> fixture.runtime.onLifecycleStop()
+                else -> fixture.runtime.close()
+            }
+            val count = fixture.facade.connections.size
+            scheduler.advanceBy(120_000)
+            scan.emit(BleScanEvent.Candidate(CANDIDATE))
+            scan.emit(BleScanEvent.Complete)
+            assertEquals(count, fixture.facade.connections.size)
+            assertFalse(scheduler.hasOpenTimers())
+            assertTrue(fixture.facade.connections.all { it.closed })
+        }
+    }
+
+    @Test
+    fun periodicScanAmbiguityAndBluetoothLossStopRecovery() {
+        for (ambiguous in listOf(false, true)) {
+            val scheduler = TestRuntimeScheduler()
+            val fixture = Fixture(TestBluetoothFacade(returningOwnerScanSupported = true), scheduler)
+            fixture.exhaustFastRetries(scheduler)
+            if (!ambiguous) fixture.facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_UNAVAILABLE)
+            scheduler.advanceBy(15_000)
+            if (ambiguous) {
+                val scan = fixture.facade.returningOwnerScans.last()
+                scan.emit(BleScanEvent.Candidate(CANDIDATE))
+                scan.emit(BleScanEvent.Candidate(CANDIDATE.copy(endpointToken = "another-owner")))
+                assertEquals(BleRuntimeFailure.RETURNING_OWNER_AMBIGUOUS, assertIs<BleRuntimeState.Failed>(fixture.runtime.state).reason)
+            } else assertIs<BleRuntimeState.Blocked>(fixture.runtime.state)
+            assertFalse(scheduler.hasOpenTimers())
+        }
+    }
+
+    @Test
+    fun periodicLifecycleResumeRefreshesDiscoveryAndIgnoresPreviousScan() {
+        val scheduler = TestRuntimeScheduler()
+        val fixture = Fixture(TestBluetoothFacade(returningOwnerScanSupported = true), scheduler)
+        fixture.exhaustFastRetries(scheduler)
+        scheduler.advanceBy(15_000)
+        val oldScan = fixture.facade.returningOwnerScans.last()
+        fixture.runtime.onLifecycleStop()
+        val count = fixture.facade.connections.size
+        fixture.runtime.onLifecycleStart()
+        assertIs<BleRuntimeState.FindingReturningOwner>(fixture.runtime.state)
+        assertEquals(count, fixture.facade.connections.size)
+        oldScan.emit(BleScanEvent.Candidate(CANDIDATE))
+        oldScan.emit(BleScanEvent.Complete)
+        assertEquals(count, fixture.facade.connections.size)
+        fixture.facade.returningOwnerScans.last().emit(BleScanEvent.Complete)
+        assertEquals(15_000L, scheduler.nextOpen().delayMillis)
+    }
+
+    @Test
+    fun periodicSecurityFailuresAndPendingAuthorizationLossNeverRetry() {
+        for (failure in listOf(BleGattFailure.SECURITY_REJECTED, BleGattFailure.PERMISSION_REVOKED,
+            BleGattFailure.BOND_REQUIRED, BleGattFailure.AUTHORIZATION_REJECTED, null)) {
+            val scheduler = TestRuntimeScheduler()
+            val fixture = Fixture(TestBluetoothFacade(returningOwnerScanSupported = true), scheduler)
+            fixture.exhaustFastRetries(scheduler)
+            scheduler.advanceBy(15_000)
+            val scan = fixture.facade.returningOwnerScans.last()
+            scan.emit(BleScanEvent.Candidate(CANDIDATE))
+            scan.emit(BleScanEvent.Complete)
+            val gatt = fixture.facade.connections.last()
+            if (failure == null) {
+                gatt.emit(BleGattEvent.ProfileReady)
+                gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(79)))
+                gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
+                gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+                gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(79)))
+                gatt.emit(BleGattEvent.Disconnected)
+            } else gatt.emit(BleGattEvent.Failed(failure))
+            assertIs<BleRuntimeState.Failed>(fixture.runtime.state)
+            assertFalse(scheduler.hasOpenTimers())
+        }
+    }
+
+    @Test
+    fun periodicProfileTimeoutAndTransientScanFailureReturnToSlowCadence() {
+        val scheduler = TestRuntimeScheduler()
+        val fixture = Fixture(TestBluetoothFacade(returningOwnerScanSupported = true), scheduler)
+        fixture.exhaustFastRetries(scheduler)
+        scheduler.advanceBy(15_000)
+        fixture.facade.returningOwnerScans.last().emit(BleScanEvent.Failed(BleGattFailure.TRANSIENT_LINK))
+        assertEquals(15_000L, scheduler.nextOpen().delayMillis)
+        scheduler.advanceBy(15_000)
+        val scan = fixture.facade.returningOwnerScans.last()
+        scan.emit(BleScanEvent.Candidate(CANDIDATE))
+        scan.emit(BleScanEvent.Complete)
+        fixture.facade.connections.last().emit(BleGattEvent.GattOpened)
+        scheduler.advanceBy(INITIAL_GATT_PROFILE_TIMEOUT_MILLIS)
+        assertTrue(assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state).periodic)
+        assertEquals(15_000L, scheduler.nextOpen().delayMillis)
+        assertTrue(fixture.facade.connections.last().closed)
     }
 
     @Test
@@ -1122,6 +1283,16 @@ class BleCompanionRuntimeTest {
             assertIs<BleRuntimeState.Ready>(runtime.state)
             return gatt
         }
+
+        fun exhaustFastRetries(scheduler: TestRuntimeScheduler) {
+            readyGatt(71).emit(BleGattEvent.Disconnected)
+            for (delay in listOf(1_000L, 2_000L, 4_000L)) {
+                assertEquals(delay, scheduler.nextOpen().delayMillis)
+                scheduler.advanceBy(delay)
+                facade.connections.last().emit(BleGattEvent.Failed(BleGattFailure.TRANSIENT_LINK))
+            }
+            assertTrue(assertIs<BleRuntimeState.Reconnecting>(runtime.state).periodic)
+        }
     }
 
     private class TestBluetoothFacade(
@@ -1231,11 +1402,24 @@ class BleCompanionRuntimeTest {
 
     private class TestRuntimeScheduler : BleRuntimeScheduler {
         val pending = mutableListOf<TestReconnectLease>()
+        private var nowMillis = 0L
         override fun schedule(delayMillis: Long, callback: () -> Unit): BleReconnectLease =
-            TestReconnectLease(delayMillis, callback).also(pending::add)
+            TestReconnectLease(delayMillis, callback, nowMillis + delayMillis).also(pending::add)
+
+        fun advanceBy(millis: Long) {
+            val target = nowMillis + millis
+            while (true) {
+                val next = pending.filter { !it.closed && !it.ran && it.dueMillis <= target }
+                    .minByOrNull { it.dueMillis } ?: break
+                nowMillis = next.dueMillis
+                next.run()
+            }
+            nowMillis = target
+        }
 
         fun runNext() {
             val next = nextOpen()
+            nowMillis = maxOf(nowMillis, next.dueMillis)
             next.run()
         }
 
@@ -1249,6 +1433,7 @@ class BleCompanionRuntimeTest {
     private class TestReconnectLease(
         val delayMillis: Long,
         private val callback: () -> Unit,
+        val dueMillis: Long = delayMillis,
     ) : BleReconnectLease {
         var closed = false
         var ran = false

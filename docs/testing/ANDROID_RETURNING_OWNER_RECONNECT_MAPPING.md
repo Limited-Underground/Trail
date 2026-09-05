@@ -1,5 +1,8 @@
 # Android Returning-Owner Reconnect Mapping
 
+Current successor (2026-09-04): Periodic saved-owner recovery passes on the retained Heltec/Note20 pair: three quick retries, then five-second scans separated by a 15-second wait. A 65.866-second ROM absence recovered automatically through fresh authorization and Snapshot; 385 Android tests/lint/build pass. See tests/hardware/OT-168-PERIODIC-2026-09-04.md. Cold-power, factory-reset, and two-pair acceptance remain open.
+Earlier terminal-exhaustion observations below are historical.
+
 Status: mapped and physically reproduced on the dedicated Note20 and one
 verified Heltec on 2026-09-03. The first correction failed physical retest. A
 narrow successor was host-validated, written application-only, independently

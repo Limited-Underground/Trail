@@ -251,10 +251,21 @@ class AndroidBluetoothGattFacade(
     }
 
     override fun createReturningOwnerScan(observer: (BleScanEvent) -> Unit): BleScanLease? {
+        return createReturningOwnerScanWithTimeout(observer, ANDROID_BLE_SCAN_WINDOW_MILLIS)
+    }
+
+    override fun createPeriodicReturningOwnerScan(observer: (BleScanEvent) -> Unit): BleScanLease? =
+        createReturningOwnerScanWithTimeout(observer, 5_000L)
+
+    private fun createReturningOwnerScanWithTimeout(
+        observer: (BleScanEvent) -> Unit,
+        timeoutMillis: Long,
+    ): BleScanLease? {
         if (!onMainThread() || closed || !preflight().isReady || activeScan != null || activeGatt != null) return null
         val bondedDevices = currentBondedDevices() ?: return null
         candidates.clear()
-        return PlatformScanLease(observer, ScanPurpose.RETURNING_OWNER, bondedDevices).also { activeScan = it }
+        return PlatformScanLease(observer, ScanPurpose.RETURNING_OWNER, bondedDevices,
+            timeoutMillis = timeoutMillis).also { activeScan = it }
     }
 
     override fun stageFactoryResetReceipt(): ULong? =

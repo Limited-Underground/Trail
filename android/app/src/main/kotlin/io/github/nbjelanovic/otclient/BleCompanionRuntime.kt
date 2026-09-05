@@ -31,6 +31,7 @@ internal const val MAX_DISCOVERED_COMPANIONS = 16
 internal const val MAX_PUBLIC_LABEL_CHARS = 64
 internal const val MAX_ENDPOINT_TOKEN_CHARS = 256
 internal const val DEFAULT_MAX_RECONNECT_ATTEMPTS = 3
+internal const val PERIODIC_RECONNECT_DELAY_MILLIS = 15_000L
 internal const val INITIAL_GATT_PROFILE_TIMEOUT_MILLIS = 45_000L
 internal const val NEGOTIATION_STEP_TIMEOUT_MILLIS = 15_000L
 internal const val ACTION_RESULT_TIMEOUT_MILLIS = 10_000L
@@ -201,6 +202,9 @@ interface AndroidBluetoothFacade {
     fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease?
     /** Optional process-restart route; candidates must already be bonded and advertise owned D0 only. */
     fun createReturningOwnerScan(observer: (BleScanEvent) -> Unit): BleScanLease? = null
+    /** Short saved-owner check used after fast reconnect attempts have exhausted. */
+    fun createPeriodicReturningOwnerScan(observer: (BleScanEvent) -> Unit): BleScanLease? =
+        createReturningOwnerScan(observer)
     /** Durably stages one nonzero random receipt before destructive bytes are handed to Android. */
     fun stageFactoryResetReceipt(): ULong? = null
     /** Loads an unexpired app-private pending receipt after runtime/service process recovery. */
@@ -322,6 +326,7 @@ sealed interface BleRuntimeState {
         val attempt: Int,
         val maximumAttempts: Int,
         val connectionDiagnostic: BleConnectionDiagnostic? = null,
+        val periodic: Boolean = false,
     ) : BleRuntimeState
     data class Failed(
         val reason: BleRuntimeFailure,
@@ -366,6 +371,7 @@ class BleCompanionRuntime(
     private var operationTimeoutLease: BleReconnectLease? = null
     private var selected: BleDiscoveredCompanion? = null
     private var reconnectAttempt = 0
+    private var periodicReconnect = false
     private var negotiatedMtu = 0
     private var protocolInfo: CompanionProtocolInfo? = null
     private var activeSessionNonce = 0L
@@ -435,6 +441,8 @@ class BleCompanionRuntime(
         val remembered = selected
         if (remembered == null) {
             if (!beginReturningOwnerDiscovery()) publish(BleRuntimeState.Idle)
+        } else if (periodicReconnect) {
+            beginPeriodicDiscovery()
         } else {
             beginConnection(remembered, isReconnect = true, purpose = BleConnectionPurpose.EXISTING_OWNER)
         }
@@ -445,13 +453,16 @@ class BleCompanionRuntime(
      * support or failed preflight preserves the prior Idle startup behavior; an admitted lease owns
      * its own state and reports concrete startup/callback failures.
      */
-    private fun beginReturningOwnerDiscovery(): Boolean {
+    private fun beginReturningOwnerDiscovery(periodicCycle: Boolean = false): Boolean {
         if (!facade.preflight().isReady) return false
         var callbackGeneration = 0L
         val candidates = linkedMapOf<String, BleDiscoveredCompanion>()
-        val lease = facade.createReturningOwnerScan { event ->
-            onReturningOwnerScanEvent(callbackGeneration, candidates, event)
-        } ?: return false
+        val scanObserver: (BleScanEvent) -> Unit = { event ->
+            onReturningOwnerScanEvent(callbackGeneration, candidates, event, periodicCycle)
+        }
+        val lease = if (periodicCycle) facade.createPeriodicReturningOwnerScan(scanObserver)
+            else facade.createReturningOwnerScan(scanObserver)
+        if (lease == null) return false
         val nextGeneration = nextGeneration()
         if (nextGeneration == null) {
             lease.close()
@@ -467,7 +478,16 @@ class BleCompanionRuntime(
             lease.close()
             if (scanLease === lease) scanLease = null
             if (generation == callbackGeneration) {
-                publish(BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED))
+                val preflight = facade.preflight()
+                val remembered = selected
+                if (!preflight.isReady) {
+                    selected = null
+                    publish(BleRuntimeState.Blocked(preflight.blocker!!))
+                } else if (periodicCycle && remembered != null) {
+                    handleConnectionFailure(remembered, BleRuntimeFailure.SCAN_START_FAILED, transient = true)
+                } else {
+                    publish(BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED))
+                }
             }
         }
         return true
@@ -863,6 +883,7 @@ class BleCompanionRuntime(
         callbackGeneration: Long,
         candidates: LinkedHashMap<String, BleDiscoveredCompanion>,
         event: BleScanEvent,
+        periodicCycle: Boolean,
     ) {
         requireOwnerThread()
         if (deliveringObserver) return
@@ -890,16 +911,28 @@ class BleCompanionRuntime(
                 scanLease = null
                 val candidate = candidates.values.singleOrNull()
                 if (candidate == null) {
-                    selected = null
-                    publish(BleRuntimeState.Idle)
+                    val remembered = selected
+                    if (periodicCycle && remembered != null) {
+                        handleConnectionFailure(remembered, BleRuntimeFailure.CONNECTION_START_FAILED, transient = true)
+                    } else {
+                        selected = null
+                        publish(BleRuntimeState.Idle)
+                    }
                 } else {
-                    beginReturningOwnerConnection(candidate, isReconnect = false)
+                    beginReturningOwnerConnection(candidate, isReconnect = periodicCycle)
                 }
             }
             is BleScanEvent.Failed -> {
                 scanLease?.close()
                 scanLease = null
-                publish(BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED))
+                val remembered = selected
+                if (periodicCycle && remembered != null && event.failure in
+                    listOf(BleGattFailure.TRANSIENT_LINK, BleGattFailure.PLATFORM_FAILURE)) {
+                    handleConnectionFailure(remembered, BleRuntimeFailure.SCAN_START_FAILED, transient = true)
+                } else {
+                    selected = null
+                    publish(BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED))
+                }
             }
         }
     }
@@ -944,6 +977,7 @@ class BleCompanionRuntime(
                     reconnectAttempt.coerceAtLeast(1),
                     maximumReconnectAttempts,
                     priorConnectionDiagnostic,
+                    periodic = periodicReconnect,
                 )
             } else {
                 BleRuntimeState.Connecting(companion)
@@ -996,7 +1030,10 @@ class BleCompanionRuntime(
             started = true,
         )
         selected = companion
-        if (!isReconnect) reconnectAttempt = 0
+        if (!isReconnect) {
+            reconnectAttempt = 0
+            periodicReconnect = false
+        }
         beginConnection(
             companion,
             isReconnect = isReconnect,
@@ -1605,6 +1642,7 @@ class BleCompanionRuntime(
         pendingSnapshotExchangeId = 0
         authorizationClaim = null
         reconnectAttempt = 0
+        periodicReconnect = false
         val groupLocation = GroupLocationSnapshot.authoritativeUnavailable(
             snapshot.revision,
             snapshot.positionSharing,
@@ -1879,7 +1917,7 @@ class BleCompanionRuntime(
             publish(BleRuntimeState.Failed(reason, connectionDiagnostic))
             return
         }
-        if (reconnectAttempt >= maximumReconnectAttempts) {
+        if (maximumReconnectAttempts == 0) {
             selected = null
             publish(
                 BleRuntimeState.Failed(
@@ -1889,7 +1927,9 @@ class BleCompanionRuntime(
             )
             return
         }
-        reconnectAttempt += 1
+        // Saturate the fast-attempt counter; an extended absence cannot wrap it.
+        periodicReconnect = reconnectAttempt >= maximumReconnectAttempts
+        if (!periodicReconnect) reconnectAttempt += 1
         val attempt = reconnectAttempt
         val scheduleGeneration = nextGeneration() ?: return
         publish(
@@ -1898,6 +1938,7 @@ class BleCompanionRuntime(
                 attempt,
                 maximumReconnectAttempts,
                 connectionDiagnostic,
+                periodic = periodicReconnect,
             ),
         )
         if (
@@ -1905,7 +1946,8 @@ class BleCompanionRuntime(
             selected?.endpointToken != companion.endpointToken ||
             state !is BleRuntimeState.Reconnecting
         ) return
-        reconnectLease = scheduler.schedule(reconnectDelayMillis(attempt)) {
+        val delay = if (periodicReconnect) PERIODIC_RECONNECT_DELAY_MILLIS else reconnectDelayMillis(attempt)
+        reconnectLease = scheduler.schedule(delay) {
             onReconnectTimer(scheduleGeneration, companion, attempt)
         }
     }
@@ -1925,10 +1967,25 @@ class BleCompanionRuntime(
             selected?.endpointToken != companion.endpointToken
         ) return
         reconnectLease = null
-        beginReturningOwnerConnection(companion, isReconnect = true)
+        if (periodicReconnect) {
+            beginPeriodicDiscovery()
+        } else {
+            beginReturningOwnerConnection(companion, isReconnect = true)
+        }
     }
 
     private fun reconnectDelayMillis(attempt: Int): Long = 1_000L shl (attempt - 1).coerceAtMost(3)
+
+    private fun beginPeriodicDiscovery() {
+        val preflight = facade.preflight()
+        if (!preflight.isReady) {
+            selected = null
+            publish(BleRuntimeState.Blocked(preflight.blocker!!))
+        } else if (!beginReturningOwnerDiscovery(periodicCycle = true)) {
+            selected = null
+            publish(BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED))
+        }
+    }
 
     private fun armNegotiationTimeout(
         callbackGeneration: Long,
@@ -1951,7 +2008,18 @@ class BleCompanionRuntime(
         } else {
             isPhase(expectedPhase)
         }
-        if (stillWaiting) failAndRelease(BleRuntimeFailure.NEGOTIATION_TIMEOUT)
+        if (stillWaiting) {
+            val reconnecting = state as? BleRuntimeState.Reconnecting
+            if (expectedPhase == null && reconnecting != null) {
+                handleConnectionFailure(
+                    reconnecting.companion,
+                    BleRuntimeFailure.NEGOTIATION_TIMEOUT,
+                    transient = true,
+                )
+            } else {
+                failAndRelease(BleRuntimeFailure.NEGOTIATION_TIMEOUT)
+            }
+        }
     }
 
     private fun armActionTimeout(callbackGeneration: Long, exchangeId: Long) {
