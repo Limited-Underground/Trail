@@ -4,9 +4,54 @@ Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.
 
+## 2026-09-05
+
+### OT-177 distinct V1-Test Android variant
+
+- Added the separate `io.github.nbjelanovic.otclient.v1test` application,
+  visible `Trail V1-Test` name, and `1.0.0-v1test` version while preserving the
+  existing production identity.
+- Moved the typed 512-record diagnostic ring and its tests out of the production
+  source set. Full DEX inspection finds no diagnostic-ring class in the unsigned
+  release and finds it in V1-Test.
+- The expanded four-suite matrix passes 682 unit-test executions, all three lint
+  variants, debug/instrumentation/release/V1-Test assembly, publication safety,
+  scope admission, and Android release admission. Durable rotating storage,
+  Clear UI, support Save/Share, and physical acceptance remain open; V1 remains
+  exact 43.75% / displayed 44%.
+- [Exact host evidence and artifact identities](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md).
+
 ## 2026-09-04
 
-### Final lifecycle safeguard and repeated physical pass
+### OT-170, OT-172, OT-173, OT-174, and OT-177 host foundations
+
+- Added isolated Android state contracts for resumable device/name/region/public
+  setup, Messages-first portrait/landscape navigation, the exact one-admin and
+  six-member group cap, generated direct-contact consent, deterministic support
+  text, and bounded V1-Test diagnostics.
+- Independent review removed caller-provided trust booleans, prevented an admin
+  from silently reactivating an opted-out member's location, restricted ordinary
+  diagnostics to typed fields, and separated tester-entered text.
+- These are host foundations only. Compose screens, persistence, invitations,
+  authenticated presence/wire behavior, file save/share, the distinct V1-Test
+  flavor, firmware/OLED work, and physical acceptance remain open. No V1
+  completion percentage changes.
+- [Host evidence, independent corrections, exact matrix, and remaining gates](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md).
+
+### OT-169 V1 user-experience profile
+
+- Froze the owner-approved V1 product direction without implementation credit:
+  streamlined device/name/region onboarding; group membership outside first
+  setup; Messages/Group/Device portrait and landscape UI; one group, one
+  administrator, and six total members; bounded invitations and joining;
+  approved public direct contact; typed, built-in, and custom quick messages;
+  group location ON at join with administrator-required/optional policy;
+  per-chat location OFF; coordinates without built-in maps; redacted support
+  text export; separate V1-Test diagnostics; and Heltec OLED/clock direction.
+- OT-170 through OT-180 carry implementation and acceptance. No code,
+  percentage, evidence status, or release-readiness claim changed.
+
+### OT-168 final lifecycle safeguard and repeated physical pass
 
 - Pending authorization cannot automatically retry after lifecycle stop/start;
   explicit manual scanning remains available. Independent review passed.
@@ -17,7 +62,7 @@ public chronology.
 - V1 percentages and the remaining cold-power, factory-reset, two-pair, and
   release gates are unchanged. GUI workflow review is the proposed next task.
 
-### Periodic saved-owner reconnect passes the short physical test
+### OT-168 periodic saved-owner reconnect passes the short physical test
 
 - After three quick retries, the app now waits 15 seconds between five-second
   saved-owner discovery scans. Cancellation, lifecycle changes, and failed
@@ -32,7 +77,7 @@ public chronology.
   remain open; milestone completion is unchanged.
 - [Test setup, artifacts, timing, and limits](../tests/hardware/OT-168-PERIODIC-2026-09-04.md).
 
-### Repository and website synchronization authorized
+### OT-168 repository and website synchronization authorized
 
 - The owner requested publication of the validated checkpoint, current local
   records, and website, superseding the earlier website deferral for this
@@ -43,7 +88,7 @@ public chronology.
 - The Android cleanup review and battery-percentage accuracy investigation
   are recorded follow-ups, not implemented or validated improvements.
 
-### Extended absence exposes the remaining reconnect gap
+### OT-168 extended absence exposes the remaining reconnect gap
 
 - With the Note20 app untouched, the same Heltec spent approximately 4 minutes
   38 seconds in ROM before normal reset and owner-confirmed display return.
@@ -55,7 +100,7 @@ public chronology.
   valid; V1 stays exact 43.75% / displayed 44%. No public website status changed;
   synchronization remains owner-deferred to the two-pair milestone.
 
-### App-process and warm-reset persistence pass on the same pair
+### OT-168 app-process and warm-reset persistence pass on the same pair
 
 - Force-stopping and cold-launching the existing Note20 app preserved the saved
   owner. After the current mode chooser, a fresh GATT session passed discovery,
@@ -69,7 +114,7 @@ public chronology.
   restart tests. Cold-power removal, factory-reset recovery, production zero-tap
   launch, and coherent two-pair acceptance remain open. V1 stays 43.75% / 44%.
 
-### One saved-owner reconnect reaches authenticated Ready
+### OT-168 one saved-owner reconnect reaches authenticated Ready
 
 - After the owner authorized the update, fresh device identity and installed
   bytes matched, including after the reported power interruption. No write
@@ -87,7 +132,7 @@ public chronology.
   partial; Android remains 60%; V1 remains exact 43.75% / displayed 44%.
   Website synchronization remains owner-deferred to the two-pair milestone.
 
-### Saved-owner reconnect successor is host-validated
+### OT-168 saved-owner reconnect successor is host-validated
 
 - Source review found that pinned NimBLE can reload persisted CCCDs during a
   second store initialization after the rejected startup sanitation. The
@@ -138,7 +183,7 @@ public chronology.
 
 ## 2026-09-03
 
-### Saved-owner reconnect correction remains unaccepted
+### OT-168 saved-owner reconnect correction remains unaccepted
 
 - The previously accepted clean first-connection baseline remains: passkey
   bond, protected negotiation, claim, mandatory Snapshot, and Ready.

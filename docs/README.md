@@ -8,6 +8,8 @@ This is the organized entry point for OpenTrail design, evidence, and engineerin
 | --- | --- |
 | [Architecture](ARCHITECTURE.md) | System layers, roles, interfaces, protocols, and failure behavior |
 | [Product boundaries](PRODUCT_BOUNDARIES_V0.md) | Required base-client behavior, optional additions, allowed data, and degraded operation |
+| [V1 user experience](product/V1_USER_EXPERIENCE.md) | Owner-approved Android navigation, setup, messaging, group, location, and support behavior |
+| [Heltec OLED V1 layout](product/HELTEC_OLED_V1.md) | Owner-approved 128 x 64 display states, priority, clock, and remaining acceptance |
 | [Project status](PROJECT_STATUS.md) | Current evidence, assumptions, hardware, unresolved decisions, and the next checkpoint |
 | [Progress log](PROGRESS_LOG.md) | Public chronology grouped by date, newest first |
 | [Future concepts](FUTURE_CONCEPTS.md) | Unscheduled post-release ideas and accepted directions with explicit safety and no-progress boundaries |

@@ -32,6 +32,17 @@ authorization; V1 makes no rollback-proof ownership claim against that physical
 attacker. See [Decision 0103](decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md)
 and the [current reset contract](platform/DEVICE_FACTORY_RESET_V1.md).
 
+[Decision 0104](decisions/0104-freeze-ot169-v1-user-experience-profile.md)
+adds the accepted user-facing V1 boundary. Device onboarding is fixed and does
+not ask about groups. The normal Android surface is Messages, Group, and Device
+in portrait and landscape. A person may join one private group with exactly one
+administrator and six total members. Group location starts ON when joining;
+the administrator selects Required or Optional, but cannot silently reactivate
+an opted-out member when changing that rule. Public direct contact requires
+recipient consent and begins with direct location OFF. V1 includes typed and
+quick messages, deliberate coordinate detail, support text export, and the
+bounded Heltec OLED/clock surface. Built-in maps remain outside the release gate.
+
 ## Preserved standalone and later-node boundaries
 
 The original self-contained touchscreen-client concept remains a future product

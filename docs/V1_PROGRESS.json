@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-09-04",
+  "as_of": "2026-09-05",
   "baseline_name": "Historical standalone evidence baseline",
   "baseline_definition": "The historical standalone evidence baseline measures progress toward four self-contained field units that do not depend on a phone, server, or repeater; it is retained for continuity and is not the current V1 Companion release total.",
   "baseline_milestones": [
@@ -256,8 +256,8 @@
       "id": "v1-companion",
       "name": "V1 Companion",
       "status": "measured",
-      "as_of": "2026-09-04",
-      "definition": "A complete V1 Companion release means exactly two supported Heltec LoRa devices and two approved Android phones, one physically authorized phone per Heltec, exchange authenticated and encrypted messages bidirectionally through BLE, direct LoRa, and BLE with restart, disconnect, rejection, retry, recovery, and one exact signed Android release physically accepted without relay, server, or internet dependency.",
+      "as_of": "2026-09-05",
+      "definition": "A complete V1 Companion release means exactly two supported Heltec LoRa devices and two approved Android phones, one physically authorized phone per Heltec, exchange authenticated and encrypted typed and quick messages bidirectionally through BLE, direct LoRa, and BLE with restart, disconnect, rejection, retry, and recovery. The accepted product includes resumable name/region onboarding; Messages, Group, and Device portrait/landscape UI; one private group per person with exactly one administrator and at most six total members; consent-gated public direct contact; group location ON at join with administrator Required/Optional policy; per-chat location OFF; current/stale/unavailable coordinate detail without a built-in-map requirement; redacted user-reviewed text support export; and the accepted Heltec OLED/clock states. Release still requires one exact signed Android artifact physically accepted without relay, server, or internet dependency.",
       "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
       "milestones": [
         {
@@ -958,6 +958,18 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Final periodic artifact adds a tested lifecycle-stop guard against automatic retry of Pending authorization. Full Android validation passes 387 tests, lint/build and unsigned-artifact inspection. The final debug APK passed a second 65.854-second ROM absence: empty periodic scan then automatic recovery, link 1.225 seconds after reset and Ready observed within 12.231 seconds, without phone input. Exact artifacts and both observations are recorded in the periodic hardware note. No completion or weight changes; V1 remains exact 43.75 percent."
+        },
+        {
+          "date": "2026-09-04",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Froze OT-169 as the owner-approved V1 user-experience scope and added partial host-only OT-170, OT-172, OT-173, OT-174, and OT-177 Android foundations. The expanded release definition now records the required onboarding, responsive application shell, one-group/one-admin/six-member profile, direct-contact consent, location defaults and coordinate detail, support export, and OLED/clock surface. No implementation is credited beyond its bounded host evidence; integration, persistence, authenticated wire behavior, Android UI, firmware, physical, signing, and release gates remain open. Every milestone completion remains unchanged; V1 Companion remains exact 43.75 percent / displayed 44 percent."
+        },
+        {
+          "date": "2026-09-05",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Added the distinct OT-177 V1-Test Android variant with application ID io.github.nbjelanovic.otclient.v1test, visible Trail V1-Test name, and 1.0.0-v1test version. Typed bounded diagnostic code and tests moved out of production source sets; DEX inspection finds the diagnostic ring absent from the unsigned release and present in V1-Test. The expanded matrix passes 682 protocol/debug/release/V1-Test unit-test executions, three lint variants, and all requested assemblies. Durable storage, Clear UI, report Save/Share, integration, hardware, signing, and release acceptance remain open. No milestone completion changes; V1 Companion remains exact 43.75 percent / displayed 44 percent."
         }
     ]
     },

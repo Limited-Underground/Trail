@@ -24,6 +24,13 @@ android {
         getByName("debug") {
             versionNameSuffix = "-dev"
         }
+        create("v1Test") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".v1test"
+            versionNameSuffix = "-v1test"
+            matchingFallbacks += listOf("debug")
+            resValue("string", "app_name", "Trail V1-Test")
+        }
         getByName("release") {
             isDebuggable = false
             isJniDebuggable = false

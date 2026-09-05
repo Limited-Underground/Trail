@@ -1,6 +1,24 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-Status date: 2026-09-04
+Status date: 2026-09-05
+
+Latest product-profile decision: [Decision 0104](decisions/0104-freeze-ot169-v1-user-experience-profile.md)
+freezes the owner-approved V1 Android/OLED experience. V1 permits one group per
+person, exactly one administrator, and six total members; group location starts
+ON at join and the administrator selects Required or Optional. Messages is the
+default destination, group setup occurs after device onboarding, public direct
+contact requires recipient consent, coordinate detail does not require built-in
+maps, and support/V1-Test/OLED-clock surfaces are required. OT-170, OT-172,
+OT-173, OT-174, and OT-177 now have bounded Android host foundations, including
+session-bound setup receipts, no silent location reactivation, one-group
+registry/delete-before-admin-leave, responsive navigation, consent-gated direct
+chat, typed diagnostics, and deterministic text-report generation. These are
+not integrated application behavior and add no completion credit. Persistence,
+Compose workflow integration, invitation/wire behavior, durable diagnostic
+storage/UI, firmware/OLED implementation, and physical/release acceptance
+remain open. The distinct V1-Test identity is now host-proven: `.v1test`,
+visible `Trail V1-Test`, and `-v1test`; DEX inspection finds its diagnostic
+classes absent from the unsigned production APK and present in the test APK.
 
 Latest successor: periodic reconnect is implemented and physically passed on
 the retained Heltec/Note20 pair. After three quick retries, the open app waits

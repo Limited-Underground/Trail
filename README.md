@@ -25,7 +25,7 @@ requirements for basic operation.
 | Phase | Architecture, host-tested components, bounded bench proofs, and two experimentally flashed Heltec targets |
 | Latest increment | Periodic saved-owner recovery passes on the retained Heltec/Note20 pair: three quick retries, then five-second scans separated by a 15-second wait. A 65.866-second ROM absence recovered automatically through fresh authorization and Snapshot; 387 Android tests/lint/build pass. See tests/hardware/OT-168-PERIODIC-2026-09-04.md. Cold-power, factory-reset, and two-pair acceptance remain open. |
 | Proven so far | Focused Android/firmware tests and the complete Host matrix pass. Two empty-output-directory builds reproduce the canonical 563,824-byte application SHA-256 `91D4CEB48CCFBCD21AC97CE604C48FBCCA04D70408D2BF749C90CB053AD04824`; the retained test unit received an exact application-only write/readback. The existing Android app retained its owner/bond and reached fresh authorization plus mandatory Snapshot without a new PIN. Warm-reset link recovery measured 1.493 seconds, not full Ready latency. See the [dated physical evidence](tests/hardware/OT-168-2026-09-04.md) for artifact identities and limits |
-| Planned V1 | Two Heltec devices exchanging authenticated, encrypted messages over LoRa. Each device connects to its own Android phone for displaying information and controlling actions such as sending messages and sharing location. Bluetooth connects each phone to its own device; communication between the two devices uses LoRa. |
+| Planned V1 | Two Heltec/Android pairs exchanging authenticated typed/quick messages and coordinates over direct LoRa. The approved UX uses resumable name/region onboarding, Messages/Group/Device portrait and landscape layouts, one private group per person with exactly one administrator and six total members, consent-gated public direct chat, group location ON at join under an admin Required/Optional rule, redacted support export, and the bounded Heltec OLED/clock surface. Built-in maps are not required. See Decision 0104. |
 | Not yet proven | true cold-power recovery, production zero-tap launch, destructive app/physical reset and erasure recovery, automatic unowned-boot pairing on both units, authenticated on-device LoRa, coherent two-phone operation, calibrated battery percentage, supported hardware, production firmware, endurance, field range, or regulatory acceptance |
 
 The accepted firmware build pair embeds pre-publication version `110e543-dirty`;
@@ -77,6 +77,13 @@ bidirectional messaging, explicit rejection and bounded recovery, and one exact
 signed Android artifact installed on both approved phones. V1 has no server,
 internet, or relay dependency.
 
+[Decision 0104](docs/decisions/0104-freeze-ot169-v1-user-experience-profile.md)
+adds the accepted user-facing completion boundary: fixed onboarding without a
+group step; Messages, Group, and Device responsive navigation; one group, one
+administrator, and six total members; consent-gated direct contact; typed and
+quick messages; coordinates without a built-in-map dependency; support export;
+and the final Heltec OLED/clock states. These requirements are not yet complete.
+
 Factory reset, reflashing, invasive access, or restoring old flash may reset or
 roll back ownership; V1 does not claim resistance to physical firmware-writing
 access. V1.5 separately requires four supported interoperable nodes. A future V2
@@ -84,6 +91,7 @@ may move the primary interface to a dedicated touchscreen client.
 
 The exact scope and current evidence live in
 [Decision 0033](docs/decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md),
+[Decision 0104](docs/decisions/0104-freeze-ot169-v1-user-experience-profile.md),
 [the V1/V1.5 acceptance scope](docs/testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md),
 [project status](docs/PROJECT_STATUS.md), [progress](docs/V1_PROGRESS.json),
 [the dated log](docs/PROGRESS_LOG.md), and [the backlog](tasks/BACKLOG.md).
