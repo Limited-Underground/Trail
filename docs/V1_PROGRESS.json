@@ -384,7 +384,7 @@
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "Android companion has host-tested protocol/state flows and physical single-pair saved-owner, app-restart, warm-reset, and extended-absence recovery. Periodic discovery waits 15 seconds between five-second scans after three quick attempts. A 65.866-second ROM absence recovered without phone input through fresh authorization and Snapshot; complete Android validation passes 385 tests, lint/build and unsigned-artifact inspection. Cold-power, factory-reset, coherent two-phone, signed release and operational acceptance remain open. See tests/hardware/OT-168-PERIODIC-2026-09-04.md.",
+          "description": "Android companion has host-tested protocol/state flows and physical single-pair saved-owner, app-restart, warm-reset, and extended-absence recovery. Periodic discovery waits 15 seconds between five-second scans after three quick attempts. A 65.866-second ROM absence recovered without phone input through fresh authorization and Snapshot; complete Android validation passes 387 tests, lint/build and unsigned-artifact inspection. Cold-power, factory-reset, coherent two-phone, signed release and operational acceptance remain open. See tests/hardware/OT-168-PERIODIC-2026-09-04.md.",
           "weight": 20,
           "completion": 60,
           "evidence_status": "Build tested with unsigned release foundation; physical saved-owner Ready, app-process restart, and automatic warm-reset recovery pass on one pair; cold-power, factory-reset, and two-pair acceptance pending",
@@ -952,6 +952,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Accepted periodic saved-owner recovery after the three fast retries: five-second scans separated by a 15-second idle wait, fresh authorization/Snapshot, and cancellation/lifecycle handling. The full Android matrix passes 385 tests, lint/build, and unsigned-artifact inspection. One 65.866-second ROM absence produced an empty scan then automatic recovery during the next scan, with no phone input. Link returned 1.220 seconds after reset completion; Ready was observed within 8.373 seconds. Firmware unchanged. This closes one partial recovery behavior without changing milestone weights or completion; cold-power, factory reset, two-pair and release acceptance remain open."
+        },
+        {
+          "date": "2026-09-04",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Final periodic artifact adds a tested lifecycle-stop guard against automatic retry of Pending authorization. Full Android validation passes 387 tests, lint/build and unsigned-artifact inspection. The final debug APK passed a second 65.854-second ROM absence: empty periodic scan then automatic recovery, link 1.225 seconds after reset and Ready observed within 12.231 seconds, without phone input. Exact artifacts and both observations are recorded in the periodic hardware note. No completion or weight changes; V1 remains exact 43.75 percent."
         }
     ]
     },

@@ -372,6 +372,7 @@ class BleCompanionRuntime(
     private var selected: BleDiscoveredCompanion? = null
     private var reconnectAttempt = 0
     private var periodicReconnect = false
+    private var lifecycleAuthorizationFailure: BleRuntimeFailure? = null
     private var negotiatedMtu = 0
     private var protocolInfo: CompanionProtocolInfo? = null
     private var activeSessionNonce = 0L
@@ -436,6 +437,10 @@ class BleCompanionRuntime(
         resetTarget?.let {
             factoryResetVerificationTarget = it
             beginFactoryResetVerification(it)
+            return
+        }
+        lifecycleAuthorizationFailure?.let {
+            publish(BleRuntimeState.Failed(it))
             return
         }
         val remembered = selected
@@ -505,6 +510,10 @@ class BleCompanionRuntime(
 
     private fun stopNow() {
         if (closed || !lifecycleActive) return
+        if (authorizationClaim?.let { it.pendingReported || it.terminal } == true) {
+            lifecycleAuthorizationFailure = BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST
+            selected = null
+        }
         lifecycleActive = false
         invalidateAndRelease()
         authorizationClaim = null
@@ -516,6 +525,7 @@ class BleCompanionRuntime(
         requireOwnerThread()
         if (deliveringObserver) return
         if (!lifecycleActive || closed) return
+        lifecycleAuthorizationFailure = null
         val resetTarget = factoryResetVerificationTarget ?: facade.loadPendingFactoryResetReceipt()?.let { receipt ->
             if (receipt == 0uL) null else FactoryResetVerificationTarget(receipt, companion = null)
         }

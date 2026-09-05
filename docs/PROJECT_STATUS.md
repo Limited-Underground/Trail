@@ -7,7 +7,7 @@ the retained Heltec/Note20 pair. After three quick retries, the open app waits
 15 seconds between five-second saved-owner scans. One empty scan and recovery
 during the second scan passed after a 65.866-second ROM absence, without phone
 input. Fresh authorization and Snapshot/Ready returned. The affected Android
-matrix passes 385 tests, lint/build, and unsigned-artifact inspection. See
+matrix passes 387 tests, lint/build, and unsigned-artifact inspection. See
 [the periodic-reconnect evidence](../tests/hardware/OT-168-PERIODIC-2026-09-04.md).
 This supersedes the historical terminal-exhaustion limitation below. True
 cold-power, factory-reset, and coherent two-pair acceptance remain open.

@@ -124,7 +124,7 @@ recovery, both-device physical acceptance, and coherent two-phone evidence.
 After three quick retries, the running app waits 15 seconds between bounded
 five-second saved-owner scans. The retained Note20/Heltec pair recovered after
 a 65.866-second ROM absence without phone input, through fresh authorization
-and mandatory Snapshot. The complete Android matrix passes 385 tests and
+and mandatory Snapshot. The complete Android matrix passes 387 tests and
 debug/release lint/build. See the [physical evidence](../tests/hardware/OT-168-PERIODIC-2026-09-04.md)
 for current debug/release artifact identities; earlier artifact summaries are
 historical. Cold power, factory reset, and two-phone release acceptance remain.

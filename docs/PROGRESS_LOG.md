@@ -6,6 +6,17 @@ public chronology.
 
 ## 2026-09-04
 
+### Final lifecycle safeguard and repeated physical pass
+
+- Pending authorization cannot automatically retry after lifecycle stop/start;
+  explicit manual scanning remains available. Independent review passed.
+- Final Android matrix: 387 tests, zero failures/errors, lint/build and unsigned
+  artifact inspection pass. The final debug APK also recovered automatically
+  after a second 65.854-second ROM absence, with no phone input. The hardware
+  note records both exact APK fingerprints and both observations.
+- V1 percentages and the remaining cold-power, factory-reset, two-pair, and
+  release gates are unchanged. GUI workflow review is the proposed next task.
+
 ### Periodic saved-owner reconnect passes the short physical test
 
 - After three quick retries, the app now waits 15 seconds between five-second

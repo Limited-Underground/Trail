@@ -793,6 +793,37 @@ class BleCompanionRuntimeTest {
     }
 
     @Test
+    fun lifecycleStopAfterPeriodicAuthorizationPendingRequiresExplicitRetry() {
+        val scheduler = TestRuntimeScheduler()
+        val fixture = Fixture(TestBluetoothFacade(returningOwnerScanSupported = true), scheduler)
+        fixture.exhaustFastRetries(scheduler)
+        scheduler.advanceBy(15_000)
+        val scan = fixture.facade.returningOwnerScans.last()
+        scan.emit(BleScanEvent.Candidate(CANDIDATE))
+        scan.emit(BleScanEvent.Complete)
+        val gatt = fixture.facade.connections.last()
+        gatt.emit(BleGattEvent.ProfileReady)
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(83)))
+        gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
+        gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+        gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(83)))
+        fixture.runtime.onLifecycleStop()
+        val scanCount = fixture.facade.returningOwnerScans.size
+        val connectionCount = fixture.facade.connections.size
+        repeat(2) {
+            fixture.runtime.onLifecycleStart()
+            assertEquals(BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST,
+                assertIs<BleRuntimeState.Failed>(fixture.runtime.state).reason)
+            assertEquals(scanCount, fixture.facade.returningOwnerScans.size)
+            assertEquals(connectionCount, fixture.facade.connections.size)
+            assertFalse(scheduler.hasOpenTimers())
+            if (it == 0) fixture.runtime.onLifecycleStop()
+        }
+        fixture.runtime.requestScan()
+        assertIs<BleRuntimeState.Scanning>(fixture.runtime.state)
+    }
+
+    @Test
     fun lifecycleStopCancelsReconnectAndStartReopensRememberedSelection() {
         val scheduler = TestRuntimeScheduler()
         val fixture = Fixture(scheduler = scheduler)
