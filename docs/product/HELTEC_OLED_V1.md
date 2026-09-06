@@ -82,3 +82,7 @@ Prepare the authenticated configuration and time-sync contract before broad norm
 ## Configuration/time implementation contract
 
 [Decision 0106](../decisions/0106-oled-configuration-time-authority.md) now defines device-confirmed values and session-bound civil-time admission. It is design evidence only. Phone drafts remain separate from device readback, radio TX remains separately controlled, and a disconnected clock expires after its existing 24-hour limit. Next implement the host time-admission owner; no new OLED runtime behavior is accepted by this contract.
+
+## Host time-admission increment
+
+OT-178 adds a host-only fixed-memory time-admission owner around OledClock and an injected trusted authority source. It binds one challenge to exact owner/session generations, rejects stale or duplicate work without refreshing time, and separates disconnect retention from revocation/reset invalidation. All 21 focused groups and the complete host matrix pass; no wire, target or phone integration is added. The chosen two-second challenge deadline does not establish measured BLE latency or phone clock accuracy. Device integration and physical clock behavior remain open. See [evidence](../testing/OT-178-TIME-ADMISSION-2026-09-06.md).

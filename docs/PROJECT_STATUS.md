@@ -1,5 +1,13 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
+## 2026-09-06 - OT-178 host time-admission owner validated
+
+OT-178 adds a host-only fixed-memory time-admission owner around OledClock and an injected trusted authority source. It binds one challenge to exact owner/session generations, rejects stale or duplicate work without refreshing time, and separates disconnect retention from revocation/reset invalidation. All 21 focused groups and the complete host matrix pass; no wire, target or phone integration is added.
+
+Reconcile the existing unpublished OT-170 name codec and readback draft in isolation, preserve its byte format where valid, and establish cross-language parity before a negotiated configuration/time transport successor. Do not allocate an opcode or enlarge target buffers without the reviewed capacity, authorization, uncertainty and reset contract. Website and cold-power work remain deferred.
+
+See [implementation evidence](../docs/testing/OT-178-TIME-ADMISSION-2026-09-06.md). No V1 completion increase.
+
 ## 2026-09-06 - OT-178 configuration/time authority contract
 
 Defined the device-confirmed OLED configuration/time contract: exact session and generation binding, durable settings readback, separate region/group authority, and volatile civil time admitted with a fresh device-local challenge. This is a reviewed implementation contract, not an implemented transport or new hardware evidence.

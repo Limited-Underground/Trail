@@ -212,3 +212,18 @@ Android or firmware matrix is repeated for document-only changes; publication
 safety and document/progress consistency are the affected checks. Hardware
 execution, storage migration, new protocol activation and time admission tests
 remain separate future gates.
+
+## Host admission implementation checkpoint
+
+The host-only `OledTimeAdmissionOwner` now composes the existing clock with an
+injected trusted authority source, one pending challenge and bounded duplicate
+retention. All 21 focused groups and the complete affected host matrix pass. See
+[implementation evidence](../testing/OT-178-TIME-ADMISSION-2026-09-06.md).
+This does not activate the negotiated transport, persistence or target stages.
+
+The source adapter must preserve real generation ordering and coherent lifecycle
+state. Losing Ready invalidates the old session's admission; later Ready needs
+fresh valid context. A revoked owner epoch cannot return through a mere new
+transport or an unavailable observation. These host checks do not authenticate
+a phone or replace the source's authority proof. Required wire/output-capacity,
+storage/reset and physical acceptance portions of the matrix remain open.

@@ -26,3 +26,10 @@ The next increment is the host-only bounded time-admission owner and adversarial
 lifecycle tests. This decision does not change target source, firmware, phone,
 radio behavior, physical acceptance or any V1 completion value. Website and
 cold-power work remain owner-deferred.
+
+## Host implementation checkpoint
+
+The time-admission owner now passes 21 focused groups and the complete host
+matrix. See [bounded evidence](../testing/OT-178-TIME-ADMISSION-2026-09-06.md).
+This accepts the host portion only; negotiated transport, durable configuration,
+real authority mapping and physical integration remain pending.

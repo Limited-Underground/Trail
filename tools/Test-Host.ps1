@@ -1279,6 +1279,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'OLED trusted-context time admission owner'
+        Output = Join-Path $buildDirectory 'oled_time_admission_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_time_admission.cpp'),
+            (Join-Path $projectRoot 'tests\host\oled_time_admission_tests.cpp')
+        )
+    },
+    @{
         Name = 'OLED phone-synchronized clock presentation'
         Output = Join-Path $buildDirectory 'oled_clock_tests.exe'
         Sources = @(

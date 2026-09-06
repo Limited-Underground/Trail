@@ -1770,3 +1770,9 @@ Prepare the authenticated configuration and time-sync contract before broad norm
 Defined the device-confirmed OLED configuration/time contract: exact session and generation binding, durable settings readback, separate region/group authority, and volatile civil time admitted with a fresh device-local challenge. This is a reviewed implementation contract, not an implemented transport or new hardware evidence.
 
 [Decision 0106](decisions/0106-oled-configuration-time-authority.md) separates confirmed configuration, radio/group authority and presentation time. The next host owner must reject stale external events before calling the invalidating clock API, timestamp at device application-task consumption and preserve exact lifecycle correlation. No existing protocol or persistence capacity is implicitly expanded.
+
+## Host time-admission owner (2026-09-06)
+
+OT-178 adds a host-only fixed-memory time-admission owner around OledClock and an injected trusted authority source. It binds one challenge to exact owner/session generations, rejects stale or duplicate work without refreshing time, and separates disconnect retention from revocation/reset invalidation. All 21 focused groups and the complete host matrix pass; no wire, target or phone integration is added.
+
+The trusted authority provider must supply coherent current state in the same serialized owner domain. The host component does not authenticate Bluetooth peers or accept a phone authorization flag. It preserves distinct owner identity/generation and connection/session scopes; monotonic rollback contains the owner until reconstruction in a genuinely new runtime. See [evidence](testing/OT-178-TIME-ADMISSION-2026-09-06.md).
