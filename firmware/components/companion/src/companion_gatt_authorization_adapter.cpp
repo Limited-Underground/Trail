@@ -465,14 +465,11 @@ CompanionGattAuthorizationCallbackAdapter::complete_indication(
         expected.delivery_token,
         confirmed,
         now_ms);
-    if (result == CompanionGattAuthorizationError::none) {
-        indication_port_.observe_completion(expected.delivery_token);
-        pending_ = {};
-        return CompanionGattAdapterError::none;
-    }
-    if (!confirmed) {
-        pending_ = {};
-    }
+    // The exact transport indication completed even when the lifecycle rejects
+    // its result (for example, normal-session promotion fails). Releasing the
+    // port must not depend on application authorization succeeding.
+    indication_port_.observe_completion(expected.delivery_token);
+    pending_ = {};
     return map_lifecycle_error(result);
 }
 

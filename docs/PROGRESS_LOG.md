@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-09-06 - OT-177 firmware reconnect correction
+
+Firmware correction releases the exact transport indication even when lifecycle promotion fails, and restores the Heltec provisional nonce to the existing increasing boot-local session counter with uint32 exhaustion rejection. Replay protection, secure-random boot/controller bindings and exact-generation caching remain intact. The composed regression preserves lower-nonce rejection and proves a later valid connection can promote and complete Snapshot. Hardware reconnect acceptance remains pending; website updates remain owner-deferred.
+
+After host/build publication, prepare a separately authorized application-only installation and saved-owner reconnect acceptance using the exact new firmware artifact, fresh target/readback checks and verified restoration image. Require initial Ready/Snapshot, app restart reconnect and repeated disconnect/reconnect without stranded response state. No physical execution is authorized by the host/build increment.
+
+See [validation and preflight](../tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md).
+
 ## 2026-09-06 - OT-177 console result and host reproduction
 
 One authorized receive-only USB-console capture during one saved-owner phone connection observed successful attribute admission followed by command error 17 (response_path_busy). A deterministic host sequence 2 -> 1 -> 3 reproduces a normal-session nonce ordering failure and stranded transport indication that blocks the following connection. This identifies a source defect consistent with the hardware symptom; the earlier physical nonce history was not captured. No production correction or reconnect acceptance is claimed.

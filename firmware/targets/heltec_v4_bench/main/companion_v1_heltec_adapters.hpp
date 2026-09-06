@@ -45,9 +45,10 @@ private:
 // Inventory and live-connection resolution expose only the same stable,
 // domain-separated 128-bit reference derived from authenticated SC bond
 // material. The trusted-binding result is cached for one exact transport
-// generation. Its boot/controller/nonce values come from the platform secure
-// random source; its session challenge is a strictly increasing boot-local
-// counter.
+// generation. Its boot/controller values come from the platform secure random
+// source; its session challenge and provisional nonce share a strictly
+// increasing boot-local counter capped at UINT32_MAX. The nonce is a replay
+// discriminator, not secret authentication material. Exhaustion fails closed.
 class HeltecV4CompanionV1NimbleBondAdapter final
     : public companion::CompanionV1BondInventoryPort,
       public companion::CompanionV1BondCleanupPort,

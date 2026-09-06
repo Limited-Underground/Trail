@@ -778,9 +778,60 @@ void test_wrong_connection_generation_and_malformed_inputs() {
            CompanionGattAuthorizationError::malformed_request);
 }
 
+void test_failed_promotion_releases_transport_slot() {
+    Harness h;
+    // A descending nonce must still fail the normal-session replay guard.
+    // Its terminal indication must not poison the following valid connection.
+    for (std::uint32_t session : {2U, 1U, 3U}) {
+        h.binding.session = session;
+        std::uint64_t generation;
+        if (session == 2) {
+            generation = h.connect_and_secure();
+        } else {
+            const auto connected = h.adapter.connect(kConnection);
+            EXPECT(connected.connected());
+            generation = connected.transport_generation;
+            EXPECT(h.adapter.refresh_security(kConnection, secure()) ==
+                   CompanionGattAdapterError::none);
+        }
+        h.read_and_subscribe(session);
+        auto claim = kClaimStart;
+        claim[8] = static_cast<std::uint8_t>(session);
+        const auto pending = h.begin_claim(claim);
+        EXPECT(h.adapter.complete_indication(pending, true, 1) ==
+               CompanionGattAdapterError::none);
+        EXPECT(h.adapter.resolve_claim(
+                   kConnection, generation, session, 1, secure(), 2).pending());
+        const auto terminal = h.adapter.status().pending;
+        const auto completed = h.adapter.complete_indication(terminal, true, 3);
+        EXPECT(!h.port.pending);
+        EXPECT(!h.adapter.status().pending.valid);
+        EXPECT(h.adapter.complete_indication(terminal, true, 3) ==
+               CompanionGattAdapterError::no_pending_indication);
+        if (session == 1) {
+            EXPECT(completed == CompanionGattAdapterError::lifecycle_rejected);
+            EXPECT(!h.adapter.status().lifecycle.normal_session_active);
+        } else {
+            EXPECT(completed == CompanionGattAdapterError::none);
+            EXPECT(h.adapter.status().lifecycle.normal_session_active);
+            auto request = kSnapshotRequest;
+            request[8] = static_cast<std::uint8_t>(session);
+            EXPECT(h.adapter.service_command(
+                       kConnection, kHandles.command_value,
+                       {request.data(), request.size()}, 4).pending());
+            EXPECT(h.adapter.complete_indication(
+                       h.adapter.status().pending, true, 5) ==
+                   CompanionGattAdapterError::none);
+        }
+        EXPECT(h.adapter.disconnect(kConnection) == CompanionGattAdapterError::none);
+        EXPECT(!h.port.pending);
+    }
+}
+
 }  // namespace
 
 int main() {
+    test_failed_promotion_releases_transport_slot();
     test_registration_security_and_protocol_info();
     test_second_connection_rejection_preserves_exact_original_session();
     test_security_and_private_binding_fail_closed();
@@ -795,6 +846,6 @@ int main() {
     test_wrong_connection_generation_and_malformed_inputs();
     test_restored_subscription_requires_a_successfully_observed_event();
     test_claim_rejection_after_setup_is_not_an_authority_decision();
-    std::cout << "PASS: 14 companion GATT authorization adapter groups\n";
+    std::cout << "PASS: 15 companion GATT authorization adapter groups\n";
     return 0;
 }

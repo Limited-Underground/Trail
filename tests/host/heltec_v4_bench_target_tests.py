@@ -1008,20 +1008,31 @@ def test_v1_heltec_adapters_surface() -> None:
         "HeltecV4CompanionV1NimbleBondAdapter::resolve("):]
     for required in (
         "next_session_challenge_{1}",
-        "if (next_session_challenge_ == 0)",
+        "if (next_session_challenge_ == 0 ||",
+        "next_session_challenge_ > UINT32_MAX)",
         "const std::uint64_t session_challenge = next_session_challenge_++",
         "claim.session_challenge = session_challenge",
     ):
         require(required in header + "\n" + resolve,
                 f"missing boot-local monotonic session challenge gate: {required}")
     require(resolve.index("return cached_result_") <
-            resolve.index("if (next_session_challenge_ == 0)") <
+            resolve.index("if (next_session_challenge_ == 0 ||") <
             resolve.index("next_session_challenge_++") <
             resolve.index("cached_ = true"),
             "same tuple must return cached challenge and only a successful new tuple may advance it")
-    require("sizeof(std::uint64_t) + sizeof(std::uint32_t)" in resolve and
-            "force_nonzero(session_challenge)" not in resolve,
-            "session challenge must come only from the monotonic counter, not random bytes")
+    require("kPrivateConnectionBytes = sizeof(std::uint64_t)" in resolve and
+            "static_cast<std::uint32_t>(session_challenge)" in resolve and
+            "force_nonzero(session_challenge)" not in resolve and
+            "force_nonzero(provisional_session_nonce)" not in resolve and
+            "read_u32_be" not in resolve,
+            "session challenge and normal-session nonce must share the bounded counter, not random bytes")
+    require(resolve.index("next_session_challenge_ > UINT32_MAX)") <
+            resolve.index("random_.state()") <
+            resolve.index("random_.fill(") <
+            resolve.index("next_session_challenge_++") <
+            resolve.index("static_cast<std::uint32_t>(session_challenge)") <
+            resolve.index("cached_ = true"),
+            "nonce exhaustion must fail before entropy and narrowing, with allocation only after successful entropy")
 
     initial_commit = source[
         source.index("HeltecV4CompanionV1OwnerStorage::commit_absent_and_readback("):

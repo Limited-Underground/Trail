@@ -1,9 +1,9 @@
 # Limited Underground Trail
 
-Latest diagnostic checkpoint (2026-09-06): [console capture and host reproduction](tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md)
-identifies a busy firmware response slot and reproduces a session-promotion cleanup
-defect on the host. Firmware correction and physical acceptance remain pending.
-No completion credit is added. Website updates are deferred to a bulk update.
+Latest correction (2026-09-06): [firmware reconnect cleanup](tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md)
+releases failed-promotion response slots and restores increasing session allocation.
+Hardware installation and reconnect acceptance remain pending. No completion
+credit is added. Website updates are deferred to a bulk update.
 
 [![Host validation](https://github.com/Limited-Underground/Trail/actions/workflows/host-validation.yml/badge.svg)](https://github.com/Limited-Underground/Trail/actions/workflows/host-validation.yml)
 

@@ -49,14 +49,6 @@ std::uint64_t read_u64_be(const std::uint8_t* input) {
     return value;
 }
 
-std::uint32_t read_u32_be(const std::uint8_t* input) {
-    std::uint32_t value = 0;
-    for (std::size_t index = 0; index < sizeof(value); ++index) {
-        value = (value << 8U) | input[index];
-    }
-    return value;
-}
-
 companion::CompanionV1OwnerStorageSnapshot storage_failure(
     companion::CompanionV1OwnerStorageError error,
     bool record_present = false) {
@@ -284,12 +276,6 @@ void force_nonzero(std::uint64_t& value) {
     }
 }
 
-void force_nonzero(std::uint32_t& value) {
-    if (value == 0) {
-        value = 1;
-    }
-}
-
 }  // namespace
 
 HeltecV4CompanionV1OwnerStorage::HeltecV4CompanionV1OwnerStorage() {
@@ -504,7 +490,11 @@ HeltecV4CompanionV1NimbleBondAdapter::resolve(
         reference_seen_ = true;
     }
 
-    if (next_session_challenge_ == 0) {
+    // The provisional nonce becomes the normal-session nonce on promotion.
+    // Keep it strictly increasing for this boot, and reject exhaustion before
+    // narrowing the private counter or consuming entropy. Never wrap or reset.
+    if (next_session_challenge_ == 0 ||
+        next_session_challenge_ > UINT32_MAX) {
         return binding_failure(
             companion::CompanionGattTrustedBindingError::failed);
     }
@@ -519,8 +509,7 @@ HeltecV4CompanionV1NimbleBondAdapter::resolve(
     }
 
     constexpr std::size_t kBootBytes = sizeof(std::uint64_t);
-    constexpr std::size_t kPrivateConnectionBytes =
-        sizeof(std::uint64_t) + sizeof(std::uint32_t);
+    constexpr std::size_t kPrivateConnectionBytes = sizeof(std::uint64_t);
     std::array<std::uint8_t, kBootBytes + kPrivateConnectionBytes>
         random_bytes{};
     const std::size_t offset = boot_challenge_ready_ ? kBootBytes : 0;
@@ -541,13 +530,12 @@ HeltecV4CompanionV1NimbleBondAdapter::resolve(
     }
     std::uint64_t controller_binding =
         read_u64_be(random_bytes.data() + kBootBytes);
-    std::uint32_t provisional_session_nonce =
-        read_u32_be(random_bytes.data() + kBootBytes + sizeof(std::uint64_t));
     secure_clear(random_bytes.data(), random_bytes.size());
     force_nonzero(controller_binding);
-    force_nonzero(provisional_session_nonce);
 
     const std::uint64_t session_challenge = next_session_challenge_++;
+    const std::uint32_t provisional_session_nonce =
+        static_cast<std::uint32_t>(session_challenge);
 
     companion::CompanionControllerClaim claim{};
     claim.bond_identity = live.reference;

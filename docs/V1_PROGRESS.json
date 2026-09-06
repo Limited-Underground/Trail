@@ -392,8 +392,9 @@
             "tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md",
             "tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md",
             "tests/hardware/OT-177-AUTHORIZATION-INVESTIGATION-2026-09-06.md",
-            "tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md"],
-          "next_gate": "Implement and host-test independent indication cleanup on failed promotion, and reconcile random v0.1 provisional nonces with the normal-session ordering contract without weakening replay protection. Apply firmware porting preflight and build every affected target before proposing a separately authorized hardware acceptance run. Website updates remain owner-deferred."
+            "tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md",
+            "tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md"],
+          "next_gate": "After host/build publication, prepare a separately authorized application-only installation and saved-owner reconnect acceptance using the exact new firmware artifact, fresh target/readback checks and verified restoration image. Require initial Ready/Snapshot, app restart reconnect and repeated disconnect/reconnect without stranded response state. No physical execution is authorized by the host/build increment."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -998,6 +999,12 @@
           "overall": 44,
           "overall_exact": 43.75,
           "reason": "One authorized receive-only USB-console capture during one saved-owner phone connection observed successful attribute admission followed by command error 17 (response_path_busy). A deterministic host sequence 2 -> 1 -> 3 reproduces a normal-session nonce ordering failure and stranded transport indication that blocks the following connection. This identifies a source defect consistent with the hardware symptom; the earlier physical nonce history was not captured. No production correction or reconnect acceptance is claimed. No milestone completion changes; website updates remain deferred."
+        },
+        {
+          "date": "2026-09-06",
+          "overall": 44,
+          "overall_exact": 43.75,
+          "reason": "Firmware correction releases the exact transport indication even when lifecycle promotion fails, and restores the Heltec provisional nonce to the existing increasing boot-local session counter with uint32 exhaustion rejection. Replay protection, secure-random boot/controller bindings and exact-generation caching remain intact. The composed regression preserves lower-nonce rejection and proves a later valid connection can promote and complete Snapshot. Hardware reconnect acceptance remains pending; website updates remain owner-deferred. No milestone completion values change without physical acceptance."
         }
     ]
     },
