@@ -1,5 +1,13 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
+## 2026-09-06 - OT-177 console result and host reproduction
+
+One authorized receive-only USB-console capture during one saved-owner phone connection observed successful attribute admission followed by command error 17 (response_path_busy). A deterministic host sequence 2 -> 1 -> 3 reproduces a normal-session nonce ordering failure and stranded transport indication that blocks the following connection. This identifies a source defect consistent with the hardware symptom; the earlier physical nonce history was not captured. No production correction or reconnect acceptance is claimed.
+
+Implement and host-test independent indication cleanup on failed promotion, and reconcile random v0.1 provisional nonces with the normal-session ordering contract without weakening replay protection. Apply firmware porting preflight and build every affected target before proposing a separately authorized hardware acceptance run. Website updates remain owner-deferred.
+
+See [evidence](../tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md).
+
 ## 2026-09-06 - OT-177 authorization investigation
 
 Host-only authorization investigation confirms that Android GATT insufficient authorization collapses several firmware admission and request failures. Two new adapter tests compare normal restored subscription with a deliberately dropped event, and reject a wrong-session claim before any authority decision. These demonstrate possible paths, not the physical root cause. Existing diagnostic strings and INFO USB-console configuration were verified in the exact retained firmware artifact. No production code, firmware, phone or device changed.

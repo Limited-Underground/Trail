@@ -391,8 +391,9 @@
           "evidence_refs": ["android/README.md", "docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md", "docs/platform/DEVICE_FACTORY_RESET_V1.md", "docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md", "docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md", "tests/hardware/OT-168-2026-09-04.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md",
             "tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md",
             "tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md",
-            "tests/hardware/OT-177-AUTHORIZATION-INVESTIGATION-2026-09-06.md"],
-          "next_gate": "Obtain separately authorized bounded USB-console receive evidence during one phone connection, without flash, reset, ROM entry or ownership changes. Use existing claim authorize refresh/accepted/phase/info/sub/pending and claim command disposition/error fields to distinguish the rejection branch. Verify exact device, current console availability and no-reset open behavior first. Select a correction only after the branch is established; website updates remain owner-deferred."
+            "tests/hardware/OT-177-AUTHORIZATION-INVESTIGATION-2026-09-06.md",
+            "tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md"],
+          "next_gate": "Implement and host-test independent indication cleanup on failed promotion, and reconcile random v0.1 provisional nonces with the normal-session ordering contract without weakening replay protection. Apply firmware porting preflight and build every affected target before proposing a separately authorized hardware acceptance run. Website updates remain owner-deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -991,6 +992,12 @@
           "overall": 44,
           "overall_exact": 43.75,
           "reason": "Host-only authorization investigation confirms that Android GATT insufficient authorization collapses several firmware admission and request failures. Two new adapter tests compare normal restored subscription with a deliberately dropped event, and reject a wrong-session claim before any authority decision. These demonstrate possible paths, not the physical root cause. Existing diagnostic strings and INFO USB-console configuration were verified in the exact retained firmware artifact. No production code, firmware, phone or device changed. No milestone completion changes; website updates remain deferred."
+        },
+        {
+          "date": "2026-09-06",
+          "overall": 44,
+          "overall_exact": 43.75,
+          "reason": "One authorized receive-only USB-console capture during one saved-owner phone connection observed successful attribute admission followed by command error 17 (response_path_busy). A deterministic host sequence 2 -> 1 -> 3 reproduces a normal-session nonce ordering failure and stranded transport indication that blocks the following connection. This identifies a source defect consistent with the hardware symptom; the earlier physical nonce history was not captured. No production correction or reconnect acceptance is claimed. No milestone completion changes; website updates remain deferred."
         }
     ]
     },

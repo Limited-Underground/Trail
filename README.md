@@ -1,14 +1,9 @@
 # Limited Underground Trail
 
-Latest investigation: [OT-177 authorization rejection](tests/hardware/OT-177-AUTHORIZATION-INVESTIGATION-2026-09-06.md)
-adds host comparisons and identifies existing firmware logs for the next bounded
-observation. Physical root cause remains unconfirmed; no production fix is claimed.
-
-Latest physical checkpoint (2026-09-06): the corrected V1-Test recorder captured
-an authorization-phase `GATT_AUTHORIZATION_REJECTED` failure on the initial
-saved-owner connection. Snapshot/Ready were not reached; the planned restart
-step was not executed. See [evidence](tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md).
-No completion credit is added. Website updates are owner-deferred to a bulk update.
+Latest diagnostic checkpoint (2026-09-06): [console capture and host reproduction](tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md)
+identifies a busy firmware response slot and reproduces a session-promotion cleanup
+defect on the host. Firmware correction and physical acceptance remain pending.
+No completion credit is added. Website updates are deferred to a bulk update.
 
 [![Host validation](https://github.com/Limited-Underground/Trail/actions/workflows/host-validation.yml/badge.svg)](https://github.com/Limited-Underground/Trail/actions/workflows/host-validation.yml)
 
