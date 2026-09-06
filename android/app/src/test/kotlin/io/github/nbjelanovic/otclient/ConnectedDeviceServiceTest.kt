@@ -11,6 +11,44 @@ import kotlin.test.assertTrue
 
 class ConnectedDeviceServiceTest {
     @Test
+    fun configurationCommandsForwardFromActivityThroughSessionOwnerAndCloseWithLifecycle() {
+        val service=FakeServiceController()
+        val owner=ConnectedDeviceSessionOwner(101,service)
+        val ui=fixture()
+        ui.controller.onLifecycleStart()
+        ui.controller.chooseBluetoothDeviceMode()
+        ui.controller.startBluetoothService()
+        ui.connector.emit(0,ConnectedDeviceServiceConnection.Connected(owner))
+        assertTrue(ui.controller.readDeviceName())
+        assertTrue(ui.controller.writeDeviceName("Exact Unicode é"))
+        assertTrue(ui.controller.synchronizeDisplayTime())
+        assertEquals(listOf("read","write:Exact Unicode é","time"),service.configurationCommands)
+        ui.controller.onLifecycleStop()
+        assertFalse(ui.controller.readDeviceName())
+        assertFalse(ui.controller.writeDeviceName("late"))
+        assertFalse(ui.controller.synchronizeDisplayTime())
+        assertEquals(3,service.configurationCommands.size)
+        owner.close()
+        assertFalse(owner.readDeviceName())
+        assertFalse(owner.writeDeviceName("late"))
+        assertFalse(owner.synchronizeDisplayTime())
+        assertEquals(3,service.configurationCommands.size)
+    }
+
+    @Test
+    fun actualAndroidBinderDeclaresThreadGuardedForwardingForEveryConfigurationCommand() {
+        val source=java.io.File("src/main/kotlin/io/github/nbjelanovic/otclient/TrailConnectedDeviceService.kt").readText()
+        val binder=source.substringAfter("inner class LocalBinder : Binder(), ConnectedDeviceSessionPort {")
+        assertTrue(binder.length<source.length)
+        for((signature,call) in listOf("readDeviceName()" to "readDeviceName()",
+            "writeDeviceName(name: String)" to "writeDeviceName(name)",
+            "synchronizeDisplayTime()" to "synchronizeDisplayTime()")) {
+            val body=binder.substringAfter("override fun $signature: Boolean {","").substringBefore('}')
+            assertTrue(body.contains("assertMainThread()"),signature)
+            assertTrue(body.contains("return attached?.$call == true"),signature)
+        }
+    }
+    @Test
     fun policyRequiresVisibleActionAndNearbyButNotificationDenialDoesNotBlock() {
         assertEquals(
             ConnectedDeviceServiceStartFailure.NOT_VISIBLE_USER_ACTION,
@@ -688,6 +726,10 @@ class ConnectedDeviceServiceTest {
     }
 
     private class FakeServiceController : TrailServiceController {
+        val configurationCommands=mutableListOf<String>()
+        override fun readDeviceName(): Boolean { configurationCommands += "read";return true }
+        override fun writeDeviceName(name: String): Boolean { configurationCommands += "write:$name";return true }
+        override fun synchronizeDisplayTime(): Boolean { configurationCommands += "time";return true }
         override var state: TrailAppUiState = TrailAppUiState.ChooseMode
         var observer: ((TrailAppUiState) -> Unit)? = null
         var chooseBluetoothCount = 0

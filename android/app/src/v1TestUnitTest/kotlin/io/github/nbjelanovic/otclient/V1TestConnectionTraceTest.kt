@@ -15,6 +15,17 @@ import kotlin.test.assertTrue
 
 class V1TestConnectionTraceTest {
     @Test
+    fun promotedClaimIsRecordedBeforeProtectedNormalProfileReread() {
+        val machine=V1TestConnectionTraceMachine()
+        machine.observe(GENERATION,0,state(BleRuntimeState.Connecting(COMPANION)))
+        machine.observe(GENERATION,1,negotiating(BleNegotiationPhase.AUTHORIZATION_CLAIM))
+        val reread=machine.observe(GENERATION,2,negotiating(BleNegotiationPhase.PROTOCOL_INFO))
+        assertEquals(1,reread.count { it.stage==V1TestTraceStage.AUTHORIZATION_ACCEPTED })
+        val snapshot=machine.observe(GENERATION,3,negotiating(BleNegotiationPhase.INITIAL_SNAPSHOT))
+        assertFalse(snapshot.any { it.stage==V1TestTraceStage.AUTHORIZATION_ACCEPTED })
+        assertTrue(snapshot.any { it.stage==V1TestTraceStage.SNAPSHOT_REQUESTED })
+    }
+    @Test
     fun failedRuntimeKeepsEveryExactDiagnosticAndNullSeparateFromReasonThroughReloadAndExport() {
         (BleConnectionDiagnostic.entries + listOf(null)).forEach { diagnostic ->
             val machine = V1TestConnectionTraceMachine()

@@ -261,6 +261,18 @@ class TrailConnectedDeviceService : Service() {
             assertMainThread()
             return attached?.submitAction(request) == true
         }
+        override fun readDeviceName(): Boolean {
+            assertMainThread()
+            return attached?.readDeviceName() == true
+        }
+        override fun writeDeviceName(name: String): Boolean {
+            assertMainThread()
+            return attached?.writeDeviceName(name) == true
+        }
+        override fun synchronizeDisplayTime(): Boolean {
+            assertMainThread()
+            return attached?.synchronizeDisplayTime() == true
+        }
         override fun requestFactoryResetConfirmation(): Boolean {
             assertMainThread()
             return attached?.requestFactoryResetConfirmation() == true

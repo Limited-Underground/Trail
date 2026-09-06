@@ -1263,7 +1263,7 @@ class BleCompanionRuntimeTest {
 
     @Test
     fun protectedPostClaimConfigurationProfileReachesReadyAndUsesSharedNameTimeLane() {
-        val facade=TestBluetoothFacade(returningOwnerScanSupported=true)
+        val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
         val scheduler=TestRuntimeScheduler()
         val runtime=BleCompanionRuntime(facade,scheduler)
         runtime.onLifecycleStart()
@@ -1404,6 +1404,7 @@ class BleCompanionRuntimeTest {
         private val gattStartResult: Boolean = true,
         private val connectionCreationSupported: Boolean = true,
         private val returningOwnerScanSupported: Boolean = false,
+        private val enforceOperationGate: Boolean = false,
     ) : AndroidBluetoothFacade {
         var preflight = BlePreflight()
         val scans = mutableListOf<TestScanLease>()
@@ -1461,7 +1462,7 @@ class BleCompanionRuntimeTest {
             observer: (BleGattEvent) -> Unit,
         ): BleGattLease? =
             if (connectionCreationSupported) {
-                TestGattLease(endpointToken, purpose, observer, gattStartEvent, gattStartResult).also(connections::add)
+                TestGattLease(endpointToken, purpose, observer, gattStartEvent, gattStartResult,enforceOperationGate).also(connections::add)
             } else {
                 null
             }
@@ -1481,6 +1482,7 @@ class BleCompanionRuntimeTest {
         private val observer: (BleGattEvent) -> Unit,
         private val startEvent: BleGattEvent? = null,
         private val startResult: Boolean = true,
+        enforceOperationGate: Boolean = false,
     ) : BleGattLease {
         var started = false
         var closed = false
@@ -1489,19 +1491,37 @@ class BleCompanionRuntimeTest {
         var streamSubscriptions = 0
         val commands = mutableListOf<ByteArray>()
         var writeResult = true
+        private val operationGate = if(enforceOperationGate) AndroidGattOperationGate() else null
 
         override fun start(): Boolean {
             started = true
+            operationGate?.let { check(it.beginConnection()) }
             if (startResult) observer(BleGattEvent.GattOpened)
             startEvent?.let(observer)
             return startResult
         }
-        override fun requestMtu(mtu: Int): Boolean = true.also { requestedMtus += mtu }
-        override fun readProtocolInfo(): Boolean = true.also { protocolInfoReads += 1 }
-        override fun subscribeStreamIndications(): Boolean = true.also { streamSubscriptions += 1 }
-        override fun writeCommandWithResponse(value: ByteArray): Boolean = writeResult.also { commands += value.copyOf() }
-        override fun close() { closed = true }
-        fun emit(event: BleGattEvent) = observer(event)
+        override fun requestMtu(mtu: Int): Boolean = (operationGate?.beginMtuRequest() ?: true).also { if(it) requestedMtus += mtu }
+        override fun readProtocolInfo(): Boolean = (operationGate?.beginProtocolInfoRead() ?: true).also { if(it) protocolInfoReads += 1 }
+        override fun subscribeStreamIndications(): Boolean = (operationGate?.beginIndicationSubscription() ?: true).also { if(it) streamSubscriptions += 1 }
+        override fun writeCommandWithResponse(value: ByteArray): Boolean {
+            if(operationGate?.beginCommandWrite()==false) return false
+            commands += value.copyOf()
+            // Simulate the matching Android write callback before application indication.
+            operationGate?.let { check(it.acceptCommandWrite()) }
+            return writeResult
+        }
+        override fun close() { closed = true;operationGate?.close() }
+        fun emit(event: BleGattEvent) {
+            operationGate?.let { gate -> when(event) {
+                BleGattEvent.ProfileReady -> { check(gate.beginDiscovery());check(gate.acceptProfile()) }
+                is BleGattEvent.MtuChanged -> check(gate.acceptMtu())
+                is BleGattEvent.ProtocolInfoRead,is BleGattEvent.ProtectedProtocolInfoRead -> check(gate.acceptProtocolInfo())
+                BleGattEvent.StreamIndicationsSubscribed -> check(gate.acceptIndicationSubscription())
+                is BleGattEvent.StreamIndication -> check(gate.acceptsStreamIndication())
+                else -> Unit
+            } }
+            observer(event)
+        }
     }
 
     private class TestRuntimeScheduler : BleRuntimeScheduler {

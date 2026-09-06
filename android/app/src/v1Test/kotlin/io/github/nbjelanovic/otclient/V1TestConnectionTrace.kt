@@ -280,6 +280,9 @@ class V1TestConnectionTraceMachine {
         when (observed.phase) {
             BleNegotiationPhase.LINK_SECURITY -> Unit
             BleNegotiationPhase.PROTOCOL_INFO -> {
+                if(from == BleNegotiationPhase.AUTHORIZATION_CLAIM) {
+                    emit(V1TestTraceStage.AUTHORIZATION_ACCEPTED,elapsed,V1TestTraceReason.NONE,0,emissions)
+                }
                 // Publishing this phase proves the link opened and the exact GATT profile was
                 // accepted; the protected read is issued in the same runtime step.
                 emit(V1TestTraceStage.GATT_LINK_ESTABLISHED, elapsed, V1TestTraceReason.NONE, 0, emissions)

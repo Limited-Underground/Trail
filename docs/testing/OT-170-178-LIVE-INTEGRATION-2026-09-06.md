@@ -1,6 +1,6 @@
 # Name and time integration toward first hardware acceptance
 
-Status: software validation accepted; final reproducible builds and hardware acceptance pending.
+Status: reproducible firmware, installation and live name/clock transactions verified; restart and final display acceptance pending.
 
 The owner authorized consolidation of the remaining dispatcher, persistence,
 Android and target work through the first installation and live test. Website
@@ -98,3 +98,98 @@ cases: larger/smaller/equal application spans, partial-write restoration in each
 shape, and an unexpected installed image causing no erase or write. Candidate and
 restoration erase operations are bounded to the exact application sector span.
 These simulations neither access hardware nor prove physical restoration.
+
+## Final build and first physical installation
+
+Both initially absent final build directories produced identical application,
+ELF, map, bootloader, partition table and sdkconfig bytes. ESP-IDF 6.0.2 is pinned
+to `7101770dc6db2667b3c477cc31365dd1acd6db4e`; the Xtensa toolchain is
+`esp-15.2.0_20251204`. Component management and ccache were disabled. A managed
+dependency lock is not applicable: no external managed dependencies are enabled.
+The linked application includes the real dispatcher, name NVS adapter and clock
+owner, with version `ot170178-live-v1`.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Application | 582576 | `40D0719FFEA879D744CD32CDC7302D8C3D8D61B99CDD22AAE39FA1B296D5FF32` |
+| ELF | 8486788 | `3DE4D8EDB3D2D57F09BAB3DA92F012C3AEA46AA1A9046A256511F4D9E062BBA2` |
+| Map | 6968355 | `F2722C9E3A2589703280155E2F8F27D8AFE681C970177832AC502C45EC3CA4FB` |
+| Bootloader | 22480 | `96E83EBE4434CD6C9049A59F396B4F8BD06C159B40259DA573BDB701C571ECA5` |
+| Partition table | 3072 | `F3372A1F30CBDD98D6FBCF7808C85C46DCAA249105BA9DA883EF21E05EFE90A4` |
+| sdkconfig | 106877 | `5519CBF48461633E814CC7D1608D01BEB283D3A2D7C45829877D2EB2BEA7A71E` |
+
+Published source `f77bfda980593b9d995dd0aea90fc07ded352bcb` passed continuous
+GitHub validation run `34043867586`.
+
+The first installer attempt stopped before any erase/write because importing the
+identity module from the isolated checkout selected its absent default private
+registry. The successor explicitly loaded the owner's existing registry, checked
+enrollment before ROM access and matched the physical device. No enrollment or
+registry mutation occurred. Six additional synthetic cases exercise the real
+identity validator and prove early registry rejection and prewrite identity checks.
+
+On OT-DEV-001, the successor independently verified the old application, erased
+tail, partition table and factory OTA selection. It wrote only the application
+sector span at `0x10000`, 585728 bytes, and independently read back the exact new
+image plus 3152 erased tail bytes. Identity matched again before the successful
+hard reset. No write retry or restoration was required. Bootloader, partitions,
+OTA selection and NVS were not written. Receive-only observation recorded two
+increasing heartbeats at elapsed 25717/30717 ms and minimum free app-task stack
+4688 bytes. This is startup margin, not post-configuration acceptance.
+
+The matching V1-Test APK listed above was installed on the retained SM-N986U,
+Android 13, using a data-preserving replacement; installed bytes matched exactly.
+No uninstall, data clear, pairing reset or phone setting change occurred.
+
+The first live returning-owner connection reached protocol discovery, MTU and
+indication subscription, then rejected the post-authorization protocol read with
+`PROTOCOL_INFO_FAILED`. The real Android operation gate did not admit an Info read
+from its subscribed READY stage. Fake GATT runtime tests had not exercised that
+gate. Name writes and clock synchronization were not attempted during this failed
+connection. Correct the gate, validate the actual transition, update only the APK
+and repeat live acceptance; the firmware remains installed and running.
+
+The Android correction permits one protected Info read from a subscribed READY
+gate and returns to READY after completion. It blocks overlapping reads/writes,
+duplicate subscription and completion after close. The runtime name/time test now
+uses the real operation gate, and the trace records accepted authorization before
+the separate protected reread. Independent review found no blocking issue. Focused
+policy/runtime/trace tests pass 73 cases; the final Android matrix passes 979
+tests (47 protocol, 294 debug, 293 release, 345 V1-Test), all lint/build variants
+and the release exclusion audit. The corrected APK is 12431153 bytes, SHA-256
+`598C249CB6761B18AFBC3A486F96AEEADA22DC52AFDF69B080BBD101197661AA`.
+Its signer matches the installed application. A second data-preserving replacement
+and exact installed-byte check passed. Firmware bytes did not change.
+
+With that corrected APK, process generation 13 reached accepted authorization,
+Snapshot and Ready in 1827 ms after connection attempt (the preceding 30-second
+discovery is excluded). The live configuration card appeared. Its Read device
+button then exposed a second integration defect: LocalBinder inherited the
+configuration interface's false defaults instead of forwarding the three new
+methods. The UI stayed unchanged and no name write or time request was attempted.
+This is separate from the now-corrected GATT gate failure.
+
+The owner's physical photograph during this check confirms the actual Heltec OLED
+shows REGION REQUIRED, RADIO TX DISABLED, DEVICE and TIME --:-- while the Note20
+shows the connected configuration panel. This accepts the initial visible
+placeholder/warning surface only; it is not evidence of name persistence or sync.
+
+The binder correction adds exactly three thread-guarded forwards to the attached
+session owner. Composed Activity/owner lifecycle tests and a source-level binder
+admission check pass; no Android framework execution is claimed by those JVM
+tests. The full Android matrix then passed 985 tests (47 protocol, 296 debug,
+295 release, 347 V1-Test), all lint/build variants and the unsigned release audit.
+The final V1-Test APK is 12431215 bytes, SHA-256
+`6F435F22FAA9AB85F2DFA0CFAE75CF99F4EEDD572BEDD49B83BA995245F68B72`.
+Its verified signer matches the prior installation. The data-preserving upgrade
+and exact installed-byte check passed. No firmware bytes changed.
+
+The real UI then completed the actual binder path: Read device returned an absent
+name, Apply name saved the synthetic label Trail Bench and showed both
+"Device name saved and read back." and "Last device readback: Trail Bench".
+Sync display clock returned "Display clock synchronized.". Process generation 14
+reached fresh authorization/Snapshot/Ready in 1505 ms after connection attempt,
+excluding the preceding 30-second discovery. Receive-only serial observation after
+the requests showed increasing heartbeats and 3408 bytes minimum free app-task
+stack. App restart, warm board restart and final OLED confirmation remain separate
+acceptance observations below.

@@ -181,6 +181,7 @@ internal class AndroidGattOperationGate {
         private set
     private var mtuReady = false
     private var protocolInfoReady = false
+    private var protocolInfoReturnsToSubscribedSession = false
 
     fun beginConnection() = move(AndroidGattStage.NEW, AndroidGattStage.CONNECTING)
     fun beginDiscovery() = move(AndroidGattStage.CONNECTING, AndroidGattStage.DISCOVERING)
@@ -200,7 +201,9 @@ internal class AndroidGattOperationGate {
     }
 
     fun beginProtocolInfoRead(): Boolean {
-        if (stage != AndroidGattStage.PROFILE_READY && stage != AndroidGattStage.MTU_READY) return false
+        if (stage != AndroidGattStage.PROFILE_READY && stage != AndroidGattStage.MTU_READY &&
+            stage != AndroidGattStage.READY) return false
+        protocolInfoReturnsToSubscribedSession = stage == AndroidGattStage.READY
         stage = AndroidGattStage.PROTOCOL_INFO_PENDING
         return true
     }
@@ -208,7 +211,8 @@ internal class AndroidGattOperationGate {
     fun acceptProtocolInfo(): Boolean {
         if (stage != AndroidGattStage.PROTOCOL_INFO_PENDING) return false
         protocolInfoReady = true
-        stage = AndroidGattStage.PROTOCOL_INFO_READY
+        stage = if(protocolInfoReturnsToSubscribedSession) AndroidGattStage.READY else AndroidGattStage.PROTOCOL_INFO_READY
+        protocolInfoReturnsToSubscribedSession = false
         return true
     }
 
