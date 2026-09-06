@@ -6,6 +6,17 @@ public chronology.
 
 ## 2026-09-05
 
+### OT-177 publication CI follow-up
+
+The published candidate and its predecessor failed the same stale two-entry
+future-concepts assertion. The governance test now includes the accepted optional
+client/repeater direction and checks its unscheduled, zero-credit and measured
+acceptance boundaries. Focused validation passes 10 groups; the full host run
+passed through publication and loader checks, then exposed a path-sensitive
+simulator privacy assertion. Its correction passes the complete simulator gate.
+Remote publication and GitHub validation remain pending. No capability or progress credit
+is added. See [evidence](../tests/hardware/OT-177-CI-CORRECTION-2026-09-05.md).
+
 ### OT-177 isolated recorder publication candidate
 
 OT-177 now has an isolated V1-Test recorder candidate with atomic format-3

@@ -243,7 +243,11 @@ await using (var host = new MeshCoreCompanionHost(privateFailureHelper))
     catch (InvalidOperationException error)
     {
         Expect(error.Message == "Compatible USB companion discovery failed." &&
-            !error.ToString().Contains("private", StringComparison.OrdinalIgnoreCase),
+            error.InnerException is null &&
+            // Stack traces can contain a checkout directory named .private.
+            // Reject the injected helper detail, not an unrelated path word.
+            !error.ToString().Contains("private port and identity detail",
+                StringComparison.OrdinalIgnoreCase),
             "raw helper failure detail must not escape the live host");
     }
 }

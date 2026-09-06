@@ -56,6 +56,7 @@ def test_required_register_structure_and_status_vocabulary() -> None:
     )
     entries = concept_entries(text)
     assert [title for title, _ in entries] == [
+        "Optional client/repeater mode on user devices",
         "Logo-first idle display and button-driven status pages",
         "Provisioning-independent public lane and Public Assistance Broadcast"
     ]
@@ -68,9 +69,31 @@ def test_required_register_structure_and_status_vocabulary() -> None:
         assert len(entry_statuses) == 1
         assert entry_statuses[0] in ALLOWED_STATUSES
         statuses.extend(entry_statuses)
-    assert statuses == ["accepted direction", "accepted direction"]
+    assert statuses == ["accepted direction", "accepted direction", "accepted direction"]
     for allowed in sorted(ALLOWED_STATUSES):
         assert f"`{allowed}`" in text
+
+
+def test_optional_client_repeater_remains_unscheduled_and_evidence_gated() -> None:
+    entries = dict(concept_entries(register()))
+    text = flattened(entries["Optional client/repeater mode on user devices"])
+    for boundary in (
+        "retaining its normal client functions",
+        "external power or a suitably sized battery backup",
+        "Priority post-V1 candidate",
+        "no estimate or V1 scope expansion is accepted here",
+        "explicit successor to Decision 0033",
+        "No unrestricted flooding",
+        "endpoint authentication/encryption",
+        "not implemented or validated and no completion credit",
+        "Unscheduled enhancement direction",
+        "three-radio sender-relay-receiver path",
+        "relay-disabled negative control",
+        "simultaneous client traffic",
+        "packet/loss/duplicate/latency/airtime accounting",
+        "power-loss, restart, and battery operation tests",
+    ):
+        assert boundary in text, boundary
 
 
 def test_post_v2_deferred_unscheduled_and_no_progress_credit() -> None:
@@ -218,6 +241,7 @@ def test_navigation_status_backlog_and_progress_remain_coherent() -> None:
 def main() -> None:
     tests = [
         test_required_register_structure_and_status_vocabulary,
+        test_optional_client_repeater_remains_unscheduled_and_evidence_gated,
         test_post_v2_deferred_unscheduled_and_no_progress_credit,
         test_parallel_lane_and_single_radio_semantics_are_explicit,
         test_assistance_location_and_private_text_boundaries_are_complete,

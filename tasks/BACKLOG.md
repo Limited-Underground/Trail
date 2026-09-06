@@ -2,6 +2,13 @@
 
 Statuses: `done` means the documented acceptance criteria are evidenced; `partial` means bounded evidence exists but acceptance is incomplete; `planned` means no implementation claim.
 
+OT-177 CI follow-up: **partial**. Correct the stale future-concepts title/status
+expectations without removing the accepted client/repeater direction. Focused
+governance validation passes 10 groups. Full host validation reached the simulator;
+the corrected path-sensitive simulator assertion passes the complete simulator
+gate. Remote publication and GitHub validation remain pending. No V1 credit. See
+[evidence](../tests/hardware/OT-177-CI-CORRECTION-2026-09-05.md).
+
 ## Post-release options
 
 Owner reaffirmed optional user-device **client/repeater mode** on 2026-09-04,

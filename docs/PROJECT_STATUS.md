@@ -2,6 +2,17 @@
 
 Status date: 2026-09-05
 
+GitHub Host validation for the published OT-177 candidate failed in the
+future-concepts governance check: the register's accepted optional client/repeater
+entry was missing from the test's exact title and status expectations. The same
+failure appears in the preceding run. The correction preserves all three entries
+and adds explicit repeater scope, security and physical-evidence checks. Focused
+validation passes 10 scenario groups. The full host run passed through publication
+and loader checks, then exposed a simulator assertion matching `.private` in a
+stack path. After correcting that assertion, the complete simulator gate passed.
+Remote publication and GitHub validation remain pending. This changes no V1 milestone or hardware acceptance. See
+[CI correction evidence](../tests/hardware/OT-177-CI-CORRECTION-2026-09-05.md).
+
 OT-177 now has an isolated V1-Test recorder candidate with atomic format-3
 persistence, Clear/Save/Share UI and exact separate runtime/connection diagnostic
 fields. Legacy logs remain readable without inventing missing facts. This is
