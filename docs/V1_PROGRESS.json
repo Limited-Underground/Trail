@@ -316,7 +316,8 @@
           "weight": 20,
           "completion": 65,
           "evidence_status": "Component evidence",
-          "evidence_refs": ["firmware/components", "firmware/targets/portable_client", "tests/host"],
+          "evidence_refs": ["firmware/components", "firmware/targets/portable_client", "tests/host",
+            "tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md"],
           "next_gate": "Bind the accepted security, radio, GNSS, and persistence components into the selected Companion target."
         },
         {
@@ -377,24 +378,26 @@
             ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
             ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
-            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md"
+            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md",
+            "tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md"
           ],
           "next_gate": "Verify true cold-power recovery with USB and battery accounted for, then current factory-reset erasure and coherent two-pair acceptance. GUI/navigation cleanup should be reviewed with the owner before redesign implementation. Battery accuracy, production app lifecycle, signed release, secure LoRa, and field acceptance remain open."
         },
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "Historical 2026-09-04 single-pair evidence includes saved-owner Ready, warm-reset and extended-absence recovery, with 387 Android tests at that checkpoint. A later mixed-worktree app-restart observation failed during initial Snapshot after accepted authorization; its old trace omitted the lower-level diagnostic, so root cause remains unresolved. The isolated OT-177 V1-Test candidate now retains exact diagnostic detail with its own software matrix and artifact evidence; it has not been installed. Cold-power, factory-reset, coherent two-phone, signed release and operational acceptance remain open. See tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md. The corrected isolated V1-Test recorder was installed on the retained Note20. The first saved-owner connection passed protected ProtocolInfo, MTU and Stream subscription, then failed during authorization with AUTHORIZATION_UNAVAILABLE and exact diagnostic GATT_AUTHORIZATION_REJECTED. Snapshot and Ready were not reached, so the planned app-restart step was not executed. No retry, firmware operation or ownership change followed. The earlier post-authorization Snapshot failure remains unresolved. No completion credit.",
+          "description": "The isolated OT-177 V1-Test recorder is installed on the retained Note20. On 2026-09-06 the exact corrected Heltec firmware passed initial saved-owner authorization/Snapshot/Ready, full app restart, and two service disconnect/reconnect cycles with fresh authorization and Snapshot each time. Earlier authorization and Snapshot failures remain historical; their missing nonce history is not reconstructed. This is bounded single-pair acceptance with explicit service starts. Cold-power, factory-reset erasure, coherent two-pair operation, secure LoRa and signed production release remain open.",
           "weight": 20,
           "completion": 60,
-          "evidence_status": "Build tested with unsigned release foundation; prior single-pair saved-owner Ready and warm-reset evidence remains. App-restart reconnect is contested by one mixed-worktree observation failing during initial Snapshot after accepted authorization. The isolated diagnostic recorder candidate is software-validated only; cold-power, factory-reset, and two-pair acceptance remain pending.",
+          "evidence_status": "Host/build tested and physically accepted on one retained Heltec/Note20 pair for initial Ready, full app restart and two service reconnects; cold-power, destructive reset, two-pair and production-release gates remain pending.",
           "evidence_refs": ["android/README.md", "docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md", "docs/platform/DEVICE_FACTORY_RESET_V1.md", "docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md", "docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md", "tests/hardware/OT-168-2026-09-04.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md",
             "tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md",
             "tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md",
             "tests/hardware/OT-177-AUTHORIZATION-INVESTIGATION-2026-09-06.md",
             "tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md",
-            "tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md"],
-          "next_gate": "After host/build publication, prepare a separately authorized application-only installation and saved-owner reconnect acceptance using the exact new firmware artifact, fresh target/readback checks and verified restoration image. Require initial Ready/Snapshot, app restart reconnect and repeated disconnect/reconnect without stranded response state. No physical execution is authorized by the host/build increment."
+            "tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md",
+            "tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md"],
+          "next_gate": "Prepare a bounded cold-power saved-owner recovery test with the exact installed firmware and current V1-Test APK. Verify how to remove all device power safely (USB and battery), preserve the current owner/bond, and define fresh Ready/Snapshot and handback gates before requesting the necessary physical power action. Do not repeat installation, reset ownership, or start destructive factory-reset testing as part of that preparation."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -1005,6 +1008,12 @@
           "overall": 44,
           "overall_exact": 43.75,
           "reason": "Firmware correction releases the exact transport indication even when lifecycle promotion fails, and restores the Heltec provisional nonce to the existing increasing boot-local session counter with uint32 exhaustion rejection. Replay protection, secure-random boot/controller bindings and exact-generation caching remain intact. The composed regression preserves lower-nonce rejection and proves a later valid connection can promote and complete Snapshot. Hardware reconnect acceptance remains pending; website updates remain owner-deferred. No milestone completion values change without physical acceptance."
+        },
+        {
+          "date": "2026-09-06",
+          "overall": 44,
+          "overall_exact": 43.75,
+          "reason": "The corrected firmware was installed application-only on the identity-verified retained Heltec and independently read back. The existing isolated V1-Test app on the Note20 passed four saved-owner connections: initial startup, full app restart, and two explicit service disconnect/reconnect cycles. Each completed fresh authorization and Snapshot before Ready; the console recorded no response-path error. This accepts the bounded single-pair correction, not cold-power, factory-reset, two-pair or production-release behavior. Website updates remain owner-deferred. No milestone completion increase: this restores previously credited single-pair behavior."
         }
     ]
     },

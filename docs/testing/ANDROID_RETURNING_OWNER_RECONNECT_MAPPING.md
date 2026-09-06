@@ -1,5 +1,10 @@
 # Android Returning-Owner Reconnect Mapping
 
+Current acceptance (2026-09-06): [OT-177 corrected-firmware result](../../tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md)
+passes initial Ready/Snapshot, full app restart and two service disconnect/reconnect
+cycles on the retained pair. Each uses fresh authorization and Snapshot. Earlier
+rejection observations below remain historical; cold-power acceptance is next.
+
 Current successor (2026-09-04): Periodic saved-owner recovery passes on the retained Heltec/Note20 pair: three quick retries, then five-second scans separated by a 15-second wait. A 65.866-second ROM absence recovered automatically through fresh authorization and Snapshot; 385 Android tests/lint/build pass. See tests/hardware/OT-168-PERIODIC-2026-09-04.md. Cold-power, factory-reset, and two-pair acceptance remain open.
 Earlier terminal-exhaustion observations below are historical.
 

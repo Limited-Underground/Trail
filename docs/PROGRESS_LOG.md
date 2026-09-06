@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-09-06 - OT-177 single-pair reconnect accepted
+
+The corrected firmware was installed application-only on the identity-verified retained Heltec and independently read back. The existing isolated V1-Test app on the Note20 passed four saved-owner connections: initial startup, full app restart, and two explicit service disconnect/reconnect cycles. Each completed fresh authorization and Snapshot before Ready; the console recorded no response-path error. This accepts the bounded single-pair correction, not cold-power, factory-reset, two-pair or production-release behavior. Website updates remain owner-deferred.
+
+Prepare a bounded cold-power saved-owner recovery test with the exact installed firmware and current V1-Test APK. Verify how to remove all device power safely (USB and battery), preserve the current owner/bond, and define fresh Ready/Snapshot and handback gates before requesting the necessary physical power action. Do not repeat installation, reset ownership, or start destructive factory-reset testing as part of that preparation.
+
+See [physical evidence](../tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md).
+
 ## 2026-09-06 - OT-177 firmware reconnect correction
 
 Firmware correction releases the exact transport indication even when lifecycle promotion fails, and restores the Heltec provisional nonce to the existing increasing boot-local session counter with uint32 exhaustion rejection. Replay protection, secure-random boot/controller bindings and exact-generation caching remain intact. The composed regression preserves lower-nonce rejection and proves a later valid connection can promote and complete Snapshot. Hardware reconnect acceptance remains pending; website updates remain owner-deferred.

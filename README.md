@@ -1,9 +1,9 @@
 # Limited Underground Trail
 
-Latest correction (2026-09-06): [firmware reconnect cleanup](tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md)
-releases failed-promotion response slots and restores increasing session allocation.
-Hardware installation and reconnect acceptance remain pending. No completion
-credit is added. Website updates are deferred to a bulk update.
+Latest physical acceptance (2026-09-06): [corrected firmware reconnect](tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md)
+passes initial Ready/Snapshot, full app restart and two service reconnect cycles
+on the retained Heltec/Note20 pair. Cold-power and broader acceptance remain open.
+Completion is unchanged; website updates are deferred to a bulk update.
 
 [![Host validation](https://github.com/Limited-Underground/Trail/actions/workflows/host-validation.yml/badge.svg)](https://github.com/Limited-Underground/Trail/actions/workflows/host-validation.yml)
 
