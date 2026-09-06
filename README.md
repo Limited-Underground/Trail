@@ -28,13 +28,13 @@ requirements for basic operation.
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and two experimentally flashed Heltec targets |
-| Latest increment | Isolated OT-177 V1-Test recorder: atomic bounded logs, exact separate failure diagnostics, legacy migration and user-controlled Clear/Save/Share. See [candidate evidence](tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md) for the exact software matrix and artifact identities. The corrected candidate was installed; its initial authorization failure and the earlier Snapshot-phase failure remain unresolved. |
-| Proven so far | Focused Android/firmware tests and the complete Host matrix pass. Two empty-output-directory builds reproduce the canonical 563,824-byte application SHA-256 `91D4CEB48CCFBCD21AC97CE604C48FBCCA04D70408D2BF749C90CB053AD04824`; the retained test unit received an exact application-only write/readback. The existing Android app retained its owner/bond and reached fresh authorization plus mandatory Snapshot without a new PIN. Warm-reset link recovery measured 1.493 seconds, not full Ready latency. See the [dated physical evidence](tests/hardware/OT-168-2026-09-04.md) for artifact identities and limits |
+| Latest increment | OT-177 service-lifetime V1-Test recording now survives UI unbind and closes only its exact owner generation. [Software evidence](tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md); new APK not installed. Cold-power is owner-deferred because battery disconnection requires opening the enclosure. |
+| Proven so far | Host-tested protocol/state components and bounded single-pair hardware evidence. Corrected 563,776-byte firmware SHA-256 `9ACDC90EEA9D0489ABABDD9B6F4E3C7AFF97162D03DDC09F8E4965D5A1D12784` passed exact application-only write/readback, then initial Ready/Snapshot, app restart and two service reconnects with the prior V1-Test APK. See [physical evidence](tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md) for limits. |
 | Planned V1 | Two Heltec/Android pairs exchanging authenticated typed/quick messages and coordinates over direct LoRa. The approved UX uses resumable name/region onboarding, Messages/Group/Device portrait and landscape layouts, one private group per person with exactly one administrator and six total members, consent-gated public direct chat, group location ON at join under an admin Required/Optional rule, redacted support export, and the bounded Heltec OLED/clock surface. Built-in maps are not required. See Decision 0104. |
 | Not yet proven | true cold-power recovery, production zero-tap launch, destructive app/physical reset and erasure recovery, automatic unowned-boot pairing on both units, authenticated on-device LoRa, coherent two-phone operation, calibrated battery percentage, supported hardware, production firmware, endurance, field range, or regulatory acceptance |
 
-The accepted firmware build pair embeds pre-publication version `110e543-dirty`;
-its hash is not a clean-commit rebuild guarantee. Completion is calculated only
+The installed corrected firmware uses version `ot177-reconnect-v1`; its exact
+artifact identity and reproducible build evidence are recorded separately. Completion is calculated only
 from the [canonical V1 record](docs/V1_PROGRESS.json).
 Trail is not production-ready, and no hardware is currently listed as
 supported.

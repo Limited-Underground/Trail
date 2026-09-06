@@ -333,11 +333,11 @@
         {
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
-          "current_authority": "The retained experimental Heltec V4.2/Note20 pair passes saved-owner authorization, app-process/warm-reset persistence, and periodic Android recovery after a 65.866-second ROM absence. Firmware remains the accepted 563,824-byte 91D4 application embedding 110e543-dirty; no clean-commit hash equivalence is claimed. Cold-power, factory reset, battery calibration, secure LoRa and complete two-pair/field/support acceptance remain open. See tests/hardware/OT-168-PERIODIC-2026-09-04.md.",
-          "description": "The retained experimental Heltec V4.2/Note20 pair passes saved-owner authorization, app-process/warm-reset persistence, and periodic Android recovery after a 65.866-second ROM absence. Firmware remains the accepted 563,824-byte 91D4 application embedding 110e543-dirty; no clean-commit hash equivalence is claimed. Cold-power, factory reset, battery calibration, secure LoRa and complete two-pair/field/support acceptance remain open. See tests/hardware/OT-168-PERIODIC-2026-09-04.md.",
+          "current_authority": "The corrected 563,776-byte ot177-reconnect-v1 firmware passed exact application-only write/readback and four saved-owner authorization/Snapshot/Ready connections on the retained Heltec V4.2/Note20 pair with the prior V1-Test APK. Cold-power requires enclosure opening and is owner-deferred. Factory reset, battery calibration, secure LoRa, two-pair, field and support acceptance remain open.",
+          "description": "The corrected 563,776-byte ot177-reconnect-v1 firmware passed exact application-only write/readback and four saved-owner authorization/Snapshot/Ready connections on the retained Heltec V4.2/Note20 pair with the prior V1-Test APK. Cold-power requires enclosure opening and is owner-deferred. Factory reset, battery calibration, secure LoRa, two-pair, field and support acceptance remain open.",
           "weight": 15,
           "completion": 25,
-          "evidence_status": "Experimental target; exact retained artifact and single-pair saved-owner/warm-reset evidence accepted; extended-absence recovery failed; broader recovery and two-pair acceptance open",
+          "evidence_status": "Experimental target; corrected firmware single-pair reconnect accepted; cold-power owner-deferred and broader acceptance open.",
           "evidence_refs": ["firmware/targets/heltec_v4_bench", "docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md", "docs/platform/DEVICE_FACTORY_RESET_V1.md", "docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md", "docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md", "tests/hardware/OT-168-2026-09-04.md", "docs/decisions/0034-host-tested-ble-pairing-replacement-contract.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "docs/decisions/0035-host-tested-secure-lora-key-transport-contract.md", "docs/security/SECURE_LORA_KEY_TRANSPORT_V0.md", "docs/decisions/0037-pre-crypto-build-baseline.md", "docs/decisions/0038-host-only-ot005-candidate-readiness-contract.md", "docs/decisions/0039-host-only-candidate-source-lock-admission-contract.md", "docs/security/CRYPTO_BENCHMARK_EVIDENCE_V0.md", "tests/benchmarks/crypto/OT-093-OT005-BUILD-BASELINE-V0.json", "tests/benchmarks/crypto/OT-094-OT005-CANDIDATE-READINESS-V0.json", "tests/benchmarks/crypto/OT-095-OT005-CANDIDATE-SOURCE-LOCK-ADMISSION-V0.json", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-064-2026-08-17.md", "tests/hardware/OT-073-2026-08-17.md", "tests/hardware/OT-074-2026-08-17.md", "tests/hardware/OT-076-2026-08-17.md", "tests/hardware/OT-077-2026-08-18.md", "tests/hardware/OT-078-2026-08-18.md", "tests/hardware/OT-079-2026-08-18.md", "tests/hardware/OT-080-2026-08-18.md", "tests/hardware/OT-081-2026-08-18.md", "tests/hardware/OT-082-2026-08-18.md", "tests/hardware/OT-083-2026-08-18.md", "tests/hardware/OT-084-2026-08-18.md", "tests/hardware/OT-085-2026-08-18.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md", "tests/hardware/OT-091-2026-08-19.md", "tests/hardware/OT-093-2026-08-20.md", "tests/hardware/OT-094-2026-08-20.md", "tests/hardware/OT-095-2026-08-20.md", "tests/hardware/OT-112-2026-08-21.md", "tests/hardware/OT-113-2026-08-21.md", "tests/hardware/OT-114-2026-08-21.md", "docs/decisions/0054-successor-crypto-benchmark-readiness-and-execution-plan.md", "tests/benchmarks/crypto/OT-116-OT005-SUCCESSOR-READINESS-DECISION-V1.json", "tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json", "tests/hardware/OT-116-2026-08-22.md",
           "docs/decisions/0055-host-only-libsodium-api-configuration-admission.md",
           "tests/benchmarks/crypto/OT-117-OT005-LIBSODIUM-API-CONFIG-OPERATION-EVIDENCE-V0.json",
@@ -379,25 +379,28 @@
             ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
             ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md",
-            "tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md"
+            "tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md",
+            "tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md"
           ],
-          "next_gate": "Verify true cold-power recovery with USB and battery accounted for, then current factory-reset erasure and coherent two-pair acceptance. GUI/navigation cleanup should be reviewed with the owner before redesign implementation. Battery accuracy, production app lifecycle, signed release, secure LoRa, and field acceptance remain open."
+          "next_gate": "Cold-power remains owner-deferred. Continue Android service-logging phone acceptance without a firmware write or ownership reset; factory reset, two-pair, secure LoRa and field gates remain open."
         },
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "The isolated OT-177 V1-Test recorder is installed on the retained Note20. On 2026-09-06 the exact corrected Heltec firmware passed initial saved-owner authorization/Snapshot/Ready, full app restart, and two service disconnect/reconnect cycles with fresh authorization and Snapshot each time. Earlier authorization and Snapshot failures remain historical; their missing nonce history is not reconstructed. This is bounded single-pair acceptance with explicit service starts. Cold-power, factory-reset erasure, coherent two-pair operation, secure LoRa and signed production release remain open.",
+          "description": "The isolated OT-177 V1-Test recorder is installed on the retained Note20. On 2026-09-06 the exact corrected Heltec firmware passed initial saved-owner authorization/Snapshot/Ready, full app restart, and two service disconnect/reconnect cycles with fresh authorization and Snapshot each time. Earlier authorization and Snapshot failures remain historical; their missing nonce history is not reconstructed. This is bounded single-pair acceptance with explicit service starts. Cold-power, factory-reset erasure, coherent two-pair operation, secure LoRa and signed production release remain open. The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware.",
           "weight": 20,
           "completion": 60,
-          "evidence_status": "Host/build tested and physically accepted on one retained Heltec/Note20 pair for initial Ready, full app restart and two service reconnects; cold-power, destructive reset, two-pair and production-release gates remain pending.",
+          "evidence_status": "Earlier single-pair reconnect accepted with prior APK; new service-lifetime recorder host/build validation only, phone acceptance pending.",
           "evidence_refs": ["android/README.md", "docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md", "docs/platform/DEVICE_FACTORY_RESET_V1.md", "docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md", "docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md", "tests/hardware/OT-168-2026-09-04.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md",
             "tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md",
             "tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md",
             "tests/hardware/OT-177-AUTHORIZATION-INVESTIGATION-2026-09-06.md",
             "tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md",
             "tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md",
-            "tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md"],
-          "next_gate": "Prepare a bounded cold-power saved-owner recovery test with the exact installed firmware and current V1-Test APK. Verify how to remove all device power safely (USB and battery), preserve the current owner/bond, and define fresh Ready/Snapshot and handback gates before requesting the necessary physical power action. Do not repeat installation, reset ownership, or start destructive factory-reset testing as part of that preparation."
+            "tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md",
+            "tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md"
+          ],
+          "next_gate": "Prepare a non-destructive installation and phone acceptance of the exact service-logging V1-Test APK: preserve the current owner/bond/data, verify saved-owner authorization/Snapshot/Ready, leave the activity while the service runs, reopen it without a false trace termination or duplicate milestones, then stop the service and verify one terminal record. Cold-power testing is owner-deferred because unplugging the battery requires opening the enclosure. Website synchronization/deployment remains deferred to the bulk update."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -1014,6 +1017,12 @@
           "overall": 44,
           "overall_exact": 43.75,
           "reason": "The corrected firmware was installed application-only on the identity-verified retained Heltec and independently read back. The existing isolated V1-Test app on the Note20 passed four saved-owner connections: initial startup, full app restart, and two explicit service disconnect/reconnect cycles. Each completed fresh authorization and Snapshot before Ready; the console recorded no response-path error. This accepts the bounded single-pair correction, not cold-power, factory-reset, two-pair or production-release behavior. Website updates remain owner-deferred. No milestone completion increase: this restores previously credited single-pair behavior."
+        },
+        {
+          "date": "2026-09-06",
+          "overall": 44,
+          "overall_exact": 43.75,
+          "reason": "The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware. Cold-power is owner-deferred; website updates remain owner-deferred. No milestone completion changes; exact weighted V1 remains 43.75 percent / displayed 44 percent."
         }
     ]
     },

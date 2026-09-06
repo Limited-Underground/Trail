@@ -64,6 +64,13 @@ internal class V1TestLogRuntime private constructor(context: Context) {
             persist(elapsed, machine.observe(generation, elapsed, state))
         }
     }
+    fun traceReleased(generation: Long) {
+        val observed = SystemClock.elapsedRealtime()
+        submit {
+            val elapsed = elapsedSince(observed)
+            persist(elapsed, machine.observeServiceDisconnected(generation, elapsed))
+        }
+    }
     fun traceReleased() {
         val observed = SystemClock.elapsedRealtime()
         submit {

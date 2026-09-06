@@ -97,7 +97,10 @@ class TrailConnectedDeviceService : Service() {
                 bluetoothFacadeCloseable = facade,
             )
             controller = createdController
-            ConnectedDeviceSessionOwner(generation, createdController)
+            val observation = runCatching {
+                (application as? ConnectedDeviceSessionObservationProvider)?.createObservation(generation)
+            }.getOrNull()
+            ConnectedDeviceSessionOwner(generation, createdController, observation)
         } catch (error: RuntimeException) {
             try {
                 if (controller != null) controller.close() else facade.close()

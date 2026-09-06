@@ -6,21 +6,33 @@ import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 class ConnectedDeviceSessionOwner(
     override val generation: Long,
     private val controller: TrailServiceController,
+    observer: ConnectedDeviceSessionLifecycleObserver? = null,
 ) : ConnectedDeviceSessionPort, AutoCloseable {
     private var nextObserverToken = 0L
     private val observers = linkedMapOf<Long, (TrailAppUiState.BluetoothDevice) -> Unit>()
     private var closed = false
+    private var lifecycleObserver = observer
     private var lastState = conservativeState()
 
     init {
-        require(generation > 0L)
-        controller.observe { next ->
-            val bluetooth = next as? TrailAppUiState.BluetoothDevice ?: return@observe
-            lastState = bluetooth.copy(serviceState = ConnectedDeviceServiceUiState.RUNNING)
-            notifyObservers(lastState)
+        try {
+            require(generation > 0L)
+            controller.observe { next ->
+                if (closed) return@observe
+                val bluetooth = next as? TrailAppUiState.BluetoothDevice ?: return@observe
+                lastState = bluetooth.copy(serviceState = ConnectedDeviceServiceUiState.RUNNING)
+                runCatching { lifecycleObserver?.onState(lastState) }
+                if (!closed) notifyObservers(lastState)
+            }
+            controller.chooseBluetoothDeviceMode()
+            controller.onLifecycleStart()
+        } catch (failure: Exception) {
+            // Construction did not transfer controller ownership; the service
+            // still closes that graph. Release the observation acquired for it.
+            closed = true
+            releaseLifecycleObserver()
+            throw failure
         }
-        controller.chooseBluetoothDeviceMode()
-        controller.onLifecycleStart()
     }
 
     override val state: TrailAppUiState.BluetoothDevice
@@ -75,9 +87,22 @@ class ConnectedDeviceSessionOwner(
         if (closed) return
         closed = true
         observers.clear()
-        controller.observe(null)
-        controller.close()
-        lastState = conservativeState()
+        try {
+            controller.observe(null)
+        } finally {
+            try {
+                controller.close()
+            } finally {
+                lastState = conservativeState()
+                releaseLifecycleObserver()
+            }
+        }
+    }
+
+    private fun releaseLifecycleObserver() {
+        val previous = lifecycleObserver
+        lifecycleObserver = null
+        runCatching { previous?.close() }
     }
 
     private fun conservativeState() = TrailAppUiState.BluetoothDevice(

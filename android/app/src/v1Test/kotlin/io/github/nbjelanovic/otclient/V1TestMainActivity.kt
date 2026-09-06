@@ -8,14 +8,6 @@ import androidx.compose.runtime.Composable
 /** Field logging is compiled only into the separate test application. */
 class V1TestMainActivity : MainActivity() {
     private val recorder get() = V1TestLogRuntime.get(applicationContext)
-    override fun createConnectedDeviceServiceConnector(): ConnectedDeviceServiceConnector =
-        V1TestRecordingConnector(
-            super.createConnectedDeviceServiceConnector(),
-            recorder::connection,
-            recorder::trace,
-            recorder::traceReleased,
-        )
-
     @Composable
     override fun AdditionalTools() {
         TextButton(onClick = { startActivity(Intent(this, V1TestLogActivity::class.java)) }) {

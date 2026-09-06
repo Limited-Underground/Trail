@@ -1,5 +1,18 @@
 # Android client foundation
 
+## OT-177 V1-Test observation - 2026-09-06
+
+The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware.
+
+The variant-only Application supplies one optional service observation before
+activation. UI bind leases do not start or end recording. Activity lifecycle
+records remain separate; `SERVICE_BINDING_RELEASED` is retained for format-3
+compatibility and now marks actual owner termination in this wiring. Process
+death can still prevent a final record, and the existing bounded queue/storage
+limits apply. No production logging, upload or automatic service start is added.
+
+See [validation and next gate](../tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md).
+
 Status: OT-036/OT-038 fake application foundation, the OT-041 lifecycle-safe
 BLE runtime boundary, the OT-043 Android BluetoothGatt facade, and the OT-045
 explicit local-test/Bluetooth UI binding, plus the OT-047 host-tested one-phone

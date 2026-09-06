@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-09-06 - OT-177 service-lifetime logging; cold-power deferred
+
+The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware.
+
+Prepare a non-destructive installation and phone acceptance of the exact service-logging V1-Test APK: preserve the current owner/bond/data, verify saved-owner authorization/Snapshot/Ready, leave the activity while the service runs, reopen it without a false trace termination or duplicate milestones, then stop the service and verify one terminal record. Cold-power testing is owner-deferred because unplugging the battery requires opening the enclosure. Website synchronization/deployment remains deferred to the bulk update.
+
+See [software and preflight evidence](../tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md).
+
 ## 2026-09-06 - OT-177 single-pair reconnect accepted
 
 The corrected firmware was installed application-only on the identity-verified retained Heltec and independently read back. The existing isolated V1-Test app on the Note20 passed four saved-owner connections: initial startup, full app restart, and two explicit service disconnect/reconnect cycles. Each completed fresh authorization and Snapshot before Ready; the console recorded no response-path error. This accepts the bounded single-pair correction, not cold-power, factory-reset, two-pair or production-release behavior. Website updates remain owner-deferred.

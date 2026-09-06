@@ -145,6 +145,8 @@ $forbiddenDiagnostics = @(
     'AndroidV1TestLogStorage',
     'V1TestLogRuntime',
     'V1TestRecordingConnector',
+    'V1TestServiceObservation',
+    'V1TestApplication',
     'V1TestLogActivity',
     'V1TestMainActivity',
     'V1ScreenGalleryActivity',

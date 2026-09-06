@@ -1727,3 +1727,12 @@ and [OT-165 evidence](../tests/hardware/OT-165-2026-08-30.md).
 3. Define identity/security threat model and packet-size budget.
 4. Freeze only a minimal experimental packet envelope, then validate direct and controlled-forwarding behavior.
 5. Benchmark candidate display, storage, map, GPS, and local-transfer options before selecting UI/map technologies.
+
+## Service-lifetime test diagnostics (2026-09-06)
+
+The Android service owns its optional observation alongside its controller graph.
+The observation is installed before activation and released once at graph teardown,
+independently of UI binding leases. It has no connection authority; diagnostic
+failures are isolated. Only the V1-Test Application supplies a recorder provider,
+and exact-generation termination rejects stale owner cleanup. Production has no
+provider or diagnostic storage. See [bounded software evidence](../tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md).

@@ -23,6 +23,8 @@ class V1TestDiagnosticSeparationTest {
         "AndroidV1TestLogStorage",
         "V1TestLogRuntime",
         "V1TestRecordingConnector",
+        "V1TestServiceObservation",
+        "V1TestApplication",
         "V1TestLogActivity",
         "V1TestMainActivity",
         "V1TestConnectionCategory",
@@ -55,6 +57,8 @@ class V1TestDiagnosticSeparationTest {
             "V1TestConnectionTrace.kt",
             "V1TestLogRuntime.kt",
             "V1TestRecordingConnector.kt",
+            "V1TestServiceObservation.kt",
+            "V1TestApplication.kt",
         ).forEach { assertTrue(it in names, "$it must remain in the V1-Test source set") }
         val productionNames = productionSources().map { it.name }.toSet()
         assertTrue(names.intersect(productionNames).isEmpty())
@@ -127,17 +131,31 @@ class V1TestDiagnosticSeparationTest {
     fun connectionLogSharingAndProviderRemainVariantOnly() {
         val manifest = projectFile("src/v1Test/AndroidManifest.xml").readText()
         assertTrue(manifest.contains("androidx.core.content.FileProvider"))
+        assertTrue(manifest.contains("android:name=\".V1TestApplication\""))
         assertTrue(manifest.contains("android:exported=\"false\""))
         assertFalse(manifest.contains("V1ScreenGalleryActivity"))
         val main = projectFile("src/main/AndroidManifest.xml").readText()
         assertFalse(main.contains("support-files"))
         assertFalse(main.contains("support_file_paths"))
+        assertFalse(main.contains("V1TestApplication"))
         val paths = projectFile("src/v1Test/res/xml/support_file_paths.xml").readText()
         assertTrue(paths.contains("path=\"support-reports/\""))
         val helper = projectFile("src/v1Test/kotlin/io/github/nbjelanovic/otclient/V1TestLogShare.kt").readText()
         assertTrue(helper.contains("V1TestLogShareRetentionPolicy.plan"))
         assertTrue(helper.contains("Intent.FLAG_GRANT_READ_URI_PERMISSION"))
         assertTrue(helper.contains("File.createTempFile("))
+    }
+
+    @Test
+    fun serviceRecorderCannotBeReleasedByActivityBindings() {
+        val activity = projectFile("src/v1Test/kotlin/io/github/nbjelanovic/otclient/V1TestMainActivity.kt").readText()
+        assertFalse(activity.contains("V1TestRecordingConnector"))
+        assertFalse(activity.contains("traceReleased"))
+        val provider = projectFile("src/v1Test/kotlin/io/github/nbjelanovic/otclient/V1TestApplication.kt").readText()
+        assertTrue(provider.contains("ConnectedDeviceSessionObservationProvider"))
+        val observation = projectFile("src/v1Test/kotlin/io/github/nbjelanovic/otclient/V1TestServiceObservation.kt").readText()
+        assertFalse(observation.contains("stopService"))
+        assertFalse(observation.contains("ConnectedDeviceServiceConnector"))
     }
     private fun productionSources(): List<File> =
         projectDirectory("src/main/kotlin/io/github/nbjelanovic/otclient")

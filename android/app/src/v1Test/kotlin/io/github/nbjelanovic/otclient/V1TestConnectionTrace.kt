@@ -186,7 +186,16 @@ class V1TestConnectionTraceMachine {
         return if (failure != null) emptyList() else emissions
     }
 
-    /** The bound service connection was released; any open transaction is closed, not carried over. */
+    /** Only the exact observed owner may terminate its transaction. */
+    fun observeServiceDisconnected(generation: Long, elapsedMillis: Long): List<V1TestTraceEmission> {
+        if (generation != this.generation) {
+            if (generation < this.generation) staleObservations += 1
+            return emptyList()
+        }
+        return observeServiceDisconnected(elapsedMillis)
+    }
+
+    /** Historical binding termination; the service recorder uses the exact-generation overload. */
     fun observeServiceDisconnected(elapsedMillis: Long): List<V1TestTraceEmission> {
         if (failure != null) return emptyList()
         if (elapsedMillis < 0 || elapsedMillis < lastElapsed) return fail(V1TestTraceFailure.ELAPSED_ROLLBACK)

@@ -3,6 +3,7 @@ package io.github.nbjelanovic.otclient
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
@@ -391,6 +392,115 @@ class ConnectedDeviceServiceTest {
     }
 
     @Test
+    fun serviceObservationStartsBeforeActivationAndSurvivesEveryUiLease() {
+        val controller = FakeServiceController().apply { emitOnStart = true }
+        val observation = RecordingLifecycleObserver()
+        val owner = ConnectedDeviceSessionOwner(91, controller, observation)
+        assertEquals(listOf(BleRuntimeState.Idle, BleRuntimeState.Scanning(emptyList())), observation.events)
+        val initial = observation.events.size
+        val leases = List(4) { owner.observe {}!! }
+        assertNull(owner.observe {})
+        assertEquals(initial, observation.events.size, "UI subscriptions cannot duplicate diagnostic events")
+        leases.forEach { it.close() }
+        controller.emitBluetooth(BleRuntimeState.Idle)
+        assertEquals(initial + 1, observation.events.size, "Recording continues without a UI")
+        val rebound = owner.observe {}!!
+        assertEquals(initial + 1, observation.events.size)
+        controller.emitBluetooth(BleRuntimeState.Scanning(emptyList()))
+        assertEquals(initial + 2, observation.events.size)
+        rebound.close()
+        assertEquals(0, observation.closeCount)
+        owner.close()
+        owner.close()
+        assertEquals(1, observation.closeCount)
+    }
+
+    @Test
+    fun serviceObservationFailureCannotInterruptControllerOrUiState() {
+        val controller = FakeServiceController()
+        val observation = RecordingLifecycleObserver().apply { failState = true; failClose = true }
+        val owner = ConnectedDeviceSessionOwner(92, controller, observation)
+        var uiEvents = 0
+        owner.observe { uiEvents += 1 }
+        controller.emitBluetooth(BleRuntimeState.Scanning(emptyList()))
+        assertEquals(2, uiEvents)
+        assertIs<BleRuntimeState.Scanning>(owner.state.runtimeState)
+        owner.scan()
+        assertEquals(1, controller.scanCount)
+        owner.close()
+        owner.close()
+        assertEquals(1, controller.closeCount)
+        assertEquals(1, observation.closeCount)
+    }
+
+    @Test
+    fun serviceObservationRejectsCapturedControllerCallbacksAfterClose() {
+        val controller = FakeServiceController()
+        val observation = RecordingLifecycleObserver()
+        val owner = ConnectedDeviceSessionOwner(93, controller, observation)
+        val late = controller.observer!!
+        val oldState = controller.state
+        owner.close()
+        val count = observation.events.size
+        late(oldState)
+        assertEquals(count, observation.events.size)
+        assertEquals(1, observation.closeCount)
+        assertIs<BleRuntimeState.Closed>(owner.state.runtimeState)
+    }
+
+    @Test
+    fun failedActivationReleasesObservationAndLeavesControllerForCallerCleanup() {
+        val controller = FakeServiceController().apply { emitOnStart = true; failStart = true }
+        val observation = RecordingLifecycleObserver()
+        assertFailsWith<IllegalStateException> { ConnectedDeviceSessionOwner(94, controller, observation) }
+        assertEquals(1, observation.closeCount)
+        val count = observation.events.size
+        controller.emitBluetooth(BleRuntimeState.Idle)
+        assertEquals(count, observation.events.size)
+        assertEquals(0, controller.closeCount)
+        controller.close() // Same cleanup responsibility as the Android service factory.
+        assertEquals(1, controller.closeCount)
+    }
+
+    @Test
+    fun controllerCleanupFailureStillEndsObservationOnceAndInvalidatesOwner() {
+        for (detachFails in listOf(false, true)) {
+            val controller = FakeServiceController().apply { failDetach = detachFails; failClose = !detachFails }
+            val observation = RecordingLifecycleObserver()
+            val owner = ConnectedDeviceSessionOwner(95, controller, observation)
+            assertFailsWith<IllegalStateException> { owner.close() }
+            owner.close()
+            assertEquals(1, controller.closeCount)
+            assertEquals(1, observation.closeCount)
+            assertIs<BleRuntimeState.Closed>(owner.state.runtimeState)
+        }
+    }
+
+    @Test
+    fun invalidGenerationReleasesAcquiredObservation() {
+        val observation = RecordingLifecycleObserver()
+        assertFailsWith<IllegalArgumentException> {
+            ConnectedDeviceSessionOwner(0, FakeServiceController(), observation)
+        }
+        assertEquals(1, observation.closeCount)
+    }
+
+    private class RecordingLifecycleObserver : ConnectedDeviceSessionLifecycleObserver {
+        val events = mutableListOf<BleRuntimeState>()
+        var closeCount = 0
+        var failState = false
+        var failClose = false
+        override fun onState(state: TrailAppUiState.BluetoothDevice) {
+            events += state.runtimeState
+            if (failState) error("diagnostic observer failure")
+        }
+        override fun close() {
+            closeCount += 1
+            if (failClose) error("diagnostic cleanup failure")
+        }
+    }
+
+    @Test
     fun serviceOwnerClosesControllerExactlyOnceAndRejectsCommandsAfterClose() {
         val controller = FakeServiceController()
         val owner = ConnectedDeviceSessionOwner(31, controller)
@@ -584,8 +694,13 @@ class ConnectedDeviceServiceTest {
         var lifecycleStartCount = 0
         var scanCount = 0
         var closeCount = 0
+        var emitOnStart = false
+        var failStart = false
+        var failDetach = false
+        var failClose = false
 
         override fun observe(observer: ((TrailAppUiState) -> Unit)?) {
+            if (observer == null && failDetach) error("detach failure")
             this.observer = observer
             observer?.invoke(state)
         }
@@ -597,6 +712,8 @@ class ConnectedDeviceServiceTest {
 
         override fun onLifecycleStart() {
             lifecycleStartCount += 1
+            if (emitOnStart) emitBluetooth(BleRuntimeState.Scanning(emptyList()))
+            if (failStart) error("activation failure")
         }
 
         override fun scanBluetoothDevices() {
@@ -617,6 +734,7 @@ class ConnectedDeviceServiceTest {
 
         override fun close() {
             closeCount += 1
+            if (failClose) error("controller close failure")
         }
 
         override fun onLifecycleStop() = Unit
