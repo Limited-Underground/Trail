@@ -1,6 +1,8 @@
 # OpenTrail Initial Architecture
 
-## 2026-09-06 - Configuration/time profile0.2 codecs
+## 2026-09-06
+
+### Configuration/time profile0.2 codecs
 
 Implemented matched C++/Kotlin configuration/time profile0.2 codecs with explicit version/capability/kind allocation, strict single-record limits, OTTCv1 civil-time fields and unchanged OTNCv1 names. Both pass431 shared semantic vectors. Existing0.0/claim0.1 codecs remain unchanged. No profile advertisement, live dispatcher or target integration is enabled.
 
@@ -8,7 +10,7 @@ Next implement the host-only shared configuration/time dispatcher composing the 
 
 See [validation evidence](../docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md). V1 remains exact43.75/display44.
 
-## 2026-09-06 - Android name receipt model
+### Android name receipt model
 
 Implemented the Android name transaction model and one-use registered setup receipts. Current protocol context, exchange, expected/committed revision and exact name must match; stale results and loss callbacks cannot confirm or cancel later work. V1DeviceName now rejects malformed Unicode losslessly. This is model integration only, with no live BLE name requests or app installation.
 
@@ -16,7 +18,7 @@ Next implement matched successor wire codecs and explicitly allocate the version
 
 See [validation evidence](../docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md). V1 remains exact43.75/display44.
 
-## 2026-09-06 - Host name transaction owner
+### Host name transaction owner
 
 Implemented the host-only fixed-memory device-name transaction owner using the existing payload codec, injected trusted authority and synchronous fakeable persistence. It enforces revision CAS/readback, exact duplicate fences, admission expiry and explicit read reconciliation after uncertain commits. All12 focused groups pass; the complete host matrix is recorded in the evidence. No live wire, flash driver or phone integration is added.
 
@@ -24,7 +26,7 @@ Next implement typed Android pending-request/readback receipt correlation and lo
 
 See [implementation evidence](../docs/testing/OT-170-NAME-TRANSACTION-2026-09-06.md). V1 remains exact43.75/display44.
 
-## 2026-09-06 - Configuration/time transport and readback contract
+### Configuration/time transport and readback contract
 
 Accepted the bounded configuration/time transport and durable-readback implementation contract: matched148-byte buffers, normal MTU151, one operation slot, exact request/session correlation, revisioned name commits with uncertainty recovery, and reuse of the current time challenge owner. This is documentation and review only; no wire or storage capability is enabled.
 
@@ -32,7 +34,7 @@ Next implement a host-only fixed-memory name transaction owner with trusted auth
 
 See [contract](../docs/platform/CONFIGURATION_TIME_TRANSPORT_V1.md). No V1 completion change: exact43.75/display44.
 
-## 2026-09-06 - OT-170 device-name payload parity
+### OT-170 device-name payload parity
 
 Imported the existing OT-170 C++ and Kotlin device-name candidate codecs without changing their production bytes or payload format. Both pass the same 151 synthetic vectors (25 accepted, 126 rejected), including decoded fields and exact re-encoding. The Android setup model now requires a matching preliminary name receipt; no live adapter issues it.
 

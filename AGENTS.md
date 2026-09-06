@@ -40,6 +40,8 @@ OpenTrail is in architecture and proof-of-concept planning. Capabilities in the 
 
 ## Change documentation
 
+Group progress entries under one `## YYYY-MM-DD` heading per day, with individual tasks as `###` headings without repeated dates. Add to the existing day section instead of creating a dated heading for every OT entry. Use the same grouping for dated current-summary entries in the README, project status, backlog, and architecture document. Preserve task ordering, evidence and links when regrouping.
+
 Update the backlog status and the project status/open questions whenever a decision is made or evidence changes. Architecture decisions that constrain future work should be added under `docs/decisions/` when that directory is introduced.
 
 ## Lean execution cadence

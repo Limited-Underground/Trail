@@ -1,6 +1,8 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
-## 2026-09-06 - Configuration/time profile0.2 codecs
+## 2026-09-06
+
+### Configuration/time profile0.2 codecs
 
 Implemented matched C++/Kotlin configuration/time profile0.2 codecs with explicit version/capability/kind allocation, strict single-record limits, OTTCv1 civil-time fields and unchanged OTNCv1 names. Both pass431 shared semantic vectors. Existing0.0/claim0.1 codecs remain unchanged. No profile advertisement, live dispatcher or target integration is enabled.
 
@@ -8,7 +10,7 @@ Next implement the host-only shared configuration/time dispatcher composing the 
 
 See [validation evidence](../docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md). V1 remains exact43.75/display44.
 
-## 2026-09-06 - Android name receipt model
+### Android name receipt model
 
 Implemented the Android name transaction model and one-use registered setup receipts. Current protocol context, exchange, expected/committed revision and exact name must match; stale results and loss callbacks cannot confirm or cancel later work. V1DeviceName now rejects malformed Unicode losslessly. This is model integration only, with no live BLE name requests or app installation.
 
@@ -16,7 +18,7 @@ Next implement matched successor wire codecs and explicitly allocate the version
 
 See [validation evidence](../docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md). V1 remains exact43.75/display44.
 
-## 2026-09-06 - Host name transaction owner
+### Host name transaction owner
 
 Implemented the host-only fixed-memory device-name transaction owner using the existing payload codec, injected trusted authority and synchronous fakeable persistence. It enforces revision CAS/readback, exact duplicate fences, admission expiry and explicit read reconciliation after uncertain commits. All12 focused groups pass; the complete host matrix is recorded in the evidence. No live wire, flash driver or phone integration is added.
 
@@ -24,7 +26,7 @@ Next implement typed Android pending-request/readback receipt correlation and lo
 
 See [implementation evidence](../docs/testing/OT-170-NAME-TRANSACTION-2026-09-06.md). V1 remains exact43.75/display44.
 
-## 2026-09-06 - Configuration/time transport and readback contract
+### Configuration/time transport and readback contract
 
 Accepted the bounded configuration/time transport and durable-readback implementation contract: matched148-byte buffers, normal MTU151, one operation slot, exact request/session correlation, revisioned name commits with uncertainty recovery, and reuse of the current time challenge owner. This is documentation and review only; no wire or storage capability is enabled.
 
@@ -32,7 +34,7 @@ Next implement a host-only fixed-memory name transaction owner with trusted auth
 
 See [contract](../docs/platform/CONFIGURATION_TIME_TRANSPORT_V1.md). No V1 completion change: exact43.75/display44.
 
-## 2026-09-06 - OT-170 device-name payload parity
+### OT-170 device-name payload parity
 
 Imported the existing OT-170 C++ and Kotlin device-name candidate codecs without changing their production bytes or payload format. Both pass the same 151 synthetic vectors (25 accepted, 126 rejected), including decoded fields and exact re-encoding. The Android setup model now requires a matching preliminary name receipt; no live adapter issues it.
 
@@ -40,7 +42,7 @@ Freeze the negotiated configuration/time transport and device-name authority map
 
 See [validation evidence](../docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md). V1 remains exact 43.75% / displayed 44%; final matrix results are recorded in the evidence.
 
-## 2026-09-06 - OT-178 host time-admission owner validated
+### OT-178 host time-admission owner validated
 
 OT-178 adds a host-only fixed-memory time-admission owner around OledClock and an injected trusted authority source. It binds one challenge to exact owner/session generations, rejects stale or duplicate work without refreshing time, and separates disconnect retention from revocation/reset invalidation. All 21 focused groups and the complete host matrix pass; no wire, target or phone integration is added.
 
@@ -48,7 +50,7 @@ Reconcile the existing unpublished OT-170 name codec and readback draft in isola
 
 See [implementation evidence](../docs/testing/OT-178-TIME-ADMISSION-2026-09-06.md). No V1 completion increase.
 
-## 2026-09-06 - OT-178 configuration/time authority contract
+### OT-178 configuration/time authority contract
 
 Defined the device-confirmed OLED configuration/time contract: exact session and generation binding, durable settings readback, separate region/group authority, and volatile civil time admitted with a fresh device-local challenge. This is a reviewed implementation contract, not an implemented transport or new hardware evidence.
 
@@ -56,7 +58,7 @@ Implement the host-only fixed-memory time-admission owner using trusted-context 
 
 See [contract](../docs/platform/OLED_CONFIGURATION_TIME_AUTHORITY_V1.md) and [Decision 0106](../docs/decisions/0106-oled-configuration-time-authority.md). No V1 completion increase.
 
-## 2026-09-06 - OT-178 target OLED adapter validated
+### OT-178 target OLED adapter validated
 
 OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed.
 
@@ -64,7 +66,7 @@ Prepare the authenticated configuration and time-sync contract before broad norm
 
 See [adapter evidence and preflight](../tests/hardware/OT-178-OLED-ADAPTER-2026-09-06.md).
 
-## 2026-09-06 - OT-178 host OLED/clock foundation
+### OT-178 host OLED/clock foundation
 
 OT-178 now has hardware-neutral OLED/clock presentation: fixed 128x64 frames, exclusive safety/pairing/region priority, bounded labels, truthful unknown/stale metrics, bounded radio pulses and a 12/24-hour phone-synchronized clock model. The presentation owner contains monotonic rollback. Focused tests and synthetic pixel review pass; no target wiring, firmware build, physical display or time-sync transport is accepted.
 
@@ -72,7 +74,7 @@ Next integrate the presentation owner through the Heltec display adapter after r
 
 See [evidence and preflight](../tests/hardware/OT-178-OLED-FOUNDATION-2026-09-06.md) and [Decision 0105](../docs/decisions/0105-ot178-host-oled-presentation.md).
 
-## 2026-09-06 - Existing Android visuals integrated
+### Existing Android visuals integrated
 
 Integrated the existing owner-approved Android visual direction onto the published connection/service-logging baseline: Messages/Group/Device navigation, mint theme, fullscreen truthful status strip, setup/group/people surfaces, phone-local quick-message drafts and support export. The existing owner checkout is unchanged. This accepts software integration only; the combined APK is not installed and final visual or workflow acceptance is not claimed.
 
@@ -80,7 +82,7 @@ Next implement the OT-178 OLED/clock presentation foundation against the approve
 
 See [integration evidence](../tests/hardware/OT-171-177-VISUAL-INTEGRATION-2026-09-06.md).
 
-## 2026-09-06 - OT-177 service-lifetime logging; cold-power deferred
+### OT-177 service-lifetime logging; cold-power deferred
 
 The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware.
 
@@ -88,7 +90,7 @@ Prepare a non-destructive installation and phone acceptance of the exact service
 
 See [software and preflight evidence](../tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md).
 
-## 2026-09-06 - OT-177 single-pair reconnect accepted
+### OT-177 single-pair reconnect accepted
 
 The corrected firmware was installed application-only on the identity-verified retained Heltec and independently read back. The existing isolated V1-Test app on the Note20 passed four saved-owner connections: initial startup, full app restart, and two explicit service disconnect/reconnect cycles. Each completed fresh authorization and Snapshot before Ready; the console recorded no response-path error. This accepts the bounded single-pair correction, not cold-power, factory-reset, two-pair or production-release behavior. Website updates remain owner-deferred.
 
@@ -96,7 +98,7 @@ Prepare a bounded cold-power saved-owner recovery test with the exact installed 
 
 See [physical evidence](../tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md).
 
-## 2026-09-06 - OT-177 firmware reconnect correction
+### OT-177 firmware reconnect correction
 
 Firmware correction releases the exact transport indication even when lifecycle promotion fails, and restores the Heltec provisional nonce to the existing increasing boot-local session counter with uint32 exhaustion rejection. Replay protection, secure-random boot/controller bindings and exact-generation caching remain intact. The composed regression preserves lower-nonce rejection and proves a later valid connection can promote and complete Snapshot. Hardware reconnect acceptance remains pending; website updates remain owner-deferred.
 
@@ -104,7 +106,7 @@ After host/build publication, prepare a separately authorized application-only i
 
 See [validation and preflight](../tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md).
 
-## 2026-09-06 - OT-177 console result and host reproduction
+### OT-177 console result and host reproduction
 
 One authorized receive-only USB-console capture during one saved-owner phone connection observed successful attribute admission followed by command error 17 (response_path_busy). A deterministic host sequence 2 -> 1 -> 3 reproduces a normal-session nonce ordering failure and stranded transport indication that blocks the following connection. This identifies a source defect consistent with the hardware symptom; the earlier physical nonce history was not captured. No production correction or reconnect acceptance is claimed.
 
@@ -112,7 +114,7 @@ Implement and host-test independent indication cleanup on failed promotion, and 
 
 See [evidence](../tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md).
 
-## 2026-09-06 - OT-177 authorization investigation
+### OT-177 authorization investigation
 
 Host-only authorization investigation confirms that Android GATT insufficient authorization collapses several firmware admission and request failures. Two new adapter tests compare normal restored subscription with a deliberately dropped event, and reject a wrong-session claim before any authority decision. These demonstrate possible paths, not the physical root cause. Existing diagnostic strings and INFO USB-console configuration were verified in the exact retained firmware artifact. No production code, firmware, phone or device changed.
 
@@ -120,7 +122,7 @@ Focused validation passes 62 groups. Obtain separately authorized bounded USB-co
 
 See [evidence](../tests/hardware/OT-177-AUTHORIZATION-INVESTIGATION-2026-09-06.md).
 
-## 2026-09-06 - OT-177 corrected-recorder physical result
+### OT-177 corrected-recorder physical result
 
 The corrected isolated V1-Test recorder was installed on the retained Note20. The first saved-owner connection passed protected ProtocolInfo, MTU and Stream subscription, then failed during authorization with AUTHORIZATION_UNAVAILABLE and exact diagnostic GATT_AUTHORIZATION_REJECTED. Snapshot and Ready were not reached, so the planned app-restart step was not executed. No retry, firmware operation or ownership change followed. The earlier post-authorization Snapshot failure remains unresolved. No completion credit.
 
