@@ -18,6 +18,9 @@ idf_component_register(
         "heltec_v4_factory_reset_storage.cpp"
         "heltec_v4_gnss.cpp"
         "heltec_v4_oled.cpp"
+        "heltec_oled_presentation.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/ui/src/oled_presentation.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/time/src/oled_clock.cpp"
         "heltec_v4_secure_random.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_protocol.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_semantics.cpp"
@@ -39,6 +42,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_public_link_info.cpp"
     INCLUDE_DIRS
         "${OPENTRAIL_COMPONENT_ROOT}/ui/include"
+        "${OPENTRAIL_COMPONENT_ROOT}/time/include"
         "."
         "${OPENTRAIL_COMPONENT_ROOT}/companion/include"
         "${OPENTRAIL_COMPONENT_ROOT}/security/include"

@@ -4,12 +4,12 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 
 #include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_lcd_panel_ssd1306.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "trail_startup_logo.hpp"
@@ -26,9 +26,6 @@ constexpr std::size_t kGlyphAdvance = 6;
 constexpr std::size_t kPairingLabelY = 5;
 constexpr std::size_t kPairingDigitsY = 25;
 constexpr std::size_t kPairingDigitsScale = 2;
-constexpr std::size_t kFactoryResetFirstLineY = 13;
-constexpr std::size_t kFactoryResetSecondLineY = 35;
-constexpr std::size_t kFactoryResettingY = 25;
 
 std::array<std::uint8_t, kGlyphWidth> glyph_for(char value) {
     switch (value) {
@@ -129,65 +126,24 @@ void draw_pairing_page(
     }
 }
 
-void draw_factory_reset_page(
-    std::array<std::uint8_t, kTrailStartupLogoBytes>& pixels,
-    StartupDisplayFrame frame) {
-    pixels.fill(0);
-    if (frame == StartupDisplayFrame::factory_reset_confirmation) {
-        constexpr char kFirstLine[] = "ERASE ALL";
-        constexpr char kSecondLine[] = "TRAIL DATA?";
-        draw_scaled_text(
-            pixels, kFirstLine, sizeof(kFirstLine) - 1,
-            kFactoryResetFirstLineY, 1);
-        draw_scaled_text(
-            pixels, kSecondLine, sizeof(kSecondLine) - 1,
-            kFactoryResetSecondLineY, 1);
-        return;
-    }
-    constexpr char kResetting[] = "RESETTING";
-    draw_scaled_text(
-        pixels, kResetting, sizeof(kResetting) - 1,
-        kFactoryResettingY, 2);
-}
-
-void draw_status_text(std::array<std::uint8_t, kTrailStartupLogoBytes>& frame,
-                      const char* text) {
-    std::fill(frame.begin() + kStatusPage * kDisplayWidth, frame.end(), 0);
-    const auto length = std::strlen(text);
-    if (length == 0) return;
-    const auto pixel_width = length * kGlyphAdvance - 1;
-    const auto start_x = pixel_width < kDisplayWidth
-        ? (kDisplayWidth - pixel_width) / 2
-        : 0;
-    for (std::size_t index = 0; index < length; ++index) {
-        const auto glyph = glyph_for(text[index]);
-        const auto x = start_x + index * kGlyphAdvance;
-        for (std::size_t column = 0;
-             column < glyph.size() && x + column < kDisplayWidth; ++column) {
-            frame[kStatusPage * kDisplayWidth + x + column] = glyph[column];
-        }
-    }
-}
-
-
-void draw_frame_footer(
-    std::array<std::uint8_t, kTrailStartupLogoBytes>& pixels,
-    const StartupDisplayView& view) {
-    if (view.has_footer) {
-        std::copy(
-            view.footer.columns.begin(),
-            view.footer.columns.end(),
-            pixels.begin() + kStatusPage * kDisplayWidth);
-        return;
-    }
-    draw_status_text(pixels, startup_display_text(view.frame));
-}
-
 }  // namespace
 bool HeltecV4Oled::record_failure(const char* step, int error_code) {
     ESP_LOGW(kLogTag, "display unavailable step=%s code=%d", step, error_code);
     initialized_ = false;
     return false;
+}
+
+bool HeltecV4Oled::admit_display_time(std::uint64_t& now_ms) {
+    const auto observed_us = esp_timer_get_time();
+    if (observed_us < 0 ||
+        (time_observed_ && static_cast<std::uint64_t>(observed_us) < last_display_us_)) {
+        (void)conceal();
+        return record_failure("display-clock", ESP_ERR_INVALID_STATE);
+    }
+    time_observed_ = true;
+    last_display_us_ = static_cast<std::uint64_t>(observed_us);
+    now_ms = last_display_us_ / 1'000;
+    return true;
 }
 
 bool HeltecV4Oled::initialize() {
@@ -256,16 +212,23 @@ bool HeltecV4Oled::initialize() {
 
 bool HeltecV4Oled::render(const StartupDisplayView& view) {
     if (!initialized_ || panel_ == nullptr) return false;
-    auto pixels = kTrailStartupLogoSsd1306;
-    if (view.frame == StartupDisplayFrame::factory_reset_confirmation ||
-        view.frame == StartupDisplayFrame::factory_resetting) {
-        draw_factory_reset_page(pixels, view.frame);
+    std::uint64_t now_ms = 0;
+    if (!admit_display_time(now_ms)) return false;
+    esp_err_t result;
+    if (view.frame == StartupDisplayFrame::logo) {
+        result = esp_lcd_panel_draw_bitmap(
+            panel_, 0, 0, kDisplayWidth, kDisplayHeight,
+            kTrailStartupLogoSsd1306.data());
     } else {
-        draw_frame_footer(pixels, view);
+        const auto frame = presentation_.present(view, now_ms);
+        result = esp_lcd_panel_draw_bitmap(
+            panel_, 0, 0, kDisplayWidth, kDisplayHeight, frame.pixels.data());
     }
-    const auto result = esp_lcd_panel_draw_bitmap(
-        panel_, 0, 0, kDisplayWidth, kDisplayHeight, pixels.data());
-    return result == ESP_OK || record_failure("panel-draw", result);
+    if (result != ESP_OK) {
+        (void)conceal();
+        return record_failure("panel-draw", result);
+    }
+    return true;
 }
 
 bool HeltecV4Oled::render_pairing_pin(const PairingPinDisplayView& view) {
@@ -273,6 +236,8 @@ bool HeltecV4Oled::render_pairing_pin(const PairingPinDisplayView& view) {
         !pairing_digits_valid(view.digits)) {
         return false;
     }
+    std::uint64_t now_ms = 0;
+    if (!admit_display_time(now_ms)) return false;
     std::array<std::uint8_t, kTrailStartupLogoBytes> pixels{};
     draw_pairing_page(pixels, view);
     const auto result = esp_lcd_panel_draw_bitmap(
@@ -284,13 +249,12 @@ bool HeltecV4Oled::render_pairing_pin(const PairingPinDisplayView& view) {
 bool HeltecV4Oled::conceal() {
     bool concealed = false;
     if (panel_ != nullptr) {
-        std::array<std::uint8_t, kTrailStartupLogoBytes> blank{};
+        static constexpr std::array<std::uint8_t, kTrailStartupLogoBytes> blank{};
         if (esp_lcd_panel_draw_bitmap(
                 panel_, 0, 0, kDisplayWidth, kDisplayHeight,
                 blank.data()) == ESP_OK) {
             concealed = true;
         }
-        blank.fill(0);
         if (esp_lcd_panel_disp_on_off(panel_, false) == ESP_OK) {
             concealed = true;
         }

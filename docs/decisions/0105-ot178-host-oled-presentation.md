@@ -38,3 +38,15 @@ This task does not wire the renderer to I2C or implement settings/group/location
 time-sync transport. Target porting preflight, two reproducible builds, physical
 concealment/readability/current-draw and two-device acceptance remain separate.
 Cold-power and website work remain owner-deferred. No V1 completion increase.
+
+## Target adapter implementation checkpoint - 2026-09-06
+
+OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed.
+
+The adapter preserves the legacy startup logo and scale-2 ephemeral pairing
+digits. It consumes typed states, not inferred footer pixels. No authenticated
+configuration or clock-sync authority is created by this mapping. The new
+target code passes host/build validation and remains uninstalled; the original accepted
+host-presentation decision is unchanged.
+
+Prepare the authenticated configuration and time-sync contract before broad normal-page hardware acceptance. Define exact device/session binding, validated name/region/group observations, clock format and sync freshness, and retain unknown states until real sources are bound. A separate bounded display-only physical preflight may inspect the verified build and restoration route; it does not install firmware automatically. Cold-power and website updates remain owner-deferred.

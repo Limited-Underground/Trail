@@ -1287,6 +1287,30 @@ $builds = @(
         )
     },
     @{
+        Name = 'Heltec OLED actual panel port with host I/O fixtures'
+        Output = Join-Path $buildDirectory 'heltec_oled_port_tests.exe'
+        Arguments = @('-I', (Join-Path $projectRoot 'tests\host\fixtures\heltec_oled'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_v4_oled.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_oled_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_startup_display.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\oled_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\compact_status_footer.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
+            (Join-Path $projectRoot 'tests\host\heltec_oled_port_tests.cpp')
+        )
+    },
+    @{
+        Name = 'Heltec OLED target presentation mapping'
+        Output = Join-Path $buildDirectory 'heltec_oled_presentation_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\oled_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_oled_presentation.cpp'),
+            (Join-Path $projectRoot 'tests\host\heltec_oled_presentation_tests.cpp')
+        )
+    },
+    @{
         Name = 'OLED fixed-frame presentation and priority'
         Output = Join-Path $buildDirectory 'oled_presentation_tests.exe'
         Sources = @(

@@ -1,7 +1,8 @@
 # Heltec 128 x 64 OLED V1 Layout
 
 Status: owner-approved display direction; host renderer/clock foundation added
-2026-09-06. Target wiring and physical acceptance remain pending. See
+2026-09-06. Target adapter passes the complete host matrix and two matching builds;
+physical acceptance remains pending. See
 [Decision 0105](../decisions/0105-ot178-host-oled-presentation.md) and the
 [synthetic pixel preview](../testing/OT-178-OLED-PREVIEW-2026-09-06.png).
 
@@ -60,7 +61,20 @@ release-and-confirm behavior, timeout, and fail-closed erasure semantics.
 
 ## Acceptance still required
 
-Host pixel-bound tests must cover every string, truncation, priority transition,
-clock state, stale metric, and concealment path. Two reproducible target builds,
-physical OLED inspection on both V1 units, failure injection, reboot/cold-power,
-and current-draw impact remain unproved.
+Host frame, clock, target mapping and actual-port tests pass, along with two
+reproducible target builds. Physical OLED inspection on both V1 units, runtime
+stack high-watermark, hardware failure injection, reboot/cold-power and
+current-draw impact remain unproved. Authenticated configuration/time sources
+are still required before the normal status page can be accepted.
+
+## Current target adapter boundary - 2026-09-06
+
+OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed.
+
+The normal status page above remains the product goal. It is not currently
+reachable through invented configuration values: missing region authority
+has priority. No phone clock-sync handler exists, so the host clock model does
+not establish a working phone-synchronized target clock. Region/name/group
+configuration and telemetry sources require their own accepted contracts.
+
+Prepare the authenticated configuration and time-sync contract before broad normal-page hardware acceptance. Define exact device/session binding, validated name/region/group observations, clock format and sync freshness, and retain unknown states until real sources are bound. A separate bounded display-only physical preflight may inspect the verified build and restoration route; it does not install firmware automatically. Cold-power and website updates remain owner-deferred.

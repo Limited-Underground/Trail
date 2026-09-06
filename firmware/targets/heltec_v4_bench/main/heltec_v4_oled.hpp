@@ -4,6 +4,7 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "heltec_startup_display.hpp"
+#include "heltec_oled_presentation.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 
@@ -27,10 +28,14 @@ public:
 
 private:
     [[nodiscard]] bool record_failure(const char* step, int error_code);
+    [[nodiscard]] bool admit_display_time(std::uint64_t& now_ms);
 
+    HeltecOledPresentation presentation_{};
     i2c_master_bus_handle_t bus_{nullptr};
     esp_lcd_panel_io_handle_t io_{nullptr};
     esp_lcd_panel_handle_t panel_{nullptr};
+    bool time_observed_{false};
+    std::uint64_t last_display_us_{0};
     bool attempted_{false};
     bool initialized_{false};
 };

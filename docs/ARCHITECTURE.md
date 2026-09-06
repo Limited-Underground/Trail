@@ -1745,3 +1745,22 @@ The caller supplies one coherent authorized snapshot; presentation never grants
 Ready, TX or settings authority. A single owner contains monotonic rollback;
 physical panel I/O/concealment, protocol time sync and target integration remain
 separate. No target code is changed by the host foundation.
+
+## OT-178 target display adapter boundary - 2026-09-06
+
+The target application task owns OLED I/O. Its adapter maps typed startup,
+failure and reset states to the hardware-neutral presentation owner; raster
+footer pixels are never decoded into telemetry or authority. Existing raw BLE
+connection frames cannot assert authorization or Ready. With no configured
+region authority, ordinary frames remain region-required/TX-disabled. This
+display does not configure the radio or enforce protocol authority itself.
+
+The legacy startup asset and ephemeral large pairing rendering remain separate.
+Pairing digits are not stored in the presentation snapshot. Monotonic failure
+or panel draw failure must prevent later pairing exposure; concealment retains
+black-frame, panel-off and Vext-off fallbacks. Rendering stays outside NimBLE
+callbacks and does not mutate bonds, NVS or the factory-reset contract.
+
+OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed.
+
+Prepare the authenticated configuration and time-sync contract before broad normal-page hardware acceptance. Define exact device/session binding, validated name/region/group observations, clock format and sync freshness, and retain unknown states until real sources are bound. A separate bounded display-only physical preflight may inspect the verified build and restoration route; it does not install firmware automatically. Cold-power and website updates remain owner-deferred.

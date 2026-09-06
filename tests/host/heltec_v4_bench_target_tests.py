@@ -182,6 +182,8 @@ def test_contract() -> None:
         "main/heltec_v4_secure_random.hpp",
         "main/heltec_v4_oled.cpp",
         "main/heltec_v4_oled.hpp",
+        "main/heltec_oled_presentation.cpp",
+        "main/heltec_oled_presentation.hpp",
         "main/trail_startup_logo.hpp",
         "oled-startup-flash-plan.json",
         "physical-flash-plan.json",
@@ -1173,8 +1175,8 @@ def test_protected_root_key_roster_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 35,
-            "non-injection gate must cover the exact 35-source target build")
+    require(len(linked_source_tokens) == 38,
+            "non-injection gate must cover the exact 38-source target build")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -1186,7 +1188,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 34,
+    require(len(other_linked_sources) == 37,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1248,8 +1250,8 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 35,
-            "configuration/security non-injection gate must cover 35 sources")
+    require(len(linked_source_tokens) == 38,
+            "configuration/security non-injection gate must cover 38 sources")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_configuration_security_adapter.cpp":
@@ -1261,7 +1263,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 34,
+    require(len(other_linked_sources) == 37,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1366,9 +1368,47 @@ def test_display_surface() -> None:
             "view.footer.columns.end()" in adapter and
             "pixels.begin() + kStatusPage * kDisplayWidth" in adapter,
             "OLED adapter must copy the exact supplied 128-column page into page 7")
-    require("draw_status_text(pixels, startup_display_text(view.frame))" in adapter and
+    presentation_header = (TARGET / "main" / "heltec_oled_presentation.hpp").read_text(encoding="utf-8")
+    presentation = (TARGET / "main" / "heltec_oled_presentation.cpp").read_text(encoding="utf-8")
+    render = adapter.split("bool HeltecV4Oled::render(const StartupDisplayView& view)", 1)[1].split(
+        "bool HeltecV4Oled::render_pairing_pin", 1)[0]
+    require("kTrailStartupLogoSsd1306.data()" in render and
+            "if (view.frame == StartupDisplayFrame::logo)" in render and
+            "presentation_.present(view, now_ms)" in render and "frame.pixels.data()" in render and
+            "auto pixels" not in render and
+            "HeltecOledPresentation presentation_{}" in adapter_header,
+            "non-logo panel frames must use the tested presentation mapper while preserving the logo")
+    time_gate = adapter.split("bool HeltecV4Oled::admit_display_time", 1)[1].split(
+        "bool HeltecV4Oled::initialize", 1)[0]
+    pairing_render = adapter.split("bool HeltecV4Oled::render_pairing_pin", 1)[1].split(
+        "bool HeltecV4Oled::conceal", 1)[0]
+    require("esp_timer_get_time()" in time_gate and "observed_us < 0" in time_gate and
+            "static_cast<std::uint64_t>(observed_us) < last_display_us_" in time_gate and
+            "now_ms = last_display_us_ / 1'000" in time_gate and
+            '(void)conceal();' in time_gate and 'record_failure("display-clock"' in time_gate and
+            render.index("admit_display_time(now_ms)") < render.index("StartupDisplayFrame::logo") and
+            pairing_render.index("admit_display_time(now_ms)") < pairing_render.index("draw_pairing_page") and
+            '(void)conceal();' in render and
+            'record_failure("panel-draw"' in render,
+            "all display paths must admit time before drawing and conceal after time/draw failures")
+    conceal = adapter.split("bool HeltecV4Oled::conceal()", 1)[1]
+    require("static constexpr std::array<std::uint8_t, kTrailStartupLogoBytes> blank{}" in conceal and
+            "initialized_ = false" in conceal,
+            "concealment must avoid another stack framebuffer and latch display unavailable")
+    require("view.footer" not in render and "draw_status_text" not in render,
+            "normal presentation must not mix an old footer over exclusive safety surfaces")
+    require("PresentationOwner owner_{}" in presentation_header and
+            "return owner_.present(snapshot, now_ms)" in presentation and
+            "snapshot.failure = true" in presentation and
+            "snapshot.reset_confirmation = true" in presentation and
+            "snapshot.reset_in_progress = true" in presentation,
+            "mapper must preserve rollback containment and exact reset/failure surfaces")
+    require("PhoneState::ready" not in presentation and
+            "snapshot.region_configured = true" not in presentation and
+            "view.footer" not in presentation and
+            "snapshot.clock" not in presentation and
             'return "SELF CHECK FAIL"' in owner,
-            "logo/self-check fallback path must remain explicit")
+            "mapper must not infer Ready, region, telemetry or synchronized time from raw status")
     for required in (
         'kPairingLabel[] = "PAIR"',
         "kPairingDigitsScale = 2",
@@ -2162,6 +2202,10 @@ def test_application_surface() -> None:
         "heltec_v4_battery.cpp",
         "heltec_v4_gnss.cpp",
         "heltec_v4_oled.cpp",
+        "heltec_oled_presentation.cpp",
+        "ui/src/oled_presentation.cpp",
+        "time/src/oled_clock.cpp",
+        "time/include",
         "protocol/include",
         "ui/src/compact_status_footer.cpp",
         "ui/include",
@@ -2169,8 +2213,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 35,
-            "target source set must remain seventeen target, seventeen companion, and one UI source")
+    require(cmake.count('.cpp"') == 38,
+            "target source set must remain eighteen target, seventeen companion, two UI and one time source")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",

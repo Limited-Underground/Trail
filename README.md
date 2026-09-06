@@ -1,5 +1,9 @@
 # Limited Underground Trail
 
+Current implementation (2026-09-06): [Heltec OLED target adapter](tests/hardware/OT-178-OLED-ADAPTER-2026-09-06.md) maps ordinary frames to region-required/TX-disabled status.
+The complete host matrix passes and two fresh builds match; no new firmware is installed.
+Authenticated configuration/time sources and physical OLED acceptance remain open.
+
 Latest physical acceptance (2026-09-06): [corrected firmware reconnect](tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md)
 passes initial Ready/Snapshot, full app restart and two service reconnect cycles
 on the retained Heltec/Note20 pair. Cold-power and broader acceptance remain open.
@@ -28,7 +32,7 @@ requirements for basic operation.
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and two experimentally flashed Heltec targets |
-| Latest increment | OT-178 host OLED/clock presentation foundation: bounded frames, safety priority, stale-value handling and rollback containment. [Evidence](tests/hardware/OT-178-OLED-FOUNDATION-2026-09-06.md); target wiring and physical acceptance remain open. Existing combined Android visuals remain uninstalled; website and cold-power work stay deferred. |
+| Latest increment | OT-178 Heltec OLED target adapter: complete host validation and two matching firmware builds. [Evidence](tests/hardware/OT-178-OLED-ADAPTER-2026-09-06.md). Ordinary frames require region; live settings/time sources and physical acceptance remain open. No installation; website and cold-power work stay deferred. |
 | Proven so far | Host-tested protocol/state components and bounded single-pair hardware evidence. Corrected 563,776-byte firmware SHA-256 `9ACDC90EEA9D0489ABABDD9B6F4E3C7AFF97162D03DDC09F8E4965D5A1D12784` passed exact application-only write/readback, then initial Ready/Snapshot, app restart and two service reconnects with the prior V1-Test APK. See [physical evidence](tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md) for limits. |
 | Planned V1 | Two Heltec/Android pairs exchanging authenticated typed/quick messages and coordinates over direct LoRa. The approved UX uses resumable name/region onboarding, Messages/Group/Device portrait and landscape layouts, one private group per person with exactly one administrator and six total members, consent-gated public direct chat, group location ON at join under an admin Required/Optional rule, redacted support export, and the bounded Heltec OLED/clock surface. Built-in maps are not required. See Decision 0104. |
 | Not yet proven | true cold-power recovery, production zero-tap launch, destructive app/physical reset and erasure recovery, automatic unowned-boot pairing on both units, authenticated on-device LoRa, coherent two-phone operation, calibrated battery percentage, supported hardware, production firmware, endurance, field range, or regulatory acceptance |

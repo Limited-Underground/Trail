@@ -1,5 +1,13 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
+## 2026-09-06 - OT-178 target OLED adapter validated
+
+OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed.
+
+Prepare the authenticated configuration and time-sync contract before broad normal-page hardware acceptance. Define exact device/session binding, validated name/region/group observations, clock format and sync freshness, and retain unknown states until real sources are bound. A separate bounded display-only physical preflight may inspect the verified build and restoration route; it does not install firmware automatically. Cold-power and website updates remain owner-deferred.
+
+See [adapter evidence and preflight](../tests/hardware/OT-178-OLED-ADAPTER-2026-09-06.md).
+
 ## 2026-09-06 - OT-178 host OLED/clock foundation
 
 OT-178 now has hardware-neutral OLED/clock presentation: fixed 128x64 frames, exclusive safety/pairing/region priority, bounded labels, truthful unknown/stale metrics, bounded radio pulses and a 12/24-hour phone-synchronized clock model. The presentation owner contains monotonic rollback. Focused tests and synthetic pixel review pass; no target wiring, firmware build, physical display or time-sync transport is accepted.
