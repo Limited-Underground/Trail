@@ -41,7 +41,9 @@ class V1DeviceName private constructor(val value: String) {
             value.takeIf {
                 it.length in 1..V1_DEVICE_NAME_MAX_CHARS &&
                     it == it.trim() &&
-                    it.none(Char::isISOControl)
+                    it.none(Char::isISOControl) &&
+                    Charsets.UTF_8.newEncoder().canEncode(it) &&
+                    it.toByteArray(Charsets.UTF_8).size <= 96
             }?.let(::V1DeviceName)
     }
 }
@@ -88,15 +90,14 @@ class V1AuthorizationReceipt internal constructor(
 }
 
 /**
- * Future authenticated device adapter evidence, issued only after durable write/readback.
- * Current firmware has no name capability: phone-local drafts must never mint this receipt.
- * Like region receipts, this model checks binding; construction is not hardware acceptance.
+ * Model-only receipt. Construction alone grants nothing: the issuing transaction
+ * registers its exact object identity and consumes it once against current authority.
  */
 class V1NameReadbackReceipt internal constructor(
-    internal val setupLabel: V1SetupLabel,
-    internal val sessionToken: V1SetupSessionToken,
-    internal val name: V1DeviceName,
+    private val issuer: V1NameTransaction,
 ) {
+    internal fun consume(label: V1SetupLabel?, token: V1SetupSessionToken?, name: V1DeviceName): Boolean =
+        issuer.consume(this, label, token, name)
     override fun toString(): String = "V1NameReadbackReceipt(name=redacted, identity=redacted)"
 }
 
@@ -144,8 +145,7 @@ class V1SetupProgress private constructor(
 
     fun nameDevice(name: V1DeviceName, receipt: V1NameReadbackReceipt): V1SetupProgress? =
         takeIf {
-            authorized && setupLabel == receipt.setupLabel &&
-                sessionToken == receipt.sessionToken && name == receipt.name
+            authorized && receipt.consume(setupLabel, sessionToken, name)
         }?.let {
             V1SetupProgress(setupLabel, sessionToken, true, name, null, false, null)
         }

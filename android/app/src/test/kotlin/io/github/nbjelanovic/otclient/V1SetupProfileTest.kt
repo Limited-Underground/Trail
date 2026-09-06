@@ -6,6 +6,9 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import io.github.nbjelanovic.otprotocol.CompanionNameKind
+import io.github.nbjelanovic.otprotocol.CompanionNamePayload
+import io.github.nbjelanovic.otprotocol.CompanionNamePayloadCodec
 
 class V1SetupProfileTest {
     @Test
@@ -112,9 +115,9 @@ class V1SetupProfileTest {
         val authorized = requireNotNull(V1SetupProgress.empty().matchDevice(label(), session()).authorize(authorization()))
         val otherLabel = requireNotNull(V1SetupLabel.create("Trail-8M4R2T"))
         val differentName = requireNotNull(V1DeviceName.create("Different name"))
-        assertNull(authorized.nameDevice(deviceName(), V1NameReadbackReceipt(label(), otherSession(), deviceName())))
-        assertNull(authorized.nameDevice(deviceName(), V1NameReadbackReceipt(otherLabel, session(), deviceName())))
-        assertNull(authorized.nameDevice(deviceName(), V1NameReadbackReceipt(label(), session(), differentName)))
+        assertNull(authorized.nameDevice(deviceName(), nameReceipt(token = otherSession())))
+        assertNull(authorized.nameDevice(deviceName(), nameReceipt(setupLabel = otherLabel)))
+        assertNull(authorized.nameDevice(deviceName(), nameReceipt(name = differentName)))
         assertEquals(V1SetupStage.NAME_DEVICE, authorized.stage)
         assertNull(authorized.deviceName)
         assertFalse(authorized.radioTransmissionAllowed)
@@ -133,7 +136,17 @@ class V1SetupProfileTest {
         assertFalse(nameReceipt().toString().contains("7K3P9Q"))
     }
 
-    private fun nameReceipt() = V1NameReadbackReceipt(label(), session(), deviceName())
+    private fun nameReceipt(setupLabel: V1SetupLabel = label(), token: V1SetupSessionToken = session(),
+                            name: V1DeviceName = deviceName()): V1NameReadbackReceipt {
+        val context = V1NameContext(1, 2, 3, 4, 5, 6, 7u, setupLabel, token)
+        val transaction = V1NameTransaction(V1NameAuthoritySource { V1NameAuthority(V1NamePhase.READY, context) })
+        val read = assertNotNull(transaction.beginRead())
+        transaction.receive(context, read.exchangeId, assertNotNull(CompanionNamePayloadCodec.encode(
+            CompanionNamePayload(CompanionNameKind.SNAPSHOT))))
+        val write = assertNotNull(transaction.beginWrite(name, 0u))
+        return assertNotNull(transaction.receive(context, write.exchangeId, assertNotNull(CompanionNamePayloadCodec.encode(
+            CompanionNamePayload(CompanionNameKind.APPLIED, 1u, name.value)))).receipt)
+    }
     private fun authorization() = V1AuthorizationReceipt(label(), session())
     private fun regionReceipt() = V1RegionReadbackReceipt(label(), session(), V1RadioRegion.US915)
     private fun session() = requireNotNull(

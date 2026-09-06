@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-09-06 - Android name receipt model
+
+Implemented the Android name transaction model and one-use registered setup receipts. Current protocol context, exchange, expected/committed revision and exact name must match; stale results and loss callbacks cannot confirm or cancel later work. V1DeviceName now rejects malformed Unicode losslessly. This is model integration only, with no live BLE name requests or app installation.
+
+Next implement matched successor wire codecs and explicitly allocate the version/profile, operation kinds and capability encoding under Decision0107. Verify negotiation, single-record capacities and Android/C++ parity before live dispatcher, persistence/reset or target activation. Website and cold-power remain deferred.
+
+See [validation evidence](../docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md). V1 remains exact43.75/display44.
+
 ## 2026-09-06 - Host name transaction owner
 
 Implemented the host-only fixed-memory device-name transaction owner using the existing payload codec, injected trusted authority and synchronous fakeable persistence. It enforces revision CAS/readback, exact duplicate fences, admission expiry and explicit read reconciliation after uncertain commits. All12 focused groups pass; the complete host matrix is recorded in the evidence. No live wire, flash driver or phone integration is added.

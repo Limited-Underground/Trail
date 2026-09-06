@@ -220,3 +220,12 @@ for focused/final results and limitations. NT-02/03/04 host behavior and injecte
 NT-05 lifecycle ordering are covered; actual reset erasure and asynchronous or
 physical I/O remain open. Typed Android receipts are next. Wire allocation,
 shared dispatcher, real storage/reset and target integration remain unimplemented.
+
+## Android name-receipt model checkpoint
+
+The preliminary tuple-only receipt has been replaced by a one-use registered
+receipt issued through the current pending transaction. Lossless device-name
+UTF-8 validation is centralized. See [evidence](../testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md).
+This addresses model-level NT-06; real authenticated adapter provenance, live
+requests and persistence remain unimplemented. Numeric successor allocation and
+matched codecs are next. Prior descriptions above retain historical context.
