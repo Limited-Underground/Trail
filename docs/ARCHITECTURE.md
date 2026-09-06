@@ -1736,3 +1736,12 @@ independently of UI binding leases. It has no connection authority; diagnostic
 failures are isolated. Only the V1-Test Application supplies a recorder provider,
 and exact-generation termination rejects stale owner cleanup. Production has no
 provider or diagnostic storage. See [bounded software evidence](../tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md).
+
+## OLED presentation foundation (2026-09-06)
+
+Decision [0105](decisions/0105-ot178-host-oled-presentation.md) places fixed OLED
+frames and phone-clock presentation under hardware-neutral ui/time components.
+The caller supplies one coherent authorized snapshot; presentation never grants
+Ready, TX or settings authority. A single owner contains monotonic rollback;
+physical panel I/O/concealment, protocol time sync and target integration remain
+separate. No target code is changed by the host foundation.

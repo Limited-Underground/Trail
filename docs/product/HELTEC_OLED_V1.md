@@ -1,7 +1,9 @@
 # Heltec 128 x 64 OLED V1 Layout
 
-Status: owner-approved display direction; exact renderer/state implementation
-and physical acceptance pending, 2026-09-04.
+Status: owner-approved display direction; host renderer/clock foundation added
+2026-09-06. Target wiring and physical acceptance remain pending. See
+[Decision 0105](../decisions/0105-ot178-host-oled-presentation.md) and the
+[synthetic pixel preview](../testing/OT-178-OLED-PREVIEW-2026-09-06.png).
 
 ## Priority
 
@@ -20,7 +22,7 @@ Reset-in-progress never claims completion.
 
 The normal page contains:
 
-- configured device name, with deterministic truncation still to be fixed;
+- configured device name, with bounded ASCII display/truncation defined in Decision 0105;
 - phone session state: authorized/ready, reconnecting, or not connected;
 - group membership and location-sharing state;
 - configured radio region and TX availability;
@@ -37,7 +39,9 @@ The clock follows the phone's selected 12/24-hour presentation when supplied.
 The firmware runs it from monotonic elapsed time after a validated sync. Before
 valid sync or after detected rollback/invalidity it displays `--:--`, never an
 invented time. Temporary phone disconnection does not erase a still-valid
-clock. Exact drift/resync/staleness policy remains an implementation gate.
+clock. The host model expires time at24hours, rejects rollback and old/future sync
+callbacks, and needs a fresh authorized sync after invalidation. Actual drift,
+phone resync transport/cadence and physical acceptance remain open.
 
 ## Setup and safety
 

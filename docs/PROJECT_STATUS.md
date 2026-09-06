@@ -1,5 +1,13 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
+## 2026-09-06 - OT-178 host OLED/clock foundation
+
+OT-178 now has hardware-neutral OLED/clock presentation: fixed 128x64 frames, exclusive safety/pairing/region priority, bounded labels, truthful unknown/stale metrics, bounded radio pulses and a 12/24-hour phone-synchronized clock model. The presentation owner contains monotonic rollback. Focused tests and synthetic pixel review pass; no target wiring, firmware build, physical display or time-sync transport is accepted.
+
+Next integrate the presentation owner through the Heltec display adapter after refreshing firmware-porting preflight. Preserve emergency pairing concealment and reset/owner semantics; map only existing coherent observations and show unavailable for missing name/group/region/time inputs. Build twice with matching artifacts before separately bounded physical OLED acceptance. Phone time-sync transport and configuration authority remain separate contracts. Cold-power and website work stay owner-deferred.
+
+See [evidence and preflight](../tests/hardware/OT-178-OLED-FOUNDATION-2026-09-06.md) and [Decision 0105](../docs/decisions/0105-ot178-host-oled-presentation.md).
+
 ## 2026-09-06 - Existing Android visuals integrated
 
 Integrated the existing owner-approved Android visual direction onto the published connection/service-logging baseline: Messages/Group/Device navigation, mint theme, fullscreen truthful status strip, setup/group/people surfaces, phone-local quick-message drafts and support export. The existing owner checkout is unchanged. This accepts software integration only; the combined APK is not installed and final visual or workflow acceptance is not claimed.

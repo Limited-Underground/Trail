@@ -1279,6 +1279,23 @@ $builds = @(
         )
     },
     @{
+        Name = 'OLED phone-synchronized clock presentation'
+        Output = Join-Path $buildDirectory 'oled_clock_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
+            (Join-Path $projectRoot 'tests\host\oled_clock_tests.cpp')
+        )
+    },
+    @{
+        Name = 'OLED fixed-frame presentation and priority'
+        Output = Join-Path $buildDirectory 'oled_presentation_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\oled_presentation.cpp'),
+            (Join-Path $projectRoot 'tests\host\oled_presentation_tests.cpp')
+        )
+    },
+    @{
         Name = 'monotonic clock boundary'
         Output = Join-Path $buildDirectory 'monotonic_clock_tests.exe'
         Sources = @(
