@@ -24,6 +24,9 @@ interface TrailUiController {
     fun selectBluetoothDevice(endpointToken: String)
     fun disconnectBluetoothDevice()
     fun submitBluetoothAction(request: CompanionActionRequest): Boolean
+    fun readDeviceName(): Boolean = false
+    fun writeDeviceName(name: String): Boolean = false
+    fun synchronizeDisplayTime(): Boolean = false
     fun requestFactoryResetConfirmation(): Boolean = false
     fun cancelFactoryResetConfirmation() = Unit
     fun confirmFactoryReset(): Boolean = false

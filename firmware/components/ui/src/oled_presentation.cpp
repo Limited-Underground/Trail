@@ -176,6 +176,14 @@ Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
         frame.surface = Surface::region_required;
         row(frame, 0, "REGION REQUIRED");
         row(frame, 1, "RADIO TX DISABLED");
+        // Name and civil time do not grant radio configuration authority.
+        // Keep the warning prominent while allowing these independent settings
+        // to be observed before a regional radio profile is available.
+        row(frame, 3, snapshot.device_name.empty() ? std::string_view("DEVICE") : snapshot.device_name);
+        const auto clock = clock_text(snapshot.clock);
+        std::array<char, 32> line{};
+        std::snprintf(line.data(), line.size(), "TIME %s", clock.data());
+        row(frame, 7, line.data());
     } else {
         frame.surface = Surface::normal;
         row(frame, 0, snapshot.device_name.empty() ? std::string_view("DEVICE") : snapshot.device_name);

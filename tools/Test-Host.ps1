@@ -226,6 +226,36 @@ $builds = @(
         )
     },
     @{
+        Name = 'composed configuration name and time dispatcher'
+        Output = Join-Path $buildDirectory 'companion_configuration_dispatcher_tests.exe'
+        Arguments = @('-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_dispatcher.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_time_admission.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_configuration_dispatcher_tests.cpp')
+        )
+    },
+    @{
+        Name = 'target name storage with deterministic NVS seam'
+        Output = Join-Path $buildDirectory 'companion_name_storage_tests.exe'
+        Arguments = @(
+            '-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main'),
+            '-I', (Join-Path $projectRoot 'tests\host\fixtures\name_nvs')
+        )
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_name_storage.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_name_storage_tests.cpp')
+        )
+    },
+    @{
         Name = 'host device-name transaction owner'
         Output = Join-Path $buildDirectory 'companion_device_name_owner_tests.exe'
         Sources = @(

@@ -729,11 +729,21 @@ class BleAuthorizationRuntimeTest {
             onStart(this)
         }
         override fun requestMtu(mtu: Int) = true.also { requestedMtus += mtu }
-        override fun readProtocolInfo() = true.also { protocolInfoReads += 1 }
+        private var claimResultObserved = false
+        override fun readProtocolInfo() = true.also {
+            protocolInfoReads += 1
+            if(claimResultObserved) observer(BleGattEvent.ProtectedProtocolInfoRead(checkNotNull(
+                CompanionProtocolCodec.encodeProtocolInfo(io.github.nbjelanovic.otprotocol.CompanionProtocolInfo(
+                    capabilities=REQUIRED_ACTION_CAPABILITIES)).value)))
+        }
         override fun subscribeStreamIndications() = true.also { subscriptions += 1 }
         override fun writeCommandWithResponse(value: ByteArray) = true.also { commands += value.copyOf() }
         override fun close() { closeCount += 1 }
-        fun emit(event: BleGattEvent) = observer(event)
+        fun emit(event: BleGattEvent) {
+            if(event is BleGattEvent.StreamIndication && event.value.size>6 && event.value[6].toInt() and 255 == 0x85)
+                claimResultObserved=true
+            observer(event)
+        }
     }
 
     private class TestScheduler : BleRuntimeScheduler {

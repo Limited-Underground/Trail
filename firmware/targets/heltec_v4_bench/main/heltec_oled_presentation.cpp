@@ -3,9 +3,12 @@
 namespace opentrail::target::heltec_v4_bench {
 
 ui::oled_presentation::Frame HeltecOledPresentation::present(
-    const StartupDisplayView& view, std::uint64_t now_ms) {
+    const StartupDisplayView& view, std::uint64_t now_ms,
+    std::string_view name, time::OledClockReading clock) {
     using ui::oled_presentation::PhoneState;
     ui::oled_presentation::Snapshot snapshot{};
+    snapshot.device_name = name;
+    snapshot.clock = clock;
     // No configured region or authenticated Ready observation is supplied by
     // StartupDisplayView. Its existing footer is raster data, not typed telemetry.
     switch (view.frame) {

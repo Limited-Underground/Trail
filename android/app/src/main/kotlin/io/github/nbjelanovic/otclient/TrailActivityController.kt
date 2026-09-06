@@ -182,6 +182,9 @@ class TrailActivityController(
     }
 
     override fun scanBluetoothDevices() = bluetoothOnly { it.scan() }
+    override fun readDeviceName(): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.readDeviceName()==true }
+    override fun writeDeviceName(name: String): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.writeDeviceName(name)==true }
+    override fun synchronizeDisplayTime(): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.synchronizeDisplayTime()==true }
     override fun selectBluetoothDevice(endpointToken: String) = bluetoothOnly { it.authorize(endpointToken) }
     override fun disconnectBluetoothDevice() = bluetoothOnly { it.disconnect() }
     override fun submitBluetoothAction(request: CompanionActionRequest): Boolean {

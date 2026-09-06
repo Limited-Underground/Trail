@@ -161,6 +161,9 @@ def test_contract() -> None:
         "main/companion_nimble_gatt.hpp",
         "main/companion_nimble_runtime.cpp",
         "main/companion_nimble_runtime.hpp",
+        "main/companion_configuration_lane.hpp",
+        "main/companion_name_storage.cpp",
+        "main/companion_name_storage.hpp",
         "main/companion_v1_heltec_adapters.cpp",
         "main/companion_v1_heltec_adapters.hpp",
         "partitions.csv",
@@ -1175,8 +1178,8 @@ def test_protected_root_key_roster_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 38,
-            "non-injection gate must cover the exact 38-source target build")
+    require(len(linked_source_tokens) == 44,
+            "non-injection gate must cover the exact 44-source target build")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -1188,7 +1191,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 37,
+    require(len(other_linked_sources) == 43,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1250,8 +1253,8 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 38,
-            "configuration/security non-injection gate must cover 38 sources")
+    require(len(linked_source_tokens) == 44,
+            "configuration/security non-injection gate must cover 44 sources")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_configuration_security_adapter.cpp":
@@ -1263,7 +1266,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 37,
+    require(len(other_linked_sources) == 43,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1374,7 +1377,8 @@ def test_display_surface() -> None:
         "bool HeltecV4Oled::render_pairing_pin", 1)[0]
     require("kTrailStartupLogoSsd1306.data()" in render and
             "if (view.frame == StartupDisplayFrame::logo)" in render and
-            "presentation_.present(view, now_ms)" in render and "frame.pixels.data()" in render and
+            "presentation_.present(view, now_ms," in render and "frame.pixels.data()" in render and
+            "configuration_name_.data()" in render and "configuration_clock_" in render and
             "auto pixels" not in render and
             "HeltecOledPresentation presentation_{}" in adapter_header,
             "non-logo panel frames must use the tested presentation mapper while preserving the logo")
@@ -1406,9 +1410,10 @@ def test_display_surface() -> None:
     require("PhoneState::ready" not in presentation and
             "snapshot.region_configured = true" not in presentation and
             "view.footer" not in presentation and
-            "snapshot.clock" not in presentation and
+            "snapshot.clock = clock" in presentation and
+            "snapshot.device_name = name" in presentation and
             'return "SELF CHECK FAIL"' in owner,
-            "mapper must not infer Ready, region, telemetry or synchronized time from raw status")
+            "mapper must take typed configuration/time while never inferring Ready, region or telemetry from raw status")
     for required in (
         'kPairingLabel[] = "PAIR"',
         "kPairingDigitsScale = 2",
@@ -2213,7 +2218,7 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 38,
+    require(cmake.count('.cpp"') == 44,
             "target source set must remain eighteen target, seventeen companion, two UI and one time source")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
@@ -3186,6 +3191,47 @@ def test_secure_random_surface() -> None:
             "target build must admit RNG and shared pairing component")
 
 
+def test_configuration_transport_and_storage_surface() -> None:
+    cmake = MAIN_CMAKE.read_text(encoding="utf-8")
+    gatt = (TARGET / "main" / "companion_nimble_gatt.cpp").read_text(encoding="utf-8")
+    runtime = (TARGET / "main" / "companion_nimble_runtime.cpp").read_text(encoding="utf-8")
+    storage = (TARGET / "main" / "companion_name_storage.cpp").read_text(encoding="utf-8")
+    reset = FACTORY_RESET_STORAGE_SOURCE.read_text(encoding="utf-8")
+    for token in ("companion_name_storage.cpp", "companion_configuration_codec.cpp",
+                  "companion_configuration_dispatcher.cpp", "companion_device_name_codec.cpp",
+                  "companion_device_name_owner.cpp", "oled_time_admission.cpp"):
+        require(cmake.count(token) == 1, f"configuration source must link exactly once: {token}")
+    for gate in ("life.application_authorized", "life.normal_session_active",
+                 "life.indication_subscribed", "life.att_mtu >= 151",
+                 "status.secure_bond", "life.encrypted", "life.authenticated_bond",
+                 "g_configuration_blocked_generation", "g_configuration_revoked"):
+        require(gate in gatt, f"configuration authority gate missing: {gate}")
+    require("encode_configuration_info({0xef}" in gatt and
+            "g_adapter->read_protocol_info(" in gatt,
+            "selected normal0.2 must retain the restricted claim ProtocolInfo path")
+    for surface in ("kConfigurationRecordBytes", "decode_configuration_frame",
+                    "g_indication_port.reserve(", "g_configuration_lane.matches(",
+                    "g_configuration_lane.can_execute(", "work.admitted_ms",
+                    "g_configuration_lane.response_ready = true",
+                    "configuration_response_event", "ble_npl_eventq_put"):
+        require(surface in gatt, f"bounded configuration handoff missing: {surface}")
+    command = gatt.split("int command_access(", 2)[-1].split("int stream_access", 1)[0]
+    require("g_configuration_dispatcher->execute" not in command and
+            "g_configuration_dispatcher->submit" not in command and
+            "nvs_" not in command,
+            "configuration callbacks must only admit/copy, never execute storage owners")
+    require("try_acquire_companion_factory_reset_serialization()" in command and
+            "xSemaphoreTake(g_factory_reset_mutex, 0)" in runtime,
+            "legacy reset callback must not wait behind the app reset/GATT lock order")
+    for surface in ("kCompanionNameNvsNamespace", "kCompanionNameNvsKey",
+                    "DeviceNameCommitStatus::possibly_committed", "nvs_get_used_entry_count",
+                    "DeviceNameLoadStatus::unsupported", "nvs_close(handle)"):
+        require(surface in storage, f"name storage containment missing: {surface}")
+    require("inspect_user_namespace(kCompanionNameNvsNamespace)" in reset and
+            "erase_user_namespace_and_verify(kCompanionNameNvsNamespace)" in reset,
+            "name persistence must participate in reset erase and fresh absence verification")
+
+
 def main() -> int:
     tests = (test_contract, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
@@ -3199,7 +3245,8 @@ def main() -> int:
              test_live_heltec_snapshot_authority_mapping,
              test_build_only_tooling,
              test_automatic_termination_acceptance_surface,
-             test_factory_reset_surfaces, test_secure_random_surface)
+             test_factory_reset_surfaces, test_secure_random_surface,
+             test_configuration_transport_and_storage_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

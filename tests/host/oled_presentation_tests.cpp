@@ -103,6 +103,21 @@ void clock_composition() {
     s.clock.valid=true;s.clock.text.fill('X');s.clock.local_second_of_day=999999;
     CHECK(has(render(s,0),"--:--"));bounds(render(s,0));
 }
+void unconfigured_region_preserves_independent_settings() {
+    Snapshot s;s.device_name="Bench One";
+    opentrail::time::OledClock clock;
+    CHECK(clock.synchronize(13*3600+34*60,opentrail::time::OledClockFormat::hour_24,10,10,true));
+    s.clock=clock.observe(10);
+    auto f=render(s,10);bounds(f);
+    CHECK(f.surface==Surface::region_required);
+    CHECK(row(f,0)=="REGION REQUIRED" && row(f,1)=="RADIO TX DISABLED");
+    CHECK(row(f,3)=="BENCH ONE" && row(f,7)=="TIME 13:34");
+    s.clock=clock.observe(86'400'010);
+    CHECK(row(render(s,86'400'010),7)=="TIME --:--");
+    s.reset_confirmation=true;
+    f=render(s,86'400'010);
+    CHECK(f.surface==Surface::reset_confirmation && !has(f,"BENCH ONE") && !has(f,"TIME"));
+}
 void write_pbm(const Frame& f,const std::string& path) {
     std::ofstream o(path);o<<"P1\n128 64\n";
     for(std::size_t y=0;y<64;++y) {for(std::size_t x=0;x<128;++x)o<<((f.pixels[(y/8)*128+x]>>(y%8))&1)<<' ';o<<'\n';}
@@ -110,6 +125,7 @@ void write_pbm(const Frame& f,const std::string& path) {
 }
 int main(int argc,char**argv) {
     priority_and_concealment();rollback_containment();region_and_unknown_authority();metric_and_activity_edges();sanitization_and_pixel_bounds();clock_composition();
+    unconfigured_region_preserves_independent_settings();
     if(failures) return EXIT_FAILURE;
     if(argc==2) {
         auto s=normal();s.phone=PhoneState::ready;s.group=GroupState::administrator;s.location_available=true;s.location_on=true;
@@ -119,7 +135,9 @@ int main(int argc,char**argv) {
         s=pairing();write_pbm(render(s,1000),dir+"/pairing-synthetic.pbm");s.reset_confirmation=true;write_pbm(render(s,1000),dir+"/reset-confirm.pbm");
         s.reset_in_progress=true;write_pbm(render(s,1000),dir+"/reset-progress.pbm");s.failure=true;write_pbm(render(s,1000),dir+"/failure.pbm");
         write_pbm(render(Snapshot{},1000),dir+"/region-required.pbm");
+        Snapshot unconfigured;unconfigured.device_name="Bench One";unconfigured.clock=clock.observe(1000);
+        write_pbm(render(unconfigured,1000),dir+"/region-name-time.pbm");
     }
-    std::cout<<"PASS: 6 OLED presentation groups (priority/expiry, authority, freshness, byte/pixel bounds, clock composition)\n";
+    std::cout<<"PASS: 7 OLED presentation groups (priority/expiry, authority, freshness, byte/pixel bounds, clock composition, unconfigured region)\n";
     return failures?EXIT_FAILURE:EXIT_SUCCESS;
 }

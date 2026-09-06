@@ -220,6 +220,8 @@ class AndroidBluetoothGattFacade(
     nowMillis: () -> Long = System::currentTimeMillis,
 ) : AndroidBluetoothFacade, AutoCloseable {
     private val appContext = context.applicationContext
+    override fun displayTimeSample(): Pair<UInt,Int> = java.time.LocalTime.now().toSecondOfDay().toUInt() to
+        if(android.text.format.DateFormat.is24HourFormat(appContext)) 2 else 1
     private val gattServiceUuid = UUID.fromString(AndroidBlePlatformPlan.GATT_SERVICE_UUID)
     private val pairableAdvertisingUuid = UUID.fromString(AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID)
     private val protocolInfoUuid = UUID.fromString(CompanionGattV0Contract.PROTOCOL_INFO_UUID)

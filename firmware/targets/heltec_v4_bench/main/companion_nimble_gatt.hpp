@@ -3,10 +3,19 @@
 #include <cstdint>
 
 #include "opentrail/companion_gatt_authorization_adapter.hpp"
+#include "opentrail/companion_configuration_dispatcher.hpp"
 
 struct ble_gap_event;
 
 namespace opentrail::target::heltec_v4_bench {
+
+// Configuration work is copied on the host and executed only by app_main.
+[[nodiscard]] bool initialize_companion_configuration(
+    companion::DeviceNamePersistence&, companion::ConfigurationBaseHandler&);
+void service_companion_configuration();
+void invalidate_companion_configuration(bool revoke = false);
+[[nodiscard]] time::OledClockReading companion_configuration_clock();
+[[nodiscard]] companion::DeviceNamePayload companion_configuration_name();
 
 [[nodiscard]] bool companion_nimble_gatt_definition_self_check();
 
@@ -19,7 +28,7 @@ companion_nimble_gatt_indication_port();
 companion_nimble_gatt_adapter_status();
 
 // Attaches the exact callback adapter and service definitions before
-// ble_gatts_start(). The current build-only target never calls this function.
+// ble_gatts_start(). Normal0.2 is offered only after confirmed claim promotion.
 // Protocol Info and Command use NimBLE ENC+AUTHEN+AUTHOR permissions. Their
 // AUTHOR callback and actual access callback each re-read the current link;
 // encryption/key-size failure maps to INSUFFICIENT_ENC, authentication/bond

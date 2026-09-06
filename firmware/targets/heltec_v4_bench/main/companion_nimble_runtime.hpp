@@ -78,6 +78,7 @@ begin_contained_companion_factory_reset_recovery();
 // An exact reset command must acquire this shared serialization boundary before
 // calling the protected adapter and release it immediately afterward.
 [[nodiscard]] bool acquire_companion_factory_reset_serialization();
+[[nodiscard]] bool try_acquire_companion_factory_reset_serialization();
 void release_companion_factory_reset_serialization();
 void observe_companion_app_factory_reset_command(
     bool response_pending,

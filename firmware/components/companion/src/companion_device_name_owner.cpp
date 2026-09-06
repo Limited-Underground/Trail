@@ -93,7 +93,8 @@ DeviceNameOwnerResult DeviceNameOwner::finish(DeviceNameOwnerResult r) {
     return r;
 }
 DeviceNameOwnerResult DeviceNameOwner::begin(const DeviceNameContext& context,
-    std::uint32_t exchange, const std::uint8_t* bytes, std::size_t size, std::size_t capacity) {
+    std::uint32_t exchange, const std::uint8_t* bytes, std::size_t size, std::size_t capacity,
+    std::optional<std::uint64_t> admitted_ms) {
     if (!refresh()) return result(contained_ ? DeviceNameOwnerCode::contained : DeviceNameOwnerCode::unauthorized);
     if (context != authority_.context) return result(DeviceNameOwnerCode::unauthorized);
     if (pending_ && !eligible()) (void)finish(result(DeviceNameOwnerCode::expired));
@@ -112,12 +113,17 @@ DeviceNameOwnerResult DeviceNameOwner::begin(const DeviceNameContext& context,
     const auto decoded = decode_device_name_payload(bytes, size);
     if (!decoded.decoded() || (decoded.value.kind != DeviceNameKind::read && decoded.value.kind != DeviceNameKind::write))
         return result(DeviceNameOwnerCode::invalid_request);
+    // Optional timestamp is trusted queue admission in this same device clock,
+    // never a phone/wire value. Queue delay is part of the commit deadline.
+    const auto admitted = admitted_ms.value_or(authority_.now_ms);
+    if (admitted > authority_.now_ms) return result(DeviceNameOwnerCode::invalid_request);
+    if (authority_.now_ms - admitted >= admission_lifetime_ms) return result(DeviceNameOwnerCode::expired);
     request_context_ = context;
     last_exchange_ = exchange;
     request_size_ = size;
     std::copy(bytes, bytes + size, request_bytes_.begin());
     request_ = decoded.value;
-    admitted_ms_ = authority_.now_ms;
+    admitted_ms_ = admitted;
     terminal_valid_ = false;
     pending_ = true;
     if (reconcile_ && request_.kind == DeviceNameKind::write)

@@ -2,6 +2,22 @@
 
 ## 2026-09-06
 
+### Integrated name and clock candidate validated
+
+Connected protected profile 0.2, shared request dispatch, durable device-name
+readback, volatile clock sync, Android controls and the Heltec OLED. Name storage
+joins complete factory-reset cleanup. The complete local host matrix passed in
+reviewed segments, including Windows loader and simulator UI 13/13. Final Android
+validation passed 978 tests, all affected lint/build variants and release auditing.
+Firmware compile smoke passed; no new firmware or APK is installed yet.
+
+Next produce two fresh matching firmware builds, verify the exact image/recovery
+manifest, install the paired firmware/APK, and test name persistence, clock display
+and saved-owner reconnect on the retained Heltec/Note20. Website and cold-power stay
+deferred. V1 remains exact43.75/display44 until physical evidence changes a milestone.
+
+See [integration evidence](../docs/testing/OT-170-178-LIVE-INTEGRATION-2026-09-06.md).
+
 ### Daily progress headings
 
 Restored one date heading per day with individual task subheadings, including the matching current-summary sections. Existing task text, ordering and evidence links are preserved. This is formatting only; implementation and V1 completion are unchanged.

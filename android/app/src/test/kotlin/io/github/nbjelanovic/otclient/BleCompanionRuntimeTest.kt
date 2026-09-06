@@ -109,6 +109,8 @@ class BleCompanionRuntimeTest {
         )
         gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(17)))
         gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(17)))
+        assertPhase(runtime, BleNegotiationPhase.PROTOCOL_INFO)
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfoBytes()))
         assertPhase(runtime, BleNegotiationPhase.INITIAL_SNAPSHOT)
         assertEquals(2, gatt.commands.size)
         gatt.emit(BleGattEvent.StreamIndication(snapshotEnvelope(sessionNonce = 17, eventId = 1)))
@@ -1259,6 +1261,76 @@ class BleCompanionRuntimeTest {
         }
     }
 
+    @Test
+    fun protectedPostClaimConfigurationProfileReachesReadyAndUsesSharedNameTimeLane() {
+        val facade=TestBluetoothFacade(returningOwnerScanSupported=true)
+        val scheduler=TestRuntimeScheduler()
+        val runtime=BleCompanionRuntime(facade,scheduler)
+        runtime.onLifecycleStart()
+        facade.returningOwnerScans.single().emit(BleScanEvent.Candidate(CANDIDATE))
+        facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
+        val gatt=facade.connections.single()
+        gatt.emit(BleGattEvent.ProfileReady)
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(17)))
+        gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
+        gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+        gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(17)))
+        gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(17)))
+        assertPhase(runtime,BleNegotiationPhase.PROTOCOL_INFO)
+        val codec=io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(checkNotNull(codec.encodeInfo(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo(0xef)))))
+        assertPhase(runtime,BleNegotiationPhase.INITIAL_SNAPSHOT)
+        val request=checkNotNull(codec.decodeFrame(gatt.commands.last()))
+        assertEquals(1,request.kind)
+        val payload=checkNotNull(CompanionProtocolCodec.decodeFragment(snapshotEnvelope(17,1)).value).payload
+        gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x81,17u,request.exchangeId,payload)))))
+        assertTrue(assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.available)
+        assertTrue(runtime.readDeviceName())
+        val read=checkNotNull(codec.decodeFrame(gatt.commands.last()));assertEquals(4,read.kind)
+        assertFalse(runtime.submitAction(quickStatus()))
+        val namePayload=checkNotNull(io.github.nbjelanovic.otprotocol.CompanionNamePayloadCodec.encode(
+            io.github.nbjelanovic.otprotocol.CompanionNamePayload(io.github.nbjelanovic.otprotocol.CompanionNameKind.SNAPSHOT)))
+        gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x86,17u,read.exchangeId,namePayload)))))
+        assertEquals(0uL,assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.nameRevision)
+        assertTrue(runtime.synchronizeDisplayTime())
+        val time=checkNotNull(codec.decodeFrame(gatt.commands.last()));assertEquals(read.exchangeId+1u,time.exchangeId)
+        val challenge=checkNotNull(codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(2,challenge=12u)))
+        gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x87,17u,time.exchangeId,challenge)))))
+        val sample=checkNotNull(codec.decodeFrame(gatt.commands.last()));assertEquals(time.exchangeId+1u,sample.exchangeId)
+        val result=checkNotNull(codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(4,challenge=12u)))
+        gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x87,17u,sample.exchangeId,result)))))
+        assertFalse(assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.busy)
+        runtime.disconnect();assertFalse(runtime.readDeviceName())
+    }
+
+    @Test
+    fun unprotectedPostClaimInfoCannotActivateConfigurationProfile() {
+        val facade=TestBluetoothFacade(returningOwnerScanSupported=true)
+        val runtime=BleCompanionRuntime(facade,TestRuntimeScheduler())
+        runtime.onLifecycleStart()
+        facade.returningOwnerScans.single().emit(BleScanEvent.Candidate(CANDIDATE))
+        facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
+        val gatt=facade.connections.single()
+        gatt.emit(BleGattEvent.ProfileReady)
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(17)))
+        gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
+        gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+        gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(17)))
+        gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(17)))
+        assertPhase(runtime,BleNegotiationPhase.PROTOCOL_INFO)
+        gatt.emit(BleGattEvent.ProtocolInfoRead(checkNotNull(io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec.encodeInfo(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo(0xef)))))
+        assertIs<BleRuntimeState.Failed>(runtime.state)
+        assertTrue(gatt.closed)
+        assertFalse(runtime.readDeviceName())
+        assertFalse(runtime.synchronizeDisplayTime())
+    }
+
     private class Fixture(
         val facade: TestBluetoothFacade = TestBluetoothFacade(),
         scheduler: TestRuntimeScheduler = TestRuntimeScheduler(),
@@ -1305,6 +1377,7 @@ class BleCompanionRuntimeTest {
             gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
             gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(sessionNonce)))
             gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(sessionNonce)))
+            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(protocolInfoBytes()))
         }
 
         fun readyGatt(sessionNonce: Long, initialEventId: Long = 1): TestGattLease {

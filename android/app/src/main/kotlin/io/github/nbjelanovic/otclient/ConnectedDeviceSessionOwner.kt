@@ -70,6 +70,9 @@ class ConnectedDeviceSessionOwner(
 
     override fun submitAction(request: CompanionActionRequest): Boolean =
         !closed && controller.submitBluetoothAction(request)
+    override fun readDeviceName(): Boolean = !closed && controller.readDeviceName()
+    override fun writeDeviceName(name: String): Boolean = !closed && controller.writeDeviceName(name)
+    override fun synchronizeDisplayTime(): Boolean = !closed && controller.synchronizeDisplayTime()
 
     override fun requestFactoryResetConfirmation(): Boolean =
         !closed && controller.requestFactoryResetConfirmation()

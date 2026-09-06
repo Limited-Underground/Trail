@@ -220,7 +220,8 @@ bool HeltecV4Oled::render(const StartupDisplayView& view) {
             panel_, 0, 0, kDisplayWidth, kDisplayHeight,
             kTrailStartupLogoSsd1306.data());
     } else {
-        const auto frame = presentation_.present(view, now_ms);
+        const auto frame = presentation_.present(view, now_ms,
+            {configuration_name_.data(), configuration_name_bytes_}, configuration_clock_);
         result = esp_lcd_panel_draw_bitmap(
             panel_, 0, 0, kDisplayWidth, kDisplayHeight, frame.pixels.data());
     }

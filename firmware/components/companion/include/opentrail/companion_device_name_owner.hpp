@@ -1,5 +1,6 @@
 #pragma once
 #include "opentrail/companion_device_name_codec.hpp"
+#include <optional>
 
 namespace opentrail::companion {
 struct DeviceNameContext {
@@ -67,7 +68,7 @@ public:
     DeviceNameOwner& operator=(const DeviceNameOwner&) = delete;
     [[nodiscard]] DeviceNameOwnerResult begin(const DeviceNameContext& context,
         std::uint32_t exchange_id, const std::uint8_t* request, std::size_t size,
-        std::size_t response_capacity);
+        std::size_t response_capacity, std::optional<std::uint64_t> admitted_ms = std::nullopt);
     [[nodiscard]] DeviceNameOwnerResult execute();
     [[nodiscard]] DeviceNameOwnerCode observe();
     [[nodiscard]] DeviceNameOwnerCode lifecycle(const DeviceNameContext& expected, DeviceNameLifecycle event);

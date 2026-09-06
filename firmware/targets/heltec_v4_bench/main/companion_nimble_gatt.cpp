@@ -1,5 +1,6 @@
 #include "companion_nimble_gatt.hpp"
 #include "companion_nimble_runtime.hpp"
+#include "companion_configuration_lane.hpp"
 
 #include <array>
 #include <cstddef>
@@ -8,6 +9,8 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "host/ble_att.h"
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
@@ -16,6 +19,7 @@
 #include "host/ble_l2cap.h"
 #include "host/ble_uuid.h"
 #include "os/os_mbuf.h"
+#include "nimble/nimble_port.h"
 #include "opentrail/companion_public_link_info.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
@@ -102,6 +106,42 @@ std::uint16_t g_command_handle = 0;
 std::uint16_t g_stream_handle = 0;
 std::uint16_t g_public_link_info_handle = 0;
 std::uint16_t g_stream_cccd_handle = 0;
+
+StaticSemaphore_t g_configuration_mutex_storage{};
+SemaphoreHandle_t g_configuration_mutex = nullptr;
+class GattLock {
+public:
+    GattLock() : locked_(g_configuration_mutex != nullptr &&
+        xSemaphoreTakeRecursive(g_configuration_mutex, portMAX_DELAY) == pdTRUE) {}
+    ~GattLock() { if (locked_) xSemaphoreGiveRecursive(g_configuration_mutex); }
+    explicit operator bool() const { return locked_; }
+private: bool locked_;
+};
+
+DeviceNameAuthority g_configuration_authority{};
+bool g_configuration_selected = false;
+bool g_configuration_revoked = false;
+DeviceNamePersistence* g_configuration_storage = nullptr;
+DeviceNamePayload g_configuration_name_cache{};
+bool g_configuration_name_loaded = false;
+std::uint64_t g_configuration_blocked_generation = 0;
+std::uint64_t g_configuration_token = (std::uint64_t{1} << 63);
+ConfigurationLane g_configuration_lane{};
+ble_npl_event g_configuration_response_event{};
+void configuration_response_event(ble_npl_event*);
+ConfigurationDispatcher* g_configuration_dispatcher = nullptr;
+class ConfigurationSource final : public DeviceNameAuthoritySource {
+public:
+    DeviceNameAuthority current() noexcept override {
+        GattLock lock;
+        if (!lock) return {};
+        auto result = g_configuration_authority;
+        const auto tick = esp_timer_get_time();
+        result.now_ms = tick < 0 ? 0 : static_cast<std::uint64_t>(tick) / 1000;
+        return result;
+    }
+};
+ConfigurationSource g_configuration_source;
 
 class NimbleIndicationPort final : public CompanionGattIndicationPort {
 public:
@@ -298,6 +338,39 @@ std::uint64_t now_ms() {
                : static_cast<std::uint64_t>(microseconds) / 1000U;
 }
 
+void update_configuration_authority() {
+    if (g_configuration_revoked) {
+        g_configuration_authority.phase = DeviceNamePhase::revoked;
+        return;
+    }
+    const auto status = g_adapter == nullptr ? CompanionGattAdapterStatus{} : g_adapter->status();
+    const auto& life = status.lifecycle;
+    const bool allowed = g_configuration_selected && status.connected &&
+        status.secure_bond && life.encrypted && life.authenticated_bond &&
+        life.application_authorized && life.normal_session_active &&
+        life.indication_subscribed && life.att_mtu >= 151 &&
+        !life.faulted && !companion_app_factory_reset_blocks_protected_access();
+    if (!allowed) {
+        if (g_configuration_selected) {
+            g_configuration_blocked_generation = status.transport_generation;
+            g_configuration_selected = false;
+        }
+        g_configuration_authority.phase = DeviceNamePhase::disconnected;
+        return;
+    }
+    g_configuration_authority = {DeviceNamePhase::connected,
+        {1, 1, 1, 1, status.transport_generation,
+         status.transport_generation, life.session_nonce}, now_ms()};
+}
+
+void clear_configuration_lane() {
+    if (g_configuration_lane.occupied) {
+        g_indication_port.cancel_reservation(g_configuration_lane.token);
+        g_indication_port.abandon_indication(g_configuration_lane.token);
+    }
+    g_configuration_lane = {};
+}
+
 bool is_factory_reset_command(radio::ByteView encoded) {
     const auto fragment = decode_companion_fragment(encoded);
     if (!fragment.decoded() ||
@@ -438,6 +511,8 @@ int protocol_info_access(std::uint16_t connection_handle,
                          std::uint16_t attribute_handle,
                          ble_gatt_access_ctxt* context,
                          void*) {
+    GattLock lock;
+    if (!lock) return BLE_ATT_ERR_INSUFFICIENT_RES;
     if (companion_app_factory_reset_blocks_protected_access()) {
         return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
     }
@@ -448,7 +523,26 @@ int protocol_info_access(std::uint16_t connection_handle,
     }
     const auto security = refresh_security(connection_handle);
     if (security != 0) {
+        update_configuration_authority();
         return security;
+    }
+    const auto status = g_adapter->status();
+    if (status.lifecycle.application_authorized && status.lifecycle.normal_session_active) {
+        if (g_configuration_dispatcher == nullptr || g_configuration_revoked || status.pending.valid ||
+            g_configuration_lane.occupied ||
+            status.transport_generation == g_configuration_blocked_generation ||
+            !status.lifecycle.indication_subscribed ||
+            status.lifecycle.att_mtu < 151) {
+            return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+        }
+        std::array<std::uint8_t, kConfigurationInfoBytes> offer{};
+        const auto encoded = encode_configuration_info({0xef}, offer.data(), offer.size());
+        if (!encoded.encoded() || os_mbuf_append(context->om, offer.data(), offer.size()) != 0)
+            return BLE_ATT_ERR_INSUFFICIENT_RES;
+        g_configuration_selected = true;
+        update_configuration_authority();
+        queue_verified_gatt_progress(connection_handle, now_ms());
+        return 0;
     }
     std::array<std::uint8_t,
                kCompanionAuthorizationProtocolInfoBytes> encoded{};
@@ -491,6 +585,8 @@ int command_access(std::uint16_t connection_handle,
                    std::uint16_t attribute_handle,
                    ble_gatt_access_ctxt* context,
                    void*) {
+    GattLock lock;
+    if (!lock) return BLE_ATT_ERR_INSUFFICIENT_RES;
     if (companion_app_factory_reset_blocks_protected_access()) {
         return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
     }
@@ -501,21 +597,50 @@ int command_access(std::uint16_t connection_handle,
     }
     const auto security = refresh_security(connection_handle);
     if (security != 0) {
+        update_configuration_authority();
         return security;
     }
     const auto length = OS_MBUF_PKTLEN(context->om);
-    if (length == 0 || length > kCompanionMaxRequestRecordBytes) {
+    if (length == 0 || length > kConfigurationRecordBytes) {
         return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
     }
-    std::array<std::uint8_t, kCompanionMaxRequestRecordBytes> request{};
+    std::array<std::uint8_t, kConfigurationRecordBytes> request{};
     if (os_mbuf_copydata(context->om, 0, length, request.data()) != 0) {
         return BLE_ATT_ERR_UNLIKELY;
     }
     const radio::ByteView encoded{
         request.data(), static_cast<std::size_t>(length)};
+    update_configuration_authority();
+    if (g_adapter->status().transport_generation == g_configuration_blocked_generation &&
+        g_configuration_blocked_generation != 0) return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+    if (g_configuration_selected) {
+        const auto frame = decode_configuration_frame(encoded.data, encoded.size);
+        const auto status = g_adapter->status();
+        if (!frame.decoded() || g_configuration_lane.occupied || status.pending.valid ||
+            g_configuration_authority.phase != DeviceNamePhase::connected ||
+            frame.value.session_nonce != g_configuration_authority.context.session_nonce ||
+            (frame.value.kind != 1 && frame.value.kind != 2 && frame.value.kind != 4 && frame.value.kind != 5) ||
+            g_configuration_token == std::numeric_limits<std::uint64_t>::max())
+            return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+        const auto token = ++g_configuration_token;
+        if (g_indication_port.reserve(connection_handle, status.transport_generation,
+                frame.value.session_nonce, g_stream_handle, token, kConfigurationRecordBytes) != CompanionGattSinkError::none)
+            return BLE_ATT_ERR_INSUFFICIENT_RES;
+        g_configuration_lane.occupied = true;
+        g_configuration_lane.context = g_configuration_authority.context;
+        g_configuration_lane.connection = connection_handle;
+        g_configuration_lane.token = token;
+        g_configuration_lane.admitted_ms = now_ms();
+        g_configuration_lane.exchange = frame.value.exchange_id;
+        g_configuration_lane.bytes = length;
+        g_configuration_lane.record = request;
+        queue_verified_gatt_progress(connection_handle, now_ms());
+        return 0;
+    }
+    if (length > kCompanionMaxRequestRecordBytes) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
     const bool reset_command = is_factory_reset_command(encoded);
     if (reset_command &&
-        !acquire_companion_factory_reset_serialization()) {
+        !try_acquire_companion_factory_reset_serialization()) {
         return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
     }
     const auto observed_at_ms = now_ms();
@@ -540,6 +665,36 @@ int stream_access(std::uint16_t,
                   ble_gatt_access_ctxt*,
                   void*) {
     return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+}
+
+void configuration_response_event(ble_npl_event*) {
+    GattLock lock;
+    if (!lock || !g_configuration_lane.occupied || !g_configuration_lane.response_ready) return;
+    auto& lane = g_configuration_lane;
+    const auto tick = now_ms();
+    if (refresh_security(lane.connection) != 0) {
+        invalidate_companion_configuration();
+        observe_companion_app_factory_reset_command(false, tick);
+        return;
+    }
+    update_configuration_authority();
+    if (!lane.current(g_configuration_authority) || lane.expired(tick)) {
+        invalidate_companion_configuration();
+        observe_companion_app_factory_reset_command(false, tick);
+        return;
+    }
+    lane.response_ready = false;
+    lane.indicated = true;
+    const auto submitted = g_indication_port.submit_reserved(lane.connection,
+        lane.context.transport_generation, lane.context.session_nonce, g_stream_handle,
+        lane.token, {lane.record.data(), lane.bytes});
+    if (submitted != CompanionGattSinkError::none) {
+        invalidate_companion_configuration();
+        observe_companion_app_factory_reset_command(false, tick);
+        return;
+    }
+    g_indication_port.bind_exchange(lane.token, lane.exchange);
+    observe_companion_app_factory_reset_command(true, tick);
 }
 
 bool definition_is_pristine() {
@@ -590,6 +745,7 @@ CompanionGattIndicationPort& companion_nimble_gatt_indication_port() {
 }
 
 CompanionGattAdapterStatus companion_nimble_gatt_adapter_status() {
+    GattLock lock;
     return g_adapter == nullptr ? CompanionGattAdapterStatus{}
                                 : g_adapter->status();
 }
@@ -605,6 +761,7 @@ int register_companion_nimble_gatt_service(
         return BLE_HS_EALREADY;
     }
     g_adapter = adapter;
+    ble_npl_event_init(&g_configuration_response_event, configuration_response_event, nullptr);
     ble_hs_cfg.gatts_register_cb = registration_callback;
     ble_hs_cfg.gatts_register_arg = adapter;
     auto result = ble_gatts_count_cfg(kServices);
@@ -621,7 +778,7 @@ int register_companion_nimble_gatt_service(
     return 0;
 }
 
-int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
+static int configuration_guarded_gap_event(ble_gap_event* event, void* argument) {
     if (event == nullptr || argument != g_adapter || g_adapter == nullptr) {
         return 0;
     }
@@ -685,6 +842,21 @@ int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
             if (!pending.valid ||
                 pending.connection_handle != event->notify_tx.conn_handle ||
                 pending.stream_value_handle != event->notify_tx.attr_handle) {
+                return 0;
+            }
+            if (g_configuration_lane.indicated && g_configuration_lane.matches(
+                    pending.connection_handle, pending.transport_generation,
+                    pending.session_nonce, pending.exchange_id, pending.delivery_token)) {
+                const bool confirmed = event->notify_tx.status == BLE_HS_EDONE &&
+                    refresh_security(event->notify_tx.conn_handle) == 0;
+                g_indication_port.observe_completion(pending.delivery_token);
+                g_configuration_lane = {};
+                observe_companion_app_factory_reset_response(confirmed);
+                if (!confirmed) {
+                    g_configuration_blocked_generation = pending.transport_generation;
+                    g_configuration_selected = false;
+                    g_configuration_authority.phase = DeviceNamePhase::disconnected;
+                } else queue_verified_gatt_progress(event->notify_tx.conn_handle, now_ms());
                 return 0;
             }
             if (event->notify_tx.status == BLE_HS_EDONE) {
@@ -771,6 +943,112 @@ int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
     }
 }
 
+int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
+    GattLock lock;
+    if (!lock) return static_cast<int>(CompanionGattAdapterError::not_registered);
+    const auto result = configuration_guarded_gap_event(event, argument);
+    update_configuration_authority();
+    if (event != nullptr && event->type == BLE_GAP_EVENT_DISCONNECT)
+        clear_configuration_lane();
+    return result;
+}
+
+bool initialize_companion_configuration(DeviceNamePersistence& storage, ConfigurationBaseHandler& base) {
+    if (g_configuration_mutex != nullptr || g_configuration_dispatcher != nullptr) return false;
+    g_configuration_mutex = xSemaphoreCreateRecursiveMutexStatic(&g_configuration_mutex_storage);
+    if (g_configuration_mutex == nullptr) return false;
+    static ConfigurationDispatcher dispatcher{g_configuration_source, storage, base};
+    g_configuration_dispatcher = &dispatcher;
+    g_configuration_storage = &storage;
+    return true;
+}
+
+void invalidate_companion_configuration(bool revoke) {
+    GattLock lock;
+    if (!lock) return;
+    if (g_adapter != nullptr)
+        g_configuration_blocked_generation = g_adapter->status().transport_generation;
+    g_configuration_selected = false;
+    g_configuration_revoked = g_configuration_revoked || revoke;
+    g_configuration_authority.phase = g_configuration_revoked ? DeviceNamePhase::revoked : DeviceNamePhase::disconnected;
+    clear_configuration_lane();
+}
+
+void service_companion_configuration() {
+    if (g_configuration_dispatcher == nullptr) return;
+    if (!acquire_companion_factory_reset_serialization()) return;
+    // First app service follows successful marker-first boot/owner admission.
+    // Cache a verified durable value once; display polling never opens NVS.
+    if (!g_configuration_name_loaded && g_configuration_storage != nullptr) {
+        const auto loaded = g_configuration_storage->load();
+        g_configuration_name_loaded = true;
+        if (loaded.status == DeviceNameLoadStatus::present && loaded.value.revision != 0 &&
+            loaded.value.kind == DeviceNameKind::snapshot &&
+            valid_device_name_utf8(loaded.value.name.data(), loaded.value.name_bytes))
+            g_configuration_name_cache = loaded.value;
+    }
+    ConfigurationLane work{};
+    {
+        GattLock lock;
+        if (lock) {
+            update_configuration_authority();
+            g_configuration_authority.now_ms = now_ms();
+            if (g_configuration_lane.indicated && g_configuration_lane.expired(now_ms())) {
+                invalidate_companion_configuration();
+                observe_companion_app_factory_reset_response(false);
+            }
+            if (g_configuration_lane.occupied && !g_configuration_lane.executing &&
+                !g_configuration_lane.indicated) {
+                if (!g_configuration_lane.can_execute(g_configuration_authority)) {
+                    clear_configuration_lane();
+                } else {
+                    g_configuration_lane.executing = true;
+                    work = g_configuration_lane;
+                }
+            }
+        }
+    }
+    // No GATT mutex is held while source/owner/storage code executes.
+    g_configuration_dispatcher->observe();
+    ConfigurationDispatchResult result{};
+    if (work.occupied) {
+        result = g_configuration_dispatcher->submit(work.context,
+            work.record.data(), work.bytes, kConfigurationRecordBytes, work.admitted_ms);
+        if (result.code == ConfigurationDispatchCode::accepted)
+            result = g_configuration_dispatcher->execute();
+    }
+    const auto confirmed = g_configuration_dispatcher->confirmed_name();
+    if (confirmed.revision != 0 && confirmed.name_bytes != 0)
+        g_configuration_name_cache = confirmed;
+    release_companion_factory_reset_serialization();
+    if (!work.occupied) return;
+    {
+    GattLock lock;
+    if (!lock || !g_configuration_lane.occupied || g_configuration_lane.token != work.token) return;
+    update_configuration_authority();
+    if (result.bytes == 0 || g_configuration_authority.phase != DeviceNamePhase::connected ||
+        g_configuration_authority.context != work.context) {
+        clear_configuration_lane();
+        observe_companion_app_factory_reset_command(false, now_ms());
+        return;
+    }
+    g_configuration_lane.record = result.record;
+    g_configuration_lane.bytes = result.bytes;
+    g_configuration_lane.response_ready = true;
+    }
+    ble_npl_eventq_put(nimble_port_get_dflt_eventq(), &g_configuration_response_event);
+}
+
+time::OledClockReading companion_configuration_clock() {
+    return g_configuration_dispatcher == nullptr ? time::OledClockReading{} : g_configuration_dispatcher->clock();
+}
+
+DeviceNamePayload companion_configuration_name() {
+    GattLock lock;
+    if (!lock || g_configuration_revoked) return {};
+    return g_configuration_name_cache;
+}
+
 CompanionGattAuthorizationRequestResult
 companion_nimble_gatt_resolve_claim(
     std::uint16_t connection_handle,
@@ -778,6 +1056,8 @@ companion_nimble_gatt_resolve_claim(
     std::uint32_t session_nonce,
     std::uint32_t exchange_id,
     std::uint64_t observed_at_ms) {
+    GattLock lock;
+    if (!lock) return {};
     if (g_adapter == nullptr) {
         return {
             CompanionGattAuthorizationRequestDisposition::rejected,
@@ -811,6 +1091,7 @@ companion_nimble_gatt_resolve_claim(
 CompanionGattAdapterError companion_nimble_gatt_service_timeout(
     const CompanionGattAdapterPendingIndication& expected,
     std::uint64_t observed_at_ms) {
+    GattLock lock;
     return g_adapter == nullptr
                ? CompanionGattAdapterError::no_connection
                : g_adapter->service_timeout(expected, observed_at_ms);

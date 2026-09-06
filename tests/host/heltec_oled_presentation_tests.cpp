@@ -30,6 +30,16 @@ void unused_rows_blank(const Frame& frame, std::size_t start) {
     }
 }
 
+void region_placeholders(const Frame& frame) {
+    require(row(frame, 3) == "DEVICE", "unconfirmed name invented");
+    require(row(frame, 7) == "TIME --:--", "unconfirmed clock invented");
+    for (const auto index : {2U, 4U, 5U, 6U}) {
+        require(row(frame, index).empty(), "unused region row not blank");
+        for (std::size_t x=0;x<128;++x)
+            require(frame.pixels[index*128+x]==0, "unused region pixels not blank");
+    }
+}
+
 void every_frame_and_invalid_fail_closed() {
     constexpr std::array<Surface, 9> expected{
         Surface::failure, Surface::failure, Surface::region_required,
@@ -73,9 +83,8 @@ void raw_connection_and_footer_cannot_grant_status() {
         require(actual.rows == expected.rows && actual.pixels == expected.pixels, "footer inferred as telemetry");
         for (std::size_t i = 0; i < actual.rows.size(); ++i) {
             require(row(actual, i).find("READY") == std::string::npos, "raw link promoted to Ready");
-            require(row(actual, i).find("TIME") == std::string::npos, "clock invented");
         }
-        unused_rows_blank(actual, 2);
+        region_placeholders(actual);
     }
 }
 
@@ -102,7 +111,20 @@ void safety_surfaces_and_transition_clear_lower_content() {
     view.frame = StartupDisplayFrame::ble_connected;
     frame = mapper.present(view, 4);
     require(frame.surface == Surface::region_required, "later normal still has no region");
-    unused_rows_blank(frame, 2);
+    region_placeholders(frame);
+}
+
+void typed_name_and_clock_survive_region_warning_only() {
+    HeltecOledPresentation mapper;
+    StartupDisplayView view{};view.frame=StartupDisplayFrame::ble_connected;
+    opentrail::time::OledClock clock;
+    require(clock.synchronize(3600,opentrail::time::OledClockFormat::hour_24,10,10,true), "clock fixture");
+    auto frame=mapper.present(view,10,"Bench One",clock.observe(10));
+    require(frame.surface==Surface::region_required && row(frame,1)=="RADIO TX DISABLED", "typed settings granted region");
+    require(row(frame,3)=="BENCH ONE" && row(frame,7)=="TIME 01:00", "typed independent settings missing");
+    view.frame=StartupDisplayFrame::factory_reset_confirmation;
+    frame=mapper.present(view,11,"Bench One",clock.observe(11));
+    unused_rows_blank(frame,2);
 }
 
 void rollback_contains_all_later_views() {
@@ -125,6 +147,7 @@ int main() {
     raw_connection_and_footer_cannot_grant_status();
     safety_surfaces_and_transition_clear_lower_content();
     rollback_contains_all_later_views();
-    std::cout << "PASS: 4 Heltec OLED presentation scenario groups\n";
+    typed_name_and_clock_survive_region_warning_only();
+    std::cout << "PASS: 5 Heltec OLED presentation scenario groups\n";
     return 0;
 }

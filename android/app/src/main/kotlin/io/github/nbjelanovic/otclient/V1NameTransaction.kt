@@ -13,7 +13,7 @@ data class V1NameContext(
     val transportGeneration: Long,
     val controller: Long,
     val sessionNonce: UInt,
-    val setupLabel: V1SetupLabel,
+    val setupLabel: V1SetupLabel?,
     val sessionToken: V1SetupSessionToken,
 ) {
     internal fun validEpoch() = device > 0 && runtime > 0 && owner > 0 && ownerGeneration > 0
@@ -65,6 +65,7 @@ enum class V1NameLifecycle { DISCONNECTED, REVOKED, RESET }
 class V1NameTransaction(
     private val source: V1NameAuthoritySource,
     firstExchangeId: UInt = 1u,
+    private val sharedExchangeAllocator: (() -> UInt?)? = null,
 ) {
     private var current: V1NameAuthority? = null
     private var blockedSession: V1NameContext? = null
@@ -144,7 +145,8 @@ class V1NameTransaction(
         if (sequenceContext?.sameProtocolSession(context) == false) nextExchange = 1u
         if (nextExchange == 0u || CompanionNamePayloadCodec.encode(payload) == null) return null
         sequenceContext = context
-        val id = nextExchange
+        val id = sharedExchangeAllocator?.invoke() ?: if (sharedExchangeAllocator == null) nextExchange else return null
+        if (id == 0u || id < nextExchange) return null
         nextExchange = if (id == UInt.MAX_VALUE) 0u else id + 1u
         issuedReceipt = null
         receiptRequest = null

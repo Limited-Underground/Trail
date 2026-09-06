@@ -11,6 +11,7 @@
 #include "store/config/ble_store_config.h"
 
 #include "companion_v1_heltec_adapters.hpp"
+#include "companion_name_storage.hpp"
 
 namespace opentrail::targets::heltec_v4_bench {
 namespace {
@@ -191,10 +192,10 @@ DeviceFactoryResetMarkerSnapshot read_isolated_reset_marker() {
     return marker;
 }
 
-DomainCheck inspect_owner_namespace() {
+DomainCheck inspect_user_namespace(const char* name) {
     nvs_handle_t handle = 0;
     const esp_err_t opened = nvs_open(
-        kCompanionV1OwnerNvsNamespace, NVS_READONLY, &handle);
+        name, NVS_READONLY, &handle);
     if (opened == ESP_ERR_NVS_NOT_FOUND) {
         return {DeviceFactoryResetPortError::none, true};
     }
@@ -212,10 +213,14 @@ DomainCheck inspect_owner_namespace() {
     return {DeviceFactoryResetPortError::none, used_entries == 0};
 }
 
-DomainCheck erase_owner_namespace_and_verify() {
+DomainCheck inspect_owner_namespace() {
+    return inspect_user_namespace(kCompanionV1OwnerNvsNamespace);
+}
+
+DomainCheck erase_user_namespace_and_verify(const char* name) {
     nvs_handle_t handle = 0;
     const esp_err_t opened = nvs_open(
-        kCompanionV1OwnerNvsNamespace, NVS_READWRITE, &handle);
+        name, NVS_READWRITE, &handle);
     if (opened != ESP_OK && opened != ESP_ERR_NVS_NOT_FOUND) {
         return {classify_nvs_access_error(opened), false};
     }
@@ -231,7 +236,11 @@ DomainCheck erase_owner_namespace_and_verify() {
             return {DeviceFactoryResetPortError::failed, false};
         }
     }
-    return inspect_owner_namespace();
+    return inspect_user_namespace(name);
+}
+
+DomainCheck erase_owner_namespace_and_verify() {
+    return erase_user_namespace_and_verify(kCompanionV1OwnerNvsNamespace);
 }
 
 const esp_partition_t* exact_state_partition() {
@@ -459,8 +468,12 @@ HeltecV4FactoryResetUserDomainStorage::inspect_absence() {
     if (state.error != DeviceFactoryResetPortError::none) {
         return {state.error, false};
     }
+    const auto name = inspect_user_namespace(kCompanionNameNvsNamespace);
+    if (name.error != DeviceFactoryResetPortError::none) {
+        return {name.error, false};
+    }
     return {DeviceFactoryResetPortError::none,
-            owner.absent && state.absent};
+            owner.absent && state.absent && name.absent};
 }
 
 DeviceFactoryResetAbsenceSnapshot
@@ -473,6 +486,11 @@ HeltecV4FactoryResetUserDomainStorage::erase_all_and_verify_absent() {
     }
     if (!owner.absent) {
         return {DeviceFactoryResetPortError::none, false};
+    }
+
+    const auto name = erase_user_namespace_and_verify(kCompanionNameNvsNamespace);
+    if (name.error != DeviceFactoryResetPortError::none || !name.absent) {
+        return {name.error, false};
     }
 
     const auto* partition = exact_state_partition();

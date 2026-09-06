@@ -311,6 +311,10 @@ extern "C" void app_main() {
             contain_runtime_failure();
         }
         const auto runtime_status = companion_nimble_runtime_status();
+        const auto configured_name = opentrail::target::heltec_v4_bench::companion_configuration_name();
+        g_oled_port.set_configuration(
+            {reinterpret_cast<const char*>(configured_name.name.data()), configured_name.name_bytes},
+            opentrail::target::heltec_v4_bench::companion_configuration_clock());
         const auto pairing_service =
             opentrail::target::heltec_v4_bench::
                 service_companion_pairing_window(elapsed_ms);
@@ -375,6 +379,9 @@ extern "C" void app_main() {
         if (elapsed_ms >= next_heartbeat_ms) {
             ESP_LOGI(kLogTag, "heartbeat elapsed_ms=%llu",
                      static_cast<unsigned long long>(elapsed_ms));
+            // Pinned ESP-IDF task.h defines this result in bytes, not words.
+            ESP_LOGI(kLogTag, "app_stack minimum_free_bytes=%u",
+                     static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
             next_heartbeat_ms = elapsed_ms + kHeartbeatPeriodMs;
         }
         vTaskDelay(pdMS_TO_TICKS(100));

@@ -7,6 +7,7 @@
 
 #include "companion_authorization_storage.hpp"
 #include "companion_nimble_gatt.hpp"
+#include "companion_name_storage.hpp"
 #include "companion_v1_heltec_adapters.hpp"
 #include "heltec_startup_display.hpp"
 #include "heltec_v4_factory_reset_storage.hpp"
@@ -159,6 +160,46 @@ bool g_boot_pairing_attempted{false};
 std::atomic<bool> g_pairable_advertising{false};
 std::atomic<std::uint64_t> g_boot_reset_receipt{0};
 std::atomic<bool> g_suppress_next_adv_complete{false};
+
+std::uint64_t current_ms();
+class ConfigurationBaseAuthority final : public ConfigurationBaseHandler {
+public:
+    bool execute(const DeviceNameContext&, const ConfigurationFrame& request,
+                 ConfigurationFrame& response) override {
+        response = {};
+        response.session_nonce = request.session_nonce;
+        response.exchange_id = request.exchange_id;
+        CompanionSemanticEncodeResult encoded{};
+        const radio::ByteView payload{request.payload.data(), request.payload_bytes};
+        if (request.kind == 1) {
+            if (!decode_companion_snapshot_request(payload).decoded()) return false;
+            const auto snapshot = g_snapshot_authority.read_snapshot();
+            if (!snapshot.ready()) return false;
+            response.kind = 0x81;
+            encoded = encode_companion_status_snapshot(snapshot.snapshot,
+                {response.payload.data(), response.payload.size()});
+        } else if (request.kind == 2) {
+            const auto action = decode_companion_action_request(payload);
+            if (!action.decoded() || g_factory_reset_action_authority == nullptr) return false;
+            const auto prepared = g_factory_reset_action_authority->prepare_action(action.value);
+            if (!prepared.ready()) return false;
+            response.kind = 0x82;
+            encoded = encode_companion_action_result(
+                {action.value.kind, action.value.quick_status, action.value.critical_alert_id,
+                 prepared.disposition, prepared.reject_reason},
+                {response.payload.data(), response.payload.size()});
+            if (!encoded.encoded()) return false;
+            const auto committed = g_factory_reset_action_authority->commit_action(action.value, prepared);
+            if (committed != CompanionAuthorityError::none) {
+                observe_companion_app_factory_reset_command(false, current_ms());
+                return false;
+            }
+        } else return false;
+        response.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
+        return encoded.encoded();
+    }
+};
+ConfigurationBaseAuthority g_configuration_base;
 
 int reject_nimble_store_overflow(ble_store_status_event* event, void*) {
     return event != nullptr && event->event_code == BLE_STORE_EVENT_OVERFLOW
@@ -1304,11 +1345,15 @@ CompanionBleRuntimeError start_companion_nimble_runtime(
         0, std::memory_order_release);
     g_owner_connection_handle = kCompanionBleInvalidConnectionHandle;
     g_owner_gatt_transport_generation = 0;
+    if (!initialize_companion_configuration(
+            opentrail::targets::heltec_v4_bench::companion_name_storage(),
+            g_configuration_base)) return CompanionBleRuntimeError::contained;
     return g_runtime_owner.start(now_ms, true);
 }
 
 CompanionBleRuntimeError service_companion_nimble_runtime(
     std::uint64_t now_ms) {
+    service_companion_configuration();
     auto app_reset_phase = g_app_factory_reset_phase.load(
         std::memory_order_acquire);
     if (app_reset_phase ==
@@ -1328,7 +1373,8 @@ CompanionBleRuntimeError service_companion_nimble_runtime(
     if (app_reset_phase ==
             CompanionAppFactoryResetPhase::response_confirmed ||
         app_reset_phase ==
-            CompanionAppFactoryResetPhase::response_unknown) {
+        CompanionAppFactoryResetPhase::response_unknown) {
+        invalidate_companion_configuration(true);
         set_pairable_advertising_state(false);
         if (g_startup_display != nullptr) {
             (void)g_startup_display->show_factory_reset_in_progress();
@@ -1434,6 +1480,7 @@ std::uint8_t companion_nimble_security_failure_detail() {
 }
 
 bool contain_companion_nimble_runtime_for_recovery() {
+    invalidate_companion_configuration(true);
     set_pairable_advertising_state(false);
     if (g_runtime_owner.status().phase !=
         CompanionBleRuntimePhase::contained) {
@@ -1510,6 +1557,11 @@ bool acquire_companion_factory_reset_serialization() {
                           pdMS_TO_TICKS(100)) == pdTRUE;
 }
 
+bool try_acquire_companion_factory_reset_serialization() {
+    return g_factory_reset_mutex != nullptr &&
+           xSemaphoreTake(g_factory_reset_mutex, 0) == pdTRUE;
+}
+
 void release_companion_factory_reset_serialization() {
     if (g_factory_reset_mutex != nullptr) {
         (void)xSemaphoreGive(g_factory_reset_mutex);
@@ -1529,6 +1581,7 @@ DeviceFactoryResetResult begin_companion_factory_reset() {
 
     // No marker write occurs until NimBLE host/controller containment is
     // complete. A shutdown failure preserves the old state and is rebooted.
+    invalidate_companion_configuration(true);
     const auto contained = g_runtime_owner.callback_overflow();
     if (contained != CompanionBleRuntimeError::callback_queue_overflow ||
         !g_runtime_owner.status().stack_shutdown_complete) {
@@ -1552,6 +1605,7 @@ begin_contained_companion_factory_reset_recovery() {
                     : g_factory_reset_executor->status().phase};
     }
 
+    invalidate_companion_configuration(true);
     set_pairable_advertising_state(false);
     const auto phase = g_factory_reset_executor->status().phase;
     if (phase == DeviceFactoryResetPhase::idle_old_state) {

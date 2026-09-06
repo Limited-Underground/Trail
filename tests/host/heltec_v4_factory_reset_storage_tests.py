@@ -106,6 +106,21 @@ require(user_erase.index("erase_owner_namespace_and_verify") <
 require("esp_partition_read" in source and "bytes[index] != 0xff" in source,
         "raw ot_state erase must be verified byte-for-byte")
 
+user_inspect = source[source.index("HeltecV4FactoryResetUserDomainStorage::inspect_absence"):
+                      source.index("HeltecV4FactoryResetUserDomainStorage::erase_all_and_verify_absent")]
+require("inspect_user_namespace(kCompanionNameNvsNamespace)" in user_inspect and
+        "owner.absent && state.absent && name.absent" in user_inspect,
+        "name namespace must join boot and final reset absence admission")
+require("erase_user_namespace_and_verify(kCompanionNameNvsNamespace)" in user_erase and
+        user_erase.index("erase_user_namespace_and_verify(kCompanionNameNvsNamespace)") <
+        user_erase.rindex("inspect_absence"),
+        "reset must erase all name records and freshly verify the whole user domain")
+namespace_erase = source[source.index("DomainCheck erase_user_namespace_and_verify"):
+                         source.index("DomainCheck erase_owner_namespace_and_verify")]
+require("nvs_erase_all(handle)" in namespace_erase and
+        namespace_erase.index("nvs_commit(handle)") < namespace_erase.index("inspect_user_namespace(name)"),
+        "all name namespace keys including corrupt or future records must be erased and verified")
+
 require("ble_hs_cfg.store_read_cb == ble_store_config_read" in source and
         "ble_hs_cfg.store_write_cb == ble_store_config_write" in source and
         "ble_hs_cfg.store_delete_cb == ble_store_config_delete" in source,

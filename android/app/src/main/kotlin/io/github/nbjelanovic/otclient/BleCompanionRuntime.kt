@@ -1,5 +1,7 @@
 package io.github.nbjelanovic.otclient
-
+import io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
+import io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo
+import io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame
 import io.github.nbjelanovic.otprotocol.COMPANION_MINIMUM_ATT_MTU
 import io.github.nbjelanovic.otprotocol.COMPANION_FACTORY_RESET_CAPABILITY
 import io.github.nbjelanovic.otprotocol.COMPANION_KNOWN_CAPABILITY_MASK
@@ -25,6 +27,12 @@ import io.github.nbjelanovic.otprotocol.CompanionProtocolInfo
 import io.github.nbjelanovic.otprotocol.CompanionSemanticCodec
 import io.github.nbjelanovic.otprotocol.CompanionSemanticCodecError
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
+
+private val configurationScopeCounter = java.util.concurrent.atomic.AtomicLong(0)
+private fun nextConfigurationScope(): Long? {
+    val value=configurationScopeCounter.updateAndGet { if(it==Long.MAX_VALUE) it else it+1 }
+    return value.takeIf { it<Long.MAX_VALUE }
+}
 
 internal const val REQUIRED_ACTION_CAPABILITIES = 0x07 or COMPANION_FACTORY_RESET_CAPABILITY
 internal const val MAX_DISCOVERED_COMPANIONS = 16
@@ -198,6 +206,7 @@ interface BleGattLease : BleLease {
  * [CompanionGattV0Contract.SERVICE_UUID] and its three fixed characteristics.
  */
 interface AndroidBluetoothFacade {
+    fun displayTimeSample(): Pair<UInt,Int> = java.time.LocalTime.now().toSecondOfDay().toUInt() to 2
     fun preflight(): BlePreflight
     fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease?
     /** Optional process-restart route; candidates must already be bonded and advertise owned D0 only. */
@@ -278,6 +287,7 @@ data class BleActiveSession(
     val protocolInfo: CompanionProtocolInfo,
     val groupLocation: GroupLocationSnapshot,
     val lastActionResult: CompanionActionResult? = null,
+    val configuration: BleConfigurationState = BleConfigurationState(),
 )
 
 enum class FactoryResetLocalCleanupResult {
@@ -375,6 +385,10 @@ class BleCompanionRuntime(
     private var lifecycleAuthorizationFailure: BleRuntimeFailure? = null
     private var negotiatedMtu = 0
     private var protocolInfo: CompanionProtocolInfo? = null
+    private var configurationInfo: CompanionConfigurationInfo? = null
+    private var configurationSession: BleConfigurationSession? = null
+    private var configurationTimeout: BleReconnectLease? = null
+    private var normalProfileConfirmedAfterPromotion = false
     private var activeSessionNonce = 0L
     private var lastDeviceEventId = 0L
     private var nextRequestId = firstRequestId
@@ -742,7 +756,7 @@ class BleCompanionRuntime(
         if (deliveringObserver) return false
         val ready = state as? BleRuntimeState.Ready ?: return false
         val lease = gattLease ?: return false
-        if (pendingAction != null) return false
+        if (pendingAction != null || configurationSession?.busy == true) return false
         if (
             request.kind == CompanionActionKind.FACTORY_RESET &&
             (
@@ -771,14 +785,14 @@ class BleCompanionRuntime(
             }
             return false
         }
-        val encoded = CompanionProtocolCodec.encodeFragment(
+        val encoded = encodeNormalFragment(
             CompanionFragment(
                 kind = CompanionFrameKind.ACTION_REQUEST,
                 sessionNonce = ready.session.sessionNonce,
                 exchangeId = requestId,
                 payload = payload,
             ),
-        ).value ?: run {
+        ) ?: run {
             if (effectiveRequest.kind == CompanionActionKind.FACTORY_RESET) {
                 facade.clearPendingFactoryResetReceipt(effectiveRequest.factoryResetReceipt)
             }
@@ -1234,16 +1248,95 @@ class BleCompanionRuntime(
         }
     }
 
+    private fun decodeNormalInfo(value: ByteArray): CompanionProtocolInfo? {
+        val configuration=CompanionConfigurationCodec.decodeInfo(value)
+        configurationInfo=configuration
+        return if(configuration!=null) CompanionProtocolInfo(capabilities=configuration.capabilities,
+            maxFragmentCount=1) else CompanionProtocolCodec.decodeProtocolInfo(value).value
+    }
+
+    private fun encodeNormalFragment(fragment: CompanionFragment): ByteArray? =
+        if(configurationInfo!=null) CompanionConfigurationCodec.encodeFrame(CompanionConfigurationFrame(
+            fragment.kind.wireValue,fragment.sessionNonce.toUInt(),fragment.exchangeId.toUInt(),fragment.payload))
+        else CompanionProtocolCodec.encodeFragment(fragment).value
+
+    private fun acceptPromotedNormalInfo(companion: BleDiscoveredCompanion,value: ByteArray) {
+        val claim=authorizationClaim ?: return
+        val decoded=decodeNormalInfo(value)
+        if(decoded==null || (decoded.capabilities and REQUIRED_ACTION_CAPABILITIES)!=REQUIRED_ACTION_CAPABILITIES ||
+            negotiatedMtu<decoded.minimumAttMtu) return failAndRelease(BleRuntimeFailure.PROTOCOL_INFO_FAILED)
+        protocolInfo=decoded
+        normalProfileConfirmedAfterPromotion=true
+        operationTimeoutLease?.close();operationTimeoutLease=null
+        continueAfterAuthorizationPromotion(companion,claim)
+    }
+
+    fun readDeviceName(): Boolean { requireOwnerThread(); return configurationOperation { it.readName() } }
+    fun writeDeviceName(value: String): Boolean {
+        requireOwnerThread()
+        val name=V1DeviceName.create(value) ?: return false
+        return configurationOperation { it.writeName(name) }
+    }
+    fun synchronizeDisplayTime(): Boolean { requireOwnerThread(); return configurationOperation { it.synchronizeTime() } }
+    private fun configurationOperation(operation: (BleConfigurationSession)->Boolean): Boolean {
+        if(deliveringObserver || state !is BleRuntimeState.Ready || pendingAction!=null) return false
+        val session=configurationSession ?: return false
+        val result=operation(session)
+        armConfigurationTimeout()
+        return result
+    }
+    private fun initializeConfigurationSession() {
+        val ready=state as? BleRuntimeState.Ready ?: return
+        val info=configurationInfo ?: return
+        if(!CompanionConfigurationCodec.transportCompatible(info,0x40,negotiatedMtu,148,148,true) ||
+            !CompanionConfigurationCodec.transportCompatible(info,0x80,negotiatedMtu,148,148,true)) return
+        val callbackGeneration=generation
+        val nonce=ready.session.sessionNonce
+        val scope=nextConfigurationScope() ?: return
+        val tokenBytes=ByteArray(16)
+        repeat(8) { tokenBytes[it]=(scope shr (it*8)).toByte();tokenBytes[8+it]=(callbackGeneration shr (it*8)).toByte() }
+        val token=V1SetupSessionToken.create(tokenBytes) ?: return
+        val context=V1NameContext(scope,nextConfigurationScope() ?: return,nextConfigurationScope() ?: return,
+            nextConfigurationScope() ?: return,callbackGeneration,nextConfigurationScope() ?: return,nonce.toUInt(),null,token)
+        configurationSession=BleConfigurationSession(context,
+            isCurrent={ accepts(callbackGeneration) && (state as? BleRuntimeState.Ready)?.session?.sessionNonce==nonce },
+            allocate={
+                if(nextRequestId !in 1..0xffff_ffffL) null else nextRequestId.toUInt().also { nextRequestId++ }
+            },
+            send={ bytes -> gattLease?.writeCommandWithResponse(bytes)==true },
+            civilSample={ facade.displayTimeSample() },
+            changed={ configuration ->
+                val current=state as? BleRuntimeState.Ready
+                if(accepts(callbackGeneration) && current?.session?.sessionNonce==nonce)
+                    publish(BleRuntimeState.Ready(current.session.copy(configuration=configuration)))
+            })
+        publish(BleRuntimeState.Ready(ready.session.copy(configuration=checkNotNull(configurationSession).state)))
+    }
+    private fun armConfigurationTimeout() {
+        configurationTimeout?.close();configurationTimeout=null
+        val session=configurationSession ?: return
+        val exchange=session.pendingExchange() ?: return
+        val callbackGeneration=generation
+        configurationTimeout=scheduler.schedule(6000) {
+            requireOwnerThread()
+            if(accepts(callbackGeneration) && configurationSession===session) session.lost(exchange)
+        }
+    }
+
     private fun onProtocolInfo(companion: BleDiscoveredCompanion, value: ByteArray) {
         if (!isPhase(BleNegotiationPhase.PROTOCOL_INFO)) {
             failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+            return
+        }
+        if (authorizationClaim?.promoted == true) {
+            failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
             return
         }
         if (authorizationClaim != null) {
             acceptAuthorizationProtocolInfo(companion, value)
             return
         }
-        val decoded = CompanionProtocolCodec.decodeProtocolInfo(value).value
+        val decoded = decodeNormalInfo(value)
         if (
             decoded == null ||
             (decoded.capabilities and REQUIRED_ACTION_CAPABILITIES) != REQUIRED_ACTION_CAPABILITIES ||
@@ -1274,6 +1367,10 @@ class BleCompanionRuntime(
             failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
             return
         }
+        if(authorizationClaim?.promoted == true) {
+            acceptPromotedNormalInfo(companion,value)
+            return
+        }
         if (purpose == BleConnectionPurpose.EXISTING_OWNER && authorizationClaim == null) {
             acceptReturningOwnerProtocolInfo(companion, value)
             return
@@ -1302,7 +1399,7 @@ class BleCompanionRuntime(
 
     /** Legacy branch retained for configurations that expose the protected normal v0.0 record. */
     private fun acceptReturningOwnerProtocolInfo(companion: BleDiscoveredCompanion, value: ByteArray) {
-        val decoded = CompanionProtocolCodec.decodeProtocolInfo(value).value
+        val decoded = decodeNormalInfo(value)
         if (
             decoded == null ||
             (decoded.capabilities and REQUIRED_ACTION_CAPABILITIES) != REQUIRED_ACTION_CAPABILITIES ||
@@ -1440,7 +1537,18 @@ class BleCompanionRuntime(
     }
 
     private fun onStreamValue(companion: BleDiscoveredCompanion, value: ByteArray) {
-        val fragment = CompanionProtocolCodec.decodeFragment(value).value
+        val configurationFrame = if(configurationInfo != null) CompanionConfigurationCodec.decodeFrame(value) else null
+        if(configurationFrame?.kind in listOf(0x86,0x87)) {
+            if(configurationSession?.receive(checkNotNull(configurationFrame)) == true) {
+                armConfigurationTimeout()
+                return
+            }
+            // Unsolicited or stale operation results cannot mutate current work.
+            return
+        }
+        val fragment = if(configurationInfo != null) configurationFrame?.let { frame ->
+            CompanionFrameKind.fromWire(frame.kind)?.let { CompanionFragment(it,frame.sessionNonce.toLong(),frame.exchangeId.toLong(),payload=frame.payload) }
+        } else CompanionProtocolCodec.decodeFragment(value).value
         if (authorizationClaim != null && isPhase(BleNegotiationPhase.AUTHORIZATION_CLAIM)) {
             acceptAuthorizationStreamValue(companion, fragment)
             return
@@ -1599,6 +1707,12 @@ class BleCompanionRuntime(
             authorizationClaim?.operationId != claim.operationId || !claim.promoted || info == null ||
             !authorizationTracker.allowsNormalCompanionTraffic(generation.toULong()) || gattLease == null
         ) return
+        if(!normalProfileConfirmedAfterPromotion) {
+            publish(BleRuntimeState.Negotiating(companion,BleNegotiationPhase.PROTOCOL_INFO))
+            if(gattLease?.readProtocolInfo()!=true) failAndRelease(BleRuntimeFailure.PROTOCOL_INFO_FAILED)
+            else if(isPhase(BleNegotiationPhase.PROTOCOL_INFO)) armNegotiationTimeout(generation,BleNegotiationPhase.PROTOCOL_INFO)
+            return
+        }
         activeSessionNonce = info.provisionalSessionNonce
         val exchangeId = firstRequestId
         if (exchangeId == 0xffff_ffffL) {
@@ -1606,14 +1720,14 @@ class BleCompanionRuntime(
             return
         }
         val payload = CompanionSemanticCodec.encodeSnapshotRequest()
-        val encoded = CompanionProtocolCodec.encodeFragment(
+        val encoded = encodeNormalFragment(
             CompanionFragment(
                 kind = CompanionFrameKind.SNAPSHOT_REQUEST,
                 sessionNonce = activeSessionNonce,
                 exchangeId = exchangeId,
                 payload = payload,
             ),
-        ).value ?: return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
+        ) ?: return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
         pendingSnapshotExchangeId = exchangeId
         publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.INITIAL_SNAPSHOT))
         if (!hasActiveGattPhase(BleNegotiationPhase.INITIAL_SNAPSHOT)) return
@@ -1662,6 +1776,7 @@ class BleCompanionRuntime(
                 BleActiveSession(companion, fragment.sessionNonce, snapshot, info, groupLocation),
             ),
         )
+        initializeConfigurationSession()
     }
 
     private fun acceptSnapshotUpdate(ready: BleRuntimeState.Ready, fragment: CompanionFragment) {
@@ -2182,6 +2297,12 @@ class BleCompanionRuntime(
     }
 
     private fun clearSessionState() {
+        configurationSession?.close()
+        configurationSession = null
+        configurationTimeout?.close()
+        configurationTimeout = null
+        configurationInfo = null
+        normalProfileConfirmedAfterPromotion = false
         gattOpenedObserved = false
         negotiatedMtu = 0
         protocolInfo = null

@@ -744,6 +744,7 @@ private fun BluetoothReadyPanel(
         "Authenticated companion session. Device state remains authoritative.",
     )
     SnapshotSummary("Device status", session.snapshot)
+    BleConfigurationPanel(session,controller)
     GroupLocationSection(session.groupLocation)
     ActionControls { controller.submitBluetoothAction(it) }
     OutlinedButton(
