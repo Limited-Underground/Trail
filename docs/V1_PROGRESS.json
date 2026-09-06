@@ -390,8 +390,9 @@
           "evidence_status": "Build tested with unsigned release foundation; prior single-pair saved-owner Ready and warm-reset evidence remains. App-restart reconnect is contested by one mixed-worktree observation failing during initial Snapshot after accepted authorization. The isolated diagnostic recorder candidate is software-validated only; cold-power, factory-reset, and two-pair acceptance remain pending.",
           "evidence_refs": ["android/README.md", "docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md", "docs/platform/DEVICE_FACTORY_RESET_V1.md", "docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md", "docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md", "tests/hardware/OT-168-2026-09-04.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md",
             "tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md",
-            "tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md"],
-          "next_gate": "Investigate authorization command-write and firmware access-admission host-only using the format-3 GATT_AUTHORIZATION_REJECTED result. The initial connection failed before Snapshot/Ready; the planned restart step and older Snapshot failure remain unresolved. Any further physical attempt is separate; website updates are owner-deferred."
+            "tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md",
+            "tests/hardware/OT-177-AUTHORIZATION-INVESTIGATION-2026-09-06.md"],
+          "next_gate": "Obtain separately authorized bounded USB-console receive evidence during one phone connection, without flash, reset, ROM entry or ownership changes. Use existing claim authorize refresh/accepted/phase/info/sub/pending and claim command disposition/error fields to distinguish the rejection branch. Verify exact device, current console availability and no-reset open behavior first. Select a correction only after the branch is established; website updates remain owner-deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -984,6 +985,12 @@
           "overall": 44,
           "overall_exact": 43.75,
           "reason": "The corrected isolated V1-Test recorder was installed on the retained Note20. The first saved-owner connection passed protected ProtocolInfo, MTU and Stream subscription, then failed during authorization with AUTHORIZATION_UNAVAILABLE and exact diagnostic GATT_AUTHORIZATION_REJECTED. Snapshot and Ready were not reached, so the planned app-restart step was not executed. No retry, firmware operation or ownership change followed. The earlier post-authorization Snapshot failure remains unresolved. No completion credit. Website updates are deferred for a later owner-approved bulk update."
+        },
+        {
+          "date": "2026-09-06",
+          "overall": 44,
+          "overall_exact": 43.75,
+          "reason": "Host-only authorization investigation confirms that Android GATT insufficient authorization collapses several firmware admission and request failures. Two new adapter tests compare normal restored subscription with a deliberately dropped event, and reject a wrong-session claim before any authority decision. These demonstrate possible paths, not the physical root cause. Existing diagnostic strings and INFO USB-console configuration were verified in the exact retained firmware artifact. No production code, firmware, phone or device changed. No milestone completion changes; website updates remain deferred."
         }
     ]
     },

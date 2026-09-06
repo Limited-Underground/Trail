@@ -696,6 +696,69 @@ void test_reentry_is_rejected_across_injected_callbacks() {
     }
 }
 
+void test_restored_subscription_requires_a_successfully_observed_event() {
+    for (const bool drop_restore_event : {false, true}) {
+        Harness h;
+        EXPECT(h.adapter.register_handles(kHandles) == CompanionGattAdapterError::none);
+        EXPECT(h.adapter.connect(kConnection).connected());
+        if (drop_restore_event) {
+            // Model the target dropping SUBSCRIBE when its security refresh fails.
+            auto not_ready = secure(23);
+            not_ready.encrypted = false;
+            EXPECT(h.adapter.refresh_security(kConnection, not_ready) ==
+                   CompanionGattAdapterError::insecure_link);
+        } else {
+            EXPECT(h.adapter.refresh_security(kConnection, secure(23)) ==
+                   CompanionGattAdapterError::none);
+            EXPECT(h.adapter.update_stream_subscription(
+                       kConnection, kHandles.stream_value, true) ==
+                   CompanionGattAdapterError::none);
+        }
+        EXPECT(h.adapter.refresh_security(kConnection, secure(23)) ==
+               CompanionGattAdapterError::none);
+        std::array<std::uint8_t, kCompanionAuthorizationProtocolInfoBytes> info{};
+        EXPECT(h.adapter.read_protocol_info(
+                   kConnection, kHandles.protocol_info_value,
+                   {info.data(), info.size()}).error ==
+               CompanionGattAuthorizationError::none);
+        EXPECT(h.adapter.refresh_security(kConnection, secure()) ==
+               CompanionGattAdapterError::none);
+        // NimBLE emits no replacement event for an unchanged enabled CCCD.
+        // This harness models that omission; it does not execute NimBLE callbacks.
+        EXPECT(h.adapter.status().lifecycle.protocol_info_read);
+        EXPECT(h.adapter.status().lifecycle.indication_subscribed == !drop_restore_event);
+        EXPECT(h.adapter.authorize_attribute(
+                   kConnection, kHandles.command_value,
+                   CompanionGattAttributeOperation::write) == !drop_restore_event);
+        const auto result = h.adapter.service_command(
+            kConnection, kHandles.command_value,
+            {kClaimStart.data(), kClaimStart.size()}, 92203);
+        EXPECT(result.pending() == !drop_restore_event);
+        EXPECT(result.error == (drop_restore_event
+                   ? CompanionGattAuthorizationError::insecure_link
+                   : CompanionGattAuthorizationError::none));
+        EXPECT(h.authorization.apply_calls == 0);
+    }
+}
+
+void test_claim_rejection_after_setup_is_not_an_authority_decision() {
+    Harness h;
+    h.connect_and_secure();
+    h.read_and_subscribe();
+    EXPECT(h.adapter.authorize_attribute(
+               kConnection, kHandles.command_value,
+               CompanionGattAttributeOperation::write));
+    auto wrong_session = kClaimStart;
+    wrong_session[8] = 2;
+    const auto result = h.adapter.service_command(
+        kConnection, kHandles.command_value,
+        {wrong_session.data(), wrong_session.size()}, 92203);
+    EXPECT(!result.pending());
+    EXPECT(result.error == CompanionGattAuthorizationError::wrong_session);
+    EXPECT(h.authorization.apply_calls == 0);
+    EXPECT(h.port.reserve_calls == 0);
+}
+
 void test_wrong_connection_generation_and_malformed_inputs() {
     Harness h;
     const auto generation = h.connect_and_secure();
@@ -730,6 +793,8 @@ int main() {
     test_unsubscribe_and_timeout_contain();
     test_reentry_is_rejected_across_injected_callbacks();
     test_wrong_connection_generation_and_malformed_inputs();
-    std::cout << "PASS: 12 companion GATT authorization adapter groups\n";
+    test_restored_subscription_requires_a_successfully_observed_event();
+    test_claim_rejection_after_setup_is_not_an_authority_decision();
+    std::cout << "PASS: 14 companion GATT authorization adapter groups\n";
     return 0;
 }

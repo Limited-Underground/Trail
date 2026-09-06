@@ -1,5 +1,13 @@
 # OpenTrail Engineering Backlog
 
+## 2026-09-06 - OT-177 authorization investigation
+
+Host-only authorization investigation confirms that Android GATT insufficient authorization collapses several firmware admission and request failures. Two new adapter tests compare normal restored subscription with a deliberately dropped event, and reject a wrong-session claim before any authority decision. These demonstrate possible paths, not the physical root cause. Existing diagnostic strings and INFO USB-console configuration were verified in the exact retained firmware artifact. No production code, firmware, phone or device changed.
+
+Focused validation passes 62 groups. Obtain separately authorized bounded USB-console receive evidence during one phone connection, without flash, reset, ROM entry or ownership changes. Use existing claim authorize refresh/accepted/phase/info/sub/pending and claim command disposition/error fields to distinguish the rejection branch. Verify exact device, current console availability and no-reset open behavior first. Select a correction only after the branch is established; website updates remain owner-deferred.
+
+See [evidence](../tests/hardware/OT-177-AUTHORIZATION-INVESTIGATION-2026-09-06.md).
+
 ## 2026-09-06 - OT-177 corrected-recorder physical result
 
 The corrected isolated V1-Test recorder was installed on the retained Note20. The first saved-owner connection passed protected ProtocolInfo, MTU and Stream subscription, then failed during authorization with AUTHORIZATION_UNAVAILABLE and exact diagnostic GATT_AUTHORIZATION_REJECTED. Snapshot and Ready were not reached, so the planned app-restart step was not executed. No retry, firmware operation or ownership change followed. The earlier post-authorization Snapshot failure remains unresolved. No completion credit.
