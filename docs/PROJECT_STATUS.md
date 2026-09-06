@@ -1,5 +1,13 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
+## 2026-09-06 - Host name transaction owner
+
+Implemented the host-only fixed-memory device-name transaction owner using the existing payload codec, injected trusted authority and synchronous fakeable persistence. It enforces revision CAS/readback, exact duplicate fences, admission expiry and explicit read reconciliation after uncertain commits. All12 focused groups pass; the complete host matrix is recorded in the evidence. No live wire, flash driver or phone integration is added.
+
+Next implement typed Android pending-request/readback receipt correlation and lossless UTF-8 validation in V1DeviceName. Bind exact context/exchange/expected and committed revisions/name, consume receipts once and preserve drafts as unconfirmed intent. Matched wire codecs and real persistence/reset/target integration follow separately. Website and cold-power remain deferred.
+
+See [implementation evidence](../docs/testing/OT-170-NAME-TRANSACTION-2026-09-06.md). V1 remains exact43.75/display44.
+
 ## 2026-09-06 - Configuration/time transport and readback contract
 
 Accepted the bounded configuration/time transport and durable-readback implementation contract: matched148-byte buffers, normal MTU151, one operation slot, exact request/session correlation, revisioned name commits with uncertainty recovery, and reuse of the current time challenge owner. This is documentation and review only; no wire or storage capability is enabled.

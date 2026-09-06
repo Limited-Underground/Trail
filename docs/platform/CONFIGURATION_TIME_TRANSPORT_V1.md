@@ -211,3 +211,12 @@ weights totaling100, unchanged milestone completions and append-only history
 checks pass. All101 recorded owner-checkout hashes remain unchanged. The prior
 code commit8d0dbe0 Host run34036092386 was still in progress at this checkpoint;
 its successful local matrix remains evidence for that preceding code only.
+
+## Host name-owner implementation checkpoint
+
+The name transaction owner now implements the host-only transaction stage with
+trusted-source and synchronous persistence seams. See [evidence](../testing/OT-170-NAME-TRANSACTION-2026-09-06.md)
+for focused/final results and limitations. NT-02/03/04 host behavior and injected
+NT-05 lifecycle ordering are covered; actual reset erasure and asynchronous or
+physical I/O remain open. Typed Android receipts are next. Wire allocation,
+shared dispatcher, real storage/reset and target integration remain unimplemented.

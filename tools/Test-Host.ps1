@@ -215,6 +215,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'host device-name transaction owner'
+        Output = Join-Path $buildDirectory 'companion_device_name_owner_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_device_name_owner_tests.cpp')
+        )
+    },
+    @{
         Name = 'device-name candidate payload parity'
         Output = Join-Path $buildDirectory 'companion_device_name_codec_tests.exe'
         RunArguments = @((Join-Path $projectRoot 'tests\fixtures\companion_device_name_v1.tsv').Replace('\', '/'))
