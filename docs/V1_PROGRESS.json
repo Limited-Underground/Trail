@@ -256,7 +256,7 @@
       "id": "v1-companion",
       "name": "V1 Companion",
       "status": "measured",
-      "as_of": "2026-09-05",
+      "as_of": "2026-09-06",
       "definition": "A complete V1 Companion release means exactly two supported Heltec LoRa devices and two approved Android phones, one physically authorized phone per Heltec, exchange authenticated and encrypted typed and quick messages bidirectionally through BLE, direct LoRa, and BLE with restart, disconnect, rejection, retry, and recovery. The accepted product includes resumable name/region onboarding; Messages, Group, and Device portrait/landscape UI; one private group per person with exactly one administrator and at most six total members; consent-gated public direct contact; group location ON at join with administrator Required/Optional policy; per-chat location OFF; current/stale/unavailable coordinate detail without a built-in-map requirement; redacted user-reviewed text support export; and the accepted Heltec OLED/clock states. Release still requires one exact signed Android artifact physically accepted without relay, server, or internet dependency.",
       "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
       "milestones": [
@@ -384,13 +384,14 @@
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "Historical 2026-09-04 single-pair evidence includes saved-owner Ready, warm-reset and extended-absence recovery, with 387 Android tests at that checkpoint. A later mixed-worktree app-restart observation failed during initial Snapshot after accepted authorization; its old trace omitted the lower-level diagnostic, so root cause remains unresolved. The isolated OT-177 V1-Test candidate now retains exact diagnostic detail with its own software matrix and artifact evidence; it has not been installed. Cold-power, factory-reset, coherent two-phone, signed release and operational acceptance remain open. See tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md.",
+          "description": "Historical 2026-09-04 single-pair evidence includes saved-owner Ready, warm-reset and extended-absence recovery, with 387 Android tests at that checkpoint. A later mixed-worktree app-restart observation failed during initial Snapshot after accepted authorization; its old trace omitted the lower-level diagnostic, so root cause remains unresolved. The isolated OT-177 V1-Test candidate now retains exact diagnostic detail with its own software matrix and artifact evidence; it has not been installed. Cold-power, factory-reset, coherent two-phone, signed release and operational acceptance remain open. See tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md. The corrected isolated V1-Test recorder was installed on the retained Note20. The first saved-owner connection passed protected ProtocolInfo, MTU and Stream subscription, then failed during authorization with AUTHORIZATION_UNAVAILABLE and exact diagnostic GATT_AUTHORIZATION_REJECTED. Snapshot and Ready were not reached, so the planned app-restart step was not executed. No retry, firmware operation or ownership change followed. The earlier post-authorization Snapshot failure remains unresolved. No completion credit.",
           "weight": 20,
           "completion": 60,
           "evidence_status": "Build tested with unsigned release foundation; prior single-pair saved-owner Ready and warm-reset evidence remains. App-restart reconnect is contested by one mixed-worktree observation failing during initial Snapshot after accepted authorization. The isolated diagnostic recorder candidate is software-validated only; cold-power, factory-reset, and two-pair acceptance remain pending.",
           "evidence_refs": ["android/README.md", "docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md", "docs/platform/DEVICE_FACTORY_RESET_V1.md", "docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md", "docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md", "tests/hardware/OT-168-2026-09-04.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md",
-            "tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md"],
-          "next_gate": "Publish and verify the isolated OT-177 recorder candidate after authorized remote ancestry review. Then separately authorize one app-restart reproduction with fresh enumeration, the exact installed candidate, separate discovery/connection latency, authorization, Snapshot, Ready, runtime reason and connectionDiagnostic. The older log cannot recover its omitted diagnostic or prove device intent. Device naming, cold-power recovery, factory reset, two-pair, secure LoRa and release acceptance remain open."
+            "tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md",
+            "tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md"],
+          "next_gate": "Investigate authorization command-write and firmware access-admission host-only using the format-3 GATT_AUTHORIZATION_REJECTED result. The initial connection failed before Snapshot/Ready; the planned restart step and older Snapshot failure remain unresolved. Any further physical attempt is separate; website updates are owner-deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -977,6 +978,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Isolated OT-177 recorder and format-3 diagnostic detail with variant-only sharing/storage and minimal shared UI/notification hooks. Exact candidate validation and artifact identities are recorded separately from the earlier 921-test mixed-worktree evidence. The prior post-authorization initial-Snapshot failure remains unresolved and the candidate is not installed. No completion credit: Android 60 percent; V1 Companion exact 43.75 percent / displayed 44 percent. Remote publication and website projection remain pending."
+        },
+        {
+          "date": "2026-09-06",
+          "overall": 44,
+          "overall_exact": 43.75,
+          "reason": "The corrected isolated V1-Test recorder was installed on the retained Note20. The first saved-owner connection passed protected ProtocolInfo, MTU and Stream subscription, then failed during authorization with AUTHORIZATION_UNAVAILABLE and exact diagnostic GATT_AUTHORIZATION_REJECTED. Snapshot and Ready were not reached, so the planned app-restart step was not executed. No retry, firmware operation or ownership change followed. The earlier post-authorization Snapshot failure remains unresolved. No completion credit. Website updates are deferred for a later owner-approved bulk update."
         }
     ]
     },

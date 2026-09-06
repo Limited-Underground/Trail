@@ -1,5 +1,13 @@
 # OpenTrail Engineering Backlog
 
+## 2026-09-06 - OT-177 corrected-recorder physical result
+
+The corrected isolated V1-Test recorder was installed on the retained Note20. The first saved-owner connection passed protected ProtocolInfo, MTU and Stream subscription, then failed during authorization with AUTHORIZATION_UNAVAILABLE and exact diagnostic GATT_AUTHORIZATION_REJECTED. Snapshot and Ready were not reached, so the planned app-restart step was not executed. No retry, firmware operation or ownership change followed. The earlier post-authorization Snapshot failure remains unresolved. No completion credit.
+
+See [evidence](../tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md). Next: host-only authorization
+command-write/access-admission investigation. Website publication is deferred
+for the owner-requested bulk update.
+
 Statuses: `done` means the documented acceptance criteria are evidenced; `partial` means bounded evidence exists but acceptance is incomplete; `planned` means no implementation claim.
 
 OT-177 CI follow-up: **partial**. Correct the stale future-concepts title/status

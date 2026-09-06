@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-09-06 - OT-177 corrected-recorder physical result
+
+The corrected isolated V1-Test recorder was installed on the retained Note20. The first saved-owner connection passed protected ProtocolInfo, MTU and Stream subscription, then failed during authorization with AUTHORIZATION_UNAVAILABLE and exact diagnostic GATT_AUTHORIZATION_REJECTED. Snapshot and Ready were not reached, so the planned app-restart step was not executed. No retry, firmware operation or ownership change followed. The earlier post-authorization Snapshot failure remains unresolved. No completion credit.
+
+See [evidence](../tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md). Next: host-only authorization
+command-write/access-admission investigation. Website publication is deferred
+for the owner-requested bulk update.
+
 Progress is grouped by calendar day, newest first. Detailed acceptance criteria
 remain in [the engineering backlog](../tasks/BACKLOG.md); this log is the concise
 public chronology.

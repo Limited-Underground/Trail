@@ -1,5 +1,11 @@
 # Limited Underground Trail
 
+Latest physical checkpoint (2026-09-06): the corrected V1-Test recorder captured
+an authorization-phase `GATT_AUTHORIZATION_REJECTED` failure on the initial
+saved-owner connection. Snapshot/Ready were not reached; the planned restart
+step was not executed. See [evidence](tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md).
+No completion credit is added. Website updates are owner-deferred to a bulk update.
+
 [![Host validation](https://github.com/Limited-Underground/Trail/actions/workflows/host-validation.yml/badge.svg)](https://github.com/Limited-Underground/Trail/actions/workflows/host-validation.yml)
 
 Limited Underground Trail is a free and open-source ESP32/LoRa platform for
