@@ -334,7 +334,7 @@
           "id": "heltec-companion-target",
           "name": "Heltec V4 / Trail Essential target",
           "current_authority": "The corrected 563,776-byte ot177-reconnect-v1 firmware passed exact application-only write/readback and four saved-owner authorization/Snapshot/Ready connections on the retained Heltec V4.2/Note20 pair with the prior V1-Test APK. Cold-power requires enclosure opening and is owner-deferred. Factory reset, battery calibration, secure LoRa, two-pair, field and support acceptance remain open.",
-          "description": "The corrected 563,776-byte ot177-reconnect-v1 firmware passed exact application-only write/readback and four saved-owner authorization/Snapshot/Ready connections on the retained Heltec V4.2/Note20 pair with the prior V1-Test APK. Cold-power requires enclosure opening and is owner-deferred. Factory reset, battery calibration, secure LoRa, two-pair, field and support acceptance remain open. OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed.",
+          "description": "The corrected 563,776-byte ot177-reconnect-v1 firmware passed exact application-only write/readback and four saved-owner authorization/Snapshot/Ready connections on the retained Heltec V4.2/Note20 pair with the prior V1-Test APK. Cold-power requires enclosure opening and is owner-deferred. Factory reset, battery calibration, secure LoRa, two-pair, field and support acceptance remain open. OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed. Defined the device-confirmed OLED configuration/time contract: exact session and generation binding, durable settings readback, separate region/group authority, and volatile civil time admitted with a fresh device-local challenge. This is a reviewed implementation contract, not an implemented transport or new hardware evidence.",
           "weight": 15,
           "completion": 25,
           "evidence_status": "Prior single-pair evidence retained; target OLED adapter implemented, complete host matrix and reproducible builds passed, physical OLED acceptance open.",
@@ -383,9 +383,11 @@
             "tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md",
             "tests/hardware/OT-178-OLED-FOUNDATION-2026-09-06.md",
             "tests/hardware/OT-178-OLED-ADAPTER-2026-09-06.md",
+            "docs/platform/OLED_CONFIGURATION_TIME_AUTHORITY_V1.md",
+            "docs/decisions/0106-oled-configuration-time-authority.md",
             "docs/decisions/0105-ot178-host-oled-presentation.md"
           ],
-          "next_gate": "Prepare the authenticated configuration and time-sync contract before broad normal-page hardware acceptance. Define exact device/session binding, validated name/region/group observations, clock format and sync freshness, and retain unknown states until real sources are bound. A separate bounded display-only physical preflight may inspect the verified build and restoration route; it does not install firmware automatically. Cold-power and website updates remain owner-deferred."
+          "next_gate": "Implement the host-only fixed-memory time-admission owner using trusted-context and challenge inputs plus the existing OledClock. Prove stale-generation, duplicate, deadline, rollback and disconnect behavior before allocating or enabling a wire extension. Preserve the unpublished device-name draft for separate cross-language integration review. Website and cold-power work remain deferred."
         },
         {
           "id": "android-companion",
@@ -404,7 +406,7 @@
             "tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md",
             "tests/hardware/OT-171-177-VISUAL-INTEGRATION-2026-09-06.md"
           ],
-          "next_gate": "Next implement the OT-178 OLED/clock presentation foundation against the approved display direction, starting with host-testable priority/layout/time rules and explicit unknown/stale inputs. Read firmware-porting preflight before target changes. Preserve the accepted BLE/owner semantics. When the visuals are ready for phone acceptance, use the combined Android build and include one narrow service-log leave/reopen/stop check; do not install the superseded logging-only build or repeat a broad connection campaign. Cold-power and website updates remain owner-deferred."
+          "next_gate": "Follow Decision 0106 for authenticated configuration/time integration: first host time-admission tests, then reconcile the existing unpublished name codec/readback draft and negotiate matched transport capacities before enabling Android requests. Preserve local drafts as unconfirmed intent. The combined visual APK remains uninstalled; later acceptance includes the narrow Ready/service-log leave/reopen/stop check. Website and cold-power remain deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -1045,6 +1047,12 @@
           "overall": 44,
           "overall_exact": 43.75,
           "reason": "OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed. OT-178 remains partial; no milestone completion changes. Target 25 percent, Android 60 percent, V1 exact 43.75 percent/displayed 44. Website and cold-power remain deferred."
+        },
+        {
+          "date": "2026-09-06",
+          "overall": 44,
+          "overall_exact": 43.75,
+          "reason": "Defined the device-confirmed OLED configuration/time contract: exact session and generation binding, durable settings readback, separate region/group authority, and volatile civil time admitted with a fresh device-local challenge. This is a reviewed implementation contract, not an implemented transport or new hardware evidence. No milestone completion changes; target 25, Android 60, V1 exact 43.75/displayed 44. Website and cold-power remain deferred."
         }
     ]
     },

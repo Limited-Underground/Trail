@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-09-06 - OT-178 configuration/time authority contract
+
+Defined the device-confirmed OLED configuration/time contract: exact session and generation binding, durable settings readback, separate region/group authority, and volatile civil time admitted with a fresh device-local challenge. This is a reviewed implementation contract, not an implemented transport or new hardware evidence.
+
+Implement the host-only fixed-memory time-admission owner using trusted-context and challenge inputs plus the existing OledClock. Prove stale-generation, duplicate, deadline, rollback and disconnect behavior before allocating or enabling a wire extension. Preserve the unpublished device-name draft for separate cross-language integration review. Website and cold-power work remain deferred.
+
+See [contract](../docs/platform/OLED_CONFIGURATION_TIME_AUTHORITY_V1.md) and [Decision 0106](../docs/decisions/0106-oled-configuration-time-authority.md). No V1 completion increase.
+
 ## 2026-09-06 - OT-178 target OLED adapter validated
 
 OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed.

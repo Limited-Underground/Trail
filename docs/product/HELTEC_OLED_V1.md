@@ -78,3 +78,7 @@ not establish a working phone-synchronized target clock. Region/name/group
 configuration and telemetry sources require their own accepted contracts.
 
 Prepare the authenticated configuration and time-sync contract before broad normal-page hardware acceptance. Define exact device/session binding, validated name/region/group observations, clock format and sync freshness, and retain unknown states until real sources are bound. A separate bounded display-only physical preflight may inspect the verified build and restoration route; it does not install firmware automatically. Cold-power and website updates remain owner-deferred.
+
+## Configuration/time implementation contract
+
+[Decision 0106](../decisions/0106-oled-configuration-time-authority.md) now defines device-confirmed values and session-bound civil-time admission. It is design evidence only. Phone drafts remain separate from device readback, radio TX remains separately controlled, and a disconnected clock expires after its existing 24-hour limit. Next implement the host time-admission owner; no new OLED runtime behavior is accepted by this contract.

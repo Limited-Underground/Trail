@@ -1764,3 +1764,9 @@ callbacks and does not mutate bonds, NVS or the factory-reset contract.
 OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed.
 
 Prepare the authenticated configuration and time-sync contract before broad normal-page hardware acceptance. Define exact device/session binding, validated name/region/group observations, clock format and sync freshness, and retain unknown states until real sources are bound. A separate bounded display-only physical preflight may inspect the verified build and restoration route; it does not install firmware automatically. Cold-power and website updates remain owner-deferred.
+
+## Device-confirmed OLED configuration/time authority (2026-09-06)
+
+Defined the device-confirmed OLED configuration/time contract: exact session and generation binding, durable settings readback, separate region/group authority, and volatile civil time admitted with a fresh device-local challenge. This is a reviewed implementation contract, not an implemented transport or new hardware evidence.
+
+[Decision 0106](decisions/0106-oled-configuration-time-authority.md) separates confirmed configuration, radio/group authority and presentation time. The next host owner must reject stale external events before calling the invalidating clock API, timestamp at device application-task consumption and preserve exact lifecycle correlation. No existing protocol or persistence capacity is implicitly expanded.
