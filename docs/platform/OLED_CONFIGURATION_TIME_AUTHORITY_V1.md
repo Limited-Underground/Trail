@@ -227,3 +227,13 @@ fresh valid context. A revoked owner epoch cannot return through a mere new
 transport or an unavailable observation. These host checks do not authenticate
 a phone or replace the source's authority proof. Required wire/output-capacity,
 storage/reset and physical acceptance portions of the matrix remain open.
+
+## Transport/readback contract checkpoint
+
+The existing name codecs are now imported and pass shared parity. The setup
+name transition now requires a preliminary receipt; it still lacks a live issuer
+and exact request/revision authority. Historical unpublished/local descriptions
+above describe the earlier checkpoint. [Decision 0107](../decisions/0107-configuration-time-transport.md)
+and [transport contract](CONFIGURATION_TIME_TRANSPORT_V1.md) now govern capacity,
+correlation, uncertainty and the next host name-owner implementation. No wire
+profile, storage driver or target integration is activated.

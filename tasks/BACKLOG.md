@@ -1,5 +1,13 @@
 # OpenTrail Engineering Backlog
 
+## 2026-09-06 - Configuration/time transport and readback contract
+
+Accepted the bounded configuration/time transport and durable-readback implementation contract: matched148-byte buffers, normal MTU151, one operation slot, exact request/session correlation, revisioned name commits with uncertainty recovery, and reuse of the current time challenge owner. This is documentation and review only; no wire or storage capability is enabled.
+
+Next implement a host-only fixed-memory name transaction owner with trusted authority and fake persistence. Prove duplicate fences, CAS/readback,5000-ms admission expiry, ambiguous commit recovery and revocation/reset ordering. Follow with typed Android receipts and matched wire codecs before live persistence/target integration. Website and cold-power remain deferred.
+
+See [contract](../docs/platform/CONFIGURATION_TIME_TRANSPORT_V1.md). No V1 completion change: exact43.75/display44.
+
 ## 2026-09-06 - OT-170 device-name payload parity
 
 Imported the existing OT-170 C++ and Kotlin device-name candidate codecs without changing their production bytes or payload format. Both pass the same 151 synthetic vectors (25 accepted, 126 rejected), including decoded fields and exact re-encoding. The Android setup model now requires a matching preliminary name receipt; no live adapter issues it.

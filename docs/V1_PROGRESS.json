@@ -387,9 +387,10 @@
             "docs/testing/OT-178-TIME-ADMISSION-2026-09-06.md",
             "docs/decisions/0106-oled-configuration-time-authority.md",
             "docs/decisions/0105-ot178-host-oled-presentation.md",
-            "docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md"
+            "docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md",
+            "docs/platform/CONFIGURATION_TIME_TRANSPORT_V1.md"
           ],
-          "next_gate": "Freeze negotiated configuration/time transport capacities and exact request/revision/session mapping, durable compare-and-set/readback, uncertainty recovery and reset semantics. Resolve draft-name validation differences before enabling requests. Website and cold-power remain deferred."
+          "next_gate": "Next implement a host-only fixed-memory name transaction owner with trusted authority and fake persistence. Prove duplicate fences, CAS/readback,5000-ms admission expiry, ambiguous commit recovery and revocation/reset ordering. Follow with typed Android receipts and matched wire codecs before live persistence/target integration. Website and cold-power remain deferred."
         },
         {
           "id": "android-companion",
@@ -407,9 +408,10 @@
             "tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md",
             "tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md",
             "tests/hardware/OT-171-177-VISUAL-INTEGRATION-2026-09-06.md",
-            "docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md"
+            "docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md",
+            "docs/platform/CONFIGURATION_TIME_TRANSPORT_V1.md"
           ],
-          "next_gate": "Freeze negotiated configuration/time transport capacities and exact request/revision/session mapping, durable compare-and-set/readback, uncertainty recovery and reset semantics. Resolve draft-name validation differences before enabling requests. Website and cold-power remain deferred."
+          "next_gate": "Next implement a host-only fixed-memory name transaction owner with trusted authority and fake persistence. Prove duplicate fences, CAS/readback,5000-ms admission expiry, ambiguous commit recovery and revocation/reset ordering. Follow with typed Android receipts and matched wire codecs before live persistence/target integration. Website and cold-power remain deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -1063,7 +1065,8 @@
           "overall_exact": 43.75,
           "reason": "OT-178 adds a host-only fixed-memory time-admission owner around OledClock and an injected trusted authority source. It binds one challenge to exact owner/session generations, rejects stale or duplicate work without refreshing time, and separates disconnect retention from revocation/reset invalidation. All 21 focused groups and the complete host matrix pass; no wire, target or phone integration is added. No milestone completion changes; target25, Android60, V1 exact43.75/display44. Website and cold-power remain deferred."
         },
-        {"date": "2026-09-06", "overall": 44, "overall_exact": 43.75, "reason": "OT-170 imports existing C++/Kotlin name codecs unchanged with 151 shared parity vectors and a preliminary label/session/name receipt model. No negotiated transport, persistence, authenticated request/revision receipt or physical evidence is added. All completions unchanged: target25, Android60. Website and cold-power remain deferred."}
+        {"date": "2026-09-06", "overall": 44, "overall_exact": 43.75, "reason": "OT-170 imports existing C++/Kotlin name codecs unchanged with 151 shared parity vectors and a preliminary label/session/name receipt model. No negotiated transport, persistence, authenticated request/revision receipt or physical evidence is added. All completions unchanged: target25, Android60. Website and cold-power remain deferred."},
+        {"date": "2026-09-06", "overall": 44, "overall_exact": 43.75, "reason": "Accepted the bounded configuration/time transport and durable-readback implementation contract: matched148-byte buffers, normal MTU151, one operation slot, exact request/session correlation, revisioned name commits with uncertainty recovery, and reuse of the current time challenge owner. This is documentation and review only; no wire or storage capability is enabled. All milestone completions unchanged; target25/Android60. Website and cold-power remain deferred."}
       ]
     },
     {
