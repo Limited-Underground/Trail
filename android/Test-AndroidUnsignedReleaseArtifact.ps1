@@ -137,6 +137,24 @@ Assert-Condition ($manifest -notmatch '(?m)^\s*E: instrumentation') 'Packaged ma
 foreach ($forbidden in @('PublicLinkAutomaticTerminationPolicy', 'PublicLinkProbeInstrumentation')) {
     Assert-Condition ($manifest -notmatch [regex]::Escape($forbidden)) 'Packaged manifest contains an OT-085 test-only component.'
 }
+# OT-177: the V1-Test diagnostic recorder and its storage must never reach production.
+$forbiddenDiagnostics = @(
+    'V1TestConnectionLog',
+    'V1TestConnectionTraceMachine',
+    'V1TestTraceEmission',
+    'AndroidV1TestLogStorage',
+    'V1TestLogRuntime',
+    'V1TestRecordingConnector',
+    'V1TestLogActivity',
+    'V1TestMainActivity',
+    'V1ScreenGalleryActivity',
+    'V1TestConnectionCategory',
+    'V1TestLogShare',
+    'shareV1TestConnectionLog'
+)
+foreach ($forbidden in $forbiddenDiagnostics) {
+    Assert-Condition ($manifest -notmatch [regex]::Escape($forbidden)) 'Packaged manifest contains an OT-177 test-only diagnostic component.'
+}
 
 $resourceDump = Invoke-CheckedText $aapt @('dump', '--values', 'resources', $artifact) 'Packaged resource-table inspection failed.'
 $backupPath = Get-PackagedResourcePath $resourceDump 'backup_rules'
@@ -177,12 +195,15 @@ try {
         [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $destination, $false)
         $checksumOutput = @(& $dexdump -c $destination 2>&1)
         Assert-Condition ($LASTEXITCODE -eq 0 -and ($checksumOutput -join "`n") -match 'Checksum verified') 'Packaged DEX checksum verification failed.'
+        $dexStrings = @(& $dexdump -s $destination 2>&1)
+        Assert-Condition ($LASTEXITCODE -eq 0) 'Packaged DEX string inspection failed.'
         $forbiddenMatches = @(
-            & $dexdump -s $destination 2>&1 |
+            $dexStrings |
                 Select-String -SimpleMatch -Pattern @('PublicLinkAutomaticTerminationPolicy', 'PublicLinkProbeInstrumentation')
         )
-        Assert-Condition ($LASTEXITCODE -eq 0) 'Packaged DEX string inspection failed.'
         Assert-Condition ($forbiddenMatches.Count -eq 0) 'Packaged DEX contains an OT-085 test-only helper.'
+        $diagnosticMatches = @($dexStrings | Select-String -SimpleMatch -Pattern $forbiddenDiagnostics)
+        Assert-Condition ($diagnosticMatches.Count -eq 0) 'Packaged DEX contains an OT-177 test-only diagnostic class.'
     }
 } finally {
     if ($null -ne $archive) {
@@ -208,6 +229,7 @@ Write-Output 'OT087_MIN_SDK=26'
 Write-Output 'OT087_TARGET_SDK=35'
 Write-Output ('OT087_PERMISSION_COUNT=' + $permissions.Count)
 Write-Output ('OT087_DEX_COUNT=' + $dexCount)
+Write-Output ('OT177_TEST_ONLY_DIAGNOSTICS_EXCLUDED=' + $forbiddenDiagnostics.Count)
 Write-Output ('OT087_SIZE_BYTES=' + $item.Length)
 Write-Output ('OT087_SHA256=' + $hash)
 Write-Output 'OT087_SIGNATURE=UNSIGNED'

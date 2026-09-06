@@ -58,6 +58,9 @@ open class MainActivity : ComponentActivity() {
     protected open fun createConnectedDeviceServiceConnector(): ConnectedDeviceServiceConnector =
         AndroidConnectedDeviceServiceConnector(applicationContext)
 
+    @Composable
+    protected open fun AdditionalTools() = Unit
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -70,7 +73,7 @@ open class MainActivity : ComponentActivity() {
         )
         lifecycleBinding = TrailAppLifecycleBinding(lifecycle, appController)
 
-        setContent { TrailTheme { TrailApp(appController) } }
+        setContent { TrailTheme { TrailApp(appController) { AdditionalTools() } } }
     }
 
     override fun onResume() {
@@ -90,7 +93,7 @@ private data class DeviceSettingsAuthority(
 )
 
 @Composable
-fun TrailApp(controller: TrailUiController) {
+fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> Unit = {}) {
     var state by remember { mutableStateOf(controller.state) }
     var deviceSettingsAuthority by remember { mutableStateOf<DeviceSettingsAuthority?>(null) }
     val context = LocalContext.current
@@ -154,6 +157,7 @@ fun TrailApp(controller: TrailUiController) {
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            additionalTools()
             Image(
                 painter = painterResource(R.drawable.limited_underground_trail),
                 contentDescription = null,
@@ -1088,7 +1092,7 @@ private fun StatusCard(title: String, body: String) {
 }
 
 @Composable
-private fun TrailTheme(content: @Composable () -> Unit) {
+internal fun TrailTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = androidx.compose.material3.darkColorScheme(
             primary = Color(0xFF9DFF8B),

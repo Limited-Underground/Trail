@@ -143,7 +143,14 @@ class TrailConnectedDeviceService : Service() {
     }
 
     private fun buildNotification(): Notification {
+        // Resolve this installed variant's launcher (V1-Test has its own entry),
+        // without referencing or including diagnostic code in production.
+        val launcher = runCatching {
+            packageManager.getLaunchIntentForPackage(packageName)?.component
+        }.getOrNull()?.takeIf { it.packageName == packageName && it.className.isNotBlank() }
         val openApp = Intent(this, MainActivity::class.java).apply {
+            // Keep the fallback explicit and local if launcher resolution is unavailable.
+            if (launcher != null) component = launcher
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         val pendingIntent = PendingIntent.getActivity(

@@ -384,12 +384,13 @@
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "Android companion has host-tested protocol/state flows and physical single-pair saved-owner, app-restart, warm-reset, and extended-absence recovery. Periodic discovery waits 15 seconds between five-second scans after three quick attempts. A 65.866-second ROM absence recovered without phone input through fresh authorization and Snapshot; complete Android validation passes 387 tests, lint/build and unsigned-artifact inspection. Cold-power, factory-reset, coherent two-phone, signed release and operational acceptance remain open. See tests/hardware/OT-168-PERIODIC-2026-09-04.md.",
+          "description": "Historical 2026-09-04 single-pair evidence includes saved-owner Ready, warm-reset and extended-absence recovery, with 387 Android tests at that checkpoint. A later mixed-worktree app-restart observation failed during initial Snapshot after accepted authorization; its old trace omitted the lower-level diagnostic, so root cause remains unresolved. The isolated OT-177 V1-Test candidate now retains exact diagnostic detail with its own software matrix and artifact evidence; it has not been installed. Cold-power, factory-reset, coherent two-phone, signed release and operational acceptance remain open. See tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md.",
           "weight": 20,
           "completion": 60,
-          "evidence_status": "Build tested with unsigned release foundation; physical saved-owner Ready, app-process restart, and automatic warm-reset recovery pass on one pair; cold-power, factory-reset, and two-pair acceptance pending",
-          "evidence_refs": ["android/README.md", "docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md", "docs/platform/DEVICE_FACTORY_RESET_V1.md", "docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md", "docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md", "tests/hardware/OT-168-2026-09-04.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md"],
-          "next_gate": "Verify true cold-power recovery with USB and battery accounted for, then current factory-reset erasure and coherent two-pair acceptance. GUI/navigation cleanup should be reviewed with the owner before redesign implementation. Battery accuracy, production app lifecycle, signed release, secure LoRa, and field acceptance remain open."
+          "evidence_status": "Build tested with unsigned release foundation; prior single-pair saved-owner Ready and warm-reset evidence remains. App-restart reconnect is contested by one mixed-worktree observation failing during initial Snapshot after accepted authorization. The isolated diagnostic recorder candidate is software-validated only; cold-power, factory-reset, and two-pair acceptance remain pending.",
+          "evidence_refs": ["android/README.md", "docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md", "docs/platform/DEVICE_FACTORY_RESET_V1.md", "docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md", "docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md", "tests/hardware/OT-168-2026-09-04.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md",
+            "tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md"],
+          "next_gate": "Publish and verify the isolated OT-177 recorder candidate after authorized remote ancestry review. Then separately authorize one app-restart reproduction with fresh enumeration, the exact installed candidate, separate discovery/connection latency, authorization, Snapshot, Ready, runtime reason and connectionDiagnostic. The older log cannot recover its omitted diagnostic or prove device intent. Device naming, cold-power recovery, factory reset, two-pair, secure LoRa and release acceptance remain open."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -970,6 +971,12 @@
           "overall_exact": 43.75,
           "overall": 44,
           "reason": "Added the distinct OT-177 V1-Test Android variant with application ID io.github.nbjelanovic.otclient.v1test, visible Trail V1-Test name, and 1.0.0-v1test version. Typed bounded diagnostic code and tests moved out of production source sets; DEX inspection finds the diagnostic ring absent from the unsigned release and present in V1-Test. The expanded matrix passes 682 protocol/debug/release/V1-Test unit-test executions, three lint variants, and all requested assemblies. Durable storage, Clear UI, report Save/Share, integration, hardware, signing, and release acceptance remain open. No milestone completion changes; V1 Companion remains exact 43.75 percent / displayed 44 percent."
+        },
+        {
+          "date": "2026-09-05",
+          "overall_exact": 43.75,
+          "overall": 44,
+          "reason": "Isolated OT-177 recorder and format-3 diagnostic detail with variant-only sharing/storage and minimal shared UI/notification hooks. Exact candidate validation and artifact identities are recorded separately from the earlier 921-test mixed-worktree evidence. The prior post-authorization initial-Snapshot failure remains unresolved and the candidate is not installed. No completion credit: Android 60 percent; V1 Companion exact 43.75 percent / displayed 44 percent. Remote publication and website projection remain pending."
         }
     ]
     },

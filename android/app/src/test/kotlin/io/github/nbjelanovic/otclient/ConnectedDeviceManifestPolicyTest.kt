@@ -9,6 +9,21 @@ import kotlin.test.assertTrue
 
 class ConnectedDeviceManifestPolicyTest {
     @Test
+    fun serviceNotificationUsesInstalledVariantLauncherWithLocalExplicitFallback() {
+        val source = projectFile("src/main/kotlin/io/github/nbjelanovic/otclient/TrailConnectedDeviceService.kt").readText()
+        val notification = source.substringAfter("private fun buildNotification(): Notification {")
+            .substringBefore("private fun nearbyPermissionsGranted")
+        assertTrue(notification.contains("packageManager.getLaunchIntentForPackage(packageName)?.component"))
+        assertTrue(notification.contains("it.packageName == packageName && it.className.isNotBlank()"))
+        assertTrue(notification.contains("Intent(this, MainActivity::class.java)"))
+        assertTrue(notification.contains("if (launcher != null) component = launcher"))
+        assertTrue(notification.contains("Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP"))
+        assertTrue(notification.contains("PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE"))
+        assertFalse(source.contains("V1TestMainActivity"))
+        assertFalse(source.contains("V1TestLogRuntime"))
+    }
+
+    @Test
     fun manifestDeclaresExactConnectedDeviceForegroundSurface() {
         val manifest = projectFile("src/main/AndroidManifest.xml").readText()
         val permissions = Regex("<uses-permission[^>]+android:name=\"([^\"]+)\"")

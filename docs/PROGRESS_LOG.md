@@ -6,6 +6,16 @@ public chronology.
 
 ## 2026-09-05
 
+### OT-177 isolated recorder publication candidate
+
+OT-177 now has an isolated V1-Test recorder candidate with atomic format-3
+persistence, Clear/Save/Share UI and exact separate runtime/connection diagnostic
+fields. Legacy logs remain readable without inventing missing facts. This is
+software evidence only; the prior mixed-worktree app-restart observation failed
+during initial Snapshot after accepted authorization, and its missing diagnostic
+leaves root cause unresolved. The isolated candidate has not been installed.
+No V1 credit is added. See [candidate validation](../tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md).
+
 ### OT-177 distinct V1-Test Android variant
 
 - Added the separate `io.github.nbjelanovic.otclient.v1test` application,

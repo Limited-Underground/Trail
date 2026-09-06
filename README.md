@@ -4,8 +4,8 @@
 
 Limited Underground Trail is a free and open-source ESP32/LoRa platform for
 off-grid group communication, location awareness, and safety alerts. It is
-intended to keep a small group useful when cellular service and internet access
-are unavailable.
+designed for flexible local group communication and shared awareness across
+outdoor activities, field work, travel, and everyday coordination.
 
 The base design is a self-contained portable client with its own power, display,
 input, radio, and GNSS-aware group status. Repeaters, remote archives, vehicle
@@ -23,7 +23,7 @@ requirements for basic operation.
 | Area | Current state |
 | --- | --- |
 | Phase | Architecture, host-tested components, bounded bench proofs, and two experimentally flashed Heltec targets |
-| Latest increment | Periodic saved-owner recovery passes on the retained Heltec/Note20 pair: three quick retries, then five-second scans separated by a 15-second wait. A 65.866-second ROM absence recovered automatically through fresh authorization and Snapshot; 387 Android tests/lint/build pass. See tests/hardware/OT-168-PERIODIC-2026-09-04.md. Cold-power, factory-reset, and two-pair acceptance remain open. |
+| Latest increment | Isolated OT-177 V1-Test recorder: atomic bounded logs, exact separate failure diagnostics, legacy migration and user-controlled Clear/Save/Share. See [candidate evidence](tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md) for the exact software matrix and artifact identities. The candidate is not installed; the earlier app-restart failure during initial Snapshot remains unresolved. |
 | Proven so far | Focused Android/firmware tests and the complete Host matrix pass. Two empty-output-directory builds reproduce the canonical 563,824-byte application SHA-256 `91D4CEB48CCFBCD21AC97CE604C48FBCCA04D70408D2BF749C90CB053AD04824`; the retained test unit received an exact application-only write/readback. The existing Android app retained its owner/bond and reached fresh authorization plus mandatory Snapshot without a new PIN. Warm-reset link recovery measured 1.493 seconds, not full Ready latency. See the [dated physical evidence](tests/hardware/OT-168-2026-09-04.md) for artifact identities and limits |
 | Planned V1 | Two Heltec/Android pairs exchanging authenticated typed/quick messages and coordinates over direct LoRa. The approved UX uses resumable name/region onboarding, Messages/Group/Device portrait and landscape layouts, one private group per person with exactly one administrator and six total members, consent-gated public direct chat, group location ON at join under an admin Required/Optional rule, redacted support export, and the bounded Heltec OLED/clock surface. Built-in maps are not required. See Decision 0104. |
 | Not yet proven | true cold-power recovery, production zero-tap launch, destructive app/physical reset and erasure recovery, automatic unowned-boot pairing on both units, authenticated on-device LoRa, coherent two-phone operation, calibrated battery percentage, supported hardware, production firmware, endurance, field range, or regulatory acceptance |
