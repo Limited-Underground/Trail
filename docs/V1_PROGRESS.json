@@ -390,9 +390,10 @@
             "docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md",
             "docs/platform/CONFIGURATION_TIME_TRANSPORT_V1.md",
             "docs/testing/OT-170-NAME-TRANSACTION-2026-09-06.md",
-            "docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md"
+            "docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md",
+            "docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md"
           ],
-          "next_gate": "Next implement matched successor wire codecs and explicitly allocate the version/profile, operation kinds and capability encoding under Decision0107. Verify negotiation, single-record capacities and Android/C++ parity before live dispatcher, persistence/reset or target activation. Website and cold-power remain deferred."
+          "next_gate": "Next implement the host-only shared configuration/time dispatcher composing the accepted codecs and name/time owners. Prove one pending operation, shared exchange fences, output reservation, challenge continuation and status mapping with fake trusted authority/persistence. Real storage/reset and target activation follow separately. Website and cold-power remain deferred."
         },
         {
           "id": "android-companion",
@@ -413,9 +414,10 @@
             "docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md",
             "docs/platform/CONFIGURATION_TIME_TRANSPORT_V1.md",
             "docs/testing/OT-170-NAME-TRANSACTION-2026-09-06.md",
-            "docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md"
+            "docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md",
+            "docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md"
           ],
-          "next_gate": "Next implement matched successor wire codecs and explicitly allocate the version/profile, operation kinds and capability encoding under Decision0107. Verify negotiation, single-record capacities and Android/C++ parity before live dispatcher, persistence/reset or target activation. Website and cold-power remain deferred."
+          "next_gate": "Next implement the host-only shared configuration/time dispatcher composing the accepted codecs and name/time owners. Prove one pending operation, shared exchange fences, output reservation, challenge continuation and status mapping with fake trusted authority/persistence. Real storage/reset and target activation follow separately. Website and cold-power remain deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -1072,7 +1074,8 @@
         {"date": "2026-09-06", "overall": 44, "overall_exact": 43.75, "reason": "OT-170 imports existing C++/Kotlin name codecs unchanged with 151 shared parity vectors and a preliminary label/session/name receipt model. No negotiated transport, persistence, authenticated request/revision receipt or physical evidence is added. All completions unchanged: target25, Android60. Website and cold-power remain deferred."},
         {"date": "2026-09-06", "overall": 44, "overall_exact": 43.75, "reason": "Accepted the bounded configuration/time transport and durable-readback implementation contract: matched148-byte buffers, normal MTU151, one operation slot, exact request/session correlation, revisioned name commits with uncertainty recovery, and reuse of the current time challenge owner. This is documentation and review only; no wire or storage capability is enabled. All milestone completions unchanged; target25/Android60. Website and cold-power remain deferred."},
         {"date": "2026-09-06", "overall": 44, "overall_exact": 43.75, "reason": "Implemented the host-only fixed-memory device-name transaction owner using the existing payload codec, injected trusted authority and synchronous fakeable persistence. It enforces revision CAS/readback, exact duplicate fences, admission expiry and explicit read reconciliation after uncertain commits. All12 focused groups pass; the complete host matrix is recorded in the evidence. No live wire, flash driver or phone integration is added. All milestone completions unchanged, target25/Android60. Website and cold-power remain deferred."},
-        {"date": "2026-09-06", "overall": 44, "overall_exact": 43.75, "reason": "Implemented the Android name transaction model and one-use registered setup receipts. Current protocol context, exchange, expected/committed revision and exact name must match; stale results and loss callbacks cannot confirm or cancel later work. V1DeviceName now rejects malformed Unicode losslessly. This is model integration only, with no live BLE name requests or app installation. All milestone completions unchanged, target25/Android60. No live capability or physical evidence; website and cold-power remain deferred."}
+        {"date": "2026-09-06", "overall": 44, "overall_exact": 43.75, "reason": "Implemented the Android name transaction model and one-use registered setup receipts. Current protocol context, exchange, expected/committed revision and exact name must match; stale results and loss callbacks cannot confirm or cancel later work. V1DeviceName now rejects malformed Unicode losslessly. This is model integration only, with no live BLE name requests or app installation. All milestone completions unchanged, target25/Android60. No live capability or physical evidence; website and cold-power remain deferred."},
+        {"date": "2026-09-06", "overall": 44, "overall_exact": 43.75, "reason": "Implemented matched C++/Kotlin configuration/time profile0.2 codecs with explicit version/capability/kind allocation, strict single-record limits, OTTCv1 civil-time fields and unchanged OTNCv1 names. Both pass431 shared semantic vectors. Existing0.0/claim0.1 codecs remain unchanged. No profile advertisement, live dispatcher or target integration is enabled. All milestone completions unchanged, target25/Android60. Website and cold-power remain deferred."}
       ]
     },
     {

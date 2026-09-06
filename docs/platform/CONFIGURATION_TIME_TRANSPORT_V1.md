@@ -229,3 +229,12 @@ UTF-8 validation is centralized. See [evidence](../testing/OT-170-ANDROID-NAME-R
 This addresses model-level NT-06; real authenticated adapter provenance, live
 requests and persistence remain unimplemented. Numeric successor allocation and
 matched codecs are next. Prior descriptions above retain historical context.
+
+## Matched codec allocation checkpoint
+
+[Decision0108](../decisions/0108-configuration-profile-codec-allocation.md) and
+[profile0.2](COMPANION_CONFIGURATION_PROFILE_V02.md) now allocate the previously
+deferred version/capability/kind and OTTC payload bytes. Matched independent
+codecs pass shared vectors; [evidence](../testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md)
+records complete validation. These allocations do not activate an advertisement,
+negotiated runtime, dispatcher or target. The shared host dispatcher is next.

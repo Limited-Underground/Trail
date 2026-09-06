@@ -1,5 +1,13 @@
 # OpenTrail Engineering Backlog
 
+## 2026-09-06 - Configuration/time profile0.2 codecs
+
+Implemented matched C++/Kotlin configuration/time profile0.2 codecs with explicit version/capability/kind allocation, strict single-record limits, OTTCv1 civil-time fields and unchanged OTNCv1 names. Both pass431 shared semantic vectors. Existing0.0/claim0.1 codecs remain unchanged. No profile advertisement, live dispatcher or target integration is enabled.
+
+Next implement the host-only shared configuration/time dispatcher composing the accepted codecs and name/time owners. Prove one pending operation, shared exchange fences, output reservation, challenge continuation and status mapping with fake trusted authority/persistence. Real storage/reset and target activation follow separately. Website and cold-power remain deferred.
+
+See [validation evidence](../docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md). V1 remains exact43.75/display44.
+
 ## 2026-09-06 - Android name receipt model
 
 Implemented the Android name transaction model and one-use registered setup receipts. Current protocol context, exchange, expected/committed revision and exact name must match; stale results and loss callbacks cannot confirm or cancel later work. V1DeviceName now rejects malformed Unicode losslessly. This is model integration only, with no live BLE name requests or app installation.

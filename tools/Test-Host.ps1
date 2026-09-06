@@ -215,6 +215,17 @@ $builds = @(
         )
     },
     @{
+        Name = 'configuration profile 0.2 shared codec parity'
+        Output = Join-Path $buildDirectory 'companion_configuration_codec_tests.exe'
+        RunArguments = @((Join-Path $projectRoot 'tests\fixtures\companion_configuration_v02.tsv').Replace('\', '/'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_configuration_codec_tests.cpp')
+        )
+    },
+    @{
         Name = 'host device-name transaction owner'
         Output = Join-Path $buildDirectory 'companion_device_name_owner_tests.exe'
         Sources = @(
