@@ -136,6 +136,39 @@ candidate without supplying a downgrade.
 
 ## Acceptance boundary
 
+### Current implementation addendum - 2026-09-06
+
+The owner-approved V1 interface now includes narrowly bounded phone-local
+storage and deliberate support export beyond this historical policy's
+transient-state promise. This addendum records the implementation difference;
+it does not amend the frozen OTAR plan, its identifiers, or its release promises.
+
+- `v1-pending-setup` stores only the versioned, at-most-512-byte pending draft:
+  proposed device/public names, radio region and discovery choice. It is labeled
+  not applied to the device and carries no authorization or readback receipt.
+- `v1-local-templates` stores at most twelve user-authored quick-message
+  templates, each bounded to 160 characters. These are local drafts, not received
+  device messages or evidence that a message was sent or delivered.
+- Both stores use app-private preferences and remain excluded from backup and
+  device transfer. The separately admitted short-lived factory-reset correlation
+  receipt remains in its existing dedicated store; no owner binding, pairing
+  secret, device address, raw telemetry or received-message store is added.
+- Support offers preview and user-initiated Save/Share only. Automatic report
+  fields use the redacted typed schema; a problem note is included as typed and
+  may contain personal details. Shared copies are confined to the private
+  `support-reports/` cache directory, with an eight-file limit and 24-hour age
+  cleanup applied when preparing another share. A nonexported, application-scoped FileProvider grants
+  explicit read access. Copies saved or shared outside the app are controlled by
+  the user and recipient; app uninstall cannot promise their removal.
+
+No Internet permission, automatic telemetry, upload, analytics, hidden sharing
+or production diagnostic recorder is added. Host admission tests accept only
+these exact source locations, schemas and export paths. They do not establish
+release privacy acceptance. Before a release, reconcile the current storage and
+export behavior with the frozen policy and plan through an explicit successor,
+then physically verify disclosure, retention, backup exclusion, URI grants and
+cleanup on the admitted phone matrix. Release evaluation remains blocked.
+
 Accepting this policy satisfies exactly
 `privacy_data_safety_not_approved`, `rollback_policy_not_approved`, and
 `support_policy_not_approved`. The canonical plan remains

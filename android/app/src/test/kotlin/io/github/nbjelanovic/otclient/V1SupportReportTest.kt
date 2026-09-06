@@ -33,6 +33,26 @@ class V1SupportReportTest {
     }
 
     @Test
+    fun unavailableRegionAndReconnectCountAreReportedHonestly() {
+        val report = assertNotNull(
+            V1SupportReportGenerator.create(
+                snapshot().copy(radioRegion = null, reconnectCount = null),
+                "",
+            ),
+        )
+        assertTrue(report.text.contains("Radio region: Not available"))
+        assertTrue(report.text.contains("Reconnect count: Not available"))
+    }
+
+    @Test
+    fun absentLastSupportCodeIsReportedHonestly() {
+        val report = assertNotNull(
+            V1SupportReportGenerator.create(snapshot().copy(lastSupportCode = null), ""),
+        )
+        assertTrue(report.text.contains("Last support code: Not available"))
+    }
+
+    @Test
     fun publicDiagnosticLabelsRejectCommonSecretAndIdentifierShapes() {
         assertNotNull(label("Heltec V4.2"))
         val hardwareAddressShape = listOf("AA", "BB", "CC", "DD", "EE", "FF").joinToString(":")

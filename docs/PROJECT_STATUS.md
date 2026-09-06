@@ -1,5 +1,13 @@
 # OpenTrail Project Status, Assumptions, and Open Questions
 
+## 2026-09-06 - Existing Android visuals integrated
+
+Integrated the existing owner-approved Android visual direction onto the published connection/service-logging baseline: Messages/Group/Device navigation, mint theme, fullscreen truthful status strip, setup/group/people surfaces, phone-local quick-message drafts and support export. The existing owner checkout is unchanged. This accepts software integration only; the combined APK is not installed and final visual or workflow acceptance is not claimed.
+
+Next implement the OT-178 OLED/clock presentation foundation against the approved display direction, starting with host-testable priority/layout/time rules and explicit unknown/stale inputs. Read firmware-porting preflight before target changes. Preserve the accepted BLE/owner semantics. When the visuals are ready for phone acceptance, use the combined Android build and include one narrow service-log leave/reopen/stop check; do not install the superseded logging-only build or repeat a broad connection campaign. Cold-power and website updates remain owner-deferred.
+
+See [integration evidence](../tests/hardware/OT-171-177-VISUAL-INTEGRATION-2026-09-06.md).
+
 ## 2026-09-06 - OT-177 service-lifetime logging; cold-power deferred
 
 The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware.

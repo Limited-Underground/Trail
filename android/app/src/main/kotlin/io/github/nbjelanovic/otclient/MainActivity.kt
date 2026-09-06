@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -63,6 +64,7 @@ open class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        configureTrailFullscreen(this)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         appController = TrailActivityController(
             localController = CompanionAppController(FakeCompanionTransport()),
@@ -95,6 +97,7 @@ private data class DeviceSettingsAuthority(
 @Composable
 fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> Unit = {}) {
     var state by remember { mutableStateOf(controller.state) }
+    val homeStateHolder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     var deviceSettingsAuthority by remember { mutableStateOf<DeviceSettingsAuthority?>(null) }
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -140,7 +143,11 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
         } == true
     }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().imePadding()) {
+      V1StatusStrip(state)
+      additionalTools()
+      androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
+      Surface(modifier = Modifier.fillMaxSize()) {
         if (bluetooth?.factoryResetConfirmationVisible == true) {
             FactoryResetConfirmationScreen(controller)
             return@Surface
@@ -153,21 +160,32 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             )
             return@Surface
         }
-        Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            additionalTools()
-            Image(
-                painter = painterResource(R.drawable.limited_underground_trail),
-                contentDescription = null,
-                modifier = Modifier.fillMaxWidth().aspectRatio(2f),
-                contentScale = ContentScale.Fit,
+        homeStateHolder.SaveableStateProvider("home") {
+        V1HomeScreen(state) {
+          if (state == TrailAppUiState.ChooseMode) {
+            V1OnboardingScreen(
+                state = V1OnboardingScreenState(statusMessage =
+                    "You can connect to the current firmware below. The new setup-name and radio-region configuration steps require the V1 device update."),
+                onAction = {},
+                connectionContent = {
+                    Button(onClick = controller::chooseBluetoothDeviceMode, modifier = Modifier.fillMaxWidth()) {
+                        Text("Find device")
+                    }
+                },
             )
-            Text("Limited Underground", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Text("Trail", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+          } else {
+          Column(
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+          ) {
             when (val current = state) {
-                TrailAppUiState.ChooseMode -> ModeChoicePanel(controller)
+                TrailAppUiState.ChooseMode -> {
+                    Text("Connect your Trail device", style = MaterialTheme.typography.titleLarge)
+                    Text("Turn on your device and keep it nearby. Android will ask for Nearby Devices permission when needed.")
+                    Button(onClick = controller::chooseBluetoothDeviceMode, modifier = Modifier.fillMaxWidth()) {
+                        Text("Connect device")
+                    }
+                }
                 is TrailAppUiState.LocalTest -> LocalTestPanel(current.companionState, controller)
                 is TrailAppUiState.BluetoothDevice -> BluetoothDevicePanel(
                     state = current,
@@ -184,7 +202,13 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
                     },
                 )
             }
+          }
+          }
         }
+    }
+    }
+}
+
     }
 }
 
@@ -750,7 +774,6 @@ private fun DeviceSettingsScreen(
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Limited Underground", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Text("Device settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             StatusCard(
                 "Connected device",
@@ -788,7 +811,6 @@ private fun FactoryResetConfirmationScreen(controller: TrailUiController) {
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Limited Underground", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Text("Erase all Trail data?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT)
             StatusCard(
@@ -1095,9 +1117,26 @@ private fun StatusCard(title: String, body: String) {
 internal fun TrailTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = androidx.compose.material3.darkColorScheme(
-            primary = Color(0xFF9DFF8B),
-            background = Color(0xFF07100B),
-            surface = Color(0xFF102019),
+            primary = Color(0xFF65E3BC),
+            onPrimary = Color(0xFF00261D),
+            primaryContainer = Color(0xFF164A3B),
+            onPrimaryContainer = Color(0xFFC7F9E7),
+            secondary = Color(0xFFA5CEC0),
+            onSecondary = Color(0xFF0A3025),
+            secondaryContainer = Color(0xFF214C3F),
+            onSecondaryContainer = Color(0xFFD2F9E9),
+            background = Color(0xFF05110D),
+            onBackground = Color(0xFFE6F5EE),
+            surface = Color(0xFF071711),
+            onSurface = Color(0xFFE6F5EE),
+            surfaceVariant = Color(0xFF18362B),
+            onSurfaceVariant = Color(0xFFB2CABF),
+            surfaceContainer = Color(0xFF0D251B),
+            surfaceContainerHighest = Color(0xFF143125),
+            surfaceContainerHigh = Color(0xFF112B20),
+            surfaceContainerLow = Color(0xFF0A2017),
+            outline = Color(0xFF587E6B),
+            outlineVariant = Color(0xFF294C3D),
         ),
         content = content,
     )

@@ -4,10 +4,20 @@ internal const val V1_SUPPORT_NOTE_MAX_CHARS = 2_000
 internal const val V1_SUPPORT_REPORT_SCHEMA = "OT-SUPPORT/1"
 internal const val V1_SUPPORT_REPORT_MIME_TYPE = "text/plain"
 
-enum class V1SupportPhoneConnection { DISCONNECTED, CONNECTING, AUTHORIZING, READY, RECONNECTING, FAILED }
-enum class V1SupportRadioHealth { IDLE, TRANSMITTING, RECEIVING, DEGRADED, UNAVAILABLE }
-enum class V1SupportGpsHealth { CURRENT, STALE, UNAVAILABLE, DISABLED }
-enum class V1SupportPowerHealth { CHARGING, BATTERY_ESTIMATE_AVAILABLE, BATTERY_ESTIMATE_UNAVAILABLE }
+enum class V1SupportPhoneConnection { UNKNOWN, DISCONNECTED, CONNECTING, AUTHORIZING, READY, RECONNECTING, FAILED }
+enum class V1SupportRadioHealth { UNKNOWN, UNAVAILABLE, READY, DEGRADED, FAULT, IDLE, TRANSMITTING, RECEIVING }
+enum class V1SupportGpsHealth { UNKNOWN, UNAVAILABLE, SEARCHING, CURRENT, STALE, FAULT, DISABLED }
+enum class V1SupportPowerHealth {
+    UNKNOWN,
+    EXTERNAL,
+    NORMAL,
+    LOW,
+    CRITICAL,
+    FAULT,
+    CHARGING,
+    BATTERY_ESTIMATE_AVAILABLE,
+    BATTERY_ESTIMATE_UNAVAILABLE,
+}
 enum class V1SupportCode { NONE, BLE_RECONNECT, BLE_AUTHORIZATION, RADIO, GPS, STORAGE, APP }
 
 class V1PublicDiagnosticLabel private constructor(val value: String) {
@@ -38,15 +48,15 @@ data class V1SafeDiagnosticSnapshot(
     val phoneModel: V1PublicDiagnosticLabel,
     val androidVersion: V1PublicDiagnosticLabel,
     val deviceModel: V1PublicDiagnosticLabel,
-    val radioRegion: V1RadioRegion,
+    val radioRegion: V1RadioRegion?,
     val phoneConnectionState: V1SupportPhoneConnection,
     val radioState: V1SupportRadioHealth,
     val gpsState: V1SupportGpsHealth,
     val powerState: V1SupportPowerHealth,
-    val reconnectCount: Int,
-    val lastSupportCode: V1SupportCode,
+    val reconnectCount: Int?,
+    val lastSupportCode: V1SupportCode?,
 ) {
-    init { require(reconnectCount >= 0) }
+    init { require(reconnectCount == null || reconnectCount >= 0) }
 
     override fun toString(): String = "V1SafeDiagnosticSnapshot(redacted)"
 }
@@ -72,15 +82,15 @@ object V1SupportReportGenerator {
             appendLine("Device: ${snapshot.deviceModel.value}")
             appendLine()
             appendLine("[Configuration]")
-            appendLine("Radio region: ${snapshot.radioRegion.publicCode}")
+            appendLine("Radio region: ${snapshot.radioRegion?.publicCode ?: "Not available"}")
             appendLine()
             appendLine("[Current health]")
             appendLine("Phone connection: ${snapshot.phoneConnectionState}")
             appendLine("Radio: ${snapshot.radioState}")
             appendLine("GPS: ${snapshot.gpsState}")
             appendLine("Power: ${snapshot.powerState}")
-            appendLine("Reconnect count: ${snapshot.reconnectCount}")
-            appendLine("Last support code: ${snapshot.lastSupportCode}")
+            appendLine("Reconnect count: ${snapshot.reconnectCount ?: "Not available"}")
+            appendLine("Last support code: ${snapshot.lastSupportCode ?: "Not available"}")
             appendLine()
             appendLine("[Excluded from automatic diagnostics]")
             appendLine("PINs, keys, pairing IDs, hardware addresses, invitation secrets,")

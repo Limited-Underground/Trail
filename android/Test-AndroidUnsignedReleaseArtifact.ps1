@@ -159,6 +159,19 @@ foreach ($forbidden in $forbiddenDiagnostics) {
 }
 
 $resourceDump = Invoke-CheckedText $aapt @('dump', '--values', 'resources', $artifact) 'Packaged resource-table inspection failed.'
+$supportProviders = @([regex]::Matches($manifest, '(?ms)^(?<indent>[ \t]*)E: provider\b.*?(?=^\k<indent>E:|\z)') |
+    Where-Object { $_.Value -match 'android:name[^\r\n]*="androidx\.core\.content\.FileProvider"' })
+Assert-Condition ($supportProviders.Count -eq 1) 'Packaged support export must have exactly one FileProvider.'
+$supportProvider = $supportProviders[0].Value
+Assert-Condition ($supportProvider -match 'android:authorities[^\r\n]*="io\.github\.nbjelanovic\.otclient\.support-files"') 'Packaged support provider authority differs from the application scope.'
+Assert-Condition ($supportProvider -match 'android:exported.*\(type 0x12\)0x0') 'Packaged support provider must not be exported.'
+Assert-Condition ($supportProvider -match 'android:grantUriPermissions.*\(type 0x12\)0xffffffff') 'Packaged support provider must use explicit URI grants.'
+Assert-Condition ($supportProvider -match 'android\.support\.FILE_PROVIDER_PATHS') 'Packaged support provider paths metadata is missing.'
+$supportPath = Get-PackagedResourcePath $resourceDump 'support_file_paths'
+$supportRules = Invoke-CheckedText $aapt @('dump', 'xmltree', $artifact, $supportPath) 'Packaged support-path inspection failed.'
+$supportElements = @([regex]::Matches($supportRules, '(?m)^\s*E: ([a-z-]+)\b') | ForEach-Object { $_.Groups[1].Value })
+Assert-Condition (($supportElements -join ',') -eq 'paths,cache-path') 'Packaged support sharing must expose only one cache path.'
+Assert-Condition ($supportRules -match 'A: path="support-reports/"') 'Packaged support sharing must be confined to support-reports.'
 $backupPath = Get-PackagedResourcePath $resourceDump 'backup_rules'
 $extractionPath = Get-PackagedResourcePath $resourceDump 'data_extraction_rules'
 $backupRules = Invoke-CheckedText $aapt @('dump', 'xmltree', $artifact, $backupPath) 'Packaged backup-rule inspection failed.'

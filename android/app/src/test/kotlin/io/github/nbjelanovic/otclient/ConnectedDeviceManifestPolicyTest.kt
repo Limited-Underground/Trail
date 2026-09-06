@@ -9,6 +9,37 @@ import kotlin.test.assertTrue
 
 class ConnectedDeviceManifestPolicyTest {
     @Test
+    fun fullscreenEditorsResizeAndSampleGalleryRemainsAbsent() {
+        val main = projectFile("src/main/AndroidManifest.xml").readText()
+        val variant = projectFile("src/v1Test/AndroidManifest.xml").readText()
+        fun header(manifest: String, name: String) = Regex("<activity\\b[^>]*>")
+            .findAll(manifest).map { it.value }.single { it.contains("android:name=\"$name\"") }
+        listOf(header(main, ".MainActivity"), header(variant, ".V1TestMainActivity")).forEach {
+            assertTrue(it.contains("android:windowSoftInputMode=\"adjustResize\""))
+            assertFalse(it.contains("adjustPan"))
+        }
+        assertFalse(main.contains("V1ScreenGalleryActivity"))
+        assertFalse(variant.contains("V1ScreenGalleryActivity"))
+    }
+
+    @Test
+    fun supportExportProviderExposesOnlyItsBoundedCacheDirectory() {
+        val manifest = projectFile("src/main/AndroidManifest.xml").readText()
+        val providers = Regex("<provider\\b[^>]*>[\\s\\S]*?</provider>").findAll(manifest).map { it.value }.toList()
+        assertEquals(1, providers.size)
+        val provider = providers.single()
+        assertTrue(provider.contains("android:name=\"androidx.core.content.FileProvider\""))
+        assertTrue(provider.contains("android:authorities=\"\${applicationId}.support-files\""))
+        assertTrue(provider.contains("android:exported=\"false\""))
+        assertTrue(provider.contains("android:grantUriPermissions=\"true\""))
+        assertTrue(provider.contains("android:resource=\"@xml/support_file_paths\""))
+        val paths = projectFile("src/main/res/xml/support_file_paths.xml").readText()
+        val entries = Regex("<([a-z-]+)\\b[^>]*?/>").findAll(paths).toList()
+        assertEquals(1, entries.size)
+        assertEquals("cache-path", entries.single().groupValues[1])
+        assertTrue(entries.single().value.contains("path=\"support-reports/\""))
+    }
+    @Test
     fun serviceNotificationUsesInstalledVariantLauncherWithLocalExplicitFallback() {
         val source = projectFile("src/main/kotlin/io/github/nbjelanovic/otclient/TrailConnectedDeviceService.kt").readText()
         val notification = source.substringAfter("private fun buildNotification(): Notification {")
@@ -106,7 +137,7 @@ class ConnectedDeviceManifestPolicyTest {
     }
 
     @Test
-    fun activityRendersTheExactTrailArtworkWithoutAStartupDelay() {
+    fun activityUsesApprovedBriefLaunchArtworkWithoutBlockingMainThread() {
         val activitySource = projectFile(
             "src/main/kotlin/io/github/nbjelanovic/otclient/MainActivity.kt",
         ).readText()
@@ -122,11 +153,12 @@ class ConnectedDeviceManifestPolicyTest {
             "A3024504BA261ADDAFD2A85F49F6BCE630D1E9AB994EEA348D5842A6D2AB7422",
             artworkSha256,
         )
-        assertTrue(activitySource.contains("R.drawable.limited_underground_trail"))
-        assertTrue(activitySource.contains("contentDescription = null"))
-        assertTrue(activitySource.contains("contentScale = ContentScale.Fit"))
-        assertTrue(activitySource.contains("Text(\"Limited Underground\""))
-        assertTrue(activitySource.contains("Text(\"Trail\""))
+        val homeSource = projectFile("src/main/kotlin/io/github/nbjelanovic/otclient/V1HomeScreen.kt").readText()
+        assertTrue(homeSource.contains("R.drawable.limited_underground_trail"))
+        assertTrue(homeSource.contains("contentDescription = \"Limited Underground Trail\""))
+        assertTrue(homeSource.contains("delay(1_800)"))
+        assertTrue(homeSource.contains("splashFinished by rememberSaveable"))
+        assertFalse(activitySource.contains("Text(\"Limited Underground\""))
         listOf("Thread.sleep", "delay(", "postDelayed", "SplashScreen").forEach {
             assertFalse(activitySource.contains(it))
         }

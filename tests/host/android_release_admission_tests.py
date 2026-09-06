@@ -418,8 +418,8 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
 
     # OT-168 has one deliberately durable, non-identifying reset-correlation
     # receipt. Admit only its exact MODE_PRIVATE synchronous backend. Backup and
-    # device-transfer exclusion above remains mandatory, and any second use of
-    # SharedPreferences anywhere in production still fails this boundary.
+    # device-transfer exclusion above remains mandatory. OT-171/175 separately
+    # approve phone-local pending setup and custom templates, never BLE secrets.
     gatt_facade_path = (
         main
         / "kotlin"
@@ -430,11 +430,98 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
         / "AndroidBluetoothGattFacade.kt"
     )
     gatt_facade = production_by_path[gatt_facade_path]
+    package = gatt_facade_path.parent
+    draft_path = package / "V1SetupDraftScreen.kt"
+    templates_path = package / "V1HomeScreen.kt"
+    support_path = package / "V1SupportScreen.kt"
     assert all(
         "SharedPreferences" not in source
         for path, source in production_by_path.items()
-        if path != gatt_facade_path
+        if path not in {gatt_facade_path, draft_path, templates_path}
     )
+
+    draft = production_by_path[draft_path]
+    assert draft.count("getSharedPreferences(") == 1
+    assert 'getSharedPreferences("v1-pending-setup", Context.MODE_PRIVATE)' in draft
+    assert re.findall(r'preferences\.getString\("([^"\n]+)"', draft) == ["draft"]
+    assert re.findall(r'\.putString\("([^"\n]+)"', draft) == ["draft"]
+    assert re.findall(r'\.remove\("([^"\n]+)"', draft) == ["draft"]
+    for required in (
+        "encoded.length > 1024",
+        "encoded.size <= V1SetupDraftCodec.MAX_BYTES",
+        "Base64.encodeToString(encoded, Base64.NO_WRAP)).commit()",
+        'preferences.edit().remove("draft").commit()',
+        "Not applied to device",
+    ):
+        assert required in draft
+    draft_model = production_by_path[package / "V1SetupDraft.kt"]
+    fields = re.search(r"class V1SetupDraft private constructor\((.*?)\n\)", draft_model, re.DOTALL)
+    assert fields is not None
+    assert re.findall(r"val (\w+):", fields.group(1)) == [
+        "deviceName", "publicName", "radioRegion", "publiclyDiscoverable"
+    ]
+    for required in ("const val MAX_BYTES = 512", "private const val VERSION = 1",
+                     "V1DeviceName.create", "V1PublicName.create", "CodingErrorAction.REPORT"):
+        assert required in draft_model
+    assert "V1AuthorizationReceipt(" not in draft_model
+    assert "V1NameReadbackReceipt(" not in draft_model
+    assert "V1RegionReadbackReceipt(" not in draft_model
+
+    templates = production_by_path[templates_path]
+    assert templates.count("getSharedPreferences(") == 1
+    assert 'getSharedPreferences("v1-local-templates", 0)' in templates
+    assert re.findall(r'preferences\.getString\("([^"\n]+)"', templates) == ["template-$index"]
+    assert re.findall(r'\.putString\("([^"\n]+)"', templates) == ["template-$index"]
+    assert "(0 until V1QuickMessages.MAX_CUSTOM)" in templates
+    assert "V1QuickMessages::normalize" in templates
+    assert "persist(V1QuickMessages" in templates
+    quick_model = production_by_path[package / "V1QuickMessages.kt"]
+    assert "const val MAX_CUSTOM = 12" in quick_model
+    assert "const val MAX_CHARS = 160" in quick_model
+    for source in (draft, templates):
+        for forbidden in ("putLong(", "putInt(", "putBoolean(", "putFloat(", "putStringSet(",
+                          "receipt_bits", "issued_at_epoch_millis", "expires_at_epoch_millis"):
+            assert forbidden not in source
+
+    # OT-177 grants only the reviewed support report's bounded private cache and
+    # narrow FileProvider path. It does not permit another production file store.
+    support = production_by_path[support_path]
+    assert support.count("cacheDir") == 1
+    assert 'File(context.cacheDir, "support-reports")' in support
+    for required in ("V1SupportShareRetentionPolicy.plan", "File.createTempFile(",
+                     "reportFile.writeText(report.text, Charsets.UTF_8)",
+                     '"${context.packageName}.support-files"', "Intent.FLAG_GRANT_READ_URI_PERMISSION"):
+        assert required in support
+    retention = production_by_path[package / "V1SupportShareRetention.kt"]
+    assert "V1_SUPPORT_SHARED_REPORT_MAX_FILES = 8" in retention
+    assert "24L * 60L * 60L * 1_000L" in retention
+    provider_paths = ET.parse(main / "res" / "xml" / "support_file_paths.xml").getroot()
+    assert provider_paths.tag == "paths"
+    assert len(list(provider_paths)) == 1
+    assert provider_paths[0].tag == "cache-path"
+    assert provider_paths[0].attrib == {"name": "support_reports", "path": "support-reports/"}
+    android_ns = "{http://schemas.android.com/apk/res/android}"
+    manifest_root = ET.parse(main / "AndroidManifest.xml").getroot()
+    application = manifest_root.find("application")
+    assert application is not None
+    providers = application.findall("provider")
+    assert len(providers) == 1
+    assert providers[0].attrib == {
+        android_ns + "name": "androidx.core.content.FileProvider",
+        android_ns + "authorities": "${applicationId}.support-files",
+        android_ns + "exported": "false",
+        android_ns + "grantUriPermissions": "true",
+    }
+    metadata = list(providers[0])
+    assert len(metadata) == 1 and metadata[0].tag == "meta-data"
+    assert metadata[0].attrib == {
+        android_ns + "name": "android.support.FILE_PROVIDER_PATHS",
+        android_ns + "resource": "@xml/support_file_paths",
+    }
+    for path, source in production_by_path.items():
+        if path != support_path:
+            assert "java.io.File" not in source
+            assert "cacheDir" not in source
     assert gatt_facade.count("SharedPreferences") == 5
     for required in (
         "import android.content.SharedPreferences",
@@ -459,9 +546,7 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
         "DataStore",
         "RoomDatabase",
         "SQLiteDatabase",
-        "java.io.File",
         "filesDir",
-        "cacheDir",
         "getExternalFilesDir",
         "java.net.",
         "okhttp3.",

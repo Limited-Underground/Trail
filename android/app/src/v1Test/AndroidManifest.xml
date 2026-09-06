@@ -14,14 +14,5 @@
         </activity>
         <activity android:name=".V1TestLogActivity" android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.support-files"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/support_file_paths" />
-        </provider>
     </application>
 </manifest>

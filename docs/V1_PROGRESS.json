@@ -387,10 +387,10 @@
         {
           "id": "android-companion",
           "name": "Android companion application",
-          "description": "The isolated OT-177 V1-Test recorder is installed on the retained Note20. On 2026-09-06 the exact corrected Heltec firmware passed initial saved-owner authorization/Snapshot/Ready, full app restart, and two service disconnect/reconnect cycles with fresh authorization and Snapshot each time. Earlier authorization and Snapshot failures remain historical; their missing nonce history is not reconstructed. This is bounded single-pair acceptance with explicit service starts. Cold-power, factory-reset erasure, coherent two-pair operation, secure LoRa and signed production release remain open. The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware.",
+          "description": "The isolated OT-177 V1-Test recorder is installed on the retained Note20. On 2026-09-06 the exact corrected Heltec firmware passed initial saved-owner authorization/Snapshot/Ready, full app restart, and two service disconnect/reconnect cycles with fresh authorization and Snapshot each time. Earlier authorization and Snapshot failures remain historical; their missing nonce history is not reconstructed. This is bounded single-pair acceptance with explicit service starts. Cold-power, factory-reset erasure, coherent two-pair operation, secure LoRa and signed production release remain open. The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware. Integrated the existing owner-approved Android visual direction onto the published connection/service-logging baseline: Messages/Group/Device navigation, mint theme, fullscreen truthful status strip, setup/group/people surfaces, phone-local quick-message drafts and support export. The existing owner checkout is unchanged. This accepts software integration only; the combined APK is not installed and final visual or workflow acceptance is not claimed.",
           "weight": 20,
           "completion": 60,
-          "evidence_status": "Earlier single-pair reconnect accepted with prior APK; new service-lifetime recorder host/build validation only, phone acceptance pending.",
+          "evidence_status": "Prior single-pair reconnect evidence retained; existing Android visuals and service logging integrated and host/build tested, combined APK visual/phone acceptance pending.",
           "evidence_refs": ["android/README.md", "docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md", "docs/platform/DEVICE_FACTORY_RESET_V1.md", "docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md", "docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md", "tests/hardware/OT-168-2026-09-04.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md",
             "tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md",
             "tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md",
@@ -398,9 +398,10 @@
             "tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md",
             "tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md",
             "tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md",
-            "tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md"
+            "tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md",
+            "tests/hardware/OT-171-177-VISUAL-INTEGRATION-2026-09-06.md"
           ],
-          "next_gate": "Prepare a non-destructive installation and phone acceptance of the exact service-logging V1-Test APK: preserve the current owner/bond/data, verify saved-owner authorization/Snapshot/Ready, leave the activity while the service runs, reopen it without a false trace termination or duplicate milestones, then stop the service and verify one terminal record. Cold-power testing is owner-deferred because unplugging the battery requires opening the enclosure. Website synchronization/deployment remains deferred to the bulk update."
+          "next_gate": "Next implement the OT-178 OLED/clock presentation foundation against the approved display direction, starting with host-testable priority/layout/time rules and explicit unknown/stale inputs. Read firmware-porting preflight before target changes. Preserve the accepted BLE/owner semantics. When the visuals are ready for phone acceptance, use the combined Android build and include one narrow service-log leave/reopen/stop check; do not install the superseded logging-only build or repeat a broad connection campaign. Cold-power and website updates remain owner-deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -1023,6 +1024,12 @@
           "overall": 44,
           "overall_exact": 43.75,
           "reason": "The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware. Cold-power is owner-deferred; website updates remain owner-deferred. No milestone completion changes; exact weighted V1 remains 43.75 percent / displayed 44 percent."
+        },
+        {
+          "date": "2026-09-06",
+          "overall": 44,
+          "overall_exact": 43.75,
+          "reason": "Integrated the existing owner-approved Android visual direction onto the published connection/service-logging baseline: Messages/Group/Device navigation, mint theme, fullscreen truthful status strip, setup/group/people surfaces, phone-local quick-message drafts and support export. The existing owner checkout is unchanged. This accepts software integration only; the combined APK is not installed and final visual or workflow acceptance is not claimed. No completion increase: Android remains 60 percent, exact weighted V1 43.75 percent / displayed 44 percent. OLED/clock precedes broader workflow acceptance; website and cold-power remain owner-deferred."
         }
     ]
     },

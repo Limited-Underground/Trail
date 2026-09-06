@@ -1,5 +1,17 @@
 # Android client foundation
 
+## Visual integration - 2026-09-06
+
+Integrated the existing owner-approved Android visual direction onto the published connection/service-logging baseline: Messages/Group/Device navigation, mint theme, fullscreen truthful status strip, setup/group/people surfaces, phone-local quick-message drafts and support export. The existing owner checkout is unchanged. This accepts software integration only; the combined APK is not installed and final visual or workflow acceptance is not claimed.
+
+Ordinary support export uses one non-exported application-scoped FileProvider
+restricted to cache/support-reports. The V1-Test variant inherits that provider;
+its raw recorder remains private and excluded from production. No test gallery
+or unrelated protocol/inbox implementation was imported. Unknown device metrics
+remain unknown; local draft storage does not imply a device settings commit.
+
+See [validation and sequencing](../tests/hardware/OT-171-177-VISUAL-INTEGRATION-2026-09-06.md).
+
 ## OT-177 V1-Test observation - 2026-09-06
 
 The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware.

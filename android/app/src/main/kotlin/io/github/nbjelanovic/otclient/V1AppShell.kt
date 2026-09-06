@@ -1,7 +1,7 @@
 package io.github.nbjelanovic.otclient
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,7 +11,20 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+
+/** Window orientation is stable when the IME reduces the content's usable height. */
+internal fun v1NavigationForConfiguration(orientation: Int): V1AppNavigationLayout =
+    if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        V1AppNavigationLayout.LANDSCAPE_NAVIGATION_RAIL
+    } else {
+        V1AppNavigationLayout.PORTRAIT_BOTTOM_BAR
+    }
 
 @Composable
 internal fun V1AppShell(
@@ -21,20 +34,24 @@ internal fun V1AppShell(
     group: @Composable () -> Unit,
     device: @Composable () -> Unit,
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    val layout = v1NavigationForConfiguration(LocalConfiguration.current.orientation)
+    Box(modifier = Modifier.fillMaxSize()) {
         val content: @Composable () -> Unit = when (state.selectedDestination) {
             V1AppDestination.MESSAGES -> messages
             V1AppDestination.GROUP -> group
             V1AppDestination.DEVICE -> device
         }
-        if (maxWidth > maxHeight) {
+        val currentContent by rememberUpdatedState(content)
+        // Move the same content instance between rail/bar layouts; do not destroy drafts on rotation.
+        val retainedContent = remember { movableContentOf { currentContent() } }
+        if (layout == V1AppNavigationLayout.LANDSCAPE_NAVIGATION_RAIL) {
             Row(modifier = Modifier.fillMaxSize()) {
                 V1NavigationRail(state.selectedDestination, onDestinationSelected)
-                Box(modifier = Modifier.weight(1f).fillMaxSize()) { content() }
+                Box(modifier = Modifier.weight(1f).fillMaxSize()) { retainedContent() }
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.weight(1f).fillMaxSize()) { content() }
+                Box(modifier = Modifier.weight(1f).fillMaxSize()) { retainedContent() }
                 V1NavigationBar(state.selectedDestination, onDestinationSelected)
             }
         }
