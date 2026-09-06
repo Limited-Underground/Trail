@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-09-06 - OT-170 device-name payload parity
+
+Imported the existing OT-170 C++ and Kotlin device-name candidate codecs without changing their production bytes or payload format. Both pass the same 151 synthetic vectors (25 accepted, 126 rejected), including decoded fields and exact re-encoding. The Android setup model now requires a matching preliminary name receipt; no live adapter issues it.
+
+Freeze the negotiated configuration/time transport and device-name authority mapping next: matched frame capacities, exact request/revision/session correlation, durable compare-and-set/readback, uncertainty recovery and reset behavior. Resolve draft-name validation differences before enabling requests. No new opcode, target linkage, storage driver or hardware execution is accepted. Website and cold-power remain deferred.
+
+See [validation evidence](../docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md). V1 remains exact 43.75% / displayed 44%; final matrix results are recorded in the evidence.
+
 ## 2026-09-06 - OT-178 host time-admission owner validated
 
 OT-178 adds a host-only fixed-memory time-admission owner around OledClock and an injected trusted authority source. It binds one challenge to exact owner/session generations, rejects stale or duplicate work without refreshing time, and separates disconnect retention from revocation/reset invalidation. All 21 focused groups and the complete host matrix pass; no wire, target or phone integration is added.

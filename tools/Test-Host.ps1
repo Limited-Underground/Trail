@@ -215,6 +215,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'device-name candidate payload parity'
+        Output = Join-Path $buildDirectory 'companion_device_name_codec_tests.exe'
+        RunArguments = @((Join-Path $projectRoot 'tests\fixtures\companion_device_name_v1.tsv').Replace('\', '/'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_device_name_codec_tests.cpp')
+        )
+    },
+    @{
         Name = 'BLE companion semantic payload codecs'
         Output = Join-Path $buildDirectory 'companion_semantics_tests.exe'
         Sources = @(
@@ -1969,7 +1978,8 @@ foreach ($build in $builds) {
     }
 
     if (-not $build.ContainsKey('Run') -or $build.Run) {
-        & $build.Output
+        $runArguments = @(if ($build.ContainsKey('RunArguments')) { $build.RunArguments })
+        & $build.Output @runArguments
         if ($LASTEXITCODE -ne 0) {
             throw "$($build.Name) tests failed with exit code $LASTEXITCODE."
         }

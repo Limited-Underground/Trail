@@ -87,6 +87,19 @@ class V1AuthorizationReceipt internal constructor(
     override fun toString(): String = "V1AuthorizationReceipt(redacted)"
 }
 
+/**
+ * Future authenticated device adapter evidence, issued only after durable write/readback.
+ * Current firmware has no name capability: phone-local drafts must never mint this receipt.
+ * Like region receipts, this model checks binding; construction is not hardware acceptance.
+ */
+class V1NameReadbackReceipt internal constructor(
+    internal val setupLabel: V1SetupLabel,
+    internal val sessionToken: V1SetupSessionToken,
+    internal val name: V1DeviceName,
+) {
+    override fun toString(): String = "V1NameReadbackReceipt(name=redacted, identity=redacted)"
+}
+
 class V1RegionReadbackReceipt internal constructor(
     internal val setupLabel: V1SetupLabel,
     internal val sessionToken: V1SetupSessionToken,
@@ -129,8 +142,11 @@ class V1SetupProgress private constructor(
         takeIf { setupLabel == receipt.setupLabel && sessionToken == receipt.sessionToken }
             ?.let { V1SetupProgress(setupLabel, sessionToken, true, null, null, false, null) }
 
-    fun nameDevice(name: V1DeviceName): V1SetupProgress? =
-        takeIf { authorized }?.let {
+    fun nameDevice(name: V1DeviceName, receipt: V1NameReadbackReceipt): V1SetupProgress? =
+        takeIf {
+            authorized && setupLabel == receipt.setupLabel &&
+                sessionToken == receipt.sessionToken && name == receipt.name
+        }?.let {
             V1SetupProgress(setupLabel, sessionToken, true, name, null, false, null)
         }
 

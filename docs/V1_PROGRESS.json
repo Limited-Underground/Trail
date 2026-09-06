@@ -386,9 +386,10 @@
             "docs/platform/OLED_CONFIGURATION_TIME_AUTHORITY_V1.md",
             "docs/testing/OT-178-TIME-ADMISSION-2026-09-06.md",
             "docs/decisions/0106-oled-configuration-time-authority.md",
-            "docs/decisions/0105-ot178-host-oled-presentation.md"
+            "docs/decisions/0105-ot178-host-oled-presentation.md",
+            "docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md"
           ],
-          "next_gate": "Reconcile the existing unpublished OT-170 name codec and readback draft in isolation, preserve its byte format where valid, and establish cross-language parity before a negotiated configuration/time transport successor. Do not allocate an opcode or enlarge target buffers without the reviewed capacity, authorization, uncertainty and reset contract. Website and cold-power work remain deferred."
+          "next_gate": "Freeze negotiated configuration/time transport capacities and exact request/revision/session mapping, durable compare-and-set/readback, uncertainty recovery and reset semantics. Resolve draft-name validation differences before enabling requests. Website and cold-power remain deferred."
         },
         {
           "id": "android-companion",
@@ -405,9 +406,10 @@
             "tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md",
             "tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md",
             "tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md",
-            "tests/hardware/OT-171-177-VISUAL-INTEGRATION-2026-09-06.md"
+            "tests/hardware/OT-171-177-VISUAL-INTEGRATION-2026-09-06.md",
+            "docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md"
           ],
-          "next_gate": "Reconcile the existing unpublished name codec/readback draft in isolation and verify Android/C++ payload parity, preserving local drafts as unconfirmed intent. The time-admission owner is host-tested; negotiate matched transport capacities and prove trusted adapter authority before enabling Android requests. Combined visual APK remains uninstalled; later acceptance includes the narrow Ready/service-log leave/reopen/stop check. Website and cold-power remain deferred."
+          "next_gate": "Freeze negotiated configuration/time transport capacities and exact request/revision/session mapping, durable compare-and-set/readback, uncertainty recovery and reset semantics. Resolve draft-name validation differences before enabling requests. Website and cold-power remain deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -1060,8 +1062,9 @@
           "overall": 44,
           "overall_exact": 43.75,
           "reason": "OT-178 adds a host-only fixed-memory time-admission owner around OledClock and an injected trusted authority source. It binds one challenge to exact owner/session generations, rejects stale or duplicate work without refreshing time, and separates disconnect retention from revocation/reset invalidation. All 21 focused groups and the complete host matrix pass; no wire, target or phone integration is added. No milestone completion changes; target25, Android60, V1 exact43.75/display44. Website and cold-power remain deferred."
-        }
-    ]
+        },
+        {"date": "2026-09-06", "overall": 44, "overall_exact": 43.75, "reason": "OT-170 imports existing C++/Kotlin name codecs unchanged with 151 shared parity vectors and a preliminary label/session/name receipt model. No negotiated transport, persistence, authenticated request/revision receipt or physical evidence is added. All completions unchanged: target25, Android60. Website and cold-power remain deferred."}
+      ]
     },
     {
       "id": "v1-5-multinode-interoperability",

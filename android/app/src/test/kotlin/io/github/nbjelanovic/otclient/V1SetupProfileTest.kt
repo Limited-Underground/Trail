@@ -16,7 +16,7 @@ class V1SetupProfileTest {
         assertEquals(V1SetupStage.SECURE_PAIR_AND_AUTHORIZE, progress.stage)
         progress = assertNotNull(progress.authorize(authorization()))
         assertEquals(V1SetupStage.NAME_DEVICE, progress.stage)
-        progress = assertNotNull(progress.nameDevice(deviceName()))
+        progress = assertNotNull(progress.nameDevice(deviceName(), nameReceipt()))
         assertEquals(V1SetupStage.CONFIRM_RADIO_REGION, progress.stage)
         progress = assertNotNull(progress.confirmRadioRegion(regionReceipt()))
         assertEquals(V1SetupStage.PUBLIC_PROFILE, progress.stage)
@@ -30,7 +30,7 @@ class V1SetupProfileTest {
     fun operationsFailClosedWhenAttemptedOutOfOrder() {
         val empty = V1SetupProgress.empty()
         assertNull(empty.authorize(authorization()))
-        assertNull(empty.nameDevice(deviceName()))
+        assertNull(empty.nameDevice(deviceName(), nameReceipt()))
         assertNull(empty.confirmRadioRegion(regionReceipt()))
         assertNull(empty.setPublicProfile(V1PublicProfile(publicName())))
     }
@@ -39,7 +39,7 @@ class V1SetupProfileTest {
     fun regionMustHaveMatchingReadbackBeforeProfileCompletionOrRadioTransmission() {
         val named = assertNotNull(
             assertNotNull(V1SetupProgress.empty().matchDevice(label(), session()).authorize(authorization()))
-                .nameDevice(deviceName()),
+                .nameDevice(deviceName(), nameReceipt()),
         )
         val stale = V1RegionReadbackReceipt(label(), otherSession(), V1RadioRegion.US915)
         assertNull(named.confirmRadioRegion(stale))
@@ -102,11 +102,38 @@ class V1SetupProfileTest {
     private fun complete(): V1SetupProgress {
         var progress = V1SetupProgress.empty().matchDevice(label(), session())
         progress = requireNotNull(progress.authorize(authorization()))
-        progress = requireNotNull(progress.nameDevice(deviceName()))
+        progress = requireNotNull(progress.nameDevice(deviceName(), nameReceipt()))
         progress = requireNotNull(progress.confirmRadioRegion(regionReceipt()))
         return requireNotNull(progress.setPublicProfile(V1PublicProfile(publicName())))
     }
 
+    @Test
+    fun nameReadbackRequiresCurrentSessionLabelAndExactRequestedName() {
+        val authorized = requireNotNull(V1SetupProgress.empty().matchDevice(label(), session()).authorize(authorization()))
+        val otherLabel = requireNotNull(V1SetupLabel.create("Trail-8M4R2T"))
+        val differentName = requireNotNull(V1DeviceName.create("Different name"))
+        assertNull(authorized.nameDevice(deviceName(), V1NameReadbackReceipt(label(), otherSession(), deviceName())))
+        assertNull(authorized.nameDevice(deviceName(), V1NameReadbackReceipt(otherLabel, session(), deviceName())))
+        assertNull(authorized.nameDevice(deviceName(), V1NameReadbackReceipt(label(), session(), differentName)))
+        assertEquals(V1SetupStage.NAME_DEVICE, authorized.stage)
+        assertNull(authorized.deviceName)
+        assertFalse(authorized.radioTransmissionAllowed)
+        val named = requireNotNull(authorized.nameDevice(deviceName(), nameReceipt()))
+        assertEquals(deviceName(), named.deviceName)
+        assertEquals(V1SetupStage.CONFIRM_RADIO_REGION, named.stage)
+        assertFalse(named.radioTransmissionAllowed)
+    }
+
+    @Test
+    fun matchingNameReceiptCannotAuthorizeUnownedSetup() {
+        val matched = V1SetupProgress.empty().matchDevice(label(), session())
+        assertNull(matched.nameDevice(deviceName(), nameReceipt()))
+        assertEquals(V1SetupStage.SECURE_PAIR_AND_AUTHORIZE, matched.stage)
+        assertFalse(nameReceipt().toString().contains("Brian"))
+        assertFalse(nameReceipt().toString().contains("7K3P9Q"))
+    }
+
+    private fun nameReceipt() = V1NameReadbackReceipt(label(), session(), deviceName())
     private fun authorization() = V1AuthorizationReceipt(label(), session())
     private fun regionReceipt() = V1RegionReadbackReceipt(label(), session(), V1RadioRegion.US915)
     private fun session() = requireNotNull(
