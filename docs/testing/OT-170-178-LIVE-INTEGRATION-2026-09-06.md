@@ -1,6 +1,6 @@
 # Name and time integration toward first hardware acceptance
 
-Status: reproducible firmware, installation and live name/clock transactions verified; restart and final display acceptance pending.
+Status: first single-pair name/clock installation, visible display and warm-restart acceptance passed.
 
 The owner authorized consolidation of the remaining dispatcher, persistence,
 Android and target work through the first installation and live test. Website
@@ -193,3 +193,39 @@ excluding the preceding 30-second discovery. Receive-only serial observation aft
 the requests showed increasing heartbeats and 3408 bytes minimum free app-task
 stack. App restart, warm board restart and final OLED confirmation remain separate
 acceptance observations below.
+
+## Accepted restart and display observations
+
+The owner confirmed the physical display shows Trail Bench and the current time
+matching the Note20, with both region/TX warning rows retained. After a real app
+process stop and relaunch, process generation 15 completed fresh authorization,
+Snapshot and Ready in 1803 ms after connection attempt (30-second discovery
+excluded). A new Read device operation returned Trail Bench; no draft value was
+used as device evidence.
+
+A separate identity-checked warm restart used only ROM read-mac/reset commands:
+zero flash writes, no power removal, no bond/owner/data clear. The board returned
+with increasing heartbeats and startup minimum free stack 4688 bytes. The owner
+explicitly confirmed Trail Bench remained visible while time returned to --:--.
+The still-running app automatically reconnected, with fresh authorization,
+Snapshot and Ready in 2883 ms from its observed reconnect attempt. A fresh device
+read returned Trail Bench, and a new clock challenge/sync again reported success.
+Final receive-only observation showed increasing heartbeats and minimum free
+app-task stack 3456 bytes; the lowest observed margin across this sequence was
+3408 bytes. This is not a long-duration resource, heap or power measurement.
+
+These observations accept the first real single-pair name persistence, volatile
+clock synchronization and saved-owner restart/reconnect slice. Firmware target
+partial credit changes 25 to 30; Android companion changes 60 to 65. Other
+milestones remain unchanged: weighted V1 exact 45.50%, displayed 46%. These small
+increments are evidence-based milestone judgments, not completion of OT-170,
+OT-178 or V1. Cold-power, destructive reset/erasure acceptance, radio-region and
+group onboarding, two-pair operation, radio/field and release gates remain open.
+Website synchronization/deployment remains explicitly deferred to the owner's
+bulk update. No radio transmission or region selection occurred.
+
+The installed firmware is now the name-aware 582576-byte application listed above.
+After the accepted name write, the older reconnect image is not an accepted
+whole-user-data reset/recovery implementation; retain the verified name-aware
+artifact for a future compatible recovery decision. The initial restoration
+manifest remains historical evidence of the pre-name installation boundary.

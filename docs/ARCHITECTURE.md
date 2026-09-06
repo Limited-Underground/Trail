@@ -2,6 +2,28 @@
 
 ## 2026-09-06
 
+### OT-170 / OT-178 first name and clock hardware acceptance
+
+The verified application-only firmware and corrected V1-Test APK now pass the
+first real name/clock workflow on the retained Heltec V4.2 and Note20 pair.
+The phone read the initially absent name, saved a name and received exact device
+readback, then synchronized the display clock. The owner confirmed the OLED name,
+time and retained region-required/TX-disabled warnings. Full app restart recovered
+Ready and fresh name readback. A warm board restart retained the name and showed
+unknown time until reconnection and a new successful synchronization; fresh device
+readback again matched. No battery disconnection or full power removal occurred.
+
+This accepts bounded single-pair name persistence, protected readback and volatile
+clock synchronization. OT-170 and OT-178 remain partial. Next, under OT-170 and
+OT-171, define and host-test protected radio-region selection, durable readback
+and rejection rules before extending onboarding or enabling target integration.
+Region selection alone must not enable TX. Cold-power, destructive reset/erasure,
+two-pair operation, secure radio and signed-release acceptance remain open.
+Website synchronization and deployment remain deferred to the owner's bulk update;
+the canonical V1 progress record now includes this new physical evidence.
+
+See [physical integration evidence](../docs/testing/OT-170-178-LIVE-INTEGRATION-2026-09-06.md) and [canonical V1 progress](../docs/V1_PROGRESS.json).
+
 ### Integrated name and clock candidate validated
 
 Connected protected profile 0.2, shared request dispatch, durable device-name

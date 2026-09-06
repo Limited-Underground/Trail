@@ -1,7 +1,7 @@
 # Decision 0109: Bind companion name and time configuration
 
 - Date: 2026-09-06
-- Status: software validation accepted; final reproducible builds and physical acceptance pending
+- Status: software validation and first single-pair physical name/clock acceptance passed
 - Work items: OT-170, OT-178
 
 Use the allocated profile 0.2 for normal protected companion traffic after the
