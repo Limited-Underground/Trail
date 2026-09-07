@@ -159,6 +159,8 @@ std::atomic<std::uint64_t> g_app_factory_reset_response_started_ms{0};
 bool g_boot_unowned{false};
 bool g_boot_pairing_attempted{false};
 std::atomic<bool> g_pairable_advertising{false};
+ui::BootSetupLabel g_setup_label;
+security::SecureRandomSource* g_setup_random{nullptr};
 std::atomic<std::uint64_t> g_boot_reset_receipt{0};
 std::atomic<bool> g_suppress_next_adv_complete{false};
 
@@ -648,6 +650,13 @@ private:
         fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
         const bool pairable =
             g_pairable_advertising.load(std::memory_order_acquire);
+        const auto setup_name = ui::setup_advertising_name(g_setup_label.code(), pairable);
+        if (pairable && setup_name.size != 6) return false;
+        if (setup_name.size != 0) {
+            fields.name = reinterpret_cast<const std::uint8_t*>(setup_name.bytes.data());
+            fields.name_len = static_cast<std::uint8_t>(setup_name.size);
+            fields.name_is_complete = 1;
+        }
         fields.uuids128 = &kAdvertisingUuids[pairable ? 1 : 0];
         fields.num_uuids128 = 1;
         fields.uuids128_is_complete = 1;
@@ -1092,6 +1101,11 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
                     g_boot_pairing_attempted) {
                     return CompanionBleRuntimeError::invalid_argument;
                 }
+                if (g_setup_random == nullptr || g_startup_display == nullptr ||
+                    !g_setup_label.initialize(*g_setup_random) ||
+                    !g_startup_display->set_setup_code(g_setup_label.code())) {
+                    return CompanionBleRuntimeError::contained;
+                }
                 g_boot_pairing_attempted = true;
                 const auto opened =
                     g_pairing_window->open_unowned_boot_window(
@@ -1333,6 +1347,7 @@ CompanionBleRuntimeError start_companion_nimble_runtime(
     g_factory_reset_action_authority = &reset_action_authority;
     g_factory_reset_bonds = &reset_bonds;
     g_startup_display = &display;
+    g_setup_random = &random;
     g_boot_unowned = false;
     g_boot_pairing_attempted = false;
     g_boot_reset_receipt.store(0, std::memory_order_release);

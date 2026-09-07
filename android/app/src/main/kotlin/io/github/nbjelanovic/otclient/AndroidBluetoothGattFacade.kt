@@ -441,6 +441,7 @@ class AndroidBluetoothGattFacade(
         private var started = false
         private var platformRegistered = false
         private var leaseClosed = false
+        private val setupDiscovery = AndroidSetupDiscovery<BluetoothDevice>(MAX_DISCOVERED_COMPANIONS)
         private val timeout = Runnable { finish() }
         private val callback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -565,6 +566,17 @@ class AndroidBluetoothGattFacade(
                 observer(BleScanEvent.FactoryResetReceiptObserved(observedResetReceipt ?: return))
                 return
             }
+            val setupLabel = if (purpose == ScanPurpose.ADD_DEVICE) {
+                val admission = setupDiscovery.observe(result.device, scanRecord.bytes, advertisedUuids)
+                if (admission.invalidated) {
+                    // Invalidate the endpoint bindings too: a stale UI selection cannot reconnect.
+                    candidates.clear()
+                    closePlatform()
+                    observer(BleScanEvent.Failed(BleGattFailure.PLATFORM_FAILURE, admission.issue))
+                    return
+                }
+                admission.label ?: return
+            } else null
             val existing = candidates[result.device]
             val binding = existing ?: if (candidates.size < MAX_DISCOVERED_COMPANIONS) {
                 val endpointToken = OpaqueEndpointTokenPolicy.generate(
@@ -582,7 +594,7 @@ class AndroidBluetoothGattFacade(
                 CandidateBinding(
                     endpointToken = endpointToken,
                     publicLabel = if (purpose == ScanPurpose.ADD_DEVICE) {
-                        "Nearby compatible device ${candidates.size + 1}"
+                        checkNotNull(setupLabel)
                     } else {
                         "Authorized device ${candidates.size + 1}"
                     },

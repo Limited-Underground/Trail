@@ -395,9 +395,11 @@
             "docs/testing/OT-170-171-REGION-INTEGRATION-2026-09-06.md",
             "docs/testing/OT-178-PHONE-STATUS-2026-09-07.md",
             "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md",
-          "docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md"
+          "docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md",
+          "docs/testing/OT-171-SETUP-LABEL-2026-09-07.md",
+          "docs/decisions/0111-match-first-use-setup-labels.md"
         ],
-          "next_gate": "Both updated APKs are exactly readback-verified and automatically read the current name and synchronize the clock after the existing manual service-start flow. The owner confirms the second Heltec time is correct. Resume the OT-163 restart_ack_a diagnosis using current per-device recovery images and secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation, original-Heltec visual confirmation for this increment, live timezone/format and six-hour refresh, cold-power, reset, field and signed-release gates remain open; secondary onboarding/options follow the message path and website updates remain deferred."
+          "next_gate": "First-use setup-label code is host/Android/build validated but not installed. Obtain explicit approval to reset only the second Heltec, then install the verified artifacts and prove OLED/list label matching, normal secure pairing/Ready, owned D0 concealment, US915 readback and reconnect while preserving the original pair. No reset or first-use physical acceptance is claimed. Then resume OT-163 restart_ack_a diagnosis using current per-device recovery images and secure two-pair messaging. Pair isolation, live time/format refresh, cold-power, reset-domain erasure, field and signed-release gates remain open. Website updates remain deferred."
         },
         {
           "id": "android-companion",
@@ -423,9 +425,11 @@
             "docs/testing/OT-170-171-REGION-INTEGRATION-2026-09-06.md",
             "docs/testing/OT-178-PHONE-STATUS-2026-09-07.md",
             "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md",
-          "docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md"
+          "docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md",
+          "docs/testing/OT-171-SETUP-LABEL-2026-09-07.md",
+          "docs/decisions/0111-match-first-use-setup-labels.md"
         ],
-          "next_gate": "Both updated APKs are exactly readback-verified and automatically read the current name and synchronize the clock after the existing manual service-start flow. The owner confirms the second Heltec time is correct. Resume the OT-163 restart_ack_a diagnosis using current per-device recovery images and secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation, original-Heltec visual confirmation for this increment, live timezone/format and six-hour refresh, cold-power, reset, field and signed-release gates remain open; secondary onboarding/options follow the message path and website updates remain deferred."
+          "next_gate": "First-use setup-label code is host/Android/build validated but not installed. Obtain explicit approval to reset only the second Heltec, then install the verified artifacts and prove OLED/list label matching, normal secure pairing/Ready, owned D0 concealment, US915 readback and reconnect while preserving the original pair. No reset or first-use physical acceptance is claimed. Then resume OT-163 restart_ack_a diagnosis using current per-device recovery images and secure two-pair messaging. Pair isolation, live time/format refresh, cold-power, reset-domain erasure, field and signed-release gates remain open. Website updates remain deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -475,9 +479,11 @@
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
             ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md",
             "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md",
-          "docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md"
+          "docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md",
+          "docs/testing/OT-171-SETUP-LABEL-2026-09-07.md",
+          "docs/decisions/0111-match-first-use-setup-labels.md"
         ],
-          "next_gate": "Both updated APKs are exactly readback-verified and automatically read the current name and synchronize the clock after the existing manual service-start flow. The owner confirms the second Heltec time is correct. Resume the OT-163 restart_ack_a diagnosis using current per-device recovery images and secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation, original-Heltec visual confirmation for this increment, live timezone/format and six-hour refresh, cold-power, reset, field and signed-release gates remain open; secondary onboarding/options follow the message path and website updates remain deferred."
+          "next_gate": "First-use setup-label code is host/Android/build validated but not installed. Obtain explicit approval to reset only the second Heltec, then install the verified artifacts and prove OLED/list label matching, normal secure pairing/Ready, owned D0 concealment, US915 readback and reconnect while preserving the original pair. No reset or first-use physical acceptance is claimed. Then resume OT-163 restart_ack_a diagnosis using current per-device recovery images and secure two-pair messaging. Pair isolation, live time/format refresh, cold-power, reset-domain erasure, field and signed-release gates remain open. Website updates remain deferred."
         }
       ],
       "change_log": [
@@ -1116,6 +1122,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "Accepted the owner-reported OT-178 automatic display-clock correction and OT-170 current protected connected-device name presentation on both existing pairs. The complete Android matrix passes 1,034 tests plus variant builds/lint and artifact auditing. Both updated V1-Test APKs pass exact installed-byte readback; after the existing manual service-start flow, both automatically confirm clock sync without pressing Read device or Sync display clock. Note20 shows Trail Bench and S24 its confirmed unnamed state with a naming prompt; the owner confirms the second Heltec time is correct. Firmware, base apps, data and phone settings are preserved. Original-Heltec visual confirmation for this increment, live timezone/format changes and six-hour refresh remain untested. Scores remain unchanged. Resume the OT-163 restart-acknowledgment diagnosis and secure two-pair message path; website and cold-power remain deferred."
+        },
+        {
+          "date": "2026-09-07",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-171 matching first-use setup labels are validated on the computer: full host matrix, 1,059 tests in the Android matrix, variant builds/lint and artifact auditing, and two clean six-artifact matching firmware builds. Actual OLED pixel tests prove the same code as D1 advertising and concealment; Android rejects ambiguous, changed and malformed primary labels while preserving reset responses and owned D0 behavior. No installation, reset or physical first-use result is claimed. Both retained devices are owned; explicit approval to reset only the second device is the next hardware gate. Scores remain unchanged; website and cold-power remain deferred."
         }
       ]
     },

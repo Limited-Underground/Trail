@@ -110,6 +110,8 @@ internal object V1SupportHealthProjector {
         BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED,
         -> V1SupportCode.APP
         BleRuntimeFailure.SCAN_START_FAILED,
+        BleRuntimeFailure.SETUP_LABEL_AMBIGUOUS,
+        BleRuntimeFailure.SETUP_LABEL_CHANGED,
         BleRuntimeFailure.RETURNING_OWNER_AMBIGUOUS,
         BleRuntimeFailure.CONNECTION_START_FAILED,
         BleRuntimeFailure.MTU_NEGOTIATION_FAILED,

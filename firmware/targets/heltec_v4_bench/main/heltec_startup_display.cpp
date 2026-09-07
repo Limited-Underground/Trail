@@ -58,6 +58,13 @@ bool StartupDisplayOwner::show_footer(
     return show_view(view);
 }
 
+bool StartupDisplayOwner::set_setup_code(const ui::SetupCode& code) {
+    if (!ui::valid_setup_code(code) || pairing_pin_visible_) return false;
+    if (ui::valid_setup_code(setup_code_) && setup_code_ != code) return false;
+    setup_code_ = code;
+    return true;
+}
+
 bool StartupDisplayOwner::show_pairing_pin(
     const std::array<char, 6>& digits) {
     if (!started_ || !status_.available ||
@@ -72,6 +79,7 @@ bool StartupDisplayOwner::show_pairing_pin(
 
     PairingPinDisplayView pairing_view{};
     pairing_view.digits = digits;
+    pairing_view.setup_code = setup_code_;
     if (has_view_ && view_.has_footer) {
         pairing_view.has_footer = true;
         pairing_view.footer = view_.footer;

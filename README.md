@@ -83,6 +83,23 @@ updates and cold-power disassembly remain deferred.
 
 See [automatic clock and name evidence](docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md).
 
+### OT-171 Matching first-use setup labels validated on the computer
+
+The candidate firmware now shows a temporary `Trail-XXXXXX` setup label on the
+pairing OLED and advertises the same code for first-use discovery. Android lists
+that label, rejects malformed or missing names, and stops ambiguous or changed
+selections. Saved names and ownership stay separate. The full host matrix,
+1,059 tests in the Android matrix, variant builds/lint and artifact audit pass;
+two clean firmware builds match across all six compared artifacts.
+
+No candidate was installed and no device was reset. Both retained pairs are owned;
+physical first-use matching needs an unowned device or explicit approval to reset
+only the second Heltec and pair it again. Preserve the original pair as a control.
+V1 scores remain unchanged. After this gate, resume the secure two-pair message
+path. Website updates and cold-power disassembly remain owner-deferred.
+
+See [setup-label evidence](docs/testing/OT-171-SETUP-LABEL-2026-09-07.md).
+
 ## 2026-09-06
 
 ### OT-170 / OT-178 first name and clock hardware acceptance

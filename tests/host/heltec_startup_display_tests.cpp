@@ -60,6 +60,43 @@ public:
     std::size_t conceal_calls{0};
 };
 
+class SetupRandom final : public opentrail::security::SecureRandomSource {
+public:
+    opentrail::security::EntropyState entropy{opentrail::security::EntropyState::ready};
+    std::size_t calls{0}; bool partial{false};
+    opentrail::security::EntropyState state() const override { return entropy; }
+    opentrail::security::RandomFillResult fill(std::uint8_t* out, std::size_t size) override {
+        ++calls;
+        for (std::size_t i=0;i<size;++i) out[i]=static_cast<std::uint8_t>(i+26);
+        return {opentrail::security::RandomFillError::none,partial ? size-1 : size};
+    }
+};
+void test_setup_label_generation_advertising_and_actual_owner() {
+    namespace ui=opentrail::ui;
+    SetupRandom random; ui::BootSetupLabel label;
+    require(label.initialize(random),"setup entropy accepted");
+    const auto code=label.code();
+    require(std::string(code.begin(),code.end())=="UVWXYZ","full alphabet last indices");
+    require(label.initialize(random) && random.calls==1,"one immutable boot alias");
+    const auto visible=ui::setup_advertising_name(code,true);
+    require(visible.size==6 && visible.bytes==code && ui::kSetupAdvertisingBytes==29,"bounded D1 exact code");
+    require(ui::setup_advertising_name(code,false).size==0,"D0 has no setup alias");
+    require(ui::setup_advertising_name({},true).size==0,"invalid alias never public");
+    SetupRandom partial; partial.partial=true;ui::BootSetupLabel rejected;
+    require(!rejected.initialize(partial) && !ui::valid_setup_code(rejected.code()),"partial entropy rejected");
+    partial.partial=false;require(!rejected.initialize(partial) && partial.calls==1,"no partial-source retry");
+    SetupRandom unavailable; unavailable.entropy=opentrail::security::EntropyState::not_ready;
+    ui::BootSetupLabel no_entropy;require(!no_entropy.initialize(unavailable) && unavailable.calls==0,"entropy readiness");
+    FakeDisplayPort port;StartupDisplayOwner owner{port};require(owner.start(),"setup display start");
+    require(owner.set_setup_code(code),"setup exact code bound");
+    auto other=code;other[0]='2';require(!owner.set_setup_code(other),"within boot code immutable");
+    require(owner.show_pairing_pin({'1','2','3','4','5','6'}),"PIN plus label");
+    require(port.pairing_views.back().setup_code==visible.bytes,"OLED and D1 same exact code");
+    require(!owner.set_setup_code(code),"no mutation during PIN view");
+    require(owner.clear_pairing_pin(),"PIN and alias concealed together");
+    require(owner.set_setup_code(code),"same alias retained after window");
+}
+
 void test_success_and_duplicate_suppression() {
     FakeDisplayPort port;
     StartupDisplayOwner owner{port};
@@ -689,6 +726,7 @@ void test_phone_authority_redraw_and_overlay() {
 }  // namespace
 
 int main() {
+    test_setup_label_generation_advertising_and_actual_owner();
     test_runtime_phone_authority_fences();
     test_phone_authority_redraw_and_overlay();
     test_success_and_duplicate_suppression();
@@ -702,6 +740,6 @@ int main() {
     test_pairing_pin_is_transient_and_clear_restores_latest_footer();
     test_factory_reset_overlay_suppresses_redraw_and_restores_latest_view();
     test_factory_reset_render_and_restore_failures_conceal();
-    std::cout << "13 Heltec startup display groups passed.\n";
+    std::cout << "14 Heltec startup display groups passed.\n";
     return 0;
 }

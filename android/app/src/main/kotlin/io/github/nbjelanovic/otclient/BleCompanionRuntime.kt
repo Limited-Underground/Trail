@@ -78,6 +78,8 @@ enum class BleRuntimeBlock {
 
 enum class BleRuntimeFailure {
     SCAN_START_FAILED,
+    SETUP_LABEL_AMBIGUOUS,
+    SETUP_LABEL_CHANGED,
     RETURNING_OWNER_AMBIGUOUS,
     CONNECTION_START_FAILED,
     SECURITY_REQUIREMENT_FAILED,
@@ -149,12 +151,14 @@ private fun BleGattFailure.connectionDiagnostic(): BleConnectionDiagnostic = whe
     BleGattFailure.PLATFORM_FAILURE -> BleConnectionDiagnostic.GATT_PLATFORM_FAILURE
 }
 
+enum class BleSetupLabelIssue { AMBIGUOUS, CHANGED }
+
 sealed interface BleScanEvent {
     data class Candidate(val companion: BleDiscoveredCompanion) : BleScanEvent
     /** Reset-only correlation proof; never a device identity or authorization credential. */
     data class FactoryResetReceiptObserved(val receipt: ULong) : BleScanEvent
     data object Complete : BleScanEvent
-    data class Failed(val failure: BleGattFailure) : BleScanEvent
+    data class Failed(val failure: BleGattFailure, val setupLabelIssue: BleSetupLabelIssue? = null) : BleScanEvent
 }
 
 sealed interface BleGattEvent {
@@ -902,7 +906,12 @@ class BleCompanionRuntime(
             is BleScanEvent.Failed -> {
                 scanLease?.close()
                 scanLease = null
-                publish(BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED))
+                candidates.clear()
+                publish(BleRuntimeState.Failed(when (event.setupLabelIssue) {
+                    BleSetupLabelIssue.AMBIGUOUS -> BleRuntimeFailure.SETUP_LABEL_AMBIGUOUS
+                    BleSetupLabelIssue.CHANGED -> BleRuntimeFailure.SETUP_LABEL_CHANGED
+                    null -> BleRuntimeFailure.SCAN_START_FAILED
+                }))
             }
         }
     }

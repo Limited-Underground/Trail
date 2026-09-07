@@ -496,6 +496,8 @@ class V1TestConnectionTraceMachine {
 
 private fun BleRuntimeFailure.traceReason(): V1TestTraceReason = when (this) {
     BleRuntimeFailure.SCAN_START_FAILED -> V1TestTraceReason.SCAN_START_FAILED
+    BleRuntimeFailure.SETUP_LABEL_AMBIGUOUS,
+    BleRuntimeFailure.SETUP_LABEL_CHANGED -> V1TestTraceReason.SCAN_START_FAILED
     BleRuntimeFailure.RETURNING_OWNER_AMBIGUOUS -> V1TestTraceReason.RETURNING_OWNER_AMBIGUOUS
     BleRuntimeFailure.CONNECTION_START_FAILED -> V1TestTraceReason.CONNECTION_START_FAILED
     BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED -> V1TestTraceReason.SECURITY_REQUIREMENT_FAILED

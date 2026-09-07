@@ -1753,11 +1753,24 @@ def test_application_surface() -> None:
             "policy still admits exactly one" in sdkconfig_defaults and
             "CONFIG_LOG_MAXIMUM_LEVEL=3" in sdkconfig_defaults,
             "pairing build must retain one transient bond and compile out DEBUG passkey logs")
-    require("fields.name" not in nimble_runtime and
-            "fields.mfg_data" not in nimble_runtime and
+    require("fields.mfg_data" not in nimble_runtime and
             "ble_hs_id_copy_addr" not in nimble_runtime and
             "ESP_LOG" not in nimble_runtime,
             "advertising/runtime must not expose or log identity")
+    require("ui::setup_advertising_name(g_setup_label.code(), pairable)" in nimble_runtime and
+            "if (pairable && setup_name.size != 6) return false;" in nimble_runtime and
+            "fields.name_is_complete = 1" in nimble_runtime,
+            "D1 setup display alias must use bounded six-character complete name only")
+    unowned_window = nimble_runtime[nimble_runtime.index("case RuntimeEventKind::host_sync:"):
+                                    nimble_runtime.index("case RuntimeEventKind::host_reset:")]
+    require(unowned_window.index("g_setup_label.initialize(*g_setup_random)") <
+            unowned_window.index("open_unowned_boot_window") <
+            unowned_window.index("g_pairable_advertising.store(true"),
+            "same boot-local label must bind OLED before PIN window and D1 advertising")
+    setup_label = (ROOT / "firmware/components/ui/include/opentrail/setup_label.hpp").read_text(encoding="utf-8")
+    require("32" in setup_label and "kSetupAdvertisingBytes = 3 + 18 + 2 + 6" in setup_label and
+            "nvs_" not in setup_label and "mac" not in setup_label.lower(),
+            "setup alias must be bounded random presentation without persistent or hardware identity")
     require(nimble_runtime.index("companion_authorization_storage_preflight") <
             nimble_runtime.index("g_runtime_owner.start"),
             "denied protected-storage preflight must precede host start")

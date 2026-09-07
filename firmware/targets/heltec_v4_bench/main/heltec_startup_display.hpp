@@ -6,6 +6,7 @@
 #include "opentrail/companion_ble_runtime_owner.hpp"
 #include "opentrail/companion_pairing_window.hpp"
 #include "opentrail/compact_status_footer.hpp"
+#include "opentrail/setup_label.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 
@@ -49,6 +50,7 @@ struct StartupDisplayView {
 // its digits through StartupDisplayStatus.
 struct PairingPinDisplayView {
     std::array<char, 6> digits{};
+    ui::SetupCode setup_code{};
     bool has_footer{false};
     ui::compact_status_footer::Page footer{};
 };
@@ -97,6 +99,7 @@ public:
     [[nodiscard]] bool show_footer(
         StartupDisplayFrame frame,
         const ui::compact_status_footer::Page& footer);
+    [[nodiscard]] bool set_setup_code(const ui::SetupCode& code);
     [[nodiscard]] bool show_pairing_pin(const std::array<char, 6>& digits);
     [[nodiscard]] bool clear_pairing_pin();
     // The confirmation and in-progress pages are transient full-screen
@@ -118,6 +121,7 @@ private:
     [[nodiscard]] bool show_view(const StartupDisplayView& view);
 
     StartupDisplayPort& port_;
+    ui::SetupCode setup_code_{};
     StartupDisplayStatus status_{};
     StartupDisplayView view_{};
     bool started_{false};

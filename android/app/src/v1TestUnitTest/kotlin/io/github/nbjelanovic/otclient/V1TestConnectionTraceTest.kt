@@ -15,6 +15,34 @@ import kotlin.test.assertTrue
 
 class V1TestConnectionTraceTest {
     @Test
+    fun everyRuntimeFailureRoundTripsAsAnAllowlistedReasonWithoutDeviceLabels() {
+        for (failure in BleRuntimeFailure.entries) {
+            val machine = V1TestConnectionTraceMachine()
+            val companion = BleDiscoveredCompanion("private-scan-endpoint", "Trail-7K3P9Q")
+            machine.observe(GENERATION, 0, state(BleRuntimeState.Connecting(companion)))
+            val emission = machine.observe(GENERATION, 1, state(BleRuntimeState.Failed(failure))).single()
+            val expectedReason = when (failure) {
+                BleRuntimeFailure.SETUP_LABEL_AMBIGUOUS,
+                BleRuntimeFailure.SETUP_LABEL_CHANGED -> V1TestTraceReason.SCAN_START_FAILED.name
+                else -> failure.name
+            }
+            assertEquals(expectedReason, emission.reason.name)
+            val storage = Storage()
+            val log = V1TestConnectionLog(storage)
+            assertTrue(log.startSession())
+            assertTrue(log.recordTrace(1, emission))
+            val reloaded = V1TestConnectionLog(storage)
+            assertEquals(log.snapshot(), reloaded.snapshot())
+            val exported = reloaded.exportText()
+            assertTrue(exported.contains(expectedReason))
+            assertFalse(exported.contains(companion.publicLabel))
+            assertFalse(exported.contains(companion.endpointToken))
+            assertFalse(requireNotNull(storage.bytes).decodeToString().contains(companion.publicLabel))
+            assertFalse(requireNotNull(storage.bytes).decodeToString().contains(companion.endpointToken))
+        }
+    }
+
+    @Test
     fun promotedClaimIsRecordedBeforeProtectedNormalProfileReread() {
         val machine=V1TestConnectionTraceMachine()
         machine.observe(GENERATION,0,state(BleRuntimeState.Connecting(COMPANION)))

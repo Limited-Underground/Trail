@@ -430,6 +430,34 @@ class BleCompanionRuntimeTest {
     }
 
     @Test
+    fun conflictingSetupLabelInvalidatesStaleChoicesAndCannotRegainAuthority() {
+        for ((issue, failure) in listOf(
+            BleSetupLabelIssue.AMBIGUOUS to BleRuntimeFailure.SETUP_LABEL_AMBIGUOUS,
+            BleSetupLabelIssue.CHANGED to BleRuntimeFailure.SETUP_LABEL_CHANGED,
+        )) {
+            val facade = TestBluetoothFacade()
+            val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+            runtime.onLifecycleStart()
+            runtime.requestScan()
+            val scan = facade.scans.single()
+            val candidate = CANDIDATE.copy(publicLabel = "Trail-7K3P9Q")
+            scan.emit(BleScanEvent.Candidate(candidate))
+            scan.emit(BleScanEvent.Failed(BleGattFailure.PLATFORM_FAILURE, issue))
+            assertTrue(scan.closed)
+            assertEquals(failure, assertIs<BleRuntimeState.Failed>(runtime.state).reason)
+            assertNull(runtime.beginAuthorization(candidate.endpointToken))
+            scan.emit(BleScanEvent.Candidate(candidate))
+            scan.emit(BleScanEvent.Complete)
+            assertEquals(failure, assertIs<BleRuntimeState.Failed>(runtime.state).reason)
+            assertTrue(facade.connections.isEmpty())
+            runtime.requestScan()
+            scan.emit(BleScanEvent.Candidate(candidate))
+            assertTrue(assertIs<BleRuntimeState.Scanning>(runtime.state).candidates.isEmpty())
+            assertNull(runtime.beginAuthorization(candidate.endpointToken))
+        }
+    }
+
+    @Test
     fun selectionMustMatchCurrentScanAndNegotiationRunsInAcceptedOrder() {
         val fixture = Fixture()
         fixture.startScanWithCandidate()

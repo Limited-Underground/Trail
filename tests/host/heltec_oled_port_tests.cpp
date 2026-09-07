@@ -112,7 +112,36 @@ void rollback_cannot_be_followed_by_pairing_digits() {
 }
 }
 
+void setup_label_uses_actual_pairing_pixels_and_clears() {
+    stub::reset(); HeltecV4Oled port; StartupDisplayOwner owner{port};
+    EXPECT(owner.start());
+    const opentrail::ui::SetupCode code{'U','V','W','X','Y','Z'};
+    EXPECT(opentrail::ui::setup_advertising_name(code,true).bytes==code);
+    EXPECT(owner.set_setup_code(code));
+    EXPECT(owner.show(StartupDisplayFrame::ble_connected));
+    const auto owned_frame=stub::state.frames.back();
+    EXPECT(owner.show_pairing_pin({'1','2','3','4','5','6'}));
+    const auto frame=stub::state.frames.back();
+    // Decode the actual panel pixels as Trail-UVWXYZ, including all prefix glyphs.
+    const std::array<std::array<std::uint8_t,5>,12> glyphs{{
+        {0x01,0x01,0x7F,0x01,0x01},{0x7C,0x08,0x04,0x04,0x08},
+        {0x20,0x54,0x54,0x54,0x78},{0x00,0x44,0x7D,0x40,0x00},
+        {0x00,0x41,0x7F,0x40,0x00},{0x08,0x08,0x08,0x08,0x08},
+        {0x3F,0x40,0x40,0x40,0x3F},{0x1F,0x20,0x40,0x20,0x1F},
+        {0x7F,0x20,0x18,0x20,0x7F},{0x63,0x14,0x08,0x14,0x63},
+        {0x03,0x04,0x78,0x04,0x03},{0x61,0x51,0x49,0x45,0x43}}};
+    for(std::size_t i=0;i<glyphs.size();++i) for(std::size_t x=0;x<5;++x) for(std::size_t y=0;y<7;++y) {
+        const auto pixel=(frame[((44+y)/8)*128+28+i*6+x] >> ((44+y)%8))&1;
+        EXPECT(pixel==((glyphs[i][x]>>y)&1));
+    }
+    EXPECT(stub::state.bounds_valid);
+    EXPECT(owner.clear_pairing_pin());
+    EXPECT(stub::state.frames.back()==owned_frame);
+    EXPECT(opentrail::ui::setup_advertising_name(code,false).size==0);
+}
+
 int main() {
+    setup_label_uses_actual_pairing_pixels_and_clears();
     real_initialization_and_logo();
     real_port_delivers_presentation_frames();
     draw_failure_conceals_and_latches_port();
@@ -121,6 +150,6 @@ int main() {
     pairing_clear_and_failure_use_real_owner_and_port();
     rollback_cannot_be_followed_by_pairing_digits();
     if (failures) return 1;
-    std::cout << "PASS actual Heltec OLED port: 7 groups\n";
+    std::cout << "PASS actual Heltec OLED port: 8 groups\n";
     return 0;
 }

@@ -678,6 +678,8 @@ private fun BluetoothCandidateList(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(candidate.publicLabel)
+                    Text("Match this Trail label with the one on your Heltec display before authorizing this phone.",
+                        style = MaterialTheme.typography.bodySmall)
                     Text(initialInstructions.beforeActionTitle, style = MaterialTheme.typography.titleSmall)
                     Text(initialInstructions.beforeActionBody, style = MaterialTheme.typography.bodySmall)
                     Button(
@@ -1045,6 +1047,8 @@ private fun BleRuntimeBlock.publicText(): String = when (this) {
 
 private fun BleRuntimeFailure.publicText(): String = when (this) {
     BleRuntimeFailure.SCAN_START_FAILED -> "The Bluetooth scan could not start. No local test data was substituted."
+    BleRuntimeFailure.SETUP_LABEL_AMBIGUOUS -> "Two nearby devices showed the same setup label. Restart one of the devices awaiting setup and scan again, then match the Trail label on its display."
+    BleRuntimeFailure.SETUP_LABEL_CHANGED -> "A nearby device's setup label changed or became invalid. Scan again and match the current Trail label on your Heltec display."
     BleRuntimeFailure.RETURNING_OWNER_AMBIGUOUS ->
         "More than one bonded Trail device answered. Reconnect stopped without choosing or storing an identity."
     BleRuntimeFailure.CONNECTION_START_FAILED -> "The selected companion connection ended or could not start."

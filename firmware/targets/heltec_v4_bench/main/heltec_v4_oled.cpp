@@ -65,6 +65,11 @@ std::array<std::uint8_t, kGlyphWidth> glyph_for(char value) {
         case 'X': return {0x63, 0x14, 0x08, 0x14, 0x63};
         case 'Y': return {0x03, 0x04, 0x78, 0x04, 0x03};
         case 'Z': return {0x61, 0x51, 0x49, 0x45, 0x43};
+        case 'r': return {0x7C, 0x08, 0x04, 0x04, 0x08};
+        case 'a': return {0x20, 0x54, 0x54, 0x54, 0x78};
+        case 'i': return {0x00, 0x44, 0x7D, 0x40, 0x00};
+        case 'l': return {0x00, 0x41, 0x7F, 0x40, 0x00};
+        case '-': return {0x08, 0x08, 0x08, 0x08, 0x08};
         case '?': return {0x02, 0x01, 0x51, 0x09, 0x06};
         default: return {0, 0, 0, 0, 0};
     }
@@ -120,6 +125,11 @@ void draw_pairing_page(
     draw_scaled_text(pixels, kPairingLabel, 4, kPairingLabelY, 1);
     draw_scaled_text(pixels, view.digits.data(), view.digits.size(),
                      kPairingDigitsY, kPairingDigitsScale);
+    if (ui::valid_setup_code(view.setup_code)) {
+        std::array<char, 12> label{'T','r','a','i','l','-'};
+        std::copy(view.setup_code.begin(), view.setup_code.end(), label.begin() + 6);
+        draw_scaled_text(pixels, label.data(), label.size(), 44, 1);
+    }
     if (view.has_footer) {
         std::copy(view.footer.columns.begin(), view.footer.columns.end(),
                   pixels.begin() + kStatusPage * kDisplayWidth);
