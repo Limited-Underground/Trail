@@ -12,6 +12,7 @@
 
 #include "companion_v1_heltec_adapters.hpp"
 #include "companion_name_storage.hpp"
+#include "companion_region_storage.hpp"
 
 namespace opentrail::targets::heltec_v4_bench {
 namespace {
@@ -472,8 +473,12 @@ HeltecV4FactoryResetUserDomainStorage::inspect_absence() {
     if (name.error != DeviceFactoryResetPortError::none) {
         return {name.error, false};
     }
+    const auto region = inspect_user_namespace(kCompanionRegionNvsNamespace);
+    if (region.error != DeviceFactoryResetPortError::none) {
+        return {region.error, false};
+    }
     return {DeviceFactoryResetPortError::none,
-            owner.absent && state.absent && name.absent};
+            owner.absent && state.absent && name.absent && region.absent};
 }
 
 DeviceFactoryResetAbsenceSnapshot
@@ -491,6 +496,10 @@ HeltecV4FactoryResetUserDomainStorage::erase_all_and_verify_absent() {
     const auto name = erase_user_namespace_and_verify(kCompanionNameNvsNamespace);
     if (name.error != DeviceFactoryResetPortError::none || !name.absent) {
         return {name.error, false};
+    }
+    const auto region = erase_user_namespace_and_verify(kCompanionRegionNvsNamespace);
+    if (region.error != DeviceFactoryResetPortError::none || !region.absent) {
+        return {region.error, false};
     }
 
     const auto* partition = exact_state_partition();

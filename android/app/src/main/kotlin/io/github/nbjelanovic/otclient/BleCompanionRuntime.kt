@@ -1249,7 +1249,7 @@ class BleCompanionRuntime(
     }
 
     private fun decodeNormalInfo(value: ByteArray): CompanionProtocolInfo? {
-        val configuration=CompanionConfigurationCodec.decodeInfo(value)
+        val configuration=CompanionConfigurationCodec.decodeInfo(value) ?: CompanionConfigurationCodec.decodeInfo(value,3)
         configurationInfo=configuration
         return if(configuration!=null) CompanionProtocolInfo(capabilities=configuration.capabilities,
             maxFragmentCount=1) else CompanionProtocolCodec.decodeProtocolInfo(value).value
@@ -1257,7 +1257,7 @@ class BleCompanionRuntime(
 
     private fun encodeNormalFragment(fragment: CompanionFragment): ByteArray? =
         if(configurationInfo!=null) CompanionConfigurationCodec.encodeFrame(CompanionConfigurationFrame(
-            fragment.kind.wireValue,fragment.sessionNonce.toUInt(),fragment.exchangeId.toUInt(),fragment.payload))
+            fragment.kind.wireValue,fragment.sessionNonce.toUInt(),fragment.exchangeId.toUInt(),fragment.payload,checkNotNull(configurationInfo).minorVersion))
         else CompanionProtocolCodec.encodeFragment(fragment).value
 
     private fun acceptPromotedNormalInfo(companion: BleDiscoveredCompanion,value: ByteArray) {
@@ -1271,6 +1271,8 @@ class BleCompanionRuntime(
         continueAfterAuthorizationPromotion(companion,claim)
     }
 
+    fun readRadioRegion(): Boolean { requireOwnerThread(); return configurationOperation { it.readRegion() } }
+    fun writeRadioRegion(selectionId: Int): Boolean { requireOwnerThread(); return configurationOperation { it.writeRegion(selectionId) } }
     fun readDeviceName(): Boolean { requireOwnerThread(); return configurationOperation { it.readName() } }
     fun writeDeviceName(value: String): Boolean {
         requireOwnerThread()
@@ -1298,7 +1300,7 @@ class BleCompanionRuntime(
         val token=V1SetupSessionToken.create(tokenBytes) ?: return
         val context=V1NameContext(scope,nextConfigurationScope() ?: return,nextConfigurationScope() ?: return,
             nextConfigurationScope() ?: return,callbackGeneration,nextConfigurationScope() ?: return,nonce.toUInt(),null,token)
-        configurationSession=BleConfigurationSession(context,
+        configurationSession=BleConfigurationSession(context,minorVersion=info.minorVersion,
             isCurrent={ accepts(callbackGeneration) && (state as? BleRuntimeState.Ready)?.session?.sessionNonce==nonce },
             allocate={
                 if(nextRequestId !in 1..0xffff_ffffL) null else nextRequestId.toUInt().also { nextRequestId++ }
@@ -1537,8 +1539,8 @@ class BleCompanionRuntime(
     }
 
     private fun onStreamValue(companion: BleDiscoveredCompanion, value: ByteArray) {
-        val configurationFrame = if(configurationInfo != null) CompanionConfigurationCodec.decodeFrame(value) else null
-        if(configurationFrame?.kind in listOf(0x86,0x87)) {
+        val configurationFrame = if(configurationInfo != null) CompanionConfigurationCodec.decodeFrame(value,checkNotNull(configurationInfo).minorVersion) else null
+        if(configurationFrame?.kind in listOf(0x86,0x87,0x88)) {
             if(configurationSession?.receive(checkNotNull(configurationFrame)) == true) {
                 armConfigurationTimeout()
                 return

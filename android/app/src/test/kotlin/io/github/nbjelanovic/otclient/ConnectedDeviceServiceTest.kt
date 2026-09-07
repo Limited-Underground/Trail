@@ -22,17 +22,23 @@ class ConnectedDeviceServiceTest {
         assertTrue(ui.controller.readDeviceName())
         assertTrue(ui.controller.writeDeviceName("Exact Unicode é"))
         assertTrue(ui.controller.synchronizeDisplayTime())
-        assertEquals(listOf("read","write:Exact Unicode é","time"),service.configurationCommands)
+        assertTrue(ui.controller.readRadioRegion())
+        assertTrue(ui.controller.writeRadioRegion(12))
+        assertEquals(listOf("read","write:Exact Unicode é","time","region-read","region-write:12"),service.configurationCommands)
         ui.controller.onLifecycleStop()
         assertFalse(ui.controller.readDeviceName())
         assertFalse(ui.controller.writeDeviceName("late"))
         assertFalse(ui.controller.synchronizeDisplayTime())
-        assertEquals(3,service.configurationCommands.size)
+        assertFalse(ui.controller.readRadioRegion())
+        assertFalse(ui.controller.writeRadioRegion(1))
+        assertEquals(5,service.configurationCommands.size)
         owner.close()
         assertFalse(owner.readDeviceName())
         assertFalse(owner.writeDeviceName("late"))
         assertFalse(owner.synchronizeDisplayTime())
-        assertEquals(3,service.configurationCommands.size)
+        assertFalse(owner.readRadioRegion())
+        assertFalse(owner.writeRadioRegion(1))
+        assertEquals(5,service.configurationCommands.size)
     }
 
     @Test
@@ -42,7 +48,9 @@ class ConnectedDeviceServiceTest {
         assertTrue(binder.length<source.length)
         for((signature,call) in listOf("readDeviceName()" to "readDeviceName()",
             "writeDeviceName(name: String)" to "writeDeviceName(name)",
-            "synchronizeDisplayTime()" to "synchronizeDisplayTime()")) {
+            "synchronizeDisplayTime()" to "synchronizeDisplayTime()",
+            "readRadioRegion()" to "readRadioRegion()",
+            "writeRadioRegion(selectionId: Int)" to "writeRadioRegion(selectionId)")) {
             val body=binder.substringAfter("override fun $signature: Boolean {","").substringBefore('}')
             assertTrue(body.contains("assertMainThread()"),signature)
             assertTrue(body.contains("return attached?.$call == true"),signature)
@@ -727,6 +735,8 @@ class ConnectedDeviceServiceTest {
 
     private class FakeServiceController : TrailServiceController {
         val configurationCommands=mutableListOf<String>()
+        override fun readRadioRegion(): Boolean { configurationCommands += "region-read"; return true }
+        override fun writeRadioRegion(selectionId: Int): Boolean { configurationCommands += "region-write:$selectionId"; return true }
         override fun readDeviceName(): Boolean { configurationCommands += "read";return true }
         override fun writeDeviceName(name: String): Boolean { configurationCommands += "write:$name";return true }
         override fun synchronizeDisplayTime(): Boolean { configurationCommands += "time";return true }

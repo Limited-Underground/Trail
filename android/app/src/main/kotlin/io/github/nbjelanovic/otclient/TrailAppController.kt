@@ -270,6 +270,8 @@ class TrailAppController(
         requireOwnerThread()
         return mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.submitAction(request)
     }
+    override fun readRadioRegion(): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.readRadioRegion() }
+    override fun writeRadioRegion(selectionId: Int): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.writeRadioRegion(selectionId) }
     override fun readDeviceName(): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.readDeviceName() }
     override fun writeDeviceName(name: String): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.writeDeviceName(name) }
     override fun synchronizeDisplayTime(): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.synchronizeDisplayTime() }

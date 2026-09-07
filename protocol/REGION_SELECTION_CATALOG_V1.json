@@ -1,0 +1,69 @@
+{
+  "schema": "OT-REGION-CATALOG/v1",
+  "version": 1,
+  "scope": "Saved selection only; no RF or regulatory authority",
+  "source": "https://read.uberflip.com/i/1540208-rp002-1-0-5-lorawan-regional-parameters/27",
+  "id_policy": "OpenTrail identifiers; append only, never renumber or reuse; not LoRaWAN plan identifiers",
+  "entries": [
+    {
+      "id": 1,
+      "code": "US915",
+      "transmit_validated": false
+    },
+    {
+      "id": 2,
+      "code": "EU868",
+      "transmit_validated": false
+    },
+    {
+      "id": 3,
+      "code": "AU915",
+      "transmit_validated": false
+    },
+    {
+      "id": 4,
+      "code": "EU433",
+      "transmit_validated": false
+    },
+    {
+      "id": 5,
+      "code": "CN470",
+      "transmit_validated": false
+    },
+    {
+      "id": 6,
+      "code": "AS923-1",
+      "transmit_validated": false
+    },
+    {
+      "id": 7,
+      "code": "AS923-2",
+      "transmit_validated": false
+    },
+    {
+      "id": 8,
+      "code": "AS923-3",
+      "transmit_validated": false
+    },
+    {
+      "id": 9,
+      "code": "AS923-4",
+      "transmit_validated": false
+    },
+    {
+      "id": 10,
+      "code": "KR920",
+      "transmit_validated": false
+    },
+    {
+      "id": 11,
+      "code": "IN865",
+      "transmit_validated": false
+    },
+    {
+      "id": 12,
+      "code": "RU864",
+      "transmit_validated": false
+    }
+  ]
+}

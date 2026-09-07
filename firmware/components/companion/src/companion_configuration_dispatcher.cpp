@@ -28,12 +28,18 @@ std::uint8_t time_code(time::OledTimeCode c) {
     return 8;
 }
 }
-ConfigurationDispatcher::ConfigurationDispatcher(DeviceNameAuthoritySource& s,DeviceNamePersistence& p,ConfigurationBaseHandler& b)
-    : source_(s),base_(b),name_source_(*this),time_source_(*this),name_owner_(name_source_,p),time_owner_(time_source_) {
+ConfigurationDispatcher::ConfigurationDispatcher(DeviceNameAuthoritySource& s,DeviceNamePersistence& p,ConfigurationBaseHandler& b,
+    RegionPersistence* region,std::uint8_t selected_minor)
+    : source_(s),base_(b),name_source_(*this),time_source_(*this),name_owner_(name_source_,p),
+      selected_minor_(selected_minor),time_owner_(time_source_) {
     confirmed_name_.kind=DeviceNameKind::snapshot;
+    if(region) region_owner_.emplace(name_source_,*region);
+    contained_=(selected_minor!=2 && selected_minor!=3) || (selected_minor==3 && !region);
 }
 bool ConfigurationDispatcher::refresh() {
     const auto next=source_.current();
+    if(region_owner_ && ((observed_ && !same_epoch(next.context,authority_.context)) ||
+        next.phase==DeviceNamePhase::revoked)) region_owner_->clear();
     if(observed_ && next.now_ms<authority_.now_ms) contained_=true;
     const bool active=(next.phase==DeviceNamePhase::connected || next.phase==DeviceNamePhase::ready) && session(next.context);
     const bool old_active=(authority_.phase==DeviceNamePhase::connected || authority_.phase==DeviceNamePhase::ready) && session(authority_.context);
@@ -102,6 +108,7 @@ bool ConfigurationDispatcher::lifecycle(const DeviceNameContext& expected,Device
     blocked_context_=expected; ready_=false; holding_time_=false; pending_=false;
     terminal_=request_bytes_!=0; cached_=status(ConfigurationDispatchCode::no_result);
     if(event==DeviceNameLifecycle::reset) { confirmed_name_={}; confirmed_name_.kind=DeviceNameKind::snapshot; }
+    if(region_owner_ && event!=DeviceNameLifecycle::disconnected) region_owner_->clear();
     return true;
 }
 ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameContext& context,const std::uint8_t* bytes,
@@ -110,10 +117,11 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
     if(contained_) return status(ConfigurationDispatchCode::contained);
     if(!refresh() || context!=authority_.context) return status(ConfigurationDispatchCode::unauthorized);
     if(capacity<kConfigurationRecordBytes) return status(ConfigurationDispatchCode::output_too_small);
-    const auto decoded=decode_configuration_frame(bytes,size);
+    const auto decoded=decode_configuration_frame(bytes,size,selected_minor_);
     if(!decoded.decoded() || decoded.value.session_nonce!=context.session_nonce) return status(ConfigurationDispatchCode::rejected);
     const auto& frame=decoded.value;
-    if(frame.kind!=1 && frame.kind!=2 && frame.kind!=4 && frame.kind!=5) return status(ConfigurationDispatchCode::rejected);
+    if(frame.kind!=1 && frame.kind!=2 && frame.kind!=4 && frame.kind!=5 &&
+        !(frame.kind==6 && selected_minor_==3 && region_owner_)) return status(ConfigurationDispatchCode::rejected);
     if(context==sequence_context_ && frame.exchange_id==last_exchange_) {
         if(size!=request_bytes_ || !std::equal(bytes,bytes+size,request_.begin())) return status(ConfigurationDispatchCode::conflict);
         if(pending_) return status(ConfigurationDispatchCode::busy);
@@ -130,6 +138,7 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
         if(frame.kind!=5 || !t.decoded() || t.value.kind!=3 || t.value.challenge_id!=challenge_) return status(ConfigurationDispatchCode::busy);
     }
     sequence_context_=context; request_context_=context; last_exchange_=frame.exchange_id;
+    request_admitted_ms_=admitted_ms.value_or(authority_.now_ms);
     request_bytes_=size; std::copy(bytes,bytes+size,request_.begin());
     terminal_=false; cached_={}; pending_=true;
     if(frame.kind==4) {
@@ -140,7 +149,8 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
 }
 ConfigurationDispatchResult ConfigurationDispatcher::finish(const ConfigurationFrame* frame) {
     pending_=false; terminal_=true; cached_=status(ConfigurationDispatchCode::no_result);
-    if(!refresh() || authority_.context!=request_context_ || frame==nullptr) return cached_;
+    if(!refresh() || authority_.context!=request_context_ || frame==nullptr ||
+        frame->minor_version!=selected_minor_) return cached_;
     const auto encoded=encode_configuration_frame(*frame,cached_.record.data(),cached_.record.size());
     if(encoded.encoded()) { cached_.bytes=encoded.encoded_bytes; cached_.code=ConfigurationDispatchCode::responded; }
     return cached_;
@@ -148,15 +158,16 @@ ConfigurationDispatchResult ConfigurationDispatcher::finish(const ConfigurationF
 ConfigurationDispatchResult ConfigurationDispatcher::execute() {
     observe();
     if(!pending_) return status(ConfigurationDispatchCode::no_pending);
-    const auto decoded=decode_configuration_frame(request_.data(),request_bytes_);
+    const auto decoded=decode_configuration_frame(request_.data(),request_bytes_,selected_minor_);
     if(!decoded.decoded() || authority_.context!=request_context_) return finish(nullptr);
     const auto request=decoded.value;
     ConfigurationFrame response{}; response.session_nonce=request.session_nonce; response.exchange_id=request.exchange_id;
+    response.minor_version=selected_minor_;
     if(request.kind==1 || request.kind==2) {
         const radio::ByteView input{request.payload.data(),request.payload_bytes};
         if((request.kind==1 && !decode_companion_snapshot_request(input).decoded()) ||
             (request.kind==2 && !decode_companion_action_request(input).decoded())) return finish(nullptr);
-        if(!base_.execute(request_context_,request,response) || response.session_nonce!=request.session_nonce ||
+        if(!base_.execute(request_context_,request,response) || response.minor_version!=selected_minor_ || response.session_nonce!=request.session_nonce ||
             response.exchange_id!=request.exchange_id || response.kind!=(request.kind==1 ? 0x81 : 0x82)) return finish(nullptr);
         if(response.payload_bytes>response.payload.size()) return finish(nullptr);
         const radio::ByteView output{response.payload.data(),response.payload_bytes};
@@ -167,6 +178,17 @@ ConfigurationDispatchResult ConfigurationDispatcher::execute() {
         return finish(&response);
     }
     if(!ready_) return finish(nullptr);
+    if(request.kind==6) {
+        const auto region=decode_configuration_region_payload(request.payload.data(),request.payload_bytes);
+        if(!region.decoded() || !region_owner_) return finish(nullptr);
+        const auto result=region_owner_->execute(region.value,request_context_,request_admitted_ms_);
+        if(!result.has_payload) return finish(nullptr);
+        response.kind=0x88;
+        const auto encoded=encode_configuration_region_payload(result.payload,response.payload.data(),response.payload.size());
+        if(!encoded.encoded()) return finish(nullptr);
+        response.payload_bytes=static_cast<std::uint16_t>(encoded.encoded_bytes);
+        return finish(&response);
+    }
     if(request.kind==4) {
         const auto result=name_owner_.execute();
         if(!result.has_payload) return finish(nullptr);

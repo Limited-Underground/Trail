@@ -164,6 +164,8 @@ def test_contract() -> None:
         "main/companion_configuration_lane.hpp",
         "main/companion_name_storage.cpp",
         "main/companion_name_storage.hpp",
+        "main/companion_region_storage.cpp",
+        "main/companion_region_storage.hpp",
         "main/companion_v1_heltec_adapters.cpp",
         "main/companion_v1_heltec_adapters.hpp",
         "partitions.csv",
@@ -1178,8 +1180,8 @@ def test_protected_root_key_roster_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 44,
-            "non-injection gate must cover the exact 44-source target build")
+    require(len(linked_source_tokens) == 46,
+            "non-injection gate must cover the exact 46-source target build")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -1191,7 +1193,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 43,
+    require(len(other_linked_sources) == 45,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1253,8 +1255,8 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
     linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 44,
-            "configuration/security non-injection gate must cover 44 sources")
+    require(len(linked_source_tokens) == 46,
+            "configuration/security non-injection gate must cover 46 sources")
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_configuration_security_adapter.cpp":
@@ -1266,7 +1268,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 43,
+    require(len(other_linked_sources) == 45,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2218,7 +2220,7 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 44,
+    require(cmake.count('.cpp"') == 46,
             "target source set must remain eighteen target, seventeen companion, two UI and one time source")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
@@ -3197,7 +3199,8 @@ def test_configuration_transport_and_storage_surface() -> None:
     runtime = (TARGET / "main" / "companion_nimble_runtime.cpp").read_text(encoding="utf-8")
     storage = (TARGET / "main" / "companion_name_storage.cpp").read_text(encoding="utf-8")
     reset = FACTORY_RESET_STORAGE_SOURCE.read_text(encoding="utf-8")
-    for token in ("companion_name_storage.cpp", "companion_configuration_codec.cpp",
+    for token in ("companion_name_storage.cpp", "companion_region_storage.cpp",
+                  "companion_region_owner.cpp", "companion_configuration_codec.cpp",
                   "companion_configuration_dispatcher.cpp", "companion_device_name_codec.cpp",
                   "companion_device_name_owner.cpp", "oled_time_admission.cpp"):
         require(cmake.count(token) == 1, f"configuration source must link exactly once: {token}")
@@ -3206,15 +3209,20 @@ def test_configuration_transport_and_storage_surface() -> None:
                  "status.secure_bond", "life.encrypted", "life.authenticated_bond",
                  "g_configuration_blocked_generation", "g_configuration_revoked"):
         require(gate in gatt, f"configuration authority gate missing: {gate}")
-    require("encode_configuration_info({0xef}" in gatt and
+    require("encode_configuration_info({0xff, 3}" in gatt and
             "g_adapter->read_protocol_info(" in gatt,
-            "selected normal0.2 must retain the restricted claim ProtocolInfo path")
+            "selected normal0.3 must retain the restricted claim ProtocolInfo path")
     for surface in ("kConfigurationRecordBytes", "decode_configuration_frame",
                     "g_indication_port.reserve(", "g_configuration_lane.matches(",
                     "g_configuration_lane.can_execute(", "work.admitted_ms",
                     "g_configuration_lane.response_ready = true",
                     "configuration_response_event", "ble_npl_eventq_put"):
         require(surface in gatt, f"bounded configuration handoff missing: {surface}")
+    require("decode_configuration_frame(encoded.data, encoded.size, 3)" in gatt and
+            "companion_configuration_region()" in gatt and
+            "erase_user_namespace_and_verify(kCompanionRegionNvsNamespace)" in reset and
+            "inspect_user_namespace(kCompanionRegionNvsNamespace)" in reset,
+            "region must use strict profile3 and whole-namespace reset admission")
     command = gatt.split("int command_access(", 2)[-1].split("int stream_access", 1)[0]
     require("g_configuration_dispatcher->execute" not in command and
             "g_configuration_dispatcher->submit" not in command and

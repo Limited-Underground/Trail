@@ -25,7 +25,7 @@ class V1SetupProfileTest {
         assertEquals(V1SetupStage.PUBLIC_PROFILE, progress.stage)
         progress = assertNotNull(progress.setPublicProfile(V1PublicProfile(publicName())))
         assertEquals(V1SetupStage.COMPLETE, progress.stage)
-        assertTrue(progress.radioTransmissionAllowed)
+        assertFalse(progress.radioTransmissionAllowed)
         assertFalse(V1SetupStage.entries.any { it.name.contains("GROUP") })
     }
 
@@ -51,7 +51,7 @@ class V1SetupProfileTest {
         assertNull(named.setPublicProfile(V1PublicProfile(publicName())))
         val verified = assertNotNull(named.confirmRadioRegion(regionReceipt()))
         assertEquals(V1SetupStage.PUBLIC_PROFILE, verified.stage)
-        assertTrue(verified.radioTransmissionAllowed)
+        assertFalse(verified.radioTransmissionAllowed)
     }
 
     @Test

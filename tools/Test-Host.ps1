@@ -40,6 +40,8 @@ if ($null -eq $python) {
 
 # Run checkout-sensitive target and frozen-harness contracts before the long
 # native matrix so structural target changes fail in seconds, not at the end.
+& $python.Source (Join-Path $projectRoot 'tools\region_selection_catalog.py')
+if ($LASTEXITCODE -ne 0) { throw 'Generated saved-region catalog differs.' }
 $fastStructuralTests = @(
     @{ File = 'heltec_development_identity_tests.py'; Failure = 'Development device identity tests failed.' },
     @{ File = 'historical_target_dependency_boundary_tests.py'; Failure = 'Historical/live target dependency boundary tests failed.' },
@@ -226,7 +228,7 @@ $builds = @(
         )
     },
     @{
-        Name = 'composed configuration name and time dispatcher'
+        Name = 'composed configuration name time and region dispatcher'
         Output = Join-Path $buildDirectory 'companion_configuration_dispatcher_tests.exe'
         Arguments = @('-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main'))
         Sources = @(
@@ -235,11 +237,35 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_dispatcher.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_region_owner.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
             (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
             (Join-Path $projectRoot 'firmware\components\time\src\oled_time_admission.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_configuration_dispatcher_tests.cpp')
+        )
+    },
+    @{
+        Name = 'saved-region codec and transaction owner'
+        Output = Join-Path $buildDirectory 'companion_region_owner_tests.exe'
+        RunArguments = @((Join-Path $projectRoot 'tests\fixtures\companion_configuration_v03.tsv').Replace('\', '/'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_region_owner.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_region_owner_tests.cpp')
+        )
+    },
+    @{
+        Name = 'target region storage with deterministic NVS seam'
+        Output = Join-Path $buildDirectory 'companion_region_storage_tests.exe'
+        Arguments = @('-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main'), '-I', (Join-Path $projectRoot 'tests\host\fixtures\name_nvs'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_region_storage.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_region_storage_tests.cpp')
         )
     },
     @{

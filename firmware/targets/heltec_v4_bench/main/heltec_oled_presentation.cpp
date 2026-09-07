@@ -1,14 +1,20 @@
 #include "heltec_oled_presentation.hpp"
+#include "opentrail/companion_region_catalog.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 
 ui::oled_presentation::Frame HeltecOledPresentation::present(
     const StartupDisplayView& view, std::uint64_t now_ms,
-    std::string_view name, time::OledClockReading clock) {
+    std::string_view name, time::OledClockReading clock, std::uint16_t region_selection) {
     using ui::oled_presentation::PhoneState;
     ui::oled_presentation::Snapshot snapshot{};
     snapshot.device_name = name;
     snapshot.clock = clock;
+    const auto* label = companion::region_selection_label(region_selection);
+    snapshot.region_configured = label != nullptr;
+    snapshot.region_label = label == nullptr ? "" : label;
+    // A stored selection is not a radio profile or transmit admission.
+    snapshot.tx_available = false;
     // No configured region or authenticated Ready observation is supplied by
     // StartupDisplayView. Its existing footer is raster data, not typed telemetry.
     switch (view.frame) {

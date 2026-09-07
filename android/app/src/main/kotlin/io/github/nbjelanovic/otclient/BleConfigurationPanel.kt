@@ -7,6 +7,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import io.github.nbjelanovic.otprotocol.RegionSelectionCatalog
 
 @Composable
 internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailUiController) {
@@ -15,9 +16,11 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
     val context=LocalContext.current
     val draft=remember { V1SetupDraftRepository(AndroidV1SetupDraftStorage(context)).load() }
     var name by rememberSaveable(session.sessionNonce) { mutableStateOf(draft?.deviceName?.value.orEmpty()) }
+    var regionChoice by rememberSaveable(session.sessionNonce) { mutableStateOf<Int?>(null) }
+    var regionMenu by remember { mutableStateOf(false) }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-            Text("Device name and clock",style=MaterialTheme.typography.titleMedium)
+            Text("Device configuration",style=MaterialTheme.typography.titleMedium)
             Text(state.notice)
             state.deviceName?.let { Text("Last device readback: $it") }
             OutlinedTextField(value=name,onValueChange={ name=it },label={ Text("Device name") },
@@ -29,7 +32,28 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
                 }
             }
             OutlinedButton(onClick={ controller.synchronizeDisplayTime() },enabled=!state.busy) { Text("Sync display clock") }
-            Text("Clock uses this phone's local time and 12/24-hour preference. Region and group setup remain unavailable.",style=MaterialTheme.typography.bodySmall)
+            if(state.regionAvailable) {
+                HorizontalDivider()
+                Text("Radio region choice",style=MaterialTheme.typography.titleMedium)
+                Text("Saved choice: ${state.regionSelectionId?.let { RegionSelectionCatalog.find(it)?.code } ?: if(state.regionRevision == 0uL) "Not configured" else "Not read back"}")
+                Box {
+                    OutlinedButton(onClick={ regionMenu=true },enabled=!state.busy) {
+                        Text(regionChoice?.let { RegionSelectionCatalog.find(it)?.code } ?: "Choose region")
+                    }
+                    DropdownMenu(expanded=regionMenu,onDismissRequest={ regionMenu=false }) {
+                        RegionSelectionCatalog.entries.forEach { selection ->
+                            DropdownMenuItem(text={ Text(selection.code) },onClick={ regionChoice=selection.id;regionMenu=false })
+                        }
+                    }
+                }
+                OutlinedButton(onClick={ controller.readRadioRegion() },enabled=!state.busy) { Text("Read region") }
+                Button(onClick={ regionChoice?.let { controller.writeRadioRegion(it) } },
+                    enabled=!state.busy && regionChoice!=null && state.regionRevision!=null && state.regionRevision!=ULong.MAX_VALUE) {
+                    Text("Apply region choice")
+                }
+                Text("Choose where you will use the device. Saving a choice does not configure the radio or authorize transmission. Radio TX remains disabled.",style=MaterialTheme.typography.bodySmall)
+            }
+            Text("Clock uses this phone's local time and 12/24-hour preference. Group setup remains unavailable.",style=MaterialTheme.typography.bodySmall)
         }
     }
 }

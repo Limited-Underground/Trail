@@ -11,13 +11,21 @@ inline constexpr std::size_t kConfigurationRecordBytes = 148;
 inline constexpr std::size_t kConfigurationTimeBytes = 24;
 inline constexpr std::uint8_t kConfigurationNameCapability = 0x40;
 inline constexpr std::uint8_t kConfigurationTimeCapability = 0x80;
+inline constexpr std::uint8_t kConfigurationRegionCapability = 0x10;
+inline constexpr std::size_t kConfigurationRegionBytes = 24;
 enum class ConfigurationCodecError { none, invalid_argument, malformed, output_too_small };
-struct ConfigurationInfo { std::uint8_t capabilities{0}; };
+struct ConfigurationInfo { std::uint8_t capabilities{0}; std::uint8_t minor_version{2}; };
 struct ConfigurationFrame {
     std::uint8_t kind{1};
     std::uint32_t session_nonce{0}, exchange_id{0};
     std::uint16_t payload_bytes{0};
     std::array<std::uint8_t, kConfigurationPayloadBytes> payload{};
+    std::uint8_t minor_version{2};
+};
+struct ConfigurationRegionPayload {
+    std::uint8_t kind{1}, status{0};
+    std::uint64_t revision{0};
+    std::uint16_t selection_id{0};
 };
 struct ConfigurationTimePayload {
     std::uint8_t kind{1}, code{0}, format{0};
@@ -37,11 +45,13 @@ template<class T> struct ConfigurationDecodeResult {
 // Separate strict candidate codec: never advertised, dispatched or used as authority.
 // Fixed profile fields are not caller-configurable. Failure leaves output unchanged.
 [[nodiscard]] ConfigurationEncodeResult encode_configuration_info(const ConfigurationInfo&, std::uint8_t*, std::size_t);
-[[nodiscard]] ConfigurationDecodeResult<ConfigurationInfo> decode_configuration_info(const std::uint8_t*, std::size_t);
+[[nodiscard]] ConfigurationDecodeResult<ConfigurationInfo> decode_configuration_info(const std::uint8_t*, std::size_t, std::uint8_t expected_minor_version=2);
 [[nodiscard]] ConfigurationEncodeResult encode_configuration_frame(const ConfigurationFrame&, std::uint8_t*, std::size_t);
-[[nodiscard]] ConfigurationDecodeResult<ConfigurationFrame> decode_configuration_frame(const std::uint8_t*, std::size_t);
+[[nodiscard]] ConfigurationDecodeResult<ConfigurationFrame> decode_configuration_frame(const std::uint8_t*, std::size_t, std::uint8_t expected_minor_version=2);
 [[nodiscard]] ConfigurationEncodeResult encode_configuration_time_payload(const ConfigurationTimePayload&, std::uint8_t*, std::size_t);
 [[nodiscard]] ConfigurationDecodeResult<ConfigurationTimePayload> decode_configuration_time_payload(const std::uint8_t*, std::size_t);
+[[nodiscard]] ConfigurationEncodeResult encode_configuration_region_payload(const ConfigurationRegionPayload&, std::uint8_t*, std::size_t);
+[[nodiscard]] ConfigurationDecodeResult<ConfigurationRegionPayload> decode_configuration_region_payload(const std::uint8_t*, std::size_t);
 // Transport compatibility only; encrypted ownership, Ready, session correlation and
 // negotiated operation selection remain separate mandatory runtime checks.
 [[nodiscard]] bool configuration_transport_compatible(const ConfigurationInfo&, std::uint8_t requested_capability,

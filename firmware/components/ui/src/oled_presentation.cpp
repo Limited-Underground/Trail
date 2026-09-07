@@ -194,7 +194,7 @@ Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
         row(frame, 2, line.data());
 
         // Reserve width for TX status even when the non-secret region label is long.
-        std::array<char, 7> region{};
+        std::array<char, 8> region{};
         if (snapshot.region_label.empty()) region[0] = '?';
         const auto region_length = std::min(snapshot.region_label.size(), region.size() - 1);
         for (std::size_t i = 0; i < region_length; ++i) region[i] = sanitized(snapshot.region_label[i]);

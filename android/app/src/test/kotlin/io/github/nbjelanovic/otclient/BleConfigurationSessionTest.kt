@@ -3,17 +3,47 @@ import io.github.nbjelanovic.otprotocol.*
 import kotlin.test.*
 
 class BleConfigurationSessionTest {
-    private class Fixture {
+    private class Fixture(val minor: Int = 2) {
         val context=V1NameContext(1,2,3,4,5,6,7u,null,requireNotNull(V1SetupSessionToken.create(ByteArray(16){1})))
         var current=true;var next=11u;var writeResult=true
         val sent=mutableListOf<CompanionConfigurationFrame>()
         val session=BleConfigurationSession(context,{current},{next++},{bytes->
-            sent+=checkNotNull(CompanionConfigurationCodec.decodeFrame(bytes));writeResult
-        },{ 86399u to 2 },{})
+            sent+=checkNotNull(CompanionConfigurationCodec.decodeFrame(bytes,minor));writeResult
+        },{ 86399u to 2 },{},minor)
         fun name(kind:CompanionNameKind,revision:ULong=0u,value:String="") = CompanionConfigurationFrame(0x86,7u,sent.last().exchangeId,
             checkNotNull(CompanionNamePayloadCodec.encode(CompanionNamePayload(kind,revision,value))))
         fun time(payload:CompanionTimePayload,id:UInt=sent.last().exchangeId)=CompanionConfigurationFrame(0x87,7u,id,
             checkNotNull(CompanionConfigurationCodec.encodeTime(payload)))
+    }
+    private fun Fixture.region(value: CompanionRegionPayload, exchange: UInt=sent.last().exchangeId, nonce: UInt=7u, version: Int=minor) =
+        CompanionConfigurationFrame(0x88,nonce,exchange,checkNotNull(CompanionConfigurationCodec.encodeRegion(value)),version)
+    @Test fun regionRequiresFreshReadAndExactRevisionSelectionAndCurrentResponse() {
+        val f=Fixture(3)
+        assertFalse(f.session.writeRegion(1));assertTrue(f.session.readRegion())
+        val old=f.sent.last().exchangeId
+        assertFalse(f.session.receive(f.region(CompanionRegionPayload(0x81),nonce=8u)))
+        assertFalse(f.session.receive(f.region(CompanionRegionPayload(0x81),version=2)))
+        assertTrue(f.session.receive(f.region(CompanionRegionPayload(0x81))))
+        assertTrue(f.session.writeRegion(12));assertFalse(f.session.readName())
+        assertFalse(f.session.receive(f.region(CompanionRegionPayload(0x81),exchange=old)))
+        assertTrue(f.session.receive(f.region(CompanionRegionPayload(0x82,revision=1u,selectionId=11))))
+        assertNull(f.session.state.regionRevision);assertNull(f.session.state.regionSelectionId)
+        assertFalse(f.session.writeRegion(12))
+        assertTrue(f.session.readRegion())
+        assertTrue(f.session.receive(f.region(CompanionRegionPayload(0x81,revision=ULong.MAX_VALUE,selectionId=12))))
+        assertFalse(f.session.writeRegion(1))
+    }
+    @Test fun regionUncertaintyLossAndReconnectNeverInventConfirmation() {
+        val f=Fixture(3);f.session.readRegion();f.session.receive(f.region(CompanionRegionPayload(0x81)))
+        f.session.writeRegion(1);val pending=f.sent.last().exchangeId
+        f.session.lost(pending);assertFalse(f.session.busy);assertNull(f.session.state.regionRevision)
+        f.session.readRegion();f.session.lost(pending);assertTrue(f.session.busy)
+        f.session.receive(f.region(CompanionRegionPayload(0x81,revision=1u,selectionId=65535)))
+        assertNull(f.session.state.regionRevision)
+        f.session.readRegion();val late=f.region(CompanionRegionPayload(0x81))
+        f.current=false;f.session.close();assertFalse(f.session.receive(late));assertFalse(f.session.readRegion())
+        assertNull(Fixture(3).session.state.regionRevision)
+        assertFalse(Fixture().session.readRegion())
     }
     @Test fun readApplyUsesExactReadbackAndSharedIds() {
         val f=Fixture();assertFalse(f.session.writeName(requireNotNull(V1DeviceName.create("Camp"))))

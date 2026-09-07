@@ -15,7 +15,8 @@ public:
     // and clock may be supplied; region remains required until separately bound.
     [[nodiscard]] ui::oled_presentation::Frame present(
         const StartupDisplayView& view, std::uint64_t now_ms,
-        std::string_view name = {}, time::OledClockReading clock = {});
+        std::string_view name = {}, time::OledClockReading clock = {},
+        std::uint16_t region_selection = 0);
 
 private:
     ui::oled_presentation::PresentationOwner owner_{};

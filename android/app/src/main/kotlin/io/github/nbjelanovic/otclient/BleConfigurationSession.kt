@@ -7,6 +7,9 @@ data class BleConfigurationState(
     val busy: Boolean = false,
     val deviceName: String? = null,
     val nameRevision: ULong? = null,
+    val regionAvailable: Boolean = false,
+    val regionSelectionId: Int? = null,
+    val regionRevision: ULong? = null,
     val notice: String = "Device configuration is unavailable.",
 ) {
     override fun toString() = "BleConfigurationState(available=$available, busy=$busy, name=redacted)"
@@ -20,18 +23,37 @@ internal class BleConfigurationSession(
     private val send: (ByteArray) -> Boolean,
     private val civilSample: () -> Pair<UInt,Int>,
     private val changed: (BleConfigurationState) -> Unit,
+    private val minorVersion: Int = 2,
 ) {
     private val names = V1NameTransaction(V1NameAuthoritySource {
         V1NameAuthority(if(isCurrent()) V1NamePhase.READY else V1NamePhase.DISCONNECTED,context)
     }, sharedExchangeAllocator=allocate)
+    private data class RegionPending(val exchange: UInt, val request: CompanionRegionPayload)
+    private var regionPending: RegionPending? = null
     private var namePending: V1NameRequest? = null
     private var timeExchange: UInt? = null
     private var challenge: ULong? = null
     private var closed = false
-    var state = BleConfigurationState(available=true,notice="Read the device name before applying a change.")
+    var state = BleConfigurationState(available=true,regionAvailable=minorVersion==3,notice="Read the device name before applying a change.")
         private set
-    val busy get() = namePending != null || timeExchange != null
+    val busy get() = namePending != null || timeExchange != null || regionPending != null
 
+    fun readRegion(): Boolean = startRegion(CompanionRegionPayload(1))
+    fun writeRegion(selectionId: Int): Boolean {
+        if(RegionSelectionCatalog.find(selectionId)==null) return false
+        val revision=state.regionRevision ?: return false
+        if(revision==ULong.MAX_VALUE) return false
+        return startRegion(CompanionRegionPayload(2,revision=revision,selectionId=selectionId))
+    }
+    private fun startRegion(request: CompanionRegionPayload): Boolean {
+        if(closed || !isCurrent() || busy || minorVersion != 3) return false
+        val exchange=allocate() ?: return false
+        regionPending=RegionPending(exchange,request)
+        update(state.copy(busy=true,regionRevision=null,notice="Waiting for region readback..."))
+        return transmit(6,exchange,checkNotNull(CompanionConfigurationCodec.encodeRegion(request)))
+    }
+    private fun uncertainRegion() = update(state.copy(busy=false,regionRevision=null,
+        notice="Region was not confirmed. Read the device region before applying another choice. Radio TX remains disabled."))
     fun readName(): Boolean = startName { names.beginRead() }
     fun writeName(name: V1DeviceName): Boolean {
         val revision=state.nameRevision ?: return false
@@ -53,14 +75,29 @@ internal class BleConfigurationSession(
     }
     private fun transmit(kind: Int,id: UInt,payload: ByteArray): Boolean {
         if(closed || !isCurrent()) return false
-        val wire=CompanionConfigurationCodec.encodeFrame(CompanionConfigurationFrame(kind,context.sessionNonce,id,payload))
+        val wire=CompanionConfigurationCodec.encodeFrame(CompanionConfigurationFrame(kind,context.sessionNonce,id,payload,minorVersion))
             ?: return false
         if(send(wire)) return true
-        if(namePending?.exchangeId==id || timeExchange==id) lost(id)
+        if(namePending?.exchangeId==id || timeExchange==id || regionPending?.exchange==id) lost(id)
         return false
     }
     fun receive(frame: CompanionConfigurationFrame): Boolean {
-        if(closed || !isCurrent() || frame.sessionNonce!=context.sessionNonce) return false
+        if(closed || !isCurrent() || frame.sessionNonce!=context.sessionNonce || frame.minorVersion!=minorVersion) return false
+        val region=regionPending
+        if(frame.kind==0x88 && region?.exchange==frame.exchangeId) {
+            regionPending=null
+            val result=CompanionConfigurationCodec.decodeRegion(frame.payload)
+            if(result?.kind==0x81 && region.request.kind==1 &&
+                (result.selectionId==0 || RegionSelectionCatalog.find(result.selectionId)!=null)) {
+                update(state.copy(busy=false,regionSelectionId=result.selectionId.takeIf { it!=0 },regionRevision=result.revision,
+                    notice="Region read back. Radio TX remains disabled."))
+            } else if(result?.kind==0x82 && region.request.kind==2 && region.request.revision!=ULong.MAX_VALUE &&
+                result.revision==region.request.revision+1u && result.selectionId==region.request.selectionId) {
+                update(state.copy(busy=false,regionSelectionId=result.selectionId,regionRevision=null,
+                    notice="Region saved and read back. Radio TX remains disabled."))
+            } else uncertainRegion()
+            return true
+        }
         val request=namePending
         if(frame.kind==0x86 && request?.exchangeId==frame.exchangeId) {
             val result=names.receive(context,request.exchangeId,frame.payload)
@@ -100,6 +137,7 @@ internal class BleConfigurationSession(
         return true
     }
     fun lost(exchange: UInt) {
+        if(regionPending?.exchange==exchange) { regionPending=null;uncertainRegion();return }
         if(namePending?.exchangeId==exchange) {
             names.lostResult(context,exchange);namePending=null;uncertain()
         } else if(timeExchange==exchange) {
@@ -107,9 +145,9 @@ internal class BleConfigurationSession(
             update(state.copy(busy=false,notice="Clock sync was not confirmed. Try again."))
         }
     }
-    fun pendingExchange(): UInt? = namePending?.exchangeId ?: timeExchange
+    fun pendingExchange(): UInt? = namePending?.exchangeId ?: timeExchange ?: regionPending?.exchange
     fun close() {
-        closed=true;namePending=null;timeExchange=null;challenge=null
+        closed=true;regionPending=null;namePending=null;timeExchange=null;challenge=null
         names.lifecycle(context,V1NameLifecycle.DISCONNECTED)
     }
     private fun uncertain() = update(state.copy(busy=false,nameRevision=null,

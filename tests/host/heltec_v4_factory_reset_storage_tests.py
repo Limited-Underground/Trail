@@ -115,6 +115,10 @@ require("erase_user_namespace_and_verify(kCompanionNameNvsNamespace)" in user_er
         user_erase.index("erase_user_namespace_and_verify(kCompanionNameNvsNamespace)") <
         user_erase.rindex("inspect_absence"),
         "reset must erase all name records and freshly verify the whole user domain")
+require("inspect_user_namespace(kCompanionRegionNvsNamespace)" in user_inspect and
+        "owner.absent && state.absent && name.absent && region.absent" in user_inspect and
+        "erase_user_namespace_and_verify(kCompanionRegionNvsNamespace)" in user_erase,
+        "region namespace must be wholly erased and verified in reset and boot admission")
 namespace_erase = source[source.index("DomainCheck erase_user_namespace_and_verify"):
                          source.index("DomainCheck erase_owner_namespace_and_verify")]
 require("nvs_erase_all(handle)" in namespace_erase and

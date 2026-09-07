@@ -134,7 +134,7 @@ class V1SetupProgress private constructor(
         }
 
     val radioTransmissionAllowed: Boolean
-        get() = authorized && deviceName != null && radioRegion != null && radioRegionVerified
+        get() = false // A saved selection is not radio transmit authority.
 
     fun matchDevice(label: V1SetupLabel, session: V1SetupSessionToken): V1SetupProgress =
         V1SetupProgress(label, session, false, null, null, false, null)

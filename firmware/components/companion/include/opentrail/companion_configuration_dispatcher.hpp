@@ -1,6 +1,7 @@
 #pragma once
 #include "opentrail/companion_configuration_codec.hpp"
 #include "opentrail/companion_device_name_owner.hpp"
+#include "opentrail/companion_region_owner.hpp"
 #include "opentrail/oled_time_admission.hpp"
 
 namespace opentrail::companion {
@@ -29,7 +30,8 @@ struct ConfigurationDispatchResult {
 // A successful validated base snapshot establishes this dispatcher's Ready gate.
 class ConfigurationDispatcher final {
 public:
-    ConfigurationDispatcher(DeviceNameAuthoritySource&, DeviceNamePersistence&, ConfigurationBaseHandler&);
+    ConfigurationDispatcher(DeviceNameAuthoritySource&, DeviceNamePersistence&, ConfigurationBaseHandler&,
+        RegionPersistence* region = nullptr, std::uint8_t selected_minor = 2);
     ConfigurationDispatcher(const ConfigurationDispatcher&) = delete;
     ConfigurationDispatcher& operator=(const ConfigurationDispatcher&) = delete;
     [[nodiscard]] ConfigurationDispatchResult submit(const DeviceNameContext&, const std::uint8_t*,
@@ -38,6 +40,9 @@ public:
     void observe();
     [[nodiscard]] time::OledClockReading clock();
     [[nodiscard]] DeviceNamePayload confirmed_name() const { return confirmed_name_; }
+    [[nodiscard]] ConfigurationRegionPayload confirmed_region() const {
+        return region_owner_ ? region_owner_->confirmed() : ConfigurationRegionPayload{0x81};
+    }
     [[nodiscard]] bool ready() const { return ready_; }
     [[nodiscard]] bool lifecycle(const DeviceNameContext&, DeviceNameLifecycle);
 private:
@@ -60,11 +65,14 @@ private:
     NameSource name_source_;
     TimeSource time_source_;
     DeviceNameOwner name_owner_;
+    std::optional<RegionOwner> region_owner_;
+    std::uint8_t selected_minor_{2};
     time::OledTimeAdmissionOwner time_owner_;
     DeviceNameAuthority authority_{};
     bool observed_{false}, contained_{false}, ready_{false}, pending_{false};
     bool holding_time_{false}, terminal_{false};
     std::uint64_t challenge_{0}, issued_ms_{0};
+    std::uint64_t request_admitted_ms_{0};
     DeviceNameContext sequence_context_{}, request_context_{};
     DeviceNameContext blocked_context_{};
     enum class Block { none, session, owner };

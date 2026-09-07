@@ -11,11 +11,13 @@ namespace opentrail::target::heltec_v4_bench {
 
 // Configuration work is copied on the host and executed only by app_main.
 [[nodiscard]] bool initialize_companion_configuration(
-    companion::DeviceNamePersistence&, companion::ConfigurationBaseHandler&);
+    companion::DeviceNamePersistence&, companion::ConfigurationBaseHandler&,
+    companion::RegionPersistence&);
 void service_companion_configuration();
 void invalidate_companion_configuration(bool revoke = false);
 [[nodiscard]] time::OledClockReading companion_configuration_clock();
 [[nodiscard]] companion::DeviceNamePayload companion_configuration_name();
+[[nodiscard]] companion::ConfigurationRegionPayload companion_configuration_region();
 
 [[nodiscard]] bool companion_nimble_gatt_definition_self_check();
 

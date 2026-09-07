@@ -1,4 +1,5 @@
 #include "heltec_oled_presentation.hpp"
+#include "opentrail/companion_region_catalog.hpp"
 
 #include <array>
 #include <cstdlib>
@@ -127,6 +128,29 @@ void typed_name_and_clock_survive_region_warning_only() {
     unused_rows_blank(frame,2);
 }
 
+void all_catalog_selections_remain_transmit_disabled() {
+    StartupDisplayView view{};view.frame=StartupDisplayFrame::ble_connected;
+    opentrail::time::OledClock clock;
+    require(clock.synchronize(3600,opentrail::time::OledClockFormat::hour_24,10,10,true), "clock fixture");
+    for (const auto& entry : opentrail::companion::kRegionCatalog) {
+        HeltecOledPresentation mapper;
+        auto frame=mapper.present(view,10,"Bench One",clock.observe(10),entry.id);
+        require(frame.surface==Surface::normal, "supported selection hidden");
+        require(row(frame,3)==std::string("REGION ")+entry.code+" TX OFF", "region variant or TX denial lost");
+        require(row(frame,0)=="BENCH ONE" && row(frame,7)=="TIME 01:00", "region hides name/time");
+        view.frame=StartupDisplayFrame::factory_reset_confirmation;
+        frame=mapper.present(view,11,"Bench One",clock.observe(10),entry.id);
+        require(frame.surface==Surface::reset_confirmation, "region overrides reset");
+        unused_rows_blank(frame,2);
+        view.frame=StartupDisplayFrame::ble_connected;
+    }
+    for (auto id : {0,13,65535}) {
+        HeltecOledPresentation mapper;
+        const auto frame=mapper.present(view,10,"Bench One",clock.observe(10),static_cast<std::uint16_t>(id));
+        require(frame.surface==Surface::region_required && row(frame,1)=="RADIO TX DISABLED", "unknown selection admitted");
+    }
+}
+
 void rollback_contains_all_later_views() {
     HeltecOledPresentation mapper;
     StartupDisplayView view{};
@@ -143,11 +167,12 @@ void rollback_contains_all_later_views() {
 }  // namespace
 
 int main() {
+    all_catalog_selections_remain_transmit_disabled();
     every_frame_and_invalid_fail_closed();
     raw_connection_and_footer_cannot_grant_status();
     safety_surfaces_and_transition_clear_lower_content();
     rollback_contains_all_later_views();
     typed_name_and_clock_survive_region_warning_only();
-    std::cout << "PASS: 5 Heltec OLED presentation scenario groups\n";
+    std::cout << "PASS: 6 Heltec OLED presentation scenario groups\n";
     return 0;
 }

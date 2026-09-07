@@ -26,11 +26,13 @@ public:
         const PairingPinDisplayView& view) override;
     [[nodiscard]] bool conceal() override;
     // App-owner task only; copies bounded readback metadata, never performs I/O.
-    void set_configuration(std::string_view name, time::OledClockReading clock) {
+    void set_configuration(std::string_view name, time::OledClockReading clock,
+                           std::uint16_t region_selection = 0) {
         configuration_name_ = {};
         configuration_name_bytes_ = name.size() <= configuration_name_.size() ? name.size() : 0;
         for (std::size_t i = 0; i < configuration_name_bytes_; ++i) configuration_name_[i] = name[i];
         configuration_clock_ = clock;
+        configuration_region_ = region_selection;
     }
 
 private:
@@ -41,6 +43,7 @@ private:
     std::array<char, 96> configuration_name_{};
     std::size_t configuration_name_bytes_{0};
     time::OledClockReading configuration_clock_{};
+    std::uint16_t configuration_region_{0};
     i2c_master_bus_handle_t bus_{nullptr};
     esp_lcd_panel_io_handle_t io_{nullptr};
     esp_lcd_panel_handle_t panel_{nullptr};

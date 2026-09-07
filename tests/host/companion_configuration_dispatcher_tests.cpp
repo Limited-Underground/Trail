@@ -1,6 +1,7 @@
 #include "opentrail/companion_configuration_dispatcher.hpp"
 #include "opentrail/companion_request_coordinator.hpp"
 #include "companion_configuration_lane.hpp"
+#include "opentrail/companion_region_catalog.hpp"
 #include <algorithm>
 #include <functional>
 #include <iostream>
@@ -35,7 +36,7 @@ struct Actions:CompanionActionAuthority {
 };
 struct Base:ConfigurationBaseHandler {
     Snapshots snapshots; Actions actions; CompanionRequestCoordinator coordinator{snapshots,actions};
-    bool corrupt=false;
+    bool corrupt=false, wrong_minor=false;
     bool execute(const DeviceNameContext& c,const ConfigurationFrame& request,ConfigurationFrame& response) override {
         const CompanionSessionEvidence evidence{c.controller,true,true,true};
         if(!coordinator.session_status().active) EXPECT(coordinator.open_session(evidence,c.session_nonce).opened());
@@ -52,13 +53,29 @@ struct Base:ConfigurationBaseHandler {
         response.kind=static_cast<std::uint8_t>(result.fragment.kind);
         response.session_nonce=result.fragment.session_nonce; response.exchange_id=result.fragment.exchange_id;
         response.payload_bytes=corrupt ? 0 : result.fragment.payload_bytes; response.payload=result.fragment.payload;
+        if(wrong_minor) response.minor_version=request.minor_version==2 ? 3 : 2;
         return true;
     }
 };
+struct RegionStore:RegionPersistence {
+    RegionLoadResult state{RegionLoadStatus::absent,{}};int loads=0,commits=0;bool uncertain=false;
+    std::function<void()> hook;
+    RegionLoadResult load() noexcept override {++loads;return state;}
+    RegionCommitStatus commit(const ConfigurationRegionPayload& p) noexcept override {
+        ++commits;state={RegionLoadStatus::present,p};if(hook)hook();
+        return uncertain ? RegionCommitStatus::possibly_committed : RegionCommitStatus::committed;
+    }
+};
 struct Harness {
-    Source source; Store store; Base base; ConfigurationDispatcher owner{source,store,base};
+    Source source; Store store; Base base; RegionStore regions;std::uint8_t minor;
+    ConfigurationDispatcher owner;
+    explicit Harness(std::uint8_t version=2):minor(version),owner(source,store,base,version==3?&regions:nullptr,version){}
     ConfigurationFrame frame(std::uint8_t kind,std::uint32_t exchange) {
-        ConfigurationFrame f{}; f.kind=kind; f.exchange_id=exchange; f.session_nonce=source.state.context.session_nonce; return f;
+        ConfigurationFrame f{}; f.minor_version=minor;f.kind=kind; f.exchange_id=exchange; f.session_nonce=source.state.context.session_nonce; return f;
+    }
+    ConfigurationFrame region(std::uint32_t id,std::uint16_t selection=0,std::uint64_t revision=0) {
+        auto f=frame(6,id);ConfigurationRegionPayload p{};if(selection)p={2,0,revision,selection};
+        const auto e=encode_configuration_region_payload(p,f.payload.data(),f.payload.size());EXPECT(e.encoded());f.payload_bytes=static_cast<std::uint16_t>(e.encoded_bytes);return f;
     }
     ConfigurationFrame name(std::uint32_t id,bool write=false,std::uint64_t revision=0,char value='A') {
         auto f=frame(4,id); DeviceNamePayload p{};
@@ -81,8 +98,8 @@ struct Harness {
         EXPECT(owner.execute().code==ConfigurationDispatchCode::responded);EXPECT(owner.ready());
     }
 };
-ConfigurationFrame response(const ConfigurationDispatchResult& r) {
-    EXPECT(r.bytes!=0);const auto d=decode_configuration_frame(r.record.data(),r.bytes);EXPECT(d.decoded());return d.value;
+ConfigurationFrame response(const ConfigurationDispatchResult& r,std::uint8_t minor=2) {
+    EXPECT(r.bytes!=0);const auto d=decode_configuration_frame(r.record.data(),r.bytes,minor);EXPECT(d.decoded());return d.value;
 }
 void ready_capacity_and_exact_fence() {
     Harness h;EXPECT(h.submit(h.name(1,true)).code==ConfigurationDispatchCode::unauthorized);EXPECT(h.store.loads==0);
@@ -221,9 +238,62 @@ void actual_target_lane_composes_with_dispatcher() {
     EXPECT(late.store.loads==0 && late.store.commits==0);
     expired.occupied=false;EXPECT(!expired.can_execute(late.source.state));
 }
+void region_versions_lane_and_catalog() {
+    for(auto minor:{2,3}) {
+        Harness broken(static_cast<std::uint8_t>(minor));broken.base.wrong_minor=true;
+        auto f=broken.frame(1,1);auto e=encode_companion_snapshot_request({}, {f.payload.data(),f.payload.size()});f.payload_bytes=static_cast<std::uint16_t>(e.encoded_bytes);
+        EXPECT(broken.submit(f).code==ConfigurationDispatchCode::accepted);EXPECT(broken.owner.execute().bytes==0);EXPECT(!broken.owner.ready());
+        Harness mixed(static_cast<std::uint8_t>(minor));f.minor_version=minor==2?3:2;
+        EXPECT(mixed.submit(f).code==ConfigurationDispatchCode::rejected);EXPECT(!mixed.owner.ready());
+    }
+    Harness h(3);EXPECT(h.submit(h.region(1,1)).code==ConfigurationDispatchCode::unauthorized);h.ready();
+    std::uint32_t id=2;std::uint64_t revision=0;
+    for(const auto& entry:kRegionCatalog) {
+        const auto request=h.region(id,entry.id,revision);
+        EXPECT(h.submit(request,147).code==ConfigurationDispatchCode::output_too_small);
+        EXPECT(h.submit(request).code==ConfigurationDispatchCode::accepted);
+        EXPECT(h.regions.commits==static_cast<int>(revision));
+        EXPECT(h.submit(h.name(id+1,true)).code==ConfigurationDispatchCode::busy);
+        EXPECT(h.submit(h.time(id+1)).code==ConfigurationDispatchCode::busy);
+        auto conflict=request;conflict.payload[16]=entry.id==1?2:1;
+        EXPECT(h.submit(conflict).code==ConfigurationDispatchCode::conflict);
+        const auto r=response(h.owner.execute(),3);const auto p=decode_configuration_region_payload(r.payload.data(),r.payload_bytes).value;
+        EXPECT(r.kind==0x88 && p.kind==0x82 && p.selection_id==entry.id && p.revision==++revision);
+        EXPECT(h.submit(request).code==ConfigurationDispatchCode::replayed);EXPECT(h.regions.commits==static_cast<int>(revision));++id;
+    }
+    EXPECT(h.owner.confirmed_region().selection_id==12);
+    EXPECT(h.submit(h.region(2,1)).code==ConfigurationDispatchCode::stale);
+    EXPECT(h.submit(h.region(id++,65535,revision)).code==ConfigurationDispatchCode::accepted);
+    auto r=response(h.owner.execute(),3);EXPECT(decode_configuration_region_payload(r.payload.data(),r.payload_bytes).value.status==1);EXPECT(h.regions.commits==12);
+    EXPECT(h.submit(h.time(id++)).code==ConfigurationDispatchCode::accepted);(void)h.owner.execute();
+    EXPECT(h.submit(h.region(id,1,revision)).code==ConfigurationDispatchCode::busy);
 }
-int main(){ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();
+void region_uncertainty_lifecycle_and_queue() {
+    Harness h(3);h.ready();h.regions.uncertain=true;
+    EXPECT(h.submit(h.region(2,1)).code==ConfigurationDispatchCode::accepted);
+    auto r=response(h.owner.execute(),3);EXPECT(decode_configuration_region_payload(r.payload.data(),r.payload_bytes).value.kind==0x84);
+    EXPECT(h.owner.lifecycle(h.source.state.context,DeviceNameLifecycle::disconnected));
+    auto old=h.source.state.context;h.source.state.context.transport_generation++;h.ready(3);
+    EXPECT(!h.owner.lifecycle(old,DeviceNameLifecycle::reset));EXPECT(h.owner.ready());
+    EXPECT(h.submit(h.region(4,2,1)).code==ConfigurationDispatchCode::accepted);r=response(h.owner.execute(),3);
+    EXPECT(decode_configuration_region_payload(r.payload.data(),r.payload_bytes).value.kind==0x84 && h.regions.commits==1);
+    EXPECT(h.submit(h.region(5)).code==ConfigurationDispatchCode::accepted);r=response(h.owner.execute(),3);
+    EXPECT(decode_configuration_region_payload(r.payload.data(),r.payload_bytes).value.revision==1);
+    h.regions.uncertain=false;h.regions.hook=[&]{h.source.state.phase=DeviceNamePhase::disconnected;};
+    const auto request=h.region(6,2,1);EXPECT(h.submit(request).code==ConfigurationDispatchCode::accepted);
+    EXPECT(h.owner.execute().bytes==0 && h.regions.commits==2);
+    h.source.state.phase=DeviceNamePhase::connected;EXPECT(h.submit(request).code==ConfigurationDispatchCode::unauthorized);
+    Harness late(3);late.ready();late.source.state.now_ms=5000;
+    EXPECT(late.submit(late.region(2,1),148,0).code==ConfigurationDispatchCode::accepted);
+    EXPECT(late.owner.execute().bytes==0 && late.regions.loads==0);
+    EXPECT(late.submit(late.region(2,1)).code==ConfigurationDispatchCode::no_result);
+    Harness commit(3);commit.ready();commit.source.state.now_ms=4999;commit.regions.hook=[&]{commit.source.state.now_ms=5000;};
+    EXPECT(commit.submit(commit.region(2,1),148,0).code==ConfigurationDispatchCode::accepted);
+    EXPECT(commit.owner.execute().bytes==0 && commit.regions.commits==1);
+}
+}
+int main(){ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
     if(failures) return 1;
-    std::cout<<"PASS: 8 composed configuration dispatcher groups\n";
+    std::cout<<"PASS: 10 composed configuration dispatcher groups\n";
     return 0;
 }

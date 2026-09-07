@@ -1,5 +1,31 @@
 # OpenTrail Progress Log
 
+## 2026-09-07
+
+### OT-170 Protected region settings on hardware
+
+The verified firmware and V1-Test app now save and freshly read back all twelve
+catalog region choices on the retained Heltec/Note20 pair. The final choice is
+US915. App restart and warm device restart retain the name and region, recover
+authenticated Ready, and permit fresh clock synchronization. Radio transmission
+remains disabled. Host checks, 998 Android tests, package auditing and two matching
+firmware builds support this bounded result. See [acceptance evidence](../docs/testing/OT-170-171-REGION-INTEGRATION-2026-09-06.md).
+
+### OT-171 Region selection prerequisite accepted
+
+The real Android controls require an explicit choice and fresh device readback
+before each write. This accepts the live region-setting prerequisite; resumable
+guided onboarding, public name/visibility and automatic normal launch remain open.
+V1 milestone scores are unchanged. Website synchronization remains owner-deferred.
+
+### OT-178 Region display accepted; phone status remains open
+
+The owner confirmed US915, TX OFF, the retained name and current time on the OLED.
+The newly visible phone row reports PHONE UNKNOWN: the existing mapper has no
+authenticated-Ready input. Next bind that row to exact current phone authority
+and test redraw, reconnect and authority loss. Cold-power and destructive reset
+remain deferred/open.
+
 ## 2026-09-06
 
 ### OT-170 / OT-178 first name and clock hardware acceptance

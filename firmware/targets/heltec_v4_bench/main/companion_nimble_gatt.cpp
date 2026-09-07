@@ -21,6 +21,7 @@
 #include "os/os_mbuf.h"
 #include "nimble/nimble_port.h"
 #include "opentrail/companion_public_link_info.hpp"
+#include "opentrail/companion_region_catalog.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
@@ -122,6 +123,8 @@ DeviceNameAuthority g_configuration_authority{};
 bool g_configuration_selected = false;
 bool g_configuration_revoked = false;
 DeviceNamePersistence* g_configuration_storage = nullptr;
+RegionPersistence* g_configuration_region_storage = nullptr;
+ConfigurationRegionPayload g_configuration_region_cache{};
 DeviceNamePayload g_configuration_name_cache{};
 bool g_configuration_name_loaded = false;
 std::uint64_t g_configuration_blocked_generation = 0;
@@ -536,7 +539,7 @@ int protocol_info_access(std::uint16_t connection_handle,
             return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
         }
         std::array<std::uint8_t, kConfigurationInfoBytes> offer{};
-        const auto encoded = encode_configuration_info({0xef}, offer.data(), offer.size());
+        const auto encoded = encode_configuration_info({0xff, 3}, offer.data(), offer.size());
         if (!encoded.encoded() || os_mbuf_append(context->om, offer.data(), offer.size()) != 0)
             return BLE_ATT_ERR_INSUFFICIENT_RES;
         g_configuration_selected = true;
@@ -614,12 +617,12 @@ int command_access(std::uint16_t connection_handle,
     if (g_adapter->status().transport_generation == g_configuration_blocked_generation &&
         g_configuration_blocked_generation != 0) return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
     if (g_configuration_selected) {
-        const auto frame = decode_configuration_frame(encoded.data, encoded.size);
+        const auto frame = decode_configuration_frame(encoded.data, encoded.size, 3);
         const auto status = g_adapter->status();
         if (!frame.decoded() || g_configuration_lane.occupied || status.pending.valid ||
             g_configuration_authority.phase != DeviceNamePhase::connected ||
             frame.value.session_nonce != g_configuration_authority.context.session_nonce ||
-            (frame.value.kind != 1 && frame.value.kind != 2 && frame.value.kind != 4 && frame.value.kind != 5) ||
+            (frame.value.kind != 1 && frame.value.kind != 2 && frame.value.kind != 4 && frame.value.kind != 5 && frame.value.kind != 6) ||
             g_configuration_token == std::numeric_limits<std::uint64_t>::max())
             return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
         const auto token = ++g_configuration_token;
@@ -953,13 +956,15 @@ int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
     return result;
 }
 
-bool initialize_companion_configuration(DeviceNamePersistence& storage, ConfigurationBaseHandler& base) {
+bool initialize_companion_configuration(DeviceNamePersistence& storage, ConfigurationBaseHandler& base,
+    RegionPersistence& region_storage) {
     if (g_configuration_mutex != nullptr || g_configuration_dispatcher != nullptr) return false;
     g_configuration_mutex = xSemaphoreCreateRecursiveMutexStatic(&g_configuration_mutex_storage);
     if (g_configuration_mutex == nullptr) return false;
-    static ConfigurationDispatcher dispatcher{g_configuration_source, storage, base};
+    static ConfigurationDispatcher dispatcher{g_configuration_source, storage, base, &region_storage, 3};
     g_configuration_dispatcher = &dispatcher;
     g_configuration_storage = &storage;
+    g_configuration_region_storage = &region_storage;
     return true;
 }
 
@@ -986,6 +991,12 @@ void service_companion_configuration() {
             loaded.value.kind == DeviceNameKind::snapshot &&
             valid_device_name_utf8(loaded.value.name.data(), loaded.value.name_bytes))
             g_configuration_name_cache = loaded.value;
+        if (g_configuration_region_storage != nullptr) {
+            const auto region = g_configuration_region_storage->load();
+            if (region.status == RegionLoadStatus::present && region.value.kind == 0x81 &&
+                region.value.revision != 0 && region_selection_supported(region.value.selection_id))
+                g_configuration_region_cache = region.value;
+        }
     }
     ConfigurationLane work{};
     {
@@ -1020,6 +1031,9 @@ void service_companion_configuration() {
     const auto confirmed = g_configuration_dispatcher->confirmed_name();
     if (confirmed.revision != 0 && confirmed.name_bytes != 0)
         g_configuration_name_cache = confirmed;
+    const auto region = g_configuration_dispatcher->confirmed_region();
+    if (region.kind == 0x81 && region.revision != 0 && region_selection_supported(region.selection_id))
+        g_configuration_region_cache = region;
     release_companion_factory_reset_serialization();
     if (!work.occupied) return;
     {
@@ -1047,6 +1061,12 @@ DeviceNamePayload companion_configuration_name() {
     GattLock lock;
     if (!lock || g_configuration_revoked) return {};
     return g_configuration_name_cache;
+}
+
+ConfigurationRegionPayload companion_configuration_region() {
+    GattLock lock;
+    if (!lock || g_configuration_revoked) return {};
+    return g_configuration_region_cache;
 }
 
 CompanionGattAuthorizationRequestResult

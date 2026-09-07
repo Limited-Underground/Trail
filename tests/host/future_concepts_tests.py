@@ -227,11 +227,13 @@ def test_navigation_status_backlog_and_progress_remain_coherent() -> None:
         milestone["weight"] * milestone["completion"] / 100
         for milestone in v1["milestones"]
     )
-    assert exact == 43.75
-    assert v1["change_log"][-1]["overall_exact"] == 43.75
-    assert v1["change_log"][-1]["overall"] == 44
+    # Current accepted name/clock hardware evidence advanced V1 independently
+    # of future concepts; the historical baseline remains in prior records.
+    assert exact == 45.50
+    assert v1["change_log"][-1]["overall_exact"] == 45.50
+    assert v1["change_log"][-1]["overall"] == 46
     milestones = {item["id"]: item for item in v1["milestones"]}
-    assert milestones["android-companion"]["completion"] == 60
+    assert milestones["android-companion"]["completion"] == 65
     assert tracks["v1-5-multinode-interoperability"]["status"] == "unmeasured"
     assert tracks["v1-5-multinode-interoperability"]["milestones"] == []
     assert tracks["v2-integrated"]["status"] == "unmeasured"

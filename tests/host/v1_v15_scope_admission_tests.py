@@ -302,6 +302,9 @@ def test_current_otar_is_exactly_two_phone_and_remains_blocked() -> None:
 
 
 def test_canonical_v1_progress_projects_scope_without_reweighting() -> None:
+    # Current evidence includes the accepted 2026-09-06 single-pair name/clock
+    # workflow. The scope-adoption plan above retains its historical zero-credit
+    # 43.75 baseline; only the current canonical projection advances here.
     progress = json.loads(
         (ROOT / "docs" / "V1_PROGRESS.json").read_text(encoding="utf-8")
     )
@@ -321,8 +324,8 @@ def test_canonical_v1_progress_projects_scope_without_reweighting() -> None:
         85,
         65,
         15,
-        25,
-        60,
+        30,
+        65,
         0,
     ]
     assert v1["milestones"][-1]["id"] == "two-pair-end-to-end-acceptance"
@@ -330,9 +333,9 @@ def test_canonical_v1_progress_projects_scope_without_reweighting() -> None:
         milestone["weight"] * milestone["completion"] / 100
         for milestone in v1["milestones"]
     )
-    assert exact == 43.75
-    assert v1["change_log"][-1]["overall_exact"] == 43.75
-    assert v1["change_log"][-1]["overall"] == 44
+    assert exact == 45.5
+    assert v1["change_log"][-1]["overall_exact"] == 45.5
+    assert v1["change_log"][-1]["overall"] == 46
 
     v1_5 = tracks["v1-5-multinode-interoperability"]
     assert v1_5["status"] == "unmeasured"

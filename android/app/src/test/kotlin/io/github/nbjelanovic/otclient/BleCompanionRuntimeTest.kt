@@ -1309,6 +1309,77 @@ class BleCompanionRuntimeTest {
     }
 
     @Test
+    fun protectedRegionProfileUsesActualGateAndAllSharedOperations() {
+        val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
+        val scheduler=TestRuntimeScheduler()
+        val runtime=BleCompanionRuntime(facade,scheduler)
+        runtime.onLifecycleStart()
+        facade.returningOwnerScans.single().emit(BleScanEvent.Candidate(CANDIDATE))
+        facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
+        val gatt=facade.connections.single()
+        gatt.emit(BleGattEvent.ProfileReady)
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(17)))
+        gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
+        gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+        gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(17)))
+        gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(17)))
+        assertPhase(runtime,BleNegotiationPhase.PROTOCOL_INFO)
+        val codec=io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(checkNotNull(codec.encodeInfo(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo(0xff,minorVersion=3)))))
+        assertPhase(runtime,BleNegotiationPhase.INITIAL_SNAPSHOT)
+        val request=checkNotNull(codec.decodeFrame(gatt.commands.last(),3))
+        assertEquals(1,request.kind)
+        val payload=checkNotNull(CompanionProtocolCodec.decodeFragment(snapshotEnvelope(17,1)).value).payload
+        gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x81,17u,request.exchangeId,payload,3)))))
+        assertTrue(assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.available)
+        assertTrue(runtime.readDeviceName())
+        val read=checkNotNull(codec.decodeFrame(gatt.commands.last(),3));assertEquals(4,read.kind)
+        assertFalse(runtime.submitAction(quickStatus()))
+        val namePayload=checkNotNull(io.github.nbjelanovic.otprotocol.CompanionNamePayloadCodec.encode(
+            io.github.nbjelanovic.otprotocol.CompanionNamePayload(io.github.nbjelanovic.otprotocol.CompanionNameKind.SNAPSHOT)))
+        gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x86,17u,read.exchangeId,namePayload,3)))))
+        assertEquals(0uL,assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.nameRevision)
+        assertTrue(runtime.synchronizeDisplayTime())
+        val time=checkNotNull(codec.decodeFrame(gatt.commands.last(),3));assertEquals(read.exchangeId+1u,time.exchangeId)
+        val challenge=checkNotNull(codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(2,challenge=12u)))
+        gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x87,17u,time.exchangeId,challenge,3)))))
+        val sample=checkNotNull(codec.decodeFrame(gatt.commands.last(),3));assertEquals(time.exchangeId+1u,sample.exchangeId)
+        val result=checkNotNull(codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(4,challenge=12u)))
+        gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x87,17u,sample.exchangeId,result,3)))))
+        assertFalse(assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.busy)
+        val selections=io.github.nbjelanovic.otprotocol.RegionSelectionCatalog.entries
+        var revision=0uL
+        selections.forEach { selection ->
+            assertTrue(runtime.readRadioRegion())
+            val regionRead=checkNotNull(codec.decodeFrame(gatt.commands.last(),3))
+            assertEquals(6,regionRead.kind)
+            assertFalse(runtime.synchronizeDisplayTime())
+            val snapshot=checkNotNull(codec.encodeRegion(io.github.nbjelanovic.otprotocol.CompanionRegionPayload(
+                0x81,revision=revision,selectionId=if(revision==0uL) 0 else selection.id-1)))
+            gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+                io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x88,17u,regionRead.exchangeId,snapshot,3)))))
+            assertTrue(runtime.writeRadioRegion(selection.id))
+            val write=checkNotNull(codec.decodeFrame(gatt.commands.last(),3))
+            assertEquals(regionRead.exchangeId+1u,write.exchangeId)
+            val expected=checkNotNull(codec.decodeRegion(write.payload))
+            assertEquals(revision,expected.revision);assertEquals(selection.id,expected.selectionId)
+            revision++
+            val applied=checkNotNull(codec.encodeRegion(io.github.nbjelanovic.otprotocol.CompanionRegionPayload(
+                0x82,revision=revision,selectionId=selection.id)))
+            gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+                io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x88,17u,write.exchangeId,applied,3)))))
+            assertEquals(selection.id,assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.regionSelectionId)
+            assertFalse(runtime.writeRadioRegion(selection.id)) // A fresh read is required for each mutation.
+        }
+        runtime.disconnect();assertFalse(runtime.readRadioRegion());assertFalse(runtime.writeRadioRegion(1))
+    }
+
+    @Test
     fun unprotectedPostClaimInfoCannotActivateConfigurationProfile() {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true)
         val runtime=BleCompanionRuntime(facade,TestRuntimeScheduler())

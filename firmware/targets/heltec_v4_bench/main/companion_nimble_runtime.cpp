@@ -8,6 +8,7 @@
 #include "companion_authorization_storage.hpp"
 #include "companion_nimble_gatt.hpp"
 #include "companion_name_storage.hpp"
+#include "companion_region_storage.hpp"
 #include "companion_v1_heltec_adapters.hpp"
 #include "heltec_startup_display.hpp"
 #include "heltec_v4_factory_reset_storage.hpp"
@@ -169,6 +170,7 @@ public:
         response = {};
         response.session_nonce = request.session_nonce;
         response.exchange_id = request.exchange_id;
+        response.minor_version = request.minor_version;
         CompanionSemanticEncodeResult encoded{};
         const radio::ByteView payload{request.payload.data(), request.payload_bytes};
         if (request.kind == 1) {
@@ -1347,7 +1349,8 @@ CompanionBleRuntimeError start_companion_nimble_runtime(
     g_owner_gatt_transport_generation = 0;
     if (!initialize_companion_configuration(
             opentrail::targets::heltec_v4_bench::companion_name_storage(),
-            g_configuration_base)) return CompanionBleRuntimeError::contained;
+            g_configuration_base,
+            opentrail::targets::heltec_v4_bench::companion_region_storage())) return CompanionBleRuntimeError::contained;
     return g_runtime_owner.start(now_ms, true);
 }
 
