@@ -38,29 +38,42 @@ See [phone-status evidence](../docs/testing/OT-178-PHONE-STATUS-2026-09-07.md).
 
 ## 2026-09-06
 
-### OT-170 / OT-178 first name and clock hardware acceptance
+Administrative formatting note: restored one date heading per day with individual
+task subheadings, including the matching current-summary sections. Existing task
+text, ordering and evidence links were preserved. This was formatting only;
+implementation and V1 completion were unchanged.
 
-The verified application-only firmware and corrected V1-Test APK now pass the
-first real name/clock workflow on the retained Heltec V4.2 and Note20 pair.
-The phone read the initially absent name, saved a name and received exact device
-readback, then synchronized the display clock. The owner confirmed the OLED name,
-time and retained region-required/TX-disabled warnings. Full app restart recovered
-Ready and fresh name readback. A warm board restart retained the name and showed
-unknown time until reconnection and a new successful synchronization; fresh device
-readback again matched. No battery disconnection or full power removal occurred.
+### OT-170 First device-name hardware acceptance
 
-This accepts bounded single-pair name persistence, protected readback and volatile
-clock synchronization. OT-170 and OT-178 remain partial. Next, under OT-170 and
-OT-171, define and host-test protected radio-region selection, durable readback
-and rejection rules before extending onboarding or enabling target integration.
-Region selection alone must not enable TX. Cold-power, destructive reset/erasure,
-two-pair operation, secure radio and signed-release acceptance remain open.
-Website synchronization and deployment remain deferred to the owner's bulk update;
-the canonical V1 progress record now includes this new physical evidence.
+The verified application-only firmware and corrected V1-Test APK were installed
+on the retained Heltec V4.2 and Note20 pair. The phone read the initially absent
+name, saved a name and received exact device readback. Full app restart recovered
+Ready and fresh name readback. A warm board restart retained the name; fresh
+device readback again matched. No battery disconnection or full power removal
+occurred.
+
+This accepts bounded single-pair name persistence and protected readback. OT-170
+remains partial. Next, under OT-170 and OT-171, define and host-test protected
+radio-region selection, durable readback and rejection rules before extending
+onboarding or enabling target integration. Region selection alone must not enable
+TX. Cold-power, destructive reset/erasure, two-pair operation, secure radio and
+signed-release acceptance remain open. Website synchronization and deployment
+remain deferred to the owner's bulk update; the canonical V1 progress record now
+includes this new physical evidence.
 
 See [physical integration evidence](../docs/testing/OT-170-178-LIVE-INTEGRATION-2026-09-06.md) and [canonical V1 progress](../docs/V1_PROGRESS.json).
 
-### Integrated name and clock candidate validated
+### OT-178 First clock and OLED hardware acceptance
+
+During the same installed name/clock workflow, the phone synchronized the display
+clock. The owner confirmed the OLED name, time and retained region-required/TX-
+disabled warnings. After the warm board restart, the display showed unknown time
+until reconnection and a new successful synchronization. This accepts volatile
+clock synchronization and the observed display behavior; OT-178 remains partial.
+
+See [the same physical integration evidence](../docs/testing/OT-170-178-LIVE-INTEGRATION-2026-09-06.md).
+
+### OT-170 Integrated name and clock candidate validated
 
 Connected protected profile 0.2, shared request dispatch, durable device-name
 readback, volatile clock sync, Android controls and the Heltec OLED. Name storage
@@ -76,11 +89,7 @@ deferred. V1 remains exact43.75/display44 until physical evidence changes a mile
 
 See [integration evidence](../docs/testing/OT-170-178-LIVE-INTEGRATION-2026-09-06.md).
 
-### Daily progress headings
-
-Restored one date heading per day with individual task subheadings, including the matching current-summary sections. Existing task text, ordering and evidence links are preserved. This is formatting only; implementation and V1 completion are unchanged.
-
-### Configuration/time profile0.2 codecs
+### OT-170 Configuration/time profile0.2 codecs
 
 Implemented matched C++/Kotlin configuration/time profile0.2 codecs with explicit version/capability/kind allocation, strict single-record limits, OTTCv1 civil-time fields and unchanged OTNCv1 names. Both pass431 shared semantic vectors. Existing0.0/claim0.1 codecs remain unchanged. No profile advertisement, live dispatcher or target integration is enabled.
 
@@ -88,7 +97,7 @@ Next implement the host-only shared configuration/time dispatcher composing the 
 
 See [validation evidence](../docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md). V1 remains exact43.75/display44.
 
-### Android name receipt model
+### OT-170 Android name receipt model
 
 Implemented the Android name transaction model and one-use registered setup receipts. Current protocol context, exchange, expected/committed revision and exact name must match; stale results and loss callbacks cannot confirm or cancel later work. V1DeviceName now rejects malformed Unicode losslessly. This is model integration only, with no live BLE name requests or app installation.
 
@@ -96,7 +105,7 @@ Next implement matched successor wire codecs and explicitly allocate the version
 
 See [validation evidence](../docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md). V1 remains exact43.75/display44.
 
-### Host name transaction owner
+### OT-170 Host name transaction owner
 
 Implemented the host-only fixed-memory device-name transaction owner using the existing payload codec, injected trusted authority and synchronous fakeable persistence. It enforces revision CAS/readback, exact duplicate fences, admission expiry and explicit read reconciliation after uncertain commits. All12 focused groups pass; the complete host matrix is recorded in the evidence. No live wire, flash driver or phone integration is added.
 
@@ -104,7 +113,7 @@ Next implement typed Android pending-request/readback receipt correlation and lo
 
 See [implementation evidence](../docs/testing/OT-170-NAME-TRANSACTION-2026-09-06.md). V1 remains exact43.75/display44.
 
-### Configuration/time transport and readback contract
+### OT-170 Configuration/time transport and readback contract
 
 Accepted the bounded configuration/time transport and durable-readback implementation contract: matched148-byte buffers, normal MTU151, one operation slot, exact request/session correlation, revisioned name commits with uncertainty recovery, and reuse of the current time challenge owner. This is documentation and review only; no wire or storage capability is enabled.
 
@@ -152,7 +161,7 @@ Next integrate the presentation owner through the Heltec display adapter after r
 
 See [evidence and preflight](../tests/hardware/OT-178-OLED-FOUNDATION-2026-09-06.md) and [Decision 0105](../docs/decisions/0105-ot178-host-oled-presentation.md).
 
-### Existing Android visuals integrated
+### OT-172 Existing Android visuals integrated
 
 Integrated the existing owner-approved Android visual direction onto the published connection/service-logging baseline: Messages/Group/Device navigation, mint theme, fullscreen truthful status strip, setup/group/people surfaces, phone-local quick-message drafts and support export. The existing owner checkout is unchanged. This accepts software integration only; the combined APK is not installed and final visual or workflow acceptance is not claimed.
 
@@ -252,20 +261,50 @@ No V1 credit is added. See [candidate validation](../tests/hardware/OT-177-PUBLI
 
 ## 2026-09-04
 
-### OT-170, OT-172, OT-173, OT-174, and OT-177 host foundations
+### OT-170 Setup and settings host foundations
 
-- Added isolated Android state contracts for resumable device/name/region/public
-  setup, Messages-first portrait/landscape navigation, the exact one-admin and
-  six-member group cap, generated direct-contact consent, deterministic support
-  text, and bounded V1-Test diagnostics.
-- Independent review removed caller-provided trust booleans, prevented an admin
-  from silently reactivating an opted-out member's location, restricted ordinary
-  diagnostics to typed fields, and separated tester-entered text.
-- These are host foundations only. Compose screens, persistence, invitations,
-  authenticated presence/wire behavior, file save/share, the distinct V1-Test
-  flavor, firmware/OLED work, and physical acceptance remain open. No V1
-  completion percentage changes.
-- [Host evidence, independent corrections, exact matrix, and remaining gates](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md).
+Added isolated Android state contracts for resumable device/name/region/public
+setup. Independent review replaced caller-provided trust booleans with matching
+session-bound authorization and region-readback receipts. These are host models;
+setup persistence and live device behavior remain open.
+
+See [shared host-foundation evidence](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md).
+
+### OT-172 Navigation host foundation
+
+Added Messages-first portrait/landscape navigation state and draft preservation.
+The reusable Compose shell compiled but was not connected to the current activity
+entry point. Physical application acceptance remained open.
+
+See [shared host-foundation evidence](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md).
+
+### OT-173 Group-policy host foundation
+
+Added the exact one-administrator and six-member group cap. Independent review
+prevented an administrator from silently reactivating an opted-out member's
+location. Invitations, persistence and authenticated wire behavior remained open.
+
+See [shared host-foundation evidence](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md).
+
+### OT-174 Direct-contact consent host foundation
+
+Added generated direct-contact request, accept, decline and block transitions,
+with no typed-chat admission before acceptance and per-chat location OFF.
+Authenticated presence, wire behavior and physical acceptance remained open.
+
+See [shared host-foundation evidence](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md).
+
+### OT-177 Support and diagnostic host foundations
+
+Added deterministic support text and bounded V1-Test diagnostics. Independent
+review restricted ordinary diagnostics to typed fields and separated tester-
+entered text. File save/share and the distinct V1-Test flavor remained separate
+integration gates at this checkpoint.
+
+The shared foundation work was host-only: live Compose workflows, persistence,
+firmware/OLED work and physical acceptance remained open. No V1 completion
+percentage changed. See [host evidence, independent corrections, exact matrix,
+and remaining gates](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md).
 
 ### OT-169 V1 user-experience profile
 
