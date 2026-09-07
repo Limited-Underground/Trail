@@ -392,6 +392,7 @@ class BleCompanionRuntime(
     private var protocolInfo: CompanionProtocolInfo? = null
     private var configurationInfo: CompanionConfigurationInfo? = null
     private var configurationSession: BleConfigurationSession? = null
+    private var matchedSetupLabel: V1SetupLabel? = null
     private var configurationTimeout: BleReconnectLease? = null
     private var displayTimeChanges: BleReconnectLease? = null
     private var automaticNameReadPending = false
@@ -995,6 +996,9 @@ class BleCompanionRuntime(
         }
         val callbackGeneration = nextGeneration() ?: return
         clearSessionState()
+        // A first-use scan match belongs only to this exact connection attempt.
+        matchedSetupLabel = if (purpose == BleConnectionPurpose.INITIAL_AUTHORIZATION)
+            V1SetupLabel.create(companion.publicLabel) else null
         val lease = facade.createConnection(companion.endpointToken, purpose) { event ->
             onGattEvent(callbackGeneration, companion, purpose, event)
         }
@@ -1333,7 +1337,7 @@ class BleCompanionRuntime(
         repeat(8) { tokenBytes[it]=(scope shr (it*8)).toByte();tokenBytes[8+it]=(callbackGeneration shr (it*8)).toByte() }
         val token=V1SetupSessionToken.create(tokenBytes) ?: return
         val context=V1NameContext(scope,nextConfigurationScope() ?: return,nextConfigurationScope() ?: return,
-            nextConfigurationScope() ?: return,callbackGeneration,nextConfigurationScope() ?: return,nonce.toUInt(),null,token)
+            nextConfigurationScope() ?: return,callbackGeneration,nextConfigurationScope() ?: return,nonce.toUInt(),matchedSetupLabel,token)
         configurationSession=BleConfigurationSession(context,minorVersion=info.minorVersion,
             isCurrent={ accepts(callbackGeneration) && (state as? BleRuntimeState.Ready)?.session?.sessionNonce==nonce },
             allocate={
@@ -2349,6 +2353,7 @@ class BleCompanionRuntime(
     }
 
     private fun clearSessionState() {
+        matchedSetupLabel = null
         displayTimeChanges?.close()
         displayTimeChanges=null
         automaticNameReadPending=false

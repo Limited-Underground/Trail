@@ -4,10 +4,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import io.github.nbjelanovic.otprotocol.RegionSelectionCatalog
+
+// UI restoration epoch only: never an identity, protocol field, or persisted preference.
+private val nameEditorProcessEpoch=java.util.UUID.randomUUID().toString()
 
 @Composable
 internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailUiController) {
@@ -15,7 +19,19 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
     if(!state.available) return
     val context=LocalContext.current
     val draft=remember { V1SetupDraftRepository(AndroidV1SetupDraftStorage(context)).load() }
-    var name by rememberSaveable(session.sessionNonce) { mutableStateOf(draft?.deviceName?.value.orEmpty()) }
+    val editorScope="$nameEditorProcessEpoch:${state.editorSessionId}"
+    val editorSaver=remember(editorScope) {
+        Saver<BleDeviceNameEditor,Any>(
+            save={ listOf(editorScope,it.text,it.edited,it.suggestion.orEmpty()) },
+            restore={ BleDeviceNameEditor.restore(it,editorScope,draft?.deviceName?.value.orEmpty()) })
+    }
+    var editor by rememberSaveable(state.editorSessionId,stateSaver=editorSaver) {
+        mutableStateOf(BleDeviceNameEditor(draft?.deviceName?.value.orEmpty()))
+    }
+    LaunchedEffect(state.editorSessionId, state.suggestedDeviceName, state.deviceName) {
+        editor=editor.suggest(state.suggestedDeviceName, state.deviceName)
+    }
+    val name=editor.text
     var regionChoice by rememberSaveable(session.sessionNonce) { mutableStateOf<Int?>(null) }
     var regionMenu by remember { mutableStateOf(false) }
     Card(Modifier.fillMaxWidth()) {
@@ -23,7 +39,11 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
             Text("Device configuration",style=MaterialTheme.typography.titleMedium)
             Text(state.notice)
             state.deviceName?.let { Text("Last device readback: $it") }
-            OutlinedTextField(value=name,onValueChange={ name=it },label={ Text("Device name") },
+            state.suggestedDeviceName?.let {
+                Text("Suggested name from the device you matched: $it. Edit it or tap Apply name to save it.",
+                    style=MaterialTheme.typography.bodySmall)
+            }
+            OutlinedTextField(value=name,onValueChange={ editor=editor.edit(it) },label={ Text("Device name") },
                 enabled=!state.busy,singleLine=true,modifier=Modifier.fillMaxWidth())
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick={ controller.readDeviceName() },enabled=!state.busy) { Text("Read device") }

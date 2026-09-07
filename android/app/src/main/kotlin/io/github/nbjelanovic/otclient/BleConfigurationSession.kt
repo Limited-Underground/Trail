@@ -4,6 +4,8 @@ import io.github.nbjelanovic.otprotocol.*
 
 data class BleConfigurationState(
     val available: Boolean = false,
+    val editorSessionId: Long = 0,
+    val suggestedDeviceName: String? = null,
     val busy: Boolean = false,
     val deviceName: String? = null,
     val nameRevision: ULong? = null,
@@ -34,7 +36,7 @@ internal class BleConfigurationSession(
     private var timeExchange: UInt? = null
     private var challenge: ULong? = null
     private var closed = false
-    var state = BleConfigurationState(available=true,regionAvailable=minorVersion==3,notice="Read the device name before applying a change.")
+    var state = BleConfigurationState(available=true,editorSessionId=context.device,regionAvailable=minorVersion==3,notice="Read the device name before applying a change.")
         private set
     val busy get() = namePending != null || timeExchange != null || regionPending != null
 
@@ -106,13 +108,14 @@ internal class BleConfigurationSession(
                 V1NameResultCode.SNAPSHOT -> {
                     val snapshot=checkNotNull(result.snapshot)
                     update(state.copy(busy=false,deviceName=snapshot.name.ifEmpty { null },nameRevision=snapshot.revision,
+                        suggestedDeviceName=if(snapshot.name.isEmpty()) context.setupLabel?.value else null,
                         notice="Device name read back."))
                 }
                 V1NameResultCode.APPLIED -> {
                     val name=V1DeviceName.create(request.payload.name)
                     val receipt=result.receipt
                     if(name!=null && receipt!=null && names.consume(receipt,context.setupLabel,context.sessionToken,name)) {
-                        update(state.copy(busy=false,deviceName=name.value,nameRevision=request.payload.revision+1u,
+                        update(state.copy(busy=false,deviceName=name.value,suggestedDeviceName=null,nameRevision=request.payload.revision+1u,
                             notice="Device name saved and read back."))
                     } else uncertain()
                 }
@@ -147,10 +150,11 @@ internal class BleConfigurationSession(
     }
     fun pendingExchange(): UInt? = namePending?.exchangeId ?: timeExchange ?: regionPending?.exchange
     fun close() {
+        state=state.copy(available=false,suggestedDeviceName=null)
         closed=true;regionPending=null;namePending=null;timeExchange=null;challenge=null
         names.lifecycle(context,V1NameLifecycle.DISCONNECTED)
     }
-    private fun uncertain() = update(state.copy(busy=false,nameRevision=null,
+    private fun uncertain() = update(state.copy(busy=false,nameRevision=null,suggestedDeviceName=null,
         notice="Name change was not confirmed. Read the device before trying another change."))
     private fun update(next: BleConfigurationState) { state=next;changed(next) }
 }

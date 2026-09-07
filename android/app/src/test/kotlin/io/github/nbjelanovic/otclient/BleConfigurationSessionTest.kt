@@ -3,8 +3,8 @@ import io.github.nbjelanovic.otprotocol.*
 import kotlin.test.*
 
 class BleConfigurationSessionTest {
-    private class Fixture(val minor: Int = 2) {
-        val context=V1NameContext(1,2,3,4,5,6,7u,null,requireNotNull(V1SetupSessionToken.create(ByteArray(16){1})))
+    private class Fixture(val minor: Int = 2, label: String? = null) {
+        val context=V1NameContext(1,2,3,4,5,6,7u,label?.let { V1SetupLabel.create(it) },requireNotNull(V1SetupSessionToken.create(ByteArray(16){1})))
         var current=true;var next=11u;var writeResult=true
         val sent=mutableListOf<CompanionConfigurationFrame>()
         val session=BleConfigurationSession(context,{current},{next++},{bytes->
@@ -17,6 +17,30 @@ class BleConfigurationSessionTest {
     }
     private fun Fixture.region(value: CompanionRegionPayload, exchange: UInt=sent.last().exchangeId, nonce: UInt=7u, version: Int=minor) =
         CompanionConfigurationFrame(0x88,nonce,exchange,checkNotNull(CompanionConfigurationCodec.encodeRegion(value)),version)
+    @Test fun suggestionRequiresCurrentEmptyReadbackAndOnlyExplicitApplyPersists() {
+        val f=Fixture(label="Trail-23ABCD")
+        assertNull(f.session.state.suggestedDeviceName)
+        f.session.readName();val response=f.name(CompanionNameKind.SNAPSHOT)
+        assertFalse(f.session.receive(CompanionConfigurationFrame(response.kind,8u,response.exchangeId,response.payload)))
+        assertNull(f.session.state.suggestedDeviceName)
+        assertTrue(f.session.receive(response))
+        assertEquals("Trail-23ABCD",f.session.state.suggestedDeviceName)
+        assertNull(f.session.state.deviceName);assertEquals(1,f.sent.size)
+        assertTrue(f.session.writeName(requireNotNull(V1DeviceName.create("Trail-23ABCD"))))
+        assertTrue(f.session.receive(f.name(CompanionNameKind.APPLIED,1u,"Trail-23ABCD")))
+        assertEquals("Trail-23ABCD",f.session.state.deviceName)
+        assertNull(f.session.state.suggestedDeviceName)
+    }
+    @Test fun suggestionNeverOverridesSavedNameAndIsRemovedOnSessionClose() {
+        val f=Fixture(label="Trail-23ABCD")
+        f.session.readName();f.session.receive(f.name(CompanionNameKind.SNAPSHOT,1u,"Camp"))
+        assertNull(f.session.state.suggestedDeviceName)
+        f.session.readName();f.session.receive(f.name(CompanionNameKind.SNAPSHOT))
+        assertNotNull(f.session.state.suggestedDeviceName)
+        f.session.close();assertNull(f.session.state.suggestedDeviceName)
+        val ordinary=Fixture();ordinary.session.readName();ordinary.session.receive(ordinary.name(CompanionNameKind.SNAPSHOT))
+        assertNull(ordinary.session.state.suggestedDeviceName)
+    }
     @Test fun regionRequiresFreshReadAndExactRevisionSelectionAndCurrentResponse() {
         val f=Fixture(3)
         assertFalse(f.session.writeRegion(1));assertTrue(f.session.readRegion())

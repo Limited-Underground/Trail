@@ -2,6 +2,40 @@
 
 ## 2026-09-07
 
+### OT-171 Setup navigation and naming updated; recovery timing corrected
+
+Typed connection timestamps correct the earlier report that app-only recovery
+stalled until a board restart. Session 9 reached Ready 30.959 seconds after
+discovery began, 25.056 seconds before the later disconnect during the warm-restart test. A controlled
+S24-only repeat reached Ready in 30.876 seconds without touching either Heltec,
+with connected UI and automatic clock synchronization. No reconnect code or
+firmware change was required; the claimed app-only stall is not a current blocker.
+
+The owner selected Trail Bench 2. On the unchanged second pair, protected name
+read was empty, Apply name succeeded, and exact device readback confirmed
+Trail Bench 2. Post-update warm-restart persistence for that name now passes.
+
+The installed Android update initially opens Device when connection setup has not
+started, including saved-pair cold launches. It does not infer bond state from
+disconnection or add a durable pairing hint. Explicit selected tabs remain saved
+through runtime changes and Activity recreation. Final navigation and name-suggestion source passed independent review. A matched
+first-use Trail label may populate the name draft only after an empty protected
+readback; the connected name stays authoritative and saving still requires Apply.
+Session-scoped saved state preserves rotation and user edits while rejecting stale
+drafts. The complete Android matrix passes 1,089 tests with no failures, errors or skips,
+all variant builds/lint and release audit; 143 Android input hashes stayed unchanged.
+The final C577 APK is installed and readback-verified on the S24; initial Device
+landing and corrected name/region setup wording were physically verified. The
+interim A888 app recovered Ready in 30.830 seconds; Messages selected during its
+scan remained selected after Ready, and Trail Bench 2 readback/clock sync passed.
+Final C577 reached Ready in 31.192 seconds; warm restart recovered without a PIN
+in 1.835 seconds. Fresh protected reads confirmed Trail Bench 2 and US915 with
+TX disabled, alongside automatic clock sync. Physical first-use name suggestion
+and rotation remain untested; no further factory reset was performed. The second 984E firmware and original control remain unchanged. V1 scores and previous historical entries are preserved. Website and
+cold-power work remain deferred.
+
+See [setup continuation and timestamp correction](docs/testing/OT-171-SETUP-CONTINUATION-2026-09-07.md).
+
 ### OT-170 Protected region settings on hardware
 
 The verified firmware and V1-Test app now save and freshly read back all twelve

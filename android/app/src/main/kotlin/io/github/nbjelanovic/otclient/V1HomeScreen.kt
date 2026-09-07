@@ -22,6 +22,10 @@ internal fun V1HomeScreen(
     state: TrailAppUiState,
     deviceContent: @Composable () -> Unit,
 ) {
+    // Freeze the launch choice before the splash; runtime changes must not navigate for the user.
+    var selected by rememberSaveable {
+        mutableStateOf(v1InitialHomeDestination(state).name)
+    }
     var splashFinished by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(1_800); splashFinished = true }
     if (!splashFinished) {
@@ -32,7 +36,6 @@ internal fun V1HomeScreen(
         }
         return
     }
-    var selected by rememberSaveable { mutableStateOf(V1AppDestination.MESSAGES.name) }
     val destination = V1AppDestination.entries.firstOrNull { it.name == selected } ?: V1AppDestination.MESSAGES
     val retainedPages = rememberSaveableStateHolder()
     val runtime = (state as? TrailAppUiState.BluetoothDevice)?.runtimeState

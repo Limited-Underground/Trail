@@ -1430,7 +1430,7 @@ class BleCompanionRuntimeTest {
         assertFalse(runtime.synchronizeDisplayTime())
     }
 
-    private class ConfigurationFixture {
+    private class ConfigurationFixture(val firstSetup: Boolean = false) {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
         val scheduler=TestRuntimeScheduler()
         val runtime=BleCompanionRuntime(facade,scheduler)
@@ -1438,8 +1438,17 @@ class BleCompanionRuntimeTest {
         val codec=io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
         init {
             runtime.onLifecycleStart()
-            facade.returningOwnerScans.single().emit(BleScanEvent.Candidate(CANDIDATE))
-            facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
+            if(firstSetup) {
+                runtime.requestScan()
+                val match=CANDIDATE.copy(publicLabel="Trail-23ABCD")
+                facade.scans.last().emit(BleScanEvent.Candidate(match))
+                runtime.beginAuthorization(match.endpointToken)
+                checkNotNull(runtime.createAuthorizationClaim(match.endpointToken,
+                    DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE) {}).start()
+            } else {
+                facade.returningOwnerScans.single().emit(BleScanEvent.Candidate(CANDIDATE.copy(publicLabel="Trail-23ABCD")))
+                facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
+            }
             gatt=facade.connections.single()
             gatt.emit(BleGattEvent.ProfileReady)
             gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(17)))
@@ -1462,7 +1471,7 @@ class BleCompanionRuntimeTest {
             assertEquals(4,last().kind)
             respond(0x86,checkNotNull(io.github.nbjelanovic.otprotocol.CompanionNamePayloadCodec.encode(
                 io.github.nbjelanovic.otprotocol.CompanionNamePayload(
-                    io.github.nbjelanovic.otprotocol.CompanionNameKind.SNAPSHOT,1u,value))))
+                    io.github.nbjelanovic.otprotocol.CompanionNameKind.SNAPSHOT,if(value.isEmpty()) 0u else 1u,value))))
         }
         fun clock() {
             assertEquals(5,last().kind)
@@ -1472,6 +1481,18 @@ class BleCompanionRuntimeTest {
             assertEquals(facade.civilTime.second,sample.format)
             respond(0x87,checkNotNull(codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(4,challenge=12u))))
         }
+    }
+
+    @Test fun setupSuggestionIsFirstConnectionOnlyAndNeverAuthoritative() {
+        val first=ConfigurationFixture(firstSetup=true)
+        assertNull(assertIs<BleRuntimeState.Ready>(first.runtime.state).session.configuration.suggestedDeviceName)
+        first.name("")
+        val state=assertIs<BleRuntimeState.Ready>(first.runtime.state).session.configuration
+        assertEquals("Trail-23ABCD",state.suggestedDeviceName);assertNull(state.deviceName)
+        first.gatt.emit(BleGattEvent.Disconnected)
+        assertFalse(first.runtime.state is BleRuntimeState.Ready)
+        val returning=ConfigurationFixture();returning.name("")
+        assertNull(assertIs<BleRuntimeState.Ready>(returning.runtime.state).session.configuration.suggestedDeviceName)
     }
 
     @Test fun automaticConfigurationIsBoundedAndContinuesAfterNameTimeout() {

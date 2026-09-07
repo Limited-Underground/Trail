@@ -1,5 +1,10 @@
 # OT-171 matching first-use setup labels
 
+> Correction: the earlier app-only stall inference below is superseded by
+> [typed recovery timestamps and the controlled unchanged repeat](OT-171-SETUP-CONTINUATION-2026-09-07.md).
+> Ready preceded the later disconnect; the unchanged app-only repeat confirms recovery.
+> The original historical account remains below.
+
 ## Scope - 2026-09-07
 
 The owner requested distinguishable device names during first connection when

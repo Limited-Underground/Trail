@@ -165,7 +165,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
           if (state == TrailAppUiState.ChooseMode) {
             V1OnboardingScreen(
                 state = V1OnboardingScreenState(statusMessage =
-                    "You can connect to the current firmware below. The new setup-name and radio-region configuration steps require the V1 device update."),
+                    "Connect below to read your device name and radio-region settings."),
                 onAction = {},
                 connectionContent = {
                     Button(onClick = controller::chooseBluetoothDeviceMode, modifier = Modifier.fillMaxWidth()) {
