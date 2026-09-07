@@ -393,9 +393,10 @@
             "docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md",
             "docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md",
             "docs/testing/OT-170-171-REGION-INTEGRATION-2026-09-06.md",
-            "docs/testing/OT-178-PHONE-STATUS-2026-09-07.md"
+            "docs/testing/OT-178-PHONE-STATUS-2026-09-07.md",
+            "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md"
           ],
-          "next_gate": "Owner-prioritized next: establish the exact second Heltec/S24 Ultra baseline and secure radio prerequisites, then implement minimal Phone A -> Heltec A -> Heltec B -> Phone B messaging with accurate delivery/failure reporting. Secondary onboarding/options follow the working path. Confirm the original OLED phone text when the owner returns; cold-power and website updates remain deferred."
+          "next_gate": "Both pairs have the accepted firmware/APK baseline. The S24 existing-bond Snapshot/Ready, configuration/time and full app-restart with fresh US915 readback are verified. Next diagnose OT-163 restart_ack_a using current per-device recovery images, then continue secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation remains separate; secondary onboarding/options follow the message path. Physical OLED confirmation, full two-pair acceptance, cold-power, reset, field and signed-release gates remain open; website updates stay deferred."
         },
         {
           "id": "android-companion",
@@ -419,9 +420,10 @@
             "docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md",
             "docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md",
             "docs/testing/OT-170-171-REGION-INTEGRATION-2026-09-06.md",
-            "docs/testing/OT-178-PHONE-STATUS-2026-09-07.md"
+            "docs/testing/OT-178-PHONE-STATUS-2026-09-07.md",
+            "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md"
           ],
-          "next_gate": "Owner-prioritized next: establish the exact second Heltec/S24 Ultra baseline and secure radio prerequisites, then implement minimal Phone A -> Heltec A -> Heltec B -> Phone B messaging with accurate delivery/failure reporting. Secondary onboarding/options follow the working path. Confirm the original OLED phone text when the owner returns; cold-power and website updates remain deferred."
+          "next_gate": "Both pairs have the accepted firmware/APK baseline. The S24 existing-bond Snapshot/Ready, configuration/time and full app-restart with fresh US915 readback are verified. Next diagnose OT-163 restart_ack_a using current per-device recovery images, then continue secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation remains separate; secondary onboarding/options follow the message path. Physical OLED confirmation, full two-pair acceptance, cold-power, reset, field and signed-release gates remain open; website updates stay deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -469,9 +471,10 @@
             ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
             ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
-            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md"
+            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md",
+            "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md"
           ],
-          "next_gate": "First establish both exact device/phone baselines and the secure-radio prerequisites, then prove minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messages with truthful delivery/failure reporting. This owner-prioritized milestone precedes secondary onboarding/options; full two-pair V1, cold-power, reset, field and signed-release acceptance remain separate open gates."
+          "next_gate": "Both pairs have the accepted firmware/APK baseline. The S24 existing-bond Snapshot/Ready, configuration/time and full app-restart with fresh US915 readback are verified. Next diagnose OT-163 restart_ack_a using current per-device recovery images, then continue secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation remains separate; secondary onboarding/options follow the message path. Physical OLED confirmation, full two-pair acceptance, cold-power, reset, field and signed-release gates remain open; website updates stay deferred."
         }
       ],
       "change_log": [
@@ -1098,6 +1101,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "Installed the protected-Snapshot phone-status correction on the original pair after host validation and two matching builds; Ready, retained settings/clock and same-boot phone restart readbacks pass. Physical OLED text confirmation remains pending while the owner is away. Scores remain unchanged. Owner priority is the first secure two-pair message exchange, with second-device flashing/APK/testing authorized; website and cold-power remain deferred."
+        },
+        {
+          "date": "2026-09-07",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "Verified the same accepted firmware on the second Heltec by exact application/tail readback and receive-only runtime return; installed and exactly read back the accepted V1-Test APK on the S24 Ultra while preserving its base app. Its existing bond reached protected Snapshot/Ready, fresh name readback, explicit US915 save/readback and clock synchronization. Full app restart recovered protected Ready and fresh US915 readback; the original Note20 pair stayed Ready and untouched. Required Bluetooth permissions were granted without changing phone lock/display settings. Physical OLED text, pair isolation and secure messaging remain unaccepted. Next diagnose OT-163 restart_ack_a with current per-device recovery before secure-radio continuation. Scores stay unchanged; website and cold-power remain deferred."
         }
       ]
     },

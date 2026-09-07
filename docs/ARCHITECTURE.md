@@ -36,6 +36,23 @@ inter-device testing. Website updates and cold-power disassembly stay deferred.
 
 See [phone-status evidence](../docs/testing/OT-178-PHONE-STATUS-2026-09-07.md).
 
+### OT-178 Second-device installation verified
+
+The second Heltec now has the same verified phone-status firmware, with exact
+application readback and healthy runtime return. The S24 Ultra has the accepted
+V1-Test APK, independently read back; its existing base app is preserved. Its
+existing bond reached protected Snapshot/Ready, fresh name readback, saved US915
+readback and clock synchronization. Full app restart recovered protected Ready
+and a fresh US915 readback. The original Note20 session remains Ready and untouched.
+No new PIN was required; cross-pair isolation and secure messages are untested.
+
+Next diagnose the OT-163 restart-acknowledgement failure using current per-device
+recovery images, then continue secure-radio integration. Pair isolation remains
+a separate acceptance gate.
+V1 completion is unchanged; website updates and cold-power stay deferred.
+
+See [second-pair evidence](../docs/testing/OT-178-SECOND-PAIR-2026-09-07.md).
+
 ## 2026-09-06
 
 ### OT-170 / OT-178 first name and clock hardware acceptance
