@@ -83,33 +83,35 @@ updates and cold-power disassembly remain deferred.
 
 See [automatic clock and name evidence](../docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md).
 
-### OT-171 Clock corrected; unique setup label retained after timeout
+### OT-171 Fresh pairing and persistent setup label accepted
 
-The second Heltec received the verified clock correction, and its S24 reconnected
-and synchronized automatically. The owner confirmed matching time and continuing
-minute changes without Sync. The original Heltec/Note20 remains unchanged as a
-paired control and still needs the clock correction after this control gate.
+The second Heltec runs exact-readback-verified `ot171-label-v1`; its S24 APK is
+unchanged. The owner confirmed the Trail setup label remains visible after the
+pairing window closes and removed the old S24 Trail-test NimBLE bonds. After the
+approved, app-verified reset, fresh pairing reached Connected to unnamed device
+and automatic Display clock synchronized. Protected region readback first showed
+Not configured; the approved US915 save/readback then passed with TX disabled.
+The owner confirmed that the clock matches the phone and keeps advancing without
+Sync on this current firmware.
 
-The approved second-only protected factory reset then passed app verification.
-US915 was erased and must be restored after fresh pairing. The owner found that
-the normal screen reverted to generic DEVICE after the pairing window expired.
-That regression was reproduced and corrected: a coherently unowned device keeps
-its boot-specific Trail label after timeout while pairing still closes normally.
+The earlier generic DEVICE timeout regression is corrected without extending the
+pairing deadline. Fifteen startup groups, eleven actual OLED groups, thirteen
+affected native suites and seventeen structural sets pass; two builds match all
+six artifacts with 373 source hashes unchanged. The S24 APK retains its accepted
+1,059-test Android matrix. Host CI run 34135884030 succeeded.
 
-Both fixes are now included in the installed, exact-readback-verified
-`ot171-label-v1` firmware. Fifteen startup groups, eleven actual OLED groups,
-thirteen affected native suites and seventeen structural sets pass. Two fresh
-builds match all six artifacts with 373 source hashes unchanged. Healthy unowned
-runtime is observed; physical post-timeout label confirmation and fresh pairing
-remain pending. The unchanged S24 APK retains its accepted 1,059-test Android
-matrix.
-
-The owner confirmed the S24's duplicate NimBLE entries are Trail test leftovers;
-manual removal is pending. OT-168 now records the app's missing exact-peer Android
-bond cleanup flow. No automatic phone-side unpairing is claimed. Complete label
-confirmation, fresh secure pairing and US915 readback, then resume the secure
-two-pair message path. V1 scores remain unchanged. Website updates and cold-power
-disassembly remain owner-deferred.
+S24 app restart remained FindingReturningOwner for about two minutes. A subsequent
+second-only warm restart restored Connected and clock synchronization without a
+new PIN. Protected post-warm readback shows Saved choice US915 with TX disabled.
+Warm-restart recovery and retained region pass; app-only recovery delay remains open. The
+original Heltec/Note20 stays unchanged as control and still needs the clock fix.
+OT-168 retains exact-peer Android bond cleanup as follow-up; automatic forgetting
+is not implemented. OT-171 also needs initial Device navigation when no paired
+device exists; a disconnected saved pair must not be mistaken for an unpaired
+installation. Complete the remaining reconnect gates, then resume secure two-pair
+messaging. Next setup UX follow-ups are numeric-keypad feasibility for the Android-owned
+Bluetooth PIN dialog and a recognizable name through setup-to-owned transition;
+the boot-local label is not durable and no naming design is selected yet. V1 scores remain unchanged. Website and cold-power work stay deferred.
 
 See [setup-label evidence](../docs/testing/OT-171-SETUP-LABEL-2026-09-07.md) and [clock refresh evidence](../docs/testing/OT-171-CLOCK-REFRESH-2026-09-07.md).
 

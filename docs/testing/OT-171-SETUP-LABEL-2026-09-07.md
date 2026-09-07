@@ -125,13 +125,14 @@ serving as the paired control.
 
 After clock acceptance, the explicitly approved second-only protected factory
 reset resumed. The app displayed Factory reset verified and Remove old Android
-pairing. Owner-directed removal of old S24 Trail test bonds is pending. The approved
-reset erased US915; restore it after fresh pairing. No fresh pairing, OLED/list
-label match or complete reset-domain cleanup acceptance is claimed yet.
+pairing. The owner subsequently confirmed removal of the old S24 Trail test bonds
+and fresh connection. Reset erased US915; protected read first showed Not configured,
+then the approved US915 save/readback passed with TX disabled. Complete reset-domain
+cleanup acceptance remains open.
 
-Continue from Android bond removal to the OLED/scan label match, exact selection,
-normal PIN pairing, protected Ready, automatic name/time readback, D0 concealment
-and restart/reconnect. Restore US915 through protected settings and verify readback.
+Fresh connection and automatic clock synchronization are observed; the owner
+confirmed matching, advancing time on current firmware. App-restart, warm reconnect,
+complete D0 concealment and reset-domain acceptance remain separate gates.
 Firmware rollback cannot restore user data erased by a factory reset.
 
 Two simultaneously unowned physical devices, physical duplicate-label behavior,
@@ -153,9 +154,9 @@ Focused validation passes fifteen startup groups, eleven actual OLED groups and
 seventeen target-admission groups. Independent final review passes. The complete
 affected gate passes thirteen native suites and seventeen structural sets. Two
 initially absent builds match all six artifacts with 373 firmware input hashes
-unchanged. Image inspection and exact application installation pass. Owner-observed
-post-timeout label acceptance remains pending at this checkpoint. This is not a fresh-pair
-acceptance result.
+unchanged. Image inspection and exact application installation pass. The owner confirmed
+the Trail label persists after timeout, followed by manual old-bond removal and
+fresh connection. See the current physical checkpoint below.
 
 | Preflight gate | Applied boundary / remaining requirement |
 | --- | --- |
@@ -164,21 +165,21 @@ acceptance result.
 | Presentation authority | Require exact closed-unowned admission, composed timeout/label restoration, clock refresh and owned concealment regressions. Preserve overlay priority and dirty-minute invalidation. |
 | Build/artifact gate | Affected matrix and two initially absent `ot171-label-v1` builds pass; 373 source hashes stayed unchanged and six artifacts match. Image inspection and unchanged bootloader/table/SDK configuration comparison pass. |
 | Installation gate | Fresh exact second-only selector excluding the original, ROM identity/table/OTA/current full-prefix checks, final artifact/current 2FF recovery binding, application-only offset `0x10000` and calculated aligned span. No hardware write before these pass. |
-| Physical gate | Exact postwrite readback and healthy unowned runtime passed in the installation recorded below. Owner-confirmed label after timeout, fresh OLED/list match, normal PIN/Ready and restored US915 readback remain open. |
+| Physical gate | Exact postwrite readback and healthy unowned runtime passed in the installation recorded below. Owner-confirmed post-timeout label, fresh connection, automatic advancing clock and restored US915 readback pass. App-restart/warm-reconnect acceptance remains pending. |
 | Unchanged/deferred work | No protocol, radio, GNSS, battery, power, entropy or encryption changes; reuse accepted evidence for those unchanged boundaries. No radio transmission. Cold-power/disassembly and website updates remain deferred. |
 
 ## OT-168 Android bond cleanup follow-up
 
 Duplicate NimBLE names in Android settings made manual bond cleanup ambiguous.
 The current app clears its exact-peer reference before directing manual cleanup.
-The owner confirmed all S24 NimBLE entries are Trail test leftovers and is removing
+The owner confirmed all S24 NimBLE entries are Trail test leftovers and removed
 them manually; this owner-specific confirmation is not a general bulk-removal rule.
 
 A follow-up should preserve the exact peer across reset cleanup. The future API 36
 path should evaluate supported `CompanionDeviceManager.removeBond` with a
 pre-established companion association; older APIs need guided exact-peer cleanup.
-No automatic Android bond removal is implemented or accepted here. Fresh pairing,
-complete reset-domain cleanup and two-pair acceptance remain open.
+No automatic Android bond removal is implemented or accepted here. Fresh connection
+is now observed; complete reset-domain cleanup and two-pair acceptance remain open.
 
 ## Post-timeout label artifact gate
 
@@ -205,12 +206,48 @@ The reviewed one-use installer verified current 2FF clock firmware and exact
 bootloader/table/factory-selection state before writing. It read back the new
 image and erased tail exactly, reported no transport write retry, and restarted
 successfully. No NVS write, registry update or additional factory reset occurred.
-The device remains unowned from the earlier approved, app-verified reset.
+The device was unowned for this installation following the earlier approved,
+app-verified reset; it is now owned after fresh pairing.
 Receive-only runtime observation saw advancing elapsed times 35,707 and 40,707 ms
 and minimum free application stack 4,672 bytes. No serial data was written.
 
 The S24 APK remains CC5D; original Heltec/Note20 remains 43AC/CCC4. The original
 still needs the clock correction after serving as control. The earlier owner-
-confirmed clock result was on 2FF before reset; new fresh-pair clock synchronization
-and US915 restoration remain to be observed. Physical post-timeout label and
-phone-list matching are not inferred from these build/readback/heartbeat results.
+confirmed 2FF clock result is now supplemented by fresh-pair synchronization and
+owner-confirmed matching, advancing time on 984E. Physical post-timeout label
+acceptance and restored US915 readback are recorded below.
+
+## Fresh-pair physical checkpoint
+
+The owner confirmed removal of the old S24 NimBLE Trail-test bonds and that the
+OLED Trail label persists after timeout. Fresh pairing then reached Connected to
+unnamed device with Display clock synchronized. Protected region read returned
+Not configured, followed by the explicitly approved US915 save and confirming
+readback with TX disabled. The owner confirmed that time matches the S24 and keeps
+advancing without Sync on current `ot171-label-v1` (984E) firmware.
+
+Host CI run 34135884030 succeeded. The second-only one-use warm restart completed
+at 15:15:54 UTC without a flash or factory reset; that command's success alone is
+not reconnect acceptance. A later second-only warm restart at 15:21:41 UTC restored Connected to unnamed
+device and Display clock synchronized immediately without a new PIN. Before that,
+S24 force-stop/relaunch and manual service start stayed FindingReturningOwner for
+about two minutes. Warm-restart saved-owner recovery passes; app-only recovery
+delay remains unresolved. Protected post-warm Read region displayed Saved choice
+US915 with TX disabled, accepting retained region after the warm restart.
+The original pair remains unchanged as control and still needs the clock correction.
+
+Startup navigation currently hardcodes Messages even with no paired device. The
+OT-171 follow-up should start on Device when setup is needed, using paired-device
+state rather than connection state so a disconnected saved pair is handled correctly.
+No navigation correction is implemented in this checkpoint. Scores are unchanged;
+secure two-pair messaging, complete reset-domain cleanup and release gates remain open.
+
+### Next bounded setup UX follow-ups
+
+The owner reported a full system keyboard for the numeric Bluetooth PIN and found
+Connected to unnamed device confusing. Assess numeric-keypad feasibility within
+the Android-owned pairing dialog; no keypad change is implemented or promised.
+Decide how a recognizable name continues from setup into the owned state: the
+current boot-local Trail label is not a durable name, and no replacement naming
+design is selected yet. These join initial Device navigation for an unpaired
+installation as explicit follow-ups; disconnected saved pairs remain distinct.
