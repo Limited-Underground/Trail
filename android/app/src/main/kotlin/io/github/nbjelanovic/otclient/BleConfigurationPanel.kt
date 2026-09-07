@@ -53,7 +53,7 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
                 }
                 Text("Choose where you will use the device. Saving a choice does not configure the radio or authorize transmission. Radio TX remains disabled.",style=MaterialTheme.typography.bodySmall)
             }
-            Text("Clock uses this phone's local time and 12/24-hour preference. Group setup remains unavailable.",style=MaterialTheme.typography.bodySmall)
+            Text("The clock syncs automatically on connection and when your phone's time changes, using its local time and 12/24-hour preference. You can also sync it here.",style=MaterialTheme.typography.bodySmall)
         }
     }
 }

@@ -22,6 +22,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
+import android.os.SystemClock
 import io.github.nbjelanovic.otprotocol.COMPANION_FRAGMENT_HEADER_BYTES
 import io.github.nbjelanovic.otprotocol.COMPANION_MAX_FRAGMENT_PAYLOAD_BYTES
 import java.security.SecureRandom
@@ -222,6 +223,12 @@ class AndroidBluetoothGattFacade(
     private val appContext = context.applicationContext
     override fun displayTimeSample(): Pair<UInt,Int> = java.time.LocalTime.now().toSecondOfDay().toUInt() to
         if(android.text.format.DateFormat.is24HourFormat(appContext)) 2 else 1
+    override fun watchDisplayTimeChanges(changed: () -> Unit): BleReconnectLease? {
+        if (closed || !onMainThread()) return null
+        displayClockWatcher?.close()
+        return AndroidDisplayClockWatcher.create(appContext, mainHandler, changed).also { displayClockWatcher = it }
+    }
+    private var displayClockWatcher: BleReconnectLease? = null
     private val gattServiceUuid = UUID.fromString(AndroidBlePlatformPlan.GATT_SERVICE_UUID)
     private val pairableAdvertisingUuid = UUID.fromString(AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID)
     private val protocolInfoUuid = UUID.fromString(CompanionGattV0Contract.PROTOCOL_INFO_UUID)
@@ -333,6 +340,8 @@ class AndroidBluetoothGattFacade(
         if (closed) return
         closed = true
         verifiedResetReceipt = null
+        displayClockWatcher?.close()
+        displayClockWatcher = null
         activeScan?.close()
         activeGatt?.close()
         candidates.clear()
@@ -624,6 +633,11 @@ class AndroidBluetoothGattFacade(
         private val observer: (BleGattEvent) -> Unit,
     ) : BleGattLease {
         private val operations = AndroidGattOperationGate()
+        private val commandQueue = AndroidGattCommandQueue(operations)
+        private var queuedWriteDeadline: Long? = null
+        private val queuedWriteTimeout = Runnable {
+            if (!leaseClosed && commandQueue.hasQueued) fail(BleGattFailure.TRANSIENT_LINK)
+        }
         private val systemBond = AndroidSystemBondCoordinator()
         private val bondAttemptGate = AndroidSystemBondAttemptGate(systemBondGeneration)
         private val bondPrerequisite = AndroidLeaseBondPrerequisite()
@@ -802,8 +816,15 @@ class AndroidBluetoothGattFacade(
                     if (
                         !AndroidGattCharacteristicOwnershipPolicy.owns(command, characteristic) ||
                         statusFailure != null ||
-                        !operations.acceptCommandWrite()
+                        queuedWriteDeadline?.let { SystemClock.elapsedRealtime() >= it } == true ||
+                        !commandQueue.acknowledge { bytes ->
+                            beginGattOperation(AndroidBlePlatformOperation.WRITE_COMMAND, { true }) { current ->
+                                val target = command ?: return@beginGattOperation false
+                                writeCommand(current, target, bytes)
+                            }
+                        }
                     ) fail(statusFailure ?: BleGattFailure.TRANSIENT_LINK)
+                    else updateQueuedWriteTimeout()
                 }
             }
 
@@ -1022,9 +1043,34 @@ class AndroidBluetoothGattFacade(
             if (value.isEmpty() || value.size > COMPANION_FRAGMENT_HEADER_BYTES + COMPANION_MAX_FRAGMENT_PAYLOAD_BYTES) {
                 return false
             }
-            return beginGattOperation(AndroidBlePlatformOperation.WRITE_COMMAND, { operations.beginCommandWrite() }) { current ->
+            val accepted = beginGattOperation(AndroidBlePlatformOperation.WRITE_COMMAND, { true }) { current ->
                 val characteristic = command ?: return@beginGattOperation false
-                writeCommand(current, characteristic, value)
+                commandQueue.submit(value) { bytes ->
+                    try {
+                        writeCommand(current, characteristic, bytes)
+                    } catch (_: SecurityException) {
+                        false
+                    } catch (_: IllegalArgumentException) {
+                        false
+                    }
+                }
+            }
+            if (!accepted && operations.stage == AndroidGattStage.CLOSED && !leaseClosed) {
+                fail(BleGattFailure.TRANSIENT_LINK)
+            }
+            updateQueuedWriteTimeout()
+            return accepted
+        }
+
+        private fun updateQueuedWriteTimeout() {
+            if (commandQueue.hasQueued && !leaseClosed) {
+                if (queuedWriteDeadline == null) {
+                    queuedWriteDeadline = SystemClock.elapsedRealtime() + 5_000L
+                    if (!mainHandler.postDelayed(queuedWriteTimeout, 5_000L)) fail(BleGattFailure.TRANSIENT_LINK)
+                }
+            } else {
+                queuedWriteDeadline = null
+                mainHandler.removeCallbacks(queuedWriteTimeout)
             }
         }
 
@@ -1035,6 +1081,9 @@ class AndroidBluetoothGattFacade(
             }
             if (leaseClosed) return
             leaseClosed = true
+            mainHandler.removeCallbacks(queuedWriteTimeout)
+            queuedWriteDeadline = null
+            commandQueue.close()
             mainHandler.removeCallbacks(profileReadyRunnable)
             queuedProfileReadyGatt = null
             profileReadyGate.close()

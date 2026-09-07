@@ -394,9 +394,10 @@
             "docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md",
             "docs/testing/OT-170-171-REGION-INTEGRATION-2026-09-06.md",
             "docs/testing/OT-178-PHONE-STATUS-2026-09-07.md",
-            "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md"
-          ],
-          "next_gate": "Both pairs have the accepted firmware/APK baseline. The S24 existing-bond Snapshot/Ready, configuration/time and full app-restart with fresh US915 readback are verified. Next diagnose OT-163 restart_ack_a using current per-device recovery images, then continue secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation remains separate; secondary onboarding/options follow the message path. Physical OLED confirmation, full two-pair acceptance, cold-power, reset, field and signed-release gates remain open; website updates stay deferred."
+            "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md",
+          "docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md"
+        ],
+          "next_gate": "Both updated APKs are exactly readback-verified and automatically read the current name and synchronize the clock after the existing manual service-start flow. The owner confirms the second Heltec time is correct. Resume the OT-163 restart_ack_a diagnosis using current per-device recovery images and secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation, original-Heltec visual confirmation for this increment, live timezone/format and six-hour refresh, cold-power, reset, field and signed-release gates remain open; secondary onboarding/options follow the message path and website updates remain deferred."
         },
         {
           "id": "android-companion",
@@ -404,7 +405,7 @@
           "description": "Current 2026-09-06 acceptance: installed protected name/readback and clock integration passes on the retained Heltec/Note20 pair, including owner-confirmed OLED name/time/warnings, app restart, and warm board restart with retained name and unknown time until fresh synchronization. OT-170/OT-178 remain partial; cold-power, physical reset erasure, two-pair and release gates remain open. Earlier checkpoint history: The isolated OT-177 V1-Test recorder is installed on the retained Note20. On 2026-09-06 the exact corrected Heltec firmware passed initial saved-owner authorization/Snapshot/Ready, full app restart, and two service disconnect/reconnect cycles with fresh authorization and Snapshot each time. Earlier authorization and Snapshot failures remain historical; their missing nonce history is not reconstructed. This is bounded single-pair acceptance with explicit service starts. Cold-power, factory-reset erasure, coherent two-pair operation, secure LoRa and signed production release remain open. The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware. Integrated the existing owner-approved Android visual direction onto the published connection/service-logging baseline: Messages/Group/Device navigation, mint theme, fullscreen truthful status strip, setup/group/people surfaces, phone-local quick-message drafts and support export. The existing owner checkout is unchanged. This accepts software integration only; the combined APK is not installed and final visual or workflow acceptance is not claimed.",
           "weight": 20,
           "completion": 65,
-          "evidence_status": "Verified phone-status firmware is installed on the original Heltec; protected Snapshot/Ready, retained name/US915 readback, clock sync and same-boot Note20 process restart pass. PHONE READY now requires exact current authenticated Snapshot proof and redraws on authority changes; physical OLED text confirmation remains pending while the owner is away. Prior twelve-region acceptance remains valid. No new radio, two-pair, cold-power, reset or release acceptance is claimed.",
+          "evidence_status": "Both updated V1-Test APKs pass exact installed-byte readback and automatically confirm display-clock synchronization after the existing manual service-start flow without pressing Read device or Sync display clock. Note20 presents the protected Trail Bench name; S24 presents its confirmed unnamed state with a naming prompt. The owner confirms the second Heltec time is correct. The complete Android matrix passes 1,034 tests with no failures/errors/skips plus all variant builds/lint and artifact auditing. Firmware, base apps, data and phone settings are preserved. Live timezone/format changes and six-hour refresh remain software-validated only; no secure-radio, pair-isolation or release acceptance is added.",
           "evidence_refs": ["docs/testing/OT-170-178-LIVE-INTEGRATION-2026-09-06.md", "android/README.md", "docs/decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md", "docs/platform/DEVICE_FACTORY_RESET_V1.md", "docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md", "docs/testing/HELTEC_DEVELOPMENT_DEVICE_IDENTITY.md", "tests/hardware/OT-168-2026-09-04.md", "docs/platform/BLE_PAIRING_REPLACEMENT_V0.md", "tests/hardware/OT-060-2026-08-16.md", "tests/hardware/OT-061-2026-08-16.md", "tests/hardware/OT-062-2026-08-16.md", "tests/hardware/OT-085A-2026-08-19.md", "tests/hardware/OT-085B-2026-08-19.md", "tests/hardware/OT-086-2026-08-19.md", "tests/hardware/OT-087-2026-08-19.md", "tests/hardware/OT-088-2026-08-19.md", "tests/hardware/OT-090-2026-08-19.md",
             "tests/hardware/OT-177-PUBLICATION-CANDIDATE-2026-09-05.md",
             "tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md",
@@ -421,9 +422,10 @@
             "docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md",
             "docs/testing/OT-170-171-REGION-INTEGRATION-2026-09-06.md",
             "docs/testing/OT-178-PHONE-STATUS-2026-09-07.md",
-            "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md"
-          ],
-          "next_gate": "Both pairs have the accepted firmware/APK baseline. The S24 existing-bond Snapshot/Ready, configuration/time and full app-restart with fresh US915 readback are verified. Next diagnose OT-163 restart_ack_a using current per-device recovery images, then continue secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation remains separate; secondary onboarding/options follow the message path. Physical OLED confirmation, full two-pair acceptance, cold-power, reset, field and signed-release gates remain open; website updates stay deferred."
+            "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md",
+          "docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md"
+        ],
+          "next_gate": "Both updated APKs are exactly readback-verified and automatically read the current name and synchronize the clock after the existing manual service-start flow. The owner confirms the second Heltec time is correct. Resume the OT-163 restart_ack_a diagnosis using current per-device recovery images and secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation, original-Heltec visual confirmation for this increment, live timezone/format and six-hour refresh, cold-power, reset, field and signed-release gates remain open; secondary onboarding/options follow the message path and website updates remain deferred."
         },
         {
           "id": "two-pair-end-to-end-acceptance",
@@ -472,9 +474,10 @@
             ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
             ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md",
-            "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md"
-          ],
-          "next_gate": "Both pairs have the accepted firmware/APK baseline. The S24 existing-bond Snapshot/Ready, configuration/time and full app-restart with fresh US915 readback are verified. Next diagnose OT-163 restart_ack_a using current per-device recovery images, then continue secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation remains separate; secondary onboarding/options follow the message path. Physical OLED confirmation, full two-pair acceptance, cold-power, reset, field and signed-release gates remain open; website updates stay deferred."
+            "docs/testing/OT-178-SECOND-PAIR-2026-09-07.md",
+          "docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md"
+        ],
+          "next_gate": "Both updated APKs are exactly readback-verified and automatically read the current name and synchronize the clock after the existing manual service-start flow. The owner confirms the second Heltec time is correct. Resume the OT-163 restart_ack_a diagnosis using current per-device recovery images and secure-radio integration toward minimal bidirectional Phone A -> Heltec A -> Heltec B -> Phone B messaging with truthful delivery/failure reporting. Pair isolation, original-Heltec visual confirmation for this increment, live timezone/format and six-hour refresh, cold-power, reset, field and signed-release gates remain open; secondary onboarding/options follow the message path and website updates remain deferred."
         }
       ],
       "change_log": [
@@ -1107,6 +1110,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "Verified the same accepted firmware on the second Heltec by exact application/tail readback and receive-only runtime return; installed and exactly read back the accepted V1-Test APK on the S24 Ultra while preserving its base app. Its existing bond reached protected Snapshot/Ready, fresh name readback, explicit US915 save/readback and clock synchronization. Full app restart recovered protected Ready and fresh US915 readback; the original Note20 pair stayed Ready and untouched. Required Bluetooth permissions were granted without changing phone lock/display settings. Physical OLED text, pair isolation and secure messaging remain unaccepted. Next diagnose OT-163 restart_ack_a with current per-device recovery before secure-radio continuation. Scores stay unchanged; website and cold-power remain deferred."
+        },
+        {
+          "date": "2026-09-07",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "Accepted the owner-reported OT-178 automatic display-clock correction and OT-170 current protected connected-device name presentation on both existing pairs. The complete Android matrix passes 1,034 tests plus variant builds/lint and artifact auditing. Both updated V1-Test APKs pass exact installed-byte readback; after the existing manual service-start flow, both automatically confirm clock sync without pressing Read device or Sync display clock. Note20 shows Trail Bench and S24 its confirmed unnamed state with a naming prompt; the owner confirms the second Heltec time is correct. Firmware, base apps, data and phone settings are preserved. Original-Heltec visual confirmation for this increment, live timezone/format changes and six-hour refresh remain untested. Scores remain unchanged. Resume the OT-163 restart-acknowledgment diagnosis and secure two-pair message path; website and cold-power remain deferred."
         }
       ]
     },

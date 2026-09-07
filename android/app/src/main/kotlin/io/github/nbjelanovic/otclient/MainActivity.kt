@@ -739,10 +739,8 @@ private fun BluetoothReadyPanel(
     controller: TrailUiController,
     openDeviceSettings: (BleActiveSession) -> Unit,
 ) {
-    StatusCard(
-        "Connected to ${session.companion.publicLabel}",
-        "Authenticated companion session. Device state remains authoritative.",
-    )
+    val device = connectedDevicePresentation(session.configuration)
+    StatusCard(device.title, device.detail)
     SnapshotSummary("Device status", session.snapshot)
     BleConfigurationPanel(session,controller)
     GroupLocationSection(session.groupLocation)
@@ -778,7 +776,7 @@ private fun DeviceSettingsScreen(
             Text("Device settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             StatusCard(
                 "Connected device",
-                "Settings apply only to ${session.companion.publicLabel} in this authenticated session.",
+                connectedDevicePresentation(session.configuration).title,
             )
             StatusCard(
                 "Factory reset",

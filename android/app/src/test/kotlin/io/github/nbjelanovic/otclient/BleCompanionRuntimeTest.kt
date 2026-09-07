@@ -1287,7 +1287,7 @@ class BleCompanionRuntimeTest {
         gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
             io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x81,17u,request.exchangeId,payload)))))
         assertTrue(assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.available)
-        assertTrue(runtime.readDeviceName())
+        assertFalse(runtime.readDeviceName()) // Initial protected name read is already in flight.
         val read=checkNotNull(codec.decodeFrame(gatt.commands.last()));assertEquals(4,read.kind)
         assertFalse(runtime.submitAction(quickStatus()))
         val namePayload=checkNotNull(io.github.nbjelanovic.otprotocol.CompanionNamePayloadCodec.encode(
@@ -1295,7 +1295,7 @@ class BleCompanionRuntimeTest {
         gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
             io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x86,17u,read.exchangeId,namePayload)))))
         assertEquals(0uL,assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.nameRevision)
-        assertTrue(runtime.synchronizeDisplayTime())
+        assertFalse(runtime.synchronizeDisplayTime()) // Automatic clock sync follows the name result.
         val time=checkNotNull(codec.decodeFrame(gatt.commands.last()));assertEquals(read.exchangeId+1u,time.exchangeId)
         val challenge=checkNotNull(codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(2,challenge=12u)))
         gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
@@ -1334,7 +1334,7 @@ class BleCompanionRuntimeTest {
         gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
             io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x81,17u,request.exchangeId,payload,3)))))
         assertTrue(assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.available)
-        assertTrue(runtime.readDeviceName())
+        assertFalse(runtime.readDeviceName()) // Initial protected name read is already in flight.
         val read=checkNotNull(codec.decodeFrame(gatt.commands.last(),3));assertEquals(4,read.kind)
         assertFalse(runtime.submitAction(quickStatus()))
         val namePayload=checkNotNull(io.github.nbjelanovic.otprotocol.CompanionNamePayloadCodec.encode(
@@ -1342,7 +1342,7 @@ class BleCompanionRuntimeTest {
         gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
             io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x86,17u,read.exchangeId,namePayload,3)))))
         assertEquals(0uL,assertIs<BleRuntimeState.Ready>(runtime.state).session.configuration.nameRevision)
-        assertTrue(runtime.synchronizeDisplayTime())
+        assertFalse(runtime.synchronizeDisplayTime()) // Automatic clock sync follows the name result.
         val time=checkNotNull(codec.decodeFrame(gatt.commands.last(),3));assertEquals(read.exchangeId+1u,time.exchangeId)
         val challenge=checkNotNull(codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(2,challenge=12u)))
         gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
@@ -1400,6 +1400,105 @@ class BleCompanionRuntimeTest {
         assertTrue(gatt.closed)
         assertFalse(runtime.readDeviceName())
         assertFalse(runtime.synchronizeDisplayTime())
+    }
+
+    private class ConfigurationFixture {
+        val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
+        val scheduler=TestRuntimeScheduler()
+        val runtime=BleCompanionRuntime(facade,scheduler)
+        val gatt: TestGattLease
+        val codec=io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
+        init {
+            runtime.onLifecycleStart()
+            facade.returningOwnerScans.single().emit(BleScanEvent.Candidate(CANDIDATE))
+            facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
+            gatt=facade.connections.single()
+            gatt.emit(BleGattEvent.ProfileReady)
+            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(17)))
+            gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
+            gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
+            gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(17)))
+            gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(17)))
+            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(checkNotNull(codec.encodeInfo(
+                io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo(0xff,minorVersion=3)))))
+            val request=last()
+            val payload=checkNotNull(CompanionProtocolCodec.decodeFragment(snapshotEnvelope(17,1)).value).payload
+            respond(0x81,payload,request.exchangeId)
+        }
+        fun last()=checkNotNull(codec.decodeFrame(gatt.commands.last(),3))
+        fun respond(kind:Int,payload:ByteArray,id:UInt=last().exchangeId) {
+            gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+                io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(kind,17u,id,payload,3)))))
+        }
+        fun name(value:String="Trail test") {
+            assertEquals(4,last().kind)
+            respond(0x86,checkNotNull(io.github.nbjelanovic.otprotocol.CompanionNamePayloadCodec.encode(
+                io.github.nbjelanovic.otprotocol.CompanionNamePayload(
+                    io.github.nbjelanovic.otprotocol.CompanionNameKind.SNAPSHOT,1u,value))))
+        }
+        fun clock() {
+            assertEquals(5,last().kind)
+            respond(0x87,checkNotNull(codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(2,challenge=12u))))
+            val sample=checkNotNull(codec.decodeTime(last().payload))
+            assertEquals(facade.civilTime.first,sample.localSecond)
+            assertEquals(facade.civilTime.second,sample.format)
+            respond(0x87,checkNotNull(codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(4,challenge=12u))))
+        }
+    }
+
+    @Test fun automaticConfigurationIsBoundedAndContinuesAfterNameTimeout() {
+        val f=ConfigurationFixture()
+        assertEquals(4,f.last().kind)
+        assertNull(assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration.deviceName)
+        val nameExchange=f.last().exchangeId
+        f.scheduler.advanceBy(6000)
+        assertEquals(5,f.last().kind)
+        // A late name response cannot become the active device name or displace clock work.
+        f.respond(0x86,checkNotNull(io.github.nbjelanovic.otprotocol.CompanionNamePayloadCodec.encode(
+            io.github.nbjelanovic.otprotocol.CompanionNamePayload(
+                io.github.nbjelanovic.otprotocol.CompanionNameKind.SNAPSHOT,1u,"Late"))),nameExchange)
+        assertNull(assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration.deviceName)
+        val count=f.gatt.commands.size
+        f.scheduler.advanceBy(6000)
+        assertFalse(assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration.busy)
+        f.scheduler.advanceBy(60000)
+        assertEquals(count,f.gatt.commands.size)
+        assertFalse(f.scheduler.hasOpenTimers())
+        assertTrue(f.runtime.synchronizeDisplayTime()) // Manual recovery remains possible.
+        f.clock()
+    }
+
+    @Test fun clockChangesCoalesceBehindManualWorkAndUseFreshLocalSample() {
+        val f=ConfigurationFixture();f.name();f.clock()
+        assertEquals("Trail test",assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration.deviceName)
+        assertTrue(f.runtime.readRadioRegion())
+        val count=f.gatt.commands.size
+        f.facade.civilTime=34567u to 1
+        repeat(3) { f.facade.clockWatchers.single().callback() }
+        assertEquals(count,f.gatt.commands.size)
+        f.respond(0x88,checkNotNull(f.codec.encodeRegion(io.github.nbjelanovic.otprotocol.CompanionRegionPayload(0x81))))
+        assertEquals(count+1,f.gatt.commands.size)
+        f.clock()
+        assertFalse(assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration.busy)
+        assertEquals(count+2,f.gatt.commands.size)
+        assertFalse(f.scheduler.hasOpenTimers())
+    }
+
+    @Test fun clockRefreshCannotOutliveItsAuthenticatedSession() {
+        val f=ConfigurationFixture();f.name();f.clock()
+        assertTrue(f.runtime.readDeviceName())
+        val staleExchange=f.last().exchangeId
+        val oldWatcher=f.facade.clockWatchers.single()
+        oldWatcher.callback() // Queued behind manual read.
+        f.runtime.disconnect()
+        assertTrue(oldWatcher.closed)
+        val count=f.gatt.commands.size
+        oldWatcher.callback()
+        f.scheduler.advanceBy(60000)
+        assertEquals(count,f.gatt.commands.size)
+        assertFalse(f.runtime.synchronizeDisplayTime())
+        assertFalse(f.scheduler.hasOpenTimers())
+        assertTrue(staleExchange>0u)
     }
 
     private class Fixture(
@@ -1478,6 +1577,14 @@ class BleCompanionRuntimeTest {
         private val enforceOperationGate: Boolean = false,
     ) : AndroidBluetoothFacade {
         var preflight = BlePreflight()
+        var civilTime=12345u to 2
+        data class ClockWatcher(val callback:()->Unit,var closed:Boolean=false):BleReconnectLease {
+            override fun close() { closed=true }
+        }
+        val clockWatchers=mutableListOf<ClockWatcher>()
+        override fun displayTimeSample()=civilTime
+        override fun watchDisplayTimeChanges(callback:()->Unit):BleReconnectLease =
+            ClockWatcher(callback).also(clockWatchers::add)
         val scans = mutableListOf<TestScanLease>()
         val returningOwnerScans = mutableListOf<TestScanLease>()
         val resetVerificationScans = mutableListOf<TestScanLease>()

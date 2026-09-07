@@ -207,6 +207,7 @@ interface BleGattLease : BleLease {
  */
 interface AndroidBluetoothFacade {
     fun displayTimeSample(): Pair<UInt,Int> = java.time.LocalTime.now().toSecondOfDay().toUInt() to 2
+    fun watchDisplayTimeChanges(callback: () -> Unit): BleReconnectLease? = null
     fun preflight(): BlePreflight
     fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease?
     /** Optional process-restart route; candidates must already be bonded and advertise owned D0 only. */
@@ -388,6 +389,10 @@ class BleCompanionRuntime(
     private var configurationInfo: CompanionConfigurationInfo? = null
     private var configurationSession: BleConfigurationSession? = null
     private var configurationTimeout: BleReconnectLease? = null
+    private var displayTimeChanges: BleReconnectLease? = null
+    private var automaticNameReadPending = false
+    private var automaticTimeSyncPending = false
+    private var pumpingAutomaticConfiguration = false
     private var normalProfileConfirmedAfterPromotion = false
     private var activeSessionNonce = 0L
     private var lastDeviceEventId = 0L
@@ -1143,6 +1148,7 @@ class BleCompanionRuntime(
                 )
             }
         }
+        pumpAutomaticConfiguration()
     }
 
     private fun authorizationClaimOwnsFailure(): Boolean {
@@ -1280,11 +1286,30 @@ class BleCompanionRuntime(
         return configurationOperation { it.writeName(name) }
     }
     fun synchronizeDisplayTime(): Boolean { requireOwnerThread(); return configurationOperation { it.synchronizeTime() } }
+    // Coalesce source-clock changes; queued work never steals an occupied action/configuration lane.
+    private fun pumpAutomaticConfiguration() {
+        if(pumpingAutomaticConfiguration || deliveringObserver || state !is BleRuntimeState.Ready || pendingAction!=null) return
+        val session=configurationSession ?: return
+        if(session.busy || (!automaticNameReadPending && !automaticTimeSyncPending)) return
+        pumpingAutomaticConfiguration=true
+        try {
+            while(configurationSession===session && state is BleRuntimeState.Ready && pendingAction==null && !session.busy) {
+                when {
+                    automaticNameReadPending -> { automaticNameReadPending=false;session.readName() }
+                    automaticTimeSyncPending -> { automaticTimeSyncPending=false;session.synchronizeTime() }
+                    else -> break
+                }
+                // Consume before sending, including an uncertain write: no automatic retry loop.
+            }
+            armConfigurationTimeout()
+        } finally { pumpingAutomaticConfiguration=false }
+    }
     private fun configurationOperation(operation: (BleConfigurationSession)->Boolean): Boolean {
         if(deliveringObserver || state !is BleRuntimeState.Ready || pendingAction!=null) return false
         val session=configurationSession ?: return false
         val result=operation(session)
-        armConfigurationTimeout()
+        if(result) armConfigurationTimeout()
+        pumpAutomaticConfiguration()
         return result
     }
     private fun initializeConfigurationSession() {
@@ -1312,7 +1337,20 @@ class BleCompanionRuntime(
                 if(accepts(callbackGeneration) && current?.session?.sessionNonce==nonce)
                     publish(BleRuntimeState.Ready(current.session.copy(configuration=configuration)))
             })
-        publish(BleRuntimeState.Ready(ready.session.copy(configuration=checkNotNull(configurationSession).state)))
+        val session=checkNotNull(configurationSession)
+        automaticNameReadPending=true
+        automaticTimeSyncPending=true
+        publish(BleRuntimeState.Ready(ready.session.copy(configuration=session.state)))
+        if(!accepts(callbackGeneration) || configurationSession!==session || state !is BleRuntimeState.Ready) return
+        val watcher=facade.watchDisplayTimeChanges {
+            requireOwnerThread()
+            if(accepts(callbackGeneration) && configurationSession===session && state is BleRuntimeState.Ready) {
+                automaticTimeSyncPending=true
+                pumpAutomaticConfiguration()
+            }
+        }
+        if(accepts(callbackGeneration) && configurationSession===session) displayTimeChanges=watcher else watcher?.close()
+        pumpAutomaticConfiguration()
     }
     private fun armConfigurationTimeout() {
         configurationTimeout?.close();configurationTimeout=null
@@ -1321,7 +1359,10 @@ class BleCompanionRuntime(
         val callbackGeneration=generation
         configurationTimeout=scheduler.schedule(6000) {
             requireOwnerThread()
-            if(accepts(callbackGeneration) && configurationSession===session) session.lost(exchange)
+            if(accepts(callbackGeneration) && configurationSession===session) {
+                session.lost(exchange)
+                pumpAutomaticConfiguration()
+            }
         }
     }
 
@@ -2299,6 +2340,10 @@ class BleCompanionRuntime(
     }
 
     private fun clearSessionState() {
+        displayTimeChanges?.close()
+        displayTimeChanges=null
+        automaticNameReadPending=false
+        automaticTimeSyncPending=false
         configurationSession?.close()
         configurationSession = null
         configurationTimeout?.close()

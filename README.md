@@ -53,6 +53,36 @@ V1 completion is unchanged; website updates and cold-power stay deferred.
 
 See [second-pair evidence](docs/testing/OT-178-SECOND-PAIR-2026-09-07.md).
 
+### OT-178 Automatic display clock accepted on both pairs
+
+The Android app now synchronizes the display clock after authenticated Ready and
+refreshes it for phone time, timezone, daylight-saving, locale and 12/24-hour
+changes, with a bounded periodic refresh. Configuration work waits for the active
+lane; a one-command Android queue handles an indication arriving before its write
+acknowledgment. The complete Android matrix passes 1,034 tests with no failures,
+errors or skips, plus all variant builds/lint and release artifact auditing.
+Both updated V1-Test APKs passed exact installed-byte readback. After the normal
+Device/Find device/service-start flow, both apps confirmed automatic clock sync
+without pressing Read device or Sync display clock. The owner confirmed that the
+second Heltec now shows the correct time. Firmware and phone settings are unchanged.
+
+### OT-170 Meaningful connected-device names accepted
+
+The connected card and settings now use the current protected device-name
+readback instead of a phone-local authorization number. A confirmed unnamed
+device gets a naming prompt; an unconfirmed name is not shown as current.
+The Note20 now shows Connected to Trail Bench after automatic readback; the S24
+shows Connected to unnamed device with the naming prompt, matching its empty
+protected name. Original-Heltec visual confirmation, live timezone/format changes
+and the six-hour refresh remain untested. V1 scores are unchanged.
+
+With this owner-reported correction accepted on both pairs, resume the secure
+Phone A -> Heltec A -> Heltec B -> Phone B message path, starting with the OT-163
+restart-acknowledgment boundary and current per-device recovery images. Website
+updates and cold-power disassembly remain deferred.
+
+See [automatic clock and name evidence](docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md).
+
 ## 2026-09-06
 
 ### OT-170 / OT-178 first name and clock hardware acceptance
