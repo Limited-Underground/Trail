@@ -97,6 +97,27 @@ void test_setup_label_generation_advertising_and_actual_owner() {
     require(owner.set_setup_code(code),"same alias retained after window");
 }
 
+void test_setup_fallback_requires_current_unowned_authority() {
+    using opentrail::companion::CompanionV1BondOwnerStatus;
+    using opentrail::companion::CompanionV1BondOwnerPhase;
+    using opentrail::target::heltec_v4_bench::startup_unowned_setup_code;
+    const opentrail::ui::SetupCode code{'U','V','W','X','Y','Z'};
+    CompanionV1BondOwnerStatus state{};state.phase=CompanionV1BondOwnerPhase::closed_unowned;
+    require(startup_unowned_setup_code(state,code)==code,"coherent unowned display fallback");
+    require(!opentrail::ui::valid_setup_code(startup_unowned_setup_code(state,{})),"missing code stays unknown");
+    for(auto phase:{CompanionV1BondOwnerPhase::not_restored,CompanionV1BondOwnerPhase::closed_owned,
+                   CompanionV1BondOwnerPhase::controller_active,CompanionV1BondOwnerPhase::candidate_cleanup_required,
+                   CompanionV1BondOwnerPhase::reconcile_required}) {
+        state.phase=phase;require(!opentrail::ui::valid_setup_code(startup_unowned_setup_code(state,code)),"other ownership phases suppress fallback");
+    }
+    state.phase=CompanionV1BondOwnerPhase::closed_unowned;
+    state.owner_present=true;require(!opentrail::ui::valid_setup_code(startup_unowned_setup_code(state,code)),"owner present suppressed");
+    state.owner_present=false;state.controller_active=true;
+    require(!opentrail::ui::valid_setup_code(startup_unowned_setup_code(state,code)),"active controller suppressed");
+    state.controller_active=false;state.persistence_uncertain=true;
+    require(!opentrail::ui::valid_setup_code(startup_unowned_setup_code(state,code)),"uncertain persistence suppressed");
+}
+
 void test_success_and_duplicate_suppression() {
     FakeDisplayPort port;
     StartupDisplayOwner owner{port};
@@ -726,6 +747,7 @@ void test_phone_authority_redraw_and_overlay() {
 }  // namespace
 
 int main() {
+    test_setup_fallback_requires_current_unowned_authority();
     test_setup_label_generation_advertising_and_actual_owner();
     test_runtime_phone_authority_fences();
     test_phone_authority_redraw_and_overlay();
@@ -740,6 +762,6 @@ int main() {
     test_pairing_pin_is_transient_and_clear_restores_latest_footer();
     test_factory_reset_overlay_suppresses_redraw_and_restores_latest_view();
     test_factory_reset_render_and_restore_failures_conceal();
-    std::cout << "14 Heltec startup display groups passed.\n";
+    std::cout << "15 Heltec startup display groups passed.\n";
     return 0;
 }

@@ -240,6 +240,7 @@ bool HeltecV4Oled::render(const StartupDisplayView& view) {
         (void)conceal();
         return record_failure("panel-draw", result);
     }
+    configuration_dirty_ = false;
     return true;
 }
 

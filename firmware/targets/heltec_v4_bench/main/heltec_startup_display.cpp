@@ -190,7 +190,7 @@ bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
     if (!started_ || !status_.available) {
         return false;
     }
-    if (has_view_ && view_.frame == view.frame &&
+    if (has_view_ && !port_.content_changed() && view_.frame == view.frame &&
         view_.phone_ready == view.phone_ready &&
         view_.has_footer == view.has_footer &&
         (!view.has_footer || view_.footer.columns == view.footer.columns)) {

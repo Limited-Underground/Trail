@@ -1761,6 +1761,13 @@ def test_application_surface() -> None:
             "if (pairable && setup_name.size != 6) return false;" in nimble_runtime and
             "fields.name_is_complete = 1" in nimble_runtime,
             "D1 setup display alias must use bounded six-character complete name only")
+    require("companion_nimble_unowned_setup_code()" in source,
+            "app owner must feed current unowned setup fallback into actual OLED metadata")
+    setup_fallback = nimble_runtime[nimble_runtime.index("ui::SetupCode companion_nimble_unowned_setup_code()"):
+                                   nimble_runtime.index("std::uint8_t companion_nimble_security_failure_stage()")]
+    require("PairingLock lock" in setup_fallback and "!lock.locked()" in setup_fallback and
+            "startup_unowned_setup_code(g_v1_owner_bridge->status(), g_setup_label.code())" in setup_fallback,
+            "fallback requires serialized current owner status, not pairing timeout inference")
     unowned_window = nimble_runtime[nimble_runtime.index("case RuntimeEventKind::host_sync:"):
                                     nimble_runtime.index("case RuntimeEventKind::host_reset:")]
     require(unowned_window.index("g_setup_label.initialize(*g_setup_random)") <

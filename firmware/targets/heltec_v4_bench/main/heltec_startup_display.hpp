@@ -5,6 +5,7 @@
 
 #include "opentrail/companion_ble_runtime_owner.hpp"
 #include "opentrail/companion_pairing_window.hpp"
+#include "opentrail/companion_v1_bond_owner.hpp"
 #include "opentrail/compact_status_footer.hpp"
 #include "opentrail/setup_label.hpp"
 
@@ -31,6 +32,14 @@ enum class StartupDisplayFrame : std::uint8_t {
         !status.termination_pending && !status.normal_commands_closed &&
         owner_handle != companion::kCompanionBleInvalidConnectionHandle &&
         status.connection_handle == owner_handle;
+}
+
+// Render-only fallback from current coherent ownership, independent of pairing-window expiry.
+[[nodiscard]] inline ui::SetupCode startup_unowned_setup_code(
+    const companion::CompanionV1BondOwnerStatus& status, const ui::SetupCode& code) {
+    return status.phase == companion::CompanionV1BondOwnerPhase::closed_unowned &&
+        !status.owner_present && !status.controller_active && !status.persistence_uncertain &&
+        ui::valid_setup_code(code) ? code : ui::SetupCode{};
 }
 
 struct StartupDisplayStatus {
@@ -75,6 +84,8 @@ class StartupDisplayPort {
 public:
     virtual ~StartupDisplayPort() = default;
     [[nodiscard]] virtual bool initialize() = 0;
+    // Target-owned visible metadata can change independently of the transport/footer view.
+    [[nodiscard]] virtual bool content_changed() const { return false; }
     [[nodiscard]] virtual bool render(const StartupDisplayView& view) = 0;
     [[nodiscard]] virtual bool render_pairing_pin(
         const PairingPinDisplayView& view) = 0;

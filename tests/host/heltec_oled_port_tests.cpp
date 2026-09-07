@@ -140,7 +140,111 @@ void setup_label_uses_actual_pairing_pixels_and_clears() {
     EXPECT(opentrail::ui::setup_advertising_name(code,false).size==0);
 }
 
+void clock_minute_redraw_survives_unchanged_transport_footer() {
+    stub::reset();HeltecV4Oled port;StartupDisplayOwner owner{port};
+    EXPECT(owner.start());opentrail::time::OledClock clock;
+    EXPECT(clock.synchronize(36000,opentrail::time::OledClockFormat::hour_24,1000,1000,true));
+    CompactStatusSnapshot snapshot{};snapshot.phone_ready=true;
+    port.set_configuration("Trail Bench",clock.observe(1000),1);
+    EXPECT(owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot));
+    const auto initial=stub::state.frames.back();auto count=stub::state.frames.size();
+    for(std::uint64_t ms=1100;ms<61000;ms+=100) {
+        stub::state.now_us=ms*1000;port.set_configuration("Trail Bench",clock.observe(ms),1);
+        EXPECT(owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot));
+    }
+    EXPECT(stub::state.frames.size()==count);
+    stub::state.now_us=61000000;port.set_configuration("Trail Bench",clock.observe(61000),1);
+    EXPECT(owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot));
+    EXPECT(stub::state.frames.size()==count+1);
+    EXPECT(stub::state.frames.back()!=initial);
+    // A failed dirty redraw retains the latch and enters existing display containment.
+    port.set_configuration("Changed",clock.observe(61000),1);stub::state.draw_failures=1;
+    EXPECT(!owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot));
+    EXPECT(port.content_changed() && !owner.status().available);
+    EXPECT(black(stub::state.frames.back()));
+    count=stub::state.frames.size();
+    EXPECT(!owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot));
+    EXPECT(stub::state.frames.size()==count);
+}
+
+void metadata_redraw_and_overlays_preserve_latest_clock() {
+    stub::reset();HeltecV4Oled port;StartupDisplayOwner owner{port};
+    EXPECT(owner.start());opentrail::time::OledClock clock;
+    EXPECT(clock.synchronize(36000,opentrail::time::OledClockFormat::hour_24,1000,1000,true));
+    CompactStatusSnapshot snapshot{};snapshot.phone_ready=true;
+    StartupDisplayView view{};view.frame=StartupDisplayFrame::ble_connected;view.phone_ready=true;
+    HeltecOledPresentation expected;
+    auto show=[&]() { EXPECT(owner.show_compact_status(view.frame,snapshot)); };
+    port.set_configuration("First",clock.observe(1000),1);show();
+    auto count=stub::state.frames.size();
+    port.set_configuration("Second",clock.observe(1000),1);show();
+    EXPECT(stub::state.frames.size()==++count);
+    EXPECT(stub::state.frames.back()==expected.present(view,1000,"Second",clock.observe(1000),1).pixels);
+    port.set_configuration("Second",clock.observe(1000),2);show();
+    EXPECT(stub::state.frames.size()==++count);
+    EXPECT(stub::state.frames.back()==expected.present(view,1000,"Second",clock.observe(1000),2).pixels);
+    EXPECT(clock.synchronize(36000,opentrail::time::OledClockFormat::hour_12,1000,1000,true));
+    port.set_configuration("Second",clock.observe(1000),2);show();
+    EXPECT(stub::state.frames.size()==++count);
+    EXPECT(stub::state.frames.back()==expected.present(view,1000,"Second",clock.observe(1000),2).pixels);
+    port.set_configuration("Second",{},2);show();
+    EXPECT(stub::state.frames.size()==++count);
+    EXPECT(stub::state.frames.back()==expected.present(view,1000,"Second",{},2).pixels);
+    EXPECT(owner.show_pairing_pin({'1','2','3','4','5','6'}));
+    count=stub::state.frames.size();const auto pin_frame=stub::state.frames.back();
+    stub::state.now_us=61000000;port.set_configuration("During PIN",clock.observe(61000),1);show();
+    EXPECT(stub::state.frames.size()==count && stub::state.frames.back()==pin_frame);
+    EXPECT(owner.clear_pairing_pin());
+    EXPECT(stub::state.frames.back()==expected.present(view,61000,"During PIN",clock.observe(61000),1).pixels);
+    count=stub::state.frames.size();show();EXPECT(stub::state.frames.size()==count);
+    EXPECT(owner.show_factory_reset_confirmation());count=stub::state.frames.size();
+    stub::state.now_us=121000000;port.set_configuration("During reset",clock.observe(121000),0);show();
+    EXPECT(stub::state.frames.size()==count);
+    EXPECT(owner.clear_factory_reset_confirmation());
+    EXPECT(stub::state.frames.back()==expected.present(view,121000,"During reset",clock.observe(121000),0).pixels);
+    count=stub::state.frames.size();show();EXPECT(stub::state.frames.size()==count);
+    EXPECT(owner.show_factory_reset_in_progress());count=stub::state.frames.size();
+    stub::state.now_us=181000000;port.set_configuration("Hidden",clock.observe(181000),1);show();
+    EXPECT(stub::state.frames.size()==count);
+}
+
+void unowned_setup_label_remains_after_pairing_timeout() {
+    stub::reset();HeltecV4Oled port;StartupDisplayOwner owner{port};
+    EXPECT(owner.start());const opentrail::ui::SetupCode code{'U','V','W','X','Y','Z'};
+    EXPECT(owner.set_setup_code(code));
+    opentrail::companion::CompanionV1BondOwnerStatus ownership{};
+    ownership.phase=opentrail::companion::CompanionV1BondOwnerPhase::closed_unowned;
+    port.set_configuration("",{},0,startup_unowned_setup_code(ownership,code));
+    EXPECT(owner.show(StartupDisplayFrame::ble_advertising));
+    EXPECT(owner.show_pairing_pin({'1','2','3','4','5','6'}));
+    stub::state.now_us=61000000;EXPECT(owner.clear_pairing_pin());
+    HeltecOledPresentation expected;StartupDisplayView view{};view.frame=StartupDisplayFrame::ble_advertising;
+    EXPECT(stub::state.frames.back()==expected.present(view,61000,"Trail-UVWXYZ",{},0).pixels);
+    const auto label_frame=stub::state.frames.back();auto count=stub::state.frames.size();
+    for(int i=0;i<20;++i) {
+        port.set_configuration("",{},0,startup_unowned_setup_code(ownership,code));
+        EXPECT(owner.show(view.frame));
+    }
+    EXPECT(stub::state.frames.size()==count && stub::state.frames.back()==label_frame);
+    opentrail::time::OledClock clock;
+    EXPECT(clock.synchronize(36000,opentrail::time::OledClockFormat::hour_24,61000,61000,true));
+    port.set_configuration("",clock.observe(61000),0,startup_unowned_setup_code(ownership,code));
+    EXPECT(owner.show(view.frame));
+    EXPECT(stub::state.frames.back()==expected.present(view,61000,"Trail-UVWXYZ",clock.observe(61000),0).pixels);
+    ownership.phase=opentrail::companion::CompanionV1BondOwnerPhase::closed_owned;
+    ownership.owner_present=true;
+    port.set_configuration("",{},0,startup_unowned_setup_code(ownership,code));
+    EXPECT(owner.show(view.frame));
+    EXPECT(stub::state.frames.back()==expected.present(view,61000,"",{},0).pixels);
+    EXPECT(stub::state.frames.back()!=label_frame);
+    port.set_configuration("Saved Name",{},0,code);EXPECT(owner.show(view.frame));
+    EXPECT(stub::state.frames.back()==expected.present(view,61000,"Saved Name",{},0).pixels);
+}
+
 int main() {
+    unowned_setup_label_remains_after_pairing_timeout();
+    metadata_redraw_and_overlays_preserve_latest_clock();
+    clock_minute_redraw_survives_unchanged_transport_footer();
     setup_label_uses_actual_pairing_pixels_and_clears();
     real_initialization_and_logo();
     real_port_delivers_presentation_frames();
@@ -150,6 +254,6 @@ int main() {
     pairing_clear_and_failure_use_real_owner_and_port();
     rollback_cannot_be_followed_by_pairing_digits();
     if (failures) return 1;
-    std::cout << "PASS actual Heltec OLED port: 8 groups\n";
+    std::cout << "PASS actual Heltec OLED port: 11 groups\n";
     return 0;
 }

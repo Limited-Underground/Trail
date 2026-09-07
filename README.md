@@ -83,22 +83,35 @@ updates and cold-power disassembly remain deferred.
 
 See [automatic clock and name evidence](docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md).
 
-### OT-171 Matching first-use setup labels validated on the computer
+### OT-171 Clock corrected; unique setup label retained after timeout
 
-The candidate firmware now shows a temporary `Trail-XXXXXX` setup label on the
-pairing OLED and advertises the same code for first-use discovery. Android lists
-that label, rejects malformed or missing names, and stops ambiguous or changed
-selections. Saved names and ownership stay separate. The full host matrix,
-1,059 tests in the Android matrix, variant builds/lint and artifact audit pass;
-two clean firmware builds match across all six compared artifacts.
+The second Heltec received the verified clock correction, and its S24 reconnected
+and synchronized automatically. The owner confirmed matching time and continuing
+minute changes without Sync. The original Heltec/Note20 remains unchanged as a
+paired control and still needs the clock correction after this control gate.
 
-No candidate was installed and no device was reset. Both retained pairs are owned;
-physical first-use matching needs an unowned device or explicit approval to reset
-only the second Heltec and pair it again. Preserve the original pair as a control.
-V1 scores remain unchanged. After this gate, resume the secure two-pair message
-path. Website updates and cold-power disassembly remain owner-deferred.
+The approved second-only protected factory reset then passed app verification.
+US915 was erased and must be restored after fresh pairing. The owner found that
+the normal screen reverted to generic DEVICE after the pairing window expired.
+That regression was reproduced and corrected: a coherently unowned device keeps
+its boot-specific Trail label after timeout while pairing still closes normally.
 
-See [setup-label evidence](docs/testing/OT-171-SETUP-LABEL-2026-09-07.md).
+Both fixes are now included in the installed, exact-readback-verified
+`ot171-label-v1` firmware. Fifteen startup groups, eleven actual OLED groups,
+thirteen affected native suites and seventeen structural sets pass. Two fresh
+builds match all six artifacts with 373 source hashes unchanged. Healthy unowned
+runtime is observed; physical post-timeout label confirmation and fresh pairing
+remain pending. The unchanged S24 APK retains its accepted 1,059-test Android
+matrix.
+
+The owner confirmed the S24's duplicate NimBLE entries are Trail test leftovers;
+manual removal is pending. OT-168 now records the app's missing exact-peer Android
+bond cleanup flow. No automatic phone-side unpairing is claimed. Complete label
+confirmation, fresh secure pairing and US915 readback, then resume the secure
+two-pair message path. V1 scores remain unchanged. Website updates and cold-power
+disassembly remain owner-deferred.
+
+See [setup-label evidence](docs/testing/OT-171-SETUP-LABEL-2026-09-07.md) and [clock refresh evidence](docs/testing/OT-171-CLOCK-REFRESH-2026-09-07.md).
 
 ## 2026-09-06
 

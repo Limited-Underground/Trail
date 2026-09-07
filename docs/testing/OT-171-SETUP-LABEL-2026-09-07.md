@@ -110,21 +110,107 @@ checkpoint; it does not install these artifacts.
 
 ## Physical acceptance gate
 
-No hardware was flashed or reset for this candidate yet. Both retained Heltecs
-are owned, so they do not enter first-use D1 discovery. Current installed firmware
-remains `ot178-phone-v1`; both V1-Test apps remain the previously accepted automatic
-clock/name build. First-use display/list matching is not physically accepted.
+Before the second-only reset, the Heltec ran the verified clock correction `ot171-clock-v1`,
+587,632 bytes, SHA-256
+`2FF001B30BB22A2E91F82D54D94BED20B8F1BEE406756A8AA760B0BC3B29A57E`,
+which includes the setup-label implementation. It supersedes the earlier installed
+587,456-byte `ot171-setup-v1` artifact recorded above. Its S24 V1-Test APK remains
+12,500,293 bytes, SHA-256
+`CC5D5FB60A58D7ECC58D78A84AA0BC3829CC2F732D0B0F33018CEBC52C7FF2F0`.
+Exact application readback, healthy runtime, retained-owner Ready and protected
+US915 readback passed. The owner confirmed matching time and two subsequent minute
+changes without Sync; see [clock evidence](OT-171-CLOCK-REFRESH-2026-09-07.md).
+The original pair remains unchanged and still needs the clock correction after
+serving as the paired control.
 
-After artifact validation, the proposed test preserves the original Heltec and
-Note20 as a paired control. It needs explicit approval to factory-reset only the
-second Heltec, erasing that device's saved configuration and ownership. Test the
-current OLED/scan label match, exact selection, normal PIN pairing, protected
-Ready, automatic name/time readback, D0 concealment and restart/reconnect. Restore
-US915 through protected settings and verify its readback. Firmware rollback cannot
-restore user data erased by a factory reset.
+After clock acceptance, the explicitly approved second-only protected factory
+reset resumed. The app displayed Factory reset verified and Remove old Android
+pairing. Owner-directed removal of old S24 Trail test bonds is pending. The approved
+reset erased US915; restore it after fresh pairing. No fresh pairing, OLED/list
+label match or complete reset-domain cleanup acceptance is claimed yet.
+
+Continue from Android bond removal to the OLED/scan label match, exact selection,
+normal PIN pairing, protected Ready, automatic name/time readback, D0 concealment
+and restart/reconnect. Restore US915 through protected settings and verify readback.
+Firmware rollback cannot restore user data erased by a factory reset.
 
 Two simultaneously unowned physical devices, physical duplicate-label behavior,
 full reset-domain erasure acceptance, secure radio messaging, field tests and
-signed release remain outside this candidate's computer validation. Website
-updates and cold-power disassembly remain owner-deferred; no V1 score increase
-is claimed for the setup-label implementation.
+signed release remain open. Website updates and cold-power disassembly remain
+owner-deferred; no V1 score increase is claimed.
+
+## Post-timeout setup label correction and preflight
+
+After the verified reset, the owner observed generic DEVICE when the 60-second
+pairing window expired. The actual composed OLED test reproduced that output
+before correction. The proposed correction retains the valid boot `Trail-XXXXXX`
+label as the normal unowned status fallback when no durable name exists. Admission
+uses only exact lock-protected `closed_unowned` owner status; owned transition
+removes the fallback, and a saved name wins. It changes neither D1 advertising nor
+the pairing deadline, PIN, persistent identity or NVS schema.
+
+Focused validation passes fifteen startup groups, eleven actual OLED groups and
+seventeen target-admission groups. Independent final review passes. The complete
+affected gate passes thirteen native suites and seventeen structural sets. Two
+initially absent builds match all six artifacts with 373 firmware input hashes
+unchanged. Image inspection and exact application installation pass. Owner-observed
+post-timeout label acceptance remains pending at this checkpoint. This is not a fresh-pair
+acceptance result.
+
+| Preflight gate | Applied boundary / remaining requirement |
+| --- | --- |
+| Pre-install artifact and recovery | The installation used `ot171-clock-v1`, 587,632 bytes, SHA-256 `2FF001B30BB22A2E91F82D54D94BED20B8F1BEE406756A8AA760B0BC3B29A57E`, as its exact recovery baseline. The current installed 984E image is recorded below. Original 43AC/CCC4 control and S24 CC5D APK are unchanged. |
+| Target/toolchain | Reuse Heltec V4-family ESP32-S3, pinned IDF 6.0.2 commit `7101770dc6db2667b3c477cc31365dd1acd6db4e`, Xtensa `esp-15.2.0_20251204`, DIO 80 MHz / 16 MB, unchanged GPIO/USB, bootloader/table/SDK configuration. |
+| Presentation authority | Require exact closed-unowned admission, composed timeout/label restoration, clock refresh and owned concealment regressions. Preserve overlay priority and dirty-minute invalidation. |
+| Build/artifact gate | Affected matrix and two initially absent `ot171-label-v1` builds pass; 373 source hashes stayed unchanged and six artifacts match. Image inspection and unchanged bootloader/table/SDK configuration comparison pass. |
+| Installation gate | Fresh exact second-only selector excluding the original, ROM identity/table/OTA/current full-prefix checks, final artifact/current 2FF recovery binding, application-only offset `0x10000` and calculated aligned span. No hardware write before these pass. |
+| Physical gate | Exact postwrite readback and healthy unowned runtime passed in the installation recorded below. Owner-confirmed label after timeout, fresh OLED/list match, normal PIN/Ready and restored US915 readback remain open. |
+| Unchanged/deferred work | No protocol, radio, GNSS, battery, power, entropy or encryption changes; reuse accepted evidence for those unchanged boundaries. No radio transmission. Cold-power/disassembly and website updates remain deferred. |
+
+## OT-168 Android bond cleanup follow-up
+
+Duplicate NimBLE names in Android settings made manual bond cleanup ambiguous.
+The current app clears its exact-peer reference before directing manual cleanup.
+The owner confirmed all S24 NimBLE entries are Trail test leftovers and is removing
+them manually; this owner-specific confirmation is not a general bulk-removal rule.
+
+A follow-up should preserve the exact peer across reset cleanup. The future API 36
+path should evaluate supported `CompanionDeviceManager.removeBond` with a
+pre-established companion association; older APIs need guided exact-peer cleanup.
+No automatic Android bond removal is implemented or accepted here. Fresh pairing,
+complete reset-domain cleanup and two-pair acceptance remain open.
+
+## Post-timeout label artifact gate
+
+The final `ot171-label-v1` image retains the accepted clock correction. Independent
+esptool 5.3.1 inspection verifies its checksum/hash, ESP32-S3 target, IDF 6.0.2
+and DIO 80 MHz / 16 MB profile. Application offset remains `0x10000`; the aligned
+erase span remains 589,824 bytes. Bootloader, table and SDK configuration match
+the pre-install clock build exactly.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| opentrail_heltec_v4_bench.bin | 587968 | `984E241DC72FAD956D34B5E83F04FD307DCB95E0F18C629AC46D21DA9D96D87B` |
+| opentrail_heltec_v4_bench.elf | 8602624 | `790C4539D5241A3F34089A95C0A94F22A0DDCFB57DDFBF595575D8BDC31F8F39` |
+| opentrail_heltec_v4_bench.map | 7004598 | `254535F27348F3AC3CFC5DED0C4B187C66FD1EF00C978E2A7050672EB9372E0C` |
+| bootloader/bootloader.bin | 22480 | `96E83EBE4434CD6C9049A59F396B4F8BD06C159B40259DA573BDB701C571ECA5` |
+| partition_table/partition-table.bin | 3072 | `F3372A1F30CBDD98D6FBCF7808C85C46DCAA249105BA9DA883EF21E05EFE90A4` |
+| sdkconfig | 106877 | `5519CBF48461633E814CC7D1608D01BEB283D3A2D7C45829877D2EB2BEA7A71E` |
+
+## Current second-device installation
+
+The second Heltec now runs `ot171-label-v1`, 587,968 bytes, SHA-256
+`984E241DC72FAD956D34B5E83F04FD307DCB95E0F18C629AC46D21DA9D96D87B`.
+The reviewed one-use installer verified current 2FF clock firmware and exact
+bootloader/table/factory-selection state before writing. It read back the new
+image and erased tail exactly, reported no transport write retry, and restarted
+successfully. No NVS write, registry update or additional factory reset occurred.
+The device remains unowned from the earlier approved, app-verified reset.
+Receive-only runtime observation saw advancing elapsed times 35,707 and 40,707 ms
+and minimum free application stack 4,672 bytes. No serial data was written.
+
+The S24 APK remains CC5D; original Heltec/Note20 remains 43AC/CCC4. The original
+still needs the clock correction after serving as control. The earlier owner-
+confirmed clock result was on 2FF before reset; new fresh-pair clock synchronization
+and US915 restoration remain to be observed. Physical post-timeout label and
+phone-list matching are not inferred from these build/readback/heartbeat results.

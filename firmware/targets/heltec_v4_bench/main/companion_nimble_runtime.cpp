@@ -1493,6 +1493,12 @@ bool companion_nimble_phone_ready() {
         companion_nimble_gatt_phone_ready(g_owner_gatt_transport_generation));
 }
 
+ui::SetupCode companion_nimble_unowned_setup_code() {
+    PairingLock lock{pdMS_TO_TICKS(50)};
+    if (!lock.locked() || g_v1_owner_bridge == nullptr) return {};
+    return startup_unowned_setup_code(g_v1_owner_bridge->status(), g_setup_label.code());
+}
+
 std::uint8_t companion_nimble_security_failure_stage() {
     return g_security_configuration_failure_stage.load(
         std::memory_order_acquire);

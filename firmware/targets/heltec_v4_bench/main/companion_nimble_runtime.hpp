@@ -6,6 +6,7 @@
 #include "opentrail/companion_pairing_window.hpp"
 #include "opentrail/device_factory_reset_executor.hpp"
 #include "opentrail/secure_random.hpp"
+#include "opentrail/setup_label.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 class StartupDisplayOwner;
@@ -51,6 +52,9 @@ companion_nimble_runtime_status();
 
 // Current exact session, including a confirmed protected Snapshot. Render-only.
 [[nodiscard]] bool companion_nimble_phone_ready();
+
+// App-owner display fallback only: empty unless current ownership is coherently unowned.
+[[nodiscard]] ui::SetupCode companion_nimble_unowned_setup_code();
 
 // Privacy-safe startup diagnostic. Zero means that secure configuration has
 // not failed; nonzero values identify only a bounded configuration stage.

@@ -316,7 +316,8 @@ extern "C" void app_main() {
         g_oled_port.set_configuration(
             {reinterpret_cast<const char*>(configured_name.name.data()), configured_name.name_bytes},
             opentrail::target::heltec_v4_bench::companion_configuration_clock(),
-            opentrail::target::heltec_v4_bench::companion_configuration_region().selection_id);
+            opentrail::target::heltec_v4_bench::companion_configuration_region().selection_id,
+            opentrail::target::heltec_v4_bench::companion_nimble_unowned_setup_code());
         const auto pairing_service =
             opentrail::target::heltec_v4_bench::
                 service_companion_pairing_window(elapsed_ms);
