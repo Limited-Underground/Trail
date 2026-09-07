@@ -21,6 +21,17 @@ enum class StartupDisplayFrame : std::uint8_t {
     factory_resetting,
 };
 
+// A current snapshot proof cannot override runtime teardown or a different link.
+[[nodiscard]] inline bool startup_display_phone_ready(
+    const companion::CompanionBleRuntimeStatus& status,
+    std::uint16_t owner_handle, bool protected_snapshot_ready) {
+    return protected_snapshot_ready &&
+        status.phase == companion::CompanionBleRuntimePhase::connected &&
+        !status.termination_pending && !status.normal_commands_closed &&
+        owner_handle != companion::kCompanionBleInvalidConnectionHandle &&
+        status.connection_handle == owner_handle;
+}
+
 struct StartupDisplayStatus {
     bool available{false};
     StartupDisplayFrame frame{StartupDisplayFrame::logo};
@@ -30,6 +41,7 @@ struct StartupDisplayStatus {
 struct StartupDisplayView {
     StartupDisplayFrame frame{StartupDisplayFrame::logo};
     bool has_footer{false};
+    bool phone_ready{false};
     ui::compact_status_footer::Page footer{};
 };
 
@@ -45,6 +57,7 @@ struct PairingPinDisplayView {
 // observation remains the StartupDisplayFrame argument so the visible frame,
 // footer code, and runtime-owner phase cannot disagree.
 struct CompactStatusSnapshot {
+    bool phone_ready{false};
     ui::compact_status_footer::Metric battery_percent{};
     ui::compact_status_footer::Metric gps_satellites{};
     ui::compact_status_footer::Freshness freshness{};

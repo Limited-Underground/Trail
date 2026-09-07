@@ -130,6 +130,7 @@ bool g_configuration_name_loaded = false;
 std::uint64_t g_configuration_blocked_generation = 0;
 std::uint64_t g_configuration_token = (std::uint64_t{1} << 63);
 ConfigurationLane g_configuration_lane{};
+ConfigurationPhoneStatus g_phone_status;
 ble_npl_event g_configuration_response_event{};
 void configuration_response_event(ble_npl_event*);
 ConfigurationDispatcher* g_configuration_dispatcher = nullptr;
@@ -344,6 +345,7 @@ std::uint64_t now_ms() {
 void update_configuration_authority() {
     if (g_configuration_revoked) {
         g_configuration_authority.phase = DeviceNamePhase::revoked;
+        g_phone_status.clear();
         return;
     }
     const auto status = g_adapter == nullptr ? CompanionGattAdapterStatus{} : g_adapter->status();
@@ -359,11 +361,13 @@ void update_configuration_authority() {
             g_configuration_selected = false;
         }
         g_configuration_authority.phase = DeviceNamePhase::disconnected;
+        g_phone_status.clear();
         return;
     }
     g_configuration_authority = {DeviceNamePhase::connected,
         {1, 1, 1, 1, status.transport_generation,
          status.transport_generation, life.session_nonce}, now_ms()};
+    g_phone_status.observe(g_configuration_authority);
 }
 
 void clear_configuration_lane() {
@@ -747,6 +751,15 @@ CompanionGattIndicationPort& companion_nimble_gatt_indication_port() {
     return g_indication_port;
 }
 
+bool companion_nimble_gatt_phone_ready(std::uint64_t generation) {
+    GattLock lock;
+    if (!lock || g_configuration_revoked || generation == 0 ||
+        generation == g_configuration_blocked_generation ||
+        companion_app_factory_reset_blocks_protected_access()) return false;
+    update_configuration_authority();
+    return g_phone_status.ready(g_configuration_authority, generation);
+}
+
 CompanionGattAdapterStatus companion_nimble_gatt_adapter_status() {
     GattLock lock;
     return g_adapter == nullptr ? CompanionGattAdapterStatus{}
@@ -852,6 +865,9 @@ static int configuration_guarded_gap_event(ble_gap_event* event, void* argument)
                     pending.session_nonce, pending.exchange_id, pending.delivery_token)) {
                 const bool confirmed = event->notify_tx.status == BLE_HS_EDONE &&
                     refresh_security(event->notify_tx.conn_handle) == 0;
+                update_configuration_authority();
+                g_phone_status.complete(g_configuration_lane, g_configuration_authority,
+                                        confirmed, now_ms());
                 g_indication_port.observe_completion(pending.delivery_token);
                 g_configuration_lane = {};
                 observe_companion_app_factory_reset_response(confirmed);
@@ -974,6 +990,7 @@ void invalidate_companion_configuration(bool revoke) {
     if (g_adapter != nullptr)
         g_configuration_blocked_generation = g_adapter->status().transport_generation;
     g_configuration_selected = false;
+    g_phone_status.clear();
     g_configuration_revoked = g_configuration_revoked || revoke;
     g_configuration_authority.phase = g_configuration_revoked ? DeviceNamePhase::revoked : DeviceNamePhase::disconnected;
     clear_configuration_lane();

@@ -646,9 +646,51 @@ void test_factory_reset_render_and_restore_failures_conceal() {
                 !restore_owner.status().available,
             "reset-restore failure conceals and latches unavailable");
 }
+
+void test_runtime_phone_authority_fences() {
+    using opentrail::target::heltec_v4_bench::startup_display_phone_ready;
+    opentrail::companion::CompanionBleRuntimeStatus status{};
+    status.phase=CompanionBleRuntimePhase::connected;status.connection_handle=9;
+    require(!startup_display_phone_ready(status,9,true),"authorization still closed");
+    status.normal_commands_closed=false;
+    require(!startup_display_phone_ready(status,9,false),"snapshot absent");
+    require(startup_display_phone_ready(status,9,true),"current Ready proof");
+    require(!startup_display_phone_ready(status,10,true),"wrong current link");
+    status.termination_pending=true;
+    require(!startup_display_phone_ready(status,9,true),"watchdog termination must hide Ready");
+    status.termination_pending=false;
+    for(auto phase:{CompanionBleRuntimePhase::dormant,CompanionBleRuntimePhase::advertising,
+                   CompanionBleRuntimePhase::restart_wait,CompanionBleRuntimePhase::contained}) {
+        status.phase=phase;require(!startup_display_phone_ready(status,9,true),"teardown/reset retains Ready");
+    }
+}
+
+void test_phone_authority_redraw_and_overlay() {
+    FakeDisplayPort port;StartupDisplayOwner owner{port};
+    require(owner.start(),"phone start");CompactStatusSnapshot snapshot{};
+    require(owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot),"raw link");
+    auto count=port.views.size();snapshot.phone_ready=true;
+    require(owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot),"ready transition");
+    require(port.views.size()==count+1 && port.views.back().phone_ready,"ready redraw without footer change");
+    require(owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot),"stable ready");
+    require(port.views.size()==count+1,"stable ready suppressed");
+    require(owner.show_factory_reset_confirmation(),"overlay");count=port.views.size();
+    snapshot.phone_ready=false;
+    require(owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot),"authority lost behind overlay");
+    require(port.views.size()==count,"overlay remains visible");
+    require(owner.clear_factory_reset_confirmation(),"overlay cancel");
+    require(!port.views.back().phone_ready,"latest authority restored");
+    snapshot.phone_ready=true;
+    require(owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot),"reconnected ready");
+    count=port.views.size();snapshot.phone_ready=false;
+    require(owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot),"revoke while link remains");
+    require(port.views.size()==count+1 && !port.views.back().phone_ready,"revocation redraw");
+}
 }  // namespace
 
 int main() {
+    test_runtime_phone_authority_fences();
+    test_phone_authority_redraw_and_overlay();
     test_success_and_duplicate_suppression();
     test_initialization_and_render_fail_closed_locally();
     test_content_aware_footer_suppression_and_redraw();
@@ -660,6 +702,6 @@ int main() {
     test_pairing_pin_is_transient_and_clear_restores_latest_footer();
     test_factory_reset_overlay_suppresses_redraw_and_restores_latest_view();
     test_factory_reset_render_and_restore_failures_conceal();
-    std::cout << "11 Heltec startup display groups passed.\n";
+    std::cout << "13 Heltec startup display groups passed.\n";
     return 0;
 }

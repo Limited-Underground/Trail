@@ -62,6 +62,7 @@ CompactStatusSnapshot compact_status_snapshot(std::uint64_t now_ms) {
     using opentrail::ui::compact_status_footer::ObservationState;
 
     CompactStatusSnapshot snapshot{};
+    snapshot.phone_ready = opentrail::target::heltec_v4_bench::companion_nimble_phone_ready();
     snapshot.battery_percent = g_battery_percent;
     snapshot.freshness = {kBatteryFreshForMs, kGnssFreshForMs};
     snapshot.render_now_ms = now_ms;

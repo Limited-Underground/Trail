@@ -164,15 +164,32 @@ void rollback_contains_all_later_views() {
     require(frame.surface == Surface::failure, "rollback containment was reset");
     unused_rows_blank(frame, 1);
 }
+
+void exact_phone_status_only_on_connected_surface() {
+    HeltecOledPresentation mapper;StartupDisplayView view{};
+    view.frame=StartupDisplayFrame::ble_connected;
+    require(row(mapper.present(view,1,"Bench",{},1),1)=="PHONE UNKNOWN","raw link is not Ready");
+    view.phone_ready=true;
+    require(row(mapper.present(view,2,"Bench",{},1),1)=="PHONE READY","authenticated snapshot missing");
+    view.phone_ready=false;
+    require(row(mapper.present(view,3,"Bench",{},1),1)=="PHONE UNKNOWN","authority loss retains Ready");
+    view.phone_ready=true;view.frame=StartupDisplayFrame::ble_advertising;
+    require(row(mapper.present(view,4,"Bench",{},1),1)=="PHONE DISCONNECTED","stale Ready overrides disconnected");
+    view.frame=StartupDisplayFrame::ble_retrying;
+    require(row(mapper.present(view,5,"Bench",{},1),1)=="PHONE RECONNECTING","stale Ready overrides retry");
+    view.frame=StartupDisplayFrame::ble_error;
+    require(mapper.present(view,6,"Bench",{},1).surface==Surface::failure,"Ready overrides containment");
+}
 }  // namespace
 
 int main() {
+    exact_phone_status_only_on_connected_surface();
     all_catalog_selections_remain_transmit_disabled();
     every_frame_and_invalid_fail_closed();
     raw_connection_and_footer_cannot_grant_status();
     safety_surfaces_and_transition_clear_lower_content();
     rollback_contains_all_later_views();
     typed_name_and_clock_survive_region_warning_only();
-    std::cout << "PASS: 6 Heltec OLED presentation scenario groups\n";
+    std::cout << "PASS: 7 Heltec OLED presentation scenario groups\n";
     return 0;
 }

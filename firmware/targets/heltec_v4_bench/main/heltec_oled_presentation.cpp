@@ -15,8 +15,8 @@ ui::oled_presentation::Frame HeltecOledPresentation::present(
     snapshot.region_label = label == nullptr ? "" : label;
     // A stored selection is not a radio profile or transmit admission.
     snapshot.tx_available = false;
-    // No configured region or authenticated Ready observation is supplied by
-    // StartupDisplayView. Its existing footer is raster data, not typed telemetry.
+    // The typed Ready observation comes from exact current protected Snapshot
+    // delivery. Footer pixels and a raw BLE connection cannot grant Ready.
     switch (view.frame) {
         case StartupDisplayFrame::self_check_failed:
         case StartupDisplayFrame::ble_error:
@@ -28,8 +28,10 @@ ui::oled_presentation::Frame HeltecOledPresentation::present(
         case StartupDisplayFrame::factory_resetting:
             snapshot.reset_in_progress = true;
             break;
-        case StartupDisplayFrame::ble_starting:
         case StartupDisplayFrame::ble_connected:
+            snapshot.phone = view.phone_ready ? PhoneState::ready : PhoneState::unknown;
+            break;
+        case StartupDisplayFrame::ble_starting:
             snapshot.phone = PhoneState::unknown;
             break;
         case StartupDisplayFrame::ble_retrying:

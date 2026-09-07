@@ -18,13 +18,23 @@ before each write. This accepts the live region-setting prerequisite; resumable
 guided onboarding, public name/visibility and automatic normal launch remain open.
 V1 milestone scores are unchanged. Website synchronization remains owner-deferred.
 
-### OT-178 Region display accepted; phone status remains open
+### OT-178 Authenticated phone-status firmware installed
 
-The owner confirmed US915, TX OFF, the retained name and current time on the OLED.
-The newly visible phone row reports PHONE UNKNOWN: the existing mapper has no
-authenticated-Ready input. Next bind that row to exact current phone authority
-and test redraw, reconnect and authority loss. Cold-power and destructive reset
-remain deferred/open.
+The previously observed PHONE UNKNOWN gap is corrected in the installed firmware:
+PHONE READY requires a confirmed protected Snapshot and exact current session;
+authority-only changes redraw without overriding pairing/reset screens. Host
+regressions and two matching firmware builds pass. The original Heltec/Note20
+passes protected Ready, name/US915 readback, clock sync and same-boot app restart
+with fresh authorization/readback. Physical OLED text confirmation remains pending
+while the owner is away; this is not full OLED or two-pair acceptance.
+
+Next prioritize the real Phone A -> Heltec A -> Heltec B -> Phone B secure message
+path. Admit the second pair's exact firmware/recovery baseline and finish the
+required secure-radio integration before adding secondary onboarding/options.
+The owner authorized second-device flashing, second-phone APK installation and
+inter-device testing. Website updates and cold-power disassembly stay deferred.
+
+See [phone-status evidence](../docs/testing/OT-178-PHONE-STATUS-2026-09-07.md).
 
 ## 2026-09-06
 

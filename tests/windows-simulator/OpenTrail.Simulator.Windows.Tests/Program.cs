@@ -435,13 +435,15 @@ for line in sys.stdin:
     var restartScript = WriteScript("restart.py", """
 import json, pathlib, sys, time
 marker = pathlib.Path(__file__).with_suffix('.marker')
+# Exercise startup slower than the former 150 ms cancellation timer.
+time.sleep(0.25)
 for line in sys.stdin:
     request = json.loads(line)
     if request.get("op") == "discover":
         if not marker.exists():
-            marker.write_text("first", encoding="ascii")
             sys.stdout.write("{")
             sys.stdout.flush()
+            marker.write_text("first", encoding="ascii")
             time.sleep(2)
         else:
             print('{"v":1,"ok":true,"candidates":[]}', flush=True)
@@ -451,13 +453,26 @@ for line in sys.stdin:
 """);
     await using (var helperProcess = new ProcessPrivateCompanionHelper(restartScript))
     {
-        using var firstTimeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+        using var firstTimeout = new CancellationTokenSource();
+        var firstRequest = helperProcess.DiscoverAsync(firstTimeout.Token).AsTask();
+        var markerPath = Path.ChangeExtension(restartScript, ".marker");
+        var startupWait = System.Diagnostics.Stopwatch.StartNew();
+        while (!File.Exists(markerPath) && !firstRequest.IsCompleted &&
+               startupWait.Elapsed < TimeSpan.FromSeconds(5))
+            await Task.Delay(10);
+        // Cancel only after the child has flushed the partial response. Otherwise
+        // slow Python startup can be killed before its first-run marker exists,
+        // causing the replacement process to repeat the partial-response branch.
+        var partialResponseEmitted = File.Exists(markerPath);
+        firstTimeout.Cancel();
         try
         {
-            _ = await helperProcess.DiscoverAsync(firstTimeout.Token);
-            Expect(false, "a partial helper response must time out");
+            _ = await firstRequest;
+            Expect(false, "a partial helper response must be cancelled");
         }
         catch (IOException) { }
+        if (!partialResponseEmitted)
+            throw new InvalidOperationException("The restart fixture did not emit its partial response within the bounded startup wait.");
         var restarted = await helperProcess.DiscoverAsync(CancellationToken.None);
         Expect(restarted.Count == 0,
             "a timed-out helper must restart so its stale partial response cannot satisfy the next request");

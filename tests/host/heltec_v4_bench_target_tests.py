@@ -1409,13 +1409,16 @@ def test_display_surface() -> None:
             "snapshot.reset_confirmation = true" in presentation and
             "snapshot.reset_in_progress = true" in presentation,
             "mapper must preserve rollback containment and exact reset/failure surfaces")
-    require("PhoneState::ready" not in presentation and
+    require("view.phone_ready ? PhoneState::ready : PhoneState::unknown" in presentation and
             "snapshot.region_configured = true" not in presentation and
             "view.footer" not in presentation and
             "snapshot.clock = clock" in presentation and
             "snapshot.device_name = name" in presentation and
             'return "SELF CHECK FAIL"' in owner,
-            "mapper must take typed configuration/time while never inferring Ready, region or telemetry from raw status")
+            "mapper must take typed Ready/configuration/time while never inferring authority or telemetry from raw status")
+    require("view_.phone_ready == view.phone_ready" in owner and
+            "view.phone_ready = snapshot.phone_ready" in owner,
+            "phone authority changes must invalidate the retained normal view")
     for required in (
         'kPairingLabel[] = "PAIR"',
         "kPairingDigitsScale = 2",

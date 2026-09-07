@@ -29,6 +29,8 @@ companion_nimble_gatt_indication_port();
 [[nodiscard]] companion::CompanionGattAdapterStatus
 companion_nimble_gatt_adapter_status();
 
+[[nodiscard]] bool companion_nimble_gatt_phone_ready(std::uint64_t generation);
+
 // Attaches the exact callback adapter and service definitions before
 // ble_gatts_start(). Normal0.2 is offered only after confirmed claim promotion.
 // Protocol Info and Command use NimBLE ENC+AUTHEN+AUTHOR permissions. Their

@@ -36,6 +36,7 @@ bool StartupDisplayOwner::show_compact_status(
     const CompactStatusSnapshot& snapshot) {
     StartupDisplayView view{};
     view.frame = frame;
+    view.phone_ready = snapshot.phone_ready;
     if (!startup_display_compact_footer_page(frame, snapshot, view.footer)) {
         return false;
     }
@@ -182,6 +183,7 @@ bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
         return false;
     }
     if (has_view_ && view_.frame == view.frame &&
+        view_.phone_ready == view.phone_ready &&
         view_.has_footer == view.has_footer &&
         (!view.has_footer || view_.footer.columns == view.footer.columns)) {
         return true;

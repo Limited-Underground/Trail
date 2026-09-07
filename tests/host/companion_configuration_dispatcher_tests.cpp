@@ -291,9 +291,43 @@ void region_uncertainty_lifecycle_and_queue() {
     EXPECT(commit.submit(commit.region(2,1),148,0).code==ConfigurationDispatchCode::accepted);
     EXPECT(commit.owner.execute().bytes==0 && commit.regions.commits==1);
 }
+void protected_snapshot_phone_ready() {
+    using opentrail::target::heltec_v4_bench::ConfigurationLane;
+    using opentrail::target::heltec_v4_bench::ConfigurationPhoneStatus;
+    Harness h(3); ConfigurationPhoneStatus phone;
+    auto request=h.frame(1,1);
+    const auto encoded=encode_companion_snapshot_request({}, {request.payload.data(),request.payload.size()});
+    EXPECT(encoded.encoded());request.payload_bytes=static_cast<std::uint16_t>(encoded.encoded_bytes);
+    EXPECT(h.submit(request).code==ConfigurationDispatchCode::accepted);
+    const auto result=h.owner.execute();EXPECT(result.bytes>0);
+    ConfigurationLane lane{};lane.occupied=true;lane.indicated=true;
+    lane.context=h.source.state.context;lane.connection=9;lane.token=99;
+    lane.exchange=1;lane.admitted_ms=100;lane.bytes=result.bytes;lane.record=result.record;
+    const auto generation=lane.context.transport_generation;
+    EXPECT(!phone.ready(h.source.state,generation));
+    phone.complete(lane,h.source.state,true,5099);EXPECT(phone.ready(h.source.state,generation));
+    EXPECT(!phone.ready(h.source.state,generation+1));
+    for (auto phase:{DeviceNamePhase::disconnected,DeviceNamePhase::revoked}) {
+        auto lost=h.source.state;lost.phase=phase;
+        EXPECT(!phone.ready(lost,generation));phone.observe(lost);
+        EXPECT(!phone.ready(h.source.state,generation));
+        phone.complete(lane,h.source.state,true,5099);
+    }
+    auto changed=h.source.state;changed.context.session_nonce++;
+    phone.observe(changed);EXPECT(!phone.ready(h.source.state,generation));
+    phone.complete(lane,h.source.state,true,5100);EXPECT(!phone.ready(h.source.state,generation));
+    phone.complete(lane,h.source.state,true,99);EXPECT(!phone.ready(h.source.state,generation));
+    phone.complete(lane,h.source.state,false,101);EXPECT(!phone.ready(h.source.state,generation));
+    lane.indicated=false;phone.complete(lane,h.source.state,true,101);EXPECT(!phone.ready(h.source.state,generation));
+    lane.indicated=true;lane.exchange=2;phone.complete(lane,h.source.state,true,101);EXPECT(!phone.ready(h.source.state,generation));
+    lane.exchange=1;lane.record[0]^=1;phone.complete(lane,h.source.state,true,101);EXPECT(!phone.ready(h.source.state,generation));
+    lane.record=result.record;phone.complete(lane,h.source.state,true,101);EXPECT(phone.ready(h.source.state,generation));
+    phone.clear();EXPECT(!phone.ready(h.source.state,generation));
 }
-int main(){ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
+
+}
+int main(){protected_snapshot_phone_ready();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
     if(failures) return 1;
-    std::cout<<"PASS: 10 composed configuration dispatcher groups\n";
+    std::cout<<"PASS: 11 composed configuration dispatcher groups\n";
     return 0;
 }

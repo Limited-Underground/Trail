@@ -1472,6 +1472,12 @@ CompanionBleRuntimeStatus companion_nimble_runtime_status() {
     return g_runtime_owner.status();
 }
 
+bool companion_nimble_phone_ready() {
+    const auto status = g_runtime_owner.status();
+    return startup_display_phone_ready(status, g_owner_connection_handle,
+        companion_nimble_gatt_phone_ready(g_owner_gatt_transport_generation));
+}
+
 std::uint8_t companion_nimble_security_failure_stage() {
     return g_security_configuration_failure_stage.load(
         std::memory_order_acquire);

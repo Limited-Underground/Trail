@@ -49,6 +49,9 @@ void observe_companion_verified_gatt_progress(
 [[nodiscard]] companion::CompanionBleRuntimeStatus
 companion_nimble_runtime_status();
 
+// Current exact session, including a confirmed protected Snapshot. Render-only.
+[[nodiscard]] bool companion_nimble_phone_ready();
+
 // Privacy-safe startup diagnostic. Zero means that secure configuration has
 // not failed; nonzero values identify only a bounded configuration stage.
 [[nodiscard]] std::uint8_t companion_nimble_security_failure_stage();

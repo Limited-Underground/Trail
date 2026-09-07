@@ -18,13 +18,23 @@ before each write. This accepts the live region-setting prerequisite; resumable
 guided onboarding, public name/visibility and automatic normal launch remain open.
 V1 milestone scores are unchanged. Website synchronization remains owner-deferred.
 
-### OT-178 Region display accepted; phone status remains open
+### OT-178 Authenticated phone-status firmware installed
 
-The owner confirmed US915, TX OFF, the retained name and current time on the OLED.
-The newly visible phone row reports PHONE UNKNOWN: the existing mapper has no
-authenticated-Ready input. Next bind that row to exact current phone authority
-and test redraw, reconnect and authority loss. Cold-power and destructive reset
-remain deferred/open.
+The previously observed PHONE UNKNOWN gap is corrected in the installed firmware:
+PHONE READY requires a confirmed protected Snapshot and exact current session;
+authority-only changes redraw without overriding pairing/reset screens. Host
+regressions and two matching firmware builds pass. The original Heltec/Note20
+passes protected Ready, name/US915 readback, clock sync and same-boot app restart
+with fresh authorization/readback. Physical OLED text confirmation remains pending
+while the owner is away; this is not full OLED or two-pair acceptance.
+
+Next prioritize the real Phone A -> Heltec A -> Heltec B -> Phone B secure message
+path. Admit the second pair's exact firmware/recovery baseline and finish the
+required secure-radio integration before adding secondary onboarding/options.
+The owner authorized second-device flashing, second-phone APK installation and
+inter-device testing. Website updates and cold-power disassembly stay deferred.
+
+See [phone-status evidence](../docs/testing/OT-178-PHONE-STATUS-2026-09-07.md).
 
 ## 2026-09-06
 
@@ -221,7 +231,7 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 | --- | --- | --- | --- |
 | OT-180 | planned | Coherent V1 physical and release acceptance | Two approved Heltec/phone pairs complete onboarding, protected BLE recovery, authenticated direct-LoRa typed/quick messaging, group/direct consent denial and block, coordinates/current-stale-unavailable handling, portrait/landscape, support export, OLED/clock, reset, outage, and exact signed Android release acceptance. Six-member capacity is adversarially host/resource-tested; required physical group size remains evidence-driven. |
 | OT-179 | planned | Compose complete V1 Android/firmware target | Bind accepted settings, group, discovery, messaging, location, diagnostics, display, clock, GPS, storage and radio contracts into the concrete targets only after their prerequisites pass. Build/resource/reboot/power-cut and complete affected matrices required. |
-| OT-178 | partial | Implement and accept final Heltec OLED and clock | Owner confirmed retained name, US915, TX OFF and synchronized time after the region installation and warm restart. The newly exposed PHONE UNKNOWN row is a preexisting mapping gap: raw BLE connected has no authenticated-Ready input. Next bind exact current phone authority and ensure redraw on Ready/authority loss while preserving pairing/reset priority. Other telemetry, group status, physical concealment/reset, two-device, field and cold-power gates remain open. See [region evidence](../docs/testing/OT-170-171-REGION-INTEGRATION-2026-09-06.md). |
+| OT-178 | partial | Implement and accept final Heltec OLED and clock | Installed verified phone-status successor binds PHONE READY to a confirmed protected Snapshot and exact current authority, including authority-only redraw and overlay priority. Focused regressions, full affected host sequence and two matching builds pass; original-pair Ready/readback/clock and same-boot app restart pass. Physical OLED text confirmation remains pending while the owner is away. Other telemetry/group, concealment/reset, two-device, field and cold-power gates remain open. See [phone-status evidence](../docs/testing/OT-178-PHONE-STATUS-2026-09-07.md). |
 | OT-177 | partial | Implement redacted support export and V1-Test diagnostics | Atomic format-3 logs remain bounded to 512 records/64 KiB with typed stages, separate failure diagnostics, migration and Clear/Save/Share. Service-lifetime recording is now host-tested independently of UI leases, with exact-generation cleanup and production exclusion; see [software evidence](../tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md). Earlier four physical reconnects passed with the prior APK and corrected firmware. Ordinary support preview/Save/Share is now integrated through a restricted production FileProvider. The current combined APK is installed; name/time and saved-owner restart workflows are accepted, while full support export, metrics, field and release gates remain open. Cold-power is owner-deferred. No automatic upload. |
 | OT-176 | planned | Implement shared-location policy and authenticated wire | Group sharing ON at join with administrator-required/optional rule; per-direct-chat sharing OFF; current/stale/unavailable/disabled, age/precision/retention, immediate stop, and redacted export boundaries. |
 | OT-175 | planned | Implement bounded V1 typed and quick messaging | Authenticated group/direct addressing, bounded typed text, fixed quick status, local custom templates, priority/queue/TTL/dedupe/restart and exact queued/sent/delivered/failed terminology. Depends on accepted secure radio packet composition. |
