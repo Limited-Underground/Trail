@@ -33,8 +33,8 @@ for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
   images and exact build/source admission; see
   [execution integration](testing/OT-163-SOLICITED-EXECUTION-2026-09-08.md).
   A fresh physical attempt passed readiness/restart and the first baseline
-  validator, then stopped in the forced-retry scenario. Both original images
-  and complete flash spans were restored and verified. No complete benchmark
+  validator, then stopped in the forced-retry scenario. Both complete application
+  spans and bootloader/partition/OTA regions were verified after restoration. No complete benchmark
   result is admitted. This does not prove the old
   OT-163 hardware root cause or product messaging.
 

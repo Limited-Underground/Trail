@@ -17,8 +17,8 @@ preserves all removed summaries and superseded sequencing; see the
    passes. The [solicited execution path](../docs/testing/OT-163-SOLICITED-EXECUTION-2026-09-08.md)
    now passes concrete host composition and exact source/build admission.
    One fresh attempt passed readiness/restart and the first baseline validator,
-   then aborted in the forced-retry group; both original images and full flash
-   spans were restored and verified. Add bounded substep diagnostics and host
+   then aborted in the forced-retry group; both complete application spans and
+   bootloader/partition/OTA regions passed postchecks. Add bounded substep diagnostics and host
    regressions before another attempt. Both this grant and old OT-162 are consumed.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.
