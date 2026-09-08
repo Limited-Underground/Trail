@@ -84,6 +84,15 @@ and preserved boot/partition/OTA bytes passed restoration and postchecks. The
 grant is consumed; no complete benchmark result is admitted. Next is bounded
 substep diagnostics. V1 and website status remain unchanged.
 
+A bounded diagnostic observer now records the last endpoint operation and safe
+receipt fields without session identifiers, challenges, digests or raw errors.
+Eight host test groups distinguish 13 retry failure boundaries, exercise delayed
+2,196 ms timeouts and preserve the unchanged 14-frame/736-byte simulated result
+and exception behavior. This locates a future failure; it does not establish the
+earlier hardware cause. The frozen execution snapshot and firmware are unchanged.
+See [diagnostic evidence](testing/OT-163-RETRY-DIAGNOSTICS-2026-09-08.md). No hardware
+was accessed or new grant consumed. V1 and website status remain unchanged.
+
 ### OT-171 Pairing setup simplified; numeric keypad deferred
 
 The owner-approved second-device pairing test accepted the editable setup-label

@@ -55,12 +55,14 @@ normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
 
-Add bounded substep/error-category diagnostics within `cycle1_retry_timeout`
-and reproduce the failure boundary in host tests before binding any later
-attempt. The fresh grant is consumed; both boards passed exact restoration and
-full postchecks. The broad stage does not identify which retry substep failed.
-No complete radio-cost result or phone-to-phone delivery is admitted. See
-[execution evidence](testing/OT-163-SOLICITED-EXECUTION-2026-09-08.md).
+A bounded endpoint observer now distinguishes retry receipt boundaries in host
+tests while preserving the existing runner result and exceptions. See
+[retry diagnostics](testing/OT-163-RETRY-DIAGNOSTICS-2026-09-08.md). Next, bind this
+observer into a fresh execution snapshot and non-reusable attempt, recheck both
+boards and capture the precise failing substep with independent restoration.
+The previous grant is consumed; both boards passed exact restoration and full
+postchecks. Its broad stage cannot identify the failed substep retrospectively.
+No complete radio-cost result or phone-to-phone delivery is admitted.
 
 After the remaining crypto measurement/admission and explicit suite/wire selection,
 implement one authenticated two-node message exchange, then its protected BLE
