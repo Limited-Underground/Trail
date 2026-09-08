@@ -399,7 +399,7 @@ class ConnectedDeviceManifestPolicyTest {
             source.indexOf("override fun createConnection"),
         )
         assertTrue(cleanup.contains("verifiedResetReceipt != receipt"))
-        assertTrue(cleanup.contains("resetReceiptStore.clearExact(receipt)"))
+        assertTrue(cleanup.contains("resetReceiptStore.completeVerified(receipt)"))
         assertTrue(cleanup.contains("FactoryResetLocalCleanupResult.SYSTEM_BOND_REMAINS"))
 
         val persistence = source.substring(

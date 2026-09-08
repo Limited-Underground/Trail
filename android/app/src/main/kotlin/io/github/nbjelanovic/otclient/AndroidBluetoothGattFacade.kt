@@ -69,7 +69,7 @@ internal object FactoryResetReceiptAdvertisementCodec {
 
 internal interface FactoryResetReceiptStorage {
     fun readLong(key: String): Long?
-    fun writeLongs(values: Map<String, Long>): Boolean
+    fun writeLongs(values: Map<String, Long>, removeKeys: Set<String> = emptySet()): Boolean
     fun remove(keys: Set<String>): Boolean
 }
 
@@ -79,8 +79,9 @@ private class SharedPreferencesFactoryResetReceiptStorage(
     override fun readLong(key: String): Long? =
         if (preferences.contains(key)) preferences.getLong(key, 0L) else null
 
-    override fun writeLongs(values: Map<String, Long>): Boolean {
+    override fun writeLongs(values: Map<String, Long>, removeKeys: Set<String>): Boolean {
         val editor = preferences.edit()
+        removeKeys.forEach(editor::remove)
         values.forEach { (key, value) -> editor.putLong(key, value) }
         return editor.commit()
     }
@@ -157,10 +158,33 @@ internal class AndroidFactoryResetReceiptStore(
         return clearAll()
     }
 
+    // Receipt removal and the non-identifying navigation marker commit together.
+    fun completeVerified(receipt: ULong): Boolean {
+        if (receipt == 0uL || load() != receipt) return false
+        return storage.writeLongs(
+            mapOf(FRESH_SETUP_KEY to 1L),
+            setOf(RECEIPT_KEY, ISSUED_AT_KEY, EXPIRY_KEY),
+        )
+    }
+
+    private var freshSetupClearUnconfirmed = false
+
+    fun requiresFreshSetup(): Boolean =
+        freshSetupClearUnconfirmed || storage.readLong(FRESH_SETUP_KEY) == 1L
+
+    fun authenticatedReady(): Boolean {
+        val wasRequired = requiresFreshSetup()
+        val committed = storage.remove(setOf(FRESH_SETUP_KEY))
+        // SharedPreferences may update its in-memory map even when disk commit fails.
+        freshSetupClearUnconfirmed = !committed && wasRequired
+        return committed
+    }
+
     private fun clearAll(): Boolean = storage.remove(setOf(RECEIPT_KEY, ISSUED_AT_KEY, EXPIRY_KEY))
 
     companion object {
         const val PREFERENCES_NAME = "trail_pending_factory_reset_receipt_v1"
+        const val FRESH_SETUP_KEY = "verified_reset_requires_fresh_setup"
         const val RECEIPT_KEY = "receipt_bits"
         const val ISSUED_AT_KEY = "issued_at_epoch_millis"
         const val EXPIRY_KEY = "expires_at_epoch_millis"
@@ -301,12 +325,19 @@ class AndroidBluetoothGattFacade(
         ).also { activeScan = it }
     }
 
+    override fun requiresFreshSetupAfterVerifiedReset(): Boolean =
+        onMainThread() && !closed && resetReceiptStore.requiresFreshSetup()
+
+    override fun authenticatedSessionReady() {
+        if (onMainThread() && !closed) resetReceiptStore.authenticatedReady()
+    }
+
     override fun completeFactoryResetVerification(receipt: ULong): FactoryResetLocalCleanupResult {
         if (!onMainThread() || closed || activeScan != null || activeGatt != null) {
             return FactoryResetLocalCleanupResult.FAILED
         }
         if (receipt == 0uL || verifiedResetReceipt != receipt) return FactoryResetLocalCleanupResult.FAILED
-        if (!resetReceiptStore.clearExact(receipt)) return FactoryResetLocalCleanupResult.FAILED
+        if (!resetReceiptStore.completeVerified(receipt)) return FactoryResetLocalCleanupResult.FAILED
         verifiedResetReceipt = null
         candidates.clear()
         // The post-reset RPA cannot be linked back to Android's stale bond without retaining private

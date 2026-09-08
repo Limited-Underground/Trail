@@ -380,11 +380,6 @@ private fun BluetoothDevicePanel(
             )
         }
     }
-    if (!state.runtimeState.isFactoryResetResolutionState()) {
-        OutlinedButton(onClick = controller::returnToModeChoice, modifier = Modifier.fillMaxWidth()) {
-            Text("Disconnect and change mode")
-        }
-    }
 }
 
 @Composable
@@ -502,10 +497,10 @@ private fun BluetoothRuntimePanel(
         )
         BleRuntimeState.Idle -> {
             StatusCard("Bluetooth disconnected", "No Bluetooth companion session is active.")
-            LostPhoneGuidance()
             Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
                 Text("Scan for compatible devices")
             }
+            PairingHelp()
         }
         is BleRuntimeState.Blocked -> {
             StatusCard("Bluetooth unavailable", state.reason.publicText())
@@ -523,9 +518,9 @@ private fun BluetoothRuntimePanel(
                 "Scanning",
                 "Only devices in their active unowned pairing window are listed.",
             )
-            LostPhoneGuidance()
             if (state.candidates.isEmpty()) Text("No compatible device found yet.")
             BluetoothCandidateList(state.candidates, controller)
+            PairingHelp()
             OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                 Text("Stop scan")
             }
@@ -539,8 +534,8 @@ private fun BluetoothRuntimePanel(
                     "The scan ended. Choose a compatible device found during this scan, or scan again."
                 },
             )
-            LostPhoneGuidance()
             BluetoothCandidateList(state.candidates, controller)
+            PairingHelp()
             Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
                 Text("Scan again")
             }
@@ -667,9 +662,6 @@ private fun BluetoothCandidateList(
     candidates: List<BleDiscoveredCompanion>,
     controller: TrailUiController,
 ) {
-    val initialInstructions = androidSystemPairingInstructions(
-        DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE,
-    )
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
         candidates.forEach { candidate ->
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -678,17 +670,31 @@ private fun BluetoothCandidateList(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(candidate.publicLabel)
-                    Text("Match this Trail label with the one on your Heltec display before authorizing this phone.",
+                    Text("Match this label with the one on your Heltec before authorizing.",
                         style = MaterialTheme.typography.bodySmall)
-                    Text(initialInstructions.beforeActionTitle, style = MaterialTheme.typography.titleSmall)
-                    Text(initialInstructions.beforeActionBody, style = MaterialTheme.typography.bodySmall)
                     Button(
                         onClick = { controller.selectBluetoothDevice(candidate.endpointToken) },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Authorize this phone") }
+                    Text("Enter the six digits shown on your Heltec in Android's pairing dialog.",
+                        style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PairingHelp() {
+    var expanded by remember { mutableStateOf(false) }
+    androidx.compose.material3.TextButton(onClick = { expanded = !expanded }) {
+        Text(if (expanded) "Hide pairing help" else "Pairing help")
+    }
+    if (expanded) {
+        val instructions = androidSystemPairingInstructions(DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
+        Text(instructions.beforeActionTitle, style = MaterialTheme.typography.titleSmall)
+        Text(instructions.beforeActionBody, style = MaterialTheme.typography.bodySmall)
+        LostPhoneGuidance()
     }
 }
 

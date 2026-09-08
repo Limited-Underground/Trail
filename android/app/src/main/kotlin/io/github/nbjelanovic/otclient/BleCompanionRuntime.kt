@@ -221,6 +221,9 @@ interface AndroidBluetoothFacade {
         createReturningOwnerScan(observer)
     /** Durably stages one nonzero random receipt before destructive bytes are handed to Android. */
     fun stageFactoryResetReceipt(): ULong? = null
+    /** A verified local reset requires explicit fresh setup until a new protected session succeeds. */
+    fun requiresFreshSetupAfterVerifiedReset(): Boolean = false
+    fun authenticatedSessionReady() = Unit
     /** Loads an unexpired app-private pending receipt after runtime/service process recovery. */
     fun loadPendingFactoryResetReceipt(): ULong? = null
     /** Clears only the exact pending receipt after verified completion, explicit rejection, or expiry. */
@@ -461,6 +464,11 @@ class BleCompanionRuntime(
         resetTarget?.let {
             factoryResetVerificationTarget = it
             beginFactoryResetVerification(it)
+            return
+        }
+        if (facade.requiresFreshSetupAfterVerifiedReset()) {
+            selected = null
+            publish(BleRuntimeState.Idle)
             return
         }
         lifecycleAuthorizationFailure?.let {
@@ -1827,6 +1835,7 @@ class BleCompanionRuntime(
             snapshot.revision,
             snapshot.positionSharing,
         ) ?: return failAndRelease(BleRuntimeFailure.INITIAL_SNAPSHOT_FAILED)
+        facade.authenticatedSessionReady()
         publish(
             BleRuntimeState.Ready(
                 BleActiveSession(companion, fragment.sessionNonce, snapshot, info, groupLocation),

@@ -1,5 +1,22 @@
 # Limited Underground Trail
 
+## 2026-09-08
+
+### OT-171 Pairing setup simplified; numeric keypad deferred
+
+The owner-approved second-device pairing test accepted the editable setup-label
+suggestion, followed by protected Trail Bench 2 and US915 restoration and an
+automatic clock-sync acknowledgment. The system-keyboard probe was inconclusive;
+no simple supported override was found, so keypad-specific work is deferred.
+
+The current Android correction keeps new-device setup after a verified reset,
+places device authorization ahead of lengthy help, and removes the misleading
+mode-switch control from Bluetooth setup. Final validation and installation
+status are recorded in the linked evidence. V1 scores remain unchanged; website
+and cold-power work remain deferred.
+
+See [pairing-flow evidence](docs/testing/OT-171-PAIRING-FLOW-2026-09-08.md).
+
 ## 2026-09-07
 
 ### OT-171 Setup navigation and naming updated; recovery timing corrected

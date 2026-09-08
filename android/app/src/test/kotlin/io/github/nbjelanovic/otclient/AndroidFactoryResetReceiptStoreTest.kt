@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 
 class AndroidFactoryResetReceiptStoreTest {
     @Test
@@ -63,19 +64,65 @@ class AndroidFactoryResetReceiptStoreTest {
         assertTrue(storage.values.isEmpty())
     }
 
+    @Test
+    fun verifiedResetAtomicallyPersistsFreshSetupAcrossStoreRestartUntilReady() {
+        val storage = InMemoryReceiptStorage()
+        val first = AndroidFactoryResetReceiptStore(storage, { 5000L }, { 7uL })
+        first.stage()
+        assertFalse(first.completeVerified(8uL))
+        assertFalse(first.requiresFreshSetup())
+        assertTrue(first.completeVerified(7uL))
+        assertNull(first.load())
+        assertEquals(mapOf(AndroidFactoryResetReceiptStore.FRESH_SETUP_KEY to 1L), storage.values)
+        val restarted = AndroidFactoryResetReceiptStore(storage, { 6000L }, { 8uL })
+        assertTrue(restarted.requiresFreshSetup())
+        assertTrue(restarted.authenticatedReady())
+        assertFalse(first.requiresFreshSetup())
+    }
+    @Test
+    fun failedCompletionKeepsPendingReceiptAndNeverClaimsFreshSetup() {
+        val storage = InMemoryReceiptStorage()
+        val store = AndroidFactoryResetReceiptStore(storage, { 5000L }, { 7uL })
+        store.stage()
+        storage.failWrite = true
+        assertFalse(store.completeVerified(7uL))
+        assertEquals(7uL, store.load())
+        assertFalse(store.requiresFreshSetup())
+        storage.failWrite = false
+        assertTrue(store.clearExact(7uL))
+        assertFalse(store.requiresFreshSetup())
+    }
+    @Test
+    fun failedReadyCommitRetainsConservativeFreshSetupInMemory() {
+        val storage = InMemoryReceiptStorage()
+        val store = AndroidFactoryResetReceiptStore(storage, { 5000L }, { 7uL })
+        store.stage()
+        assertTrue(store.completeVerified(7uL))
+        storage.failRemoveAfterMemoryUpdate = true
+        assertFalse(store.authenticatedReady())
+        assertTrue(store.requiresFreshSetup())
+        storage.failRemoveAfterMemoryUpdate = false
+        assertTrue(store.authenticatedReady())
+        assertFalse(store.requiresFreshSetup())
+    }
+
     private class InMemoryReceiptStorage : FactoryResetReceiptStorage {
         val values = linkedMapOf<String, Long>()
 
         override fun readLong(key: String): Long? = values[key]
 
-        override fun writeLongs(values: Map<String, Long>): Boolean {
+        var failWrite = false
+        var failRemoveAfterMemoryUpdate = false
+        override fun writeLongs(values: Map<String, Long>, removeKeys: Set<String>): Boolean {
+            if (failWrite) return false
+            removeKeys.forEach(this.values::remove)
             this.values.putAll(values)
             return true
         }
 
         override fun remove(keys: Set<String>): Boolean {
             keys.forEach(values::remove)
-            return true
+            return !failRemoveAfterMemoryUpdate
         }
     }
 }

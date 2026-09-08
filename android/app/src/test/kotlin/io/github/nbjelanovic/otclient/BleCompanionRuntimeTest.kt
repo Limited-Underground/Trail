@@ -1174,6 +1174,42 @@ class BleCompanionRuntimeTest {
     }
 
     @Test
+    fun verifiedResetRestartSkipsOwnedDiscoveryAndFreshReadyRestoresNormalRecovery() {
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true).apply {
+            pendingFactoryResetReceipt = RESET_RECEIPT
+        }
+        val first = BleCompanionRuntime(facade, TestRuntimeScheduler())
+        first.onLifecycleStart()
+        facade.resetVerificationScans.single().emit(BleScanEvent.FactoryResetReceiptObserved(RESET_RECEIPT))
+        assertIs<BleRuntimeState.FactoryResetComplete>(first.state)
+        first.close()
+        val second = Fixture(facade = facade)
+        assertIs<BleRuntimeState.Idle>(second.runtime.state)
+        assertTrue(facade.returningOwnerScans.isEmpty())
+        assertTrue(facade.connections.isEmpty())
+        second.readyGatt(77)
+        assertFalse(facade.freshSetupRequired)
+        second.runtime.close()
+        val third = BleCompanionRuntime(facade, TestRuntimeScheduler())
+        third.onLifecycleStart()
+        assertEquals(1, facade.returningOwnerScans.size)
+    }
+    @Test
+    fun pendingResetVerificationWinsOverFreshSetupMarker() {
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true).apply {
+            freshSetupRequired = true
+            pendingFactoryResetReceipt = RESET_RECEIPT
+        }
+        val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+        runtime.onLifecycleStart()
+        assertIs<BleRuntimeState.FactoryResetVerifying>(runtime.state)
+        assertTrue(facade.returningOwnerScans.isEmpty())
+        facade.resetVerificationScans.single().emit(BleScanEvent.Complete)
+        assertIs<BleRuntimeState.FactoryResetNotVerified>(runtime.state)
+        assertTrue(facade.freshSetupRequired)
+    }
+
+    @Test
     fun observerCannotReenterAndOrphanScanOrGattLeasesDuringPublication() {
         val facade = TestBluetoothFacade()
         val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
@@ -1656,6 +1692,11 @@ class BleCompanionRuntimeTest {
             return RESET_RECEIPT
         }
 
+        var freshSetupRequired = false
+        override fun requiresFreshSetupAfterVerifiedReset() = freshSetupRequired
+        override fun authenticatedSessionReady() {
+            freshSetupRequired = false
+        }
         override fun loadPendingFactoryResetReceipt(): ULong? = pendingFactoryResetReceipt
 
         override fun clearPendingFactoryResetReceipt(receipt: ULong): Boolean {
@@ -1679,6 +1720,7 @@ class BleCompanionRuntimeTest {
             factoryResetCleanupReceipts += receipt
             if (factoryResetCleanupResult != FactoryResetLocalCleanupResult.FAILED) {
                 pendingFactoryResetReceipt = null
+                freshSetupRequired = true
             }
             return factoryResetCleanupResult
         }
