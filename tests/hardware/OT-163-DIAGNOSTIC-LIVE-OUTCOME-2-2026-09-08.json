@@ -1,0 +1,46 @@
+{
+  "schema": "OT163-DIAGNOSTIC-LIVE-OUTCOME-2",
+  "attempt": 2,
+  "date": "2026-09-08",
+  "evidence_basis": "owner-confirmed bounded execution outcome",
+  "result": "noise_xk_radio_execution_aborted",
+  "radio_result_validated": false,
+  "failure": {
+    "receipt": "TX_DONE",
+    "after_message": "m3",
+    "category": "receipt_timeout"
+  },
+  "root_cause_established": false,
+  "grant_consumed": true,
+  "restoration": {
+    "complete": true,
+    "nodes": [
+      {
+        "role": "A",
+        "application_restored": true,
+        "readback_verified": true,
+        "reset_completed": true
+      },
+      {
+        "role": "B",
+        "application_restored": true,
+        "readback_verified": true,
+        "reset_completed": true
+      }
+    ]
+  },
+  "claims": {
+    "score_credit_added": false,
+    "v1_completion_changed": false,
+    "website_projection_changed": false,
+    "suite_selected": false,
+    "production_ready": false
+  },
+  "privacy": {
+    "raw_serial_recorded": false,
+    "device_identifiers_recorded": false,
+    "private_endpoints_recorded": false,
+    "credentials_recorded": false
+  },
+  "scope": "Attempt 2 establishes only a TX_DONE receipt timeout after m3 and exact two-role recovery; it does not establish the timeout root cause or admit a complete radio-cost result."
+}

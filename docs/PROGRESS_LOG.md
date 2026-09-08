@@ -93,6 +93,37 @@ earlier hardware cause. The frozen execution snapshot and firmware are unchanged
 See [diagnostic evidence](testing/OT-163-RETRY-DIAGNOSTICS-2026-09-08.md). No hardware
 was accessed or new grant consumed. V1 and website status remain unchanged.
 
+The observer is now integrated at the concrete backend's endpoint-open seam.
+Role selection uses exact endpoint object identity, while role verification,
+application write/readback, reset and endpoint lifetime remain delegated to the
+existing guarded backend. A 26-source/three-image binding includes the observer
+and decorator and retains separate A/B restoration images. Attempt ordinals use
+unique journal, execution and recovery records without granting an attempt.
+
+Eight new deterministic groups cover the unchanged successful 14-frame/736-byte
+result, safe failure snapshots, exact restoration, radio-handle cleanup,
+no-ROM-while-leased behavior, restore-only recovery, source tamper rejection,
+namespace isolation and consumed-namespace rejection. The complete affected
+40-test chain and full Host matrix pass. See
+[diagnostic execution evidence](testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md).
+No device, firmware target, phone, authority, score or website status changed by
+that host-only binding.
+
+The first instrumented physical attempt then stopped at Node B's post-restart
+readiness receipt. A 27-source successor retained the same firmware, images,
+runner deadlines and restoration operations while tolerating only bounded
+recognized startup noise before fresh readiness. Its five deterministic groups
+pass. The second one-use attempt advanced through message `m3` and timed out
+waiting for the expected `TX_DONE` receipt. Both grants are consumed; both
+role-specific Trail images were fully restored, read back and reset after
+attempt 2. See the [instrumented run](testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md)
+and its bounded
+[attempt-2 outcome](../tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json).
+The receipt boundary is established, but no root cause or complete radio result
+is. V1 remains exact 45.50%, displayed 46%; the website projection is unchanged.
+Next, analyze this boundary host-only before considering another correction or
+physical authority, without speculative timeout changes.
+
 ### OT-171 Pairing setup simplified; numeric keypad deferred
 
 The owner-approved second-device pairing test accepted the editable setup-label
