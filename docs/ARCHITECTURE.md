@@ -2,6 +2,18 @@
 
 ## 2026-09-08
 
+### OT-163 Fragmented restart receipts reproduced and corrected in host successor
+
+The benchmark transport drops a valid restart receipt when a serial timeout
+splits it across reads. The new bounded stream endpoint addresses that host
+defect while preserving the frozen benchmark and consumed authority. This does
+not establish the old hardware root cause or enable product messaging.
+
+Both current recovery image files match their recorded hashes, but a later
+hardware bundle must bind a different restoration image to each role. Devices
+and phones remain untouched. Validation and the exact successor boundary are
+recorded in [restart receipt evidence](../docs/testing/OT-163-RECEIPT-STREAM-2026-09-08.md). V1 scores and website status are unchanged.
+
 ### OT-171 Pairing setup simplified; numeric keypad deferred
 
 The owner-approved second-device pairing test accepted the editable setup-label

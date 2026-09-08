@@ -2537,6 +2537,11 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OT155NXAR0 Noise XK radio abort-record tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\noise_xk_buffered_receipt_endpoint_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('Buffered Noise XK receipt endpoint tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\ot156_noise_xk_radio_runtime_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-156 reset-aware Noise XK runtime tests failed with exit code {0}.' -f $LASTEXITCODE)
