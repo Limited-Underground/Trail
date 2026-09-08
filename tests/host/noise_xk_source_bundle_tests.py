@@ -78,7 +78,8 @@ class BundleTests(unittest.TestCase):
             # filesystem query to exercise the same rejection branch.
             from unittest.mock import patch
             target.write_bytes(payload)
-            with patch.object(bundle, "_link", side_effect=lambda path: path == target):
+            canonical_target = target.resolve()
+            with patch.object(bundle, "_link", side_effect=lambda path: path == canonical_target):
                 with self.assertRaisesRegex(bundle.BundleError, "link_forbidden"):
                     bundle.verify_sources(self.root, self.sources)
         else:
@@ -87,7 +88,10 @@ class BundleTests(unittest.TestCase):
 
     def test_linked_parent_directory_is_rejected(self):
         from unittest.mock import patch
-        with patch.object(bundle, "_link", side_effect=lambda path: path == self.root / "tools"):
+        # Windows hosted runners can return an 8.3 temporary path alias.
+        # Match the canonical path inspected by the verifier.
+        canonical_parent = self.root.resolve() / "tools"
+        with patch.object(bundle, "_link", side_effect=lambda path: path == canonical_parent):
             with self.assertRaisesRegex(bundle.BundleError, "link_forbidden"):
                 bundle.verify_sources(self.root, self.sources)
 
