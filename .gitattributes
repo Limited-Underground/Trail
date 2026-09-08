@@ -379,6 +379,8 @@ tools/noise_xk_ready_firmware_source.py text eol=lf
 tests/host/noise_xk_solicited_*_tests.py text eol=lf
 tests/host/noise_xk_ready_firmware_source_tests.py text eol=lf
 tests/benchmarks/crypto/OT-163-SOLICITED-READINESS-BUILD-2026-09-08.json text eol=lf
+tests/benchmarks/crypto/OT-163-SOLICITED-EXECUTION-BINDING-2026-09-08.json text eol=lf
+tests/hardware/OT-163-SOLICITED-LIVE-OUTCOME-2026-09-08.json text eol=lf
 tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/** text eol=lf
 # ESP-IDF's Windows component manager emits this lock with CRLF; preserve its recorded bytes.
 tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/dependencies.lock text eol=crlf

@@ -14,12 +14,12 @@ preserves all removed summaries and superseded sequencing; see the
    complete startup checks, fresh-handle restart and per-role restoration. See
    [composition evidence](../docs/testing/OT-163-SUCCESSOR-COMPOSITION-2026-09-08.md).
 2. Live two-board identity, installed-image/tail, partition and recovery preflight
-   passes. Integrate the [solicited readiness correction](../docs/testing/OT-163-SOLICITED-READINESS-2026-09-08.md)
-   into the execution bridge, then bind one fresh non-reusable benchmark attempt
-   with the tested identity adapter, exact sources and per-role recovery; recheck volatile state
-   immediately before consumption. See
-   [live preflight evidence](../docs/testing/OT-163-LIVE-PREFLIGHT-2026-09-08.md).
-   The old OT-162 authority remains consumed.
+   passes. The [solicited execution path](../docs/testing/OT-163-SOLICITED-EXECUTION-2026-09-08.md)
+   now passes concrete host composition and exact source/build admission.
+   One fresh attempt passed readiness/restart and the first baseline validator,
+   then aborted in the forced-retry group; both original images and full flash
+   spans were restored and verified. Add bounded substep diagnostics and host
+   regressions before another attempt. Both this grant and old OT-162 are consumed.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.
    Current Messages screens store local templates; no product radio path is wired.
