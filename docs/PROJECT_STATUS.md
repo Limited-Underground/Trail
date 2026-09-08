@@ -25,7 +25,8 @@ for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
   fresh-handle restart and separate per-role recovery images. Byte-level tests
   also correct receipt type identity and the firmware's SHA-256 field parsing.
   The concrete role-checking backend and exact source/image snapshot are now
-  host-tested; physical preflight remains open. This does not prove the old
+  host-tested. Live two-board identity, layout and recovery-span preflight now
+  passes; no benchmark result is admitted. This does not prove the old
   OT-163 hardware root cause or product messaging.
 
 ## Last verified bench configuration
@@ -45,13 +46,12 @@ normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
 
-Run the concrete successor's fresh physical preflight from an explicitly loaded,
-source-checked process: verify each role, installed application, partition layout,
-write span and recovery image before binding one new non-reusable attempt. The
-backend and source/image snapshot are host-tested; two USB candidates are visible,
-but current installed bytes are not yet verified. The old shared restore image
-and consumed authority cannot be reused. See
-[device binding evidence](testing/OT-163-DEVICE-BINDING-2026-09-08.md).
+Bind one fresh non-reusable benchmark attempt to the exact execution bridge and
+independent recovery. Live identity, installed-image/erased-tail, partition and
+factory-boot preflight passed on both boards; reset commands succeeded. Include
+the tested esptool identity-output adapter and recheck volatile state immediately
+before consumption. No radio result or phone-to-phone delivery is admitted. See
+[live preflight evidence](testing/OT-163-LIVE-PREFLIGHT-2026-09-08.md).
 
 After the remaining crypto measurement/admission and explicit suite/wire selection,
 implement one authenticated two-node message exchange, then its protected BLE

@@ -55,6 +55,14 @@ prevent Windows line-ending drift. Two USB candidates were passively observed,
 without opening ports or resetting devices. All 116 focused host cases pass. See
 [device binding evidence](testing/OT-163-DEVICE-BINDING-2026-09-08.md).
 
+
+Live preflight now passes on both boards: exact ROM identity, 16 MB flash, Trail
+partition/factory boot selection, installed image plus erased sector tail, and
+separate recovery paths. Both exit-reset commands succeeded. The private adapter
+handles esptool's two agreeing identity lines; eight offline tests cover parsing
+and cleanup. No firmware writes, radio result, phone changes or V1 score increase.
+See [live preflight evidence](testing/OT-163-LIVE-PREFLIGHT-2026-09-08.md).
+
 ### OT-171 Pairing setup simplified; numeric keypad deferred
 
 The owner-approved second-device pairing test accepted the editable setup-label
