@@ -21,9 +21,10 @@ for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
   and persists fresh-setup navigation after exact reset verification. Pending reset
   verification wins; authenticated Ready clears the marker. It does not delete
   Android bonds or reconstruct resets performed by an older app.
-- The benchmark serial receipt defect is reproduced and corrected in a host-only
-  buffered endpoint. Related tests pass. This does not prove the old OT-163
-  hardware root cause, authorize a retry, or implement product messaging.
+- The host-only benchmark successor composes buffered receipts, startup checks,
+  fresh-handle restart and separate per-role recovery images. Byte-level tests
+  also correct receipt type identity and the firmware's SHA-256 field parsing.
+  This does not prove the old OT-163 hardware root cause or product messaging.
 
 ## Last verified bench configuration
 
@@ -42,11 +43,11 @@ normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
 
-Complete the host-only benchmark successor composition: buffered receipt handling,
-explicit startup readiness, fresh-handle restart behavior and distinct per-role
-recovery images. The old shared restore image and consumed authority cannot be
-reused. Then apply fresh hardware preflight before any physical attempt. See
-[restart receipt evidence](testing/OT-163-RECEIPT-STREAM-2026-09-08.md).
+Prepare one complete executable benchmark successor with the concrete role-checking
+backend and exact source/image bindings. Verify current endpoints, installed bytes,
+partitions and both recovery images before a fresh non-reusable execution grant.
+The old shared restore image and consumed authority cannot be reused. See
+[host composition evidence](testing/OT-163-SUCCESSOR-COMPOSITION-2026-09-08.md).
 
 After the remaining crypto measurement/admission and explicit suite/wire selection,
 implement one authenticated two-node message exchange, then its protected BLE
