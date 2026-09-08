@@ -1,0 +1,203 @@
+{
+  "schema": "OT163-SOLICITED-LIVE-OUTCOME-1",
+  "date": "2026-09-08",
+  "attempt_consumed": true,
+  "repeat_authorized_by_this_record": false,
+  "coordinator": {
+    "authority_raw_sha256": "f99176bd3f583ddb44bc020ffa449f83925b0b61cad73bcb25b1f6c9ce5b31ec",
+    "binding": {
+      "application_offset": 65536,
+      "baud": 115200,
+      "benchmark_bytes": 297152,
+      "benchmark_name": "noise_xk_ready_radio.bin",
+      "benchmark_sha256": "3c3913ee4c2a60bd4168e0bb60eca6a0f2a641ba8f283f99f656c04c07b301c7",
+      "restore_a": {
+        "bytes": 586736,
+        "name": "opentrail_heltec_v4_bench.bin",
+        "sha256": "43ac6dbc506c03faa63aae7a8e27195750598f06f3118bfff1ef7af84bc8d9f2"
+      },
+      "restore_b": {
+        "bytes": 587968,
+        "name": "opentrail_heltec_v4_bench.bin",
+        "sha256": "984e241dc72fad956d34b5e83f04fd307dcb95e0f18c629ac46d21da9d96d87b"
+      },
+      "runner_name": "noise_xk_solicited_runner.py",
+      "runner_schema": "OT153NXR0",
+      "runner_sha256": "7e785ea0e5723319ae06c0d188cca5dcf6f79739315b94160dabead0cb06a0ae"
+    },
+    "claims": {
+      "candidate_selected": false,
+      "packet_v1_selected": false,
+      "phase_two_complete": false,
+      "production_ready": false,
+      "regulatory_acceptance_proven": false,
+      "score_credit_added": false,
+      "suite_selected": false,
+      "supported_target_proven": false
+    },
+    "failure": {
+      "code": "radio_run_failed",
+      "stage": "cycle1_retry_timeout"
+    },
+    "node_count": 2,
+    "nodes": [
+      {
+        "benchmark_readback_verified": true,
+        "benchmark_reset_completed": true,
+        "installed_app_readback_verified": true,
+        "node": "A",
+        "preflight_reset_completed": true,
+        "restore_readback_verified": true,
+        "restore_reset_completed": true
+      },
+      {
+        "benchmark_readback_verified": true,
+        "benchmark_reset_completed": true,
+        "installed_app_readback_verified": true,
+        "node": "B",
+        "preflight_reset_completed": true,
+        "restore_readback_verified": true,
+        "restore_reset_completed": true
+      }
+    ],
+    "privacy": {
+      "backend_error_text_recorded": false,
+      "device_identifiers_recorded": false,
+      "filesystem_paths_recorded": false,
+      "private_endpoints_recorded": false,
+      "raw_serial_recorded": false
+    },
+    "radio_result_validated": false,
+    "radio_run_invoked": true,
+    "restoration_complete": true,
+    "result": "noise_xk_radio_execution_aborted",
+    "schema": "OTNXSOLCR0",
+    "version": 0
+  },
+  "live_checks": {
+    "schema": "noise-xk-solicited-live-v1",
+    "started_utc": "2026-09-08T18:43:22.095936+00:00",
+    "recovery": false,
+    "script_sha256": "de2e011eff5c2ecf65233311383969a9164777de920447e0fc243171eed50223",
+    "snapshot_sha256": "bb4ed1d1f32c0c799b1a033d0437620bf32bff7d569b9ce8e2705ea62b3fc7b1",
+    "grant_sha256": "f99176bd3f583ddb44bc020ffa449f83925b0b61cad73bcb25b1f6c9ce5b31ec",
+    "preflight": [
+      {
+        "role": "A",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+          }
+        }
+      },
+      {
+        "role": "B",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+          }
+        }
+      }
+    ],
+    "postcheck": [
+      {
+        "role": "A",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+          }
+        }
+      },
+      {
+        "role": "B",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+          }
+        }
+      }
+    ],
+    "complete": false,
+    "execution_entered": true,
+    "failure": "operation_failed",
+    "finished_utc": "2026-09-08T18:50:04.901063+00:00"
+  },
+  "radio_setup": {
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate": "4/5",
+    "command_power_dbm": 2,
+    "field_range_test": false,
+    "physical_separation_measured": false
+  },
+  "acceptance": {
+    "first_baseline_validator_returned": true,
+    "basis": "Sequential runner reached cycle1_retry_timeout after baseline validator returned. Raw receipts were not retained.",
+    "total_packet_counts_admitted": false,
+    "loss_duplicates_latency_admitted": false,
+    "phone_ready_or_display_observed": false,
+    "v1_score_changed": false,
+    "website_status_changed": false
+  }
+}

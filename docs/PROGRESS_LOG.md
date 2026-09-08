@@ -72,6 +72,18 @@ validation and the remaining execution binding are recorded in
 [solicited readiness evidence](testing/OT-163-SOLICITED-READINESS-2026-09-08.md).
 No device was accessed or new attempt consumed; V1 and website status are unchanged.
 
+The solicited runner now composes the concrete guarded backend and an isolated
+coordinator with independent restoration. A 24-file snapshot binds the exact
+sources, accepted benchmark build and distinct recovery images. All 24 new
+coordinator/backend/composition/admission tests pass, including recovery without
+the benchmark file. See [execution integration](testing/OT-163-SOLICITED-EXECUTION-2026-09-08.md)
+for validation and the physical outcome. The fresh one-use attempt passed
+readiness/restart and the first baseline validator, then stopped at the broad
+`cycle1_retry_timeout` stage. Both original images, full application/erased spans
+and preserved boot/partition/OTA bytes passed restoration and postchecks. The
+grant is consumed; no complete benchmark result is admitted. Next is bounded
+substep diagnostics. V1 and website status remain unchanged.
+
 ### OT-171 Pairing setup simplified; numeric keypad deferred
 
 The owner-approved second-device pairing test accepted the editable setup-label

@@ -29,7 +29,13 @@ for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
   passes. A separate solicited-readiness target and runtime address Windows
   serial-open buffer loss; build/validation details are in the
   [readiness evidence](testing/OT-163-SOLICITED-READINESS-2026-09-08.md).
-  No benchmark result is admitted. This does not prove the old
+  The solicited path now composes the concrete backend with separate recovery
+  images and exact build/source admission; see
+  [execution integration](testing/OT-163-SOLICITED-EXECUTION-2026-09-08.md).
+  A fresh physical attempt passed readiness/restart and the first baseline
+  validator, then stopped in the forced-retry scenario. Both complete application
+  spans and bootloader/partition/OTA regions were verified after restoration. No complete benchmark
+  result is admitted. This does not prove the old
   OT-163 hardware root cause or product messaging.
 
 ## Last verified bench configuration
@@ -49,13 +55,12 @@ normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
 
-Integrate solicited readiness into the exact execution bridge and bind one fresh
-non-reusable benchmark attempt with independent recovery. Live identity,
-installed-image/erased-tail, partition and
-factory-boot preflight passed on both boards; reset commands succeeded. Include
-the tested esptool identity-output adapter and recheck volatile state immediately
-before consumption. No radio result or phone-to-phone delivery is admitted. See
-[live preflight evidence](testing/OT-163-LIVE-PREFLIGHT-2026-09-08.md).
+Add bounded substep/error-category diagnostics within `cycle1_retry_timeout`
+and reproduce the failure boundary in host tests before binding any later
+attempt. The fresh grant is consumed; both boards passed exact restoration and
+full postchecks. The broad stage does not identify which retry substep failed.
+No complete radio-cost result or phone-to-phone delivery is admitted. See
+[execution evidence](testing/OT-163-SOLICITED-EXECUTION-2026-09-08.md).
 
 After the remaining crypto measurement/admission and explicit suite/wire selection,
 implement one authenticated two-node message exchange, then its protected BLE
