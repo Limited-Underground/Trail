@@ -13,10 +13,11 @@ preserves all removed summaries and superseded sequencing; see the
 1. The host-only Noise XK successor composition is tested: buffered receipts,
    complete startup checks, fresh-handle restart and per-role restoration. See
    [composition evidence](../docs/testing/OT-163-SUCCESSOR-COMPOSITION-2026-09-08.md).
-2. The concrete role-verifying backend and source/image snapshot are host-tested.
-   Run fresh identity, installed-byte, partition and recovery preflight from an
-   explicitly loaded source-checked process before binding a new one-attempt
-   grant. See [device binding evidence](../docs/testing/OT-163-DEVICE-BINDING-2026-09-08.md).
+2. Live two-board identity, installed-image/tail, partition and recovery preflight
+   passes. Bind one fresh non-reusable benchmark attempt with the tested identity
+   adapter, exact execution sources and per-role recovery; recheck volatile state
+   immediately before consumption. See
+   [live preflight evidence](../docs/testing/OT-163-LIVE-PREFLIGHT-2026-09-08.md).
    The old OT-162 authority remains consumed.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.

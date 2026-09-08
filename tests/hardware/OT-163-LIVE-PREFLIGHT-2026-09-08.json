@@ -1,0 +1,87 @@
+{
+  "schema": "noise-xk-live-preflight-v1",
+  "started_utc": "2026-09-08T16:15:14.984168+00:00",
+  "script_sha256": "86289adf744c01963e1e0093e9ea9d6dd23c3ee91b76c9897dc9a4d60ddee2eb",
+  "binding_sha256": "b1fdcc7897b4867961c1b810645280a5b1fe445af93cbc4d1059f054e588bd40",
+  "source_load_verified": true,
+  "flash_writes": 0,
+  "radio_runs": 0,
+  "nodes": [
+    {
+      "role": "A",
+      "touched": true,
+      "identity_verified": true,
+      "runtime_reset_succeeded": true,
+      "checks_complete": true,
+      "artifacts": [
+        {
+          "name": "partition",
+          "offset": 32768,
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        {
+          "name": "ota",
+          "offset": 36864,
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        {
+          "name": "bootloader",
+          "offset": 0,
+          "bytes": 32768,
+          "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+        },
+        {
+          "name": "application",
+          "offset": 65536,
+          "bytes": 589824,
+          "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+        }
+      ],
+      "flash_mb": 16,
+      "chip": "ESP32-S3",
+      "bootloader_baseline": "current_capture",
+      "installed_application_sha256": "43ac6dbc506c03faa63aae7a8e27195750598f06f3118bfff1ef7af84bc8d9f2"
+    },
+    {
+      "role": "B",
+      "touched": true,
+      "identity_verified": true,
+      "runtime_reset_succeeded": true,
+      "checks_complete": true,
+      "artifacts": [
+        {
+          "name": "partition",
+          "offset": 32768,
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        {
+          "name": "ota",
+          "offset": 36864,
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        {
+          "name": "bootloader",
+          "offset": 0,
+          "bytes": 32768,
+          "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+        },
+        {
+          "name": "application",
+          "offset": 65536,
+          "bytes": 589824,
+          "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+        }
+      ],
+      "flash_mb": 16,
+      "chip": "ESP32-S3",
+      "bootloader_baseline": "prior_capture_matched",
+      "installed_application_sha256": "984e241dc72fad956d34b5e83f04fd307dcb95e0f18c629ac46d21da9d96d87b"
+    }
+  ],
+  "complete": true,
+  "finished_utc": "2026-09-08T16:16:50.615022+00:00"
+}
