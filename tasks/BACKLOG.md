@@ -18,8 +18,11 @@ preserves all removed summaries and superseded sequencing; see the
    now passes concrete host composition and exact source/build admission.
    One fresh attempt passed readiness/restart and the first baseline validator,
    then aborted in the forced-retry group; both complete application spans and
-   bootloader/partition/OTA regions passed postchecks. Add bounded substep diagnostics and host
-   regressions before another attempt. Both this grant and old OT-162 are consumed.
+   bootloader/partition/OTA regions passed postchecks. Bounded
+   [retry diagnostics](../docs/testing/OT-163-RETRY-DIAGNOSTICS-2026-09-08.md) now
+   distinguish host failure boundaries. Bind the observer into a fresh exact
+   execution snapshot and attempt, then recheck both boards and capture the
+   actual substep with independent restoration. Both prior grants are consumed.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.
    Current Messages screens store local templates; no product radio path is wired.

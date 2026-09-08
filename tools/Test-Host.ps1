@@ -2559,7 +2559,7 @@ if ($LASTEXITCODE -ne 0) {
     throw ('Per-role Noise XK recovery coordinator tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
-foreach ($executionTest in @('noise_xk_solicited_coordinator_tests.py', 'noise_xk_solicited_backend_tests.py', 'noise_xk_solicited_execution_tests.py', 'noise_xk_solicited_bundle_tests.py')) {
+foreach ($executionTest in @('noise_xk_solicited_coordinator_tests.py', 'noise_xk_solicited_backend_tests.py', 'noise_xk_solicited_execution_tests.py', 'noise_xk_solicited_bundle_tests.py', 'noise_xk_retry_diagnostics_tests.py')) {
     & $python.Source (Join-Path $projectRoot ('tests\host\' + $executionTest))
     if ($LASTEXITCODE -ne 0) {
         throw ('Solicited execution validation failed: {0} (exit {1}).' -f $executionTest, $LASTEXITCODE)
