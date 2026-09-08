@@ -2,6 +2,25 @@
 
 ## 2026-09-08
 
+### OT-001 Repository presentation and contributor organization
+
+The front page now introduces Trail and routes readers to setup, current status,
+and contribution guidance. Duplicated dated reports have moved out of the entry
+pages into indexed historical snapshots; all backlog task rows are preserved.
+Current documentation roles are defined in the agent and contributor guides.
+
+Community and iPhone contributor guides, conduct guidance, issue forms, a pull
+request template and ownership routing provide clear starting points. GitHub
+Discussions is enabled. No outreach or discussion announcement was posted.
+Documentation CI checks entry-page structure, relative file links and individual
+OT headings under one date per day. Older historical headings remain archival.
+The stale host privacy test now checks the actual permitted preference store and
+keys instead of counting type-name occurrences, including comments. Its 23
+admission groups pass. Documentation fixtures (13), future-concept groups (10),
+raw-byte inputs (291), scope groups (16), publication scan and preservation of
+all 327 backlog rows pass locally. This changes no firmware, Android behavior,
+V1 milestone score or website status.
+
 ### OT-163 Fragmented restart receipts reproduced and corrected in host successor
 
 The benchmark transport drops a valid restart receipt when a serial timeout

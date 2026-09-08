@@ -1,0 +1,30 @@
+name: Documentation
+
+# Run on every change so deleted link targets are checked and required checks
+# cannot stay pending because a path filter skipped the workflow.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  documentation:
+    name: Repository documentation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Test documentation rules
+        run: python tests/host/repository_docs_tests.py
+      - name: Check repository documentation
+        run: python tools/check_repository_docs.py

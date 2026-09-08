@@ -7,6 +7,12 @@ project.
 
 ## Before starting
 
+For questions, use cases and early ideas, start in
+[Discussions](https://github.com/Limited-Underground/Trail/discussions).
+Use an issue for a reproducible bug or an agreed contribution with clear scope.
+See the [community guide](docs/community/README.md) and
+[iPhone contributor brief](docs/community/IOS_CONTRIBUTOR_BRIEF.md).
+
 - Open an issue before a large architecture, protocol, security, hardware, or
   dependency change so its scope can be reviewed.
 - Never post device keys, channel secrets, credentials, precise private
@@ -24,12 +30,20 @@ Development prerequisites and repeatable test commands are documented in [docs/D
 
 1. Keep each pull request bounded to one coherent change.
 2. Add or update deterministic tests for protocol and state behavior.
-3. Update the backlog, project status, and architecture decision records when
-   evidence or a design constraint changes.
-4. Run `tools/Test-Host.ps1` and report the exact result. Report skipped
-   hardware checks as unverified rather than passed.
+3. Follow the document roles in AGENTS.md. Keep task history in the progress
+   log; update current status, backlog or design only when their meaning changes.
+   Never paste the same dated update into all of them.
+4. Run the checks appropriate to the change and report exact results. Run
+   `python tools/check_repository_docs.py` for documentation. Transport/packet
+   changes require `tools/Test-Host.ps1`; Android changes need the documented
+   Android matrix. Report skipped hardware checks as unverified rather than passed.
 5. Describe user impact, safety implications, compatibility effects, and
    remaining limitations in the pull request.
+
+Changes to `main` go through pull requests and required checks. Organization
+rules, document roles and workflow protections are deliberate project policy;
+changing them requires an explicit maintainer decision rather than an incidental
+task edit. Do not disable a failing check to get unrelated work merged.
 
 By intentionally submitting a contribution for inclusion in OpenTrail, you
 agree that it is licensed under Apache-2.0 as described by section 5 of the

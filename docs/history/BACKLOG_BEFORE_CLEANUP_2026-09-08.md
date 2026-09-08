@@ -1,31 +1,359 @@
 # OpenTrail Engineering Backlog
 
-This is the task register. Rows retain their existing identifiers, status and
-acceptance boundaries; historical evidence within a row remains tied to its
-recorded checkpoint. Use [current project status](../docs/PROJECT_STATUS.md) for
-today's priorities and the [progress log](../docs/PROGRESS_LOG.md) for dated updates.
-The [complete pre-cleanup backlog](../docs/history/BACKLOG_BEFORE_CLEANUP_2026-09-08.md)
-preserves all removed summaries and superseded sequencing; see the
-[archive navigation map](../docs/history/README.md).
+## 2026-09-08
 
-## Current execution order
+### OT-163 Fragmented restart receipts reproduced and corrected in host successor
 
-1. Compose the host-only Noise XK successor using the corrected buffered receipt
-   endpoint and existing fresh-handle restart lifecycle. Bind distinct original
-   and second-device restoration images throughout preflight, journal and cleanup;
-   reject swapped roles. The old OT-162 authority remains consumed.
-2. After that composition passes, prepare the concrete two-node hardware attempt
-   with fresh identity, installed-byte, partition and recovery checks. Existing
-   local recovery files alone do not make hardware execution ready.
-3. Close accepted crypto measurement/selection gates, then implement the actual
-   authenticated node-to-node message exchange and connect the two phone UIs.
-   Current Messages screens store local templates; no product radio path is wired.
+The benchmark transport drops a valid restart receipt when a serial timeout
+splits it across reads. The new bounded stream endpoint addresses that host
+defect while preserving the frozen benchmark and consumed authority. This does
+not establish the old hardware root cause or enable product messaging.
 
-The original pair still needs the accepted clock correction after serving as
-control. Full reset cleanup, pair isolation, first-use/large-font UI checks,
-production automatic launch and signed-release acceptance remain open. Keypad,
-cold-power disassembly and website updates are owner-deferred. Source-of-truth
-completion stays in [V1_PROGRESS.json](../docs/V1_PROGRESS.json).
+Both current recovery image files match their recorded hashes, but a later
+hardware bundle must bind a different restoration image to each role. Devices
+and phones remain untouched. Validation and the exact successor boundary are
+recorded in [restart receipt evidence](../docs/testing/OT-163-RECEIPT-STREAM-2026-09-08.md). V1 scores and website status are unchanged.
+
+### OT-171 Pairing setup simplified; numeric keypad deferred
+
+The owner-approved second-device pairing test accepted the editable setup-label
+suggestion, followed by protected Trail Bench 2 and US915 restoration and an
+automatic clock-sync acknowledgment. The system-keyboard probe was inconclusive;
+no simple supported override was found, so keypad-specific work is deferred.
+
+The current Android correction keeps new-device setup after a verified reset,
+places device authorization ahead of lengthy help, and removes the misleading
+mode-switch control from Bluetooth setup. Final validation and installation
+status are recorded in the linked evidence. V1 scores remain unchanged; website
+and cold-power work remain deferred.
+
+See [pairing-flow evidence](../docs/testing/OT-171-PAIRING-FLOW-2026-09-08.md).
+
+## 2026-09-07
+
+### OT-171 Setup navigation and naming updated; recovery timing corrected
+
+Typed connection timestamps correct the earlier report that app-only recovery
+stalled until a board restart. Session 9 reached Ready 30.959 seconds after
+discovery began, 25.056 seconds before the later disconnect during the warm-restart test. A controlled
+S24-only repeat reached Ready in 30.876 seconds without touching either Heltec,
+with connected UI and automatic clock synchronization. No reconnect code or
+firmware change was required; the claimed app-only stall is not a current blocker.
+
+The owner selected Trail Bench 2. On the unchanged second pair, protected name
+read was empty, Apply name succeeded, and exact device readback confirmed
+Trail Bench 2. Post-update warm-restart persistence for that name now passes.
+
+The installed Android update initially opens Device when connection setup has not
+started, including saved-pair cold launches. It does not infer bond state from
+disconnection or add a durable pairing hint. Explicit selected tabs remain saved
+through runtime changes and Activity recreation. Final navigation and name-suggestion source passed independent review. A matched
+first-use Trail label may populate the name draft only after an empty protected
+readback; the connected name stays authoritative and saving still requires Apply.
+Session-scoped saved state preserves rotation and user edits while rejecting stale
+drafts. The complete Android matrix passes 1,089 tests with no failures, errors or skips,
+all variant builds/lint and release audit; 143 Android input hashes stayed unchanged.
+The final C577 APK is installed and readback-verified on the S24; initial Device
+landing and corrected name/region setup wording were physically verified. The
+interim A888 app recovered Ready in 30.830 seconds; Messages selected during its
+scan remained selected after Ready, and Trail Bench 2 readback/clock sync passed.
+Final C577 reached Ready in 31.192 seconds; warm restart recovered without a PIN
+in 1.835 seconds. Fresh protected reads confirmed Trail Bench 2 and US915 with
+TX disabled, alongside automatic clock sync. Physical first-use name suggestion
+and rotation remain untested; no further factory reset was performed. The second 984E firmware and original control remain unchanged. V1 scores and previous historical entries are preserved. Website and
+cold-power work remain deferred.
+
+See [setup continuation and timestamp correction](../docs/testing/OT-171-SETUP-CONTINUATION-2026-09-07.md).
+
+### OT-170 Protected region settings on hardware
+
+The verified firmware and V1-Test app now save and freshly read back all twelve
+catalog region choices on the retained Heltec/Note20 pair. The final choice is
+US915. App restart and warm device restart retain the name and region, recover
+authenticated Ready, and permit fresh clock synchronization. Radio transmission
+remains disabled. Host checks, 998 Android tests, package auditing and two matching
+firmware builds support this bounded result. See [acceptance evidence](../docs/testing/OT-170-171-REGION-INTEGRATION-2026-09-06.md).
+
+### OT-171 Region selection prerequisite accepted
+
+The real Android controls require an explicit choice and fresh device readback
+before each write. This accepts the live region-setting prerequisite; resumable
+guided onboarding, public name/visibility and automatic normal launch remain open.
+V1 milestone scores are unchanged. Website synchronization remains owner-deferred.
+
+### OT-178 Authenticated phone-status firmware installed
+
+The previously observed PHONE UNKNOWN gap is corrected in the installed firmware:
+PHONE READY requires a confirmed protected Snapshot and exact current session;
+authority-only changes redraw without overriding pairing/reset screens. Host
+regressions and two matching firmware builds pass. The original Heltec/Note20
+passes protected Ready, name/US915 readback, clock sync and same-boot app restart
+with fresh authorization/readback. Physical OLED text confirmation remains pending
+while the owner is away; this is not full OLED or two-pair acceptance.
+
+Next prioritize the real Phone A -> Heltec A -> Heltec B -> Phone B secure message
+path. Admit the second pair's exact firmware/recovery baseline and finish the
+required secure-radio integration before adding secondary onboarding/options.
+The owner authorized second-device flashing, second-phone APK installation and
+inter-device testing. Website updates and cold-power disassembly stay deferred.
+
+See [phone-status evidence](../docs/testing/OT-178-PHONE-STATUS-2026-09-07.md).
+
+### OT-178 Second-device installation verified
+
+The second Heltec now has the same verified phone-status firmware, with exact
+application readback and healthy runtime return. The S24 Ultra has the accepted
+V1-Test APK, independently read back; its existing base app is preserved. Its
+existing bond reached protected Snapshot/Ready, fresh name readback, saved US915
+readback and clock synchronization. Full app restart recovered protected Ready
+and a fresh US915 readback. The original Note20 session remains Ready and untouched.
+No new PIN was required; cross-pair isolation and secure messages are untested.
+
+Next diagnose the OT-163 restart-acknowledgement failure using current per-device
+recovery images, then continue secure-radio integration. Pair isolation remains
+a separate acceptance gate.
+V1 completion is unchanged; website updates and cold-power stay deferred.
+
+See [second-pair evidence](../docs/testing/OT-178-SECOND-PAIR-2026-09-07.md).
+
+### OT-178 Automatic display clock accepted on both pairs
+
+The Android app now synchronizes the display clock after authenticated Ready and
+refreshes it for phone time, timezone, daylight-saving, locale and 12/24-hour
+changes, with a bounded periodic refresh. Configuration work waits for the active
+lane; a one-command Android queue handles an indication arriving before its write
+acknowledgment. The complete Android matrix passes 1,034 tests with no failures,
+errors or skips, plus all variant builds/lint and release artifact auditing.
+Both updated V1-Test APKs passed exact installed-byte readback. After the normal
+Device/Find device/service-start flow, both apps confirmed automatic clock sync
+without pressing Read device or Sync display clock. The owner confirmed that the
+second Heltec now shows the correct time. Firmware and phone settings are unchanged.
+
+### OT-170 Meaningful connected-device names accepted
+
+The connected card and settings now use the current protected device-name
+readback instead of a phone-local authorization number. A confirmed unnamed
+device gets a naming prompt; an unconfirmed name is not shown as current.
+The Note20 now shows Connected to Trail Bench after automatic readback; the S24
+shows Connected to unnamed device with the naming prompt, matching its empty
+protected name. Original-Heltec visual confirmation, live timezone/format changes
+and the six-hour refresh remain untested. V1 scores are unchanged.
+
+With this owner-reported correction accepted on both pairs, resume the secure
+Phone A -> Heltec A -> Heltec B -> Phone B message path, starting with the OT-163
+restart-acknowledgment boundary and current per-device recovery images. Website
+updates and cold-power disassembly remain deferred.
+
+See [automatic clock and name evidence](../docs/testing/OT-170-178-AUTO-CLOCK-NAME-2026-09-07.md).
+
+### OT-171 Fresh pairing and persistent setup label accepted
+
+The second Heltec runs exact-readback-verified `ot171-label-v1`; its S24 APK is
+unchanged. The owner confirmed the Trail setup label remains visible after the
+pairing window closes and removed the old S24 Trail-test NimBLE bonds. After the
+approved, app-verified reset, fresh pairing reached Connected to unnamed device
+and automatic Display clock synchronized. Protected region readback first showed
+Not configured; the approved US915 save/readback then passed with TX disabled.
+The owner confirmed that the clock matches the phone and keeps advancing without
+Sync on this current firmware.
+
+The earlier generic DEVICE timeout regression is corrected without extending the
+pairing deadline. Fifteen startup groups, eleven actual OLED groups, thirteen
+affected native suites and seventeen structural sets pass; two builds match all
+six artifacts with 373 source hashes unchanged. The S24 APK retains its accepted
+1,059-test Android matrix. Host CI run 34135884030 succeeded.
+
+S24 app restart remained FindingReturningOwner for about two minutes. A subsequent
+second-only warm restart restored Connected and clock synchronization without a
+new PIN. Protected post-warm readback shows Saved choice US915 with TX disabled.
+Warm-restart recovery and retained region pass; app-only recovery delay remains open. The
+original Heltec/Note20 stays unchanged as control and still needs the clock fix.
+OT-168 retains exact-peer Android bond cleanup as follow-up; automatic forgetting
+is not implemented. OT-171 also needs initial Device navigation when no paired
+device exists; a disconnected saved pair must not be mistaken for an unpaired
+installation. Complete the remaining reconnect gates, then resume secure two-pair
+messaging. Next setup UX follow-ups are numeric-keypad feasibility for the Android-owned
+Bluetooth PIN dialog and a recognizable name through setup-to-owned transition;
+the boot-local label is not durable and no naming design is selected yet. V1 scores remain unchanged. Website and cold-power work stay deferred.
+
+See [setup-label evidence](../docs/testing/OT-171-SETUP-LABEL-2026-09-07.md) and [clock refresh evidence](../docs/testing/OT-171-CLOCK-REFRESH-2026-09-07.md).
+
+## 2026-09-06
+
+### OT-170 / OT-178 first name and clock hardware acceptance
+
+The verified application-only firmware and corrected V1-Test APK now pass the
+first real name/clock workflow on the retained Heltec V4.2 and Note20 pair.
+The phone read the initially absent name, saved a name and received exact device
+readback, then synchronized the display clock. The owner confirmed the OLED name,
+time and retained region-required/TX-disabled warnings. Full app restart recovered
+Ready and fresh name readback. A warm board restart retained the name and showed
+unknown time until reconnection and a new successful synchronization; fresh device
+readback again matched. No battery disconnection or full power removal occurred.
+
+This accepts bounded single-pair name persistence, protected readback and volatile
+clock synchronization. OT-170 and OT-178 remain partial. Next, under OT-170 and
+OT-171, define and host-test protected radio-region selection, durable readback
+and rejection rules before extending onboarding or enabling target integration.
+Region selection alone must not enable TX. Cold-power, destructive reset/erasure,
+two-pair operation, secure radio and signed-release acceptance remain open.
+Website synchronization and deployment remain deferred to the owner's bulk update;
+the canonical V1 progress record now includes this new physical evidence.
+
+See [physical integration evidence](../docs/testing/OT-170-178-LIVE-INTEGRATION-2026-09-06.md) and [canonical V1 progress](../docs/V1_PROGRESS.json).
+
+### Integrated name and clock candidate validated
+
+Connected protected profile 0.2, shared request dispatch, durable device-name
+readback, volatile clock sync, Android controls and the Heltec OLED. Name storage
+joins complete factory-reset cleanup. The complete local host matrix passed in
+reviewed segments, including Windows loader and simulator UI 13/13. Final Android
+validation passed 978 tests, all affected lint/build variants and release auditing.
+Firmware compile smoke passed; no new firmware or APK is installed yet.
+
+Next produce two fresh matching firmware builds, verify the exact image/recovery
+manifest, install the paired firmware/APK, and test name persistence, clock display
+and saved-owner reconnect on the retained Heltec/Note20. Website and cold-power stay
+deferred. V1 remains exact43.75/display44 until physical evidence changes a milestone.
+
+See [integration evidence](../docs/testing/OT-170-178-LIVE-INTEGRATION-2026-09-06.md).
+
+### Configuration/time profile0.2 codecs
+
+Implemented matched C++/Kotlin configuration/time profile0.2 codecs with explicit version/capability/kind allocation, strict single-record limits, OTTCv1 civil-time fields and unchanged OTNCv1 names. Both pass431 shared semantic vectors. Existing0.0/claim0.1 codecs remain unchanged. No profile advertisement, live dispatcher or target integration is enabled.
+
+Next implement the host-only shared configuration/time dispatcher composing the accepted codecs and name/time owners. Prove one pending operation, shared exchange fences, output reservation, challenge continuation and status mapping with fake trusted authority/persistence. Real storage/reset and target activation follow separately. Website and cold-power remain deferred.
+
+See [validation evidence](../docs/testing/OT-170-178-CONFIGURATION-CODECS-2026-09-06.md). V1 remains exact43.75/display44.
+
+### Android name receipt model
+
+Implemented the Android name transaction model and one-use registered setup receipts. Current protocol context, exchange, expected/committed revision and exact name must match; stale results and loss callbacks cannot confirm or cancel later work. V1DeviceName now rejects malformed Unicode losslessly. This is model integration only, with no live BLE name requests or app installation.
+
+Next implement matched successor wire codecs and explicitly allocate the version/profile, operation kinds and capability encoding under Decision0107. Verify negotiation, single-record capacities and Android/C++ parity before live dispatcher, persistence/reset or target activation. Website and cold-power remain deferred.
+
+See [validation evidence](../docs/testing/OT-170-ANDROID-NAME-RECEIPT-2026-09-06.md). V1 remains exact43.75/display44.
+
+### Host name transaction owner
+
+Implemented the host-only fixed-memory device-name transaction owner using the existing payload codec, injected trusted authority and synchronous fakeable persistence. It enforces revision CAS/readback, exact duplicate fences, admission expiry and explicit read reconciliation after uncertain commits. All12 focused groups pass; the complete host matrix is recorded in the evidence. No live wire, flash driver or phone integration is added.
+
+Next implement typed Android pending-request/readback receipt correlation and lossless UTF-8 validation in V1DeviceName. Bind exact context/exchange/expected and committed revisions/name, consume receipts once and preserve drafts as unconfirmed intent. Matched wire codecs and real persistence/reset/target integration follow separately. Website and cold-power remain deferred.
+
+See [implementation evidence](../docs/testing/OT-170-NAME-TRANSACTION-2026-09-06.md). V1 remains exact43.75/display44.
+
+### Configuration/time transport and readback contract
+
+Accepted the bounded configuration/time transport and durable-readback implementation contract: matched148-byte buffers, normal MTU151, one operation slot, exact request/session correlation, revisioned name commits with uncertainty recovery, and reuse of the current time challenge owner. This is documentation and review only; no wire or storage capability is enabled.
+
+Next implement a host-only fixed-memory name transaction owner with trusted authority and fake persistence. Prove duplicate fences, CAS/readback,5000-ms admission expiry, ambiguous commit recovery and revocation/reset ordering. Follow with typed Android receipts and matched wire codecs before live persistence/target integration. Website and cold-power remain deferred.
+
+See [contract](../docs/platform/CONFIGURATION_TIME_TRANSPORT_V1.md). No V1 completion change: exact43.75/display44.
+
+### OT-170 device-name payload parity
+
+Imported the existing OT-170 C++ and Kotlin device-name candidate codecs without changing their production bytes or payload format. Both pass the same 151 synthetic vectors (25 accepted, 126 rejected), including decoded fields and exact re-encoding. The Android setup model now requires a matching preliminary name receipt; no live adapter issues it.
+
+Freeze the negotiated configuration/time transport and device-name authority mapping next: matched frame capacities, exact request/revision/session correlation, durable compare-and-set/readback, uncertainty recovery and reset behavior. Resolve draft-name validation differences before enabling requests. No new opcode, target linkage, storage driver or hardware execution is accepted. Website and cold-power remain deferred.
+
+See [validation evidence](../docs/testing/OT-170-NAME-PAYLOAD-PARITY-2026-09-06.md). V1 remains exact 43.75% / displayed 44%; final matrix results are recorded in the evidence.
+
+### OT-178 host time-admission owner validated
+
+OT-178 adds a host-only fixed-memory time-admission owner around OledClock and an injected trusted authority source. It binds one challenge to exact owner/session generations, rejects stale or duplicate work without refreshing time, and separates disconnect retention from revocation/reset invalidation. All 21 focused groups and the complete host matrix pass; no wire, target or phone integration is added.
+
+Reconcile the existing unpublished OT-170 name codec and readback draft in isolation, preserve its byte format where valid, and establish cross-language parity before a negotiated configuration/time transport successor. Do not allocate an opcode or enlarge target buffers without the reviewed capacity, authorization, uncertainty and reset contract. Website and cold-power work remain deferred.
+
+See [implementation evidence](../docs/testing/OT-178-TIME-ADMISSION-2026-09-06.md). No V1 completion increase.
+
+### OT-178 configuration/time authority contract
+
+Defined the device-confirmed OLED configuration/time contract: exact session and generation binding, durable settings readback, separate region/group authority, and volatile civil time admitted with a fresh device-local challenge. This is a reviewed implementation contract, not an implemented transport or new hardware evidence.
+
+Implement the host-only fixed-memory time-admission owner using trusted-context and challenge inputs plus the existing OledClock. Prove stale-generation, duplicate, deadline, rollback and disconnect behavior before allocating or enabling a wire extension. Preserve the unpublished device-name draft for separate cross-language integration review. Website and cold-power work remain deferred.
+
+See [contract](../docs/platform/OLED_CONFIGURATION_TIME_AUTHORITY_V1.md) and [Decision 0106](../docs/decisions/0106-oled-configuration-time-authority.md). No V1 completion increase.
+
+### OT-178 target OLED adapter validated
+
+OT-178 now connects the existing Heltec display port to the fixed OLED presentation owner. Ordinary target frames show region required and TX disabled because no live configuration authority is bound. The startup logo and large ephemeral pairing digits remain on their established paths. Invalid time, rollback and draw failure contain or conceal the display. No clock-sync transport, configured name/group/region authority or physical OLED acceptance is added. The complete host matrix passes and two fresh firmware builds match all six artifacts; no firmware was installed.
+
+Prepare the authenticated configuration and time-sync contract before broad normal-page hardware acceptance. Define exact device/session binding, validated name/region/group observations, clock format and sync freshness, and retain unknown states until real sources are bound. A separate bounded display-only physical preflight may inspect the verified build and restoration route; it does not install firmware automatically. Cold-power and website updates remain owner-deferred.
+
+See [adapter evidence and preflight](../tests/hardware/OT-178-OLED-ADAPTER-2026-09-06.md).
+
+### OT-178 host OLED/clock foundation
+
+OT-178 now has hardware-neutral OLED/clock presentation: fixed 128x64 frames, exclusive safety/pairing/region priority, bounded labels, truthful unknown/stale metrics, bounded radio pulses and a 12/24-hour phone-synchronized clock model. The presentation owner contains monotonic rollback. Focused tests and synthetic pixel review pass; no target wiring, firmware build, physical display or time-sync transport is accepted.
+
+Next integrate the presentation owner through the Heltec display adapter after refreshing firmware-porting preflight. Preserve emergency pairing concealment and reset/owner semantics; map only existing coherent observations and show unavailable for missing name/group/region/time inputs. Build twice with matching artifacts before separately bounded physical OLED acceptance. Phone time-sync transport and configuration authority remain separate contracts. Cold-power and website work stay owner-deferred.
+
+See [evidence and preflight](../tests/hardware/OT-178-OLED-FOUNDATION-2026-09-06.md) and [Decision 0105](../docs/decisions/0105-ot178-host-oled-presentation.md).
+
+### Existing Android visuals integrated
+
+Integrated the existing owner-approved Android visual direction onto the published connection/service-logging baseline: Messages/Group/Device navigation, mint theme, fullscreen truthful status strip, setup/group/people surfaces, phone-local quick-message drafts and support export. The existing owner checkout is unchanged. This accepts software integration only; the combined APK is not installed and final visual or workflow acceptance is not claimed.
+
+Next implement the OT-178 OLED/clock presentation foundation against the approved display direction, starting with host-testable priority/layout/time rules and explicit unknown/stale inputs. Read firmware-porting preflight before target changes. Preserve the accepted BLE/owner semantics. When the visuals are ready for phone acceptance, use the combined Android build and include one narrow service-log leave/reopen/stop check; do not install the superseded logging-only build or repeat a broad connection campaign. Cold-power and website updates remain owner-deferred.
+
+See [integration evidence](../tests/hardware/OT-171-177-VISUAL-INTEGRATION-2026-09-06.md).
+
+### OT-177 service-lifetime logging; cold-power deferred
+
+The V1-Test recorder now observes the actual connected-device service owner before controller activation and remains attached when the UI unbinds. Owner teardown closes the exact generation once; diagnostic failures cannot interrupt connection authority. Production has no recorder provider. This is software validation only; the new APK has not been installed. The earlier four reconnect results remain scoped to the previous APK and corrected firmware.
+
+Prepare a non-destructive installation and phone acceptance of the exact service-logging V1-Test APK: preserve the current owner/bond/data, verify saved-owner authorization/Snapshot/Ready, leave the activity while the service runs, reopen it without a false trace termination or duplicate milestones, then stop the service and verify one terminal record. Cold-power testing is owner-deferred because unplugging the battery requires opening the enclosure. Website synchronization/deployment remains deferred to the bulk update.
+
+See [software and preflight evidence](../tests/hardware/OT-177-SERVICE-LOGGING-2026-09-06.md).
+
+### OT-177 single-pair reconnect accepted
+
+The corrected firmware was installed application-only on the identity-verified retained Heltec and independently read back. The existing isolated V1-Test app on the Note20 passed four saved-owner connections: initial startup, full app restart, and two explicit service disconnect/reconnect cycles. Each completed fresh authorization and Snapshot before Ready; the console recorded no response-path error. This accepts the bounded single-pair correction, not cold-power, factory-reset, two-pair or production-release behavior. Website updates remain owner-deferred.
+
+Prepare a bounded cold-power saved-owner recovery test with the exact installed firmware and current V1-Test APK. Verify how to remove all device power safely (USB and battery), preserve the current owner/bond, and define fresh Ready/Snapshot and handback gates before requesting the necessary physical power action. Do not repeat installation, reset ownership, or start destructive factory-reset testing as part of that preparation.
+
+See [physical evidence](../tests/hardware/OT-177-RECONNECT-ACCEPTANCE-2026-09-06.md).
+
+### OT-177 firmware reconnect correction
+
+Firmware correction releases the exact transport indication even when lifecycle promotion fails, and restores the Heltec provisional nonce to the existing increasing boot-local session counter with uint32 exhaustion rejection. Replay protection, secure-random boot/controller bindings and exact-generation caching remain intact. The composed regression preserves lower-nonce rejection and proves a later valid connection can promote and complete Snapshot. Hardware reconnect acceptance remains pending; website updates remain owner-deferred.
+
+After host/build publication, prepare a separately authorized application-only installation and saved-owner reconnect acceptance using the exact new firmware artifact, fresh target/readback checks and verified restoration image. Require initial Ready/Snapshot, app restart reconnect and repeated disconnect/reconnect without stranded response state. No physical execution is authorized by the host/build increment.
+
+See [validation and preflight](../tests/hardware/OT-177-FIRMWARE-CORRECTION-2026-09-06.md).
+
+### OT-177 console result and host reproduction
+
+One authorized receive-only USB-console capture during one saved-owner phone connection observed successful attribute admission followed by command error 17 (response_path_busy). A deterministic host sequence 2 -> 1 -> 3 reproduces a normal-session nonce ordering failure and stranded transport indication that blocks the following connection. This identifies a source defect consistent with the hardware symptom; the earlier physical nonce history was not captured. No production correction or reconnect acceptance is claimed.
+
+Implement and host-test independent indication cleanup on failed promotion, and reconcile random v0.1 provisional nonces with the normal-session ordering contract without weakening replay protection. Apply firmware porting preflight and build every affected target before proposing a separately authorized hardware acceptance run. Website updates remain owner-deferred.
+
+See [evidence](../tests/hardware/OT-177-CONSOLE-CAPTURE-2026-09-06.md).
+
+### OT-177 authorization investigation
+
+Host-only authorization investigation confirms that Android GATT insufficient authorization collapses several firmware admission and request failures. Two new adapter tests compare normal restored subscription with a deliberately dropped event, and reject a wrong-session claim before any authority decision. These demonstrate possible paths, not the physical root cause. Existing diagnostic strings and INFO USB-console configuration were verified in the exact retained firmware artifact. No production code, firmware, phone or device changed.
+
+Focused validation passes 62 groups. Obtain separately authorized bounded USB-console receive evidence during one phone connection, without flash, reset, ROM entry or ownership changes. Use existing claim authorize refresh/accepted/phase/info/sub/pending and claim command disposition/error fields to distinguish the rejection branch. Verify exact device, current console availability and no-reset open behavior first. Select a correction only after the branch is established; website updates remain owner-deferred.
+
+See [evidence](../tests/hardware/OT-177-AUTHORIZATION-INVESTIGATION-2026-09-06.md).
+
+### OT-177 corrected-recorder physical result
+
+The corrected isolated V1-Test recorder was installed on the retained Note20. The first saved-owner connection passed protected ProtocolInfo, MTU and Stream subscription, then failed during authorization with AUTHORIZATION_UNAVAILABLE and exact diagnostic GATT_AUTHORIZATION_REJECTED. Snapshot and Ready were not reached, so the planned app-restart step was not executed. No retry, firmware operation or ownership change followed. The earlier post-authorization Snapshot failure remains unresolved. No completion credit.
+
+See [evidence](../tests/hardware/OT-177-FORMAT3-PHYSICAL-2026-09-06.md). Next: host-only authorization
+command-write/access-admission investigation. Website publication is deferred
+for the owner-requested bulk update.
+
+Statuses: `done` means the documented acceptance criteria are evidenced; `partial` means bounded evidence exists but acceptance is incomplete; `planned` means no implementation claim.
+
+OT-177 CI follow-up: **partial**. Correct the stale future-concepts title/status
+expectations without removing the accepted client/repeater direction. Focused
+governance validation passes 10 groups. Full host validation reached the simulator;
+the corrected path-sensitive simulator assertion passes the complete simulator
+gate. Remote publication and GitHub validation remain pending. No V1 credit. See
+[evidence](../tests/hardware/OT-177-CI-CORRECTION-2026-09-05.md).
 
 ## Post-release options
 
@@ -392,3 +720,155 @@ Trail Device Utility` working display recorded in OT-019H. Current source uses
 `Inspection only` plus attorney-review-pending status. The historical packaged
 artifact evidence remains evidence for the exact older package and is not
 silently relabeled.
+
+## Future firmware/app design discussions
+
+- App-assigned device name on LCD: when the companion app assigns a device name, the device LCD should reflect that same name. Discuss the design before implementation; placement, truncation, persistence, synchronization timing, and update/error behavior remain deliberately undecided.
+
+## Recommended sequence
+
+Preserve OT-093 through OT-143 as immutable evidence history. OT-116 records all
+six old OT-094 closure requirements satisfied and freezes the successor phased
+benchmark contract. OT-117 and OT-118 populate all three candidate API/
+configuration registries; OT-119 completes phase 0; OT-120 atomically accepts
+all retained candidate import/build anchors and completes phase 1. Source/API-
+config/import counts are `3/3/3` without inferring measurement readiness or
+making a selection. Monocypher and mbedTLS/PSA remain five-of-eight, comparison-
+only, and structurally nonselectable. OT-121 and OT-122 partially exercised the
+Decision 0059 Phase 2 session; OT-124, OT-126, OT-128, OT-131, and OT-133 consumed their
+respective authorities on exactly restored aborts with no admitted Monocypher
+result. OT-129 accepts the host-tested START/READY handshake, streaming byte
+accumulator, verified endpoint lifecycle, and privacy-safe failure classification.
+OT-130 freezes the exact firmware, runtime, coordinator, and restoration binding;
+OT-131 supplies the executable adapter, fails closed at a bounded invalid preamble,
+restores exact Trail, and consumes its replacement one-attempt authority. OT-132
+accepts the host-only opaque-preamble successor with exact READY/frame strictness
+unchanged. OT-133 binds that successor, consumes exactly one attempt when nine complete
+pre-READY records exceed the frozen eight-record cap, and restores exact Trail with
+no admitted result. OT-135 accepts the byte-bounded host-only successor while preserving every
+consumed artifact. OT-136 binds that exact successor into a new executable boundary
+and accepts one workspace-local non-reusable authority. OT-137 consumes that authority
+on a fail-closed abort after Node A benchmark readback, restores exact Trail, and admits
+no result. OT-138 then classifies the shared startup-console/control transport conflict
+host-only and selects a console-isolated quiet-target build as the next gate without
+granting authority. OT-139 accepts that separate reproducible quiet target while
+leaving normal ROM logging unchanged and granting no authority. OT-140 binds
+the exact six-file quiet-target tuple, frozen runner/parser, fresh coordinator,
+concrete adapter, and exact Trail restoration application and accepts one explicit
+workspace-local non-reusable authority. The OT-140-authorized attempt consumes that
+authority on an exactly restored fail-closed abort with no admitted result. OT-142
+then corrects only the malformed benchmark-only RFC 8032 seed in a separate host-
+tested successor. OT-143 binds that exact corrected tuple, frozen runner/parser,
+fresh coordinator/private namespace, concrete adapter, and exact Trail restoration
+image and accepts one explicit workspace-local non-reusable authority without
+executing it. OT-144 records that the OT-143 authority remains unconsumed but
+is non-executable and superseded for execution. OT-145 accepts one fresh
+workspace-local non-reusable authority without executing it; only that single
+two-node application-only attempt is authorized next. Obtain
+separately explicit authority for remaining candidate, radio, and matched linked-
+flash/static-RAM measurements, followed by separate Phase 3 admission and the
+explicit suite/library, handshake/KDF, and packet-v1 wire decision before
+implementing the frozen OT-091 contract.
+Complete the remaining OT-003A physical/regulatory inventory.
+Continue OT-020 with over-air, GNSS, label/revision,
+antenna/RF/regulatory, power, BLE, and recovery evidence; preserve the explicit
+gap that this unit's shipping/pre-write state was not recorded. OT-009's remaining hardware work is a
+direct SX1262/OpenTrail binding and later field measurements; the
+software-forced MeshCore path is proven. OT-017's physical serial/wireless
+adapter, key lifecycle, replay protection, and field failure UX remain
+integration gates rather than semantic-schema work. Security and regulatory
+constraints must remain inputs before any public packet v1 is declared.
+
+## Current bounded implementation gate — 2026-09-03
+
+The clean Note20 first-connection path now physically reaches Snapshot and
+Ready. The next independent gate, immediate saved-bond reconnect, connected at
+the BLE link layer but failed service discovery when Android received ATT
+Handle Value Indication (`0x1d`) and produced an empty GATT database.
+
+Pinned ESP-IDF 6.0.2 source proves that restored bonded CCCDs with
+`value_changed=1` can synchronously emit a pending indication after encryption
+restoration and before discovery completes. The Heltec startup now consumes
+only those pending bits before host exposure while preserving bonds,
+subscriptions, handles, the standard GATT service, security, and Android
+policy. The focused regression, all 16 target-admission groups, the complete
+affected host validation sequence, and the ESP32-S3 build pass. The current
+551,584-byte application has SHA-256
+`B34C95FEC6CA2D319A914292E1D04466A1276D52C5D52B144B42CBDF365684E6`.
+
+The re-enumerated test Heltec received the exact application-only candidate at
+`0x10000`, independently verified. A fresh Note20 returning-owner attempt kept
+the saved bond, ran the full scan, admitted one candidate, opened the BLE link,
+and failed at the same service-discovery `0x1d` collision before ProtocolInfo.
+The CCCD sanitation hypothesis is therefore not accepted. Do not reset/re-pair,
+retry hardware, test downstream authorization/Snapshot behavior, or touch the
+second Heltec until a narrower source/runtime hypothesis has a failing test.
+
+The finished Android reconnect gate additionally requires zero user interaction
+after app launch when an authorized bond exists: automatically choose the
+production Bluetooth path, start or attach the service, reconnect, and reach
+Ready. Remove the current Local test choice from production UI and remove the
+normal-path mode/service-start taps; debug-only test access may be decided
+separately. Exact mapping:
+`docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md`.
+
+## Historical prewrite checkpoint — 2026-09-04
+
+The saved-owner reconnect successor is host-validated. Exact target admission
+now requires `CONFIG_APP_REPRODUCIBLE_BUILD=y`; two initially absent,
+cache-disabled ESP-IDF 6.0.2 builds reproduce the application, ELF, map,
+bootloader, partition table, generated configuration, and partition-source
+tuple. The canonical 563,824-byte application has SHA-256
+`91D4CEB48CCFBCD21AC97CE604C48FBCCA04D70408D2BF749C90CB053AD04824`.
+
+The installed Android debug APK was read-only verified against the exact local
+candidate. The first physical preflight stopped before any write because
+neither anonymous generic USB serial endpoint admitted an application read;
+both endpoints were reset toward normal runtime.
+
+On the second gate, the owner placed the intended retained Heltec in ROM mode
+and Windows exposed exactly one anonymous endpoint. The conservative ROM path
+read the complete 5,177,344-byte factory application range at `0x10000`, but
+its first 551,584 bytes did not match the recorded installed test-unit image.
+Qualification stopped before any write. The temporary nonqualifying read was
+removed and Android was not started or changed. After one requested normal
+reset, the owner reported the display restored and confirmed with certainty
+that this was the same retained phone-test unit.
+
+Host audit validates the hash method. The owner-directed successor privately
+binds the factory ESP32-S3 base MAC to `OT-DEV-001`, matches it again after the
+read, and retains the exact complete application range. Its first 563,824 bytes
+exactly match local pre-reproducible build `587A2D55...`, which differs from the
+canonical reproducible `91D4CEB4...` candidate at only the embedded ELF digest
+and dependent checksum/validation hash. The old `B34C95FE...` expectation was
+stale; unexplained flash drift is ruled out. No write or Android action occurred.
+The software run command did not restore the display; one owner-performed normal
+reset with BOOT released then restored it. A newly authorized exact application-
+only write/readback was the next gate at that historical checkpoint. It and
+single-pair saved-owner Ready subsequently passed, as recorded below. Exact mapping:
+`docs/testing/ANDROID_RETURNING_OWNER_RECONNECT_MAPPING.md`; hardware evidence:
+`tests/hardware/OT-168-2026-09-04.md`.
+
+## Publication validation refresh — 2026-09-04
+
+The owner authorized repository and website synchronization, superseding the
+prior website deferral for this checkpoint. The current Android task matrix
+passes 137 actionable tasks (87 executed, 50 cached), 371 protocol/debug/release
+unit tests with zero failures/errors/skips, debug/release lint, and all requested
+assemblies. Unsigned release inspection passes for the 8,524,976-byte artifact
+SHA-256 `930c67dfa5268b4e47ddf1167fbffb35418d77442ee5d6b408672e8cd79dde7a`.
+This is a build/inspection result only: the APK was not installed, signed for
+release, or physically accepted. Hardware observations remain bound to the
+retained `3DDB3F59...` debug APK and `91D4CEB4...` pre-publication firmware.
+The firmware embeds `110e543-dirty`; two matching empty-output-directory builds
+are not a guarantee that a later clean Git version yields the same hash.
+Earlier 549,184-byte/90FE firmware and 347-test/5689 release summaries are
+historical pre-successor checkpoints, not the current publication artifacts.
+
+Exact next task: implement periodic saved-owner rediscovery while the app is
+open after quick retries, respecting explicit disconnect, then repeat the same
+prolonged-absence physical test without phone input. Next acceptance is true
+cold-power recovery accounting for USB and battery, then factory reset and
+coherent two-pair operation. Android cleanup and battery-percentage calibration
+remain recorded follow-ups. No production feature or device was changed by
+this publication validation; completion is unchanged.
