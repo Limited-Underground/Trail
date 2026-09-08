@@ -14,8 +14,9 @@ preserves all removed summaries and superseded sequencing; see the
    complete startup checks, fresh-handle restart and per-role restoration. See
    [composition evidence](../docs/testing/OT-163-SUCCESSOR-COMPOSITION-2026-09-08.md).
 2. Live two-board identity, installed-image/tail, partition and recovery preflight
-   passes. Bind one fresh non-reusable benchmark attempt with the tested identity
-   adapter, exact execution sources and per-role recovery; recheck volatile state
+   passes. Integrate the [solicited readiness correction](../docs/testing/OT-163-SOLICITED-READINESS-2026-09-08.md)
+   into the execution bridge, then bind one fresh non-reusable benchmark attempt
+   with the tested identity adapter, exact sources and per-role recovery; recheck volatile state
    immediately before consumption. See
    [live preflight evidence](../docs/testing/OT-163-LIVE-PREFLIGHT-2026-09-08.md).
    The old OT-162 authority remains consumed.

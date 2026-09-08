@@ -63,6 +63,15 @@ handles esptool's two agreeing identity lines; eight offline tests cover parsing
 and cleanup. No firmware writes, radio result, phone changes or V1 score increase.
 See [live preflight evidence](testing/OT-163-LIVE-PREFLIGHT-2026-09-08.md).
 
+The serial-open review found that Windows pyserial clears queued startup bytes.
+A separate firmware query and buffered runtime now obtain fresh readiness after
+each open, while preserving the original benchmark and frozen artifacts. The
+actual handler and byte-level composition pass 26 new tests, including startup
+purges, fresh handles and unchanged simulated 14-frame/736-byte results. Build,
+validation and the remaining execution binding are recorded in
+[solicited readiness evidence](testing/OT-163-SOLICITED-READINESS-2026-09-08.md).
+No device was accessed or new attempt consumed; V1 and website status are unchanged.
+
 ### OT-171 Pairing setup simplified; numeric keypad deferred
 
 The owner-approved second-device pairing test accepted the editable setup-label
