@@ -10,13 +10,13 @@ preserves all removed summaries and superseded sequencing; see the
 
 ## Current execution order
 
-1. Compose the host-only Noise XK successor using the corrected buffered receipt
-   endpoint and existing fresh-handle restart lifecycle. Bind distinct original
-   and second-device restoration images throughout preflight, journal and cleanup;
-   reject swapped roles. The old OT-162 authority remains consumed.
-2. After that composition passes, prepare the concrete two-node hardware attempt
-   with fresh identity, installed-byte, partition and recovery checks. Existing
-   local recovery files alone do not make hardware execution ready.
+1. The host-only Noise XK successor composition is tested: buffered receipts,
+   complete startup checks, fresh-handle restart and per-role restoration. See
+   [composition evidence](../docs/testing/OT-163-SUCCESSOR-COMPOSITION-2026-09-08.md).
+2. Bind the complete executable successor, including a concrete role-verifying
+   backend, to exact sources and both restoration images. Verify fresh endpoint
+   identity, installed bytes, partitions and recovery before a new one-attempt
+   execution grant. The old OT-162 authority remains consumed.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.
    Current Messages screens store local templates; no product radio path is wired.

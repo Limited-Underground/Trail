@@ -2542,6 +2542,16 @@ if ($LASTEXITCODE -ne 0) {
     throw ('Buffered Noise XK receipt endpoint tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\noise_xk_ready_composition_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('Ready-first buffered Noise XK composition tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\noise_xk_role_recovery_coordinator_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('Per-role Noise XK recovery coordinator tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\ot156_noise_xk_radio_runtime_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-156 reset-aware Noise XK runtime tests failed with exit code {0}.' -f $LASTEXITCODE)

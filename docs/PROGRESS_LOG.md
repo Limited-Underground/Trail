@@ -33,6 +33,20 @@ hardware bundle must bind a different restoration image to each role. Devices
 and phones remain untouched. Validation and the exact successor boundary are
 recorded in [restart receipt evidence](../docs/testing/OT-163-RECEIPT-STREAM-2026-09-08.md). V1 scores and website status are unchanged.
 
+The subsequent host composition now validates both startup contracts before
+restart, reopens fresh buffered handles, and carries separate A/B restoration
+images through exact grants, preflight, journal and cleanup. Real-byte tests
+also exposed and corrected receipt-type incompatibility and rejection of the
+firmware's three SHA-256 field names. Nonconsecutive handle reuse is rejected.
+
+All 83 focused transport/runner/recovery cases pass, including eight composed
+byte-path cases and fifteen per-role recovery cases. The integrated simulation
+passes the unchanged 14-frame result validator and restores both distinct
+images. The 291-input byte audit, 16 scope groups, 13 documentation tests and
+publication scan pass. No hardware or result admission is implied. The next
+gate is the exact executable bundle and concrete role/installed-byte preflight;
+see [successor composition evidence](testing/OT-163-SUCCESSOR-COMPOSITION-2026-09-08.md).
+
 ### OT-171 Pairing setup simplified; numeric keypad deferred
 
 The owner-approved second-device pairing test accepted the editable setup-label
