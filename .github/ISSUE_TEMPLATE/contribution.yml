@@ -1,0 +1,23 @@
+name: Contribution proposal
+description: Agree a small piece of work before implementation
+title: "[Contribution] "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Proposed outcome
+      description: What would this let someone do? Keep the first increment small.
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Approach and available setup
+      description: Relevant experience, tools and test equipment. No private device identifiers.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: How would we verify it?
+      description: Describe observable acceptance and known limitations.
+    validations:
+      required: true

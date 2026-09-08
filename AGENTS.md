@@ -38,11 +38,36 @@ OpenTrail is in architecture and proof-of-concept planning. Capabilities in the 
 - Radio work: test with at least two physical nodes and report packet counts, loss, duplicates, latency, range context, and configuration.
 - Hardware compatibility: use `candidate`, `experimented`, or `validated` labels; never infer compatibility from specifications alone.
 
-## Change documentation
+## Documentation roles
 
-Group progress entries under one `## YYYY-MM-DD` heading per day, with individual tasks as `###` headings without repeated dates. Add to the existing day section instead of creating a dated heading for every OT entry. Use the same grouping for dated current-summary entries in the README, project status, backlog, and architecture document. Preserve task ordering, evidence and links when regrouping.
+Keep the entry documents useful as stable starting points. Do not prepend dated
+OT task reports to the README, architecture, project status, or backlog.
 
-Update the backlog status and the project status/open questions whenever a decision is made or evidence changes. Architecture decisions that constrain future work should be added under `docs/decisions/` when that directory is introduced.
+- `README.md`: a concise project introduction and navigation, at most 120 lines.
+- `docs/ARCHITECTURE.md`: current system boundaries, responsibilities, and links
+  to accepted architecture decisions; not an implementation diary.
+- `docs/PROJECT_STATUS.md`: the current evidence-backed capability, blockers,
+  and exact next acceptance gate; replace stale summaries instead of stacking them.
+- `tasks/BACKLOG.md`: actionable work and acceptance gates. Use OT identifiers in
+  task tables or body text, without dated report sections or OT report headings.
+- `docs/PROGRESS_LOG.md`: the chronological task history. Use one `## YYYY-MM-DD`
+  heading per day and individual `### OT-123 Description` entries underneath.
+  Add to the existing day; do not repeat the date per task or combine task IDs
+  into a range heading. Preserve historical facts, ordering, and evidence links.
+- `docs/decisions/`: durable decisions that constrain future work.
+- `docs/testing/` and `tests/hardware/`: detailed validation and hardware evidence.
+- `docs/V1_PROGRESS.json`: the sole weighted V1 completion record.
+
+Update only records whose role and current facts are affected. Put the dated
+result in the progress log and link to detailed evidence rather than copying
+that result across the entry documents. Existing earlier historical progress
+headings remain archival; individual OT headings are enforced from 2026-09-08.
+
+Run `python tools/check_repository_docs.py` and
+`python tests/host/repository_docs_tests.py` after documentation changes. The
+checker covers the curated entry documents and progress headings, not immutable
+historical evidence bundles. Relative links in entry documents must resolve
+inside the repository; anchors are not validated.
 
 ## Lean execution cadence
 
@@ -56,7 +81,7 @@ Update the backlog status and the project status/open questions whenever a decis
 ## Completion and publication gate
 
 - Follow the workspace-wide guidance in `C:\lu\AGENTS.md`; current state and publication authority are recorded under `C:\lu\.tracker`.
-- Once an OpenTrail task is implemented and validated, update every affected canonical record and dated public progress entry, commit and push the relevant public-ready OpenTrail changes, and verify the remote commit before calling the task complete.
+- Once an OpenTrail task is implemented and validated, update every affected canonical record and dated public progress entry, commit and push the relevant public-ready OpenTrail changes to a topic branch, open a pull request, and require the configured checks before merging. Verify the remote main commit before calling the task complete. Do not bypass branch protection or disable documentation checks to publish a task.
 - If accepted evidence changes public project status or V1 progress, synchronize and validate the Limited Underground website projection, commit and push the website update, deploy it, and verify the live OpenTrail status before calling the task complete.
 - If no public website status changed, say so explicitly in the completion report. If any required push, synchronization, deployment, or verification is blocked, report `implementation complete; publication pending` and identify the remaining step.
 - Do not bundle unrelated or unvalidated dirty-worktree changes merely to satisfy this gate, and never publish private or unsafe material.

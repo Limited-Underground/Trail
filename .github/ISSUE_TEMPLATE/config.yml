@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions, ideas and builds
+    url: https://github.com/Limited-Underground/Trail/discussions
+    about: Use Discussions for conversation before opening a scoped work item.
+  - name: Security reporting
+    url: https://github.com/Limited-Underground/Trail/security/policy
+    about: Do not disclose sensitive findings in public issues.

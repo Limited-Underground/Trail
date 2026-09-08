@@ -1,0 +1,10 @@
+# Maintainer routing for repository policy and contributor-facing documentation.
+/AGENTS.md @nbjelanovic
+/README.md @nbjelanovic
+/CONTRIBUTING.md @nbjelanovic
+/CODE_OF_CONDUCT.md @nbjelanovic
+/.github/ @nbjelanovic
+/docs/ @nbjelanovic
+/tasks/ @nbjelanovic
+/tools/check_repository_docs.py @nbjelanovic
+/tests/host/repository_docs_tests.py @nbjelanovic

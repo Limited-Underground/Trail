@@ -522,7 +522,27 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
         if path != support_path:
             assert "java.io.File" not in source
             assert "cacheDir" not in source
-    assert gatt_facade.count("SharedPreferences") == 5
+    # Admit the actual private store and its bounded data, not occurrences of a
+    # type name (including explanatory comments). The verified-reset marker is
+    # navigation state, never a persisted peer, PIN, key or authorization proof.
+    assert re.findall(r'context\.getSharedPreferences\(([^\n]+)\)', gatt_facade) == [
+        "PREFERENCES_NAME, Context.MODE_PRIVATE"
+    ]
+    receipt_store = gatt_facade[
+        gatt_facade.index("internal class AndroidFactoryResetReceiptStore("):
+        gatt_facade.index("class AndroidBluetoothGattFacade(")
+    ]
+    assert set(re.findall(r'const val (\w+_KEY) = "([^"]+)"', receipt_store)) == {
+        ("RECEIPT_KEY", "receipt_bits"),
+        ("ISSUED_AT_KEY", "issued_at_epoch_millis"),
+        ("EXPIRY_KEY", "expires_at_epoch_millis"),
+        ("FRESH_SETUP_KEY", "verified_reset_requires_fresh_setup"),
+    }
+    assert set(re.findall(r'(\w+_KEY)\s+to\s+', receipt_store)) == {
+        "RECEIPT_KEY", "ISSUED_AT_KEY", "EXPIRY_KEY", "FRESH_SETUP_KEY"
+    }
+    for forbidden in ("putString(", "putStringSet(", "putInt(", "putBoolean(", "putFloat("):
+        assert forbidden not in gatt_facade
     for required in (
         "import android.content.SharedPreferences",
         "private class SharedPreferencesFactoryResetReceiptStorage(",
@@ -536,6 +556,11 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
         'RECEIPT_KEY = "receipt_bits"',
         'ISSUED_AT_KEY = "issued_at_epoch_millis"',
         'EXPIRY_KEY = "expires_at_epoch_millis"',
+        "if (receipt == 0uL || load() != receipt) return false",
+        "mapOf(FRESH_SETUP_KEY to 1L)",
+        "setOf(RECEIPT_KEY, ISSUED_AT_KEY, EXPIRY_KEY)",
+        "removeKeys.forEach(editor::remove)",
+        "storage.remove(setOf(FRESH_SETUP_KEY))",
         "ANDROID_FACTORY_RESET_RECEIPT_TTL_MILLIS = 120_000L",
     ):
         assert required in gatt_facade
