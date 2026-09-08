@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.16)
+set(IDF_TARGET "esp32s3" CACHE STRING "Fixed benchmark target")
+set(PROJECT_VER "nxk-ready-v1")
+get_filename_component(OT153_ESP_IDF_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+get_filename_component(OT153_REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../.." ABSOLUTE)
+set(SDKCONFIG_DEFAULTS "${OT153_ESP_IDF_ROOT}/ot153_noise_xk_radio_cost/sdkconfig.defaults")
+set(EXTRA_COMPONENT_DIRS
+    "${OT153_ESP_IDF_ROOT}/espressif_libsodium_1_0_22/managed_components/espressif__libsodium")
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+idf_build_set_property(MINIMAL_BUILD ON)
+set(READY_GENERATOR "${OT153_REPO_ROOT}/tools/noise_xk_ready_firmware_source.py")
+set(FROZEN_MAIN "${OT153_ESP_IDF_ROOT}/ot153_noise_xk_radio_cost/main/app_main.cpp")
+set(READY_MAIN "${CMAKE_CURRENT_BINARY_DIR}/ready_app_main.cpp")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${READY_GENERATOR}" "${FROZEN_MAIN}")
+idf_build_get_property(READY_PYTHON PYTHON)
+execute_process(
+    COMMAND "${READY_PYTHON}" "${READY_GENERATOR}" --source "${FROZEN_MAIN}" --output "${READY_MAIN}"
+    RESULT_VARIABLE READY_RESULT)
+if(NOT READY_RESULT EQUAL 0)
+    message(FATAL_ERROR "Readiness source generation failed")
+endif()
+# Fix compiler date/time macros used by RadioLib without changing firmware time.
+set(CMAKE_C_COMPILER_LAUNCHER "${CMAKE_COMMAND};-E;env;SOURCE_DATE_EPOCH=0")
+set(CMAKE_CXX_COMPILER_LAUNCHER "${CMAKE_COMMAND};-E;env;SOURCE_DATE_EPOCH=0")
+project(noise_xk_ready_radio)

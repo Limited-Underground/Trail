@@ -49,6 +49,10 @@ Thumbs.db
 **/.kotlin/
 **/build/
 tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/
+tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/managed_components/
+tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/build/
+tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/sdkconfig
+tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/sdkconfig.old
 tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/sdkconfig
 *.jks
 *.keystore

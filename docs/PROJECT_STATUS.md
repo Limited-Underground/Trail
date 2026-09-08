@@ -26,7 +26,10 @@ for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
   also correct receipt type identity and the firmware's SHA-256 field parsing.
   The concrete role-checking backend and exact source/image snapshot are now
   host-tested. Live two-board identity, layout and recovery-span preflight now
-  passes; no benchmark result is admitted. This does not prove the old
+  passes. A separate solicited-readiness target and runtime address Windows
+  serial-open buffer loss; build/validation details are in the
+  [readiness evidence](testing/OT-163-SOLICITED-READINESS-2026-09-08.md).
+  No benchmark result is admitted. This does not prove the old
   OT-163 hardware root cause or product messaging.
 
 ## Last verified bench configuration
@@ -46,8 +49,9 @@ normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
 
-Bind one fresh non-reusable benchmark attempt to the exact execution bridge and
-independent recovery. Live identity, installed-image/erased-tail, partition and
+Integrate solicited readiness into the exact execution bridge and bind one fresh
+non-reusable benchmark attempt with independent recovery. Live identity,
+installed-image/erased-tail, partition and
 factory-boot preflight passed on both boards; reset commands succeeded. Include
 the tested esptool identity-output adapter and recheck volatile state immediately
 before consumption. No radio result or phone-to-phone delivery is admitted. See

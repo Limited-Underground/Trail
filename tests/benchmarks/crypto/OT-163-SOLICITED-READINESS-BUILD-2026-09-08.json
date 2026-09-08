@@ -1,0 +1,217 @@
+{
+  "schema": "OT163-SOLICITED-READINESS-BUILD-1",
+  "date": "2026-09-08",
+  "scope": "Host firmware builds only; no hardware execution or installation.",
+  "target": "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio",
+  "project_version": "nxk-ready-v1",
+  "builds": [
+    {
+      "directory": "build/ready-clean-a5",
+      "exit_code": 0,
+      "initially_absent": true
+    },
+    {
+      "directory": "build/ready-clean-b5",
+      "exit_code": 0,
+      "initially_absent": true
+    }
+  ],
+  "toolchain": {
+    "idf": "6.0.2",
+    "idf_revision": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "gcc": "esp-15.2.0_20251204 / GCC 15.2.0",
+    "python": "3.14.6",
+    "cmake": "4.0.3",
+    "ninja": "1.12.1",
+    "esptool": "5.3.1",
+    "radiolib": "7.7.1",
+    "libsodium": "1.0.22"
+  },
+  "configuration": {
+    "chip": "esp32s3",
+    "board_boundary": "Existing Heltec V4.2 benchmark pin map; no additional compatibility claim",
+    "console": "native USB serial/JTAG",
+    "flash_selection": "QIO",
+    "image_header_and_flash_arguments": "DIO",
+    "flash_mapping_reason": "ESP-IDF components/esptool_py/Kconfig.projbuild maps QIO selection to dio image mode.",
+    "flash_frequency_mhz": 80,
+    "flash_size_mb": 16,
+    "reproducible_build": true,
+    "compile_time_date": "Dependency-disabled by reproducible build; no app compile timestamp.",
+    "compiler_source_date_epoch": 0,
+    "compiler_epoch_enforcement": "C and CXX CMake compiler launchers invoke cmake -E env SOURCE_DATE_EPOCH=0.",
+    "generated_source_file_macro": "/READY_BUILD_DIR/ready_app_main.cpp",
+    "radio_profile": "Fixed US915 / 915 MHz, 2 dBm command setpoint; no transmissions tested."
+  },
+  "source_inputs": {
+    "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/CMakeLists.txt": {
+      "bytes": 1510,
+      "sha256": "b2fbcb2edc40f6fca034f2b520249e0e25bffc6d70c35a8161812a848569776f"
+    },
+    "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/main/CMakeLists.txt": {
+      "bytes": 1170,
+      "sha256": "8d2e4f27f53e74ceded28a531d58c34941fe7214bc08438fc681bc1c83784a3b"
+    },
+    "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/main/idf_component.yml": {
+      "bytes": 61,
+      "sha256": "95403227f7dc7981c4a05aa5718059d28ccd18ffa80e8db051cb7ba123f639df"
+    },
+    "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/dependencies.lock": {
+      "bytes": 536,
+      "sha256": "c9e8adbc2ff5ac297ca42b9fe5f3fc05e5692aec12c3decfe49c097ad08d1d95"
+    },
+    "tools/noise_xk_ready_firmware_source.py": {
+      "bytes": 3606,
+      "sha256": "13b3dd6080e87e5c660b351d31c6ff175f527a97b6928ae19b8aec67df8d187f"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot153_noise_xk_radio_cost/main/app_main.cpp": {
+      "bytes": 38207,
+      "sha256": "612c892ecf649657e9a1f5fb68f8e24d088c2d4a94841f2ac5a8fff93d5b4240"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot153_noise_xk_radio_cost/sdkconfig.defaults": {
+      "bytes": 397,
+      "sha256": "7a71b7b56aa665bdd6c927e4e4682fb0a5458b34557976777a5dc9b537a599d3"
+    },
+    "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.c": {
+      "bytes": 17876,
+      "sha256": "8534fe1a6a4b68cd37e491ebd0f564dd38fd3935fb21d8f2d45aa8333ae442b8"
+    },
+    "firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.cpp": {
+      "bytes": 5586,
+      "sha256": "b2b63bbffaae4c1d26546fb1a176ebaaca46c2da0c88e1e1b3028ebefaaa0d1b"
+    }
+  },
+  "artifacts": {
+    "noise_xk_ready_radio.bin": {
+      "a": {
+        "bytes": 297152,
+        "sha256": "3c3913ee4c2a60bd4168e0bb60eca6a0f2a641ba8f283f99f656c04c07b301c7"
+      },
+      "b": {
+        "bytes": 297152,
+        "sha256": "3c3913ee4c2a60bd4168e0bb60eca6a0f2a641ba8f283f99f656c04c07b301c7"
+      },
+      "byte_identical": true
+    },
+    "noise_xk_ready_radio.elf": {
+      "a": {
+        "bytes": 4738900,
+        "sha256": "22d6ef30409e50358b57b1de809b8b8aa3e20592b2dc71d76a12e7500e38a2e6"
+      },
+      "b": {
+        "bytes": 4738900,
+        "sha256": "22d6ef30409e50358b57b1de809b8b8aa3e20592b2dc71d76a12e7500e38a2e6"
+      },
+      "byte_identical": true
+    },
+    "noise_xk_ready_radio.map": {
+      "a": {
+        "bytes": 3561813,
+        "sha256": "c9a623cb5b22fd4110e202f82a2419e26ea24e1721b059f153c307953dfe1613"
+      },
+      "b": {
+        "bytes": 3561813,
+        "sha256": "c9a623cb5b22fd4110e202f82a2419e26ea24e1721b059f153c307953dfe1613"
+      },
+      "byte_identical": true
+    },
+    "ready_app_main.cpp": {
+      "a": {
+        "bytes": 39777,
+        "sha256": "6b2759a41f6b1039a73d91b3d60a2bad294cffabd92d8a982bcc8cebf02fc8d8"
+      },
+      "b": {
+        "bytes": 39777,
+        "sha256": "6b2759a41f6b1039a73d91b3d60a2bad294cffabd92d8a982bcc8cebf02fc8d8"
+      },
+      "byte_identical": true
+    },
+    "sdkconfig": {
+      "a": {
+        "bytes": 58074,
+        "sha256": "44d954f25e5b337e57a6e8b7beb053842c0ea68928a575e089a561fa165ce05c"
+      },
+      "b": {
+        "bytes": 58074,
+        "sha256": "44d954f25e5b337e57a6e8b7beb053842c0ea68928a575e089a561fa165ce05c"
+      },
+      "byte_identical": true
+    },
+    "bootloader/bootloader.bin": {
+      "a": {
+        "bytes": 22480,
+        "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+      },
+      "b": {
+        "bytes": 22480,
+        "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+      },
+      "byte_identical": true
+    },
+    "partition_table/partition-table.bin": {
+      "a": {
+        "bytes": 3072,
+        "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820"
+      },
+      "b": {
+        "bytes": 3072,
+        "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820"
+      },
+      "byte_identical": true
+    },
+    "CMakeFiles/4.0.3/CMakeCCompiler.cmake": {
+      "a": {
+        "bytes": 4599,
+        "sha256": "9d2db1bdfe2637e65a63a0703d91c318ce94c65fe14060e8382c8e211b7ecc60"
+      },
+      "b": {
+        "bytes": 4599,
+        "sha256": "9d2db1bdfe2637e65a63a0703d91c318ce94c65fe14060e8382c8e211b7ecc60"
+      },
+      "byte_identical": true
+    },
+    "CMakeFiles/4.0.3/CMakeCXXCompiler.cmake": {
+      "a": {
+        "bytes": 8582,
+        "sha256": "5ce7df78d42a1950ee24196388004b9a65bcb5a6a6188af4843bf835ef6d8be9"
+      },
+      "b": {
+        "bytes": 8582,
+        "sha256": "5ce7df78d42a1950ee24196388004b9a65bcb5a6a6188af4843bf835ef6d8be9"
+      },
+      "byte_identical": true
+    }
+  },
+  "dependency_lock": {
+    "shared_source_lock": "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/dependencies.lock",
+    "sha256": "c9e8adbc2ff5ac297ca42b9fe5f3fc05e5692aec12c3decfe49c097ad08d1d95",
+    "unchanged_before_and_after_second_build": true,
+    "independent_lock_generation": false
+  },
+  "libsodium_copy": {
+    "path": "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium",
+    "version": "1.0.22",
+    "candidate": {
+      "files": 733,
+      "relative_path_sha256_manifest_digest": "715177493359c7b9c83b2a8b119410935707ed482e3fc16506d8561a7c737eab"
+    },
+    "established_owner_source": {
+      "files": 733,
+      "relative_path_sha256_manifest_digest": "715177493359c7b9c83b2a8b119410935707ed482e3fc16506d8561a7c737eab"
+    },
+    "identical": true,
+    "manifest_format": "Sorted relative POSIX path, tab, lowercase file SHA256, LF; SHA256 over UTF-8 manifest."
+  },
+  "validation": {
+    "generator_and_compiled_handler_tests": 6,
+    "failures": 0,
+    "skips": 0,
+    "image_checksum_and_validation_hash": "valid via esptool image-info",
+    "application_partition_fit": "build check passed; generated table not authorized for installation"
+  },
+  "limitations": [
+    "Build determinism is demonstrated on the pinned installed Windows toolchain, not across arbitrary hosts.",
+    "Earlier configuration failures and A3/B3 path/timestamp mismatch were corrected before these final builds.",
+    "No fresh readiness hardware execution, restoration trial, RF result or product progress increase is implied."
+  ]
+}
