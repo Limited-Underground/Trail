@@ -47,6 +47,14 @@ publication scan pass. No hardware or result admission is implied. The next
 gate is the exact executable bundle and concrete role/installed-byte preflight;
 see [successor composition evidence](testing/OT-163-SUCCESSOR-COMPOSITION-2026-09-08.md).
 
+
+The concrete role-checking backend now preserves independent recovery, refuses
+unverified-write resets, and keeps uncertain serial handles leased. The complete
+11-file source snapshot and three image hashes are checked; new checkout rules
+prevent Windows line-ending drift. Two USB candidates were passively observed,
+without opening ports or resetting devices. All 116 focused host cases pass. See
+[device binding evidence](testing/OT-163-DEVICE-BINDING-2026-09-08.md).
+
 ### OT-171 Pairing setup simplified; numeric keypad deferred
 
 The owner-approved second-device pairing test accepted the editable setup-label

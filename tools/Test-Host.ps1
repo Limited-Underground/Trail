@@ -2552,6 +2552,16 @@ if ($LASTEXITCODE -ne 0) {
     throw ('Per-role Noise XK recovery coordinator tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\noise_xk_bound_backend_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('Bound Noise XK backend tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\noise_xk_source_bundle_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('Noise XK source bundle tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\ot156_noise_xk_radio_runtime_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-156 reset-aware Noise XK runtime tests failed with exit code {0}.' -f $LASTEXITCODE)

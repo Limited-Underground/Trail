@@ -24,7 +24,9 @@ for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 - The host-only benchmark successor composes buffered receipts, startup checks,
   fresh-handle restart and separate per-role recovery images. Byte-level tests
   also correct receipt type identity and the firmware's SHA-256 field parsing.
-  This does not prove the old OT-163 hardware root cause or product messaging.
+  The concrete role-checking backend and exact source/image snapshot are now
+  host-tested; physical preflight remains open. This does not prove the old
+  OT-163 hardware root cause or product messaging.
 
 ## Last verified bench configuration
 
@@ -43,11 +45,13 @@ normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
 
-Prepare one complete executable benchmark successor with the concrete role-checking
-backend and exact source/image bindings. Verify current endpoints, installed bytes,
-partitions and both recovery images before a fresh non-reusable execution grant.
-The old shared restore image and consumed authority cannot be reused. See
-[host composition evidence](testing/OT-163-SUCCESSOR-COMPOSITION-2026-09-08.md).
+Run the concrete successor's fresh physical preflight from an explicitly loaded,
+source-checked process: verify each role, installed application, partition layout,
+write span and recovery image before binding one new non-reusable attempt. The
+backend and source/image snapshot are host-tested; two USB candidates are visible,
+but current installed bytes are not yet verified. The old shared restore image
+and consumed authority cannot be reused. See
+[device binding evidence](testing/OT-163-DEVICE-BINDING-2026-09-08.md).
 
 After the remaining crypto measurement/admission and explicit suite/wire selection,
 implement one authenticated two-node message exchange, then its protected BLE

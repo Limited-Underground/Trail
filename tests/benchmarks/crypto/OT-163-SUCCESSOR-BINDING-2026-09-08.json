@@ -1,0 +1,95 @@
+{
+  "schema": "noise-xk-successor-binding-snapshot-v1",
+  "as_of": "2026-09-08",
+  "execution_authority": false,
+  "source_load_identity_verified": false,
+  "physical_preflight_complete": false,
+  "sources": {
+    "schema": "noise-xk-source-closure-v1",
+    "sources": [
+      {
+        "path": "tools/noise_xk_bound_backend.py",
+        "bytes": 12947,
+        "sha256": "a7593e6f76763f1b7f83750f8f3f84ca4c29ed0620df5a95b84124d967f3f78a"
+      },
+      {
+        "path": "tools/noise_xk_source_bundle.py",
+        "bytes": 5673,
+        "sha256": "c7c66502a578caea59eb49afeeda550cabe98a65bf55c6efd1a3b95f0fab60b0"
+      },
+      {
+        "path": "tools/noise_xk_role_recovery_coordinator.py",
+        "bytes": 14652,
+        "sha256": "50067f2a81c6c4924164294f81b57496b435390c47172b12aa9e55297bdd42fa"
+      },
+      {
+        "path": "tools/noise_xk_ready_runner.py",
+        "bytes": 3767,
+        "sha256": "788626a9687fa79357706ae4e1647fec771571c1cfbefbda40b6aebe5dc9cbad"
+      },
+      {
+        "path": "tools/noise_xk_buffered_runtime.py",
+        "bytes": 2284,
+        "sha256": "6360f462b0a81958025062c6978c14bcb340a433d72508ea7f16c23a375ef6c8"
+      },
+      {
+        "path": "tools/noise_xk_buffered_receipt_endpoint.py",
+        "bytes": 3793,
+        "sha256": "d114fe94262305b7ea95fac816373e7fae7a16c557e9e688373aaf974224ad08"
+      },
+      {
+        "path": "tools/ot156_noise_xk_radio_runner.py",
+        "bytes": 11099,
+        "sha256": "81d0a329d34c20e76362b9a3f07221b77b77f02189dd06660119a02ac1700244"
+      },
+      {
+        "path": "tools/ot156_noise_xk_radio_runtime.py",
+        "bytes": 6588,
+        "sha256": "bcdb1a772971aa665be699c2699a2b69625c4e8bd2352abd21811be0a4295dd8"
+      },
+      {
+        "path": "tools/ot153_noise_xk_radio_hardware_adapter.py",
+        "bytes": 17460,
+        "sha256": "d84aa9a1c0556f6421141a25336a3e87dab054cc971722b3f8058fe0a254f94b"
+      },
+      {
+        "path": "tools/ot153_noise_xk_radio_coordinator.py",
+        "bytes": 27295,
+        "sha256": "6635c73c6952b322ec1d72043a80f637b2cc04b70c1763f578ea4f38559aeaf3"
+      },
+      {
+        "path": "tools/ot153_noise_xk_radio_runner.py",
+        "bytes": 29335,
+        "sha256": "8b20512bf25f06247bb59defa092b8db82fde753484a3936d9e4aee2fba808be"
+      }
+    ]
+  },
+  "images": {
+    "schema": "noise-xk-role-images-v1",
+    "images": {
+      "benchmark": {
+        "name": "ot153_noise_xk_radio_cost.bin",
+        "bytes": 296640,
+        "sha256": "ed2eef319d5bca22d1d89a0be61e63463ada1a8fb3277238cdf95cf93093cd3c"
+      },
+      "restore_a": {
+        "name": "opentrail_heltec_v4_bench.bin",
+        "bytes": 586736,
+        "sha256": "43ac6dbc506c03faa63aae7a8e27195750598f06f3118bfff1ef7af84bc8d9f2"
+      },
+      "restore_b": {
+        "name": "opentrail_heltec_v4_bench.bin",
+        "bytes": 587968,
+        "sha256": "984e241dc72fad956d34b5e83f04fd307dcb95e0f18c629ac46d21da9d96d87b"
+      }
+    }
+  },
+  "application_offset": 65536,
+  "observed_local_tools": {
+    "python": "3.14.6",
+    "esptool": "5.3.1",
+    "pyserial": "3.5"
+  },
+  "installed_bytes_verified": false,
+  "radio_executed": false
+}
