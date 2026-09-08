@@ -15,6 +15,7 @@ import hashlib
 import importlib
 import importlib.util
 import sys
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
@@ -335,9 +336,25 @@ frozen._receipt = _receipt
 frozen.runner = SimpleNamespace(run=_run, validate_public_result=runner.validate_public_result)
 
 
+_operation_lock = threading.Lock()
+
+
+def _operation(operation, config, backend, authority):
+    global _active_journal
+    # One private frozen-module instance owns one journal. Reject both parallel
+    # and callback-reentrant operations before preparation or backend access.
+    if not _operation_lock.acquire(blocking=False):
+        raise CoordinatorError(FailureCode.INVALID_CONFIGURATION)
+    try:
+        return operation(config, _RoleCheckedBackend(config, backend), authority)
+    finally:
+        _active_journal = None
+        _operation_lock.release()
+
+
 def execute(config: RunConfig, backend, authority) -> dict[str, Any]:
-    return frozen.execute(config, _RoleCheckedBackend(config, backend), authority)
+    return _operation(frozen.execute, config, backend, authority)
 
 
 def recover(config: RunConfig, backend, authority) -> dict[str, Any]:
-    return frozen.recover(config, _RoleCheckedBackend(config, backend), authority)
+    return _operation(frozen.recover, config, backend, authority)

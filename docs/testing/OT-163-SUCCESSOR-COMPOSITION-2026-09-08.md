@@ -32,6 +32,9 @@ bytes and installed readbacks must pass before authority consumption and writes.
 The journal and receipt retain both descriptors. Recovery reads the role-specific
 restoration images without requiring the benchmark file or invoking the runner.
 One role's restoration failure does not prevent the other's independent attempt.
+Concurrent and callback-reentrant execution/recovery are rejected before backend
+access so they cannot replace the active journal. The guard clears on exit,
+including interrupts.
 
 An injected backend must explicitly verify the endpoint's anonymous role before
 every operation, independently of installed application bytes. Both devices can
@@ -47,7 +50,7 @@ This verifies local artifacts only, not installed bytes or current connectivity.
 
 The focused suites exercise the real byte-parser/runner path and failure recovery
 with fake serial handles and backends. Both are wired into `tools/Test-Host.ps1`.
-The 83 focused cases pass, including eight byte-composition cases and fifteen
+The 86 focused cases pass, including eight byte-composition cases and eighteen
 per-role recovery cases; 291 raw-byte inputs, 16 scope groups, 13 documentation
 tests and publication scanning also pass. Synthetic
 radio receipts validate host orchestration; they are not measured radio results.

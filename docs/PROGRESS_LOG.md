@@ -39,8 +39,8 @@ images through exact grants, preflight, journal and cleanup. Real-byte tests
 also exposed and corrected receipt-type incompatibility and rejection of the
 firmware's three SHA-256 field names. Nonconsecutive handle reuse is rejected.
 
-All 83 focused transport/runner/recovery cases pass, including eight composed
-byte-path cases and fifteen per-role recovery cases. The integrated simulation
+All 86 focused transport/runner/recovery cases pass, including eight composed
+byte-path cases and eighteen per-role recovery cases. The integrated simulation
 passes the unchanged 14-frame result validator and restores both distinct
 images. The 291-input byte audit, 16 scope groups, 13 documentation tests and
 publication scan pass. No hardware or result admission is implied. The next

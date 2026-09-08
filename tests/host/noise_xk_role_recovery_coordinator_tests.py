@@ -10,6 +10,7 @@ import hashlib
 import json
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -261,6 +262,72 @@ class RecoveryTests(unittest.TestCase):
             with self.assertRaises(c.CoordinatorError):
                 f.execute()
             self.assertEqual(f.backend.events, [])
+
+    def test_parallel_execute_and_recover_reject_before_access_and_keep_active_journal(self):
+        with Fixture() as f:
+            entered, release = threading.Event(), threading.Event()
+            outcomes = []
+
+            def blocked_runner(*args):
+                entered.set()
+                if not release.wait(5):
+                    raise AssertionError("test rendezvous expired")
+                raise c.runner.RunnerError(c.runner.StageCode.INITIAL_BOOT_CONTRACT_A)
+
+            c.runner.run.side_effect = blocked_runner
+            def first():
+                try:
+                    f.execute()
+                except c.CoordinatorError as exc:
+                    outcomes.append(exc.code)
+            worker = threading.Thread(target=first)
+            worker.start()
+            try:
+                self.assertTrue(entered.wait(5))
+                original = c._active_journal
+                before = list(f.backend.events)
+                for operation in (f.execute, f.recover):
+                    with self.assertRaises(c.CoordinatorError) as error:
+                        operation()
+                    self.assertEqual(error.exception.code, c.FailureCode.INVALID_CONFIGURATION)
+                    self.assertIs(c._active_journal, original)
+                    self.assertEqual(f.backend.events, before)
+            finally:
+                release.set()
+                worker.join(5)
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(outcomes, [c.FailureCode.RADIO_RUN_FAILED])
+            journal = json.loads(c.frozen.JOURNAL_PATH.read_text())
+            self.assertEqual(journal["radio_failure_stage"], "initial_boot_contract_a")
+            self.assertEqual(journal["binding"], dataclasses.asdict(f.binding))
+            self.assertTrue(c.frozen._restoration_complete(journal))
+            self.assertIsNone(c._active_journal)
+
+    def test_backend_callback_cannot_reenter_execute_or_recover(self):
+        with Fixture() as f:
+            original = f.backend.verify_role
+            attempts = []
+            def reentrant(endpoint, role, descriptor):
+                if not attempts:
+                    attempts.append("entered")
+                    for operation in (f.execute, f.recover):
+                        with self.assertRaises(c.CoordinatorError) as error:
+                            operation()
+                        self.assertEqual(error.exception.code, c.FailureCode.INVALID_CONFIGURATION)
+                return original(endpoint, role, descriptor)
+            f.backend.verify_role = reentrant
+            self.assertTrue(f.execute()["restoration_complete"])
+            self.assertEqual(attempts, ["entered"])
+            self.assertIsNone(c._active_journal)
+
+    def test_operation_finally_releases_lock_and_journal_after_baseexception(self):
+        with Fixture() as f:
+            with mock.patch.object(c.frozen, "execute", side_effect=KeyboardInterrupt("private test")):
+                with self.assertRaises(KeyboardInterrupt):
+                    f.execute()
+            self.assertIsNone(c._active_journal)
+            self.assertTrue(f.execute()["restoration_complete"])
+            self.assertIsNone(c._active_journal)
 
 
 if __name__ == "__main__":
