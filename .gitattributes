@@ -428,3 +428,10 @@ tests/host/noise_xk_receipt_observation_*_tests.py text eol=lf
 tests/benchmarks/crypto/OT-163-OBSERVATION-EXECUTION-BINDING-*-2026-09-09.json text eol=lf
 tests/hardware/OT-163-OBSERVATION-PREFLIGHT-*-2026-09-09.json text eol=lf
 tests/hardware/OT-163-OBSERVATION-LIVE-OUTCOME-*-2026-09-09.json text eol=lf
+
+# OT-163 console regression evidence: retain pinned upstream CRLF source bytes.
+tools/noise_xk_console_source_probe.py text eol=lf
+tests/host/noise_xk_console_source_probe_tests.py text eol=lf
+tests/host/fixtures/noise_xk_console_source/** text eol=lf
+tests/host/fixtures/noise_xk_console_source/*.c -text whitespace=cr-at-eol
+tests/host/fixtures/noise_xk_console_source/LICENSE -text whitespace=cr-at-eol

@@ -112,9 +112,10 @@
         ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json", "docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md", "tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json", "docs/testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md", "tests/benchmarks/crypto/OT-163-CONTAINED-EXECUTION-BINDING-3-2026-09-09.json", "tests/hardware/OT-163-CONTAINED-LIVE-OUTCOME-3-2026-09-09.json", "docs/testing/OT-163-RECEIPT-OBSERVATION-2026-09-09.md",
         "docs/testing/OT-163-OBSERVATION-PREFLIGHT-2026-09-09.md",
         "docs/testing/OT-163-OBSERVATION-RUN-2026-09-09.md",
+        "docs/testing/OT-163-CONSOLE-SOURCE-PROBE-2026-09-09.md",
         "tests/benchmarks/crypto/OT-163-OBSERVATION-EXECUTION-BINDING-4-2026-09-09.json"
       ],
-      "next_gate": "Attempt 4 completed the baseline exchange but stopped before forced-retry transmission at Node B initial RX_START. Twenty empty reads returned zero bytes, with zero parsed lines or pending data. Both originals and protected regions passed independent restoration/readback/reset checks; the grant is consumed. Next is a bounded host/source probe of console delivery at the immediate PREPARED-to-RX_START log boundary, without another hardware attempt or grant. No physical root cause or complete radio-cost result is admitted. Separately finish corrected mbedTLS/PSA execution and remaining gates before Phase 2 reconciliation and Phase 3 admission."
+      "next_gate": "The actual-source host console probe reproduces full reported write counts despite injected ROM-output failure in the admitted simple-stdio path. Evaluate a bounded console-delivery correction with actual-source regression before hardware. This is not the physical timeout cause or a firmware fix; consumed grants remain non-reusable. Complete benchmark and remaining crypto measurement/admission gates stay open."
     },
     {
       "id": "core-firmware",
@@ -311,9 +312,10 @@
             ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json", "docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md", "tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json", "docs/testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md", "tests/benchmarks/crypto/OT-163-CONTAINED-EXECUTION-BINDING-3-2026-09-09.json", "tests/hardware/OT-163-CONTAINED-LIVE-OUTCOME-3-2026-09-09.json", "docs/testing/OT-163-RECEIPT-OBSERVATION-2026-09-09.md",
         "docs/testing/OT-163-OBSERVATION-PREFLIGHT-2026-09-09.md",
         "docs/testing/OT-163-OBSERVATION-RUN-2026-09-09.md",
+        "docs/testing/OT-163-CONSOLE-SOURCE-PROBE-2026-09-09.md",
         "tests/benchmarks/crypto/OT-163-OBSERVATION-EXECUTION-BINDING-4-2026-09-09.json"
           ],
-          "next_gate": "Attempt 4 completed the baseline exchange but stopped before forced-retry transmission at Node B initial RX_START. Twenty empty reads returned zero bytes, with zero parsed lines or pending data. Both originals and protected regions passed independent restoration/readback/reset checks; the grant is consumed. Next is a bounded host/source probe of console delivery at the immediate PREPARED-to-RX_START log boundary, without another hardware attempt or grant. No physical root cause or complete radio-cost result is admitted. Separately finish corrected mbedTLS/PSA execution and remaining gates before Phase 2 reconciliation and Phase 3 admission."
+          "next_gate": "The actual-source host console probe reproduces full reported write counts despite injected ROM-output failure in the admitted simple-stdio path. Evaluate a bounded console-delivery correction with actual-source regression before hardware. This is not the physical timeout cause or a firmware fix; consumed grants remain non-reusable. Complete benchmark and remaining crypto measurement/admission gates stay open."
         },
         {
           "id": "core-firmware",
@@ -1210,6 +1212,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "Physical observation attempt 4 completed baseline m1/m2/m3 TX_DONE and accepted peer RX plus END on both nodes, then stopped at Node B initial forced-retry RX_START before retry transmission. The observer retained 20 empty reads and zero returned bytes, parsed lines or pending bytes. Both original applications and protected regions passed independent restoration/readback/reset checks. The one-use grant is consumed. No root cause or complete benchmark is admitted; next is bounded host/source investigation of console delivery at the immediate PREPARED-to-RX_START log boundary without another hardware attempt. All 42 sources remain unchanged. V1 stays 45.50 exact/46 displayed and historical baseline 31.75 exact/32 displayed; no weights or completion scores change. Website status unchanged."
+        },
+        {
+          "date": "2026-09-09",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "The host-only actual-source console probe shows valid writes returning the requested count despite injected ROM-output failure. Exact source/configuration and selected live map admission identify the simple-stdio path and distinguish discarded symbols; separate full-map verification establishes VFS absence. No physical cause, firmware correction, complete benchmark or hardware authority is admitted. Evaluate a bounded console-delivery correction with actual-source regression before hardware. All milestone completions and weights are unchanged; no public website status change."
         }
       ]
     },
@@ -1655,6 +1663,11 @@
       "date": "2026-09-09",
       "overall": 32,
       "reason": "Physical observation attempt 4 completed baseline m1/m2/m3 TX_DONE and accepted peer RX plus END on both nodes, then stopped at Node B initial forced-retry RX_START before retry transmission. The observer retained 20 empty reads and zero returned bytes, parsed lines or pending bytes. Both original applications and protected regions passed independent restoration/readback/reset checks. The one-use grant is consumed. No root cause or complete benchmark is admitted; next is bounded host/source investigation of console delivery at the immediate PREPARED-to-RX_START log boundary without another hardware attempt. All 42 sources remain unchanged. V1 stays 45.50 exact/46 displayed and historical baseline 31.75 exact/32 displayed; no weights or completion scores change. Website status unchanged."
+    },
+    {
+      "date": "2026-09-09",
+      "overall": 32,
+      "reason": "The host-only actual-source console probe shows valid writes returning the requested count despite injected ROM-output failure. Exact source/configuration and selected live map admission identify the simple-stdio path and distinguish discarded symbols; separate full-map verification establishes VFS absence. No physical cause, firmware correction, complete benchmark or hardware authority is admitted. Evaluate a bounded console-delivery correction with actual-source regression before hardware. All milestone completions and weights are unchanged; no public website status change."
     }
   ]
 }

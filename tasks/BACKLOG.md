@@ -48,9 +48,10 @@ preserves all removed summaries and superseded sequencing; see the
    reads returned zero bytes; both originals and protected regions passed
    independent restoration/readback/reset checks. Its grant is consumed.
    See [the outcome](../docs/testing/OT-163-OBSERVATION-RUN-2026-09-09.md).
-   Next probe console delivery at the immediate PREPARED-to-RX_START log boundary in bounded host/source
-   work. No further hardware attempt, root cause, complete benchmark, V1 credit
-   or website change is admitted.
+   The [actual-source console probe](../docs/testing/OT-163-CONSOLE-SOURCE-PROBE-2026-09-09.md)
+   now reproduces a console error-reporting limitation under simulation. Evaluate
+   a bounded console-delivery correction with actual-source regression before
+   any hardware attempt; the physical cause and complete benchmark remain open.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.
    Current Messages screens store local templates; no product radio path is wired.
