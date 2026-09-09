@@ -29,8 +29,10 @@ preserves all removed summaries and superseded sequencing; see the
    attempt 2 issued `m3`, received `TX_START` and timed out awaiting `TX_DONE`. Both grants are
    consumed, and both role images were fully restored, read back and reset after
    attempt 2. Host fault injection proves an unbounded driver BUSY wait, not the
-   physical cause. Bound that wait and add finite transmit/rearm and parser
-   diagnostics before a freshly bound attempt; preserve the host deadline.
+   physical cause. The bounded driver/firmware and diagnostic runtime now pass
+   host tests and matching clean builds; see [containment evidence](../docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md).
+   Next bind their exact image/source/recovery provenance and execute one fresh
+   bounded attempt through independent restoration; preserve the host deadline.
    No root cause, complete result, V1 credit or website change is admitted.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.

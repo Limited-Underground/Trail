@@ -1,0 +1,17 @@
+{
+  "transmit": {
+    "upstream": "modules/SX126x/SX126x.cpp",
+    "source_sha256": "57c7256bae24b9fa2d1ad2cd94e40d6f4d0c6a3c3dc290f3bfa858304ea1deb7",
+    "method_sha256": "dadd0350d43e6bae98d20565aa5139de3d092a00d24057551cf1aab35d83e41e"
+  },
+  "start_transmit": {
+    "upstream": "protocols/PhysicalLayer/PhysicalLayer.cpp",
+    "source_sha256": "118449d38a4c2b4bb586b7092a6094b87b6d667890f1f6450b4ad8d9a9bf339b",
+    "method_sha256": "6d109fbe3332d9366125b1ab085e06d6e580161c4d5fd85969601ea6d6733040"
+  },
+  "launch": {
+    "upstream": "modules/SX126x/SX126x.cpp",
+    "source_sha256": "57c7256bae24b9fa2d1ad2cd94e40d6f4d0c6a3c3dc290f3bfa858304ea1deb7",
+    "method_sha256": "aa7a8b5f26f50a2d4617d4c72cd5f5a4ca2831e346bba4144327682f9e2a45c0"
+  }
+}

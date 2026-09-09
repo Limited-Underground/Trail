@@ -2,6 +2,18 @@
 
 ## 2026-09-09
 
+### OT-163 Bounded radio driver and diagnostic firmware candidate
+
+Consolidated the TX BUSY deadline, firmware error containment, strict return
+checkpoints and diagnostic retention across host reconnect/cleanup. Parallel
+review caught and corrected a receive-admission race and receive-rearm timeout
+handling. Twenty-one focused test groups pass, including actual generated C++
+behavior and real-byte 14-frame/736-byte simulation. Two clean firmware builds
+are identical; the 297,792-byte candidate has not been installed. The exact
+image/runtime/recovery execution binding is next. Physical root cause, complete
+radio measurements and product messaging remain unproved; V1 and website status
+are unchanged. See [the evidence](testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md).
+
 ### OT-163 Diagnostic execution evidence reconciled for publication
 
 Verified the reconciled source snapshots against all 26 and 27 bound files and
