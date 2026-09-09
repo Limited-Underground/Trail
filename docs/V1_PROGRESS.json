@@ -109,9 +109,9 @@
         ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
         ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
         ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
-        ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json", "docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md", "tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json"
+        ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json", "docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md", "tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json", "docs/testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md", "tests/benchmarks/crypto/OT-163-CONTAINED-EXECUTION-BINDING-3-2026-09-09.json", "tests/hardware/OT-163-CONTAINED-LIVE-OUTCOME-3-2026-09-09.json"
       ],
-      "next_gate": "The bounded radio candidate passes actual-driver, generated firmware and real-byte runtime tests with two matching clean builds. Bind its exact new firmware/runtime/source and independent recovery provenance, prove composed admission and cleanup, then run one fresh bounded two-board attempt. Physical timeout cause remains unknown; preserve the five-second host deadline. Separately finish corrected mbedTLS/PSA execution and remaining gates before Phase 2 reconciliation and Phase 3 admission."
+      "next_gate": "Contained attempt 3 reached m3 TX_RETURN and RX_REARM_RETURN with result 0 but timed out awaiting TX_DONE; both originals and protected regions were independently restored/read back/reset. Investigate completion-receipt emission/delivery and incomplete-byte handling with bounded host evidence; preserve the five-second deadline. No physical root cause or complete radio-cost result is admitted. Separately finish corrected mbedTLS/PSA execution and remaining gates before Phase 2 reconciliation and Phase 3 admission."
     },
     {
       "id": "core-firmware",
@@ -305,9 +305,9 @@
             ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
             ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
-            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json", "docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md", "tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json"
+            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json", "docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md", "tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json", "docs/testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md", "tests/benchmarks/crypto/OT-163-CONTAINED-EXECUTION-BINDING-3-2026-09-09.json", "tests/hardware/OT-163-CONTAINED-LIVE-OUTCOME-3-2026-09-09.json"
           ],
-          "next_gate": "The bounded radio candidate passes actual-driver, generated firmware and real-byte runtime tests with two matching clean builds. Bind its exact new firmware/runtime/source and independent recovery provenance, prove composed admission and cleanup, then run one fresh bounded two-board attempt. Physical timeout cause remains unknown; preserve the five-second host deadline. Separately finish corrected mbedTLS/PSA execution and remaining gates before Phase 2 reconciliation and Phase 3 admission."
+          "next_gate": "Contained attempt 3 reached m3 TX_RETURN and RX_REARM_RETURN with result 0 but timed out awaiting TX_DONE; both originals and protected regions were independently restored/read back/reset. Investigate completion-receipt emission/delivery and incomplete-byte handling with bounded host evidence; preserve the five-second deadline. No physical root cause or complete radio-cost result is admitted. Separately finish corrected mbedTLS/PSA execution and remaining gates before Phase 2 reconciliation and Phase 3 admission."
         },
         {
           "id": "core-firmware",
@@ -1180,6 +1180,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "Bounded radio TX BUSY wait, firmware timeout containment and finite diagnostic runtime pass 21 focused host groups and two matching clean builds. No new physical radio evidence; exact execution/recovery binding and fresh attempt remain. Scores and weights unchanged: V1 Companion 45.50 exact/46 displayed, historical baseline 31.75 exact/32 displayed. Website unchanged and deferred."
+        },
+        {
+          "date": "2026-09-09",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "The exact contained execution binding passed the full host matrix and was exercised in one physical attempt. Attempt 3 recorded successful m3 transmit and receive-rearm returns but no TX_DONE within five seconds; no root cause or complete radio-cost result is admitted. Both original applications and protected regions passed independent restoration/readback/reset checks; the grant is consumed. Next investigate completion-receipt emission/delivery and incomplete bytes. All scores, milestone completions and weights remain unchanged: V1 45.50 exact/46 displayed and baseline 31.75 exact/32 displayed. Website unchanged and deferred."
         }
       ]
     },
@@ -1605,6 +1611,11 @@
       "date": "2026-09-09",
       "overall": 32,
       "reason": "Bounded radio TX BUSY wait, firmware timeout containment and finite diagnostic runtime pass 21 focused host groups and two matching clean builds. No new physical radio evidence; exact execution/recovery binding and fresh attempt remain. Scores and weights unchanged: V1 Companion 45.50 exact/46 displayed, historical baseline 31.75 exact/32 displayed. Website unchanged and deferred."
+    },
+    {
+      "date": "2026-09-09",
+      "overall": 32,
+      "reason": "The exact contained execution binding passed the full host matrix and was exercised in one physical attempt. Attempt 3 recorded successful m3 transmit and receive-rearm returns but no TX_DONE within five seconds; no root cause or complete radio-cost result is admitted. Both original applications and protected regions passed independent restoration/readback/reset checks; the grant is consumed. Next investigate completion-receipt emission/delivery and incomplete bytes. All scores, milestone completions and weights remain unchanged: V1 45.50 exact/46 displayed and baseline 31.75 exact/32 displayed. Website unchanged and deferred."
     }
   ]
 }
