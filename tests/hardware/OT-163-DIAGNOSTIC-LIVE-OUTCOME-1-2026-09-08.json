@@ -1,0 +1,496 @@
+{
+  "schema": "OT163-DIAGNOSTIC-LIVE-OUTCOME-1",
+  "attempt": 1,
+  "started_utc": "2026-09-08T22:47:17.317375+00:00",
+  "finished_utc": "2026-09-08T22:54:01.342749+00:00",
+  "source_snapshot_sha256": "e5c7e46ba51d3cf377d85ebe2f61632a40eb6198168a42efcaf8202e40657be0",
+  "grant_consumed": true,
+  "coordinator": {
+    "authority_raw_sha256": "bd8f616898edf669671c6e65f2a0e70edd5e74ec838cb25e7c1d80e97c6c5da6",
+    "binding": {
+      "application_offset": 65536,
+      "baud": 115200,
+      "benchmark_bytes": 297152,
+      "benchmark_name": "noise_xk_ready_radio.bin",
+      "benchmark_sha256": "3c3913ee4c2a60bd4168e0bb60eca6a0f2a641ba8f283f99f656c04c07b301c7",
+      "restore_a": {
+        "bytes": 586736,
+        "name": "opentrail_heltec_v4_bench.bin",
+        "sha256": "43ac6dbc506c03faa63aae7a8e27195750598f06f3118bfff1ef7af84bc8d9f2"
+      },
+      "restore_b": {
+        "bytes": 587968,
+        "name": "opentrail_heltec_v4_bench.bin",
+        "sha256": "984e241dc72fad956d34b5e83f04fd307dcb95e0f18c629ac46d21da9d96d87b"
+      },
+      "runner_name": "noise_xk_solicited_runner.py",
+      "runner_schema": "OT153NXR0",
+      "runner_sha256": "7e785ea0e5723319ae06c0d188cca5dcf6f79739315b94160dabead0cb06a0ae"
+    },
+    "claims": {
+      "candidate_selected": false,
+      "packet_v1_selected": false,
+      "phase_two_complete": false,
+      "production_ready": false,
+      "regulatory_acceptance_proven": false,
+      "score_credit_added": false,
+      "suite_selected": false,
+      "supported_target_proven": false
+    },
+    "failure": {
+      "code": "radio_run_failed",
+      "stage": "restart_boot_contract_b"
+    },
+    "node_count": 2,
+    "nodes": [
+      {
+        "benchmark_readback_verified": true,
+        "benchmark_reset_completed": true,
+        "installed_app_readback_verified": true,
+        "node": "A",
+        "preflight_reset_completed": true,
+        "restore_readback_verified": true,
+        "restore_reset_completed": true
+      },
+      {
+        "benchmark_readback_verified": true,
+        "benchmark_reset_completed": true,
+        "installed_app_readback_verified": true,
+        "node": "B",
+        "preflight_reset_completed": true,
+        "restore_readback_verified": true,
+        "restore_reset_completed": true
+      }
+    ],
+    "privacy": {
+      "backend_error_text_recorded": false,
+      "device_identifiers_recorded": false,
+      "filesystem_paths_recorded": false,
+      "private_endpoints_recorded": false,
+      "raw_serial_recorded": false
+    },
+    "radio_result_validated": false,
+    "radio_run_invoked": true,
+    "restoration_complete": true,
+    "result": "noise_xk_radio_execution_aborted",
+    "schema": "OTNXDIAGCR0",
+    "version": 0
+  },
+  "preflight": [
+    {
+      "role": "A",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+        }
+      }
+    },
+    {
+      "role": "B",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+        }
+      }
+    }
+  ],
+  "postcheck": [
+    {
+      "role": "A",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+        }
+      }
+    },
+    {
+      "role": "B",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+        }
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "role": "A",
+      "operation": "query_ready",
+      "phase": "started",
+      "kind": "READY"
+    },
+    {
+      "role": "A",
+      "operation": "query_ready",
+      "phase": "succeeded",
+      "kind": "READY",
+      "receipt_kind": "READY",
+      "fields": {
+        "idle": "yes",
+        "accepted": "yes",
+        "tx": "no",
+        "radio_ready": "yes",
+        "stale_selftest": "yes"
+      }
+    },
+    {
+      "role": "A",
+      "operation": "expect",
+      "phase": "started",
+      "kind": "PROFILE"
+    },
+    {
+      "role": "A",
+      "operation": "expect",
+      "phase": "succeeded",
+      "kind": "PROFILE",
+      "receipt_kind": "PROFILE",
+      "fields": {}
+    },
+    {
+      "role": "A",
+      "operation": "expect",
+      "phase": "started",
+      "kind": "STATUS"
+    },
+    {
+      "role": "A",
+      "operation": "expect",
+      "phase": "succeeded",
+      "kind": "STATUS",
+      "receipt_kind": "STATUS",
+      "fields": {
+        "stage": 0,
+        "last_radio": 0,
+        "tx_attempted": 0,
+        "forced_timeouts": 0,
+        "tx_failed": 0,
+        "rx_rejected": 0,
+        "unexpected": 0,
+        "lost": 0,
+        "corrupt": 0,
+        "duplicates": 0,
+        "role": "none",
+        "scenario": "none",
+        "rx_accepted": 0,
+        "tx_sent": 0,
+        "active": "no"
+      }
+    },
+    {
+      "role": "B",
+      "operation": "query_ready",
+      "phase": "started",
+      "kind": "READY"
+    },
+    {
+      "role": "B",
+      "operation": "query_ready",
+      "phase": "succeeded",
+      "kind": "READY",
+      "receipt_kind": "READY",
+      "fields": {
+        "idle": "yes",
+        "accepted": "yes",
+        "tx": "no",
+        "radio_ready": "yes",
+        "stale_selftest": "yes"
+      }
+    },
+    {
+      "role": "B",
+      "operation": "expect",
+      "phase": "started",
+      "kind": "PROFILE"
+    },
+    {
+      "role": "B",
+      "operation": "expect",
+      "phase": "succeeded",
+      "kind": "PROFILE",
+      "receipt_kind": "PROFILE",
+      "fields": {}
+    },
+    {
+      "role": "B",
+      "operation": "expect",
+      "phase": "started",
+      "kind": "STATUS"
+    },
+    {
+      "role": "B",
+      "operation": "expect",
+      "phase": "succeeded",
+      "kind": "STATUS",
+      "receipt_kind": "STATUS",
+      "fields": {
+        "stage": 0,
+        "last_radio": 0,
+        "tx_attempted": 0,
+        "forced_timeouts": 0,
+        "tx_failed": 0,
+        "rx_rejected": 0,
+        "unexpected": 0,
+        "lost": 0,
+        "corrupt": 0,
+        "duplicates": 0,
+        "role": "none",
+        "scenario": "none",
+        "rx_accepted": 0,
+        "tx_sent": 0,
+        "active": "no"
+      }
+    },
+    {
+      "role": "A",
+      "operation": "write_command",
+      "phase": "started",
+      "kind": "COMMAND",
+      "command": "restart"
+    },
+    {
+      "role": "A",
+      "operation": "write_command",
+      "phase": "succeeded",
+      "kind": "COMMAND",
+      "command": "restart"
+    },
+    {
+      "role": "A",
+      "operation": "expect",
+      "phase": "started",
+      "kind": "RESTART"
+    },
+    {
+      "role": "A",
+      "operation": "expect",
+      "phase": "succeeded",
+      "kind": "RESTART",
+      "receipt_kind": "RESTART",
+      "fields": {
+        "wiped": "yes",
+        "accepted": "yes",
+        "tx": "no"
+      }
+    },
+    {
+      "role": "B",
+      "operation": "write_command",
+      "phase": "started",
+      "kind": "COMMAND",
+      "command": "restart"
+    },
+    {
+      "role": "B",
+      "operation": "write_command",
+      "phase": "succeeded",
+      "kind": "COMMAND",
+      "command": "restart"
+    },
+    {
+      "role": "B",
+      "operation": "expect",
+      "phase": "started",
+      "kind": "RESTART"
+    },
+    {
+      "role": "B",
+      "operation": "expect",
+      "phase": "succeeded",
+      "kind": "RESTART",
+      "receipt_kind": "RESTART",
+      "fields": {
+        "wiped": "yes",
+        "accepted": "yes",
+        "tx": "no"
+      }
+    },
+    {
+      "role": "A",
+      "operation": "reopen",
+      "phase": "started",
+      "kind": "LIFECYCLE"
+    },
+    {
+      "role": "A",
+      "operation": "reopen",
+      "phase": "succeeded",
+      "kind": "LIFECYCLE"
+    },
+    {
+      "role": "B",
+      "operation": "reopen",
+      "phase": "started",
+      "kind": "LIFECYCLE"
+    },
+    {
+      "role": "B",
+      "operation": "reopen",
+      "phase": "succeeded",
+      "kind": "LIFECYCLE"
+    },
+    {
+      "role": "A",
+      "operation": "query_ready",
+      "phase": "started",
+      "kind": "READY"
+    },
+    {
+      "role": "A",
+      "operation": "query_ready",
+      "phase": "succeeded",
+      "kind": "READY",
+      "receipt_kind": "READY",
+      "fields": {
+        "idle": "yes",
+        "accepted": "yes",
+        "tx": "no",
+        "radio_ready": "yes",
+        "stale_selftest": "yes"
+      }
+    },
+    {
+      "role": "A",
+      "operation": "expect",
+      "phase": "started",
+      "kind": "PROFILE"
+    },
+    {
+      "role": "A",
+      "operation": "expect",
+      "phase": "succeeded",
+      "kind": "PROFILE",
+      "receipt_kind": "PROFILE",
+      "fields": {}
+    },
+    {
+      "role": "A",
+      "operation": "expect",
+      "phase": "started",
+      "kind": "STATUS"
+    },
+    {
+      "role": "A",
+      "operation": "expect",
+      "phase": "succeeded",
+      "kind": "STATUS",
+      "receipt_kind": "STATUS",
+      "fields": {
+        "stage": 0,
+        "last_radio": 0,
+        "tx_attempted": 0,
+        "forced_timeouts": 0,
+        "tx_failed": 0,
+        "rx_rejected": 0,
+        "unexpected": 0,
+        "lost": 0,
+        "corrupt": 0,
+        "duplicates": 0,
+        "role": "none",
+        "scenario": "none",
+        "rx_accepted": 0,
+        "tx_sent": 0,
+        "active": "no"
+      }
+    },
+    {
+      "role": "B",
+      "operation": "query_ready",
+      "phase": "started",
+      "kind": "READY"
+    },
+    {
+      "role": "B",
+      "operation": "query_ready",
+      "phase": "failed",
+      "kind": "READY",
+      "error": "readiness_receipt_invalid"
+    },
+    {
+      "role": "B",
+      "operation": "close",
+      "phase": "started",
+      "kind": "LIFECYCLE"
+    },
+    {
+      "role": "B",
+      "operation": "close",
+      "phase": "succeeded",
+      "kind": "LIFECYCLE"
+    },
+    {
+      "role": "A",
+      "operation": "close",
+      "phase": "started",
+      "kind": "LIFECYCLE"
+    },
+    {
+      "role": "A",
+      "operation": "close",
+      "phase": "succeeded",
+      "kind": "LIFECYCLE"
+    }
+  ],
+  "root_cause_established": false,
+  "scope": "Bench startup failure before prepare or send; no complete radio result admitted."
+}

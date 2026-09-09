@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-08. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-09. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -57,12 +57,32 @@ normal/large-font candidate visibility remain untested by that update.
 
 A bounded endpoint observer now distinguishes retry receipt boundaries in host
 tests while preserving the existing runner result and exceptions. See
-[retry diagnostics](testing/OT-163-RETRY-DIAGNOSTICS-2026-09-08.md). Next, bind this
-observer into a fresh execution snapshot and non-reusable attempt, recheck both
-boards and capture the precise failing substep with independent restoration.
-The previous grant is consumed; both boards passed exact restoration and full
-postchecks. Its broad stage cannot identify the failed substep retrospectively.
-No complete radio-cost result or phone-to-phone delivery is admitted.
+[retry diagnostics](testing/OT-163-RETRY-DIAGNOSTICS-2026-09-08.md). The observer
+is now composed at the concrete backend endpoint-open seam using exact role-object
+identity. Its 26-source/three-image binding retains the existing coordinator and
+separate restoration images, and each admitted attempt ordinal owns distinct
+journal, execution and recovery names. Deterministic tests prove successful and
+failed cleanup, no-ROM-while-radio-leased behavior, restore-only recovery and
+non-reuse of a consumed namespace. See the
+[diagnostic execution binding](testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md).
+
+Two bounded diagnostic attempts are now recorded. Attempt 1 stopped at Node B's
+post-restart readiness receipt. The 27-source startup-tolerance successor then
+allowed only recognized bounded startup noise and healthy stale READY receipts;
+attempt 2 issued `m3` and received `TX_START`, then timed out awaiting `TX_DONE`.
+Both one-use grants are consumed. After each attempt, both distinct role images
+were restored, read back and reset; independent application-span and
+bootloader/partition/OTA postchecks passed
+for both attempts. See the
+[instrumented run](testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md). The timeout
+location is known, but its root cause is not.
+
+Host fault injection now proves an unbounded BUSY wait before the driver TX
+timer starts, without establishing the physical timeout cause. Next, bound that
+wait and add finite transmit-return/receive-rearm and parser-discard diagnostics
+before any new physical authority is considered. Do not change the established
+receipt timeout without evidence. No complete radio-cost result, cryptographic
+selection, phone-to-phone delivery, V1 credit or website change is admitted.
 
 After the remaining crypto measurement/admission and explicit suite/wire selection,
 implement one authenticated two-node message exchange, then its protected BLE

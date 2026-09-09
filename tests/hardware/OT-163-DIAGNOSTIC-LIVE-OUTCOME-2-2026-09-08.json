@@ -1,0 +1,223 @@
+{
+  "schema": "OT163-DIAGNOSTIC-LIVE-OUTCOME-2",
+  "attempt": 2,
+  "date": "2026-09-08",
+  "evidence_basis": "retained coordinator execution receipt and independent postchecks",
+  "result": "noise_xk_radio_execution_aborted",
+  "radio_result_validated": false,
+  "failure": {
+    "receipt": "TX_DONE",
+    "after_message": "m3",
+    "category": "receipt_timeout"
+  },
+  "root_cause_established": false,
+  "grant_consumed": true,
+  "restoration": {
+    "complete": true,
+    "nodes": [
+      {
+        "role": "A",
+        "application_restored": true,
+        "readback_verified": true,
+        "reset_completed": true
+      },
+      {
+        "role": "B",
+        "application_restored": true,
+        "readback_verified": true,
+        "reset_completed": true
+      }
+    ]
+  },
+  "claims": {
+    "score_credit_added": false,
+    "v1_completion_changed": false,
+    "website_projection_changed": false,
+    "suite_selected": false,
+    "production_ready": false
+  },
+  "privacy": {
+    "raw_serial_recorded": false,
+    "device_identifiers_recorded": false,
+    "private_endpoints_recorded": false,
+    "credentials_recorded": false
+  },
+  "scope": "Attempt 2 establishes only a TX_DONE receipt timeout after m3 and exact two-role recovery; it does not establish the timeout root cause or admit a complete radio-cost result.",
+  "execution_evidence": {
+    "started_utc": "2026-09-08T23:04:14.580705+00:00",
+    "finished_utc": "2026-09-08T23:10:49.977273+00:00",
+    "source_snapshot_sha256": "f5af9c177fd401465defd595d3db064b928da2b29c4d810235047212ed55b0e7",
+    "failure_stage": "cycle1_baseline",
+    "last_transport_events": [
+      {
+        "role": "A",
+        "operation": "write_command",
+        "phase": "started",
+        "kind": "COMMAND",
+        "command": "send",
+        "message": "m3"
+      },
+      {
+        "role": "A",
+        "operation": "write_command",
+        "phase": "succeeded",
+        "kind": "COMMAND",
+        "command": "send",
+        "message": "m3"
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "started",
+        "kind": "TX_START"
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "TX_START",
+        "receipt_kind": "TX_START",
+        "fields": {
+          "start_us": 916854,
+          "message": "m3",
+          "wire": 64,
+          "role": "I",
+          "scenario": "baseline"
+        }
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "started",
+        "kind": "TX_DONE"
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "failed",
+        "kind": "TX_DONE",
+        "error": "receipt_timeout"
+      },
+      {
+        "role": "B",
+        "operation": "close",
+        "phase": "started",
+        "kind": "LIFECYCLE"
+      },
+      {
+        "role": "B",
+        "operation": "close",
+        "phase": "succeeded",
+        "kind": "LIFECYCLE"
+      },
+      {
+        "role": "A",
+        "operation": "close",
+        "phase": "started",
+        "kind": "LIFECYCLE"
+      },
+      {
+        "role": "A",
+        "operation": "close",
+        "phase": "succeeded",
+        "kind": "LIFECYCLE"
+      }
+    ],
+    "preflight": [
+      {
+        "role": "A",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+          }
+        }
+      },
+      {
+        "role": "B",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+          }
+        }
+      }
+    ],
+    "postcheck": [
+      {
+        "role": "A",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+          }
+        }
+      },
+      {
+        "role": "B",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+          }
+        }
+      }
+    ]
+  }
+}

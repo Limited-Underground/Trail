@@ -20,9 +20,18 @@ preserves all removed summaries and superseded sequencing; see the
    then aborted in the forced-retry group; both complete application spans and
    bootloader/partition/OTA regions passed postchecks. Bounded
    [retry diagnostics](../docs/testing/OT-163-RETRY-DIAGNOSTICS-2026-09-08.md) now
-   distinguish host failure boundaries. Bind the observer into a fresh exact
-   execution snapshot and attempt, then recheck both boards and capture the
-   actual substep with independent restoration. Both prior grants are consumed.
+   distinguish host failure boundaries. The
+   [diagnostic execution binding](../docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md)
+   composes that observer through exact role-object identity, a 26-source/three-image
+   closure and unique attempt/recovery records. The 27-source startup-tolerance
+   successor preserves the runner deadlines and admits only bounded recognized
+   pre-readiness noise. Attempt 1 stopped at Node B post-restart readiness;
+   attempt 2 issued `m3`, received `TX_START` and timed out awaiting `TX_DONE`. Both grants are
+   consumed, and both role images were fully restored, read back and reset after
+   attempt 2. Host fault injection proves an unbounded driver BUSY wait, not the
+   physical cause. Bound that wait and add finite transmit/rearm and parser
+   diagnostics before a freshly bound attempt; preserve the host deadline.
+   No root cause, complete result, V1 credit or website change is admitted.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.
    Current Messages screens store local templates; no product radio path is wired.

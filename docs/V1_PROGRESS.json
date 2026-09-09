@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-09-08",
+  "as_of": "2026-09-09",
   "baseline_name": "Historical standalone evidence baseline",
   "baseline_definition": "The historical standalone evidence baseline measures progress toward four self-contained field units that do not depend on a phone, server, or repeater; it is retained for continuity and is not the current V1 Companion release total.",
   "baseline_milestones": [
@@ -109,9 +109,9 @@
         ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
         ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
         ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
-        ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md"
+        ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json"
       ],
-      "next_gate": "Execute the sole OT-162-authorized two-node application-only Noise XK radio attempt against the exact OT-161 corrected bundle as OT-163; separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
+      "next_gate": "Bound the driver BUSY wait demonstrated by host fault injection and add finite transmit-return, receive-rearm and parser-discard diagnostics; the physical timeout cause remains unknown. Preserve the existing host deadline and require a separately accepted correction and fresh non-reusable authority before further hardware. Separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
     },
     {
       "id": "core-firmware",
@@ -256,7 +256,7 @@
       "id": "v1-companion",
       "name": "V1 Companion",
       "status": "measured",
-      "as_of": "2026-09-08",
+      "as_of": "2026-09-09",
       "definition": "A complete V1 Companion release means exactly two supported Heltec LoRa devices and two approved Android phones, one physically authorized phone per Heltec, exchange authenticated and encrypted typed and quick messages bidirectionally through BLE, direct LoRa, and BLE with restart, disconnect, rejection, retry, and recovery. The accepted product includes resumable name/region onboarding; Messages, Group, and Device portrait/landscape UI; one private group per person with exactly one administrator and at most six total members; consent-gated public direct contact; group location ON at join with administrator Required/Optional policy; per-chat location OFF; current/stale/unavailable coordinate detail without a built-in-map requirement; redacted user-reviewed text support export; and the accepted Heltec OLED/clock states. Release still requires one exact signed Android artifact physically accepted without relay, server, or internet dependency.",
       "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
       "milestones": [
@@ -305,9 +305,9 @@
             ,"docs/decisions/0095-record-ot159-preconsumption-noise-xk-blockage.md", "tests/benchmarks/crypto/OT-159-OT005-LIBSODIUM-NOISE-XK-RADIO-PRECONSUMPTION-BLOCKAGE-V0.json", "tests/hardware/OT-159-2026-08-28.md"
             ,"docs/decisions/0096-accept-ot160-noise-xk-hash-helper-host-correction.md", "tests/hardware/OT-160-2026-08-28.md"
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
-            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md"
+            ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json"
           ],
-          "next_gate": "Execute the sole OT-162-authorized two-node application-only Noise XK radio attempt against the exact OT-161 corrected bundle as OT-163; separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
+          "next_gate": "Bound the driver BUSY wait demonstrated by host fault injection and add finite transmit-return, receive-rearm and parser-discard diagnostics; the physical timeout cause remains unknown. Preserve the existing host deadline and require a separately accepted correction and fresh non-reusable authority before further hardware. Separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
         },
         {
           "id": "core-firmware",
@@ -1162,6 +1162,18 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-171 fresh-pair follow-up accepts the initial setup-label name suggestion on the existing C577 S24 app; Trail Bench 2 and US915 restored with protected readbacks and automatic clock synchronization acknowledged. Keyboard diagnostics were inconclusive and keypad work is deferred by owner direction. Pairing-flow correction passes 1,104 tests and all variant lint/build/audit checks, with unchanged Android inputs. Exact 5FD1 APK installation/readback on S24 and saved-owner Ready in 31.015 seconds pass; protected Trail Bench 2/US915 and clock auto-sync are confirmed. Fresh post-reset behavior and candidate normal/large-font visibility remain physical gates; no score increase. Prior history, weights and completions preserved; website deferred."
+        },
+        {
+          "date": "2026-09-08",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "Recorded two bounded OT-163 diagnostic attempts and the intervening host-only startup-tolerance binding. Attempt 1 stopped at Node B post-restart readiness; attempt 2 advanced through m3 and timed out waiting for TX_DONE. Both one-use grants are consumed, both role-specific Trail applications were fully restored/read back/reset after attempt 2, and no timeout root cause or complete radio result is admitted. Architecture completion remains 85%; every milestone completion and weight remains unchanged. V1 Companion stays exact 45.50 percent / displayed 46 percent, and the website projection is unchanged."
+        },
+        {
+          "date": "2026-09-09",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "Host fault injection of pinned RadioLib methods demonstrates an unbounded BUSY wait before the transmit timer starts; timeout and healthy controls pass. This does not establish the physical attempt-2 cause. Next gate is a bounded wait and finite transmit/rearm/parser diagnostics. No milestone completion or weight changes; V1 Companion remains 45.50 exact / 46 displayed and the historical baseline remains 31.75 exact / 32 displayed. Website publication remains deferred."
         }
       ]
     },
@@ -1572,6 +1584,16 @@
       "date": "2026-09-04",
       "overall": 32,
       "reason": "Refreshed the dated historical baseline projection during the owner-authorized repository and website synchronization. Current single-pair OT-168 acceptance and the extended-absence limitation are recorded without advancing historical standalone completion. All baseline weights and completions remain unchanged; exact baseline remains 31.75 percent. Current V1 Companion remains governed by its separate release track."
+    },
+    {
+      "date": "2026-09-08",
+      "overall": 32,
+      "reason": "Recorded the bounded OT-163 diagnostic attempt history and exact recovery outcome without admitting a complete radio result or root cause. Architecture completion remains 85%, all historical standalone milestone weights and completions remain unchanged, and the baseline stays exact 31.75 percent / displayed 32 percent."
+    },
+    {
+      "date": "2026-09-09",
+      "overall": 32,
+      "reason": "Host fault injection of pinned RadioLib methods demonstrates an unbounded BUSY wait before the transmit timer starts; timeout and healthy controls pass. This does not establish the physical attempt-2 cause. Next gate is a bounded wait and finite transmit/rearm/parser diagnostics. No milestone completion or weight changes; V1 Companion remains 45.50 exact / 46 displayed and the historical baseline remains 31.75 exact / 32 displayed. Website publication remains deferred."
     }
   ]
 }
