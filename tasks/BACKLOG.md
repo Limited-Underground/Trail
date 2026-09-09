@@ -35,8 +35,13 @@ preserves all removed summaries and superseded sequencing; see the
    passes the full host matrix. Attempt 3 stopped at m3 TX_DONE after successful
    transmit and receive-rearm return checkpoints; both originals and protected
    flash regions were independently restored/read back/reset. Its grant is consumed.
-   Next investigate completion-receipt emission/delivery and incomplete-receipt
-   handling with bounded host evidence; preserve the deadline. No root cause,
+   A host-only [receipt observer](../docs/testing/OT-163-RECEIPT-OBSERVATION-2026-09-09.md)
+   now retains bounded byte/read counts before failure clears pending data. Its
+   42-source session preserves all 40 predecessor inputs and restoration gates.
+   Twelve endpoint and eight composed groups pass; full host checks gate publication.
+   Next prepare fresh exact source/image-bound preflight
+   and independent role recovery before another physical attempt. No new grant,
+   hardware operation, changed deadline, root cause,
    complete result, V1 credit or website change is admitted.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.

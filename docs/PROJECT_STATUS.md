@@ -87,8 +87,15 @@ attempt 3 again stopped awaiting m3 TX_DONE, but its new transmit and receive-re
 checkpoints both returned success. Both original applications and protected flash
 regions passed independent restoration/readback/reset checks. See the
 [contained execution outcome](testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md).
-Next investigate the completion-receipt emission/delivery path and incomplete
-receipt handling with bounded host evidence; preserve the existing deadline.
+Host fault injection now distinguishes missing bytes from unterminated receipts
+without changing the parser or deadline. The separate observer and guarded
+42-source session retain safe byte/read counts across failure and cleanup; all
+40 historical inputs remain unchanged. Twelve endpoint and eight composed groups
+pass; the required full host matrix gates publication. See
+[receipt observation evidence](testing/OT-163-RECEIPT-OBSERVATION-2026-09-09.md).
+Next prepare a fresh exact source/image-bound
+preflight with independent role restoration before any further physical attempt.
+No new grant or hardware operation is admitted by this host-only increment.
 The physical cause remains unknown; no complete radio-cost result, cryptographic
 selection, phone-to-phone delivery, V1 credit or website change is admitted.
 
