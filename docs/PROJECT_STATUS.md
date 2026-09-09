@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-08. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-09. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -77,7 +77,9 @@ for both attempts. See the
 [instrumented run](testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md). The timeout
 location is known, but its root cause is not.
 
-The next gate is host-only analysis of the bounded attempt-2 receipt boundary
+Host fault injection now proves an unbounded BUSY wait before the driver TX
+timer starts, without establishing the physical timeout cause. Next, bound that
+wait and add finite transmit-return/receive-rearm and parser-discard diagnostics
 before any new physical authority is considered. Do not change the established
 receipt timeout without evidence. No complete radio-cost result, cryptographic
 selection, phone-to-phone delivery, V1 credit or website change is admitted.

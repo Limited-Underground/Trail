@@ -84,3 +84,34 @@ result. Neither attempt changes V1 completion or the website projection.
 Diagnostic receipts contain only allowlisted fields, not raw serial
 data, identifiers, challenges or key/payload digests. No product phone-to-phone
 messaging or crypto-suite selection is implied by this engineering benchmark.
+
+
+## Follow-up driver fault reproduction (2026-09-09)
+
+The target emits `TX_DONE` only after synchronous transmit and receive rearming
+return. Missing or malformed serial output is another unresolved possibility.
+The trace therefore cannot attribute the physical timeout to a particular driver
+or hardware state.
+
+A host experiment extracted the actual RadioLib 7.7.1 `transmit`, `startTransmit`
+and `launchMode` method bodies from the pinned managed dependency. Peripheral
+operations were stubbed and HAL pin states controlled. With BUSY held high, a
+host watchdog interrupted after 1,000 simulated milliseconds; the transmit
+method had made zero timeout-clock reads. With BUSY low and IRQ low, the normal
+driver timeout returned after 600 simulated milliseconds; the healthy IRQ-high
+control completed. These are constructed faults, not measurements of the boards.
+
+The experiment proves an unbounded BUSY wait before the driver's transmit timer
+starts. It does not prove BUSY was high during attempt 2. The next correction
+should bound that wait and add finite transmit-return/receive-rearm checkpoints,
+plus parser-discard diagnostics, before a fresh hardware attempt. Preserve the
+existing host deadline until evidence justifies a change.
+
+Reproduce with `python tools/reproduce_radio_busy_wait.py` from a checkout with
+the accepted managed RadioLib dependency and a C++20 GCC compiler. The script
+rejects changed driver source hashes and writes only under `build/radiolib-busy-repro`.
+It uses a five-second process limit for the generated test. The
+[reproducer](../../tools/reproduce_radio_busy_wait.py) and
+[result record](../../tests/benchmarks/crypto/OT-163-RADIO-BUSY-FAULT-2026-09-09.json)
+retain exact method/source/harness hashes. This dependency-specific experiment
+is separate from CI's portable host matrix. No firmware or driver was changed.

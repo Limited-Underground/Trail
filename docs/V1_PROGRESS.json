@@ -111,7 +111,7 @@
         ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
         ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json"
       ],
-      "next_gate": "Analyze the bounded OT-163 attempt-2 TX_DONE receipt timeout after m3 host-only without speculative timeout changes; require a separately accepted correction and fresh non-reusable authority before any further physical attempt. Separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
+      "next_gate": "Bound the driver BUSY wait demonstrated by host fault injection and add finite transmit-return, receive-rearm and parser-discard diagnostics; the physical timeout cause remains unknown. Preserve the existing host deadline and require a separately accepted correction and fresh non-reusable authority before further hardware. Separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
     },
     {
       "id": "core-firmware",
@@ -307,7 +307,7 @@
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
             ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json"
           ],
-          "next_gate": "Analyze the bounded OT-163 attempt-2 TX_DONE receipt timeout after m3 host-only without speculative timeout changes; require a separately accepted correction and fresh non-reusable authority before any further physical attempt. Separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
+          "next_gate": "Bound the driver BUSY wait demonstrated by host fault injection and add finite transmit-return, receive-rearm and parser-discard diagnostics; the physical timeout cause remains unknown. Preserve the existing host deadline and require a separately accepted correction and fresh non-reusable authority before further hardware. Separately complete corrected mbedTLS/PSA execution and the remaining gates before independent Phase 2 reconciliation and Phase 3 admission."
         },
         {
           "id": "core-firmware",

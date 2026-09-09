@@ -28,8 +28,9 @@ preserves all removed summaries and superseded sequencing; see the
    pre-readiness noise. Attempt 1 stopped at Node B post-restart readiness;
    attempt 2 issued `m3`, received `TX_START` and timed out awaiting `TX_DONE`. Both grants are
    consumed, and both role images were fully restored, read back and reset after
-   attempt 2. Analyze this exact receipt boundary host-only before proposing any
-   correction or new physical authority; do not speculate by changing timeouts.
+   attempt 2. Host fault injection proves an unbounded driver BUSY wait, not the
+   physical cause. Bound that wait and add finite transmit/rearm and parser
+   diagnostics before a freshly bound attempt; preserve the host deadline.
    No root cause, complete result, V1 credit or website change is admitted.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.

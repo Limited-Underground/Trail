@@ -12,6 +12,12 @@ exact stage, safe transport events and both independent application/protected-
 region postchecks. Both grants remain consumed. No hardware was accessed during
 this reconciliation; V1 completion and website status remain unchanged.
 
+An actual-method RadioLib host experiment reproduced an unbounded BUSY wait
+before the transmit timer starts. Timeout and healthy controls passed. This
+proves a driver fault-containment gap, not the cause of the physical abort. The
+reproducer and exact source/method hashes are recorded in the instrumented-run
+evidence; no firmware changed.
+
 ## 2026-09-08
 
 ### OT-001 Repository presentation and contributor organization
