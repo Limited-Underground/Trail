@@ -103,9 +103,10 @@ Node B's initial RX_START timed out before retry transmission. Its observer
 recorded 20 empty reads, zero returned bytes and no pending data. Both original
 applications and protected regions passed independent restoration/readback/reset
 checks. The grant is consumed. See [the outcome](testing/OT-163-OBSERVATION-RUN-2026-09-09.md).
-Next is a bounded host/source probe of console delivery at the immediate PREPARED-to-RX_START
-log boundary; no further hardware attempt or grant is part of that probe.
-Accepted full host/CI evidence is reused because all 42 sources are unchanged.
+The host [actual-source console probe](testing/OT-163-CONSOLE-SOURCE-PROBE-2026-09-09.md)
+reproduces full reported write counts despite injected ROM-output failures in
+the admitted simple-stdio path. This is an error-reporting limitation under
+simulation, not a demonstrated physical cause or firmware correction.
 The physical cause remains unknown; no complete radio-cost result, cryptographic
 selection, phone-to-phone delivery, V1 credit or website change is admitted.
 

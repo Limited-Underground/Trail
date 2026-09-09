@@ -2,6 +2,15 @@
 
 ## 2026-09-09
 
+### OT-163 Actual-source console error-reporting probe
+
+Compiled the pinned upstream console functions and injected ROM-output failures.
+Valid writes still reported their requested length. Exact source/configuration
+and live-versus-discarded map admission distinguish this simple-stdio result
+from unlinked VFS behavior. Twelve focused groups, including seven compiled behavior cases, pass. This is host
+simulation only; no physical cause, firmware correction, hardware action or
+new authority is established. See [the probe evidence](testing/OT-163-CONSOLE-SOURCE-PROBE-2026-09-09.md).
+
 ### OT-163 Observation attempt completes baseline then stops before retry transmission
 
 Physical attempt 4 completed baseline m1/m2/m3 TX_DONE and accepted peer RX,

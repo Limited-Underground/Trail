@@ -1,0 +1,107 @@
+{
+  "schema": "OT163-CONSOLE-SOURCE-PROVENANCE-1",
+  "upstream": "ESP-IDF v6.0.2",
+  "sources": {
+    "stdio_simple.c": {
+      "upstream_path": "components/esp_stdio/stdio_simple.c",
+      "bytes": 574,
+      "sha256": "742dbe58751664d6b40067b00dbd897f2ad31593872c47453f06f78673939cf8"
+    },
+    "stdio_syscalls_simple.c": {
+      "upstream_path": "components/esp_stdio/stdio_syscalls_simple.c",
+      "bytes": 2906,
+      "sha256": "8fa4cfaa95d24fd1a26c337c92d38a6888683ccadd4340b1f78d9fa8d18163be"
+    }
+  },
+  "sdkconfig": {
+    "bytes": 58074,
+    "sha256": "44d954f25e5b337e57a6e8b7beb053842c0ea68928a575e089a561fa165ce05c",
+    "selections": [
+      {
+        "first_line": 1270,
+        "lines": [
+          "CONFIG_LIBC_PICOLIBC=y",
+          "# default:",
+          "CONFIG_LIBC_PICOLIBC_NEWLIB_COMPATIBILITY=y"
+        ]
+      },
+      {
+        "first_line": 1340,
+        "lines": [
+          "# CONFIG_ESP_CONSOLE_UART_DEFAULT is not set",
+          "# CONFIG_ESP_CONSOLE_USB_CDC is not set",
+          "CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y",
+          "# CONFIG_ESP_CONSOLE_UART_CUSTOM is not set",
+          "# CONFIG_ESP_CONSOLE_NONE is not set",
+          "# default:",
+          "CONFIG_ESP_CONSOLE_SECONDARY_NONE=y",
+          "# default:",
+          "CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED=y",
+          "# default:",
+          "CONFIG_ESP_CONSOLE_UART_NUM=-1",
+          "# default:",
+          "CONFIG_ESP_CONSOLE_ROM_SERIAL_PORT_NUM=4"
+        ]
+      }
+    ]
+  },
+  "link_map": {
+    "bytes": 3565541,
+    "sha256": "ce177447af04cfaa27fcb6f228e85e207eb2c8b53c61ddfa88a2cb137e805637",
+    "discarded_heading": {
+      "first_line": 822,
+      "lines": [
+        "Discarded input sections"
+      ]
+    },
+    "live_heading": {
+      "first_line": 14842,
+      "lines": [
+        "Linker script and memory map"
+      ]
+    },
+    "discarded_fsync": {
+      "first_line": 7149,
+      "lines": [
+        " .data          0x00000000        0x0 esp-idf/esp_stdio/libesp_stdio.a(stdio_syscalls_simple.c.obj)",
+        " .bss           0x00000000        0x0 esp-idf/esp_stdio/libesp_stdio.a(stdio_syscalls_simple.c.obj)",
+        " .text._fsync_console",
+        "                0x00000000       0x25 esp-idf/esp_stdio/libesp_stdio.a(stdio_syscalls_simple.c.obj)",
+        " .xt.lit        0x00000000       0x20 esp-idf/esp_stdio/libesp_stdio.a(stdio_syscalls_simple.c.obj)",
+        " .xt.prop       0x00000000      0x174 esp-idf/esp_stdio/libesp_stdio.a(stdio_syscalls_simple.c.obj)"
+      ]
+    },
+    "live_write": {
+      "first_line": 26409,
+      "lines": [
+        " .text._write_r_console",
+        "                0x4201c460       0x3a esp-idf/esp_stdio/libesp_stdio.a(stdio_syscalls_simple.c.obj)",
+        "                                 0x3e (size before relaxing)",
+        "                0x4201c460                _write_r_console",
+        "                0x4201c460                _write_r"
+      ]
+    },
+    "live_put_char": {
+      "first_line": 26423,
+      "lines": [
+        " .text.esp_system_console_put_char",
+        "                0x4201c510        0xe esp-idf/esp_stdio/libesp_stdio.a(stdio_simple.c.obj)",
+        "                0x4201c510                esp_system_console_put_char"
+      ]
+    }
+  },
+  "claim_boundary": "Selected excerpts establish live simple-stdio symbols and discarded fsync only. They do not establish absence of every VFS symbol. Full-map identity can be verified separately.",
+  "rom_contract": {
+    "upstream_path": "components/esp_rom/include/esp_rom_serial_output.h",
+    "bytes": 3131,
+    "sha256": "769aadbd6e877d862f073f3f5fb616a7c7d1fd0013951a3d6cf470bcc76180f9",
+    "first_line": 35,
+    "lines": [
+      " * @return",
+      " *      - 0 on success",
+      " *      - 1 on failure",
+      " */",
+      "int esp_rom_output_tx_one_char(uint8_t c);"
+    ]
+  }
+}
