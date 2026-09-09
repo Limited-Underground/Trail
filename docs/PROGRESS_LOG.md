@@ -2,6 +2,20 @@
 
 ## 2026-09-09
 
+### OT-163 Exact observation binding and independent preflight preparation
+
+Prepared the exact 42-source/three-image observation binding and isolated
+attempt-4 caller. Twenty private bridge and ten read/reset preflight test groups
+pass, including fresh-process raw-source bootstrap, non-reuse, restore-image
+validation and independent cleanup despite diagnostic/persistence failure.
+Both roles passed exact original/application-tail and protected-region reads,
+with guarded reset on each. All region descriptors match the prior preflight.
+No execution grant is issued; the attempt-4 execution namespace remains unused.
+Firmware and all 42 source bytes are unchanged from the accepted observer gate;
+the full host matrix and CI from PR #14 are reused. Next is one fresh bound
+benchmark after publication and immediate hardware rechecks. V1 completion and
+website status are unchanged. See [preflight evidence](testing/OT-163-OBSERVATION-PREFLIGHT-2026-09-09.md).
+
 ### OT-163 Bounded receipt-byte observation successor
 
 Reproduced the completion-receipt ambiguity with exact generated format and

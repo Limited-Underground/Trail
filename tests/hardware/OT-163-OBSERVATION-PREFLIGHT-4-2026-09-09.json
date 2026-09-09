@@ -1,0 +1,61 @@
+{
+  "schema": "noise-xk-observation-preflight-v1",
+  "attempt": 4,
+  "started_utc": "2026-09-09T17:18:26.710693+00:00",
+  "script_sha256": "3bed329ec8075698ec7742d9531bc8d920dd1b4fef1c63fb3d80f5427fad16b4",
+  "wrapper_sha256": "0a5fdd7385f60460fa391c6978a53dffc4f6dbdc8e8b4bb344b446af8d249edf",
+  "snapshot_sha256": "cf1cdd5087ad65f29dae9fad6ea48cd5358f180d8f5732d4073add05a36b58f7",
+  "nodes": [
+    {
+      "role": "A",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+        }
+      }
+    },
+    {
+      "role": "B",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+        }
+      }
+    }
+  ],
+  "complete": true,
+  "flash_writes": false,
+  "radio_execution": false,
+  "execution_grant_issued": false,
+  "finished_utc": "2026-09-09T17:20:01.690230+00:00"
+}
