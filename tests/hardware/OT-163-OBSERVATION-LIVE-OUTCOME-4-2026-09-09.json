@@ -1,0 +1,910 @@
+{
+  "schema": "OT163-OBSERVATION-LIVE-OUTCOME-4",
+  "attempt": 4,
+  "date": "2026-09-09",
+  "evidence_basis": "retained coordinator receipt, bounded receipt observations and independent region postchecks",
+  "result": "noise_xk_radio_execution_aborted",
+  "radio_result_validated": false,
+  "failure": {
+    "stage": "cycle1_retry_timeout",
+    "code": "radio_run_failed",
+    "role": "B",
+    "receipt": "RX_START",
+    "scenario": "retry-m2-withheld",
+    "category": "receipt_timeout",
+    "before_retry_transmission": true
+  },
+  "root_cause_established": false,
+  "grant_consumed": true,
+  "restoration": {
+    "complete": true,
+    "nodes": [
+      {
+        "role": "A",
+        "application_restored": true,
+        "readback_verified": true,
+        "reset_completed": true
+      },
+      {
+        "role": "B",
+        "application_restored": true,
+        "readback_verified": true,
+        "reset_completed": true
+      }
+    ]
+  },
+  "claims": {
+    "score_credit_added": false,
+    "v1_completion_changed": false,
+    "website_projection_changed": false,
+    "suite_selected": false,
+    "production_ready": false
+  },
+  "privacy": {
+    "backend_error_text_recorded": false,
+    "device_identifiers_recorded": false,
+    "filesystem_paths_recorded": false,
+    "private_endpoints_recorded": false,
+    "raw_serial_recorded": false
+  },
+  "setup": {
+    "hardware": "two Heltec WiFi LoRa 32 V4 nodes, ESP32-S3, 16 MB flash",
+    "firmware_version": "nxk-contained-v1",
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate_denominator": 5,
+    "explicit_header": true,
+    "crc": true,
+    "sync_word": "0x12",
+    "preamble_symbols": 8,
+    "power_command_dbm": 2,
+    "host_receipt_deadline_seconds": 5,
+    "context": "existing stationary two-node bench; separation and antenna placement not newly measured; no field-range or calibrated-power claim"
+  },
+  "scope": "The first baseline completed m1/m2/m3 TX_DONE and accepted peer RX receipts, followed by complete END on both roles. Retry preparation then passed on both roles; B initial RX_START returned no bytes before the unchanged deadline, before any retry transmission. This excludes a retained partial line during that wait but does not establish the console, USB or firmware cause. No complete radio-cost/loss/duplicate/latency benchmark or product messaging result is admitted.",
+  "execution_evidence": {
+    "started_utc": "2026-09-09T18:27:36.778475+00:00",
+    "finished_utc": "2026-09-09T18:34:18.032087+00:00",
+    "source_snapshot_sha256": "cf1cdd5087ad65f29dae9fad6ea48cd5358f180d8f5732d4073add05a36b58f7",
+    "benchmark_sha256": "1bd4f94173feeb7d449a6915380da56367e4395ce9c94048d2097242e9e5e92e",
+    "source_count": 42,
+    "baseline_tx_done_receipts": 3,
+    "baseline_accepted_rx_receipts": 3,
+    "baseline_wire_payload_bytes": 160,
+    "successful_tx_done": [
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "TX_DONE",
+        "receipt_kind": "TX_DONE",
+        "fields": {
+          "measured_us": 105402,
+          "done_us": 1111710,
+          "message": "m1",
+          "scenario": "baseline",
+          "start_us": 1006308,
+          "wire": 48,
+          "result": 0,
+          "role": "I",
+          "permit_consumed": "yes",
+          "rx_restart": 0
+        }
+      },
+      {
+        "role": "B",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "TX_DONE",
+        "receipt_kind": "TX_DONE",
+        "fields": {
+          "measured_us": 105512,
+          "done_us": 1312150,
+          "message": "m2",
+          "scenario": "baseline",
+          "start_us": 1206638,
+          "wire": 48,
+          "result": 0,
+          "role": "R",
+          "permit_consumed": "yes",
+          "rx_restart": 0
+        }
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "TX_DONE",
+        "receipt_kind": "TX_DONE",
+        "fields": {
+          "measured_us": 126002,
+          "done_us": 1602605,
+          "message": "m3",
+          "scenario": "baseline",
+          "start_us": 1476603,
+          "wire": 64,
+          "result": 0,
+          "role": "I",
+          "permit_consumed": "yes",
+          "rx_restart": 0
+        }
+      }
+    ],
+    "accepted_rx": [
+      {
+        "role": "B",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "RX",
+        "receipt_kind": "RX",
+        "fields": {
+          "wiped": "no",
+          "mono_us": 1097861,
+          "accepted": "yes",
+          "message": "m1",
+          "scenario": "baseline",
+          "wire": 48,
+          "role": "R"
+        }
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "RX",
+        "receipt_kind": "RX",
+        "fields": {
+          "wiped": "no",
+          "mono_us": 1337526,
+          "accepted": "yes",
+          "message": "m2",
+          "scenario": "baseline",
+          "wire": 48,
+          "role": "I"
+        }
+      },
+      {
+        "role": "B",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "RX",
+        "receipt_kind": "RX",
+        "fields": {
+          "wiped": "no",
+          "mono_us": 1587805,
+          "accepted": "yes",
+          "message": "m3",
+          "scenario": "baseline",
+          "wire": 64,
+          "role": "R"
+        }
+      }
+    ],
+    "baseline_end": [
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "END",
+        "receipt_kind": "END",
+        "fields": {
+          "wiped": "yes",
+          "tx": "no",
+          "accepted": "yes",
+          "scenario": "baseline",
+          "complete": "yes",
+          "role": "I"
+        }
+      },
+      {
+        "role": "B",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "END",
+        "receipt_kind": "END",
+        "fields": {
+          "wiped": "yes",
+          "tx": "no",
+          "accepted": "yes",
+          "scenario": "baseline",
+          "complete": "yes",
+          "role": "R"
+        }
+      }
+    ],
+    "retry_prepared": [
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "PREPARED",
+        "receipt_kind": "PREPARED",
+        "fields": {
+          "tx": "no",
+          "accepted": "yes",
+          "scenario": "retry-m2-withheld",
+          "role": "I"
+        }
+      },
+      {
+        "role": "B",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "PREPARED",
+        "receipt_kind": "PREPARED",
+        "fields": {
+          "tx": "no",
+          "accepted": "yes",
+          "scenario": "retry-m2-withheld",
+          "role": "R"
+        }
+      }
+    ],
+    "failed_expectation": {
+      "role": "B",
+      "operation": "expect",
+      "phase": "failed",
+      "kind": "RX_START",
+      "error": "receipt_timeout"
+    },
+    "failed_wait_observation": {
+      "read_calls": 20,
+      "empty_reads": 20,
+      "read_bytes": 0,
+      "read_errors": 0,
+      "invalid_reads": 0,
+      "parsed_lines": 0,
+      "pending_bytes": 0,
+      "last_read_bytes": 0,
+      "kind": "RX_START",
+      "outcome": "receipt_timeout",
+      "pending_state": "empty"
+    },
+    "return_diagnostics": {
+      "A": {
+        "schema": "noise-xk-receipt-observation-runtime-v1",
+        "checkpoints": [
+          {
+            "kind": "TX_RETURN",
+            "role": "I",
+            "scenario": "baseline",
+            "message": "m1",
+            "result": 0,
+            "start_us": 1006308,
+            "done_us": 1111710,
+            "measured_us": 105402
+          },
+          {
+            "kind": "RX_REARM_RETURN",
+            "role": "I",
+            "scenario": "baseline",
+            "message": "m1",
+            "result": 0,
+            "start_us": 1112176,
+            "done_us": 1118075,
+            "measured_us": 5899,
+            "attempted": "yes"
+          },
+          {
+            "kind": "TX_RETURN",
+            "role": "I",
+            "scenario": "baseline",
+            "message": "m3",
+            "result": 0,
+            "start_us": 1476603,
+            "done_us": 1602605,
+            "measured_us": 126002
+          },
+          {
+            "kind": "RX_REARM_RETURN",
+            "role": "I",
+            "scenario": "baseline",
+            "message": "m3",
+            "result": 0,
+            "start_us": 1603070,
+            "done_us": 1608975,
+            "measured_us": 5905,
+            "attempted": "yes"
+          }
+        ],
+        "parser_misses": {
+          "non_ascii": 0,
+          "non_protocol": 0,
+          "malformed_protocol": 0,
+          "framing_invalid": 0
+        },
+        "receipt_observations": [
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 284,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 284,
+            "kind": "PROFILE",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 290,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 290,
+            "kind": "STATUS",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 72,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 72,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 283,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 283,
+            "kind": "PROFILE",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 289,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 289,
+            "kind": "STATUS",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 147,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 147,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 150,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 150,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 245,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 245,
+            "kind": "TX_START",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 3,
+            "empty_reads": 0,
+            "read_bytes": 661,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 3,
+            "pending_bytes": 0,
+            "last_read_bytes": 321,
+            "kind": "TX_DONE",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 203,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 203,
+            "kind": "RX_START",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 281,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 281,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 160,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 160,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 150,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 150,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 245,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 245,
+            "kind": "TX_START",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 3,
+            "empty_reads": 0,
+            "read_bytes": 661,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 3,
+            "pending_bytes": 0,
+            "last_read_bytes": 321,
+            "kind": "TX_DONE",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 324,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 324,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 157,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 157,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          }
+        ],
+        "observation_archive_failures": 0
+      },
+      "B": {
+        "schema": "noise-xk-receipt-observation-runtime-v1",
+        "checkpoints": [
+          {
+            "kind": "TX_RETURN",
+            "role": "R",
+            "scenario": "baseline",
+            "message": "m2",
+            "result": 0,
+            "start_us": 1206638,
+            "done_us": 1312150,
+            "measured_us": 105512
+          },
+          {
+            "kind": "RX_REARM_RETURN",
+            "role": "R",
+            "scenario": "baseline",
+            "message": "m2",
+            "result": 0,
+            "start_us": 1312617,
+            "done_us": 1318537,
+            "measured_us": 5920,
+            "attempted": "yes"
+          }
+        ],
+        "parser_misses": {
+          "non_ascii": 0,
+          "non_protocol": 0,
+          "malformed_protocol": 1,
+          "framing_invalid": 0
+        },
+        "receipt_observations": [
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 283,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 283,
+            "kind": "PROFILE",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 289,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 289,
+            "kind": "STATUS",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 71,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 71,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 283,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 283,
+            "kind": "PROFILE",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 289,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 289,
+            "kind": "STATUS",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 148,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 148,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 182,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 182,
+            "kind": "RX_START",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 281,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 281,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 160,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 160,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 150,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 150,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 245,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 245,
+            "kind": "TX_START",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 3,
+            "empty_reads": 0,
+            "read_bytes": 661,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 3,
+            "pending_bytes": 0,
+            "last_read_bytes": 321,
+            "kind": "TX_DONE",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 203,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 203,
+            "kind": "RX_START",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 281,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 281,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 161,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 161,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 324,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 324,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 1,
+            "empty_reads": 0,
+            "read_bytes": 157,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 1,
+            "pending_bytes": 0,
+            "last_read_bytes": 157,
+            "kind": "other",
+            "outcome": "accepted",
+            "pending_state": "empty"
+          },
+          {
+            "read_calls": 20,
+            "empty_reads": 20,
+            "read_bytes": 0,
+            "read_errors": 0,
+            "invalid_reads": 0,
+            "parsed_lines": 0,
+            "pending_bytes": 0,
+            "last_read_bytes": 0,
+            "kind": "RX_START",
+            "outcome": "receipt_timeout",
+            "pending_state": "empty"
+          }
+        ],
+        "observation_archive_failures": 0
+      }
+    },
+    "preflight": [
+      {
+        "role": "A",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+          }
+        }
+      },
+      {
+        "role": "B",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+          }
+        }
+      }
+    ],
+    "postcheck": [
+      {
+        "role": "A",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+          }
+        }
+      },
+      {
+        "role": "B",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+          }
+        }
+      }
+    ],
+    "parser_note": "B malformed_protocol count is cumulative and equals one; the failed wait parsed zero lines, so that count must not be assigned to this wait."
+  }
+}

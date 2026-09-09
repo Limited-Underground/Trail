@@ -2,6 +2,19 @@
 
 ## 2026-09-09
 
+### OT-163 Observation attempt completes baseline then stops before retry transmission
+
+Physical attempt 4 completed baseline m1/m2/m3 TX_DONE and accepted peer RX,
+with END completion on both nodes. After both accepted forced-retry preparation,
+Node B timed out on its initial RX_START before any retry transmission. The
+observer retained 20 empty reads and zero returned, parsed or pending bytes;
+this narrows the receipt boundary without proving device log delivery or root cause.
+Both original applications and protected regions passed independent readback
+and guarded resets. The one-use grant is consumed. Next is a bounded host/source
+probe of console delivery at the immediate PREPARED-to-RX_START log boundary, not another hardware
+attempt. No complete benchmark, V1 credit or website change is admitted. See
+[the outcome](testing/OT-163-OBSERVATION-RUN-2026-09-09.md).
+
 ### OT-163 Exact observation binding and independent preflight preparation
 
 Prepared the exact 42-source/three-image observation binding and isolated

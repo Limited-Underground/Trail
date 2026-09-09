@@ -111,9 +111,10 @@
         ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
         ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json", "docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md", "tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json", "docs/testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md", "tests/benchmarks/crypto/OT-163-CONTAINED-EXECUTION-BINDING-3-2026-09-09.json", "tests/hardware/OT-163-CONTAINED-LIVE-OUTCOME-3-2026-09-09.json", "docs/testing/OT-163-RECEIPT-OBSERVATION-2026-09-09.md",
         "docs/testing/OT-163-OBSERVATION-PREFLIGHT-2026-09-09.md",
+        "docs/testing/OT-163-OBSERVATION-RUN-2026-09-09.md",
         "tests/benchmarks/crypto/OT-163-OBSERVATION-EXECUTION-BINDING-4-2026-09-09.json"
       ],
-      "next_gate": "The exact 42-source/three-image observation binding and isolated attempt-4 caller pass 30 private offline groups. Both roles passed exact original/application-tail and protected-region reads with guarded resets; prior region descriptors match. No execution grant is issued and the execution namespace remains unused. Next is one fresh bound benchmark after publication and immediate role/image/recovery rechecks, preserving the five-second deadline. No physical root cause or complete radio-cost result is admitted. Separately finish corrected mbedTLS/PSA execution and remaining gates before Phase 2 reconciliation and Phase 3 admission."
+      "next_gate": "Attempt 4 completed the baseline exchange but stopped before forced-retry transmission at Node B initial RX_START. Twenty empty reads returned zero bytes, with zero parsed lines or pending data. Both originals and protected regions passed independent restoration/readback/reset checks; the grant is consumed. Next is a bounded host/source probe of console delivery at the immediate PREPARED-to-RX_START log boundary, without another hardware attempt or grant. No physical root cause or complete radio-cost result is admitted. Separately finish corrected mbedTLS/PSA execution and remaining gates before Phase 2 reconciliation and Phase 3 admission."
     },
     {
       "id": "core-firmware",
@@ -309,9 +310,10 @@
             ,"docs/decisions/0097-freeze-ot161-corrected-noise-xk-radio-executable-bundle.md", "tests/benchmarks/crypto/OT-161-OT005-LIBSODIUM-NOISE-XK-RADIO-EXECUTABLE-BUNDLE-PREPARATION-V0.json", "tests/hardware/OT-161-2026-08-28.md"
             ,"docs/decisions/0098-accept-ot162-noise-xk-radio-one-attempt-authority.md", "tests/benchmarks/crypto/OT-162-OT005-LIBSODIUM-NOISE-XK-RADIO-ONE-ATTEMPT-AUTHORITY-V0.json", "tests/hardware/OT-162-2026-08-28.md", "docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md", "docs/testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-1-2026-09-08.json", "tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json", "docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md", "tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json", "docs/testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md", "tests/benchmarks/crypto/OT-163-CONTAINED-EXECUTION-BINDING-3-2026-09-09.json", "tests/hardware/OT-163-CONTAINED-LIVE-OUTCOME-3-2026-09-09.json", "docs/testing/OT-163-RECEIPT-OBSERVATION-2026-09-09.md",
         "docs/testing/OT-163-OBSERVATION-PREFLIGHT-2026-09-09.md",
+        "docs/testing/OT-163-OBSERVATION-RUN-2026-09-09.md",
         "tests/benchmarks/crypto/OT-163-OBSERVATION-EXECUTION-BINDING-4-2026-09-09.json"
           ],
-          "next_gate": "The exact 42-source/three-image observation binding and isolated attempt-4 caller pass 30 private offline groups. Both roles passed exact original/application-tail and protected-region reads with guarded resets; prior region descriptors match. No execution grant is issued and the execution namespace remains unused. Next is one fresh bound benchmark after publication and immediate role/image/recovery rechecks, preserving the five-second deadline. No physical root cause or complete radio-cost result is admitted. Separately finish corrected mbedTLS/PSA execution and remaining gates before Phase 2 reconciliation and Phase 3 admission."
+          "next_gate": "Attempt 4 completed the baseline exchange but stopped before forced-retry transmission at Node B initial RX_START. Twenty empty reads returned zero bytes, with zero parsed lines or pending data. Both originals and protected regions passed independent restoration/readback/reset checks; the grant is consumed. Next is a bounded host/source probe of console delivery at the immediate PREPARED-to-RX_START log boundary, without another hardware attempt or grant. No physical root cause or complete radio-cost result is admitted. Separately finish corrected mbedTLS/PSA execution and remaining gates before Phase 2 reconciliation and Phase 3 admission."
         },
         {
           "id": "core-firmware",
@@ -1202,6 +1204,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "Prepared the exact 42-source/three-image observation binding and isolated attempt-4 caller after 30 private offline groups. Both roles passed fresh exact original/application-tail and protected-region reads with guarded resets; all region descriptors match the prior preflight. No execution grant is issued; the execution namespace remains unused and prior grants remain consumed. Firmware and all execution sources are unchanged, so accepted PR #14 full host/CI evidence is reused. Next is one fresh bound benchmark after publication and immediate role/image/recovery rechecks. No score or weight changes: V1 45.50 exact/46 displayed and baseline 31.75 exact/32 displayed. Website status unchanged."
+        },
+        {
+          "date": "2026-09-09",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "Physical observation attempt 4 completed baseline m1/m2/m3 TX_DONE and accepted peer RX plus END on both nodes, then stopped at Node B initial forced-retry RX_START before retry transmission. The observer retained 20 empty reads and zero returned bytes, parsed lines or pending bytes. Both original applications and protected regions passed independent restoration/readback/reset checks. The one-use grant is consumed. No root cause or complete benchmark is admitted; next is bounded host/source investigation of console delivery at the immediate PREPARED-to-RX_START log boundary without another hardware attempt. All 42 sources remain unchanged. V1 stays 45.50 exact/46 displayed and historical baseline 31.75 exact/32 displayed; no weights or completion scores change. Website status unchanged."
         }
       ]
     },
@@ -1642,6 +1650,11 @@
       "date": "2026-09-09",
       "overall": 32,
       "reason": "Prepared the exact 42-source/three-image observation binding and isolated attempt-4 caller after 30 private offline groups. Both roles passed fresh exact original/application-tail and protected-region reads with guarded resets; all region descriptors match the prior preflight. No execution grant is issued; the execution namespace remains unused and prior grants remain consumed. Firmware and all execution sources are unchanged, so accepted PR #14 full host/CI evidence is reused. Next is one fresh bound benchmark after publication and immediate role/image/recovery rechecks. No score or weight changes: V1 45.50 exact/46 displayed and baseline 31.75 exact/32 displayed. Website status unchanged."
+    },
+    {
+      "date": "2026-09-09",
+      "overall": 32,
+      "reason": "Physical observation attempt 4 completed baseline m1/m2/m3 TX_DONE and accepted peer RX plus END on both nodes, then stopped at Node B initial forced-retry RX_START before retry transmission. The observer retained 20 empty reads and zero returned bytes, parsed lines or pending bytes. Both original applications and protected regions passed independent restoration/readback/reset checks. The one-use grant is consumed. No root cause or complete benchmark is admitted; next is bounded host/source investigation of console delivery at the immediate PREPARED-to-RX_START log boundary without another hardware attempt. All 42 sources remain unchanged. V1 stays 45.50 exact/46 displayed and historical baseline 31.75 exact/32 displayed; no weights or completion scores change. Website status unchanged."
     }
   ]
 }

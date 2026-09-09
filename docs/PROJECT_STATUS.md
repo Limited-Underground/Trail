@@ -97,10 +97,15 @@ The exact 42-source/three-image observation binding and isolated attempt-4
 caller now pass 30 private offline groups. Both roles passed fresh original-image,
 erased-tail and protected-region reads with guarded resets; prior region
 descriptors match exactly. See [preflight evidence](testing/OT-163-OBSERVATION-PREFLIGHT-2026-09-09.md).
-No execution grant is issued and the execution namespace remains unused. Next
-is one fresh bound benchmark after publication, with immediate role/image and
-independent recovery rechecks. The accepted PR #14 host/CI evidence is reused
-because firmware and all 42 execution sources are unchanged.
+Physical attempt 4 then completed baseline m1/m2/m3 TX_DONE and accepted peer
+RX, with END complete on both nodes. After both accepted forced-retry preparation,
+Node B's initial RX_START timed out before retry transmission. Its observer
+recorded 20 empty reads, zero returned bytes and no pending data. Both original
+applications and protected regions passed independent restoration/readback/reset
+checks. The grant is consumed. See [the outcome](testing/OT-163-OBSERVATION-RUN-2026-09-09.md).
+Next is a bounded host/source probe of console delivery at the immediate PREPARED-to-RX_START
+log boundary; no further hardware attempt or grant is part of that probe.
+Accepted full host/CI evidence is reused because all 42 sources are unchanged.
 The physical cause remains unknown; no complete radio-cost result, cryptographic
 selection, phone-to-phone delivery, V1 credit or website change is admitted.
 
