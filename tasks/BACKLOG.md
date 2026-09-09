@@ -31,9 +31,13 @@ preserves all removed summaries and superseded sequencing; see the
    attempt 2. Host fault injection proves an unbounded driver BUSY wait, not the
    physical cause. The bounded driver/firmware and diagnostic runtime now pass
    host tests and matching clean builds; see [containment evidence](../docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md).
-   Next bind their exact image/source/recovery provenance and execute one fresh
-   bounded attempt through independent restoration; preserve the host deadline.
-   No root cause, complete result, V1 credit or website change is admitted.
+   The 40-source [contained execution](../docs/testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md)
+   passes the full host matrix. Attempt 3 stopped at m3 TX_DONE after successful
+   transmit and receive-rearm return checkpoints; both originals and protected
+   flash regions were independently restored/read back/reset. Its grant is consumed.
+   Next investigate completion-receipt emission/delivery and incomplete-receipt
+   handling with bounded host evidence; preserve the deadline. No root cause,
+   complete result, V1 credit or website change is admitted.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.
    Current Messages screens store local templates; no product radio path is wired.

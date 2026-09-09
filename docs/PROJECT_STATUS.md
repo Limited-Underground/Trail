@@ -81,11 +81,16 @@ The bounded radio candidate now passes actual-driver fault tests, generated
 firmware concurrency/containment tests and real-byte host composition. It reports
 transmit and receive-rearm return checkpoints, retains bounded diagnostics through
 cleanup and preserves the host deadline. Two clean firmware builds are identical.
-See [containment evidence](testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md). Next,
-bind the new image/runtime and exact recovery provenance for a fresh bounded
-two-board attempt. The physical cause remains unknown; no complete radio-cost
-result, cryptographic selection, phone-to-phone delivery, V1 credit or website
-change is admitted.
+See [containment evidence](testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md).
+The 40-source execution binding and complete host matrix now pass. Physical
+attempt 3 again stopped awaiting m3 TX_DONE, but its new transmit and receive-rearm
+checkpoints both returned success. Both original applications and protected flash
+regions passed independent restoration/readback/reset checks. See the
+[contained execution outcome](testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md).
+Next investigate the completion-receipt emission/delivery path and incomplete
+receipt handling with bounded host evidence; preserve the existing deadline.
+The physical cause remains unknown; no complete radio-cost result, cryptographic
+selection, phone-to-phone delivery, V1 credit or website change is admitted.
 
 After the remaining crypto measurement/admission and explicit suite/wire selection,
 implement one authenticated two-node message exchange, then its protected BLE

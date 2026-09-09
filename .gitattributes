@@ -416,3 +416,8 @@ tests/fixtures/radiolib_busy/** text eol=lf
 tests/fixtures/radiolib_busy/*.cpp whitespace=-blank-at-eol
 firmware/targets/heltec_v4_noise_xk_contained/** text eol=lf
 tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json text eol=lf
+tests/benchmarks/crypto/OT-163-CONTAINED-EXECUTION-BINDING-3-2026-09-09.json text eol=lf
+tests/hardware/OT-163-CONTAINED-LIVE-OUTCOME-3-2026-09-09.json text eol=lf
+
+# Preserve the exact CRLF lockfile bytes recorded in the contained build/binding.
+tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/dependencies.lock -text whitespace=cr-at-eol

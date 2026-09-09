@@ -2,6 +2,18 @@
 
 ## 2026-09-09
 
+### OT-163 Contained firmware tested on both nodes and restored
+
+Integrated the exact 40-source/three-image execution and recovery binding after
+11 composed host groups, 18 private bridge groups and the complete host matrix
+passed. The bounded physical attempt reached m3, where transmit and receive-rearm
+both reported success but TX_DONE still timed out. This narrows the investigation
+to the completion-receipt path without establishing its root cause. Both original
+applications and protected flash regions passed independent restoration/readback
+checks and resets. The grant is consumed; next is bounded host investigation of
+receipt emission/delivery and incomplete bytes. V1 and website status are unchanged.
+See [the evidence](testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md).
+
 ### OT-163 Bounded radio driver and diagnostic firmware candidate
 
 Consolidated the TX BUSY deadline, firmware error containment, strict return

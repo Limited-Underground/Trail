@@ -1,0 +1,422 @@
+{
+  "schema": "OT163-CONTAINED-LIVE-OUTCOME-3",
+  "attempt": 3,
+  "date": "2026-09-09",
+  "evidence_basis": "retained coordinator execution receipt, bounded return diagnostics and independent postchecks",
+  "result": "noise_xk_radio_execution_aborted",
+  "radio_result_validated": false,
+  "failure": {
+    "stage": "cycle1_baseline",
+    "code": "radio_run_failed",
+    "receipt": "TX_DONE",
+    "after_message": "m3",
+    "category": "receipt_timeout"
+  },
+  "root_cause_established": false,
+  "grant_consumed": true,
+  "restoration": {
+    "complete": true,
+    "nodes": [
+      {
+        "role": "A",
+        "application_restored": true,
+        "readback_verified": true,
+        "reset_completed": true
+      },
+      {
+        "role": "B",
+        "application_restored": true,
+        "readback_verified": true,
+        "reset_completed": true
+      }
+    ]
+  },
+  "claims": {
+    "score_credit_added": false,
+    "v1_completion_changed": false,
+    "website_projection_changed": false,
+    "suite_selected": false,
+    "production_ready": false
+  },
+  "privacy": {
+    "backend_error_text_recorded": false,
+    "device_identifiers_recorded": false,
+    "filesystem_paths_recorded": false,
+    "private_endpoints_recorded": false,
+    "raw_serial_recorded": false
+  },
+  "setup": {
+    "hardware": "two Heltec WiFi LoRa 32 V4 nodes, ESP32-S3, 16 MB flash",
+    "firmware_version": "nxk-contained-v1",
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate_denominator": 5,
+    "explicit_header": true,
+    "crc": true,
+    "sync_word": "0x12",
+    "preamble_symbols": 8,
+    "power_command_dbm": 2,
+    "host_receipt_deadline_seconds": 5,
+    "context": "existing stationary two-node bench; separation and antenna placement not newly measured; no field-range or calibrated-power claim"
+  },
+  "scope": "m1 and m2 have successful TX_DONE receipts and accepted peer RX receipts. For m3, TX_RETURN and RX_REARM_RETURN both report result 0, but no valid TX_DONE arrives within the unchanged deadline. All retained parser-miss counters are zero. This narrows the observed boundary without proving physical RF completion, remote m3 delivery or the underlying cause; no complete radio-cost or loss/duplicate/latency benchmark is admitted.",
+  "execution_evidence": {
+    "started_utc": "2026-09-09T09:41:01.872460+00:00",
+    "finished_utc": "2026-09-09T09:47:26.350987+00:00",
+    "source_snapshot_sha256": "e22d47cc39965f723f9a71a702e6e4f35805153831c67a040255f8683add97ea",
+    "benchmark_sha256": "1bd4f94173feeb7d449a6915380da56367e4395ce9c94048d2097242e9e5e92e",
+    "source_count": 40,
+    "successful_tx_done": [
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "TX_DONE",
+        "receipt_kind": "TX_DONE",
+        "fields": {
+          "wire": 48,
+          "message": "m1",
+          "rx_restart": 0,
+          "scenario": "baseline",
+          "role": "I",
+          "permit_consumed": "yes",
+          "result": 0,
+          "measured_us": 105526,
+          "done_us": 561835,
+          "start_us": 456309
+        }
+      },
+      {
+        "role": "B",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "TX_DONE",
+        "receipt_kind": "TX_DONE",
+        "fields": {
+          "wire": 48,
+          "message": "m2",
+          "rx_restart": 0,
+          "scenario": "baseline",
+          "role": "R",
+          "permit_consumed": "yes",
+          "result": 0,
+          "measured_us": 105448,
+          "done_us": 771770,
+          "start_us": 666322
+        }
+      }
+    ],
+    "accepted_rx": [
+      {
+        "role": "B",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "RX",
+        "receipt_kind": "RX",
+        "fields": {
+          "wire": 48,
+          "message": "m1",
+          "accepted": "yes",
+          "scenario": "baseline",
+          "role": "R",
+          "wiped": "no",
+          "mono_us": 537546
+        }
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "RX",
+        "receipt_kind": "RX",
+        "fields": {
+          "wire": 48,
+          "message": "m2",
+          "accepted": "yes",
+          "scenario": "baseline",
+          "role": "I",
+          "wiped": "no",
+          "mono_us": 807527
+        }
+      }
+    ],
+    "last_transport_events": [
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "started",
+        "kind": "TX_ARM"
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "TX_ARM",
+        "receipt_kind": "TX_ARM",
+        "fields": {
+          "message": "m3",
+          "accepted": "yes",
+          "expires_ms": 30000,
+          "uses": 1
+        }
+      },
+      {
+        "role": "A",
+        "operation": "write_command",
+        "phase": "started",
+        "kind": "COMMAND",
+        "command": "send",
+        "message": "m3"
+      },
+      {
+        "role": "A",
+        "operation": "write_command",
+        "phase": "succeeded",
+        "kind": "COMMAND",
+        "command": "send",
+        "message": "m3"
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "started",
+        "kind": "TX_START"
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "succeeded",
+        "kind": "TX_START",
+        "receipt_kind": "TX_START",
+        "fields": {
+          "wire": 64,
+          "message": "m3",
+          "scenario": "baseline",
+          "role": "I",
+          "start_us": 966604
+        }
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "started",
+        "kind": "TX_DONE"
+      },
+      {
+        "role": "A",
+        "operation": "expect",
+        "phase": "failed",
+        "kind": "TX_DONE",
+        "error": "receipt_timeout"
+      },
+      {
+        "role": "B",
+        "operation": "close",
+        "phase": "started",
+        "kind": "LIFECYCLE"
+      },
+      {
+        "role": "B",
+        "operation": "close",
+        "phase": "succeeded",
+        "kind": "LIFECYCLE"
+      },
+      {
+        "role": "A",
+        "operation": "close",
+        "phase": "started",
+        "kind": "LIFECYCLE"
+      },
+      {
+        "role": "A",
+        "operation": "close",
+        "phase": "succeeded",
+        "kind": "LIFECYCLE"
+      }
+    ],
+    "return_diagnostics": {
+      "A": {
+        "schema": "noise-xk-contained-runtime-diagnostics-v1",
+        "checkpoints": [
+          {
+            "kind": "TX_RETURN",
+            "role": "I",
+            "scenario": "baseline",
+            "message": "m1",
+            "result": 0,
+            "start_us": 456309,
+            "done_us": 561835,
+            "measured_us": 105526
+          },
+          {
+            "kind": "RX_REARM_RETURN",
+            "role": "I",
+            "scenario": "baseline",
+            "message": "m1",
+            "result": 0,
+            "start_us": 562295,
+            "done_us": 568207,
+            "measured_us": 5912,
+            "attempted": "yes"
+          },
+          {
+            "kind": "TX_RETURN",
+            "role": "I",
+            "scenario": "baseline",
+            "message": "m3",
+            "result": 0,
+            "start_us": 966604,
+            "done_us": 1092611,
+            "measured_us": 126007
+          },
+          {
+            "kind": "RX_REARM_RETURN",
+            "role": "I",
+            "scenario": "baseline",
+            "message": "m3",
+            "result": 0,
+            "start_us": 1093073,
+            "done_us": 1098992,
+            "measured_us": 5919,
+            "attempted": "yes"
+          }
+        ],
+        "parser_misses": {
+          "non_ascii": 0,
+          "non_protocol": 0,
+          "malformed_protocol": 0,
+          "framing_invalid": 0
+        }
+      },
+      "B": {
+        "schema": "noise-xk-contained-runtime-diagnostics-v1",
+        "checkpoints": [
+          {
+            "kind": "TX_RETURN",
+            "role": "R",
+            "scenario": "baseline",
+            "message": "m2",
+            "result": 0,
+            "start_us": 666322,
+            "done_us": 771770,
+            "measured_us": 105448
+          },
+          {
+            "kind": "RX_REARM_RETURN",
+            "role": "R",
+            "scenario": "baseline",
+            "message": "m2",
+            "result": 0,
+            "start_us": 772230,
+            "done_us": 778082,
+            "measured_us": 5852,
+            "attempted": "yes"
+          }
+        ],
+        "parser_misses": {
+          "non_ascii": 0,
+          "non_protocol": 0,
+          "malformed_protocol": 0,
+          "framing_invalid": 0
+        }
+      }
+    },
+    "preflight": [
+      {
+        "role": "A",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+          }
+        }
+      },
+      {
+        "role": "B",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+          }
+        }
+      }
+    ],
+    "postcheck": [
+      {
+        "role": "A",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+          }
+        }
+      },
+      {
+        "role": "B",
+        "checks_complete": true,
+        "runtime_reset_succeeded": true,
+        "regions": {
+          "partition": {
+            "bytes": 4096,
+            "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+          },
+          "ota": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "bootloader": {
+            "bytes": 32768,
+            "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+          },
+          "application": {
+            "bytes": 589824,
+            "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+          }
+        }
+      }
+    ]
+  }
+}
