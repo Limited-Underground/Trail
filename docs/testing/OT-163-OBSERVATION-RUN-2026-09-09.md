@@ -65,8 +65,15 @@ Investigate the immediate PREPARED-to-RX_START console-log path in host/source
 tests, using the observed zero-returned-byte boundary to choose the next probe.
 Trace the runner's `_prepare` / `_rx_start` through generated `handle_prepare`,
 `start_expected_rx` and `rx_start_receipt`, then the pinned ESP-IDF 6.0.2
-`usb_serial_jtag_vfs.c` write/flush path. These are investigation pointers,
-not evidence that a particular layer lost the response.
+simple-stdio path: `_write_r_console` calls `esp_system_console_put_char`, which
+calls `esp_rom_output_tx_one_char`. The candidate's live linker map selects these
+simple-stdio functions; USB Serial/JTAG VFS is not its linked backend. The console
+configuration selects ROM port 4. The wrapper ignores ROM transmit status and the
+write function reports the requested length. A deterministic host probe should
+exercise those exact functions with injected ROM success/failure and captured
+byte calls. This tests the error-reporting boundary, not whether a ROM failure
+occurred during the physical run. `_fsync_console` is discarded from this binary;
+the generated `fflush(stdout)` call belongs to the restart branch, not preparation.
 Do not infer a parser fault, device emission, USB loss or radio failure solely
 from the timeout. No additional hardware attempt or grant is part of that probe.
 
