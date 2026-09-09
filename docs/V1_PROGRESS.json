@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-09-08",
+  "as_of": "2026-09-09",
   "baseline_name": "Historical standalone evidence baseline",
   "baseline_definition": "The historical standalone evidence baseline measures progress toward four self-contained field units that do not depend on a phone, server, or repeater; it is retained for continuity and is not the current V1 Companion release total.",
   "baseline_milestones": [
@@ -256,7 +256,7 @@
       "id": "v1-companion",
       "name": "V1 Companion",
       "status": "measured",
-      "as_of": "2026-09-08",
+      "as_of": "2026-09-09",
       "definition": "A complete V1 Companion release means exactly two supported Heltec LoRa devices and two approved Android phones, one physically authorized phone per Heltec, exchange authenticated and encrypted typed and quick messages bidirectionally through BLE, direct LoRa, and BLE with restart, disconnect, rejection, retry, and recovery. The accepted product includes resumable name/region onboarding; Messages, Group, and Device portrait/landscape UI; one private group per person with exactly one administrator and at most six total members; consent-gated public direct contact; group location ON at join with administrator Required/Optional policy; per-chat location OFF; current/stale/unavailable coordinate detail without a built-in-map requirement; redacted user-reviewed text support export; and the accepted Heltec OLED/clock states. Release still requires one exact signed Android artifact physically accepted without relay, server, or internet dependency.",
       "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
       "milestones": [
@@ -1168,6 +1168,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "Recorded two bounded OT-163 diagnostic attempts and the intervening host-only startup-tolerance binding. Attempt 1 stopped at Node B post-restart readiness; attempt 2 advanced through m3 and timed out waiting for TX_DONE. Both one-use grants are consumed, both role-specific Trail applications were fully restored/read back/reset after attempt 2, and no timeout root cause or complete radio result is admitted. Architecture completion remains 85%; every milestone completion and weight remains unchanged. V1 Companion stays exact 45.50 percent / displayed 46 percent, and the website projection is unchanged."
+        },
+        {
+          "date": "2026-09-09",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "Host fault injection of pinned RadioLib methods demonstrates an unbounded BUSY wait before the transmit timer starts; timeout and healthy controls pass. This does not establish the physical attempt-2 cause. Next gate is a bounded wait and finite transmit/rearm/parser diagnostics. No milestone completion or weight changes; V1 Companion remains 45.50 exact / 46 displayed and the historical baseline remains 31.75 exact / 32 displayed. Website publication remains deferred."
         }
       ]
     },
@@ -1583,6 +1589,11 @@
       "date": "2026-09-08",
       "overall": 32,
       "reason": "Recorded the bounded OT-163 diagnostic attempt history and exact recovery outcome without admitting a complete radio result or root cause. Architecture completion remains 85%, all historical standalone milestone weights and completions remain unchanged, and the baseline stays exact 31.75 percent / displayed 32 percent."
+    },
+    {
+      "date": "2026-09-09",
+      "overall": 32,
+      "reason": "Host fault injection of pinned RadioLib methods demonstrates an unbounded BUSY wait before the transmit timer starts; timeout and healthy controls pass. This does not establish the physical attempt-2 cause. Next gate is a bounded wait and finite transmit/rearm/parser diagnostics. No milestone completion or weight changes; V1 Companion remains 45.50 exact / 46 displayed and the historical baseline remains 31.75 exact / 32 displayed. Website publication remains deferred."
     }
   ]
 }
