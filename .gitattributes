@@ -405,3 +405,14 @@ tools/noise_xk_startup_execution.py text eol=lf
 tests/host/noise_xk_startup_execution_tests.py text eol=lf
 tests/benchmarks/crypto/OT-163-STARTUP-EXECUTION-BINDING-*-2026-09-08.json text eol=lf
 tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-*-2026-09-08.json text eol=lf
+
+# OT-163 bounded radio derivative and exact upstream regression excerpts.
+tools/radiolib_busy_source.py text eol=lf
+tools/noise_xk_contained_*.py text eol=lf
+tests/host/radiolib_busy_source_tests.py text eol=lf
+tests/host/noise_xk_contained_*_tests.py text eol=lf
+tests/fixtures/radiolib_busy/** text eol=lf
+# Exact upstream method bytes include trailing blanks; do not normalize them.
+tests/fixtures/radiolib_busy/*.cpp whitespace=-blank-at-eol
+firmware/targets/heltec_v4_noise_xk_contained/** text eol=lf
+tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json text eol=lf

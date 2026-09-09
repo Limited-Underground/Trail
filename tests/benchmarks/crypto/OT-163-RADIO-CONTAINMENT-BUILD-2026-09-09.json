@@ -1,0 +1,228 @@
+{
+  "schema": "OT163-RADIO-CONTAINMENT-BUILD-1",
+  "date": "2026-09-09",
+  "scope": "Host builds only; no hardware access or execution authority.",
+  "target": "firmware/targets/heltec_v4_noise_xk_contained",
+  "project_version": "nxk-contained-v1",
+  "builds": [
+    {
+      "directory": "build/contained-a2",
+      "initially_absent": true,
+      "exit_code": 0
+    },
+    {
+      "directory": "build/contained-b2",
+      "initially_absent": true,
+      "exit_code": 0
+    }
+  ],
+  "toolchain": {
+    "idf": "6.0.2",
+    "idf_revision": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "gcc": "esp-15.2.0_20251204 / GCC 15.2.0",
+    "python": "3.14.6",
+    "cmake": "4.0.3",
+    "ninja": "1.12.1",
+    "esptool": "5.3.1",
+    "radiolib": "7.7.1",
+    "libsodium": "1.0.22"
+  },
+  "policy": {
+    "component_manager": "disabled; accepted local components only",
+    "ccache": "disabled",
+    "compiler_source_date_epoch": 0,
+    "generated_file_prefix": "/CONTAINED_BUILD_DIR",
+    "application_offset": "0x10000",
+    "benchmark_bootloader_partition_installation": "not authorized"
+  },
+  "source_inputs": {
+    "tools/radiolib_busy_source.py": {
+      "bytes": 2873,
+      "sha256": "8d4c7c41807a4badf9a2b301b1b738bc395711f3f9f871202bb039f9bf57bb6b"
+    },
+    "tools/noise_xk_contained_firmware_source.py": {
+      "bytes": 3620,
+      "sha256": "097956db018f2ad924d6b7e0f6d122ad699c9ed13706922955f7be11039c5587"
+    },
+    "firmware/targets/heltec_v4_noise_xk_contained/CMakeLists.txt": {
+      "bytes": 3020,
+      "sha256": "0f0ab11b13f10913bca69d5ec01caaf39e7fe2c12f2db2060015b65e53b808e5"
+    },
+    "firmware/targets/heltec_v4_noise_xk_contained/main/CMakeLists.txt": {
+      "bytes": 948,
+      "sha256": "c6c6958871d72b95e79a4873744d0c40236a503f9be14b439750ecd44af90f6b"
+    },
+    "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/CMakeLists.txt": {
+      "bytes": 1510,
+      "sha256": "b2fbcb2edc40f6fca034f2b520249e0e25bffc6d70c35a8161812a848569776f"
+    },
+    "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/main/CMakeLists.txt": {
+      "bytes": 1170,
+      "sha256": "8d2e4f27f53e74ceded28a531d58c34941fe7214bc08438fc681bc1c83784a3b"
+    },
+    "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/main/idf_component.yml": {
+      "bytes": 61,
+      "sha256": "95403227f7dc7981c4a05aa5718059d28ccd18ffa80e8db051cb7ba123f639df"
+    },
+    "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/dependencies.lock": {
+      "bytes": 536,
+      "sha256": "c9e8adbc2ff5ac297ca42b9fe5f3fc05e5692aec12c3decfe49c097ad08d1d95"
+    },
+    "tools/noise_xk_ready_firmware_source.py": {
+      "bytes": 3606,
+      "sha256": "13b3dd6080e87e5c660b351d31c6ff175f527a97b6928ae19b8aec67df8d187f"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot153_noise_xk_radio_cost/main/app_main.cpp": {
+      "bytes": 38207,
+      "sha256": "612c892ecf649657e9a1f5fb68f8e24d088c2d4a94841f2ac5a8fff93d5b4240"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot153_noise_xk_radio_cost/sdkconfig.defaults": {
+      "bytes": 397,
+      "sha256": "7a71b7b56aa665bdd6c927e4e4682fb0a5458b34557976777a5dc9b537a599d3"
+    },
+    "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.c": {
+      "bytes": 17876,
+      "sha256": "8534fe1a6a4b68cd37e491ebd0f564dd38fd3935fb21d8f2d45aa8333ae442b8"
+    },
+    "firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.cpp": {
+      "bytes": 5586,
+      "sha256": "b2b63bbffaae4c1d26546fb1a176ebaaca46c2da0c88e1e1b3028ebefaaa0d1b"
+    }
+  },
+  "artifacts": {
+    "heltec_v4_noise_xk_contained.bin": {
+      "a": {
+        "bytes": 297792,
+        "sha256": "1bd4f94173feeb7d449a6915380da56367e4395ce9c94048d2097242e9e5e92e"
+      },
+      "b": {
+        "bytes": 297792,
+        "sha256": "1bd4f94173feeb7d449a6915380da56367e4395ce9c94048d2097242e9e5e92e"
+      },
+      "byte_identical": true
+    },
+    "heltec_v4_noise_xk_contained.elf": {
+      "a": {
+        "bytes": 4740712,
+        "sha256": "8d63bd4767f5419ec375ff9e9220afad55e83126c507bde43ca1fb1d22bcb54a"
+      },
+      "b": {
+        "bytes": 4740712,
+        "sha256": "8d63bd4767f5419ec375ff9e9220afad55e83126c507bde43ca1fb1d22bcb54a"
+      },
+      "byte_identical": true
+    },
+    "heltec_v4_noise_xk_contained.map": {
+      "a": {
+        "bytes": 3565541,
+        "sha256": "ce177447af04cfaa27fcb6f228e85e207eb2c8b53c61ddfa88a2cb137e805637"
+      },
+      "b": {
+        "bytes": 3565541,
+        "sha256": "ce177447af04cfaa27fcb6f228e85e207eb2c8b53c61ddfa88a2cb137e805637"
+      },
+      "byte_identical": true
+    },
+    "contained_app_main.cpp": {
+      "a": {
+        "bytes": 41107,
+        "sha256": "97e3cd45e395b6a67acfa9c21fc3a14027db482a26e4a2c086a148b5621fa634"
+      },
+      "b": {
+        "bytes": 41107,
+        "sha256": "97e3cd45e395b6a67acfa9c21fc3a14027db482a26e4a2c086a148b5621fa634"
+      },
+      "byte_identical": true
+    },
+    "contained_SX126x.cpp": {
+      "a": {
+        "bytes": 52861,
+        "sha256": "babffa4a7955725c8d685432c8c8ce0ccc3db932a8622b9fa9f70271c253a2e2"
+      },
+      "b": {
+        "bytes": 52861,
+        "sha256": "babffa4a7955725c8d685432c8c8ce0ccc3db932a8622b9fa9f70271c253a2e2"
+      },
+      "byte_identical": true
+    },
+    "sdkconfig": {
+      "a": {
+        "bytes": 58074,
+        "sha256": "44d954f25e5b337e57a6e8b7beb053842c0ea68928a575e089a561fa165ce05c"
+      },
+      "b": {
+        "bytes": 58074,
+        "sha256": "44d954f25e5b337e57a6e8b7beb053842c0ea68928a575e089a561fa165ce05c"
+      },
+      "byte_identical": true
+    },
+    "bootloader/bootloader.bin": {
+      "a": {
+        "bytes": 22480,
+        "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+      },
+      "b": {
+        "bytes": 22480,
+        "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+      },
+      "byte_identical": true
+    },
+    "partition_table/partition-table.bin": {
+      "a": {
+        "bytes": 3072,
+        "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820"
+      },
+      "b": {
+        "bytes": 3072,
+        "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820"
+      },
+      "byte_identical": true
+    },
+    "CMakeFiles/4.0.3/CMakeCCompiler.cmake": {
+      "a": {
+        "bytes": 4599,
+        "sha256": "9d2db1bdfe2637e65a63a0703d91c318ce94c65fe14060e8382c8e211b7ecc60"
+      },
+      "b": {
+        "bytes": 4599,
+        "sha256": "9d2db1bdfe2637e65a63a0703d91c318ce94c65fe14060e8382c8e211b7ecc60"
+      },
+      "byte_identical": true
+    },
+    "CMakeFiles/4.0.3/CMakeCXXCompiler.cmake": {
+      "a": {
+        "bytes": 8582,
+        "sha256": "5ce7df78d42a1950ee24196388004b9a65bcb5a6a6188af4843bf835ef6d8be9"
+      },
+      "b": {
+        "bytes": 8582,
+        "sha256": "5ce7df78d42a1950ee24196388004b9a65bcb5a6a6188af4843bf835ef6d8be9"
+      },
+      "byte_identical": true
+    }
+  },
+  "linked_source_checks": {
+    "one_generated_driver_and_application_per_compile_database": true,
+    "original_driver_translation_unit_excluded": true,
+    "both_generated_objects_in_link_map": true,
+    "generated_bytes_match_final_generators": true
+  },
+  "dependencies": {
+    "radiolib_version": "7.7.1",
+    "radiolib_checksum_manifest": {
+      "bytes": 55311,
+      "sha256": "7495dec1394267ed669ae0ac9114301887875ee9e926a0cf96521602af0aaf3a"
+    },
+    "radiolib_files_verified": 391,
+    "radiolib_mismatches": 0,
+    "libsodium_source_tree_sha256": "715177493359c7b9c83b2a8b119410935707ed482e3fc16506d8561a7c737eab",
+    "libsodium_matches_previous_733_file_tree": true
+  },
+  "limitations": [
+    "Physical timeout cause remains unknown.",
+    "Separate boot calibration wait is unchanged.",
+    "Radio containment does not prove physical radio idle.",
+    "Fresh complete image/source/recovery binding required before hardware.",
+    "No V1 score or website change."
+  ]
+}

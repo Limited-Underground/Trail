@@ -40,6 +40,10 @@ if ($null -eq $python) {
 
 # Run checkout-sensitive target and frozen-harness contracts before the long
 # native matrix so structural target changes fail in seconds, not at the end.
+foreach ($containedSuite in @('radiolib_busy_source', 'noise_xk_contained_firmware', 'noise_xk_contained_endpoint', 'noise_xk_contained_runtime')) {
+    & $python.Source (Join-Path $projectRoot "tests\host\${containedSuite}_tests.py")
+    if ($LASTEXITCODE -ne 0) { throw "Radio containment suite failed: $containedSuite" }
+}
 & $python.Source (Join-Path $projectRoot 'tools\region_selection_catalog.py')
 if ($LASTEXITCODE -ne 0) { throw 'Generated saved-region catalog differs.' }
 $fastStructuralTests = @(

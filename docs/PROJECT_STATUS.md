@@ -77,12 +77,15 @@ for both attempts. See the
 [instrumented run](testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md). The timeout
 location is known, but its root cause is not.
 
-Host fault injection now proves an unbounded BUSY wait before the driver TX
-timer starts, without establishing the physical timeout cause. Next, bound that
-wait and add finite transmit-return/receive-rearm and parser-discard diagnostics
-before any new physical authority is considered. Do not change the established
-receipt timeout without evidence. No complete radio-cost result, cryptographic
-selection, phone-to-phone delivery, V1 credit or website change is admitted.
+The bounded radio candidate now passes actual-driver fault tests, generated
+firmware concurrency/containment tests and real-byte host composition. It reports
+transmit and receive-rearm return checkpoints, retains bounded diagnostics through
+cleanup and preserves the host deadline. Two clean firmware builds are identical.
+See [containment evidence](testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md). Next,
+bind the new image/runtime and exact recovery provenance for a fresh bounded
+two-board attempt. The physical cause remains unknown; no complete radio-cost
+result, cryptographic selection, phone-to-phone delivery, V1 credit or website
+change is admitted.
 
 After the remaining crypto measurement/admission and explicit suite/wire selection,
 implement one authenticated two-node message exchange, then its protected BLE
