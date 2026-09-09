@@ -427,3 +427,4 @@ tools/noise_xk_receipt_observation_*.py text eol=lf
 tests/host/noise_xk_receipt_observation_*_tests.py text eol=lf
 tests/benchmarks/crypto/OT-163-OBSERVATION-EXECUTION-BINDING-*-2026-09-09.json text eol=lf
 tests/hardware/OT-163-OBSERVATION-PREFLIGHT-*-2026-09-09.json text eol=lf
+tests/hardware/OT-163-OBSERVATION-LIVE-OUTCOME-*-2026-09-09.json text eol=lf
