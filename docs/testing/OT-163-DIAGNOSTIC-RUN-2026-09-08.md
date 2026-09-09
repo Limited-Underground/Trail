@@ -69,13 +69,12 @@ Five deterministic groups admit only malformed recognized startup records and
 healthy stale READY records before fresh readiness; unhealthy, active, unknown,
 post-readiness and over-budget input still fails closed.
 
-Attempt 2 advanced through message `m3` and then aborted because the expected
-`TX_DONE` receipt did not arrive within the existing receipt deadline. The
+Attempt 2 issued message `m3` and accepted its `TX_START` receipt, then aborted
+because no valid `TX_DONE` was accepted within the five-second deadline. The
 one-use grant was consumed. Both role-specific Trail applications were fully
 restored, read back and reset. This bounded observation establishes the timeout
-location only; it does not establish why the receipt was absent. The exact
-owner-confirmed outcome is recorded without invented raw serial, timestamps or
-device identifiers in
+location only; it does not establish why the receipt was absent. The retained coordinator receipt, safe transport events and independent
+postchecks provide the execution timestamps and exact recovery evidence in
 `tests/hardware/OT-163-DIAGNOSTIC-LIVE-OUTCOME-2-2026-09-08.json`.
 
 ## Capability boundary

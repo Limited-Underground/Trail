@@ -1,5 +1,17 @@
 # OpenTrail Progress Log
 
+## 2026-09-09
+
+### OT-163 Diagnostic execution evidence reconciled for publication
+
+Verified the reconciled source snapshots against all 26 and 27 bound files and
+both physical execution records. Attempt 2 accepted the `m3` transmission-start
+receipt but no valid completion receipt within five seconds; this does not prove
+whether RF transmission finished. Its retained machine evidence now records the
+exact stage, safe transport events and both independent application/protected-
+region postchecks. Both grants remain consumed. No hardware was accessed during
+this reconciliation; V1 completion and website status remain unchanged.
+
 ## 2026-09-08
 
 ### OT-001 Repository presentation and contributor organization

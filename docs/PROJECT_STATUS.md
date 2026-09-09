@@ -69,10 +69,11 @@ non-reuse of a consumed namespace. See the
 Two bounded diagnostic attempts are now recorded. Attempt 1 stopped at Node B's
 post-restart readiness receipt. The 27-source startup-tolerance successor then
 allowed only recognized bounded startup noise and healthy stale READY receipts;
-attempt 2 advanced through `m3` but timed out waiting for its `TX_DONE` receipt.
+attempt 2 issued `m3` and received `TX_START`, then timed out awaiting `TX_DONE`.
 Both one-use grants are consumed. After each attempt, both distinct role images
-were restored, read back and reset; protected-region postchecks passed for
-attempt 1 and complete role restoration was confirmed for attempt 2. See the
+were restored, read back and reset; independent application-span and
+bootloader/partition/OTA postchecks passed
+for both attempts. See the
 [instrumented run](testing/OT-163-DIAGNOSTIC-RUN-2026-09-08.md). The timeout
 location is known, but its root cause is not.
 

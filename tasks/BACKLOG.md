@@ -26,7 +26,7 @@ preserves all removed summaries and superseded sequencing; see the
    closure and unique attempt/recovery records. The 27-source startup-tolerance
    successor preserves the runner deadlines and admits only bounded recognized
    pre-readiness noise. Attempt 1 stopped at Node B post-restart readiness;
-   attempt 2 reached `m3` and timed out waiting for `TX_DONE`. Both grants are
+   attempt 2 issued `m3`, received `TX_START` and timed out awaiting `TX_DONE`. Both grants are
    consumed, and both role images were fully restored, read back and reset after
    attempt 2. Analyze this exact receipt boundary host-only before proposing any
    correction or new physical authority; do not speculate by changing timeouts.
