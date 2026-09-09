@@ -2,6 +2,20 @@
 
 ## 2026-09-09
 
+### OT-163 Bounded receipt-byte observation successor
+
+Reproduced the completion-receipt ambiguity with exact generated format and
+synthetic identifiers: all 318 two-fragment splits pass, while all 319 proper
+prefixes time out with both checkpoints and zero parser misses. The new host-only
+observer retains bounded read/byte/pending-state metadata before buffer clearing,
+without changing deadlines or parser results. Twelve endpoint and eight composed
+groups pass; the required full host matrix gates publication.
+Its guarded 42-source session preserves all 40 frozen inputs and independent
+recovery. No new grant or hardware action occurred. Next is fresh exact
+source/image-bound preflight after publication checks. Physical cause, complete
+radio measurements and product messaging remain unproved; V1 and website status
+are unchanged. See [the evidence](testing/OT-163-RECEIPT-OBSERVATION-2026-09-09.md).
+
 ### OT-163 Contained firmware tested on both nodes and restored
 
 Integrated the exact 40-source/three-image execution and recovery binding after
