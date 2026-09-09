@@ -93,9 +93,14 @@ without changing the parser or deadline. The separate observer and guarded
 40 historical inputs remain unchanged. Twelve endpoint and eight composed groups
 pass; the required full host matrix gates publication. See
 [receipt observation evidence](testing/OT-163-RECEIPT-OBSERVATION-2026-09-09.md).
-Next prepare a fresh exact source/image-bound
-preflight with independent role restoration before any further physical attempt.
-No new grant or hardware operation is admitted by this host-only increment.
+The exact 42-source/three-image observation binding and isolated attempt-4
+caller now pass 30 private offline groups. Both roles passed fresh original-image,
+erased-tail and protected-region reads with guarded resets; prior region
+descriptors match exactly. See [preflight evidence](testing/OT-163-OBSERVATION-PREFLIGHT-2026-09-09.md).
+No execution grant is issued and the execution namespace remains unused. Next
+is one fresh bound benchmark after publication, with immediate role/image and
+independent recovery rechecks. The accepted PR #14 host/CI evidence is reused
+because firmware and all 42 execution sources are unchanged.
 The physical cause remains unknown; no complete radio-cost result, cryptographic
 selection, phone-to-phone delivery, V1 credit or website change is admitted.
 

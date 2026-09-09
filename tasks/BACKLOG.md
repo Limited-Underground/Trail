@@ -39,18 +39,23 @@ preserves all removed summaries and superseded sequencing; see the
    now retains bounded byte/read counts before failure clears pending data. Its
    42-source session preserves all 40 predecessor inputs and restoration gates.
    Twelve endpoint and eight composed groups pass; full host checks gate publication.
-   Next prepare fresh exact source/image-bound preflight
-   and independent role recovery before another physical attempt. No new grant,
-   hardware operation, changed deadline, root cause,
-   complete result, V1 credit or website change is admitted.
+   The exact 42-source/three-image binding and isolated attempt-4 caller now pass
+   30 private offline groups. Fresh read/reset preflight passes on both roles,
+   including exact originals/erased tails and preserved-region descriptors.
+   See [preflight evidence](../docs/testing/OT-163-OBSERVATION-PREFLIGHT-2026-09-09.md).
+   No execution grant is issued; the attempt-4 execution namespace is unused.
+   Next is one fresh bound benchmark after publication and immediate role/image
+   and independent recovery rechecks. No changed deadline, root cause, complete
+   radio result, V1 credit or website change is admitted.
 3. Close accepted crypto measurement/selection gates, then implement the actual
    authenticated node-to-node message exchange and connect the two phone UIs.
    Current Messages screens store local templates; no product radio path is wired.
 
 The original pair still needs the accepted clock correction after serving as
 control. Full reset cleanup, pair isolation, first-use/large-font UI checks,
-production automatic launch and signed-release acceptance remain open. Keypad,
-cold-power disassembly and website updates are owner-deferred. Source-of-truth
+production automatic launch and signed-release acceptance remain open. Keypad
+and cold-power disassembly remain owner-deferred. The bulk website/IIS update is
+complete; further editorial synchronization follows the ten-task cadence. Source-of-truth
 completion stays in [V1_PROGRESS.json](../docs/V1_PROGRESS.json).
 
 ## Post-release options
