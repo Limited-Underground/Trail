@@ -1,0 +1,118 @@
+{
+  "schema": "OT189-OPERATOR-RUNTIME-EVIDENCE-1",
+  "as_of": "2026-09-10",
+  "status": "isolated_runtime_verified_preparation",
+  "source_pins": {
+    "tools/security_policy_runtime_bundle.py": {
+      "bytes": 14057,
+      "sha256": "cb6fb1088ec50ddcff698a75251d971b3970aa6b0952eaab0fc9ce367ad81974"
+    },
+    "tools/security_policy_operator.py": {
+      "bytes": 17822,
+      "sha256": "c5261136ac549050e4cf138e34ba3961e842147a2d72fa70dd1883ef1bcfb0de"
+    },
+    "tools/Invoke-SecurityPolicyOperator.ps1": {
+      "bytes": 6265,
+      "sha256": "ef854c3324fc6ad76abf8136ff9129c22ce35ccf280f5d212ec5dd59faaa3906"
+    }
+  },
+  "test_pins": {
+    "tests/host/security_policy_runtime_bundle_tests.py": {
+      "bytes": 8701,
+      "sha256": "ee2d5c6c9b09f17e1469e9f28a88c675b0d22a50d5b51b471c2eaae6316bb9ed"
+    },
+    "tests/host/security_policy_operator_tests.py": {
+      "bytes": 16475,
+      "sha256": "4a1813e150090fd32ffac3b7ce55fb2badfff2bc462dea461117142cdf167633"
+    }
+  },
+  "focused_tests": {
+    "runtime_bundle": 13,
+    "operator": 13
+  },
+  "focused_total": 26,
+  "complete_host_matrix": "completed_in_segments",
+  "capsule": {
+    "manifest_sha256": "96b6ba113ae631b6b122871dea6c7387cc29b011d019be409fbb3d62769ac9bb",
+    "files": 3545,
+    "bytes": 96172657,
+    "versions": {
+      "python": "3.14.6",
+      "bitarray": "3.10.1",
+      "bitstring": "4.4.0",
+      "cffi": "2.1.1",
+      "click": "8.1.8",
+      "colorama": "0.4.6",
+      "cryptography": "46.0.7",
+      "esptool": "5.3.1",
+      "intelhex": "2.3.0",
+      "markdown-it-py": "4.2.0",
+      "mdurl": "0.1.2",
+      "pycparser": "3.0",
+      "pygments": "2.20.0",
+      "pyserial": "3.5",
+      "pyyaml": "6.0.3",
+      "reedsolo": "1.7.0",
+      "rich": "15.0.0",
+      "rich-click": "1.9.8",
+      "tibs": "0.5.7"
+    },
+    "installed_distributions": 18,
+    "dependency_record_files": 1074,
+    "inventory_retained_privately": true
+  },
+  "probes": {
+    "ordinary": {
+      "files_verified": 3545,
+      "hardware_access": false,
+      "isolated_child": "verified",
+      "parent_import_origins": "verified",
+      "runtime_sha256": "96b6ba113ae631b6b122871dea6c7387cc29b011d019be409fbb3d62769ac9bb",
+      "status": "pass",
+      "versions": {
+        "esptool": "5.3.1",
+        "pyserial": "3.5"
+      }
+    },
+    "poisoned": {
+      "files_verified": 3545,
+      "hardware_access": false,
+      "isolated_child": "verified",
+      "parent_import_origins": "verified",
+      "runtime_sha256": "96b6ba113ae631b6b122871dea6c7387cc29b011d019be409fbb3d62769ac9bb",
+      "status": "pass",
+      "versions": {
+        "esptool": "5.3.1",
+        "pyserial": "3.5"
+      }
+    },
+    "poison_markers_executed": false,
+    "post_probe_exact_files": true,
+    "esptool_configuration": "pinned_empty_section",
+    "inherited_esptool_options": "removed"
+  },
+  "hardware_access": false,
+  "live_snapshots_created": false,
+  "physical_authority_issued": false,
+  "prior_frozen_report": {
+    "path": "tests/benchmarks/crypto/OT-188-CAPTURE-RECOVERY-2026-09-10.json",
+    "bytes": 3540,
+    "sha256": "ec40b5ccaf543d072ffffb84385ef26fde5ece02aeadac8cf37f1a19d9da8bfa"
+  },
+  "limits": [
+    "Reviewed PowerShell verifier, its host/.NET and operating system remain the external trust base; executable pin is not complete host attestation.",
+    "Installed dependency RECORD consistency is not upstream signature verification.",
+    "Concurrent malicious local administrator and operating-system compromise are outside the integrity boundary.",
+    "Execute/recover entrypoints do not supply a first-snapshot controller; bounded read/reset custody preparation and fresh per-role physical authority remain before device I/O.",
+    "No physical entropy, persistence, USB timing, radio or product cryptography acceptance."
+  ],
+  "completion_credit": false,
+  "website_status_changed": false,
+  "superseded_initial_runtime": {
+    "manifest_sha256": "7a8e8e4b56a558b3db862fa30b2f9bcae9d8f234ff3dd80047683a91d0ba6a20",
+    "admitted": false,
+    "reason": "Inherited esptool environment/home configuration was not excluded; replaced by pinned empty config and explicit environment cleanup, with exact top-level import-origin admission."
+  },
+  "local_matrix_note": "Unchanged prefix passed. The runtime suite overlapped a final fixture update and failed its old sentinel case; final frozen runtime suites and the entire remaining tail then passed. Required CI runs the complete matrix from a fresh checkout before merge.",
+  "simulator_ui_tests": "13/13"
+}

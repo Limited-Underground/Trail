@@ -10,11 +10,12 @@ preserves all removed summaries and superseded sequencing; see the
 
 ## Current execution order
 
-1. Continue from the [host-tested capture/recovery package](../docs/testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md).
-   Verify a fresh isolated operator runtime, exact tooling/dependency bytes and
-   import origins. Prepare exact live inventory, installed-region readbacks and
-   private complete application/NVS originals under separately scoped authority.
-   Host fixtures do not establish live snapshot custody or hardware readiness.
+1. Continue from the [verified isolated runtime and trial scope](../docs/testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md).
+   Complete the bounded read/reset controller for initial backup custody; the
+   existing execute/recover entrypoints require originals already captured.
+   Then prepare fresh live inventory, installed-region readbacks and complete
+   private application/NVS originals under exact scoped physical authority.
+   Runtime probes do not establish live snapshot custody or hardware readiness.
 2. Admit a fresh one-use physical trial and close applicable
    [security gates](../docs/testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md),
    Phase 3 admission and explicit crypto selection. Real trust provisioning,
@@ -48,6 +49,7 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
+| OT-189 | done | Verify isolated operator runtime and prepare physical trial scope | Private runtime binds interpreter, startup files and 18 dependency distributions; external prelaunch and isolated parent/ROM-child verification pass with host failure tests. Two-role read/reset and nonradio trial scopes are prepared. Initial backup controller, live custody and physical authority remain separate. See [runtime evidence](../docs/testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md). |
 | OT-188 | done | Prepare executable security capture and full-storage recovery | Host-tested one-use nonradio runner binds source/images and role custody, strict solicited capture, durable interruption and serial-lease barriers, and exact per-role application/full-NVS restoration. Live runtime verification, snapshots and physical acceptance remain separate. See [capture/recovery evidence](../docs/testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md). |
 | OT-187 | done | Bind security policy and prepare solicited evaluation capture | Fresh-only same-chip evaluation binds real signed invitation/prologue and transcript confirmation, durable receive replay admission, restart refusal and logical retirement. Actual-source proofs and two matching builds pass. Challenge-bound host capture and full NVS recovery requirements are prepared; executable hardware package and physical acceptance remain open. See [evaluation evidence](../docs/testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md). |
 | OT-186 | done | Audit progress history and task ownership | Corrected recent reused IDs, registered omitted historical tasks, preserved evidence and chronological results, and strengthened documentation checks for registered IDs, progress links and date order. See [audit entry](../docs/PROGRESS_LOG.md#ot-186-audit-progress-history-and-correct-task-ownership). No implementation or completion credit. |

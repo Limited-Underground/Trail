@@ -129,9 +129,11 @@
         "tests/benchmarks/crypto/OT-187-SECURITY-POLICY-BUILD-2026-09-10.json",
         "docs/testing/OT-187-CAPTURE-PREPARATION.md",
         "docs/testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md",
-        "tests/benchmarks/crypto/OT-188-CAPTURE-RECOVERY-2026-09-10.json"
+        "tests/benchmarks/crypto/OT-188-CAPTURE-RECOVERY-2026-09-10.json",
+        "docs/testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md",
+        "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json"
       ],
-      "next_gate": "OT-188 host-tests the one-use nonradio capture/recovery composition, exact source/image/role binding, durable interruption and serial-lease barriers, and full original application/NVS restoration. Verify an isolated operator runtime and exact tooling/dependency bytes/import origins, then prepare fresh live role inventory, installed-region readbacks and private complete originals under exact scoped authority before a new one-use physical trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, applicable Phase 3 admission and explicit crypto selection remain open. Same-key resume is unsupported. Cold-power disassembly remains deferred; previous physical grants remain consumed."
+      "next_gate": "OT-189 verifies a private isolated runtime, exact startup/dependency bytes and parent/child import origins, including poisoned-environment probes; ROM child independently enforces journal phase, storage spans and write payloads. The reviewed PowerShell verifier, its host/.NET and OS remain the trust base. Complete the bounded initial-backup read/reset controller, then establish fresh per-role live inventory, installed-region checks and full private originals under exact physical authority before a new one-use nonradio trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, applicable Phase 3 admission and explicit crypto selection remain open. Same-key resume is unsupported; cold-power disassembly is deferred and previous grants remain consumed."
     },
     {
       "id": "core-firmware",
@@ -345,9 +347,11 @@
             "tests/benchmarks/crypto/OT-187-SECURITY-POLICY-BUILD-2026-09-10.json",
             "docs/testing/OT-187-CAPTURE-PREPARATION.md",
             "docs/testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md",
-            "tests/benchmarks/crypto/OT-188-CAPTURE-RECOVERY-2026-09-10.json"
+            "tests/benchmarks/crypto/OT-188-CAPTURE-RECOVERY-2026-09-10.json",
+            "docs/testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md",
+            "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json"
           ],
-          "next_gate": "OT-188 host-tests the one-use nonradio capture/recovery composition, exact source/image/role binding, durable interruption and serial-lease barriers, and full original application/NVS restoration. Verify an isolated operator runtime and exact tooling/dependency bytes/import origins, then prepare fresh live role inventory, installed-region readbacks and private complete originals under exact scoped authority before a new one-use physical trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, applicable Phase 3 admission and explicit crypto selection remain open. Same-key resume is unsupported. Cold-power disassembly remains deferred; previous physical grants remain consumed."
+          "next_gate": "OT-189 verifies a private isolated runtime, exact startup/dependency bytes and parent/child import origins, including poisoned-environment probes; ROM child independently enforces journal phase, storage spans and write payloads. The reviewed PowerShell verifier, its host/.NET and OS remain the trust base. Complete the bounded initial-backup read/reset controller, then establish fresh per-role live inventory, installed-region checks and full private originals under exact physical authority before a new one-use nonradio trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, applicable Phase 3 admission and explicit crypto selection remain open. Same-key resume is unsupported; cold-power disassembly is deferred and previous grants remain consumed."
         },
         {
           "id": "core-firmware",
@@ -1310,6 +1314,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-188 adds host-tested one-use capture and exact full-storage recovery with source/image/role binding, durable interruption and serial-lease barriers. No device was operated and no live snapshot or physical grant was created. External runtime/import verification and fresh live preflight remain before physical admission. Completion values, weights and prior history are unchanged; no public website capability change."
+        },
+        {
+          "date": "2026-09-10",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-189 verifies isolated runtime startup/dependency bytes, parent/child imports and poisoned-environment containment with exact ROM phase/span/payload admission. Read/reset backup and later two-role nonradio trial scopes are prepared; initial snapshot controller, live custody and physical authority remain open. No device I/O or physical acceptance is added. Completion values, weights and prior history remain unchanged; no public website capability change."
         }
       ]
     },
@@ -1810,6 +1820,11 @@
       "date": "2026-09-10",
       "overall": 32,
       "reason": "OT-188 adds host-tested one-use capture and exact full-storage recovery with source/image/role binding, durable interruption and serial-lease barriers. No device was operated and no live snapshot or physical grant was created. External runtime/import verification and fresh live preflight remain before physical admission. Completion values, weights and prior history are unchanged; no public website capability change."
+    },
+    {
+      "date": "2026-09-10",
+      "overall": 32,
+      "reason": "OT-189 verifies isolated runtime startup/dependency bytes, parent/child imports and poisoned-environment containment with exact ROM phase/span/payload admission. Read/reset backup and later two-role nonradio trial scopes are prepared; initial snapshot controller, live custody and physical authority remain open. No device I/O or physical acceptance is added. Completion values, weights and prior history remain unchanged; no public website capability change."
     }
   ]
 }
