@@ -46,14 +46,19 @@ normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
 
-The additive security evaluation target now builds with guarded entropy, real
-Noise, peer-pin verification and durable NVS counter reservation. Candidate-specific
-libsodium and corrected Monocypher matched controls are complete. See the
-[consolidated evaluation evidence](testing/OT-163-SECURITY-EVALUATION-2026-09-10.md).
-Next bind authenticated invitation policy, receive replay and restart/key lifecycle
-to this composition, then prepare challenge-bound physical capture and recovery.
-The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
-the remaining target and physical acceptance boundaries.
+The additive security policy evaluation binds signed invitation and transcript
+confirmation to real Noise, durable transmit counters and authenticated receive
+replay admission. Actual-source host tests and two matching ESP32 builds pass;
+retained or inconsistent state refuses fresh-only admission. This is a same-chip
+evaluation, with synthetic trust and confirmation inputs, not product provisioning,
+same-key resume, full rekey or phone-to-phone radio acceptance. See the
+[consolidated evidence](testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md).
+
+Next complete an executable one-use capture and recovery package with per-device
+full NVS preservation, then obtain fresh scoped authority for physical validation.
+The [capture preparation](testing/OT-187-CAPTURE-PREPARATION.md) and
+[eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retain the
+physical entropy, interrupted persistence and remaining admission boundaries.
 
 Historical raw-capture custody remains unestablished for the older libsodium and
 Monocypher measurements. Preserve their receipts and seek exact original captures

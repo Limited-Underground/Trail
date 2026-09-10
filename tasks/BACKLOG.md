@@ -10,15 +10,16 @@ preserves all removed summaries and superseded sequencing; see the
 
 ## Current execution order
 
-1. Continue from the [composed security evaluation and matched resources](../docs/testing/OT-163-SECURITY-EVALUATION-2026-09-10.md).
-   Bind authenticated invitation/prologue policy, receive replay and restart/key
-   retirement to the actual evaluation target. Reuse accepted crypto and resource
-   evidence; historical raw-capture custody remains explicitly open.
-2. Prepare solicited physical capture and exact NVS recovery, then close applicable
+1. Continue from the [fresh-only security policy evaluation](../docs/testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md).
+   Complete the executable one-use capture/recovery package, including per-device
+   full NVS capture, revalidation and exact restoration. The tested capture helper
+   is preparation; it does not yet constitute an operational hardware package.
+2. Obtain fresh scoped physical authority and close applicable
    [security gates](../docs/testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md),
-   Phase 3 admission and explicit crypto selection. Target builds and host proofs
-   do not establish physical entropy or interrupted persistence. Any new physical
-   execution requires fresh exact preflight and scoped authority.
+   Phase 3 admission and explicit crypto selection. Real trust provisioning,
+   confirmation UI and complete rekey remain open; fresh-only evaluation does not
+   support same-key resume. Historical raw-capture custody, physical entropy and
+   interrupted persistence are not established by target builds or host proofs.
 3. Integrate authenticated node-to-node message exchange with both phone UIs and
    complete coherent two-pair acceptance. Current Messages screens store local
    templates; the product radio path is not wired. Preserve offline-first V1.
@@ -46,6 +47,7 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
+| OT-187 | done | Bind security policy and prepare solicited evaluation capture | Fresh-only same-chip evaluation binds real signed invitation/prologue and transcript confirmation, durable receive replay admission, restart refusal and logical retirement. Actual-source proofs and two matching builds pass. Challenge-bound host capture and full NVS recovery requirements are prepared; executable hardware package and physical acceptance remain open. See [evaluation evidence](../docs/testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md). |
 | OT-186 | done | Audit progress history and task ownership | Corrected recent reused IDs, registered omitted historical tasks, preserved evidence and chronological results, and strengthened documentation checks for registered IDs, progress links and date order. See [audit entry](../docs/PROGRESS_LOG.md#ot-186-audit-progress-history-and-correct-task-ownership). No implementation or completion credit. |
 | OT-185 | done | Compose build-only Heltec security evaluation | Guarded entropy, real Noise peer-pin authentication and NVS counter reservation compose in a same-chip two-role evaluation; two builds reproduce and actual-source tests pass. This bounded task does not accept invitation/replay lifecycle or physical security. See [evaluation evidence](../docs/testing/OT-163-SECURITY-EVALUATION-2026-09-10.md). Legacy artifact IDs are retained. |
 | OT-184 | partial | Consolidate crypto admission evidence and matched resources | Candidate-specific controls and independent Noise/entropy proofs pass. Historical raw-capture custody, complete target/physical admission and explicit crypto selection remain open. See [admission](../docs/security/CRYPTO_ADMISSION_BATCH_2026-09-10.md) and [resource successor](../docs/testing/OT-163-SECURITY-EVALUATION-2026-09-10.md). Legacy artifact IDs are retained. |
