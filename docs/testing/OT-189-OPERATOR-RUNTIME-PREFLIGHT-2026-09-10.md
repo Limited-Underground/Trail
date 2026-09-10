@@ -52,6 +52,12 @@ check runs the complete final-source matrix afresh before merge. Documentation
 checks and 17 tests, 16 scope groups, publication scanning and 291 raw-byte checkout
 inputs also pass.
 
+The first hosted Windows run refused the valid PowerShell startup fixture.
+Its exact environmental cause was not established locally. The fixture now
+resolves its temporary directory and discovers the actual PowerShell host before
+pinning it, with bounded diagnostics if admission fails. Production verification
+remains unchanged; the corrected complete CI matrix must pass before merge.
+
 Python's executable, startup-loaded DLLs and effective path configuration are
 checked before Python starts. These checks depend on the reviewed PowerShell
 verifier and its host PowerShell/.NET/OS trust base. The host executable pin does

@@ -22,8 +22,8 @@
       "sha256": "ee2d5c6c9b09f17e1469e9f28a88c675b0d22a50d5b51b471c2eaae6316bb9ed"
     },
     "tests/host/security_policy_operator_tests.py": {
-      "bytes": 16475,
-      "sha256": "4a1813e150090fd32ffac3b7ce55fb2badfff2bc462dea461117142cdf167633"
+      "bytes": 18437,
+      "sha256": "decc910950ffbdb46894c41103c76cbc58e911ed565653a3fba9a8659144b601"
     }
   },
   "focused_tests": {
@@ -114,5 +114,11 @@
     "reason": "Inherited esptool environment/home configuration was not excluded; replaced by pinned empty config and explicit environment cleanup, with exact top-level import-origin admission."
   },
   "local_matrix_note": "Unchanged prefix passed. The runtime suite overlapped a final fixture update and failed its old sentinel case; final frozen runtime suites and the entire remaining tail then passed. Required CI runs the complete matrix from a fresh checkout before merge.",
-  "simulator_ui_tests": "13/13"
+  "simulator_ui_tests": "13/13",
+  "ci_fixture_followup": {
+    "first_run": 34534689559,
+    "observed": "Valid PowerShell startup control refused on hosted Windows; exact environmental cause unconfirmed.",
+    "correction": "Canonical fixture directory and actual PowerShell host path; bounded diagnostics on control failure. Production runtime and admission rules unchanged.",
+    "required_gate": "Fresh complete matrix must pass before merge."
+  }
 }

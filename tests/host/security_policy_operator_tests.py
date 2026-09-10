@@ -11,7 +11,7 @@ def encoded(value):return json.dumps(value,sort_keys=True,separators=(",",":")).
 class Tests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
-        self.root=Path(self.temp.name)
+        self.root=Path(self.temp.name).resolve()
     def write(self,name,raw):
         p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(raw);return p,hashlib.sha256(raw).hexdigest()
     def manifest_fixture(self):
@@ -76,6 +76,10 @@ class Tests(unittest.TestCase):
     def test_powershell_rejects_poison_before_native_startup(self):
         compiler=shutil.which("g++");powershell=shutil.which("pwsh")
         self.assertIsNotNone(compiler,"native g++ required");self.assertIsNotNone(powershell,"pwsh required")
+        # Bind the actual host, not a PATH alias; preserve strict production checks.
+        discovered=subprocess.run([powershell,"-NoProfile","-NonInteractive","-Command", "[Console]::Write([IO.Path]::Combine($PSHOME,'pwsh.exe'))"],capture_output=True,check=True,timeout=30)
+        powershell=str(Path(discovered.stdout.decode("utf-8-sig").strip()).resolve())
+        self.assertTrue(Path(powershell).is_file())
         m,p,h=self.manifest_fixture();root=Path(m["root"]);marker=self.root/"executed.txt"
         source=self.root/"sentinel.cpp"
         source.write_text('#include <cstdio>\n#include <cstdlib>\n#include <cstring>\nint main(){const char*cfg=std::getenv("ESPTOOL_CFGFILE");const char*expected=std::getenv("OT189_EXPECTED_CFG");if(!cfg||!expected||std::strcmp(cfg,expected)!=0||std::getenv("ESPTOOL_OPEN_PORT_ATTEMPTS"))return 6;const char*p=std::getenv("OT189_SENTINEL_PATH");if(!p)return 4;FILE*f=std::fopen(p,"wb");if(!f)return 5;std::fputs("executed",f);std::fclose(f);return 0;}')
@@ -87,7 +91,17 @@ class Tests(unittest.TestCase):
         def invoke(manifest):
             p.write_bytes(encoded(manifest))
             return subprocess.run([powershell,"-NoProfile","-NonInteractive","-File",str(script),"-Manifest",str(p),"-ManifestSha256",worker.digest(p.read_bytes()),"-Mode","Probe"],capture_output=True,env=env,timeout=30)
-        control=invoke(m);self.assertEqual(0,control.returncode,control.stderr.decode(errors="replace"));self.assertTrue(marker.exists());marker.unlink()
+        control=invoke(m)
+        diagnostics={}
+        if control.returncode!=0:
+            # Fixture-only booleans/counts: no paths or underlying exception text.
+            diagnostics={"root_canonical":str(root)==str(root.resolve()),"marker_exists":marker.exists(),"native_exists":(root/"python.exe").is_file(),"root_reparse_ancestors":sum(part.is_symlink() or part.is_junction() for part in (root,*root.parents)),"host_bytes_match":host.stat().st_size==m["powershell"]["bytes"],"host_hash_matches":worker.digest(host.read_bytes())==m["powershell"]["sha256"],"wrapper_hash_matches":worker.digest(script.read_bytes())==m["files"]["policy/Invoke-SecurityPolicyOperator.ps1"]["sha256"],"file_hash_mismatches":sum(not(root/name).is_file() or worker.digest((root/name).read_bytes())!=pin["sha256"] for name,pin in m["files"].items())}
+            env_diagnostic=dict(env);env_diagnostic["OT189_DIAG_ROOT"]=str(root);env_diagnostic["OT189_DIAG_HOST"]=str(host)
+            try:
+                result=subprocess.run([powershell,"-NoProfile","-NonInteractive","-Command", "@{host_path_matches=((Join-Path $PSHOME 'pwsh.exe') -ieq $env:OT189_DIAG_HOST);root_exact_normalization=([IO.Path]::GetFullPath($env:OT189_DIAG_ROOT) -ceq $env:OT189_DIAG_ROOT)} | ConvertTo-Json -Compress"],capture_output=True,env=env_diagnostic,timeout=30,check=True)
+                diagnostics.update(json.loads(result.stdout.decode("utf-8-sig")))
+            except Exception:diagnostics["diagnostic_probe_failed"]=True
+        self.assertEqual(0,control.returncode,"valid control refused; fixture diagnostics="+json.dumps(diagnostics,sort_keys=True));self.assertTrue(marker.exists());marker.unlink()
         (root/"python314._pth").write_bytes(worker.PTH+b"import site\n")
         poison=copy.deepcopy(m);raw=(root/"python314._pth").read_bytes();poison["files"]["python314._pth"]={"bytes":len(raw),"sha256":worker.digest(raw)}
         rejected=invoke(poison);self.assertNotEqual(0,rejected.returncode);self.assertFalse(marker.exists())
