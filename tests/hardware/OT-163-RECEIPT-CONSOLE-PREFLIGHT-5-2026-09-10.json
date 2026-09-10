@@ -1,0 +1,61 @@
+{
+  "schema": "receipt-console-preflight-1",
+  "attempt": 5,
+  "started_utc": "2026-09-10T13:56:41.724912+00:00",
+  "script_sha256": "ed8ca72f4ec386da711c9cf0ff0e3fd6cbd17d0bb9c02d1b7df66886fb89f9cb",
+  "package_sha256": "8e7610db7753b615e727d56a4ec9d4062bdc08badf39c315d7680cb5a2d9a919",
+  "prior_bridge_sha256": "de2e011eff5c2ecf65233311383969a9164777de920447e0fc243171eed50223",
+  "nodes": [
+    {
+      "role": "A",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+        }
+      }
+    },
+    {
+      "role": "B",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+        }
+      }
+    }
+  ],
+  "complete": true,
+  "flash_writes": false,
+  "radio_execution": false,
+  "execution_grant_issued": false,
+  "finished_utc": "2026-09-10T13:58:08.906872+00:00"
+}

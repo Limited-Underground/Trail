@@ -10,51 +10,18 @@ preserves all removed summaries and superseded sequencing; see the
 
 ## Current execution order
 
-1. The host-only Noise XK successor composition is tested: buffered receipts,
-   complete startup checks, fresh-handle restart and per-role restoration. See
-   [composition evidence](../docs/testing/OT-163-SUCCESSOR-COMPOSITION-2026-09-08.md).
-2. Live two-board identity, installed-image/tail, partition and recovery preflight
-   passes. The [solicited execution path](../docs/testing/OT-163-SOLICITED-EXECUTION-2026-09-08.md)
-   now passes concrete host composition and exact source/build admission.
-   One fresh attempt passed readiness/restart and the first baseline validator,
-   then aborted in the forced-retry group; both complete application spans and
-   bootloader/partition/OTA regions passed postchecks. Bounded
-   [retry diagnostics](../docs/testing/OT-163-RETRY-DIAGNOSTICS-2026-09-08.md) now
-   distinguish host failure boundaries. The
-   [diagnostic execution binding](../docs/testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md)
-   composes that observer through exact role-object identity, a 26-source/three-image
-   closure and unique attempt/recovery records. The 27-source startup-tolerance
-   successor preserves the runner deadlines and admits only bounded recognized
-   pre-readiness noise. Attempt 1 stopped at Node B post-restart readiness;
-   attempt 2 issued `m3`, received `TX_START` and timed out awaiting `TX_DONE`. Both grants are
-   consumed, and both role images were fully restored, read back and reset after
-   attempt 2. Host fault injection proves an unbounded driver BUSY wait, not the
-   physical cause. The bounded driver/firmware and diagnostic runtime now pass
-   host tests and matching clean builds; see [containment evidence](../docs/testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md).
-   The 40-source [contained execution](../docs/testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md)
-   passes the full host matrix. Attempt 3 stopped at m3 TX_DONE after successful
-   transmit and receive-rearm return checkpoints; both originals and protected
-   flash regions were independently restored/read back/reset. Its grant is consumed.
-   A host-only [receipt observer](../docs/testing/OT-163-RECEIPT-OBSERVATION-2026-09-09.md)
-   now retains bounded byte/read counts before failure clears pending data. Its
-   42-source session preserves all 40 predecessor inputs and restoration gates.
-   Twelve endpoint and eight composed groups pass; full host checks gate publication.
-   The exact 42-source/three-image binding and isolated attempt-4 caller now pass
-   30 private offline groups. Fresh read/reset preflight passes on both roles,
-   including exact originals/erased tails and preserved-region descriptors.
-   See [preflight evidence](../docs/testing/OT-163-OBSERVATION-PREFLIGHT-2026-09-09.md).
-   Attempt 4 completed baseline m1/m2/m3 and both END receipts, then stopped at
-   B's initial forced-retry RX_START before retry transmission. Twenty empty
-   reads returned zero bytes; both originals and protected regions passed
-   independent restoration/readback/reset checks. Its grant is consumed.
-   See [the outcome](../docs/testing/OT-163-OBSERVATION-RUN-2026-09-09.md).
-   The [actual-source console probe](../docs/testing/OT-163-CONSOLE-SOURCE-PROBE-2026-09-09.md)
-   now reproduces a console error-reporting limitation under simulation. Evaluate
-   a bounded console-delivery correction with actual-source regression before
-   any hardware attempt; the physical cause and complete benchmark remain open.
-3. Close accepted crypto measurement/selection gates, then implement the actual
-   authenticated node-to-node message exchange and connect the two phone UIs.
-   Current Messages screens store local templates; no product radio path is wired.
+1. Continue from the [composed security evaluation and matched resources](../docs/testing/OT-163-SECURITY-EVALUATION-2026-09-10.md).
+   Bind authenticated invitation/prologue policy, receive replay and restart/key
+   retirement to the actual evaluation target. Reuse accepted crypto and resource
+   evidence; historical raw-capture custody remains explicitly open.
+2. Prepare solicited physical capture and exact NVS recovery, then close applicable
+   [security gates](../docs/testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md),
+   Phase 3 admission and explicit crypto selection. Target builds and host proofs
+   do not establish physical entropy or interrupted persistence. Any new physical
+   execution requires fresh exact preflight and scoped authority.
+3. Integrate authenticated node-to-node message exchange with both phone UIs and
+   complete coherent two-pair acceptance. Current Messages screens store local
+   templates; the product radio path is not wired. Preserve offline-first V1.
 
 The original pair still needs the accepted clock correction after serving as
 control. Full reset cleanup, pair isolation, first-use/large-font UI checks,

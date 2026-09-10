@@ -435,3 +435,116 @@ tests/host/noise_xk_console_source_probe_tests.py text eol=lf
 tests/host/fixtures/noise_xk_console_source/** text eol=lf
 tests/host/fixtures/noise_xk_console_source/*.c -text whitespace=cr-at-eol
 tests/host/fixtures/noise_xk_console_source/LICENSE -text whitespace=cr-at-eol
+
+# Bounded diagnostic console writer evaluation sources.
+firmware/components/diagnostics/include/opentrail/bounded_console_writer.hpp text eol=lf
+tests/host/bounded_console_writer_tests.cpp text eol=lf
+
+# Additive console integration inputs.
+firmware/targets/heltec_v4_noise_xk_console/** text eol=lf
+firmware/components/diagnostics/include/opentrail/usb_fifo_console_transport.hpp text eol=lf
+tests/host/usb_fifo_console_transport_tests.cpp text eol=lf
+tools/noise_xk_console_firmware_source.py text eol=lf
+tests/host/noise_xk_console_firmware_source_tests.py text eol=lf
+tests/host/usb_console_binding_tests.py text eol=lf
+
+# Bounded receipt batch inputs.
+firmware/targets/heltec_v4_noise_xk_receipts/** text eol=lf
+firmware/components/diagnostics/include/opentrail/bounded_receipt_formatter.hpp text eol=lf
+tests/host/bounded_receipt_formatter_tests.cpp text eol=lf
+tests/host/noise_xk_receipt_firmware_source_tests.py text eol=lf
+tests/host/receipt_console_binding_tests.py text eol=lf
+tools/noise_xk_receipt_firmware_source.py text eol=lf
+tools/noise_xk_console_execution_package.py text eol=lf
+tests/host/noise_xk_console_execution_package_tests.py text eol=lf
+tests/host/receipt_ready_admission_tests.py text eol=lf
+
+# OT-163 parallel admission batch: preserve exact reviewed evidence bytes.
+tests/benchmarks/crypto/OT-163-CAPTURE-CUSTODY-ASSESSMENT-2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-ENTROPY-LIFECYCLE-ASSESSMENT-2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-ADMISSION-BATCH-2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-MBEDTLS-CORRECTED-*-2026-09-10.json -text
+tests/benchmarks/crypto/esp_idf/ot163_mbedtls_psa_control/** -text
+tests/benchmarks/crypto/independent_noise_xk/** -text
+tools/noise_xk_independent_vectors.py -text
+tools/noise_xk_independent_interop.py -text
+tests/host/noise_xk_independent_interop_tests.py -text
+tests/host/noise_xk_independent_interop_probe.c -text
+firmware/components/security/include/opentrail/serialized_secure_random.hpp -text
+firmware/components/security/src/serialized_secure_random.cpp -text
+tests/host/serialized_secure_random_tests.cpp -text
+tests/host/serialized_secure_random_tests.py -text
+tests/host/fixtures/heltec_secure_random/esp_random.h -text
+tools/secure_lora_contract_admission.py text eol=crlf
+tests/host/secure_lora_contract_admission_tests.py text eol=crlf
+tests/hardware/OT-163-MBEDTLS-COMPARISON-OUTCOME-1-2026-09-10.json -text
+
+# OT-163 evaluation target and corrected comparison source bindings.
+firmware/targets/heltec_v4_security_eval/** -text
+tools/security_evaluation_inputs.py -text
+tools/crypto_monocypher_corrected_resource_accounting.py -text
+tests/host/crypto_monocypher_corrected_resource_accounting_tests.py -text
+tests/host/entropy_runtime_tests.* -text
+tests/host/security_eval_nvs_tests.* -text
+tests/host/security_evaluation_session_tests.* -text
+tests/host/security_eval_noise_size_tests.c -text
+tests/host/fixtures/security_eval_nvs/** -text
+tests/host/fixtures/security_eval_entropy/** -text
+tests/benchmarks/crypto/OT-163-*MONOCYPHER*2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-OT005-MONOCYPHER-CORRECTED-RESOURCE-CONTRACT-V1.json -text
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/monocypher_ot163_control/** -text
+tests/benchmarks/crypto/OT-163-SECURITY-EVALUATION-BUILD-2026-09-10.json -text
+
+# OT-163 publication: remaining new hash-authoritative source/evidence bytes.
+firmware/components/diagnostics/include/opentrail/bounded_console_writer.hpp -text
+firmware/components/diagnostics/include/opentrail/bounded_receipt_formatter.hpp -text
+firmware/components/diagnostics/include/opentrail/usb_fifo_console_transport.hpp -text
+firmware/targets/heltec_v4_noise_xk_console/CMakeLists.txt -text
+firmware/targets/heltec_v4_noise_xk_console/main/CMakeLists.txt -text
+firmware/targets/heltec_v4_noise_xk_console/main/opentrail_console.cpp -text
+firmware/targets/heltec_v4_noise_xk_console/main/opentrail_console.h -text
+firmware/targets/heltec_v4_noise_xk_receipts/CMakeLists.txt -text
+firmware/targets/heltec_v4_noise_xk_receipts/main/CMakeLists.txt -text
+firmware/targets/heltec_v4_noise_xk_receipts/main/opentrail_console.cpp -text
+firmware/targets/heltec_v4_noise_xk_receipts/main/opentrail_console.h -text
+firmware/targets/heltec_v4_noise_xk_receipts/sdkconfig.defaults -text
+tests/benchmarks/crypto/OT-163-CONSOLE-INTEGRATION-BUILD-2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-CRYPTO-CORPUS-RECONCILIATION-2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-LIBSODIUM-CANDIDATE-SIZE-REPORT-2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-LIBSODIUM-CONTROL-SIZE-REPORT-2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-LIBSODIUM-MATCHED-RESOURCE-2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-RECEIPT-CONSOLE-BUILD-2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-RECEIPT-CONSOLE-LINK-AUDIT-2026-09-10.json -text
+tests/benchmarks/crypto/OT-163-RECEIPT-CONSOLE-PACKAGE-2026-09-10.json -text
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_candidate/CMakeLists.txt -text
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_candidate/main/CMakeLists.txt -text
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_candidate/partitions.csv -text
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_control/CMakeLists.txt -text
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_control/main/CMakeLists.txt -text
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_control/main/no_candidate_bindings.c -text
+tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_control/partitions.csv -text
+tests/hardware/OT-163-RECEIPT-CONSOLE-LIVE-OUTCOME-5-2026-09-10.json -text
+tests/hardware/OT-163-RECEIPT-CONSOLE-PREFLIGHT-5-2026-09-10.json -text
+tests/host/bounded_console_writer_tests.cpp -text
+tests/host/bounded_receipt_formatter_tests.cpp -text
+tests/host/mbedtls_comparison_execution_tests.py -text
+tests/host/mbedtls_comparison_hardware_tests.py -text
+tests/host/noise_xk_console_execution_package_tests.py -text
+tests/host/noise_xk_console_firmware_source_tests.py -text
+tests/host/noise_xk_receipt_firmware_source_tests.py -text
+tests/host/receipt_console_binding_tests.py -text
+tests/host/receipt_ready_admission_tests.py -text
+tests/host/usb_console_binding_tests.py -text
+tests/host/usb_fifo_console_transport_tests.cpp -text
+tools/mbedtls_comparison_execution.py -text
+tools/mbedtls_comparison_hardware.py -text
+tools/noise_xk_console_execution_package.py -text
+tools/noise_xk_console_firmware_source.py -text
+tools/noise_xk_receipt_firmware_source.py -text
+
+# Existing target inputs observed as CRLF by exact evaluation evidence.
+firmware/components/companion/src/companion_ble_runtime_owner.cpp text eol=crlf
+firmware/targets/heltec_v4_bench/main/app_main.cpp text eol=crlf
+firmware/targets/heltec_v4_bench/main/companion_nimble_runtime.cpp text eol=crlf
+firmware/targets/heltec_v4_bench/main/heltec_v4_secure_random.cpp text eol=crlf
+firmware/targets/heltec_v4_bench/main/heltec_v4_secure_random.hpp text eol=crlf

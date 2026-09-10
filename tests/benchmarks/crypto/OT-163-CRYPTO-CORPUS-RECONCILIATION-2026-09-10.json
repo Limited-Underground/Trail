@@ -1,0 +1,356 @@
+{
+  "schema": "OT163-CRYPTO-CORPUS-ASSESSMENT-1",
+  "date": "2026-09-10",
+  "artifact_kind": "additive_partial_corpus_successor_assessment",
+  "status": "radio_measurement_reconciled_selection_withheld",
+  "bindings": {
+    "benchmark_plan": {
+      "path": "tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json",
+      "bytes": 7891,
+      "raw_sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+      "canonical_sha256": "7844d7be1824784a0ff58ba58df25bda85c6059c445f217a4d520215bfff50a8"
+    },
+    "phase_two_authority": {
+      "path": "tests/benchmarks/crypto/OT-121-OT005-PHASE-TWO-EXECUTION-AUTHORITY-V1.json",
+      "bytes": 6279,
+      "raw_sha256": "765aacd8a33862265b46da2d60333759cd96b72a8acae9e70b22c5bda2dbd90f",
+      "canonical_sha256": "a2e9bbea78282c3a0451654f39c0be49c875217933ef02b7bc384860f32f3105"
+    },
+    "mbedtls_psa_api_admission": {
+      "path": "tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-ADMISSION-DELTA-V0.json",
+      "bytes": 2326,
+      "raw_sha256": "0311b8b264d264d4a005ac9be8531c06175521362ed54ac9f40bdef1fd7a5df0",
+      "canonical_sha256": "fed7b009a97a60678b2dfbba23d933b974aa0fec46d0b460ac7eb221e91931dd"
+    },
+    "libsodium_api_admission": {
+      "path": "tests/benchmarks/crypto/OT-117-OT005-LIBSODIUM-API-CONFIG-ADMISSION-DELTA-V0.json",
+      "bytes": 3946,
+      "raw_sha256": "527c5e713a6d96d38b7dfbfb9d3e0ceb891f4652f8428e2ca65e0b8ea8f316d2",
+      "canonical_sha256": "6eb12a9cf44bdc37e6ac87081b1d256b94f5ee013459c3549606c56b5faf0527"
+    },
+    "monocypher_api_admission": {
+      "path": "tests/benchmarks/crypto/OT-118-OT005-MONOCYPHER-API-CONFIG-ADMISSION-DELTA-V0.json",
+      "bytes": 3572,
+      "raw_sha256": "9fbecf19b206b31fae948b6bc7e7aa4e206ba26aa59b94fb7f07d4e1d300810a",
+      "canonical_sha256": "df412285515fe29525b0bfd7cba45fd7ccd9a3d601be284242886e8adb19fec9"
+    },
+    "libsodium_result": {
+      "path": "tests/benchmarks/crypto/OT-122-OT005-LIBSODIUM-NOISE-RESOURCE-EXECUTION-RECEIPT-V0.json",
+      "bytes": 5001,
+      "raw_sha256": "2b023c640bfbec8ad6eb5d1d63d65e8f1ad75dcfe593566aba6b3d468355a178",
+      "canonical_sha256": "3cf651719d1e5ce96dad85fc364f5cb9e1c43bdcb64d2ac45b748dcc67c18949"
+    },
+    "matched_resource_contract": {
+      "path": "tests/benchmarks/crypto/OT-123-OT005-MATCHED-RESOURCE-ACCOUNTING-CONTRACT-V0.json",
+      "bytes": 3902,
+      "raw_sha256": "4023b35e0aecc6f4c8c5077bdd8646ad81df892c8816a1348bf1c97181c0cc03",
+      "canonical_sha256": "77e0656f286ee8e030c9add21bcbd07e753d78179a31e352f3ec9df000c344f5"
+    },
+    "monocypher_result": {
+      "path": "tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json",
+      "bytes": 6567,
+      "raw_sha256": "9a5ea09fa8cdf465f5c83b6a0eb69fb80579806b0635ac63083e1234e4f91464",
+      "canonical_sha256": "a53da32a10ad1e80ca2b07659b4865e56d490fd3d2a8c6650925c3beb792292b"
+    },
+    "prior_corpus": {
+      "path": "tests/benchmarks/crypto/OT-148-OT005-PHASE-TWO-CORPUS-RECONCILIATION-V0.json",
+      "bytes": 6249,
+      "raw_sha256": "beddc729f8449c3f2e3a09f62ba6947312f4e1893eee38abfa7a9a616f1bae1c",
+      "canonical_sha256": "dcc0b408fdcc02df70717cd93ac8e5133c7159563c15d1da0f74a6c1bb70d1d0"
+    },
+    "matched_resource_successor": {
+      "path": "tests/benchmarks/crypto/OT-149-OT005-MATCHED-RESOURCE-ACCOUNTING-SUCCESSOR-V1.json",
+      "bytes": 6631,
+      "raw_sha256": "575efa5700bf2d2e40cf3fb49c0b9f860815dddc3ea81bb5a54a3d91733339bd",
+      "canonical_sha256": "1c44d3d6f0c0d7c38ce83c51f1b79c75130455f2bbf99fed7edb4ffa1b9efaf2"
+    },
+    "mbedtls_resources": {
+      "path": "tests/benchmarks/crypto/OT-150-OT005-MATCHED-RESOURCE-RESULT-V1.json",
+      "bytes": 9590,
+      "raw_sha256": "14ce18688f4fe9e2d819666c857e07843a86cc694a23662832476c6f9cb0b7c0",
+      "canonical_sha256": "b3365e434d1734d6dc53ddab7065f804bf5c17eb4ff6a1805d7a6bd55a08c780"
+    },
+    "mbedtls_abort": {
+      "path": "tests/benchmarks/crypto/OT-151-OT005-MBEDTLS-PSA-EXECUTION-ABORT-RECEIPT-V0.json",
+      "bytes": 2754,
+      "raw_sha256": "b71e2881883789965c7680c7cc4d854a66725900445f790791a10140ffe926fc",
+      "canonical_sha256": "698f933652b73bf029f10abf158229f1564022d5015ea077d79c6eac434dc3fe"
+    },
+    "radio_outcome": {
+      "path": "tests/hardware/OT-163-RECEIPT-CONSOLE-LIVE-OUTCOME-5-2026-09-10.json",
+      "bytes": 17757,
+      "raw_sha256": "5d2c10858f9503688f6d3c592a4a5281ece9f42e61a2c3117ea13060f77a2a00",
+      "canonical_sha256": "62e006da820c657d02f282fcca7d6f414659e508f1161b54f05f96c570b50901"
+    },
+    "receipt_build": {
+      "path": "tests/benchmarks/crypto/OT-163-RECEIPT-CONSOLE-BUILD-2026-09-10.json",
+      "bytes": 8225,
+      "raw_sha256": "61d187305442f388326bdb322227649fb293fe879a9ce8b0b0915fe338956909",
+      "canonical_sha256": "ad944acb15cdbf761e906c618be8ca92bee9b298d7f80f8961241cb5579dcd00"
+    },
+    "receipt_package": {
+      "path": "tests/benchmarks/crypto/OT-163-RECEIPT-CONSOLE-PACKAGE-2026-09-10.json",
+      "bytes": 13627,
+      "raw_sha256": "8e7610db7753b615e727d56a4ec9d4062bdc08badf39c315d7680cb5a2d9a919",
+      "canonical_sha256": "92de20e8912b77151e6dbe6519d718284c106a206ec38bd74a8038a259a3c601"
+    },
+    "mbedtls_api": {
+      "path": "tests/benchmarks/crypto/OT-109-OT005-MBEDTLS-PSA-API-CONFIG-EVIDENCE-V2.json",
+      "bytes": 1832,
+      "raw_sha256": "67532e10704d02489b72a72ef55607743c00a5bd8504276750931b5d986f6155",
+      "canonical_sha256": "22975ac7fbd3c9faab1ae0c9fa952a58dc4a7a893de3cc74604182b3492fe1f8"
+    },
+    "monocypher_api": {
+      "path": "tests/benchmarks/crypto/OT-118-OT005-MONOCYPHER-API-CONFIG-EVIDENCE-V2.json",
+      "bytes": 1822,
+      "raw_sha256": "f158c2b33dd9a6bbcdf6b13f396e831703184eeeb623914e400bf10d9929c009",
+      "canonical_sha256": "c1ce6c0de2a72852359fa15efd9e27d9ffd15171362ab6adc4d04f66825949e9"
+    }
+  },
+  "assessment_boundary": "This links accepted evidence; it is not a complete OTCBXR1 result, Phase 3 admission or cryptographic selection.",
+  "candidate_corpus": [
+    {
+      "candidate_id": "espressif_libsodium",
+      "version": "1.0.22",
+      "role": "primary",
+      "admitted_operation_count": 8,
+      "required_operation_count": 8,
+      "two_node_measurement_state": "eight_of_eight_timing_and_runtime_resources_admitted",
+      "selection_eligible": true,
+      "selected": false,
+      "measurement_evidence": [
+        "libsodium_result",
+        "radio_outcome"
+      ],
+      "matched_resource_comparability": "not_established_across_candidates",
+      "unavailable_operations": [],
+      "runtime_measurements_admitted": true,
+      "per_node_measurement_summary": [
+        {
+          "role": "A",
+          "operations_completed": 8,
+          "cold_samples": 800,
+          "warm_samples": 800,
+          "runtime_resources": {
+            "heap_min_free_bytes": 334504,
+            "heap_start_free_bytes": 334504,
+            "max_stack_used_bytes": 4312,
+            "peak_dynamic_ram_bytes": 0,
+            "stack_allocation_bytes": 8192,
+            "stack_high_water_free_bytes": 3880,
+            "watchdog_resets": 0
+          }
+        },
+        {
+          "role": "B",
+          "operations_completed": 8,
+          "cold_samples": 800,
+          "warm_samples": 800,
+          "runtime_resources": {
+            "heap_min_free_bytes": 334504,
+            "heap_start_free_bytes": 334504,
+            "max_stack_used_bytes": 4312,
+            "peak_dynamic_ram_bytes": 0,
+            "stack_allocation_bytes": 8192,
+            "stack_high_water_free_bytes": 3880,
+            "watchdog_resets": 0
+          }
+        }
+      ]
+    },
+    {
+      "candidate_id": "esp_idf_mbedtls_psa",
+      "version": "4.1.0",
+      "role": "comparison",
+      "admitted_operation_count": 5,
+      "required_operation_count": 5,
+      "two_node_measurement_state": "attempt_aborted_no_measurement_admitted",
+      "selection_eligible": false,
+      "selected": false,
+      "measurement_evidence": [
+        "mbedtls_resources",
+        "mbedtls_abort"
+      ],
+      "matched_resource_comparability": "not_established_across_candidates",
+      "unavailable_operations": [
+        "ed25519_sign",
+        "ed25519_verify",
+        "noise_xk_handshake"
+      ],
+      "matched_resource_measurements": {
+        "linked_flash_candidate_bytes": 245466,
+        "linked_flash_control_bytes": 145834,
+        "linked_flash_delta_bytes": 99632,
+        "static_ram_candidate_bytes": 50187,
+        "static_ram_control_bytes": 49035,
+        "static_ram_delta_bytes": 1152
+      },
+      "runtime_measurements_admitted": false
+    },
+    {
+      "candidate_id": "monocypher",
+      "version": "4.0.3",
+      "role": "comparison",
+      "admitted_operation_count": 5,
+      "required_operation_count": 5,
+      "two_node_measurement_state": "five_of_five_timing_and_runtime_resources_admitted",
+      "selection_eligible": false,
+      "selected": false,
+      "measurement_evidence": [
+        "monocypher_result"
+      ],
+      "matched_resource_comparability": "not_established_across_candidates",
+      "unavailable_operations": [
+        "sha256",
+        "hkdf_sha256",
+        "noise_xk_handshake"
+      ],
+      "runtime_measurements_admitted": true,
+      "per_node_measurement_summary": [
+        {
+          "role": "A",
+          "operations_completed": 5,
+          "cold_samples": 500,
+          "warm_samples": 500,
+          "runtime_resources": {
+            "heap_domain": "internal_8bit",
+            "heap_start_free_bytes": 349392,
+            "heap_min_free_bytes": 349372,
+            "peak_dynamic_ram_bytes": 20,
+            "stack_allocation_bytes": 8192,
+            "stack_high_water_free_bytes": 5048,
+            "max_stack_used_bytes": 3144,
+            "watchdog_measurement": "uninterrupted_terminal_frame",
+            "watchdog_resets": 0
+          }
+        },
+        {
+          "role": "B",
+          "operations_completed": 5,
+          "cold_samples": 500,
+          "warm_samples": 500,
+          "runtime_resources": {
+            "heap_domain": "internal_8bit",
+            "heap_start_free_bytes": 349392,
+            "heap_min_free_bytes": 349372,
+            "peak_dynamic_ram_bytes": 20,
+            "stack_allocation_bytes": 8192,
+            "stack_high_water_free_bytes": 5048,
+            "max_stack_used_bytes": 3144,
+            "watchdog_measurement": "uninterrupted_terminal_frame",
+            "watchdog_resets": 0
+          }
+        }
+      ]
+    }
+  ],
+  "recommendation": {
+    "candidate_id": "espressif_libsodium",
+    "version": "1.0.22",
+    "status": "evidence_backed_recommendation_only",
+    "basis": "only_candidate_with_complete_eight_of_eight_admitted_operation_surface_and_structural_selection_eligibility",
+    "selection_authorized": false
+  },
+  "newly_reconciled_evidence": {
+    "requirement": "noise_xk_handshake_wire_bytes_fragments_measured_airtime_and_bounded_retry_result",
+    "evidence": "radio_outcome",
+    "scope": "Exact libsodium Noise XK benchmark on two nearby Heltec V4.2 nodes; no product messaging or range claim.",
+    "radio_profile": {
+      "bandwidth_hz": 125000,
+      "coding_rate_denominator": 5,
+      "crc_enabled": true,
+      "explicit_header": true,
+      "frequency_hz": 915000000,
+      "low_data_rate_optimization": false,
+      "preamble_symbols": 8,
+      "spreading_factor": 7,
+      "sync_word": "0x12",
+      "tx_power_command_setpoint_dbm": 2
+    },
+    "totals": {
+      "baseline_handshakes": 2,
+      "bounded_retry_handshakes": 2,
+      "corrupt": 0,
+      "duplicates": 0,
+      "forced_timeouts": 2,
+      "fragments": 14,
+      "lost": 0,
+      "measured_airtime_us": 1597079,
+      "radio_payload_wire_bytes": 736,
+      "role_cycles": 2,
+      "successful_final_handshakes": 4,
+      "theoretical_airtime_us": 1447424,
+      "unexpected": 0
+    },
+    "timing_semantics": "measured_airtime_us retains the runner field name: TX_START-to-TX_DONE command/transmit windows, not isolated RF airtime.",
+    "restoration_complete": true,
+    "grant_consumed": true
+  },
+  "remaining_required_evidence": [
+    "mbedtls_psa_two_node_five_operation_timing_and_runtime_measurement",
+    "matched_linked_flash_and_static_ram_results_with_signed_or_zero_delta_admission",
+    "independent_reconciliation_of_all_eight_named_required_gates",
+    "private_raw_trace_custody_verification"
+  ],
+  "resource_caveat": "OT-150 admits the mbedTLS matched candidate/control pair only. It does not establish comparable linked-flash/static-RAM deltas for libsodium and Monocypher; differing operation surfaces and build configurations prevent ranking raw application sizes.",
+  "gate_reconciliation": [
+    {
+      "gate": "primitive_vectors_and_negative_cases",
+      "status": "unreconciled_for_selection",
+      "note": "Partial candidate vector/capture gates exist; reconcile every required primitive and negative case against the exact selected adapter."
+    },
+    {
+      "gate": "noise_xk_independent_interoperability",
+      "status": "unreconciled_for_selection",
+      "note": "Local and two-node Noise success does not independently reconcile an external implementation transcript and exact suite binding."
+    },
+    {
+      "gate": "invitation_replay_reorder_timeout_refusal",
+      "status": "unreconciled_for_selection",
+      "note": "Forced m2 withholding and bounded retry now pass; invitation binding, wrong role/epoch, replay, reorder, truncation and user-code refusal remain to be reconciled."
+    },
+    {
+      "gate": "entropy_and_cold_start_uniqueness",
+      "status": "unreconciled_for_selection",
+      "note": "Benchmark cold samples do not establish entropy readiness/absence, radio/ADC concurrency, reboot or brownout uniqueness."
+    },
+    {
+      "gate": "temporary_secret_wipe_and_log_redaction",
+      "status": "unreconciled_for_selection",
+      "note": "Wipe indicators and sanitized diagnostics are partial evidence; reconcile actual secret cleanup and failure redaction across the selected lifecycle."
+    },
+    {
+      "gate": "rollback_safe_counter_interruption",
+      "status": "unreconciled_for_selection",
+      "note": "Within the accepted V1 boundary, reconcile outbound counter reservation across ordinary restarts and interrupted persistence. Radio handshake timing does not prove this; no new physical-attacker rollback-proof hardware requirement is imposed."
+    },
+    {
+      "gate": "two_device_join_revoke_reset_recovery",
+      "status": "unreconciled_for_selection",
+      "note": "Successful benchmark restore verifies original application recovery only; complete join, rename, revoke/rekey, configuration and factory reset security lifecycle remains unreconciled."
+    },
+    {
+      "gate": "license_sbom_and_reproducible_lock",
+      "status": "unreconciled_for_selection",
+      "note": "Existing source locks and reproducible builds remain evidence; final selected composition and its complete license/SBOM binding require reconciliation."
+    }
+  ],
+  "limits": [
+    "Cold/warm benchmark sample labels do not prove power-cycle entropy or brownout uniqueness.",
+    "Radio timeout/retry success does not prove all invitation/replay/reorder/refusal gates.",
+    "Original firmware restoration does not prove cryptographic join/revoke/reset lifecycle.",
+    "The prior physical console timeout cause remains unknown.",
+    "Private raw trace custody is not closed by public aggregate hashes alone."
+  ],
+  "claims": {
+    "phase_two_complete": false,
+    "phase_three_complete": false,
+    "candidate_selected": false,
+    "suite_selected": false,
+    "packet_v1_wire_selected": false,
+    "score_credit_added": false,
+    "production_ready": false,
+    "hardware_accessed_by_this_assessment": false,
+    "new_execution_authority": false
+  }
+}

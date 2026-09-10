@@ -1,0 +1,163 @@
+{
+  "schema": "OT163-RECEIPT-CONSOLE-LINK-AUDIT-1",
+  "date": "2026-09-10",
+  "evidence_layer": "compiled source, configuration, ELF symbols and disassembly; no hardware execution",
+  "artifacts": {
+    "receipts-a3": {
+      "heltec_v4_noise_xk_receipts.elf": {
+        "bytes": 4658016,
+        "sha256": "a977c219f5bf033f0b216d4ab47ab734cddcbfd304637f0443a3c5dcfdc48907"
+      },
+      "heltec_v4_noise_xk_receipts.map": {
+        "bytes": 3502425,
+        "sha256": "c54f98c3bf67ec21a0d799a00eae5ceef5a5f16fdbefa36004d4d1ca2dd0aab5"
+      },
+      "sdkconfig": {
+        "bytes": 58171,
+        "sha256": "8887e6345ef830e09cbd2af8a9a48e29a07668ebf1b35250466af6975c61eb12"
+      }
+    },
+    "receipts-b3": {
+      "heltec_v4_noise_xk_receipts.elf": {
+        "bytes": 4658016,
+        "sha256": "a977c219f5bf033f0b216d4ab47ab734cddcbfd304637f0443a3c5dcfdc48907"
+      },
+      "heltec_v4_noise_xk_receipts.map": {
+        "bytes": 3502425,
+        "sha256": "c54f98c3bf67ec21a0d799a00eae5ceef5a5f16fdbefa36004d4d1ca2dd0aab5"
+      },
+      "sdkconfig": {
+        "bytes": 58171,
+        "sha256": "8887e6345ef830e09cbd2af8a9a48e29a07668ebf1b35250466af6975c61eb12"
+      }
+    }
+  },
+  "sdk": "ESP-IDF v6.0.2",
+  "sdk_source_inputs": {
+    "components/esp_system/startup.c": {
+      "bytes": 6875,
+      "sha256": "4e6ab3e3139030e68687b0cabf29fa6d36232dc62f60842c80f1d7d01756ad51"
+    },
+    "components/esp_system/port/cpu_start.c": {
+      "bytes": 37696,
+      "sha256": "ce34c0ab86c7da9c53fb84fbdc74665663ae2f3bfcf0721ceec55426d39afbc6"
+    },
+    "components/esp_system/include/esp_private/startup_internal.h": {
+      "bytes": 3752,
+      "sha256": "89c3a274003ddc5f3df94a114970f8aea7e6cde610a18460268edeff2b2c4f91"
+    },
+    "components/esp_rom/patches/esp_rom_sys.c": {
+      "bytes": 5414,
+      "sha256": "2cc497cbca66bd223b7c530200ad772d9c650d47b3d869dbafc231ef63aa813c"
+    },
+    "components/esp_system/panic.c": {
+      "bytes": 16306,
+      "sha256": "2b2f3a1446bee787204bd0c64440162b305223a78dfcfef717b85d6fddfe947a"
+    }
+  },
+  "binding_source": {
+    "path": "firmware/targets/heltec_v4_noise_xk_receipts/main/opentrail_console.cpp",
+    "bytes": 7025,
+    "sha256": "6507b75ee90cb46420d02d1700ddd6cf05cd4e108702a1038313faa7555ca00e"
+  },
+  "startup": {
+    "normal_startup_gate": "verified for the pinned healthy application startup sequence",
+    "init_record_address": "0x3c03ed08",
+    "init_record_bytes_hex": "4468374001000000",
+    "priority": 0,
+    "core_mask": 1,
+    "stage": 0,
+    "first_in_sorted_init_array": true,
+    "next_sdk_priority": 1,
+    "callback_address": "0x40376844",
+    "callback_section": ".iram0.text",
+    "hook_address": "0x40376834",
+    "phase_address": "0x3fc9212c",
+    "phase_storage": "DRAM, constant initialized; binding constructor does not reset it",
+    "callback_operations": [
+      "read boot phase",
+      "install both ROM putc hooks",
+      "compare-and-swap boot to quarantine"
+    ],
+    "callback_excludes": [
+      "timer",
+      "heap",
+      "formatter",
+      "writer",
+      "adapter",
+      "logging",
+      "atomic runtime helpers"
+    ],
+    "ordering_evidence": [
+      "cpu_start.c:261-285: CPU1 completes console setup and startup logging before setting s_cpu_inited[1].",
+      "cpu_start.c:287-289: CPU1 parks until s_resume_cores; only ROM delay runs on the normal waiting path.",
+      "cpu_start.c:930-940 and 1007-1008: CPU0 waits for both initialized flags before SYS_STARTUP_FN.",
+      "startup.c:177-184: CORE callbacks execute before C++ constructors.",
+      "startup.c:145-155 and 190: other cores resume only for the later secondary stage.",
+      "The first linked CORE record installs quarantine while prior normal ROM output calls have returned and CPU1 is parked."
+    ],
+    "constructor_address": "0x420070c0",
+    "constructor_audit": "Initializes only adapter and writer; no writes to phase, receipt_enabled or receipt deadline state."
+  },
+  "receipt_path": {
+    "entry_address": "0x42006e3c",
+    "formatter_address": "0x42006acc",
+    "writer_address": "0x420065c8",
+    "available_address": "0x420063a4",
+    "flush_address": "0x420063f8",
+    "writable_address": "0x4200641c",
+    "pause_address": "0x42006438",
+    "write_one_address": "0x42006470",
+    "receipt_deadline_address": "0x3fc93b20",
+    "receipt_last_admission_address": "0x3fc93b18",
+    "absolute_deadline_admission": "available checks owned state and original absolute deadline plus clock regression; writable, write_one, flush and pause call it before MMIO/delay",
+    "pause": "ROM delay capped at min(5 microseconds, original remaining budget)",
+    "file_or_sdk_logging_calls_in_receipt_path": false,
+    "ordinary_helpers": [
+      "esp_timer_get_time",
+      "memset",
+      "integer division",
+      "bounded formatter and writer"
+    ],
+    "sdk_log_default_level": 0,
+    "sdk_log_maximum_level": 0,
+    "absent_live_symbols": [
+      "esp_log_write",
+      "esp_log_writev",
+      "esp_log_va",
+      "esp_log",
+      "vprintf",
+      "_write_r_console",
+      "esp_system_console_put_char"
+    ],
+    "stdio_override_address": "0x42007070",
+    "rom_rx_read_r_address": "0x4201c114",
+    "retained_unrelated_libc": [
+      "vfprintf",
+      "__flockfile_init"
+    ],
+    "scope": "Receipt output bypasses FILE and SDK logging. This is not a claim that all firmware code is free of libc locks.",
+    "readiness_gate": {
+      "enabled_flag_address": "0x3fc93ac4",
+      "begin_session_address": "0x42006e18",
+      "session_started_address": "0x42006df0",
+      "disabled_path": "Owned but not enabled returns at 0x42006e83 before timer, formatter or FIFO access. Quarantine output still faults.",
+      "admission": "Generated handle_ready calls begin_session at line 745 only after challenge syntax, self-test, radio-ready, idle and zero-counter checks.",
+      "command_gate": "Generated CLI line 768 suppresses all non-ready commands before session start.",
+      "receive_gate": "Generated RX loop lines 888-892 skips processing before session start without clearing a pending IRQ.",
+      "repeat_enable": "Idempotent while healthy; it does not reset a fault."
+    }
+  },
+  "exception_boundaries": [
+    "Panic direct USB FIFO writer remains live at 0x4202320c; panic and reset terminate the accepted normal session.",
+    "ROM-internal exceptional output is not universally intercepted by ELF wrappers.",
+    "A callback already admitted before asynchronous invalidation or deadline passage may finish; this is not instantaneous cancellation.",
+    "FIFO acceptance and terminal ZLP handoff do not prove host application delivery.",
+    "No physical USB timing, radio result, physical radio idle, or flash authorization follows from this audit."
+  ],
+  "generated_application": {
+    "path": "build/receipts-a3/contained_app_main.cpp",
+    "bytes": 43818,
+    "sha256": "b0f8f9f9598fef18b02f4452022e3e3693e74ccaaf613bd346ec135f2ac3ca37"
+  }
+}

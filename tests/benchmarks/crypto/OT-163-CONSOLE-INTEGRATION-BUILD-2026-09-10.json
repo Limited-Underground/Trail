@@ -1,0 +1,288 @@
+{
+  "schema": "OT163-CONSOLE-INTEGRATION-BUILD-1",
+  "date": "2026-09-10",
+  "scope": "Host-only candidate; no hardware or execution authority",
+  "target": "firmware/targets/heltec_v4_noise_xk_console",
+  "project_version": "nxk-console-v1",
+  "toolchain": {
+    "idf": "6.0.2",
+    "idf_revision": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+    "gcc": "esp-15.2.0_20251204 / GCC 15.2.0",
+    "python": "3.14.6",
+    "cmake": "4.0.3",
+    "ninja": "1.12.1",
+    "esptool": "5.3.1",
+    "radiolib": "7.7.1",
+    "libsodium": "1.0.22"
+  },
+  "policy": {
+    "component_manager": "disabled; accepted local components only",
+    "ccache": "disabled",
+    "compiler_source_date_epoch": 0,
+    "generated_file_prefix": "/CONTAINED_BUILD_DIR",
+    "application_offset": "0x10000",
+    "benchmark_bootloader_partition_installation": "not authorized",
+    "scope": "Build-only; generated whole-flash commands are not install authority"
+  },
+  "source_inputs": {
+    "firmware/components/diagnostics/include/opentrail/bounded_console_writer.hpp": {
+      "bytes": 7154,
+      "sha256": "7495fe98623b3bb77ba7650b53a8ee8fc59da72d2487a107bd6d791603fd1e5b"
+    },
+    "firmware/components/diagnostics/include/opentrail/usb_fifo_console_transport.hpp": {
+      "bytes": 4550,
+      "sha256": "f38bc478f0afc37ae714874d242d69a14e247e5d4dd377a2baa1db9e988f474f"
+    },
+    "tools/noise_xk_console_firmware_source.py": {
+      "bytes": 6240,
+      "sha256": "c3c66000fd28009d826c4ff629d0b07ca5029d5bce78f5299992635306c4dd4b"
+    },
+    "tests/host/bounded_console_writer_tests.cpp": {
+      "bytes": 9305,
+      "sha256": "5e9fbf92f024abbe042857a922c3125d396b0559b1380c4f26512152db884936"
+    },
+    "tests/host/usb_fifo_console_transport_tests.cpp": {
+      "bytes": 7864,
+      "sha256": "be2b4e89279a50db4ced5e8d6002794d445eacef45aae490102355debf7aef41"
+    },
+    "tests/host/usb_console_binding_tests.py": {
+      "bytes": 7839,
+      "sha256": "d99796f72f8363b1073e87106410947f31705f928c05bdaaffa37a69bb11cfda"
+    },
+    "tests/host/noise_xk_console_firmware_source_tests.py": {
+      "bytes": 8705,
+      "sha256": "6be3fba31b373b4bd1f92cb074bb62b618140b0b3d22c8b6e52028767a3876f9"
+    },
+    "firmware/targets/heltec_v4_noise_xk_console/CMakeLists.txt": {
+      "bytes": 3519,
+      "sha256": "fcd901246bda3d521e739465c04335663f7ef5f2c3ba62bbdc2c7275c475596d"
+    },
+    "firmware/targets/heltec_v4_noise_xk_console/main/CMakeLists.txt": {
+      "bytes": 1025,
+      "sha256": "26213e80aae372839755699b14d6f340894f2f60e07baf555f7a40f553466439"
+    },
+    "firmware/targets/heltec_v4_noise_xk_console/main/opentrail_console.cpp": {
+      "bytes": 4862,
+      "sha256": "376316c19c310f00cff046df6daf095927436b45cc97388db858dc5a27a00284"
+    },
+    "firmware/targets/heltec_v4_noise_xk_console/main/opentrail_console.h": {
+      "bytes": 86,
+      "sha256": "678ddebb5c65db45d4be97fa2656d16772f9a48b90d4ae5b73349c2e80483fe2"
+    }
+  },
+  "dependency_locks": {
+    "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/dependencies.lock": {
+      "bytes": 536,
+      "sha256": "c9e8adbc2ff5ac297ca42b9fe5f3fc05e5692aec12c3decfe49c097ad08d1d95"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/dependencies.lock": {
+      "bytes": 543,
+      "sha256": "d5f32dcb2ec24c853ac2040fb8f9410a8f61831b7b7d5e9522766e8456e2ec5e"
+    }
+  },
+  "builds": [
+    {
+      "directory": "build/console-a3",
+      "initially_absent": true,
+      "exit_code": 0
+    },
+    {
+      "directory": "build/console-b3",
+      "initially_absent": true,
+      "exit_code": 0
+    }
+  ],
+  "artifacts": {
+    "heltec_v4_noise_xk_console.bin": {
+      "bytes": 300432,
+      "sha256": "e970f78cd2e9fdb139491d6e92ca0b7117b2ae33412b0ad6239e33b4c4d322b4",
+      "comparison": "exact"
+    },
+    "heltec_v4_noise_xk_console.elf": {
+      "bytes": 4800572,
+      "sha256": "87c15b58cc379d18edbcfd0c339fb6d43297a6316746ad473ffdbb741cafdd2e",
+      "comparison": "exact"
+    },
+    "heltec_v4_noise_xk_console.map": {
+      "bytes": 3590961,
+      "sha256": "f6583cce8655db5b9f35e8c39b8236a0efea4a9c0a6c68a0ae71363bbf61ffd4",
+      "comparison": "exact"
+    },
+    "sdkconfig": {
+      "bytes": 58074,
+      "sha256": "44d954f25e5b337e57a6e8b7beb053842c0ea68928a575e089a561fa165ce05c",
+      "comparison": "exact"
+    },
+    "contained_app_main.cpp": {
+      "bytes": 43369,
+      "sha256": "7ddab18c2d0553ad13cf3a1cf0b8c9d4fef3554a855e0312c4aef81941b548fb",
+      "comparison": "exact"
+    },
+    "contained_SX126x.cpp": {
+      "bytes": 52861,
+      "sha256": "babffa4a7955725c8d685432c8c8ce0ccc3db932a8622b9fa9f70271c253a2e2",
+      "comparison": "exact"
+    },
+    "bootloader/bootloader.bin": {
+      "bytes": 22480,
+      "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5",
+      "comparison": "exact"
+    },
+    "partition_table/partition-table.bin": {
+      "bytes": 3072,
+      "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820",
+      "comparison": "exact"
+    },
+    "config/sdkconfig.h": {
+      "bytes": 35435,
+      "sha256": "99f4c82d9603bc03b40b4977b8bc0eed07ba4c28faee9574a5b6aa4421f4c07d",
+      "comparison": "exact"
+    },
+    "toolchain/cxxflags": {
+      "comparison": "build-directory-normalized only; raw files differ",
+      "a_sha256": "8ff5fa061fa322f1519903b745da89c3fe6d98f03740093325d230aa3d96e267",
+      "b_sha256": "306047c9ca98fe0ec513dfc563771d57fabd38ace90c4b1563a9beb8bd0721ae"
+    },
+    "toolchain/ldflags": {
+      "comparison": "exact",
+      "a_sha256": "f268a782a4de6a6a6dde787717453b398564e6655f2add9116147094f454e9ec",
+      "b_sha256": "f268a782a4de6a6a6dde787717453b398564e6655f2add9116147094f454e9ec"
+    }
+  },
+  "resource_report": {
+    "version": "1.2",
+    "total_size": 300312,
+    "layout": [
+      {
+        "name": "Flash Code",
+        "total": 0,
+        "used": 159064,
+        "free": 0,
+        "parts": {
+          ".text": {
+            "size": 159064
+          }
+        }
+      },
+      {
+        "name": "Flash Data",
+        "total": 0,
+        "used": 75348,
+        "free": 0,
+        "parts": {
+          ".rodata": {
+            "size": 75076
+          },
+          ".appdesc": {
+            "size": 256
+          },
+          ".tdata": {
+            "size": 16
+          }
+        }
+      },
+      {
+        "name": "DIRAM",
+        "total": 341760,
+        "used": 52856,
+        "free": 288904,
+        "parts": {
+          ".text": {
+            "size": 36111
+          },
+          ".data": {
+            "size": 13369
+          },
+          ".bss": {
+            "size": 3376
+          }
+        }
+      },
+      {
+        "name": "IRAM",
+        "total": 16384,
+        "used": 16384,
+        "free": 0,
+        "parts": {
+          ".text": {
+            "size": 15356
+          },
+          ".vectors": {
+            "size": 1028
+          }
+        }
+      },
+      {
+        "name": "RTC SLOW",
+        "total": 8192,
+        "used": 36,
+        "free": 8156,
+        "parts": {
+          ".force_slow": {
+            "size": 36
+          }
+        }
+      },
+      {
+        "name": "RTC FAST",
+        "total": 8192,
+        "used": 24,
+        "free": 8168,
+        "parts": {
+          ".rtc_reserved": {
+            "size": 24
+          }
+        }
+      }
+    ]
+  },
+  "tests": {
+    "writer_cases": 21,
+    "fifo_cases": 16,
+    "board_binding_scenarios": 14,
+    "generated_source_groups": 4,
+    "full_host_matrix": "PASS; tools/Test-Host.ps1 exit 0",
+    "repository_docs": "checker and 13 tests PASS",
+    "legacy_loader_boundary": "Historical OpenTrail compatibility only, not current Firmware-Loader acceptance; built-in privacy-safe inspection reported 2 unavailable USB candidates, 0 runtime-identified, 0 ready to flash."
+  },
+  "historical_preservation": {
+    "sources": 42,
+    "images": 3,
+    "all_unchanged": true
+  },
+  "linked_audit": {
+    "strong_write_r": "0x42007788",
+    "read_r": "0x4201cd60",
+    "discarded": [
+      "old _write_r_console",
+      "_fsync_console",
+      "esp_system_console_put_char",
+      "separate __wrap_esp_rom_output_tx_one_char body"
+    ],
+    "output_bypass_iram": "0x40376b0c",
+    "phase_dram": "0x3fc92b7c",
+    "startup_active_dram": "0x3fc94aa4",
+    "live_wrappers": {
+      "ets_write_char_uart": "0x40376b1c",
+      "uart_tx_one_char": "0x40376b40"
+    },
+    "esp_rom_output_alias": "resolves via live uart wrapper",
+    "panic_direct_fifo": "0x42024b50",
+    "known_absent": [
+      "USB driver/VFS",
+      "binary logging",
+      "GDB stub"
+    ],
+    "universal_ownership_proven": false
+  },
+  "remaining_gates": [
+    "Upstream ESP_LOG/libc locks before syscall are not bounded",
+    "ROM-internal/in-flight startup writer lifecycle remains unresolved",
+    "No complete scheduler simulation",
+    "Fresh physical binding and authorization required after host gates"
+  ],
+  "publication": "local uncommitted; no remote operations",
+  "website_status_changed": false,
+  "build_refresh": "After a comment-only correction, both final initially absent builds reproduce the prior BIN/ELF/map/config/generated/boot/partition artifacts exactly.",
+  "host_log_sha256": "db9778cb227e96d8424694648a686ab69bf20b875c51f9d53439b0c2f20e7ddf"
+}

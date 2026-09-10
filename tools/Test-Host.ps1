@@ -40,7 +40,7 @@ if ($null -eq $python) {
 
 # Run checkout-sensitive target and frozen-harness contracts before the long
 # native matrix so structural target changes fail in seconds, not at the end.
-foreach ($containedSuite in @('radiolib_busy_source', 'noise_xk_contained_firmware', 'noise_xk_contained_endpoint', 'noise_xk_contained_runtime', 'noise_xk_contained_execution', 'noise_xk_receipt_observation_endpoint', 'noise_xk_receipt_observation_execution', 'noise_xk_console_source_probe')) {
+foreach ($containedSuite in @('radiolib_busy_source', 'noise_xk_contained_firmware', 'noise_xk_contained_endpoint', 'noise_xk_contained_runtime', 'noise_xk_contained_execution', 'noise_xk_receipt_observation_endpoint', 'noise_xk_receipt_observation_execution', 'noise_xk_console_source_probe', 'noise_xk_console_firmware_source', 'usb_console_binding', 'noise_xk_receipt_firmware_source', 'receipt_console_binding', 'receipt_ready_admission', 'noise_xk_console_execution_package')) {
     & $python.Source (Join-Path $projectRoot "tests\host\${containedSuite}_tests.py")
     if ($LASTEXITCODE -ne 0) { throw "Radio containment suite failed: $containedSuite" }
 }
@@ -794,6 +794,23 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\delivery\src\priority_queue.cpp'),
             (Join-Path $projectRoot 'tests\host\priority_delivery_integration_tests.cpp')
         )
+    },
+    @{
+        Name = 'bounded console writer host evaluation'
+        Output = Join-Path $buildDirectory 'bounded_console_writer_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\bounded_console_writer_tests.cpp')
+        )
+    },
+    @{
+        Name = 'USB FIFO console transport'
+        Output = Join-Path $buildDirectory 'usb_fifo_console_transport_tests.exe'
+        Sources = @((Join-Path $projectRoot 'tests\host\usb_fifo_console_transport_tests.cpp'))
+    },
+    @{
+        Name = 'bounded receipt formatter'
+        Output = Join-Path $buildDirectory 'bounded_receipt_formatter_tests.exe'
+        Sources = @((Join-Path $projectRoot 'tests\host\bounded_receipt_formatter_tests.cpp'))
     },
     @{
         Name = 'diagnostics logger'
@@ -2695,6 +2712,16 @@ if ($LASTEXITCODE -ne 0) {
     throw ('OT-150 mbedTLS/PSA preparation/authority tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\mbedtls_comparison_execution_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('Corrected mbedTLS comparison execution tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\mbedtls_comparison_hardware_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw ('Corrected mbedTLS comparison hardware composition tests failed with exit code {0}.' -f $LASTEXITCODE)
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_hardware_adapter_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-150 mbedTLS/PSA hardware adapter tests failed with exit code {0}.' -f $LASTEXITCODE)
@@ -2728,6 +2755,20 @@ if ($LASTEXITCODE -ne 0) {
 & $python.Source (Join-Path $projectRoot 'tests\host\ble_pairing_replacement_admission_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw "BLE pairing/replacement contract tests failed with exit code $LASTEXITCODE."
+}
+
+& $python.Source (Join-Path $projectRoot 'tests\host\entropy_runtime_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'entropy_runtime_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_eval_nvs_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_eval_nvs_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\crypto_monocypher_corrected_resource_accounting_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'crypto_monocypher_corrected_resource_accounting_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\serialized_secure_random_tests.py')
+if ($LASTEXITCODE -ne 0) {
+    throw "Serialized secure-random lifecycle tests failed with exit code $LASTEXITCODE."
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\secure_lora_contract_admission_tests.py')

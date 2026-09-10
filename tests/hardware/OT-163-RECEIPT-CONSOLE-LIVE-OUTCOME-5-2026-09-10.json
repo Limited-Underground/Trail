@@ -1,0 +1,494 @@
+{
+  "schema": "OT163-RECEIPT-CONSOLE-LIVE-OUTCOME-1",
+  "started_utc": "2026-09-10T14:04:16.643553+00:00",
+  "finished_utc": "2026-09-10T14:10:48.276863+00:00",
+  "complete": true,
+  "caller_sha256": "2ee775c26ad8dd1c43e8687bf7034033de105381084e49c2db5fd671aeaabb6e",
+  "package_sha256": "8e7610db7753b615e727d56a4ec9d4062bdc08badf39c315d7680cb5a2d9a919",
+  "grant_sha256": "8b219d71d4031b63c17caab5bd03bcdf21dbafe3760e985654040d8e9779aab0",
+  "grant_state": "consumed",
+  "setup": {
+    "board_model": "Heltec WiFi LoRa 32 V4.2",
+    "mcu": "ESP32-S3",
+    "flash_bytes": 16777216,
+    "firmware_version": "nxk-receipts-v1",
+    "context": "Both nodes together on bench, owner confirmed antennas attached; exact separation not measured",
+    "application_offset": 65536
+  },
+  "coordinator": {
+    "schema": "OTNXRCCR0",
+    "version": 0,
+    "result": "noise_xk_radio_run_passed_and_restored",
+    "authority_raw_sha256": "8b219d71d4031b63c17caab5bd03bcdf21dbafe3760e985654040d8e9779aab0",
+    "binding": {
+      "benchmark_name": "heltec_v4_noise_xk_receipts.bin",
+      "benchmark_bytes": 275680,
+      "benchmark_sha256": "297208daface84846b53b0b918996dfc7869b20adfc835d6aac7adde93257d3b",
+      "restore_a": {
+        "name": "opentrail_heltec_v4_bench.bin",
+        "bytes": 586736,
+        "sha256": "43ac6dbc506c03faa63aae7a8e27195750598f06f3118bfff1ef7af84bc8d9f2"
+      },
+      "restore_b": {
+        "name": "opentrail_heltec_v4_bench.bin",
+        "bytes": 587968,
+        "sha256": "984e241dc72fad956d34b5e83f04fd307dcb95e0f18c629ac46d21da9d96d87b"
+      },
+      "application_offset": 65536,
+      "baud": 115200,
+      "runner_name": "noise_xk_solicited_runner.py",
+      "runner_sha256": "7e785ea0e5723319ae06c0d188cca5dcf6f79739315b94160dabead0cb06a0ae",
+      "runner_schema": "OT153NXR0"
+    },
+    "node_count": 2,
+    "radio_run_invoked": true,
+    "radio_result_validated": true,
+    "restoration_complete": true,
+    "nodes": [
+      {
+        "node": "A",
+        "installed_app_readback_verified": true,
+        "preflight_reset_completed": true,
+        "benchmark_readback_verified": true,
+        "benchmark_reset_completed": true,
+        "restore_readback_verified": true,
+        "restore_reset_completed": true
+      },
+      {
+        "node": "B",
+        "installed_app_readback_verified": true,
+        "preflight_reset_completed": true,
+        "benchmark_readback_verified": true,
+        "benchmark_reset_completed": true,
+        "restore_readback_verified": true,
+        "restore_reset_completed": true
+      }
+    ],
+    "failure": null,
+    "privacy": {
+      "private_endpoints_recorded": false,
+      "device_identifiers_recorded": false,
+      "filesystem_paths_recorded": false,
+      "backend_error_text_recorded": false,
+      "raw_serial_recorded": false
+    },
+    "claims": {
+      "packet_v1_selected": false,
+      "candidate_selected": false,
+      "suite_selected": false,
+      "phase_two_complete": false,
+      "supported_target_proven": false,
+      "regulatory_acceptance_proven": false,
+      "production_ready": false,
+      "score_credit_added": false
+    },
+    "radio_result": {
+      "claims": {
+        "candidate_selected": false,
+        "packet_v1_selected": false,
+        "phase_two_complete": false,
+        "production_ready": false,
+        "regulatory_acceptance_proven": false,
+        "score_credit_added": false,
+        "suite_selected": false
+      },
+      "cycles": [
+        {
+          "baseline": {
+            "frames": [
+              {
+                "attempt": 1,
+                "cycle": 1,
+                "direction": "A_to_B",
+                "measured_airtime_us": 108331,
+                "message": "m1",
+                "payload_sha256": "97a4b6193860e6e3f7d35c0fcf25fc3ea2c9ced2b2e4f9f260850cccea416e72",
+                "scenario": "baseline",
+                "theoretical_airtime_us": 97536,
+                "tx_done_mono_us": 684383,
+                "tx_start_mono_us": 576052,
+                "wire_bytes": 48
+              },
+              {
+                "attempt": 1,
+                "cycle": 1,
+                "direction": "B_to_A",
+                "measured_airtime_us": 108347,
+                "message": "m2",
+                "payload_sha256": "9c2f087374bfe121665932e74b646a3f325e440457cbac4652e2fbe4e8e8fb01",
+                "scenario": "baseline",
+                "theoretical_airtime_us": 97536,
+                "tx_done_mono_us": 914404,
+                "tx_start_mono_us": 806057,
+                "wire_bytes": 48
+              },
+              {
+                "attempt": 1,
+                "cycle": 1,
+                "direction": "A_to_B",
+                "measured_airtime_us": 128763,
+                "message": "m3",
+                "payload_sha256": "f7d69d880ed9ae6ad52892b2003b6df6dc18b8cdd64124f60e37e8b03f8a5ee5",
+                "scenario": "baseline",
+                "theoretical_airtime_us": 118016,
+                "tx_done_mono_us": 1185106,
+                "tx_start_mono_us": 1056343,
+                "wire_bytes": 64
+              }
+            ],
+            "summary": {
+              "bounded_retry_result": "not_applicable",
+              "fragments": 3,
+              "handshake_total_wire_bytes": 160,
+              "measured_airtime_us": 345441,
+              "theoretical_airtime_us": 313088
+            }
+          },
+          "bounded_retry": {
+            "frames": [
+              {
+                "attempt": 1,
+                "cycle": 1,
+                "direction": "A_to_B",
+                "measured_airtime_us": 108068,
+                "message": "m1",
+                "payload_sha256": "b45f99da415b7a376b4dbe640713514aec2c2bf4c1c45621eed7478d4ec1b33c",
+                "scenario": "bounded_retry",
+                "theoretical_airtime_us": 97536,
+                "tx_done_mono_us": 1584127,
+                "tx_start_mono_us": 1476059,
+                "wire_bytes": 48
+              },
+              {
+                "attempt": 2,
+                "cycle": 1,
+                "direction": "A_to_B",
+                "measured_airtime_us": 108584,
+                "message": "m1",
+                "payload_sha256": "71ca99a43477c2fe02c836ffe7583709722e15d7b1ddb8b9aa7e5b7bbad3eb1f",
+                "scenario": "bounded_retry",
+                "theoretical_airtime_us": 97536,
+                "tx_done_mono_us": 4144631,
+                "tx_start_mono_us": 4036047,
+                "wire_bytes": 48
+              },
+              {
+                "attempt": 2,
+                "cycle": 1,
+                "direction": "B_to_A",
+                "measured_airtime_us": 108010,
+                "message": "m2",
+                "payload_sha256": "0dad883cab4a905bab0b5172466648677b7994b45924d09e55c1a2406f4065d7",
+                "scenario": "bounded_retry",
+                "theoretical_airtime_us": 97536,
+                "tx_done_mono_us": 4354069,
+                "tx_start_mono_us": 4246059,
+                "wire_bytes": 48
+              },
+              {
+                "attempt": 2,
+                "cycle": 1,
+                "direction": "A_to_B",
+                "measured_airtime_us": 128838,
+                "message": "m3",
+                "payload_sha256": "5ef7c72484769cb4c12424406f859b9047b8028ca4f6ffa698c4facbda7aa1df",
+                "scenario": "bounded_retry",
+                "theoretical_airtime_us": 118016,
+                "tx_done_mono_us": 4605181,
+                "tx_start_mono_us": 4476343,
+                "wire_bytes": 64
+              }
+            ],
+            "summary": {
+              "bounded_retry_result": "one_timeout_one_retry_final_success",
+              "fragments": 4,
+              "handshake_total_wire_bytes": 208,
+              "measured_airtime_us": 453500,
+              "theoretical_airtime_us": 410624
+            }
+          },
+          "cycle": 1
+        },
+        {
+          "baseline": {
+            "frames": [
+              {
+                "attempt": 1,
+                "cycle": 2,
+                "direction": "B_to_A",
+                "measured_airtime_us": 107993,
+                "message": "m1",
+                "payload_sha256": "8fbf4b6dbe7d30261c658b9a1f4cc9477505bde23e3b03e1e6923e0d115be989",
+                "scenario": "baseline",
+                "theoretical_airtime_us": 97536,
+                "tx_done_mono_us": 4994053,
+                "tx_start_mono_us": 4886060,
+                "wire_bytes": 48
+              },
+              {
+                "attempt": 1,
+                "cycle": 2,
+                "direction": "A_to_B",
+                "measured_airtime_us": 108280,
+                "message": "m2",
+                "payload_sha256": "72fc53073ceee03ee0e302e311563e458490f6608a077518438d4ea62e1d2ab0",
+                "scenario": "baseline",
+                "theoretical_airtime_us": 97536,
+                "tx_done_mono_us": 5234340,
+                "tx_start_mono_us": 5126060,
+                "wire_bytes": 48
+              },
+              {
+                "attempt": 1,
+                "cycle": 2,
+                "direction": "B_to_A",
+                "measured_airtime_us": 128523,
+                "message": "m3",
+                "payload_sha256": "a3ec7ea48eeb3581a41dcf8cc7bce68d0a903ff17ba276c0334f5d6d19a49742",
+                "scenario": "baseline",
+                "theoretical_airtime_us": 118016,
+                "tx_done_mono_us": 5454873,
+                "tx_start_mono_us": 5326350,
+                "wire_bytes": 64
+              }
+            ],
+            "summary": {
+              "bounded_retry_result": "not_applicable",
+              "fragments": 3,
+              "handshake_total_wire_bytes": 160,
+              "measured_airtime_us": 344796,
+              "theoretical_airtime_us": 313088
+            }
+          },
+          "bounded_retry": {
+            "frames": [
+              {
+                "attempt": 1,
+                "cycle": 2,
+                "direction": "B_to_A",
+                "measured_airtime_us": 108119,
+                "message": "m1",
+                "payload_sha256": "c18bad2a925c5bf9828b88aa568c3a79427b5a164689d9245624e49e4399d9de",
+                "scenario": "bounded_retry",
+                "theoretical_airtime_us": 97536,
+                "tx_done_mono_us": 5854180,
+                "tx_start_mono_us": 5746061,
+                "wire_bytes": 48
+              },
+              {
+                "attempt": 2,
+                "cycle": 2,
+                "direction": "B_to_A",
+                "measured_airtime_us": 108003,
+                "message": "m1",
+                "payload_sha256": "1e31c039321a64f2dd6fde70189ac31ab1c02044a08579d0133c26443bba825f",
+                "scenario": "bounded_retry",
+                "theoretical_airtime_us": 97536,
+                "tx_done_mono_us": 8394053,
+                "tx_start_mono_us": 8286050,
+                "wire_bytes": 48
+              },
+              {
+                "attempt": 2,
+                "cycle": 2,
+                "direction": "A_to_B",
+                "measured_airtime_us": 108351,
+                "message": "m2",
+                "payload_sha256": "170cfd437eb3f6611d6c50a9d80e0a8593222e94cf2c0fcaffcb8dd5975a208b",
+                "scenario": "bounded_retry",
+                "theoretical_airtime_us": 97536,
+                "tx_done_mono_us": 8634408,
+                "tx_start_mono_us": 8526057,
+                "wire_bytes": 48
+              },
+              {
+                "attempt": 2,
+                "cycle": 2,
+                "direction": "B_to_A",
+                "measured_airtime_us": 128869,
+                "message": "m3",
+                "payload_sha256": "759b898c69e3413a97e41aa895976ee2404b366d93b6d4d4b5a503b46fc94602",
+                "scenario": "bounded_retry",
+                "theoretical_airtime_us": 118016,
+                "tx_done_mono_us": 8875216,
+                "tx_start_mono_us": 8746347,
+                "wire_bytes": 64
+              }
+            ],
+            "summary": {
+              "bounded_retry_result": "one_timeout_one_retry_final_success",
+              "fragments": 4,
+              "handshake_total_wire_bytes": 208,
+              "measured_airtime_us": 453342,
+              "theoretical_airtime_us": 410624
+            }
+          },
+          "cycle": 2
+        }
+      ],
+      "radio_profile": {
+        "bandwidth_hz": 125000,
+        "coding_rate_denominator": 5,
+        "crc_enabled": true,
+        "explicit_header": true,
+        "frequency_hz": 915000000,
+        "low_data_rate_optimization": false,
+        "preamble_symbols": 8,
+        "spreading_factor": 7,
+        "sync_word": "0x12",
+        "tx_power_command_setpoint_dbm": 2
+      },
+      "result": "noise_xk_radio_cost_measurement_passed",
+      "schema": "OT153NXR0",
+      "totals": {
+        "baseline_handshakes": 2,
+        "bounded_retry_handshakes": 2,
+        "corrupt": 0,
+        "duplicates": 0,
+        "forced_timeouts": 2,
+        "fragments": 14,
+        "lost": 0,
+        "measured_airtime_us": 1597079,
+        "radio_payload_wire_bytes": 736,
+        "role_cycles": 2,
+        "successful_final_handshakes": 4,
+        "theoretical_airtime_us": 1447424,
+        "unexpected": 0
+      },
+      "version": 0
+    },
+    "radio_result_sha256": "bf1333a65a1121479889e785864b5d24f7dd864aca765dcc426d7d10d50e3a38"
+  },
+  "independent_preflight": [
+    {
+      "role": "A",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+        }
+      }
+    },
+    {
+      "role": "B",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+        }
+      }
+    }
+  ],
+  "independent_postcheck": [
+    {
+      "role": "A",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "002a0a4b5ea5329c93c39c105099490a01b0ed7d4bd167ee3a5b60322dd0b5b3"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "7297971e2734c04d043e274a49b3a8043c63f4648f938eb559544cd0c816c36c"
+        }
+      }
+    },
+    {
+      "role": "B",
+      "checks_complete": true,
+      "runtime_reset_succeeded": true,
+      "regions": {
+        "partition": {
+          "bytes": 4096,
+          "sha256": "b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601"
+        },
+        "ota": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "bootloader": {
+          "bytes": 32768,
+          "sha256": "2dbfd3b3bc786e88121ebcbd5deb87830b87261a276a70933318ff5377730532"
+        },
+        "application": {
+          "bytes": 589824,
+          "sha256": "f3642e5753adf1aa724e9a79dd2eec546bfd292d129fa871f46792e771d3a04b"
+        }
+      }
+    }
+  ],
+  "diagnostic_summary": {
+    "A": {
+      "parser_misses": {
+        "non_ascii": 0,
+        "non_protocol": 0,
+        "malformed_protocol": 0,
+        "framing_invalid": 0
+      },
+      "observation_archive_failures": 0,
+      "receipt_observations": 63,
+      "read_errors": 0,
+      "invalid_reads": 0,
+      "nonaccepted_observations": 0
+    },
+    "B": {
+      "parser_misses": {
+        "non_ascii": 0,
+        "non_protocol": 0,
+        "malformed_protocol": 0,
+        "framing_invalid": 0
+      },
+      "observation_archive_failures": 0,
+      "receipt_observations": 63,
+      "read_errors": 0,
+      "invalid_reads": 0,
+      "nonaccepted_observations": 0
+    }
+  },
+  "limitations": [
+    "Command-window measured_airtime_us is not pure RF airtime",
+    "No field-range measurement",
+    "Previous timeout cause remains unproven",
+    "No phone Ready or OLED observation",
+    "No crypto suite or product messaging selection",
+    "No score credit or website status change"
+  ]
+}
