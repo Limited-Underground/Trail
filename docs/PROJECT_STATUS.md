@@ -60,9 +60,15 @@ and exact original application/full-NVS restoration. See the
 [capture and recovery evidence](testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md).
 This establishes software preparation only; no live snapshots or grants were created.
 
-Next verify the isolated operator runtime and import closure, then prepare fresh
-per-device inventory, installed-region readbacks and complete private originals
-under exact scoped physical authority. The
+An isolated private operator runtime now passes external startup-file checks,
+parent/child import verification and poisoned-environment probes. Its ROM child
+independently checks journal phase, storage spans and exact write payloads. See the
+[runtime and physical scope](testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md).
+The reviewed PowerShell verifier and host OS remain a trusted boundary.
+
+Next complete the bounded read/reset controller for initial backup custody, then
+perform fresh per-device inventory, installed-region checks and complete private
+original capture under exact scoped physical authority. The
 [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains the
 physical entropy, interrupted persistence and remaining admission boundaries.
 

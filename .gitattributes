@@ -569,3 +569,7 @@ firmware/components/security/src/aead_nonce.cpp text eol=crlf
 # OT-188 hash-bound capture/recovery tooling and evidence.
 tools/security_policy_*.py -text
 tests/benchmarks/crypto/OT-188-*.json -text
+
+# OT-189 externally verified operator launcher and runtime evidence.
+tools/Invoke-SecurityPolicyOperator.ps1 -text
+tests/benchmarks/crypto/OT-189-*.json -text

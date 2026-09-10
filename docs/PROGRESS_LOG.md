@@ -2,6 +2,18 @@
 
 ## 2026-09-10
 
+### OT-189 Verify isolated operator runtime and prepare physical trial scope
+
+Assembled a private runtime with exact interpreter/startup files, 18 dependency
+distributions and the frozen capture/recovery code. External checks precede Python
+startup; parent and child probes verify permitted imports and reject inherited
+startup injection. ROM child admission independently checks journal phase, spans
+and write payloads. Host tests include a harmless native startup sentinel.
+
+See [runtime verification and physical preflight scope](testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md).
+The first-backup read/reset controller and live original custody remain open.
+No devices, grants, live snapshots or website were changed; no V1 score credit.
+
 ### OT-188 Prepare executable security capture and full-storage recovery
 
 Added the one-use capture/recovery composition with exact source, image and role
