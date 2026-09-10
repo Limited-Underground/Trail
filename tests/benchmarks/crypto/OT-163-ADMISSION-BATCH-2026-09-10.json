@@ -1,0 +1,274 @@
+{
+  "schema": "OT163-ADMISSION-BATCH-ASSESSMENT-1",
+  "as_of": "2026-09-10",
+  "status": "partial_corpus_extended_selection_withheld",
+  "bindings": [
+    {
+      "path": "tests/benchmarks/crypto/OT-163-CRYPTO-CORPUS-RECONCILIATION-2026-09-10.json",
+      "bytes": 15766,
+      "sha256": "b3079636bdc88ab1b2cab540aa6b84e44fb42bc28e31c247a7fc3dc0f16659f9",
+      "canonical_sha256": "ce9d746ea574a0699313dc63cf7d4f30066e5b382aa4531118f14e185c743fc1"
+    },
+    {
+      "path": "tests/hardware/OT-163-MBEDTLS-COMPARISON-OUTCOME-1-2026-09-10.json",
+      "bytes": 13257,
+      "sha256": "f939a8cc3d20adbf9fa62175a1daa95ed3969a3ef5908482a209cdb430ab509f",
+      "canonical_sha256": "7f1214333ea026f0e133966fce1db6d88dea9c46d1d4d5284d2a2a5f584e2d18"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-163-MBEDTLS-CORRECTED-MATCHED-RESOURCE-2026-09-10.json",
+      "bytes": 9617,
+      "sha256": "0b3f71a80a1b7c43ba2dee44e0ac8900b34e52971b21ee1286fd062314c5ff17",
+      "canonical_sha256": "a28ce97c2beb402919705cd1b9c9355542be35da925c529d2882b6c5e35392d9"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-163-MBEDTLS-CORRECTED-CANDIDATE-SIZE-REPORT-2026-09-10.json",
+      "bytes": 2047,
+      "sha256": "7978147ea7e8197fc852d65650e44d2fea134799caa2331e27ae87fb2970f24e",
+      "canonical_sha256": "9221b5a13b2648cc91db306787a5b5cc2507246b4c661287da066cd5b11c0cbe"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-163-MBEDTLS-CORRECTED-CONTROL-SIZE-REPORT-2026-09-10.json",
+      "bytes": 2045,
+      "sha256": "95743702c91609fb53cd3ad7020ab76120fa9690bd4921b3f73dbbb3e3f5b2d8",
+      "canonical_sha256": "343a6b1963bad93d75a7519963666d75e9bd7f530f3da9508ca170d2ff0905d2"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-163-CAPTURE-CUSTODY-ASSESSMENT-2026-09-10.json",
+      "bytes": 2927,
+      "sha256": "6f21dbea5a0b833436f0247b41dac6254c3c1f9db88ee90d8d96ee8f7fa0cf7d",
+      "canonical_sha256": "58148ac9725ceb4d44b403bf9403d1dacaf48b1a3b79376fe5ff250cd08ffcfc"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-163-ENTROPY-LIFECYCLE-ASSESSMENT-2026-09-10.json",
+      "bytes": 7282,
+      "sha256": "61f9069f08a9a98b02cd632b6af984b9e5db580f042ee410f7da57a47a8cec9a",
+      "canonical_sha256": "199f3a3d3d84196eacd736892cda7f43d5594be7a9b22655bce61675eafd6448"
+    },
+    {
+      "path": "tools/noise_xk_independent_vectors.py",
+      "bytes": 3314,
+      "sha256": "ce5a781c3d73ba3788eaefd98b883bd69051693aaf65d56c6145da1c3f5e5c25"
+    },
+    {
+      "path": "tools/noise_xk_independent_interop.py",
+      "bytes": 6761,
+      "sha256": "e0c82d47cc48043d1fe451245f0f2a7aa0936d717092ad498382e6d116038ce9"
+    },
+    {
+      "path": "tests/host/noise_xk_independent_interop_probe.c",
+      "bytes": 3599,
+      "sha256": "a9903a1e81efe2d303cced8e23234cd60c749c3259b54f037d2c0467f7e73c94"
+    },
+    {
+      "path": "tests/host/noise_xk_independent_interop_tests.py",
+      "bytes": 2781,
+      "sha256": "5260e4ecff0e3fad7f656bffc23e0b629549789ba5869965b8cff29172663bfd"
+    },
+    {
+      "path": "tests/host/serialized_secure_random_tests.py",
+      "bytes": 1721,
+      "sha256": "d4dd3b6bbeb9f4de8da45ea5d36d619663e47d733f214f9dc6887d3db673bc4c"
+    },
+    {
+      "path": "tools/secure_lora_contract_admission.py",
+      "bytes": 51366,
+      "sha256": "a8b8f9e78dff4d17f98642b82e5e545b7b4f74ab43d821108040cb4024440727"
+    },
+    {
+      "path": "tests/host/secure_lora_contract_admission_tests.py",
+      "bytes": 56209,
+      "sha256": "d2ae6f3005cfae33ae47d2d759e0c40e199bb5857f659c3277869eefc45f1d5a"
+    },
+    {
+      "path": "tests/benchmarks/crypto/independent_noise_xk/LICENSE.noiseprotocol",
+      "bytes": 1073,
+      "sha256": "a293aa2800fa06051f7234159271f6dd1cdf98d6a6356da6d953fe06f93c66d3"
+    },
+    {
+      "path": "tests/benchmarks/crypto/independent_noise_xk/noiseprotocol-0.3.1-py3-none-any.whl",
+      "bytes": 20546,
+      "sha256": "2e1a603a38439636cf0ffd8b3e8b12cee27d368a28b41be7dbe568b2abb23111"
+    },
+    {
+      "path": "tests/benchmarks/crypto/independent_noise_xk/nonnull_adapter/noise_xk_libsodium.c",
+      "bytes": 17898,
+      "sha256": "4f3852e9822eebfed1df8946f6d0ca8ae756a7790ee15b48f1748aa662ba66c0"
+    },
+    {
+      "path": "tests/benchmarks/crypto/independent_noise_xk/nonnull_adapter/noise_xk_libsodium.h",
+      "bytes": 3218,
+      "sha256": "b7c649434cdffe648e467bb117849ae0296a73fa041d614d3d4ba32578e40c45"
+    },
+    {
+      "path": "tests/benchmarks/crypto/independent_noise_xk/provenance.json",
+      "bytes": 4638,
+      "sha256": "e363c485a973222fd077d3a3f42c3787e248feda69b85e9cc9083e6ac6489130",
+      "canonical_sha256": "0b6d56a79bae537ad986afd8a9869ab03575e143c4b84fa2b8c6bc4d2882a26d"
+    },
+    {
+      "path": "tests/benchmarks/crypto/independent_noise_xk/README.md",
+      "bytes": 2953,
+      "sha256": "3c781631150c3f8f1d56851e53174f360febfe65125b567791dd507b2441c408"
+    },
+    {
+      "path": "tests/benchmarks/crypto/independent_noise_xk/vectors.json",
+      "bytes": 3048,
+      "sha256": "b7053c022656471c81f91860753ecb404633f7815bf8348de9fbce4ec9a99ca3",
+      "canonical_sha256": "8857367a74e415fc61c7cda0877439ed4976832de211133b94b8658ec392733e"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot163_mbedtls_psa_control/CMakeLists.txt",
+      "bytes": 1448,
+      "sha256": "b251c5fa69f842aed1ac097b9487ad150ae0daf8b7116f53418bd8c59e1b3b7f"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot163_mbedtls_psa_control/main/CMakeLists.txt",
+      "bytes": 873,
+      "sha256": "86045b8e14f3a0433abcb71723892b7fa4b477853c03284dfad5b0a9dac13933"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot163_mbedtls_psa_control/main/no_candidate_benchmark_api.c",
+      "bytes": 1121,
+      "sha256": "a3f5d29bfd925a4171eb8e1d0aab13c0dec02419c62be362db9373662d5c1035"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot163_mbedtls_psa_control/partitions.csv",
+      "bytes": 443,
+      "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+    },
+    {
+      "path": "tests/benchmarks/crypto/esp_idf/ot163_mbedtls_psa_control/sdkconfig.defaults",
+      "bytes": 390,
+      "sha256": "e8e4c1939008422d21dcd6993d3b3e6d3dd0d53328b46c4a5649188dc60014c6"
+    }
+  ],
+  "completed": [
+    "corrected_mbedtls_matched_resource_accounting",
+    "bounded_independent_scalar_noise_xk_proof",
+    "nonnull_adapter_successor_host_proof",
+    "serialized_entropy_guard_actual_adapter_host_tests",
+    "historical_capture_custody_scope_reconciliation"
+  ],
+  "resource_measurements": {
+    "linked_flash_candidate_bytes": 245466,
+    "linked_flash_control_bytes": 145834,
+    "linked_flash_delta_bytes": 99632,
+    "static_ram_candidate_bytes": 50187,
+    "static_ram_control_bytes": 49035,
+    "static_ram_delta_bytes": 1152
+  },
+  "resource_validator": {
+    "schema": "OTMRAR1",
+    "version": 1,
+    "candidate_id": "esp_idf_mbedtls_psa",
+    "verdict": "pass",
+    "measurements": {
+      "linked_flash_candidate_bytes": 245466,
+      "linked_flash_control_bytes": 145834,
+      "linked_flash_delta_bytes": 99632,
+      "static_ram_candidate_bytes": 50187,
+      "static_ram_control_bytes": 49035,
+      "static_ram_delta_bytes": 1152
+    },
+    "result_canonical_sha256": "a28ce97c2beb402919705cd1b9c9355542be35da925c529d2882b6c5e35392d9"
+  },
+  "interop": {
+    "producer": "noiseprotocol0.3.1 / cryptography50.0.0 / OpenSSL4.0.1",
+    "suite": "Noise_XK_25519_ChaChaPoly_SHA256",
+    "independent_cases": 2,
+    "groups_per_adapter": 26,
+    "upstream_inventory_files": 731,
+    "scalar_primitive_sources": 15,
+    "independently_reviewed_object_hashes": 17,
+    "independently_reviewed_dependency_paths": 102,
+    "baseline_nonnull_warning_preserved": true,
+    "successor_change": "Single pointer correction for zero-length HKDF input.",
+    "target_equivalence": false,
+    "initialization_tested": false
+  },
+  "focused_validation": [
+    {
+      "path": "tests/host/noise_xk_independent_interop_tests.py",
+      "source_sha256": "5260e4ecff0e3fad7f656bffc23e0b629549789ba5869965b8cff29172663bfd",
+      "exit": 0,
+      "output": "Independent producer reproduces both complete XK vectors\n..........\n----------------------------------------------------------------------\nRan 10 tests in 12.830s\n\nOK\n"
+    },
+    {
+      "path": "tests/host/serialized_secure_random_tests.py",
+      "source_sha256": "d4dd3b6bbeb9f4de8da45ea5d36d619663e47d733f214f9dc6887d3db673bc4c",
+      "exit": 0,
+      "output": ".\n----------------------------------------------------------------------\nRan 1 test in 1.062s\n\nOK\n"
+    },
+    {
+      "path": "tests/host/crypto_matched_resource_accounting_tests.py",
+      "source_sha256": "28f5e902a3863e00af66e14925cfa8a48e6c276bf83dd394012e5729b6856c94",
+      "exit": 0,
+      "output": "test_cli_is_bounded_and_errors_are_sanitized (__main__.MatchedResourceTests.test_cli_is_bounded_and_errors_are_sanitized) ... ok\ntest_contract_exact_pins_and_unexecuted_claims (__main__.MatchedResourceTests.test_contract_exact_pins_and_unexecuted_claims) ... ok\ntest_delta_tamper_and_static_delta_projection_fail_closed (__main__.MatchedResourceTests.test_delta_tamper_and_static_delta_projection_fail_closed) ... ok\ntest_duplicate_diram_and_tls_parts_fail_closed (__main__.MatchedResourceTests.test_duplicate_diram_and_tls_parts_fail_closed) ... ok\ntest_historical_json2_report_recomputes_exact_values (__main__.MatchedResourceTests.test_historical_json2_report_recomputes_exact_values) ... ok\ntest_missing_named_static_parts_count_as_zero (__main__.MatchedResourceTests.test_missing_named_static_parts_count_as_zero) ... ok\ntest_negative_deltas_are_admitted_without_absolute_value (__main__.MatchedResourceTests.test_negative_deltas_are_admitted_without_absolute_value) ... ok\ntest_positive_deltas_and_absolute_static_projection_pass (__main__.MatchedResourceTests.test_positive_deltas_and_absolute_static_projection_pass) ... ok\ntest_report_path_hash_bytes_candidate_and_claims_fail_closed (__main__.MatchedResourceTests.test_report_path_hash_bytes_candidate_and_claims_fail_closed) ... ok\ntest_report_types_structure_and_encoding_fail_closed (__main__.MatchedResourceTests.test_report_types_structure_and_encoding_fail_closed) ... ok\ntest_unmatched_builds_metadata_and_substitution_fail_closed (__main__.MatchedResourceTests.test_unmatched_builds_metadata_and_substitution_fail_closed) ... ok\ntest_zero_deltas_are_admitted_without_coercion (__main__.MatchedResourceTests.test_zero_deltas_are_admitted_without_coercion) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.369s\n\nOK\n"
+    },
+    {
+      "path": "tests/host/secure_lora_contract_admission_tests.py",
+      "source_sha256": "d2ae6f3005cfae33ae47d2d759e0c40e199bb5857f659c3277869eefc45f1d5a",
+      "exit": 0,
+      "output": "PASS: 40 secure-LoRa contract scenario groups\n"
+    }
+  ],
+  "gate_reconciliation": [
+    {
+      "gate": "primitive_vectors_and_negative_cases",
+      "status": "partial_evidence",
+      "boundary": "Accepted candidate operation checkpoints remain; the corrected independent adapter proof adds real-primitive refusal cases. Full applicable gate reconciliation remains."
+    },
+    {
+      "gate": "noise_xk_independent_interoperability",
+      "status": "bounded_host_proof_passed",
+      "boundary": "Two independent empty-payload XK cases match m1/m2/m3, handshake hashes and directional split keys; each adapter passes26groups. Not full conformance or target initialization."
+    },
+    {
+      "gate": "invitation_replay_reorder_timeout_refusal",
+      "status": "host_policy_passed_target_open",
+      "boundary": "Existing40-group lifecycle model passes; actual selected target invitation and transport binding remain open."
+    },
+    {
+      "gate": "entropy_and_cold_start_uniqueness",
+      "status": "host_guard_passed_target_physical_open",
+      "boundary": "Actual-adapter serialized admission/revoke/source-loss tests pass with deterministic SDK stub. Target wiring and physical cold-start/brownout evidence remain open; disassembly deferred."
+    },
+    {
+      "gate": "temporary_secret_wipe_and_log_redaction",
+      "status": "partial_evidence",
+      "boundary": "Real-adapter negative cases check secret destruction; guard scratch protects failure output and is wiped. Full target key lifecycle/log gate remains open."
+    },
+    {
+      "gate": "rollback_safe_counter_interruption",
+      "status": "host_policy_only",
+      "boundary": "Existing lease/KV policy evidence remains; actual durable target interruption composition required. No new physical-attacker rollback requirement."
+    },
+    {
+      "gate": "two_device_join_revoke_reset_recovery",
+      "status": "target_product_open",
+      "boundary": "Benchmark restorations and local BLE acceptance remain distinct from secure-LoRa membership and product delivery."
+    },
+    {
+      "gate": "license_sbom_and_reproducible_lock",
+      "status": "partial_evidence",
+      "boundary": "Corrected matched controls and pinned independent producer/scalar source closure accepted; other candidate controls and final target license/SBOM/configuration remain."
+    }
+  ],
+  "remaining": [
+    "Candidate-specific libsodium and corrected Monocypher matched controls.",
+    "Historical raw capture custody or separately authorized successor capture.",
+    "Evaluation target: corrected adapter, guarded entropy lifecycle, durable counters, invitation/refusal and wipe/log composition.",
+    "Applicable remaining physical security gates, full Phase3 admission and explicit crypto selection.",
+    "Product phone-to-phone integration and coherent two-pair acceptance."
+  ],
+  "claims": {
+    "phase_two_complete": false,
+    "phase_three_complete": false,
+    "candidate_selected": false,
+    "production_ready": false,
+    "hardware_accessed": false,
+    "website_capability_status_changed": false,
+    "completion_credit_added": false
+  }
+}

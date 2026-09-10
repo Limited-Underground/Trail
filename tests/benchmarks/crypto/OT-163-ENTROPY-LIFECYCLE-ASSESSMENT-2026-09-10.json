@@ -1,0 +1,162 @@
+{
+  "schema": "OT163-ENTROPY-LIFECYCLE-ASSESSMENT-1",
+  "as_of": "2026-09-10",
+  "boundary": "Additive unwired guard tested with actual unchanged Heltec adapter and deterministic ESP-IDF function stub.",
+  "source_review_inputs": [
+    {
+      "path": "firmware/targets/heltec_v4_bench/main/app_main.cpp",
+      "bytes": 17912,
+      "sha256": "683b62cb08f933fdac9380f3bc615cde33497b369f248b734b785a84fc1bf697"
+    },
+    {
+      "path": "firmware/targets/heltec_v4_bench/main/companion_nimble_runtime.cpp",
+      "bytes": 76210,
+      "sha256": "de097e96d530e696e38877c0989951fd2e1069b81d772763de1e2ec3bfbfeeef"
+    },
+    {
+      "path": "firmware/targets/heltec_v4_bench/main/heltec_v4_secure_random.cpp",
+      "bytes": 1107,
+      "sha256": "de85f9108a94e463d92ca7ecca1e1c0cb99d9f3e73a4f33625a3e26b62e963dd"
+    },
+    {
+      "path": "firmware/targets/heltec_v4_bench/main/heltec_v4_secure_random.hpp",
+      "bytes": 867,
+      "sha256": "8ec1e3403e18a87634e564ce7a50cf4d9e6dcbf892557eb22987d1876b87d5e6"
+    },
+    {
+      "path": "firmware/components/companion/src/companion_ble_runtime_owner.cpp",
+      "bytes": 16077,
+      "sha256": "29aa9077d4a4b67fcebe05e29f3d24c40ce70939a4766ba588102d9912cfa4e1"
+    },
+    {
+      "path": "build/targets/ot178-phone-a/sdkconfig",
+      "bytes": 106877,
+      "sha256": "5519cbf48461633e814cc7d1608d01beb283d3a2d7c45829877d2eb2bea7a71e"
+    },
+    {
+      "path": "build/targets/ot178-phone-b/sdkconfig",
+      "bytes": 106877,
+      "sha256": "5519cbf48461633e814cc7d1608d01beb283d3a2d7c45829877d2eb2bea7a71e"
+    },
+    {
+      "path": "ESP-IDF-v6.0.2/components/esp_hw_support/hw_random.c",
+      "bytes": 4342,
+      "sha256": "f92f0aa2ce215b9f546ec23cb609d270c3bd9b877e851fd7c8baca769e445f57"
+    },
+    {
+      "path": "ESP-IDF-v6.0.2/components/esp_hw_support/include/esp_random.h",
+      "bytes": 1462,
+      "sha256": "d68091055a9b0f2974ccc2aa6fd090409b76a9e2da2d32b6a36bdab5bf9b9c17"
+    },
+    {
+      "path": "ESP-IDF-v6.0.2/components/bootloader_support/include/bootloader_random.h",
+      "bytes": 1900,
+      "sha256": "11cdfe3b76b4b7db75d128454fc517ac4035b2af891d73d5b14700268d852032"
+    },
+    {
+      "path": "ESP-IDF-v6.0.2/components/bootloader_support/src/bootloader_utility.c",
+      "bytes": 55388,
+      "sha256": "a61f5fff38616b9a6650c7675f149855b0e39b00d2e83651cc5c5acae67ae861"
+    },
+    {
+      "path": "ESP-IDF-v6.0.2/components/bt/CMakeLists.txt",
+      "bytes": 3641,
+      "sha256": "c7958aa9d1b2952e9cec659a94c74008b27001ae0435371c1b30a65abf6fa6a9"
+    },
+    {
+      "path": "ESP-IDF-v6.0.2/components/bt/controller/esp32c3/bt.c",
+      "bytes": 80019,
+      "sha256": "0f5fc80fbc08316c937bede3a277615fe5a4e76ab6374149c6c3a81a5c60e341"
+    },
+    {
+      "path": "ESP-IDF-v6.0.2/components/bt/host/nimble/nimble/porting/nimble/src/nimble_port.c",
+      "bytes": 11677,
+      "sha256": "6f8ae7cdf873c63acbf2137479626e33b75a0d86d728ad491e4c2a1998887275"
+    }
+  ],
+  "new_source_bindings": [
+    {
+      "path": "firmware/components/security/include/opentrail/serialized_secure_random.hpp",
+      "bytes": 1875,
+      "sha256": "5349ab3665291cf09f14740ff3c79eafb4226448975473c22837830c799c0b35"
+    },
+    {
+      "path": "firmware/components/security/src/serialized_secure_random.cpp",
+      "bytes": 2429,
+      "sha256": "82e1012e1777b97ecf59527b970adf868a81c3ede35475221764b16bc7751f7e"
+    },
+    {
+      "path": "tests/host/serialized_secure_random_tests.cpp",
+      "bytes": 4873,
+      "sha256": "e73e7a3b40882d04cc864eb395cc9c3db83c3b547aff8ee7c072b46ed92bc994"
+    },
+    {
+      "path": "tests/host/serialized_secure_random_tests.py",
+      "bytes": 1721,
+      "sha256": "d4dd3b6bbeb9f4de8da45ea5d36d619663e47d733f214f9dc6887d3db673bc4c"
+    },
+    {
+      "path": "tests/host/fixtures/heltec_secure_random/esp_random.h",
+      "bytes": 84,
+      "sha256": "e9ad2c3ed0d9ddad523ae4587c21f4bd301d13ab9b8a12b0d86e725d27191814"
+    }
+  ],
+  "findings": [
+    {
+      "location": "app_main.cpp:273-277",
+      "finding": "Caller marks pairing source ready before starting NimBLE."
+    },
+    {
+      "location": "heltec_v4_secure_random.cpp:16-36",
+      "finding": "Adapter checks caller-set state and bounds only; esp_fill_random has no failure return."
+    },
+    {
+      "location": "bootloader_utility.c:790-791",
+      "finding": "Early SAR entropy is disabled before application execution."
+    },
+    {
+      "location": "nimble_port.c:299-336",
+      "finding": "Success requires controller init, BLE controller enable, host init; host-init failure disables/deinitializes controller."
+    },
+    {
+      "location": "bt/CMakeLists.txt:7-8; controller/esp32c3/bt.c:2078-2122",
+      "finding": "ESP32-S3 uses shared esp32c3 controller source; controller enable turns on PHY before reporting enabled."
+    },
+    {
+      "location": "retained ot178-phone A/B sdkconfig:1574,1578,2372",
+      "finding": "Modem sleep disabled, effective sleep mode0, PM disabled. Retained config evidence only; this audit does not independently reattest entire currently restored image/source closure."
+    },
+    {
+      "location": "companion_ble_runtime_owner.cpp:90-119; companion_nimble_runtime.cpp:353,629-632",
+      "finding": "Stack initialization precedes security configuration and host task. Containment deinitializes stack but never revokes pairing random state."
+    },
+    {
+      "location": "bootloader_random.h:19-40",
+      "finding": "Manual internal SAR source conflicts with RF/ADC; do not enable it around BLE to repair this gate."
+    }
+  ],
+  "interpretation": "Premature/stale ready is a source contract gap. Audited normal consumers follow stack initialization, so this does not demonstrate low-entropy material generated or used on hardware.",
+  "implementation": "Atomic try-lock, no platform mutex. revoke closes admission immediately and reports false while fill remains active; shutdown must wait for true. Lost-source or failed/partial fill closes admission; temporary scratch prevents partial output on failure.",
+  "target_integration": "Not wired. Replace raw random references with guard, implement bounded controller/config readiness probe, activate only after successful init, revoke/drain before stop/deinit without holding callback locks. Do not disable source on drain timeout.",
+  "host_validation": {
+    "runner": "tests/host/serialized_secure_random_tests.py",
+    "passed": true,
+    "coverage": [
+      "premature and stale readiness refused",
+      "bounded request validation",
+      "explicit qualified recovery",
+      "revoke during in-flight fill and new-fill refusal",
+      "source loss during fill preserves complete caller output",
+      "partial underlying output never escapes scratch"
+    ],
+    "private_validation_sha256": "98159973c9a9d4129a71d6566fc1f9582aa4cf71fd83509a69aa08d62ff93ba3"
+  },
+  "preflight": {
+    "firmware_target_modified": false,
+    "target_build": "Not applicable to unwired component; exact target integration/build remains required.",
+    "hardware_accessed": false,
+    "cold_power": "Owner-deferred; no cold-power or brownout test.",
+    "physical_entropy_quality": "Not measured; no low-entropy hardware outcome demonstrated."
+  },
+  "gate_status": "host_lifecycle_guard_passed_target_and_physical_gate_open"
+}

@@ -1,5 +1,91 @@
 # OpenTrail Progress Log
 
+## 2026-09-10
+
+### OT-163 Compose security evaluation and complete matched resource controls
+
+Two fresh ESP32 evaluation builds pass with real Noise, guarded entropy and NVS
+counter reservation. Actual-source tests cover peer authentication, refusal,
+entropy lifecycle and persistence failures. Libsodium and corrected Monocypher
+matched controls now reproduce with exact harness accounting. The target remains
+local evaluation only; invitation/replay lifecycle and physical gates remain open.
+See [the consolidated evidence](testing/OT-163-SECURITY-EVALUATION-2026-09-10.md).
+No hardware action, website capability change or completion credit is added.
+
+### OT-163 Consolidate resource admission, independent Noise and entropy lifecycle proofs
+
+Corrected mbedTLS matched controls reproduce and pass signed-delta accounting.
+Independent real-primitive Noise vectors pass and expose a nonnull API issue,
+fixed in a narrowly scoped additive adapter successor. The new entropy lifecycle
+guard passes actual-adapter concurrency/refusal tests. Historical capture custody
+remains explicitly open after a broader scoped hash audit. Current status and
+execution order now link the consolidated result instead of retelling each earlier
+benchmark step. See [the batch evidence](security/CRYPTO_ADMISSION_BATCH_2026-09-10.md).
+No hardware, publication, website capability change or completion credit is added.
+
+### OT-163 Complete corrected mbedTLS comparison on both devices
+
+Both physical devices passed all five comparison operations with 1,015 validated
+frames each. Distinct original firmware and protected regions passed restoration
+and independent postchecks. Retained canonical transcripts reparse exactly to
+the accepted results. See [the comparison outcome](testing/OT-163-MBEDTLS-COMPARISON-2026-09-10.md).
+No radio transmission, production crypto selection or completion credit is claimed.
+
+### OT-163 Corrected comparison runner and parallel security preparation
+
+Verified the retained corrected firmware, prepared separate per-device restoration
+and private validated-transcript retention, and reviewed resource/custody limits.
+Existing security suites passed 27 host groups while exposing the remaining
+independent-crypto and target-evidence boundaries. See
+[comparison preparation](testing/OT-163-COMPARISON-PREPARATION-2026-09-10.md).
+No hardware execution, selection or completion credit is claimed.
+
+### OT-163 Consolidated crypto corpus and integration review
+
+Reconciled the successful radio trial with the retained comparison corpus.
+Libsodium remains recommended; incomplete comparison/resource/custody and
+security gates still prevent final selection. Grouped the remaining work in
+[the selection review](security/CRYPTO_SELECTION_REVIEW_2026-09-10.md) and linked plan.
+
+### OT-163 Complete receipt-console hardware trial and restoration
+
+The full two-cycle benchmark passed: 14 frames, four successful final handshakes,
+two intentional timeout/retry cases and zero reported loss or duplicates. Both
+original images and protected regions passed independent restoration/readback
+and reset checks. See [the measured outcome](testing/OT-163-RECEIPT-CONSOLE-RUN-2026-09-10.md).
+
+### OT-163 Receipt-console physical preflight
+
+Both roles passed fresh identity, original firmware/tail and protected-region
+readbacks, then guarded resets. All region hashes match the prior baseline. No
+candidate write or radio execution occurred; see [preflight evidence](testing/OT-163-RECEIPT-CONSOLE-PREFLIGHT-2026-09-10.md).
+
+### OT-163 Consolidated bounded receipts and hardware test package
+
+Combined fixed-storage receipt formatting, absolute FIFO deadlines and early
+startup quarantine in an additive benchmark target. Composed handler, binding
+and execution-package tests cover failure containment and both restorations.
+The linked startup and logging audit closes the two prior software gates for
+this candidate; fresh physical preflight and authority remain separate. See
+[the batch evidence](testing/OT-163-BOUNDED-RECEIPT-BATCH-2026-09-10.md).
+
+### OT-163 USB console adapter and guarded benchmark candidate
+
+Added a separate benchmark target with FIFO/ZLP submission and terminal-fault
+radio guards. Register-model and actual generated-handler tests cover packet
+handoff and failed receipts. Upstream logging locks and ROM startup ownership
+still prevent hardware-readiness acceptance. See
+[the integration evidence](testing/OT-163-CONSOLE-INTEGRATION-2026-09-10.md).
+
+### OT-163 Host-only bounded console writer evaluation
+
+Evaluated a target-neutral writer with one deadline, finite attempts, explicit
+logical/FIFO byte counts and latched failures. Twenty-one compiled host cases pass.
+SDK inspection identifies ROM retry-contract, driver ownership/budget and
+64-byte terminal-packet constraints for later integration. No target installs
+the candidate and no firmware build or hardware correction is claimed. See
+[the evaluation](testing/OT-163-BOUNDED-CONSOLE-EVALUATION-2026-09-10.md).
+
 ## 2026-09-09
 
 ### OT-163 Actual-source console error-reporting probe

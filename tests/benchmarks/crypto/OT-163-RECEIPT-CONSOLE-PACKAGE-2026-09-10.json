@@ -1,0 +1,343 @@
+{
+  "schema": "OT163-RECEIPT-CONSOLE-PACKAGE-1",
+  "snapshot": {
+    "sources": {
+      "schema": "noise-xk-receipt-console-source-closure-v1",
+      "sources": [
+        {
+          "path": "tools/noise_xk_bound_backend.py",
+          "bytes": 12947,
+          "sha256": "a7593e6f76763f1b7f83750f8f3f84ca4c29ed0620df5a95b84124d967f3f78a"
+        },
+        {
+          "path": "tools/noise_xk_source_bundle.py",
+          "bytes": 5673,
+          "sha256": "c7c66502a578caea59eb49afeeda550cabe98a65bf55c6efd1a3b95f0fab60b0"
+        },
+        {
+          "path": "tools/noise_xk_role_recovery_coordinator.py",
+          "bytes": 14652,
+          "sha256": "50067f2a81c6c4924164294f81b57496b435390c47172b12aa9e55297bdd42fa"
+        },
+        {
+          "path": "tools/noise_xk_ready_runner.py",
+          "bytes": 3767,
+          "sha256": "788626a9687fa79357706ae4e1647fec771571c1cfbefbda40b6aebe5dc9cbad"
+        },
+        {
+          "path": "tools/noise_xk_buffered_runtime.py",
+          "bytes": 2284,
+          "sha256": "6360f462b0a81958025062c6978c14bcb340a433d72508ea7f16c23a375ef6c8"
+        },
+        {
+          "path": "tools/noise_xk_buffered_receipt_endpoint.py",
+          "bytes": 3793,
+          "sha256": "d114fe94262305b7ea95fac816373e7fae7a16c557e9e688373aaf974224ad08"
+        },
+        {
+          "path": "tools/ot156_noise_xk_radio_runner.py",
+          "bytes": 11099,
+          "sha256": "81d0a329d34c20e76362b9a3f07221b77b77f02189dd06660119a02ac1700244"
+        },
+        {
+          "path": "tools/ot156_noise_xk_radio_runtime.py",
+          "bytes": 6588,
+          "sha256": "bcdb1a772971aa665be699c2699a2b69625c4e8bd2352abd21811be0a4295dd8"
+        },
+        {
+          "path": "tools/ot153_noise_xk_radio_hardware_adapter.py",
+          "bytes": 17460,
+          "sha256": "d84aa9a1c0556f6421141a25336a3e87dab054cc971722b3f8058fe0a254f94b"
+        },
+        {
+          "path": "tools/ot153_noise_xk_radio_coordinator.py",
+          "bytes": 27295,
+          "sha256": "6635c73c6952b322ec1d72043a80f637b2cc04b70c1763f578ea4f38559aeaf3"
+        },
+        {
+          "path": "tools/ot153_noise_xk_radio_runner.py",
+          "bytes": 29335,
+          "sha256": "8b20512bf25f06247bb59defa092b8db82fde753484a3936d9e4aee2fba808be"
+        },
+        {
+          "path": "tools/noise_xk_solicited_coordinator.py",
+          "bytes": 3880,
+          "sha256": "f0270e0c33967ff8a56f6a6dd50c4ffee1f1c7ddeac871fc512539cdff4cf4a7"
+        },
+        {
+          "path": "tools/noise_xk_solicited_backend.py",
+          "bytes": 3154,
+          "sha256": "6775be513856618f9549530fe6c8b715104fe0591efab916ab087f02eee2cf2f"
+        },
+        {
+          "path": "tools/noise_xk_solicited_runner.py",
+          "bytes": 8637,
+          "sha256": "7e785ea0e5723319ae06c0d188cca5dcf6f79739315b94160dabead0cb06a0ae"
+        },
+        {
+          "path": "tools/noise_xk_solicited_runtime.py",
+          "bytes": 1560,
+          "sha256": "ce7b86c759124e25f3b5e0b1962880eb96850963d6f25b14b7c1e0feb4e16064"
+        },
+        {
+          "path": "tools/noise_xk_solicited_endpoint.py",
+          "bytes": 5225,
+          "sha256": "703c73e66fc2ab4ba422d117c031cc6dc13cd2ecb0e8fb82ebe4561159d56436"
+        },
+        {
+          "path": "tools/noise_xk_solicited_bundle.py",
+          "bytes": 3339,
+          "sha256": "011175ddc4c615f587dda14dc0f4d0a917138bafd5abd2e9a0c9f4a1626ba93b"
+        },
+        {
+          "path": "tools/noise_xk_solicited_execution.py",
+          "bytes": 2120,
+          "sha256": "7d8a3440229009b59b07a5e88dffab6ffbf4ebe566f1b52f9225c6de49c38eab"
+        },
+        {
+          "path": "tools/noise_xk_ready_firmware_source.py",
+          "bytes": 3606,
+          "sha256": "13b3dd6080e87e5c660b351d31c6ff175f527a97b6928ae19b8aec67df8d187f"
+        },
+        {
+          "path": "tests/benchmarks/crypto/OT-163-SOLICITED-READINESS-BUILD-2026-09-08.json",
+          "bytes": 8025,
+          "sha256": "88f9541eeb03b63e8fc77629b4b0b97afe8de631cad4f495811af6c23eb98acf"
+        },
+        {
+          "path": "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/CMakeLists.txt",
+          "bytes": 1510,
+          "sha256": "b2fbcb2edc40f6fca034f2b520249e0e25bffc6d70c35a8161812a848569776f"
+        },
+        {
+          "path": "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/main/CMakeLists.txt",
+          "bytes": 1170,
+          "sha256": "8d2e4f27f53e74ceded28a531d58c34941fe7214bc08438fc681bc1c83784a3b"
+        },
+        {
+          "path": "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/main/idf_component.yml",
+          "bytes": 61,
+          "sha256": "95403227f7dc7981c4a05aa5718059d28ccd18ffa80e8db051cb7ba123f639df"
+        },
+        {
+          "path": "tests/benchmarks/crypto/esp_idf/noise_xk_ready_radio/dependencies.lock",
+          "bytes": 536,
+          "sha256": "c9e8adbc2ff5ac297ca42b9fe5f3fc05e5692aec12c3decfe49c097ad08d1d95"
+        },
+        {
+          "path": "tools/noise_xk_retry_diagnostics.py",
+          "bytes": 6559,
+          "sha256": "f3ef6a572ac914ee839dea639e218ce7ce89e9a8eb3eb8c3ee725435c0a44699"
+        },
+        {
+          "path": "tools/noise_xk_diagnostic_execution.py",
+          "bytes": 7648,
+          "sha256": "94f10ecb339ef3bbe555e2a32c58cafe439ba0c16c5192356cb5f4360b764853"
+        },
+        {
+          "path": "tools/noise_xk_startup_execution.py",
+          "bytes": 7029,
+          "sha256": "03d26f352e511042cc2e39e974e1ad6b7ed7df3f5f7b526e7bf0b11a2d933384"
+        },
+        {
+          "path": "tools/noise_xk_contained_bundle.py",
+          "bytes": 3863,
+          "sha256": "e2e2e17fdcb8bf7ffdf0defa4be78557a103c72420b4f9abb564a0fe1bc3745a"
+        },
+        {
+          "path": "tools/noise_xk_contained_execution.py",
+          "bytes": 4218,
+          "sha256": "758f5d0b4a40e191e745cef089f12db9e0930100e181b6489498372a063e2680"
+        },
+        {
+          "path": "tools/noise_xk_contained_runtime.py",
+          "bytes": 3301,
+          "sha256": "76e697886c08d447d90976f3050a9415fd5c29c0fab224ad075127a827ec79ad"
+        },
+        {
+          "path": "tools/noise_xk_contained_endpoint.py",
+          "bytes": 6045,
+          "sha256": "c845e7400acd497dbbc3c018aab6588ebc500fdfc7540d032fbb0dfbd46c4c5e"
+        },
+        {
+          "path": "tests/benchmarks/crypto/OT-163-RADIO-CONTAINMENT-BUILD-2026-09-09.json",
+          "bytes": 7869,
+          "sha256": "d2d4c6f47629b294c161444f4b626f484f5953ae5ef079a4c7d0feea98c56f29"
+        },
+        {
+          "path": "tools/radiolib_busy_source.py",
+          "bytes": 2873,
+          "sha256": "8d4c7c41807a4badf9a2b301b1b738bc395711f3f9f871202bb039f9bf57bb6b"
+        },
+        {
+          "path": "tools/noise_xk_contained_firmware_source.py",
+          "bytes": 3620,
+          "sha256": "097956db018f2ad924d6b7e0f6d122ad699c9ed13706922955f7be11039c5587"
+        },
+        {
+          "path": "firmware/targets/heltec_v4_noise_xk_contained/CMakeLists.txt",
+          "bytes": 3020,
+          "sha256": "0f0ab11b13f10913bca69d5ec01caaf39e7fe2c12f2db2060015b65e53b808e5"
+        },
+        {
+          "path": "firmware/targets/heltec_v4_noise_xk_contained/main/CMakeLists.txt",
+          "bytes": 948,
+          "sha256": "c6c6958871d72b95e79a4873744d0c40236a503f9be14b439750ecd44af90f6b"
+        },
+        {
+          "path": "tests/benchmarks/crypto/esp_idf/ot153_noise_xk_radio_cost/main/app_main.cpp",
+          "bytes": 38207,
+          "sha256": "612c892ecf649657e9a1f5fb68f8e24d088c2d4a94841f2ac5a8fff93d5b4240"
+        },
+        {
+          "path": "tests/benchmarks/crypto/esp_idf/ot153_noise_xk_radio_cost/sdkconfig.defaults",
+          "bytes": 397,
+          "sha256": "7a71b7b56aa665bdd6c927e4e4682fb0a5458b34557976777a5dc9b537a599d3"
+        },
+        {
+          "path": "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.c",
+          "bytes": 17876,
+          "sha256": "8534fe1a6a4b68cd37e491ebd0f564dd38fd3935fb21d8f2d45aa8333ae442b8"
+        },
+        {
+          "path": "firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.cpp",
+          "bytes": 5586,
+          "sha256": "b2b63bbffaae4c1d26546fb1a176ebaaca46c2da0c88e1e1b3028ebefaaa0d1b"
+        },
+        {
+          "path": "tools/noise_xk_receipt_observation_endpoint.py",
+          "bytes": 4072,
+          "sha256": "12bf17068303710f01be73e082ebf21d9c8b80c5fd4090749cdd87ada91f43ca"
+        },
+        {
+          "path": "tools/noise_xk_receipt_observation_execution.py",
+          "bytes": 5283,
+          "sha256": "2726914a8fa1486efb4dee8485e8d5bfa10bb0f2e23baa972318482e04cd1e4b"
+        },
+        {
+          "path": "tools/noise_xk_console_firmware_source.py",
+          "bytes": 6240,
+          "sha256": "c3c66000fd28009d826c4ff629d0b07ca5029d5bce78f5299992635306c4dd4b"
+        },
+        {
+          "path": "tools/noise_xk_receipt_firmware_source.py",
+          "bytes": 2078,
+          "sha256": "640c79b9a46feb0646226836667a8f7eb5c8df6b2756164d52f9072590805300"
+        },
+        {
+          "path": "firmware/components/diagnostics/include/opentrail/bounded_console_writer.hpp",
+          "bytes": 7154,
+          "sha256": "7495fe98623b3bb77ba7650b53a8ee8fc59da72d2487a107bd6d791603fd1e5b"
+        },
+        {
+          "path": "firmware/components/diagnostics/include/opentrail/usb_fifo_console_transport.hpp",
+          "bytes": 4550,
+          "sha256": "f38bc478f0afc37ae714874d242d69a14e247e5d4dd377a2baa1db9e988f474f"
+        },
+        {
+          "path": "firmware/components/diagnostics/include/opentrail/bounded_receipt_formatter.hpp",
+          "bytes": 6898,
+          "sha256": "5cf13e5d9bd65f3ede83a8faef780300f53d3c3338d871906c86776f09db099e"
+        },
+        {
+          "path": "firmware/targets/heltec_v4_noise_xk_receipts/CMakeLists.txt",
+          "bytes": 3571,
+          "sha256": "f910cb8b16bc47561e56f375c2195a46b2ef5102cfcfce4b19f12d8eeb76ed69"
+        },
+        {
+          "path": "firmware/targets/heltec_v4_noise_xk_receipts/main/CMakeLists.txt",
+          "bytes": 1025,
+          "sha256": "26213e80aae372839755699b14d6f340894f2f60e07baf555f7a40f553466439"
+        },
+        {
+          "path": "firmware/targets/heltec_v4_noise_xk_receipts/main/opentrail_console.cpp",
+          "bytes": 7025,
+          "sha256": "6507b75ee90cb46420d02d1700ddd6cf05cd4e108702a1038313faa7555ca00e"
+        },
+        {
+          "path": "firmware/targets/heltec_v4_noise_xk_receipts/main/opentrail_console.h",
+          "bytes": 430,
+          "sha256": "ed3320d9ec8f8796122e64f2bd375c76c2a97ef8bdcb694bcf35e6908087520f"
+        },
+        {
+          "path": "firmware/targets/heltec_v4_noise_xk_receipts/sdkconfig.defaults",
+          "bytes": 433,
+          "sha256": "c1e37ea86c23f1f1e354840fe1c6a8bb88420d80cd5ff6f24de944993070b138"
+        },
+        {
+          "path": "tools/noise_xk_console_execution_package.py",
+          "bytes": 9690,
+          "sha256": "a0330c4abd3ea8a60f466e650b053d52e8d4352d2fa1f6c4a75d169a646e0567"
+        },
+        {
+          "path": "tests/benchmarks/crypto/OT-163-RECEIPT-CONSOLE-BUILD-2026-09-10.json",
+          "bytes": 8225,
+          "sha256": "61d187305442f388326bdb322227649fb293fe879a9ce8b0b0915fe338956909"
+        },
+        {
+          "path": "tests/benchmarks/crypto/OT-163-OBSERVATION-EXECUTION-BINDING-4-2026-09-09.json",
+          "bytes": 9138,
+          "sha256": "cf1cdd5087ad65f29dae9fad6ea48cd5358f180d8f5732d4073add05a36b58f7"
+        }
+      ]
+    },
+    "images": {
+      "schema": "noise-xk-role-images-v1",
+      "images": {
+        "benchmark": {
+          "name": "heltec_v4_noise_xk_receipts.bin",
+          "bytes": 275680,
+          "sha256": "297208daface84846b53b0b918996dfc7869b20adfc835d6aac7adde93257d3b"
+        },
+        "restore_a": {
+          "name": "opentrail_heltec_v4_bench.bin",
+          "bytes": 586736,
+          "sha256": "43ac6dbc506c03faa63aae7a8e27195750598f06f3118bfff1ef7af84bc8d9f2"
+        },
+        "restore_b": {
+          "name": "opentrail_heltec_v4_bench.bin",
+          "bytes": 587968,
+          "sha256": "984e241dc72fad956d34b5e83f04fd307dcb95e0f18c629ac46d21da9d96d87b"
+        }
+      }
+    }
+  },
+  "image_paths": {
+    "benchmark": "build/receipts-a3/heltec_v4_noise_xk_receipts.bin",
+    "restore_a": "build/targets/ot178-phone-a/opentrail_heltec_v4_bench.bin",
+    "restore_b": "build/targets/ot171-label-a/opentrail_heltec_v4_bench.bin"
+  },
+  "build_record": {
+    "path": "tests/benchmarks/crypto/OT-163-RECEIPT-CONSOLE-BUILD-2026-09-10.json",
+    "bytes": 8225,
+    "sha256": "61d187305442f388326bdb322227649fb293fe879a9ce8b0b0915fe338956909"
+  },
+  "scope": {
+    "attempt_ordinal": 5,
+    "application_offset": 65536,
+    "write_bytes": {
+      "benchmark": 275680,
+      "restore_a": 586736,
+      "restore_b": 587968
+    },
+    "erase_span_bytes": {
+      "benchmark": 278528,
+      "restore_a": 589824,
+      "restore_b": 589824
+    },
+    "grant_issued": false,
+    "hardware_executed": false,
+    "preserve_regions": [
+      "bootloader",
+      "partition",
+      "ota",
+      "nvs"
+    ],
+    "required_gates": [
+      "fresh_source_verified_caller",
+      "fresh_role_identity_and_installed_readbacks",
+      "independent_role_recovery",
+      "fresh_one_use_authority"
+    ]
+  }
+}

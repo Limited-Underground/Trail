@@ -1,0 +1,55 @@
+{
+  "schema": "OT163-CAPTURE-CUSTODY-ASSESSMENT-1",
+  "as_of": "2026-09-10",
+  "scope": "Historical candidate evidence custody; no hardware access or new measurement.",
+  "public_bindings": [
+    {
+      "path": "tests/benchmarks/crypto/OT-122-OT005-LIBSODIUM-NOISE-RESOURCE-EXECUTION-RECEIPT-V0.json",
+      "bytes": 5001,
+      "sha256": "2b023c640bfbec8ad6eb5d1d63d65e8f1ad75dcfe593566aba6b3d468355a178"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-146-OT005-MONOCYPHER-EXECUTION-RECEIPT-V0.json",
+      "bytes": 6567,
+      "sha256": "9a5ea09fa8cdf465f5c83b6a0eb69fb80579806b0635ac63083e1234e4f91464"
+    },
+    {
+      "path": "tests/hardware/OT-163-MBEDTLS-COMPARISON-OUTCOME-1-2026-09-10.json",
+      "bytes": 13257,
+      "sha256": "f939a8cc3d20adbf9fa62175a1daa95ed3969a3ef5908482a209cdb430ab509f"
+    }
+  ],
+  "private_review_hashes": {
+    "comparison-custody-review.json": "fc24cd58fbe19b4e7b3a59ac580cb3a8ed1debfa6d6e89ee0f832e64cb4e65a6",
+    "expanded-custody-search.json": "6ccc4252964f285442bd330c7de99f6152654b8674f19b125cec2b4704f43525",
+    "mbedtls-comparison-1-independent-result-audit.json": "de65126468fcea67cc7649dff9b79a16fbed8cebd9a8f94e07e6244a0ae56215"
+  },
+  "libsodium": {
+    "historical_receipt_preserved": true,
+    "raw_capture_custody": "not_established",
+    "expanded_search_files": 73,
+    "extension_filter": null,
+    "matching_accepted_raw_capture_hashes": 0,
+    "scope": "Immediate owner-private OT-121 directories and specifically related OT-121/122/123/124/135/140/144/146 root files. No unrelated repositories or private history content scanned.",
+    "next_gate": "Locate exact original captures or execute separately authorized successor measurements with retained capture; do not reconstruct originals from summary statistics."
+  },
+  "monocypher": {
+    "private_receipt_and_journal_exact": true,
+    "node_summaries_match_public_projection": true,
+    "raw_capture_custody": "not_established",
+    "result_sha256_semantics": "Canonical parsed result, not raw serial capture.",
+    "inspected_writer": "Stores transcript in memory and persists parsed result plus diagnostics; does not persist raw capture.",
+    "next_gate": "Locate independently retained raw transcript or use a separately authorized successor capture."
+  },
+  "mbedtls_corrected": {
+    "canonical_validated_frames_retained": true,
+    "independent_private_audit_passed": true,
+    "capture_semantics": "Validated canonical frame stream; not raw startup serial bytes.",
+    "historical_candidates_custody_repaired": false
+  },
+  "limitations": [
+    "Scoped lack of matching hashes does not establish global absence.",
+    "Receipt authenticity and historical aggregate measurements are distinct from replayable raw capture custody.",
+    "This assessment grants no hardware authority and closes neither Phase 3 nor library selection."
+  ]
+}

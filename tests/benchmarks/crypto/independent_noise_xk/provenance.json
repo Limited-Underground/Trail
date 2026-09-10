@@ -1,0 +1,69 @@
+{
+  "schema": "independent-noise-xk-provenance-1",
+  "scope": "deterministic test vectors only; not production keys or physical entropy",
+  "producer": {
+    "project": "https://github.com/plizonczyk/noiseprotocol",
+    "version": "0.3.1",
+    "artifact": "noiseprotocol-0.3.1-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/9d/e1/76e4694201d67b93a6f1644b2588b4a3d965419fe189416e3496cf415db5/noiseprotocol-0.3.1-py3-none-any.whl",
+    "sha256": "2e1a603a38439636cf0ffd8b3e8b12cee27d368a28b41be7dbe568b2abb23111",
+    "license": "MIT",
+    "license_sha256": "a293aa2800fa06051f7234159271f6dd1cdf98d6a6356da6d953fe06f93c66d3",
+    "backend": "cryptography/OpenSSL",
+    "cryptography_version": "50.0.0",
+    "openssl": "OpenSSL 4.0.1 9 Jun 2026"
+  },
+  "adapter": {
+    "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.c": "8534fe1a6a4b68cd37e491ebd0f564dd38fd3935fb21d8f2d45aa8333ae442b8",
+    "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.h": "b7c649434cdffe648e467bb117849ae0296a73fa041d614d3d4ba32578e40c45"
+  },
+  "libsodium": {
+    "version": "1.0.22",
+    "component_checksum_sha256": "5e3983c5496a3cffba3d013c70991b18cda6c345655fff883fb0e14dfa09e582",
+    "verified_inventory_files": 731,
+    "native_configuration": {
+      "strategy": "direct unchanged scalar source compilation; no sodium_init/CPU dispatch",
+      "sources": {
+        "crypto_hash/sha256/hash_sha256.c": "27966cb51a4f2ccf00d226bbed169dca16246cbbed82fbfc2ca18f9b99829526",
+        "crypto_hash/sha256/cp/hash_sha256_cp.c": "6bf28c4633eea0ad9c6cf7aafb078fab63d52199a718b5b2311ff5935bfad1fb",
+        "crypto_auth/hmacsha256/auth_hmacsha256.c": "b85f3421505b2151222704c0d6e9eeaef6a036e41fe040e554b8efad6974360c",
+        "crypto_kdf/hkdf/kdf_hkdf_sha256.c": "9f79c09b737d6a409122ff8c74c5209b5fd035a0cfe95345cb2b085dbef360e9",
+        "crypto_aead/chacha20poly1305/aead_chacha20poly1305.c": "23dc6ec560c5c79d6f50141cf96319449042380a2e23c96e3aec6ff2f5919b22",
+        "crypto_onetimeauth/poly1305/onetimeauth_poly1305.c": "0bbd1eec53c47abe43246962c8e655f7c159d152205b107c09d189e8d92792ad",
+        "crypto_onetimeauth/poly1305/donna/poly1305_donna.c": "ccbfba9202f7f7e318043bc9eb518277fadd171082202f85676a8f800287bf32",
+        "crypto_stream/chacha20/stream_chacha20.c": "7102f58bb7e125de8c49f7da238cca0d497ae574e3bb85d3ecd1021f74b0a7ff",
+        "crypto_stream/chacha20/ref/chacha20_ref.c": "a93ebb4cc15c590798cb095d48ed39eb5d8929fda7904ce148908485e38914c3",
+        "crypto_verify/verify.c": "19539ba6a8485f602216a9728f72eb82c5eda6186eb8926758f17f50310bd4e8",
+        "crypto_scalarmult/curve25519/scalarmult_curve25519.c": "8ae944ab63ffc23247c33283b287b43f9b820108a3d3b31cebb751405a774430",
+        "crypto_scalarmult/curve25519/ref10/x25519_ref10.c": "0200b252ce176f3c09160dfd130d92121a43d995c8d028952c819fe51a3d1112",
+        "crypto_core/ed25519/ref10/ed25519_ref10.c": "781f3f7b2cfaddfd9ba84ab177077c038df24074c974f445e6762d788de1fb9e",
+        "sodium/utils.c": "54ed27fd5542d2f5d819b6104323a8c44c6c95e4e5c5766888b64f9dc67fc28d",
+        "sodium/core.c": "666e77e8af456a7f5e0bbebda8746142a35c4fa4608a2d1f3b63505eb7ad441d"
+      },
+      "defines": [
+        "SODIUM_STATIC",
+        "CONFIGURED=1",
+        "NATIVE_LITTLE_ENDIAN=1"
+      ],
+      "version_header": "Pinned upstream version.h.in with VERSION=1.0.22, ABI major26/minor4, minimal1",
+      "build_directory": "must initially be empty to exclude shadow headers"
+    },
+    "target_equivalence_claim": false
+  },
+  "vectors_sha256": "b7053c022656471c81f91860753ecb404633f7815bf8348de9fbce4ec9a99ca3",
+  "coverage": "2 fixed empty-payload XK handshakes, empty/nonempty prologue; messages/hash/splitkeys; negatives use actual C adapter",
+  "limits": [
+    "not complete Noise specification conformance",
+    "not target entropy evidence",
+    "not production invitation or Packet V1 selection",
+    "Host scalar primitives only: no sodium_init, CPU dispatch, allocator/randombytes or target initialization evidence",
+    "Baseline passes these vectors but violates real HKDF nonnull annotation; only additive successor fixes pointer",
+    "Compiler dependency files include all non-system header paths; tool verifies all731 component source files before compilation"
+  ],
+  "successor": {
+    "path": "nonnull_adapter",
+    "c_sha256": "4f3852e9822eebfed1df8946f6d0ca8ae756a7790ee15b48f1748aa662ba66c0",
+    "h_sha256": "b7c649434cdffe648e467bb117849ae0296a73fa041d614d3d4ba32578e40c45",
+    "change": "Only zero-length HKDF extract input pointer NULL -> nonnull empty string; baseline warning remains actionable"
+  }
+}

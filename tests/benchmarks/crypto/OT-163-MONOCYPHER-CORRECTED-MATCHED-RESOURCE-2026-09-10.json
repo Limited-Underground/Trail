@@ -1,0 +1,227 @@
+{
+  "schema": "OT163MCR1",
+  "version": 1,
+  "artifact_kind": "matched_candidate_resource_accounting_result",
+  "result_id": "OT-163-OT005-MONOCYPHER-CORRECTED-MATCHED-RESOURCE-V1",
+  "recorded_date": "2026-09-10",
+  "status": "matched_resource_result_admitted",
+  "contract": {
+    "path": "tests/benchmarks/crypto/OT-163-OT005-MONOCYPHER-CORRECTED-RESOURCE-CONTRACT-V1.json",
+    "raw_sha256": "637bdf2e968e231a431a55d5dc8966d5ca4f5858deb7b8b8a53e2c035af8c641",
+    "canonical_sha256": "ab5094564ec30722ab7d3bc74e2aa2ad6baaca27a5757832d1cb83c2a557f7f5"
+  },
+  "candidate_id": "monocypher",
+  "candidate_role": "comparison",
+  "selection_eligible": false,
+  "builds": {
+    "candidate": {
+      "matched_metadata": {
+        "benchmark_harness_source": "253b21318f2271abff5f8312303fd926c8e0dfb55af8d77efdd69471950d887a",
+        "frame_and_runtime_instrumentation": "774ffaa46f83fcf744a57cf373e854de1acdf7bd198c4a77e65c45c5397b4a1e",
+        "generated_sdkconfig": "5807fe7fc6d4ef3325f06099674f07080660eabd20e0b078225247605c814817",
+        "partition_layout": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389",
+        "idf_target": "esp32s3",
+        "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+        "compiler": "xtensa-esp32s3-elf-gcc 15.2.0",
+        "cmake": "4.0.3",
+        "ninja": "1.12.1",
+        "python": "3.14.6",
+        "esp_idf_size": "2.3.1",
+        "compile_flags": "9f98cb3b5f0d46277c97da364d07477ea699350683d077f33857a2c255f9065b",
+        "project_version": "ot142-corrected-v0",
+        "cache_policy": "disabled",
+        "component_manager_network_policy": "disabled"
+      },
+      "linkage_manifest_sha256": "890438db2f074a9bfed65f8cc97a7466b4aa8e0ab8ad623c466352d17f276527",
+      "runs": [
+        {
+          "run": "A",
+          "initial_build_directory_absent": true,
+          "compiler_warnings": 0,
+          "raw_build_log_sha256": "4c918a083dbab8ca3f161699dcd68146c868ef6207962c4ae02c1e9b6d0a6966",
+          "normalized_receipt_sha256": "78a305ad57770b44571b4b9a19b83252e7fdb7558471782c0b6835dd44baabdb",
+          "artifacts": {
+            "application_bin": {
+              "bytes": 149824,
+              "sha256": "8e345d41e869cf781e3d6eb3b2269f26882b7c1d9f43b856ff5795c6cc56a034"
+            },
+            "application_elf": {
+              "bytes": 3314668,
+              "sha256": "ec74f80422a5b9722e09342d69e190282a4117b4888c96838cf915dc760466d1"
+            },
+            "linker_map": {
+              "bytes": 2849996,
+              "sha256": "c9a2789451305417dc2cb523ba6284a9c4ca8014724d051f829b4f5a7b31af13"
+            },
+            "generated_sdkconfig": {
+              "bytes": 57516,
+              "sha256": "5807fe7fc6d4ef3325f06099674f07080660eabd20e0b078225247605c814817"
+            },
+            "partition_csv": {
+              "bytes": 452,
+              "sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"
+            },
+            "size_report": {
+              "bytes": 2045,
+              "sha256": "d924fb3a0dbb33a09917baca7a9386be268d636902ebebf24e60ced2ba30f479"
+            }
+          }
+        },
+        {
+          "run": "B",
+          "initial_build_directory_absent": true,
+          "compiler_warnings": 0,
+          "raw_build_log_sha256": "1ac4ae1967174441d73149ae7f556969b3ba2f740b51c1f8446587eaab6bbb07",
+          "normalized_receipt_sha256": "78a305ad57770b44571b4b9a19b83252e7fdb7558471782c0b6835dd44baabdb",
+          "artifacts": {
+            "application_bin": {
+              "bytes": 149824,
+              "sha256": "8e345d41e869cf781e3d6eb3b2269f26882b7c1d9f43b856ff5795c6cc56a034"
+            },
+            "application_elf": {
+              "bytes": 3314668,
+              "sha256": "ec74f80422a5b9722e09342d69e190282a4117b4888c96838cf915dc760466d1"
+            },
+            "linker_map": {
+              "bytes": 2849996,
+              "sha256": "c9a2789451305417dc2cb523ba6284a9c4ca8014724d051f829b4f5a7b31af13"
+            },
+            "generated_sdkconfig": {
+              "bytes": 57516,
+              "sha256": "5807fe7fc6d4ef3325f06099674f07080660eabd20e0b078225247605c814817"
+            },
+            "partition_csv": {
+              "bytes": 452,
+              "sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"
+            },
+            "size_report": {
+              "bytes": 2045,
+              "sha256": "d924fb3a0dbb33a09917baca7a9386be268d636902ebebf24e60ced2ba30f479"
+            }
+          }
+        }
+      ]
+    },
+    "control": {
+      "matched_metadata": {
+        "benchmark_harness_source": "253b21318f2271abff5f8312303fd926c8e0dfb55af8d77efdd69471950d887a",
+        "frame_and_runtime_instrumentation": "774ffaa46f83fcf744a57cf373e854de1acdf7bd198c4a77e65c45c5397b4a1e",
+        "generated_sdkconfig": "5807fe7fc6d4ef3325f06099674f07080660eabd20e0b078225247605c814817",
+        "partition_layout": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389",
+        "idf_target": "esp32s3",
+        "esp_idf_commit": "7101770dc6db2667b3c477cc31365dd1acd6db4e",
+        "compiler": "xtensa-esp32s3-elf-gcc 15.2.0",
+        "cmake": "4.0.3",
+        "ninja": "1.12.1",
+        "python": "3.14.6",
+        "esp_idf_size": "2.3.1",
+        "compile_flags": "9f98cb3b5f0d46277c97da364d07477ea699350683d077f33857a2c255f9065b",
+        "project_version": "ot142-corrected-v0",
+        "cache_policy": "disabled",
+        "component_manager_network_policy": "disabled"
+      },
+      "linkage_manifest_sha256": "efb2a29d3ffde5c33d1f1f5cfe6349f49a4bbd76ad605bc1492f5871f10fd7be",
+      "runs": [
+        {
+          "run": "A",
+          "initial_build_directory_absent": true,
+          "compiler_warnings": 0,
+          "raw_build_log_sha256": "52f53c44250167bfe0beaa45c6b2e88c87901ff5be26955b120e797b4a880a30",
+          "normalized_receipt_sha256": "497574a373a13e56ec2d2f2ea4b99345c09a621314b85c2b587bdbaf2f02957a",
+          "artifacts": {
+            "application_bin": {
+              "bytes": 130160,
+              "sha256": "148c2461ad435200bb5cb8e9fc7319a9f55185ae327b0e15f88ede81336a9dd6"
+            },
+            "application_elf": {
+              "bytes": 3039668,
+              "sha256": "646c1a7262b55a0887e0d1591532c4facf2c97d7e01f893ef61343ac4b369bd9"
+            },
+            "linker_map": {
+              "bytes": 2801029,
+              "sha256": "f365d717a8e6a4cd23b5d019207cf003686888cdf0b33791cd5b68db6a9c7b30"
+            },
+            "generated_sdkconfig": {
+              "bytes": 57516,
+              "sha256": "5807fe7fc6d4ef3325f06099674f07080660eabd20e0b078225247605c814817"
+            },
+            "partition_csv": {
+              "bytes": 452,
+              "sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"
+            },
+            "size_report": {
+              "bytes": 2045,
+              "sha256": "8063aad933e3025ea85da5ecf50eebe729f5af64912e5821602db8c21650e0e5"
+            }
+          }
+        },
+        {
+          "run": "B",
+          "initial_build_directory_absent": true,
+          "compiler_warnings": 0,
+          "raw_build_log_sha256": "0015eefa3671938e755f3f7ff569f8165761dfb79ab4e41b0e47e40c3d31733d",
+          "normalized_receipt_sha256": "497574a373a13e56ec2d2f2ea4b99345c09a621314b85c2b587bdbaf2f02957a",
+          "artifacts": {
+            "application_bin": {
+              "bytes": 130160,
+              "sha256": "148c2461ad435200bb5cb8e9fc7319a9f55185ae327b0e15f88ede81336a9dd6"
+            },
+            "application_elf": {
+              "bytes": 3039668,
+              "sha256": "646c1a7262b55a0887e0d1591532c4facf2c97d7e01f893ef61343ac4b369bd9"
+            },
+            "linker_map": {
+              "bytes": 2801029,
+              "sha256": "f365d717a8e6a4cd23b5d019207cf003686888cdf0b33791cd5b68db6a9c7b30"
+            },
+            "generated_sdkconfig": {
+              "bytes": 57516,
+              "sha256": "5807fe7fc6d4ef3325f06099674f07080660eabd20e0b078225247605c814817"
+            },
+            "partition_csv": {
+              "bytes": 452,
+              "sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"
+            },
+            "size_report": {
+              "bytes": 2045,
+              "sha256": "8063aad933e3025ea85da5ecf50eebe729f5af64912e5821602db8c21650e0e5"
+            }
+          }
+        }
+      ]
+    },
+    "only_permitted_difference": "candidate_and_adapter_linkage_replaced_by_reviewed_no_candidate_control_bindings"
+  },
+  "reports": {
+    "candidate": {
+      "path": "tests/benchmarks/crypto/OT-163-MONOCYPHER-CORRECTED-CANDIDATE-SIZE-REPORT-2026-09-10.json",
+      "bytes": 2045,
+      "raw_sha256": "d924fb3a0dbb33a09917baca7a9386be268d636902ebebf24e60ced2ba30f479"
+    },
+    "control": {
+      "path": "tests/benchmarks/crypto/OT-163-MONOCYPHER-CORRECTED-CONTROL-SIZE-REPORT-2026-09-10.json",
+      "bytes": 2045,
+      "raw_sha256": "8063aad933e3025ea85da5ecf50eebe729f5af64912e5821602db8c21650e0e5"
+    }
+  },
+  "measurements": {
+    "linked_flash_candidate_bytes": 149702,
+    "linked_flash_control_bytes": 130042,
+    "linked_flash_delta_bytes": 19660,
+    "static_ram_candidate_bytes": 48987,
+    "static_ram_control_bytes": 48987,
+    "static_ram_delta_bytes": 0
+  },
+  "phase_two_projection": {
+    "linked_flash_delta_bytes": 19660,
+    "static_ram_bytes": 48987
+  },
+  "claims": {
+    "resource_delta_admitted": true,
+    "benchmark_executed": false,
+    "hardware_or_device_accessed": false,
+    "candidate_selected": false,
+    "phase_two_complete": false,
+    "score_credit_added": false
+  }
+}
