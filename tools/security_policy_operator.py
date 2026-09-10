@@ -114,7 +114,7 @@ def child_args(manifest, manifest_path, manifest_sha, mode, request_path=None, r
     args = [manifest['powershell']['path'], '-NoProfile', '-NonInteractive', '-File',
             str(Path(manifest['root']) / 'policy' / 'Invoke-SecurityPolicyOperator.ps1'),
             '-Manifest', str(manifest_path), '-ManifestSha256', manifest_sha, '-Mode', mode]
-    if mode in ('Operator', 'Rom'):
+    if mode in ('Operator', 'Rom', 'Backup', 'BackupRom'):
         need(request_path is not None and type(request_sha) is str and HEX.fullmatch(request_sha))
         args += ['-Request', str(request_path), '-RequestSha256', request_sha]
     else:
@@ -150,11 +150,17 @@ def audit_loaded_modules(ctx):
         need(p.is_relative_to(root) and p.relative_to(root).as_posix() in files)
     return True
 
+def runtime_policy(ctx):
+    extra = ('backup', 'backup_operator')
+    present = [('policy/security_policy_'+s+'.py') in ctx['manifest']['files'] for s in extra]
+    need(not any(present) or all(present))
+    return POLICY + (extra if all(present) else ())
+
 def admit_origins(ctx):
     root = Path(ctx['manifest']['root']).resolve()
     expected = {'esptool': root / 'packages/esptool/__init__.py',
                 'serial': root / 'packages/serial/__init__.py'}
-    expected.update({'security_policy_'+s: root / ('policy/security_policy_'+s+'.py') for s in POLICY})
+    expected.update({'security_policy_'+s: root / ('policy/security_policy_'+s+'.py') for s in runtime_policy(ctx)})
     for name, path in expected.items():
         spec = PathFinder.find_spec(name, sys.path)
         need(spec is not None and spec.origin is not None and Path(spec.origin).resolve() == path)
@@ -182,7 +188,7 @@ def version():
 
 def probe(ctx):
     versions = version()
-    for suffix in POLICY:
+    for suffix in runtime_policy(ctx):
         importlib.import_module('security_policy_' + suffix)
     audit_loaded_modules(ctx)
     result = subprocess.run(child_args(ctx['manifest'], ctx['path'], ctx['sha'], 'Version'),
@@ -230,6 +236,15 @@ def run_operator(ctx, request_path, request_sha):
     backend = hardware.Backend(bindings, transport=transport)
     authority = execution.FileAuthority(root, Path(req['grant_path']), req['grant_sha256'])
     audit_loaded_modules(ctx)
+    if 'backup' in runtime_policy(ctx):
+        def dispatch(locked_root):
+            if req['operation'] == 'execute':
+                # A held backup requires the typed single-use handoff wrapper.
+                need(not (locked_root / '.private' / 'security-policy-backup-active.lock').exists())
+                return execution.execute.__wrapped__(locked_root, package, authority, backend)
+            return execution.recover.__wrapped__(locked_root, package, authority, backend,
+                                                  origin_attempt=req['origin_attempt'])
+        return execution.single_process(dispatch)(root)
     if req['operation'] == 'execute':
         return execution.execute(root, package, authority, backend)
     return execution.recover(root, package, authority, backend, origin_attempt=req['origin_attempt'])
@@ -320,7 +335,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--manifest', required=True)
     parser.add_argument('--sha256', required=True)
-    parser.add_argument('--mode', choices=('probe', 'version', 'operator', 'rom'), required=True)
+    parser.add_argument('--mode', choices=('probe', 'version', 'operator', 'rom', 'backup', 'backuprom'), required=True)
     parser.add_argument('--request')
     parser.add_argument('--request-sha256')
     args = parser.parse_args(argv)
@@ -328,6 +343,16 @@ def main(argv=None):
         ctx = {'manifest': verify_manifest(args.manifest, args.sha256), 'path': args.manifest, 'sha': args.sha256}
         isolated_environment(ctx)
         admit_origins(ctx)
+        if args.mode in ('backup', 'backuprom'):
+            need('backup' in runtime_policy(ctx))
+            controller = importlib.import_module('security_policy_backup_operator')
+            audit_loaded_modules(ctx)
+            if args.mode == 'backuprom':
+                controller.run_rom(ctx, args.request, args.request_sha256)
+                return 0
+            result = controller.run_operator(ctx, args.request, args.request_sha256)
+            print(json.dumps(result, sort_keys=True))
+            return 0
         if args.mode == 'rom':
             run_rom(ctx, args.request, args.request_sha256)
             return 0

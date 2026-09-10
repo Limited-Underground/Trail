@@ -2,6 +2,18 @@
 
 ## 2026-09-10
 
+### OT-190 Compose initial backup custody, handoff and reset-only release
+
+Added the initial backup controller and isolated operator integration together.
+Read/reset-only authority binds expected originals; complete private snapshots,
+durable interruption records and finite held-ROM custody govern a one-use
+execution handoff. Reset invalidates prior NVS freshness. Guarded release handles
+untouched devices and verified no-write trial interruptions without inventing
+candidate/restore events. Simulated composition and isolated runtime probes pass.
+
+See [backup custody and validation](testing/OT-190-BACKUP-CUSTODY-2026-09-10.md).
+No device I/O, live snapshot, current physical grant or website change; no V1 credit.
+
 ### OT-189 Verify isolated operator runtime and prepare physical trial scope
 
 Assembled a private runtime with exact interpreter/startup files, 18 dependency

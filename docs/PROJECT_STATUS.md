@@ -66,9 +66,15 @@ independently checks journal phase, storage spans and exact write payloads. See 
 [runtime and physical scope](testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md).
 The reviewed PowerShell verifier and host OS remain a trusted boundary.
 
-Next complete the bounded read/reset controller for initial backup custody, then
-perform fresh per-device inventory, installed-region checks and complete private
-original capture under exact scoped physical authority. The
+The initial-backup controller now has host-tested capture, typed reset-only
+release and one-use execution handoff. Private application/NVS custody binds the
+expected originals and runtime; original reset invalidates executable NVS freshness.
+Interrupted no-write trials can be reconciled without fabricated execution events.
+See [backup custody evidence](testing/OT-190-BACKUP-CUSTODY-2026-09-10.md).
+
+Next establish fresh per-device inventory, installed-region checks and complete
+private originals under exact read/reset/hold authority, then admit the bound
+nonradio evaluation. No live snapshots or current grants exist from this work. The
 [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains the
 physical entropy, interrupted persistence and remaining admission boundaries.
 

@@ -573,3 +573,6 @@ tests/benchmarks/crypto/OT-188-*.json -text
 # OT-189 externally verified operator launcher and runtime evidence.
 tools/Invoke-SecurityPolicyOperator.ps1 -text
 tests/benchmarks/crypto/OT-189-*.json -text
+
+# OT-190 backup custody evidence preserves exact source pins.
+tests/benchmarks/crypto/OT-190-*.json -text
