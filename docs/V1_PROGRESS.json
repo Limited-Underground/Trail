@@ -124,9 +124,12 @@
         "docs/security/CRYPTO_ADMISSION_BATCH_2026-09-10.md",
         "tests/benchmarks/crypto/OT-163-ADMISSION-BATCH-2026-09-10.json",
         "docs/testing/OT-163-SECURITY-EVALUATION-2026-09-10.md",
-        "tests/benchmarks/crypto/OT-163-SECURITY-EVALUATION-BUILD-2026-09-10.json"
+        "tests/benchmarks/crypto/OT-163-SECURITY-EVALUATION-BUILD-2026-09-10.json",
+        "docs/testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md",
+        "tests/benchmarks/crypto/OT-187-SECURITY-POLICY-BUILD-2026-09-10.json",
+        "docs/testing/OT-187-CAPTURE-PREPARATION.md"
       ],
-      "next_gate": "The additive security evaluation target has two successful ESP32 builds and actual-source Noise, entropy-runtime and NVS counter proofs. Candidate-specific libsodium and corrected Monocypher matched controls are complete. Bind authenticated invitation/prologue, receive replay and restart/key retirement, then prepare solicited capture and scoped NVS recovery. Physical entropy and interrupted persistence, historical capture custody, applicable Phase 3 admission and explicit crypto selection remain open before product messaging. Cold-power disassembly remains deferred; previous physical grants remain consumed."
+      "next_gate": "Fresh-only same-chip policy evaluation binds signed invitation/prologue and transcript confirmation, durable receive replay admission, restart refusal and logical retirement; actual-source proofs and two matching ESP32 builds pass. Complete executable one-use capture and exact per-device full NVS recovery, then obtain fresh scoped physical authority. Real trust provisioning, confirmation UI, full rekey, physical entropy/interruption, historical capture custody, applicable Phase 3 admission and explicit crypto selection remain open before product messaging. Same-key resume is unsupported. Cold-power disassembly remains deferred; previous physical grants remain consumed."
     },
     {
       "id": "core-firmware",
@@ -335,9 +338,12 @@
             "docs/security/CRYPTO_ADMISSION_BATCH_2026-09-10.md",
             "tests/benchmarks/crypto/OT-163-ADMISSION-BATCH-2026-09-10.json",
             "docs/testing/OT-163-SECURITY-EVALUATION-2026-09-10.md",
-            "tests/benchmarks/crypto/OT-163-SECURITY-EVALUATION-BUILD-2026-09-10.json"
+            "tests/benchmarks/crypto/OT-163-SECURITY-EVALUATION-BUILD-2026-09-10.json",
+            "docs/testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md",
+            "tests/benchmarks/crypto/OT-187-SECURITY-POLICY-BUILD-2026-09-10.json",
+            "docs/testing/OT-187-CAPTURE-PREPARATION.md"
           ],
-          "next_gate": "The additive security evaluation target has two successful ESP32 builds and actual-source Noise, entropy-runtime and NVS counter proofs. Candidate-specific libsodium and corrected Monocypher matched controls are complete. Bind authenticated invitation/prologue, receive replay and restart/key retirement, then prepare solicited capture and scoped NVS recovery. Physical entropy and interrupted persistence, historical capture custody, applicable Phase 3 admission and explicit crypto selection remain open before product messaging. Cold-power disassembly remains deferred; previous physical grants remain consumed."
+          "next_gate": "Fresh-only same-chip policy evaluation binds signed invitation/prologue and transcript confirmation, durable receive replay admission, restart refusal and logical retirement; actual-source proofs and two matching ESP32 builds pass. Complete executable one-use capture and exact per-device full NVS recovery, then obtain fresh scoped physical authority. Real trust provisioning, confirmation UI, full rekey, physical entropy/interruption, historical capture custody, applicable Phase 3 admission and explicit crypto selection remain open before product messaging. Same-key resume is unsupported. Cold-power disassembly remains deferred; previous physical grants remain consumed."
         },
         {
           "id": "core-firmware",
@@ -1288,6 +1294,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "The security evaluation batch composes guarded entropy, real Noise, peer-pin verification and durable NVS counter reservation, with two ESP32 builds and actual-source host proofs. Libsodium and corrected Monocypher matched resources now have candidate-specific controls. Invitation/replay lifecycle, physical entropy and interruption, historical capture custody and complete selection remain open. Build-only evaluation adds no hardware or product acceptance, website capability change or completion credit; milestone values and weights remain unchanged."
+        },
+        {
+          "date": "2026-09-10",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-187 binds signed invitation/prologue, transcript confirmation, authenticated receive replay persistence, fresh-only restart refusal and logical retirement in an additive same-chip target. Actual-source proofs and two matching ESP32 builds pass; challenge-bound capture and full NVS recovery requirements are prepared. No physical, provisioning, same-key resume, full rekey or product messaging acceptance is added. Completion values, weights and previous history remain unchanged; no website capability change."
         }
       ]
     },
@@ -1778,6 +1790,11 @@
       "date": "2026-09-10",
       "overall": 32,
       "reason": "The security evaluation batch composes guarded entropy, real Noise, peer-pin verification and durable NVS counter reservation, with two ESP32 builds and actual-source host proofs. Libsodium and corrected Monocypher matched resources now have candidate-specific controls. Invitation/replay lifecycle, physical entropy and interruption, historical capture custody and complete selection remain open. Build-only evaluation adds no hardware or product acceptance, website capability change or completion credit; milestone values and weights remain unchanged."
+    },
+    {
+      "date": "2026-09-10",
+      "overall": 32,
+      "reason": "OT-187 binds signed invitation/prologue, transcript confirmation, authenticated receive replay persistence, fresh-only restart refusal and logical retirement in an additive same-chip target. Actual-source proofs and two matching ESP32 builds pass; challenge-bound capture and full NVS recovery requirements are prepared. No physical, provisioning, same-key resume, full rekey or product messaging acceptance is added. Completion values, weights and previous history remain unchanged; no website capability change."
     }
   ]
 }

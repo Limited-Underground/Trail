@@ -548,3 +548,20 @@ firmware/targets/heltec_v4_bench/main/app_main.cpp text eol=crlf
 firmware/targets/heltec_v4_bench/main/companion_nimble_runtime.cpp text eol=crlf
 firmware/targets/heltec_v4_bench/main/heltec_v4_secure_random.cpp text eol=crlf
 firmware/targets/heltec_v4_bench/main/heltec_v4_secure_random.hpp text eol=crlf
+
+# OT-187 actual-source security policy evaluation and capture evidence.
+firmware/components/security_evaluation/** -text
+firmware/targets/heltec_v4_security_policy_eval/** -text
+tests/host/security_policy_* -text
+tools/security_policy_capture.py -text
+tests/benchmarks/crypto/OT-187-*.json -text
+
+# OT-187 reused inputs: preserve the reviewed CRLF build bytes in every checkout.
+firmware/components/persistence/include/opentrail/outbound_counter_lease_store.hpp text eol=crlf
+firmware/components/persistence/include/opentrail/persistent_storage.hpp text eol=crlf
+firmware/components/persistence/include/opentrail/persistent_storage_kv.hpp text eol=crlf
+firmware/components/persistence/src/outbound_counter_lease_store.cpp text eol=crlf
+firmware/components/persistence/src/persistent_storage_kv.cpp text eol=crlf
+firmware/components/security/include/opentrail/aead_nonce.hpp text eol=crlf
+firmware/components/security/include/opentrail/secure_random.hpp text eol=crlf
+firmware/components/security/src/aead_nonce.cpp text eol=crlf

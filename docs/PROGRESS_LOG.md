@@ -2,6 +2,22 @@
 
 ## 2026-09-10
 
+### OT-187 Bind security policy and prepare solicited evaluation capture
+
+The additive same-chip evaluation now binds signed invitations, transcript
+confirmation, real Noise, durable transmit counters and authenticated receive
+replay admission. Fresh-only startup rejects retained or inconsistent state; logical
+retirement wipes session keys. Actual-source tests and two matching ESP32 builds
+pass. The solicited command/receipt and host capture helper are tested; full NVS
+preservation and restoration are required for any later hardware attempt.
+
+The initial direct syscall override caused duplicate definitions; the final
+target uses an audited linker wrapper with normal SDK VFS configuration. Failed
+build attempts remain unadmitted. See [consolidated evidence](testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md).
+No physical execution, product provisioning, same-key resume, full rekey or
+phone-to-phone LoRa acceptance is added. V1 completion and public website
+capabilities remain unchanged.
+
 ### OT-186 Audit progress history and correct task ownership
 
 Reviewed the full log against registered tasks and linked evidence. Recent
