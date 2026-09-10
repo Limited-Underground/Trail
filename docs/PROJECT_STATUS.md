@@ -54,10 +54,16 @@ evaluation, with synthetic trust and confirmation inputs, not product provisioni
 same-key resume, full rekey or phone-to-phone radio acceptance. See the
 [consolidated evidence](testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md).
 
-Next complete an executable one-use capture and recovery package with per-device
-full NVS preservation, then obtain fresh scoped authority for physical validation.
-The [capture preparation](testing/OT-187-CAPTURE-PREPARATION.md) and
-[eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retain the
+The executable one-use capture/recovery composition now passes host tests for
+source and payload binding, strict serial capture, durable interruption barriers
+and exact original application/full-NVS restoration. See the
+[capture and recovery evidence](testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md).
+This establishes software preparation only; no live snapshots or grants were created.
+
+Next verify the isolated operator runtime and import closure, then prepare fresh
+per-device inventory, installed-region readbacks and complete private originals
+under exact scoped physical authority. The
+[eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains the
 physical entropy, interrupted persistence and remaining admission boundaries.
 
 Historical raw-capture custody remains unestablished for the older libsodium and

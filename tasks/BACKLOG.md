@@ -10,11 +10,12 @@ preserves all removed summaries and superseded sequencing; see the
 
 ## Current execution order
 
-1. Continue from the [fresh-only security policy evaluation](../docs/testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md).
-   Complete the executable one-use capture/recovery package, including per-device
-   full NVS capture, revalidation and exact restoration. The tested capture helper
-   is preparation; it does not yet constitute an operational hardware package.
-2. Obtain fresh scoped physical authority and close applicable
+1. Continue from the [host-tested capture/recovery package](../docs/testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md).
+   Verify a fresh isolated operator runtime, exact tooling/dependency bytes and
+   import origins. Prepare exact live inventory, installed-region readbacks and
+   private complete application/NVS originals under separately scoped authority.
+   Host fixtures do not establish live snapshot custody or hardware readiness.
+2. Admit a fresh one-use physical trial and close applicable
    [security gates](../docs/testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md),
    Phase 3 admission and explicit crypto selection. Real trust provisioning,
    confirmation UI and complete rekey remain open; fresh-only evaluation does not
@@ -47,6 +48,7 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
+| OT-188 | done | Prepare executable security capture and full-storage recovery | Host-tested one-use nonradio runner binds source/images and role custody, strict solicited capture, durable interruption and serial-lease barriers, and exact per-role application/full-NVS restoration. Live runtime verification, snapshots and physical acceptance remain separate. See [capture/recovery evidence](../docs/testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md). |
 | OT-187 | done | Bind security policy and prepare solicited evaluation capture | Fresh-only same-chip evaluation binds real signed invitation/prologue and transcript confirmation, durable receive replay admission, restart refusal and logical retirement. Actual-source proofs and two matching builds pass. Challenge-bound host capture and full NVS recovery requirements are prepared; executable hardware package and physical acceptance remain open. See [evaluation evidence](../docs/testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md). |
 | OT-186 | done | Audit progress history and task ownership | Corrected recent reused IDs, registered omitted historical tasks, preserved evidence and chronological results, and strengthened documentation checks for registered IDs, progress links and date order. See [audit entry](../docs/PROGRESS_LOG.md#ot-186-audit-progress-history-and-correct-task-ownership). No implementation or completion credit. |
 | OT-185 | done | Compose build-only Heltec security evaluation | Guarded entropy, real Noise peer-pin authentication and NVS counter reservation compose in a same-chip two-role evaluation; two builds reproduce and actual-source tests pass. This bounded task does not accept invitation/replay lifecycle or physical security. See [evaluation evidence](../docs/testing/OT-163-SECURITY-EVALUATION-2026-09-10.md). Legacy artifact IDs are retained. |

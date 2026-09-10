@@ -127,9 +127,11 @@
         "tests/benchmarks/crypto/OT-163-SECURITY-EVALUATION-BUILD-2026-09-10.json",
         "docs/testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md",
         "tests/benchmarks/crypto/OT-187-SECURITY-POLICY-BUILD-2026-09-10.json",
-        "docs/testing/OT-187-CAPTURE-PREPARATION.md"
+        "docs/testing/OT-187-CAPTURE-PREPARATION.md",
+        "docs/testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md",
+        "tests/benchmarks/crypto/OT-188-CAPTURE-RECOVERY-2026-09-10.json"
       ],
-      "next_gate": "Fresh-only same-chip policy evaluation binds signed invitation/prologue and transcript confirmation, durable receive replay admission, restart refusal and logical retirement; actual-source proofs and two matching ESP32 builds pass. Complete executable one-use capture and exact per-device full NVS recovery, then obtain fresh scoped physical authority. Real trust provisioning, confirmation UI, full rekey, physical entropy/interruption, historical capture custody, applicable Phase 3 admission and explicit crypto selection remain open before product messaging. Same-key resume is unsupported. Cold-power disassembly remains deferred; previous physical grants remain consumed."
+      "next_gate": "OT-188 host-tests the one-use nonradio capture/recovery composition, exact source/image/role binding, durable interruption and serial-lease barriers, and full original application/NVS restoration. Verify an isolated operator runtime and exact tooling/dependency bytes/import origins, then prepare fresh live role inventory, installed-region readbacks and private complete originals under exact scoped authority before a new one-use physical trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, applicable Phase 3 admission and explicit crypto selection remain open. Same-key resume is unsupported. Cold-power disassembly remains deferred; previous physical grants remain consumed."
     },
     {
       "id": "core-firmware",
@@ -341,9 +343,11 @@
             "tests/benchmarks/crypto/OT-163-SECURITY-EVALUATION-BUILD-2026-09-10.json",
             "docs/testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md",
             "tests/benchmarks/crypto/OT-187-SECURITY-POLICY-BUILD-2026-09-10.json",
-            "docs/testing/OT-187-CAPTURE-PREPARATION.md"
+            "docs/testing/OT-187-CAPTURE-PREPARATION.md",
+            "docs/testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md",
+            "tests/benchmarks/crypto/OT-188-CAPTURE-RECOVERY-2026-09-10.json"
           ],
-          "next_gate": "Fresh-only same-chip policy evaluation binds signed invitation/prologue and transcript confirmation, durable receive replay admission, restart refusal and logical retirement; actual-source proofs and two matching ESP32 builds pass. Complete executable one-use capture and exact per-device full NVS recovery, then obtain fresh scoped physical authority. Real trust provisioning, confirmation UI, full rekey, physical entropy/interruption, historical capture custody, applicable Phase 3 admission and explicit crypto selection remain open before product messaging. Same-key resume is unsupported. Cold-power disassembly remains deferred; previous physical grants remain consumed."
+          "next_gate": "OT-188 host-tests the one-use nonradio capture/recovery composition, exact source/image/role binding, durable interruption and serial-lease barriers, and full original application/NVS restoration. Verify an isolated operator runtime and exact tooling/dependency bytes/import origins, then prepare fresh live role inventory, installed-region readbacks and private complete originals under exact scoped authority before a new one-use physical trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, applicable Phase 3 admission and explicit crypto selection remain open. Same-key resume is unsupported. Cold-power disassembly remains deferred; previous physical grants remain consumed."
         },
         {
           "id": "core-firmware",
@@ -1300,6 +1304,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-187 binds signed invitation/prologue, transcript confirmation, authenticated receive replay persistence, fresh-only restart refusal and logical retirement in an additive same-chip target. Actual-source proofs and two matching ESP32 builds pass; challenge-bound capture and full NVS recovery requirements are prepared. No physical, provisioning, same-key resume, full rekey or product messaging acceptance is added. Completion values, weights and previous history remain unchanged; no website capability change."
+        },
+        {
+          "date": "2026-09-10",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-188 adds host-tested one-use capture and exact full-storage recovery with source/image/role binding, durable interruption and serial-lease barriers. No device was operated and no live snapshot or physical grant was created. External runtime/import verification and fresh live preflight remain before physical admission. Completion values, weights and prior history are unchanged; no public website capability change."
         }
       ]
     },
@@ -1795,6 +1805,11 @@
       "date": "2026-09-10",
       "overall": 32,
       "reason": "OT-187 binds signed invitation/prologue, transcript confirmation, authenticated receive replay persistence, fresh-only restart refusal and logical retirement in an additive same-chip target. Actual-source proofs and two matching ESP32 builds pass; challenge-bound capture and full NVS recovery requirements are prepared. No physical, provisioning, same-key resume, full rekey or product messaging acceptance is added. Completion values, weights and previous history remain unchanged; no website capability change."
+    },
+    {
+      "date": "2026-09-10",
+      "overall": 32,
+      "reason": "OT-188 adds host-tested one-use capture and exact full-storage recovery with source/image/role binding, durable interruption and serial-lease barriers. No device was operated and no live snapshot or physical grant was created. External runtime/import verification and fresh live preflight remain before physical admission. Completion values, weights and prior history are unchanged; no public website capability change."
     }
   ]
 }
