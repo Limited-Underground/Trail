@@ -15,6 +15,7 @@ class RepositoryDocsTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         for path in LINK_DOCS:
             self.write(path, "# Document\n\nCurrent facts.\n")
+        self.write("tasks/BACKLOG.md", "# Backlog\n\n| Task | Status |\n| --- | --- |\n| OT-171 | partial |\n")
         self.write("docs/PROGRESS_LOG.md", "# Progress\n\n## 2026-09-08\n\n### OT-171 Work completed\n")
 
     def write(self, path, text):
@@ -87,6 +88,27 @@ class RepositoryDocsTests(unittest.TestCase):
     def test_wrong_progress_section_cannot_disable_new_entry_rules(self):
         self.write("docs/PROGRESS_LOG.md", "# Progress\n## New work\n### No ID\n")
         self.assertTrue(any("level-two" in p for p in self.problems()))
+
+    def test_progress_title_date_order_and_links(self):
+        self.write("docs/PROGRESS_LOG.md", "# Progress\n# Duplicate\n## 2026-09-08\n### OT-171 Fine\n## 2026-09-09\n[Missing](missing.md)\n")
+        problems = self.problems()
+        self.assertTrue(any("level-one" in p for p in problems))
+        self.assertTrue(any("newest first" in p for p in problems))
+        self.assertTrue(any("missing local link" in p for p in problems))
+
+    def test_registered_suffix_and_repeated_task_updates_are_allowed(self):
+        self.write("tasks/BACKLOG.md", "# Backlog\n| OT-171A | partial |\n")
+        self.write("docs/PROGRESS_LOG.md", "# Progress\n## 2026-09-09\n### OT-171A Second update\n## 2026-09-08\n### OT-171A First update\n")
+        self.assertEqual([], self.problems())
+
+    def test_unregistered_numbered_tasks_rejected_even_in_legacy_sections(self):
+        for task, day in [("OT-999", "2026-09-08"), ("OT-171A", "2026-08-10")]:
+            self.write("docs/PROGRESS_LOG.md", f"# Progress\n## {day}\n### {task} Work\n")
+            self.assertTrue(any("not registered" in p for p in self.problems()))
+
+    def test_fenced_example_does_not_register_a_task(self):
+        self.write("tasks/BACKLOG.md", "# Backlog\n```markdown\n| OT-171 | partial |\n```\n")
+        self.assertTrue(any("not registered" in p for p in self.problems()))
 
     def test_missing_required_document_is_actionable(self):
         (self.root / "CONTRIBUTING.md").unlink()
