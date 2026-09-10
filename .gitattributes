@@ -565,3 +565,7 @@ firmware/components/persistence/src/persistent_storage_kv.cpp text eol=crlf
 firmware/components/security/include/opentrail/aead_nonce.hpp text eol=crlf
 firmware/components/security/include/opentrail/secure_random.hpp text eol=crlf
 firmware/components/security/src/aead_nonce.cpp text eol=crlf
+
+# OT-188 hash-bound capture/recovery tooling and evidence.
+tools/security_policy_*.py -text
+tests/benchmarks/crypto/OT-188-*.json -text

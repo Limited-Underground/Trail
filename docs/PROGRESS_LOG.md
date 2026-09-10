@@ -2,6 +2,19 @@
 
 ## 2026-09-10
 
+### OT-188 Prepare executable security capture and full-storage recovery
+
+Added the one-use capture/recovery composition with exact source, image and role
+binding, guarded serial capture, durable interruption barriers and whole-span
+original application/NVS restoration. Adversarial host tests cover wrong authority,
+partial writes, missing candidate files, corrupt journals, uncertain serial leases
+and unsafe stale-state recovery. The frozen OT-187 firmware builds are reused.
+
+See [validation and remaining physical gates](testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md).
+No device was read, reset or flashed; no live snapshot or physical grant was created.
+Runtime/import verification and exact live preflight remain before a physical trial.
+V1 completion and public website capabilities are unchanged.
+
 ### OT-187 Bind security policy and prepare solicited evaluation capture
 
 The additive same-chip evaluation now binds signed invitations, transcript

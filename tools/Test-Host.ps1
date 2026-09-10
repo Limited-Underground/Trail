@@ -2757,6 +2757,21 @@ if ($LASTEXITCODE -ne 0) {
     throw "BLE pairing/replacement contract tests failed with exit code $LASTEXITCODE."
 }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_endpoint_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_endpoint_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_hardware_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_hardware_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_bundle_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_bundle_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_execution_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_execution_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_package_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_package_tests.py failed.' }
+
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_control_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_control_tests.py failed.' }
 

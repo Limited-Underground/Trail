@@ -1,0 +1,95 @@
+{
+  "schema": "OT188-HOST-CAPTURE-RECOVERY-1",
+  "as_of": "2026-09-10",
+  "status": "host_tested_preparation",
+  "hardware_executed": false,
+  "live_snapshots_created": false,
+  "physical_authority_issued": false,
+  "radio_allowed": false,
+  "source_pins": {
+    "tools/security_policy_bundle.py": {
+      "bytes": 10318,
+      "sha256": "0512d4118bae3d5e23628e19bc75b484b7457b937620acc15cdf7969776ae7b2"
+    },
+    "tools/security_policy_hardware.py": {
+      "bytes": 11537,
+      "sha256": "cfd6a29b7560e6c6d01c81c916b54742aa328c04a2c20b81320ec9d54d9c0e55"
+    },
+    "tools/security_policy_endpoint.py": {
+      "bytes": 3548,
+      "sha256": "1a86b71b59c7b8357afd00375ed2307860b96316357223b1c2fcf460a19530b1"
+    },
+    "tools/security_policy_execution.py": {
+      "bytes": 21186,
+      "sha256": "afce87da6ffdc382f402bb774e44086c1e77e9741e1da04f16be733e43ae0089"
+    },
+    "tools/security_policy_capture.py": {
+      "bytes": 2444,
+      "sha256": "6aa64631a2e9893140f6ce5585c317b8d93c72421f216310c57f895dffa78fd2"
+    }
+  },
+  "test_pins": {
+    "tests/host/security_policy_bundle_tests.py": {
+      "bytes": 9185,
+      "sha256": "75706ef867235a9b777618b811a2c39fed250e77a1671a2d7f885cd6bf5556f1"
+    },
+    "tests/host/security_policy_hardware_tests.py": {
+      "bytes": 12312,
+      "sha256": "09db096ac8491e1d4e377e61328017a1423d865aa18d4ff346e17ac90dc60817"
+    },
+    "tests/host/security_policy_endpoint_tests.py": {
+      "bytes": 4718,
+      "sha256": "43fd0f52ab864a5777f542038575df1f681c020a96dc5983aa9b812062642a31"
+    },
+    "tests/host/security_policy_execution_tests.py": {
+      "bytes": 13102,
+      "sha256": "9f2a35eccd1ed0ecda3d9e00fe718ec10f14966f8f8e82f1030cc3578cea8786"
+    },
+    "tests/host/security_policy_package_tests.py": {
+      "bytes": 10749,
+      "sha256": "3f4310e8250239d0c402576b8b07a190569b40f4622b87e17c9368dbce372788"
+    }
+  },
+  "focused_tests": {
+    "bundle": 19,
+    "hardware": 23,
+    "endpoint": 13,
+    "execution": 19,
+    "package": 9
+  },
+  "focused_total": 83,
+  "complete_host_matrix": "pass",
+  "prior_build_report": {
+    "path": "tests/benchmarks/crypto/OT-187-SECURITY-POLICY-BUILD-2026-09-10.json",
+    "bytes": 13346,
+    "sha256": "c48873be23aac58a3fdb725b25e023bf53b8ddc7566bf02cd926f8dba32c8832"
+  },
+  "candidate": {
+    "version": "ot187-policy-v0",
+    "bytes": 437488,
+    "sha256": "9682f86877b8c8b5d20a6309dd80199f8729bd61e08bc6787bcbea626dc7b836",
+    "reused_matching_builds": 2,
+    "rebuilt_this_task": false
+  },
+  "restore_spans": {
+    "application": {
+      "offset": 65536,
+      "bytes": 589824
+    },
+    "nvs": {
+      "offset": 53248,
+      "bytes": 12288
+    }
+  },
+  "limits": [
+    "Synthetic host transport, inventory, clocks and payloads only.",
+    "No physical persistence, entropy, USB timing or product radio acceptance.",
+    "Fresh isolated interpreter/tool/dependency bytes and import origins remain an independent physical admission gate; version checks are not runtime closure.",
+    "Fresh role inventory, installed-region readbacks, private complete originals and exact one-use authority remain required.",
+    "Unresolved serial leases, corrupt custody or uncertain original reset require reconciliation; automatic recovery does not bypass them."
+  ],
+  "completion_credit": false,
+  "website_status_changed": false,
+  "simulator_ui_tests": "13/13",
+  "execution_environment_note": "Initial sandbox matrix stopped at an existing DPAPI authority test; isolated 15-case normal-user suite and complete normal-user matrix passed."
+}
