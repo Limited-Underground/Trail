@@ -2,7 +2,25 @@
 
 ## 2026-09-10
 
-### OT-163 Compose security evaluation and complete matched resource controls
+### OT-186 Audit progress history and correct task ownership
+
+Reviewed the full log against registered tasks and linked evidence. Recent
+repository work is now OT-181; successor radio diagnostics and receipt recovery
+are OT-182; corrected mbedTLS measurements are OT-183; crypto admission evidence
+is OT-184; and the composed security evaluation is OT-185. OT-163 retains its
+original August 28 one-attempt scope. Original evidence filenames and embedded
+identifiers remain unchanged so their hashes and historical references stay valid.
+
+Separated the accumulated September 8 updates into individual headings, restored
+98 older headings to their existing task IDs and two omitted task registrations,
+and checked dates, links and prior results. Older general or combined headings
+remain unchanged where a single task assignment is not supported.
+Task numbers identify registered work, not individual runs: further updates may
+reuse an ID only within that task's scope. Documentation validation now rejects
+unregistered IDs, missing progress links and out-of-order dates. No engineering
+result, device state, V1 completion or website capability changes.
+
+### OT-185 Compose security evaluation and complete matched resource controls
 
 Two fresh ESP32 evaluation builds pass with real Noise, guarded entropy and NVS
 counter reservation. Actual-source tests cover peer authentication, refusal,
@@ -12,7 +30,7 @@ local evaluation only; invitation/replay lifecycle and physical gates remain ope
 See [the consolidated evidence](testing/OT-163-SECURITY-EVALUATION-2026-09-10.md).
 No hardware action, website capability change or completion credit is added.
 
-### OT-163 Consolidate resource admission, independent Noise and entropy lifecycle proofs
+### OT-184 Consolidate resource admission, independent Noise and entropy lifecycle proofs
 
 Corrected mbedTLS matched controls reproduce and pass signed-delta accounting.
 Independent real-primitive Noise vectors pass and expose a nonnull API issue,
@@ -23,7 +41,7 @@ execution order now link the consolidated result instead of retelling each earli
 benchmark step. See [the batch evidence](security/CRYPTO_ADMISSION_BATCH_2026-09-10.md).
 No hardware, publication, website capability change or completion credit is added.
 
-### OT-163 Complete corrected mbedTLS comparison on both devices
+### OT-183 Complete corrected mbedTLS comparison on both devices
 
 Both physical devices passed all five comparison operations with 1,015 validated
 frames each. Distinct original firmware and protected regions passed restoration
@@ -31,7 +49,7 @@ and independent postchecks. Retained canonical transcripts reparse exactly to
 the accepted results. See [the comparison outcome](testing/OT-163-MBEDTLS-COMPARISON-2026-09-10.md).
 No radio transmission, production crypto selection or completion credit is claimed.
 
-### OT-163 Corrected comparison runner and parallel security preparation
+### OT-183 Corrected comparison runner and parallel security preparation
 
 Verified the retained corrected firmware, prepared separate per-device restoration
 and private validated-transcript retention, and reviewed resource/custody limits.
@@ -40,27 +58,27 @@ independent-crypto and target-evidence boundaries. See
 [comparison preparation](testing/OT-163-COMPARISON-PREPARATION-2026-09-10.md).
 No hardware execution, selection or completion credit is claimed.
 
-### OT-163 Consolidated crypto corpus and integration review
+### OT-184 Consolidated crypto corpus and integration review
 
 Reconciled the successful radio trial with the retained comparison corpus.
 Libsodium remains recommended; incomplete comparison/resource/custody and
 security gates still prevent final selection. Grouped the remaining work in
 [the selection review](security/CRYPTO_SELECTION_REVIEW_2026-09-10.md) and linked plan.
 
-### OT-163 Complete receipt-console hardware trial and restoration
+### OT-182 Complete receipt-console hardware trial and restoration
 
 The full two-cycle benchmark passed: 14 frames, four successful final handshakes,
 two intentional timeout/retry cases and zero reported loss or duplicates. Both
 original images and protected regions passed independent restoration/readback
 and reset checks. See [the measured outcome](testing/OT-163-RECEIPT-CONSOLE-RUN-2026-09-10.md).
 
-### OT-163 Receipt-console physical preflight
+### OT-182 Receipt-console physical preflight
 
 Both roles passed fresh identity, original firmware/tail and protected-region
 readbacks, then guarded resets. All region hashes match the prior baseline. No
 candidate write or radio execution occurred; see [preflight evidence](testing/OT-163-RECEIPT-CONSOLE-PREFLIGHT-2026-09-10.md).
 
-### OT-163 Consolidated bounded receipts and hardware test package
+### OT-182 Consolidated bounded receipts and hardware test package
 
 Combined fixed-storage receipt formatting, absolute FIFO deadlines and early
 startup quarantine in an additive benchmark target. Composed handler, binding
@@ -69,7 +87,7 @@ The linked startup and logging audit closes the two prior software gates for
 this candidate; fresh physical preflight and authority remain separate. See
 [the batch evidence](testing/OT-163-BOUNDED-RECEIPT-BATCH-2026-09-10.md).
 
-### OT-163 USB console adapter and guarded benchmark candidate
+### OT-182 USB console adapter and guarded benchmark candidate
 
 Added a separate benchmark target with FIFO/ZLP submission and terminal-fault
 radio guards. Register-model and actual generated-handler tests cover packet
@@ -77,7 +95,7 @@ handoff and failed receipts. Upstream logging locks and ROM startup ownership
 still prevent hardware-readiness acceptance. See
 [the integration evidence](testing/OT-163-CONSOLE-INTEGRATION-2026-09-10.md).
 
-### OT-163 Host-only bounded console writer evaluation
+### OT-182 Host-only bounded console writer evaluation
 
 Evaluated a target-neutral writer with one deadline, finite attempts, explicit
 logical/FIFO byte counts and latched failures. Twenty-one compiled host cases pass.
@@ -88,7 +106,7 @@ the candidate and no firmware build or hardware correction is claimed. See
 
 ## 2026-09-09
 
-### OT-163 Actual-source console error-reporting probe
+### OT-182 Actual-source console error-reporting probe
 
 Compiled the pinned upstream console functions and injected ROM-output failures.
 Valid writes still reported their requested length. Exact source/configuration
@@ -97,7 +115,7 @@ from unlinked VFS behavior. Twelve focused groups, including seven compiled beha
 simulation only; no physical cause, firmware correction, hardware action or
 new authority is established. See [the probe evidence](testing/OT-163-CONSOLE-SOURCE-PROBE-2026-09-09.md).
 
-### OT-163 Observation attempt completes baseline then stops before retry transmission
+### OT-182 Observation attempt completes baseline then stops before retry transmission
 
 Physical attempt 4 completed baseline m1/m2/m3 TX_DONE and accepted peer RX,
 with END completion on both nodes. After both accepted forced-retry preparation,
@@ -110,7 +128,7 @@ probe of console delivery at the immediate PREPARED-to-RX_START log boundary, no
 attempt. No complete benchmark, V1 credit or website change is admitted. See
 [the outcome](testing/OT-163-OBSERVATION-RUN-2026-09-09.md).
 
-### OT-163 Exact observation binding and independent preflight preparation
+### OT-182 Exact observation binding and independent preflight preparation
 
 Prepared the exact 42-source/three-image observation binding and isolated
 attempt-4 caller. Twenty private bridge and ten read/reset preflight test groups
@@ -124,7 +142,7 @@ the full host matrix and CI from PR #14 are reused. Next is one fresh bound
 benchmark after publication and immediate hardware rechecks. V1 completion and
 website status are unchanged. See [preflight evidence](testing/OT-163-OBSERVATION-PREFLIGHT-2026-09-09.md).
 
-### OT-163 Bounded receipt-byte observation successor
+### OT-182 Bounded receipt-byte observation successor
 
 Reproduced the completion-receipt ambiguity with exact generated format and
 synthetic identifiers: all 318 two-fragment splits pass, while all 319 proper
@@ -138,7 +156,7 @@ source/image-bound preflight after publication checks. Physical cause, complete
 radio measurements and product messaging remain unproved; V1 and website status
 are unchanged. See [the evidence](testing/OT-163-RECEIPT-OBSERVATION-2026-09-09.md).
 
-### OT-163 Contained firmware tested on both nodes and restored
+### OT-182 Contained firmware tested on both nodes and restored
 
 Integrated the exact 40-source/three-image execution and recovery binding after
 11 composed host groups, 18 private bridge groups and the complete host matrix
@@ -150,7 +168,7 @@ checks and resets. The grant is consumed; next is bounded host investigation of
 receipt emission/delivery and incomplete bytes. V1 and website status are unchanged.
 See [the evidence](testing/OT-163-CONTAINED-EXECUTION-2026-09-09.md).
 
-### OT-163 Bounded radio driver and diagnostic firmware candidate
+### OT-182 Bounded radio driver and diagnostic firmware candidate
 
 Consolidated the TX BUSY deadline, firmware error containment, strict return
 checkpoints and diagnostic retention across host reconnect/cleanup. Parallel
@@ -162,7 +180,7 @@ image/runtime/recovery execution binding is next. Physical root cause, complete
 radio measurements and product messaging remain unproved; V1 and website status
 are unchanged. See [the evidence](testing/OT-163-RADIO-CONTAINMENT-2026-09-09.md).
 
-### OT-163 Diagnostic execution evidence reconciled for publication
+### OT-182 Diagnostic execution evidence reconciled for publication
 
 Verified the reconciled source snapshots against all 26 and 27 bound files and
 both physical execution records. Attempt 2 accepted the `m3` transmission-start
@@ -180,7 +198,7 @@ evidence; no firmware changed.
 
 ## 2026-09-08
 
-### OT-001 Repository presentation and contributor organization
+### OT-181 Repository presentation and contributor organization
 
 The front page now introduces Trail and routes readers to setup, current status,
 and contribution guidance. Duplicated dated reports have moved out of the entry
@@ -199,7 +217,7 @@ raw-byte inputs (291), scope groups (16), publication scan and preservation of
 all 327 backlog rows pass locally. This changes no firmware, Android behavior,
 V1 milestone score or website status.
 
-### OT-163 Fragmented restart receipts reproduced and corrected in host successor
+### OT-182 Fragmented restart receipts reproduced and corrected in host successor
 
 The benchmark transport drops a valid restart receipt when a serial timeout
 splits it across reads. The new bounded stream endpoint addresses that host
@@ -210,6 +228,8 @@ Both current recovery image files match their recorded hashes, but a later
 hardware bundle must bind a different restoration image to each role. Devices
 and phones remain untouched. Validation and the exact successor boundary are
 recorded in [restart receipt evidence](../docs/testing/OT-163-RECEIPT-STREAM-2026-09-08.md). V1 scores and website status are unchanged.
+
+### OT-182 Compose restart recovery and independent restoration
 
 The subsequent host composition now validates both startup contracts before
 restart, reopens fresh buffered handles, and carries separate A/B restoration
@@ -226,6 +246,8 @@ gate is the exact executable bundle and concrete role/installed-byte preflight;
 see [successor composition evidence](testing/OT-163-SUCCESSOR-COMPOSITION-2026-09-08.md).
 
 
+### OT-182 Bind concrete device roles and recovery
+
 The concrete role-checking backend now preserves independent recovery, refuses
 unverified-write resets, and keeps uncertain serial handles leased. The complete
 11-file source snapshot and three image hashes are checked; new checkout rules
@@ -234,12 +256,16 @@ without opening ports or resetting devices. All 116 focused host cases pass. See
 [device binding evidence](testing/OT-163-DEVICE-BINDING-2026-09-08.md).
 
 
+### OT-182 Complete original-image physical preflight
+
 Live preflight now passes on both boards: exact ROM identity, 16 MB flash, Trail
 partition/factory boot selection, installed image plus erased sector tail, and
 separate recovery paths. Both exit-reset commands succeeded. The private adapter
 handles esptool's two agreeing identity lines; eight offline tests cover parsing
 and cleanup. No firmware writes, radio result, phone changes or V1 score increase.
 See [live preflight evidence](testing/OT-163-LIVE-PREFLIGHT-2026-09-08.md).
+
+### OT-182 Request fresh readiness after serial open
 
 The serial-open review found that Windows pyserial clears queued startup bytes.
 A separate firmware query and buffered runtime now obtain fresh readiness after
@@ -249,6 +275,8 @@ purges, fresh handles and unchanged simulated 14-frame/736-byte results. Build,
 validation and the remaining execution binding are recorded in
 [solicited readiness evidence](testing/OT-163-SOLICITED-READINESS-2026-09-08.md).
 No device was accessed or new attempt consumed; V1 and website status are unchanged.
+
+### OT-182 Integrate solicited execution and record bounded abort
 
 The solicited runner now composes the concrete guarded backend and an isolated
 coordinator with independent restoration. A 24-file snapshot binds the exact
@@ -262,6 +290,8 @@ and preserved boot/partition/OTA bytes passed restoration and postchecks. The
 grant is consumed; no complete benchmark result is admitted. Next is bounded
 substep diagnostics. V1 and website status remain unchanged.
 
+### OT-182 Add bounded retry-stage diagnostics
+
 A bounded diagnostic observer now records the last endpoint operation and safe
 receipt fields without session identifiers, challenges, digests or raw errors.
 Eight host test groups distinguish 13 retry failure boundaries, exercise delayed
@@ -270,6 +300,8 @@ and exception behavior. This locates a future failure; it does not establish the
 earlier hardware cause. The frozen execution snapshot and firmware are unchanged.
 See [diagnostic evidence](testing/OT-163-RETRY-DIAGNOSTICS-2026-09-08.md). No hardware
 was accessed or new grant consumed. V1 and website status remain unchanged.
+
+### OT-182 Bind diagnostics to independent recovery
 
 The observer is now integrated at the concrete backend's endpoint-open seam.
 Role selection uses exact endpoint object identity, while role verification,
@@ -286,6 +318,8 @@ namespace isolation and consumed-namespace rejection. The complete affected
 [diagnostic execution evidence](testing/OT-163-DIAGNOSTIC-EXECUTION-BINDING-2026-09-08.md).
 No device, firmware target, phone, authority, score or website status changed by
 that host-only binding.
+
+### OT-182 Record two instrumented attempts and exact restoration
 
 The first instrumented physical attempt then stopped at Node B's post-restart
 readiness receipt. A 27-source successor retained the same firmware, images,
@@ -985,7 +1019,7 @@ and remaining gates](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md
   [Decision 0102](decisions/0102-accept-ot166-heltec-v1-bond-owner-integration.md)
   and [evidence](../tests/hardware/OT-166-2026-08-31.md).
 
-### Limited Underground organization migration
+### OT-181 Limited Underground organization migration
 
 - Transferred the public repository into the `Limited-Underground`
   organization and renamed it from `OpenTrail` to `Trail`. GitHub repository
@@ -2765,7 +2799,7 @@ and remaining gates](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md
   runtime-log review, manual ROM recovery, physical behavior, and support remain
   open. OT-034 is `partial`; V1 is 30%.
 
-### Provisional Limited Underground Trail product-family names
+### OT-032 Provisional Limited Underground Trail product-family names
 
 - Accepted `Limited Underground` as the parent working identity and `Limited
   Underground Trail` as both the Android application and umbrella family.
@@ -2900,7 +2934,7 @@ and remaining gates](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md
   signing, clean-machine, and supported-hardware evidence remain open. V1 stays
   at 29%.
 
-### Shared Android-companion and standalone-touchscreen direction
+### OT-031 Shared Android-companion and standalone-touchscreen direction
 
 - Accepted one-repository, shared-protocol direction for a future affordable
   Android companion using a separately approved mesh device and the original
@@ -3032,7 +3066,7 @@ and remaining gates](../tests/hardware/OT-169-177-HOST-FOUNDATIONS-2026-09-04.md
 
 ## 2026-08-13
 
-### First privacy-safe Wio Tracker L1 USB/runtime pass
+### OT-020 First privacy-safe Wio Tracker L1 USB/runtime pass
 
 - Advanced OT-020 from `planned` to `partial` and classified the arrived owner-
   reported Wio Tracker L1 Pro only as `experimented`. Windows correlated its
@@ -3122,7 +3156,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   input, installer lifecycle, and clean-machine operation remain separate
   gates.
 
-### Functional UI Automation scroll reachability
+### OT-019AE Functional UI Automation scroll reachability
 
 - Invoked the actual third device item's `ScrollItem` provider in a shown
   900×620 production window instead of only asserting that the pattern exists.
@@ -3138,7 +3172,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   physical wheel/touch/mouse input, virtualization or larger candidate sets,
   and clean-machine operation remain separate gates.
 
-### Shown-window wide/minimum/wide resize transition
+### OT-019AD Shown-window wide/minimum/wide resize transition
 
 - Added a deterministic transition on the real shown production window from an
   effective wide size to the 900×620 minimum and back. Geometry must match the
@@ -3193,7 +3227,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   The warning-free 55-group suite and three live USB refresh cycles pass. This
   still is not physical keyboard input or Narrator speech acceptance.
 
-### Source-free external UI Automation and refresh acceptance
+### OT-019AA Source-free external UI Automation and refresh acceptance
 
 - Added stable privacy-safe Automation IDs for the packaged window, Refresh,
   dynamic summary/selection/bundle regions, device list, bounded bundle action,
@@ -3264,7 +3298,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   changed, so real accessibility notification timing, every system/custom
   theme, physical input, and Narrator remain separate gates.
 
-### Wrapped-layout device keyboard navigation
+### OT-019X Wrapped-layout device keyboard navigation
 
 - Exercised routed production-window keyboard events against both the wide
   three-card row and the 900×620 two-plus-one wrapped layout. Native Right/Left
@@ -3280,7 +3314,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   disables bundle selection, and restores Refresh. This is routed WPF input
   evidence, not physical keyboard injection or Narrator acceptance.
 
-### Production-window automation-peer semantics
+### OT-019W Production-window automation-peer semantics
 
 - Inspected the actual UI Automation peers exposed by the production WPF
   window. The first run found device list items announcing the CLR model type
@@ -3298,7 +3332,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   production-peer evidence, not proof of Narrator wording, timing, verbosity,
   Braille output, or another assistive technology on a physical desktop.
 
-### Production-window Tab focus acceptance
+### OT-019V Production-window Tab focus acceptance
 
 - Opened a second real production `MainWindow` in the STA acceptance runner and
   exercised WPF keyboard focus traversal after publishing and selecting one of
@@ -3333,7 +3367,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   physical Tab/arrow input, Narrator, live theme switching, and physical
   monitor-to-monitor DPI acceptance remain open.
 
-### System-aware contrast palette and deterministic theme acceptance
+### OT-019U System-aware contrast palette and deterministic theme acceptance
 
 - Replaced hard-coded production control colors with named dynamic brush
   resources while preserving the approved classic Windows 95 palette as normal
@@ -3362,7 +3396,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   `CC47BB6BB3BDD952B6717861F71AA1A067ED08D486314FC98888B86614C2395E`;
   it remains local, ignored, inspection-only, and not a public release.
 
-### Explicit per-monitor DPI configuration and scaled-render acceptance
+### OT-019T Explicit per-monitor DPI configuration and scaled-render acceptance
 
 - Added a production application manifest that declares Windows
   `PerMonitorV2` awareness plus the older `true/pm` fallback. The project now
@@ -3388,7 +3422,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   `DBB746434C8EABF1DE772913091A353502DCE9D8609427A6B51DD117BE4D0EC4`;
   it remains local, ignored, inspection-only, and not a public release.
 
-### Production-window repeated refresh/selection state acceptance
+### OT-019S Production-window repeated refresh/selection state acceptance
 
 - Added an internal dependency seam that preserves the public WPF constructor
   while allowing the production window to consume a controlled, validated,
@@ -3415,7 +3449,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   `A47CAE1B13F99598927FE26D6F5D5EA61BE2950674ABD599FBC9468E6ED3CC60`;
   it remains local, ignored, inspection-only, and not a public release.
 
-### Deterministic Windows loader rendered-layout acceptance
+### OT-019R Deterministic Windows loader rendered-layout acceptance
 
 - Added an opt-in STA WPF renderer to the existing warning-free loader test
   executable. It composes the real production `MainWindow` with a validated,
@@ -3443,7 +3477,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   `96720DD25C63151F303522A07D93D65315CC2CC0ED380BEF62D159A47B92CDC6`;
   it remains local, ignored, inspection-only, and not a public release.
 
-### Exact selected-device bundle-match boundary
+### OT-019Q Exact selected-device bundle-match boundary
 
 - Added one pure matcher between the explicitly selected current device and the
   inspected firmware manifest. It compares only exact hardware-profile ID,
@@ -3466,7 +3500,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   `8AB5CA9FF9FE0348AB23E5ACDE84BF2CD84F9F82B9EB5D48338F92BE6F7A3510`;
   it remains local, ignored, inspection-only, and not a public release.
 
-### Explicit current-device selection boundary
+### OT-019P Explicit current-device selection boundary
 
 - Replaced the passive connected-card list with a keyboard-accessible,
   single-selection list. The selected Windows 95-style card receives a visible
@@ -3490,7 +3524,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   `A38946C82CCC8F55A3BEAAE3083DF3EC923E700F0F7798EE45B5F4C90FEC8BDE`;
   it remains local, ignored, inspection-only, and not a public release.
 
-### Device-snapshot-bound bundle inspection
+### OT-019N Device-snapshot-bound bundle inspection
 
 - Added a separate revision authority that binds every local firmware-bundle
   inspection to one current connected-device snapshot. Device refresh begins
@@ -3513,7 +3547,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   forces that exact fixture to LF on every checkout; the canonical-vector test
   remains strict rather than accepting changed bytes.
 
-### Heltec maintenance-failure recovery observation
+### OT-019O Heltec maintenance-failure recovery observation
 
 - Performed one supervised `--no-stub` read-only ESP32 `chip-id` attempt on
   assembled bench client `OT-DEV-002`. Host serial configuration failed before
@@ -3529,7 +3563,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
 - See [OT-019O](../tests/hardware/OT-019O-2026-08-13.md). Exact low-level
   hardware identity remains unresolved, and V1 progress is unchanged.
 
-### Fail-closed maintenance-attempt safety gate
+### OT-019M Fail-closed maintenance-attempt safety gate
 
 - Added an explicit one-attempt-per-session maintenance policy for the future
   low-level board profiler. A recognized device cannot enter that future path
@@ -3548,7 +3582,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   pass. The canonical V1 percentage is unchanged because no authoritative
   received-board profile, physical update, rollback, or recovery gate closed.
 
-### Candidate-only hardware profile guidance
+### OT-019L Candidate-only hardware profile guidance
 
 - Added a strict hardware-profile evidence object to both the development and
   source-free Windows inspection paths. A recognized card now separates what
@@ -3583,7 +3617,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   and assistive-technology acceptance remain open, and V1 progress is
   unchanged.
 
-### Fixed cross-tool firmware-signature vector
+### OT-019K Fixed cross-tool firmware-signature vector
 
 - Added one public-only verification fixture containing an exact 435-byte
   canonical manifest, RSA-3072 public SubjectPublicKeyInfo, and 384-byte
@@ -3607,7 +3641,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   recovery/target gate remain open. The canonical V1 progress record is
   unchanged.
 
-### RSA-PSS firmware-bundle verification boundary
+### OT-019J RSA-PSS firmware-bundle verification boundary
 
 - Selected exact RSA-PSS-3072/SHA-256 signatures over the canonical firmware-
   bundle manifest. The signed manifest already binds image length/SHA-256,
@@ -3641,7 +3675,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   checked before its first commit instead of becoming visible to this guard
   only after Git starts tracking it.
 
-### Bounded Windows firmware-bundle candidate inspection
+### OT-019I Bounded Windows firmware-bundle candidate inspection
 
 - Enabled the Windows 95-style shell's `Select firmware bundle` action for
   local `.fwbundle` files. Selection is inspection-only: the chosen path and
@@ -3805,7 +3839,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
 
 ## 2026-08-12
 
-### First real Windows loader desktop shell
+### OT-019H First real Windows loader desktop shell
 
 - Added a .NET 8 WPF development application that invokes the existing
   privacy-safe inspection pipeline, revalidates the reduced document in C#,
@@ -3826,7 +3860,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   accessibility, repeated live refresh, packaged operation, and clean-machine
   acceptance remain.
 
-### Live Windows loader inspection view model
+### OT-019G Live Windows loader inspection view model
 
 - Added the future Windows loader's first presentation model on top of the
   privacy-safe USB/runtime adapters. It emits fixed screen copy, candidate
@@ -3844,7 +3878,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   separate bounded local bundle-candidate inspector. Signature trust, final
   admission, a writer, and visual/physical evidence remain.
 
-### Final firmware-write admission composition
+### OT-019F Final firmware-write admission composition
 
 - Composed independent bundle admission and board/install preflight results
   into one final pure `ready_to_write` decision. Neither half can authorize the
@@ -3860,7 +3894,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   ownership/invalidation, concrete parsers/probes, writer/readback, target boot,
   rollback/recovery, Windows UI, and physical evidence remain.
 
-### Fail-closed signed firmware-bundle admission
+### OT-019E Fail-closed signed firmware-bundle admission
 
 - Added a pure pre-device admission policy for the future loader. It keeps
   container/manifest parsing, manifest digest, signature verification, signer
@@ -3924,7 +3958,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   fix/satellites, exact modules/wiring, accuracy, cold-start/loss/power behavior,
   complete-client binding, and field evidence remain open.
 
-### Fail-closed firmware-install board preflight
+### OT-019D Fail-closed firmware-install board preflight
 
 - Added one pure loader-facing policy that keeps read-only inspection separate
   from permission to flash. A connected device may be described even while
@@ -3959,7 +3993,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   candidate and may be validated physically in that role. The complete client
   remains a separate board/display/control/power/enclosure hardware freeze.
 
-### Quick-status parent page and restored selection handoff
+### OT-029B Quick-status parent page and restored selection handoff
 
 - Added one narrow semantic status page with exactly Quick status and Back. It
   enters the two-page chooser at the exact next revision and restores itself at
@@ -3974,7 +4008,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   matrix pass. Broader shell, authenticated outbound/outcome UX, target
   renderer/input, and physical-device evidence remain later gates.
 
-### Revision-safe generic quick-status menu
+### OT-029A Revision-safe generic quick-status menu
 
 - Added two canonical four-action pages so all four generic statuses retain a
   visible Back action within the portable interface limit. Page one is I'm OK,
@@ -3990,7 +4024,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   focused repeats and the complete 109-executable matrix. Parent-shell,
   authenticated outbound, renderer/target, and physical UX remain later gates.
 
-### Generic quick-status payload
+### OT-029 Generic quick-status payload
 
 - Added one exact 12-byte `OTQ0/v0` payload for the four generic meanings
   selected for the first small-group experience: I'm OK, Need assistance,
@@ -4005,7 +4039,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   admission, menu/confirmation UI, renderer, target/radio, and physical
   delivery remain explicit later gates.
 
-### Optional archive parent page and restoration
+### OT-028M Optional archive parent page and restoration
 
 - Added one non-copyable semantic `status` page with exactly Archive controls
   and Back. Explicit activation presents the parent without reading archive
@@ -4021,7 +4055,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   matrix pass. This is deliberately not a full client home/menu, renderer,
   physical input, target task/backend, or device claim.
 
-### Exact-revision archive parent/workflow handoff
+### OT-028L Exact-revision archive parent/workflow handoff
 
 - Added one non-copyable local router that accepts only an already resolved
   `open_archive_controls` action matching the exact active parent revision.
@@ -4038,7 +4072,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   renderer/physical input, concurrency, recovery UX, and on-device evidence
   remain.
 
-### Durable archive lease-to-workflow bootstrap
+### OT-028K Durable archive lease-to-workflow bootstrap
 
 - Added a fixed-memory, explicit-initialization owner that commits and reads
   back one restart-safe archive session range before constructing the local
@@ -4055,7 +4089,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   recovery UX, parent navigation, renderer/physical input, concurrent stress,
   reset/brownout/endurance, and on-device evidence remain.
 
-### Restart-safe breadcrumb archive session leases
+### OT-028J Restart-safe breadcrumb archive session leases
 
 - Added a two-slot, 64-byte, commit-last `OTBL/v1` store that durably reserves
   an inclusive nonoverlapping session-ID range before any ID is returned.
@@ -4074,7 +4108,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   integrity/rollback resistance, recovery UX, target boot composition,
   physical interruption, and on-device evidence remain.
 
-### Complete local breadcrumb archive workflow
+### OT-028I Complete local breadcrumb archive workflow
 
 - Added one cooperative revision owner for snapshot-backed archive controls,
   Start/Stop confirmation, Cancel, consent application, and post-action status
@@ -4092,7 +4126,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   menu/navigation owner, renderer, physical input, target lease composition,
   ESP-IDF binding, concurrent target stress, and on-device evidence remain.
 
-### Revision-bound local breadcrumb archive consent
+### OT-028H Revision-bound local breadcrumb archive consent
 
 - Added canonical local Start and Stop confirmation frames. Start requires a
   hold on the exact active revision; Stop resolves immediately from its exact
@@ -4109,7 +4143,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   renderer, physical input, target lease composition, ESP-IDF binding, or
   on-device evidence exists.
 
-### Private serialized breadcrumb archive runtime owner
+### OT-028G Private serialized breadcrumb archive runtime owner
 
 - Added one target-shaped owner that privately constructs the capture session,
   bounded outbox, uploader, retry coordinator, and snapshot adapter.
@@ -4123,7 +4157,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   98-executable host matrix pass. Local consent/authorization, real ESP-IDF
   synchronization, concurrent target stress, and physical evidence remain.
 
-### Serialized breadcrumb archive snapshot adapter
+### OT-028F Serialized breadcrumb archive snapshot adapter
 
 - Added one target-shaped source over the concrete capture session, bounded
   outbox, and retry coordinator under a single injected nonblocking lock.
@@ -4137,7 +4171,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   discipline, concurrent target proof, resource measurement, and physical
   behavior remain absent.
 
-### Single-owner breadcrumb archive UI coordinator
+### OT-028E Single-owner breadcrumb archive UI coordinator
 
 - Added one cooperative UI owner that performs exactly one complete archive
   snapshot read per valid service call and owns all semantic-frame revisions.
@@ -4152,7 +4186,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   display, resource measurement, or archive/base-radio execution authority was
   added.
 
-### Single-read breadcrumb archive status snapshot
+### OT-028D Single-read breadcrumb archive status snapshot
 
 - Added one target-facing source contract for a complete capture-session,
   bounded-outbox, and retry-coordinator status tuple; common code performs
@@ -4168,7 +4202,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   concurrent copy proof, renderer, physical display, and archive execution
   authority remain absent.
 
-### Privacy-safe breadcrumb archive presentation
+### OT-028C Privacy-safe breadcrumb archive presentation
 
 - Added a fixed-memory, pure adapter from copied archive session, bounded
   outbox, and checked-time retry status into the existing semantic local-
@@ -4185,7 +4219,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   display, recovery/discard/retention/export/deletion authority, server, and
   real-coordinate evidence remain absent.
 
-### Checked-time breadcrumb archive retry boundary
+### OT-028B Checked-time breadcrumb archive retry boundary
 
 - Added a fixed-memory coordinator that reads the guarded boot-local monotonic
   clock before any optional archive upload and attempts at most one FIFO head
@@ -4202,7 +4236,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   adapter, server receipt, persistence, power result, UI, or physical upload
   exists; base radio behavior remains independent.
 
-### Bounded breadcrumb archive outbox and durable-ack handoff
+### OT-028A Bounded breadcrumb archive outbox and durable-ack handoff
 
 - Added a 16-record fixed-memory FIFO that validates exact `OTBA/v0`, requires
   sequence 1 at each strictly increasing session start, and refuses duplicate,
@@ -4220,7 +4254,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   contract. No server, endpoint, protected persistence, authentication,
   account/access, retention/export/deletion, target, or physical evidence exists.
 
-### Opt-in breadcrumb archive session boundary
+### OT-028 Opt-in breadcrumb archive session boundary
 
 - Added a fixed-memory client-side archive session that composes the existing
   explicit position scheduler with an injected nonblocking transport while
@@ -4237,7 +4271,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   encryption, retention/export/deletion, target binding, and physical evidence
   remain absent. Precise coordinates remain private.
 
-### Base-versus-optional product boundary
+### OT-027 Base-versus-optional product boundary
 
 - Added one public capability/dependency map separating the self-contained base
   client from optional repeater, server/archive, OpenGauge vehicle, offline-map
@@ -4252,7 +4286,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   routes/participants, and implementation-specific deployment details outside
   the public boundary.
 
-### First-release capacity boundary
+### OT-026 First-release capacity boundary
 
 - Fixed the planned v0 ceiling at eight active clients in one group plus at
   most one optional authorized repeater. The repeater is not a client and
@@ -4307,7 +4341,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   protected integrity/rollback, target locking, physical interruption,
   endurance, packet-v1, and on-device evidence remain open.
 
-### Non-erasable map trust-domain storage boundary
+### OT-016AB Non-erasable map trust-domain storage boundary
 
 - Added a backend-neutral key/value adapter for the two exact 80-byte
   `OTMD/v0` slots with fixed `ot_state` / `ot_map_domain` / `otmd_a|b` binding
@@ -4320,7 +4354,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   ESP-IDF binding, protected rollback/authentication, target locking, physical
   interruption/endurance, and on-device evidence remain open.
 
-### NVS-ready multi-domain persistent storage boundary
+### OT-014A NVS-ready multi-domain persistent storage boundary
 
 - Added a backend-neutral adapter for the four existing 64-byte persistence
   domains, with separate `ot_config`, `ot_secret`, `ot_proto`, and `ot_counter`
@@ -4335,7 +4369,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   authentication, rollback protection, power interruption, and endurance
   remain open.
 
-### NVS-ready replay checkpoint storage boundary
+### OT-008D NVS-ready replay checkpoint storage boundary
 
 - Added a backend-neutral key/value adapter for the two context-bound
   `ODS0/v1` replay slots with exact `ot_state` / `ot_replay` / `ods_dup_a|b`
@@ -4348,7 +4382,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   namespace access, target locking, authentication, rollback protection,
   physical power interruption, and endurance remain open.
 
-### NVS-ready update checkpoint storage boundary
+### OT-019C NVS-ready update checkpoint storage boundary
 
 - Added a backend-neutral key/value adapter for the recoverable two-slot
   `OTU0/v0` store with exact `ot_state` / `ot_update` / `otu_chk_a|b` binding
@@ -4361,7 +4395,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   partition/security configuration, target locking, hardware-backed trust,
   power interruption, and endurance remain open.
 
-### Domain-aware map runtime transitions
+### OT-016AA Domain-aware map runtime transitions
 
 - Added the runtime boundary after domain-aware trial boot. It handles healthy
   trial reads and promotion, trial deadline/failure, valid fallback completion,
@@ -4381,7 +4415,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
 
 ## 2026-08-11
 
-### Restart-safe domain-aware map trial boot
+### OT-016Z Restart-safe domain-aware map trial boot
 
 - Added the restart boundary after domain-aware candidate entry. It accepts
   only exact synchronized durable state or either single-generation gap that
@@ -4396,7 +4430,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   host matrix including publication safety. Promotion, fallback completion,
   cleanup, protected target adapters, and physical evidence remain open.
 
-### Domain-aware map candidate entry
+### OT-016Y Domain-aware map candidate entry
 
 - Added the runtime entry from one stable active map to a privately persisted
   alternate-slot trial. The coordinator derives current generation from active
@@ -4412,7 +4446,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   promotion, fallback completion, cleanup, protected target adapters, and
   physical evidence remain open.
 
-### Read-only active map trust-domain boot
+### OT-016X Read-only active map trust-domain boot
 
 - Added the restart boundary for an already-active stable trust domain. It
   requires exact agreement among the active `OTMD/v0` record, protected domain
@@ -4429,7 +4463,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   host matrix passes locally including publication safety. Candidate/trial/
   fallback/cleanup domain synchronization and physical target boot remain open.
 
-### Recoverable stable map trust-domain activation
+### OT-016W Recoverable stable map trust-domain activation
 
 - Added the stable-baseline activation coordinator for a provisioned pending
   trust domain. Fresh commissioning uses selector generation 1; replacement
@@ -4448,7 +4482,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   fallback/cleanup synchronization, protected target adapters, and physical
   power-cut evidence remain open.
 
-### Authorized map trust-domain provisioner
+### OT-016V Authorized map trust-domain provisioner
 
 - Added the sole common-code consumer for the protected-domain permit. It burns
   exact binding, boot-session, and checked-time authority before any I/O and
@@ -4467,7 +4501,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   credentials/continuity/entropy, exclusive target tasking, physical power-cut
   evidence, and active-domain completion remain open.
 
-### Recoverable map trust-domain lifecycle store
+### OT-016U Recoverable map trust-domain lifecycle store
 
 - Added a separate two-slot storage boundary for exact 80-byte `OTMD/v0`
   records; it does not share keys, slots, erase, or reset authority with the
@@ -4487,7 +4521,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   consuming provisioner, cross-store ordering, target locking, and physical
   durability remain open.
 
-### Canonical map trust-domain lifecycle record
+### OT-016T Canonical map trust-domain lifecycle record
 
 - Added fixed 80-byte `OTMD/v0` instead of breaking the existing 64-byte
   `OTM0/v0` selector checkpoint or squeezing a truncated domain into its six
@@ -4502,7 +4536,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   including publication safety. Recoverable domain-record storage, a permit
   consumer/provisioner, target locking, and physical durability remain open.
 
-### Protected map-domain authorization handoff
+### OT-016S Protected map-domain authorization handoff
 
 - Added separate same-device replacement and blank-new-device commissioning
   scopes derived from the reset/replacement policy before backend access.
@@ -4519,7 +4553,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   reset/provision executor, concrete credentials, target lock, or physical
   result exists.
 
-### Map-selector reset and device-replacement boundary
+### OT-016R Map-selector reset and device-replacement boundary
 
 - Separated ordinary factory reset, authorized selector reseed, same-device
   protected-source recovery, and whole-device commissioning into four explicit
@@ -4537,7 +4571,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   physical continuity detector, external recovery authority, fresh-domain
   provisioner, target executor, or on-device result is claimed.
 
-### Protected-generation map-selector service reseed
+### OT-016Q Protected-generation map-selector service reseed
 
 - Added a service-recovery composition that derives the reviewed floor from
   protected history before selector access and requires the existing single-use
@@ -4554,7 +4588,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   backends, reset/replacement authority, target locking, physical durability,
   and on-device results remain open.
 
-### Protected-generation map-selector first baseline
+### OT-016P Protected-generation map-selector first baseline
 
 - Added a first-use composition that inspects protected history before selector
   access and permits only an exact clean `no_selector` owner with zero history.
@@ -4571,7 +4605,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   protected backend, reset/replacement authority, target/package locking,
   physical durability, and on-device results remain open.
 
-### Protected-generation map-selector candidate replacement
+### OT-016O Protected-generation map-selector candidate replacement
 
 - Added a replacement composition that derives both selector generation values
   from protected history before selector-store access.
@@ -4586,7 +4620,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   a concrete protected backend, target/package-slot locking, physical
   durability, and on-device results remain open.
 
-### Protected-generation map-selector runtime transitions
+### OT-016N Protected-generation map-selector runtime transitions
 
 - Added a runtime composition that obtains both the current selector generation
   and rollback floor from the protected-generation source before selector-store
@@ -4603,7 +4637,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   composition, a concrete protected backend, target locking, physical
   durability, and on-device results remain open.
 
-### Protected-generation map-selector boot composition
+### OT-016M Protected-generation map-selector boot composition
 
 - Added the first map coordinator that derives its rollback floor directly
   from the protected-generation boundary instead of accepting it from an
@@ -4620,7 +4654,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   No protected backend, ESP-IDF composition, physical durability, hardware
   counter, reset/replacement authority, or on-device result is claimed.
 
-### Protected map-selector trusted-generation boundary
+### OT-016L Protected map-selector trusted-generation boundary
 
 - Added a backend-neutral source contract whose mutation must atomically match
   the exact current generation before advancing to a strictly greater value.
@@ -4635,7 +4669,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   protected backend, target composition, reset/replacement authority, hardware
   counter, ESP-IDF implementation, or physical anti-rollback result is claimed.
 
-### Single-use local-service authorization for map reseed
+### OT-016K Single-use local-service authorization for map reseed
 
 - Replaced the reseed coordinator's five caller-created booleans with a
   non-copyable permit minted only through an injected authorization backend.
@@ -4653,7 +4687,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   matrix passes. No credential verifier, target service UI, protected replay
   store, audit backend, or on-device authentication is claimed.
 
-### NVS-ready map selector key/value boundary
+### OT-016J NVS-ready map selector key/value boundary
 
 - Fixed one backend-neutral selector binding: `ot_state` partition label,
   `ot_maps` namespace, and exact 64-byte `otm_sel_a` / `otm_sel_b` blobs.
@@ -4670,7 +4704,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   100/100 repeats and the complete 67-executable host matrix passed; the newer
   authorization section above supersedes the current matrix count.
 
-### Authorized map selector service reseed
+### OT-016I Authorized map selector service reseed
 
 - Added a separate service-only coordinator for dirty or previously used map
   selector state; clean first use and healthy active replacement remain routed
@@ -4688,7 +4722,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   post-clear selector race remain mapless. All eight map suites pass 100/100
   repeats, and the complete 66-executable host matrix passes.
 
-### Restart-safe first map baseline
+### OT-016H Restart-safe first map baseline
 
 - Added a first-use coordinator that accepts only a clean `no_selector`
   mapless guard, exact policy, fully evidenced package, two readable empty
@@ -4706,7 +4740,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   the inspect/save race. All six affected suites pass 100/100 repeats; the full
   65-executable matrix is the publication gate.
 
-### Safe replacement-map candidate ordering
+### OT-016G Safe replacement-map candidate ordering
 
 - Added a typed candidate coordinator for replacing one stable active map with
   externally staged and fully evidenced alternate-slot package bytes.
@@ -4727,7 +4761,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   store suites each pass 100/100 focused repeats; the full 64-executable matrix
   is the publication gate.
 
-### Verified runtime map transition persistence
+### OT-016F Verified runtime map transition persistence
 
 - Added read-only exact live-checkpoint verification to the two-slot store; a
   stale or arbitrary in-memory guard cannot become the next durable state.
@@ -4743,7 +4777,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   repeats. No physical storage, package deletion, renderer, target task, or
   on-device behavior is claimed.
 
-### Persist-before-exposure map selector boot
+### OT-016E Persist-before-exposure map selector boot
 
 - Added a typed boot coordinator that restores only into a private map guard
   and releases stable, trial, fallback, or mapless state through explicit
@@ -4760,7 +4794,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
 - Passed ten coordinator groups and 100/100 focused repeats under strict C++17
   warnings-as-errors. No physical or on-device boot result is claimed.
 
-### Recoverable map selector store
+### OT-016D Recoverable map selector store
 
 - Reserved `OTM0` byte 59 as commit marker `0xA5`; CRC covers the committed
   form, so a complete prepared record with zero there is explicitly invalid.
@@ -4777,7 +4811,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   No physical backend, atomicity/endurance/power-loss result, authentication,
   target filesystem, renderer, display, or on-device behavior is claimed.
 
-### Restart-safe map selector checkpoint
+### OT-016C Restart-safe map selector checkpoint
 
 - Added canonical 64-byte `OTM0/v0` for stable, candidate-trial, and fallback-
   required map state with abstract slots/generations, bounded trial policy,
@@ -4794,7 +4828,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   or free text. CRC is not authentication/anti-rollback; durable two-slot
   storage, trusted generation, filesystem integration, and hardware remain.
 
-### Fail-safe offline map activation policy
+### OT-016B Fail-safe offline map activation policy
 
 - Added a fixed-memory C++ guard for mapless/active/staged/trial/fallback state
   without selecting a filesystem, selector record, renderer, or target.
@@ -4810,7 +4844,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
 - This is lifecycle-policy evidence, not authentication, selector durability,
   storage/renderer integration, received-display, or on-device evidence.
 
-### Offline map package manifest and verifier
+### OT-016A Offline map package manifest and verifier
 
 - Added strict `OTMP0/v0` metadata for source/licence/offline rights/visible
   attribution, experimental container/encoding/scheme, Web Mercator coverage,
@@ -4830,7 +4864,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
 - The tests use synthetic bytes. No real map data, provider, package approval,
   received display, or target result is claimed.
 
-### Offline-map architecture gate
+### OT-016 Offline-map architecture gate
 
 - Rechecked current OSMF policy and made the public OpenStreetMap tile servers
   an explicit non-source for offline packs. Any package requires a provider or
@@ -4866,7 +4900,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   safety gate in the complete local host run. The exact published increment
   passes in GitHub Actions run `31502841481`.
 
-### Strict offline update-recovery diagnostic decoder
+### OT-019B Strict offline update-recovery diagnostic decoder
 
 - Added a checked host parser for the exact uppercase
   `OTRD0=XXXXXXXX` logger record. Wrong length/prefix/case/hex, unsupported
@@ -4883,7 +4917,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   Python/publication-safety check. Target log binding, accessible rendering,
   execution authority, and physical recovery evidence remain separate gates.
 
-### Strict offline position UI diagnostic decoder
+### OT-012I Strict offline position UI diagnostic decoder
 
 - Added a checked host parser for the exact uppercase
   `OTPD0=XXXXXXXX` logger record. It rejects wrong length/prefix/case/hex,
@@ -4901,7 +4935,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   Python/publication-safety check. Target log binding and physical service
   capture remain separate gates.
 
-### Privacy-safe position UI diagnostic event
+### OT-012H Privacy-safe position UI diagnostic event
 
 - Added the versioned 32-bit `OTPD0/v0` adapter for one validated
   position-sharing UI coordinator result. It normalizes presentation, observed
@@ -4924,7 +4958,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   retention/export/clear policy, persistence, and physical
   service evidence remain open.
 
-### Observed position-state refresh before input
+### OT-012G Observed position-state refresh before input
 
 - Extended the single-owner position UI service to remember the last
   successfully presented semantic frame and compare it with current live
@@ -4944,7 +4978,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   ESP-IDF task/lock serialization, renderer behavior, physical display/input,
   and real concurrent service timing remain open.
 
-### Single-owner position-sharing UI coordination
+### OT-012F Single-owner position-sharing UI coordination
 
 - Added one cooperative owner for position frame revisions, current live
   presentation, one checked input poll, coordinator-owned Start/Stop, and the
@@ -4963,7 +4997,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   renderer/retry UX, reboot policy, diagnostics, physical input, and concurrency
   remain open.
 
-### Checked-time outbound position commands
+### OT-012E Checked-time outbound position commands
 
 - Moved target-facing Start/Stop authority into the outbound coordinator. Start
   now obtains one checked sample when the action is applied; callers cannot
@@ -4983,7 +5017,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   concrete clock binding, rendered retry UX, reboot behavior, and physical
   input remain open.
 
-### Fail-visible outbound position safety
+### OT-012D Fail-visible outbound position safety
 
 - Added a target-facing position presentation overload that requires both
   scheduler and outbound-runtime status. A coherent latched clock rollback
@@ -5002,7 +5036,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   Python/publication-safety check. Exact renderer, target synchronization,
   reboot recovery, and physical input remain open.
 
-### Checked-time outbound service coordination
+### OT-003F Checked-time outbound service coordination
 
 - Added one fixed-memory cooperative coordinator that reads the guarded
   boot-local clock once and uses that exact value for active-sharing location,
@@ -5022,7 +5056,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   ordering, not ESP-IDF task/concurrency, inbound processing, authentication,
   target adapters, or physical-radio evidence.
 
-### Loss-aware priority-to-delivery handoff
+### OT-010A Loss-aware priority-to-delivery handoff
 
 - Added a fixed-memory, single-owner handoff that peeks the strict-priority/FIFO
   head and removes it only after `DeliveryController` accepts the exact frame.
@@ -5040,7 +5074,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   unauthenticated packet-v0 composition, not real-coordinate or physical-radio
   evidence.
 
-### Experimental position packet and priority admission
+### OT-012C Experimental position packet and priority admission
 
 - Added a fixed-memory sink that revalidates only canonical current-position
   payloads, obtains injected ephemeral packet-v0 metadata, encodes the exact
@@ -5057,7 +5091,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   plus every Python/publication-safety check passes. This is explicitly
   unauthenticated packet-v0 host evidence, not real-coordinate or radio use.
 
-### Local position-sharing privacy control
+### OT-012B Local position-sharing privacy control
 
 - Added fixed semantic notices for stopped, active, waiting-for-fix, deferred,
   and failed position sharing, plus explicit start/stop actions through the
@@ -5073,7 +5107,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   safety check. Exact renderer/text, target synchronization, direct radio/GPS
   composition, and physical privacy UX remain open.
 
-### Start/stop position broadcast scheduling
+### OT-012A Start/stop position broadcast scheduling
 
 - Added a fixed-memory scheduler around the existing canonical 16-byte position
   payload. It starts only by explicit command, stops immediately, and treats
@@ -5089,7 +5123,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   authenticated packet/priority composition, direct radio/GPS binding, field
   behavior, and regulatory acceptance remain open.
 
-### Fail-visible update recovery presentation
+### OT-019A Fail-visible update recovery presentation
 
 - Connected decoded `OTRD0/v0` outcomes to the existing fixed semantic UI
   frame instead of introducing a parallel renderer or free-form recovery text.
@@ -5256,7 +5290,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   rollback storage, and physical interruption/recovery evidence explicitly
   open.
 
-### Verified protected-fragment reassembly
+### OT-006C Verified protected-fragment reassembly
 
 - Added a fixed-memory reassembler that accepts only future crypto-adapter-
   produced verified fragment metadata/plaintext and never parses raw radio
@@ -5270,7 +5304,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   receiver replay persistence, retry behavior, target resources, and physical
   evidence open.
 
-### Critical-alert protected-radio feasibility
+### OT-006B Critical-alert protected-radio feasibility
 
 - Applied the corrected signed-group profile to the real 64-byte `OGA0` alert
   and `OGK0` ACK instead of assuming either would fit one radio frame.
@@ -5283,7 +5317,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   signature scope, nonce/replay/reassembly, ACK/retry, bounded-resource, target,
   and regulatory gates close.
 
-### Protected-header destination reconciliation
+### OT-005F Protected-header destination reconciliation
 
 - Stopped before encoding the 36-byte candidate header because it could not
   carry both the forwarding policy's authenticated 64-bit destination alias and
@@ -5296,7 +5330,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
 - Kept final offsets, flags/types, fragment/reassembly rules, signature coverage,
   AEAD, destination privacy, and packet-v1 approval open.
 
-### Canonical traffic-key derivation context
+### OT-005E Canonical traffic-key derivation context
 
 - Added the fixed 52-byte `OTKD/v1` public context for a future audited KDF.
 - Bound nonzero group ID, epoch, full authoritative sender fingerprint, and
@@ -5307,7 +5341,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
 - Kept epoch secrets, KDF selection, secret outputs, wiping, independent
   vectors, AEAD, and target evidence behind the exact-device benchmark gate.
 
-### Lease-bound AEAD nonce composition
+### OT-005D Lease-bound AEAD nonce composition
 
 - Added an algorithm-neutral 96-bit nonce composer that requires the durable
   counter lease and traffic key to carry the same nonzero 128-bit domain.
@@ -5319,7 +5353,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
 - Kept KDF/key/prefix derivation, AEAD, packet-v1, target storage, and library
   selection behind OT-005's exact-target benchmark gate.
 
-### Hardware and US regulatory reconciliation
+### OT-003A Hardware and US regulatory reconciliation
 
 - Reconciled the two runtime-identified Heltec V4 OLED companions and the Seeed
   SenseCAP Solar repeater against official manufacturer family documentation
@@ -5333,7 +5367,7 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   transmit power does not independently prove Part 15 authorization for the
   62.5 kHz MeshCore mode.
 
-### Portable-client composition and whole-contract review
+### OT-003E Portable-client composition and whole-contract review
 
 - Added a hardware-independent composition preflight for the first self-
   contained portable client. It binds radio, GPS, diagnostics, two distinct

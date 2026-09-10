@@ -54,6 +54,10 @@ OT task reports to the README, architecture, project status, or backlog.
   heading per day and individual `### OT-123 Description` entries underneath.
   Add to the existing day; do not repeat the date per task or combine task IDs
   into a range heading. Preserve historical facts, ordering, and evidence links.
+  Use the registered backlog ID whose scope actually covers the work. Register
+  distinct work before logging it; never repurpose a closed task as a general
+  umbrella. Updates within the same task may reuse its ID. Preserve immutable
+  evidence identifiers when correcting a progress heading.
 - `docs/decisions/`: durable decisions that constrain future work.
 - `docs/testing/` and `tests/hardware/`: detailed validation and hardware evidence.
 - `docs/V1_PROGRESS.json`: the sole weighted V1 completion record.
