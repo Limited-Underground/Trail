@@ -124,12 +124,14 @@ checks and ordinary/hostile runtime probes pass. The typed package is sealed;
 actual-image composition used synthetic devices and retained originals were
 checked offline. Required GitHub checks and publication passed. See
 [input diagnostics](testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md).
-The fresh input-trial preflight passed both backups and package admission, but
-automatic approval review blocked the exact new firmware/NVS write before launch.
-Both originals passed guarded readback/reset; no candidate was flashed. Explicit
-trial approval and fresh backup custody remain required. See
-[preflight and release](testing/OT-199-INPUT-TRIAL-2026-09-11.md).
-Diagnostic hardware timing remains untested; host timing is not an actual boot clock.
+After explicit exact-image approval, the fresh input trial recorded
+`input_result / invalid_length` on A. Its host accepted all 63 command bytes but
+received no reply. Exact originals and protected regions restored/readback-verified;
+A restarted. B was not flashed and passed guarded original readback/reset.
+Host and firmware specify the same 63-byte frame. The wrong accumulated length's
+cause remains unknown; investigate startup readiness and receiver framing together.
+Host reset-return-to-RUN timing is not device boot timing. See
+[trial and restoration evidence](testing/OT-199-INPUT-TRIAL-2026-09-11.md).
 The specific earlier cause remains unknown and no security pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 

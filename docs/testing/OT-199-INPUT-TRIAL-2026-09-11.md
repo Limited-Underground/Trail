@@ -1,12 +1,12 @@
 # OT-199 controlled input-diagnostic trial
 
-Status: **fresh backup and package admission passed; both originals verified and released; candidate trial NOT RUN, awaiting exact approval.**
+Status: **resumed trial completed with `invalid_length`; both originals returned, B unflashed. No policy pass.**
 
 ## Purpose and admitted software
 
 The [OT-197 trial](OT-197-STAGE-TRIAL-2026-09-11.md) stored `input_result / input_refused` while the host received no receipt. It did not distinguish input timeout, parser refusal, loop exhaustion or console fault. The proposed sequential nonradio trial uses the OT-198 successor's fixed input reasons and independent host timing to narrow that observation without changing strict receipt acceptance.
 
-The owner's continuation requested the fresh sequential trial described in the preceding proposal. Automatic approval review rejected its execution launch before process creation because exact-image hardware approval was required. That approval remains pending. No execution grant, execution journal or candidate write was created. The authorized guarded original readback/reset release passed for both roles. Both snapshots are now stale; capture and release grants are consumed, with no active locks remaining. Earlier grants and stale snapshots provide no authority or fresh custody.
+At the initial checkpoint, the owner's continuation requested the fresh sequential trial described in the preceding proposal. Automatic approval review rejected its execution launch before process creation because exact-image hardware approval was required. Approval was pending at that checkpoint. No execution grant, execution journal or candidate write was created during that initial attempt. The authorized guarded original readback/reset release passed for both roles. Both snapshots are now stale; capture and release grants are consumed, with no active locks remaining. Earlier grants and stale snapshots provide no authority or fresh custody.
 
 | Input | Verified identity |
 | --- | --- |
@@ -26,7 +26,7 @@ Fresh original application/full-NVS backups and protected baselines must pass fo
 
 A must complete original application/full-NVS restoration, protected readback and guarded reset before B receives a candidate. On A failure, B remains unflashed and receives the separately scoped guarded original readback/reset release. Uncertain serial closure blocks ROM access. Original-reset uncertainty blocks replay of stale NVS. Diagnostic capture failure cannot convert an unsuccessful restoration into success or suppress required recovery.
 
-## Firmware-porting preflight
+## Initial checkpoint: firmware-porting preflight
 
 | Required area | Applied evidence and remaining boundary |
 | --- | --- |
@@ -40,7 +40,7 @@ A must complete original application/full-NVS restoration, protected readback an
 
 This applies the [firmware-porting lessons](../firmware-porting-lessons.md). Reused host/build evidence does not establish a policy pass or physical timing acceptance.
 
-## Physical observations and closure
+## Initial checkpoint: preflight observations and release
 
 The [sanitized preflight and release record](../../tests/hardware/OT-199-INPUT-PREFLIGHT-2026-09-11.json) owns the machine-readable outcome.
 
@@ -53,4 +53,27 @@ The [sanitized preflight and release record](../../tests/hardware/OT-199-INPUT-P
 
 Keep strict receipt acceptance separate from the stored stage/error and host timing projection. A valid stored record does not prove persistence acknowledgment, USB delivery or the next operation's execution. Timing reports reset-call, reset-return/open and RUN intervals from an independent host clock; they expose no absolute epoch and do not measure actual hardware boot. Transport write acceptance alone does not prove the firmware received the command. No new policy receipt, input-reason marker or host timing was observed. No policy pass, physical root cause, completion credit or public website capability change is established.
 
-Next obtain explicit approval for the exact OT-198 diagnostic trial, then establish fresh live backup custody and new one-use authority. Released snapshots and consumed grants cannot be reused.
+The next gate at this initial checkpoint was explicit exact-image approval followed by fresh live backup custody and new one-use authority. That approval and new custody preceded the resumed attempt below; the initial released snapshots and consumed grants were not reused.
+
+
+## Resumed attempt after explicit approval
+
+The owner explicitly approved the exact input-diagnostic trial before a new backup capture. This resumed attempt used fresh custody and new authority; it did not reuse the released snapshots or consumed grants described above. Both new original backups, diagnostic namespace absence checks and complete package admission passed.
+
+A received the exact candidate application, passed candidate verification and booted. The host transport accepted 63 command bytes, then received zero bytes across 104 reads over 30,000 ms. Strict capture ended without an accepted receipt. After confirmed serial closure, the separate full-NVS observation decoded `input_result / invalid_length`.
+
+A's original application and full NVS were restored and verified, protected-region checks passed, and its original reset completed. B was not flashed. Its guarded original-region readback and reset passed with `reset_nvs_stale`. Both originals are returned; all issued capture, execution and release grants are consumed, both snapshots are stale, and no active locks remain. No separate recovery or physical retry was required. The [resumed trial outcome](../../tests/hardware/OT-199-INPUT-TRIAL-2026-09-11.json) records these results.
+
+| Independent host timing for A | Milliseconds |
+| --- | --- |
+| Candidate reset call | 34,489 |
+| Reset return to open intent | 12 |
+| Endpoint open call | 22 |
+| Open return to RUN intent | 7 |
+| Reset return to RUN intent | 42 |
+
+These measurements use the independent host clock. They do not locate actual hardware boot inside the reset call. Individually truncated millisecond intervals need not add exactly to the total. Transport acceptance also does not prove all bytes arrived at the firmware.
+
+Static comparison shows that the host command and firmware's expected command each contain 63 raw bytes; the path does not perform CRLF conversion. The stored reason indicates that the firmware parser rejected a received frame length. The cause of that differing received length remains unknown: the observation does not identify missing bytes, extra bytes, their origin or a specific USB fault. No new policy pass or security acceptance is established.
+
+Next investigate received frame length and startup readiness together with bounded diagnostics and actual host/console composition. Preserve strict framing and independent original restoration; another physical attempt requires fresh admission.
