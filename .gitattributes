@@ -585,3 +585,11 @@ tests/hardware/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.json -text
 
 # OT-194 actual-source lifecycle fixture bytes.
 tests/host/security_policy_lifecycle/** -text
+
+# OT-195 diagnostic source and contract bytes.
+firmware/targets/heltec_v4_security_policy_diag/** -text
+firmware/components/security_diagnostics/** -text
+tests/host/security_policy_stage/** -text
+tests/benchmarks/crypto/OT-195-*.json -text
+tests/host/fixtures/security_policy_stage/** -text
+tests/host/security_policy_stage*.py -text

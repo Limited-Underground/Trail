@@ -1,0 +1,6 @@
+key,type,encoding,value
+normal,namespace,,
+value,data,u32,42
+text,data,string,synthetic
+ot195diag,namespace,,
+stage,data,u64,15432428582491771285
