@@ -58,7 +58,7 @@ The executable one-use capture/recovery composition now passes host tests for
 source and payload binding, strict serial capture, durable interruption barriers
 and exact original application/full-NVS restoration. See the
 [capture and recovery evidence](testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md).
-This establishes software preparation only; no live snapshots or grants were created.
+That checkpoint established software preparation; the later bounded trial is recorded below.
 
 An isolated private operator runtime now passes external startup-file checks,
 parent/child import verification and poisoned-environment probes. Its ROM child
@@ -72,10 +72,17 @@ expected originals and runtime; original reset invalidates executable NVS freshn
 Interrupted no-write trials can be reconciled without fabricated execution events.
 See [backup custody evidence](testing/OT-190-BACKUP-CUSTODY-2026-09-10.md).
 
-Next establish fresh per-device inventory, installed-region checks and complete
-private originals under exact read/reset/hold authority, then admit the bound
-nonradio evaluation. No live snapshots or current grants exist from this work. The
-[eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains the
+Live backups subsequently passed on both roles. In the bounded nonradio trial,
+role A's candidate image verified and its reset completed, but no solicited
+receipt was accepted.
+Its original application/full NVS restored and readback-verified before reset;
+role B was never flashed and passed guarded original readback/reset. No active
+locks remain. The old snapshots are stale after reset; no security pass is claimed.
+See [the trial outcome](testing/OT-191-BACKUP-LAUNCH-2026-09-10.md).
+
+Next diagnose absent/rejected receipt capture before any newly admitted physical
+attempt. The complete host validation matrix passed. The
+[eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 
 Historical raw-capture custody remains unestablished for the older libsodium and

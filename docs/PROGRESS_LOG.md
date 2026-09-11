@@ -2,6 +2,18 @@
 
 ## 2026-09-10
 
+### OT-191 Correct backup launch and complete the bounded preflight trial
+
+Fixed backup child launch after proving the initial attempts performed no serial
+I/O. Renewed backups passed on both roles. Role A's candidate verified and reset,
+but no solicited receipt was accepted. Its full original application/NVS restored
+and verified before reset. Role B was never flashed and passed guarded original
+readback/reset. No active locks remain; snapshots are stale after those resets.
+
+See [launch correction and physical outcome](testing/OT-191-BACKUP-LAUNCH-2026-09-10.md).
+The complete host matrix passed; receipt diagnosis remains open. This is not a security
+pass; no V1 completion credit or public website status change.
+
 ### OT-190 Compose initial backup custody, handoff and reset-only release
 
 Added the initial backup controller and isolated operator integration together.

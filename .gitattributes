@@ -576,3 +576,6 @@ tests/benchmarks/crypto/OT-189-*.json -text
 
 # OT-190 backup custody evidence preserves exact source pins.
 tests/benchmarks/crypto/OT-190-*.json -text
+
+# OT-191 bounded hardware outcome preserves exact evidence bytes.
+tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json -text
