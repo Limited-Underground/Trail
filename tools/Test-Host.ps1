@@ -2799,6 +2799,12 @@ if ($LASTEXITCODE -ne 0) { throw 'security_policy_replay_tests.py failed.' }
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_nvs_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_nvs_tests.py failed.' }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_lifecycle_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_lifecycle_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_console_lifecycle_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_console_lifecycle_tests.py failed.' }
+
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_target_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_target_tests.py failed.' }
 

@@ -134,10 +134,10 @@
         "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
         "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
         "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
-        "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md",
+        "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md",
         "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
       ],
-      "next_gate": "OT-193 fresh backups and a single nonradio diagnostic trial completed with A restored and verified and untouched B guarded-released. The host transport accepted 63 command bytes but received zero bytes in 94 reads over 30 seconds; no receipt or security pass was accepted. Serial closure and original application/full-NVS restoration passed; active locks are absent and snapshots are stale. Next test the actual-source startup, command-input and console lifecycle with bounded stage diagnostics; firmware consumption and the physical cause remain unknown. No further hardware attempt is admitted. Historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open; same-key resume and deferred cold-power work remain unaccepted."
+      "next_gate": "OT-194 actual-source application, control and console lifecycle tests distinguish silent pre-evaluation exits, cleanup and output failures using simulated device services. The actual policy session, persistence and scalar crypto execute; three tests link the actual app and console. All 33 OT-187 source pins remain unchanged. No selected startup/configuration contradiction or physical root cause is established. Next prepare an additive stage-diagnostic target and bounded observation contract, validate composed source and matched builds, then propose fresh physical admission. No security acceptance, entropy-quality or interrupted-persistence proof is added. Historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 and explicit selection remain open; old snapshots and grants cannot be reused."
     },
     {
       "id": "core-firmware",
@@ -356,10 +356,10 @@
             "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
             "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
             "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
-            "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md",
+            "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md",
             "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
           ],
-          "next_gate": "OT-193 fresh backups and a single nonradio diagnostic trial completed with A restored and verified and untouched B guarded-released. The host transport accepted 63 command bytes but received zero bytes in 94 reads over 30 seconds; no receipt or security pass was accepted. Serial closure and original application/full-NVS restoration passed; active locks are absent and snapshots are stale. Next test the actual-source startup, command-input and console lifecycle with bounded stage diagnostics; firmware consumption and the physical cause remain unknown. No further hardware attempt is admitted. Historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open; same-key resume and deferred cold-power work remain unaccepted."
+          "next_gate": "OT-194 actual-source application, control and console lifecycle tests distinguish silent pre-evaluation exits, cleanup and output failures using simulated device services. The actual policy session, persistence and scalar crypto execute; three tests link the actual app and console. All 33 OT-187 source pins remain unchanged. No selected startup/configuration contradiction or physical root cause is established. Next prepare an additive stage-diagnostic target and bounded observation contract, validate composed source and matched builds, then propose fresh physical admission. No security acceptance, entropy-quality or interrupted-persistence proof is added. Historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 and explicit selection remain open; old snapshots and grants cannot be reused."
         },
         {
           "id": "core-firmware",
@@ -1352,6 +1352,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-193 records fresh two-role backup custody and one nonradio diagnostic trial: 63 transport-accepted command bytes, zero received bytes over 94 reads and 30 seconds, receipt timeout and confirmed serial closure. A original application/full NVS was restored and verified; untouched B passed guarded original checks and reset. A prelaunch inventory refusal caused by reviewer-generated bytecode was corrected before any trial I/O. No security pass or physical root cause is established; next is actual-source startup/input/console lifecycle diagnosis. All milestone values and weights remain unchanged; website capability status unchanged."
+        },
+        {
+          "date": "2026-09-11",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-194 host-only lifecycle diagnosis composes unchanged app/control/persistence/policy sources and real scalar crypto with simulated device services, including three actual app/console cases. Console fault injection distinguishes startup/input refusal and output failure; strict receipt crosschecks preserve identity, trailing-output and deadline rejection. Retained source/build audit finds no selected startup/configuration contradiction. No physical operation, security pass, root-cause conclusion or completion credit is added. Next is a separately validated stage-diagnostic target and bounded observation contract. Milestone values, weights and public website capability status remain unchanged."
         }
       ]
     },
@@ -1877,6 +1883,11 @@
       "date": "2026-09-11",
       "overall": 32,
       "reason": "OT-193 records fresh two-role backup custody and one nonradio diagnostic trial: 63 transport-accepted command bytes, zero received bytes over 94 reads and 30 seconds, receipt timeout and confirmed serial closure. A original application/full NVS was restored and verified; untouched B passed guarded original checks and reset. A prelaunch inventory refusal caused by reviewer-generated bytecode was corrected before any trial I/O. No security pass or physical root cause is established; next is actual-source startup/input/console lifecycle diagnosis. All milestone values and weights remain unchanged; website capability status unchanged."
+    },
+    {
+      "date": "2026-09-11",
+      "overall": 32,
+      "reason": "OT-194 host-only lifecycle diagnosis composes unchanged app/control/persistence/policy sources and real scalar crypto with simulated device services, including three actual app/console cases. Console fault injection distinguishes startup/input refusal and output failure; strict receipt crosschecks preserve identity, trailing-output and deadline rejection. Retained source/build audit finds no selected startup/configuration contradiction. No physical operation, security pass, root-cause conclusion or completion credit is added. Next is a separately validated stage-diagnostic target and bounded observation contract. Milestone values, weights and public website capability status remain unchanged."
     }
   ]
 }

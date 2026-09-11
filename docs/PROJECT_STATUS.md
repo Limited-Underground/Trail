@@ -96,9 +96,17 @@ Both active locks are absent and snapshots are stale after reset. The initial
 prelaunch inventory refusal was reconciled before the sole actual trial.
 See [diagnostic trial evidence](testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md).
 
-Next add an actual-source console/startup/input lifecycle diagnostic test before
-new physical admission. The physical cause remains unknown; no security pass is
-claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
+Host lifecycle tests now compose the unchanged application, command control,
+persistence and policy session with real scalar crypto and simulated device
+services. Three cases also link the actual console. Controlled faults distinguish
+silent input/startup exits, cleanup and receipt output failure, while strict
+capture retains its rejection rules. The retained build/source audit found no
+selected startup/configuration contradiction. See the
+[lifecycle evidence](testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md).
+
+Next prepare an additive stage-diagnostic target and bounded observation contract,
+with composed tests and matched builds before fresh physical admission. The
+physical cause remains unknown; no security pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 
 Historical raw-capture custody remains unestablished for the older libsodium and
