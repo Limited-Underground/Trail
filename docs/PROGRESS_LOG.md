@@ -17,6 +17,23 @@ trial remains blocked awaiting exact-scope approval and new backup custody.
 No policy result, refusal reason, timing acceptance, V1 credit or public website
 capability change. See [preflight evidence](testing/OT-199-INPUT-TRIAL-2026-09-11.md).
 
+#### Resumed exact-image trial
+
+Explicit approval for the exact OT-198 trial was accepted before fresh backup
+capture. The first actual trial wrote and verified A's candidate; its stored
+reason is `input_result / invalid_length`. The host accepted 63 command bytes
+but read zero bytes in 104 reads over 30 seconds. Exact original application and
+full NVS restoration, protected readbacks and restart passed. B was not flashed
+and passed guarded original readback/reset. Capture custody was independently
+verified; all issued grants are consumed and no active attempt remains.
+
+Host and firmware source both specify 63 raw bytes including LF. The marker
+establishes an unexpected accumulated length at LF, not the cause or exact count.
+Host reset-return-to-RUN was 42 ms; this is not actual device boot time. Next
+investigate startup readiness and receiver framing together. No policy pass,
+V1 credit or public website capability change. See the resumed section of the
+[trial report](testing/OT-199-INPUT-TRIAL-2026-09-11.md).
+
 ### OT-198 Distinguish input refusal branches and host lifecycle timing
 
 Added a separate diagnostic image with one compact stage record and exact input

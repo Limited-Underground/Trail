@@ -10,11 +10,11 @@ preserves all removed summaries and superseded sequencing; see the
 
 ## Current execution order
 
-1. Obtain explicit approval for the exact OT-198 input diagnostic trial, then
-   capture fresh originals under finite custody. The [preflight](../docs/testing/OT-199-INPUT-TRIAL-2026-09-11.md)
-   passed backup/package checks, but automatic approval review blocked the
-   firmware/NVS write. Both originals were guarded-released; those snapshots are
-   stale. OT-198 software publication and required checks are complete.
+1. Use the [verified invalid-length result](../docs/testing/OT-199-INPUT-TRIAL-2026-09-11.md)
+   to investigate startup readiness and receiver framing together. Both source
+   paths specify 63 raw bytes; actual accumulated length and corruption/delivery
+   cause remain unknown. A restored exactly and B was guarded-released. Preserve
+   strict framing and receipt acceptance; existing snapshots/grants are stale/consumed.
 2. Admit a fresh one-use physical trial and close applicable
    [security gates](../docs/testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md),
    Phase 3 admission and explicit crypto selection. Real trust provisioning,
@@ -48,7 +48,7 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
-| OT-199 | blocked | Controlled input diagnostic bench trial | Fresh backup/package checks passed; exact-image firmware/NVS execution approval pending. No candidate flashed. Both originals guarded-released, snapshots stale. See [preflight evidence](../docs/testing/OT-199-INPUT-TRIAL-2026-09-11.md). |
+| OT-199 | done | Controlled input diagnostic bench trial | Exact approval accepted; fresh trial A recorded input_result/invalid_length with no USB receipt. A restored and B unflashed/guarded-released. Wrong-length cause remains unknown. See [trial evidence](../docs/testing/OT-199-INPUT-TRIAL-2026-09-11.md). |
 | OT-198 | in progress | Distinguish input refusal and host command timing | Exact refusal branches, one U64 record, bounded host reset-return/open/RUN timing, focused suites and seven identical warning-free build artifact pairs pass. Composed operator/isolated dispatch and runtime probes pass; typed package sealed. Required full GitHub CI and publication pending; hardware untested, no policy acceptance. See [evidence](../docs/testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md). |
 | OT-197 | done | Controlled durable-stage physical trial | Fresh backups passed both roles. A recorded input_result/input_refused and no USB receipt; exact originals restored. B unflashed and guarded-released. Specific input cause and policy pass remain unestablished. See [trial evidence](../docs/testing/OT-197-STAGE-TRIAL-2026-09-11.md). |
 | OT-196 | done | Assemble the executable durable-stage diagnostic and recovery package | The successor binds exact image/source/runtime, fresh held custody, distinct authority, one-use observation and independent restoration. Focused composition, actual isolated parent/ROM-child probes and the complete host matrix pass; both accepted firmware builds rehash unchanged. No hardware trial, physical cause or security acceptance. See [operator package](../docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md). |
