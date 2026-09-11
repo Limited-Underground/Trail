@@ -55,6 +55,9 @@ class Transport:
 class Tests(unittest.TestCase):
     def setUp(self):
         execution_fixture.Tests.setUp(self)
+        # Private bundle helpers expect the canonical root normally supplied by _root.
+        # Windows temporary roots can use an alias spelling whose files resolve elsewhere.
+        self.root=self.root.resolve()
         for i,row in enumerate(self.data["roles"]):row["private_route"]="COM"+str(i+1)
         self.bindings=tuple(hardware.RoleBinding(r["role"],r["private_route"],r["private_identity"]) for r in self.data["roles"])
         self.ports=[SimpleNamespace(device=b.private_route,serial_number=b.private_identity,vid=0x303A,pid=0x1001) for b in self.bindings]
@@ -119,6 +122,26 @@ class Tests(unittest.TestCase):
         self.assertTrue(envelope["roles"])
         self.assertNotIn("PRIVATE",json.dumps(envelope))
         return envelope["roles"]
+    def test_lexical_temp_alias_requires_canonical_root(self):
+        # Model a Windows short-name alias without requiring enabled 8.3 names or
+        # creating a junction (production correctly refuses reparse points).
+        alias=self.root/"alias";canonical=self.root/"canonical-expanded-name"
+        for base in (alias,canonical):
+            (base/".private").mkdir(parents=True)
+            (base/".private/region.bin").write_bytes(b"fixture")
+        resolve=Path.resolve
+        def expanded(path,*args,**kwargs):
+            if path.is_relative_to(alias):
+                return resolve(canonical/path.relative_to(alias),*args,**kwargs)
+            return resolve(path,*args,**kwargs)
+        with patch.object(Path,"resolve",expanded):
+            with self.assertRaisesRegex(execution.bundle.BundleError,"^path_outside$"):
+                execution.bundle._path(alias,alias/".private/region.bin",True)
+            admitted=alias.resolve()
+            self.assertEqual(canonical,admitted)
+            self.assertEqual(admitted/".private/region.bin",
+                execution.bundle._path(admitted,admitted/".private/region.bin",True))
+
     def test_operator_actual_dispatch_success(self):
         rows=self.assert_envelope(self.run_worker(),"pass")
         self.assertTrue(all(r["receipt_accepted"] and r["close_confirmed"] for r in rows))

@@ -61,6 +61,15 @@ The complete affected host matrix passed, including the 32 diagnostic checks,
 8 operator composition tests and all 13 simulator UI checks. Documentation,
 publication-safety and raw-byte checkout gates pass.
 
+The first GitHub Windows run rejected four new operator fixtures at resolved-path
+containment: the fixtures passed an unresolved temporary root directly to a
+helper that expects the canonical root. The fixture now canonicalizes its root
+before creating descriptors. Production path checks and runtime sources are
+unchanged. The exact temporary-path alias spelling was not captured, so no
+specific Windows alias mechanism is claimed. A deterministic alias-resolution
+regression retains the real containment and non-reparse checks. All nine
+composition/path tests pass locally; required CI is rerun on the fix.
+
 ## Next admission gate
 
 The software validation gate is complete. Any later physical trial requires
