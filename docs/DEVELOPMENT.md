@@ -60,6 +60,15 @@ process path, compiles with C++17 and strict warnings-as-errors, and runs:
 - two-slot persistent-configuration version, CRC, migration, safe-default, secret-separation, wear, and power-loss tests; and
 - non-secret MeshCore temporary-channel lease, uncertain-response recovery, mismatch protection, and journal validation tests.
 
+The security-policy lifecycle suite downloads the exact pinned Espressif
+libsodium 1.0.22 archive and checksum inventory over HTTPS into its fresh
+ignored build directory. It verifies the archive, complete file inventory and
+source hashes before compiling; it does not depend on a retained ESP-IDF managed
+component cache. This test setup requires access to the official package host.
+The Windows authority tests also require CurrentUser DPAPI to be available in
+the account running the matrix. See the
+[lifecycle validation record](testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md).
+
 Generated executables live in per-run directories under ignored
 `build\host-tests` so a stale Windows process cannot block the next compile.
 

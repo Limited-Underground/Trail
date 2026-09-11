@@ -2,6 +2,26 @@
 
 ## 2026-09-11
 
+### OT-194 Diagnose the actual policy application and console lifecycle
+
+Added 22 application lifecycle groups, including three linked to the actual
+console, 12 console fault groups and four strict receipt rejection crosschecks.
+The unchanged application, control, persistence and policy session execute with
+real scalar crypto and simulated device services. Controlled failures distinguish
+silent startup/input exits, cleanup and receipt output failure. All 33 frozen
+OT-187 source pins remain exact; the retained build audit found no selected
+startup/configuration contradiction.
+
+The complete host matrix and 13 simulator UI checks passed under the normal
+Windows user. An initial sandbox DPAPI failure was isolated with the unchanged
+15-group suite; no test was disabled. The first CI run exposed a retained-source
+cache dependency; fresh pinned acquisition, 12 admission checks and actual alternate
+compiler validation correct that setup without changing the target. See
+[lifecycle evidence](testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md).
+Next prepare a separately validated stage-diagnostic target and bounded observation
+contract. No device operation, physical-cause conclusion, security pass, V1 credit
+or website capability change.
+
 ### OT-193 Complete the controlled diagnostic trial and restore originals
 
 Fresh backups passed on both roles. An initial launch refusal caught four
