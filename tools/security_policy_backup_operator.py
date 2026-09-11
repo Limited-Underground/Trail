@@ -105,7 +105,7 @@ def _handoff(root,ctx,req,data):
     operator.need(not execution.private_path(root,'security-policy-active.lock').exists()
         and not execution.private_path(root,'security-policy-grant-'+grant.attempt+'.used').exists())
     bindings = tuple(hardware.RoleBinding(r['role'],r['private_route'],r['private_identity']) for r in material['roles'])
-    backend = hardware.Backend(bindings,transport=operator.make_transport(ctx,source['path'],source['sha256']))
+    backend = operator.make_backend(ctx,bindings,operator.make_transport(ctx,source['path'],source['sha256']))
     execution.material(root,package,backend,False)
     operator.audit_loaded_modules(ctx)
     core.handoff(root,data,req['origin_attempt'],execution_attempt=grant.attempt,
@@ -113,8 +113,9 @@ def _handoff(root,ctx,req,data):
     # Already inside the identical process exclusion lock; frozen execution owns
     # its own exact grant consumption, active journal and per-write live readbacks.
     result = execution.execute.__wrapped__(root,package,authority,backend)
-    return {'status':result['status'],'operation':'handoff','hardware_access':True,
-            'roles':result.get('roles',[]),'backup_release_check_required':result['status'] != 'pass'}
+    envelope = {'status':result['status'],'operation':'handoff','hardware_access':True,
+                'roles':result.get('roles',[]),'backup_release_check_required':result['status'] != 'pass'}
+    return operator.with_diagnostics(ctx,backend,envelope)
 
 
 def run_rom(ctx,path,sha):

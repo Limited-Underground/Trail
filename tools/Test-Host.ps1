@@ -2768,6 +2768,12 @@ if ($LASTEXITCODE -ne 0) { throw 'security_policy_backup_tests.py failed.' }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_backup_operator_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_backup_operator_tests.py failed.' }
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_diagnostics_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_diagnostics_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_diagnostics_operator_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_diagnostics_operator_tests.py failed.' }
+
 
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_endpoint_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_endpoint_tests.py failed.' }

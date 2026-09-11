@@ -12,7 +12,7 @@ SCHEMA = "OT189-RUNTIME-1"
 PTH = b"Lib\nDLLs\npackages\npolicy\n"
 ESPTOOL_CONFIG = b"[esptool]\n"
 POLICY = tuple("security_policy_" + name + ".py" for name in
-               ("bundle", "hardware", "endpoint", "execution", "capture", "operator", "backup", "backup_operator")) + ("Invoke-SecurityPolicyOperator.ps1",)
+               ("bundle", "hardware", "endpoint", "execution", "capture", "operator", "backup", "backup_operator", "diagnostics")) + ("Invoke-SecurityPolicyOperator.ps1",)
 APPROVED = {"esptool": "5.3.1", "pyserial": "3.5", "bitstring": "4.4.0",
             "bitarray": "3.10.1", "tibs": "0.5.7", "cryptography": "46.0.7",
             "cffi": "2.1.1", "pycparser": "3.0", "reedsolo": "1.7.0", "pyyaml": "6.0.3",

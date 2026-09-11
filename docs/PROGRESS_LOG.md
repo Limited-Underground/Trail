@@ -2,6 +2,18 @@
 
 ## 2026-09-10
 
+### OT-192 Add bounded receipt diagnostics to execution and backup handoff
+
+Added a passive diagnostic observer around the frozen endpoint and integrated its
+sanitized result into isolated execution and backup handoff. Thirty-two differential
+and eight actual composition tests pass, including restoration after failed
+capture, unchanged operation status and diagnostic failure containment. Matching
+receipt bytes observed do not establish receipt acceptance or security success.
+
+See [diagnostic evidence](testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md).
+The full host matrix and successor runtime probes pass. No hardware
+attempt, grant, physical root-cause conclusion, V1 credit or website status change.
+
 ### OT-191 Correct backup launch and complete the bounded preflight trial
 
 Fixed backup child launch after proving the initial attempts performed no serial

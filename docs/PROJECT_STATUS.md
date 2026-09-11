@@ -80,8 +80,16 @@ role B was never flashed and passed guarded original readback/reset. No active
 locks remain. The old snapshots are stale after reset; no security pass is claimed.
 See [the trial outcome](testing/OT-191-BACKUP-LAUNCH-2026-09-10.md).
 
-Next diagnose absent/rejected receipt capture before any newly admitted physical
-attempt. The complete host validation matrix passed. The
+An additive receipt observer now has 32 passing differential tests and eight
+passing execution/operator composition tests. It records bounded, allowlisted
+stages and counts while preserving the frozen endpoint and restoration behavior.
+A matching receipt observed is distinct from an accepted receipt; this software
+work does not establish the historical failed capture's physical cause.
+See [receipt diagnostics](testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md).
+
+The complete host matrix and successor isolated-runtime probes pass.
+Next prepare fresh runtime-backed physical admission with current original/NVS
+custody and new one-use authority. No additional hardware attempt occurred. The
 [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 

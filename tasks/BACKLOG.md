@@ -14,7 +14,9 @@ preserves all removed summaries and superseded sequencing; see the
    [bounded backup/preflight trial](../docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md).
    Both original devices were restored or guarded-released; earlier snapshots are
    stale after reset. Preserve consumed grants and require new admission/current
-   originals before any later physical attempt. Complete the pending host gate.
+   originals before any later physical attempt. The new
+   [receipt diagnostics](../docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md)
+   host matrix and isolated-runtime probes pass; next prepare fresh physical admission.
 2. Admit a fresh one-use physical trial and close applicable
    [security gates](../docs/testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md),
    Phase 3 admission and explicit crypto selection. Real trust provisioning,
@@ -48,6 +50,7 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
+| OT-192 | done | Add bounded receipt diagnostics to isolated execution and backup handoff | Thirty-two differential and eight actual composition tests pass. Passive allowlisted diagnostics distinguish a matching receipt observed from a receipt accepted while preserving frozen capture/restoration behavior. Full host matrix and new isolated-runtime probes pass. No new hardware attempt, grant, physical cause determination or V1 credit. See [diagnostic evidence and next gate](../docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md). |
 | OT-191 | done | Correct backup child launch and complete bounded backup/preflight trial | Both-role backups passed. Role A candidate verified and reset but produced no accepted receipt; original application/full NVS and protected regions restored/readback-verified before original reset. Role B never flashed and passed guarded original readback/reset. No active locks remain; snapshots are stale after reset. Diagnose receipt capture before any new trial; the complete host validation matrix passed. No security pass, V1 credit or website status change. See [launch correction and physical outcome](../docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md). |
 | OT-190 | done | Compose initial backup capture, custody handoff and reset-only release | Host-tested read/reset-only controller and isolated child admission bind originals, private NVS custody, durable interruption and one-use handoff; guarded release reconciles verified no-write trial stops. New runtime probes and affected tests pass. No live backups or physical authority. See [custody evidence](../docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md). |
 | OT-189 | done | Verify isolated operator runtime and prepare physical trial scope | Private runtime binds interpreter, startup files and 18 dependency distributions; external prelaunch and isolated parent/ROM-child verification pass with host failure tests. Two-role read/reset and nonradio trial scopes are prepared. Initial backup controller, live custody and physical authority remain separate. See [runtime evidence](../docs/testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md). |
