@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-10. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-11. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -87,10 +87,18 @@ A matching receipt observed is distinct from an accepted receipt; this software
 work does not establish the historical failed capture's physical cause.
 See [receipt diagnostics](testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md).
 
-The complete host matrix and successor isolated-runtime probes pass.
-Next prepare fresh runtime-backed physical admission with current original/NVS
-custody and new one-use authority. No additional hardware attempt occurred. The
-[eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
+The complete host matrix and successor isolated-runtime probes pass. A fresh
+controlled diagnostic trial then received zero bytes across 94 reads/30 seconds
+after the transport accepted 63 command bytes. This does not prove firmware
+received or executed the command. A's original application/full NVS restored and
+verified before reset; B was never flashed and passed guarded readback/reset.
+Both active locks are absent and snapshots are stale after reset. The initial
+prelaunch inventory refusal was reconciled before the sole actual trial.
+See [diagnostic trial evidence](testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md).
+
+Next add an actual-source console/startup/input lifecycle diagnostic test before
+new physical admission. The physical cause remains unknown; no security pass is
+claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 
 Historical raw-capture custody remains unestablished for the older libsodium and

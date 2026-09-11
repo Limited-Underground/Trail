@@ -1,0 +1,104 @@
+{
+  "schema": "OT193-PHYSICAL-OUTCOME-1",
+  "at": "2026-09-11T13:36:47.474286+00:00",
+  "hardware": {
+    "model": "Heltec WiFi LoRa32 V4.2",
+    "mcu": "ESP32-S3",
+    "flash_bytes": 16777216,
+    "roles": 2,
+    "region_change": false,
+    "lora_used": false,
+    "cold_power": "deferred"
+  },
+  "backup": {
+    "status": "pass_both_roles",
+    "application_bytes_each": 589824,
+    "nvs_bytes_each": 12288,
+    "protected_bytes": [
+      32768,
+      4096,
+      8192
+    ],
+    "freshness_after_original_restart": "stale_not_reusable_for_handoff",
+    "release_status": "reset_nvs_stale"
+  },
+  "trial": {
+    "version": "ot187-policy-v0",
+    "candidate_bytes": 437488,
+    "candidate_sha256": "9682f86877b8c8b5d20a6309dd80199f8729bd61e08bc6787bcbea626dc7b836",
+    "status": "evaluation_failed",
+    "A": {
+      "candidate_verified": true,
+      "serial_closed": true,
+      "accepted_receipt": false,
+      "original_application_and_nvs_restored_verified": true,
+      "protected_regions_verified": true,
+      "original_reset_confirmed": true
+    },
+    "B": {
+      "candidate_written": false,
+      "original_regions_reverified": true,
+      "guarded_reset_confirmed": true
+    },
+    "package_digest": "f5669621405cf19028c05a4a56d80cdc5c45557374a0fea6ed9387fb90c1f08c"
+  },
+  "root_cause": "UNKNOWN: transport accepted command bytes but no response bytes were received; firmware input consumption and execution are not established.",
+  "active_locks_remaining": false,
+  "separate_recovery_required": false,
+  "phone_ui_and_oled": "not independently observed",
+  "website_status_changed": false,
+  "runtime": {
+    "manifest_sha256": "7474ab7c898f2c556e3c8fabb77ad817f4d51a9ee0c981f9392c07e1bdaac2ea",
+    "files": 3548,
+    "bytes": 96213574,
+    "ordinary_and_poison_probes": "OT-192 accepted; exact inventory reverified after OT-193 closure"
+  },
+  "next_gate": "Actual-source startup, command-input and console lifecycle tests with bounded stage diagnostics before considering a separately validated target candidate. No further physical retry in this task.",
+  "scope": "Observed two-device backup and one nonradio trial; failure preserved; both originals returned. Not product messaging or cryptographic acceptance.",
+  "physical_trial_retry_performed": false,
+  "receipt_diagnostics": {
+    "available": true,
+    "roles": [
+      {
+        "capture_error": "receipt_timeout",
+        "close_confirmed": true,
+        "close_error": "none",
+        "command_accepted_bytes": 63,
+        "diagnostics_available": true,
+        "elapsed_ms": 30000,
+        "error": "endpoint_capture_refused",
+        "inner_endpoint_error": "none",
+        "matching_receipt_observed": false,
+        "read_bytes": 0,
+        "read_calls": 94,
+        "receipt_accepted": false,
+        "role": "A",
+        "stage": "refused"
+      },
+      {
+        "capture_error": "none",
+        "close_confirmed": false,
+        "close_error": "none",
+        "command_accepted_bytes": 0,
+        "diagnostics_available": true,
+        "elapsed_ms": 0,
+        "error": "none",
+        "inner_endpoint_error": "none",
+        "matching_receipt_observed": false,
+        "read_bytes": 0,
+        "read_calls": 0,
+        "receipt_accepted": false,
+        "role": "B",
+        "stage": "not_opened"
+      }
+    ],
+    "schema": "OT192-RECEIPT-DIAGNOSTICS-1"
+  },
+  "prelaunch_refusal": {
+    "hardware_access": false,
+    "cause": "Four unmanifested bytecode cache files created by reviewer import without -B",
+    "correction": "Only the four proven generated files and empty cache directory removed; all manifest-listed bytes unchanged; exact inventory reverified before sole admitted trial",
+    "same_unused_grant_resumed": true
+  },
+  "issued_grants": "consumed; no replay"
+}

@@ -579,3 +579,6 @@ tests/benchmarks/crypto/OT-190-*.json -text
 
 # OT-191 bounded hardware outcome preserves exact evidence bytes.
 tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json -text
+
+# OT-193 bounded hardware outcome preserves exact evidence bytes.
+tests/hardware/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.json -text
