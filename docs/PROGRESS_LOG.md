@@ -2,6 +2,21 @@
 
 ## 2026-09-11
 
+### OT-198 Distinguish input refusal branches and host lifecycle timing
+
+Added a separate diagnostic image with one compact stage record and exact input
+refusal reasons. Original parser states, receipts and SDK callback order remain
+unchanged; bounded host timing reports reset-return/open/RUN-intent boundaries,
+not the actual device boot time. Focused suites and two warning-free matching
+builds pass, including seven identical artifact pairs and 41 source pins.
+
+Composed operator checks, nine isolated-dispatch paths and ordinary/hostile
+runtime probes pass. Actual-image composition used synthetic devices; retained
+original-file admission is offline and does not establish fresh custody. Required
+full GitHub CI and publication remain pending. No hardware, physical-cause conclusion,
+policy acceptance, V1 credit or website capability change. See
+[input diagnostic evidence](testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md).
+
 ### OT-197 Run the controlled durable-stage bench trial
 
 Fresh backups and diagnostic-namespace absence passed for both retained boards.

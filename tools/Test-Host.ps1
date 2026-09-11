@@ -2805,6 +2805,39 @@ if ($LASTEXITCODE -ne 0) { throw 'security_policy_lifecycle_tests.py failed.' }
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_console_lifecycle_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_console_lifecycle_tests.py failed.' }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_control_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_control_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_lifecycle_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_lifecycle_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_readback_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_readback_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_observation_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_observation_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_timing_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_timing_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_bundle_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_bundle_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_runtime_bundle_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_runtime_bundle_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_execution_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_execution_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_operator_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_operator_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_operator_integration_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_operator_integration_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_isolated_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_isolated_tests.py failed.' }
+
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_stage_bundle_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_stage_bundle_tests.py failed.' }
 

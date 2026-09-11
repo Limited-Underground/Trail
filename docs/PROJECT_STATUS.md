@@ -117,9 +117,14 @@ from A, while its receipt capture received zero bytes. A restored exactly and B
 remained unflashed and passed guarded original readback/reset. Both originals
 returned; snapshots are stale and grants consumed. See
 [stage trial evidence](testing/OT-197-STAGE-TRIAL-2026-09-11.md).
-Next distinguish input refusal reasons and measure boot-to-command timing in one
-validated diagnostic increment. The specific cause remains unknown and no
-security pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
+The additive input diagnostic target now distinguishes the actual refusal branch
+in one U64 record and reports bounded host reset-return/open/RUN-intent timing.
+Focused suites, two matching warning-free builds, composed operator/isolated
+checks and ordinary/hostile runtime probes pass. The typed package is sealed;
+actual-image composition used synthetic devices and retained originals were
+checked offline. Required full GitHub CI and publication remain pending. Hardware is untested; timing is not an actual boot
+clock. See [input diagnostics](testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md).
+The specific earlier cause remains unknown and no security pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 
 Historical raw-capture custody remains unestablished for the older libsodium and
