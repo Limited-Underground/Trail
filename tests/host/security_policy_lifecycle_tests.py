@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import security_policy_crypto_tests as crypto
+from security_policy_lifecycle import dependencies, dependency_tests
 
 ROOT=Path(__file__).resolve().parents[2]
 FIXTURE=ROOT/'tests/host/security_policy_lifecycle'
@@ -15,6 +16,7 @@ SCENARIOS=('success','install_fail','begin_fail','input_fault','no_input','parti
            'evaluate_fail','namespace_fail','stop_fail','entropy_fault','send_fail','delayed_stop')
 
 def run():
+    dependency_tests.run()
     compiler=shutil.which('g++') or shutil.which('c++')
     ccompiler=shutil.which('gcc') or shutil.which('cc')
     if not compiler or not ccompiler:raise RuntimeError('native C/C++ compilers required')
@@ -23,7 +25,10 @@ def run():
         work=Path(d).resolve();build=work/'crypto'
         crypto.m.SUCCESSOR=ROOT/'firmware/targets/heltec_v4_security_eval/main/noise_adapter'
         crypto.m.SUCCESSOR_SHA='b0be8109d017a851cea3952c4713157847c3bc64fe0eba1367c2b3c27cbcdc8b'
-        crypto.m.run(build,True)
+        component=dependencies.acquire(work/'managed-component')
+        crypto.m.COMPONENT=component
+        crypto.m.SOURCE=component/'libsodium'
+        dependencies.native_probe(crypto.m,build,ccompiler)
         flags=['-O2','-Wall','-Wextra','-DSODIUM_STATIC','-DCONFIGURED=1','-DNATIVE_LITTLE_ENDIAN=1',
                '-ffunction-sections','-fdata-sections']
         includes=[work,build/'include',crypto.m.SOURCE/'src/libsodium/include',crypto.m.SOURCE/'src/libsodium/include/sodium',

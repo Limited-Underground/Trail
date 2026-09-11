@@ -1,6 +1,6 @@
 # OT-194 actual-source policy lifecycle diagnosis
 
-Status: complete host matrix passed; no new physical trial.
+Status: host-only lifecycle diagnosis; no new physical trial.
 
 ## Scope
 
@@ -84,9 +84,10 @@ text inspection does not independently attest every source byte to the old ELF.
   and harness code compiled using warnings as errors. Existing upstream signing
   primitives emit unused-static warnings in their separate C compilation.
 - All 33 accepted OT-187 target/source pins match their exact sizes and hashes.
-- Complete host matrix: pass under the normal Windows user, including both new
-  suites and 13/13 simulator UI checks. Documentation, privacy and raw-byte
-  gates pass; required remote checks gate publication.
+- Complete local host matrix before the clean-checkout correction: pass under
+  the normal Windows user, including both new suites and 13/13 simulator UI checks.
+  Fresh dependency/compiler correction checks pass separately; the final required
+  GitHub matrix gates merge. Documentation, privacy and raw-byte gates pass.
 
 The first complete-matrix run stopped in the existing CurrentUser DPAPI
 round-trip test: `CryptProtectData` could not create its synthetic temporary key
@@ -103,6 +104,33 @@ parser refuses; the test preserves that actual ordering and verifies no NVS or
 entropy work begins. The delayed-stop case asserts an injected delay beyond the
 host horizon and models the resulting receipt as late. It does not share a real
 USB/SDK clock or establish a physical timeout cause.
+
+## Clean-checkout dependency correction
+
+The first required GitHub run reached the new lifecycle suite, then failed before
+compilation because its retained local managed-component directory was absent.
+The initial local pass did not establish a complete clean-checkout setup.
+The correction explicitly obtains the pinned official Espressif libsodium
+1.0.22 package in a fresh temporary dependency directory and verifies its archive,
+checksum inventory and all admitted source files before compilation. It retains
+the independent interoperability probe and uses the selected native compiler
+rather than a machine-specific compiler path. The old retained cache and frozen
+interop helper are not modified. Fresh acquisition and an actual alternate-compiler run pass for this correction;
+no lifecycle or physical behavior is changed. The final required GitHub matrix
+gates merge.
+
+The package is 2,545,109 bytes, SHA-256
+`865ea3aba354b16be4c7051da48b63247a395f30d1e0537269b253918aa78c5f`.
+Its separately pinned checksum inventory and tracked managed-source manifest
+admit all 731 archive files plus the two managed metadata files before any source
+is written or compiled. Twelve dependency-admission tests cover malformed paths,
+duplicates/types, archive integrity, size/deadline limits, destination preservation,
+endianness and selected compiler routing. The actual fresh run retains the
+26-case interoperability probe and passes the 22 application groups and four
+receipt rejection crosschecks. The new helper leaves frozen acquisition evidence
+and interop sources unchanged. Its 90-second download admission deadline is
+checked before and after reads; an in-flight read may overrun before the
+45-second socket timeout. This is not hard cancellation at 90 seconds.
 
 ## Next gate
 

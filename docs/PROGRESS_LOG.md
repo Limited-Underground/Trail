@@ -14,7 +14,9 @@ startup/configuration contradiction.
 
 The complete host matrix and 13 simulator UI checks passed under the normal
 Windows user. An initial sandbox DPAPI failure was isolated with the unchanged
-15-group suite; no test was disabled. See
+15-group suite; no test was disabled. The first CI run exposed a retained-source
+cache dependency; fresh pinned acquisition, 12 admission checks and actual alternate
+compiler validation correct that setup without changing the target. See
 [lifecycle evidence](testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md).
 Next prepare a separately validated stage-diagnostic target and bounded observation
 contract. No device operation, physical-cause conclusion, security pass, V1 credit
