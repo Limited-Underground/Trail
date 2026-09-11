@@ -134,10 +134,10 @@
         "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
         "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
         "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
-        "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md", "docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md", "docs/testing/OT-197-STAGE-TRIAL-2026-09-11.md", "docs/testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md",
+        "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md", "docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md", "docs/testing/OT-197-STAGE-TRIAL-2026-09-11.md", "docs/testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-199-INPUT-TRIAL-2026-09-11.md",
         "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
       ],
-      "next_gate": "Use the validated OT-198 input diagnostic image and exact typed runtime/package for a fresh, separately authorized nonradio trial. Establish current devices and held original backups, then test and independently restore one role before considering the second. Distinguish strict receipt, durable refusal record and independent host lifecycle timing. Existing grants are consumed and snapshots stale; physical cause, policy acceptance and later security gates remain open."
+      "next_gate": "OT-199 passed fresh backup/package preflight but automatic approval review blocked the exact OT-198 firmware/NVS trial. Both originals were guarded-released without candidate writes; snapshots are stale and grants consumed. Obtain explicit exact-scope approval, establish fresh custody, then test/restore one role before considering the other. Strict receipt, stored refusal marker and independent host timing remain distinct; physical cause and policy acceptance are still open."
     },
     {
       "id": "core-firmware",
@@ -356,10 +356,10 @@
             "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
             "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
             "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
-            "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md", "docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md", "docs/testing/OT-197-STAGE-TRIAL-2026-09-11.md", "docs/testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md",
+            "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md", "docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md", "docs/testing/OT-197-STAGE-TRIAL-2026-09-11.md", "docs/testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-199-INPUT-TRIAL-2026-09-11.md",
             "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
           ],
-          "next_gate": "Use the validated OT-198 input diagnostic image and exact typed runtime/package for a fresh, separately authorized nonradio trial. Establish current devices and held original backups, then test and independently restore one role before considering the second. Distinguish strict receipt, durable refusal record and independent host lifecycle timing. Existing grants are consumed and snapshots stale; physical cause, policy acceptance and later security gates remain open."
+          "next_gate": "OT-199 passed fresh backup/package preflight but automatic approval review blocked the exact OT-198 firmware/NVS trial. Both originals were guarded-released without candidate writes; snapshots are stale and grants consumed. Obtain explicit exact-scope approval, establish fresh custody, then test/restore one role before considering the other. Strict receipt, stored refusal marker and independent host timing remain distinct; physical cause and policy acceptance are still open."
         },
         {
           "id": "core-firmware",
@@ -1382,6 +1382,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-198 adds distinct input-refusal records and isolated host reset-return/open/RUN-intent timing without changing parser deadlines, receipt policy or original restoration. Actual-source and composed host tests, two matching warning-free firmware builds and typed package/runtime validation prepare a future diagnostic trial. Host timing is not actual device boot or receipt timing. No hardware was accessed and no cause of OT-197, policy pass, completion credit or public website capability change is established. Fresh held originals and an exact new physical scope remain required."
+        },
+        {
+          "date": "2026-09-11",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-199 revalidated the OT-198 image/runtime and captured verified fresh originals for both Heltecs, including input diagnostic namespace absence and complete typed package admission. Automatic approval review rejected the exact new firmware/NVS trial before process creation. No execution grant, candidate write, policy receipt, new refusal marker or host timing was produced. Guarded original-region readback/reset passed both roles, locks are absent, grants consumed and snapshots stale. Explicit exact-image trial approval and new backup custody remain required. No completion credit or public website capability change."
         }
       ]
     },
@@ -1932,6 +1938,11 @@
       "date": "2026-09-11",
       "overall": 32,
       "reason": "OT-198 adds distinct input-refusal records and isolated host reset-return/open/RUN-intent timing without changing parser deadlines, receipt policy or original restoration. Actual-source and composed host tests, two matching warning-free firmware builds and typed package/runtime validation prepare a future diagnostic trial. Host timing is not actual device boot or receipt timing. No hardware was accessed and no cause of OT-197, policy pass, completion credit or public website capability change is established. Fresh held originals and an exact new physical scope remain required."
+    },
+    {
+      "date": "2026-09-11",
+      "overall": 32,
+      "reason": "OT-199 revalidated the OT-198 image/runtime and captured verified fresh originals for both Heltecs, including input diagnostic namespace absence and complete typed package admission. Automatic approval review rejected the exact new firmware/NVS trial before process creation. No execution grant, candidate write, policy receipt, new refusal marker or host timing was produced. Guarded original-region readback/reset passed both roles, locks are absent, grants consumed and snapshots stale. Explicit exact-image trial approval and new backup custody remain required. No completion credit or public website capability change."
     }
   ]
 }

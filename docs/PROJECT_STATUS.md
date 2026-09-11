@@ -122,8 +122,14 @@ in one U64 record and reports bounded host reset-return/open/RUN-intent timing.
 Focused suites, two matching warning-free builds, composed operator/isolated
 checks and ordinary/hostile runtime probes pass. The typed package is sealed;
 actual-image composition used synthetic devices and retained originals were
-checked offline. Required full GitHub CI and publication remain pending. Hardware is untested; timing is not an actual boot
-clock. See [input diagnostics](testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md).
+checked offline. Required GitHub checks and publication passed. See
+[input diagnostics](testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md).
+The fresh input-trial preflight passed both backups and package admission, but
+automatic approval review blocked the exact new firmware/NVS write before launch.
+Both originals passed guarded readback/reset; no candidate was flashed. Explicit
+trial approval and fresh backup custody remain required. See
+[preflight and release](testing/OT-199-INPUT-TRIAL-2026-09-11.md).
+Diagnostic hardware timing remains untested; host timing is not an actual boot clock.
 The specific earlier cause remains unknown and no security pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 
