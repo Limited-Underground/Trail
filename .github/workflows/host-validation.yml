@@ -18,7 +18,7 @@ jobs:
   host-tests:
     name: Windows host matrix
     runs-on: windows-2025
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Check out source

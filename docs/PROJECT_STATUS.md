@@ -104,9 +104,14 @@ capture retains its rejection rules. The retained build/source audit found no
 selected startup/configuration contradiction. See the
 [lifecycle evidence](testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md).
 
-Next prepare an additive stage-diagnostic target and bounded observation contract,
-with composed tests and matched builds before fresh physical admission. The
-physical cause remains unknown; no security pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
+The additive durable-stage target, bounded NVS decoder and restoration observation
+seam now pass composed tests and matching fresh builds. The stage record is
+independent of the console and remains separate from a strict policy receipt.
+See [stage diagnostic preparation](testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md).
+Next bind the image, sources, decoder, executor, ROM child and restoration into
+a fresh isolated operator package before physical admission. The current
+operator remains pinned to OT-187; the physical cause is unknown and no security
+pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 
 Historical raw-capture custody remains unestablished for the older libsodium and

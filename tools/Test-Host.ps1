@@ -2805,6 +2805,15 @@ if ($LASTEXITCODE -ne 0) { throw 'security_policy_lifecycle_tests.py failed.' }
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_console_lifecycle_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_console_lifecycle_tests.py failed.' }
 
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_stage_lifecycle_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_stage_lifecycle_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_stage_readback_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_stage_readback_tests.py failed.' }
+
+& $python.Source (Join-Path $projectRoot 'tests\host\security_policy_stage_observation_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'security_policy_stage_observation_tests.py failed.' }
+
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_target_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_target_tests.py failed.' }
 

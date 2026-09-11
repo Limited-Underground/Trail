@@ -2,6 +2,22 @@
 
 ## 2026-09-11
 
+### OT-195 Prepare durable stage diagnostics and readback
+
+Added a separately named nonradio target with an eight-byte NVS stage record,
+independent of console health, plus a strict readback/freshness decoder and
+restoration observation seam. Validation passes 25 actual-source lifecycle
+groups, 21 decoder tests and 15 restoration tests, including actual console-send
+faults and C++ record bytes passed through the real decoder. The complete host
+matrix and two initially absent matching ESP32 builds pass; original OT-187
+source pins remain unchanged.
+
+Stored markers are not policy receipts and do not prove writer acknowledgment,
+physical root cause or USB delivery. Next bind a fresh executable operator and
+recovery package; the existing operator and consumed grants cannot execute this
+image. No hardware, security acceptance, V1 credit or website capability change.
+See [stage diagnostic evidence](testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md).
+
 ### OT-194 Diagnose the actual policy application and console lifecycle
 
 Added 22 application lifecycle groups, including three linked to the actual

@@ -1,0 +1,385 @@
+{
+  "schema": "OT195-SECURITY-POLICY-DIAG-BUILD-1",
+  "recorded_date": "2026-09-11",
+  "status": "reproducible_build_only",
+  "target": {
+    "name": "heltec_v4_security_policy_diag",
+    "version": "ot195-policy-diag-v0",
+    "mcu": "esp32s3",
+    "configured_flash_bytes": 16777216
+  },
+  "toolchain": {
+    "esp_idf": "v6.0.2",
+    "compiler": "xtensa-esp-elf-gcc.exe (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+    "compiler_file": {
+      "bytes": 2476544,
+      "sha256": "7df2dd46a45e63b7c5e6d0a0a9d4b41ac204d5c9b785de71d92c7e0b1751e601"
+    },
+    "cmake": "4.0.3",
+    "ninja": "1.12.1",
+    "cache": "disabled",
+    "compiler_alias_file": {
+      "bytes": 906240,
+      "sha256": "20e70278d1fa041c1305e0e70e6f35dde01b7eb21f2c7bbc0013456493a011a5"
+    }
+  },
+  "runs": [
+    {
+      "run": "A",
+      "artifacts": {
+        "heltec_v4_security_policy_diag.bin": {
+          "bytes": 438784,
+          "sha256": "449e3249bf6d92e5bcfa394244bd8b15544ee2f5aa8f0f4eded13321eea06164"
+        },
+        "heltec_v4_security_policy_diag.elf": {
+          "bytes": 5520044,
+          "sha256": "304dbe006fdc8e48a8a0bb4b16f8fb6c62fe96d497a06ac94241847aab0148dc"
+        },
+        "heltec_v4_security_policy_diag.map": {
+          "bytes": 5573075,
+          "sha256": "b23c1a046e99979407c079537d86401d83fbfd0c7e41c9ed89a054d8eade0aaf"
+        },
+        "sdkconfig": {
+          "bytes": 91885,
+          "sha256": "1a77d64cab633b862c4a8ffa5493321e6ac039ae3edb94a99fda0a332c6d66d1"
+        },
+        "bootloader/bootloader.bin": {
+          "bytes": 22480,
+          "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+        },
+        "partition_table/partition-table.bin": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "ota_data_initial.bin": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        }
+      },
+      "compiler_warnings": 0,
+      "build_log": {
+        "bytes": 164535,
+        "sha256": "7de6787bf55c96e8a207beb06be4110e2deec821dfd18dbe562907b6dc797fed"
+      },
+      "tooling_notices": [
+        "IDF_PYTHON_ENV_PATH environment variable missing; build invoked the explicit pinned IDF Python executable."
+      ]
+    },
+    {
+      "run": "B",
+      "artifacts": {
+        "heltec_v4_security_policy_diag.bin": {
+          "bytes": 438784,
+          "sha256": "449e3249bf6d92e5bcfa394244bd8b15544ee2f5aa8f0f4eded13321eea06164"
+        },
+        "heltec_v4_security_policy_diag.elf": {
+          "bytes": 5520044,
+          "sha256": "304dbe006fdc8e48a8a0bb4b16f8fb6c62fe96d497a06ac94241847aab0148dc"
+        },
+        "heltec_v4_security_policy_diag.map": {
+          "bytes": 5573075,
+          "sha256": "b23c1a046e99979407c079537d86401d83fbfd0c7e41c9ed89a054d8eade0aaf"
+        },
+        "sdkconfig": {
+          "bytes": 91885,
+          "sha256": "1a77d64cab633b862c4a8ffa5493321e6ac039ae3edb94a99fda0a332c6d66d1"
+        },
+        "bootloader/bootloader.bin": {
+          "bytes": 22480,
+          "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+        },
+        "partition_table/partition-table.bin": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "ota_data_initial.bin": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        }
+      },
+      "compiler_warnings": 0,
+      "build_log": {
+        "bytes": 164535,
+        "sha256": "4fec460fddc136117b593959f9b4f7bff0ed49233ca28135c77cee1490716ee8"
+      },
+      "tooling_notices": [
+        "IDF_PYTHON_ENV_PATH environment variable missing; build invoked the explicit pinned IDF Python executable."
+      ]
+    }
+  ],
+  "tuples_identical": true,
+  "source_pins": {
+    "firmware/components/diagnostics/include/opentrail/bounded_console_writer.hpp": {
+      "bytes": 7154,
+      "sha256": "7495fe98623b3bb77ba7650b53a8ee8fc59da72d2487a107bd6d791603fd1e5b"
+    },
+    "firmware/components/diagnostics/include/opentrail/bounded_receipt_formatter.hpp": {
+      "bytes": 6898,
+      "sha256": "5cf13e5d9bd65f3ede83a8faef780300f53d3c3338d871906c86776f09db099e"
+    },
+    "firmware/components/diagnostics/include/opentrail/usb_fifo_console_transport.hpp": {
+      "bytes": 4550,
+      "sha256": "f38bc478f0afc37ae714874d242d69a14e247e5d4dd377a2baa1db9e988f474f"
+    },
+    "firmware/components/persistence/include/opentrail/outbound_counter_lease_store.hpp": {
+      "bytes": 3267,
+      "sha256": "9e298fab283927de4a08694ceaae34fd63aa9c4f9abac73f3aec969d6540d1c0"
+    },
+    "firmware/components/persistence/include/opentrail/persistent_storage.hpp": {
+      "bytes": 1642,
+      "sha256": "2f6c1cacf111b2de8c81f999bfd4de09d84f6441c354f5523865c1b62c2c88ed"
+    },
+    "firmware/components/persistence/include/opentrail/persistent_storage_kv.hpp": {
+      "bytes": 3928,
+      "sha256": "74ac988e9557ddf38b6b575fbd15c71e7191f7aba448ef5f7dadda14c8da6682"
+    },
+    "firmware/components/persistence/src/outbound_counter_lease_store.cpp": {
+      "bytes": 13692,
+      "sha256": "6d832d1447189f53e733642d4c7118333a973690d40b702a4fdde1999c69f151"
+    },
+    "firmware/components/persistence/src/persistent_storage_kv.cpp": {
+      "bytes": 7157,
+      "sha256": "e5567c236abeb96deab2ab9f4730dc18e5c1d664535d1f22024b5ff81d929c70"
+    },
+    "firmware/components/security/include/opentrail/aead_nonce.hpp": {
+      "bytes": 1489,
+      "sha256": "469b3186591f773ba70e4aa3c314f2738f35432a388761c91d622624119b8fdd"
+    },
+    "firmware/components/security/include/opentrail/secure_random.hpp": {
+      "bytes": 1409,
+      "sha256": "8cb343ee20d777d45acc277f46ee07d4a22199252ef1cf6eeedeff5d9ae9a58f"
+    },
+    "firmware/components/security/include/opentrail/serialized_secure_random.hpp": {
+      "bytes": 1875,
+      "sha256": "5349ab3665291cf09f14740ff3c79eafb4226448975473c22837830c799c0b35"
+    },
+    "firmware/components/security/src/aead_nonce.cpp": {
+      "bytes": 1349,
+      "sha256": "e28a118c29886c26d2011f58c989d764b0bc784b6fb71c27cd49a7853486bac9"
+    },
+    "firmware/components/security/src/serialized_secure_random.cpp": {
+      "bytes": 2429,
+      "sha256": "82e1012e1777b97ecf59527b970adf868a81c3ede35475221764b16bc7751f7e"
+    },
+    "firmware/components/security_diagnostics/include/opentrail/security_stage_record.hpp": {
+      "bytes": 1297,
+      "sha256": "7a24390c37e9c5f85ccdf3b64140c56455dbad031c4e42d955c3dc88f486c1cc"
+    },
+    "firmware/components/security_diagnostics/stage_record_v1.json": {
+      "bytes": 931,
+      "sha256": "16e1c575927fa8aa16131b60e6f75ce92ec0f8dd242f628999515fcee59e1852"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_control.hpp": {
+      "bytes": 2479,
+      "sha256": "6d249aa716f541ae07fdde45019a104ded7c814a6ac73392711ed4cee263d27d"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_invitation.hpp": {
+      "bytes": 5987,
+      "sha256": "6f54e83862d625ffe93ac9f93c8ceb484416d4fdfc1f0ac4f9e879388952aa84"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_policy_session.hpp": {
+      "bytes": 10355,
+      "sha256": "ac1119a0be627895cf68be58d782e1891392fa4241e935a060f5f9a1b21888ab"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_replay_store.hpp": {
+      "bytes": 8735,
+      "sha256": "6d7c3113d9d929ed09e24c5b36c46135f34c9761fc3523ec0e281c597dc818f3"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_secure_random.cpp": {
+      "bytes": 1107,
+      "sha256": "de85f9108a94e463d92ca7ecca1e1c0cb99d9f3e73a4f33625a3e26b62e963dd"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_secure_random.hpp": {
+      "bytes": 867,
+      "sha256": "8ec1e3403e18a87634e564ce7a50cf4d9e6dcbf892557eb22987d1876b87d5e6"
+    },
+    "firmware/targets/heltec_v4_security_eval/main/entropy_runtime.cpp": {
+      "bytes": 3773,
+      "sha256": "d668523d3abe79a6190e8733e04c68e5b758ee64fb6169cfb8ece7a068f858ba"
+    },
+    "firmware/targets/heltec_v4_security_eval/main/entropy_runtime.hpp": {
+      "bytes": 1563,
+      "sha256": "71b31fa02bbd9dd3fbd8d160aa395d511742255cec5b48edf9fa1f14aa7c5b89"
+    },
+    "firmware/targets/heltec_v4_security_eval/main/noise_adapter/noise_xk_libsodium.c": {
+      "bytes": 18056,
+      "sha256": "b0be8109d017a851cea3952c4713157847c3bc64fe0eba1367c2b3c27cbcdc8b"
+    },
+    "firmware/targets/heltec_v4_security_eval/main/noise_adapter/noise_xk_libsodium.h": {
+      "bytes": 3218,
+      "sha256": "b7c649434cdffe648e467bb117849ae0296a73fa041d614d3d4ba32578e40c45"
+    },
+    "firmware/targets/heltec_v4_security_policy_diag/CMakeLists.txt": {
+      "bytes": 1152,
+      "sha256": "c1e8e8d239b8df48ddaf00a0456524bfafb8273ba9b4c07b5134669fb758b961"
+    },
+    "firmware/targets/heltec_v4_security_policy_diag/main/CMakeLists.txt": {
+      "bytes": 1428,
+      "sha256": "a1a15dab7257309167f2edb44be9c02d6be1abc5d95ae152c8f2704471dc4714"
+    },
+    "firmware/targets/heltec_v4_security_policy_diag/main/app_main.cpp": {
+      "bytes": 2100,
+      "sha256": "997f1c5b657f720b554d0a359442b2e20f0b758f5cfed5afc91d03cfbac1bcc1"
+    },
+    "firmware/targets/heltec_v4_security_policy_diag/main/stage_store.hpp": {
+      "bytes": 1541,
+      "sha256": "b5de52766af46716194aec84e5f2a0138da66f8090dcdde99f735a97fa9214c8"
+    },
+    "firmware/targets/heltec_v4_security_policy_diag/partitions.csv": {
+      "bytes": 557,
+      "sha256": "9c27fd7e647ace6eb32524281bfaa52cd370419fec2457f1acdebc6b0cbfa52a"
+    },
+    "firmware/targets/heltec_v4_security_policy_diag/sdkconfig.defaults": {
+      "bytes": 713,
+      "sha256": "5cc0b03436c3b461e28cbc1d5732f1bf4b0cd9b9d637864926c32c0ac8718f21"
+    },
+    "firmware/targets/heltec_v4_security_policy_eval/main/app_main.cpp": {
+      "bytes": 4802,
+      "sha256": "f968d408ece96d17527908bb7d1524666dcb3668d105990fe86fd51243bb0718"
+    },
+    "firmware/targets/heltec_v4_security_policy_eval/main/nvs_policy_backend.hpp": {
+      "bytes": 3081,
+      "sha256": "b55b5ee8cf7672d0728a8fc25e5e95cd86684b049ad0f600c1080ad77c14ed52"
+    },
+    "firmware/targets/heltec_v4_security_policy_eval/main/policy_console.cpp": {
+      "bytes": 7060,
+      "sha256": "a444c7d91fce5150c269fec764ca58431f28e02e55b2c1201c25907e82f38af9"
+    },
+    "firmware/targets/heltec_v4_security_policy_eval/main/policy_console.hpp": {
+      "bytes": 238,
+      "sha256": "f20af0e7ceaffef425259f66126b39c94bea0a3dd805ead17b374137c426fa52"
+    },
+    "firmware/targets/heltec_v4_security_policy_eval/main/policy_control_loop.hpp": {
+      "bytes": 926,
+      "sha256": "4d4e2acbd2130478c3790a35895e6d37bc7b1c07fd844218510e2b3efd04bf08"
+    },
+    "tools/security_evaluation_inputs.py": {
+      "bytes": 1603,
+      "sha256": "b8d037cfb8ec7783784bdfc06a1d8b519d6de5c9b13ca22e70eec0b5d740d318"
+    }
+  },
+  "library": {
+    "version": "1.0.22",
+    "files_verified": 731,
+    "inventory_sha256": "5e3983c5496a3cffba3d013c70991b18cda6c345655fff883fb0e14dfa09e582"
+  },
+  "link_checks": {
+    "required_defined_symbols": [
+      "app_main",
+      "__wrap__write_r",
+      "__wrap_ets_write_char_uart",
+      "esp_bt_controller_enable",
+      "esp_fill_random",
+      "nvs_commit",
+      "ot_noise_xk_split",
+      "crypto_aead_chacha20poly1305_ietf_encrypt",
+      "crypto_aead_chacha20poly1305_ietf_decrypt",
+      "nvs_set_u64",
+      "nvs_get_u64",
+      "nvs_open"
+    ],
+    "absent_defined_symbols": [
+      "nimble_port_init",
+      "ble_gap_adv_start",
+      "ble_gap_ext_adv_start",
+      "usb_serial_jtag_driver_install",
+      "ot187_reference_app_main"
+    ],
+    "write_dispatch_owner": "main/policy_console.cpp (__wrap__write_r)",
+    "linker_write_wrap_enabled": true,
+    "elf_direct_write_call_targets": [
+      {
+        "__wrap__write_r": 1
+      },
+      {
+        "__wrap__write_r": 1
+      }
+    ],
+    "unwrapped_libc_direct_calls": 0,
+    "scope": "Decoded direct ELF calls and known UART printf callback literal; not arbitrary indirect calls or internal ROM execution",
+    "known_indirect_callback": "esp_rom_install_uart_printf selects __wrap_ets_write_char_uart",
+    "real_rom_putc_reference": "Only the policy wrapper boot-state branch loads ets_write_char_uart; admitted runtime bypass latches failure",
+    "zero_address_annotation_note": "The linker defines unused esp_rom_output_tx_one_char at zero; objdump labels unrelated zero literals with that name. These are not direct console calls.",
+    "core_quarantine_callback_present": true,
+    "configured_rom_wraps": [
+      "esp_rom_output_tx_one_char",
+      "ets_write_char_uart",
+      "uart_tx_one_char"
+    ],
+    "unreferenced_rom_wrapper_definitions_garbage_collected": [
+      "__wrap_esp_rom_output_tx_one_char",
+      "__wrap_uart_tx_one_char"
+    ],
+    "controller_config_enabled": true,
+    "nimble_config_enabled": true,
+    "vfs_io_dir_select_enabled": true,
+    "log_default_and_maximum_level": 0
+  },
+  "claims": {
+    "hardware_accessed": false,
+    "flashed": false,
+    "physical_entropy_proven": false,
+    "physical_persistence_proven": false,
+    "radio_executed": false,
+    "product_invitation_admitted": false,
+    "crypto_suite_selected": false
+  },
+  "limits": [
+    "Same-chip evaluation build only; no runtime acceptance.",
+    "Named NimBLE host startup and advertising definitions absent; BLE controller is configured for entropy lifecycle evaluation.",
+    "Decoded direct libc write calls route to the policy wrapper; arbitrary indirect calls are not proven absent by this scan. VFS remains configured. CORE callback and the used ets_write_char_uart wrapper are linked; the two unreferenced ROM wrapper definitions are discarded; runtime exclusive ownership is not physically proven.",
+    "SDK entropy/controller and NVS lifecycle execution bounds remain unproven; panic/reset ends the admitted console session.",
+    "Fresh full-NVS custody and scoped restoration authority are required before any hardware evaluation.",
+    "No production identity, invitation provisioning, rekey or physical restart acceptance.",
+    "Diagnostic NVS initialization and stage commits deliberately perturb original timing and ordering.",
+    "ELF section sizes include debug and linker dummy sections; they are not a summed runtime RAM usage claim.",
+    "No successor physical execution package or pre-restoration stage capture is admitted by this build report."
+  ],
+  "resource_sections_bytes": {
+    ".rtc.text": 0,
+    ".rtc.force_fast": 0,
+    ".rtc_noinit": 0,
+    ".rtc.force_slow": 36,
+    ".rtc_reserved": 24,
+    ".iram0.vectors": 1028,
+    ".iram0.text": 71875,
+    ".dram0.dummy": 56576,
+    ".dram0.data": 16095,
+    ".noinit": 1,
+    ".dram0.bss": 3376,
+    ".flash.text": 276276,
+    ".flash_rodata_dummy": 327680,
+    ".flash.appdesc": 256,
+    ".flash.rodata": 73084,
+    ".flash.tdata": 16,
+    ".ext_ram.dummy": 458720,
+    ".iram0.text_end": 57,
+    ".iram0.data": 0,
+    ".iram0.bss": 0,
+    ".dram0.heap_start": 0,
+    ".noload": 4,
+    ".debug_aranges": 30720,
+    ".debug_info": 2088351,
+    ".debug_abbrev": 240131,
+    ".debug_line": 1175597,
+    ".debug_frame": 75696,
+    ".debug_str": 376317,
+    ".debug_loc": 677090,
+    ".debug_ranges": 102232,
+    ".debug_line_str": 4646,
+    ".debug_loclists": 12430,
+    ".debug_rnglists": 1549,
+    ".comment": 181,
+    ".xtensa.info": 56,
+    ".xt.prop": 6036,
+    ".xt.lit": 80
+  },
+  "dependency_closure_match": true,
+  "dependency_lock": {
+    "present": false,
+    "policy": "component manager disabled; admitted vendored sources and exact compiled dependency closure retained"
+  },
+  "original_source_pins_preserved": 33,
+  "application_write_offset": 65536,
+  "application_span_bytes": 589824
+}

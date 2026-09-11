@@ -1,0 +1,17 @@
+{
+  "schema": "OT195-SYNTHETIC-NVS-FIXTURE-1",
+  "fixture_sha256": "f74e5a3d9794e7865aeb7c85968ffb2849c1fc7f93471236add107a5255372a4",
+  "csv_sha256": "22c717059505e7e9498bc0bb33a4b575fe84f460818ff3dceae3de25eea37ace",
+  "generator_module": "esp_idf_nvs_partition_gen",
+  "generator_source_sha256": "1ec9f2b5dd220af37b3067195dfe5d9ae5dcc8d09b415d5d6af47bf4aa7424c4",
+  "sdk": "ESP-IDF v6.0.2",
+  "sdk_sources": {
+    "src\\nvs_page.cpp": "b6c1dd565c41479e9ad7d7b5caf296c4621b1b93e6b6eb048e0cd562c5a559c7",
+    "src\\nvs_types.cpp": "dfb26c433b5876344389258434bcfb90140a52b3c666604e2d52dc9c9a0a4062",
+    "private_include\\nvs_constants.h": "1e417fd61c744ea3f64918cf8e0a6dce66875db88e32e70efb8b3b7b107e2db9"
+  },
+  "command": "python -B -m esp_idf_nvs_partition_gen generate sdk-stage.csv sdk-stage.bin 0x3000",
+  "hardware": false,
+  "scope": "Synthetic official generator output; no actual flash, SDK runtime update or interrupted commit evidence.",
+  "generator_version": "0.1.9"
+}
