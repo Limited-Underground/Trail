@@ -10,12 +10,11 @@ preserves all removed summaries and superseded sequencing; see the
 
 ## Current execution order
 
-1. Use the [validated stage operator package](../docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md)
-   to prepare a fresh nonradio A-then-B trial: current identities and originals,
-   finite held-ROM custody, diagnostic-namespace absence and exact one-use scope
-   covering pre-console NVS writes and one pre-restoration observation. Complete
-   each original restoration before the next candidate. Earlier snapshots are
-   stale and grants consumed; stored stages do not establish physical cause.
+1. Use the [physical input-refusal result](../docs/testing/OT-197-STAGE-TRIAL-2026-09-11.md)
+   to add bounded refusal reasons and boot-to-command timing together. Validate
+   actual parser/console/application cases, exact target builds and operator
+   bindings before another fresh trial. Prior grants are consumed and snapshots
+   stale; A restored and B was guarded-released without a candidate write.
 2. Admit a fresh one-use physical trial and close applicable
    [security gates](../docs/testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md),
    Phase 3 admission and explicit crypto selection. Real trust provisioning,
@@ -49,6 +48,7 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
+| OT-197 | done | Controlled durable-stage physical trial | Fresh backups passed both roles. A recorded input_result/input_refused and no USB receipt; exact originals restored. B unflashed and guarded-released. Specific input cause and policy pass remain unestablished. See [trial evidence](../docs/testing/OT-197-STAGE-TRIAL-2026-09-11.md). |
 | OT-196 | done | Assemble the executable durable-stage diagnostic and recovery package | The successor binds exact image/source/runtime, fresh held custody, distinct authority, one-use observation and independent restoration. Focused composition, actual isolated parent/ROM-child probes and the complete host matrix pass; both accepted firmware builds rehash unchanged. No hardware trial, physical cause or security acceptance. See [operator package](../docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md). |
 | OT-195 | done | Prepare bounded durable security-policy stage diagnostics | The additive target passes 25 actual-source lifecycle groups, 21 bounded NVS decoder tests and 15 restoration observation tests. The complete host matrix and two matching fresh ESP32 builds pass. Stored stages remain distinct from strict receipts; existing operator/grants cannot execute this image. No physical cause or security acceptance. See [stage preparation](../docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md). |
 | OT-194 | done | Diagnose actual security-evaluation startup, input and console lifecycle | Complete host matrix passes with 22 application lifecycle groups, 12 console fault groups and four strict receipt rejection crosschecks. Three cases link actual app and console; all 33 frozen target pins unchanged. Device services are simulated; no physical cause or security acceptance. See [lifecycle evidence](../docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md). |
