@@ -3,7 +3,7 @@
 param(
     [Parameter(Mandatory)][string]$Manifest,
     [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{64}$')][string]$ManifestSha256,
-    [ValidateSet('Probe','Version','Operator','Rom')][string]$Mode = 'Probe',
+    [ValidateSet('Probe','Version','Operator','Rom','Backup','BackupRom')][string]$Mode = 'Probe',
     [string]$Request,
     [string]$RequestSha256
 )
@@ -69,7 +69,12 @@ try {
     $python = Join-Path $root 'python.exe'
     $worker = Join-Path $root 'policy/security_policy_operator.py'
     $arguments = @('-I','-S','-B',$worker,'--manifest',$Manifest,'--sha256',$ManifestSha256,'--mode',$Mode.ToLowerInvariant())
-    if ($Mode -in @('Operator','Rom')) {
+    if ($Mode -in @('Backup','BackupRom')) {
+        foreach ($name in @('policy/security_policy_backup.py','policy/security_policy_backup_operator.py')) {
+            if (-not $data.files.ContainsKey($name)) { throw 'refused' }
+        }
+    }
+    if ($Mode -in @('Operator','Rom','Backup','BackupRom')) {
         if (-not $Request -or $RequestSha256 -cnotmatch '^[0-9a-f]{64}$') { throw 'refused' }
         $null = Assert-Regular $Request
         if ((Get-FileHash -LiteralPath $Request -Algorithm SHA256).Hash.ToLowerInvariant() -cne $RequestSha256) { throw 'refused' }

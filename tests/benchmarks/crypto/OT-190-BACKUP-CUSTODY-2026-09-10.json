@@ -1,0 +1,122 @@
+{
+  "schema": "OT190-BACKUP-CUSTODY-EVIDENCE-1",
+  "as_of": "2026-09-10",
+  "status": "host_validated_software_preparation",
+  "source_pins": {
+    "tools/security_policy_backup.py": {
+      "bytes": 20800,
+      "sha256": "9e9bf4123ef9f1fcd8c95430cd9fcc36c719574374851cae177efadcd2fd975b"
+    },
+    "tools/security_policy_backup_operator.py": {
+      "bytes": 7683,
+      "sha256": "b89de5863ce3928ba4cb9139b96d6e7e12e7b1c053acecc4aa179f28a65bdd4c"
+    },
+    "tools/security_policy_operator.py": {
+      "bytes": 19305,
+      "sha256": "3516dc18567b1a2d62544e7665c1cdcfa54afbe8a3e4ae94c4f7f0c6769c4a5c"
+    },
+    "tools/security_policy_runtime_bundle.py": {
+      "bytes": 14086,
+      "sha256": "347044fb1d3991a6cf658c1fea2f2bffd2cf5fa0bd533c2e1c311d01126604a4"
+    },
+    "tools/Invoke-SecurityPolicyOperator.ps1": {
+      "bytes": 6557,
+      "sha256": "9caa1355e2d55bf0bea7027cadbdce9666e2dd858774b54ffeffbe3506a3dd01"
+    }
+  },
+  "test_pins": {
+    "tests/host/security_policy_backup_tests.py": {
+      "bytes": 12063,
+      "sha256": "20d0823b9a496125a8867529041a6323658f71b1563076944c7a7d6457987a83"
+    },
+    "tests/host/security_policy_backup_operator_tests.py": {
+      "bytes": 15331,
+      "sha256": "ff2f42ae70d2317ad9dee837f76a2465be71844550f2e5f9a8bcec6af4c2f8f0"
+    },
+    "tests/host/security_policy_operator_tests.py": {
+      "bytes": 18437,
+      "sha256": "decc910950ffbdb46894c41103c76cbc58e911ed565653a3fba9a8659144b601"
+    },
+    "tests/host/security_policy_runtime_bundle_tests.py": {
+      "bytes": 8701,
+      "sha256": "ee2d5c6c9b09f17e1469e9f28a88c675b0d22a50d5b51b471c2eaae6316bb9ed"
+    }
+  },
+  "focused_tests": {
+    "tests/host/security_policy_backup_tests.py": 21,
+    "tests/host/security_policy_backup_operator_tests.py": 11,
+    "tests/host/security_policy_operator_tests.py": 13,
+    "tests/host/security_policy_runtime_bundle_tests.py": 13
+  },
+  "focused_total": 58,
+  "new_backup_tests": 32,
+  "complete_host_matrix": "pass",
+  "capsule": {
+    "manifest_sha256": "4d4f8c05964663de12284d04cc451951008f984733a222dd85c0f3a1854c7c50",
+    "files": 3547,
+    "bytes": 96202915,
+    "versions": {
+      "python": "3.14.6",
+      "bitarray": "3.10.1",
+      "bitstring": "4.4.0",
+      "cffi": "2.1.1",
+      "click": "8.1.8",
+      "colorama": "0.4.6",
+      "cryptography": "46.0.7",
+      "esptool": "5.3.1",
+      "intelhex": "2.3.0",
+      "markdown-it-py": "4.2.0",
+      "mdurl": "0.1.2",
+      "pycparser": "3.0",
+      "pygments": "2.20.0",
+      "pyserial": "3.5",
+      "pyyaml": "6.0.3",
+      "reedsolo": "1.7.0",
+      "rich": "15.0.0",
+      "rich-click": "1.9.8",
+      "tibs": "0.5.7"
+    },
+    "inventory_retained_privately": true
+  },
+  "probes": {
+    "ordinary": {
+      "files_verified": 3547,
+      "hardware_access": false,
+      "isolated_child": "verified",
+      "parent_import_origins": "verified",
+      "runtime_sha256": "4d4f8c05964663de12284d04cc451951008f984733a222dd85c0f3a1854c7c50",
+      "status": "pass",
+      "versions": {
+        "esptool": "5.3.1",
+        "pyserial": "3.5"
+      }
+    },
+    "poisoned": {
+      "files_verified": 3547,
+      "hardware_access": false,
+      "isolated_child": "verified",
+      "parent_import_origins": "verified",
+      "runtime_sha256": "4d4f8c05964663de12284d04cc451951008f984733a222dd85c0f3a1854c7c50",
+      "status": "pass",
+      "versions": {
+        "esptool": "5.3.1",
+        "pyserial": "3.5"
+      }
+    }
+  },
+  "poison_marker_executed": false,
+  "post_probe_inventory_verified": true,
+  "hardware_access": false,
+  "live_snapshots_created": false,
+  "physical_authority_issued": false,
+  "completion_credit": false,
+  "website_status_changed": false,
+  "limits": [
+    "Operating system, reviewed PowerShell/.NET host and local trusted operator remain the trust base.",
+    "Installed dependency RECORD consistency is not upstream signature verification.",
+    "Held-ROM custody has a finite admission window; expiry does not automatically reset devices.",
+    "Original reset invalidates prior NVS custody; unresolved serial/reset/corrupt journal states require explicit reconciliation.",
+    "No physical timing, entropy, interruption, radio, provisioning, or product crypto acceptance."
+  ],
+  "simulator_ui_tests": "13/13"
+}

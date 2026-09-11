@@ -131,9 +131,11 @@
         "docs/testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md",
         "tests/benchmarks/crypto/OT-188-CAPTURE-RECOVERY-2026-09-10.json",
         "docs/testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md",
-        "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json"
+        "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
+        "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
+        "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json"
       ],
-      "next_gate": "OT-189 verifies a private isolated runtime, exact startup/dependency bytes and parent/child import origins, including poisoned-environment probes; ROM child independently enforces journal phase, storage spans and write payloads. The reviewed PowerShell verifier, its host/.NET and OS remain the trust base. Complete the bounded initial-backup read/reset controller, then establish fresh per-role live inventory, installed-region checks and full private originals under exact physical authority before a new one-use nonradio trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, applicable Phase 3 admission and explicit crypto selection remain open. Same-key resume is unsupported; cold-power disassembly is deferred and previous grants remain consumed."
+      "next_gate": "OT-190 host-validates initial backup capture, read/reset-only child authority, durable interruption, private application/NVS custody and one-use execution handoff within the isolated runtime. Original reset invalidates prior NVS freshness; verified no-write interrupted trials and untouched held roles have explicit guarded release. Next establish fresh per-role inventory, installed-region checks and complete private originals under exact physical read/reset/hold authority, then a package-bound one-use nonradio trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open. Same-key resume remains unsupported; cold-power disassembly is deferred and previous grants remain consumed."
     },
     {
       "id": "core-firmware",
@@ -349,9 +351,11 @@
             "docs/testing/OT-188-SECURITY-CAPTURE-RECOVERY-2026-09-10.md",
             "tests/benchmarks/crypto/OT-188-CAPTURE-RECOVERY-2026-09-10.json",
             "docs/testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md",
-            "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json"
+            "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
+            "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
+            "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json"
           ],
-          "next_gate": "OT-189 verifies a private isolated runtime, exact startup/dependency bytes and parent/child import origins, including poisoned-environment probes; ROM child independently enforces journal phase, storage spans and write payloads. The reviewed PowerShell verifier, its host/.NET and OS remain the trust base. Complete the bounded initial-backup read/reset controller, then establish fresh per-role live inventory, installed-region checks and full private originals under exact physical authority before a new one-use nonradio trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, applicable Phase 3 admission and explicit crypto selection remain open. Same-key resume is unsupported; cold-power disassembly is deferred and previous grants remain consumed."
+          "next_gate": "OT-190 host-validates initial backup capture, read/reset-only child authority, durable interruption, private application/NVS custody and one-use execution handoff within the isolated runtime. Original reset invalidates prior NVS freshness; verified no-write interrupted trials and untouched held roles have explicit guarded release. Next establish fresh per-role inventory, installed-region checks and complete private originals under exact physical read/reset/hold authority, then a package-bound one-use nonradio trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open. Same-key resume remains unsupported; cold-power disassembly is deferred and previous grants remain consumed."
         },
         {
           "id": "core-firmware",
@@ -1320,6 +1324,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-189 verifies isolated runtime startup/dependency bytes, parent/child imports and poisoned-environment containment with exact ROM phase/span/payload admission. Read/reset backup and later two-role nonradio trial scopes are prepared; initial snapshot controller, live custody and physical authority remain open. No device I/O or physical acceptance is added. Completion values, weights and prior history remain unchanged; no public website capability change."
+        },
+        {
+          "date": "2026-09-10",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-190 adds host-validated initial backup custody, isolated read/reset-only operator/child admission, finite held-ROM one-use handoff and reset-invalidated NVS freshness. Guarded release addresses untouched roles and verified no-write interrupted execution. Runtime probes and simulated tests do not add live snapshots, physical authority or hardware acceptance. Completion values and weights remain unchanged; no website capability change."
         }
       ]
     },
@@ -1825,6 +1835,11 @@
       "date": "2026-09-10",
       "overall": 32,
       "reason": "OT-189 verifies isolated runtime startup/dependency bytes, parent/child imports and poisoned-environment containment with exact ROM phase/span/payload admission. Read/reset backup and later two-role nonradio trial scopes are prepared; initial snapshot controller, live custody and physical authority remain open. No device I/O or physical acceptance is added. Completion values, weights and prior history remain unchanged; no public website capability change."
+    },
+    {
+      "date": "2026-09-10",
+      "overall": 32,
+      "reason": "OT-190 adds host-validated initial backup custody, isolated read/reset-only operator/child admission, finite held-ROM one-use handoff and reset-invalidated NVS freshness. Guarded release addresses untouched roles and verified no-write interrupted execution. Runtime probes and simulated tests do not add live snapshots, physical authority or hardware acceptance. Completion values and weights remain unchanged; no website capability change."
     }
   ]
 }
