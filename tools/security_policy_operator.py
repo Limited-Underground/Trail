@@ -110,7 +110,7 @@ def verify_manifest(path, expected_sha):
         raise OperatorError('operator_refused') from None
 
 def child_args(manifest, manifest_path, manifest_sha, mode, request_path=None, request_sha=None):
-    need(mode in ('Probe', 'Version', 'Operator', 'Rom'))
+    need(mode in ('Probe', 'Version', 'Operator', 'Rom', 'Backup', 'BackupRom'))
     args = [manifest['powershell']['path'], '-NoProfile', '-NonInteractive', '-File',
             str(Path(manifest['root']) / 'policy' / 'Invoke-SecurityPolicyOperator.ps1'),
             '-Manifest', str(manifest_path), '-ManifestSha256', manifest_sha, '-Mode', mode]

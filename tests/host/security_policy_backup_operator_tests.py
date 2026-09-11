@@ -56,6 +56,43 @@ class Tests(unittest.TestCase):
         import security_policy_hardware as hardware
         with patch.object(hardware,"Backend",return_value=self.backend),patch.object(worker,"make_transport",return_value=object()),patch.object(worker.operator,"audit_loaded_modules",return_value=True):
             return worker.run_operator(self.ctx,path,digest)
+    def test_backup_transport_launches_real_child_args(self):
+        import security_policy_hardware as hardware
+        self.ctx['manifest']['powershell']={'path':str(self.private/'pwsh.exe')}
+        path,digest=self.outer()
+        def initialize(transport,private_root):
+            # Only platform/dependency admission is replaced; real transport command
+            # and child_args construct the subprocess request under test.
+            transport.private_root=private_root
+        captured=[]
+        def run(args,**kwargs):
+            self.assertEqual(args[args.index('-Mode')+1],'BackupRom')
+            child_path=Path(args[args.index('-Request')+1])
+            child=core.decode(child_path.read_bytes())
+            self.assertEqual(args[args.index('-RequestSha256')+1],sha(child_path.read_bytes()))
+            self.assertEqual(child['schema'],'OT190-ROM-1')
+            self.assertEqual(child['operator_request'],{'path':str(path),'sha256':digest})
+            self.assertEqual(child['argv'][-1],'read-mac')
+            self.assertEqual(child['argv'][9],'no-reset')
+            self.assertEqual(kwargs['cwd'],self.ctx['manifest']['root'])
+            captured.append(child)
+            return SimpleNamespace(returncode=0,stdout=b'bounded synthetic reply',stderr=b'')
+        with patch.object(hardware.RomTransport,'__init__',initialize),patch.object(worker.subprocess,'run',side_effect=run) as invoke:
+            transport=worker.make_transport(self.ctx,path,digest)
+            self.assertEqual(transport.command('COM1',['read-mac']),b'bounded synthetic reply')
+            invoke.assert_called_once()
+        self.assertEqual(len(captured),1)
+    def test_backup_child_mode_and_unknown_mode_rejection(self):
+        self.ctx['manifest']['powershell']={'path':str(self.private/'pwsh.exe')}
+        path,digest=self.outer()
+        args=worker.operator.child_args(self.ctx['manifest'],self.ctx['path'],self.ctx['sha'],'Backup',path,digest)
+        self.assertEqual(args[args.index('-Mode')+1],'Backup')
+        self.assertEqual(args[args.index('-Request')+1],str(path))
+        with self.assertRaises(worker.operator.OperatorError):
+            worker.operator.child_args(self.ctx['manifest'],self.ctx['path'],self.ctx['sha'],'Unapproved',path,digest)
+        for mode in ('Backup','BackupRom'):
+            with self.assertRaises(worker.operator.OperatorError):
+                worker.operator.child_args(self.ctx['manifest'],self.ctx['path'],self.ctx['sha'],mode)
     def test_capture_has_no_fake_nvs_baseline_or_writes(self):
         path,digest=self.outer();result=self.run_outer(path,digest)
         self.assertEqual("capture",result["operation"]);self.assertIs(result["hardware_access"],True)

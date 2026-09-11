@@ -1,0 +1,73 @@
+{
+  "schema": "OT191-PHYSICAL-OUTCOME-1",
+  "at": "2026-09-11T01:03:59.291351+00:00",
+  "hardware": {
+    "model": "Heltec WiFi LoRa32 V4.2",
+    "mcu": "ESP32-S3",
+    "flash_bytes": 16777216,
+    "roles": 2,
+    "region_change": false,
+    "lora_used": false,
+    "cold_power": "deferred"
+  },
+  "backup": {
+    "status": "pass_both_roles",
+    "application_bytes_each": 589824,
+    "nvs_bytes_each": 12288,
+    "protected_bytes": [
+      32768,
+      4096,
+      8192
+    ],
+    "freshness_after_original_restart": "stale_not_reusable_for_handoff"
+  },
+  "trial": {
+    "version": "ot187-policy-v0",
+    "candidate_bytes": 437488,
+    "candidate_sha256": "9682f86877b8c8b5d20a6309dd80199f8729bd61e08bc6787bcbea626dc7b836",
+    "status": "evaluation_failed",
+    "A": {
+      "candidate_verified": true,
+      "serial_closed": true,
+      "accepted_receipt": false,
+      "original_application_and_nvs_restored_verified": true,
+      "protected_regions_verified": true,
+      "original_reset_confirmed": true
+    },
+    "B": {
+      "candidate_written": false,
+      "original_regions_reverified": true,
+      "guarded_reset_confirmed": true
+    }
+  },
+  "root_cause": "UNKNOWN: run_intent does not prove command delivery or received bytes; endpoint errors collapsed to capture_failed",
+  "active_locks_remaining": false,
+  "separate_recovery_required": false,
+  "phone_ui_and_oled": "not independently observed",
+  "website_status_changed": false,
+  "source_fix": "admit Backup and BackupRom in child_args; scope/binding checks unchanged",
+  "focused_tests": 60,
+  "runtime": {
+    "manifest_sha256": "6813e21e221c75e63cbae644e70488f1ec229fdd36e570cfffc6327ae2072904",
+    "files": 3547,
+    "bytes": 96202938,
+    "ordinary_and_poison_probes": "pass"
+  },
+  "next_gate": "Host-tested fixed-category endpoint/capture diagnostics before a fresh authorized physical attempt; no guessed physical cause or reused snapshots/grants.",
+  "scope": "Observed two-device backup and one nonradio trial; failure preserved; both originals returned. Not product messaging or cryptographic acceptance.",
+  "operation_windows": {
+    "ot191r2-capture": {
+      "issued_utc": 1789086825,
+      "expires_utc": 1789088625
+    },
+    "ot191-execute": {
+      "issued_utc": 1789087445,
+      "expires_utc": 1789091045
+    },
+    "ot191r2-reset": {
+      "issued_utc": 1789088406,
+      "expires_utc": 1789090206
+    }
+  },
+  "physical_trial_retry_performed": false
+}

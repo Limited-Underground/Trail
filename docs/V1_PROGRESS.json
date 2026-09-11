@@ -133,9 +133,11 @@
         "docs/testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md",
         "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
         "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
-        "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json"
+        "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
+        "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md",
+        "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
       ],
-      "next_gate": "OT-190 host-validates initial backup capture, read/reset-only child authority, durable interruption, private application/NVS custody and one-use execution handoff within the isolated runtime. Original reset invalidates prior NVS freshness; verified no-write interrupted trials and untouched held roles have explicit guarded release. Next establish fresh per-role inventory, installed-region checks and complete private originals under exact physical read/reset/hold authority, then a package-bound one-use nonradio trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open. Same-key resume remains unsupported; cold-power disassembly is deferred and previous grants remain consumed."
+      "next_gate": "OT-191 completed both-role physical backup custody and a bounded nonradio trial. Role A candidate verified and reset but no solicited receipt was accepted; original application/full NVS restored and verified before original reset. Role B was never flashed and passed guarded original readback/reset. No active locks remain; snapshots are stale after reset. Next diagnose absent/rejected receipt capture with bounded software evidence before fresh authority and backups for another trial. The complete host validation matrix passed. No key/security acceptance, entropy-quality or interrupted-persistence proof is added; historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open. Same-key resume and owner-deferred cold-power work remain unaccepted."
     },
     {
       "id": "core-firmware",
@@ -353,9 +355,11 @@
             "docs/testing/OT-189-OPERATOR-RUNTIME-PREFLIGHT-2026-09-10.md",
             "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
             "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
-            "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json"
+            "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
+            "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md",
+            "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
           ],
-          "next_gate": "OT-190 host-validates initial backup capture, read/reset-only child authority, durable interruption, private application/NVS custody and one-use execution handoff within the isolated runtime. Original reset invalidates prior NVS freshness; verified no-write interrupted trials and untouched held roles have explicit guarded release. Next establish fresh per-role inventory, installed-region checks and complete private originals under exact physical read/reset/hold authority, then a package-bound one-use nonradio trial. Physical entropy/interruption, historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open. Same-key resume remains unsupported; cold-power disassembly is deferred and previous grants remain consumed."
+          "next_gate": "OT-191 completed both-role physical backup custody and a bounded nonradio trial. Role A candidate verified and reset but no solicited receipt was accepted; original application/full NVS restored and verified before original reset. Role B was never flashed and passed guarded original readback/reset. No active locks remain; snapshots are stale after reset. Next diagnose absent/rejected receipt capture with bounded software evidence before fresh authority and backups for another trial. The complete host validation matrix passed. No key/security acceptance, entropy-quality or interrupted-persistence proof is added; historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open. Same-key resume and owner-deferred cold-power work remain unaccepted."
         },
         {
           "id": "core-firmware",
@@ -1330,6 +1334,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-190 adds host-validated initial backup custody, isolated read/reset-only operator/child admission, finite held-ROM one-use handoff and reset-invalidated NVS freshness. Guarded release addresses untouched roles and verified no-write interrupted execution. Runtime probes and simulated tests do not add live snapshots, physical authority or hardware acceptance. Completion values and weights remain unchanged; no website capability change."
+        },
+        {
+          "date": "2026-09-10",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-191 establishes both-role backup custody and records a failed solicited-receipt trial, with role A original application/full NVS restored and verified and untouched role B guarded-released. No active locks remain; resets invalidate prior snapshot freshness. Receipt diagnosis and full host validation remain pending. No security pass or new milestone completion is admitted; all completion values and weights and public website status remain unchanged."
         }
       ]
     },
@@ -1840,6 +1850,11 @@
       "date": "2026-09-10",
       "overall": 32,
       "reason": "OT-190 adds host-validated initial backup custody, isolated read/reset-only operator/child admission, finite held-ROM one-use handoff and reset-invalidated NVS freshness. Guarded release addresses untouched roles and verified no-write interrupted execution. Runtime probes and simulated tests do not add live snapshots, physical authority or hardware acceptance. Completion values and weights remain unchanged; no website capability change."
+    },
+    {
+      "date": "2026-09-10",
+      "overall": 32,
+      "reason": "OT-191 establishes both-role backup custody and records a failed solicited-receipt trial, with role A original application/full NVS restored and verified and untouched role B guarded-released. No active locks remain; resets invalidate prior snapshot freshness. Receipt diagnosis and full host validation remain pending. No security pass or new milestone completion is admitted; all completion values and weights and public website status remain unchanged."
     }
   ]
 }
