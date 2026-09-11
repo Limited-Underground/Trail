@@ -1,0 +1,65 @@
+{
+  "schema": "OT199-INPUT-PREFLIGHT-1",
+  "at": "2026-09-11T20:47:07.419133+00:00",
+  "status": "fresh_backup_verified_originals_released_trial_awaiting_approval",
+  "hardware": {
+    "model": "Heltec WiFi LoRa32 V4.2",
+    "mcu": "ESP32-S3",
+    "flash_bytes": 16777216,
+    "roles": 2,
+    "radio_trial_performed": false,
+    "phone_actions": false,
+    "cold_power": "deferred"
+  },
+  "backup": {
+    "fresh_capture_verified_roles": [
+      "A",
+      "B"
+    ],
+    "application_bytes_each": 589824,
+    "nvs_bytes_each": 12288,
+    "protected_bytes": [
+      32768,
+      4096,
+      8192
+    ],
+    "input_diagnostic_namespace_absent": true,
+    "current_custody": "released_snapshots_stale"
+  },
+  "candidate": {
+    "version": "ot198-input-diag-v0",
+    "bytes": 438912,
+    "sha256": "5fc90c0d4c5f096227b4e1e33caed1ef8079ef515f1f04884074447464c25b6f",
+    "written": false,
+    "booted": false
+  },
+  "admission": {
+    "package_verified_against_fresh_held_backups": true,
+    "runtime_files": 3558,
+    "operator_source_pins": 20,
+    "build_source_pins": 41,
+    "matching_build_artifact_pairs": 7,
+    "approval_review": "rejected_before_process_creation_exact_new_trial_approval_required",
+    "execution_grant_created": false
+  },
+  "release": {
+    "status": "reset_nvs_stale",
+    "original_region_readbacks_verified_roles": [
+      "A",
+      "B"
+    ],
+    "original_reset_confirmed_roles": [
+      "A",
+      "B"
+    ],
+    "active_locks_remaining": false,
+    "capture_and_release_grants_consumed": true
+  },
+  "physical_trial_performed": false,
+  "policy_receipt_accepted": false,
+  "new_input_reason_observed": false,
+  "new_host_timing_observed": false,
+  "phone_ui_and_oled": "not independently observed",
+  "website_status_changed": false,
+  "next_gate": "Explicit approval for the exact OT-198 input diagnostic trial, then fresh live backup custody. Released snapshots and consumed grants cannot be reused."
+}

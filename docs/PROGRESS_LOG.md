@@ -2,6 +2,21 @@
 
 ## 2026-09-11
 
+### OT-199 Verify fresh input-trial backups and release originals
+
+OT-198 publication and required checks are complete. Revalidated its exact image,
+build sources and runtime, then captured and verified fresh originals for both
+Heltecs. Both passed diagnostic-namespace absence and typed held-package admission.
+Automatic approval review rejected the new firmware/NVS trial before process
+creation because explicit approval for this exact image remained required.
+
+No candidate was flashed and no execution grant or journal was created. Guarded
+original-region readback and reset passed for both roles; both locks are absent.
+Capture/release grants are consumed and released snapshots are now stale. The
+trial remains blocked awaiting exact-scope approval and new backup custody.
+No policy result, refusal reason, timing acceptance, V1 credit or public website
+capability change. See [preflight evidence](testing/OT-199-INPUT-TRIAL-2026-09-11.md).
+
 ### OT-198 Distinguish input refusal branches and host lifecycle timing
 
 Added a separate diagnostic image with one compact stage record and exact input
