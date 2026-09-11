@@ -597,3 +597,11 @@ tests/host/security_policy_stage*.py -text
 # OT-196 executable stage operator and package evidence.
 tools/Invoke-SecurityPolicyStageOperator.ps1 -text
 tests/benchmarks/crypto/OT-196-*.json -text
+
+# OT-198 input diagnostic source and executable package bytes.
+firmware/targets/heltec_v4_security_input_diag/** -text
+firmware/components/security_evaluation/include/opentrail/evaluation_control_diagnostic.hpp -text
+tools/security_policy_input*.py -text
+tools/Invoke-SecurityPolicyInputOperator.ps1 -text
+tests/host/security_policy_input* -text
+tests/benchmarks/crypto/OT-198-*.json -text

@@ -1,0 +1,155 @@
+{
+  "schema": "OT198-INPUT-OPERATOR-PREPARATION-1",
+  "recorded_date": "2026-09-11",
+  "status": "software_package_validated",
+  "image": {
+    "version": "ot198-input-diag-v0",
+    "bytes": 438912,
+    "sha256": "5fc90c0d4c5f096227b4e1e33caed1ef8079ef515f1f04884074447464c25b6f"
+  },
+  "wire": "SEC_EVAL1 ot187-policy-v0",
+  "build_report": {
+    "path": "tests/benchmarks/crypto/OT-198-INPUT-DIAGNOSTICS-BUILD-2026-09-11.json",
+    "bytes": 16293,
+    "sha256": "dbc9292229499dc6fe4d5320e9187ec81e1a2f0c6180272f7135a8010fe0fe69"
+  },
+  "build_validation": {
+    "build_source_pins_verified": 41,
+    "original_source_pins_preserved": 33,
+    "identical_artifact_pairs": 7,
+    "fresh_builds": 2,
+    "compiler_warnings": 0
+  },
+  "source_pins": {
+    "tools/security_policy_bundle.py": {
+      "bytes": 10318,
+      "sha256": "0512d4118bae3d5e23628e19bc75b484b7457b937620acc15cdf7969776ae7b2"
+    },
+    "tools/security_policy_hardware.py": {
+      "bytes": 11537,
+      "sha256": "cfd6a29b7560e6c6d01c81c916b54742aa328c04a2c20b81320ec9d54d9c0e55"
+    },
+    "tools/security_policy_endpoint.py": {
+      "bytes": 3548,
+      "sha256": "1a86b71b59c7b8357afd00375ed2307860b96316357223b1c2fcf460a19530b1"
+    },
+    "tools/security_policy_execution.py": {
+      "bytes": 21186,
+      "sha256": "afce87da6ffdc382f402bb774e44086c1e77e9741e1da04f16be733e43ae0089"
+    },
+    "tools/security_policy_capture.py": {
+      "bytes": 2444,
+      "sha256": "6aa64631a2e9893140f6ce5585c317b8d93c72421f216310c57f895dffa78fd2"
+    },
+    "tools/security_policy_operator.py": {
+      "bytes": 20376,
+      "sha256": "12aa023420b12540e5d71d40be11125bfd5e8810134c5b708f1d47299b8df550"
+    },
+    "tools/security_policy_backup.py": {
+      "bytes": 20800,
+      "sha256": "9e9bf4123ef9f1fcd8c95430cd9fcc36c719574374851cae177efadcd2fd975b"
+    },
+    "tools/security_policy_backup_operator.py": {
+      "bytes": 7749,
+      "sha256": "d07a93636c26efcb02d13914614dadac1a29c7935d4a6e368991559cfae6cfeb"
+    },
+    "tools/security_policy_diagnostics.py": {
+      "bytes": 9522,
+      "sha256": "591d9e447c83b42e7ed5418a137e901e30f3814249f043a8376ea5bc8a916163"
+    },
+    "tools/security_policy_runtime_bundle.py": {
+      "bytes": 14101,
+      "sha256": "8840dfce827151681ff85a4e5a22fe9720d90e000cc795ab44e4d7f52e8ed757"
+    },
+    "tools/security_policy_input_bundle.py": {
+      "bytes": 12939,
+      "sha256": "933196e6b4d6f2fdfd3dc130daa20d185b1d4a953651024926ee4e9cd19a075f"
+    },
+    "tools/security_policy_input_execution.py": {
+      "bytes": 18359,
+      "sha256": "57f7a83edcd49cc69913c8f89a41bae720a0b76aa594ba1d1960c1b711516215"
+    },
+    "tools/security_policy_input_operator.py": {
+      "bytes": 23307,
+      "sha256": "6927c444b136228aad1837a4492737d603f20e1ddc66fe739d5310f0123ee3fc"
+    },
+    "tools/security_policy_input_backup_operator.py": {
+      "bytes": 8683,
+      "sha256": "e54f97f8c1b540238f19db094387cf6e5f5858134be5982ab54d1157374a5fa3"
+    },
+    "tools/security_policy_input_runtime_bundle.py": {
+      "bytes": 14602,
+      "sha256": "20d110c6783a9f5b3f967f34f43c91331c7dea9aeba18522a6d395d711177a0c"
+    },
+    "tools/security_policy_input_readback.py": {
+      "bytes": 6045,
+      "sha256": "b1c362db5c416397207f72c47ce95a329bcb1f483c94ebf1877fe7d30ba7ee37"
+    },
+    "tools/security_policy_input_observation.py": {
+      "bytes": 5126,
+      "sha256": "80c75be48062253b184962909469021849f09146cedc392c497b399fb1185439"
+    },
+    "tools/security_policy_input_timing.py": {
+      "bytes": 3471,
+      "sha256": "08e408cb36c442769e95112c628cc45fedb5319289d8200be5ea3e6da3d7ccc4"
+    },
+    "tools/Invoke-SecurityPolicyOperator.ps1": {
+      "bytes": 6557,
+      "sha256": "9caa1355e2d55bf0bea7027cadbdce9666e2dd858774b54ffeffbe3506a3dd01"
+    },
+    "tools/Invoke-SecurityPolicyInputOperator.ps1": {
+      "bytes": 7285,
+      "sha256": "0be5719dc5b99d8fd45aa7c5e92dd5c223f2238ddc65fc8ece6b912058a359e5"
+    }
+  },
+  "runtime": {
+    "schema": "OT198-INPUT-RUNTIME-1",
+    "manifest": {
+      "bytes": 553789,
+      "sha256": "b05b870b718454e3d95db0622ae3cfc2d2553834208ee7877dd17882a8274eda"
+    },
+    "files": 3558,
+    "bytes": 96327492,
+    "versions": {
+      "python": "3.14.6",
+      "bitarray": "3.10.1",
+      "bitstring": "4.4.0",
+      "cffi": "2.1.1",
+      "click": "8.1.8",
+      "colorama": "0.4.6",
+      "cryptography": "46.0.7",
+      "esptool": "5.3.1",
+      "intelhex": "2.3.0",
+      "markdown-it-py": "4.2.0",
+      "mdurl": "0.1.2",
+      "pycparser": "3.0",
+      "pygments": "2.20.0",
+      "pyserial": "3.5",
+      "pyyaml": "6.0.3",
+      "reedsolo": "1.7.0",
+      "rich": "15.0.0",
+      "rich-click": "1.9.8",
+      "tibs": "0.5.7"
+    },
+    "ordinary_probe": "pass",
+    "hostile_environment_probe": "pass",
+    "post_probe_inventory": "pass"
+  },
+  "offline_binding": {
+    "actual_image_sources_runtime_and_both_originals": "verified",
+    "original_custody": "stale_retained_files_only",
+    "execute_and_recover_package_checks": "pass",
+    "actual_image_composed_worker": "pass_synthetic_devices",
+    "live_custody": false
+  },
+  "hardware_access": false,
+  "physical_authority_created": false,
+  "limits": [
+    "Software and isolated-runtime preparation only; no physical diagnostic result or OT-197 cause established.",
+    "Original snapshots used in offline binding remain stale and cannot admit a trial.",
+    "A fresh held-backup handoff and exact new one-use physical scope are required.",
+    "Stored records are not strict receipts, persistence acknowledgments or physical-cause proof.",
+    "Host reset-return/open/RUN-intent timing is not actual device boot or receipt timing.",
+    "Recovery may omit the candidate but retains original and source provenance checks."
+  ]
+}
