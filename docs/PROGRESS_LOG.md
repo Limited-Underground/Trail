@@ -1,5 +1,21 @@
 # OpenTrail Progress Log
 
+## 2026-09-11
+
+### OT-193 Complete the controlled diagnostic trial and restore originals
+
+Fresh backups passed on both roles. An initial launch refusal caught four
+reviewer-generated cache files outside the runtime manifest; exact reconciliation
+preceded the sole actual trial. A's transport accepted 63 command bytes, but
+94 reads received zero bytes over 30 seconds. Capture timed out; confirmed close
+preceded verified original application/full-NVS restoration and reset. B was
+never flashed and passed guarded original readback/reset. No active locks remain;
+resets invalidate snapshot freshness.
+
+See [diagnostic trial evidence](testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md).
+Next test the actual-source console/startup/input lifecycle. The physical cause
+remains unknown; no security pass, V1 credit or website status change.
+
 ## 2026-09-10
 
 ### OT-192 Add bounded receipt diagnostics to execution and backup handoff
