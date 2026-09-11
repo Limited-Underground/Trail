@@ -112,9 +112,14 @@ The executable successor now binds that image to fresh-backup custody, distinct
 runtime-bound authority, one-use observation, ROM-child admission and verified
 restoration. Composed tests, isolated runtime probes and the complete host matrix
 pass. See [operator package evidence](testing/OT-196-STAGE-OPERATOR-2026-09-11.md).
-Next establish fresh live originals and exact physical scope for a nonradio trial.
-Earlier snapshots remain stale and grants consumed. The physical cause is unknown
-and no security pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
+The controlled trial now has a captured `input_result / input_refused` marker
+from A, while its receipt capture received zero bytes. A restored exactly and B
+remained unflashed and passed guarded original readback/reset. Both originals
+returned; snapshots are stale and grants consumed. See
+[stage trial evidence](testing/OT-197-STAGE-TRIAL-2026-09-11.md).
+Next distinguish input refusal reasons and measure boot-to-command timing in one
+validated diagnostic increment. The specific cause remains unknown and no
+security pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 
 Historical raw-capture custody remains unestablished for the older libsodium and

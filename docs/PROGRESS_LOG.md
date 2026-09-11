@@ -2,6 +2,21 @@
 
 ## 2026-09-11
 
+### OT-197 Run the controlled durable-stage bench trial
+
+Fresh backups and diagnostic-namespace absence passed for both retained boards.
+One nonradio trial on A received zero bytes in 104 reads over 30 seconds; the
+separate captured stage was `input_result / input_refused`, before evaluation.
+Exact original application/full NVS restoration, protected-region readback and
+reset passed for A. B remained unflashed and passed guarded readback/reset.
+Private capture custody was independently checked; no active attempt remains.
+
+The marker narrows the failed path without choosing timeout, parser or console
+fault as its cause. Next combine bounded refusal reasons and boot-to-command
+timing with actual-source tests and a pinned diagnostic build. No policy pass,
+V1 credit or website capability change. See
+[trial evidence](testing/OT-197-STAGE-TRIAL-2026-09-11.md).
+
 ### OT-196 Assemble the executable stage diagnostic and recovery package
 
 Added an isolated successor that binds the OT-195 image, complete source/runtime

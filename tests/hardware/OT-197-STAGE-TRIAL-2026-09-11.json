@@ -1,0 +1,104 @@
+{
+  "schema": "OT197-PHYSICAL-OUTCOME-1",
+  "at": "2026-09-11T18:44:11.434120+00:00",
+  "hardware": {
+    "model": "Heltec WiFi LoRa32 V4.2",
+    "mcu": "ESP32-S3",
+    "flash_bytes": 16777216,
+    "roles": 2,
+    "lora_used": false,
+    "region_change": false,
+    "cold_power": "deferred"
+  },
+  "backup": {
+    "status": "pass_both_roles",
+    "application_bytes_each": 589824,
+    "nvs_bytes_each": 12288,
+    "protected_bytes": [
+      32768,
+      4096,
+      8192
+    ],
+    "diagnostic_namespace_absent_before_trial": true,
+    "freshness_after_original_restart": "stale_not_reusable_for_handoff",
+    "release_status": "reset_nvs_stale"
+  },
+  "trial": {
+    "version": "ot195-policy-diag-v0",
+    "candidate_bytes": 438784,
+    "candidate_sha256": "449e3249bf6d92e5bcfa394244bd8b15544ee2f5aa8f0f4eded13321eea06164",
+    "package_digest": "d59e150500bcf900e82439b4fb696d668abccd8b31a62d4cf7e461399048c3ab",
+    "status": "evaluation_failed",
+    "A": {
+      "candidate_verified": true,
+      "serial_closed": true,
+      "accepted_receipt": false,
+      "original_application_and_nvs_restored_verified": true,
+      "protected_regions_verified": true,
+      "original_reset_confirmed": true,
+      "stage_observation": {
+        "available": true,
+        "error": "input_refused",
+        "reason": "observed",
+        "role": "A",
+        "stage": "input_result"
+      }
+    },
+    "B": {
+      "candidate_written": false,
+      "original_regions_reverified": true,
+      "guarded_reset_confirmed": true
+    }
+  },
+  "receipt_diagnostics": {
+    "available": true,
+    "roles": [
+      {
+        "capture_error": "receipt_timeout",
+        "close_confirmed": true,
+        "close_error": "none",
+        "command_accepted_bytes": 63,
+        "diagnostics_available": true,
+        "elapsed_ms": 30000,
+        "error": "endpoint_capture_refused",
+        "inner_endpoint_error": "none",
+        "matching_receipt_observed": false,
+        "read_bytes": 0,
+        "read_calls": 104,
+        "receipt_accepted": false,
+        "role": "A",
+        "stage": "refused"
+      },
+      {
+        "capture_error": "none",
+        "close_confirmed": false,
+        "close_error": "none",
+        "command_accepted_bytes": 0,
+        "diagnostics_available": true,
+        "elapsed_ms": 0,
+        "error": "none",
+        "inner_endpoint_error": "none",
+        "matching_receipt_observed": false,
+        "read_bytes": 0,
+        "read_calls": 0,
+        "receipt_accepted": false,
+        "role": "B",
+        "stage": "not_opened"
+      }
+    ],
+    "schema": "OT192-RECEIPT-DIAGNOSTICS-1"
+  },
+  "runtime": {
+    "manifest_sha256": "37e666d74ee5f8cdb740bd1491abf5be3a5fa2fac14eae5cd72b7d9f2c34f3c4",
+    "files": 3557,
+    "probe": "pass_parent_and_isolated_child"
+  },
+  "observation_custody": "private raw capture and intent/claim/receipt bindings independently verified",
+  "root_cause": "UNKNOWN: firmware input path refused before evaluation; timeout, parser refusal, loop exhaustion and console health failure remain distinct possibilities.",
+  "active_locks_remaining": false,
+  "separate_recovery_required": false,
+  "physical_trial_retry_performed": false,
+  "phone_ui_and_oled": "not independently observed",
+  "website_status_changed": false,
+  "next_gate": "Add bounded input refusal reasons and boot-to-RUN timing, validate their actual-source composition and exact build before any fresh physical trial."
+}
