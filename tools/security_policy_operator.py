@@ -154,7 +154,9 @@ def runtime_policy(ctx):
     extra = ('backup', 'backup_operator')
     present = [('policy/security_policy_'+s+'.py') in ctx['manifest']['files'] for s in extra]
     need(not any(present) or all(present))
-    return POLICY + (extra if all(present) else ())
+    diagnostics = 'policy/security_policy_diagnostics.py' in ctx['manifest']['files']
+    need(not diagnostics or all(present))
+    return POLICY + (extra if all(present) else ()) + (('diagnostics',) if diagnostics else ())
 
 def admit_origins(ctx):
     root = Path(ctx['manifest']['root']).resolve()
@@ -220,6 +222,23 @@ def make_transport(ctx, request_path, request_sha):
             return result.stdout
     return VerifiedRomTransport(Path(ctx['manifest']['worktree']) / '.private')
 
+def make_backend(ctx, bindings, transport):
+    if 'diagnostics' in runtime_policy(ctx):
+        module = importlib.import_module('security_policy_diagnostics')
+        return module.make_backend(bindings, transport=transport)
+    return importlib.import_module('security_policy_hardware').Backend(bindings, transport=transport)
+
+def with_diagnostics(ctx, backend, result):
+    if 'diagnostics' not in runtime_policy(ctx):
+        return result
+    report = {'schema': 'OT192-RECEIPT-DIAGNOSTICS-1', 'available': False, 'roles': []}
+    try:
+        rows = importlib.import_module('security_policy_diagnostics').summary(backend)
+        report.update(available=all(row['diagnostics_available'] for row in rows), roles=rows)
+    except Exception:
+        pass
+    return {**result, 'receipt_diagnostics': report}
+
 def run_operator(ctx, request_path, request_sha):
     req = operator_request(ctx, request_path, request_sha)
     bundle = importlib.import_module('security_policy_bundle')
@@ -233,7 +252,7 @@ def run_operator(ctx, request_path, request_sha):
     root = Path(ctx['manifest']['worktree'])
     bindings = tuple(hardware.RoleBinding(r['role'], r['private_route'], r['private_identity']) for r in package['roles'])
     transport = make_transport(ctx, request_path, request_sha)
-    backend = hardware.Backend(bindings, transport=transport)
+    backend = make_backend(ctx, bindings, transport)
     authority = execution.FileAuthority(root, Path(req['grant_path']), req['grant_sha256'])
     audit_loaded_modules(ctx)
     if 'backup' in runtime_policy(ctx):
@@ -244,10 +263,12 @@ def run_operator(ctx, request_path, request_sha):
                 return execution.execute.__wrapped__(locked_root, package, authority, backend)
             return execution.recover.__wrapped__(locked_root, package, authority, backend,
                                                   origin_attempt=req['origin_attempt'])
-        return execution.single_process(dispatch)(root)
-    if req['operation'] == 'execute':
-        return execution.execute(root, package, authority, backend)
-    return execution.recover(root, package, authority, backend, origin_attempt=req['origin_attempt'])
+        result = execution.single_process(dispatch)(root)
+    elif req['operation'] == 'execute':
+        result = execution.execute(root, package, authority, backend)
+    else:
+        result = execution.recover(root, package, authority, backend, origin_attempt=req['origin_attempt'])
+    return with_diagnostics(ctx, backend, result)
 
 def run_rom(ctx, path, sha):
     req = load_request(private_file(ctx, path), sha)

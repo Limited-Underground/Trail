@@ -134,10 +134,10 @@
         "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
         "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
         "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
-        "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md",
+        "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md",
         "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
       ],
-      "next_gate": "OT-191 completed both-role physical backup custody and a bounded nonradio trial. Role A candidate verified and reset but no solicited receipt was accepted; original application/full NVS restored and verified before original reset. Role B was never flashed and passed guarded original readback/reset. No active locks remain; snapshots are stale after reset. Next diagnose absent/rejected receipt capture with bounded software evidence before fresh authority and backups for another trial. The complete host validation matrix passed. No key/security acceptance, entropy-quality or interrupted-persistence proof is added; historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open. Same-key resume and owner-deferred cold-power work remain unaccepted."
+      "next_gate": "OT-192 adds bounded receipt diagnostics around the unchanged endpoint and capture/recovery path. Host differential and simulated operator/handoff tests distinguish transport-accepted command bytes, bytes observed, matching frame observation and actual receipt acceptance while preserving original restoration. The OT-191 physical failure cause remains unknown; both originals were restored or guarded-released, old snapshots are stale and issued grants remain consumed. The diagnostic runtime probes and complete host matrix pass. Next prepare fresh backup custody and explicit one-use physical admission. No security acceptance, entropy-quality or interrupted-persistence proof is added; historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open. Same-key resume and owner-deferred cold-power work remain unaccepted."
     },
     {
       "id": "core-firmware",
@@ -356,10 +356,10 @@
             "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
             "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
             "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
-            "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md",
+            "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md",
             "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
           ],
-          "next_gate": "OT-191 completed both-role physical backup custody and a bounded nonradio trial. Role A candidate verified and reset but no solicited receipt was accepted; original application/full NVS restored and verified before original reset. Role B was never flashed and passed guarded original readback/reset. No active locks remain; snapshots are stale after reset. Next diagnose absent/rejected receipt capture with bounded software evidence before fresh authority and backups for another trial. The complete host validation matrix passed. No key/security acceptance, entropy-quality or interrupted-persistence proof is added; historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open. Same-key resume and owner-deferred cold-power work remain unaccepted."
+          "next_gate": "OT-192 adds bounded receipt diagnostics around the unchanged endpoint and capture/recovery path. Host differential and simulated operator/handoff tests distinguish transport-accepted command bytes, bytes observed, matching frame observation and actual receipt acceptance while preserving original restoration. The OT-191 physical failure cause remains unknown; both originals were restored or guarded-released, old snapshots are stale and issued grants remain consumed. The diagnostic runtime probes and complete host matrix pass. Next prepare fresh backup custody and explicit one-use physical admission. No security acceptance, entropy-quality or interrupted-persistence proof is added; historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 admission and explicit crypto selection remain open. Same-key resume and owner-deferred cold-power work remain unaccepted."
         },
         {
           "id": "core-firmware",
@@ -1340,6 +1340,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-191 establishes both-role backup custody and records a failed solicited-receipt trial, with role A original application/full NVS restored and verified and untouched role B guarded-released. No active locks remain; resets invalidate prior snapshot freshness. Receipt diagnosis and full host validation remain pending. No security pass or new milestone completion is admitted; all completion values and weights and public website status remain unchanged."
+        },
+        {
+          "date": "2026-09-10",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-192 adds bounded receipt diagnostics and differential/operator composition tests without changing the frozen endpoint, capture, executor or restoration logic. Matching bytes observed are distinct from an accepted receipt. No device I/O, fresh snapshot, physical authority or security pass is added; the earlier physical failure cause remains unknown. Completion values and weights remain unchanged; no website capability change."
         }
       ]
     },
@@ -1855,6 +1861,11 @@
       "date": "2026-09-10",
       "overall": 32,
       "reason": "OT-191 establishes both-role backup custody and records a failed solicited-receipt trial, with role A original application/full NVS restored and verified and untouched role B guarded-released. No active locks remain; resets invalidate prior snapshot freshness. Receipt diagnosis and full host validation remain pending. No security pass or new milestone completion is admitted; all completion values and weights and public website status remain unchanged."
+    },
+    {
+      "date": "2026-09-10",
+      "overall": 32,
+      "reason": "OT-192 adds bounded receipt diagnostics and differential/operator composition tests without changing the frozen endpoint, capture, executor or restoration logic. Matching bytes observed are distinct from an accepted receipt. No device I/O, fresh snapshot, physical authority or security pass is added; the earlier physical failure cause remains unknown. Completion values and weights remain unchanged; no website capability change."
     }
   ]
 }
