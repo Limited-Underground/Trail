@@ -134,10 +134,10 @@
         "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
         "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
         "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
-        "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md", "docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md",
+        "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md", "docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md",
         "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
       ],
-      "next_gate": "OT-195 adds a nonradio stage target, fixed NVS record, bounded readback/freshness decoder and restoration observation seam. Actual-source host tests and matching fresh builds are software evidence only; a stored stage is not a security receipt or physical-cause proof. Next bind the exact image, sources, decoder, executor, ROM child, original restoration and isolated runtime into a fresh executable package with interruption and untouched-role release tests. Then require fresh live original custody and explicit one-use physical scope covering pre-console NVS writes and pre-restoration capture. The existing operator and consumed grants cannot execute the new image. Physical entropy, interrupted persistence, historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 and explicit selection remain open."
+      "next_gate": "OT-196 supplies a software-validated executable stage operator and isolated runtime. Next prepare a fresh nonradio A-then-B trial with current device identities, exact original application/full NVS custody and diagnostic-namespace absence, finite held ROM state and one-use authority explicitly covering pre-console NVS writes and one pre-restoration observation. Restore each original before the next candidate and use guarded untouched-role release or separate restore-only recovery on failure. Prior snapshots are stale and grants consumed. Stage markers are not strict receipts or physical-cause proof. Physical entropy, interrupted persistence, historical capture custody, provisioning, confirmation UI, full rekey, Phase 3 and explicit crypto selection remain open."
     },
     {
       "id": "core-firmware",
@@ -356,10 +356,10 @@
             "tests/benchmarks/crypto/OT-189-OPERATOR-RUNTIME-2026-09-10.json",
             "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
             "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
-            "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md", "docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md",
+            "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md", "docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md",
             "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
           ],
-          "next_gate": "OT-195 adds a nonradio stage target, fixed NVS record, bounded readback/freshness decoder and restoration observation seam. Actual-source host tests and matching fresh builds are software evidence only; a stored stage is not a security receipt or physical-cause proof. Next bind the exact image, sources, decoder, executor, ROM child, original restoration and isolated runtime into a fresh executable package with interruption and untouched-role release tests. Then require fresh live original custody and explicit one-use physical scope covering pre-console NVS writes and pre-restoration capture. The existing operator and consumed grants cannot execute the new image. Physical entropy, interrupted persistence, historical capture custody, real provisioning, confirmation UI, full rekey, Phase 3 and explicit selection remain open."
+          "next_gate": "OT-196 supplies a software-validated executable stage operator and isolated runtime. Next prepare a fresh nonradio A-then-B trial with current device identities, exact original application/full NVS custody and diagnostic-namespace absence, finite held ROM state and one-use authority explicitly covering pre-console NVS writes and one pre-restoration observation. Restore each original before the next candidate and use guarded untouched-role release or separate restore-only recovery on failure. Prior snapshots are stale and grants consumed. Stage markers are not strict receipts or physical-cause proof. Physical entropy, interrupted persistence, historical capture custody, provisioning, confirmation UI, full rekey, Phase 3 and explicit crypto selection remain open."
         },
         {
           "id": "core-firmware",
@@ -1364,6 +1364,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-195 prepares an additive durable-stage target and bounded NVS readback/restoration observation seam. Actual-source tests cover stored transitions, console and storage failures, real decoder composition and unchanged verified restoration. Two initially absent ESP32 builds reproduce the complete artifact tuple. A stage marker is not a policy receipt and cannot establish writer acknowledgment, physical root cause or USB delivery. The existing operator remains pinned to OT-187; executable successor binding, fresh custody and physical scope remain gates. No device action, security acceptance, completion credit or public website capability change is added."
+        },
+        {
+          "date": "2026-09-11",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-196 validates an additive executable stage operator with exact image/source/runtime binding, finite held original custody, distinct execute/recover authority, durable one-use observation and unchanged original restoration. Composed and actual isolated parent/ROM-child tests and the complete host matrix pass; accepted firmware build tuples remain unchanged. Stage observations do not establish policy success or physical cause. Fresh live custody and exact physical scope remain required; prior snapshots and grants are unusable. No hardware, security acceptance, completion credit or public website capability change is added."
         }
       ]
     },
@@ -1899,6 +1905,11 @@
       "date": "2026-09-11",
       "overall": 32,
       "reason": "OT-195 prepares an additive durable-stage target and bounded NVS readback/restoration observation seam. Actual-source tests cover stored transitions, console and storage failures, real decoder composition and unchanged verified restoration. Two initially absent ESP32 builds reproduce the complete artifact tuple. A stage marker is not a policy receipt and cannot establish writer acknowledgment, physical root cause or USB delivery. The existing operator remains pinned to OT-187; executable successor binding, fresh custody and physical scope remain gates. No device action, security acceptance, completion credit or public website capability change is added."
+    },
+    {
+      "date": "2026-09-11",
+      "overall": 32,
+      "reason": "OT-196 validates an additive executable stage operator with exact image/source/runtime binding, finite held original custody, distinct execute/recover authority, durable one-use observation and unchanged original restoration. Composed and actual isolated parent/ROM-child tests and the complete host matrix pass; accepted firmware build tuples remain unchanged. Stage observations do not establish policy success or physical cause. Fresh live custody and exact physical scope remain required; prior snapshots and grants are unusable. No hardware, security acceptance, completion credit or public website capability change is added."
     }
   ]
 }

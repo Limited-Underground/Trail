@@ -2,7 +2,7 @@
 
 ## Current host toolchain
 
-- Python 3.14 with `meshcore` 2.3.8, `meshcore-cli` 1.5.7, and `pyserial`
+- Python 3.14.6 with `meshcore` 2.3.8, `meshcore-cli` 1.5.7, and `pyserial`
 - MSYS2 UCRT64 GCC 16.1.0 under `C:\msys64`
 - PowerShell 7
 
@@ -68,6 +68,12 @@ component cache. This test setup requires access to the official package host.
 The Windows authority tests also require CurrentUser DPAPI to be available in
 the account running the matrix. See the
 [lifecycle validation record](testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md).
+
+The Windows isolated operator tests require CPython 3.14.6, its matching DLLs
+and standard library, and PowerShell 7 discoverable on `PATH`. They run the
+actual launcher and worker with a synthetic device boundary; no connected
+hardware is needed. CI uses the same Python version. See the
+[operator validation record](testing/OT-196-STAGE-OPERATOR-2026-09-11.md).
 
 Generated executables live in per-run directories under ignored
 `build\host-tests` so a stale Windows process cannot block the next compile.

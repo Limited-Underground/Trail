@@ -1,0 +1,155 @@
+{
+  "schema": "OT196-STAGE-OPERATOR-PREPARATION-1",
+  "recorded_date": "2026-09-11",
+  "status": "software_package_validated",
+  "image": {
+    "version": "ot195-policy-diag-v0",
+    "bytes": 438784,
+    "sha256": "449e3249bf6d92e5bcfa394244bd8b15544ee2f5aa8f0f4eded13321eea06164"
+  },
+  "wire": "SEC_EVAL1 ot187-policy-v0",
+  "build_report": {
+    "path": "tests/benchmarks/crypto/OT-195-DURABLE-STAGE-BUILD-2026-09-11.json",
+    "bytes": 15847,
+    "sha256": "4489c05d7542cb883b67eaf54e7a150168be68e12e5175aa5df49affbdfd9615"
+  },
+  "build_reuse": {
+    "build_source_pins_verified": 37,
+    "original_source_pins_preserved": 33,
+    "artifact_pairs_rehashed": 7,
+    "rebuild_required": false
+  },
+  "source_pins": {
+    "tools/security_policy_bundle.py": {
+      "bytes": 10318,
+      "sha256": "0512d4118bae3d5e23628e19bc75b484b7457b937620acc15cdf7969776ae7b2"
+    },
+    "tools/security_policy_hardware.py": {
+      "bytes": 11537,
+      "sha256": "cfd6a29b7560e6c6d01c81c916b54742aa328c04a2c20b81320ec9d54d9c0e55"
+    },
+    "tools/security_policy_endpoint.py": {
+      "bytes": 3548,
+      "sha256": "1a86b71b59c7b8357afd00375ed2307860b96316357223b1c2fcf460a19530b1"
+    },
+    "tools/security_policy_execution.py": {
+      "bytes": 21186,
+      "sha256": "afce87da6ffdc382f402bb774e44086c1e77e9741e1da04f16be733e43ae0089"
+    },
+    "tools/security_policy_capture.py": {
+      "bytes": 2444,
+      "sha256": "6aa64631a2e9893140f6ce5585c317b8d93c72421f216310c57f895dffa78fd2"
+    },
+    "tools/security_policy_operator.py": {
+      "bytes": 20376,
+      "sha256": "12aa023420b12540e5d71d40be11125bfd5e8810134c5b708f1d47299b8df550"
+    },
+    "tools/security_policy_backup.py": {
+      "bytes": 20800,
+      "sha256": "9e9bf4123ef9f1fcd8c95430cd9fcc36c719574374851cae177efadcd2fd975b"
+    },
+    "tools/security_policy_backup_operator.py": {
+      "bytes": 7749,
+      "sha256": "d07a93636c26efcb02d13914614dadac1a29c7935d4a6e368991559cfae6cfeb"
+    },
+    "tools/security_policy_diagnostics.py": {
+      "bytes": 9522,
+      "sha256": "591d9e447c83b42e7ed5418a137e901e30f3814249f043a8376ea5bc8a916163"
+    },
+    "tools/security_policy_runtime_bundle.py": {
+      "bytes": 14101,
+      "sha256": "8840dfce827151681ff85a4e5a22fe9720d90e000cc795ab44e4d7f52e8ed757"
+    },
+    "tools/security_policy_stage_bundle.py": {
+      "bytes": 12853,
+      "sha256": "6f7f902e297e912f71312b5edebf256956cf2066ff4e6f3cf78ab9c6985399a0"
+    },
+    "tools/security_policy_stage_execution.py": {
+      "bytes": 17535,
+      "sha256": "9f1c75052f4692dd667bb255d469f8ea674e71e62ef5467473c5c5cd590fb46d"
+    },
+    "tools/security_policy_stage_operator.py": {
+      "bytes": 22648,
+      "sha256": "f0c919634139fe363f290ce384741c4d56d59e54d86fa53423ac249c5531020b"
+    },
+    "tools/security_policy_stage_backup_operator.py": {
+      "bytes": 8538,
+      "sha256": "c7c8bc222057a0e1c0b01000f67fe56dfae118876ba5d9ea741c6a3abb28af26"
+    },
+    "tools/security_policy_stage_runtime_bundle.py": {
+      "bytes": 14307,
+      "sha256": "0d1cbe68a070a3d6bb41add301404a663dcde108e7243bd00f74afcd3d77f28b"
+    },
+    "tools/security_policy_stage_readback.py": {
+      "bytes": 5843,
+      "sha256": "626cd8587c0e6e3f39723b1b746e43e3d85f434ea46497e7146ea61825afe201"
+    },
+    "tools/security_policy_stage_observation.py": {
+      "bytes": 5122,
+      "sha256": "59db82273df59f0d84865baf645b12764456bf4a927881d52e83b5914ad6f7cc"
+    },
+    "tools/Invoke-SecurityPolicyOperator.ps1": {
+      "bytes": 6557,
+      "sha256": "9caa1355e2d55bf0bea7027cadbdce9666e2dd858774b54ffeffbe3506a3dd01"
+    },
+    "tools/Invoke-SecurityPolicyStageOperator.ps1": {
+      "bytes": 7151,
+      "sha256": "a1775cf8c26c4fde39714508bbf50d266708392dc9365d5888beb0df9e713086"
+    }
+  },
+  "runtime": {
+    "schema": "OT196-STAGE-RUNTIME-1",
+    "manifest": {
+      "bytes": 553633,
+      "sha256": "37e666d74ee5f8cdb740bd1491abf5be3a5fa2fac14eae5cd72b7d9f2c34f3c4"
+    },
+    "files": 3557,
+    "bytes": 96321672,
+    "versions": {
+      "python": "3.14.6",
+      "bitarray": "3.10.1",
+      "bitstring": "4.4.0",
+      "cffi": "2.1.1",
+      "click": "8.1.8",
+      "colorama": "0.4.6",
+      "cryptography": "46.0.7",
+      "esptool": "5.3.1",
+      "intelhex": "2.3.0",
+      "markdown-it-py": "4.2.0",
+      "mdurl": "0.1.2",
+      "pycparser": "3.0",
+      "pygments": "2.20.0",
+      "pyserial": "3.5",
+      "pyyaml": "6.0.3",
+      "reedsolo": "1.7.0",
+      "rich": "15.0.0",
+      "rich-click": "1.9.8",
+      "tibs": "0.5.7"
+    },
+    "ordinary_probe": "pass",
+    "hostile_environment_probe": "pass",
+    "post_probe_inventory": "pass"
+  },
+  "offline_binding": {
+    "actual_image_sources_runtime_and_both_originals": "verified",
+    "original_custody": "stale_retained_files_only",
+    "execute_and_recover_package_checks": "pass",
+    "live_custody": false,
+    "actual_image_composed_write_and_restore": "pass_with_synthetic_devices_and_original_layout"
+  },
+  "hardware_access": false,
+  "physical_authority_created": false,
+  "limits": [
+    "Software and isolated-runtime preparation only; no physical diagnostic result.",
+    "Original snapshots used in the offline binding check remain stale and cannot be used for a trial.",
+    "A fresh held-backup handoff and exact new one-use physical scope are required.",
+    "Stored stages are not strict receipts, writer acknowledgments or physical-cause proof.",
+    "Recovery may proceed without the candidate but retains original and source provenance checks."
+  ],
+  "final_byte_cleanup": {
+    "trailing_bytes_removed": 1,
+    "ast_and_compiled_code_identical": true,
+    "fresh_runtime_regenerated": true,
+    "affected_tests_repeated": 30
+  }
+}

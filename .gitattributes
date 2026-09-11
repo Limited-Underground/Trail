@@ -593,3 +593,7 @@ tests/host/security_policy_stage/** -text
 tests/benchmarks/crypto/OT-195-*.json -text
 tests/host/fixtures/security_policy_stage/** -text
 tests/host/security_policy_stage*.py -text
+
+# OT-196 executable stage operator and package evidence.
+tools/Invoke-SecurityPolicyStageOperator.ps1 -text
+tests/benchmarks/crypto/OT-196-*.json -text

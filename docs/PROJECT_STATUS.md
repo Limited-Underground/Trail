@@ -108,10 +108,13 @@ The additive durable-stage target, bounded NVS decoder and restoration observati
 seam now pass composed tests and matching fresh builds. The stage record is
 independent of the console and remains separate from a strict policy receipt.
 See [stage diagnostic preparation](testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md).
-Next bind the image, sources, decoder, executor, ROM child and restoration into
-a fresh isolated operator package before physical admission. The current
-operator remains pinned to OT-187; the physical cause is unknown and no security
-pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
+The executable successor now binds that image to fresh-backup custody, distinct
+runtime-bound authority, one-use observation, ROM-child admission and verified
+restoration. Composed tests, isolated runtime probes and the complete host matrix
+pass. See [operator package evidence](testing/OT-196-STAGE-OPERATOR-2026-09-11.md).
+Next establish fresh live originals and exact physical scope for a nonradio trial.
+Earlier snapshots remain stale and grants consumed. The physical cause is unknown
+and no security pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 
 Historical raw-capture custody remains unestablished for the older libsodium and

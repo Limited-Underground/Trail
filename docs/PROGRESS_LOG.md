@@ -2,6 +2,20 @@
 
 ## 2026-09-11
 
+### OT-196 Assemble the executable stage diagnostic and recovery package
+
+Added an isolated successor that binds the OT-195 image, complete source/runtime
+closure, fresh original custody, distinct one-use authority and durable observation
+to verified restoration. Composed tests cover interruptions, uncertain serial/reset
+state, failed diagnostic capture, untouched-role release and actual parent/ROM-child
+dispatch. The full host matrix and ordinary/hostile runtime probes pass; accepted
+firmware sources and both complete build tuples remain exact.
+
+The software package is ready for fresh physical admission. Earlier snapshots
+remain stale and grants consumed. No device action, security pass, physical-cause
+conclusion, V1 credit or public website capability change. See
+[operator evidence](testing/OT-196-STAGE-OPERATOR-2026-09-11.md).
+
 ### OT-195 Prepare durable stage diagnostics and readback
 
 Added a separately named nonradio target with an eight-byte NVS stage record,
