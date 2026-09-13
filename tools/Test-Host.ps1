@@ -50,6 +50,12 @@ foreach ($containedSuite in @('radiolib_busy_source', 'noise_xk_contained_firmwa
 }
 & $python.Source (Join-Path $projectRoot 'tools\region_selection_catalog.py')
 if ($LASTEXITCODE -ne 0) { throw 'Generated saved-region catalog differs.' }
+# OT-218: exact-span BLE custody, real transport composition and observer admission.
+foreach ($bleTrialTest in @('ble_confirmation_trial_tests.py', 'ble_confirmation_trial_transport_tests.py', 'ble_confirmation_operator_tests.py')) {
+    & $python.Source -X utf8 -B (Join-Path $projectRoot ('tests\host\' + $bleTrialTest))
+    if ($LASTEXITCODE -ne 0) { throw "BLE trial test failed: $bleTrialTest" }
+}
+
 $fastStructuralTests = @(
     @{ File = 'host_validation_checkout_tests.py'; Failure = 'Host validation history checkout tests failed.' },
     @{ File = 'heltec_development_identity_tests.py'; Failure = 'Development device identity tests failed.' },
@@ -2985,8 +2991,3 @@ if (-not $SkipSecurityOperators) {
     if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityDeadlineOperator.py failed.' }
 }
 
-# OT-218: exact-span BLE custody, real transport composition and observer admission.
-foreach ($bleTrialTest in @('ble_confirmation_trial_tests.py', 'ble_confirmation_trial_transport_tests.py', 'ble_confirmation_operator_tests.py')) {
-    & $python.Source -X utf8 -B (Join-Path $projectRoot ('tests\host\' + $bleTrialTest))
-    if ($LASTEXITCODE -ne 0) { throw "BLE trial test failed: $bleTrialTest" }
-}

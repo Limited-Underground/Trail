@@ -82,3 +82,10 @@ control groups, and 91 synchronization scenarios plus 32 capture checks. The
 four complete operator matrices now run on independent Windows jobs alongside
 the core matrix. The required Windows host matrix aggregate fails if any core
 or operator job fails, skips or cancels. Default local Test-Host remains complete.
+
+Clean CI passed the operator matrices and all nine current-source security
+suites, then exposed the final BLE host tests loading an ignored local firmware
+build. Deterministic test-only image/partition fixtures exercise custody and
+restoration independently of that build; production artifact pins remain intact.
+Real OT-216 artifact acceptance stays in its retained evidence. BLE fixture and
+workflow checkout-policy tests run before the long native matrix.

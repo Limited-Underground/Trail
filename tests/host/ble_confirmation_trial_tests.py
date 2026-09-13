@@ -4,10 +4,15 @@ import sys
 import tempfile
 import unittest
 import struct
+import hashlib
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
 import ble_confirmation_trial as trial
+
+PRODUCTION_CANDIDATE = dict(trial.CANDIDATE)
+PRODUCTION_PARTITION_SHA = trial.PARTITION_SHA
 
 
 class Backend:
@@ -76,11 +81,23 @@ def namespace_image(name, key=None):
 class EngineTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        artifact_root = ROOT / 'build' / 'ot216-ble-final-a'
-        cls.candidate = (artifact_root / 'opentrail_heltec_v4_bench.bin').read_bytes()
-        cls.partition = (artifact_root / 'partition_table' / 'partition-table.bin').read_bytes().ljust(4096, b'\xff')
-        assert trial.descriptor(cls.candidate) == trial.CANDIDATE
+        # Synthetic bytes exercise custody, not candidate firmware acceptance.
+        cls.candidate = (b'OT218-HOST-FIXTURE' * 45672)[:730736]
+        rows = ((1, 0, 0x9000, 0x2000, b'otadata'),
+                (1, 2, 0xd000, 0x3000, b'nvs'),
+                (0, 0, 0x10000, 0x4f0000, b'factory'),
+                (0, 0x10, 0x500000, 0x500000, b'ota_0'),
+                (0, 0x11, 0xa00000, 0x500000, b'ota_1'),
+                (0x40, 0, 0xf00000, 0x100000, b'ot_state'))
+        entries = b''.join(struct.pack('<HBBII16sI', 0x50aa, kind, subtype,
+                            offset, size, name, 0) for kind, subtype, offset, size, name in rows)
+        checksum = b'\xeb\xeb' + b'\xff' * 14 + hashlib.md5(entries).digest()
+        cls.partition = (entries + checksum).ljust(4096, b'\xff')
     def setUp(self):
+        self.bindings = mock.patch.multiple(trial,
+            CANDIDATE=trial.descriptor(self.candidate), PARTITION_SHA=trial.sha(self.partition))
+        self.bindings.start()
+        self.addCleanup(self.bindings.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         (self.root / '.private').mkdir()
@@ -96,7 +113,10 @@ class EngineTests(unittest.TestCase):
         self.backend = Backend(self.original)
         self.observations = 0
     def tearDown(self):
-        self.temp.cleanup()
+        try:
+            self.temp.cleanup()
+        finally:
+            self.bindings.stop()
     def grant(self, operation='execute', number=1):
         obj = {'schema': 'OT218-BLE-GRANT-1', 'attempt': f'{number:032x}',
                'request_sha256': trial.sha(trial.canonical(self.request)),
@@ -124,6 +144,23 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(self.held())
         captured = (self.root / '.private' / ('ble-confirmation-' + f'{1:032x}' + '-application.bin')).read_bytes()
         self.assertEqual(captured[-143360:], b'T' * 143360)
+    def test_production_candidate_pin_rejects_synthetic_fixture(self):
+        self.assertEqual(PRODUCTION_CANDIDATE, {'bytes': 730736,
+            'sha256': '28dadebed9c08ed4a52bfe3d38266144da70116943f522a9d7421bb6f915110c'})
+        self.assertEqual(PRODUCTION_PARTITION_SHA,
+            'b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601')
+        with mock.patch.multiple(trial, CANDIDATE=PRODUCTION_CANDIDATE,
+                                 PARTITION_SHA=PRODUCTION_PARTITION_SHA):
+            with self.assertRaises(trial.TrialError):
+                self.execute()
+        self.assertEqual(self.backend.operations, [])
+
+    def test_candidate_byte_drift_rejected_before_claim(self):
+        self.candidate = bytes([self.candidate[0] ^ 1]) + self.candidate[1:]
+        with self.assertRaises(trial.TrialError):
+            self.execute()
+        self.assertEqual(self.backend.operations, [])
+
     def test_consumed_grant_cannot_repeat(self):
         self.execute()
         with self.assertRaises(trial.TrialError):
