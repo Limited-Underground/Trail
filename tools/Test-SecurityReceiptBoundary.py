@@ -1,7 +1,7 @@
 """Compile the real formatter/writer/adapter and parse its wire outputs; no devices."""
 from pathlib import Path
 import datetime as dt
-import hashlib,json,os,subprocess,sys
+import hashlib,json,os,shutil,subprocess,sys
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -12,7 +12,10 @@ def main():
     stamp=dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
     out=ROOT/'.private/ot203-receipt/boundary-matrix'/stamp;out.mkdir(parents=True,exist_ok=False)
     compiler=Path('C:/msys64/ucrt64/bin/g++.exe')
-    if not compiler.is_file():raise RuntimeError('Validated local g++ missing')
+    if not compiler.is_file():
+        resolved=shutil.which('g++')
+        if not resolved:raise RuntimeError('Native g++ missing')
+        compiler=Path(resolved)
     env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',TEMP=str(out),TMP=str(out),TMPDIR=str(out))
     env.pop('PYTHONOPTIMIZE',None);env['PATH']=str(compiler.parent)+os.pathsep+env.get('PATH','')
     sources=['tools/Test-SecurityReceiptBoundary.py','tools/security_policy_receipt_boundary.py',

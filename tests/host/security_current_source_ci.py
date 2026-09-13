@@ -1,0 +1,175 @@
+"""Current-source CI regression matrix; never an OT206 historical-proof replay.
+
+Acquires the admitted public dependency into fresh output and shares its scalar
+objects only within this invocation. SDK/entropy/storage seams are simulated.
+"""
+from pathlib import Path
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+from types import SimpleNamespace
+import security_policy_invitation_lifecycle_tests as frozen
+from security_policy_lifecycle import dependencies
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def need(ok, message):
+    if not ok:
+        raise RuntimeError(message)
+
+
+def pin(path):
+    return {"bytes": path.stat().st_size,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+
+
+def run(output):
+    need(sys.dont_write_bytecode and sys.flags.utf8_mode and not sys.flags.optimize,
+         "use_python_-X_utf8_-B_without_optimization")
+    need(output.is_absolute() and ".." not in output.parts and
+         any(output.is_relative_to(ROOT / part) for part in (".private", "build")),
+         "fresh_absolute_output_inside_worktree_required")
+    for path in (output, *output.parents):
+        need(not path.is_symlink() and not getattr(path, "is_junction", lambda: False)(),
+             "indirect_output_refused")
+    output.mkdir(parents=True, exist_ok=False)
+    result = {"schema": "OT220-CURRENT-SOURCE-CI-1", "result": "failed",
+              "hardware": False, "network": True, "historical_proof_replay": False,
+              "suites": {}, "limits": ["SDK, entropy and storage seams simulated"]}
+    commands = frozen.Commands(output)
+    try:
+        configured = os.environ.get("OPENTRAIL_MSYS2_ROOT")
+        compiler_dir = Path(configured) / "ucrt64/bin" if configured else None
+        def compiler(name):
+            if compiler_dir is not None:
+                path = compiler_dir / (name + ".exe")
+            else:
+                path = Path(shutil.which(name) or "missing-" + name)
+            need(path.is_file(), "native_compiler_missing: " + str(path))
+            return path.resolve()
+        cc, cxx = compiler("gcc"), compiler("g++")
+        env = dict(os.environ)
+        env.pop("PYTHONOPTIMIZE", None)
+        env["PATH"] = str(cc.parent) + os.pathsep + str(cxx.parent) + os.pathsep + env.get("PATH", "")
+        result["compilers"] = {str(p): {**pin(p), "version": commands.check_output(
+            [p, "--version"], env=env).splitlines()[0]} for p in (cc, cxx)}
+        # Pin the current source closure before execution, without treating it as
+        # equal to any historical machine/compiler proof.
+        roots = [ROOT / "firmware/components", ROOT / "tests/host"]
+        target_names = ("heltec_v4_security_eval", "heltec_v4_invitation_eval",
+                        "heltec_v4_confirmation_eval", "heltec_v4_bench",
+                        "heltec_v4_security_receipt_sync", "heltec_v4_security_policy_eval")
+        roots += [ROOT / "firmware/targets" / name / "main" for name in target_names]
+        inputs = {p for directory in roots for p in directory.rglob("*")
+                  if p.is_file() and p.suffix in (".py", ".cpp", ".c", ".hpp", ".h", ".json")}
+        helper = ROOT / "tools/noise_xk_independent_interop.py"
+        inputs.add(helper)
+        before = {str(p): pin(p) for p in inputs}
+        component = dependencies.acquire(output / "managed-component")
+        result["dependency"] = {"archive_sha256": dependencies.ARCHIVE_SHA,
+                                "checksum_sha256": dependencies.CHECKSUM_SHA,
+                                "manifest_sha256": dependencies.MANIFEST_SHA,
+                                "verified_files": 733}
+        spec = importlib.util.spec_from_file_location("current_ci_crypto", helper)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.COMPONENT, module.SOURCE = component, component / "libsodium"
+        module.SUCCESSOR = ROOT / "firmware/targets/heltec_v4_security_eval/main/noise_adapter"
+        module.SUCCESSOR_SHA = "b0be8109d017a851cea3952c4713157847c3bc64fe0eba1367c2b3c27cbcdc8b"
+        build = output / "scalar-build"
+        native_subprocess = dependencies.subprocess
+        def logged(command, **kwargs):
+            kwargs.setdefault("env", env)
+            return commands.run(command, **kwargs)
+        try:
+            dependencies.subprocess = SimpleNamespace(run=logged)
+            dependencies.native_probe(module, build, cc)
+        finally:
+            dependencies.subprocess = native_subprocess
+        result["scalar_control"] = {"groups": 26, "result": "passed",
+            "binary": pin(build / "independent-probe.exe")}
+        flags = ["-O2", "-Wall", "-Wextra", "-DSODIUM_STATIC", "-DCONFIGURED=1",
+                 "-DNATIVE_LITTLE_ENDIAN=1", "-fno-asynchronous-unwind-tables",
+                 "-fno-unwind-tables", "-ffunction-sections", "-fdata-sections"]
+        shared_includes = [build / "include", module.SOURCE / "src/libsodium/include",
+                           module.SOURCE / "src/libsodium/include/sodium", module.SUCCESSOR]
+        def includes(paths):
+            return [item for path in paths for item in ("-I", str(path))]
+        def compile_source(source, obj, more=(), c=False):
+            language = ["-std=c11"] if c else ["-std=c++17", "-fno-exceptions", "-fno-rtti", "-Werror"]
+            commands.run([cc if c else cxx, *language, *flags,
+                *includes([*shared_includes, *more]), "-MMD", "-MF", obj.with_suffix(".d"),
+                "-c", source, "-o", obj], env=env, check=True)
+        crypto_objects = [build / f"source-{i}.o" for i in range(1, 17)]
+        for i, name in enumerate(frozen.EXTRA):
+            obj = output / f"signing-{i}.o"
+            compile_source(module.SOURCE / "src/libsodium" / name, obj, c=True)
+            crypto_objects.append(obj)
+        base = [ROOT / "firmware/components" / part for part in
+                ("security_evaluation/include", "security/include", "security/test_support",
+                 "persistence/include", "persistence/test_support")]
+        def suite(name, sources, extra_includes, wraps, marker):
+            directory = output / name
+            directory.mkdir()
+            objects = list(crypto_objects)
+            for i, source in enumerate(sources):
+                obj = directory / f"unit-{i}.o"
+                compile_source(source, obj, extra_includes)
+                objects.append(obj)
+            exe = directory / (name + ".exe")
+            commands.run([cxx, "-Wl,--gc-sections", *["-Wl,--wrap=" + value for value in wraps],
+                          *objects, "-o", exe], env=env, check=True)
+            completed = commands.run([exe], env=env, check=True, timeout=60)
+            need(completed.stdout.startswith("PASS ") and marker in completed.stdout,
+                 "missing_suite_pass: " + name)
+            result["suites"][name] = {"output": completed.stdout.strip(), "binary": pin(exe)}
+            print(completed.stdout.strip(), flush=True)
+        common = [ROOT / name for name in frozen.COMMON]
+        for name in frozen.SUITES:
+            suite(name, [*common, ROOT / "tests/host" / (name + ".cpp")], base, (), " groups\n")
+        suite("security_confirmation_owner_tests", [*common, ROOT / "tests/host/security_confirmation_owner_tests.cpp"],
+              base, (), " actual confirmation owner groups")
+        stubs = ROOT / "tests/host/security_invitation_target_stubs"
+        target_common = [ROOT / "firmware/components" / name for name in
+            ("persistence/src/persistent_storage_kv.cpp", "persistence/src/outbound_counter_lease_store.cpp", "security/src/aead_nonce.cpp")]
+        for kind in ("invitation", "confirmation"):
+            target = ROOT / "firmware/targets" / ("heltec_v4_" + kind + "_eval") / "main"
+            more = [stubs, target, ROOT / "firmware/targets/heltec_v4_security_receipt_sync/main",
+                    ROOT / "firmware/targets/heltec_v4_security_policy_eval/main", *base,
+                    ROOT / "firmware/components/security_diagnostics/include"]
+            wraps = ["sodium_init", "sodium_memzero"]
+            if kind == "confirmation":
+                wraps += ["crypto_aead_chacha20poly1305_ietf_encrypt", "crypto_aead_chacha20poly1305_ietf_decrypt"]
+            name = "security_" + kind + "_target_tests"
+            suite(name, [*target_common, target / "app_main.cpp", ROOT / "tests/host" / (name + ".cpp")],
+                  more, wraps, " actual " + kind + " target groups")
+        target = ROOT / "firmware/targets/heltec_v4_bench/main"
+        backend = [target / name for name in ("confirmation_evaluation_backend.cpp", "confirmation_nonowning_entropy.cpp", "heltec_v4_secure_random.cpp")]
+        backend += [ROOT / "firmware/components" / name for name in ("security/src/serialized_secure_random.cpp", "persistence/src/persistent_storage_kv.cpp", "companion/src/companion_device_name_owner.cpp")]
+        suite("security_confirmation_ble_backend_tests",
+              [*common, *backend, ROOT / "tests/host/security_confirmation_ble_backend_tests.cpp"],
+              [ROOT / "tests/host/security_confirmation_ble_stubs", stubs, target, *base,
+               ROOT / "firmware/components/companion/include", ROOT / "firmware/components/time/include"],
+              ["sodium_init", "ot_noise_xk_split", "crypto_aead_chacha20poly1305_ietf_encrypt", "crypto_aead_chacha20poly1305_ietf_decrypt"],
+              " actual protected confirmation backend groups")
+        need(before == {name: pin(Path(name)) for name in before}, "source_changed_during_test")
+        result["source_pins"] = {Path(name).relative_to(ROOT).as_posix(): value for name, value in before.items()}
+        result["result"] = "passed"
+    except Exception as error:
+        result["error"] = type(error).__name__ + ": " + str(error)
+        raise
+    finally:
+        (output / "result.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return result
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output-root", type=Path, required=True)
+    args = parser.parse_args()
+    run(args.output_root)

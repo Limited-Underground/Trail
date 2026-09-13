@@ -1,4 +1,4 @@
-"""Complete affected OT-200 host matrix; local dependencies only, no devices.
+"""Complete affected OT-200 host matrix; pinned dependencies, no devices.
 
 Every run retains fresh command, output and source manifests under the repository.
 Compilation failures cannot dispatch a stale executable. Existing physical
@@ -39,7 +39,7 @@ def main():
     env['TEMP'] = env['TMP'] = env['TMPDIR'] = str(output)
     result = {'started_utc': dt.datetime.now(dt.timezone.utc).isoformat(),
               'status': 'running', 'root': str(ROOT), 'output': str(output),
-              'hardware': False, 'network': False, 'steps': [], 'sources': {}}
+              'hardware': False, 'network': not args.skip_lifecycle, 'steps': [], 'sources': {}}
     inputs = [*ROOT.glob('tools/security_policy_sync*.py'),
               *ROOT.glob('tests/host/security_policy_sync*.*'),
               *ROOT.glob('firmware/targets/heltec_v4_security_sync_diag/**/*'),
@@ -65,6 +65,7 @@ def main():
                                          stderr=subprocess.STDOUT, timeout=timeout, check=False)
             row['exit_code'] = process.returncode
             if process.returncode:
+                print(Path(row['log']).read_text(encoding='utf-8', errors='replace')[-6000:], file=sys.stderr, flush=True)
                 raise RuntimeError(f'{label} failed; see {row["log"]}')
             print('PASS '+label, flush=True)
         except OSError as error:

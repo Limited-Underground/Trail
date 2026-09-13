@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  host-tests:
-    name: Windows host matrix
+  core-tests:
+    name: Windows core host tests
     runs-on: windows-2025
     timeout-minutes: 20
 
@@ -48,8 +48,62 @@ jobs:
           update: true
           install: mingw-w64-ucrt-x86_64-gcc
 
-      - name: Run complete host matrix
+      - name: Run core host matrix
         shell: pwsh
         env:
           OPENTRAIL_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
-        run: .\tools\Test-Host.ps1
+        run: .\tools\Test-Host.ps1 -SkipSecurityOperators
+
+  security-operators:
+    name: Windows security operator (${{ matrix.operator }})
+    runs-on: windows-2025
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        operator: [Sync, Receipt, Invitation, Deadline]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14.6'
+
+      - name: Install UCRT64 GCC
+        id: msys2
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: mingw-w64-ucrt-x86_64-gcc
+
+      - name: Run complete operator matrix
+        shell: pwsh
+        env:
+          SECURITY_OPERATOR: ${{ matrix.operator }}
+          OPENTRAIL_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          $env:Path = (Join-Path $env:OPENTRAIL_MSYS2_ROOT 'ucrt64\bin') + ';' + $env:Path
+          python -X utf8 -B ".\tools\Test-Security${env:SECURITY_OPERATOR}Operator.py"
+          if ($LASTEXITCODE -ne 0) { throw "Security operator matrix failed." }
+
+  host-tests:
+    name: Windows host matrix
+    if: ${{ always() }}
+    needs: [core-tests, security-operators]
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Require every host suite to pass
+        shell: pwsh
+        env:
+          CORE_RESULT: ${{ needs.core-tests.result }}
+          OPERATORS_RESULT: ${{ needs.security-operators.result }}
+        run: |
+          if ($env:CORE_RESULT -ne 'success' -or $env:OPERATORS_RESULT -ne 'success') {
+            throw "Host validation incomplete: core=$env:CORE_RESULT operators=$env:OPERATORS_RESULT"
+          }

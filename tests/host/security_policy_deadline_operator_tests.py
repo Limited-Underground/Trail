@@ -103,7 +103,7 @@ class Tests(unittest.TestCase):
         with self.assertRaises(Exception):worker.operator_request(ctx,path,sha)
     @unittest.skipUnless(sys.platform=="win32","PowerShell Windows prelaunch boundary")
     def test_powershell_rejects_poison_before_native_startup(self):
-        compiler=Path('C:/msys64/ucrt64/bin/g++.exe');powershell=shutil.which("pwsh")
+        compiler=Path(shutil.which('g++') or 'C:/msys64/ucrt64/bin/g++.exe');powershell=shutil.which("pwsh")
         self.assertTrue(compiler.is_file(),"pinned native g++ required");self.assertIsNotNone(powershell,"pwsh required")
         # Bind the actual host, not a PATH alias; preserve strict production checks.
         discovered=subprocess.run([powershell,"-NoProfile","-NonInteractive","-Command", "[Console]::Write([IO.Path]::Combine($PSHOME,'pwsh.exe'))"],capture_output=True,check=True,timeout=30)

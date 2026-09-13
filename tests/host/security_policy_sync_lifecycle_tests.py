@@ -1,7 +1,7 @@
-"""Actual OT-200 application and console integration; no device or network I/O.
+"""Actual OT-200 application and console integration; no device I/O.
 
-Uses repository SDK/NVS seams and an already-present, checksum-pinned libsodium
-tree. SDK delays model observation cutoffs, not reset or torn-write behavior.
+Uses repository SDK/NVS seams and a checksum-pinned temporary libsodium
+tree acquired from the admitted public archive. SDK delays model observation cutoffs, not reset or torn-write behavior.
 Every run requires a fresh output directory and retains commands and failures.
 """
 from pathlib import Path
@@ -13,14 +13,13 @@ import shutil
 import subprocess
 import sys
 import time
+from security_policy_lifecycle import dependencies
 
 ROOT = Path(__file__).resolve().parents[2]
 BIN = Path("C:/msys64/ucrt64/bin")
 PINNED_UCRT = os.name == "nt" and (BIN / "g++.exe").is_file() and (BIN / "gcc.exe").is_file()
 CPP = BIN / "g++.exe" if PINNED_UCRT else Path(shutil.which("g++") or "missing-g++")
 CC = BIN / "gcc.exe" if PINNED_UCRT else Path(shutil.which("gcc") or "missing-gcc")
-COMPONENT = ROOT / "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium"
-SOURCE = COMPONENT / "libsodium/src/libsodium"
 ADAPTER = ROOT / "firmware/targets/heltec_v4_security_eval/main/noise_adapter"
 TARGET = ROOT / "firmware/targets/heltec_v4_security_sync_diag/main"
 POLICY = ROOT / "firmware/targets/heltec_v4_security_policy_eval/main"
@@ -119,19 +118,23 @@ def main():
         result["source_hashes"][str(path)] = digest(path)
 
     try:
+        result["network"] = True
+        component = dependencies.acquire(output / "managed-component")
+        source_root = component / "libsodium/src/libsodium"
+        pin(Path(dependencies.__file__))
         for compiler in (CC, CPP):
             version = run([compiler, "--version"], compiler.stem + "-version").decode("utf-8").splitlines()[0]
             if PINNED_UCRT:
                 need("16.1.0" in version, "pinned_compiler_version_changed")
             result[compiler.name] = {"sha256": digest(compiler), "version": version}
-        inventory = COMPONENT / "CHECKSUMS.json"
+        inventory = component / "CHECKSUMS.json"
         need(digest(inventory) == CHECKSUM_SHA, "source_inventory_changed")
         files = json.loads(inventory.read_bytes())["files"]
         need(len(files) == 731, "source_inventory_count")
         seen = set()
         for entry in files:
-            path = (COMPONENT / entry["path"]).resolve()
-            need(path.is_relative_to(COMPONENT.resolve()) and path not in seen, "source_inventory_path")
+            path = (component / entry["path"]).resolve()
+            need(path.is_relative_to(component.resolve()) and path not in seen, "source_inventory_path")
             seen.add(path)
             need(path.stat().st_size == entry["size"] and digest(path) == entry["hash"], "local_libsodium_source_changed")
         need(digest(ADAPTER / "noise_xk_libsodium.c") == ADAPTER_SHA, "adapter_changed")
@@ -164,13 +167,13 @@ def main():
             path.write_bytes(raw)
         generated = output / "include/sodium"
         generated.mkdir(parents=True)
-        version = (SOURCE / "include/sodium/version.h.in").read_text()
+        version = (source_root / "include/sodium/version.h.in").read_text()
         for key, value in {"@VERSION@": "1.0.22", "@SODIUM_LIBRARY_VERSION_MAJOR@": "26",
                            "@SODIUM_LIBRARY_VERSION_MINOR@": "4", "@SODIUM_LIBRARY_MINIMAL_DEF@": "#define SODIUM_LIBRARY_MINIMAL 1"}.items():
             version = version.replace(key, value)
         need("@" not in version, "version_template_changed")
         (generated / "version.h").write_text(version, encoding="utf-8")
-        includes = [output, stubs, output / "include", SOURCE / "include", SOURCE / "include/sodium", ADAPTER,
+        includes = [output, stubs, output / "include", source_root / "include", source_root / "include/sodium", ADAPTER,
                     TARGET, POLICY, ROOT / "firmware/components/security_diagnostics/include",
                     ROOT / "firmware/components/security_evaluation/include",
                     ROOT / "firmware/components/security/include", ROOT / "firmware/components/persistence/include"]
@@ -179,7 +182,7 @@ def main():
         for path in includes:
             flags.extend(["-I", str(path)])
         objects = []
-        inputs = [ADAPTER / "noise_xk_libsodium.c"] + [SOURCE / name for name in PRIMITIVES]
+        inputs = [ADAPTER / "noise_xk_libsodium.c"] + [source_root / name for name in PRIMITIVES]
         for i, source in enumerate(inputs):
             obj = output / f"crypto-{i}.o"
             pin(source)

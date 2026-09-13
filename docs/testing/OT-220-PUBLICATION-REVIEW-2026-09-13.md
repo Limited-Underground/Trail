@@ -63,3 +63,22 @@ ProtocolInfo assertions with the default-OFF OT-216 integration. Unknown files
 and production/evaluation boundary violations remain failures. Firmware and
 accepted artifact bytes are unchanged. Required CI must pass on the corrected
 commit before merge.
+
+The next clean-run failure exposed lifecycle wrappers relying on an ignored SDK
+dependency tree and a developer-specific compiler path. The wrappers now reuse
+the existing checksum-verified dependency acquisition and discover the installed
+native compiler when the local path is absent. Dependency pins remain enforced;
+network use is reported accurately. Failed synchronization logs expose a bounded
+tail in CI for diagnosis. These changes affect host validation only.
+
+Historical invitation/confirmation proof runners remain unchanged: they enforce
+the original compiler and source hashes for reproducing accepted evidence. The
+current-source CI runner executes the same native behavioral suites with one
+shared verified crypto build, records the current compiler and source hashes,
+and makes no claim to reproduce the historical proof.
+
+Focused validation passed 698 current-source behavioral groups plus 26 scalar
+control groups, and 91 synchronization scenarios plus 32 capture checks. The
+four complete operator matrices now run on independent Windows jobs alongside
+the core matrix. The required Windows host matrix aggregate fails if any core
+or operator job fails, skips or cancels. Default local Test-Host remains complete.
