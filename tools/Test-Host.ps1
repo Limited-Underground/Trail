@@ -2990,4 +2990,3 @@ if (-not $SkipSecurityOperators) {
     & $python.Source -X utf8 -B (Join-Path $projectRoot 'tools\Test-SecurityDeadlineOperator.py')
     if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityDeadlineOperator.py failed.' }
 }
-
