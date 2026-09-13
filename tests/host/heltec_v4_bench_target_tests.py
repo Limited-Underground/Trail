@@ -139,6 +139,38 @@ def require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
+def admitted_target_sources(cmake: str) -> list[str]:
+    # OT-216 adds one ordinary codec plus seven strictly opt-in source units.
+    root_cmake = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
+    require('option(OPENTRAIL_CONFIRMATION_EVALUATION "Enable OT216 protected BLE confirmation evaluation" OFF)' in root_cmake,
+            "confirmation evaluation must remain default OFF")
+    config = (TARGET / "main/confirmation_evaluation_config.hpp").read_text(encoding="utf-8")
+    require("#ifndef OPENTRAIL_CONFIRMATION_EVALUATION\n#define OPENTRAIL_CONFIRMATION_EVALUATION 0\n#endif" in config,
+            "unconfigured sources must default to ordinary composition")
+    evaluation, ordinary = cmake.split("endif()", 1)
+    expected_evaluation = {
+        "confirmation_evaluation_backend.cpp",
+        "confirmation_nonowning_entropy.cpp",
+        "${OPENTRAIL_CONFIRMATION_ADAPTER}/noise_xk_libsodium.c",
+        "${OPENTRAIL_COMPONENT_ROOT}/security/src/serialized_secure_random.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp",
+    }
+    pattern = r'"([^"\n]+\.(?:cpp|c))"'
+    evaluation_tokens = re.findall(pattern, evaluation)
+    ordinary_tokens = re.findall(pattern, ordinary)
+    require("if(OPENTRAIL_CONFIRMATION_EVALUATION)" in evaluation and
+            set(evaluation_tokens) == expected_evaluation and len(evaluation_tokens) == 7,
+            "evaluation source set must remain exact and opt-in")
+    require(len(ordinary_tokens) == 47 and len(set(ordinary_tokens)) == 47 and
+            not expected_evaluation.intersection(ordinary_tokens) and
+            ordinary.count("${OPENTRAIL_CONFIRMATION_SOURCES}") == 1 and
+            "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp" in ordinary_tokens,
+            "ordinary build must retain 47 unique sources and one conditional insertion")
+    return ordinary_tokens + evaluation_tokens
+
+
 def test_contract() -> None:
     expected_files = {
         "CMakeLists.txt",
@@ -203,6 +235,15 @@ def test_contract() -> None:
         "protected-storage-recovery-bundle-plan.json",
         "protected-storage-transition-read-plan.json",
         "protected-storage-transition-plan.json",
+        # OT-216 admitted opt-in confirmation files; retain exact surface admission.
+        "main/confirmation_evaluation_backend.cpp",
+        "main/confirmation_evaluation_backend.hpp",
+        "main/confirmation_evaluation_config.hpp",
+        "main/confirmation_nonowning_entropy.cpp",
+        "main/confirmation_nonowning_entropy.hpp",
+        "main/confirmation_nvs_backend.hpp",
+        "main/confirmation_runtime_guard.hpp",
+        "sdkconfig.confirmation-eval.defaults",
         "sdkconfig.defaults",
         "target-contract.json",
     }
@@ -1179,9 +1220,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             "coarse roster must not publish complete inventory evidence")
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
-    linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 46,
-            "non-injection gate must cover the exact 46-source target build")
+    linked_source_tokens = admitted_target_sources(cmake)
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_key_roster_adapter.cpp":
@@ -1189,11 +1228,13 @@ def test_protected_root_key_roster_adapter_surface() -> None:
         if token.startswith("${OPENTRAIL_COMPONENT_ROOT}/"):
             suffix = token.removeprefix("${OPENTRAIL_COMPONENT_ROOT}/")
             path = ROOT / "firmware" / "components" / Path(suffix)
+        elif token.startswith("${OPENTRAIL_CONFIRMATION_ADAPTER}/"):
+            path = TARGET.parent / "heltec_v4_security_eval/main/noise_adapter" / token.removeprefix("${OPENTRAIL_CONFIRMATION_ADAPTER}/")
         else:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 45,
+    require(len(other_linked_sources) == 53,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1254,9 +1295,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
                 f"configuration/security adapter gained forbidden surface: {forbidden}")
 
     cmake = MAIN_CMAKE.read_text(encoding="utf-8")
-    linked_source_tokens = re.findall(r'"([^"\n]+\.cpp)"', cmake)
-    require(len(linked_source_tokens) == 46,
-            "configuration/security non-injection gate must cover 46 sources")
+    linked_source_tokens = admitted_target_sources(cmake)
     other_linked_sources = []
     for token in linked_source_tokens:
         if token == "companion_protected_root_configuration_security_adapter.cpp":
@@ -1264,11 +1303,13 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
         if token.startswith("${OPENTRAIL_COMPONENT_ROOT}/"):
             suffix = token.removeprefix("${OPENTRAIL_COMPONENT_ROOT}/")
             path = ROOT / "firmware" / "components" / Path(suffix)
+        elif token.startswith("${OPENTRAIL_CONFIRMATION_ADAPTER}/"):
+            path = TARGET.parent / "heltec_v4_security_eval/main/noise_adapter" / token.removeprefix("${OPENTRAIL_CONFIRMATION_ADAPTER}/")
         else:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 45,
+    require(len(other_linked_sources) == 53,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2243,8 +2284,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(cmake.count('.cpp"') == 46,
-            "target source set must remain eighteen target, seventeen companion, two UI and one time source")
+    require(len(admitted_target_sources(cmake)) == 54,
+            "target must admit 47 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
@@ -3232,7 +3273,8 @@ def test_configuration_transport_and_storage_surface() -> None:
                  "status.secure_bond", "life.encrypted", "life.authenticated_bond",
                  "g_configuration_blocked_generation", "g_configuration_revoked"):
         require(gate in gatt, f"configuration authority gate missing: {gate}")
-    require("encode_configuration_info({0xff, 3}" in gatt and
+    require("#if OPENTRAIL_CONFIRMATION_EVALUATION\nconstexpr std::uint8_t kSelectedConfigurationMinor = kConfirmationEvaluationMinor;\nconstexpr std::uint8_t kSelectedConfigurationCapabilities = kConfirmationEvaluationCapabilities;\n#else\nconstexpr std::uint8_t kSelectedConfigurationMinor = 3;\nconstexpr std::uint8_t kSelectedConfigurationCapabilities = 0xff;\n#endif" in gatt and
+            "encode_configuration_info({kSelectedConfigurationCapabilities, kSelectedConfigurationMinor}" in gatt and
             "g_adapter->read_protocol_info(" in gatt,
             "selected normal0.3 must retain the restricted claim ProtocolInfo path")
     for surface in ("kConfigurationRecordBytes", "decode_configuration_frame",
@@ -3241,7 +3283,7 @@ def test_configuration_transport_and_storage_surface() -> None:
                     "g_configuration_lane.response_ready = true",
                     "configuration_response_event", "ble_npl_eventq_put"):
         require(surface in gatt, f"bounded configuration handoff missing: {surface}")
-    require("decode_configuration_frame(encoded.data, encoded.size, 3)" in gatt and
+    require("decode_configuration_frame(encoded.data, encoded.size, kSelectedConfigurationMinor)" in gatt and
             "companion_configuration_region()" in gatt and
             "erase_user_namespace_and_verify(kCompanionRegionNvsNamespace)" in reset and
             "inspect_user_namespace(kCompanionRegionNvsNamespace)" in reset,

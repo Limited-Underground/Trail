@@ -41,14 +41,14 @@ public:
     }
     void complete(const ConfigurationLane& lane,
                   const companion::DeviceNameAuthority& authority,
-                  bool confirmed, std::uint64_t now_ms) {
+                  bool confirmed, std::uint64_t now_ms, std::uint8_t selected_minor = 3) {
         observe(authority);
         if (!confirmed || !lane.indicated || !lane.current(authority) || lane.expired(now_ms)) {
             clear();
             return;
         }
         const auto frame = companion::decode_configuration_frame(
-            lane.record.data(), lane.bytes, 3);
+            lane.record.data(), lane.bytes, selected_minor);
         if (!frame.decoded() || frame.value.kind != 0x81 ||
             frame.value.session_nonce != lane.context.session_nonce ||
             frame.value.exchange_id != lane.exchange) return;

@@ -1,5 +1,6 @@
 #include "opentrail/companion_configuration_dispatcher.hpp"
 #include "opentrail/companion_semantics.hpp"
+#include "opentrail/companion_confirmation_codec.hpp"
 #include <algorithm>
 
 namespace opentrail::companion {
@@ -29,12 +30,15 @@ std::uint8_t time_code(time::OledTimeCode c) {
 }
 }
 ConfigurationDispatcher::ConfigurationDispatcher(DeviceNameAuthoritySource& s,DeviceNamePersistence& p,ConfigurationBaseHandler& b,
-    RegionPersistence* region,std::uint8_t selected_minor)
-    : source_(s),base_(b),name_source_(*this),time_source_(*this),name_owner_(name_source_,p),
+    RegionPersistence* region,std::uint8_t selected_minor,ConfigurationConfirmationBackend* confirmation)
+    : source_(s),base_(b),confirmation_(confirmation),name_source_(*this),time_source_(*this),name_owner_(name_source_,p),
       selected_minor_(selected_minor),time_owner_(time_source_) {
     confirmed_name_.kind=DeviceNameKind::snapshot;
     if(region) region_owner_.emplace(name_source_,*region);
-    contained_=(selected_minor!=2 && selected_minor!=3) || (selected_minor==3 && !region);
+    contained_=(selected_minor!=2 && selected_minor!=3 && selected_minor!=kConfirmationEvaluationMinor) ||
+        ((selected_minor==3 || selected_minor==kConfirmationEvaluationMinor) && !region) ||
+        (selected_minor==kConfirmationEvaluationMinor && !confirmation) ||
+        (selected_minor!=kConfirmationEvaluationMinor && confirmation);
 }
 bool ConfigurationDispatcher::refresh() {
     const auto next=source_.current();
@@ -87,6 +91,7 @@ time::OledTimeAuthority ConfigurationDispatcher::TimeSource::current() noexcept 
 }
 void ConfigurationDispatcher::observe() {
     (void)refresh();
+    if(confirmation_) confirmation_->observe();
     (void)name_owner_.observe();
     (void)time_owner_.observe(authority_.now_ms);
 }
@@ -121,7 +126,8 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
     if(!decoded.decoded() || decoded.value.session_nonce!=context.session_nonce) return status(ConfigurationDispatchCode::rejected);
     const auto& frame=decoded.value;
     if(frame.kind!=1 && frame.kind!=2 && frame.kind!=4 && frame.kind!=5 &&
-        !(frame.kind==6 && selected_minor_==3 && region_owner_)) return status(ConfigurationDispatchCode::rejected);
+        !(frame.kind==6 && (selected_minor_==3 || selected_minor_==kConfirmationEvaluationMinor) && region_owner_) &&
+        !(frame.kind==7 && selected_minor_==kConfirmationEvaluationMinor)) return status(ConfigurationDispatchCode::rejected);
     if(context==sequence_context_ && frame.exchange_id==last_exchange_) {
         if(size!=request_bytes_ || !std::equal(bytes,bytes+size,request_.begin())) return status(ConfigurationDispatchCode::conflict);
         if(pending_) return status(ConfigurationDispatchCode::busy);
@@ -167,6 +173,8 @@ ConfigurationDispatchResult ConfigurationDispatcher::execute() {
         const radio::ByteView input{request.payload.data(),request.payload_bytes};
         if((request.kind==1 && !decode_companion_snapshot_request(input).decoded()) ||
             (request.kind==2 && !decode_companion_action_request(input).decoded())) return finish(nullptr);
+        if(selected_minor_==kConfirmationEvaluationMinor && request.kind==2 &&
+            decode_companion_action_request(input).value.kind==CompanionActionKind::factory_reset) return finish(nullptr);
         if(!base_.execute(request_context_,request,response) || response.minor_version!=selected_minor_ || response.session_nonce!=request.session_nonce ||
             response.exchange_id!=request.exchange_id || response.kind!=(request.kind==1 ? 0x81 : 0x82)) return finish(nullptr);
         if(response.payload_bytes>response.payload.size()) return finish(nullptr);
@@ -178,6 +186,24 @@ ConfigurationDispatchResult ConfigurationDispatcher::execute() {
         return finish(&response);
     }
     if(!ready_) return finish(nullptr);
+    if(request.kind==7) {
+        if(authority_.now_ms<request_admitted_ms_ || authority_.now_ms-request_admitted_ms_>=5000) return finish(nullptr);
+        if(!confirmation_ || selected_minor_!=kConfirmationEvaluationMinor ||
+            !confirmation_->execute(request_context_,request,response) ||
+            response.kind!=0x89 || response.minor_version!=selected_minor_ ||
+            response.session_nonce!=request.session_nonce || response.exchange_id!=request.exchange_id ||
+            response.payload_bytes!=kConfigurationPayloadBytes) return finish(nullptr);
+        const auto command=decode_confirmation_payload(request.payload.data(),request.payload_bytes);
+        const auto result=decode_confirmation_payload(response.payload.data(),response.payload_bytes);
+        if(!command.decoded() || !result.decoded()) return finish(nullptr);
+        if(command.value.kind==1) {
+            if(result.value.kind!=4 && !(result.value.kind==5 && (result.value.status==4 || result.value.status==5))) return finish(nullptr);
+        } else if(result.value.kind!=5 || !same_confirmation_offer(command.value,result.value) ||
+            (result.value.status!=3 && result.value.status!=(command.value.kind==2 ? 1 : 2))) return finish(nullptr);
+        if(!refresh() || authority_.now_ms<request_admitted_ms_ ||
+            authority_.now_ms-request_admitted_ms_>=5000) return finish(nullptr);
+        return finish(&response);
+    }
     if(request.kind==6) {
         const auto region=decode_configuration_region_payload(request.payload.data(),request.payload_bytes);
         if(!region.decoded() || !region_owner_) return finish(nullptr);

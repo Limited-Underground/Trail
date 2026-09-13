@@ -1,5 +1,177 @@
 # OpenTrail Progress Log
 
+## 2026-09-13
+
+### OT-220 Review accumulated security and BLE work for publication
+
+Reviewed the coherent OT-200–219 snapshot and private exclusions. Preserved accepted source/report bytes through Git attributes, reverified 148 source pins/21 firmware artifacts/four APKs, and added an exact immutable-upstream-attribution exception to the publication scanner without weakening other detectors. Physical confirmation remains unproved; original restoration/Ready are accepted. Topic publication requires configured documentation and Windows host checks; observed remote outcome belongs in the workspace handoff. No V1 or website status change. See [publication review](testing/OT-220-PUBLICATION-REVIEW-2026-09-13.md).
+
+### OT-219 Execute the bounded physical BLE confirmation attempt
+
+Updated selected SM-N986U in place to the exact OT-216 APK; existing original connection reached Ready. Corrected a pre-custody ADB stdin collision, verified real CLI admission and passed 11 operator tests. One candidate write/readback and boot command completed, but the phone never reached a GATT profile before observation timeout. No confirmation was requested. Full original application/NVS and protected regions were independently verified, custody closed, the screen returned and the unchanged app/bond reached protected Ready. Candidate boot/BLE startup remains unproved; capture existing boot diagnostics next. No V1 credit or public website status change. See [physical evidence](testing/OT-219-BLE-PHYSICAL-TRIAL-2026-09-13.md).
+
+### OT-218 Implement the bounded BLE confirmation trial runner
+
+Implemented exact-span custody and real ROM transport composition, timed human observation, exact phone APK admission and independent restoration/recovery. Forty-nine focused tests and the device-free isolated runtime probe pass; existing firmware/Android pins remain unchanged. Review corrected reset-storage admission, interrupted journal/capture recovery and Ctrl+C handling. No physical execution, V1 credit or public website status change. See [evidence](testing/OT-218-BLE-TRIAL-RUNNER-2026-09-13.md).
+
+### OT-217 Prepare the bounded physical BLE confirmation trial
+
+OT-217 verifies 148 source pins, 21 firmware artifacts and four APKs, derives the 733184-byte application custody span, and prepares one explicit confirmation followed by restoration. Read-only ADB inspection confirms V1-Test on both phones; both installed APKs differ from OT-216 and are signing-compatible. SM-N986U/Android13 is selected; no install or board action. The existing serial runner hard-codes the shorter old range and receipt protocol, so a narrowly bound BLE execution path remains required. No physical acceptance, V1 credit or public website status change.
+See [procedure and evidence](testing/OT-217-BLE-TRIAL-PREPARATION-2026-09-13.md).
+
+### OT-216 Connect confirmation through the protected BLE evaluation lane
+
+OT-216 connects the Android Group coordinator to the actual device confirmation owner through an explicit evaluation profile. 1,213 Android tests, 120 new C++ groups and affected regression suites pass; two fresh ESP32-S3 evaluation builds match all seven artifact pairs and the default-control build passes. Review corrected a queued-host-reset admission race; build validation corrected target selection and library dependency routing. Earlier failed/stopped attempts remain excluded from acceptance. The counterpart remains synthetic; no physical BLE, two-node acceptance, crypto selection, V1 credit or public website status change. Local/uncommitted.
+See [evidence](testing/OT-216-BLE-CONFIRMATION-2026-09-13.md).
+
+### OT-215 Add device-owned pending confirmation to the evaluation target
+
+OT-215 adds device-owned pending confirmation to an isolated successor evaluation target. 44 real-crypto owner groups and 139 actual-target groups pass; two fresh firmware builds match all seven artifact pairs. Exact decisions invoke real durable session confirmation and independent cleanup. Transport authority, peer and human decisions remain synthetic; no BLE/two-node acceptance, crypto selection, V1 credit or public website status change. Local/uncommitted.
+See [evidence](testing/OT-215-DEVICE-CONFIRMATION-2026-09-13.md).
+
+### OT-214 Wire device-owned confirmation into the existing Group flow
+
+OT-214 connects the existing Android Group screen through Activity, binder and service ownership to a one-use device-offer coordinator. 1164 Android tests pass with zero failures, errors or skips; all three app variants pass lint/build and the release remains unsigned. Production has no offer adapter and stays unsupported. No membership, radio, device/UI acceptance, crypto selection, V1 credit or public website status change. Local/uncommitted.
+See [evidence](testing/OT-214-GROUP-CONFIRMATION-2026-09-13.md).
+
+### OT-213 Confirm the corrected operator on the invitation candidate
+
+OT-213 completed one approved bounded invitation-candidate attempt; audited status `pass`. Both roles accepted matching BEGIN markers and strict pass receipts for the invitation candidate through the corrected OT-212 host operator. Both original applications and full NVS were independently restored/verified and restarted. Custody is closed, grants consumed and snapshots stale. No automatic retry, radio/phone transport acceptance, crypto selection, V1 score increase or public website status change. Local/uncommitted.
+See [physical evidence](testing/OT-213-DEADLINE-TRIAL-2026-09-13.md).
+
+### OT-212 Correct host receipt deadline handling
+
+OT-212 corrects host deadline exhaustion before a raw read, preserving the full observation window and strict receipt rejection. 335 tests in 18 suites, two isolated runtime probes and synthetic package admission passed. The OT-210 operator/runtime and OT-208 firmware remain unchanged. No hardware or publication; V1 completion and public website status are unchanged.
+See [operator evidence](testing/OT-212-DEADLINE-OPERATOR-2026-09-13.md).
+
+## 2026-09-12
+
+### OT-211 Execute the approved invitation-candidate trial
+
+OT-211 completed one approved bounded invitation-candidate attempt; audited status `evaluation_failed`. A: evaluation `capture_failed`; strict receipt accepted `false`; BEGIN observed `true`; matching receipt observed `true`; host read bytes `65`; capture at deadline (reported elapsed ms `30000`, clamped); inner endpoint error `endpoint_read_late`; durable stage/error `send_return/none`. B remained untouched by the candidate. Candidate-touched originals were independently restored/verified and restarted; untouched roles were guarded-released. Custody is closed, grants consumed and snapshots stale. No automatic retry, radio/phone transport acceptance, crypto selection, V1 score increase or public website status change. Local/uncommitted.
+See [physical evidence](testing/OT-211-INVITATION-TRIAL-2026-09-12.md).
+
+### OT-210 Bind the invitation target to isolated execution and restoration
+
+OT-210 binds the exact OT-208 invitation candidate to an isolated executable operator. The affected software matrix passes 300 tests across 17 suites; two isolated runtime probes and synthetic package admission pass. Original NVS admission rejects all eight diagnostic, invitation and evaluation namespace identities. One-use observation and independent original restoration remain unchanged; frozen predecessors are preserved. Fresh exact-image physical authority/custody and the A-first confirmation remain required. Product trust/confirmation/join/rekey/reset and applicable physical/corpus gates stay open; Phase 3/selection withheld. No hardware, physical custody, V1 score increase or public website status change. Local/uncommitted.
+See [operator evidence](testing/OT-210-INVITATION-OPERATOR-2026-09-12.md) and [exact validation](../tests/benchmarks/crypto/OT-210-INVITATION-OPERATOR-2026-09-12.json).
+
+### OT-209 Inventory the exact candidate SDK composition and supplied notices
+
+The [inventory](security/OT-209-SDK-LICENSE-INVENTORY-2026-09-12.md) binds the final
+OT-208 candidate's 49 allocated archives and 362 archive members
+to retained object metadata and supplied licenses/notices. Supplier/prebuilt
+provenance and license limits remain explicit. This completes the bounded
+inventory task without legal clearance, crypto selection or release acceptance.
+
+### OT-208 Integrate durable invitation admission into the evaluation target
+
+The [actual target host proof](testing/OT-208-INVITATION-TARGET-HOST-2026-09-12.md)
+passes 130 groups, including isolated NVS, startup guards, retained-state refusal,
+SDK faults and observed secret cleanup. Initial clean builds and final stack
+configuration rebuilds retain matching 7-artifact tuples; see the
+[final build report](../tests/benchmarks/crypto/OT-208-INVITATION-TARGET-BUILD-2026-09-12.json). Individual compiler stack frames do not prove
+whole-call-chain or physical stack usage. The [hardware procedure](testing/OT-208-INVITATION-HARDWARE-PROCEDURE-2026-09-12.md)
+requires a tested additive operator binding and fresh exact-image authority.
+No hardware, publication, V1 completion or public website status change.
+
+### OT-207 Reconcile candidate primitives and license evidence
+
+Added10 pinned independent Ed25519 known-answer/refusal groups to the shared
+crypto build. Bounded primitive mapping is reconciled before selection; existing
+source/build inventories match. The linked SDK license inventory remains partial.
+See [candidate evidence](security/OT-207-CANDIDATE-ADMISSION-2026-09-12.md).
+
+### OT-206 Prove durable invitation lifecycle and session admission
+
+Added durable boot generations, per-role consumption and a guarded wrapper around
+the unchanged crypto core. Final matrix passed239 groups; ESP32-S3 compile-only
+probe passed. Fault injection found and closed an unvalidated prior-slot read.
+Target namespace/startup wiring and physical interruption remain untested. No
+hardware, selection, score credit or website status change. See
+[software proof](security/OT-206-INVITATION-LIFECYCLE-2026-09-12.md).
+
+### OT-205 Reconcile candidate-bound security admission
+
+Reviewed all eight OT-116 gates against the exact OT-203/204 candidate and reused
+accepted evidence. Verified source/library and retained report hashes. One bounded
+interoperability gate is accepted; seven remain partial. OT-206 is the first missing
+software proof: role-scoped invitation consumption across reconstruction/restart.
+No hardware, selection, V1 credit or website status change. See the
+[assessment](security/OT-205-SECURITY-ADMISSION-2026-09-12.md).
+
+### OT-204 Execute the approved receipt-boundary confirmation
+
+Fresh per-role ROM/application/full-NVS/protected custody admitted the unchanged
+OT-203 candidate and runtime through new one-use authority. Both nodes accepted matching BEGIN markers and strict pass receipts.
+Trial status: `pass`. Original storage/protected regions were
+verified and originals restarted; custody closed and grants consumed. The retained
+outcome, claimed observations and restoration passed an independent read-only
+audit. No retry, radio/phone operation, crypto selection, V1 credit or website
+status change. See [physical evidence](testing/OT-204-RECEIPT-TRIAL-2026-09-12.md).
+
+### OT-203 Correct retained startup output at the receipt boundary
+
+Reproduced the 129-byte rejection with the actual writer/FIFO and host endpoint:
+64 retained bytes plus the CRLF receipt. Added an exact challenge-bound BEGIN
+marker and bounded preamble scanning while retaining strict receipt/trailing
+checks, command count, deadline and independent restoration. Historical physical
+byte contents remain unknown. Two fresh builds match all seven artifact pairs;
+24 C++ groups, 21 wire fixtures, 12 boundary tests and 284 package tests pass.
+The final isolated runtime passes ordinary/hostile probes and exact synthetic
+package admission. Passive role matching and a concrete trial proposal are ready;
+no grant, serial connection or physical trial occurred. Physical confirmation and
+publication remain pending; no V1 or website status change.
+See [correction and trial scope](testing/OT-203-RECEIPT-BOUNDARY-2026-09-12.md).
+
+### OT-202 Admit and run the bounded synchronization diagnostic trial
+
+Passive preparation verified both expected roles and the exact package. After
+explicit approval, fresh ROM/application/NVS/protected custody admitted one trial.
+A discarded 26 input bytes, accepted the complete command and reached send_return
+without a recorded error. Host capture refused a 129-byte oversized read after
+397 ms; no strict receipt was accepted. A's originals/protected regions restored
+and verified, original reset confirmed; B was unflashed and guarded-released.
+Independent custody and outcome audit passed; both locks cleared, grants consumed,
+snapshots stale. No retry, security pass, V1 credit or website status change.
+See [physical evidence](testing/OT-202-SYNC-TRIAL-2026-09-12.md) and the retained
+[admission checkpoint](testing/OT-202-SYNC-ADMISSION-2026-09-12.md).
+
+### OT-201 Bind synchronization diagnostics to executable observation and recovery
+
+Added the exact-image operator/runtime package with distinct authority schemas,
+one durable child observation claim and independent original restoration. The
+complete affected matrix passes 280 tests, including 17 composed workflows with
+actual candidate bytes and seven isolated launcher tests. The final runtime passes
+ordinary and hostile parent/child probes; its inventory and synthetic package
+admission are verified. All prior policy modules and firmware inputs remain intact.
+See [operator package evidence](testing/OT-201-SYNC-OPERATOR-2026-09-12.md).
+
+No hardware or external operation occurred. Fresh physical custody and one-use
+admission remain open; the prior input cause remains unknown. Implementation is
+local/uncommitted, with publication pending and no V1 or website status change.
+
+### OT-200 Integrate bounded input synchronization and durable reasons
+
+Added a separate diagnostic target that preserves the strict command and receipt
+while bounding discarded input. One CRC-protected detail record stores exact
+discard counts, first rejected-frame and terminal reasons before stage advancement.
+Image-selected readback distinguishes incomplete persistence and rejects
+inconsistent cross-field combinations. First-clock regression is indeterminate.
+
+The complete affected host matrix passes, including 1,435 C++/Python wire cases,
+91 actual-app/console scenarios and 32 strict capture checks. Two final fresh
+firmware builds match all seven artifact pairs; prior source pins remain intact.
+Sandbox toolchain access and two new harness setup errors were corrected, with
+earlier evidence retained. Final review's codec consistency correction is included
+in the accepted source and build hashes. See
+[software evidence](testing/OT-200-INPUT-SYNC-2026-09-12.md).
+
+No hardware or external operation occurred. The historical physical cause remains
+unknown. A new executable observation/restoration package must bind this image
+before separately authorized fresh physical admission. Work is local and
+uncommitted; no V1 credit or public website capability change.
+
 ## 2026-09-11
 
 ### OT-199 Verify fresh input-trial backups and release originals
@@ -16,6 +188,23 @@ Capture/release grants are consumed and released snapshots are now stale. The
 trial remains blocked awaiting exact-scope approval and new backup custody.
 No policy result, refusal reason, timing acceptance, V1 credit or public website
 capability change. See [preflight evidence](testing/OT-199-INPUT-TRIAL-2026-09-11.md).
+
+#### Resumed exact-image trial
+
+Explicit approval for the exact OT-198 trial was accepted before fresh backup
+capture. The first actual trial wrote and verified A's candidate; its stored
+reason is `input_result / invalid_length`. The host accepted 63 command bytes
+but read zero bytes in 104 reads over 30 seconds. Exact original application and
+full NVS restoration, protected readbacks and restart passed. B was not flashed
+and passed guarded original readback/reset. Capture custody was independently
+verified; all issued grants are consumed and no active attempt remains.
+
+Host and firmware source both specify 63 raw bytes including LF. The marker
+establishes an unexpected accumulated length at LF, not the cause or exact count.
+Host reset-return-to-RUN was 42 ms; this is not actual device boot time. Next
+investigate startup readiness and receiver framing together. No policy pass,
+V1 credit or public website capability change. See the resumed section of the
+[trial report](testing/OT-199-INPUT-TRIAL-2026-09-11.md).
 
 ### OT-198 Distinguish input refusal branches and host lifecycle timing
 

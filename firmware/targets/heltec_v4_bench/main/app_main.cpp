@@ -10,6 +10,7 @@
 #include "companion_authorization_storage.hpp"
 #include "companion_nimble_gatt.hpp"
 #include "companion_nimble_runtime.hpp"
+#include "confirmation_evaluation_config.hpp"
 #include "heltec_startup_display.hpp"
 #include "heltec_v4_battery.hpp"
 #include "heltec_v4_gnss.hpp"
@@ -45,7 +46,9 @@ PairingPinDisplayPortAdapter g_pairing_display{g_startup_display};
 HeltecV4SecureRandom g_pairing_random;
 opentrail::companion::CompanionPairingWindow g_pairing_window{
     g_pairing_random, g_pairing_display};
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
 HeltecV4FactoryResetInput g_factory_reset_input;
+#endif
 HeltecV4Gnss g_gnss;
 opentrail::ui::compact_status_footer::Metric g_battery_percent{};
 bool g_display_failure_logged{false};
@@ -189,7 +192,11 @@ bool run_companion_codec_self_check() {
     observe_display_result(
         g_startup_display.show(StartupDisplayFrame::ble_error));
     ESP_LOGE(kLogTag, "companion runtime FAIL");
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    (void)ble_containment_verified;
+#endif
     while (true) {
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
         const auto now_ms =
             static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
         if (!ble_containment_verified) {
@@ -234,6 +241,7 @@ bool run_companion_codec_self_check() {
                 g_startup_display.clear_factory_reset_confirmation());
             (void)g_factory_reset_input.rearm_after_noncommit(now_ms);
         }
+#endif
         // No BLE, GNSS, battery, heartbeat, pairing, or normal command
         // service runs in this containment loop.
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -267,9 +275,11 @@ extern "C" void app_main() {
     ESP_LOGI(kLogTag, "companion boot self-check PASS");
     const auto started_at_ms =
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
     if (!g_factory_reset_input.initialize(started_at_ms)) {
         contain_runtime_failure();
     }
+#endif
     g_pairing_random.set_entropy_state(
         opentrail::security::EntropyState::ready);
     const auto runtime_start_result =
@@ -328,6 +338,7 @@ extern "C" void app_main() {
                     window_expired) {
             contain_runtime_failure();
         }
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
         const auto reset_event = g_factory_reset_input.poll(elapsed_ms);
         if (reset_event ==
             CompanionFactoryResetGestureEvent::prompt_requested) {
@@ -355,6 +366,7 @@ extern "C" void app_main() {
             vTaskDelay(pdMS_TO_TICKS(50));
             esp_restart();
         }
+#endif
         g_gnss.service(elapsed_ms);
         if (elapsed_ms >= next_battery_sample_ms) {
             const auto reading = opentrail::heltec_v4::battery_read();

@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project_key": "opentrail",
   "display_name": "OpenTrail",
-  "as_of": "2026-09-11",
+  "as_of": "2026-09-13",
   "baseline_name": "Historical standalone evidence baseline",
   "baseline_definition": "The historical standalone evidence baseline measures progress toward four self-contained field units that do not depend on a phone, server, or repeater; it is retained for continuity and is not the current V1 Companion release total.",
   "baseline_milestones": [
@@ -137,7 +137,7 @@
         "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md", "docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md", "docs/testing/OT-197-STAGE-TRIAL-2026-09-11.md", "docs/testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-199-INPUT-TRIAL-2026-09-11.md",
         "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
       ],
-      "next_gate": "OT-199 passed fresh backup/package preflight but automatic approval review blocked the exact OT-198 firmware/NVS trial. Both originals were guarded-released without candidate writes; snapshots are stale and grants consumed. Obtain explicit exact-scope approval, establish fresh custody, then test/restore one role before considering the other. Strict receipt, stored refusal marker and independent host timing remain distinct; physical cause and policy acceptance are still open."
+      "next_gate": "Investigate startup readiness and receiver framing together using OT-199 verified input_result/invalid_length. Host and firmware both specify63rawbytes; the actual received length and corruption/delivery cause are not established. Keep strict framing and policy receipts, add only bounded evidence needed for a coherent correction, and validate actual host/console composition. Both originals returned; grants consumed and snapshots stale. Host timing is not actual device boot timing."
     },
     {
       "id": "core-firmware",
@@ -282,7 +282,7 @@
       "id": "v1-companion",
       "name": "V1 Companion",
       "status": "measured",
-      "as_of": "2026-09-11",
+      "as_of": "2026-09-12",
       "definition": "A complete V1 Companion release means exactly two supported Heltec LoRa devices and two approved Android phones, one physically authorized phone per Heltec, exchange authenticated and encrypted typed and quick messages bidirectionally through BLE, direct LoRa, and BLE with restart, disconnect, rejection, retry, and recovery. The accepted product includes resumable name/region onboarding; Messages, Group, and Device portrait/landscape UI; one private group per person with exactly one administrator and at most six total members; consent-gated public direct contact; group location ON at join with administrator Required/Optional policy; per-chat location OFF; current/stale/unavailable coordinate detail without a built-in-map requirement; redacted user-reviewed text support export; and the accepted Heltec OLED/clock states. Release still requires one exact signed Android artifact physically accepted without relay, server, or internet dependency.",
       "rounding_rule": "Calculate the exact weighted result, then round to the nearest whole percentage for public display.",
       "milestones": [
@@ -357,9 +357,25 @@
             "docs/testing/OT-190-BACKUP-CUSTODY-2026-09-10.md",
             "tests/benchmarks/crypto/OT-190-BACKUP-CUSTODY-2026-09-10.json",
             "docs/testing/OT-191-BACKUP-LAUNCH-2026-09-10.md", "docs/testing/OT-192-RECEIPT-DIAGNOSTICS-2026-09-10.md", "docs/testing/OT-193-DIAGNOSTIC-TRIAL-2026-09-11.md", "docs/testing/OT-194-POLICY-LIFECYCLE-2026-09-11.md", "docs/testing/OT-195-DURABLE-STAGE-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-196-STAGE-OPERATOR-2026-09-11.md", "docs/testing/OT-197-STAGE-TRIAL-2026-09-11.md", "docs/testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md", "docs/testing/OT-199-INPUT-TRIAL-2026-09-11.md",
-            "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json"
-          ],
-          "next_gate": "OT-199 passed fresh backup/package preflight but automatic approval review blocked the exact OT-198 firmware/NVS trial. Both originals were guarded-released without candidate writes; snapshots are stale and grants consumed. Obtain explicit exact-scope approval, establish fresh custody, then test/restore one role before considering the other. Strict receipt, stored refusal marker and independent host timing remain distinct; physical cause and policy acceptance are still open."
+            "tests/hardware/OT-191-SECURITY-POLICY-OUTCOME-2026-09-10.json",
+          "docs/security/OT-206-INVITATION-LIFECYCLE-2026-09-12.md",
+          "docs/security/OT-207-CANDIDATE-ADMISSION-2026-09-12.md",
+          "docs/testing/OT-208-INVITATION-TARGET-HOST-2026-09-12.md",
+          "tests/benchmarks/crypto/OT-208-INVITATION-TARGET-BUILD-2026-09-12.json",
+          "docs/security/OT-209-SDK-LICENSE-INVENTORY-2026-09-12.md",
+          "tests/benchmarks/crypto/OT-209-SDK-LICENSE-INVENTORY-2026-09-12.json",
+          "docs/testing/OT-208-INVITATION-HARDWARE-PROCEDURE-2026-09-12.md",
+          "tests/hardware/OT-208-INVITATION-ACCEPTANCE-PLAN-2026-09-12.json",
+          "docs/testing/OT-210-INVITATION-OPERATOR-2026-09-12.md",
+          "tests/benchmarks/crypto/OT-210-INVITATION-OPERATOR-2026-09-12.json",
+          "docs/testing/OT-211-INVITATION-TRIAL-2026-09-12.md",
+          "tests/hardware/OT-211-INVITATION-TRIAL-2026-09-12.json",
+          "docs/testing/OT-212-DEADLINE-OPERATOR-2026-09-13.md",
+          "tests/benchmarks/crypto/OT-212-DEADLINE-OPERATOR-2026-09-13.json",
+          "docs/testing/OT-213-DEADLINE-TRIAL-2026-09-13.md",
+          "tests/hardware/OT-213-DEADLINE-TRIAL-2026-09-13.json"
+        ],
+          "next_gate": "OT-213 audited trial status: pass. Both roles accepted matching BEGIN markers and strict pass receipts for the invitation candidate through the corrected OT-212 host operator. Originals/restoration and custody closure are retained. Continue product trust provisioning and human confirmation in the actual two-node join/message/revoke/rekey workflow. Retain applicable interruption, entropy, reset and corpus gates before Phase 3 admission and crypto selection. Existing source, SDK notice and product-security limits remain; no score or selection change."
         },
         {
           "id": "core-firmware",
@@ -1388,6 +1404,48 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-199 revalidated the OT-198 image/runtime and captured verified fresh originals for both Heltecs, including input diagnostic namespace absence and complete typed package admission. Automatic approval review rejected the exact new firmware/NVS trial before process creation. No execution grant, candidate write, policy receipt, new refusal marker or host timing was produced. Guarded original-region readback/reset passed both roles, locks are absent, grants consumed and snapshots stale. Explicit exact-image trial approval and new backup custody remain required. No completion credit or public website capability change."
+        },
+        {
+          "date": "2026-09-11",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-199 resumed after explicit exact-image approval accepted before fresh capture. A ran the OT-198 candidate and recorded input_result/invalid_length; the host accepted63command bytes but read0bytes in104reads/30000ms. Exact original application/full NVS and protected readbacks plus restart passed; B remained unflashed and passed guarded release. Observation custody independently verified. Host and firmware both specify63rawbytes, but actual accumulated length and delivery/startup cause remain unknown. Host reset-return-to-RUN42ms is not actualboot timing. Grants consumed and snapshots stale. No policy pass, completion credit or public website capability change."
+        },
+        {
+          "date": "2026-09-12",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-206/207:239 shared host groups and ESP32-S3 compile-only component probe pass; durable role/boot invitation proof and bounded primitive reconciliation advance evidence, not release acceptance. No milestone completion change. Correct architecture next gate: OT-204 resolved receipt transport; target wiring, linked SDK inventory, product lifecycle and applicable physical/corpus gates remain."
+        },
+        {
+          "date": "2026-09-12",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-208/209: 130 actual target host groups and seven matching final firmware artifact pairs establish isolated invitation startup/storage integration. Initial clean builds and final stack configuration rebuilds are distinguished in the evidence. Exact allocated SDK composition and supplied notices are inventoried with explicit provenance/license limits. Tested additive operator binding, fresh exact-image physical acceptance and remaining product/Phase3 gates stay open. No hardware, milestone completion, crypto selection or public website status change."
+        },
+        {
+          "date": "2026-09-12",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-210 binds the exact OT-208 invitation candidate to an isolated executable operator. The affected software matrix passes 300 tests across 17 suites; two isolated runtime probes and synthetic package admission pass. Original NVS admission rejects all eight diagnostic, invitation and evaluation namespace identities. One-use observation and independent original restoration remain unchanged; frozen predecessors are preserved. Fresh exact-image physical authority/custody and the A-first confirmation remain required. Product trust/confirmation/join/rekey/reset and applicable physical/corpus gates stay open; Phase 3/selection withheld. No hardware, physical custody, V1 score increase or public website status change. Local/uncommitted."
+        },
+        {
+          "date": "2026-09-12",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-211 completed one approved bounded invitation-candidate attempt; audited status `evaluation_failed`. A: evaluation `capture_failed`; strict receipt accepted `false`; BEGIN observed `true`; matching receipt observed `true`; host read bytes `65`; capture at deadline (reported elapsed ms `30000`, clamped); inner endpoint error `endpoint_read_late`; durable stage/error `send_return/none`. B remained untouched by the candidate. Candidate-touched originals were independently restored/verified and restarted; untouched roles were guarded-released. Custody is closed, grants consumed and snapshots stale. No automatic retry, radio/phone transport acceptance, crypto selection, V1 score increase or public website status change. Local/uncommitted."
+        },
+        {
+          "date": "2026-09-13",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-212 corrects host deadline exhaustion before a raw read, preserving the full observation window and strict receipt rejection. 335 tests in 18 suites, two isolated runtime probes and synthetic package admission passed. The OT-210 operator/runtime and OT-208 firmware remain unchanged. No hardware or publication; V1 completion and public website status are unchanged."
+        },
+        {
+          "date": "2026-09-13",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "OT-213 completed one approved bounded invitation-candidate attempt; audited status `pass`. Both roles accepted matching BEGIN markers and strict pass receipts for the invitation candidate through the corrected OT-212 host operator. Both original applications and full NVS were independently restored/verified and restarted. Custody is closed, grants consumed and snapshots stale. No automatic retry, radio/phone transport acceptance, crypto selection, V1 score increase or public website status change. Local/uncommitted."
         }
       ]
     },
@@ -1943,6 +2001,11 @@
       "date": "2026-09-11",
       "overall": 32,
       "reason": "OT-199 revalidated the OT-198 image/runtime and captured verified fresh originals for both Heltecs, including input diagnostic namespace absence and complete typed package admission. Automatic approval review rejected the exact new firmware/NVS trial before process creation. No execution grant, candidate write, policy receipt, new refusal marker or host timing was produced. Guarded original-region readback/reset passed both roles, locks are absent, grants consumed and snapshots stale. Explicit exact-image trial approval and new backup custody remain required. No completion credit or public website capability change."
+    },
+    {
+      "date": "2026-09-11",
+      "overall": 32,
+      "reason": "OT-199 resumed after explicit exact-image approval accepted before fresh capture. A ran the OT-198 candidate and recorded input_result/invalid_length; the host accepted63command bytes but read0bytes in104reads/30000ms. Exact original application/full NVS and protected readbacks plus restart passed; B remained unflashed and passed guarded release. Observation custody independently verified. Host and firmware both specify63rawbytes, but actual accumulated length and delivery/startup cause remain unknown. Host reset-return-to-RUN42ms is not actualboot timing. Grants consumed and snapshots stale. No policy pass, completion credit or public website capability change."
     }
   ]
 }

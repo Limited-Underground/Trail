@@ -1,11 +1,13 @@
 #include "opentrail/companion_configuration_codec.hpp"
 #include "opentrail/companion_device_name_codec.hpp"
+#include "opentrail/companion_confirmation_codec.hpp"
 #include <algorithm>
 
 namespace opentrail::companion {
 namespace {
 bool info_valid(const ConfigurationInfo& i) {
-    return i.minor_version==3 ? i.capabilities==0xff :
+    return i.minor_version==kConfirmationEvaluationMinor ? i.capabilities==kConfirmationEvaluationCapabilities :
+        i.minor_version==3 ? i.capabilities==0xff :
         i.minor_version==2 && (i.capabilities & 0x10U)==0 && (i.capabilities & 0xc0U)!=0;
 }
 bool magic(const std::uint8_t* b, const char* text) {
@@ -30,7 +32,7 @@ bool time_valid(const ConfigurationTimePayload& t) {
     }
 }
 bool frame_valid(const ConfigurationFrame& f) {
-    if ((f.minor_version!=2 && f.minor_version!=3) || f.session_nonce == 0 || f.exchange_id == 0 || f.payload_bytes > kConfigurationPayloadBytes) return false;
+    if ((f.minor_version!=2 && f.minor_version!=3 && f.minor_version!=kConfirmationEvaluationMinor) || f.session_nonce == 0 || f.exchange_id == 0 || f.payload_bytes > kConfigurationPayloadBytes) return false;
     switch (f.kind) {
     case 1: case 2: case 0x81: case 0x82: case 0x83: return true;
     case 4: case 0x86: {
@@ -44,9 +46,14 @@ bool frame_valid(const ConfigurationFrame& f) {
         return d.decoded() && ((f.kind == 5) == (d.value.kind == 1 || d.value.kind == 3));
     }
     case 6: case 0x88: {
-        if(f.minor_version!=3) return false;
+        if(f.minor_version!=3 && f.minor_version!=kConfirmationEvaluationMinor) return false;
         const auto d=decode_configuration_region_payload(f.payload.data(),f.payload_bytes);
         return d.decoded() && ((f.kind==6)==(d.value.kind==1 || d.value.kind==2));
+    }
+    case 7: case 0x89: {
+        if(f.minor_version!=kConfirmationEvaluationMinor) return false;
+        const auto d=decode_confirmation_payload(f.payload.data(),f.payload_bytes);
+        return d.decoded() && ((f.kind==7)==(d.value.kind>=1 && d.value.kind<=3));
     }
     default: return false;
     }
@@ -98,7 +105,7 @@ ConfigurationEncodeResult encode_configuration_frame(const ConfigurationFrame& f
 ConfigurationDecodeResult<ConfigurationFrame> decode_configuration_frame(const std::uint8_t* b, std::size_t n,std::uint8_t expected) {
     if (b == nullptr || n < 20 || n > 148) return {};
     const auto size = read<std::uint16_t>(b+18);
-    if (!magic(b,"OTC0") || b[4] || b[5]!=expected || (b[5]!=2 && b[5]!=3) || b[7] || b[16] || b[17] != 1 || n != 20U+size)
+    if (!magic(b,"OTC0") || b[4] || b[5]!=expected || (b[5]!=2 && b[5]!=3 && b[5]!=kConfirmationEvaluationMinor) || b[7] || b[16] || b[17] != 1 || n != 20U+size)
         return {ConfigurationCodecError::malformed, {}};
     ConfigurationFrame f{};
     f.minor_version=b[5];
@@ -110,7 +117,7 @@ ConfigurationDecodeResult<ConfigurationFrame> decode_configuration_frame(const s
 }
 bool configuration_transport_compatible(const ConfigurationInfo& i, std::uint8_t requested,
     std::uint16_t mtu, std::size_t send, std::size_t receive, bool indications) {
-    return info_valid(i) && (requested == 0x40 || requested == 0x80 || (i.minor_version==3 && requested==0x10)) && (i.capabilities & requested) != 0 &&
+    return info_valid(i) && (requested == 0x40 || requested == 0x80 || ((i.minor_version==3 || i.minor_version==kConfirmationEvaluationMinor) && requested==0x10)) && (i.capabilities & requested) != 0 &&
         mtu >= 151 && send >= 148 && receive >= 148 && indications;
 }
 namespace {

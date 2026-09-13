@@ -2,6 +2,7 @@ package io.github.nbjelanovic.otclient
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame
+import io.github.nbjelanovic.otprotocol.CompanionConfirmationCodec
 import io.github.nbjelanovic.otprotocol.COMPANION_MINIMUM_ATT_MTU
 import io.github.nbjelanovic.otprotocol.COMPANION_FACTORY_RESET_CAPABILITY
 import io.github.nbjelanovic.otprotocol.COMPANION_KNOWN_CAPABILITY_MASK
@@ -365,6 +366,8 @@ class BleCompanionRuntime(
     private val firstRequestId: Long = 1,
     private val threadVerifier: BleRuntimeThreadVerifier = CreationThreadBleRuntimeVerifier(),
     initialGeneration: Long = 0,
+    private val evaluationConfirmationEnabled: Boolean = false,
+    private val confirmationClockMillis: () -> Long = { System.nanoTime() / 1_000_000L },
 ) : AutoCloseable {
     init {
         require(maximumReconnectAttempts in 0..16)
@@ -395,6 +398,8 @@ class BleCompanionRuntime(
     private var protocolInfo: CompanionProtocolInfo? = null
     private var configurationInfo: CompanionConfigurationInfo? = null
     private var configurationSession: BleConfigurationSession? = null
+    private var groupConfirmationSession: BleGroupConfirmationSession? = null
+    private var groupConfirmationTimeout: BleReconnectLease? = null
     private var matchedSetupLabel: V1SetupLabel? = null
     private var configurationTimeout: BleReconnectLease? = null
     private var displayTimeChanges: BleReconnectLease? = null
@@ -774,7 +779,7 @@ class BleCompanionRuntime(
         if (deliveringObserver) return false
         val ready = state as? BleRuntimeState.Ready ?: return false
         val lease = gattLease ?: return false
-        if (pendingAction != null || configurationSession?.busy == true) return false
+        if (pendingAction != null || configurationSession?.busy == true || groupConfirmationSession?.busy == true) return false
         if (
             request.kind == CompanionActionKind.FACTORY_RESET &&
             (
@@ -1276,10 +1281,57 @@ class BleCompanionRuntime(
     }
 
     private fun decodeNormalInfo(value: ByteArray): CompanionProtocolInfo? {
-        val configuration=CompanionConfigurationCodec.decodeInfo(value) ?: CompanionConfigurationCodec.decodeInfo(value,3)
+        val configuration=CompanionConfigurationCodec.decodeInfo(value) ?: CompanionConfigurationCodec.decodeInfo(value,3) ?:
+            if(evaluationConfirmationEnabled) CompanionConfigurationCodec.decodeInfo(value,CompanionConfirmationCodec.PROFILE) else null
         configurationInfo=configuration
         return if(configuration!=null) CompanionProtocolInfo(capabilities=configuration.capabilities,
             maxFragmentCount=1) else CompanionProtocolCodec.decodeProtocolInfo(value).value
+    }
+
+    private fun requiredNormalCapabilities(): Int =
+        if (configurationInfo?.minorVersion == CompanionConfirmationCodec.PROFILE) 0x07 else REQUIRED_ACTION_CAPABILITIES
+
+    /** Only an explicitly opted-in, protected Ready evaluation profile can expose this adapter. */
+    fun createGroupConfirmationSource(authority: V1GroupConfirmationAuthority): V1GroupConfirmationSource? {
+        requireOwnerThread()
+        val ready = state as? BleRuntimeState.Ready ?: return null
+        if (!evaluationConfirmationEnabled || configurationInfo?.minorVersion != CompanionConfirmationCodec.PROFILE ||
+            negotiatedMtu < COMPANION_MINIMUM_ATT_MTU || groupConfirmationSession != null) return null
+        val callbackGeneration = generation
+        val nonce = ready.session.sessionNonce
+        val session = BleGroupConfirmationSession(authority, nonce.toUInt(),
+            isCurrent = { accepts(callbackGeneration) &&
+                (state as? BleRuntimeState.Ready)?.session?.sessionNonce == nonce &&
+                configurationInfo?.minorVersion == CompanionConfirmationCodec.PROFILE },
+            allocate = {
+                if (deliveringObserver || state !is BleRuntimeState.Ready || pendingAction != null ||
+                    configurationSession?.busy == true || groupConfirmationSession?.busy == true ||
+                    nextRequestId !in 1..0xffff_ffffL) null
+                else nextRequestId.toUInt().also { nextRequestId++ }
+            },
+            send = { bytes ->
+                val sent = gattLease?.writeCommandWithResponse(bytes) == true
+                armGroupConfirmationTimeout()
+                sent
+            },
+            clockMillis = confirmationClockMillis)
+        groupConfirmationSession = session
+        return session
+    }
+
+    private fun armGroupConfirmationTimeout() {
+        groupConfirmationTimeout?.close()
+        groupConfirmationTimeout = null
+        val session = groupConfirmationSession ?: return
+        val exchange = session.pendingExchange() ?: return
+        val callbackGeneration = generation
+        val lease = scheduler.schedule(6000) {
+            requireOwnerThread()
+            if (accepts(callbackGeneration) && groupConfirmationSession === session) session.lost(exchange)
+        }
+        if (accepts(callbackGeneration) && groupConfirmationSession === session && session.pendingExchange() == exchange)
+            groupConfirmationTimeout = lease
+        else lease.close()
     }
 
     private fun encodeNormalFragment(fragment: CompanionFragment): ByteArray? =
@@ -1290,7 +1342,7 @@ class BleCompanionRuntime(
     private fun acceptPromotedNormalInfo(companion: BleDiscoveredCompanion,value: ByteArray) {
         val claim=authorizationClaim ?: return
         val decoded=decodeNormalInfo(value)
-        if(decoded==null || (decoded.capabilities and REQUIRED_ACTION_CAPABILITIES)!=REQUIRED_ACTION_CAPABILITIES ||
+        if(decoded==null || (decoded.capabilities and requiredNormalCapabilities())!=requiredNormalCapabilities() ||
             negotiatedMtu<decoded.minimumAttMtu) return failAndRelease(BleRuntimeFailure.PROTOCOL_INFO_FAILED)
         protocolInfo=decoded
         normalProfileConfirmedAfterPromotion=true
@@ -1309,12 +1361,12 @@ class BleCompanionRuntime(
     fun synchronizeDisplayTime(): Boolean { requireOwnerThread(); return configurationOperation { it.synchronizeTime() } }
     // Coalesce source-clock changes; queued work never steals an occupied action/configuration lane.
     private fun pumpAutomaticConfiguration() {
-        if(pumpingAutomaticConfiguration || deliveringObserver || state !is BleRuntimeState.Ready || pendingAction!=null) return
+        if(pumpingAutomaticConfiguration || deliveringObserver || state !is BleRuntimeState.Ready || pendingAction!=null || groupConfirmationSession?.busy==true) return
         val session=configurationSession ?: return
         if(session.busy || (!automaticNameReadPending && !automaticTimeSyncPending)) return
         pumpingAutomaticConfiguration=true
         try {
-            while(configurationSession===session && state is BleRuntimeState.Ready && pendingAction==null && !session.busy) {
+            while(configurationSession===session && state is BleRuntimeState.Ready && pendingAction==null && !session.busy && groupConfirmationSession?.busy!=true) {
                 when {
                     automaticNameReadPending -> { automaticNameReadPending=false;session.readName() }
                     automaticTimeSyncPending -> { automaticTimeSyncPending=false;session.synchronizeTime() }
@@ -1326,7 +1378,7 @@ class BleCompanionRuntime(
         } finally { pumpingAutomaticConfiguration=false }
     }
     private fun configurationOperation(operation: (BleConfigurationSession)->Boolean): Boolean {
-        if(deliveringObserver || state !is BleRuntimeState.Ready || pendingAction!=null) return false
+        if(deliveringObserver || state !is BleRuntimeState.Ready || pendingAction!=null || groupConfirmationSession?.busy==true) return false
         val session=configurationSession ?: return false
         val result=operation(session)
         if(result) armConfigurationTimeout()
@@ -1403,7 +1455,8 @@ class BleCompanionRuntime(
         val decoded = decodeNormalInfo(value)
         if (
             decoded == null ||
-            (decoded.capabilities and REQUIRED_ACTION_CAPABILITIES) != REQUIRED_ACTION_CAPABILITIES ||
+            configurationInfo?.minorVersion == CompanionConfirmationCodec.PROFILE ||
+            (decoded.capabilities and requiredNormalCapabilities()) != requiredNormalCapabilities() ||
             decoded.maxFragmentPayloadBytes < COMPANION_STATUS_SNAPSHOT_BYTES ||
             negotiatedMtu < decoded.minimumAttMtu
         ) {
@@ -1466,7 +1519,7 @@ class BleCompanionRuntime(
         val decoded = decodeNormalInfo(value)
         if (
             decoded == null ||
-            (decoded.capabilities and REQUIRED_ACTION_CAPABILITIES) != REQUIRED_ACTION_CAPABILITIES ||
+            (decoded.capabilities and requiredNormalCapabilities()) != requiredNormalCapabilities() ||
             decoded.maxFragmentPayloadBytes < COMPANION_STATUS_SNAPSHOT_BYTES
         ) {
             failAndRelease(BleRuntimeFailure.PROTOCOL_INFO_FAILED)
@@ -1602,6 +1655,13 @@ class BleCompanionRuntime(
 
     private fun onStreamValue(companion: BleDiscoveredCompanion, value: ByteArray) {
         val configurationFrame = if(configurationInfo != null) CompanionConfigurationCodec.decodeFrame(value,checkNotNull(configurationInfo).minorVersion) else null
+        if (configurationFrame?.kind == CompanionConfirmationCodec.RESPONSE) {
+            if (groupConfirmationSession?.receive(configurationFrame) == true) {
+                armGroupConfirmationTimeout()
+                pumpAutomaticConfiguration()
+            }
+            return
+        }
         if(configurationFrame?.kind in listOf(0x86,0x87,0x88)) {
             if(configurationSession?.receive(checkNotNull(configurationFrame)) == true) {
                 armConfigurationTimeout()
@@ -2362,6 +2422,10 @@ class BleCompanionRuntime(
     }
 
     private fun clearSessionState() {
+        groupConfirmationSession?.endSession()
+        groupConfirmationSession = null
+        groupConfirmationTimeout?.close()
+        groupConfirmationTimeout = null
         matchedSetupLabel = null
         displayTimeChanges?.close()
         displayTimeChanges=null

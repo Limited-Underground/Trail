@@ -1,0 +1,126 @@
+{
+  "schema": "OT199-INPUT-PHYSICAL-OUTCOME-1",
+  "at": "2026-09-11T21:30:43.880967+00:00",
+  "hardware": {
+    "model": "Heltec WiFi LoRa32 V4.2",
+    "mcu": "ESP32-S3",
+    "flash_bytes": 16777216,
+    "roles": 2,
+    "lora_used": false,
+    "region_change": false,
+    "cold_power": "deferred"
+  },
+  "backup": {
+    "status": "pass_both_roles",
+    "application_bytes_each": 589824,
+    "nvs_bytes_each": 12288,
+    "protected_bytes": [
+      32768,
+      4096,
+      8192
+    ],
+    "diagnostic_namespace_absent_before_trial": true,
+    "freshness_after_original_restart": "stale_not_reusable_for_handoff",
+    "release_status": "reset_nvs_stale"
+  },
+  "trial": {
+    "version": "ot198-input-diag-v0",
+    "candidate_bytes": 438912,
+    "candidate_sha256": "5fc90c0d4c5f096227b4e1e33caed1ef8079ef515f1f04884074447464c25b6f",
+    "package_digest": "36006ddeaf22a2d5417b9b785bb27d4910e4738c999da2c16184a7c659873afc",
+    "status": "evaluation_failed",
+    "A": {
+      "candidate_verified": true,
+      "serial_closed": true,
+      "accepted_receipt": false,
+      "original_application_and_nvs_restored_verified": true,
+      "protected_regions_verified": true,
+      "original_reset_confirmed": true,
+      "stage_observation": {
+        "available": true,
+        "error": "invalid_length",
+        "reason": "observed",
+        "role": "A",
+        "stage": "input_result"
+      }
+    },
+    "B": {
+      "candidate_written": false,
+      "original_regions_reverified": true,
+      "guarded_reset_confirmed": true
+    }
+  },
+  "receipt_diagnostics": {
+    "available": true,
+    "roles": [
+      {
+        "capture_error": "receipt_timeout",
+        "close_confirmed": true,
+        "close_error": "none",
+        "command_accepted_bytes": 63,
+        "diagnostics_available": true,
+        "elapsed_ms": 30000,
+        "error": "endpoint_capture_refused",
+        "inner_endpoint_error": "none",
+        "matching_receipt_observed": false,
+        "read_bytes": 0,
+        "read_calls": 104,
+        "receipt_accepted": false,
+        "role": "A",
+        "stage": "refused"
+      },
+      {
+        "capture_error": "none",
+        "close_confirmed": false,
+        "close_error": "none",
+        "command_accepted_bytes": 0,
+        "diagnostics_available": true,
+        "elapsed_ms": 0,
+        "error": "none",
+        "inner_endpoint_error": "none",
+        "matching_receipt_observed": false,
+        "read_bytes": 0,
+        "read_calls": 0,
+        "receipt_accepted": false,
+        "role": "B",
+        "stage": "not_opened"
+      }
+    ],
+    "schema": "OT192-RECEIPT-DIAGNOSTICS-1"
+  },
+  "input_timing": [
+    {
+      "open_ms": 22,
+      "opened_to_run_ms": 7,
+      "reset_call_ms": 34489,
+      "reset_return_to_open_ms": 12,
+      "reset_return_to_run_ms": 42,
+      "role": "A",
+      "status": "available"
+    },
+    {
+      "open_ms": null,
+      "opened_to_run_ms": null,
+      "reset_call_ms": null,
+      "reset_return_to_open_ms": null,
+      "reset_return_to_run_ms": null,
+      "role": "B",
+      "status": "unavailable"
+    }
+  ],
+  "runtime": {
+    "manifest_sha256": "b05b870b718454e3d95db0622ae3cfc2d2553834208ee7877dd17882a8274eda",
+    "files": 3558,
+    "accepted_probe_reused": true,
+    "current_inventory_verified": true
+  },
+  "observation_custody": "private raw capture and intent/claim/receipt bindings independently verified",
+  "root_cause": "Observed deciding reason: invalid_length. Firmware reached LF at a length other than 63 before evaluation. Host and parser source both specify 63 raw bytes; missing/extra bytes and startup/delivery cause remain unknown.",
+  "authorization": "Explicit exact-image user approval accepted before fresh capture; earlier approval-only rejection did not execute a candidate.",
+  "active_locks_remaining": false,
+  "separate_recovery_required": false,
+  "physical_trial_retry_performed": false,
+  "phone_ui_and_oled": "not independently observed",
+  "website_status_changed": false,
+  "next_gate": "Investigate receiver frame length and startup readiness together using bounded diagnostics and actual host/console composition. Preserve strict framing and original restoration; no physical retry without a newly admitted attempt."
+}

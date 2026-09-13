@@ -41,9 +41,21 @@ IMMUTABLE_UPSTREAM_ATTRIBUTION_EMAIL_SHA256 = frozenset(
     }
 )
 
+# Exact supplier-attribution aggregate pinned by the OT-209 SDK inventory.
+# Only email findings are exempt; changed bytes or another path lose the exemption.
+IMMUTABLE_UPSTREAM_NOTICE_SHA256 = {
+    "tests/benchmarks/crypto/OT-209-CANDIDATE-NOTICES-2026-09-12.txt":
+        "b3297ea5a6fada91dda74c1470d37c48a065695385c67fa5dfab8b51198fb6c3",
+}
+
 
 def scan_text(path: str, text: str) -> list[str]:
     findings: list[str] = []
+    exact_upstream_notice = (
+        path in IMMUTABLE_UPSTREAM_NOTICE_SHA256
+        and hashlib.sha256(text.encode("utf-8")).hexdigest()
+        == IMMUTABLE_UPSTREAM_NOTICE_SHA256[path]
+    )
     for match in EMAIL.finditer(text):
         address = match.group(0).lower()
         exact_upstream_attribution = (
@@ -51,7 +63,8 @@ def scan_text(path: str, text: str) -> list[str]:
             and hashlib.sha256(address.encode("utf-8")).hexdigest()
             in IMMUTABLE_UPSTREAM_ATTRIBUTION_EMAIL_SHA256
         )
-        if not address.endswith(ALLOWED_EMAIL_SUFFIXES) and not exact_upstream_attribution:
+        if (not address.endswith(ALLOWED_EMAIL_SUFFIXES)
+                and not exact_upstream_attribution and not exact_upstream_notice):
             line = text.count("\n", 0, match.start()) + 1
             findings.append(f"{path}:{line}: unmasked email address")
     for label, pattern in PATTERNS:

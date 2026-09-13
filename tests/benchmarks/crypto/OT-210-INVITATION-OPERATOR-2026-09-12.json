@@ -1,0 +1,435 @@
+{
+  "schema": "OT210-INVITATION-OPERATOR-EVIDENCE-1",
+  "recorded_date": "2026-09-12",
+  "status": "host_and_isolated_runtime_passed",
+  "target": "heltec_v4_invitation_eval",
+  "candidate": {
+    "bytes": 445248,
+    "sha256": "4526209643bbfb51ccf95d04a992eed41c877dd72cc0b03f415783a63d9036d2"
+  },
+  "build_report": {
+    "path": "tests/benchmarks/crypto/OT-208-INVITATION-TARGET-BUILD-2026-09-12.json",
+    "bytes": 27515,
+    "sha256": "5a9db409dc80868286ac8fe14646fd9816b410f8fccf4747788d423d134f9b2e"
+  },
+  "validation": {
+    "tests": 300,
+    "suites": 17,
+    "suite_counts": {
+      "security_policy_invitation_bundle_tests": 28,
+      "security_policy_invitation_restore_observation_tests": 21,
+      "security_policy_invitation_execution_tests": 28,
+      "security_policy_invitation_runtime_bundle_tests": 16,
+      "security_policy_invitation_operator_tests": 14,
+      "security_policy_invitation_operator_integration_tests": 21,
+      "security_policy_invitation_isolated_tests": 7,
+      "security_policy_invitation_readback_tests": 13,
+      "security_policy_hardware_tests": 23,
+      "security_policy_endpoint_tests": 13,
+      "security_policy_execution_tests": 19,
+      "security_policy_backup_tests": 21,
+      "security_policy_backup_operator_tests": 13,
+      "security_policy_capture_tests": 9,
+      "security_policy_input_readback_tests": 26,
+      "security_policy_input_observation_tests": 17,
+      "security_policy_input_timing_tests": 11
+    },
+    "runtime_probes": 2,
+    "synthetic_package_passed": true,
+    "all_suites_without_skips": true
+  },
+  "runtime": {
+    "manifest": {
+      "bytes": 554335,
+      "sha256": "fbbc3854de3b4c78f7fe607f1d9b55d33b9f336abd87b59dfe929888ef601129"
+    },
+    "files": 3561,
+    "bytes": 96347201,
+    "versions": {
+      "python": "3.14.6",
+      "bitarray": "3.10.1",
+      "bitstring": "4.4.0",
+      "cffi": "2.1.1",
+      "click": "8.1.8",
+      "colorama": "0.4.6",
+      "cryptography": "46.0.7",
+      "esptool": "5.3.1",
+      "intelhex": "2.3.0",
+      "markdown-it-py": "4.2.0",
+      "mdurl": "0.1.2",
+      "pycparser": "3.0",
+      "pygments": "2.20.0",
+      "pyserial": "3.5",
+      "pyyaml": "6.0.3",
+      "reedsolo": "1.7.0",
+      "rich": "15.0.0",
+      "rich-click": "1.9.8",
+      "tibs": "0.5.7"
+    },
+    "post_probe_inventory_verified": true,
+    "hostile_startup_executed": false
+  },
+  "source_pins": {
+    "tools/security_policy_bundle.py": {
+      "bytes": 10318,
+      "sha256": "0512d4118bae3d5e23628e19bc75b484b7457b937620acc15cdf7969776ae7b2"
+    },
+    "tools/security_policy_hardware.py": {
+      "bytes": 11537,
+      "sha256": "cfd6a29b7560e6c6d01c81c916b54742aa328c04a2c20b81320ec9d54d9c0e55"
+    },
+    "tools/security_policy_endpoint.py": {
+      "bytes": 3548,
+      "sha256": "1a86b71b59c7b8357afd00375ed2307860b96316357223b1c2fcf460a19530b1"
+    },
+    "tools/security_policy_execution.py": {
+      "bytes": 21186,
+      "sha256": "afce87da6ffdc382f402bb774e44086c1e77e9741e1da04f16be733e43ae0089"
+    },
+    "tools/security_policy_capture.py": {
+      "bytes": 2444,
+      "sha256": "6aa64631a2e9893140f6ce5585c317b8d93c72421f216310c57f895dffa78fd2"
+    },
+    "tools/security_policy_operator.py": {
+      "bytes": 20376,
+      "sha256": "12aa023420b12540e5d71d40be11125bfd5e8810134c5b708f1d47299b8df550"
+    },
+    "tools/security_policy_backup.py": {
+      "bytes": 20800,
+      "sha256": "9e9bf4123ef9f1fcd8c95430cd9fcc36c719574374851cae177efadcd2fd975b"
+    },
+    "tools/security_policy_backup_operator.py": {
+      "bytes": 7749,
+      "sha256": "d07a93636c26efcb02d13914614dadac1a29c7935d4a6e368991559cfae6cfeb"
+    },
+    "tools/security_policy_diagnostics.py": {
+      "bytes": 9522,
+      "sha256": "591d9e447c83b42e7ed5418a137e901e30f3814249f043a8376ea5bc8a916163"
+    },
+    "tools/security_policy_runtime_bundle.py": {
+      "bytes": 14101,
+      "sha256": "8840dfce827151681ff85a4e5a22fe9720d90e000cc795ab44e4d7f52e8ed757"
+    },
+    "tools/security_policy_input_readback.py": {
+      "bytes": 6045,
+      "sha256": "b1c362db5c416397207f72c47ce95a329bcb1f483c94ebf1877fe7d30ba7ee37"
+    },
+    "tools/security_policy_input_timing.py": {
+      "bytes": 3471,
+      "sha256": "08e408cb36c442769e95112c628cc45fedb5319289d8200be5ea3e6da3d7ccc4"
+    },
+    "tools/security_policy_invitation_readback.py": {
+      "bytes": 7628,
+      "sha256": "6c2f72e9815931326e583ff64d2dc86e584b5503b049b9c9a9764e0a55932013"
+    },
+    "tools/security_policy_invitation_observation.py": {
+      "bytes": 2224,
+      "sha256": "f447d4510bd0d21c6a3b9aecfec0fa933a8612a779f6962c32ff73cc8ded30a9"
+    },
+    "tools/security_policy_invitation_bundle.py": {
+      "bytes": 15200,
+      "sha256": "16aedc42e9b04d256ba17778e7e2676df6f647c7e13cd9af9a1845bbe6b02688"
+    },
+    "tools/security_policy_invitation_execution.py": {
+      "bytes": 19504,
+      "sha256": "4d4197958245394e0f71005754f58522f674eb2e1c43be9ee954c72f4a58b3db"
+    },
+    "tools/security_policy_invitation_operator.py": {
+      "bytes": 23284,
+      "sha256": "abf8c493cff54534c71136ecdf341861c204f59dc78635a376464cfd8b444a83"
+    },
+    "tools/security_policy_invitation_backup_operator.py": {
+      "bytes": 8588,
+      "sha256": "d00f2c71cfa065eec124a32d3c81bf24e55ee6c413971e2aeb66ef0bb8060fec"
+    },
+    "tools/security_policy_invitation_runtime_bundle.py": {
+      "bytes": 14420,
+      "sha256": "85eeeca1c0874fe71eddcbfc290b20c41565490b43deb75a185b8aaedfc9b36a"
+    },
+    "tools/security_policy_invitation_restore_observation.py": {
+      "bytes": 5640,
+      "sha256": "3add951541f90077c4793e7e6d4b957c1f8874464dad07ac2a935af601e671b4"
+    },
+    "tools/security_policy_receipt_boundary.py": {
+      "bytes": 6073,
+      "sha256": "428219f22b17567c88f8b98d9493952ca1251c9c1abb75b354fbfb26601e153a"
+    },
+    "tools/Invoke-SecurityPolicyOperator.ps1": {
+      "bytes": 6557,
+      "sha256": "9caa1355e2d55bf0bea7027cadbdce9666e2dd858774b54ffeffbe3506a3dd01"
+    },
+    "tools/Invoke-SecurityPolicyInvitationOperator.ps1": {
+      "bytes": 7449,
+      "sha256": "58d93659060253e5d9c1c04b088381ecdb145ebdb43c4f48d84ed577489d1a10"
+    }
+  },
+  "test_source_pins": {
+    "tools/security_policy_bundle.py": {
+      "bytes": 10318,
+      "sha256": "0512d4118bae3d5e23628e19bc75b484b7457b937620acc15cdf7969776ae7b2"
+    },
+    "tools/security_policy_hardware.py": {
+      "bytes": 11537,
+      "sha256": "cfd6a29b7560e6c6d01c81c916b54742aa328c04a2c20b81320ec9d54d9c0e55"
+    },
+    "tools/security_policy_endpoint.py": {
+      "bytes": 3548,
+      "sha256": "1a86b71b59c7b8357afd00375ed2307860b96316357223b1c2fcf460a19530b1"
+    },
+    "tools/security_policy_execution.py": {
+      "bytes": 21186,
+      "sha256": "afce87da6ffdc382f402bb774e44086c1e77e9741e1da04f16be733e43ae0089"
+    },
+    "tools/security_policy_capture.py": {
+      "bytes": 2444,
+      "sha256": "6aa64631a2e9893140f6ce5585c317b8d93c72421f216310c57f895dffa78fd2"
+    },
+    "tools/security_policy_operator.py": {
+      "bytes": 20376,
+      "sha256": "12aa023420b12540e5d71d40be11125bfd5e8810134c5b708f1d47299b8df550"
+    },
+    "tools/security_policy_backup.py": {
+      "bytes": 20800,
+      "sha256": "9e9bf4123ef9f1fcd8c95430cd9fcc36c719574374851cae177efadcd2fd975b"
+    },
+    "tools/security_policy_backup_operator.py": {
+      "bytes": 7749,
+      "sha256": "d07a93636c26efcb02d13914614dadac1a29c7935d4a6e368991559cfae6cfeb"
+    },
+    "tools/security_policy_diagnostics.py": {
+      "bytes": 9522,
+      "sha256": "591d9e447c83b42e7ed5418a137e901e30f3814249f043a8376ea5bc8a916163"
+    },
+    "tools/security_policy_runtime_bundle.py": {
+      "bytes": 14101,
+      "sha256": "8840dfce827151681ff85a4e5a22fe9720d90e000cc795ab44e4d7f52e8ed757"
+    },
+    "tools/security_policy_input_readback.py": {
+      "bytes": 6045,
+      "sha256": "b1c362db5c416397207f72c47ce95a329bcb1f483c94ebf1877fe7d30ba7ee37"
+    },
+    "tools/security_policy_input_timing.py": {
+      "bytes": 3471,
+      "sha256": "08e408cb36c442769e95112c628cc45fedb5319289d8200be5ea3e6da3d7ccc4"
+    },
+    "tools/security_policy_invitation_readback.py": {
+      "bytes": 7628,
+      "sha256": "6c2f72e9815931326e583ff64d2dc86e584b5503b049b9c9a9764e0a55932013"
+    },
+    "tools/security_policy_invitation_observation.py": {
+      "bytes": 2224,
+      "sha256": "f447d4510bd0d21c6a3b9aecfec0fa933a8612a779f6962c32ff73cc8ded30a9"
+    },
+    "tools/security_policy_invitation_bundle.py": {
+      "bytes": 15200,
+      "sha256": "16aedc42e9b04d256ba17778e7e2676df6f647c7e13cd9af9a1845bbe6b02688"
+    },
+    "tools/security_policy_invitation_execution.py": {
+      "bytes": 19504,
+      "sha256": "4d4197958245394e0f71005754f58522f674eb2e1c43be9ee954c72f4a58b3db"
+    },
+    "tools/security_policy_invitation_operator.py": {
+      "bytes": 23284,
+      "sha256": "abf8c493cff54534c71136ecdf341861c204f59dc78635a376464cfd8b444a83"
+    },
+    "tools/security_policy_invitation_backup_operator.py": {
+      "bytes": 8588,
+      "sha256": "d00f2c71cfa065eec124a32d3c81bf24e55ee6c413971e2aeb66ef0bb8060fec"
+    },
+    "tools/security_policy_invitation_runtime_bundle.py": {
+      "bytes": 14420,
+      "sha256": "85eeeca1c0874fe71eddcbfc290b20c41565490b43deb75a185b8aaedfc9b36a"
+    },
+    "tools/security_policy_invitation_restore_observation.py": {
+      "bytes": 5640,
+      "sha256": "3add951541f90077c4793e7e6d4b957c1f8874464dad07ac2a935af601e671b4"
+    },
+    "tools/security_policy_receipt_boundary.py": {
+      "bytes": 6073,
+      "sha256": "428219f22b17567c88f8b98d9493952ca1251c9c1abb75b354fbfb26601e153a"
+    },
+    "tools/Invoke-SecurityPolicyOperator.ps1": {
+      "bytes": 6557,
+      "sha256": "9caa1355e2d55bf0bea7027cadbdce9666e2dd858774b54ffeffbe3506a3dd01"
+    },
+    "tools/Invoke-SecurityPolicyInvitationOperator.ps1": {
+      "bytes": 7449,
+      "sha256": "58d93659060253e5d9c1c04b088381ecdb145ebdb43c4f48d84ed577489d1a10"
+    },
+    "tests/host/security_policy_invitation_bundle_tests.py": {
+      "bytes": 13679,
+      "sha256": "52aa0fecb87e51514326a0cdc879098f3d4376624e3bf972272e5426325099f8"
+    },
+    "tests/host/security_policy_invitation_restore_observation_tests.py": {
+      "bytes": 10765,
+      "sha256": "8b4487e1ee38e410c45ff0fe0e3991626936fd5e976ed754d13cab508e131f77"
+    },
+    "tests/host/security_policy_invitation_execution_tests.py": {
+      "bytes": 19076,
+      "sha256": "ed8398af2f0b65478d807dfea12aff076801accc4b91bfdb01535d0a50fe0ba7"
+    },
+    "tests/host/security_policy_invitation_runtime_bundle_tests.py": {
+      "bytes": 11023,
+      "sha256": "1514dc166e5d42ba45a2b0e8bb28d96506d913462f820ad9f2c26a2029f5a2c4"
+    },
+    "tests/host/security_policy_invitation_operator_tests.py": {
+      "bytes": 20740,
+      "sha256": "ea91d64d0bbbcc5ff02eed5adcb26806ed1a8b4112a5d030c95466647552e2b4"
+    },
+    "tests/host/security_policy_invitation_operator_integration_tests.py": {
+      "bytes": 28142,
+      "sha256": "c62a10e6c93a219f9c776893ebc4c1c73271fd49b945b30447cc0d1c5261ffb1"
+    },
+    "tests/host/security_policy_invitation_isolated_tests.py": {
+      "bytes": 14361,
+      "sha256": "d6c54fa9bddd0d65ecaa3c699e9e7bb880df05a83e26d6b73405ef63003b8235"
+    },
+    "tests/host/security_policy_invitation_readback_tests.py": {
+      "bytes": 11316,
+      "sha256": "b3febbf25913dbc0754b9989a6b217c28e739ec6e95856d885e38feb7cdf0b06"
+    },
+    "tests/host/security_policy_hardware_tests.py": {
+      "bytes": 12312,
+      "sha256": "09db096ac8491e1d4e377e61328017a1423d865aa18d4ff346e17ac90dc60817"
+    },
+    "tests/host/security_policy_endpoint_tests.py": {
+      "bytes": 4718,
+      "sha256": "43fd0f52ab864a5777f542038575df1f681c020a96dc5983aa9b812062642a31"
+    },
+    "tests/host/security_policy_execution_tests.py": {
+      "bytes": 13102,
+      "sha256": "9f2a35eccd1ed0ecda3d9e00fe718ec10f14966f8f8e82f1030cc3578cea8786"
+    },
+    "tests/host/security_policy_backup_tests.py": {
+      "bytes": 12063,
+      "sha256": "20d0823b9a496125a8867529041a6323658f71b1563076944c7a7d6457987a83"
+    },
+    "tests/host/security_policy_backup_operator_tests.py": {
+      "bytes": 17855,
+      "sha256": "f636bd4effe5360f1f8bbdfa1eb1a7a9d67fe92a128c0f710ba5dd12fe0bb823"
+    },
+    "tests/host/security_policy_capture_tests.py": {
+      "bytes": 2209,
+      "sha256": "017c6f8e7d94e717ea5c96d0600228a3026fdd9bb73185a6f9785eea7ee0d649"
+    },
+    "tests/host/security_policy_input_readback_tests.py": {
+      "bytes": 8866,
+      "sha256": "434e35c8a5cc9f59befa828344b737335a793d311de895bbcf84dd9eefd43675"
+    },
+    "tests/host/security_policy_input_observation_tests.py": {
+      "bytes": 8292,
+      "sha256": "07856be2bc2bf269652f92f6653cefff63b8185168c8bcebef59e33f31236c08"
+    },
+    "tests/host/security_policy_input_timing_tests.py": {
+      "bytes": 4079,
+      "sha256": "31d7415e2d57f805af3ff0d6048ec2e89f4bd78109a09cfcb4f81a99b1456484"
+    },
+    "tools/Test-SecurityInvitationOperator.py": {
+      "bytes": 5745,
+      "sha256": "ce4a888f05e88e04aac477b013921db9ce3d6c24183387e93b007201eb7c22fa"
+    },
+    "tests/benchmarks/crypto/OT-208-INVITATION-TARGET-BUILD-2026-09-12.json": {
+      "bytes": 27515,
+      "sha256": "5a9db409dc80868286ac8fe14646fd9816b410f8fccf4747788d423d134f9b2e"
+    }
+  },
+  "evidence_pins": {
+    "matrix": {
+      "bytes": 23561,
+      "sha256": "5952c5544421d5d2c60b4a782bbe7d19a0f5e42359645fbc78b56623f30acf33"
+    },
+    "runtime_result": {
+      "bytes": 7459,
+      "sha256": "981395f144b5a3c52f7e140e6f7b32f16824b966d4fa95a7370039dcf5d5907c"
+    },
+    "synthetic_package": {
+      "bytes": 4463,
+      "sha256": "b59663ea86ae454dca7aaf69de99121c0146ee306b51e99c22b879ad7b8287a8"
+    }
+  },
+  "operator": {
+    "launcher": "tools/Invoke-SecurityPolicyInvitationOperator.ps1",
+    "runtime_schema": "OT210-INVITATION-RUNTIME-1",
+    "package_schema": "OT210-INVITATION-BUNDLE-1",
+    "source_file_count": 23,
+    "fixed_source_pin_count": 16,
+    "scope": {
+      "version": "ot187-policy-v0",
+      "radio": false,
+      "application_offset": 65536,
+      "application_span": 589824,
+      "nvs_offset": 53248,
+      "nvs_span": 12288,
+      "image_version": "ot208-invitation-v1",
+      "image_target": "heltec_v4_invitation_eval",
+      "diagnostic_namespace": "ot198diag",
+      "diagnostic_keys": [
+        "stage",
+        "input"
+      ],
+      "diagnostic_record_contract": "OT200-SYNC-INPUT-RECORD-1",
+      "pre_console_nvs_writes": true,
+      "pre_restore_nvs_observation": true,
+      "input_detail_write": true,
+      "receipt_boundary": "OT203-RECEIPT-BOUNDARY-1",
+      "invitation_namespaces": [
+        "ot208_boot",
+        "ot208_ia",
+        "ot208_ib"
+      ],
+      "evaluation_namespaces": [
+        "ot187_ta",
+        "ot187_tb",
+        "ot187_ra",
+        "ot187_rb"
+      ]
+    },
+    "execute_actions": [
+      "rom_preflight",
+      "diagnostic_application_write",
+      "diagnostic_candidate_reset",
+      "diagnostic_nvs_init",
+      "diagnostic_stage_writes",
+      "diagnostic_input_detail_write",
+      "invitation_boot_record_writes",
+      "invitation_role_record_writes",
+      "serial_command",
+      "one_full_nvs_observation",
+      "application_restore",
+      "full_nvs_restore",
+      "original_reset"
+    ],
+    "recover_actions": [
+      "rom_preflight",
+      "application_restore",
+      "full_nvs_restore",
+      "original_reset"
+    ],
+    "fresh_original_namespaces": [
+      "ot187_ra",
+      "ot187_rb",
+      "ot187_ta",
+      "ot187_tb",
+      "ot198diag",
+      "ot208_boot",
+      "ot208_ia",
+      "ot208_ib"
+    ]
+  },
+  "claims": {
+    "hardware_accessed": false,
+    "published": false,
+    "physical_custody": false,
+    "physical_acceptance": false,
+    "crypto_selected": false,
+    "website_status_changed": false
+  },
+  "limits": [
+    "Synthetic physical boundary for composed execution; actual isolated Python/PowerShell runtime only.",
+    "No fresh device enumeration, backup custody or execute/recover grant. Old physical grants remain consumed.",
+    "Original namespace absence is recognizable-byte evidence, not proof of never-used storage, freshness or rollback resistance.",
+    "Diagnostic stage projection is not an accepted receipt or host write acknowledgement; unsupported decode cannot suppress original restoration.",
+    "Full NVS restoration covers invitation/evaluation records; physical entropy, interruption, stack peak and product trust/rekey acceptance remain open."
+  ],
+  "initial_test_correction": "The first matrix stopped on one copied test expecting the predecessor ReadbackError class; the successor correctly refused before I/O. The test now requires the successor exception. Production sources unchanged."
+}

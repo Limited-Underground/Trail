@@ -1,0 +1,145 @@
+{
+  "schema": "OT207-CANDIDATE-ADMISSION-1",
+  "as_of": "2026-09-12",
+  "status": "candidate_evidence_reconciled_selection_withheld",
+  "candidate": {
+    "bytes": 440480,
+    "sha256": "d47b09dae0aa1ae878769410a5daaabdac07af2d4c95c9f9d3436a1e03321cee"
+  },
+  "gate_1": {
+    "disposition": "accepted_bounded_candidate_vectors_and_refusals",
+    "scope": "Exact proposed libsodium1.0.22 and actual evaluation Noise adapter; combines retained target evidence with current host KAT/control/integration. Not exhaustive primitive conformance or product acceptance.",
+    "mapping": [
+      {
+        "operation": "Ed25519 sign/verify",
+        "known_answer": "Two pinned upstream RFC8032 fixtures: exact public key/signature bytes;10 new known-answer/refusal groups.",
+        "negative": "Changed signature, message and public key; actual signed invitation negatives."
+      },
+      {
+        "operation": "X25519",
+        "known_answer": "Independent Noise XK expected transcript/messages/split keys exercise actual target adapter scalar X25519.",
+        "negative": "Existing primitive zero-public-key refusal and Noise malformed/peer-binding cases."
+      },
+      {
+        "operation": "SHA256 and HKDF/Noise KDF",
+        "known_answer": "Retained SHA256 abc and HKDF expected PRK/OKM vectors; independent XK transcript/hash/split agreement exercises actual adapter KDF.",
+        "negative": "Malformed/truncated/wrong-prologue Noise and failed transcript confirmation refuse admission."
+      },
+      {
+        "operation": "IETF ChaCha20-Poly1305 encrypt/decrypt",
+        "known_answer": "Independent expected XK message ciphertext plus bidirectional actual-session AEAD.",
+        "negative": "Changed ciphertext/tag, duplicate/lower authenticated counter, wrong record identity/epoch, unchanged plaintext on rejection."
+      }
+    ]
+  },
+  "gate_8": {
+    "disposition": "partial",
+    "accepted": [
+      "libsodium ISC license files and exact source inventory",
+      "731 upstream files;44 firmware source pins",
+      "seven matching artifact pairs",
+      "exact987 compiled sources,294 repository dependencies and2325 external dependencies per retained build",
+      "managed-lock SPDX and actual vendored/component-manager-disabled target boundary"
+    ],
+    "remaining": "Full linked ESP-IDF license/redistribution inventory remains incomplete: existing SPDX models IDF as one NOASSERTION package; exact dependency hashes do not substitute for license attribution."
+  },
+  "known_answer": {
+    "output": "PASS 10 pinned Ed25519 known-answer and refusal groups",
+    "binary_sha256": "a119403008a243fbd5e507dbb495d9d5dd6202bb5039d4f4b9ffcd103191d546"
+  },
+  "fixture_bindings": {
+    "fixture": {
+      "bytes": 2777963,
+      "sha256": "fa3f37d292782694d721a218d0adf2b7de633552d41bbdc1d0ae0a708e32a21d"
+    },
+    "source": {
+      "bytes": 4233,
+      "sha256": "91feea63c518cefd2ca45997de76617edfc5063a2dc98a917e1d6eb710afac7c"
+    },
+    "vectors": [
+      {
+        "expected_bytes_origin": "pinned upstream fixture",
+        "index": 0,
+        "message_bytes": 0
+      },
+      {
+        "expected_bytes_origin": "pinned upstream fixture",
+        "index": 1,
+        "message_bytes": 1
+      }
+    ]
+  },
+  "verification": {
+    "firmware_source_pins": 44,
+    "upstream_files": 731,
+    "matching_artifact_pairs": 7,
+    "closure_counts": {
+      "compiled_sources": 987,
+      "external_dependencies": 2325,
+      "repo_dependency_closure": 294
+    }
+  },
+  "private_verification_binding": {
+    "bytes": 1010512,
+    "sha256": "9c2c49b981a7db583f063d9fde69fbaa4c3bc0e9730bb8264709fb25ecd81722"
+  },
+  "evidence": {
+    "tests/benchmarks/crypto/OT-203-RECEIPT-SYNC-BUILD-2026-09-12.json": {
+      "bytes": 17346,
+      "sha256": "131fed9e5be168b2438bc4d968fac8e2c4fe0cddd33fc5501fd0d818312fc01f"
+    },
+    "tests/benchmarks/crypto/OT-206-INVITATION-LIFECYCLE-2026-09-12.json": {
+      "bytes": 9477,
+      "sha256": "32a010e37a9e8019dd8697416ca9e0b489d2a4c4e2302a4c99d01d327b3c07ba"
+    },
+    "tests/benchmarks/crypto/OT-099-OT005-LIBSODIUM-MANAGED-IMPORT-V0.json": {
+      "bytes": 4982,
+      "sha256": "8285fa7308bfc83a5d55503a7a3e1fa4c21895a42b095197b3ec75f634411ec9"
+    },
+    "tests/benchmarks/crypto/OT-120-OT005-LIBSODIUM-IMPORT-BUILD-EVIDENCE-V1.json": {
+      "bytes": 7806,
+      "sha256": "735b4755f25da280cde7ba79387f5eeeee5a38bf477b60042e64d31f20f2186f"
+    },
+    "tests/benchmarks/crypto/OT-122-OT005-LIBSODIUM-NOISE-RESOURCE-EXECUTION-RECEIPT-V0.json": {
+      "bytes": 5001,
+      "sha256": "2b023c640bfbec8ad6eb5d1d63d65e8f1ad75dcfe593566aba6b3d468355a178"
+    },
+    "tests/benchmarks/crypto/OT-163-ADMISSION-BATCH-2026-09-10.json": {
+      "bytes": 13954,
+      "sha256": "3efdfadfccfc502c53456b30494a2a6d1d7fe978571e3b582a899866fb7f5c9b"
+    },
+    "tests/benchmarks/crypto/independent_noise_xk/vectors.json": {
+      "bytes": 3048,
+      "sha256": "b7053c022656471c81f91860753ecb404633f7815bf8348de9fbce4ec9a99ca3"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/sbom.spdx.json": {
+      "bytes": 1450,
+      "sha256": "86e76598aa0a668239ae86e515b6e9a53fd03682e3a9b3325fceb19043780df2"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/dependencies.lock": {
+      "bytes": 543,
+      "sha256": "d5f32dcb2ec24c853ac2040fb8f9410a8f61831b7b7d5e9522766e8456e2ec5e"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/source-manifest.sha256": {
+      "bytes": 87846,
+      "sha256": "988fbb2b95d1b4f3850d153495f8d73482be52cb80808fa48e24a8d1e9bf91ea"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium/main/app_main.c": {
+      "bytes": 25704,
+      "sha256": "ff5330a7d224be8d3abce8350432ca8573ccb9ce33780d68c559e0a85aa23bbf"
+    },
+    "tests/host/security_candidate_known_answer_tests.cpp": {
+      "bytes": 4233,
+      "sha256": "91feea63c518cefd2ca45997de76617edfc5063a2dc98a917e1d6eb710afac7c"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium/libsodium/test/default/sign.c": {
+      "bytes": 2777963,
+      "sha256": "fa3f37d292782694d721a218d0adf2b7de633552d41bbdc1d0ae0a708e32a21d"
+    }
+  },
+  "phase3_corpus_boundary": "Historical libsodium/Monocypher raw capture custody remains unestablished. Do not regenerate raw evidence from aggregates. This is separate from primitive and source/license evidence.",
+  "sequencing_correction": "Assess candidate gates before selection. Do not require a selected composition to perform prerequisite review. Human confirmation is accepted once at the product join boundary, not duplicated in a temporary evaluation UI.",
+  "selection": false,
+  "hardware_actions": false,
+  "public_website_status_changed": false
+}

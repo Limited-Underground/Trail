@@ -20,6 +20,9 @@ import kotlinx.coroutines.delay
 @Composable
 internal fun V1HomeScreen(
     state: TrailAppUiState,
+    onRefreshGroupConfirmation: () -> Boolean = { false },
+    onConfirmGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
+    onCancelGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
     deviceContent: @Composable () -> Unit,
 ) {
     // Freeze the launch choice before the splash; runtime changes must not navigate for the user.
@@ -38,8 +41,18 @@ internal fun V1HomeScreen(
     }
     val destination = V1AppDestination.entries.firstOrNull { it.name == selected } ?: V1AppDestination.MESSAGES
     val retainedPages = rememberSaveableStateHolder()
-    val runtime = (state as? TrailAppUiState.BluetoothDevice)?.runtimeState
-    val connected = runtime is BleRuntimeState.Ready
+    val bluetooth = state as? TrailAppUiState.BluetoothDevice
+    val runtime = bluetooth?.runtimeState
+    val readySession = (runtime as? BleRuntimeState.Ready)?.session
+    val connected = readySession != null
+    val confirmation = if (connected) bluetooth?.groupConfirmation ?: V1GroupConfirmationState.Unsupported
+        else V1GroupConfirmationState.Unsupported
+    val refreshGroupConfirmation by rememberUpdatedState(onRefreshGroupConfirmation)
+    LaunchedEffect(destination, readySession?.companion?.endpointToken, readySession?.sessionNonce) {
+        if (destination == V1AppDestination.GROUP && readySession != null) {
+            refreshGroupConfirmation()
+        }
+    }
     val status = when (runtime) {
         is BleRuntimeState.Ready -> "Device connected"
         is BleRuntimeState.Reconnecting, BleRuntimeState.FindingReturningOwner -> "Reconnecting to device"
@@ -54,9 +67,25 @@ internal fun V1HomeScreen(
             V1MessagesScreen(status, onConnect = { selected = V1AppDestination.DEVICE.name })
         } },
         group = { retainedPages.SaveableStateProvider("group") {
-            V1GroupScreen(V1GroupScreenState(statusMessage = if (connected)
-                "This device's current firmware does not yet support V1 group setup."
-                else "Connect your device to manage a group. V1 group setup requires the upcoming device update."), onAction = {})
+            V1GroupScreen(
+                V1GroupScreenState(
+                    statusMessage = when {
+                        !connected -> "Connect your device to manage a group. V1 group setup requires the upcoming device update."
+                        confirmation == V1GroupConfirmationState.Unsupported ->
+                            "This device's current firmware does not yet support V1 group setup."
+                        else -> "Review the nearby peer before joining."
+                    },
+                    confirmation = confirmation,
+                ),
+                onAction = { action ->
+                    when (action) {
+                        V1GroupUiAction.RefreshDeviceOffer -> if (connected) onRefreshGroupConfirmation()
+                        is V1GroupUiAction.ConfirmDeviceOffer -> if (connected) onConfirmGroupConfirmation(action.offer)
+                        is V1GroupUiAction.CancelDeviceOffer -> if (connected) onCancelGroupConfirmation(action.offer)
+                        else -> Unit
+                    }
+                },
+            )
         } },
         device = { retainedPages.SaveableStateProvider("device") {
             var support by rememberSaveable { mutableStateOf(false) }

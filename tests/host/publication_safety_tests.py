@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
+import json
 import tempfile
 from pathlib import Path
 
@@ -34,6 +36,34 @@ def main() -> int:
     sibling_path = "tests/benchmarks/crypto/monocypher/4.0.3/source-sibling/AUTHORS.md"
     assert scanner.scan_text(sibling_path, "dlbeer" + "@gmail.com")
     assert scanner.scan_text(upstream_path, "invented" + "@gmail.com")
+
+    # Preserve complete upstream notices, with provenance and byte-exact scope.
+    repo = Path(__file__).resolve().parents[2]
+    inventory = json.loads((repo / "tests/benchmarks/crypto/OT-209-SDK-LICENSE-INVENTORY-2026-09-12.json").read_bytes())
+    notice_path = inventory["notices"]["path"].removeprefix("$WORKTREE/")
+    notice_bytes = (repo / notice_path).read_bytes()
+    notice_text = notice_bytes.decode("utf-8")
+    digest = hashlib.sha256(notice_bytes).hexdigest()
+    assert len(notice_bytes) == inventory["notices"]["bytes"]
+    assert digest == inventory["notices"]["sha256"]
+    assert digest == scanner.IMMUTABLE_UPSTREAM_NOTICE_SHA256[notice_path]
+    assert not scanner.scan_text(notice_path, notice_text)
+    assert scanner.scan_text("copy/" + notice_path, notice_text)
+    assert scanner.scan_text(notice_path + ".copy", notice_text)
+    assert scanner.scan_text(notice_path, notice_text + "\n")
+    changed = notice_text + "\noperator" + "@personal.invalid"
+    assert any("unmasked email" in f for f in scanner.scan_text(notice_path, changed))
+    secret = "-----BEGIN " + "PRIVATE KEY-----"
+    assert any("private-key material" in f for f in scanner.scan_text(notice_path, notice_text + secret))
+    # Even an exact-content exemption never disables the other detectors.
+    saved_digest = scanner.IMMUTABLE_UPSTREAM_NOTICE_SHA256[notice_path]
+    try:
+        scanner.IMMUTABLE_UPSTREAM_NOTICE_SHA256[notice_path] = hashlib.sha256((notice_text + secret).encode()).hexdigest()
+        findings = scanner.scan_text(notice_path, notice_text + secret)
+        assert any("private-key material" in f for f in findings)
+        assert not any("unmasked email" in f for f in findings)
+    finally:
+        scanner.IMMUTABLE_UPSTREAM_NOTICE_SHA256[notice_path] = saved_digest
 
     expect_find(scanner, "email", "owner" + "@personal.invalid")
     expect_find(scanner, "user path", "C:" + "\\Users\\operator\\capture.txt")

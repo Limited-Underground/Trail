@@ -57,6 +57,7 @@ data class V1GroupScreenState(
     val invitationStatus: String = "Invitations closed",
     val canShowQr: Boolean = false,
     val canScanQr: Boolean = false,
+    val confirmation: V1GroupConfirmationState = V1GroupConfirmationState.Unsupported,
 )
 
 sealed interface V1GroupUiAction {
@@ -73,6 +74,9 @@ sealed interface V1GroupUiAction {
     data object RevokeInvitations : V1GroupUiAction
     data object ShowQr : V1GroupUiAction
     data class ShowCoordinates(val key: String) : V1GroupUiAction
+    data object RefreshDeviceOffer : V1GroupUiAction
+    data class ConfirmDeviceOffer(val offer: V1GroupConfirmationOffer) : V1GroupUiAction
+    data class CancelDeviceOffer(val offer: V1GroupConfirmationOffer) : V1GroupUiAction
     data object Leave : V1GroupUiAction
     data object Delete : V1GroupUiAction
 }
@@ -104,6 +108,7 @@ fun V1GroupScreen(
             Text(state.groupName, style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.semantics { heading() })
             state.statusMessage?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            V1DeviceGroupConfirmation(state.confirmation, onAction)
             Text("${state.members.size} of 6 members · One administrator")
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 if (maxWidth >= 720.dp) {
@@ -153,6 +158,8 @@ private fun V1NoGroupContent(
         }
     }
     val form: @Composable () -> Unit = {
+      Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+      V1DeviceGroupConfirmation(state.confirmation, onAction)
       V1GroupCard(if (createSelected) "Create a group" else "Join a group") {
         if (createSelected) {
             OutlinedTextField(name, { if (it.length <= 40) name = it }, label = { Text("Group name") },
@@ -176,6 +183,7 @@ private fun V1NoGroupContent(
             }
         }
       }
+      }
     }
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         if (maxWidth >= 600.dp) {
@@ -188,6 +196,65 @@ private fun V1NoGroupContent(
                 introduction()
                 form()
             }
+        }
+    }
+}
+
+@Composable
+private fun V1DeviceGroupConfirmation(
+    state: V1GroupConfirmationState,
+    onAction: (V1GroupUiAction) -> Unit,
+) {
+    // The offer belongs to the current device session. Never retain or save a copy here.
+    V1GroupCard("Confirm nearby peer") {
+        when (state) {
+            V1GroupConfirmationState.Unsupported -> {
+                Text("Peer confirmation is unavailable with this device connection.")
+                Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+                    Text("Confirm matching details")
+                }
+            }
+            V1GroupConfirmationState.Idle -> {
+                Text("Waiting for your device to offer peer confirmation.")
+                OutlinedButton(
+                    onClick = { onAction(V1GroupUiAction.RefreshDeviceOffer) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Check for device offer") }
+            }
+            is V1GroupConfirmationState.Review -> {
+                val offer = state.offer
+                Text(if (offer.role == V1GroupConfirmationRole.INVITER)
+                    "Review the peer requesting to join." else "Review the peer inviting you.")
+                Text("Compare these details with the intended peer before confirming.")
+                Text("Peer fingerprint", style = MaterialTheme.typography.labelLarge)
+                Text(offer.peerFingerprint)
+                Text("Confirmation", style = MaterialTheme.typography.labelLarge)
+                Text(offer.confirmation)
+                Button(
+                    onClick = { onAction(V1GroupUiAction.ConfirmDeviceOffer(offer)) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Confirm matching details") }
+                OutlinedButton(
+                    onClick = { onAction(V1GroupUiAction.CancelDeviceOffer(offer)) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Cancel confirmation") }
+            }
+            is V1GroupConfirmationState.Submitted -> {
+                Text(if (state.decision == V1GroupConfirmationDecision.CONFIRM)
+                    "Confirmation request submitted. Joining is not yet complete."
+                    else "Cancellation request submitted. Cancellation is not yet confirmed.")
+            }
+            is V1GroupConfirmationState.DeviceResult -> Text(when (state.outcome) {
+                V1GroupConfirmationDeviceOutcome.LOCAL_CONFIRMED -> "Your device confirmed this step. Group joining is not complete."
+                V1GroupConfirmationDeviceOutcome.CANCELLED -> "Your device cancelled this confirmation."
+                V1GroupConfirmationDeviceOutcome.REFUSED -> "Your device refused this confirmation. Reconnect before reviewing another offer."
+            })
+            is V1GroupConfirmationState.Closed -> Text(when (state.reason) {
+                V1GroupConfirmationCloseReason.EXPIRED -> "This confirmation offer expired. Wait for a new device session and offer."
+                V1GroupConfirmationCloseReason.SESSION_ENDED -> "The device session ended. Reconnect to review a new offer."
+                V1GroupConfirmationCloseReason.SUBMISSION_FAILED -> "The request could not be verified as submitted. Review a new offer after reconnecting."
+                else -> "This confirmation is no longer available. Reconnect to review a new device offer."
+            })
         }
     }
 }

@@ -86,6 +86,9 @@ interface ConnectedDeviceSessionPort {
     fun authorize(endpointToken: String)
     fun disconnect()
     fun submitAction(request: CompanionActionRequest): Boolean
+    fun refreshGroupConfirmation(): Boolean = false
+    fun confirmGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean = false
+    fun cancelGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean = false
     fun readRadioRegion(): Boolean = false
     fun writeRadioRegion(selectionId: Int): Boolean = false
     fun readDeviceName(): Boolean = false

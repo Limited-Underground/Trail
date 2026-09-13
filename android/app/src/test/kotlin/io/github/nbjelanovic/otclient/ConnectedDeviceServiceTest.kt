@@ -11,6 +11,49 @@ import kotlin.test.assertTrue
 
 class ConnectedDeviceServiceTest {
     @Test
+    fun confirmationCarriesExactHandleAndCannotForwardAfterDetachOrOwnerClose() {
+        val service = FakeServiceController()
+        val owner = ConnectedDeviceSessionOwner(102, service)
+        val ui = fixture()
+        val offer = V1GroupConfirmationOffer(V1GroupConfirmationAuthority(), 1,
+            V1GroupConfirmationRole.JOINER, "ab", 1u, "cd".repeat(32), "123 456", 500)
+        ui.controller.onLifecycleStart()
+        ui.controller.chooseBluetoothDeviceMode()
+        ui.controller.startBluetoothService()
+        ui.connector.emit(0, ConnectedDeviceServiceConnection.Connected(owner))
+        assertTrue(ui.controller.confirmGroupConfirmation(offer))
+        assertTrue(ui.controller.cancelGroupConfirmation(offer))
+        assertTrue(service.groupOffers.all { it === offer })
+        assertEquals(2, service.groupOffers.size)
+        ui.controller.onLifecycleStop()
+        assertFalse(ui.controller.confirmGroupConfirmation(offer))
+        assertFalse(ui.controller.cancelGroupConfirmation(offer))
+        owner.close()
+        assertFalse(owner.confirmGroupConfirmation(offer))
+        assertFalse(owner.cancelGroupConfirmation(offer))
+        assertEquals(2, service.groupOffers.size)
+    }
+
+    @Test
+    fun groupReviewRefreshForwardsOnlyWhileActivityAndServiceAreOpen() {
+        val service = FakeServiceController()
+        val owner = ConnectedDeviceSessionOwner(101, service)
+        val ui = fixture()
+        assertFalse(ui.controller.refreshGroupConfirmation())
+        ui.controller.onLifecycleStart()
+        ui.controller.chooseBluetoothDeviceMode()
+        ui.controller.startBluetoothService()
+        ui.connector.emit(0, ConnectedDeviceServiceConnection.Connected(owner))
+        assertTrue(ui.controller.refreshGroupConfirmation())
+        assertEquals(1, service.groupRefreshCount)
+        ui.controller.onLifecycleStop()
+        assertFalse(ui.controller.refreshGroupConfirmation())
+        owner.close()
+        assertFalse(owner.refreshGroupConfirmation())
+        assertEquals(1, service.groupRefreshCount)
+    }
+
+    @Test
     fun configurationCommandsForwardFromActivityThroughSessionOwnerAndCloseWithLifecycle() {
         val service=FakeServiceController()
         val owner=ConnectedDeviceSessionOwner(101,service)
@@ -734,6 +777,15 @@ class ConnectedDeviceServiceTest {
     }
 
     private class FakeServiceController : TrailServiceController {
+        var groupRefreshCount = 0
+        val groupOffers = mutableListOf<V1GroupConfirmationOffer>()
+        override fun confirmGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean {
+            groupOffers += offer; return true
+        }
+        override fun cancelGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean {
+            groupOffers += offer; return true
+        }
+        override fun refreshGroupConfirmation(): Boolean { groupRefreshCount += 1; return true }
         val configurationCommands=mutableListOf<String>()
         override fun readRadioRegion(): Boolean { configurationCommands += "region-read"; return true }
         override fun writeRadioRegion(selectionId: Int): Boolean { configurationCommands += "region-write:$selectionId"; return true }

@@ -1,7 +1,27 @@
 set(OPENTRAIL_COMPONENT_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../components")
+set(OPENTRAIL_CONFIRMATION_SOURCES)
+set(OPENTRAIL_CONFIRMATION_INCLUDES)
+set(OPENTRAIL_CONFIRMATION_REQUIRES)
+if(OPENTRAIL_CONFIRMATION_EVALUATION)
+    set(OPENTRAIL_CONFIRMATION_ADAPTER "${CMAKE_CURRENT_LIST_DIR}/../../heltec_v4_security_eval/main/noise_adapter")
+    list(APPEND OPENTRAIL_CONFIRMATION_SOURCES
+        "confirmation_evaluation_backend.cpp"
+        "confirmation_nonowning_entropy.cpp"
+        "${OPENTRAIL_CONFIRMATION_ADAPTER}/noise_xk_libsodium.c"
+        "${OPENTRAIL_COMPONENT_ROOT}/security/src/serialized_secure_random.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp")
+    list(APPEND OPENTRAIL_CONFIRMATION_INCLUDES
+        "${OPENTRAIL_CONFIRMATION_ADAPTER}"
+        "${OPENTRAIL_COMPONENT_ROOT}/security_evaluation/include"
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/include")
+    list(APPEND OPENTRAIL_CONFIRMATION_REQUIRES espressif__libsodium)
+endif()
 
 idf_component_register(
     SRCS
+        ${OPENTRAIL_CONFIRMATION_SOURCES}
         "app_main.cpp"
         "companion_boot_self_check.cpp"
         "companion_nimble_gatt.cpp"
@@ -25,6 +45,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/time/src/oled_clock.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/time/src/oled_time_admission.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_configuration_codec.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_configuration_dispatcher.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_device_name_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_device_name_owner.cpp"
@@ -49,6 +70,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/device_factory_reset_executor.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_public_link_info.cpp"
     INCLUDE_DIRS
+        ${OPENTRAIL_CONFIRMATION_INCLUDES}
         "${OPENTRAIL_COMPONENT_ROOT}/ui/include"
         "${OPENTRAIL_COMPONENT_ROOT}/time/include"
         "."
@@ -71,4 +93,14 @@ idf_component_register(
         esp_lcd
         mbedtls
         nvs_flash
+    PRIV_REQUIRES ${OPENTRAIL_CONFIRMATION_REQUIRES}
 )
+target_compile_definitions(${COMPONENT_LIB} PRIVATE OPENTRAIL_CONFIRMATION_EVALUATION=$<BOOL:${OPENTRAIL_CONFIRMATION_EVALUATION}>)
+if(OPENTRAIL_CONFIRMATION_EVALUATION)
+    # IDF's early requirements pass does not inherit this custom cache option.
+    # Resolve the admitted target here so its exported headers/link dependencies
+    # are applied in the actual opt-in build and an absent component is fatal.
+    target_link_libraries(${COMPONENT_LIB} PRIVATE idf::espressif__libsodium)
+    target_compile_features(${COMPONENT_LIB} PRIVATE cxx_std_17)
+    target_compile_options(${COMPONENT_LIB} PRIVATE -fstack-usage)
+endif()

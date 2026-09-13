@@ -36,7 +36,7 @@ internal class BleConfigurationSession(
     private var timeExchange: UInt? = null
     private var challenge: ULong? = null
     private var closed = false
-    var state = BleConfigurationState(available=true,editorSessionId=context.device,regionAvailable=minorVersion==3,notice="Read the device name before applying a change.")
+    var state = BleConfigurationState(available=true,editorSessionId=context.device,regionAvailable=minorVersion in listOf(3,CompanionConfirmationCodec.PROFILE),notice="Read the device name before applying a change.")
         private set
     val busy get() = namePending != null || timeExchange != null || regionPending != null
 
@@ -48,7 +48,7 @@ internal class BleConfigurationSession(
         return startRegion(CompanionRegionPayload(2,revision=revision,selectionId=selectionId))
     }
     private fun startRegion(request: CompanionRegionPayload): Boolean {
-        if(closed || !isCurrent() || busy || minorVersion != 3) return false
+        if(closed || !isCurrent() || busy || minorVersion !in listOf(3,CompanionConfirmationCodec.PROFILE)) return false
         val exchange=allocate() ?: return false
         regionPending=RegionPending(exchange,request)
         update(state.copy(busy=true,regionRevision=null,notice="Waiting for region readback..."))

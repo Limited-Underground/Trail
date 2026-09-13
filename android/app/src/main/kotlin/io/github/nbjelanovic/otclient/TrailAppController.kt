@@ -31,6 +31,7 @@ sealed interface TrailAppUiState {
         val permissionRequestInFlight: Boolean,
         val permissionWasDenied: Boolean,
         val authorizationState: DeviceAuthorizationUiState,
+        val groupConfirmation: V1GroupConfirmationState = V1GroupConfirmationState.Unsupported,
         val factoryResetConfirmationVisible: Boolean = false,
         val serviceState: ConnectedDeviceServiceUiState = ConnectedDeviceServiceUiState.START_REQUIRED,
         val notificationPermissionState: NotificationPermissionState = NotificationPermissionState.NOT_REQUIRED,
@@ -50,6 +51,8 @@ class TrailAppController(
     private val authorizationScheduler: BleRuntimeScheduler,
     private val threadVerifier: BleRuntimeThreadVerifier = CreationThreadBleRuntimeVerifier(),
     private val bluetoothFacadeCloseable: AutoCloseable? = null,
+    private val groupConfirmationAdapter: V1GroupConfirmationAdapter = DisabledV1GroupConfirmationAdapter,
+    private val groupConfirmationClock: () -> Long = { System.nanoTime() / 1_000_000L },
 ) : TrailServiceController {
     override var state: TrailAppUiState = TrailAppUiState.ChooseMode
         private set
@@ -63,6 +66,16 @@ class TrailAppController(
     private var closed = false
     private var deferredLifecycleActive: Boolean? = null
     private var closeDeferred = false
+    private var groupConfirmationAuthority: V1GroupConfirmationAuthority? = null
+    private var groupConfirmationSession: Pair<String, Long>? = null
+    private var groupConfirmationCoordinator: V1GroupConfirmationCoordinator? = null
+    private var groupConfirmationDeadline: BleReconnectLease? = null
+    private var groupConfirmationOpening = false
+    private var groupConfirmationSynchronizing = false
+    private var groupConfirmationOperation = false
+    private var groupConfirmationDeadlineArming = false
+    private var deferredGroupConfirmationExpiry: V1GroupConfirmationAuthority? = null
+    private var deferredGroupConfirmationChange: V1GroupConfirmationAuthority? = null
     private var authorizationState: DeviceAuthorizationUiState = DeviceAuthorizationUiState.None
     private var factoryResetConfirmation: FactoryResetConfirmationAuthority? = null
     private var factoryResetConfirmationDeadline: BleReconnectLease? = null
@@ -276,11 +289,164 @@ class TrailAppController(
     override fun writeDeviceName(name: String): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.writeDeviceName(name) }
     override fun synchronizeDisplayTime(): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.synchronizeDisplayTime() }
 
+    override fun refreshGroupConfirmation(): Boolean = groupConfirmationCommand { it.refresh() }
+    override fun confirmGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean =
+        groupConfirmationCommand { it.confirm(offer) }
+    override fun cancelGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean =
+        groupConfirmationCommand { it.cancel(offer) }
+
+    private fun groupConfirmationCommand(action: (V1GroupConfirmationCoordinator) -> Boolean): Boolean {
+        requireOwnerThread()
+        if (!canMutate() || mode != TrailConnectionMode.BLUETOOTH_DEVICE) return false
+        if (groupConfirmationOpening || groupConfirmationSynchronizing || groupConfirmationOperation) {
+            if (groupConfirmationOpening || groupConfirmationSynchronizing) groupConfirmationAuthority = null
+            groupConfirmationCoordinator?.close()
+            return false
+        }
+        groupConfirmationOperation = true
+        try {
+            synchronizeGroupConfirmation()
+            val coordinator = groupConfirmationCoordinator ?: return false
+            val submitted = action(coordinator)
+            scheduleGroupConfirmationExpiry()
+            publishBluetooth()
+            return submitted && groupConfirmationCoordinator === coordinator && !closed
+        } finally {
+            groupConfirmationOperation = false
+            drainGroupConfirmationChanges()
+        }
+    }
+
+    private fun currentGroupConfirmationAuthority(): V1GroupConfirmationAuthority? {
+        val ready = bluetoothRuntime.state as? BleRuntimeState.Ready ?: return null
+        val permission = try { permissionReader.current() } catch (_: Exception) { return null }
+        if (closed || mode != TrailConnectionMode.BLUETOOTH_DEVICE ||
+            permission != NearbyDevicesPermissionState.GRANTED ||
+            factoryResetConfirmation != null ||
+            groupConfirmationSession != Pair(ready.session.companion.endpointToken, ready.session.sessionNonce)) return null
+        return groupConfirmationAuthority
+    }
+
+    private fun synchronizeGroupConfirmation(runtimeState: BleRuntimeState = bluetoothRuntime.state) {
+        if (groupConfirmationSynchronizing) return
+        groupConfirmationSynchronizing = true
+        try { synchronizeGroupConfirmationNow(runtimeState) }
+        finally { groupConfirmationSynchronizing = false; drainGroupConfirmationChanges() }
+    }
+
+    private fun synchronizeGroupConfirmationNow(runtimeState: BleRuntimeState) {
+        val ready = runtimeState as? BleRuntimeState.Ready
+        if (closed || mode != TrailConnectionMode.BLUETOOTH_DEVICE || ready == null ||
+            permissionState != NearbyDevicesPermissionState.GRANTED) {
+            clearGroupConfirmation()
+            return
+        }
+        if (factoryResetConfirmation != null) {
+            clearGroupConfirmation(retainSession = true)
+            return
+        }
+        val session = Pair(ready.session.companion.endpointToken, ready.session.sessionNonce)
+        // Preserve even a disabled/terminal adapter for this session: refresh never reopens it.
+        if (groupConfirmationSession == session) return
+        clearGroupConfirmation()
+        val authority = V1GroupConfirmationAuthority()
+        groupConfirmationSession = session
+        groupConfirmationAuthority = authority
+        groupConfirmationOpening = true
+        val source = try { groupConfirmationAdapter.open(authority) } catch (_: Exception) { null }
+        finally { groupConfirmationOpening = false }
+        if (source == null) return
+        if (currentGroupConfirmationAuthority() !== authority) {
+            try { source.close() } catch (_: Exception) { /* The old lease remains unusable. */ }
+            return
+        }
+        groupConfirmationCoordinator = V1GroupConfirmationCoordinator(
+            authority, source, ::currentGroupConfirmationAuthority, groupConfirmationClock,
+        )
+        source.setChangedObserver { onGroupConfirmationChanged(authority) }
+    }
+
+    private fun onGroupConfirmationChanged(authority: V1GroupConfirmationAuthority) {
+        requireOwnerThread()
+        if (closed || groupConfirmationAuthority !== authority) return
+        deferredGroupConfirmationChange = authority
+        drainGroupConfirmationChanges()
+    }
+
+    private fun drainGroupConfirmationChanges() {
+        if (closed || deliveringObserver || groupConfirmationOperation || groupConfirmationOpening ||
+            groupConfirmationSynchronizing) return
+        val authority = deferredGroupConfirmationChange ?: return
+        deferredGroupConfirmationChange = null
+        if (groupConfirmationAuthority === authority) refreshGroupConfirmation()
+    }
+
+    private fun scheduleGroupConfirmationExpiry() {
+        clearGroupConfirmationDeadline()
+        val coordinator = groupConfirmationCoordinator ?: return
+        if (!coordinator.checkFreshness()) return
+        val remaining = coordinator.remainingMillis() ?: return
+        val authority = groupConfirmationAuthority ?: return
+        groupConfirmationDeadlineArming = true
+        val lease = try {
+            authorizationScheduler.schedule(remaining) {
+                onGroupConfirmationExpired(authority)
+            }
+        } catch (_: Exception) {
+            coordinator.close()
+            return
+        } finally { groupConfirmationDeadlineArming = false }
+        if (groupConfirmationCoordinator === coordinator && groupConfirmationAuthority === authority &&
+            coordinator.deadlineMillis != null && !closed) {
+            groupConfirmationDeadline = lease
+        } else {
+            try { lease.close() } catch (_: Exception) { /* Exact authority was already invalidated. */ }
+        }
+    }
+
+    private fun onGroupConfirmationExpired(authority: V1GroupConfirmationAuthority) {
+        requireOwnerThread()
+        if (closed || groupConfirmationAuthority !== authority) return
+        if (groupConfirmationDeadlineArming) {
+            groupConfirmationCoordinator?.close()
+            return
+        }
+        if (deliveringObserver) {
+            deferredGroupConfirmationExpiry = authority
+            return
+        }
+        groupConfirmationCoordinator?.checkFreshness()
+        scheduleGroupConfirmationExpiry()
+        publishBluetooth()
+    }
+
+    private fun clearGroupConfirmationDeadline() {
+        val lease = groupConfirmationDeadline
+        groupConfirmationDeadline = null
+        deferredGroupConfirmationExpiry = null
+        try { lease?.close() } catch (_: Exception) { /* Timer failure cannot restore an offer. */ }
+    }
+
+    private fun clearGroupConfirmation(retainSession: Boolean = false) {
+        val alreadySynchronizing = groupConfirmationSynchronizing
+        groupConfirmationSynchronizing = true
+        val coordinator = groupConfirmationCoordinator
+        groupConfirmationCoordinator = null
+        groupConfirmationAuthority = null
+        deferredGroupConfirmationChange = null
+        if (!retainSession) groupConfirmationSession = null
+        try {
+            clearGroupConfirmationDeadline()
+            coordinator?.close()
+        } finally { groupConfirmationSynchronizing = alreadySynchronizing }
+    }
+
     override fun requestFactoryResetConfirmation(): Boolean {
         requireOwnerThread()
         if (mode != TrailConnectionMode.BLUETOOTH_DEVICE || !canMutate()) return false
         val ready = bluetoothRuntime.state as? BleRuntimeState.Ready ?: return false
         if ((ready.session.protocolInfo.capabilities and COMPANION_FACTORY_RESET_CAPABILITY) == 0) return false
+        clearGroupConfirmation(retainSession = true)
         clearFactoryResetConfirmation()
         val generation = nextFactoryResetConfirmationGeneration() ?: run {
             publishBluetooth()
@@ -385,6 +551,7 @@ class TrailAppController(
         permissionRequestInFlight = false
         deferredLifecycleActive = null
         closeDeferred = false
+        clearGroupConfirmation()
         clearFactoryResetConfirmation()
         releaseLocalSession()
         releaseAuthorization(DeviceAuthorizationUiState.None)
@@ -402,6 +569,7 @@ class TrailAppController(
 
     private fun onBluetoothState(next: BleRuntimeState) {
         requireOwnerThread()
+        synchronizeGroupConfirmation(next)
         factoryResetConfirmation?.let { confirmation ->
             val ready = next as? BleRuntimeState.Ready
             if (
@@ -415,6 +583,7 @@ class TrailAppController(
     }
 
     private fun publishBluetooth(runtimeState: BleRuntimeState = bluetoothRuntime.state) {
+        synchronizeGroupConfirmation(runtimeState)
         publish(
             TrailAppUiState.BluetoothDevice(
                 runtimeState = runtimeState,
@@ -423,6 +592,7 @@ class TrailAppController(
                 permissionWasDenied = permissionWasDenied,
                 authorizationState = authorizationState,
                 factoryResetConfirmationVisible = factoryResetConfirmation != null,
+                groupConfirmation = groupConfirmationCoordinator?.state ?: V1GroupConfirmationState.Unsupported,
             ),
         )
     }
@@ -453,6 +623,10 @@ class TrailAppController(
             drainDeferredLifecycle()
             drainDeferredAuthorizationCallbacks()
             drainDeferredFactoryResetConfirmationExpiry()
+            val groupExpiry = deferredGroupConfirmationExpiry
+            deferredGroupConfirmationExpiry = null
+            if (groupExpiry != null) onGroupConfirmationExpired(groupExpiry)
+            drainGroupConfirmationChanges()
         }
     }
 

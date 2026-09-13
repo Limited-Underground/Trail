@@ -1,5 +1,9 @@
-[CmdletBinding()]
-param()
+﻿[CmdletBinding()]
+param(
+    # CI runs these four complete wrappers in separate jobs. Local runs retain
+    # the complete sequential matrix unless this explicit switch is supplied.
+    [switch] $SkipSecurityOperators
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -46,7 +50,14 @@ foreach ($containedSuite in @('radiolib_busy_source', 'noise_xk_contained_firmwa
 }
 & $python.Source (Join-Path $projectRoot 'tools\region_selection_catalog.py')
 if ($LASTEXITCODE -ne 0) { throw 'Generated saved-region catalog differs.' }
+# OT-218: exact-span BLE custody, real transport composition and observer admission.
+foreach ($bleTrialTest in @('ble_confirmation_trial_tests.py', 'ble_confirmation_trial_transport_tests.py', 'ble_confirmation_operator_tests.py')) {
+    & $python.Source -X utf8 -B (Join-Path $projectRoot ('tests\host\' + $bleTrialTest))
+    if ($LASTEXITCODE -ne 0) { throw "BLE trial test failed: $bleTrialTest" }
+}
+
 $fastStructuralTests = @(
+    @{ File = 'host_validation_checkout_tests.py'; Failure = 'Host validation history checkout tests failed.' },
     @{ File = 'heltec_development_identity_tests.py'; Failure = 'Development device identity tests failed.' },
     @{ File = 'historical_target_dependency_boundary_tests.py'; Failure = 'Historical/live target dependency boundary tests failed.' },
     @{ File = 'crypto_benchmark_baseline_historical_tests.py'; Failure = 'OTCBL0 historical successor tests failed.' },
@@ -142,6 +153,17 @@ $commonArguments = @(
 )
 
 $builds = @(
+    @{
+        Name = 'evaluation confirmation runtime fault guard'
+        Output = Join-Path $buildDirectory 'security_confirmation_runtime_guard_tests.exe'
+        Sources = @((Join-Path $projectRoot 'tests\host\security_confirmation_runtime_guard_tests.cpp'))
+    },
+    @{
+        Name = 'evaluation confirmation shared wire parity'
+        Output = Join-Path $buildDirectory 'companion_confirmation_codec_tests.exe'
+        RunArguments = @((Join-Path $projectRoot 'tests\fixtures\companion_confirmation_v1.json'))
+        Sources = @((Join-Path $projectRoot 'tests\host\companion_confirmation_codec_tests.cpp'))
+    },
     @{
         Name = 'benchmark-only libsodium Noise XK composition'
         Output = Join-Path $buildDirectory 'libsodium_noise_xk_composition_tests.exe'
@@ -247,6 +269,24 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
             (Join-Path $projectRoot 'firmware\components\time\src\oled_time_admission.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_configuration_dispatcher_tests.cpp')
+        )
+    },
+    @{
+        Name = 'evaluation confirmation profile and dispatcher'
+        Output = Join-Path $buildDirectory 'companion_confirmation_dispatcher_tests.exe'
+        Arguments = @('-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_dispatcher.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_region_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_time_admission.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_confirmation_dispatcher_tests.cpp')
         )
     },
     @{
@@ -2129,11 +2169,6 @@ if ($malformedUnified.ExitCode -eq 0 -or
     throw 'Unified diagnostic CLI malformed-record smoke test failed.'
 }
 
-& $python.Source (Join-Path $projectRoot 'tests\host\host_validation_checkout_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw 'Host validation history checkout tests failed.'
-}
-
 & $python.Source (Join-Path $projectRoot 'tests\host\ot147_heltec_v4_live_status_authority_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-147 Heltec V4 live-status authority tests failed.'
@@ -2808,6 +2843,22 @@ if ($LASTEXITCODE -ne 0) { throw 'security_policy_console_lifecycle_tests.py fai
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_control_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_control_tests.py failed.' }
 
+& $python.Source -B (Join-Path $projectRoot 'tools\Test-SecuritySyncDiagnostic.py')
+if ($LASTEXITCODE -ne 0) { throw 'Test-SecuritySyncDiagnostic.py failed.' }
+
+if (-not $SkipSecurityOperators) {
+    & $python.Source -B (Join-Path $projectRoot 'tools\Test-SecuritySyncOperator.py')
+    if ($LASTEXITCODE -ne 0) { throw 'Test-SecuritySyncOperator.py failed.' }
+}
+
+& $python.Source -B (Join-Path $projectRoot 'tools\Test-SecurityReceiptBoundary.py')
+if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityReceiptBoundary.py failed.' }
+
+if (-not $SkipSecurityOperators) {
+    & $python.Source -B (Join-Path $projectRoot 'tools\Test-SecurityReceiptOperator.py')
+    if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityReceiptOperator.py failed.' }
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_lifecycle_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_lifecycle_tests.py failed.' }
 
@@ -2920,4 +2971,22 @@ if ($LASTEXITCODE -ne 0) {
 & (Join-Path $projectRoot 'tools\Test-WindowsSimulator.ps1')
 if (-not $?) {
     throw 'Windows simulator validation failed.'
+}
+
+# Current-source regression includes all five invitation suites, invitation and
+# confirmation target bodies, confirmation owner and protected BLE backend.
+# Historical proof runners remain available unchanged for exact proof replay.
+$currentSourceProofRoot = Join-Path $buildDirectory 'current-source-security-proof'
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\security_current_source_ci.py') --output-root $currentSourceProofRoot
+if ($LASTEXITCODE -ne 0) { throw 'Current-source security regression matrix failed.' }
+
+# Exact invitation candidate operator: synthetic boundary and isolated launch tests.
+if (-not $SkipSecurityOperators) {
+    & $python.Source -X utf8 -B (Join-Path $projectRoot 'tools\Test-SecurityInvitationOperator.py')
+    if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityInvitationOperator.py failed.' }
+}
+
+if (-not $SkipSecurityOperators) {
+    & $python.Source -X utf8 -B (Join-Path $projectRoot 'tools\Test-SecurityDeadlineOperator.py')
+    if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityDeadlineOperator.py failed.' }
 }

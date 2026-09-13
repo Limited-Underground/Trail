@@ -40,6 +40,10 @@ start_companion_nimble_runtime(
 [[nodiscard]] companion::CompanionBleRuntimeError
 service_companion_nimble_runtime(std::uint64_t now_ms);
 
+// Evaluation admission only; known runtime faults are sticky before queued
+// lifecycle work is drained. This performs no SDK, storage, or crypto work.
+[[nodiscard]] bool companion_confirmation_runtime_current();
+
 // NimBLE callbacks queue only verified protected-link progress. The serialized
 // runtime owner renews the exact handle/generation lease while draining events.
 void observe_companion_verified_gatt_progress(

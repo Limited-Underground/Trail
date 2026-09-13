@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-11. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-13. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -45,6 +45,35 @@ unsigned. Physical fresh post-reset behavior of the latest navigation marker and
 normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
+
+The durable invitation authority is now integrated with isolated target NVS and
+trusted startup. The [actual target host proof](testing/OT-208-INVITATION-TARGET-HOST-2026-09-12.md)
+passes 130 groups; two [final firmware builds](../tests/benchmarks/crypto/OT-208-INVITATION-TARGET-BUILD-2026-09-12.json)
+match all 7 artifact pairs after the documented stack configuration rebuild.
+The [SDK inventory](security/OT-209-SDK-LICENSE-INVENTORY-2026-09-12.md) binds allocated
+composition and supplied notices to the exact candidate, with supplier/prebuilt
+provenance and license limits retained. It does not provide legal clearance.
+
+The [exact-image operator binding](testing/OT-210-INVITATION-OPERATOR-2026-09-12.md)
+passes 300 affected tests across 17 suites, two isolated runtime probes
+and synthetic package admission. It preserves one-use capture and independent
+restoration, and rejects retained state in all eight physical namespaces.
+The [audited OT-211 trial](testing/OT-211-INVITATION-TRIAL-2026-09-12.md)
+has status `evaluation_failed`. A: evaluation `capture_failed`; strict receipt accepted `false`; BEGIN observed `true`; matching receipt observed `true`; host read bytes `65`; capture at deadline (reported elapsed ms `30000`, clamped); inner endpoint error `endpoint_read_late`; durable stage/error `send_return/none`. B remained untouched by the candidate.
+Candidate-touched originals and protected regions were independently restored/verified
+and restarted; untouched roles were guarded-released. Custody is closed and grants consumed.
+This attempt does not confirm the invitation candidate on both boards. A durable stage or successful send alone cannot substitute for strict receipt acceptance.
+The [corrected OT-212 operator](testing/OT-212-DEADLINE-OPERATOR-2026-09-13.md) passes 335 tests in 18 suites, two isolated runtime probes and synthetic package admission. Both deadline crossings now finish observation without another raw read; empty, malformed, late and trailing output remain refused. The [audited OT-213 trial](testing/OT-213-DEADLINE-TRIAL-2026-09-13.md)
+has status `pass`. Both roles accepted matching BEGIN markers and strict pass receipts for the invitation candidate through the corrected OT-212 host operator.
+Candidate-touched originals and protected regions were independently restored/verified
+and restarted. Per-role restoration/release is audited; custody is closed and grants consumed.
+This confirms the bounded normal-path invitation evaluation independently on both boards. Its accepted receipt depends on the target's durable boot/role consume, reconstruction refusal, authenticated exchange, duplicate refusal, cancellation and retirement checks.
+The [phone confirmation plumbing](testing/OT-214-GROUP-CONFIRMATION-2026-09-13.md) now connects the existing Group screen to exact one-use service-owned offers. Its production adapter remains unsupported; no product join or device acceptance is added.
+The [device confirmation owner](testing/OT-215-DEVICE-CONFIRMATION-2026-09-13.md) now replaces direct automatic confirmation in an additive evaluation target with exact pending offers and durable confirm/cancel effects. Owner/actual-target host tests and twin firmware builds pass; transport and human inputs remain synthetic.
+The [protected BLE evaluation integration](testing/OT-216-BLE-CONFIRMATION-2026-09-13.md) now connects that owner to the Android coordinator through an opt-in profile. 1,213 Android tests, 120 new C++ groups, affected regressions, two matching evaluation builds and a default-control build pass. Known host-reset/exit faults revoke admission immediately. The counterpart remains locally synthesized; no physical BLE or two-node product acceptance is added.
+The [physical trial preparation](testing/OT-217-BLE-TRIAL-PREPARATION-2026-09-13.md) verifies exact inputs and the required 733184-byte original-app recovery span. Both connected phones have different, signature-compatible V1-Test builds; SM-N986U/Android13 is selected for the first case. No installation or board operation occurred.
+The [physical BLE attempt](testing/OT-219-BLE-PHYSICAL-TRIAL-2026-09-13.md) installed the exact OT-216 APK in place and exercised one candidate write/readback/boot command. Candidate Ready was not reached; confirmation remained unrequested. Originals were independently restored and the same updated app/bond reached protected Ready again. A pre-custody ADB stdin collision was corrected. Next: capture existing candidate boot self-check/runtime/security/heartbeat diagnostics under fresh bounded authority; no rebuild or phone-history reset is presently justified.
+No V1 completion or public website status changed.
 
 The additive security policy evaluation binds signed invitation and transcript
 confirmation to real Noise, durable transmit counters and authenticated receive
@@ -124,13 +153,39 @@ checks and ordinary/hostile runtime probes pass. The typed package is sealed;
 actual-image composition used synthetic devices and retained originals were
 checked offline. Required GitHub checks and publication passed. See
 [input diagnostics](testing/OT-198-INPUT-DIAGNOSTICS-2026-09-11.md).
-The fresh input-trial preflight passed both backups and package admission, but
-automatic approval review blocked the exact new firmware/NVS write before launch.
-Both originals passed guarded readback/reset; no candidate was flashed. Explicit
-trial approval and fresh backup custody remain required. See
-[preflight and release](testing/OT-199-INPUT-TRIAL-2026-09-11.md).
-Diagnostic hardware timing remains untested; host timing is not an actual boot clock.
-The specific earlier cause remains unknown and no security pass is claimed. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
+After explicit exact-image approval, the fresh input trial recorded
+`input_result / invalid_length` on A. Its host accepted all 63 command bytes but
+received no reply. Exact originals and protected regions restored/readback-verified;
+A restarted. B was not flashed and passed guarded original readback/reset.
+Host and firmware specify the same 63-byte frame. The wrong accumulated length's
+cause remains unknown.
+Host reset-return-to-RUN timing is not device boot timing. See
+[trial and restoration evidence](testing/OT-199-INPUT-TRIAL-2026-09-11.md).
+An additive input synchronization candidate now handles bounded discarded input
+and retains exact first-frame and terminal reasons before stage advancement.
+The image-selected decoder rejects inconsistent records and distinguishes an
+interrupted durable prefix from a completed stage. The complete affected host
+matrix and two identical firmware build tuples pass. This is a validated software
+candidate. Its image-bound executable observation/restoration package now passes
+the complete affected host matrix and actual isolated runtime probes. The approved
+fresh physical trial on A accepted the command after discarding 26 startup bytes
+and reached send-return without a recorded send error. Host capture instead refused
+an oversized read (129 bytes across two reads); no strict receipt was accepted.
+A restored exactly and restarted; unflashed B passed guarded release. The retained
+USB-output mechanism now reproduces that rejection through the actual writer and
+endpoint. A successor image adds a challenge-bound BEGIN marker; bounded host
+preamble scanning preserves strict post-marker receipt and silence checks.
+Two identical builds, the affected host matrix and the exact isolated package
+pass. The approved OT-204 trial is now audited: pass.
+Both nodes accepted matching BEGIN markers and strict pass receipts.
+Original application/full NVS and protected regions were verified and originals
+restarted; custody is closed and all grants consumed. Earlier raw byte contents
+remain unknown. See the [physical confirmation](testing/OT-204-RECEIPT-TRIAL-2026-09-12.md),
+[receipt-boundary correction](testing/OT-203-RECEIPT-BOUNDARY-2026-09-12.md),
+[physical outcome](testing/OT-202-SYNC-TRIAL-2026-09-12.md),
+[synchronization evidence](testing/OT-200-INPUT-SYNC-2026-09-12.md) and
+[validated operator package](testing/OT-201-SYNC-OPERATOR-2026-09-12.md).
+The historical byte contents remain unknown. A bounded policy receipt does not close all security gates. The [eight-gate plan](testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md) retains
 physical entropy, interrupted persistence and remaining admission boundaries.
 
 Historical raw-capture custody remains unestablished for the older libsodium and

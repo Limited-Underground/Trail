@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -15,14 +16,41 @@ REQUIRED_COMMITS = (
 )
 
 
-def main() -> int:
-    text = WORKFLOW.read_text(encoding="utf-8")
-    checkout = """      - name: Check out source
+CHECKOUT = """      - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0"""
-    if text.count(checkout) != 1:
-        raise SystemExit("Host validation checkout history policy mismatch")
+SOURCE_JOBS = ("core-tests", "security-operators")
+
+
+def validate_checkouts(text: str) -> None:
+    for name in SOURCE_JOBS:
+        jobs = re.findall(
+            rf"^  {re.escape(name)}:\n(.*?)(?=^  [A-Za-z0-9_-]+:\s*$|\Z)",
+            text, re.MULTILINE | re.DOTALL,
+        )
+        if (len(jobs) != 1 or jobs[0].count(CHECKOUT) != 1
+                or jobs[0].count("uses: actions/checkout@") != 1):
+            raise ValueError(f"Host validation checkout history policy mismatch: {name}")
+
+
+def main() -> int:
+    text = WORKFLOW.read_text(encoding="utf-8")
+    validate_checkouts(text)
+
+    # Each source job needs its own history. A valid checkout in another job
+    # must not hide a missing or shallow checkout in this one.
+    for name in SOURCE_JOBS:
+        start = text.index(f"  {name}:\n")
+        checkout_start = text.index(CHECKOUT, start)
+        for replacement in ("", CHECKOUT.replace("fetch-depth: 0", "fetch-depth: 1")):
+            mutated = text[:checkout_start] + replacement + text[checkout_start + len(CHECKOUT):]
+            try:
+                validate_checkouts(mutated)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f"Invalid checkout admitted for {name}")
 
     for commit in REQUIRED_COMMITS:
         result = subprocess.run(
@@ -34,7 +62,7 @@ def main() -> int:
         if result.returncode != 0:
             raise SystemExit("Host validation required history unavailable")
 
-    print("PASS: 2 Host validation history checkout groups")
+    print("PASS: 6 Host validation history checkout groups")
     return 0
 
 

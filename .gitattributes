@@ -605,3 +605,145 @@ tools/security_policy_input*.py -text
 tools/Invoke-SecurityPolicyInputOperator.ps1 -text
 tests/host/security_policy_input* -text
 tests/benchmarks/crypto/OT-198-*.json -text
+
+# OT-200 synchronization target, codec and host evidence preserve exact bytes.
+firmware/targets/heltec_v4_security_sync_diag/** -text
+firmware/components/security_evaluation/include/opentrail/evaluation_control_synchronizing.hpp -text
+tools/security_policy_sync*.py -text
+tools/Test-SecuritySyncDiagnostic.py -text
+tools/Build-SecuritySyncDiagnostic.ps1 -text
+tests/host/security_policy_sync* -text
+tests/host/security_policy_sync/** -text
+tests/benchmarks/crypto/OT-200-*.json -text
+
+# OT-201 executable synchronization package and validation inputs.
+tools/Invoke-SecurityPolicySyncOperator.ps1 -text
+tools/Test-SecuritySyncOperator.py -text
+tests/benchmarks/crypto/OT-201-*.json -text
+
+# OT-202 exact physical outcome evidence.
+tests/hardware/OT-202-SYNC-TRIAL-2026-09-12.json -text
+
+# OT-203 receipt boundary source, executable closure and validation evidence.
+firmware/targets/heltec_v4_security_receipt_sync/** -text
+firmware/components/security_evaluation/include/opentrail/evaluation_receipt_boundary.hpp -text
+tools/security_policy_receipt*.py -text
+tools/Invoke-SecurityPolicyReceiptOperator.ps1 -text
+tools/Test-SecurityReceipt*.py -text
+tools/Build-SecurityReceiptSync.ps1 -text
+tests/host/security_policy_receipt* -text
+tests/benchmarks/crypto/OT-203-*.json -text
+
+# OT-204 approved physical confirmation evidence.
+tests/hardware/OT-204-RECEIPT-TRIAL-2026-09-12.json -text
+
+# OT-205 hash-authoritative admission review
+/tests/benchmarks/crypto/OT-205-SECURITY-ADMISSION-REVIEW-2026-09-12.json -text
+
+# OT-206/207 exact source and result bindings
+/firmware/components/security_evaluation/include/opentrail/evaluation_invitation_authority.hpp -text
+/firmware/components/security_evaluation/include/opentrail/authorized_policy_session.hpp -text
+/tests/host/security_policy_invitation_lifecycle_tests.py -text
+/tests/host/security_policy_invitation_lifecycle_tests.cpp -text
+/tests/host/security_policy_invitation_lifecycle_fixture.hpp -text
+/tests/host/security_policy_authorized_session_tests.cpp -text
+/tests/host/security_candidate_known_answer_tests.cpp -text
+/tests/benchmarks/crypto/OT-206-INVITATION-LIFECYCLE-2026-09-12.json -text
+/tests/benchmarks/crypto/OT-207-CANDIDATE-ADMISSION-2026-09-12.json -text
+
+# OT-208/209 exact target, tests, inventory and evidence bytes
+/firmware/targets/heltec_v4_invitation_eval/** -text
+/tools/Build-InvitationEvaluation.ps1 -text
+/tools/security_sdk_license_inventory.py -text
+/tests/host/security_invitation_target* -text
+/tests/host/security_invitation_target_stubs/** -text
+/tests/benchmarks/crypto/OT-208-* -text
+/tests/benchmarks/crypto/OT-209-* -text
+
+/tools/invitation_build_process.py -text
+/tests/hardware/OT-208-* -text
+
+# OT-210 exact invitation operator source and evidence bytes
+/tools/security_policy_invitation_*.py -text
+/tools/Invoke-SecurityPolicyInvitationOperator.ps1 -text
+/tools/Test-SecurityInvitationOperator.py -text
+/tests/host/security_policy_invitation_*_tests.py -text
+/tests/benchmarks/crypto/OT-210-* -text
+
+# OT-215 additive confirmation evaluation bytes
+/firmware/targets/heltec_v4_confirmation_eval/** -text
+/firmware/components/security_evaluation/include/opentrail/evaluation_confirmation_owner.hpp -text
+/tools/Build-ConfirmationEvaluation.ps1 -text
+/tests/host/security_confirmation_* -text
+/tests/benchmarks/crypto/OT-215-* -text
+
+# OT-216 evaluation confirmation transport bytes
+/firmware/components/companion/include/opentrail/companion_confirmation_codec.hpp -text
+/firmware/components/companion/src/companion_confirmation_codec.cpp -text
+/tests/fixtures/companion_confirmation_v1.json -text
+/tests/host/companion_confirmation_* -text
+/tests/host/security_ble_confirmation_* -text
+/tests/benchmarks/crypto/OT-216-* -text
+/firmware/targets/heltec_v4_bench/main/confirmation_* -text
+/firmware/targets/heltec_v4_bench/sdkconfig.confirmation-eval.defaults -text
+/tests/host/security_confirmation_ble_* -text
+/tools/Build-ConfirmationBleEvaluation.ps1 -text
+/tests/host/security_confirmation_runtime_guard_tests.cpp -text
+# Exact OT-216 compiled integration bytes retained by build evidence
+/firmware/components/companion/include/opentrail/companion_configuration_dispatcher.hpp -text
+/firmware/components/companion/src/companion_configuration_codec.cpp -text
+/firmware/components/companion/src/companion_configuration_dispatcher.cpp -text
+/firmware/targets/heltec_v4_bench/CMakeLists.txt -text
+/firmware/targets/heltec_v4_bench/main/CMakeLists.txt -text
+/firmware/targets/heltec_v4_bench/main/app_main.cpp -text
+/firmware/targets/heltec_v4_bench/main/companion_configuration_lane.hpp -text
+/firmware/targets/heltec_v4_bench/main/companion_nimble_gatt.cpp -text
+/firmware/targets/heltec_v4_bench/main/companion_nimble_gatt.hpp -text
+/firmware/targets/heltec_v4_bench/main/companion_nimble_runtime.cpp -text
+/firmware/targets/heltec_v4_bench/main/companion_nimble_runtime.hpp -text
+
+# OT-218 reviewed operator source bytes.
+/tools/run_ble_confirmation_trial.py -text
+/tools/ble_confirmation_trial.py -text
+/tools/ble_confirmation_trial_transport.py -text
+
+# OT-220 preserve accepted source and evidence bytes at publication.
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/BleCompanionRuntime.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/BleConfigurationSession.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/ConnectedDeviceServiceContract.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/ConnectedDeviceSessionOwner.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/MainActivity.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/TrailActivityController.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/TrailAppController.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/TrailConnectedDeviceService.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/TrailUiController.kt -text
+/android/app/src/test/kotlin/io/github/nbjelanovic/otclient/BleCompanionRuntimeTest.kt -text
+/android/app/src/test/kotlin/io/github/nbjelanovic/otclient/ConnectedDeviceServiceTest.kt -text
+/android/app/src/test/kotlin/io/github/nbjelanovic/otclient/TrailAppControllerTest.kt -text
+/android/protocol/src/main/kotlin/io/github/nbjelanovic/otprotocol/CompanionConfiguration.kt -text
+/tests/benchmarks/crypto/OT-212-DEADLINE-OPERATOR-2026-09-13.json -text
+/tests/hardware/OT-211-INVITATION-TRIAL-2026-09-12.json -text
+/tests/hardware/OT-213-DEADLINE-TRIAL-2026-09-13.json -text
+/tests/hardware/OT-219-BLE-CONFIRMATION-2026-09-13.json -text
+/tools/Test-SecurityDeadlineOperator.py -text
+
+# OT-220 retain reviewed source/evidence bytes on Windows checkout as well as in the index.
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/BleGroupConfirmationSession.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/V1GroupConfirmation.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/V1GroupScreens.kt -text
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/V1HomeScreen.kt -text
+/android/app/src/test/kotlin/io/github/nbjelanovic/otclient/BleGroupConfirmationSessionTest.kt -text
+/android/app/src/test/kotlin/io/github/nbjelanovic/otclient/V1GroupConfirmationTest.kt -text
+/android/app/src/v1Test/kotlin/io/github/nbjelanovic/otclient/V1TestApplication.kt -text
+/android/protocol/src/main/kotlin/io/github/nbjelanovic/otprotocol/CompanionConfirmationCodec.kt -text
+/android/protocol/src/test/kotlin/io/github/nbjelanovic/otprotocol/CompanionConfirmationCodecTest.kt -text
+/tests/host/ble_confirmation_operator_tests.py -text
+/tests/host/ble_confirmation_trial_tests.py -text
+/tests/host/ble_confirmation_trial_transport_tests.py -text
+/tests/host/publication_safety_tests.py -text
+/tests/host/security_confirmation_ble_stubs/esp_bt.h -text
+/tests/host/security_confirmation_ble_stubs/esp_random.h -text
+/tests/host/security_confirmation_ble_stubs/sdkconfig.h -text
+/tools/Invoke-SecurityPolicyDeadlineOperator.ps1 -text
+/tools/Test-Host.ps1 -text
+/tools/Test-PublicationSafety.py -text
