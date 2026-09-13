@@ -1,0 +1,178 @@
+{
+  "at": "2026-09-12T12:32:16.891523+00:00",
+  "audit": "passed_retained_evidence",
+  "authorization": "Explicit exact-proposal approval bound to fresh one-use authorities.",
+  "backup": {
+    "application_bytes_each": 589824,
+    "diagnostic_namespace_absent_before_trial": true,
+    "final_custody": "released_originals_restarted",
+    "fresh_package_binding_verified": true,
+    "freshness_after_original_restart": "stale_not_reusable_for_handoff",
+    "nvs_bytes_each": 12288,
+    "protected_bytes": [
+      32768,
+      4096,
+      8192
+    ],
+    "status": "fresh_both_roles_verified_before_trial",
+    "untouched_roles_released": [
+      "B"
+    ]
+  },
+  "durable_active_locks_remaining": false,
+  "hardware": {
+    "cold_power": "not_tested",
+    "flash_bytes": 16777216,
+    "lora_used": false,
+    "mcu": "ESP32-S3",
+    "model": "Heltec WiFi LoRa32 V4.2",
+    "region_change": false,
+    "roles": 2
+  },
+  "input_timing": [
+    {
+      "open_ms": 18,
+      "opened_to_run_ms": 8,
+      "reset_call_ms": 34742,
+      "reset_return_to_open_ms": 11,
+      "reset_return_to_run_ms": 38,
+      "role": "A",
+      "status": "available"
+    },
+    {
+      "open_ms": null,
+      "opened_to_run_ms": null,
+      "reset_call_ms": null,
+      "reset_return_to_open_ms": null,
+      "reset_return_to_run_ms": null,
+      "role": "B",
+      "status": "unavailable"
+    }
+  ],
+  "observation_limit": "Stage/input evidence does not establish an accepted receipt or host-deadline completion.",
+  "phone_ui_and_oled": "not_independently_observed",
+  "physical_trial_retry_performed": false,
+  "radio_and_phone_transport_acceptance": "not_tested",
+  "receipt_diagnostics": {
+    "available": true,
+    "roles": [
+      {
+        "capture_error": "read_invalid",
+        "close_confirmed": true,
+        "close_error": "none",
+        "command_accepted_bytes": 63,
+        "diagnostics_available": true,
+        "elapsed_ms": 397,
+        "error": "endpoint_capture_refused",
+        "inner_endpoint_error": "none",
+        "matching_receipt_observed": false,
+        "read_bytes": 129,
+        "read_calls": 2,
+        "receipt_accepted": false,
+        "role": "A",
+        "stage": "refused"
+      },
+      {
+        "capture_error": "none",
+        "close_confirmed": false,
+        "close_error": "none",
+        "command_accepted_bytes": 0,
+        "diagnostics_available": true,
+        "elapsed_ms": 0,
+        "error": "none",
+        "inner_endpoint_error": "none",
+        "matching_receipt_observed": false,
+        "read_bytes": 0,
+        "read_calls": 0,
+        "receipt_accepted": false,
+        "role": "B",
+        "stage": "not_opened"
+      }
+    ],
+    "schema": "OT192-RECEIPT-DIAGNOSTICS-1"
+  },
+  "restoration_evidence": "Verified retained journals from exact frozen operators; no new device read by auditor.",
+  "runtime": {
+    "current_inventory_verified": true,
+    "executable_source_pins_verified": 22,
+    "files": 3560,
+    "manifest_sha256": "cb9171ed24be9023e904a8710847e14e73a791daf637e3c3be3a289ffbc7bc97"
+  },
+  "schema": "OT202-SYNC-PHYSICAL-OUTCOME-1",
+  "separate_recovery_used": false,
+  "timing_limit": "Host reset-return and parser first-read buckets do not share a physical boot clock.",
+  "trial": {
+    "candidate_bytes": 440432,
+    "candidate_sha256": "25e18eb5f852ea53a005272af13cbbe6fa828833920ecd5c8c79e826984d5a62",
+    "closure_status": "evaluation_failed",
+    "package_sha256": "745bf1336ddf4c1f425c2445fe409d7c6f8460ec1eaada40e667c1926eb483f9",
+    "roles": [
+      {
+        "accepted_receipt": false,
+        "candidate_reset_confirmed": true,
+        "candidate_verified": true,
+        "candidate_write_attempted": true,
+        "command_attempted": true,
+        "evaluation": "capture_failed",
+        "guarded_untouched_original_reset_confirmed": false,
+        "observation_custody": "intent_claim_capture_receipt_verified",
+        "original_application_and_nvs_restored_verified": true,
+        "original_reset_confirmed": true,
+        "protected_regions_verified_during_restoration": true,
+        "role": "A",
+        "serial_close_confirmed": true,
+        "stage_observation": {
+          "available": true,
+          "error": "none",
+          "input": {
+            "discarded_bytes": 26,
+            "first_frame_reason": "none",
+            "first_read_delay_bucket": "<1ms",
+            "first_rejected_frame_bytes": 0,
+            "flags": [
+              "discarded_present",
+              "discarded_nul",
+              "discarded_slip_c0",
+              "discarded_non_ascii",
+              "full_frame_accepted_after_discard"
+            ],
+            "terminal_reason": "none"
+          },
+          "input_status": "stage_result_recorded",
+          "reason": "observed",
+          "role": "A",
+          "stage": "send_return"
+        },
+        "untouched_original_regions_reverified": false
+      },
+      {
+        "accepted_receipt": false,
+        "candidate_reset_confirmed": false,
+        "candidate_verified": false,
+        "candidate_write_attempted": false,
+        "command_attempted": false,
+        "evaluation": "not_attempted",
+        "guarded_untouched_original_reset_confirmed": true,
+        "observation_custody": "not_captured",
+        "original_application_and_nvs_restored_verified": false,
+        "original_reset_confirmed": false,
+        "protected_regions_verified_during_restoration": false,
+        "role": "B",
+        "serial_close_confirmed": false,
+        "stage_observation": {
+          "available": false,
+          "error": null,
+          "input": null,
+          "input_status": null,
+          "reason": "not_captured",
+          "role": "B",
+          "stage": null
+        },
+        "untouched_original_regions_reverified": true
+      }
+    ],
+    "status": "evaluation_failed",
+    "version": "ot200-sync-diag-v1"
+  },
+  "website_status_changed": false
+}

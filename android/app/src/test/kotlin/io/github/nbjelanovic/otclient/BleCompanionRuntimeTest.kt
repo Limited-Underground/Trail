@@ -35,6 +35,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertNotNull
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class BleCompanionRuntimeTest {
@@ -1466,13 +1468,19 @@ class BleCompanionRuntimeTest {
         assertFalse(runtime.synchronizeDisplayTime())
     }
 
-    private class ConfigurationFixture(val firstSetup: Boolean = false) {
+    private class ConfigurationFixture(val firstSetup: Boolean = false, val profile: Int = 3,
+        optIn: Boolean = false, withController: Boolean = false) {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
         val scheduler=TestRuntimeScheduler()
-        val runtime=BleCompanionRuntime(facade,scheduler)
+        var now=100L
+        val runtime=BleCompanionRuntime(facade,scheduler,evaluationConfirmationEnabled=optIn,confirmationClockMillis={now})
+        val controller=if(withController) TrailAppController(CompanionAppController(FakeCompanionTransport()),runtime,
+            NearbyDevicesPermissionReader { NearbyDevicesPermissionState.GRANTED },RuntimeDeviceAuthorizationClaimClient(runtime),scheduler,
+            groupConfirmationAdapter=RuntimeV1GroupConfirmationAdapter(runtime),groupConfirmationClock={now}) else null
         val gatt: TestGattLease
         val codec=io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
         init {
+            controller?.chooseBluetoothDeviceMode()
             runtime.onLifecycleStart()
             if(firstSetup) {
                 runtime.requestScan()
@@ -1493,15 +1501,17 @@ class BleCompanionRuntimeTest {
             gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(17)))
             gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(17)))
             gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(checkNotNull(codec.encodeInfo(
-                io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo(0xff,minorVersion=3)))))
-            val request=last()
-            val payload=checkNotNull(CompanionProtocolCodec.decodeFragment(snapshotEnvelope(17,1)).value).payload
-            respond(0x81,payload,request.exchangeId)
+                io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo(if(profile==127)0xdf else 0xff,minorVersion=profile)))))
+            if(runtime.state is BleRuntimeState.Negotiating) {
+                val request=last()
+                val payload=checkNotNull(CompanionProtocolCodec.decodeFragment(snapshotEnvelope(17,1)).value).payload
+                respond(0x81,payload,request.exchangeId)
+            }
         }
-        fun last()=checkNotNull(codec.decodeFrame(gatt.commands.last(),3))
+        fun last()=checkNotNull(codec.decodeFrame(gatt.commands.last(),profile))
         fun respond(kind:Int,payload:ByteArray,id:UInt=last().exchangeId) {
             gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
-                io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(kind,17u,id,payload,3)))))
+                io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(kind,17u,id,payload,profile)))))
         }
         fun name(value:String="Trail test") {
             assertEquals(4,last().kind)
@@ -1516,6 +1526,110 @@ class BleCompanionRuntimeTest {
             assertEquals(facade.civilTime.first,sample.localSecond)
             assertEquals(facade.civilTime.second,sample.format)
             respond(0x87,checkNotNull(codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(4,challenge=12u))))
+        }
+    }
+
+    @Test fun evaluationProfileRequiresOptInAndKeepsFactoryResetUnavailable() {
+        val refused=ConfigurationFixture(profile=127)
+        assertIs<BleRuntimeState.Failed>(refused.runtime.state)
+        assertNull(refused.runtime.createGroupConfirmationSource(V1GroupConfirmationAuthority()))
+        val old=ConfigurationFixture(optIn=true);old.name();old.clock()
+        assertNull(old.runtime.createGroupConfirmationSource(V1GroupConfirmationAuthority()))
+        val accepted=ConfigurationFixture(profile=127,optIn=true);accepted.name();accepted.clock()
+        assertIs<BleRuntimeState.Ready>(accepted.runtime.state)
+        assertFalse(accepted.runtime.submitFactoryReset())
+        assertNull(accepted.facade.pendingFactoryResetReceipt)
+        assertNotNull(accepted.runtime.createGroupConfirmationSource(V1GroupConfirmationAuthority()))
+        assertNull(accepted.runtime.createGroupConfirmationSource(V1GroupConfirmationAuthority()))
+        accepted.runtime.close();old.runtime.close();refused.runtime.close()
+    }
+
+    @Test fun evaluationOfferAndResultTraverseActualProtectedRuntimeAndServiceCoordinator() {
+        val f=ConfigurationFixture(profile=127,optIn=true,withController=true);f.name();f.clock()
+        val controller=checkNotNull(f.controller)
+        assertTrue(controller.refreshGroupConfirmation()); assertEquals(7,f.last().kind)
+        val read=f.last().exchangeId
+        assertFalse(f.runtime.readDeviceName());assertFalse(f.runtime.synchronizeDisplayTime());assertFalse(f.runtime.submitAction(quickStatus()))
+        f.facade.clockWatchers.single().callback()
+        assertEquals(read,f.last().exchangeId)
+        f.now=400
+        val payload=ConfirmationTestPayloads.offer()
+        f.respond(0x89,payload,read)
+        val review=assertIs<V1GroupConfirmationState.Review>(assertIs<TrailAppUiState.BluetoothDevice>(controller.state).groupConfirmation)
+        assertEquals(1_100L,review.offer.deadlineMillis)
+        // The queued automatic clock operation owns the same lane after the read result.
+        if(f.last().kind==5)f.clock()
+        assertTrue(controller.confirmGroupConfirmation(review.offer)); assertEquals(7,f.last().kind)
+        val decision=f.last().exchangeId
+        assertTrue(decision>read);assertFalse(f.runtime.readRadioRegion());assertFalse(f.runtime.submitAction(quickStatus()))
+        f.respond(0x89,ConfirmationTestPayloads.result(payload,1),decision)
+        assertEquals(V1GroupConfirmationState.DeviceResult(V1GroupConfirmationDecision.CONFIRM,V1GroupConfirmationDeviceOutcome.LOCAL_CONFIRMED),
+            assertIs<TrailAppUiState.BluetoothDevice>(controller.state).groupConfirmation)
+        val count=f.gatt.commands.size
+        f.respond(0x89,ConfirmationTestPayloads.result(payload,1),decision)
+        assertEquals(count,f.gatt.commands.size);assertFalse(controller.confirmGroupConfirmation(review.offer))
+        controller.close()
+    }
+
+    @Test fun closingEvaluationSourceCannotReleaseAnUncertainRuntimeExchange() {
+        val f=ConfigurationFixture(profile=127,optIn=true);f.name();f.clock()
+        val source=assertNotNull(f.runtime.createGroupConfirmationSource(V1GroupConfirmationAuthority()))
+        source.pollOffer();f.respond(0x89,ConfirmationTestPayloads.offer())
+        val offer=assertNotNull(source.pollOffer());assertTrue(source.submit(offer,V1GroupConfirmationDecision.CONFIRM))
+        source.close();assertFalse(f.runtime.readDeviceName());assertFalse(f.runtime.submitAction(quickStatus()))
+        f.scheduler.advanceBy(6_000)
+        assertFalse(f.runtime.synchronizeDisplayTime());assertFalse(f.runtime.submitAction(quickStatus()))
+        f.runtime.disconnect();assertFalse(f.scheduler.hasOpenTimers())
+        assertFailsWith<IllegalStateException>{source.pollResult()}
+    }
+
+    @Test fun waitingAndClockFailureNotificationsDoNotReenterOrLoopTheController() {
+        val f=ConfigurationFixture(profile=127,optIn=true,withController=true);f.name();f.clock()
+        val controller=checkNotNull(f.controller)
+        assertTrue(controller.refreshGroupConfirmation())
+        val waiting=io.github.nbjelanovic.otprotocol.CompanionConfirmationCodec.read().encoded().also{it[5]=5;it[6]=5}
+        val before=f.gatt.commands.size
+        f.respond(0x89,waiting)
+        assertEquals(before,f.gatt.commands.size)
+        assertEquals(V1GroupConfirmationState.Idle,assertIs<TrailAppUiState.BluetoothDevice>(controller.state).groupConfirmation)
+        assertTrue(controller.refreshGroupConfirmation());assertEquals(before+1,f.gatt.commands.size)
+        f.now=99
+        f.respond(0x89,ConfirmationTestPayloads.offer())
+        assertIs<V1GroupConfirmationState.Closed>(assertIs<TrailAppUiState.BluetoothDevice>(controller.state).groupConfirmation)
+        assertEquals(before+1,f.gatt.commands.size)
+        assertFalse(controller.refreshGroupConfirmation())
+        controller.close()
+    }
+
+    @Test fun synchronousEvaluationRepliesDeferNotificationsUntilControllerOperationsFinish() {
+        listOf(false,true).forEach { rollback ->
+            val f=ConfigurationFixture(profile=127,optIn=true,withController=true);f.name();f.clock()
+            val controller=checkNotNull(f.controller)
+            val payload=ConfirmationTestPayloads.offer()
+            val before=f.gatt.commands.size
+            f.gatt.onCommand = {
+                val request=f.last()
+                assertEquals(7,request.kind)
+                if(rollback) f.now=99
+                f.respond(0x89,if(request.payload[5].toInt()==1) payload else ConfirmationTestPayloads.result(payload,1),request.exchangeId)
+            }
+            // The exact synchronous reply wins an ambiguous subsequent platform return.
+            f.gatt.writeResult=false
+            if(rollback) {
+                assertFalse(controller.refreshGroupConfirmation())
+                val closed=assertIs<V1GroupConfirmationState.Closed>(assertIs<TrailAppUiState.BluetoothDevice>(controller.state).groupConfirmation)
+                assertFalse(closed.reason==V1GroupConfirmationCloseReason.REENTRANT)
+                assertEquals(before+1,f.gatt.commands.size)
+            } else {
+                assertTrue(controller.refreshGroupConfirmation())
+                val offered=assertIs<V1GroupConfirmationState.Review>(assertIs<TrailAppUiState.BluetoothDevice>(controller.state).groupConfirmation).offer
+                assertTrue(controller.confirmGroupConfirmation(offered))
+                assertEquals(V1GroupConfirmationState.DeviceResult(V1GroupConfirmationDecision.CONFIRM,V1GroupConfirmationDeviceOutcome.LOCAL_CONFIRMED),
+                    assertIs<TrailAppUiState.BluetoothDevice>(controller.state).groupConfirmation)
+                assertEquals(before+2,f.gatt.commands.size)
+            }
+            assertFalse(controller.refreshGroupConfirmation())
+            controller.close()
         }
     }
 
@@ -1760,6 +1874,7 @@ class BleCompanionRuntimeTest {
         var streamSubscriptions = 0
         val commands = mutableListOf<ByteArray>()
         var writeResult = true
+        var onCommand: (() -> Unit)? = null
         private val operationGate = if(enforceOperationGate) AndroidGattOperationGate() else null
 
         override fun start(): Boolean {
@@ -1777,6 +1892,7 @@ class BleCompanionRuntimeTest {
             commands += value.copyOf()
             // Simulate the matching Android write callback before application indication.
             operationGate?.let { check(it.acceptCommandWrite()) }
+            onCommand?.invoke()
             return writeResult
         }
         override fun close() { closed = true;operationGate?.close() }

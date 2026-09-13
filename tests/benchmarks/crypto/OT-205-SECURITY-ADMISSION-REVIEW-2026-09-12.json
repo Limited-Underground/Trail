@@ -1,0 +1,138 @@
+{
+  "schema": "OT205-SECURITY-ADMISSION-REVIEW-1",
+  "as_of": "2026-09-12",
+  "status": "review_complete_selection_withheld",
+  "phase_3_admitted": false,
+  "crypto_selected": false,
+  "candidate": {
+    "name": "heltec_v4_security_receipt_sync",
+    "version": "ot203-receipt-sync-v1",
+    "mcu": "esp32s3",
+    "configured_flash_bytes": 16777216,
+    "artifact": {
+      "bytes": 440480,
+      "sha256": "d47b09dae0aa1ae878769410a5daaabdac07af2d4c95c9f9d3436a1e03321cee"
+    }
+  },
+  "verification": {
+    "firmware_source_pins": 44,
+    "operator_source_pins": 23,
+    "library_files": 731,
+    "admission_batch_raw_bindings": 26,
+    "physical_report_equals_private_audit": true
+  },
+  "evidence_bindings": {
+    "tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json": {
+      "bytes": 7891,
+      "sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a"
+    },
+    "tests/benchmarks/crypto/OT-120-OT005-LIBSODIUM-IMPORT-BUILD-EVIDENCE-V1.json": {
+      "bytes": 7806,
+      "sha256": "735b4755f25da280cde7ba79387f5eeeee5a38bf477b60042e64d31f20f2186f"
+    },
+    "tests/benchmarks/crypto/OT-163-CRYPTO-CORPUS-RECONCILIATION-2026-09-10.json": {
+      "bytes": 15766,
+      "sha256": "b3079636bdc88ab1b2cab540aa6b84e44fb42bc28e31c247a7fc3dc0f16659f9"
+    },
+    "tests/benchmarks/crypto/OT-163-ADMISSION-BATCH-2026-09-10.json": {
+      "bytes": 13954,
+      "sha256": "3efdfadfccfc502c53456b30494a2a6d1d7fe978571e3b582a899866fb7f5c9b"
+    },
+    "tests/benchmarks/crypto/OT-163-CAPTURE-CUSTODY-ASSESSMENT-2026-09-10.json": {
+      "bytes": 2927,
+      "sha256": "6f21dbea5a0b833436f0247b41dac6254c3c1f9db88ee90d8d96ee8f7fa0cf7d"
+    },
+    "tests/benchmarks/crypto/OT-163-LIBSODIUM-MATCHED-RESOURCE-2026-09-10.json": {
+      "bytes": 9587,
+      "sha256": "924d5b4c49e12698918ac4728bc43dafbb1420f8129d9fb83cc1c02657260806"
+    },
+    "tests/benchmarks/crypto/OT-163-MONOCYPHER-CORRECTED-MATCHED-RESOURCE-2026-09-10.json": {
+      "bytes": 9609,
+      "sha256": "a803daae6ad553ef2a8db8c8393a1987b424619374357e8020614f5c71548cb1"
+    },
+    "tests/benchmarks/crypto/OT-163-MBEDTLS-CORRECTED-MATCHED-RESOURCE-2026-09-10.json": {
+      "bytes": 9617,
+      "sha256": "0b3f71a80a1b7c43ba2dee44e0ac8900b34e52971b21ee1286fd062314c5ff17"
+    },
+    "tests/benchmarks/crypto/OT-203-RECEIPT-SYNC-BUILD-2026-09-12.json": {
+      "bytes": 17346,
+      "sha256": "131fed9e5be168b2438bc4d968fac8e2c4fe0cddd33fc5501fd0d818312fc01f"
+    },
+    "tests/hardware/OT-204-RECEIPT-TRIAL-2026-09-12.json": {
+      "bytes": 8031,
+      "sha256": "5561aa6a4225480a4ba8b30849e26d4eff1e2fb26c8aa53a4168d7a8c35d4a3b"
+    },
+    "docs/testing/OT-163-SECURITY-EVALUATION-2026-09-10.md": {
+      "bytes": 4717,
+      "sha256": "d4337f91fadd04a95d4c1de87feaef1aada732eb31c54ecada75988b4acc52cb"
+    },
+    "docs/testing/OT-187-SECURITY-POLICY-EVALUATION-2026-09-10.md": {
+      "bytes": 10050,
+      "sha256": "4e0b07368656b0fc9f5d500982691a74e9a0f16c301b1b35d12d38b6c836440c"
+    }
+  },
+  "gates": [
+    {
+      "gate": "primitive_vectors_and_negative_cases",
+      "disposition": "partial",
+      "accepted_scope": "Eight-operation libsodium primitive evidence and actual-adapter negative/host tests are retained. Corrected comparison candidates remain five-operation partial candidates.",
+      "remaining_boundary": "Complete required primitive/negative-case mapping for the final selected composition; benchmark coverage does not select a product suite."
+    },
+    {
+      "gate": "noise_xk_independent_interoperability",
+      "disposition": "accepted",
+      "accepted_scope": "Bounded independent host interoperability: two exact XK vectors, three messages, transcript hash and split keys, plus actual target adapter successor proofs. OT204 executes that adapter on target.",
+      "remaining_boundary": "Acceptance is limited to the tested suite/vectors and evaluation adapter; full Noise conformance and product interoperability are not claimed."
+    },
+    {
+      "gate": "invitation_replay_reorder_timeout_refusal",
+      "disposition": "partial",
+      "accepted_scope": "Signed identity/epoch/role/context binding, transcript confirmation, expiry, rollback and same-object reentry refusal; authenticated duplicate/lower-counter rejection.",
+      "remaining_boundary": "Durable invitation consumption across reconstructed objects/restarts, cancellation and real human confirmation. Consumption currently lives in InvitationGate phase_."
+    },
+    {
+      "gate": "entropy_and_cold_start_uniqueness",
+      "disposition": "partial",
+      "accepted_scope": "Actual guard/runtime host lifecycle, concurrency and failure tests; OT204 normal target startup, random fills and shutdown.",
+      "remaining_boundary": "Target source-absent/failure and physical restart/cold-start uniqueness; cold-power/brownout deferred. No measured entropy-quality or SDK wall-clock guarantee."
+    },
+    {
+      "gate": "temporary_secret_wipe_and_log_redaction",
+      "disposition": "partial",
+      "accepted_scope": "Selected-field cleanup and failure/retirement tests; OT204 requires both local sessions to retire and report secrets cleared; bounded console checks.",
+      "remaining_boundary": "Complete target failure/abort/reset secret and logging lifecycle; selected fields do not establish whole-memory erasure. Boot preamble contents were not retained."
+    },
+    {
+      "gate": "rollback_safe_counter_interruption",
+      "disposition": "partial",
+      "accepted_scope": "Host allocator/KV/replay restart and interrupted-commit tests, SDK-stub NVS commit/readback failures, and OT204 normal real NVS persistence.",
+      "remaining_boundary": "Actual target interruption/restart proof. Fresh-only sessions refuse retained state; no resumed-key path. No new physical-attacker rollback-proof hardware requirement."
+    },
+    {
+      "gate": "two_device_join_revoke_reset_recovery",
+      "disposition": "partial",
+      "accepted_scope": "Local bidirectional authenticated records, duplicate refusal, retirement/tombstones; OT204 restores both originals independently.",
+      "remaining_boundary": "Actual cross-node join/revoke/rekey and current factory-reset/fresh-pairing lifecycle. Two same-chip role evaluations are not a two-device cryptographic join."
+    },
+    {
+      "gate": "license_sbom_and_reproducible_lock",
+      "disposition": "partial",
+      "accepted_scope": "Existing libsodium 1.0.22 source/license/SBOM admission, 731-file lock, matching OT203 builds and exact source/compiled dependency closure. All three matched resource controls now exist.",
+      "remaining_boundary": "Final selected composition license/SBOM/result binding and Phase 3 corpus admission remain incomplete. Current target uses vendored sources with component manager disabled; absence of a generated dependency lock is explicit, not hidden."
+    }
+  ],
+  "phase_3_corpus_limits": [
+    "Historical exact libsodium/Monocypher raw capture custody remains unestablished in the previously assessed locations; aggregate results cannot recreate those bytes.",
+    "OT204 retained parser acceptance, diagnostics and an independently audited journal, not original raw serial bytes; do not claim a second raw-wire parse.",
+    "Matched controls supersede older resource-control gaps, but timing results remain tied to their own physical images."
+  ],
+  "next_task": {
+    "id": "OT-206",
+    "scope": "bounded software invitation replay proof",
+    "acceptance": "Prove role-scoped invitation freshness and consumption across gate reconstruction/restart, preserving legitimate A/B use and refusing expired, cancelled or reused authorization before traffic activation or persistent mutation.",
+    "hardware_authorized": false
+  },
+  "validation_scope": "Existing test/build results reused; current file hashes checked. No new behavioral tests, builds, measurements or physical actions.",
+  "v1_progress_changed": false,
+  "public_website_status_changed": false
+}

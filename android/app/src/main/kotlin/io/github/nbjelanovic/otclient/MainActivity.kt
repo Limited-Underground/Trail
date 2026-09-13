@@ -161,7 +161,12 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             return@Surface
         }
         homeStateHolder.SaveableStateProvider("home") {
-        V1HomeScreen(state) {
+        V1HomeScreen(
+            state = state,
+            onRefreshGroupConfirmation = controller::refreshGroupConfirmation,
+            onConfirmGroupConfirmation = controller::confirmGroupConfirmation,
+            onCancelGroupConfirmation = controller::cancelGroupConfirmation,
+        ) {
           if (state == TrailAppUiState.ChooseMode) {
             V1OnboardingScreen(
                 state = V1OnboardingScreenState(statusMessage =

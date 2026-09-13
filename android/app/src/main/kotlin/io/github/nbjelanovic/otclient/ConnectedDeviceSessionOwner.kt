@@ -70,6 +70,11 @@ class ConnectedDeviceSessionOwner(
 
     override fun submitAction(request: CompanionActionRequest): Boolean =
         !closed && controller.submitBluetoothAction(request)
+    override fun refreshGroupConfirmation(): Boolean = !closed && controller.refreshGroupConfirmation()
+    override fun confirmGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean =
+        !closed && controller.confirmGroupConfirmation(offer)
+    override fun cancelGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean =
+        !closed && controller.cancelGroupConfirmation(offer)
     override fun readRadioRegion(): Boolean = !closed && controller.readRadioRegion()
     override fun writeRadioRegion(selectionId: Int): Boolean = !closed && controller.writeRadioRegion(selectionId)
     override fun readDeviceName(): Boolean = !closed && controller.readDeviceName()

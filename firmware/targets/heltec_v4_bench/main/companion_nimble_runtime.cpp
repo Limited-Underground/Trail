@@ -1,4 +1,8 @@
 #include "companion_nimble_runtime.hpp"
+#include "confirmation_evaluation_config.hpp"
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+#include "confirmation_runtime_guard.hpp"
+#endif
 
 #include <array>
 #include <atomic>
@@ -247,6 +251,9 @@ QueueHandle_t g_verified_gatt_progress_queue = nullptr;
 std::atomic<bool> g_event_overflow{false};
 std::atomic<bool> g_host_exited{false};
 std::atomic<bool> g_orphan_reconciliation_required{false};
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+ConfirmationRuntimeGuard g_confirmation_runtime_guard;
+#endif
 StaticSemaphore_t g_pairing_mutex_control{};
 SemaphoreHandle_t g_pairing_mutex = nullptr;
 StaticSemaphore_t g_factory_reset_mutex_control{};
@@ -577,6 +584,12 @@ public:
 
     bool contain_stack() override {
         if (contained_) return shutdown_complete_;
+        // Application-owner cleanup must drain the non-owning entropy guard
+        // before this existing owner stops/deinitializes the BLE controller.
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+        g_confirmation_runtime_guard.revoke();
+        if (!close_companion_confirmation()) return false;
+#endif
         contained_ = true;
         bool stop_ok = true;
         if (host_started_ && !host_run_exited_) {
@@ -752,12 +765,18 @@ void runtime_on_sync() {
 }
 
 void runtime_on_reset(int) {
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    g_confirmation_runtime_guard.revoke();
+#endif
     (void)queue_event({RuntimeEventKind::host_reset,
                        kCompanionBleInvalidConnectionHandle, current_ms()});
 }
 
 void runtime_host_task(void*) {
     nimble_port_run();
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    g_confirmation_runtime_guard.revoke();
+#endif
     // Publish only liveness. The owner context owns task deletion and all
     // mutable port/deinitialization state, so there is no cross-task data race.
     g_host_exited.store(true, std::memory_order_release);
@@ -1369,6 +1388,17 @@ CompanionBleRuntimeError start_companion_nimble_runtime(
     return g_runtime_owner.start(now_ms, true);
 }
 
+bool companion_confirmation_runtime_current() {
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    return g_confirmation_runtime_guard.current(
+        g_event_overflow.load(std::memory_order_acquire),
+        g_host_exited.load(std::memory_order_acquire),
+        g_orphan_reconciliation_required.load(std::memory_order_acquire));
+#else
+    return false;
+#endif
+}
+
 CompanionBleRuntimeError service_companion_nimble_runtime(
     std::uint64_t now_ms) {
     service_companion_configuration();
@@ -1599,6 +1629,9 @@ void release_companion_factory_reset_serialization() {
 }
 
 DeviceFactoryResetResult begin_companion_factory_reset() {
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    return {DeviceFactoryResetError::invalid_state, DeviceFactoryResetPhase::not_restored};
+#else
     FactoryResetLock reset_lock{pdMS_TO_TICKS(100)};
     if (!reset_lock.locked() || g_factory_reset_executor == nullptr ||
         g_factory_reset_executor->status().phase !=
@@ -1620,10 +1653,14 @@ DeviceFactoryResetResult begin_companion_factory_reset() {
     }
     set_pairable_advertising_state(false);
     return g_factory_reset_executor->begin();
+#endif
 }
 
 DeviceFactoryResetResult
 begin_contained_companion_factory_reset_recovery() {
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    return {DeviceFactoryResetError::invalid_state, DeviceFactoryResetPhase::not_restored};
+#else
     FactoryResetLock reset_lock{pdMS_TO_TICKS(100)};
     const auto runtime_status = g_runtime_owner.status();
     if (!reset_lock.locked() || g_factory_reset_executor == nullptr ||
@@ -1646,6 +1683,7 @@ begin_contained_companion_factory_reset_recovery() {
         return g_factory_reset_executor->begin_confirmed_recovery();
     }
     return {DeviceFactoryResetError::invalid_state, phase};
+#endif
 }
 
 CompanionPairingWindowError service_companion_pairing_window(

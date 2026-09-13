@@ -1,0 +1,248 @@
+{
+  "schema": "OT208-INVITATION-TARGET-HOST-EVIDENCE-1",
+  "as_of": "2026-09-12",
+  "status": "actual_target_host_passed",
+  "target": "heltec_v4_invitation_eval",
+  "test_groups": 130,
+  "groups": {
+    "backend_namespace_and_output_admission": 8,
+    "helper_success_and_retained_reentry": 2,
+    "namespace_open_failures": 7,
+    "early_entropy_clock_refusals": 6,
+    "rng_fill_failures": 6,
+    "commit_before_or_applied_error": 48,
+    "namespace_sdk_faults": 42,
+    "actual_app_startup_reentry_and_errors": 11
+  },
+  "observed_successful_helper": {
+    "nvs_commits": 24,
+    "rng_fills": 6
+  },
+  "actual_sources": [
+    "firmware/targets/heltec_v4_invitation_eval/main/app_main.cpp",
+    "firmware/targets/heltec_v4_invitation_eval/main/invitation_evaluation.hpp",
+    "firmware/targets/heltec_v4_invitation_eval/main/nvs_invitation_backend.hpp"
+  ],
+  "actual_reused_components": [
+    "AuthorizedPolicySession",
+    "InvitationBootAuthority",
+    "RoleInvitationAuthority",
+    "PersistentStorageKv",
+    "OutboundCounterLeaseStore",
+    "PolicySession",
+    "EvaluationReplayStore",
+    "SyncStageStore",
+    "SynchronizingControl",
+    "receipt_with_begin"
+  ],
+  "sdk_seams": [
+    "NVS open/blob/u64/commit/close/init",
+    "timer and task delay",
+    "console install/read/health/session/send",
+    "EntropyRuntime startup/shutdown and deterministic test random source",
+    "sodium_init result"
+  ],
+  "real_crypto": "Admitted libsodium 1.0.22 scalar primitives and pinned Noise adapter; signatures, handshake, transcript confirmation, AEAD and replay admission execute.",
+  "cleanup": "sodium_memzero forwards to the real library function. RNG-written ranges are checked only during covering real wipe calls, never by reading dead stack memory.",
+  "namespaces": {
+    "boot": "ot208_boot",
+    "invitation_a": "ot208_ia",
+    "invitation_b": "ot208_ib",
+    "tx_a": "ot187_ta",
+    "tx_b": "ot187_tb",
+    "rx_a": "ot187_ra",
+    "rx_b": "ot187_rb",
+    "app_diagnostics": "ot198diag"
+  },
+  "ordering": [
+    "All seven evaluation backends ready before boot-ledger allocation. Entropy/time rechecked after opens.",
+    "Boot generation committed/read back before identities; role consumption precedes session persistence.",
+    "Actual app persists control result, starts entropy, initializes sodium, evaluates, stops entropy, then sends one framed receipt."
+  ],
+  "retained_state": [
+    "Direct helper repeat advances boot context and refuses retained fresh-only TX/RX state before session-store mutation.",
+    "A second actual app invocation refuses retained ot198diag before console installation or boot-ledger allocation."
+  ],
+  "fault_model": "SDK errors, short/corrupted reads, failed commits before application and commits applied before returning error. This is not a physical interruption test.",
+  "toolchain": {
+    "gcc.exe": {
+      "sha256": "f96a3bdb1d3a3967b309d75c7413399391e857b5be4cb17162572ed66f6772a0",
+      "version": "gcc.exe (Rev5, Built by MSYS2 project) 16.1.0"
+    },
+    "g++.exe": {
+      "sha256": "798a6eb495b30cf771dc759b5508d269ecb0dddac739719e8b30fe0ac0744b69",
+      "version": "g++.exe (Rev5, Built by MSYS2 project) 16.1.0"
+    }
+  },
+  "compiler_policy": {
+    "target_and_test_cpp": "-Werror; no diagnostics",
+    "upstream_c": "-Wall -Wextra; 16 admitted-header unused-function warnings retained without suppression"
+  },
+  "warnings": [
+    {
+      "log": "003-stderr.log",
+      "bytes": 1898,
+      "sha256": "43e3f15d3ec8ef40d5f65cd2675882a4050dc5fda41a008f00cc3ed294470937",
+      "category": "upstream unused static functions",
+      "count": 4
+    },
+    {
+      "log": "004-stderr.log",
+      "bytes": 2632,
+      "sha256": "e5f117a2ec5847d20b0414c293fb4ac3b338dc53f89df02f6244f0a85453f280",
+      "category": "upstream unused static functions",
+      "count": 6
+    },
+    {
+      "log": "005-stderr.log",
+      "bytes": 2633,
+      "sha256": "991b32816697046d4fb3b5e7e21b3eb104a9d13e407a8ba5057ed0101a5f3923",
+      "category": "upstream unused static functions",
+      "count": 6
+    }
+  ],
+  "host_result_binding": {
+    "bytes": 7099,
+    "sha256": "27c9bae3e1be43ba52efa1e0cb61d6356dadccd993c1a523d70b6aed0d6a68af"
+  },
+  "command_log_binding": {
+    "bytes": 33597,
+    "sha256": "9029d6e38772ee8edb4c09d4964c45576f3e1eb3008e0d52dbf508b050995775"
+  },
+  "output_binding": {
+    "bytes": 138,
+    "sha256": "b5257e8991c28be872e654b0751dc079518df837464affce91ca37df5d3e4dcd"
+  },
+  "binary_binding": {
+    "bytes": 404238,
+    "sha256": "cc0bc4830c92284286c1dbddcbbc1ac628903383e1d909cfee70bd03f8fa3078"
+  },
+  "scalar_reuse": {
+    "accepted_report": "tests/benchmarks/crypto/OT-206-INVITATION-LIFECYCLE-2026-09-12.json",
+    "accepted_proof": {
+      "bytes": 117014,
+      "sha256": "8c51c38e04c7f769f6f99a93ad35771e073eeea81fef96c9e842b9f2824fb30c"
+    },
+    "object_count": 16,
+    "validation": "Exact proof, compiler, generated version header and object hashes; all 731 admitted upstream files rechecked."
+  },
+  "source_pins": {
+    "tests/host/security_invitation_target_tests.py": {
+      "bytes": 8736,
+      "sha256": "0b45c25af95ea861d5a51105e3f92b5ee6f33b155bed932b3e3258537b38ffe0"
+    },
+    "tests/benchmarks/crypto/OT-206-INVITATION-LIFECYCLE-2026-09-12.json": {
+      "bytes": 9477,
+      "sha256": "32a010e37a9e8019dd8697416ca9e0b489d2a4c4e2302a4c99d01d327b3c07ba"
+    },
+    "tests/host/security_invitation_target_stubs/entropy_runtime.hpp": {
+      "bytes": 496,
+      "sha256": "f8b52a34f0115d36aebb1bb0a29fba5a3a54c7f5f9c1fdef82dcc7511f4e7aa3"
+    },
+    "tests/host/security_invitation_target_stubs/esp_timer.h": {
+      "bytes": 67,
+      "sha256": "6ad471c0abf88f3f513efdd639ab3637a8be1f641ac47dff54ebaf352842f8e3"
+    },
+    "tests/host/security_invitation_target_stubs/nvs.h": {
+      "bytes": 733,
+      "sha256": "5763dd1f297b01cb86b393bab90943fc0d19c6a37ff9142c6407ce81a0c1bb04"
+    },
+    "tests/host/security_invitation_target_stubs/nvs_flash.h": {
+      "bytes": 58,
+      "sha256": "50fe0c6c705e35512cda0f347e57ce718ff6d31f6b262faa65e8638dbbce0c66"
+    },
+    "tests/host/security_invitation_target_stubs/freertos/FreeRTOS.h": {
+      "bytes": 13,
+      "sha256": "b3adf106d95b8934f690943f2921308b90be5b766c4c8ba250c792de56400201"
+    },
+    "tests/host/security_invitation_target_stubs/freertos/task.h": {
+      "bytes": 40,
+      "sha256": "d8a6c0ba04a4e6210e0bd89fdc740be254da3a31a12ccbfeaf9381058ebfed53"
+    },
+    "firmware/targets/heltec_v4_invitation_eval/main/app_main.cpp": {
+      "bytes": 3142,
+      "sha256": "6831eaa65b48ff066f677bf7e9246a5f8129f4f626ab7a202b8aa0a769c4cd82"
+    },
+    "firmware/targets/heltec_v4_invitation_eval/main/nvs_invitation_backend.hpp": {
+      "bytes": 4052,
+      "sha256": "0454c8100da00520aeb29981a2db318bef2dafa4fb3664d88a6046ecb26e48b5"
+    },
+    "firmware/targets/heltec_v4_invitation_eval/main/invitation_evaluation.hpp": {
+      "bytes": 8107,
+      "sha256": "4fa03d31f5bd37d281d0d02f23e0c296b7cc8092c3a5ec660087027fc106ee7e"
+    },
+    "tests/host/security_invitation_target_tests.cpp": {
+      "bytes": 17289,
+      "sha256": "798cff03d8f51d53fa6da0f219c641f7a586ee4ef1183a98c78c55ea1f928a37"
+    },
+    "firmware/components/persistence/src/persistent_storage_kv.cpp": {
+      "bytes": 7157,
+      "sha256": "e5567c236abeb96deab2ab9f4730dc18e5c1d664535d1f22024b5ff81d929c70"
+    },
+    "firmware/components/persistence/src/outbound_counter_lease_store.cpp": {
+      "bytes": 13692,
+      "sha256": "6d832d1447189f53e733642d4c7118333a973690d40b702a4fdde1999c69f151"
+    },
+    "firmware/components/security/src/aead_nonce.cpp": {
+      "bytes": 1349,
+      "sha256": "e28a118c29886c26d2011f58c989d764b0bc784b6fb71c27cd49a7853486bac9"
+    }
+  },
+  "registration": {
+    "path": "tools/Test-Host.ps1",
+    "before": {
+      "bytes": 170295,
+      "sha256": "19b34b4bea47434556f461caa7f21faf3979f3e85039a4f088704928d80f6f82"
+    },
+    "after": {
+      "bytes": 170733,
+      "sha256": "1da7cfa779cefc03f521579de28c6083e5fd583b77a0da3dbf5baee7a554e10a"
+    },
+    "operation": "appended one invocation; all prior bytes preserved"
+  },
+  "command": "C:\\Python314\\python.exe -X utf8 -B tests/host/security_invitation_target_tests.py --output-root <fresh-absolute-worktree-directory>",
+  "reuse_option": "--reuse-crypto-root <exact-accepted-OT206-host-proof-directory>; optional and refused if any bound input changes",
+  "resolved_harness_failures": [
+    "Initial compile rejected a test namespace alias conflict and two test indentation warnings; target/app source was unchanged."
+  ],
+  "not_exercised": [
+    "full firmware build in this host report",
+    "physical NVS interruption or SDK durability timing",
+    "actual entropy source quality or physical startup",
+    "physical console/USB lifecycle",
+    "whole-memory secret erasure",
+    "human confirmation",
+    "cross-node join/rekey",
+    "factory-reset ledger/identity lifecycle"
+  ],
+  "hardware_actions": false,
+  "crypto_selection": false,
+  "v1_completion_changed": false,
+  "public_website_status_changed": false,
+  "supplementary_checks": {
+    "entropy_runtime": {
+      "result": "passed",
+      "scenario_executions": 15,
+      "configurations": 3,
+      "source": "tests/host/entropy_runtime_tests.py",
+      "source_pin": {
+        "bytes": 2874,
+        "sha256": "e85a5c640a6169d1e700476d8a41e1d242fdcfd437d4d23da654d265d25b0cc4"
+      },
+      "log_binding": {
+        "bytes": 104,
+        "sha256": "cfc74a395119a0653cfed6f2cb9eb893122b1506874999e545ff03866725ee1f"
+      }
+    },
+    "receipt_boundary": {
+      "result": "passed",
+      "cpp_groups": 24,
+      "python_tests": 12,
+      "result_binding": {
+        "bytes": 5448,
+        "sha256": "6c46f93f04aade7570b43712b00ebf01ff6bd323062131e9c5502764eadbbd58"
+      }
+    },
+    "included_in_target_group_count": false
+  }
+}

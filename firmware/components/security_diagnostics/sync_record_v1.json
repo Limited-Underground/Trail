@@ -1,0 +1,40 @@
+{
+  "schema": "OT200-SYNC-INPUT-RECORD-1",
+  "project_version": "ot200-sync-diag-v1",
+  "namespace": "ot198diag",
+  "key": "input",
+  "nvs_type": "u64",
+  "bytes": 8,
+  "byte_order": "little",
+  "fields": {
+    "magic": {"shift": 0, "bits": 12, "value": 2592},
+    "discarded_bytes": {"shift": 12, "bits": 9, "maximum": 288},
+    "first_rejected_frame_bytes": {"shift": 21, "bits": 7, "maximum": 95},
+    "flags": {"shift": 28, "bits": 7},
+    "terminal_reason": {"shift": 35, "bits": 5, "allowed": [0, 3, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]},
+    "first_frame_reason": {"shift": 40, "bits": 5, "allowed": [0, 12, 13, 15]},
+    "first_read_delay_bucket": {"shift": 45, "bits": 3}
+  },
+  "crc": {"kind": "crc16-ccitt", "initial": 65535, "polynomial": 4129, "offset": 6, "covered_bytes": 6},
+  "flags": {"0": "discarded_present", "1": "discarded_lf", "2": "discarded_nul", "3": "discarded_slip_c0", "4": "anchored_frame_rejected", "5": "discarded_non_ascii", "6": "full_frame_accepted_after_discard"},
+  "consistency": [
+    "first_frame_reason is zero exactly when first_rejected_frame_bytes is zero",
+    "flags bit 4 is set exactly when first_frame_reason is nonzero",
+    "first_frame_reason 12 requires first_rejected_frame_bytes 95",
+    "first_frame_reason 13 requires first_rejected_frame_bytes 31 through 95 excluding 63",
+    "first_frame_reason 15 requires first_rejected_frame_bytes 63",
+    "flags bit 0 is set exactly when discarded_bytes is positive",
+    "discarded_bytes zero requires flags zero",
+    "first_rejected_frame_bytes cannot exceed discarded_bytes",
+    "terminal_reason 19 is present exactly when discarded_bytes exceeds 192",
+    "flags bit 3 requires flags bit 5 because SLIP C0 is non-ASCII",
+    "first_frame_reason 13 or 15 requires flags bit 1 because the rejected frame ended in LF",
+    "flags bit 6 requires positive discarded_bytes and terminal_reason in [0, 3, 17, 18]; 18 preserves documented post-terminal API misuse",
+    "terminal_reason 0 or 3 requires flags bit 6 exactly when discarded_bytes is positive"
+  ],
+  "first_read_delay_buckets_microseconds": {"0": "equal parser-clock samples", "1": "1..999", "2": "1000..9999", "3": "10000..99999", "4": "100000..999999", "5": "1000000..9999999", "6": "10000000..59999999", "7": "no read, at least 60000000, or regressed first-read sample"},
+  "stage_record": "input_record_v1.json",
+  "stage_error_mapping": {"19": 16, "other_allowed_reasons": "identity"},
+  "ordering": "stage 1,2,3; input set/commit/verify once; stage 4; existing stage 5..8 for admitted session only. Input and stage commits are not atomic. Input with stage 3 is incomplete progression. Stage >=4 requires input. Stage-only pre-input records are incomplete, never completion.",
+  "meaning": "Exact bounded, non-secret input diagnostics. Last valid durable records only; SDK acknowledgment and later operations may be uncertain. First-read bucket does not identify FIFO arrival, console installation or host/device skew. CRC detects corruption, not malicious rewriting or rollback. The 30-second host horizon is a resource bound, not device completion."
+}

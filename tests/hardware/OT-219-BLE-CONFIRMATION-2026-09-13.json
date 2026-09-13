@@ -1,0 +1,69 @@
+{
+  "schema": "OT219-BLE-PHYSICAL-RESULT-1",
+  "as_of": "2026-09-13T10:22:49.953381+00:00",
+  "status": "confirmation_not_reached_originals_restored",
+  "hardware": "Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB role A",
+  "radio": "No transmission; saved configuration preserved",
+  "phone": "Samsung SM-N986U Android13 SDK33",
+  "phone_update": {
+    "mode": "in-place install-r",
+    "apk_sha256": "9f91a3f361221d19089e685b492b5e772e5cf7d658298ff955c4feb2508694a2",
+    "exact_installed_readback": true,
+    "ordinary_package_unchanged": true,
+    "comparison_phone_unchanged": true,
+    "app_clear_uninstall_bond_reset": false,
+    "existing_history_observed": true,
+    "app_force_stop_restart_during_candidate": true
+  },
+  "operator_binding_sha256": "a404264bfb3364f0a85fb15be1b94126fc4f93dde8cdd067c87440e9eb6ce0c5",
+  "host_correction": {
+    "fault": "ADB inherited and consumed operator stdin before custody",
+    "fix": "stdin DEVNULL for every phone-check subprocess",
+    "pre_fix_inert_cli": "Empty at Lines.read",
+    "post_fix_inert_cli": "admission_reached true hardware_access false",
+    "operator_tests_pass": 11
+  },
+  "physical_candidate_attempts": 1,
+  "candidate": {
+    "bytes": 730736,
+    "sha256": "28dadebed9c08ed4a52bfe3d38266144da70116943f522a9d7421bb6f915110c"
+  },
+  "application_span": {
+    "offset": 65536,
+    "bytes": 733184
+  },
+  "nvs_span": {
+    "offset": 53248,
+    "bytes": 12288
+  },
+  "protected_writes": false,
+  "candidate_readback_verified": true,
+  "candidate_boot_command_completed": true,
+  "candidate_application_boot_observed": false,
+  "observation": "timeout",
+  "ready_window_seconds": 180,
+  "candidate_phone_result": "DISCONNECTED_BEFORE_PROFILE; no GATT_LINK_ESTABLISHED in retained candidate trace",
+  "group_entered": false,
+  "confirmation_requested": false,
+  "confirmation_accepted": false,
+  "restore": {
+    "original_application_readback": true,
+    "original_nvs_readback": true,
+    "protected_regions_final_readback": true,
+    "original_reset_command_completed": true,
+    "custody_closed": true,
+    "separate_recovery_attempts": 0,
+    "phone_ready_after_restore": true,
+    "user_observed_Trial_Bench_screen_on": true
+  },
+  "inference": "With the same upgraded phone and bond reaching Ready before and after restoration, investigate candidate boot/BLE startup next; unique root cause is not established.",
+  "next_diagnostic": "Capture existing candidate USB boot self-check/runtime/security/heartbeat categories during one bounded boot, with original restoration. Do not rebuild or reset phone/bonds merely to obtain this trace.",
+  "limits": [
+    "Candidate boot and confirmation unproved",
+    "No independent raw boot trace retained",
+    "No two-node peer comparison, membership, messaging, radio, cold-power or release acceptance"
+  ],
+  "v1_completion_change": false,
+  "public_website_status_change": false,
+  "publication": "local uncommitted; no remote operations"
+}

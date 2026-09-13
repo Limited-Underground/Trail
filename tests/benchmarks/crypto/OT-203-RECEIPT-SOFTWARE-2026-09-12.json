@@ -1,0 +1,277 @@
+{
+  "schema": "OT203-RECEIPT-SOFTWARE-EVIDENCE-1",
+  "as_of": "2026-09-12",
+  "status": "passed",
+  "boundary": "Software fix validated; physical confirmation pending",
+  "reproduced_mechanism": {
+    "retained_bytes": 64,
+    "old_receipt_wire_bytes": 65,
+    "old_read_bytes": 129,
+    "old_capture_error": "read_invalid",
+    "raw_historical_contents": "not retained; cannot establish their origin",
+    "actual_cpp_components": [
+      "SynchronizingControl",
+      "receipt_with_begin",
+      "BoundedConsoleWriter",
+      "UsbSerialJtagConsoleAdapter"
+    ],
+    "actual_host_components": [
+      "ReceiptBoundaryEndpoint",
+      "ObservedEndpoint",
+      "Endpoint",
+      "capture"
+    ]
+  },
+  "protocol": {
+    "name": "OT203-RECEIPT-BOUNDARY-1",
+    "marker": "SEC_BEGIN1 <fresh challenge> CRLF",
+    "maximum_preamble_bytes": 256,
+    "receipt_limit_bytes": 128,
+    "maximum_wire_receipt_and_marker_bytes": 123,
+    "single_send_budget_us": 20000,
+    "host_deadline_max_seconds": 30,
+    "extra_commands": 0
+  },
+  "candidate": {
+    "target": "heltec_v4_security_receipt_sync",
+    "version": "ot203-receipt-sync-v1",
+    "bytes": 440480,
+    "sha256": "d47b09dae0aa1ae878769410a5daaabdac07af2d4c95c9f9d3436a1e03321cee"
+  },
+  "source_pins": {
+    "tools/security_policy_bundle.py": {
+      "bytes": 10318,
+      "sha256": "0512d4118bae3d5e23628e19bc75b484b7457b937620acc15cdf7969776ae7b2"
+    },
+    "tools/security_policy_hardware.py": {
+      "bytes": 11537,
+      "sha256": "cfd6a29b7560e6c6d01c81c916b54742aa328c04a2c20b81320ec9d54d9c0e55"
+    },
+    "tools/security_policy_endpoint.py": {
+      "bytes": 3548,
+      "sha256": "1a86b71b59c7b8357afd00375ed2307860b96316357223b1c2fcf460a19530b1"
+    },
+    "tools/security_policy_execution.py": {
+      "bytes": 21186,
+      "sha256": "afce87da6ffdc382f402bb774e44086c1e77e9741e1da04f16be733e43ae0089"
+    },
+    "tools/security_policy_capture.py": {
+      "bytes": 2444,
+      "sha256": "6aa64631a2e9893140f6ce5585c317b8d93c72421f216310c57f895dffa78fd2"
+    },
+    "tools/security_policy_operator.py": {
+      "bytes": 20376,
+      "sha256": "12aa023420b12540e5d71d40be11125bfd5e8810134c5b708f1d47299b8df550"
+    },
+    "tools/security_policy_backup.py": {
+      "bytes": 20800,
+      "sha256": "9e9bf4123ef9f1fcd8c95430cd9fcc36c719574374851cae177efadcd2fd975b"
+    },
+    "tools/security_policy_backup_operator.py": {
+      "bytes": 7749,
+      "sha256": "d07a93636c26efcb02d13914614dadac1a29c7935d4a6e368991559cfae6cfeb"
+    },
+    "tools/security_policy_diagnostics.py": {
+      "bytes": 9522,
+      "sha256": "591d9e447c83b42e7ed5418a137e901e30f3814249f043a8376ea5bc8a916163"
+    },
+    "tools/security_policy_runtime_bundle.py": {
+      "bytes": 14101,
+      "sha256": "8840dfce827151681ff85a4e5a22fe9720d90e000cc795ab44e4d7f52e8ed757"
+    },
+    "tools/security_policy_input_readback.py": {
+      "bytes": 6045,
+      "sha256": "b1c362db5c416397207f72c47ce95a329bcb1f483c94ebf1877fe7d30ba7ee37"
+    },
+    "tools/security_policy_input_timing.py": {
+      "bytes": 3471,
+      "sha256": "08e408cb36c442769e95112c628cc45fedb5319289d8200be5ea3e6da3d7ccc4"
+    },
+    "tools/security_policy_receipt_readback.py": {
+      "bytes": 6779,
+      "sha256": "8ff21a57aab36156068d8d7979bdff82cf7264d962316be0fc8ebffade8ba26c"
+    },
+    "tools/security_policy_receipt_observation.py": {
+      "bytes": 2221,
+      "sha256": "399869fc420ec59e8714e26727167fe3f476d4ef7ecc3a52d08620d7886dd530"
+    },
+    "tools/security_policy_receipt_bundle.py": {
+      "bytes": 14906,
+      "sha256": "148165182cc662a9b1b89ef2a6967b1bac207c5903cf0b4e76267a1b526d324a"
+    },
+    "tools/security_policy_receipt_execution.py": {
+      "bytes": 19391,
+      "sha256": "aa5630148796104d7725f83c8e5ca73fad27795e35042580431dfe268a5014f3"
+    },
+    "tools/security_policy_receipt_operator.py": {
+      "bytes": 23161,
+      "sha256": "a9fd441b65f7bce5492751a91f1a2470fa289919ccfe99870f974851cef29a1a"
+    },
+    "tools/security_policy_receipt_backup_operator.py": {
+      "bytes": 8550,
+      "sha256": "603f52ac6300e404f91a1c178408a5438e292dd38813ce72600d0efdf247deb3"
+    },
+    "tools/security_policy_receipt_runtime_bundle.py": {
+      "bytes": 14390,
+      "sha256": "921d1dc1ffef5b5a8e151c53832de92e6ebba8ccf97a0b7a82127f430499b5ae"
+    },
+    "tools/security_policy_receipt_restore_observation.py": {
+      "bytes": 5631,
+      "sha256": "14fd8d17f3c3988eb4e53583fa6292e8d9c3d903c0b43cebaf8b2e2e5bfc7b55"
+    },
+    "tools/security_policy_receipt_boundary.py": {
+      "bytes": 6073,
+      "sha256": "428219f22b17567c88f8b98d9493952ca1251c9c1abb75b354fbfb26601e153a"
+    },
+    "tools/Invoke-SecurityPolicyOperator.ps1": {
+      "bytes": 6557,
+      "sha256": "9caa1355e2d55bf0bea7027cadbdce9666e2dd858774b54ffeffbe3506a3dd01"
+    },
+    "tools/Invoke-SecurityPolicyReceiptOperator.ps1": {
+      "bytes": 7380,
+      "sha256": "379d491bb8abab09579d812b6bade3b9729b79d49c92a5f272a96d5773c4e3ba"
+    }
+  },
+  "build_report": {
+    "path": "tests/benchmarks/crypto/OT-203-RECEIPT-SYNC-BUILD-2026-09-12.json",
+    "sha256": "131fed9e5be168b2438bc4d968fac8e2c4fe0cddd33fc5501fd0d818312fc01f"
+  },
+  "runtime": {
+    "manifest_sha256": "55430360c11ff7113fb55008d6fdc0f67e5ef313c1164455346b98f0dee12e8a",
+    "files": 3561,
+    "bytes": 96345673,
+    "versions": {
+      "python": "3.14.6",
+      "bitarray": "3.10.1",
+      "bitstring": "4.4.0",
+      "cffi": "2.1.1",
+      "click": "8.1.8",
+      "colorama": "0.4.6",
+      "cryptography": "46.0.7",
+      "esptool": "5.3.1",
+      "intelhex": "2.3.0",
+      "markdown-it-py": "4.2.0",
+      "mdurl": "0.1.2",
+      "pycparser": "3.0",
+      "pygments": "2.20.0",
+      "pyserial": "3.5",
+      "pyyaml": "6.0.3",
+      "reedsolo": "1.7.0",
+      "rich": "15.0.0",
+      "rich-click": "1.9.8",
+      "tibs": "0.5.7"
+    },
+    "ordinary_probe": "passed",
+    "hostile_probe": "passed",
+    "post_probe_inventory_verified": true,
+    "poison_marker_executed": false
+  },
+  "validation": {
+    "package_tests": 284,
+    "package_suites": [
+      {
+        "name": "security_policy_receipt_bundle_tests",
+        "tests": 26,
+        "log_sha256": "adba346ff750f8341538acbf8d207d752dc4fce309091da449a422dc2bb333be"
+      },
+      {
+        "name": "security_policy_receipt_restore_observation_tests",
+        "tests": 21,
+        "log_sha256": "ddc4ac035b6dcc1709695a8ea59a2c6a0b1622323673c8ee0acf21a0720036c8"
+      },
+      {
+        "name": "security_policy_receipt_execution_tests",
+        "tests": 28,
+        "log_sha256": "0c102c8ac1989480dafbdf82380eefc9949968bbf0369d87dcf3e445023eac4e"
+      },
+      {
+        "name": "security_policy_receipt_runtime_bundle_tests",
+        "tests": 16,
+        "log_sha256": "7ab3545a1cb43256353ab596896c9ba0de275b89a5513848dd47b7a611945774"
+      },
+      {
+        "name": "security_policy_receipt_operator_tests",
+        "tests": 14,
+        "log_sha256": "7309c35ffe527d31e121b45e266b5dff8db32384d80698b2c6f5b4b6d14be801"
+      },
+      {
+        "name": "security_policy_receipt_operator_integration_tests",
+        "tests": 20,
+        "log_sha256": "6bb291de31c4fbdcc717201543a0dda549bf6af099af737cebcc5ac9fa24f13c"
+      },
+      {
+        "name": "security_policy_receipt_isolated_tests",
+        "tests": 7,
+        "log_sha256": "c037e55e8431de700164275cc3c643a17d7980eea533f5eba0f942c33f6dbb36"
+      },
+      {
+        "name": "security_policy_hardware_tests",
+        "tests": 23,
+        "log_sha256": "cbe73146025d706d4bb6e7c72cc7e0b20127787d0913dea3007bbeb6693b170e"
+      },
+      {
+        "name": "security_policy_endpoint_tests",
+        "tests": 13,
+        "log_sha256": "ff5433440bd278efe9ea638a6c64d5b7a6b2f7a004e7d18d60bc041dc5451830"
+      },
+      {
+        "name": "security_policy_execution_tests",
+        "tests": 19,
+        "log_sha256": "a016c04912ada7906f9a5d6d8fdf692458ac4dcfb5abb36f43fc5ff15192106d"
+      },
+      {
+        "name": "security_policy_backup_tests",
+        "tests": 21,
+        "log_sha256": "30abce8b297b82da00eac17d79e19ae178cd6e7f80ed5aff665a264506c80e0f"
+      },
+      {
+        "name": "security_policy_backup_operator_tests",
+        "tests": 13,
+        "log_sha256": "04b61f77ed3427c36d6e0aa5dd37d94030939835f6538d516fdea3c6b134a2b7"
+      },
+      {
+        "name": "security_policy_capture_tests",
+        "tests": 9,
+        "log_sha256": "75c71eea1eb1ee6f1ffe9b074a5bb967c535e6b14bf0e5098cc0d6405733ea40"
+      },
+      {
+        "name": "security_policy_input_readback_tests",
+        "tests": 26,
+        "log_sha256": "a8826d50f696b127cef5f46dc3e4d5dd83ed0ab4b4779f64f9cee311fc999bb7"
+      },
+      {
+        "name": "security_policy_input_observation_tests",
+        "tests": 17,
+        "log_sha256": "e162ee4a1fc910c5a486dbe2b92bb879e7cc4a0f57409128c59d431197d00205"
+      },
+      {
+        "name": "security_policy_input_timing_tests",
+        "tests": 11,
+        "log_sha256": "72d81d7267291f77f96b52fab4b70a652d9051dcc912d781978829581b031b1b"
+      }
+    ],
+    "boundary_python_tests": 12,
+    "cpp_test_groups": 24,
+    "actual_wire_fixtures": 21,
+    "wire_chunk_sizes": [
+      1,
+      63,
+      64,
+      128,
+      129
+    ],
+    "all_split_points_of_contaminated_pass_tested": true,
+    "matrix_result_sha256": "589b34c88527da441706ebe13695f39a9cb2609983cd4dbdb95658d79dfa21bb",
+    "boundary_result_sha256": "3b088c571d24eef05b1fd2c114ef60dc8f1fc7665a04d7c6460994ae56292e90",
+    "exact_candidate_used": true,
+    "final_runtime_synthetic_package_admission": "passed"
+  },
+  "physical_trial": false,
+  "serial_open": false,
+  "passive_usb_enumeration": true,
+  "network": false,
+  "authority_issued": false,
+  "security_acceptance": false,
+  "v1_credit": false,
+  "public_website_status_changed": false
+}

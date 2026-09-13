@@ -1,6 +1,12 @@
 #include "companion_nimble_gatt.hpp"
 #include "companion_nimble_runtime.hpp"
 #include "companion_configuration_lane.hpp"
+#include "confirmation_evaluation_config.hpp"
+#include "opentrail/companion_confirmation_codec.hpp"
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+#include "confirmation_evaluation_backend.hpp"
+#include "confirmation_runtime_guard.hpp"
+#endif
 
 #include <array>
 #include <cstddef>
@@ -29,6 +35,13 @@ namespace {
 using namespace opentrail::companion;
 
 constexpr char kLogTag[] = "companion_gatt";
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+constexpr std::uint8_t kSelectedConfigurationMinor = kConfirmationEvaluationMinor;
+constexpr std::uint8_t kSelectedConfigurationCapabilities = kConfirmationEvaluationCapabilities;
+#else
+constexpr std::uint8_t kSelectedConfigurationMinor = 3;
+constexpr std::uint8_t kSelectedConfigurationCapabilities = 0xff;
+#endif
 
 constexpr std::uint8_t kMinimumKeyBytes =
     kCompanionGattMinimumSecurityKeyBytes;
@@ -134,18 +147,28 @@ ConfigurationPhoneStatus g_phone_status;
 ble_npl_event g_configuration_response_event{};
 void configuration_response_event(ble_npl_event*);
 ConfigurationDispatcher* g_configuration_dispatcher = nullptr;
+ConfigurationConfirmationBackend* g_confirmation_backend = nullptr;
+void update_configuration_authority();
 class ConfigurationSource final : public DeviceNameAuthoritySource {
 public:
     DeviceNameAuthority current() noexcept override {
         GattLock lock;
         if (!lock) return {};
+        update_configuration_authority();
         auto result = g_configuration_authority;
         const auto tick = esp_timer_get_time();
-        result.now_ms = tick < 0 ? 0 : static_cast<std::uint64_t>(tick) / 1000;
+        result.now_ms = tick < 0 ? std::numeric_limits<std::uint64_t>::max() : static_cast<std::uint64_t>(tick) / 1000;
         return result;
     }
 };
 ConfigurationSource g_configuration_source;
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+bool confirmation_dispatcher_ready() {
+    return g_configuration_dispatcher != nullptr && g_configuration_dispatcher->ready();
+}
+ConfirmationReadySource g_confirmation_source{g_configuration_source,
+    confirmation_dispatcher_ready, companion_confirmation_runtime_current};
+#endif
 
 class NimbleIndicationPort final : public CompanionGattIndicationPort {
 public:
@@ -543,7 +566,7 @@ int protocol_info_access(std::uint16_t connection_handle,
             return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
         }
         std::array<std::uint8_t, kConfigurationInfoBytes> offer{};
-        const auto encoded = encode_configuration_info({0xff, 3}, offer.data(), offer.size());
+        const auto encoded = encode_configuration_info({kSelectedConfigurationCapabilities, kSelectedConfigurationMinor}, offer.data(), offer.size());
         if (!encoded.encoded() || os_mbuf_append(context->om, offer.data(), offer.size()) != 0)
             return BLE_ATT_ERR_INSUFFICIENT_RES;
         g_configuration_selected = true;
@@ -617,16 +640,20 @@ int command_access(std::uint16_t connection_handle,
     }
     const radio::ByteView encoded{
         request.data(), static_cast<std::size_t>(length)};
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    if (is_factory_reset_command(encoded)) return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+#endif
     update_configuration_authority();
     if (g_adapter->status().transport_generation == g_configuration_blocked_generation &&
         g_configuration_blocked_generation != 0) return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
     if (g_configuration_selected) {
-        const auto frame = decode_configuration_frame(encoded.data, encoded.size, 3);
+        const auto frame = decode_configuration_frame(encoded.data, encoded.size, kSelectedConfigurationMinor);
         const auto status = g_adapter->status();
         if (!frame.decoded() || g_configuration_lane.occupied || status.pending.valid ||
             g_configuration_authority.phase != DeviceNamePhase::connected ||
             frame.value.session_nonce != g_configuration_authority.context.session_nonce ||
-            (frame.value.kind != 1 && frame.value.kind != 2 && frame.value.kind != 4 && frame.value.kind != 5 && frame.value.kind != 6) ||
+            (frame.value.kind != 1 && frame.value.kind != 2 && frame.value.kind != 4 && frame.value.kind != 5 && frame.value.kind != 6 &&
+             !(kSelectedConfigurationMinor == kConfirmationEvaluationMinor && frame.value.kind == 7)) ||
             g_configuration_token == std::numeric_limits<std::uint64_t>::max())
             return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
         const auto token = ++g_configuration_token;
@@ -867,7 +894,7 @@ static int configuration_guarded_gap_event(ble_gap_event* event, void* argument)
                     refresh_security(event->notify_tx.conn_handle) == 0;
                 update_configuration_authority();
                 g_phone_status.complete(g_configuration_lane, g_configuration_authority,
-                                        confirmed, now_ms());
+                                        confirmed, now_ms(), kSelectedConfigurationMinor);
                 g_indication_port.observe_completion(pending.delivery_token);
                 g_configuration_lane = {};
                 observe_companion_app_factory_reset_response(confirmed);
@@ -977,11 +1004,19 @@ bool initialize_companion_configuration(DeviceNamePersistence& storage, Configur
     if (g_configuration_mutex != nullptr || g_configuration_dispatcher != nullptr) return false;
     g_configuration_mutex = xSemaphoreCreateRecursiveMutexStatic(&g_configuration_mutex_storage);
     if (g_configuration_mutex == nullptr) return false;
-    static ConfigurationDispatcher dispatcher{g_configuration_source, storage, base, &region_storage, 3};
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    g_confirmation_backend = &confirmation_evaluation_backend(g_confirmation_source);
+#endif
+    static ConfigurationDispatcher dispatcher{g_configuration_source, storage, base, &region_storage,
+        kSelectedConfigurationMinor, g_confirmation_backend};
     g_configuration_dispatcher = &dispatcher;
     g_configuration_storage = &storage;
     g_configuration_region_storage = &region_storage;
     return true;
+}
+
+bool close_companion_confirmation() {
+    return g_confirmation_backend == nullptr || g_confirmation_backend->close();
 }
 
 void invalidate_companion_configuration(bool revoke) {

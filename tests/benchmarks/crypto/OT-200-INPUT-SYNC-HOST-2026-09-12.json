@@ -1,0 +1,262 @@
+{
+  "schema": "OT200-INPUT-SYNC-HOST-VALIDATION-1",
+  "recorded_utc": "2026-09-12T07:40:31.843990+00:00",
+  "status": "software_candidate_validated",
+  "matrix_result": {
+    "bytes": 14287,
+    "sha256": "b46a0a487636fa9121d643a95d4aaa4cb980e67cd1b9825ea4d415b9218da30d"
+  },
+  "steps": [
+    {
+      "name": "compiler",
+      "exit_code": 0,
+      "log": {
+        "bytes": 253,
+        "sha256": "d37e1d6bf894449bc6d02d7736142b49065b955ed6bf27cf8fd18e256fcb4aed"
+      },
+      "result_lines": []
+    },
+    {
+      "name": "python",
+      "exit_code": 0,
+      "log": {
+        "bytes": 15,
+        "sha256": "2b095b05c4093ebca54b87bd2c6a6f557935e6b3f8f506a0c2e5e294a763f4ad"
+      },
+      "result_lines": []
+    },
+    {
+      "name": "control-build",
+      "exit_code": 0,
+      "log": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "result_lines": []
+    },
+    {
+      "name": "control",
+      "exit_code": 0,
+      "log": {
+        "bytes": 79,
+        "sha256": "84e851a6f11bd827fc85ec4f9309ff49bb5b7275d0705c39d933d9a2e6b8804c"
+      },
+      "result_lines": [
+        "PASS 61 synchronizing control groups; actual target receive loop, no hardware"
+      ]
+    },
+    {
+      "name": "record-build",
+      "exit_code": 0,
+      "log": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "result_lines": []
+    },
+    {
+      "name": "record",
+      "exit_code": 0,
+      "log": {
+        "bytes": 76,
+        "sha256": "f14501d142debc26187620f7a11bb3108211416a012cc19406f6a6413114800a"
+      },
+      "result_lines": [
+        "PASS 1435 sync record wire cases, exact fields/CRC/allowlists; no hardware"
+      ]
+    },
+    {
+      "name": "sync-readback",
+      "exit_code": 0,
+      "log": {
+        "bytes": 2374,
+        "sha256": "7ce5fd6959dcbbd0b65a72866af95f6737e47f471f67ee2f4208240d10c989a5"
+      },
+      "result_lines": [
+        "Ran 18 tests in 1.101s",
+        "OK"
+      ]
+    },
+    {
+      "name": "sync-observation",
+      "exit_code": 0,
+      "log": {
+        "bytes": 1212,
+        "sha256": "46dae75bd40988e7748845abe98e96034b4bda3bfb9b5b03b28230cc4d3ac080"
+      },
+      "result_lines": [
+        "Ran 9 tests in 0.005s",
+        "OK"
+      ]
+    },
+    {
+      "name": "security_policy_input_control_tests",
+      "exit_code": 0,
+      "log": {
+        "bytes": 82,
+        "sha256": "6c5099b8b8f944f605213ed9ecd376659c34b1a7b86a9d7ed48fe7ec3dbf0930"
+      },
+      "result_lines": [
+        "PASS 24 input diagnostic host groups; all codec pairs match JSON/independent CRC"
+      ]
+    },
+    {
+      "name": "security_policy_input_readback_tests",
+      "exit_code": 0,
+      "log": {
+        "bytes": 130,
+        "sha256": "b2fe90c55ccbc78921c459e301a107d6413a95d42d7b33dad294ac5db95d135e"
+      },
+      "result_lines": [
+        "Ran 26 tests in 0.037s",
+        "OK"
+      ]
+    },
+    {
+      "name": "security_policy_input_observation_tests",
+      "exit_code": 0,
+      "log": {
+        "bytes": 2023,
+        "sha256": "8768f4033151f347702d66fe0835d766f6f1774ebee31da4ae6be35da2f5719e"
+      },
+      "result_lines": [
+        "Ran 17 tests in 1.210s",
+        "OK"
+      ]
+    },
+    {
+      "name": "security_policy_input_timing_tests",
+      "exit_code": 0,
+      "log": {
+        "bytes": 115,
+        "sha256": "72d81d7267291f77f96b52fab4b70a652d9051dcc912d781978829581b031b1b"
+      },
+      "result_lines": [
+        "Ran 11 tests in 0.001s",
+        "OK"
+      ]
+    },
+    {
+      "name": "security_policy_capture_tests",
+      "exit_code": 0,
+      "log": {
+        "bytes": 112,
+        "sha256": "537d5508db75311da541d4c0d85756a0124764db1de6ee0ea2c04b05ffe226f4"
+      },
+      "result_lines": [
+        "Ran 9 tests in 0.019s",
+        "OK"
+      ]
+    },
+    {
+      "name": "actual-sync-lifecycle",
+      "exit_code": 0,
+      "log": {
+        "bytes": 114,
+        "sha256": "04477efdc6cb4502611cfe52956271dce9e8510353e5a82cf1ca75e6b612c388"
+      },
+      "result_lines": [
+        "PASS 91 actual sync lifecycle scenarios and 32 strict capture checks; SDK/clock/NVS simulated; hardware untested"
+      ]
+    }
+  ],
+  "actual_app_console_scenarios": 91,
+  "strict_host_capture_checks": 32,
+  "local_dependency_files_verified": 731,
+  "source_pins": {
+    "tools/security_policy_sync_observation.py": {
+      "bytes": 2218,
+      "sha256": "5a1d6b2ddd0e2a248b92bcc85676658e741a5ad8dcd50a1eb98f7af3e6026fe3"
+    },
+    "tools/security_policy_sync_readback.py": {
+      "bytes": 6776,
+      "sha256": "e95de8298d6f70646a43a9416e12272dd89316bb264f5275ab95edcbde575983"
+    },
+    "tests/host/security_policy_sync_control_tests.cpp": {
+      "bytes": 7481,
+      "sha256": "46017803c496889ec7104857e8b9b4644499b7b876bcc0cf855fa03ad8b7bd14"
+    },
+    "tests/host/security_policy_sync_lifecycle_tests.cpp": {
+      "bytes": 18937,
+      "sha256": "eca80e704385a7b28a5379c75a88c84f4589eb557a06556ac38968d99e89f22f"
+    },
+    "tests/host/security_policy_sync_lifecycle_tests.py": {
+      "bytes": 18700,
+      "sha256": "f39faf702e352f6a16324e15c2cc1aff77472218864e7776ccc78e5aaf0810b9"
+    },
+    "tests/host/security_policy_sync_observation_tests.py": {
+      "bytes": 4703,
+      "sha256": "bb53fb0452522fa3625e66de1e11071e15bebd12444780f71c260c91b05b8d24"
+    },
+    "tests/host/security_policy_sync_readback_tests.py": {
+      "bytes": 17150,
+      "sha256": "c99bdb46e47d7cadf2e91da6392369dcc1ef3b1f3f3fe5974e742375055ff814"
+    },
+    "tests/host/security_policy_sync_record_tests.cpp": {
+      "bytes": 6128,
+      "sha256": "cce3762e979c0842380db00a417eb6581296c1fbcd0770496c324656252d149c"
+    },
+    "firmware/targets/heltec_v4_security_sync_diag/CMakeLists.txt": {
+      "bytes": 1146,
+      "sha256": "a29c66fe825e9d1c333b4b9f3749bce87d04f33bce9cb6b9e4ebf9a8a3d2a6cc"
+    },
+    "firmware/targets/heltec_v4_security_sync_diag/partitions.csv": {
+      "bytes": 546,
+      "sha256": "cd612068ad53b8ba7c3ecd0a2db9128ad8b35515fab4f10d9d0386e1ca9300f5"
+    },
+    "firmware/targets/heltec_v4_security_sync_diag/README.md": {
+      "bytes": 6800,
+      "sha256": "bc038c38acaa8e0558f9cc8f9f869604efb71a3a42c71ab044d4e34bbbc483ff"
+    },
+    "firmware/targets/heltec_v4_security_sync_diag/sdkconfig.defaults": {
+      "bytes": 693,
+      "sha256": "4569974d1cb7ee445d10087f895e9e0dc125cef3abc4ce541abc4fe93fb03846"
+    },
+    "firmware/targets/heltec_v4_security_sync_diag/main/app_main.cpp": {
+      "bytes": 2537,
+      "sha256": "fbc69da96c2462e9b95a8798da2068894271dfeba6f928d68227d542b2d226db"
+    },
+    "firmware/targets/heltec_v4_security_sync_diag/main/CMakeLists.txt": {
+      "bytes": 1428,
+      "sha256": "a1a15dab7257309167f2edb44be9c02d6be1abc5d95ae152c8f2704471dc4714"
+    },
+    "firmware/targets/heltec_v4_security_sync_diag/main/input_control_loop.hpp": {
+      "bytes": 1214,
+      "sha256": "6983a6370268ec0434d0afde9ad7bb7503df65ba3cf2ad3c70b59d3525ed68b7"
+    },
+    "firmware/targets/heltec_v4_security_sync_diag/main/stage_store.hpp": {
+      "bytes": 2093,
+      "sha256": "4809f789daa794783448727b0947a56230b792b7d228ca819b90d2b9dc1df63b"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_control_synchronizing.hpp": {
+      "bytes": 9660,
+      "sha256": "4eed69cb35601b4e76f42bd0cc57aa00287afcc752b4b07d4752304dded6ae0f"
+    },
+    "firmware/components/security_diagnostics/include/opentrail/security_sync_record.hpp": {
+      "bytes": 4234,
+      "sha256": "594ef6af244e7c69194b5cb55860ba24b92db51cd29a975d814e70e553c8af1e"
+    },
+    "firmware/components/security_diagnostics/sync_record_v1.json": {
+      "bytes": 3124,
+      "sha256": "fe5fbc4a085e9b69a0094ec581752ac52782495c62b3f6ba68b7a6a55f34091f"
+    },
+    "tools/Test-SecuritySyncDiagnostic.py": {
+      "bytes": 6176,
+      "sha256": "1e39be5327fc3dc3b335c9ccac607cf119352789c132de7eb3a77efb26438b6e"
+    }
+  },
+  "image_binding": {
+    "contract": "OT200-SYNC-INPUT-RECORD-1",
+    "target": "heltec_v4_security_sync_diag",
+    "sha256": "25e18eb5f852ea53a005272af13cbbe6fa828833920ecd5c8c79e826984d5a62",
+    "scope": "built candidate identity; no captured-image custody"
+  },
+  "hardware_executed": false,
+  "network_used": false,
+  "limits": [
+    "SDK lifecycle and clocks are simulated in host tests.",
+    "The historical USB invalid-length cause is unknown.",
+    "The pure captured-byte projection is not an executable observation or recovery package.",
+    "Physical acceptance, fresh custody and authority, full CI and publication are separate gates."
+  ]
+}

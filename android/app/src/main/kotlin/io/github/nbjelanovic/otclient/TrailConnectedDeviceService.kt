@@ -83,10 +83,14 @@ class TrailConnectedDeviceService : Service() {
         var controller: TrailAppController? = null
         return try {
             val scheduler = AndroidMainThreadBleRuntimeScheduler()
+            val confirmationClock = { android.os.SystemClock.elapsedRealtime() }
+            val evaluationConfirmation = application is EvaluationGroupConfirmationOptIn
             val runtime = BleCompanionRuntime(
                 facade = facade,
                 scheduler = scheduler,
                 threadVerifier = AndroidMainThreadBleRuntimeVerifier(),
+                evaluationConfirmationEnabled = evaluationConfirmation,
+                confirmationClockMillis = confirmationClock,
             )
             val createdController = TrailAppController(
                 localController = CompanionAppController(UnavailableProductionLocalTransport),
@@ -95,6 +99,9 @@ class TrailConnectedDeviceService : Service() {
                 authorizationClient = RuntimeDeviceAuthorizationClaimClient(runtime),
                 authorizationScheduler = scheduler,
                 bluetoothFacadeCloseable = facade,
+                groupConfirmationAdapter = if (evaluationConfirmation) RuntimeV1GroupConfirmationAdapter(runtime)
+                    else DisabledV1GroupConfirmationAdapter,
+                groupConfirmationClock = confirmationClock,
             )
             controller = createdController
             val observation = runCatching {
@@ -260,6 +267,18 @@ class TrailConnectedDeviceService : Service() {
         override fun submitAction(request: io.github.nbjelanovic.otprotocol.CompanionActionRequest): Boolean {
             assertMainThread()
             return attached?.submitAction(request) == true
+        }
+        override fun refreshGroupConfirmation(): Boolean {
+            assertMainThread()
+            return attached?.refreshGroupConfirmation() == true
+        }
+        override fun confirmGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean {
+            assertMainThread()
+            return attached?.confirmGroupConfirmation(offer) == true
+        }
+        override fun cancelGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean {
+            assertMainThread()
+            return attached?.cancelGroupConfirmation(offer) == true
         }
         override fun readRadioRegion(): Boolean {
             assertMainThread()

@@ -1,0 +1,62 @@
+{
+  "schema": "OT208-HARDWARE-ACCEPTANCE-PLAN-1",
+  "status": "procedure_prepared_no_execution_authority",
+  "target": "heltec_v4_invitation_eval",
+  "version": "ot208-invitation-v1",
+  "candidate": {
+    "path": "build/ot208-invitation-user-a/heltec_v4_invitation_eval.bin",
+    "bytes": 445248,
+    "sha256": "4526209643bbfb51ccf95d04a992eed41c877dd72cc0b03f415783a63d9036d2"
+  },
+  "build_report": {
+    "path": "tests/benchmarks/crypto/OT-208-INVITATION-TARGET-BUILD-2026-09-12.json",
+    "bytes": 27515,
+    "sha256": "5a9db409dc80868286ac8fe14646fd9816b410f8fccf4747788d423d134f9b2e"
+  },
+  "sequence": [
+    "fresh admission and original custody for A/B",
+    "A one exact-image trial",
+    "A original application and full NVS restore/readback; protected regions verify; original restart",
+    "B admitted only after A pass and verified restoration",
+    "B one exact-image trial and same verified restoration",
+    "independent retained-evidence review; close custody; consume grants"
+  ],
+  "bounds": {
+    "application_offset": 65536,
+    "application_span": 589824,
+    "nvs_offset": 53248,
+    "nvs_span": 12288,
+    "protected": {
+      "bootloader": 32768,
+      "partition": 4096,
+      "ota": 8192
+    },
+    "receipt_marker": "SEC_BEGIN1",
+    "strict_receipt_bytes": 128,
+    "preamble_bytes": 256,
+    "capture_ms": 30000
+  },
+  "expected_candidate_result": "Matching BEGIN and strict pass receipt. Actual target internally requires durable boot/per-role consume, reconstructed reuse refusal, bidirectional authenticated records, duplicate rejection, active cancellation and retirement.",
+  "preconditions": [
+    "fresh exact ports/ROM identities/geometry verified before each physical mutation",
+    "fresh original full application-span/NVS/protected backups and restoration authority",
+    "original NVS must admit fresh diagnostic, invitation and evaluation stores; never erase retained state to force admission",
+    "successor operator package must bind this target/artifact/build/source closure and preserve frozen capture/restoration semantics",
+    "one-use grant naming this candidate and each role; prior grants stay consumed"
+  ],
+  "operator_boundary": "Frozen OT203 operator hard-codes the previous target,440480-byte image and build hash. It must reject this candidate. A tested successor binding is required before this procedure is executable; do not substitute image bytes or bypass validation.",
+  "abort_policy": "No automatic retry or second flash. Restore only through verified custody/recovery state; B stays unflashed or receives guarded release if A does not pass. Preserve fixed categorical evidence and investigate before another grant.",
+  "not_authorized": [
+    "device enumeration/serial opens in this preparation task",
+    "flashing/reset/erase/bond/factory reset",
+    "power cuts/brownout",
+    "radio/phone operations",
+    "publication"
+  ],
+  "physical_proof_limits": [
+    "normal target execution only, no injected physical interruption",
+    "retained ot198diag makes app restart refuse before another evaluation; helper reconstruction tests are not a physical reset claim",
+    "same-chip local roles on each board, not a cross-node cryptographic join",
+    "SDK call wall-clock bounds, physical entropy uniqueness and full cleanup/rekey remain separate acceptance"
+  ]
+}

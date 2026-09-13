@@ -763,6 +763,122 @@ class TrailAppControllerTest {
         harness.controller.close()
     }
 
+    @Test
+    fun deviceGroupConfirmationRequiresReadyAndExpiresAfterOneSubmission() {
+        var now = 100L
+        val adapter = TestGroupAdapter()
+        val h = harness(groupAdapter = adapter, groupClock = { now })
+        h.controller.chooseBluetoothDeviceMode()
+        assertFalse(h.controller.refreshGroupConfirmation())
+        assertEquals(0, adapter.sources.size)
+        val gatt = beginConnection(h)
+        makeReady(gatt)
+        assertTrue(h.controller.refreshGroupConfirmation())
+        val offer = assertIs<V1GroupConfirmationState.Review>(bluetoothState(h).groupConfirmation).offer
+        assertTrue(h.controller.confirmGroupConfirmation(offer))
+        assertIs<V1GroupConfirmationState.Submitted>(bluetoothState(h).groupConfirmation)
+        assertFalse(h.controller.confirmGroupConfirmation(offer))
+        assertEquals(listOf(V1GroupConfirmationDecision.CONFIRM), adapter.sources.single().decisions)
+        assertTrue(gatt.writes.isEmpty())
+        now = 1_000L
+        h.scheduler.leases.last().run()
+        assertEquals(V1GroupConfirmationState.Closed(V1GroupConfirmationCloseReason.EXPIRED),
+            bluetoothState(h).groupConfirmation)
+        assertFalse(h.controller.refreshGroupConfirmation())
+        assertEquals(1, adapter.sources.size)
+        h.controller.close()
+        assertEquals(1, adapter.sources.single().closes)
+    }
+
+    @Test
+    fun resetCancelAndExpiryCannotReopenGroupAuthorityInTheSameSession() {
+        listOf(false, true).forEach { expire ->
+            val adapter = TestGroupAdapter()
+            val h = harness(groupAdapter = adapter, groupClock = { 100L })
+            makeReady(beginConnection(h))
+            assertTrue(h.controller.refreshGroupConfirmation())
+            val offer = assertIs<V1GroupConfirmationState.Review>(bluetoothState(h).groupConfirmation).offer
+            assertTrue(h.controller.requestFactoryResetConfirmation())
+            if (expire) h.scheduler.leases.last().run() else h.controller.cancelFactoryResetConfirmation()
+            assertFalse(h.controller.refreshGroupConfirmation())
+            assertFalse(h.controller.confirmGroupConfirmation(offer))
+            assertEquals(V1GroupConfirmationState.Unsupported, bluetoothState(h).groupConfirmation)
+            assertEquals(1, adapter.sources.size)
+            assertEquals(1, adapter.sources.single().closes)
+            h.controller.close()
+        }
+    }
+
+    @Test
+    fun reconnectUsesFreshAuthorityAndOldCloseCallbacksCannotOpenAnAdapter() {
+        val adapter = TestGroupAdapter()
+        val h = harness(groupAdapter = adapter, groupClock = { 100L })
+        val firstGatt = beginConnection(h)
+        makeReady(firstGatt)
+        assertTrue(h.controller.refreshGroupConfirmation())
+        val old = assertIs<V1GroupConfirmationState.Review>(bluetoothState(h).groupConfirmation).offer
+        adapter.sources.single().onClose = { assertFalse(h.controller.refreshGroupConfirmation()) }
+        firstGatt.emit(BleGattEvent.Disconnected)
+        assertEquals(1, adapter.sources.size)
+        assertEquals(1, adapter.sources.single().closes)
+        makeReady(beginConnection(h))
+        assertTrue(h.controller.refreshGroupConfirmation())
+        assertEquals(2, adapter.sources.size)
+        assertFalse(h.controller.confirmGroupConfirmation(old))
+        assertIs<V1GroupConfirmationState.Closed>(bluetoothState(h).groupConfirmation)
+        assertTrue(adapter.sources.all { it.decisions.isEmpty() })
+        h.controller.close()
+        assertTrue(adapter.sources.all { it.closes == 1 })
+    }
+
+    @Test
+    fun reentrantAdapterOpenAndInlineEarlyExpiryCannotCreateUsableOffers() {
+        val opening = TestGroupAdapter()
+        val h = harness(groupAdapter = opening, groupClock = { 100L })
+        opening.onOpen = { assertFalse(h.controller.refreshGroupConfirmation()) }
+        makeReady(beginConnection(h))
+        assertFalse(h.controller.refreshGroupConfirmation())
+        assertEquals(1, opening.sources.size)
+        assertEquals(1, opening.sources.single().closes)
+        h.controller.close()
+
+        val timer = TestGroupAdapter()
+        val timed = harness(groupAdapter = timer, groupClock = { 100L })
+        makeReady(beginConnection(timed))
+        timed.scheduler.callbackOnSchedule = true
+        timed.controller.refreshGroupConfirmation()
+        assertEquals(V1GroupConfirmationState.Closed(V1GroupConfirmationCloseReason.CLOSED),
+            bluetoothState(timed).groupConfirmation)
+        assertFalse(timed.controller.refreshGroupConfirmation())
+        assertTrue(timer.sources.single().decisions.isEmpty())
+        assertTrue(timed.scheduler.leases.last().closed)
+        timed.controller.close()
+    }
+
+    private class TestGroupAdapter : V1GroupConfirmationAdapter {
+        val sources = mutableListOf<TestGroupSource>()
+        var onOpen: () -> Unit = {}
+        override fun open(authority: V1GroupConfirmationAuthority): V1GroupConfirmationSource {
+            val source = TestGroupSource(authority).also(sources::add)
+            onOpen()
+            return source
+        }
+    }
+
+    private class TestGroupSource(authority: V1GroupConfirmationAuthority) : V1GroupConfirmationSource {
+        var next: V1GroupConfirmationOffer? = V1GroupConfirmationOffer(authority, 1,
+            V1GroupConfirmationRole.JOINER, "ab".repeat(16), 1u, "cd".repeat(32), "1234 5678", 1_000)
+        val decisions = mutableListOf<V1GroupConfirmationDecision>()
+        var closes = 0
+        var onClose: () -> Unit = {}
+        override fun pollOffer(): V1GroupConfirmationOffer? = next.also { next = null }
+        override fun submit(offer: V1GroupConfirmationOffer, decision: V1GroupConfirmationDecision): Boolean {
+            decisions += decision
+            return true
+        }
+        override fun close() { closes++; onClose() }
+    }
+
     private fun prepareCandidate(harness: Harness) {
         harness.controller.chooseBluetoothDeviceMode()
         harness.controller.scanBluetoothDevices()
@@ -809,6 +925,8 @@ class TrailAppControllerTest {
     private fun harness(
         permission: NearbyDevicesPermissionState = NearbyDevicesPermissionState.GRANTED,
         startLifecycle: Boolean = true,
+        groupAdapter: V1GroupConfirmationAdapter = DisabledV1GroupConfirmationAdapter,
+        groupClock: () -> Long = { 100L },
     ): Harness {
         val facade = TestFacade()
         val scheduler = TestScheduler()
@@ -823,6 +941,8 @@ class TrailAppControllerTest {
             authorizationClient = authorization,
             authorizationScheduler = scheduler,
             bluetoothFacadeCloseable = facade,
+            groupConfirmationAdapter = groupAdapter,
+            groupConfirmationClock = groupClock,
         )
         if (startLifecycle) controller.onLifecycleStart()
         return Harness(controller, local, runtime, facade, permissionReader, scheduler, authorization)

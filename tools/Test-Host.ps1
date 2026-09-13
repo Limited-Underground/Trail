@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param()
 
 Set-StrictMode -Version Latest
@@ -143,6 +143,17 @@ $commonArguments = @(
 
 $builds = @(
     @{
+        Name = 'evaluation confirmation runtime fault guard'
+        Output = Join-Path $buildDirectory 'security_confirmation_runtime_guard_tests.exe'
+        Sources = @((Join-Path $projectRoot 'tests\host\security_confirmation_runtime_guard_tests.cpp'))
+    },
+    @{
+        Name = 'evaluation confirmation shared wire parity'
+        Output = Join-Path $buildDirectory 'companion_confirmation_codec_tests.exe'
+        RunArguments = @((Join-Path $projectRoot 'tests\fixtures\companion_confirmation_v1.json'))
+        Sources = @((Join-Path $projectRoot 'tests\host\companion_confirmation_codec_tests.cpp'))
+    },
+    @{
         Name = 'benchmark-only libsodium Noise XK composition'
         Output = Join-Path $buildDirectory 'libsodium_noise_xk_composition_tests.exe'
         Sources = @(
@@ -247,6 +258,24 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
             (Join-Path $projectRoot 'firmware\components\time\src\oled_time_admission.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_configuration_dispatcher_tests.cpp')
+        )
+    },
+    @{
+        Name = 'evaluation confirmation profile and dispatcher'
+        Output = Join-Path $buildDirectory 'companion_confirmation_dispatcher_tests.exe'
+        Arguments = @('-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_dispatcher.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_region_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_time_admission.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_confirmation_dispatcher_tests.cpp')
         )
     },
     @{
@@ -2808,6 +2837,18 @@ if ($LASTEXITCODE -ne 0) { throw 'security_policy_console_lifecycle_tests.py fai
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_control_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_control_tests.py failed.' }
 
+& $python.Source -B (Join-Path $projectRoot 'tools\Test-SecuritySyncDiagnostic.py')
+if ($LASTEXITCODE -ne 0) { throw 'Test-SecuritySyncDiagnostic.py failed.' }
+
+& $python.Source -B (Join-Path $projectRoot 'tools\Test-SecuritySyncOperator.py')
+if ($LASTEXITCODE -ne 0) { throw 'Test-SecuritySyncOperator.py failed.' }
+
+& $python.Source -B (Join-Path $projectRoot 'tools\Test-SecurityReceiptBoundary.py')
+if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityReceiptBoundary.py failed.' }
+
+& $python.Source -B (Join-Path $projectRoot 'tools\Test-SecurityReceiptOperator.py')
+if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityReceiptOperator.py failed.' }
+
 & $python.Source (Join-Path $projectRoot 'tests\host\security_policy_input_lifecycle_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'security_policy_input_lifecycle_tests.py failed.' }
 
@@ -2920,4 +2961,39 @@ if ($LASTEXITCODE -ne 0) {
 & (Join-Path $projectRoot 'tools\Test-WindowsSimulator.ps1')
 if (-not $?) {
     throw 'Windows simulator validation failed.'
+}
+
+# OT-206/207: one shared crypto build for invitation lifecycle and candidate proofs.
+$invitationProofRoot = Join-Path $projectRoot ("build\invitation-proof-" + [guid]::NewGuid().ToString("N"))
+& $python.Source -X utf8 -B (Join-Path $projectRoot "tests\host\security_policy_invitation_lifecycle_tests.py") --output-root $invitationProofRoot
+if ($LASTEXITCODE -ne 0) { throw "Invitation lifecycle and candidate proofs failed." }
+
+# OT-208: actual invitation target body and SDK boundaries, with admitted real crypto.
+$invitationTargetProofRoot = Join-Path $projectRoot ("build\invitation-target-proof-" + [guid]::NewGuid().ToString("N"))
+& $python.Source -X utf8 -B (Join-Path $projectRoot "tests\host\security_invitation_target_tests.py") --output-root $invitationTargetProofRoot
+if ($LASTEXITCODE -ne 0) { throw "Actual invitation target host tests failed." }
+
+# Exact invitation candidate operator: synthetic boundary and isolated launch tests.
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tools\Test-SecurityInvitationOperator.py')
+if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityInvitationOperator.py failed.' }
+
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tools\Test-SecurityDeadlineOperator.py')
+if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityDeadlineOperator.py failed.' }
+
+# OT-215: device-owned pending confirmation and the actual additive target body.
+$confirmationOwnerProofRoot = Join-Path $projectRoot ("build\confirmation-owner-proof-" + [guid]::NewGuid().ToString("N"))
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\security_confirmation_owner_tests.py') --output-root $confirmationOwnerProofRoot
+if ($LASTEXITCODE -ne 0) { throw 'Device confirmation owner tests failed.' }
+$confirmationTargetProofRoot = Join-Path $projectRoot ("build\confirmation-target-proof-" + [guid]::NewGuid().ToString("N"))
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\security_confirmation_target_tests.py') --output-root $confirmationTargetProofRoot
+if ($LASTEXITCODE -ne 0) { throw 'Actual confirmation target tests failed.' }
+# OT-216: actual protected-BLE confirmation backend with real crypto and SDK seams.
+$confirmationBleProofRoot = Join-Path $buildDirectory 'confirmation-ble-backend-proof'
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\security_confirmation_ble_backend_tests.py') --output-root $confirmationBleProofRoot
+if ($LASTEXITCODE -ne 0) { throw 'Protected BLE confirmation backend tests failed.' }
+
+# OT-218: exact-span BLE custody, real transport composition and observer admission.
+foreach ($bleTrialTest in @('ble_confirmation_trial_tests.py', 'ble_confirmation_trial_transport_tests.py', 'ble_confirmation_operator_tests.py')) {
+    & $python.Source -X utf8 -B (Join-Path $projectRoot ('tests\host\' + $bleTrialTest))
+    if ($LASTEXITCODE -ne 0) { throw "BLE trial test failed: $bleTrialTest" }
 }

@@ -1,0 +1,190 @@
+{
+  "schema": "OT206-INVITATION-LIFECYCLE-1",
+  "as_of": "2026-09-12",
+  "status": "host_integration_passed_target_wiring_pending",
+  "implementation": [
+    "durable boot generation from existing counter allocator",
+    "separate durable consumption per local role",
+    "exact prior/committed record and unchanged slot verification",
+    "cancel/expiry/reconstruction/reuse refusal",
+    "current authority checked before each session operation",
+    "explicit identity generation then one-use authority binding"
+  ],
+  "tests": {
+    "security_policy_invitation_lifecycle_tests": {
+      "output": "PASS 91 durable invitation lifecycle groups\nRefused storage faults: 9 pristine retry cases, 19 retained refusal cases",
+      "binary_sha256": "b8944d555487e02598fcbcc935adedbf413274cb2d06f83712162d102b9d7f35"
+    },
+    "security_policy_authorized_session_tests": {
+      "output": "PASS 41 actual authorized policy session groups",
+      "binary_sha256": "6255f8a524c066125e5781a96c29a3aa0adbe7bfe8bc1e47c32637c8f81436b5"
+    },
+    "security_candidate_known_answer_tests": {
+      "output": "PASS 10 pinned Ed25519 known-answer and refusal groups",
+      "binary_sha256": "a119403008a243fbd5e507dbb495d9d5dd6202bb5039d4f4b9ffcd103191d546"
+    },
+    "security_policy_invitation_tests": {
+      "output": "PASS 40 real signed invitation gate groups",
+      "binary_sha256": "e9e91416a4d359428b59e166e3cd3398f6d91c53b37d757771f27cae10d9b436"
+    },
+    "security_policy_session_tests": {
+      "output": "PASS 31 actual policy session groups",
+      "binary_sha256": "9d344f07d9b39e327114375b40a4c31521373097d359aa513e4ccdc50c03e790"
+    }
+  },
+  "independent_noise_control_groups": 26,
+  "total_groups": 239,
+  "toolchain": {
+    "gcc.exe": {
+      "sha256": "f96a3bdb1d3a3967b309d75c7413399391e857b5be4cb17162572ed66f6772a0",
+      "version": "gcc.exe (Rev5, Built by MSYS2 project) 16.1.0"
+    },
+    "g++.exe": {
+      "sha256": "798a6eb495b30cf771dc759b5508d269ecb0dddac739719e8b30fe0ac0744b69",
+      "version": "g++.exe (Rev5, Built by MSYS2 project) 16.1.0"
+    }
+  },
+  "upstream_warning_categories": [],
+  "source_pins": {
+    "tools/noise_xk_independent_interop.py": {
+      "bytes": 6761,
+      "sha256": "e0c82d47cc48043d1fe451245f0f2a7aa0936d717092ad498382e6d116038ce9"
+    },
+    "tests/host/security_policy_invitation_lifecycle_tests.py": {
+      "bytes": 8953,
+      "sha256": "12f49dd3d3ba6fbb99fca9b1f0e5cd7056f8be356dc1ef5c1059f4607611d80c"
+    },
+    "firmware/components/security/test_support/fake_secure_random.cpp": {
+      "bytes": 2235,
+      "sha256": "1becda0385d90018438edc1130be004ca02f201ff84b7558d9698a0912922c6d"
+    },
+    "firmware/components/persistence/test_support/memory_persistent_storage.cpp": {
+      "bytes": 4777,
+      "sha256": "75f2c25fee5b737285c5b2d0549f979a74296cca35ba8a552ad748ab14bd28ff"
+    },
+    "firmware/components/persistence/src/outbound_counter_lease_store.cpp": {
+      "bytes": 13692,
+      "sha256": "6d832d1447189f53e733642d4c7118333a973690d40b702a4fdde1999c69f151"
+    },
+    "firmware/components/security/src/aead_nonce.cpp": {
+      "bytes": 1349,
+      "sha256": "e28a118c29886c26d2011f58c989d764b0bc784b6fb71c27cd49a7853486bac9"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium/libsodium/src/libsodium/crypto_sign/crypto_sign.c": {
+      "bytes": 2554,
+      "sha256": "4ab49ce7800a6c828d314ecc1a5813bc1c133636a8d335ba17dea3ef85679229"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium/libsodium/src/libsodium/crypto_sign/ed25519/sign_ed25519.c": {
+      "bytes": 2245,
+      "sha256": "d527cebb3656093aad67b2a231240997b76e9e88105618a9c56def4ba3641b54"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium/libsodium/src/libsodium/crypto_sign/ed25519/ref10/keypair.c": {
+      "bytes": 2002,
+      "sha256": "aa5a48c00cf108df3d2272f9c6233076ee4ddc0cc380bc36626313e48e2acea7"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium/libsodium/src/libsodium/crypto_sign/ed25519/ref10/sign.c": {
+      "bytes": 3599,
+      "sha256": "b032204bad473385b028f76b0bbbe598d4c283c7b79e06aa296499491b47fea8"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium/libsodium/src/libsodium/crypto_sign/ed25519/ref10/open.c": {
+      "bytes": 2685,
+      "sha256": "cce38c5b716b867c150019af12af9f090c9b15c25165e0318907c585c753ea96"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium/libsodium/src/libsodium/crypto_hash/sha512/hash_sha512.c": {
+      "bytes": 205,
+      "sha256": "fca3b25c288cff440005ac36c4247f8df5ff3d38117e260eae8366d78178b641"
+    },
+    "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium/libsodium/src/libsodium/crypto_hash/sha512/cp/hash_sha512_cp.c": {
+      "bytes": 9445,
+      "sha256": "5b796efeaf882feda2e79c62d060d36208f2a469b52df9649c23b39253ca408b"
+    },
+    "tests/host/security_policy_invitation_lifecycle_tests.cpp": {
+      "bytes": 8308,
+      "sha256": "44e12989110dadc5b7a70f85bb4125dfa84c373d2bd41285ad89034c94d42125"
+    },
+    "tests/host/security_policy_authorized_session_tests.cpp": {
+      "bytes": 11081,
+      "sha256": "b645a5dfd5b238be028e0af1c748b697daeb5edd664aaab1bb750bf026e86cab"
+    },
+    "tests/host/security_candidate_known_answer_tests.cpp": {
+      "bytes": 4233,
+      "sha256": "91feea63c518cefd2ca45997de76617edfc5063a2dc98a917e1d6eb710afac7c"
+    },
+    "tests/host/security_policy_invitation_tests.cpp": {
+      "bytes": 5353,
+      "sha256": "7ea0d57235653299590be029c1aa63331587f2624c3cb99b948f7fc2705d1db6"
+    },
+    "tests/host/security_policy_session_tests.cpp": {
+      "bytes": 10228,
+      "sha256": "5ee95b8a39672c5fb376e15ee8ba801616d09486fcdff6e443c2edf122f4bfa7"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_invitation_authority.hpp": {
+      "bytes": 15481,
+      "sha256": "57a8d93ecf1cd1655804bd19aa0cd6964c33743cb53054ac28616fd0f57d43ee"
+    },
+    "firmware/components/security_evaluation/include/opentrail/authorized_policy_session.hpp": {
+      "bytes": 4954,
+      "sha256": "34a7143034055f2f65ecaffa6f9a652babf5c72379e1d38daad56db3c9f7e3e1"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_invitation.hpp": {
+      "bytes": 5987,
+      "sha256": "6f54e83862d625ffe93ac9f93c8ceb484416d4fdfc1f0ac4f9e879388952aa84"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_policy_session.hpp": {
+      "bytes": 10355,
+      "sha256": "ac1119a0be627895cf68be58d782e1891392fa4241e935a060f5f9a1b21888ab"
+    },
+    "tests/host/security_policy_invitation_lifecycle_fixture.hpp": {
+      "bytes": 4929,
+      "sha256": "169d45a886c6a202f49a77f19551101edb6d76c30f089c285ea08b0d7e7ebf0d"
+    }
+  },
+  "frozen_firmware_build": {
+    "path": "tests/benchmarks/crypto/OT-203-RECEIPT-SYNC-BUILD-2026-09-12.json",
+    "bytes": 17346,
+    "sha256": "131fed9e5be168b2438bc4d968fac8e2c4fe0cddd33fc5501fd0d818312fc01f",
+    "source_pins_preserved": 44
+  },
+  "host_result_binding": {
+    "bytes": 117014,
+    "sha256": "8c51c38e04c7f769f6f99a93ad35771e073eeea81fef96c9e842b9f2824fb30c"
+  },
+  "command_log_binding": {
+    "bytes": 83492,
+    "sha256": "2a32ecac84bf16064453a73793254a38640cd956917b390650a5388ebd022a3f"
+  },
+  "esp32s3_compile_probe": {
+    "status": "passed_compile_only",
+    "evidence": {
+      "bytes": 23620,
+      "sha256": "6429d7ffe1d2cd65329cf37ee29dd2d9bf14e43849df89487a55bf283579f5c8"
+    },
+    "linked_firmware": false
+  },
+  "fault_boundaries": {
+    "pristine_retry_cases": 9,
+    "retained_refusal_cases": 19,
+    "no_durable_write": "Failed admission may be retried after reconstruction if no durable bytes were written; no session was admitted.",
+    "partial_or_uncertain_retained_state": "Refuses without clearing or reinitializing the ledger.",
+    "pre_admission_mutation": "Only authorization ledgers mutate; TX/RX session stores and output stay unchanged.",
+    "concurrency": "One sequential runtime owner; no cross-thread/process atomicity claim.",
+    "boot_token": "Public deterministic token unique within retained boot ledger; not entropy or global uniqueness.",
+    "destructive_reset": "No runtime erase/reset authority; whole-flash attacker rollback and destructive identity reset remain separate."
+  },
+  "failures_resolved": [
+    "Two test formatting warnings corrected before final run.",
+    "Fault injection exposed unvalidated corrupted pre-reservation overwrite slot; exact prior record validation added and all91 lifecycle groups passed.",
+    "ESP compiler launcher initially denied filesystem access; same compile-only command passed after approved sandbox escalation."
+  ],
+  "not_exercised": [
+    "physical NVS interruption",
+    "target boot/namespace wiring",
+    "phone confirmation",
+    "cross-node join/rekey",
+    "full firmware image build for the new component"
+  ],
+  "selection": false,
+  "hardware_actions": false,
+  "v1_completion_changed": false,
+  "public_website_status_changed": false
+}

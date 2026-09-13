@@ -182,6 +182,24 @@ class TrailActivityController(
     }
 
     override fun scanBluetoothDevices() = bluetoothOnly { it.scan() }
+    override fun refreshGroupConfirmation(): Boolean {
+        requireOwnerThread()
+        return canMutate() && lifecycleActive && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            port?.refreshGroupConfirmation() == true
+    }
+
+    override fun confirmGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean {
+        requireOwnerThread()
+        return canMutate() && lifecycleActive && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            port?.confirmGroupConfirmation(offer) == true
+    }
+
+    override fun cancelGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean {
+        requireOwnerThread()
+        return canMutate() && lifecycleActive && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            port?.cancelGroupConfirmation(offer) == true
+    }
+
     override fun readRadioRegion(): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.readRadioRegion()==true }
     override fun writeRadioRegion(selectionId: Int): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.writeRadioRegion(selectionId)==true }
     override fun readDeviceName(): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.readDeviceName()==true }
@@ -428,6 +446,7 @@ class TrailActivityController(
                 permissionRequestInFlight = permissionRequestInFlight,
                 permissionWasDenied = permissionWasDenied,
                 authorizationState = authorization,
+                groupConfirmation = portState?.groupConfirmation ?: V1GroupConfirmationState.Unsupported,
                 factoryResetConfirmationVisible = portState?.factoryResetConfirmationVisible == true,
                 serviceState = serviceState,
                 notificationPermissionState = notificationPermissionState,

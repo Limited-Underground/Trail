@@ -15,6 +15,16 @@ public:
 };
 enum class ConfigurationDispatchCode { accepted, responded, replayed, busy, rejected,
     unauthorized, stale, conflict, no_result, no_pending, contained, output_too_small };
+// Optional evaluation backend. All calls run on the serialized application
+// owner, outside GATT locks. Construction performs no SDK or storage I/O.
+class ConfigurationConfirmationBackend {
+public:
+    virtual ~ConfigurationConfirmationBackend() = default;
+    [[nodiscard]] virtual bool execute(const DeviceNameContext&, const ConfigurationFrame&,
+        ConfigurationFrame&) = 0;
+    virtual void observe() = 0;
+    [[nodiscard]] virtual bool close() = 0;
+};
 struct ConfigurationDispatchResult {
     ConfigurationDispatchCode code{ConfigurationDispatchCode::rejected};
     std::size_t bytes{0};
@@ -31,7 +41,8 @@ struct ConfigurationDispatchResult {
 class ConfigurationDispatcher final {
 public:
     ConfigurationDispatcher(DeviceNameAuthoritySource&, DeviceNamePersistence&, ConfigurationBaseHandler&,
-        RegionPersistence* region = nullptr, std::uint8_t selected_minor = 2);
+        RegionPersistence* region = nullptr, std::uint8_t selected_minor = 2,
+        ConfigurationConfirmationBackend* confirmation = nullptr);
     ConfigurationDispatcher(const ConfigurationDispatcher&) = delete;
     ConfigurationDispatcher& operator=(const ConfigurationDispatcher&) = delete;
     [[nodiscard]] ConfigurationDispatchResult submit(const DeviceNameContext&, const std::uint8_t*,
@@ -62,6 +73,7 @@ private:
     [[nodiscard]] ConfigurationDispatchResult finish(const ConfigurationFrame*);
     DeviceNameAuthoritySource& source_;
     ConfigurationBaseHandler& base_;
+    ConfigurationConfirmationBackend* confirmation_;
     NameSource name_source_;
     TimeSource time_source_;
     DeviceNameOwner name_owner_;

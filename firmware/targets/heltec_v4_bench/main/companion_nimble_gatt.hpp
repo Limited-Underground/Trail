@@ -14,6 +14,9 @@ namespace opentrail::target::heltec_v4_bench {
     companion::DeviceNamePersistence&, companion::ConfigurationBaseHandler&,
     companion::RegionPersistence&);
 void service_companion_configuration();
+// Application-owner only; no GATT mutex may be held. Must succeed before the
+// existing NimBLE/controller owner disables its shared physical entropy source.
+[[nodiscard]] bool close_companion_confirmation();
 void invalidate_companion_configuration(bool revoke = false);
 [[nodiscard]] time::OledClockReading companion_configuration_clock();
 [[nodiscard]] companion::DeviceNamePayload companion_configuration_name();
