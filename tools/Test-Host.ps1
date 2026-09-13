@@ -51,6 +51,7 @@ foreach ($containedSuite in @('radiolib_busy_source', 'noise_xk_contained_firmwa
 & $python.Source (Join-Path $projectRoot 'tools\region_selection_catalog.py')
 if ($LASTEXITCODE -ne 0) { throw 'Generated saved-region catalog differs.' }
 $fastStructuralTests = @(
+    @{ File = 'host_validation_checkout_tests.py'; Failure = 'Host validation history checkout tests failed.' },
     @{ File = 'heltec_development_identity_tests.py'; Failure = 'Development device identity tests failed.' },
     @{ File = 'historical_target_dependency_boundary_tests.py'; Failure = 'Historical/live target dependency boundary tests failed.' },
     @{ File = 'crypto_benchmark_baseline_historical_tests.py'; Failure = 'OTCBL0 historical successor tests failed.' },
@@ -2160,11 +2161,6 @@ $malformedUnified = Invoke-ExpectedNativeFailure $unifiedDiagnosticCli 'OTPD0=c0
 if ($malformedUnified.ExitCode -eq 0 -or
     $malformedUnified.Text -ne 'position_ui decode failed: invalid_message') {
     throw 'Unified diagnostic CLI malformed-record smoke test failed.'
-}
-
-& $python.Source (Join-Path $projectRoot 'tests\host\host_validation_checkout_tests.py')
-if ($LASTEXITCODE -ne 0) {
-    throw 'Host validation history checkout tests failed.'
 }
 
 & $python.Source (Join-Path $projectRoot 'tests\host\ot147_heltec_v4_live_status_authority_tests.py')
