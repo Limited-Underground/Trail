@@ -53,3 +53,13 @@ This document records review scope, not a claim that a push or merge succeeded.
 The workspace project handoff records the observed publication outcome and
 remote commit after the configured checks. V1 completion and public website
 status are unchanged; no website or Firmware-Loader work is included.
+
+## Required CI admission correction
+
+The first PR host matrix rejected the target surface because the legacy source
+admission test still described the pre-OT-216 target. The correction admits only
+the eight reviewed evaluation files and reconciles the exact source graph and
+ProtocolInfo assertions with the default-OFF OT-216 integration. Unknown files
+and production/evaluation boundary violations remain failures. Firmware and
+accepted artifact bytes are unchanged. Required CI must pass on the corrected
+commit before merge.

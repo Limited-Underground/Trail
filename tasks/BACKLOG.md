@@ -45,7 +45,7 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
-| OT-220 | publication pending | Publish validated security and BLE evaluation snapshot | Explicit OT-200–219 scope, private exclusions and pinned bytes reviewed; topic publication requires configured checks and remote verification. See [review](../docs/testing/OT-220-PUBLICATION-REVIEW-2026-09-13.md). |
+| OT-220 | review complete | Publish validated security and BLE evaluation snapshot | Explicit OT-200–219 scope, private exclusions and pinned bytes reviewed; topic publication requires configured checks and remote verification. See [review](../docs/testing/OT-220-PUBLICATION-REVIEW-2026-09-13.md). |
 | OT-219 | done | Execute bounded physical BLE confirmation | Candidate never reached Ready; originals independently restored, screen and protected Ready recovered. ADB stdin collision corrected. Next: existing candidate boot diagnostics. See [evidence](../docs/testing/OT-219-BLE-PHYSICAL-TRIAL-2026-09-13.md). |
 | OT-218 | done | Implement bounded BLE confirmation trial runner | One-use exact-span custody, protected boot admission, BLE observation and independent restoration; host-tested real transport composition, no physical execution. |
 | OT-217 | done | Prepare bounded physical BLE confirmation acceptance | Exact inputs and larger recovery extent verified; both phones inspected read-only and first handset selected. Procedure prepared; new BLE operator required before execution. See [evidence](../docs/testing/OT-217-BLE-TRIAL-PREPARATION-2026-09-13.md). |
