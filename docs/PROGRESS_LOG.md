@@ -1,6 +1,32 @@
 # OpenTrail Progress Log
 
+## 2026-09-14
+
+### OT-226 Complete the post-confirmation stack measurement
+
+Reused the exact OT-225 firmware and corrected host reporting window in one newly approved role-A trial. Protected Ready, actual local confirmation and both passive capture windows completed. BLE-task minimum-free stack was 6060 bytes at startup and 3980 bytes after confirmation; the retained windows contained no overflow or reset markers. Full original application/NVS and protected regions were independently verified, original reset completed, custody closed and the unchanged phone/data/bond automatically recovered protected Ready. This closes the bounded stack-correction case; remote membership, radio and broader lifecycle/security gates remain open. No V1 or public website status changed. See [evidence](testing/OT-226-POST-CONFIRMATION-STACK-2026-09-14.md).
+
+### OT-225 Correct and instrument the Bluetooth task stack
+
+Increased only the evaluation NimBLE host stack from 4096 to 8192 bytes and added safe owner-sampled task headroom in the app heartbeat. Observer, target, runtime guard and ordering checks pass, as do 84 operator tests. Two fresh evaluation builds match seven artifact pairs and the ordinary control passes. The combined diagnostic operator can capture before and after Ready/confirmation without an intervening reset. The approved exact-image attempt reached protected Ready and displayed successful local confirmation; startup BLE-task headroom was 5916 bytes. The host recorder timed out before the late attestation and final passive capture. Its reporting budget is now a fixed 180 seconds after Ready, independent of the unchanged device offer expiry; 17 operator and 29 transport tests pass after correction. Full originals and same-session protected Ready were restored, and custody closed. Post-confirmation headroom and a complete combined recorder pass remain open. No V1 or website status changed. See [correction and procedure](testing/OT-225-BLE-STACK-CORRECTION-2026-09-14.md).
+
+### OT-224 Identify the Bluetooth task stack overflow
+
+The improved collector retained an actual `ot_ble_host` stack overflow and backtrace immediately before software CPU reset. The exact firmware-matched ELF resolves the FreeRTOS overflow handler. The full overflowing call chain remains unknown because the backtrace is corrupted. All original regions were independently restored and verified; custody closed, and the same phone/app/bond recovered protected Ready after the validated app-process/service restart. No V1 or website status changed. See [evidence](testing/OT-224-CRASH-EVIDENCE-2026-09-14.md).
+
+### OT-223 Reject no-reset release and complete original restoration
+
+The approved unchanged-candidate capture returned zero bytes. Restored original bytes were verified, but the proposed no-reset path did not establish application operation. Withdrew OT-222's redundant-reset conclusion and restored the accepted hard-reset path; padded panic parsing remains. A reviewed original-only full-region verification/reset, with no flash writes or candidate retry, recovered same-session24 protected Ready. Final72 host tests passed; cause remains unknown. See [evidence](testing/OT-223-CORRECTED-CAPTURE-2026-09-14.md).
+
+### OT-222 Prepare bounded reset-reason capture
+
+Extended the maintained startup parser with a numeric reset reason, fixed panic/watchdog categories and receipt timing. Initial 70 affected tests passed; candidate/APK unchanged. One role-A capture observed software CPU reset0x0C; originals restored and phone session24 Ready recovered. Found and corrected redundant host reset and SDK panic-padding parser; these corrections require later physical validation. Reset caller remains unknown. See [evidence](testing/OT-222-RESET-REASON-2026-09-14.md).
+
 ## 2026-09-13
+
+### OT-221 Prepare bounded candidate startup diagnostics
+
+Added an opt-in sanitized startup capture to the maintained BLE trial operator, preserving its original restoration path. Existing candidate uses USB Serial/JTAG INFO logs; firmware/APK remain unchanged. Early-log uncertainty is explicit. The approved physical capture observed successful self-check/runtime startup, heartbeats, then a restart sequence. Original application/NVS and protected regions were independently verified and original reset completed; custody closed. The same phone/app/bond recovered protected Ready after app-process/service restart. Reset cause remains unknown. No V1 or website change. See [scope and validation](testing/OT-221-STARTUP-DIAGNOSTICS-2026-09-13.md).
 
 ### OT-220 Review accumulated security and BLE work for publication
 

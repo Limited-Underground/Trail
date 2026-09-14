@@ -1,0 +1,193 @@
+{
+  "schema": "OT226-POST-CONFIRMATION-STACK-1",
+  "recorded_utc": "2026-09-14T14:20:20.712650+00:00",
+  "hardware": "Heltec WiFi LoRa32 V4.2 / ESP32-S3 / 16 MB, role A Trail Bench",
+  "phone": "SM-N986U / Android 13 SDK 33 / unchanged OT216 V1-Test APK",
+  "candidate_sha256": "444591760db347c9ce395287ce0cad315d6f2fe736e633170e2c1064b58da3d6",
+  "candidate_bytes": 730928,
+  "elf_sha256": "a2c469e6bcbb459d80339f28c2cf7a4d59935217cae722a2a8a4a0668a9b6959",
+  "apk_sha256": "9f91a3f361221d19089e685b492b5e772e5cf7d658298ff955c4feb2508694a2",
+  "operator_binding_sha256": "28ed44a639ee824ca78db28599cdd2bc17dff71b5567b0e3393b3aeff4a746e5",
+  "application_offset": 65536,
+  "application_span": 733184,
+  "nimble_host_stack_bytes": 8192,
+  "startup": {
+    "bytes_read": 2840,
+    "capture_started_unix_ms": 1789394915894,
+    "early_output_may_be_missing": true,
+    "elapsed_ms": 15003,
+    "markers": [
+      {
+        "category": "self_check_pass",
+        "received_ms": 480
+      },
+      {
+        "category": "runtime_started",
+        "received_ms": 929
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 940,
+        "value": 627
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 940,
+        "value": 21056
+      },
+      {
+        "category": "ble_host_stack",
+        "received_ms": 1193,
+        "value": 6060
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 6097,
+        "value": 5678
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 6097,
+        "value": 21056
+      },
+      {
+        "category": "ble_host_stack",
+        "received_ms": 6097,
+        "value": 6060
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 11024,
+        "value": 10678
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 11025,
+        "value": 21056
+      },
+      {
+        "category": "ble_host_stack",
+        "received_ms": 11025,
+        "value": 6060
+      }
+    ],
+    "schema": "OT225-STARTUP-1",
+    "status": "window_complete"
+  },
+  "post_confirmation": {
+    "bytes_read": 504,
+    "capture_started_unix_ms": 1789395125533,
+    "early_output_may_be_missing": true,
+    "elapsed_ms": 15015,
+    "markers": [
+      {
+        "category": "heartbeat",
+        "received_ms": 2111,
+        "value": 211448
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 2111,
+        "value": 16432
+      },
+      {
+        "category": "ble_host_stack",
+        "received_ms": 2111,
+        "value": 3980
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 7280,
+        "value": 216448
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 7280,
+        "value": 16432
+      },
+      {
+        "category": "ble_host_stack",
+        "received_ms": 7281,
+        "value": 3980
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 12227,
+        "value": 221448
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 12227,
+        "value": 16432
+      },
+      {
+        "category": "ble_host_stack",
+        "received_ms": 12227,
+        "value": 3980
+      }
+    ],
+    "schema": "OT225-STARTUP-1",
+    "status": "window_complete"
+  },
+  "candidate_phone": {
+    "protected_ready": true,
+    "session": 25,
+    "authorization_accepted_elapsed_ms": 3655675,
+    "snapshot_accepted_elapsed_ms": 3655919,
+    "ready_elapsed_ms": 3655919
+  },
+  "confirmation": {
+    "fixed_ui_local_confirmed": true,
+    "terminal_text": "Your device confirmed this step. Group joining is not complete.",
+    "observed_at_epoch": 1789395108,
+    "operator_observation": "local_confirmed",
+    "full_combined_case_pass": true,
+    "scope": "Bounded local synthetic evaluation confirmation flow only",
+    "remote_membership_proven": false
+  },
+  "restoration": {
+    "application_readback": true,
+    "nvs_readback": true,
+    "protected_regions_verified": true,
+    "original_reset": true,
+    "custody_closed": true,
+    "phone_protected_ready": true,
+    "phone_session": 25,
+    "phone_authorization_accepted_elapsed_ms": 4213552,
+    "phone_snapshot_accepted_elapsed_ms": 4213796,
+    "phone_ready_elapsed_ms": 4213796,
+    "app_process_restart_required": false,
+    "app_data_cleared": false,
+    "bond_changed": false
+  },
+  "candidate_attempts": 1,
+  "recovery_attempts": 0,
+  "finding": {
+    "startup_ble_host_minimum_free_bytes": [
+      6060,
+      6060,
+      6060
+    ],
+    "post_confirmation_ble_host_minimum_free_bytes": [
+      3980,
+      3980,
+      3980
+    ],
+    "overflow_or_reset_markers_observed": false,
+    "absence_scope": "Retained startup and post-confirmation windows only; early output may be missing and the intervening interval is not continuously captured.",
+    "stack_correction_acceptance": "Validated for this bounded same-device local evaluation flow; not an exhaustive stack safety proof"
+  },
+  "host_reporting": {
+    "post_ready_seconds": 180,
+    "device_confirmation_expiry_seconds": 60,
+    "only_executed_source_change_from_ot225": "CLI reporting allowance 60 to 180 seconds plus explanatory comment",
+    "firmware_changed": false,
+    "apk_changed": false,
+    "operator_tests_passed": 17,
+    "transport_tests_passed": 29
+  },
+  "historical_ot225_timeout_preserved": true,
+  "radio": "No LoRa operation or region change; comparison board untouched",
+  "v1_credit_changed": false,
+  "public_website_change": false
+}

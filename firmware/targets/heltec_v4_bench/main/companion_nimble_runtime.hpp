@@ -65,6 +65,13 @@ companion_nimble_runtime_status();
 [[nodiscard]] std::uint8_t companion_nimble_security_failure_stage();
 [[nodiscard]] std::uint8_t companion_nimble_security_failure_detail();
 
+// Application-owner diagnostic only. False leaves bytes unchanged and means
+// that no live exact BLE host task is available to this calling task.
+#if defined(OPENTRAIL_CONFIRMATION_EVALUATION) && OPENTRAIL_CONFIRMATION_EVALUATION
+[[nodiscard]] bool companion_nimble_host_stack_minimum_free_bytes(
+    std::uint32_t& bytes);
+#endif
+
 // Independently requests complete BLE host/controller containment and reports
 // true only after the runtime owner has verified platform shutdown.
 [[nodiscard]] bool contain_companion_nimble_runtime_for_recovery();

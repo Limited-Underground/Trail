@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 import subprocess
 import threading
+from ble_startup_diagnostics import WORKER_SUPPORT, validate_startup_result
 
 SPANS = frozenset(((0, 32768), (0x8000, 4096), (0x9000, 8192),
                    (0xd000, 12288), (0x10000, 733184)))
@@ -54,7 +55,7 @@ def opaque_identity(key, value):
 
 
 def rom_argv(route, operation, restart=False):
-    """Only internal callers supply operation; no general command API is exposed."""
+    """Accepted ROM release sequence; no general command API is exposed."""
     return ['--chip', 'esp32s3', '--port', route, '--baud', '115200',
             '--before', 'default-reset', '--after',
             'hard-reset' if restart else 'no-reset', '--no-stub'] + operation
@@ -62,7 +63,7 @@ def rom_argv(route, operation, restart=False):
 
 # Executed by the existing isolated, hash-verified interpreter. Stdin is the
 # only channel carrying the route/identity; neither is in argv or any file.
-WORKER = r'''
+WORKER = WORKER_SUPPORT + r'''
 import base64, contextlib, hashlib, io, json, os, pathlib, re, sys, tempfile
 class ProbeFinished(Exception): pass
 def need(x):
@@ -95,12 +96,17 @@ try:
         raise ProbeFinished()
     route=q['route']; expected=ident(q['identity'])
     need(isinstance(route,str) and re.fullmatch(r'COM[1-9][0-9]{0,3}',route))
+    if q['operation']=='passive_capture':
+        # No ROM verification here: it would reset the running candidate.
+        print(json.dumps({'ok':True,'startup_diagnostics':capture_startup(serial,comports,expected)},separators=(',',':')))
+        raise ProbeFinished()
     def passive():
         ports=list(comports())
         routes=[p for p in ports if p.device==route]
         matches=[p for p in ports if p.vid==0x303a and p.pid==0x1001 and ident(p.serial_number)==expected]
         need(len(routes)==len(matches)==1 and routes[0] is matches[0])
     def run(operation,restart=False):
+        # Preserve the accepted explicit hardware release after the ROM run.
         passive()
         argv=['--chip','esp32s3','--port',route,'--baud','115200','--before','default-reset','--after','hard-reset' if restart else 'no-reset','--no-stub']+operation
         out=io.StringIO()
@@ -127,7 +133,10 @@ try:
                 need((offset,size) in {(0xd000,12288),(0x10000,733184)})
                 raw=base64.b64decode(q['data'],validate=True); need(len(raw)==size)
                 p.write_bytes(raw); run(['write-flash','--flash-size','16MB',hex(offset),str(p)])
-    elif op=='restart': run(['run'],True)
+    elif op in ('restart', 'restart_capture'):
+        run(['run'],True)
+        if op=='restart_capture':
+            result['startup_diagnostics']=capture_startup(serial,comports,expected)
     else: need(op=='verify')
     print(json.dumps(result,separators=(',',':')))
 except ProbeFinished:
@@ -141,7 +150,8 @@ class Transport:
     @safe
     def __init__(self, *, manifest_path, manifest_sha256, private_root, route,
                  expected_identity, opaque_binding, binding_key, candidate,
-                 subprocess_run=subprocess.run, manifest_verifier=None, recovery_only=False):
+                 subprocess_run=subprocess.run, manifest_verifier=None, recovery_only=False,
+                 startup_diagnostics=False, confirmation_diagnostics=False):
         self._manifest_path = Path(manifest_path)
         self._manifest_sha = manifest_sha256
         self._private = Path(private_root)
@@ -155,6 +165,14 @@ class Transport:
         self._captured, self._originals = {}, None
         self._claimed, self._mutated = False, False
         need(type(recovery_only) is bool)
+        need(type(startup_diagnostics) is bool and not (recovery_only and startup_diagnostics))
+        need(type(confirmation_diagnostics) is bool and
+             (not confirmation_diagnostics or (startup_diagnostics and not recovery_only)))
+        self._startup_enabled = startup_diagnostics
+        self._confirmation_enabled = confirmation_diagnostics
+        self._candidate_booted = self._post_capture_used = False
+        self.startup_diagnostics = None
+        self.post_confirmation_diagnostics = None
         self._recovery_only = recovery_only
         self._lock = threading.RLock()
 
@@ -169,6 +187,8 @@ class Transport:
 
     def _operation(self, operation, **fields):
         need(self._claimed or operation == 'probe')
+        if operation not in ('probe', 'passive_capture'):
+            self._candidate_booted = False
         manifest = self._manifest()
         need(self._private.resolve() == (Path(manifest['worktree']) / '.private').resolve())
         payload = dict(manifest=manifest, route=self._route, identity=self._identity,
@@ -181,7 +201,11 @@ class Transport:
                            check=False, cwd=manifest['root'], env=env)
         need(result.returncode == 0 and type(result.stdout) is bytes and len(result.stdout) <= 1100000)
         obj = json.loads(result.stdout)
-        need(type(obj) is dict and obj.get('ok') is True and set(obj) == ({'ok', 'data'} if operation == 'read' else {'ok'}))
+        expected_keys = ({'ok', 'data'} if operation == 'read' else
+                         {'ok', 'startup_diagnostics'} if operation in ('restart_capture', 'passive_capture') else {'ok'})
+        need(type(obj) is dict and obj.get('ok') is True and set(obj) == expected_keys)
+        if operation in ('restart_capture', 'passive_capture'):
+            validate_startup_result(obj['startup_diagnostics'])
         return obj
 
     @safe
@@ -264,8 +288,22 @@ class Transport:
     def boot_candidate(self):
         with self._lock:
             need(not self._recovery_only and self._originals is not None and self.read(0x10000, 733184) == self._candidate)
-            self._operation('restart')
+            response = self._operation('restart_capture' if self._startup_enabled else 'restart')
+            if self._startup_enabled:
+                self.startup_diagnostics = response['startup_diagnostics']
+            self._candidate_booted = True
             return True
+
+    @safe
+    def capture_after_confirmation(self):
+        """One passive observation of the still-running candidate; never ROM sync."""
+        with self._lock:
+            need(self._confirmation_enabled and not self._recovery_only and
+                 self._candidate_booted and not self._post_capture_used)
+            self._post_capture_used = True
+            response = self._operation('passive_capture')
+            self.post_confirmation_diagnostics = response['startup_diagnostics']
+            return self.post_confirmation_diagnostics
 
     @safe
     def reset_original(self):

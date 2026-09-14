@@ -1,0 +1,106 @@
+{
+  "schema": "OT222-PHYSICAL-RESET-REASON-1",
+  "recorded_utc": "2026-09-14T12:17:44.934505+00:00",
+  "hardware": "Heltec WiFi LoRa32 V4.2 / ESP32-S3 / 16MB role A Trail Bench",
+  "phone": "SM-N986U Android13 SDK33 exact OT216 V1-Test APK",
+  "candidate_sha256": "28dadebed9c08ed4a52bfe3d38266144da70116943f522a9d7421bb6f915110c",
+  "startup": {
+    "bytes_read": 7098,
+    "capture_started_unix_ms": 1789387538291,
+    "early_output_may_be_missing": true,
+    "elapsed_ms": 15014,
+    "markers": [
+      {
+        "category": "self_check_pass",
+        "received_ms": 480
+      },
+      {
+        "category": "runtime_started",
+        "received_ms": 931
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 1196,
+        "value": 628
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 1196,
+        "value": 21056
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 6123,
+        "value": 5678
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 6124,
+        "value": 21056
+      },
+      {
+        "category": "reset_reason",
+        "received_ms": 8529,
+        "value": 12
+      },
+      {
+        "category": "self_check_pass",
+        "received_ms": 9101
+      },
+      {
+        "category": "runtime_started",
+        "received_ms": 9550
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 9813,
+        "value": 626
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 9813,
+        "value": 21056
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 14795,
+        "value": 5678
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 14795,
+        "value": 21056
+      }
+    ],
+    "schema": "OT222-STARTUP-1",
+    "status": "window_complete"
+  },
+  "interpretation": {
+    "rom_reset_code": 12,
+    "rom_reset_name": "software CPU reset",
+    "precise_caller": "unknown",
+    "panic_or_watchdog_excluded": false,
+    "phone_wall_clock_correlation": "unavailable; log has session-relative times only",
+    "operator_redundant_reset": "Prior claim withdrawn by OT223: source comments did not establish S3 launch semantics; accepted hard-reset release restored",
+    "panic_parser_limitation": "executed parser could not recognize SDK padded two-space CPU format; absence not evidence against panic"
+  },
+  "restoration": {
+    "application_bytes": 733184,
+    "nvs_bytes": 12288,
+    "application_nvs_restored_readback": true,
+    "protected_regions_verified": true,
+    "original_reset": true,
+    "custody_closed": true,
+    "phone_ready_session": 24,
+    "phone_authorization_snapshot_ready": true,
+    "phone_data_bond_preserved": true,
+    "phone_recovery": "V1-Test process restart and normal Find device/Start Bluetooth device service"
+  },
+  "candidate_attempts": 1,
+  "recovery_attempts": 0,
+  "comparison_board_action": false,
+  "lora_operation": false,
+  "v1_credit": false,
+  "website_change": false,
+  "correction": "OT223 observed no bytes with no-reset release and recovered original Ready after accepted hard-reset"
+}

@@ -50,7 +50,7 @@ def verify_binding(root, path, expected, recovery=False):
     need(binding['schema'] == 'OT218-OPERATOR-BINDING-1')
     need(set(binding) == {'schema', 'files', 'runtime_manifest', 'runtime_sha256', 'candidate', 'apk', 'adb'})
     need({'tools/run_ble_confirmation_trial.py', 'tools/ble_confirmation_trial.py',
-          'tools/ble_confirmation_trial_transport.py'} <= set(binding['files']))
+          'tools/ble_confirmation_trial_transport.py', 'tools/ble_startup_diagnostics.py'} <= set(binding['files']))
     for relative, sha in binding['files'].items():
         checked_file(root, relative, sha)
     checked_file(root, binding['runtime_manifest'], binding['runtime_sha256'])
@@ -120,12 +120,28 @@ def observe(lines, emit=print, clock=time.monotonic, token=None):
         except Exception:
             return 'refused'
         if expected == 'ready':
-            deadline = clock() + 60
+            # Human/tool reporting includes Group entry, observation and delivery.
+            # This bounded host window does not extend the device's offer expiry.
+            deadline = clock() + 180
             emit(json.dumps({'next': 'offer', 'instruction': 'Enter Group once; observe Confirm nearby peer.'}), flush=True)
         elif expected == 'offer':
             emit(json.dumps({'next': 'local_confirmed', 'instruction':
                  'Tap Confirm matching details. Attest only on: Your device confirmed this step. Group joining is not complete.'}), flush=True)
     return 'local_confirmed'
+
+
+def validate_observation_mode(mode, startup, confirmation):
+    need(not (startup and confirmation))
+    need(not (startup or confirmation) or mode in ('check', 'execute'))
+
+
+def trial_observation(lines, backend, startup_only=False, confirmation_diagnostics=False):
+    if startup_only:
+        return 'unavailable'
+    result = observe(lines)
+    if confirmation_diagnostics and result == 'local_confirmed':
+        backend.capture_after_confirmation()
+    return result
 
 
 def main():
@@ -139,7 +155,12 @@ def main():
     parser.add_argument('--grant', type=Path)
     parser.add_argument('--grant-sha256')
     parser.add_argument('--adb', type=Path)
+    parser.add_argument('--startup-diagnostics', action='store_true',
+                        help='Capture bounded startup markers, then restore; no confirmation interaction.')
+    parser.add_argument('--confirmation-diagnostics', action='store_true',
+                        help='Capture startup, observe confirmation, then passively capture before restoration.')
     args = parser.parse_args()
+    validate_observation_mode(args.mode, args.startup_diagnostics, args.confirmation_diagnostics)
     root = Path(__file__).resolve().parents[1]
     binding = verify_binding(root, args.binding, args.binding_sha256, args.mode == 'recover')
     # Only import local policy after its reviewed source closure was verified.
@@ -175,12 +196,19 @@ def main():
                                   route=ephemeral['route'], expected_identity=ephemeral['identity'],
                                   opaque_binding=request['device_binding'], binding_key=bytes.fromhex(ephemeral['binding_key']),
                                   candidate=candidate + b'\xff' * (733184 - len(candidate)),
-                                  recovery_only=args.mode == 'recover')
+                                  recovery_only=args.mode == 'recover',
+                                  startup_diagnostics=args.startup_diagnostics or args.confirmation_diagnostics,
+                                  confirmation_diagnostics=args.confirmation_diagnostics)
     if args.mode == 'execute':
         result = engine.execute(root, request, grant_raw, args.grant_sha256,
-                                candidate, backend, lambda: observe(lines))
+                                candidate, backend, lambda: trial_observation(lines, backend,
+                                    args.startup_diagnostics, args.confirmation_diagnostics))
     else:
         result = engine.recover(root, request, grant_raw, args.grant_sha256, backend)
+    if args.startup_diagnostics or args.confirmation_diagnostics:
+        result['startup_diagnostics'] = backend.startup_diagnostics
+    if args.confirmation_diagnostics:
+        result['post_confirmation_diagnostics'] = backend.post_confirmation_diagnostics
     print(json.dumps(result))
 
 

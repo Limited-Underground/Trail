@@ -1,6 +1,7 @@
 #include "companion_nimble_runtime.hpp"
 #include "confirmation_evaluation_config.hpp"
 #if OPENTRAIL_CONFIRMATION_EVALUATION
+#include "companion_host_stack_observer.hpp"
 #include "confirmation_runtime_guard.hpp"
 #endif
 
@@ -533,8 +534,17 @@ public:
             configMAX_PRIORITIES - 4, &host_task_, NIMBLE_CORE);
         if (result != pdPASS) return false;
         host_started_ = true;
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+        host_stack_observer_.record_created(host_task_);
+#endif
         return true;
     }
+
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    bool host_stack_minimum_free_bytes(std::uint32_t& bytes) const {
+        return host_stack_observer_.minimum_free_bytes(bytes);
+    }
+#endif
 
     bool configure_public_service_advertising() override {
         if (!host_started_ || !clear_pending_cccd_value_changes()) return false;
@@ -599,6 +609,9 @@ public:
         // returned or the run loop had already published its exit, delete the
         // exact task before deinitializing host/controller state. No callback
         // is required for cleanup.
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+        host_stack_observer_.clear_before_delete();
+#endif
         if (host_task_ != nullptr) {
             vTaskDelete(host_task_);
             host_task_ = nullptr;
@@ -700,6 +713,9 @@ private:
     bool host_run_exited_{false};
     std::uint8_t own_address_type_{BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT};
     TaskHandle_t host_task_{nullptr};
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    CompanionHostStackObserver host_stack_observer_{};
+#endif
 };
 
 EspNimbleRuntimePort g_runtime_port;
@@ -1398,6 +1414,12 @@ bool companion_confirmation_runtime_current() {
     return false;
 #endif
 }
+
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+bool companion_nimble_host_stack_minimum_free_bytes(std::uint32_t& bytes) {
+    return g_runtime_port.host_stack_minimum_free_bytes(bytes);
+}
+#endif
 
 CompanionBleRuntimeError service_companion_nimble_runtime(
     std::uint64_t now_ms) {

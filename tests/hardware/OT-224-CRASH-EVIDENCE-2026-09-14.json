@@ -1,0 +1,163 @@
+{
+  "schema": "OT224-PHYSICAL-CRASH-1",
+  "recorded_utc": "2026-09-14T13:08:49.219206+00:00",
+  "hardware": "Heltec WiFi LoRa32 V4.2 / ESP32-S3 / 16MB, role A Trail Bench",
+  "phone": "SM-N986U / Android 13 SDK33 / exact OT216 V1-Test APK",
+  "candidate_sha256": "28dadebed9c08ed4a52bfe3d38266144da70116943f522a9d7421bb6f915110c",
+  "candidate_bytes": 730736,
+  "application_span": 733184,
+  "startup": {
+    "bytes_read": 7101,
+    "capture_started_unix_ms": 1789390705658,
+    "early_output_may_be_missing": true,
+    "elapsed_ms": 15014,
+    "markers": [
+      {
+        "category": "self_check_pass",
+        "received_ms": 479
+      },
+      {
+        "category": "runtime_started",
+        "received_ms": 927
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 1189,
+        "value": 626
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 1189,
+        "value": 21056
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 6124,
+        "value": 5678
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 6124,
+        "value": 21056
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 11038,
+        "value": 10678
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 11038,
+        "value": 21056
+      },
+      {
+        "category": "stack_overflow",
+        "received_ms": 11803,
+        "task": "ot_ble_host"
+      },
+      {
+        "category": "backtrace",
+        "pcs": [
+          1077421853,
+          1077421801,
+          1107786512,
+          1077425791,
+          1077423796,
+          1077423786,
+          1107532631
+        ],
+        "received_ms": 11804,
+        "termination": "corrupted"
+      },
+      {
+        "category": "reset_reason",
+        "received_ms": 11812,
+        "value": 12
+      },
+      {
+        "category": "self_check_pass",
+        "received_ms": 12385
+      },
+      {
+        "category": "runtime_started",
+        "received_ms": 12834
+      },
+      {
+        "category": "heartbeat",
+        "received_ms": 13096,
+        "value": 627
+      },
+      {
+        "category": "app_stack",
+        "received_ms": 13096,
+        "value": 21056
+      }
+    ],
+    "schema": "OT224-STARTUP-1",
+    "status": "window_complete"
+  },
+  "symbolization": {
+    "elf_sha256": "cdfd453df87fb19b1b21048fc532d59eb7303ec79c3cbd03598ffad6a323f00f",
+    "backtrace_termination": "corrupted",
+    "frames": [
+      {
+        "pc": "0x4038271d",
+        "function": "panic_abort"
+      },
+      {
+        "pc": "0x403826e9",
+        "function": "esp_system_abort"
+      },
+      {
+        "pc": "0x42077b10",
+        "function": "vApplicationStackOverflowHook"
+      },
+      {
+        "pc": "0x4038367f",
+        "function": "vTaskSwitchContext"
+      },
+      {
+        "pc": "0x40382eb4",
+        "function": "_frxt_dispatch"
+      },
+      {
+        "pc": "0x40382eaa",
+        "function": "_frxt_int_exit"
+      },
+      {
+        "pc": "0x42039b57",
+        "function": "ble_hs_unlock"
+      }
+    ],
+    "pc_adjustment": false
+  },
+  "finding": {
+    "failure_mechanism": "NimBLE host task stack overflow",
+    "task": "ot_ble_host",
+    "confirmed": true,
+    "overflow_producing_call_chain": "unknown; retained backtrace is corrupted",
+    "ble_resolution": false,
+    "stack_correction_acceptance": "pending"
+  },
+  "restoration": {
+    "application_readback": true,
+    "nvs_readback": true,
+    "protected_regions_verified": true,
+    "original_reset": true,
+    "custody_closed": true,
+    "phone_protected_ready": true,
+    "phone_acceptance": "Actual typed AUTHORIZATION_ACCEPTED, SNAPSHOT_ACCEPTED and READY_REACHED",
+    "phone_session": 25,
+    "phone_ready_elapsed_ms": 38300,
+    "phone_recovery_actions": [
+      "V1-Test process restart preserving app data and bond",
+      "Find device and Start Bluetooth device service"
+    ]
+  },
+  "candidate_attempts": 1,
+  "recovery_attempts": 0,
+  "confirmation": "not_requested",
+  "radio": "No LoRa operation or region change; comparison board untouched",
+  "v1_credit_changed": false,
+  "public_website_change": false
+}
