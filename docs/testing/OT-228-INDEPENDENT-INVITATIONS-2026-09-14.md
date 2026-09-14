@@ -39,6 +39,8 @@ Invalid invitations and explicit cancellation consume the current boot/role befo
 
 ## Validation and limits
 
+Publication CI's first core job reached its 20-minute limit while tests were still passing and the current-source security matrix had begun. The core job timeout is now 30 minutes; test commands, required checks and the other job limits are unchanged. The canceled run is not a passing CI result; publication requires a successful complete rerun.
+
 The new suite passes 93 behavioral groups. One fresh full affected security matrix passes 729 groups across 11 suites plus 26 scalar controls, using the verified 733-file pinned dependency and fresh scalar objects. The [sanitized proof](../../tests/benchmarks/crypto/OT-228-INDEPENDENT-INVITATION-HOST-2026-09-14.json) records compiler, binaries and changed source hashes. Exact commands and the full source closure are retained privately.
 
 Command: `python -X utf8 -B tests/host/security_current_source_ci.py --output-root <active-worktree>/.private/ot228-independent-invitations/final-matrix-reviewed` using the existing UCRT64 compiler configuration. Development-only compilation reuses prior scalar objects; final acceptance uses the fresh matrix. The initial full matrix passed before two final-review assertions were added for post-write readback failure and reconstruction over a partial record; the complete matrix was then repeated against the final source.
