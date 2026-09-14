@@ -134,6 +134,8 @@ def run(output):
             suite(name, [*common, ROOT / "tests/host" / (name + ".cpp")], base, (), " groups\n")
         suite("security_confirmation_owner_tests", [*common, ROOT / "tests/host/security_confirmation_owner_tests.cpp"],
               base, (), " actual confirmation owner groups")
+        suite("security_handshake_endpoint_tests", [*common, ROOT / "tests/host/security_handshake_endpoint_tests.cpp"],
+              base, (), " independent handshake endpoint groups")
         stubs = ROOT / "tests/host/security_invitation_target_stubs"
         target_common = [ROOT / "firmware/components" / name for name in
             ("persistence/src/persistent_storage_kv.cpp", "persistence/src/outbound_counter_lease_store.cpp", "security/src/aead_nonce.cpp")]

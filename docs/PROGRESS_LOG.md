@@ -2,6 +2,10 @@
 
 ## 2026-09-14
 
+### OT-227 Separate the handshake endpoints
+
+Added a target-neutral endpoint owning local session, boot/role authority and confirmation state. Two independent host endpoints exchange actual cryptographic handshake frames; one local confirmation never confirms the other side.38 focused groups and the fresh636-group security matrix plus26 scalar controls pass. Existing synthetic firmware/backend remains unchanged. The shared invitation boot/time contract remains an explicit real-device integration gate; no radio, target-image, V1 credit or website change. See [evidence](testing/OT-227-INDEPENDENT-HANDSHAKE-ENDPOINTS-2026-09-14.md).
+
 ### OT-226 Complete the post-confirmation stack measurement
 
 Reused the exact OT-225 firmware and corrected host reporting window in one newly approved role-A trial. Protected Ready, actual local confirmation and both passive capture windows completed. BLE-task minimum-free stack was 6060 bytes at startup and 3980 bytes after confirmation; the retained windows contained no overflow or reset markers. Full original application/NVS and protected regions were independently verified, original reset completed, custody closed and the unchanged phone/data/bond automatically recovered protected Ready. This closes the bounded stack-correction case; remote membership, radio and broader lifecycle/security gates remain open. No V1 or public website status changed. See [evidence](testing/OT-226-POST-CONFIRMATION-STACK-2026-09-14.md).
