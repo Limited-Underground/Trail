@@ -2,6 +2,10 @@
 
 ## 2026-09-14
 
+### OT-228 Authenticate independent boot and clock windows
+
+Added version-2 signed invitation and durable one-use role admission. Different local boot generations/clocks produce the same authenticated Noise prologue. 93 new groups and the fresh 729-group affected matrix plus 26 scalar controls pass. Frozen v1 sources remain unchanged; endpoint binding and physical provisioning remain open. No V1 credit or public website change. See [evidence](testing/OT-228-INDEPENDENT-INVITATIONS-2026-09-14.md).
+
 ### OT-227 Separate the handshake endpoints
 
 Added a target-neutral endpoint owning local session, boot/role authority and confirmation state. Two independent host endpoints exchange actual cryptographic handshake frames; one local confirmation never confirms the other side.38 focused groups and the fresh636-group security matrix plus26 scalar controls pass. Existing synthetic firmware/backend remains unchanged. The shared invitation boot/time contract remains an explicit real-device integration gate; no radio, target-image, V1 credit or website change. See [evidence](testing/OT-227-INDEPENDENT-HANDSHAKE-ENDPOINTS-2026-09-14.md).

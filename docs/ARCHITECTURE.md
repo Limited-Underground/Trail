@@ -30,7 +30,7 @@ Transport interfaces: LoRa | local setup/transfer | test transport
 Hardware interfaces: radio | GPS | display/touch | storage | power | entropy | monotonic clock
 ```
 
-The evaluation handshake endpoint isolates each peer's session, durable authority and local confirmation from transport. Its bounded host value frames are not a selected radio wire protocol; real invitation provisioning must resolve the existing shared boot/time assumptions before target integration. See [endpoint boundaries](testing/OT-227-INDEPENDENT-HANDSHAKE-ENDPOINTS-2026-09-14.md).
+The evaluation handshake endpoint isolates each peer's session, durable authority and local confirmation from transport. Its bounded host value frames are not a selected radio wire protocol. The additive [version-2 invitation contract](testing/OT-228-INDEPENDENT-INVITATIONS-2026-09-14.md) supports independent local boot/time authority; the endpoint still needs a successor binding and real trusted provisioning before target integration. See [endpoint boundaries](testing/OT-227-INDEPENDENT-HANDSHAKE-ENDPOINTS-2026-09-14.md).
 
 Application and protocol logic must depend on interfaces, not concrete boards. Packet codecs and delivery state machines should be host-testable. Board bindings and role composition belong in target applications.
 
