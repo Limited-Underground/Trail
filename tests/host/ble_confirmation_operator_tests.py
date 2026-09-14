@@ -120,7 +120,8 @@ class OperatorTests(unittest.TestCase):
 
     def test_binding_requires_and_hashes_startup_helper(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            # Match the CLI's canonical-root contract on Windows temp aliases.
+            root = Path(directory).resolve()
             (root / 'tools').mkdir()
             names = ('run_ble_confirmation_trial.py', 'ble_confirmation_trial.py',
                      'ble_confirmation_trial_transport.py', 'ble_startup_diagnostics.py')
@@ -149,8 +150,9 @@ class OperatorTests(unittest.TestCase):
 
     def test_binding_tamper(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             (root / 'a').write_bytes(b'a')
+            self.assertEqual(operator.checked_file(root, 'a', operator.digest(b'a')), b'a')
             with self.assertRaises(ValueError):
                 operator.checked_file(root, 'a', '0' * 64)
 
