@@ -1,0 +1,121 @@
+{
+  "schema": "OT227-INDEPENDENT-ENDPOINT-HOST-1",
+  "recorded_utc": "2026-09-14T15:37:42.363359+00:00",
+  "result": "passed",
+  "hardware": false,
+  "suites": {
+    "security_policy_invitation_lifecycle_tests": {
+      "output": "PASS 91 durable invitation lifecycle groups\nRefused storage faults: 9 pristine retry cases, 19 retained refusal cases",
+      "binary": {
+        "bytes": 296189,
+        "sha256": "9353040b5a6f8aab0bbb6d218ca5287c136685cee73e0d7827cf2e6b5b31de1c"
+      }
+    },
+    "security_policy_authorized_session_tests": {
+      "output": "PASS 41 actual authorized policy session groups",
+      "binary": {
+        "bytes": 361237,
+        "sha256": "6f406a244c48d4e6fadd5f779e0a2595fe5c259a3e8dedd0c0cfe2c577c7cb4b"
+      }
+    },
+    "security_candidate_known_answer_tests": {
+      "output": "PASS 10 pinned Ed25519 known-answer and refusal groups",
+      "binary": {
+        "bytes": 536162,
+        "sha256": "9c19fe473f1e964540824b1f72ed99b2c143241169fd780cacae986a1ab54235"
+      }
+    },
+    "security_policy_invitation_tests": {
+      "output": "PASS 40 real signed invitation gate groups",
+      "binary": {
+        "bytes": 239770,
+        "sha256": "6341966faba0ab19b70eee9a2518654241e5b9afda64aa95414ded1144f3c691"
+      }
+    },
+    "security_policy_session_tests": {
+      "output": "PASS 31 actual policy session groups",
+      "binary": {
+        "bytes": 302841,
+        "sha256": "e8abf9c6353d4465ec0af686f564f96824e3157a5dbb3c2cba3b6ba3030b86f9"
+      }
+    },
+    "security_confirmation_owner_tests": {
+      "output": "PASS 44 actual confirmation owner groups",
+      "binary": {
+        "bytes": 353241,
+        "sha256": "efd46e661844ae8ac28db90e66a9527dd1dc784049e1d985bccbe25a325796c2"
+      }
+    },
+    "security_handshake_endpoint_tests": {
+      "output": "PASS 38 independent handshake endpoint groups",
+      "binary": {
+        "bytes": 380304,
+        "sha256": "62ed849021dc58b96d89e35375d4c13e05929a90d2e3703491378ea31c8b9b31"
+      }
+    },
+    "security_invitation_target_tests": {
+      "output": "PASS 130 actual invitation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+      "binary": {
+        "bytes": 404238,
+        "sha256": "edf4bd4df36f003a8e82b52b6d82fd75fc318d32839ff338fe0c44989125d311"
+      }
+    },
+    "security_confirmation_target_tests": {
+      "output": "PASS 139 actual confirmation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+      "binary": {
+        "bytes": 420084,
+        "sha256": "f216fa5ffdff6a51225ebd558bc1e91b19f97cd3621f60f61f15d6f846e83651"
+      }
+    },
+    "security_confirmation_ble_backend_tests": {
+      "output": "PASS 72 actual protected confirmation backend groups",
+      "binary": {
+        "bytes": 419635,
+        "sha256": "fe7dd196724fad6691193156b28c572abd26b50f13b383f30871378913dfc52a"
+      }
+    }
+  },
+  "behavioral_groups": 636,
+  "scalar_control_groups": 26,
+  "dependency": {
+    "archive_sha256": "865ea3aba354b16be4c7051da48b63247a395f30d1e0537269b253918aa78c5f",
+    "checksum_sha256": "5e3983c5496a3cffba3d013c70991b18cda6c345655fff883fb0e14dfa09e582",
+    "manifest_sha256": "988fbb2b95d1b4f3850d153495f8d73482be52cb80808fa48e24a8d1e9bf91ea",
+    "verified_files": 733
+  },
+  "toolchain": {
+    "gcc.exe": {
+      "bytes": 3306749,
+      "sha256": "f96a3bdb1d3a3967b309d75c7413399391e857b5be4cb17162572ed66f6772a0",
+      "version": "gcc.exe (Rev5, Built by MSYS2 project) 16.1.0"
+    },
+    "g++.exe": {
+      "bytes": 3309821,
+      "sha256": "798a6eb495b30cf771dc759b5508d269ecb0dddac739719e8b30fe0ac0744b69",
+      "version": "g++.exe (Rev5, Built by MSYS2 project) 16.1.0"
+    }
+  },
+  "source_pins": {
+    "firmware/components/security_evaluation/include/opentrail/evaluation_handshake_endpoint.hpp": {
+      "bytes": 11393,
+      "sha256": "743864bc654e1effc309e15197a8fa5c89ea2b216030c7215609dc895a086d2a"
+    },
+    "tests/host/security_handshake_endpoint_tests.cpp": {
+      "bytes": 10130,
+      "sha256": "f1aec5d7c9402219fe5c483aa8229f4f63d7148eab65449a64b67f6e2fa1a195"
+    },
+    "tests/host/security_current_source_ci.py": {
+      "bytes": 10416,
+      "sha256": "36da27218b72a19651180246521f4753a3d1a5ea7ec0737e29728e562323aecb"
+    }
+  },
+  "limitations": [
+    "Host value frames are not a selected radio wire format.",
+    "Each endpoint has independent storage and Ready authority; equal fresh boot generations and compatible trusted clock windows remain required by the frozen invitation.",
+    "Old invitation refuses after reconstruction; new durable boot and newly signed invitation may start a new unconfirmed attempt under the existing authority policy.",
+    "No peer-confirmation receipt, traffic or membership capability is exposed.",
+    "SDK/entropy/storage seams are simulated; no physical interruption, radio, firmware target or Android acceptance."
+  ],
+  "v1_credit_changed": false,
+  "public_website_changed": false
+}

@@ -755,3 +755,8 @@ tests/hardware/OT-204-RECEIPT-TRIAL-2026-09-12.json -text
 /tests/host/companion_host_stack_observer_tests.cpp -text
 /tests/host/companion_host_stack_observer_tests.py -text
 /tests/host/fixtures/companion_host_stack/freertos/*.h -text
+
+# OT-227 preserve endpoint and current-source proof inputs exactly.
+/firmware/components/security_evaluation/include/opentrail/evaluation_handshake_endpoint.hpp -text
+/tests/host/security_handshake_endpoint_tests.cpp -text
+/tests/host/security_current_source_ci.py -text

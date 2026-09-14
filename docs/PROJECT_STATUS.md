@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-13. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-14. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -8,6 +8,9 @@ See [archive navigation](history/README.md) for moved headings, [Architecture](A
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
 ## Current accepted capabilities
+
+The [independent evaluation endpoints](testing/OT-227-INDEPENDENT-HANDSHAKE-ENDPOINTS-2026-09-14.md) now complete actual cryptographic handshake and separate local confirmation over bounded host transport. They own independent session/storage/Ready state and expose no membership or traffic authority.38 endpoint groups and the full affected security matrix pass. The frozen invitation still requires compatible local boot contexts and clock windows; different retained boot generations refuse. Real provisioning, radio/phone integration and complete lifecycle acceptance remain open.
+
 
 - Two Heltec/Android pairs have protected BLE authorization, Snapshot/Ready,
   saved-owner reconnect, name and region readbacks, and automatic clock sync
