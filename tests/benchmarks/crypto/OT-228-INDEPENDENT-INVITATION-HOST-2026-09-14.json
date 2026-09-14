@@ -1,0 +1,133 @@
+{
+  "schema": "OT228-INDEPENDENT-INVITATION-HOST-1",
+  "recorded_utc": "2026-09-14T16:49:40.482948+00:00",
+  "result": "passed",
+  "hardware": false,
+  "suites": {
+    "security_policy_invitation_lifecycle_tests": {
+      "output": "PASS 91 durable invitation lifecycle groups\nRefused storage faults: 9 pristine retry cases, 19 retained refusal cases",
+      "binary": {
+        "bytes": 296189,
+        "sha256": "e6e82b463f2e1c728a6f880b6b9331a149a0323a2f067918fd925e68b5a7991d"
+      }
+    },
+    "security_policy_authorized_session_tests": {
+      "output": "PASS 41 actual authorized policy session groups",
+      "binary": {
+        "bytes": 361237,
+        "sha256": "38133a3a97ea8f46ff1533f9bac4e7b7edae1bf74ebd0a662ddc32ad91547552"
+      }
+    },
+    "security_candidate_known_answer_tests": {
+      "output": "PASS 10 pinned Ed25519 known-answer and refusal groups",
+      "binary": {
+        "bytes": 536162,
+        "sha256": "574c92f5926815b9b2acb315cf4f730ec1e70fdf7bda9f03a64672e0bf112ad2"
+      }
+    },
+    "security_policy_invitation_tests": {
+      "output": "PASS 40 real signed invitation gate groups",
+      "binary": {
+        "bytes": 239770,
+        "sha256": "f394b0d67184addb6745f63dcc8cf73f385425a50ffffff41d9a67ed6a180900"
+      }
+    },
+    "security_policy_session_tests": {
+      "output": "PASS 31 actual policy session groups",
+      "binary": {
+        "bytes": 302841,
+        "sha256": "7050e15447b2e4f2a47c89e87cdc0a6b538be607cd6d150d3688cde81fabecb9"
+      }
+    },
+    "security_confirmation_owner_tests": {
+      "output": "PASS 44 actual confirmation owner groups",
+      "binary": {
+        "bytes": 353241,
+        "sha256": "e799f16b12fbac0b7925a40bfffe441b92ab0791b2b6beb4aab8f5716dd72498"
+      }
+    },
+    "security_handshake_endpoint_tests": {
+      "output": "PASS 38 independent handshake endpoint groups",
+      "binary": {
+        "bytes": 380304,
+        "sha256": "6439c534eb079c32b6a35a85374bafa9acbf43a7a7d12bd15b3ab19cfc7b1f9e"
+      }
+    },
+    "security_independent_invitation_tests": {
+      "output": "PASS 93 independent invitation groups",
+      "binary": {
+        "bytes": 360917,
+        "sha256": "ef507a58869222d41a856ed4112d301c783f79e400b0911b0440cf71ebf05b5f"
+      }
+    },
+    "security_invitation_target_tests": {
+      "output": "PASS 130 actual invitation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+      "binary": {
+        "bytes": 404238,
+        "sha256": "198ab9687d47198a94598ffcf07fd1b714ec28d4ff755ab9dead27f0546776fc"
+      }
+    },
+    "security_confirmation_target_tests": {
+      "output": "PASS 139 actual confirmation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+      "binary": {
+        "bytes": 420084,
+        "sha256": "842cec8c22ec07c7419de450735140489804824b92dd651b715dff2ec09a88bf"
+      }
+    },
+    "security_confirmation_ble_backend_tests": {
+      "output": "PASS 72 actual protected confirmation backend groups",
+      "binary": {
+        "bytes": 419635,
+        "sha256": "851debdbcc16eefaf02d4e796ffc5188c3c4c40659b9b662a67353ab0870e1f7"
+      }
+    }
+  },
+  "behavioral_groups": 729,
+  "independent_invitation_groups": 93,
+  "scalar_control_groups": 26,
+  "dependency": {
+    "archive_sha256": "865ea3aba354b16be4c7051da48b63247a395f30d1e0537269b253918aa78c5f",
+    "checksum_sha256": "5e3983c5496a3cffba3d013c70991b18cda6c345655fff883fb0e14dfa09e582",
+    "manifest_sha256": "988fbb2b95d1b4f3850d153495f8d73482be52cb80808fa48e24a8d1e9bf91ea",
+    "verified_files": 733
+  },
+  "toolchain": {
+    "gcc.exe": {
+      "bytes": 3306749,
+      "sha256": "f96a3bdb1d3a3967b309d75c7413399391e857b5be4cb17162572ed66f6772a0",
+      "version": "gcc.exe (Rev5, Built by MSYS2 project) 16.1.0"
+    },
+    "g++.exe": {
+      "bytes": 3309821,
+      "sha256": "798a6eb495b30cf771dc759b5508d269ecb0dddac739719e8b30fe0ac0744b69",
+      "version": "g++.exe (Rev5, Built by MSYS2 project) 16.1.0"
+    }
+  },
+  "source_pins": {
+    "firmware/components/security_evaluation/include/opentrail/independent_invitation.hpp": {
+      "bytes": 8947,
+      "sha256": "fb9a704132f7f1214796eae60bd938374ac4c11e169ae09e3ea4eb09bdf596bb"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_invitation_authority.hpp": {
+      "bytes": 10653,
+      "sha256": "f08424bd54abdf4dd8da58b7f69850d426761e32e1d0bcd9d404647503a13d44"
+    },
+    "tests/host/security_independent_invitation_tests.cpp": {
+      "bytes": 22326,
+      "sha256": "5e219d484dcf219e772cb9e156161f1a54439ff44c9f2ab8f1ee374910d46fc9"
+    },
+    "tests/host/security_current_source_ci.py": {
+      "bytes": 10603,
+      "sha256": "e80ba455e88f4794549d6f6354d1be445103231354a939e5571dc0f66b7ddbfb"
+    }
+  },
+  "limitations": [
+    "Host contract and durable admission only; frozen OT227 endpoint does not consume v2 yet.",
+    "Trusted provisioning must authenticate each peer identity and current boot/local-clock observations.",
+    "Local monotonic windows need no cross-device clock alignment; boot contexts are ledger scoped, not globally unique.",
+    "252 signed bytes are not a selected radio frame or on-device provisioning workflow.",
+    "Storage and entropy seams simulated; no firmware image, physical interruption, radio or phone acceptance."
+  ],
+  "v1_credit_changed": false,
+  "public_website_changed": false
+}

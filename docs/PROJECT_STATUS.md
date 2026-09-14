@@ -9,6 +9,9 @@ for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
 ## Current accepted capabilities
 
+The [version-2 invitation contract](testing/OT-228-INDEPENDENT-INVITATIONS-2026-09-14.md) validates separate boot contexts and local clock windows while retaining one common signed Noise prologue and durable one-use admission. 93 new host groups pass. This removes shared boot/time requirements from the contract; the existing endpoint still requires a successor binding before real-device provisioning and radio/phone integration.
+
+
 The [independent evaluation endpoints](testing/OT-227-INDEPENDENT-HANDSHAKE-ENDPOINTS-2026-09-14.md) now complete actual cryptographic handshake and separate local confirmation over bounded host transport. They own independent session/storage/Ready state and expose no membership or traffic authority.38 endpoint groups and the full affected security matrix pass. The frozen invitation still requires compatible local boot contexts and clock windows; different retained boot generations refuse. Real provisioning, radio/phone integration and complete lifecycle acceptance remain open.
 
 

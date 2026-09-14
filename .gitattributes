@@ -760,3 +760,8 @@ tests/hardware/OT-204-RECEIPT-TRIAL-2026-09-12.json -text
 /firmware/components/security_evaluation/include/opentrail/evaluation_handshake_endpoint.hpp -text
 /tests/host/security_handshake_endpoint_tests.cpp -text
 /tests/host/security_current_source_ci.py -text
+
+# OT-228 preserve independent invitation contract and proof inputs exactly.
+/firmware/components/security_evaluation/include/opentrail/independent_invitation.hpp -text
+/firmware/components/security_evaluation/include/opentrail/independent_invitation_authority.hpp -text
+/tests/host/security_independent_invitation_tests.cpp -text
