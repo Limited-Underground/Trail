@@ -397,6 +397,14 @@ extern "C" void app_main() {
             // Pinned ESP-IDF task.h defines this result in bytes, not words.
             ESP_LOGI(kLogTag, "app_stack minimum_free_bytes=%u",
                      static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+            std::uint32_t ble_host_stack_bytes = 0;
+            if (opentrail::target::heltec_v4_bench::
+                    companion_nimble_host_stack_minimum_free_bytes(ble_host_stack_bytes)) {
+                ESP_LOGI(kLogTag, "ble_host_stack minimum_free_bytes=%u",
+                         static_cast<unsigned>(ble_host_stack_bytes));
+            }
+#endif
             next_heartbeat_ms = elapsed_ms + kHeartbeatPeriodMs;
         }
         vTaskDelay(pdMS_TO_TICKS(100));

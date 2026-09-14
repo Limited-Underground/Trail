@@ -193,6 +193,7 @@ def test_contract() -> None:
         "main/companion_nimble_gatt.hpp",
         "main/companion_nimble_runtime.cpp",
         "main/companion_nimble_runtime.hpp",
+        "main/companion_host_stack_observer.hpp",
         "main/companion_configuration_lane.hpp",
         "main/companion_name_storage.cpp",
         "main/companion_name_storage.hpp",

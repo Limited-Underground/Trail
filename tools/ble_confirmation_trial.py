@@ -15,7 +15,7 @@ TrialError = common.ExecutionError
 need, sha, canonical, decode = common.need, common.sha, common.canonical, common.decode
 SPANS = {'bootloader': (0, 32768), 'partition': (0x8000, 4096),
          'ota': (0x9000, 8192), 'application': (0x10000, 733184), 'nvs': (0xd000, 12288)}
-CANDIDATE = {'bytes': 730736, 'sha256': '28dadebed9c08ed4a52bfe3d38266144da70116943f522a9d7421bb6f915110c'}
+CANDIDATE = {'bytes': 730928, 'sha256': '444591760db347c9ce395287ce0cad315d6f2fe736e633170e2c1064b58da3d6'}
 PARTITION_SHA = 'b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601'
 OTA_SHA = '7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f'
 NAMESPACES = {b'ot216_boot', b'ot216_ia', b'ot216_ib', b'ot216_ta', b'ot216_tb', b'ot216_ra', b'ot216_rb'}

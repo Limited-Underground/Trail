@@ -1,0 +1,86 @@
+{
+  "schema": "OT221-PHYSICAL-STARTUP-1",
+  "recorded_utc": "2026-09-14T03:43:18.217240+00:00",
+  "hardware": "Heltec WiFi LoRa32 V4.2 / ESP32-S3 / 16MB, role A Trail Bench",
+  "phone": "SM-N986U / Android 13 SDK33 / exact OT216 V1-Test APK",
+  "radio": "No LoRa operation or region change; comparison role B untouched",
+  "candidate_sha256": "28dadebed9c08ed4a52bfe3d38266144da70116943f522a9d7421bb6f915110c",
+  "candidate_bytes": 730736,
+  "application_span": 733184,
+  "startup": {
+    "bytes_read": 7210,
+    "early_output_may_be_missing": true,
+    "elapsed_ms": 15004,
+    "markers": [
+      {
+        "category": "self_check_pass"
+      },
+      {
+        "category": "runtime_started"
+      },
+      {
+        "category": "heartbeat",
+        "value": 707
+      },
+      {
+        "category": "app_stack",
+        "value": 21056
+      },
+      {
+        "category": "heartbeat",
+        "value": 5758
+      },
+      {
+        "category": "app_stack",
+        "value": 21056
+      },
+      {
+        "category": "heartbeat",
+        "value": 10758
+      },
+      {
+        "category": "app_stack",
+        "value": 21056
+      },
+      {
+        "category": "reset_banner"
+      },
+      {
+        "category": "self_check_pass"
+      },
+      {
+        "category": "runtime_started"
+      },
+      {
+        "category": "heartbeat",
+        "value": 630
+      },
+      {
+        "category": "app_stack",
+        "value": 21056
+      }
+    ],
+    "schema": "OT221-STARTUP-1",
+    "status": "window_complete"
+  },
+  "restoration": {
+    "application_readback": true,
+    "nvs_readback": true,
+    "protected_regions_verified": true,
+    "original_reset": true,
+    "custody_closed": true,
+    "phone_protected_ready": true,
+    "phone_session": 23,
+    "phone_recovery_actions": [
+      "normal scan did not reconnect",
+      "normal reopen retained scan state",
+      "V1-Test process restart preserving data and bond",
+      "Find device and Start Bluetooth device service"
+    ]
+  },
+  "candidate_attempts": 1,
+  "recovery_attempts": 0,
+  "confirmation": "not_requested",
+  "root_cause": "unknown",
+  "public_website_change": false
+}

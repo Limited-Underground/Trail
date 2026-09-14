@@ -145,8 +145,8 @@ class EngineTests(unittest.TestCase):
         captured = (self.root / '.private' / ('ble-confirmation-' + f'{1:032x}' + '-application.bin')).read_bytes()
         self.assertEqual(captured[-143360:], b'T' * 143360)
     def test_production_candidate_pin_rejects_synthetic_fixture(self):
-        self.assertEqual(PRODUCTION_CANDIDATE, {'bytes': 730736,
-            'sha256': '28dadebed9c08ed4a52bfe3d38266144da70116943f522a9d7421bb6f915110c'})
+        self.assertEqual(PRODUCTION_CANDIDATE, {'bytes': 730928,
+            'sha256': '444591760db347c9ce395287ce0cad315d6f2fe736e633170e2c1064b58da3d6'})
         self.assertEqual(PRODUCTION_PARTITION_SHA,
             'b7bbaf702afd377973aa2371f288bcea50548865d10e2cdada4d5e7f98a91601')
         with mock.patch.multiple(trial, CANDIDATE=PRODUCTION_CANDIDATE,
@@ -254,6 +254,24 @@ class EngineTests(unittest.TestCase):
     def test_unknown_observation_restores_and_is_failure(self):
         self.observe = lambda: 'Submitted'
         self.assertEqual(self.execute()['observation'], 'trial_failed')
+    def test_startup_capture_timeout_restores_full_originals(self):
+        def failed_capture():
+            raise TimeoutError('private driver detail')
+        self.backend.boot_candidate = failed_capture
+        result = self.execute()
+        self.assertTrue(result['restored'])
+        self.assertEqual(result['observation'], 'trial_failed')
+        self.assertEqual(self.backend.memory, self.original)
+        self.assertFalse(self.held())
+
+    def test_diagnostic_only_observation_restores_without_confirmation(self):
+        self.observe = lambda: 'unavailable'
+        result = self.execute()
+        self.assertTrue(result['restored'])
+        self.assertEqual(result['observation'], 'unavailable')
+        self.assertEqual(self.backend.memory, self.original)
+        self.assertFalse(self.held())
+
     def test_keyboard_interrupt_observation_restores(self):
         def interrupted():
             raise KeyboardInterrupt()

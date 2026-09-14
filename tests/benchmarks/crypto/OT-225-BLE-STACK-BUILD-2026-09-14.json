@@ -1,0 +1,743 @@
+{
+  "schema": "OT225-BLE-STACK-BUILD-1",
+  "recorded_at": "2026-09-14T13:30:54.257359+00:00",
+  "status": "reproducible_build_only",
+  "toolchain": {
+    "esp_idf": "v6.0.2",
+    "compiler": "xtensa-esp-elf-gcc.exe (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+    "compiler_file": {
+      "bytes": 2476544,
+      "sha256": "7df2dd46a45e63b7c5e6d0a0a9d4b41ac204d5c9b785de71d92c7e0b1751e601"
+    },
+    "cmake": "4.0.3",
+    "ninja": "1.12.1",
+    "cache": "disabled",
+    "compiler_alias_file": {
+      "bytes": 906240,
+      "sha256": "20e70278d1fa041c1305e0e70e6f35dde01b7eb21f2c7bbc0013456493a011a5"
+    }
+  },
+  "runs": [
+    {
+      "run": "A",
+      "build_directory": "build/ot216-ble-ot225-final-a",
+      "artifacts": {
+        "opentrail_heltec_v4_bench.bin": {
+          "bytes": 730928,
+          "sha256": "444591760db347c9ce395287ce0cad315d6f2fe736e633170e2c1064b58da3d6"
+        },
+        "opentrail_heltec_v4_bench.elf": {
+          "bytes": 10057316,
+          "sha256": "a2c469e6bcbb459d80339f28c2cf7a4d59935217cae722a2a8a4a0668a9b6959"
+        },
+        "opentrail_heltec_v4_bench.map": {
+          "bytes": 7478117,
+          "sha256": "46dd0c97ae9dbe69e7014055381b0e9aa19c24c247ab89232b6553f3a1adbc9c"
+        },
+        "sdkconfig": {
+          "bytes": 106931,
+          "sha256": "96252c4633ce2b04719b37ee4e9d654c5d83cf224b24512330c3cfe3542125f1"
+        },
+        "bootloader/bootloader.bin": {
+          "bytes": 22480,
+          "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+        },
+        "partition_table/partition-table.bin": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "ota_data_initial.bin": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        }
+      },
+      "log": {
+        "bytes": 202924,
+        "sha256": "d1e7b8ce38a1f4302478b71fb6092080165e29ca0d4de501bf9954baa01ebe59"
+      },
+      "compiler_warnings": 0,
+      "ble_host_stack_bytes": 8192,
+      "main_stack_bytes": 24576,
+      "code_sections": [
+        {
+          "section": ".iram0.vectors",
+          "low": 1077362688,
+          "high_exclusive": 1077363716
+        },
+        {
+          "section": ".iram0.text",
+          "low": 1077363716,
+          "high_exclusive": 1077444031
+        },
+        {
+          "section": ".flash.text",
+          "low": 1107296288,
+          "high_exclusive": 1107794860
+        }
+      ],
+      "padded_application_span": 733184
+    },
+    {
+      "run": "B",
+      "build_directory": "build/ot216-ble-ot225-final-b",
+      "artifacts": {
+        "opentrail_heltec_v4_bench.bin": {
+          "bytes": 730928,
+          "sha256": "444591760db347c9ce395287ce0cad315d6f2fe736e633170e2c1064b58da3d6"
+        },
+        "opentrail_heltec_v4_bench.elf": {
+          "bytes": 10057316,
+          "sha256": "a2c469e6bcbb459d80339f28c2cf7a4d59935217cae722a2a8a4a0668a9b6959"
+        },
+        "opentrail_heltec_v4_bench.map": {
+          "bytes": 7478117,
+          "sha256": "46dd0c97ae9dbe69e7014055381b0e9aa19c24c247ab89232b6553f3a1adbc9c"
+        },
+        "sdkconfig": {
+          "bytes": 106931,
+          "sha256": "96252c4633ce2b04719b37ee4e9d654c5d83cf224b24512330c3cfe3542125f1"
+        },
+        "bootloader/bootloader.bin": {
+          "bytes": 22480,
+          "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+        },
+        "partition_table/partition-table.bin": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "ota_data_initial.bin": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        }
+      },
+      "log": {
+        "bytes": 202924,
+        "sha256": "2ae7c30ea6d2839c1cb36c82f1b070af9e8c14e30a2b9866480e7cd764a90b8b"
+      },
+      "compiler_warnings": 0,
+      "ble_host_stack_bytes": 8192,
+      "main_stack_bytes": 24576,
+      "code_sections": [
+        {
+          "section": ".iram0.vectors",
+          "low": 1077362688,
+          "high_exclusive": 1077363716
+        },
+        {
+          "section": ".iram0.text",
+          "low": 1077363716,
+          "high_exclusive": 1077444031
+        },
+        {
+          "section": ".flash.text",
+          "low": 1107296288,
+          "high_exclusive": 1107794860
+        }
+      ],
+      "padded_application_span": 733184
+    },
+    {
+      "run": "CONTROL",
+      "build_directory": "build/ot216-ble-ot225-final-control",
+      "artifacts": {
+        "opentrail_heltec_v4_bench.bin": {
+          "bytes": 589568,
+          "sha256": "92a8e0102d0db705a695bf17e7079cb7a8373a3b8b71f38a5245214a480c5684"
+        },
+        "opentrail_heltec_v4_bench.elf": {
+          "bytes": 8639284,
+          "sha256": "afe37d5ca19a0667b3ffa4393e771acc781808295bd7ccb904a0c3108ca32483"
+        },
+        "opentrail_heltec_v4_bench.map": {
+          "bytes": 7018717,
+          "sha256": "37d694e115517d7240d2750a6f4f1cd7354d298d17c2519fdf7efe456061bd0f"
+        },
+        "sdkconfig": {
+          "bytes": 106877,
+          "sha256": "5519cbf48461633e814cc7d1608d01beb283d3a2d7c45829877d2eb2bea7a71e"
+        },
+        "bootloader/bootloader.bin": {
+          "bytes": 22480,
+          "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+        },
+        "partition_table/partition-table.bin": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "ota_data_initial.bin": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        }
+      },
+      "log": {
+        "bytes": 178278,
+        "sha256": "f8c1e5f14537c4a3749f804f66958420fd15aa861c376001b1906cfdedf0827c"
+      },
+      "compiler_warnings": 0,
+      "ble_host_stack_bytes": 4096,
+      "main_stack_bytes": 8192,
+      "code_sections": [
+        {
+          "section": ".iram0.vectors",
+          "low": 1077362688,
+          "high_exclusive": 1077363716
+        },
+        {
+          "section": ".iram0.text",
+          "low": 1077363716,
+          "high_exclusive": 1077444007
+        },
+        {
+          "section": ".flash.text",
+          "low": 1107296288,
+          "high_exclusive": 1107688864
+        }
+      ],
+      "padded_application_span": 589824
+    }
+  ],
+  "identical_evaluation_artifact_pairs": 7,
+  "source_pins": {
+    "firmware/components/companion/include/opentrail/companion_authorization.hpp": {
+      "bytes": 11141,
+      "sha256": "04c9838676e2deabbb53111abba2ded60d153dadcb3c41f02fc03246ba414be3"
+    },
+    "firmware/components/companion/include/opentrail/companion_authorization_persistence.hpp": {
+      "bytes": 8686,
+      "sha256": "b5a06bb95d5375155a7e71a3aefe76bd981c8b49a3d10d03e724f4eb9dcdee31"
+    },
+    "firmware/components/companion/include/opentrail/companion_authorization_protected_kv_media.hpp": {
+      "bytes": 3512,
+      "sha256": "ee5377acfef4133bc01396dcd00c326cb050fdea770769c378b7847dce406f30"
+    },
+    "firmware/components/companion/include/opentrail/companion_authorization_protected_store.hpp": {
+      "bytes": 3803,
+      "sha256": "70ec92ec2a31e3356c3591d802b2da28a69187945a1997fab97eb5553cc6a7d4"
+    },
+    "firmware/components/companion/include/opentrail/companion_authorization_wire.hpp": {
+      "bytes": 11873,
+      "sha256": "526228a2d60b9b785f6361826da657e81ab3e4ce41bf3d56148f1e8bc65cc9d5"
+    },
+    "firmware/components/companion/include/opentrail/companion_ble_runtime_owner.hpp": {
+      "bytes": 5936,
+      "sha256": "bf3c96edee5bff78345e51b50a46e2ae48fb6b0fbf8b7aaa93a25928859b4292"
+    },
+    "firmware/components/companion/include/opentrail/companion_configuration_codec.hpp": {
+      "bytes": 3587,
+      "sha256": "4076df1bc1cf84a6a9dc724d94dda7ab3c417ea5fe3c76ab0f480c044c93ef49"
+    },
+    "firmware/components/companion/include/opentrail/companion_configuration_dispatcher.hpp": {
+      "bytes": 4956,
+      "sha256": "d0af72782b4f0a98277e00d0b063c766aaff8b9949da927b6994403ebfac0369"
+    },
+    "firmware/components/companion/include/opentrail/companion_confirmation_codec.hpp": {
+      "bytes": 5575,
+      "sha256": "2ddb74f3a1e4c0ca41bbf51bae5970417b96c02009f39b6be9f8e9372b570844"
+    },
+    "firmware/components/companion/include/opentrail/companion_device_name_codec.hpp": {
+      "bytes": 2025,
+      "sha256": "7292afa9243ed16f112c8f0e743b589907ce7ee6d814bb6c1d0db6577d6f18d9"
+    },
+    "firmware/components/companion/include/opentrail/companion_device_name_owner.hpp": {
+      "bytes": 4988,
+      "sha256": "d4ab43c2a9c2119e19dfa3425165d968c30430427c27cff7d8e2816ff27a150e"
+    },
+    "firmware/components/companion/include/opentrail/companion_factory_reset_authority.hpp": {
+      "bytes": 2143,
+      "sha256": "f3eb0b146902a685209b9491ff15c39e2e854d65d68c286b4daa24de41a0cf9c"
+    },
+    "firmware/components/companion/include/opentrail/companion_factory_reset_gesture.hpp": {
+      "bytes": 3115,
+      "sha256": "81e169a8db8799a79e7d008469174abd67f5b7d869f17edae149202f7cb4e288"
+    },
+    "firmware/components/companion/include/opentrail/companion_gatt_authorization.hpp": {
+      "bytes": 17269,
+      "sha256": "372c3f0edfc6870907ca43ce7f2a77ea24d67d6fa13d35870e741b10799d4120"
+    },
+    "firmware/components/companion/include/opentrail/companion_gatt_authorization_adapter.hpp": {
+      "bytes": 10034,
+      "sha256": "fce44bc8ac234f39d9d4612170f22ae3545906c2cd76af0fde5039ba631871d7"
+    },
+    "firmware/components/companion/include/opentrail/companion_gatt_session.hpp": {
+      "bytes": 8450,
+      "sha256": "9387eb15b0c98e546f5fd96a13fefcd97802d26e62cb1f4acff3a17dfbc0cb6f"
+    },
+    "firmware/components/companion/include/opentrail/companion_pairing_window.hpp": {
+      "bytes": 7007,
+      "sha256": "a8c34ee794223f50e0308c72fea1bac290c70a87fec833880aa634f685c4ae61"
+    },
+    "firmware/components/companion/include/opentrail/companion_protocol.hpp": {
+      "bytes": 7039,
+      "sha256": "650f1c3057ba771bacbdfc3801f5f897e83902376026c926b35939f3c77d8b52"
+    },
+    "firmware/components/companion/include/opentrail/companion_public_link_info.hpp": {
+      "bytes": 1282,
+      "sha256": "d37ad8aa09f971580d46bebac45b80da1a230e6fda07823bee48ce87f6c4fa42"
+    },
+    "firmware/components/companion/include/opentrail/companion_region_catalog.hpp": {
+      "bytes": 930,
+      "sha256": "0561f819596b0889d241c6e5208273a3c0744c35b7ffacc54a8b468f4b4e6d8c"
+    },
+    "firmware/components/companion/include/opentrail/companion_region_owner.hpp": {
+      "bytes": 2073,
+      "sha256": "bbdab0160bbe82bfeaa3b9bde9d4e27a24142fe6d643ae23fe3d732fd743b076"
+    },
+    "firmware/components/companion/include/opentrail/companion_request_coordinator.hpp": {
+      "bytes": 6776,
+      "sha256": "e58cf34a71669a4792dfd5e4e0cfc02c1784bec48316123fbbc0da2cbde91fa3"
+    },
+    "firmware/components/companion/include/opentrail/companion_reset_receipt.hpp": {
+      "bytes": 1620,
+      "sha256": "209f3d8d1fd085b60d37079b06767c047aed82acd3ed4eddee62a00566f43ec4"
+    },
+    "firmware/components/companion/include/opentrail/companion_semantics.hpp": {
+      "bytes": 6057,
+      "sha256": "d95d6673dbe51987ca268c7cb0c3ab78d804d96fb4ac45081ed1f7dece083feb"
+    },
+    "firmware/components/companion/include/opentrail/companion_v1_bond_owner.hpp": {
+      "bytes": 7860,
+      "sha256": "64af64ac8d1ab5bac6c90286cc7a538f80a86325f46d01c0d01d5cc2af387004"
+    },
+    "firmware/components/companion/include/opentrail/device_factory_reset_executor.hpp": {
+      "bytes": 7950,
+      "sha256": "e0db203d82c43c8ecc9e56e0426ba132fa570047c5c1bb32795a058c608873e5"
+    },
+    "firmware/components/companion/src/companion_authorization.cpp": {
+      "bytes": 23879,
+      "sha256": "04c24d8ca51c87b59c35de74f0f6c34c6a3300fc07bd1296e439b08c5b7beb5b"
+    },
+    "firmware/components/companion/src/companion_authorization_persistence.cpp": {
+      "bytes": 12148,
+      "sha256": "2408ef41c9d9e03dc245662750db3713807b46ab2b5b72b1546c743682f6196a"
+    },
+    "firmware/components/companion/src/companion_authorization_protected_kv_media.cpp": {
+      "bytes": 5227,
+      "sha256": "8d1f76a9e6943f97612c24f3bcb1aff2f24bc24b4294e1db9cc2dad9785abcec"
+    },
+    "firmware/components/companion/src/companion_authorization_wire.cpp": {
+      "bytes": 21981,
+      "sha256": "a1e9af9b92445199b1836425d5e0e356e0646086e9f3ceec79aa0e46e44a47b3"
+    },
+    "firmware/components/companion/src/companion_ble_runtime_owner.cpp": {
+      "bytes": 16077,
+      "sha256": "29aa9077d4a4b67fcebe05e29f3d24c40ce70939a4766ba588102d9912cfa4e1"
+    },
+    "firmware/components/companion/src/companion_configuration_codec.cpp": {
+      "bytes": 8551,
+      "sha256": "c135d756bf504765eb11eaff918ea01fd751950a70dcc668500f8fd396abf2a7"
+    },
+    "firmware/components/companion/src/companion_configuration_dispatcher.cpp": {
+      "bytes": 16390,
+      "sha256": "0fd5942809a4c0e902ff5ec5a5610f90f6e5fb26b562a0768fea3c660df84f32"
+    },
+    "firmware/components/companion/src/companion_confirmation_codec.cpp": {
+      "bytes": 132,
+      "sha256": "3737d9dc0f6af1f41d9656f2d938dd4117f580cf569f83f277b9c4a7cd4b40e5"
+    },
+    "firmware/components/companion/src/companion_device_name_codec.cpp": {
+      "bytes": 5603,
+      "sha256": "bc0e2a540e3d637d21d3407f0753ec73eb36ee4ff7bbedfb46f094da6fda1b3b"
+    },
+    "firmware/components/companion/src/companion_device_name_owner.cpp": {
+      "bytes": 11276,
+      "sha256": "6499b6e8fded1f61139ad8af7f1e47e67fb1d18a7d71e6f450f334c9e6aa3b56"
+    },
+    "firmware/components/companion/src/companion_factory_reset_authority.cpp": {
+      "bytes": 5244,
+      "sha256": "7c5ad9628adf574e29eda965b1116d640a216524a68b340275eff8a183244675"
+    },
+    "firmware/components/companion/src/companion_factory_reset_gesture.cpp": {
+      "bytes": 7272,
+      "sha256": "b2d0a2590d99f3dfc439415b803a482463fbd15a0c12e7a6531884143e8591e5"
+    },
+    "firmware/components/companion/src/companion_gatt_authorization.cpp": {
+      "bytes": 51833,
+      "sha256": "cb633454611271c6567a47478a7844ad993f2c41e444bfe2e8e4a8b1d7ce6ea2"
+    },
+    "firmware/components/companion/src/companion_gatt_authorization_adapter.cpp": {
+      "bytes": 22010,
+      "sha256": "314fbc85c9d21103130c134210c45b16fbb2449f4a8ecf3e2bd230a5ad71a604"
+    },
+    "firmware/components/companion/src/companion_gatt_session.cpp": {
+      "bytes": 18817,
+      "sha256": "5529fd0c10ffe5fdfc086b6571115466b1c06b0921064f9f53649366a018fcc5"
+    },
+    "firmware/components/companion/src/companion_pairing_window.cpp": {
+      "bytes": 21184,
+      "sha256": "c28da86b495934434249d70755bce1cdb6cc5565ff249e0ac0cbfa35f747038e"
+    },
+    "firmware/components/companion/src/companion_protocol.cpp": {
+      "bytes": 14746,
+      "sha256": "ccc6ba6f45a66318ef80e0beefea5546bb52b707cfc307120096811b12d8eb62"
+    },
+    "firmware/components/companion/src/companion_public_link_info.cpp": {
+      "bytes": 1456,
+      "sha256": "f71d342f4915fde46433a2abde79f3e38c988d6cd8c952489b57469e56d081f4"
+    },
+    "firmware/components/companion/src/companion_region_owner.cpp": {
+      "bytes": 4268,
+      "sha256": "b7256f293e330e4d7282879358e98e377c194cd6505ae52100f65799c49200dd"
+    },
+    "firmware/components/companion/src/companion_request_coordinator.cpp": {
+      "bytes": 12844,
+      "sha256": "200c1642492e5f87b9b08db5b24c1ffc61c2936eb84e296428543d5be3ab1c79"
+    },
+    "firmware/components/companion/src/companion_semantics.cpp": {
+      "bytes": 19091,
+      "sha256": "1c17aadf862ba7c29ab8de0b6457ec6f6eb53bd78c1ddb7bb6dbda71a2f158a9"
+    },
+    "firmware/components/companion/src/companion_v1_bond_owner.cpp": {
+      "bytes": 24925,
+      "sha256": "0e2424d2b97dc5265f03719ac8062136a82845ef67ffb7d6580e0a95384d8f5a"
+    },
+    "firmware/components/companion/src/device_factory_reset_executor.cpp": {
+      "bytes": 11908,
+      "sha256": "bc1b3111ae81771775830940f1708334c8802294364141d29b290fe9bb0227fc"
+    },
+    "firmware/components/persistence/include/opentrail/outbound_counter_lease_store.hpp": {
+      "bytes": 3267,
+      "sha256": "9e298fab283927de4a08694ceaae34fd63aa9c4f9abac73f3aec969d6540d1c0"
+    },
+    "firmware/components/persistence/include/opentrail/persistent_storage.hpp": {
+      "bytes": 1642,
+      "sha256": "2f6c1cacf111b2de8c81f999bfd4de09d84f6441c354f5523865c1b62c2c88ed"
+    },
+    "firmware/components/persistence/include/opentrail/persistent_storage_kv.hpp": {
+      "bytes": 3928,
+      "sha256": "74ac988e9557ddf38b6b575fbd15c71e7191f7aba448ef5f7dadda14c8da6682"
+    },
+    "firmware/components/persistence/src/outbound_counter_lease_store.cpp": {
+      "bytes": 13692,
+      "sha256": "6d832d1447189f53e733642d4c7118333a973690d40b702a4fdde1999c69f151"
+    },
+    "firmware/components/persistence/src/persistent_storage_kv.cpp": {
+      "bytes": 7157,
+      "sha256": "e5567c236abeb96deab2ab9f4730dc18e5c1d664535d1f22024b5ff81d929c70"
+    },
+    "firmware/components/protocol/include/opentrail/quick_status_codec.hpp": {
+      "bytes": 1692,
+      "sha256": "c1953b7ee2d6f2683ebf1abf0045dbead9b73a80547e501cb1f71a09bbfc74a7"
+    },
+    "firmware/components/radio/include/opentrail/radio_transport.hpp": {
+      "bytes": 2887,
+      "sha256": "d19f3dee030f6bc1e40bf16cd9c22a1a372869cf458516bdcb2db00c18cc7677"
+    },
+    "firmware/components/security/include/opentrail/aead_nonce.hpp": {
+      "bytes": 1489,
+      "sha256": "469b3186591f773ba70e4aa3c314f2738f35432a388761c91d622624119b8fdd"
+    },
+    "firmware/components/security/include/opentrail/secure_random.hpp": {
+      "bytes": 1409,
+      "sha256": "8cb343ee20d777d45acc277f46ee07d4a22199252ef1cf6eeedeff5d9ae9a58f"
+    },
+    "firmware/components/security/include/opentrail/serialized_secure_random.hpp": {
+      "bytes": 1875,
+      "sha256": "5349ab3665291cf09f14740ff3c79eafb4226448975473c22837830c799c0b35"
+    },
+    "firmware/components/security/src/aead_nonce.cpp": {
+      "bytes": 1349,
+      "sha256": "e28a118c29886c26d2011f58c989d764b0bc784b6fb71c27cd49a7853486bac9"
+    },
+    "firmware/components/security/src/serialized_secure_random.cpp": {
+      "bytes": 2429,
+      "sha256": "82e1012e1777b97ecf59527b970adf868a81c3ede35475221764b16bc7751f7e"
+    },
+    "firmware/components/security_evaluation/include/opentrail/authorized_policy_session.hpp": {
+      "bytes": 4954,
+      "sha256": "34a7143034055f2f65ecaffa6f9a652babf5c72379e1d38daad56db3c9f7e3e1"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_confirmation_owner.hpp": {
+      "bytes": 10289,
+      "sha256": "8f77009a3f53bc8ddc0ddde8979ef41cd07efb893c950df768b78d05795ea701"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_invitation.hpp": {
+      "bytes": 5987,
+      "sha256": "6f54e83862d625ffe93ac9f93c8ceb484416d4fdfc1f0ac4f9e879388952aa84"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_invitation_authority.hpp": {
+      "bytes": 15481,
+      "sha256": "57a8d93ecf1cd1655804bd19aa0cd6964c33743cb53054ac28616fd0f57d43ee"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_policy_session.hpp": {
+      "bytes": 10355,
+      "sha256": "ac1119a0be627895cf68be58d782e1891392fa4241e935a060f5f9a1b21888ab"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_replay_store.hpp": {
+      "bytes": 8735,
+      "sha256": "6d7c3113d9d929ed09e24c5b36c46135f34c9761fc3523ec0e281c597dc818f3"
+    },
+    "firmware/components/time/include/opentrail/oled_clock.hpp": {
+      "bytes": 1541,
+      "sha256": "190736b91bcc44632501ec67cc6c86422d43864c745494fce5ae8b248201ed7a"
+    },
+    "firmware/components/time/include/opentrail/oled_time_admission.hpp": {
+      "bytes": 4023,
+      "sha256": "5336e4f973cb232b115b70ef3096673b6c6ece13a869ea11ce5d40ca3c5d0fdc"
+    },
+    "firmware/components/time/src/oled_clock.cpp": {
+      "bytes": 2490,
+      "sha256": "ab0a9b163d57109c5f3770fee214303abc33cb8ad3b2359d39a0ccaf1f4f6bc3"
+    },
+    "firmware/components/time/src/oled_time_admission.cpp": {
+      "bytes": 8776,
+      "sha256": "c45c155dcb29f4a7ae883ed5d1b8b98eb5339666fd9187541d9b8b7e8bd241a5"
+    },
+    "firmware/components/ui/include/opentrail/compact_status_footer.hpp": {
+      "bytes": 2175,
+      "sha256": "e78bf8a495cc80a11d757bc2b56c40e0a75c2d27a0c6c8d8c61534a7fc4cad62"
+    },
+    "firmware/components/ui/include/opentrail/oled_presentation.hpp": {
+      "bytes": 3206,
+      "sha256": "feae1350ec44fd862fa9829c102f145067fa48fe27d1755f3d1cfdb0b5e6a382"
+    },
+    "firmware/components/ui/include/opentrail/setup_label.hpp": {
+      "bytes": 1892,
+      "sha256": "accc60b7fed2bdcfde6a6ea7db6ef6ca359404292e926126bcca9d1e173f9764"
+    },
+    "firmware/components/ui/src/compact_status_footer.cpp": {
+      "bytes": 6674,
+      "sha256": "c48140559e88833c279ca85dc360eaa30b967cb62741ef9a5cc35a98f7d9955f"
+    },
+    "firmware/components/ui/src/oled_presentation.cpp": {
+      "bytes": 11332,
+      "sha256": "be2f70417a23abea2e82914a53286364506b42b3a9e6396212b8a3fe0d29e4c1"
+    },
+    "firmware/targets/heltec_v4_bench/CMakeLists.txt": {
+      "bytes": 1139,
+      "sha256": "f3bbff3ca1f226f40f51058c6f76c0a11aad7181b02525047ffa6ace5fd15990"
+    },
+    "firmware/targets/heltec_v4_bench/main/CMakeLists.txt": {
+      "bytes": 5691,
+      "sha256": "c702d5a62ce4d49f15b369b52ac8f206308acb17b267424f1fe5eba0b4c61965"
+    },
+    "firmware/targets/heltec_v4_bench/main/app_main.cpp": {
+      "bytes": 18621,
+      "sha256": "daa03baea47a1d86e2949c361d52575272a85e0612fde4c2d1828e72b7d29538"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_authorization_nvs_backend.cpp": {
+      "bytes": 5062,
+      "sha256": "f76208931b6122806c33f816028dfb1da3aa00d9c4a0cae2b861b0c03bc2a643"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_authorization_nvs_backend.hpp": {
+      "bytes": 1554,
+      "sha256": "0fbc9eed331115404b994950b19675bba1e1760747b75dc2e78e07dd6b0982eb"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_authorization_nvs_context.cpp": {
+      "bytes": 6967,
+      "sha256": "51f5454dd9d762cde97c9fc1b4552f7b092e421933acabf655368082eee8a729"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_authorization_nvs_context.hpp": {
+      "bytes": 1895,
+      "sha256": "5ba5699d92a23a87b808f379e9bf52594e0bcadb84db6f134f7f83b02e3e92ca"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_authorization_storage.cpp": {
+      "bytes": 12764,
+      "sha256": "308676a74b019b5fae2fa802503487b652f2d6aa060eab5a407098728a3a62ec"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_authorization_storage.hpp": {
+      "bytes": 3275,
+      "sha256": "3b2998bce4ce6486ff9533bfba779ba6e08723c460197b8db53a1d9a1d35ccd6"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_boot_self_check.cpp": {
+      "bytes": 35103,
+      "sha256": "1ed6a07a0011d9d084bfc91b6f9ed118f4e6aebb7f0eac47764cb74300d4c3ed"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_boot_self_check.hpp": {
+      "bytes": 1460,
+      "sha256": "01dfc5b9b75c6602d0904110a6c448ecc5ff28d28d400c939ac906f2f3565447"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_configuration_lane.hpp": {
+      "bytes": 3561,
+      "sha256": "d7c6b1e781b102fa6826e7bb47f09f3be147a2ff171f85bfa2d65b348e9ca46d"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_host_stack_observer.hpp": {
+      "bytes": 1482,
+      "sha256": "73acb6edd6299ec61ca200f032f22ec47ccf4083701c7bfafc1c518407af5f98"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_name_storage.cpp": {
+      "bytes": 3742,
+      "sha256": "66e3b50f328657655863850daabf50d2ccd7085e78782b7e1cdd3a9f9871a288"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_name_storage.hpp": {
+      "bytes": 512,
+      "sha256": "2bc168bea2210b95aa9d7226c4c901b6e6167e0cc16b42690b5df555bde275a4"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_nimble_gatt.cpp": {
+      "bytes": 50495,
+      "sha256": "063b9940661ff4a4a055d4df186f998833827515a17754333bec5d74633ce213"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_nimble_gatt.hpp": {
+      "bytes": 3284,
+      "sha256": "a3aea2c01a63a0a85dd4a1e2943083d14bc45c1e45314b5c81af202ccc59865e"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_nimble_runtime.cpp": {
+      "bytes": 78291,
+      "sha256": "243a9cad3010e5cc2ee63bd7e14de5490b4b5e9efeb36a7a19b4df7d94c0e260"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_nimble_runtime.hpp": {
+      "bytes": 5375,
+      "sha256": "9b25c166740ea982e6dad580bc338c1822651d886044cc49527f28234a8b62eb"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_protected_root_configuration_security_adapter.cpp": {
+      "bytes": 5433,
+      "sha256": "6b9d0a9b5fe47dfc74038353cd84488080fd3c94351c8419155c5e08c18d647f"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_protected_root_configuration_security_adapter.hpp": {
+      "bytes": 2597,
+      "sha256": "f0c4639ff90d46be17b6174b3d611bb0427c087052eababf38211c3c55f5a4f1"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_protected_root_key_roster_adapter.cpp": {
+      "bytes": 4107,
+      "sha256": "4ddd22907ff53adb9db44058892820df19cca975816d70cbdb8a168ae09a6efc"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_protected_root_key_roster_adapter.hpp": {
+      "bytes": 1907,
+      "sha256": "efcf09d516413fcc5506ff52301f1fb44d4595960420842f8e8a6afdf205f6e9"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_region_storage.cpp": {
+      "bytes": 3490,
+      "sha256": "c841491b5deee81570e56be5b037d89007baed38059507a726a900b5e58d020d"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_region_storage.hpp": {
+      "bytes": 519,
+      "sha256": "6d68ada82d2246aa2f9786a847735edeb018fbe21d445192d8d0cf7777523b12"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_v1_heltec_adapters.cpp": {
+      "bytes": 21368,
+      "sha256": "714e95177057a9cbe444065547603026234ee0fa44e127bd644e6b2cc62c27ec"
+    },
+    "firmware/targets/heltec_v4_bench/main/companion_v1_heltec_adapters.hpp": {
+      "bytes": 3564,
+      "sha256": "13f04cb3f75cc351d8f9d008f53a4e99e992190a3ab80d554f1cf6428498b6ae"
+    },
+    "firmware/targets/heltec_v4_bench/main/confirmation_evaluation_backend.cpp": {
+      "bytes": 10676,
+      "sha256": "9d8692c5a34e0c3c4a936fe4010831157637a279929e915efbd6da976a35d805"
+    },
+    "firmware/targets/heltec_v4_bench/main/confirmation_evaluation_backend.hpp": {
+      "bytes": 2596,
+      "sha256": "90871c173d0f8097616b6ec047c8bdb2419037dbdb13aca316615b4b37c8d3f2"
+    },
+    "firmware/targets/heltec_v4_bench/main/confirmation_evaluation_config.hpp": {
+      "bytes": 186,
+      "sha256": "33d582831bc0b134c48a3956603e80a9b9ab258e6b4cdf077458b17f79d9ee0c"
+    },
+    "firmware/targets/heltec_v4_bench/main/confirmation_nonowning_entropy.cpp": {
+      "bytes": 1037,
+      "sha256": "fc570ffc332f15438ac6a6371782eb083e9711dd679a6d69c58d82c779f84332"
+    },
+    "firmware/targets/heltec_v4_bench/main/confirmation_nonowning_entropy.hpp": {
+      "bytes": 636,
+      "sha256": "e19b7a469249cc346bc49685fa0c18dc24da35617b1b7a7293ad9eb0a9af6770"
+    },
+    "firmware/targets/heltec_v4_bench/main/confirmation_nvs_backend.hpp": {
+      "bytes": 4322,
+      "sha256": "60db96f7ffb96fb80e8fe81c77b746adcd9be31b9c053fdef03760792d5a3bd4"
+    },
+    "firmware/targets/heltec_v4_bench/main/confirmation_runtime_guard.hpp": {
+      "bytes": 1516,
+      "sha256": "c80e221362ec961c3d74a1e2f0abb028b9d6ad8b33f371367f48f6429522e432"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_oled_presentation.cpp": {
+      "bytes": 2171,
+      "sha256": "a38b609570269ea44c4720334c53c850e942d48fca729ee13f48e5f50b18edb5"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_oled_presentation.hpp": {
+      "bytes": 884,
+      "sha256": "c82e39474e5593739ac026269ca9d940a1cfe963d47b5b836506136da7c909cf"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_startup_display.cpp": {
+      "bytes": 10770,
+      "sha256": "f53afe72e34726dd7834cf5e8e2aea9d40cde223417439e4b3805d24dc2c60dd"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_startup_display.hpp": {
+      "bytes": 7169,
+      "sha256": "bd1a5aff61fa6e7fb49696291b62b0b73bef21ea89c1f931b955a922440874fb"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_battery.cpp": {
+      "bytes": 4103,
+      "sha256": "25dac9e5a795fac2c3d7ad3998edb3f0eebec256be7b2124e25f4105075db05a"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_battery.hpp": {
+      "bytes": 1698,
+      "sha256": "147382a3b33fdd2fb08bbde51f6aa54f208dd1d159401552fd1b5bb9c2363a7d"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_input.cpp": {
+      "bytes": 1976,
+      "sha256": "8ecfed44ccb52183b93a00894da4fc5b61e9274bf497531081ab980f3fec75ac"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_input.hpp": {
+      "bytes": 1257,
+      "sha256": "1ee412b2efb05dbc0818a74d109c3eb25578611a35aabd11148b462669a4ee48"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_storage.cpp": {
+      "bytes": 21748,
+      "sha256": "7e91946765a14029333a88b79ffacb033084fee8b91a8858805299401442eedd"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_storage.hpp": {
+      "bytes": 4814,
+      "sha256": "83305e9e21a6e3d25ed75aeb5ccf78f6c100424681736afa4a49fd24872e7c56"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_gnss.cpp": {
+      "bytes": 10369,
+      "sha256": "61ccfd4f5a3d88c3890e791f7d229646d577faa91a1cc9b2c16dcbf84c925249"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_gnss.hpp": {
+      "bytes": 3467,
+      "sha256": "1b59048826949dbfc5ba2723bc898cc16ddddf9e65ee3a6fc2e3db3479a2b36e"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_oled.cpp": {
+      "bytes": 11616,
+      "sha256": "069a65fe31b0e8888a35316eef06f02a6420b4304f00c154dcb6443904928a41"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_oled.hpp": {
+      "bytes": 3779,
+      "sha256": "a48f977f0a58ebddfa10671b0f13b902f2be5927b6432794af2f7371f4c6ec9b"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_secure_random.cpp": {
+      "bytes": 1107,
+      "sha256": "de85f9108a94e463d92ca7ecca1e1c0cb99d9f3e73a4f33625a3e26b62e963dd"
+    },
+    "firmware/targets/heltec_v4_bench/main/heltec_v4_secure_random.hpp": {
+      "bytes": 867,
+      "sha256": "8ec1e3403e18a87634e564ce7a50cf4d9e6dcbf892557eb22987d1876b87d5e6"
+    },
+    "firmware/targets/heltec_v4_bench/main/trail_startup_logo.hpp": {
+      "bytes": 7420,
+      "sha256": "48dc171dba14416cfa0c3da1092252e62a7aafad02a5df2614540591398e6f7c"
+    },
+    "firmware/targets/heltec_v4_bench/partitions.csv": {
+      "bytes": 557,
+      "sha256": "9c27fd7e647ace6eb32524281bfaa52cd370419fec2457f1acdebc6b0cbfa52a"
+    },
+    "firmware/targets/heltec_v4_bench/sdkconfig.confirmation-eval.defaults": {
+      "bytes": 375,
+      "sha256": "2513d0eca99f4c334b32bdc376e399a28519c11c0e18b3676d6022706ff5fd36"
+    },
+    "firmware/targets/heltec_v4_bench/sdkconfig.defaults": {
+      "bytes": 1617,
+      "sha256": "c4cdce2c204165d07c23fdabb428ff868bdfe8ebab1c3e111c4cedea8874bcca"
+    },
+    "firmware/targets/heltec_v4_security_eval/main/noise_adapter/noise_xk_libsodium.c": {
+      "bytes": 18056,
+      "sha256": "b0be8109d017a851cea3952c4713157847c3bc64fe0eba1367c2b3c27cbcdc8b"
+    },
+    "firmware/targets/heltec_v4_security_eval/main/noise_adapter/noise_xk_libsodium.h": {
+      "bytes": 3218,
+      "sha256": "b7c649434cdffe648e467bb117849ae0296a73fa041d614d3d4ba32578e40c45"
+    },
+    "tools/Build-ConfirmationBleEvaluation.ps1": {
+      "bytes": 2514,
+      "sha256": "8262e3ea6df0fcdf20f7fb19b80743537ecba151b84490f04dca7d0737bdc54f"
+    },
+    "tools/invitation_build_process.py": {
+      "bytes": 286,
+      "sha256": "138b37ef852ef33fc2dd21bda1c44c0f93b741df89f6bb5fcefd0a6d7e1fa42c"
+    }
+  },
+  "verified_library_files": 731,
+  "prior_artifacts_preserved": 21,
+  "hardware_executed": false,
+  "physical_stack_adequacy_proven": false,
+  "claims": "Candidate correction for observed OT224 Bluetooth task overflow; whole-call-chain sufficiency requires Ready/confirmation and runtime stack evidence."
+}

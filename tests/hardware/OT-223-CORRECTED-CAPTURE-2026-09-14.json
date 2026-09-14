@@ -1,0 +1,48 @@
+{
+  "schema": "OT223-CORRECTED-CAPTURE-1",
+  "recorded_utc": "2026-09-14T12:40:43.062152+00:00",
+  "hardware": "Heltec WiFi LoRa32 V4.2 / ESP32-S3 / 16MB role A Trail Bench",
+  "phone": "SM-N986U Android13 SDK33 exact OT216 V1-Test app; same data/bond/session24",
+  "candidate_sha256": "28dadebed9c08ed4a52bfe3d38266144da70116943f522a9d7421bb6f915110c",
+  "startup": {
+    "bytes_read": 0,
+    "capture_started_unix_ms": 1789388809087,
+    "early_output_may_be_missing": true,
+    "elapsed_ms": 15007,
+    "markers": [],
+    "schema": "OT222-STARTUP-1",
+    "status": "window_complete"
+  },
+  "candidate_attempts": 1,
+  "capture_acceptance": "inconclusive_zero_bytes; no firmware failure inferred",
+  "release_path_correction": "no-reset release not accepted on this setup; restored previously validated hard-reset release",
+  "prior_double_start_claim": "withdrawn; source comments did not prove target launch semantics",
+  "restoration": {
+    "application_bytes": 733184,
+    "nvs_bytes": 12288,
+    "application_nvs_restored_readback": true,
+    "protected_regions_verified": true,
+    "initial_release_operation": "did not establish original application operation",
+    "completion": {
+      "original_release": "all_original_regions_verified_then_hard_reset",
+      "flash_writes": 0,
+      "candidate_attempts": 0,
+      "at_epoch": 1789389541
+    },
+    "final_phone_ready": {
+      "session": 24,
+      "elapsed_ms": 1520937,
+      "state": "READY"
+    },
+    "authorization_snapshot_ready": true,
+    "app_restart": false,
+    "data_bond_preserved": true,
+    "custody_closed": true
+  },
+  "correction_tests": 72,
+  "panic_parser_padding_fix": "retained; physical crash classification still unvalidated",
+  "comparison_board_action": false,
+  "lora_operation": false,
+  "v1_credit": false,
+  "website_change": false
+}

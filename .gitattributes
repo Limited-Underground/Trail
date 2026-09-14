@@ -747,3 +747,11 @@ tests/hardware/OT-204-RECEIPT-TRIAL-2026-09-12.json -text
 /tools/Invoke-SecurityPolicyDeadlineOperator.ps1 -text
 /tools/Test-Host.ps1 -text
 /tools/Test-PublicationSafety.py -text
+
+# OT-225 keep new diagnostic and observer inputs byte-exact across checkouts.
+/tools/ble_startup_diagnostics.py -text
+/tests/host/ble_startup_diagnostics_tests.py -text
+/firmware/targets/heltec_v4_bench/main/companion_host_stack_observer.hpp -text
+/tests/host/companion_host_stack_observer_tests.cpp -text
+/tests/host/companion_host_stack_observer_tests.py -text
+/tests/host/fixtures/companion_host_stack/freertos/*.h -text

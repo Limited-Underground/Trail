@@ -51,7 +51,7 @@ foreach ($containedSuite in @('radiolib_busy_source', 'noise_xk_contained_firmwa
 & $python.Source (Join-Path $projectRoot 'tools\region_selection_catalog.py')
 if ($LASTEXITCODE -ne 0) { throw 'Generated saved-region catalog differs.' }
 # OT-218: exact-span BLE custody, real transport composition and observer admission.
-foreach ($bleTrialTest in @('ble_confirmation_trial_tests.py', 'ble_confirmation_trial_transport_tests.py', 'ble_confirmation_operator_tests.py')) {
+foreach ($bleTrialTest in @('ble_confirmation_trial_tests.py', 'ble_confirmation_trial_transport_tests.py', 'ble_confirmation_operator_tests.py', 'ble_startup_diagnostics_tests.py')) {
     & $python.Source -X utf8 -B (Join-Path $projectRoot ('tests\host\' + $bleTrialTest))
     if ($LASTEXITCODE -ne 0) { throw "BLE trial test failed: $bleTrialTest" }
 }
@@ -112,6 +112,10 @@ function Invoke-ExpectedNativeFailure {
 
 $buildDirectory = Join-Path $projectRoot "build\host-tests\run-$PID"
 New-Item -ItemType Directory -Force -Path $buildDirectory | Out-Null
+# Exact BLE host task observation: behavioral guard and target lifecycle wiring.
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\companion_host_stack_observer_tests.py') --output-root (Join-Path $buildDirectory 'companion-host-stack')
+if ($LASTEXITCODE -ne 0) { throw 'BLE host stack observation tests failed.' }
+
 $commonArguments = @(
     '-std=c++17',
     '-Wall',
