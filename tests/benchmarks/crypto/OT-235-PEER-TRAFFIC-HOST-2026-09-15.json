@@ -1,0 +1,221 @@
+{
+  "schema": "OT235-PEER-TRAFFIC-HOST-1",
+  "as_of": "2026-09-15T05:43:37.697333+00:00",
+  "result": "host_passed",
+  "hardware": false,
+  "product_crypto_selected": false,
+  "deployable_target_wired": false,
+  "cpp_groups": 1112,
+  "new_groups": {
+    "activation_store": 66,
+    "peer_traffic": 27,
+    "record_faults": 32
+  },
+  "scalar_controls": 26,
+  "python_tests": 60,
+  "actual_two_process_interop": true,
+  "source_files_verified": 975,
+  "dependency": {
+    "archive_sha256": "865ea3aba354b16be4c7051da48b63247a395f30d1e0537269b253918aa78c5f",
+    "checksum_sha256": "5e3983c5496a3cffba3d013c70991b18cda6c345655fff883fb0e14dfa09e582",
+    "manifest_sha256": "988fbb2b95d1b4f3850d153495f8d73482be52cb80808fa48e24a8d1e9bf91ea",
+    "verified_files": 733
+  },
+  "source_pins": {
+    "tests/host/security_current_source_ci.py": {
+      "bytes": 16351,
+      "sha256": "df174c82a8bd92670318582a49e08ed6443cc63b15ead53c9e525f6aeb7d6e7f"
+    },
+    "tests/host/security_peer_traffic_fixture.hpp": {
+      "bytes": 5230,
+      "sha256": "f94fca4f71ef3b05add137ae45c25f47ff1cf97d61123e860592db6ef23b848f"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_handshake_endpoint.hpp": {
+      "bytes": 13976,
+      "sha256": "b90fc0e5a564a40f9bb77aea8ab4ee5617f4171ce5daedeecccdaf6bb20ebff8"
+    },
+    "firmware/components/security_evaluation/include/opentrail/peer_activation_store.hpp": {
+      "bytes": 5018,
+      "sha256": "47d9d424dc05d7beb923c34abfe524ad7bb5b27e5ac2c433de3c5939c6f371ea"
+    },
+    "tests/host/security_endpoint_record_tests.cpp": {
+      "bytes": 4770,
+      "sha256": "5cc50bcbabbd82e704d53029edacb3f394798b080102fe51500753de5fa022fe"
+    },
+    "tests/host/security_peer_traffic_tests.cpp": {
+      "bytes": 6321,
+      "sha256": "a1d8ab0ac7429454126899bef1cb99d2c6e2780ac2321650a4ea3fdd25086638"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_peer_traffic_endpoint.hpp": {
+      "bytes": 10202,
+      "sha256": "c4c4bf9754f27b2d7e18e9482d8a152d1b020268f00ebf7e8fb5768eff04ec9e"
+    },
+    "tests/host/peer_activation_store_tests.cpp": {
+      "bytes": 6717,
+      "sha256": "89664d064dad0b0a9a67d05a6cfeacffaa609f95ec21e71f427c6b4f20be9cf1"
+    }
+  },
+  "validation_command": "python -X utf8 -B tests/host/security_current_source_ci.py --output-root <active-worktree>/.private/ot235-product-integration/final-matrix",
+  "independent_source_review": "No actionable findings in endpoint, private record bridge and activation store.",
+  "limits": [
+    "Trusted signer and peer provisioning injected; no product trust issuer.",
+    "Fresh-only activation receipt; retained keys and membership cannot resume.",
+    "Signed invitation local deadline also bounds candidate traffic.",
+    "Eight-byte evaluation controls/statuses are not selected production wire, KDF or ACKs.",
+    "SDK, entropy, storage and transport seams simulated; no physical or phone acceptance.",
+    "No V1 completion credit or public website status change."
+  ],
+  "regression_builds": {
+    "result": "passed",
+    "observed_at_utc": "2026-09-15T05:43:19.008375+00:00",
+    "scope": "Fresh builds of existing USB/radio evaluation targets after shared endpoint bridge changes. The OT235 peer traffic endpoint is not wired into these targets; this is regression build evidence, not OT235 target or physical acceptance.",
+    "toolchain": {
+      "esp_idf": "6.0.2",
+      "xtensa_esp_elf": "15.2.0",
+      "cmake": "4.0.3",
+      "ninja": "1.12.1",
+      "target": "esp32s3",
+      "ccache": false,
+      "build_parallelism": 4
+    },
+    "commands": [
+      "tools/Build-PairEvaluation.ps1 -BuildName ot230-pair-ot235-radio-a -Mode radio",
+      "tools/Build-PairEvaluation.ps1 -BuildName ot230-pair-ot235-radio-b -Mode radio",
+      "tools/Build-PairEvaluation.ps1 -BuildName ot230-pair-ot235-usb -Mode usb"
+    ],
+    "radio": {
+      "result": "passed",
+      "exit_codes": [
+        0,
+        0
+      ],
+      "build_paths": [
+        "build/ot230-pair-ot235-radio-a",
+        "build/ot230-pair-ot235-radio-b"
+      ],
+      "versions": [
+        "ot234-pair-radio-v1",
+        "ot234-pair-radio-v1"
+      ],
+      "artifact_pair_count": 7,
+      "all_artifact_pairs_raw_equal": true,
+      "artifacts": {
+        "heltec_v4_pair_radio_eval.bin": {
+          "a": {
+            "bytes": 510384,
+            "sha256": "6ce71c2ea2d7b59779c75e50342050b63f6ad300c47e3ef8cfba64bfded9ace4"
+          },
+          "b": {
+            "bytes": 510384,
+            "sha256": "6ce71c2ea2d7b59779c75e50342050b63f6ad300c47e3ef8cfba64bfded9ace4"
+          },
+          "raw_equal": true
+        },
+        "heltec_v4_pair_radio_eval.elf": {
+          "a": {
+            "bytes": 7086716,
+            "sha256": "79ff25c89628eeaba94a87d3815ead317b5d3849e338982c484b123258f6d4c0"
+          },
+          "b": {
+            "bytes": 7086716,
+            "sha256": "79ff25c89628eeaba94a87d3815ead317b5d3849e338982c484b123258f6d4c0"
+          },
+          "raw_equal": true
+        },
+        "heltec_v4_pair_radio_eval.map": {
+          "a": {
+            "bytes": 7103755,
+            "sha256": "53a310d59965bafe1e330c96c1b045d161d09b65ea8fdc9003fa13a3bbb34cb3"
+          },
+          "b": {
+            "bytes": 7103755,
+            "sha256": "53a310d59965bafe1e330c96c1b045d161d09b65ea8fdc9003fa13a3bbb34cb3"
+          },
+          "raw_equal": true
+        },
+        "bootloader/bootloader.bin": {
+          "a": {
+            "bytes": 15216,
+            "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+          },
+          "b": {
+            "bytes": 15216,
+            "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+          },
+          "raw_equal": true
+        },
+        "partition_table/partition-table.bin": {
+          "a": {
+            "bytes": 3072,
+            "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+          },
+          "b": {
+            "bytes": 3072,
+            "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+          },
+          "raw_equal": true
+        },
+        "ota_data_initial.bin": {
+          "a": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "b": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "raw_equal": true
+        },
+        "sdkconfig": {
+          "a": {
+            "bytes": 92613,
+            "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+          },
+          "b": {
+            "bytes": 92613,
+            "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+          },
+          "raw_equal": true
+        }
+      }
+    },
+    "usb": {
+      "result": "passed",
+      "exit_code": 0,
+      "build_path": "build/ot230-pair-ot235-usb",
+      "version": "ot232-pair-sync-v1",
+      "artifacts": {
+        "heltec_v4_pair_eval.bin": {
+          "bytes": 461696,
+          "sha256": "516a0c03b154675a590a2ba71ae1f3d68ee623b56b293d6dce6c9b0d4f744110"
+        },
+        "heltec_v4_pair_eval.elf": {
+          "bytes": 6318520,
+          "sha256": "9eb1c53a438ad6be05d4a4634e4585c3367d2ab25c275154d4a2ca9fcda5e91c"
+        },
+        "heltec_v4_pair_eval.map": {
+          "bytes": 6734430,
+          "sha256": "32650510b0b9f05f261a83fa3f60955cc4180f31983da05ebac9a4b1ee66ab23"
+        },
+        "bootloader/bootloader.bin": {
+          "bytes": 15216,
+          "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+        },
+        "partition_table/partition-table.bin": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "ota_data_initial.bin": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "sdkconfig": {
+          "bytes": 92613,
+          "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+        }
+      }
+    },
+    "hardware_access": false,
+    "new_target_acceptance": false
+  }
+}
