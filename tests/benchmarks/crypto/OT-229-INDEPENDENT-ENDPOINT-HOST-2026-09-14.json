@@ -1,0 +1,153 @@
+{
+  "schema": "OT229-INDEPENDENT-ENDPOINT-HOST-1",
+  "recorded_utc": "2026-09-14T18:01:31.607274+00:00",
+  "result": "passed",
+  "hardware": false,
+  "suites": {
+    "security_policy_invitation_lifecycle_tests": {
+      "output": "PASS 91 durable invitation lifecycle groups\nRefused storage faults: 9 pristine retry cases, 19 retained refusal cases",
+      "binary": {
+        "bytes": 296189,
+        "sha256": "dd2f1dd4c1c2cbe3aab3f9309343a8dc3d3942c88aa486dbbc0b224c068edbf6"
+      }
+    },
+    "security_policy_authorized_session_tests": {
+      "output": "PASS 41 actual authorized policy session groups",
+      "binary": {
+        "bytes": 361237,
+        "sha256": "8d526bf96924fc5dbaf555eecb03b4068b7098caa9fa8f11eab81784d04a38f3"
+      }
+    },
+    "security_candidate_known_answer_tests": {
+      "output": "PASS 10 pinned Ed25519 known-answer and refusal groups",
+      "binary": {
+        "bytes": 536162,
+        "sha256": "9bd1c2fd254325caa5c567c8098369cf3de766642856ff6f8ea1ad6dc9eefe0c"
+      }
+    },
+    "security_policy_invitation_tests": {
+      "output": "PASS 40 real signed invitation gate groups",
+      "binary": {
+        "bytes": 239770,
+        "sha256": "af48c7431f5b5c378c2e370da8590920e737836c8cce1f1ccc2105d7eb5a9c5f"
+      }
+    },
+    "security_policy_session_tests": {
+      "output": "PASS 31 actual policy session groups",
+      "binary": {
+        "bytes": 302841,
+        "sha256": "696654f6dc46dbf90c45f51b5602a41070d3464664de42af3d9eb09682a86b57"
+      }
+    },
+    "security_confirmation_owner_tests": {
+      "output": "PASS 44 actual confirmation owner groups",
+      "binary": {
+        "bytes": 353241,
+        "sha256": "2f1f5d11be8b00e93824c2c4e780dd8589cdbdee258ea93ed4e06d86c9f5ffb5"
+      }
+    },
+    "security_handshake_endpoint_tests": {
+      "output": "PASS 38 independent handshake endpoint groups",
+      "binary": {
+        "bytes": 380304,
+        "sha256": "86dcf6d81a76a648d9aa3be94117b1cafeaf4d84ce58ec1005d2947d4f60c131"
+      }
+    },
+    "security_independent_invitation_tests": {
+      "output": "PASS 93 independent invitation groups",
+      "binary": {
+        "bytes": 360917,
+        "sha256": "bdebb8a3ed2212b179858eff69b2ae37d6df29d24c17742d8e6de559a2e7729c"
+      }
+    },
+    "security_independent_endpoint_tests": {
+      "output": "PASS 50 independent provisioned endpoint groups",
+      "binary": {
+        "bytes": 404180,
+        "sha256": "d9c1e81997ac3dd0ccbd37a99093c0eab18e766cbf69f5ee68b1733894034614"
+      }
+    },
+    "security_invitation_target_tests": {
+      "output": "PASS 130 actual invitation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+      "binary": {
+        "bytes": 404238,
+        "sha256": "6bf9b3bf2d43ad39d1a2b2478a8b2ab7289339a41d13b5bda45850fe7b57b9b7"
+      }
+    },
+    "security_confirmation_target_tests": {
+      "output": "PASS 139 actual confirmation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+      "binary": {
+        "bytes": 420084,
+        "sha256": "bff21bcdc49fee179d7cdd95a1c87be4b5caf06bc7822be99778645706c97962"
+      }
+    },
+    "security_confirmation_ble_backend_tests": {
+      "output": "PASS 72 actual protected confirmation backend groups",
+      "binary": {
+        "bytes": 419635,
+        "sha256": "903569a097acb8989f72d8e38e47b2f409daae7977eaf51c4beba2e6b29bd93d"
+      }
+    }
+  },
+  "behavioral_groups": 779,
+  "endpoint_groups": 50,
+  "scalar_control_groups": 26,
+  "dependency": {
+    "archive_sha256": "865ea3aba354b16be4c7051da48b63247a395f30d1e0537269b253918aa78c5f",
+    "checksum_sha256": "5e3983c5496a3cffba3d013c70991b18cda6c345655fff883fb0e14dfa09e582",
+    "manifest_sha256": "988fbb2b95d1b4f3850d153495f8d73482be52cb80808fa48e24a8d1e9bf91ea",
+    "verified_files": 733
+  },
+  "toolchain": {
+    "gcc.exe": {
+      "bytes": 3306749,
+      "sha256": "f96a3bdb1d3a3967b309d75c7413399391e857b5be4cb17162572ed66f6772a0",
+      "version": "gcc.exe (Rev5, Built by MSYS2 project) 16.1.0"
+    },
+    "g++.exe": {
+      "bytes": 3309821,
+      "sha256": "798a6eb495b30cf771dc759b5508d269ecb0dddac739719e8b30fe0ac0744b69",
+      "version": "g++.exe (Rev5, Built by MSYS2 project) 16.1.0"
+    }
+  },
+  "source_pins": {
+    "firmware/components/security_evaluation/include/opentrail/independent_policy_session.hpp": {
+      "bytes": 10490,
+      "sha256": "c47bd0a44b7c59c87782cc751733324e8c9a560801694efd1928ea8116673854"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_authorized_policy_session.hpp": {
+      "bytes": 5104,
+      "sha256": "8118c2e1771feca24a9862cbfb86146fbd88cdf52c2674568615d86370690193"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_confirmation_owner.hpp": {
+      "bytes": 10060,
+      "sha256": "16959c0b0a2a64fbfa3adb496e36fb8fa9b0dfb13d890542a11b6eec691abae3"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_handshake_endpoint.hpp": {
+      "bytes": 11690,
+      "sha256": "bfcba02ca6ad91bfb805b7b352a9181b225c0f29ef8c9086bae7c188bd594ddf"
+    },
+    "tests/host/security_independent_endpoint_tests.cpp": {
+      "bytes": 15357,
+      "sha256": "c0cf25f26b833674ce31535d40c6120279f0d42d1746209a0ae9b4ab9d8b6a94"
+    },
+    "tests/host/security_independent_session_fixture.hpp": {
+      "bytes": 7524,
+      "sha256": "92059a8c006ff13756f51da045704c65ab62cfe53db1fb068561c28a332fd396"
+    },
+    "tests/host/security_current_source_ci.py": {
+      "bytes": 10796,
+      "sha256": "426419b1db9e096a8e188c8f95a415c1b478350f9d7868e0eb2dc0e46f5e8c13"
+    }
+  },
+  "limitations": [
+    "Host transport value frames only; no deployed target or radio/phone integration.",
+    "Trusted provisioning must supply signer/peer pins and current device boot/local-clock observations.",
+    "Endpoint exposes local confirmation only, not peer confirmation, record traffic or membership.",
+    "Direct session encrypted-record proof is a host component test, not endpoint or radio delivery.",
+    "Fresh-only sessions; retained consumed invitations cannot automatically resume.",
+    "SDK, entropy and storage seams simulated; physical interruption and production acceptance remain open."
+  ],
+  "v1_credit_changed": false,
+  "public_website_changed": false
+}

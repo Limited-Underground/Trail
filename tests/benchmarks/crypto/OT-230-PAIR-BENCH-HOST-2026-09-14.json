@@ -1,0 +1,278 @@
+{
+  "schema": "OT230-PAIR-BENCH-HOST-1",
+  "recorded_utc": "2026-09-14T18:34:34.339800+00:00",
+  "result": "passed",
+  "hardware": false,
+  "cpp_groups": 827,
+  "scalar_controls": 26,
+  "python_tests": 40,
+  "actual_two_process_crypto_interop": true,
+  "suites": {
+    "security_policy_invitation_lifecycle_tests": {
+      "output": "PASS 91 durable invitation lifecycle groups\nRefused storage faults: 9 pristine retry cases, 19 retained refusal cases",
+      "binary": {
+        "bytes": 296189,
+        "sha256": "09f9a2648b7923dbfb88e99471e6204dfa7e757fedb48b695dc393c06da80c4d"
+      }
+    },
+    "security_policy_authorized_session_tests": {
+      "output": "PASS 41 actual authorized policy session groups",
+      "binary": {
+        "bytes": 361237,
+        "sha256": "998c7e12f72647e609f009cea4e5f98acab870996dee89a69e0d0f14493bfd7f"
+      }
+    },
+    "security_candidate_known_answer_tests": {
+      "output": "PASS 10 pinned Ed25519 known-answer and refusal groups",
+      "binary": {
+        "bytes": 536162,
+        "sha256": "e6e54a87b7277d971803576b959bb748c4d1050ed3d72942d9e8e30e3936efa1"
+      }
+    },
+    "security_policy_invitation_tests": {
+      "output": "PASS 40 real signed invitation gate groups",
+      "binary": {
+        "bytes": 239770,
+        "sha256": "b1c729e2d7054e03c23de87b39d329efff1367e925fdb78a17ebcde7d46b7b26"
+      }
+    },
+    "security_policy_session_tests": {
+      "output": "PASS 31 actual policy session groups",
+      "binary": {
+        "bytes": 302841,
+        "sha256": "97617f2ec1fbb35996d650d46540bdcf95dc2e9c9a95e785aa9f1f250e81fb2c"
+      }
+    },
+    "security_confirmation_owner_tests": {
+      "output": "PASS 44 actual confirmation owner groups",
+      "binary": {
+        "bytes": 353241,
+        "sha256": "6ad381b87cf0ba417eb4ba7f3037bbc2c421b96d02caf3657fdfc0d7fcecd8e6"
+      }
+    },
+    "security_handshake_endpoint_tests": {
+      "output": "PASS 38 independent handshake endpoint groups",
+      "binary": {
+        "bytes": 380304,
+        "sha256": "0937338a900adf08184367b9261e3f961c4b7b4f06f3d0bd92086381d6e1459d"
+      }
+    },
+    "security_independent_invitation_tests": {
+      "output": "PASS 93 independent invitation groups",
+      "binary": {
+        "bytes": 360917,
+        "sha256": "2096296bd803944770aaa5dd4a013fce6e1e8b4f68c3b73ba067aac549faa444"
+      }
+    },
+    "security_independent_endpoint_tests": {
+      "output": "PASS 50 independent provisioned endpoint groups",
+      "binary": {
+        "bytes": 404180,
+        "sha256": "e0e3949d262d51c2768ad049ec0331942fbf01df3fcec06abec4ab53d2e515bf"
+      }
+    },
+    "pair_bench_session_tests": {
+      "output": "PASS 48 pair bench session groups",
+      "binary": {
+        "bytes": 402914,
+        "sha256": "cda14fd96a5b97d56e3173d9c92522ce2837dc20a4c882c980ea4fa3461b8a8e"
+      }
+    },
+    "pair_bench_bridge_tests": {
+      "output": "PASS actual two-process C++ endpoint / Python provisioning bridge interop\n.........\n----------------------------------------------------------------------\nRan 9 tests in 0.021s\n\nOK",
+      "result": "passed"
+    },
+    "pair_confirmation_trial_tests": {
+      "output": ".................\n----------------------------------------------------------------------\nRan 17 tests in 4.481s\n\nOK",
+      "result": "passed"
+    },
+    "pair_trial_operator_tests": {
+      "output": "..............\n----------------------------------------------------------------------\nRan 14 tests in 0.232s\n\nOK",
+      "result": "passed"
+    },
+    "security_invitation_target_tests": {
+      "output": "PASS 130 actual invitation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+      "binary": {
+        "bytes": 404238,
+        "sha256": "74066d12107a3b4f682548fc0e27b353b646f2f3e5eeecd51e7ab6b7712cac07"
+      }
+    },
+    "security_confirmation_target_tests": {
+      "output": "PASS 139 actual confirmation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+      "binary": {
+        "bytes": 420084,
+        "sha256": "5a1ab1f66194494a7141ec0c40ccd55bea4a7f2a49cdeb9bdd4093c0163fc2d0"
+      }
+    },
+    "security_confirmation_ble_backend_tests": {
+      "output": "PASS 72 actual protected confirmation backend groups",
+      "binary": {
+        "bytes": 419635,
+        "sha256": "3f6544e735dcdaa6a0b131f73f2524f50e814d9684bf6a725b0b70f25132b30c"
+      }
+    }
+  },
+  "build_comparison": {
+    "heltec_v4_pair_eval.bin": {
+      "c": {
+        "bytes": 459296,
+        "sha256": "a8c33bb9988ad0e57631703c8c5d76450f72dd00a6088aaaca941309ff2a678c"
+      },
+      "d": {
+        "bytes": 459296,
+        "sha256": "a8c33bb9988ad0e57631703c8c5d76450f72dd00a6088aaaca941309ff2a678c"
+      },
+      "raw_equal": true
+    },
+    "heltec_v4_pair_eval.elf": {
+      "c": {
+        "bytes": 6288728,
+        "sha256": "202f6e5e9b6b7a044ce96f2aefa63790ec62aae94c965800e4cff722031b82d9"
+      },
+      "d": {
+        "bytes": 6288728,
+        "sha256": "202f6e5e9b6b7a044ce96f2aefa63790ec62aae94c965800e4cff722031b82d9"
+      },
+      "raw_equal": true
+    },
+    "heltec_v4_pair_eval.map": {
+      "c": {
+        "bytes": 6727795,
+        "sha256": "45ba5cc0143dfeb826759fc8a328df78f65ab010659b2c8868b072188343f2cf"
+      },
+      "d": {
+        "bytes": 6727795,
+        "sha256": "45ba5cc0143dfeb826759fc8a328df78f65ab010659b2c8868b072188343f2cf"
+      },
+      "raw_equal": true
+    },
+    "bootloader/bootloader.bin": {
+      "c": {
+        "bytes": 15216,
+        "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+      },
+      "d": {
+        "bytes": 15216,
+        "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+      },
+      "raw_equal": true
+    },
+    "partition_table/partition-table.bin": {
+      "c": {
+        "bytes": 3072,
+        "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+      },
+      "d": {
+        "bytes": 3072,
+        "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+      },
+      "raw_equal": true
+    },
+    "ota_data_initial.bin": {
+      "c": {
+        "bytes": 8192,
+        "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+      },
+      "d": {
+        "bytes": 8192,
+        "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+      },
+      "raw_equal": true
+    },
+    "sdkconfig": {
+      "c": {
+        "bytes": 92613,
+        "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+      },
+      "d": {
+        "bytes": 92613,
+        "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+      },
+      "raw_equal": true
+    }
+  },
+  "source_pins": {
+    "firmware/targets/heltec_v4_pair_eval/CMakeLists.txt": {
+      "bytes": 960,
+      "sha256": "32926e612142abbaecb6acba13ccf073ee6a9759e5a63b46b5bf9a4627be8275"
+    },
+    "firmware/targets/heltec_v4_pair_eval/partitions.csv": {
+      "bytes": 557,
+      "sha256": "9c27fd7e647ace6eb32524281bfaa52cd370419fec2457f1acdebc6b0cbfa52a"
+    },
+    "firmware/targets/heltec_v4_pair_eval/README.md": {
+      "bytes": 4680,
+      "sha256": "4f8781099eb175c06b98d7d22bac46fad5f1ab8387fdf94b0e079e9e6165f523"
+    },
+    "firmware/targets/heltec_v4_pair_eval/sdkconfig.defaults": {
+      "bytes": 740,
+      "sha256": "eee7112f92ec96330fd8d09ba5595b12c0ca77a8c1b138a4520a8b487b0ef7c2"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/app_main.cpp": {
+      "bytes": 5498,
+      "sha256": "e6f14dc8979f696f66353b366b1980561a6061c6da9cb1f5dfa53ca27972f122"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/CMakeLists.txt": {
+      "bytes": 1348,
+      "sha256": "b3780eeee7e82872cb65a126f2111445a2ea8948f4a1c45eb03b4024c03ac6cf"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/pair_display.cpp": {
+      "bytes": 6143,
+      "sha256": "03736cbf4d37c6c40ce779561db46e896a2ec95fa246642c985020858b67cd24"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/pair_display.hpp": {
+      "bytes": 806,
+      "sha256": "a6e3ecf6642a970603d80d21e560ff237d863dffa8483f4c0c03b720b956d598"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/pair_nvs_backend.hpp": {
+      "bytes": 4124,
+      "sha256": "a7d942f8d545ff909be58aa484d7a4662316842a6c7a997bf2758e328119d53f"
+    },
+    "tools/pair_trial_operator.py": {
+      "bytes": 12384,
+      "sha256": "0bc5d25ad1ac0f6d63a39caabc0be523c8013e8f5a26d92362527f81c1c87c34"
+    },
+    "tools/pair_bench_bridge.py": {
+      "bytes": 10920,
+      "sha256": "77c1a791e6a05ab8efb4886227d34db048d5126efdd3af383cb5fa5f6fe11613"
+    },
+    "tools/pair_confirmation_trial.py": {
+      "bytes": 14674,
+      "sha256": "1bc26ab51aade2fd01c8c27ae8dc8d5fe904b04b449fe1d944178506936c55e9"
+    },
+    "tools/Build-PairEvaluation.ps1": {
+      "bytes": 2111,
+      "sha256": "1193738ced9b7289fede3865edb3192c6c3db4626a44f60335fde7d8ce08dbba"
+    },
+    "tests/host/pair_bench_session_tests.cpp": {
+      "bytes": 19359,
+      "sha256": "121be9477102c49307b8a84dc17c091c3490d8d3fd22334312b0e11b4fd590e5"
+    },
+    "tests/host/pair_bench_bridge_tests.py": {
+      "bytes": 7192,
+      "sha256": "c956d1d3c5ed7a34f58a9457bb356e5691b888944cf4086a7a3aaf0dcb3a460d"
+    },
+    "tests/host/pair_confirmation_trial_tests.py": {
+      "bytes": 14168,
+      "sha256": "aa1d2d63c89bf4241b79305cbc41aa2dc3160bded563e2f101069d39b3d09c88"
+    },
+    "tests/host/pair_trial_operator_tests.py": {
+      "bytes": 7088,
+      "sha256": "bc8e1446f6e6e1ef3724a663ae04c7203d4716b2899c437ac73e81ee4af97a02"
+    },
+    "tests/host/security_current_source_ci.py": {
+      "bytes": 11781,
+      "sha256": "65ed8df375e2f6ba18219668e6ceb15f5196c3dabb1a0803d777200e333c6360"
+    },
+    "firmware/components/security_evaluation/include/opentrail/pair_bench_session.hpp": {
+      "bytes": 16871,
+      "sha256": "8de43ad18f3ed8d24562869d5c8728e2d89357b413107de1d1ba8c5ca09bd929"
+    }
+  },
+  "limits": [
+    "USB-only trusted evaluation; no product trust, LoRa, phone, membership or message acceptance.",
+    "Physical OLED/button behavior, entropy, interruption and stack headroom unmeasured."
+  ],
+  "v1_credit_changed": false,
+  "public_website_changed": false
+}

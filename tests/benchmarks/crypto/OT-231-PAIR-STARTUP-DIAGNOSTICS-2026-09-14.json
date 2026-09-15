@@ -1,0 +1,356 @@
+{
+  "schema": "OT231-PAIR-STARTUP-DIAGNOSTICS-1",
+  "recorded_utc": "2026-09-14T21:21:43.906891+00:00",
+  "result": "passed",
+  "hardware": false,
+  "cpp_groups": 852,
+  "scalar_controls": 26,
+  "python_tests": 45,
+  "actual_two_process_crypto_interop": true,
+  "suites": {
+    "security_policy_invitation_lifecycle_tests": {
+      "output": "PASS 91 durable invitation lifecycle groups\nRefused storage faults: 9 pristine retry cases, 19 retained refusal cases",
+      "binary": {
+        "bytes": 296189,
+        "sha256": "b1f1a97fc29c874525dedcfeef5cebdbffaf8f339a7a8722b8ce211a7ac69f31"
+      }
+    },
+    "security_policy_authorized_session_tests": {
+      "output": "PASS 41 actual authorized policy session groups",
+      "binary": {
+        "bytes": 361237,
+        "sha256": "f20c9e88aa6ff0cb1688e1b28d8277fbe9455b25257c7de7063267e9c9e15c13"
+      }
+    },
+    "security_candidate_known_answer_tests": {
+      "output": "PASS 10 pinned Ed25519 known-answer and refusal groups",
+      "binary": {
+        "bytes": 536162,
+        "sha256": "1f00cd636ff57e67222aaef832b1b0e86a19154794005322ba02d0768b8dc804"
+      }
+    },
+    "security_policy_invitation_tests": {
+      "output": "PASS 40 real signed invitation gate groups",
+      "binary": {
+        "bytes": 239770,
+        "sha256": "163ce4968c3844c5b917d2ac4abfd4bba67a72ea1e7876439f2014120cbdc57f"
+      }
+    },
+    "security_policy_session_tests": {
+      "output": "PASS 31 actual policy session groups",
+      "binary": {
+        "bytes": 302841,
+        "sha256": "4396bcaae604ca1654d5cc4237e0192a4af678a418326fa3fb7415a1cfba8e1f"
+      }
+    },
+    "security_confirmation_owner_tests": {
+      "output": "PASS 44 actual confirmation owner groups",
+      "binary": {
+        "bytes": 353241,
+        "sha256": "d444ce148636f4b67fd686e36a501ee940e97c9840cdc956db508a309812d2ef"
+      }
+    },
+    "security_handshake_endpoint_tests": {
+      "output": "PASS 38 independent handshake endpoint groups",
+      "binary": {
+        "bytes": 380304,
+        "sha256": "3a78ad96f2eff36cde9c429a7c20953059ab96a837cd244df3bb49349c7ef71a"
+      }
+    },
+    "security_independent_invitation_tests": {
+      "output": "PASS 93 independent invitation groups",
+      "binary": {
+        "bytes": 360917,
+        "sha256": "6474dbb038c1b5004250ab971277b219d1a3009991c233250d5388efd3cbb4a9"
+      }
+    },
+    "security_independent_endpoint_tests": {
+      "output": "PASS 50 independent provisioned endpoint groups",
+      "binary": {
+        "bytes": 404180,
+        "sha256": "671f6c76a3df21e4d58a44a1214d29051364d6c9224d2f144df7c7ae58c0eda0"
+      }
+    },
+    "pair_bench_session_tests": {
+      "output": "PASS 48 pair bench session groups",
+      "binary": {
+        "bytes": 402914,
+        "sha256": "abf9c6680fe35e7925769d04a3bfee093f0765244916dbdedec017f0feca28fc"
+      }
+    },
+    "pair_target_startup_tests": {
+      "output": "PASS 25 actual pair startup groups",
+      "binary": {
+        "bytes": 538273,
+        "sha256": "ad5f6b69057f4ea2443a9477109a2c3aca40990470eed793f575944375cbc584"
+      },
+      "cases": {
+        "happy": "PASS 1 actual pair startup groups (happy)",
+        "usb_install": "PASS 1 actual pair startup groups (usb_install)",
+        "nvs_init": "PASS 1 actual pair startup groups (nvs_init)",
+        "display_init": "PASS 1 actual pair startup groups (display_init)",
+        "button_init": "PASS 1 actual pair startup groups (button_init)",
+        "boot_open": "PASS 1 actual pair startup groups (boot_open)",
+        "role_open": "PASS 1 actual pair startup groups (role_open)",
+        "tx_open": "PASS 1 actual pair startup groups (tx_open)",
+        "rx_open": "PASS 1 actual pair startup groups (rx_open)",
+        "tx_blank_read": "PASS 1 actual pair startup groups (tx_blank_read)",
+        "tx_blank_retained": "PASS 1 actual pair startup groups (tx_blank_retained)",
+        "rx_blank_read": "PASS 1 actual pair startup groups (rx_blank_read)",
+        "rx_blank_retained": "PASS 1 actual pair startup groups (rx_blank_retained)",
+        "entropy_not_idle": "PASS 1 actual pair startup groups (entropy_not_idle)",
+        "entropy_init": "PASS 1 actual pair startup groups (entropy_init)",
+        "entropy_enable": "PASS 1 actual pair startup groups (entropy_enable)",
+        "entropy_readiness": "PASS 1 actual pair startup groups (entropy_readiness)",
+        "sodium_init": "PASS 1 actual pair startup groups (sodium_init)",
+        "authority": "PASS 1 actual pair startup groups (authority)",
+        "ready_send": "PASS 1 actual pair startup groups (ready_send)",
+        "session_tick": "PASS 1 actual pair startup groups (session_tick)",
+        "usb_read": "PASS 1 actual pair startup groups (usb_read)",
+        "session_command": "PASS 1 actual pair startup groups (session_command)",
+        "invalid_control": "PASS 1 actual pair startup groups (invalid_control)",
+        "line_overflow": "PASS 1 actual pair startup groups (line_overflow)"
+      }
+    },
+    "security_invitation_target_tests": {
+      "output": "PASS 130 actual invitation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+      "binary": {
+        "bytes": 404238,
+        "sha256": "dab4014f2c02725b80b9cd271bea55a2b633655d647e332ec0f38eecd3ebb19b"
+      }
+    },
+    "security_confirmation_target_tests": {
+      "output": "PASS 139 actual confirmation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+      "binary": {
+        "bytes": 420084,
+        "sha256": "4e2fe88e1bc7dcbb952dab1f09c45a1249987d7fb987e976474a45f966b89a0c"
+      }
+    },
+    "security_confirmation_ble_backend_tests": {
+      "output": "PASS 72 actual protected confirmation backend groups",
+      "binary": {
+        "bytes": 419635,
+        "sha256": "c69707caef6cc12579e7cbb16098020b18af3707b6ca2271027dcc7f5e141313"
+      }
+    }
+  },
+  "final_python": {
+    "pair_bench_bridge_tests": {
+      "result": "passed",
+      "output": "PASS actual two-process C++ endpoint / Python provisioning bridge interop\n..............\n----------------------------------------------------------------------\nRan 14 tests in 0.010s\n\nOK\n"
+    },
+    "pair_confirmation_trial_tests": {
+      "result": "passed",
+      "output": ".................\n----------------------------------------------------------------------\nRan 17 tests in 3.871s\n\nOK\n"
+    },
+    "pair_trial_operator_tests": {
+      "result": "passed",
+      "output": "..............\n----------------------------------------------------------------------\nRan 14 tests in 0.203s\n\nOK\n"
+    }
+  },
+  "amendment": "Final host diagnostic healthy-cleanup guard changed only bridge Python and its test; all compiled inputs verified unchanged and all affected Python suites plus interoperability rerun.",
+  "build_comparison": {
+    "heltec_v4_pair_eval.bin": {
+      "a": {
+        "bytes": 460256,
+        "sha256": "4458974a79cde5d270c58a4363bc31a4f9e25ae6494eafcaec08fe1f23871d41"
+      },
+      "b": {
+        "bytes": 460256,
+        "sha256": "4458974a79cde5d270c58a4363bc31a4f9e25ae6494eafcaec08fe1f23871d41"
+      },
+      "raw_equal": true
+    },
+    "heltec_v4_pair_eval.elf": {
+      "a": {
+        "bytes": 6309848,
+        "sha256": "b036ee3f871dbd986049daf18068526c971b84f73bc680637a8ecbafc17d5523"
+      },
+      "b": {
+        "bytes": 6309848,
+        "sha256": "b036ee3f871dbd986049daf18068526c971b84f73bc680637a8ecbafc17d5523"
+      },
+      "raw_equal": true
+    },
+    "heltec_v4_pair_eval.map": {
+      "a": {
+        "bytes": 6734240,
+        "sha256": "0976122447e486ea561ebb1ebaf70332dd2ee652d6f0f2b8eca95076d0eb17a8"
+      },
+      "b": {
+        "bytes": 6734240,
+        "sha256": "0976122447e486ea561ebb1ebaf70332dd2ee652d6f0f2b8eca95076d0eb17a8"
+      },
+      "raw_equal": true
+    },
+    "bootloader/bootloader.bin": {
+      "a": {
+        "bytes": 15216,
+        "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+      },
+      "b": {
+        "bytes": 15216,
+        "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+      },
+      "raw_equal": true
+    },
+    "partition_table/partition-table.bin": {
+      "a": {
+        "bytes": 3072,
+        "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+      },
+      "b": {
+        "bytes": 3072,
+        "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+      },
+      "raw_equal": true
+    },
+    "ota_data_initial.bin": {
+      "a": {
+        "bytes": 8192,
+        "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+      },
+      "b": {
+        "bytes": 8192,
+        "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+      },
+      "raw_equal": true
+    },
+    "sdkconfig": {
+      "a": {
+        "bytes": 92613,
+        "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+      },
+      "b": {
+        "bytes": 92613,
+        "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+      },
+      "raw_equal": true
+    }
+  },
+  "source_pins": {
+    "firmware/targets/heltec_v4_pair_eval/CMakeLists.txt": {
+      "bytes": 964,
+      "sha256": "4ff568c229d5475a8aa5d91d3efcb90f8d6ab880a42e975f00cba2617a0e68fc"
+    },
+    "firmware/targets/heltec_v4_pair_eval/partitions.csv": {
+      "bytes": 557,
+      "sha256": "9c27fd7e647ace6eb32524281bfaa52cd370419fec2457f1acdebc6b0cbfa52a"
+    },
+    "firmware/targets/heltec_v4_pair_eval/README.md": {
+      "bytes": 4930,
+      "sha256": "bbb61ae4520ab1e7e033241849f259cd3afe5c87dcde6d25b0e4ae9054a54235"
+    },
+    "firmware/targets/heltec_v4_pair_eval/sdkconfig.defaults": {
+      "bytes": 740,
+      "sha256": "eee7112f92ec96330fd8d09ba5595b12c0ca77a8c1b138a4520a8b487b0ef7c2"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/app_main.cpp": {
+      "bytes": 10406,
+      "sha256": "15e4ac5d8f937de5637d05ae4a43759c0e9ef1af83786155b0987a3189e458c5"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/CMakeLists.txt": {
+      "bytes": 1348,
+      "sha256": "b3780eeee7e82872cb65a126f2111445a2ea8948f4a1c45eb03b4024c03ac6cf"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/pair_diagnostics.hpp": {
+      "bytes": 2784,
+      "sha256": "c7aacaa947a95c67e5ab32617b3f4c3dd2357a9f7b57b5ff30deec15c53430c3"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/pair_display.cpp": {
+      "bytes": 6560,
+      "sha256": "82399adf2d41b001ead22fd2598858a07838732dd338eef6b805b52c33dd3f0b"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/pair_display.hpp": {
+      "bytes": 897,
+      "sha256": "6362596a7bae259225f53eb03c749b665d60955301fe738a626035a0982e9a76"
+    },
+    "firmware/targets/heltec_v4_pair_eval/main/pair_nvs_backend.hpp": {
+      "bytes": 4124,
+      "sha256": "a7d942f8d545ff909be58aa484d7a4662316842a6c7a997bf2758e328119d53f"
+    },
+    "tests/host/pair_target_startup_stubs/esp_bt.h": {
+      "bytes": 537,
+      "sha256": "bcf54f328381a206964f4e83f1457f22995c9f627a4300402cd9b4a9d7eb85dc"
+    },
+    "tests/host/pair_target_startup_stubs/esp_lcd_panel_io.h": {
+      "bytes": 54,
+      "sha256": "353eee101d7507c20f89617a285a905c556a372b0adcded543a49b5814113e77"
+    },
+    "tests/host/pair_target_startup_stubs/esp_lcd_panel_ops.h": {
+      "bytes": 51,
+      "sha256": "b45818cc4e5894b5f8ae26b728b37a07f051bb04aeca7b7c0170567e1fbfad61"
+    },
+    "tests/host/pair_target_startup_stubs/esp_random.h": {
+      "bytes": 87,
+      "sha256": "93f8a18e617ff39c54919104b9753b8e7393b391a4044d2dafa4df87c27b59c0"
+    },
+    "tests/host/pair_target_startup_stubs/esp_rom_sys.h": {
+      "bytes": 59,
+      "sha256": "d0ac9f887281ab2e7b794dcf88a355e559527e6530e3d853dd9db04910fcdb44"
+    },
+    "tests/host/pair_target_startup_stubs/esp_timer.h": {
+      "bytes": 81,
+      "sha256": "c672f97d3f9e9ce9b570a2002cb0734392d6e5890c769ea04e507eba499e3b6b"
+    },
+    "tests/host/pair_target_startup_stubs/nvs.h": {
+      "bytes": 575,
+      "sha256": "280634b96d5c5f19fabc96b0240d50c0bba318557bdf6a24f2df0508e0dabd20"
+    },
+    "tests/host/pair_target_startup_stubs/nvs_flash.h": {
+      "bytes": 61,
+      "sha256": "96076f9476cd78be0ec9cfd61061653cd6143a2ba211b7e96f0f7a1f07d67b45"
+    },
+    "tests/host/pair_target_startup_stubs/sdkconfig.h": {
+      "bytes": 91,
+      "sha256": "695640938f0424cce1ff26896c7a3d2a38d00320634f2a1364a536e7de9fffd6"
+    },
+    "tests/host/pair_target_startup_stubs/driver/gpio.h": {
+      "bytes": 337,
+      "sha256": "e073a10a46eb618916d54671fe2f4eb07f45f6d810cbe7a1f9bdee1444da38b6"
+    },
+    "tests/host/pair_target_startup_stubs/driver/i2c_master.h": {
+      "bytes": 52,
+      "sha256": "53046854e5306b10db52878f2025fb773beb9c5ab21af64a683ba0fc0dec4874"
+    },
+    "tests/host/pair_target_startup_stubs/driver/usb_serial_jtag.h": {
+      "bytes": 358,
+      "sha256": "909e6b4705f9ffa77fe255605dd0f795e7d0efacf20ede4816152227c3d3d8ff"
+    },
+    "tests/host/pair_target_startup_stubs/freertos/FreeRTOS.h": {
+      "bytes": 97,
+      "sha256": "d601043ac59c36b92e9735fa8e37a8d671852cc6d871864fbb1413cb745f3850"
+    },
+    "tests/host/pair_target_startup_stubs/freertos/task.h": {
+      "bytes": 67,
+      "sha256": "11be87dd8a3f261447c7752f03664ebe47dcd3d6be03a7dc512b8a63ca775a41"
+    },
+    "tests/host/pair_target_startup_tests.cpp": {
+      "bytes": 8867,
+      "sha256": "9570ec7627ea77ed70be41e9ceb8a5c435809f58460bc1d1c235cc3a344e26e5"
+    },
+    "tests/host/pair_bench_bridge_tests.py": {
+      "bytes": 9710,
+      "sha256": "cec8c511342e5d42381822d583852e196bf8b68756a7ea81470e84b96d134300"
+    },
+    "tests/host/security_current_source_ci.py": {
+      "bytes": 13366,
+      "sha256": "1e4cfd9271092f4cf5bdeba6f8d061f8c5dfb497c991a830aaf71b62e34f41e5"
+    },
+    "tools/pair_bench_bridge.py": {
+      "bytes": 12406,
+      "sha256": "274c1b3326d390af2ccabb32160d106417b8b23b59531c3ecab3179c8eb42ea8"
+    },
+    "tools/pair_trial_operator.py": {
+      "bytes": 12401,
+      "sha256": "8525ed2bed85f3caaf3582afc69ec0a430c1fb6a1b8b05015bd112f143ce208e"
+    }
+  },
+  "limits": [
+    "SDK statuses/USB/OLED/sodium initializer are controlled seams in startup tests.",
+    "Original physical refusal cause remains unknown; this firmware has not been flashed.",
+    "USB evaluation only; no radio/phone/product membership acceptance."
+  ],
+  "v1_credit_changed": false,
+  "public_website_changed": false
+}

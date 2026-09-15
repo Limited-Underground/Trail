@@ -1,0 +1,86 @@
+{
+  "schema": "OT232-PHYSICAL-TRIAL-1",
+  "recorded_utc": "2026-09-15T00:37:41.162971+00:00",
+  "attempt": "ac2a250eb70a78e3bcec17b6ffcd4ba0",
+  "observation": "local_confirmed",
+  "candidate_attempts": 1,
+  "recovery_attempts": 0,
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB; USB only, no radio operations",
+  "candidate": {
+    "bytes": 460832,
+    "sha256": "e39cea7e289f8229fb737162080d82ce207e6d592ebd39bb0fd4e9d70d0786fb"
+  },
+  "roles": {
+    "A": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_regions_verified": 5,
+      "captured_bytes_verified": true,
+      "restored": true
+    },
+    "B": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_regions_verified": 5,
+      "captured_bytes_verified": true,
+      "restored": true
+    }
+  },
+  "capture_hashes_verified": 10,
+  "custody_closed": true,
+  "bridge_handles_closed": true,
+  "active_lock_absent": true,
+  "operator_events": [
+    "diagnostic_A_1_0_0_0",
+    "diagnostic_B_1_0_0_0",
+    "compare_device_codes_then_hold_and_release_each_local_button",
+    "local_confirmation_B",
+    "local_confirmation_A"
+  ],
+  "user_observations": [
+    "First device shows Role ? Ready",
+    "User confirmed both displayed codes match and both BOOT/user buttons held approximately one second then released"
+  ],
+  "diagnostics": {
+    "A": {
+      "schema_version": 1,
+      "stage": 0,
+      "error": 0,
+      "session_cleanup": 0
+    },
+    "B": {
+      "schema_version": 1,
+      "stage": 0,
+      "error": 0,
+      "session_cleanup": 0
+    }
+  },
+  "physical_confirmation": "Both independent endpoints reached local confirmation after user-observed matching display codes and physical button hold/release on each device.",
+  "acceptance_scope": "Bounded nonradio USB evaluation with real independent endpoints, full transcript equality and independent local confirmation; original images restored afterward.",
+  "not_established": "LoRa transport, phone-mediated protected BLE path, product group membership, long-duration reliability, or the exact offending byte/emitter in the earlier OT231 failure.",
+  "original_runtime_ui": "Independent original byte readbacks and reset are recorded; user confirmation of both original screens is pending.",
+  "operator_binding_sha256": "d7a99c66925271a39cf5eefa9312e1b36c4efc3509b48928cc2a7d4e5b938243",
+  "request_grant_binding_verified": true,
+  "executed_source_pins_verified_at_custody_close": true,
+  "journal_sha256": "d54b86760aa4b5f4964144700a9c21e8f9f426b9a3de5c520648c13d14e473e1",
+  "public_website_changed": false,
+  "v1_credit_changed": false
+}

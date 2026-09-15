@@ -1,0 +1,120 @@
+{
+  "schema": "OT234-PHYSICAL-TRIAL-1",
+  "recorded_utc": "2026-09-15T04:45:44.783223+00:00",
+  "attempt": "8f346c81007c23017e65df0575aeb08a",
+  "observation": "local_confirmed",
+  "candidate_attempts": 1,
+  "recovery_attempts": 0,
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB; bounded radio evaluation",
+  "candidate": {
+    "bytes": 510368,
+    "sha256": "58f950bd71c0160c54f7c917c651d620e6987cda39b29a19f8bd159f98cd27b1"
+  },
+  "roles": {
+    "A": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_regions_verified": 5,
+      "captured_bytes_verified": true,
+      "restored": true
+    },
+    "B": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_regions_verified": 5,
+      "captured_bytes_verified": true,
+      "restored": true
+    }
+  },
+  "capture_hashes_verified": 10,
+  "custody_closed": true,
+  "bridge_handles_closed": true,
+  "active_lock_absent": true,
+  "operator_events": [
+    "diagnostic_A_1_0_0_0",
+    "diagnostic_B_1_0_0_0",
+    "radio_A_stats_2_2_1_0_778_1",
+    "radio_A_verified",
+    "radio_B_stats_1_1_2_0_1143_1",
+    "radio_B_verified",
+    "compare_device_codes_then_hold_and_release_each_local_button",
+    "local_confirmation_A",
+    "local_confirmation_B"
+  ],
+  "user_observations": [
+    "Before trial, user confirmed both antennas attached and normal screens look good.",
+    "User replied done to matching-code comparison and BOOT hold/release on each device; controller independently emitted both local confirmation events.",
+    "After controller closure, user confirmed both normal Trail screens look good."
+  ],
+  "radio_statistics": {
+    "A": {
+      "tx_attempts": 2,
+      "tx_completed": 2,
+      "rx_frames": 1,
+      "rx_errors": 0,
+      "elapsed_ms": 778,
+      "stopped": true
+    },
+    "B": {
+      "tx_attempts": 1,
+      "tx_completed": 1,
+      "rx_frames": 2,
+      "rx_errors": 0,
+      "elapsed_ms": 1143,
+      "stopped": true
+    }
+  },
+  "physical_confirmation": "local_confirmed",
+  "acceptance_scope": "Bounded three-message radio evaluation handshake and independent local decisions",
+  "not_established": "Phone BLE path, product membership/application traffic, range, one-way packet latency, long-duration reliability or measured task headroom",
+  "original_runtime_ui": "User confirmed both normal Trail screens look good after independently verified restoration/reset and controller closure.",
+  "operator_binding_sha256": "cd954dc34f45eb37671149d593a6b7557e499302ba73db7ef8af380ced17f39b",
+  "request_grant_binding_verified": true,
+  "executed_source_pins_verified_at_custody_close": true,
+  "journal_sha256": "706be5dbfa69936779e881ba0b5e2832482f79f40af68568003d665240321ce5",
+  "public_website_changed": false,
+  "v1_credit_changed": false,
+  "radio_profile": {
+    "bandwidth_hz": 125000,
+    "coding_rate_denominator": 5,
+    "frequency_hz": 915000000,
+    "maximum_duration_ms": 60000,
+    "maximum_frame_bytes": 154,
+    "maximum_transmissions": {
+      "A": 2,
+      "B": 1
+    },
+    "power_dbm": 2,
+    "spreading_factor": 7
+  },
+  "range_context": "USB-connected two-node bench; antennas user-confirmed attached; separation and range unmeasured",
+  "delivery": {
+    "expected_handshake_frames": 3,
+    "completed_transmissions": 3,
+    "received_handshake_frames": 3,
+    "missing_expected_frames": 0,
+    "extra_frames_in_accepted_receive_counts": 0,
+    "receive_errors": 0,
+    "retries": 0,
+    "scope": "one bounded exchange; not a statistical packet-loss or range measurement"
+  },
+  "timing_scope": "Per-role local handshake elapsed time; one-way packet latency was not measured"
+}

@@ -1,0 +1,88 @@
+{
+  "schema": "OT231-PHYSICAL-TRIAL-1",
+  "recorded_utc": "2026-09-14T21:48:08.250108+00:00",
+  "attempt": "2912a3679ad3d15bd26cc6de0221ae61",
+  "observation": "trial_failed",
+  "candidate_attempts": 1,
+  "recovery_attempts": 0,
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB; USB only, no radio operations",
+  "candidate": {
+    "bytes": 460256,
+    "sha256": "4458974a79cde5d270c58a4363bc31a4f9e25ae6494eafcaec08fe1f23871d41"
+  },
+  "roles": {
+    "A": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_regions_verified": 5,
+      "captured_bytes_verified": true,
+      "restored": true
+    },
+    "B": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_regions_verified": 5,
+      "captured_bytes_verified": true,
+      "restored": true
+    }
+  },
+  "capture_hashes_verified": 10,
+  "custody_closed": true,
+  "bridge_handles_closed": true,
+  "active_lock_absent": true,
+  "operator_events": [
+    "diagnostic_A_unavailable",
+    "diagnostic_B_unavailable",
+    "diagnostic_A_1_19_15_1",
+    "diagnostic_B_1_19_15_1"
+  ],
+  "user_OLED_observations": {
+    "A": "S19 E15 before bridge started",
+    "B": "S19 E15"
+  },
+  "diagnostics": {
+    "A": {
+      "schema_version": 1,
+      "stage": 19,
+      "error": 15,
+      "session_cleanup": 1
+    },
+    "B": {
+      "schema_version": 1,
+      "stage": 19,
+      "error": 15,
+      "session_cleanup": 1
+    }
+  },
+  "finding": "Both wire receipts report non-printable USB input rejection (stage19/error15); role A OLED showed the same before the bridge opened. Startup initializers had completed before this parser branch.",
+  "session_cleanup_meaning": "PairBenchSession cleanup confirmed; separate from full original flash restoration.",
+  "handshake_confirmation": "not reached",
+  "hello_or_provisioning_reached": false,
+  "buttons_requested": false,
+  "not_established": "Exact offending byte or emitter; ROM FIFO carryover is not proven.",
+  "original_runtime_ui": "User confirmation of both original screens is pending; no phone Ready claim.",
+  "operator_binding_sha256": "65cc099a9d41c676378e26f34ad68fdb9b323a2b4bb7f1633aeac18956fe4143",
+  "request_grant_binding_verified": true,
+  "executed_source_pins_verified_at_custody_close": true,
+  "journal_sha256": "1d21f05ac8ab8a88f545a47a8881ee7cbcdb356056a3ceabbdb0113398bf6a27",
+  "public_website_changed": false,
+  "v1_credit_changed": false
+}
