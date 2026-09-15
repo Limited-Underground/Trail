@@ -765,3 +765,43 @@ tests/hardware/OT-204-RECEIPT-TRIAL-2026-09-12.json -text
 /firmware/components/security_evaluation/include/opentrail/independent_invitation.hpp -text
 /firmware/components/security_evaluation/include/opentrail/independent_invitation_authority.hpp -text
 /tests/host/security_independent_invitation_tests.cpp -text
+
+# OT-229 preserve the independent endpoint and proof inputs exactly.
+/firmware/components/security_evaluation/include/opentrail/independent_policy_session.hpp -text
+/firmware/components/security_evaluation/include/opentrail/independent_authorized_policy_session.hpp -text
+/firmware/components/security_evaluation/include/opentrail/independent_confirmation_owner.hpp -text
+/firmware/components/security_evaluation/include/opentrail/independent_handshake_endpoint.hpp -text
+/tests/host/security_independent_endpoint_tests.cpp -text
+/tests/host/security_independent_session_fixture.hpp -text
+
+# OT-230 preserve USB pair evaluation and proof inputs exactly.
+/firmware/components/security_evaluation/include/opentrail/pair_bench_session.hpp -text
+/firmware/targets/heltec_v4_pair_eval/** -text
+/tests/host/pair_bench_session_tests.cpp -text
+/tests/host/pair_bench_bridge_tests.py -text
+/tests/host/pair_confirmation_trial_tests.py -text
+/tests/host/pair_trial_operator_tests.py -text
+/tools/pair_bench_bridge.py -text
+/tools/pair_confirmation_trial.py -text
+/tools/pair_trial_operator.py -text
+/tools/Build-PairEvaluation.ps1 -text
+
+# OT-231 actual target startup diagnostic test inputs.
+/tests/host/pair_target_startup_tests.cpp -text
+/tests/host/pair_target_startup_stubs/** -text
+
+# OT-233 independent transport proof inputs.
+/firmware/components/security_evaluation/include/opentrail/independent_handshake_transport.hpp -text
+/tests/host/security_independent_transport_tests.cpp -text
+
+# OT-234 radio target and bounded operator proof inputs.
+/firmware/targets/heltec_v4_pair_radio_eval/** -text
+/firmware/components/security_evaluation/include/opentrail/pair_radio_driver.hpp -text
+/firmware/components/security_evaluation/include/opentrail/pair_bench_radio_channel.hpp -text
+/firmware/components/security_evaluation/include/opentrail/pair_radio_channel.hpp -text
+/tests/host/pair_radio_session_tests.cpp -text
+/tests/host/pair_radio_driver_tests.cpp -text
+/tests/host/pair_radio_driver_source_tests.py -text
+/tests/host/pair_radio_driver_stubs/** -text
+/tests/host/pair_radio_startup_stubs/** -text
+/tools/pair_radio_driver_source.py -text

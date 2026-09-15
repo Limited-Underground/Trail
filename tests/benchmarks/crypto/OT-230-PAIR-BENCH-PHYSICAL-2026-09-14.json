@@ -1,0 +1,53 @@
+{
+  "schema": "OT230-PHYSICAL-TRIAL-1",
+  "recorded_utc": "2026-09-14T19:00:33.944579+00:00",
+  "attempt": "4938c151d2abbb849160d82d4f81f9ab",
+  "observation": "trial_failed",
+  "candidate_attempts": 1,
+  "recovery_attempts": 0,
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB; USB only, no radio operations",
+  "candidate": {
+    "bytes": 459296,
+    "sha256": "a8c33bb9988ad0e57631703c8c5d76450f72dd00a6088aaaca941309ff2a678c"
+  },
+  "roles": {
+    "A": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_bytes_verified": true,
+      "restored": true
+    },
+    "B": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_bytes_verified": true,
+      "restored": true
+    }
+  },
+  "custody_closed": true,
+  "both_user_screens_reported": "ROLE ? REFUSED USB EVALUATION",
+  "handshake_confirmation": "not reached",
+  "root_cause": "unresolved; missing target startup stage/error evidence",
+  "original_runtime_ui": "User confirmed both normal Trail screens returned after restoration; phone Ready not independently inspected",
+  "journal_sha256": "1ed380910cf25926ca2d1f58055df49e59449c94181a0da5898fc66df4d053e3",
+  "public_website_changed": false,
+  "v1_credit_changed": false
+}

@@ -1,0 +1,70 @@
+{
+  "schema": "OT234-PAIR-RADIO-TARGET-HOST-1",
+  "result": "passed",
+  "recorded_utc": "2026-09-15T02:55:11.506308+00:00",
+  "scope": "isolated target software, host composition, reproducible build and exact trial preparation only",
+  "validation": {
+    "cpp_groups": 987,
+    "scalar_control_groups": 26,
+    "python_tests": 60,
+    "actual_two_process_interop": true,
+    "matching_source_pins": 969,
+    "radio_session_groups": 17,
+    "actual_driver_groups": 44,
+    "radio_enabled_actual_startup_cases": 30,
+    "generated_calibration_compiled_cases": 8
+  },
+  "target": "heltec_v4_pair_radio_eval",
+  "version": "ot234-pair-radio-v1",
+  "application": {
+    "bytes": 510368,
+    "sha256": "58f950bd71c0160c54f7c917c651d620e6987cda39b29a19f8bd159f98cd27b1"
+  },
+  "reproducible_artifact_pairs": 7,
+  "generated_radio_tus_admitted": true,
+  "usb_regression_application": {
+    "bytes": 461696,
+    "sha256": "bbded78f5d4e50b50bf52e28a4b04410f7fbef968fcac2fd27a8873f87958b5c"
+  },
+  "toolchain": {
+    "esp_idf": "6.0.2",
+    "xtensa": "15.2.0_20251204",
+    "cmake": "4.0.3",
+    "ninja": "1.12.1"
+  },
+  "radio_profile": {
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate": "4/5",
+    "configured_power_dbm": 2,
+    "maximum_frame_bytes": 154,
+    "maximum_tx": {
+      "A": 2,
+      "B": 1
+    },
+    "maximum_duration_ms": 60000
+  },
+  "preparation": {
+    "prepared": true,
+    "proposal_sha256": "1ac49d6eb060f260d2929154d2fc573511d77f2b3487640ab96818f71622cad1",
+    "controller_sha256": "e5bd93e48b5ccb9064e99a0a17531ba7b129fe7fb67abf6ba2367e59ed1e93ce",
+    "grant_issued": false,
+    "serial_enumeration": false,
+    "hardware_access": false
+  },
+  "hardware": false,
+  "phone_actions": false,
+  "physical_radio_acceptance": "not tested",
+  "v1_credit_changed": false,
+  "website_status_changed": false,
+  "publication": "local uncommitted; commit, push, PR and remote verification pending",
+  "limits": [
+    "SDK seams are simulated; physical RF and stack headroom are unmeasured",
+    "Maintained HAL SDK failures abort/reset and require external restoration; no universal CLOSED0 claim",
+    "No production trust provisioning, membership, encrypted application traffic or phone integration acceptance",
+    "Local handshake elapsed time is not one-way packet latency",
+    "Previous USB trial authority is consumed; exact new RF proposal requires approval"
+  ],
+  "evidence": "docs/testing/OT-234-PAIR-RADIO-TARGET-2026-09-14.md"
+}

@@ -63,12 +63,15 @@ def run(output):
         roots = [ROOT / "firmware/components", ROOT / "tests/host"]
         target_names = ("heltec_v4_security_eval", "heltec_v4_invitation_eval",
                         "heltec_v4_confirmation_eval", "heltec_v4_bench",
-                        "heltec_v4_security_receipt_sync", "heltec_v4_security_policy_eval")
+                        "heltec_v4_security_receipt_sync", "heltec_v4_security_policy_eval",
+                        "heltec_v4_pair_eval", "heltec_v4_pair_radio_eval")
         roots += [ROOT / "firmware/targets" / name / "main" for name in target_names]
         inputs = {p for directory in roots for p in directory.rglob("*")
                   if p.is_file() and p.suffix in (".py", ".cpp", ".c", ".hpp", ".h", ".json")}
         helper = ROOT / "tools/noise_xk_independent_interop.py"
         inputs.add(helper)
+        inputs.update(ROOT / "tools" / name for name in (
+            "pair_bench_bridge.py", "pair_confirmation_trial.py", "pair_trial_operator.py", "pair_radio_driver_source.py"))
         before = {str(p): pin(p) for p in inputs}
         component = dependencies.acquire(output / "managed-component")
         result["dependency"] = {"archive_sha256": dependencies.ARCHIVE_SHA,
@@ -100,9 +103,9 @@ def run(output):
                            module.SOURCE / "src/libsodium/include/sodium", module.SUCCESSOR]
         def includes(paths):
             return [item for path in paths for item in ("-I", str(path))]
-        def compile_source(source, obj, more=(), c=False):
+        def compile_source(source, obj, more=(), c=False, defines=()):
             language = ["-std=c11"] if c else ["-std=c++17", "-fno-exceptions", "-fno-rtti", "-Werror"]
-            commands.run([cc if c else cxx, *language, *flags,
+            commands.run([cc if c else cxx, *language, *flags, *defines,
                 *includes([*shared_includes, *more]), "-MMD", "-MF", obj.with_suffix(".d"),
                 "-c", source, "-o", obj], env=env, check=True)
         crypto_objects = [build / f"source-{i}.o" for i in range(1, 17)]
@@ -113,22 +116,29 @@ def run(output):
         base = [ROOT / "firmware/components" / part for part in
                 ("security_evaluation/include", "security/include", "security/test_support",
                  "persistence/include", "persistence/test_support")]
-        def suite(name, sources, extra_includes, wraps, marker):
+        def suite(name, sources, extra_includes, wraps, marker, cases=None, defines=()):
             directory = output / name
             directory.mkdir()
             objects = list(crypto_objects)
             for i, source in enumerate(sources):
                 obj = directory / f"unit-{i}.o"
-                compile_source(source, obj, extra_includes)
+                compile_source(source, obj, extra_includes, defines=defines)
                 objects.append(obj)
             exe = directory / (name + ".exe")
             commands.run([cxx, "-Wl,--gc-sections", *["-Wl,--wrap=" + value for value in wraps],
                           *objects, "-o", exe], env=env, check=True)
-            completed = commands.run([exe], env=env, check=True, timeout=60)
-            need(completed.stdout.startswith("PASS ") and marker in completed.stdout,
-                 "missing_suite_pass: " + name)
-            result["suites"][name] = {"output": completed.stdout.strip(), "binary": pin(exe)}
-            print(completed.stdout.strip(), flush=True)
+            outputs = []
+            for case in cases or [None]:
+                completed = commands.run([exe, *([case] if case else [])], env=env, check=True, timeout=60)
+                need(completed.stdout.startswith("PASS ") and marker in completed.stdout,
+                     "missing_suite_pass: " + name)
+                outputs.append(completed.stdout.strip())
+            summary = "PASS " + str(len(cases)) + marker if cases else outputs[0]
+            result["suites"][name] = {"output": summary, "binary": pin(exe)}
+            if cases:
+                result["suites"][name]["cases"] = dict(zip(cases, outputs))
+            print(summary, flush=True)
+            return exe
         common = [ROOT / name for name in frozen.COMMON]
         for name in frozen.SUITES:
             suite(name, [*common, ROOT / "tests/host" / (name + ".cpp")], base, (), " groups\n")
@@ -138,6 +148,60 @@ def run(output):
               base, (), " independent handshake endpoint groups")
         suite("security_independent_invitation_tests", [*common, ROOT / "tests/host/security_independent_invitation_tests.cpp"],
               base, (), " independent invitation groups")
+        suite("security_independent_endpoint_tests", [*common, ROOT / "tests/host/security_independent_endpoint_tests.cpp"],
+              base, (), " independent provisioned endpoint groups")
+        suite("security_independent_transport_tests",
+              [*common, ROOT / "tests/host/security_independent_transport_tests.cpp",
+               ROOT / "firmware/components/protocol/src/packet_codec.cpp",
+               ROOT / "firmware/components/radio/test_support/fake_radio_transport.cpp"],
+              [*base, ROOT / "firmware/components/radio/include",
+               ROOT / "firmware/components/radio/test_support", ROOT / "firmware/components/protocol/include"],
+              (), " independent transport groups")
+        suite("pair_radio_session_tests",
+              [*common, ROOT / "tests/host/pair_radio_session_tests.cpp",
+               ROOT / "firmware/components/protocol/src/packet_codec.cpp",
+               ROOT / "firmware/components/radio/test_support/fake_radio_transport.cpp"],
+              [*base, ROOT / "firmware/components/radio/include",
+               ROOT / "firmware/components/radio/test_support", ROOT / "firmware/components/protocol/include"],
+              (), " radio pair session groups")
+        suite("pair_radio_driver_tests",
+              [ROOT / "tests/host/pair_radio_driver_tests.cpp",
+               ROOT / "firmware/targets/heltec_v4_pair_radio_eval/main/pair_radio_driver.cpp"],
+              [ROOT / "tests/host/pair_radio_driver_stubs",
+               ROOT / "firmware/targets/heltec_v4_pair_radio_eval/main",
+               ROOT / "firmware/components/radio/include", *base],
+              (), " radio driver groups")
+        pair_exe = suite("pair_bench_session_tests", [*common, ROOT / "tests/host/pair_bench_session_tests.cpp"],
+                         base, (), " pair bench session groups")
+        pair_target = ROOT / "firmware/targets/heltec_v4_pair_eval/main"
+        entropy_target = ROOT / "firmware/targets/heltec_v4_security_eval/main"
+        bench_target = ROOT / "firmware/targets/heltec_v4_bench/main"
+        startup_sources = [*common, pair_target / "app_main.cpp", entropy_target / "entropy_runtime.cpp",
+            bench_target / "heltec_v4_secure_random.cpp",
+            ROOT / "firmware/components/security/src/serialized_secure_random.cpp",
+            ROOT / "firmware/components/persistence/src/persistent_storage_kv.cpp",
+            ROOT / "tests/host/pair_target_startup_tests.cpp"]
+        startup_cases = ("happy usb_install nvs_init display_init button_init boot_open role_open tx_open rx_open "
+            "tx_blank_read tx_blank_retained rx_blank_read rx_blank_retained entropy_not_idle entropy_init "
+            "entropy_enable entropy_readiness sodium_init authority ready_send session_tick usb_read "
+            "session_command invalid_control line_overflow prehello_noise prehello_init prehello_budget prehello_diag_budget prehello_boundary").split()
+        suite("pair_target_startup_tests", startup_sources,
+              [ROOT / "tests/host/pair_target_startup_stubs", pair_target, entropy_target, bench_target, *base],
+              ["sodium_init"], " actual pair startup groups", startup_cases)
+        suite("pair_radio_target_startup_tests",
+              [*startup_sources, ROOT / "firmware/components/protocol/src/packet_codec.cpp"],
+              [ROOT / "tests/host/pair_radio_startup_stubs", ROOT / "tests/host/pair_target_startup_stubs",
+               pair_target, entropy_target, bench_target, ROOT / "firmware/components/radio/include",
+               ROOT / "firmware/components/protocol/include", *base],
+              ["sodium_init"], " actual pair startup groups", startup_cases, ["-DOT_PAIR_RADIO_EVAL=1"])
+        for name, extra in (("pair_bench_bridge_tests", ["--node-exe", pair_exe]),
+                            ("pair_confirmation_trial_tests", []),
+                            ("pair_trial_operator_tests", []), ("pair_radio_driver_source_tests", [])):
+            completed = commands.run([sys.executable, "-X", "utf8", "-B",
+                ROOT / "tests/host" / (name + ".py"), *extra], env=env, check=True, timeout=90)
+            result["suites"][name] = {"output": (completed.stdout + completed.stderr).strip(),
+                                      "result": "passed"}
+            print(name + " passed", flush=True)
         stubs = ROOT / "tests/host/security_invitation_target_stubs"
         target_common = [ROOT / "firmware/components" / name for name in
             ("persistence/src/persistent_storage_kv.cpp", "persistence/src/outbound_counter_lease_store.cpp", "security/src/aead_nonce.cpp")]
