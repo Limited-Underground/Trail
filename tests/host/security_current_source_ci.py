@@ -150,6 +150,12 @@ def run(output):
               base, (), " independent invitation groups")
         suite("security_independent_endpoint_tests", [*common, ROOT / "tests/host/security_independent_endpoint_tests.cpp"],
               base, (), " independent provisioned endpoint groups")
+        suite("peer_activation_store_tests", [*common, ROOT / "tests/host/peer_activation_store_tests.cpp"],
+              base, (), " peer activation store groups")
+        suite("security_peer_traffic_tests", [*common, ROOT / "tests/host/security_peer_traffic_tests.cpp"],
+              base, (), " peer traffic groups")
+        suite("security_endpoint_record_tests", [*common, ROOT / "tests/host/security_endpoint_record_tests.cpp"],
+              base, (), " guarded endpoint record groups")
         suite("security_independent_transport_tests",
               [*common, ROOT / "tests/host/security_independent_transport_tests.cpp",
                ROOT / "firmware/components/protocol/src/packet_codec.cpp",

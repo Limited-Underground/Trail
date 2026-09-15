@@ -34,6 +34,15 @@ The evaluation handshake endpoint isolates each peer's session, durable authorit
 
 Application and protocol logic must depend on interfaces, not concrete boards. Packet codecs and delivery state machines should be host-testable. Board bindings and role composition belong in target applications.
 
+The [peer activation candidate](testing/OT-235-PEER-TRAFFIC-INTEGRATION-2026-09-15.md)
+privately composes that endpoint with authenticated confirmation/activation
+controls and an isolated durable receipt. Fixed status traffic requires exact
+local confirmation, durable commit/readback and authenticated peer activation;
+every output is checked again against live authority and the signed local
+window. The candidate is fresh-only and target-neutral. Trusted product
+provisioning, retained membership, production wire selection and phone/radio
+message integration remain separate boundaries.
+
 Decision 0028 historically deferred rollback-proof companion authorization on
 the current Heltec because no independent monotonic floor was available.
 [Decision 0033](decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)

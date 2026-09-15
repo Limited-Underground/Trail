@@ -12,6 +12,7 @@
 #include "opentrail/independent_confirmation_owner.hpp"
 
 namespace opentrail::security_evaluation {
+class IndependentPeerTrafficEndpoint;
 class IndependentHandshakeEndpoint final {
 public:
     IndependentHandshakeEndpoint(security::SecureRandomSource& random,
@@ -137,7 +138,8 @@ public:
     bool poll() {
         return operation([&] {
             return (state_ == EndpointState::handshake || state_ == EndpointState::review ||
-                    state_ == EndpointState::local_confirmed) && observe(false, true);
+                    state_ == EndpointState::local_confirmed) && observe(false, true) &&
+                    observe(false, true);
         });
     }
 
@@ -158,6 +160,38 @@ public:
     bool secrets_cleared() const { return session_.secrets_cleared(); }
 
 private:
+    friend class IndependentPeerTrafficEndpoint;
+    // The bounded peer-traffic composition is the only record consumer. Keep
+    // signed local expiry, durable authority and Ready-context checks around
+    // every real crypto/storage operation; publish only after the final check.
+    bool seal_record(const std::array<unsigned char, 8>& plaintext, EvaluationRecord& output) {
+        std::array<unsigned char, 8> candidate = plaintext;
+        EvaluationRecord staged{};
+        const bool accepted = operation([&] {
+            return state_ == EndpointState::local_confirmed && observe(false, true) &&
+                session_.seal(candidate, staged, last_now_) && observe(false, true);
+        });
+        if (accepted) output = staged;
+        sodium_memzero(candidate.data(), candidate.size());
+        sodium_memzero(&staged, sizeof staged);
+        return accepted;
+    }
+    bool open_record(const EvaluationRecord& input, std::array<unsigned char, 8>& plaintext) {
+        const EvaluationRecord candidate = input;
+        std::array<unsigned char, 8> staged{};
+        bool opened = false;
+        const bool current = operation([&] {
+            if (state_ != EndpointState::local_confirmed || !observe(false, true)) return false;
+            opened = session_.open(candidate, staged, last_now_);
+            // Invalid ciphertext, metadata and replay are bounded rejection.
+            // Storage/entropy faults and lost authority still close the owner.
+            return !session_.failed() && observe(false, true);
+        });
+        const bool accepted = current && opened;
+        if (accepted) plaintext = staged;
+        sodium_memzero(staged.data(), staged.size());
+        return accepted;
+    }
     template<class Action> bool operation(Action action) {
         if (busy_) { revoked_ = true; return false; }
         if (cleanup_started_) return false;

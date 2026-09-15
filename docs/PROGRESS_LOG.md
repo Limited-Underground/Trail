@@ -8,6 +8,27 @@ One freshly authorized two-Heltec attempt completed the three-message radio hand
 
 Both originals, full NVS and protected spans passed restoration/readback/reset. Controller exit0 and independent ten-capture audit establish closed custody, one candidate attempt and zero recoveries. The user confirmed both normal Trail screens after closure. This accepts the bounded evaluation radio handshake/local decisions only. Product trust provisioning, authenticated application traffic and the protected BLE phone path remain open; the next coherent increment integrates product trust/traffic rather than repeating this proof. Grant consumed; no new physical authority, V1/website credit or source publication. See [physical evidence](../tests/benchmarks/crypto/OT-234-PAIR-RADIO-PHYSICAL-2026-09-15.json) and [scope](testing/OT-234-PAIR-RADIO-TARGET-2026-09-14.md).
 
+### OT-235 Compose durable peer activation and authenticated status traffic
+
+Added a fresh-session host owner that reuses the independent handshake and real
+crypto/session storage. It admits fixed status traffic only after exact local
+confirmation, authenticated peer confirmation, durable activation commit/readback
+and authenticated peer activation. The private record bridge and outer owner
+stage output until final authority, signed local expiry and reentry checks pass.
+Retained or uncertain activation records refuse reconstruction; explicit close
+attempts both retirement and secret cleanup without hiding failures.
+
+The fresh affected matrix passes 1,112 C++ groups (125 new), 26 scalar controls
+and 60 Python tests including actual two-process interoperability; all 975 source
+pins match. Independent source review found no actionable issue. Existing pair
+target regression builds and their reproducibility result are recorded in the
+[sanitized proof](../tests/benchmarks/crypto/OT-235-PEER-TRAFFIC-HOST-2026-09-15.json).
+See [contract, tests and limitations](testing/OT-235-PEER-TRAFFIC-INTEGRATION-2026-09-15.md).
+This is a target-neutral candidate: trusted product provisioning, retained
+membership/rekey, selected production crypto/wire and protected phone/radio
+messages remain open. No hardware action, V1 credit or public website change.
+Changes remain local pending separately authorized publication.
+
 ## 2026-09-14
 
 ### OT-234 Wire the bounded pair radio target
