@@ -3,7 +3,7 @@
 #include <cstdint>
 using nvs_handle_t=std::uint32_t;
 using esp_err_t=int;
-constexpr esp_err_t ESP_OK=0,ESP_FAIL=-1,ESP_ERR_NVS_NOT_FOUND=1;
+constexpr esp_err_t ESP_OK=0,ESP_FAIL=-1,ESP_ERR_NVS_NOT_FOUND=1,ESP_ERR_NVS_INVALID_LENGTH=2;
 constexpr int NVS_READWRITE=1;
 esp_err_t nvs_open(const char*,int,nvs_handle_t*);
 void nvs_close(nvs_handle_t);

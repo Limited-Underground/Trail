@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-15. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-20. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -8,6 +8,84 @@ See [archive navigation](history/README.md) for moved headings, [Architecture](A
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
 ## Current accepted capabilities
+
+[OT241 diagnostic trials](testing/OT-241-DIAGNOSTIC-TRIAL-PREPARATION-2026-09-16.md)
+closed with both originals independently restored. The first reached comparison
+while the user was away; the same-image retry measured a TX completion deadline
+at handshake 3, A/RFPOLL (2060 ms, two attempts/one completion). The user saw a
+brief code on retry, but no controller comparison prompt occurred. Normal screens
+were confirmed after the first attempt; both normal screens were also confirmed after retry restoration.
+[OT242 TX completion correction](testing/OT-242-TX-COMPLETION-CORRECTION-2026-09-16.md)
+passes its host matrix and reproducible builds. Its single authorized physical
+trial reached matching-code comparison and both user button confirmations, then
+failed at activation step 1, B/RFPOLL. The earlier TX deadline did not recur;
+A completed 3/3 transmissions and B 1/1. A reported authority/clock fault 3 and
+B session fault 6; the exact cause remains unproven. Both originals and saved
+states were independently restored, verified and reset, custody closed, and the
+user confirmed normal screens. The subsequent host reproduction and diagnostic
+provenance correction are accepted with a passing 43-suite matrix, all affected
+target builds and reproducible enrolled artifacts. This identifies expiry at its
+rejecting check without resampling afterward; it does not prove the physical
+cause or fix activation.
+[OT243 polling/NVS correction](testing/OT-243-NVS-POLLING-COST-2026-09-18.md)
+now preserves fresh durable reads while eliminating repeated size queries for
+previously validated slots. The full host exchange passes within its unchanged
+window, with 33.2% fewer SDK gets; 43 suites and reproducible enrolled builds
+pass. This is host/build evidence, not physical latency or activation acceptance.
+The [OT244 controlled two-Heltec trial](testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md)
+reached both local confirmations, then failed at activation1 B/RFPOLL with
+authority/clock fault3 on both nodes. Original applications/state are verified
+restored and custody closed; the user confirmed both normal screens. Exact clock guard
+and timing remain unproven. The [OT245 independent-idle replay](testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md)
+shows only107-133ms additional elapsed time in the tested10s-delay cases; a47s
+synthetic delay reproduces the failure with idle on/off. It does not establish
+physical cause. The [OT246 failure capture](testing/OT-246-FAILURE-CAPTURE-2026-09-18.md)
+is now implemented and validated: original rejecting samples, target button/phase
+times and host command/transport costs. The 44-suite matrix, three affected target
+builds, reproducible enrolled artifacts and final Python follow-up pass. One exact
+instrumented trial is now closed: B rejected at the exact invitation-expiry check,
+4ms past deadline, after accepting confirmation with31.984s remaining. A sent the
+first activation control, but B returned28 WAIT polls before expiry. Source review
+found the receiving radio is not rearmed after the final handshake before that
+transmission. [OT247 complete-flow review](testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md)
+corrects guarded receive rearming and per-byte host reads;97 Python tests and
+the updated composed flow pass. Measured-input sensitivity cases still expire
+after5 or3 statuses, so physical readiness remains blocked on the full budget. Significant per-byte
+host guard overhead was also measured, not substituted for the missing-packet
+mechanism. Both originals/state are independently verified restored, custody is
+closed and both normal screens confirmed. Physical four-status delivery, phone
+integration and V1 remain open; no website status change.
+
+The [integrated enrollment candidate](testing/OT-240-INTEGRATED-ENROLLMENT-2026-09-16.md)
+combines durable fresh-session allocation, retained signed enrollment, actual
+NVS storage, independent activation and fixed-status exchange over USB or
+explicitly armed evaluation radio. The combined host matrix, supplemental
+operator tests and reproducible target builds pass. The original physical attempt
+failed before comparison. The pacing correction then passed focused validation
+and matching builds, but its physical trial refused at handshake stage 3 before
+comparison. Exact operation and root cause remain unknown. Both originals were
+restored/readback-verified/reset, custody is closed, and the user confirmed both
+normal Trail screens. Integrated host reproduction now demonstrates the injected
+storage-cost/driver timing mechanism; GPIO-edge plus command/idle ticking passes
+18 cases, maintained input-loop regression and one clean affected build. Physical
+cause remains unproven; no new physical proposal or RF fixed-status acceptance
+is established.
+The companion semantic bridge is implemented, but protected BLE action routing
+and Android receive events/UI are not wired. Product trust/bootstrap, complete
+reset/recovery, exact-target interruption/entropy evidence and final admission
+remain open. Full V1 testing is not ready; no completion or website credit.
+
+The [OT-236 scheduling trial](testing/OT-236-SCHEDULING-TRIAL-2026-09-15.md)
+passed on both Heltecs: eight operations and1621 retained records each, with
+independent strict capture/provenance audit. Both exact original applications
+were restored and independently verified with protected/full-NVS checks before
+release. The user confirmed both normal Trail screens on2026-09-16. The bounded capture gate
+is passed; prior watchdog interference remains a hypothesis because its failed
+line was not retained. Revised sampling timings remain separate from historical
+measurements. The [current admission assessment](security/OT-237-CURRENT-ADMISSION-2026-09-16.md)
+binds the completed corpus and identifies the remaining target/product lifecycle
+gates. Libsodium remains the evaluation recommendation; Phase3 and production
+crypto/wire selection remain withheld. No V1 credit.
 
 The [OT-235 host candidate](testing/OT-235-PEER-TRAFFIC-INTEGRATION-2026-09-15.md)
 composes independent local confirmation, authenticated peer activation, durable

@@ -1,0 +1,269 @@
+{
+  "schema": "OT237-CURRENT-CRYPTO-ADMISSION-1",
+  "as_of": "2026-09-16T11:42:43.644565+00:00",
+  "status": "assessment_complete_selection_withheld",
+  "phase_3_admitted": false,
+  "crypto_selected": false,
+  "engineering_recommendation": "Continue existing libsodium1.0.22 evaluation direction; no library/suite/handshake/KDF/PacketV1 production selection made.",
+  "evidence_bindings": [
+    {
+      "path": "tests/benchmarks/crypto/OT-116-OT005-EXECUTABLE-BENCHMARK-PLAN-V1.json",
+      "bytes": 7891,
+      "sha256": "0280570b74b2b505b5a92e7834b24136caa0956ff1c536d7638bff0a8b105f2a",
+      "canonical_sha256": "7844d7be1824784a0ff58ba58df25bda85c6059c445f217a4d520215bfff50a8"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-163-ADMISSION-BATCH-2026-09-10.json",
+      "bytes": 13954,
+      "sha256": "3efdfadfccfc502c53456b30494a2a6d1d7fe978571e3b582a899866fb7f5c9b",
+      "canonical_sha256": "617d1f1eeb7f4c8c8b46f6da354c3c7d1adfa7b29d58a04ec4d7998381edad5c"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-163-LIBSODIUM-MATCHED-RESOURCE-2026-09-10.json",
+      "bytes": 9587,
+      "sha256": "924d5b4c49e12698918ac4728bc43dafbb1420f8129d9fb83cc1c02657260806",
+      "canonical_sha256": "0df3c823a09f23d15df31172e1f4e0fe930cbf43930b6b5abdf4870df5898d37"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-163-MONOCYPHER-CORRECTED-MATCHED-RESOURCE-2026-09-10.json",
+      "bytes": 9609,
+      "sha256": "a803daae6ad553ef2a8db8c8393a1987b424619374357e8020614f5c71548cb1",
+      "canonical_sha256": "b860e9755ccbfbeceb60b8fa2138efb88d091cf2dc831ffe19e0db9fc369c583"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-163-MBEDTLS-CORRECTED-MATCHED-RESOURCE-2026-09-10.json",
+      "bytes": 9617,
+      "sha256": "0b3f71a80a1b7c43ba2dee44e0ac8900b34e52971b21ee1286fd062314c5ff17",
+      "canonical_sha256": "a28ce97c2beb402919705cd1b9c9355542be35da925c529d2882b6c5e35392d9"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-205-SECURITY-ADMISSION-REVIEW-2026-09-12.json",
+      "bytes": 8107,
+      "sha256": "439fae5e84741ff9d6ee111ca4e555f1e16afed788d20f2d2e3c7a36cbc72abb",
+      "canonical_sha256": "9fc329134acabf8cffc64d4f970acf39c33d5e8a5ad2e0de49d426b6f1ecb3f9"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-207-CANDIDATE-ADMISSION-2026-09-12.json",
+      "bytes": 6916,
+      "sha256": "df577becf5ca9202f77d8c21578879007513aa9dcecc462919fd3da66f8d2a68",
+      "canonical_sha256": "ba0bcd553c26f2eeddfb28afe9050c368f4a8f8e40efc277e14577731fd6b28e"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-209-SDK-LICENSE-INVENTORY-2026-09-12.json",
+      "bytes": 732158,
+      "sha256": "0a589354ded653cddc4faa891e2e5fd228383cec0709c29464977a702b01ccac",
+      "canonical_sha256": "34ca757f9f12220ba742c9225fc30d0b8239c977a6ebe4f7bc5e9de39dde729d"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-234-PAIR-RADIO-PHYSICAL-2026-09-15.json",
+      "bytes": 4278,
+      "sha256": "2c5d5ba0c7ef2c7a5510dea3f193d3efdeb6aeaf90d6e3a8fce4f13a2bf81cff",
+      "canonical_sha256": "00936816be2339af1486e53c7706bc1fcf7eb7c64455e9b955359768929ca7b0"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-235-PEER-TRAFFIC-HOST-2026-09-15.json",
+      "bytes": 8504,
+      "sha256": "f32a85c013be5eba7fa5ce199d71291d5b38773e2ff3c91671322cb83ba7bbcf",
+      "canonical_sha256": "81c47c54e4742679e7f3cb522467f8ea7a411ecd4577ee4ee8b65ced98506439"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-236-SCHEDULING-PHYSICAL-2026-09-15.json",
+      "bytes": 17628,
+      "sha256": "7d7873a3053402706e0f97a4493df3a643757b675adc403656cd93ecd05b7840",
+      "canonical_sha256": "7fcd025102e8a60cb5e636841cb2cf3b4526eb27147a3116776eb67ac30d3df4"
+    },
+    {
+      "path": "tests/benchmarks/crypto/OT-236-SCHEDULING-SUCCESSOR-HOST-2026-09-15.json",
+      "bytes": 16765,
+      "sha256": "03aba910b0dc705c66edfe66c29eab5f2dfe9649545c2351425e1bae9398aa82",
+      "canonical_sha256": "78b047b43d805d04dc32aa10fb109d7e7d220b58ac2a450b4f066b903886d4c8"
+    },
+    {
+      "path": "docs/decisions/0003-crypto-benchmark-gate.md",
+      "bytes": 2033,
+      "sha256": "6a88a00aba6383e07e1d1ca8daed3c48972806bc384e6d3980d27ea67accf359"
+    },
+    {
+      "path": "docs/decisions/0084-reconcile-incomplete-phase-two-before-selection.md",
+      "bytes": 2958,
+      "sha256": "8568a15f515fffd63fad0a465e5e98196e629e5e43c759997dad91143a368201"
+    }
+  ],
+  "verification": {
+    "ot236_current_source_pins": 12,
+    "ot235_current_source_pins": 8,
+    "ot236_capture_and_restoration_audit": {
+      "schema": "OT236-SCHEDULING-PHYSICAL-AUDIT-1",
+      "audit": "passed",
+      "trial_passed": true,
+      "originals_released": true,
+      "restoration_complete": true,
+      "frozen_sources_verified": true,
+      "grant_sha256": "72635a5b2fae57bb5ad0867779980bd9b36dcb4ae7b403c0f22a34f8e7389f35",
+      "receipt_sha256": "d9f66d155514c5598a7e7213ecc9691823d9eaddc1acf6a04eb421ae9642433e",
+      "journal_sha256": "948161b3fbe5dbf5b4fd5aeb2b11ce7c5977e4c7e17f8c4df3642d05cccb8bfe",
+      "intervals": {
+        "A": {
+          "candidate-started": true,
+          "closed": true,
+          "release-intent": true,
+          "released": true
+        },
+        "B": {
+          "candidate-started": true,
+          "closed": true,
+          "release-intent": true,
+          "released": true
+        }
+      },
+      "captures": {
+        "A": {
+          "bytes": 407877,
+          "frame_count": 1621,
+          "sha256": "c115e9f1cc724f770fb81ce0652eea9cec4dc9a1c1d125c6b6449e3a00cfd569"
+        },
+        "B": {
+          "bytes": 407877,
+          "frame_count": 1621,
+          "sha256": "b18919e4d94055bc01d8934f3de85d3065cee41325f536719bec2b0f36116c52"
+        }
+      },
+      "diagnostics": {
+        "A": {
+          "lifecycle": "stable_continuous",
+          "reset_attempts": 1,
+          "lifecycle_polls": 3,
+          "stable_presence_polls": 3,
+          "open_attempts": 1,
+          "start_write_attempts": 0,
+          "read_calls": 940,
+          "empty_reads": 129,
+          "bytes_observed": 409090,
+          "preamble_lines_ignored": 23,
+          "complete_lines": 1644,
+          "frame_lines_buffered": 1621,
+          "rejection_class": "none",
+          "rejected_line_bytes": 0,
+          "last_framed_kind": "local_complete",
+          "last_framed_operation": "none",
+          "last_framed_phase": "none",
+          "last_framed_iteration": -1
+        },
+        "B": {
+          "lifecycle": "stable_continuous",
+          "reset_attempts": 1,
+          "lifecycle_polls": 3,
+          "stable_presence_polls": 3,
+          "open_attempts": 1,
+          "start_write_attempts": 0,
+          "read_calls": 936,
+          "empty_reads": 126,
+          "bytes_observed": 409090,
+          "preamble_lines_ignored": 23,
+          "complete_lines": 1644,
+          "frame_lines_buffered": 1621,
+          "rejection_class": "none",
+          "rejected_line_bytes": 0,
+          "last_framed_kind": "local_complete",
+          "last_framed_operation": "none",
+          "last_framed_phase": "none",
+          "last_framed_iteration": -1
+        }
+      },
+      "failure_code": null,
+      "capture_failure_code": null,
+      "device_access": false,
+      "radio_used": false
+    },
+    "screens_confirmed": true,
+    "behavioral_tests_rerun": false,
+    "builds_rerun": false,
+    "hardware_access": false
+  },
+  "gates": [
+    {
+      "id": "primitive_vectors_and_negative_cases",
+      "disposition": "accepted_bounded",
+      "accepted": "OT207 bounded candidate KAT/refusal mapping plus OT236 exact successor eight-operation captures on both nodes.",
+      "remaining": "No primitive retest indicated for unchanged admitted inputs; rebind any final changed composition. Bounded coverage is not full conformance."
+    },
+    {
+      "id": "noise_xk_independent_interoperability",
+      "disposition": "accepted_bounded",
+      "accepted": "Independent two-vector real-primitive XK messages/hash/split proof; corrected evaluation adapter exercised on target. OT234 adds bounded actual radio handshake.",
+      "remaining": "No repetition of unchanged accepted interoperability/radio case; final product protocol and peer trust remain separate."
+    },
+    {
+      "id": "invitation_replay_reorder_timeout_refusal",
+      "disposition": "partial",
+      "accepted": "Durable role/boot invitation admission; OT234 independent physical decisions; OT235 actual-crypto activation/replay/expiry host tests.",
+      "remaining": "Bind product enrollment authority, retained membership, cancellation/restart/rekey and current factory-reset behavior; no resumed-key authority from fresh-only receipt."
+    },
+    {
+      "id": "entropy_and_cold_start_uniqueness",
+      "disposition": "partial",
+      "accepted": "Serialized guard and target-runtime lifecycle host tests; successful normal target entropy startup/fills. No statistical entropy claim.",
+      "remaining": "Exact target source-absent/failure and restart uniqueness evidence remain; cold-power/brownout disassembly is owner-deferred, not silently passed."
+    },
+    {
+      "id": "temporary_secret_wipe_and_log_redaction",
+      "disposition": "partial",
+      "accepted": "Actual evaluation cleanup/refusal/retirement and privacy-safe capture evidence; OT235 close attempts durable retirement and secret cleanup.",
+      "remaining": "Full product key/secret/log lifecycle across target failure, abort, reset and rekey. No whole-memory erasure claim."
+    },
+    {
+      "id": "rollback_safe_counter_interruption",
+      "disposition": "partial",
+      "accepted": "Host reservation/commit/readback/torn-write tests and prior normal real NVS operation. Fresh-only state refuses retained keys.",
+      "remaining": "Exact target interrupted persistence/restart proof and a retained membership/key-retirement policy that preserves nonce uniqueness under the accepted V1 threat model."
+    },
+    {
+      "id": "two_device_join_revoke_reset_recovery",
+      "disposition": "partial",
+      "accepted": "OT234 actual two-node handshake/local confirmations; OT235 durable activation and authenticated fixed-status exchange host composition.",
+      "remaining": "Product join/revoke/rekey/reset/recovery and later two-phone path. Evaluation radio handshake and host status exchange do not establish these."
+    },
+    {
+      "id": "license_sbom_and_reproducible_lock",
+      "disposition": "partial",
+      "accepted": "Three historical candidate-specific matched controls; OT209 allocated SDK/license inventory for OT203/208; reproducible later target builds and retained OT236 capture custody.",
+      "remaining": "Final target-specific source/license/artifact binding and independent Phase3 corpus admission. Historical Monocypher raw custody remains unresolved; explicit disposition required by controlling plan. Revised OT236 timings and old resource controls are different exact images, not a new matched pair or ranking."
+    }
+  ],
+  "closed_work_not_to_repeat": [
+    "OT236 bounded retained two-node capture and original restoration",
+    "OT234 bounded independent physical radio handshake and local decisions",
+    "Corrected mbedTLS comparison",
+    "All three existing exact matched-resource controls",
+    "OT207 bounded candidate primitive mapping",
+    "OT209 scoped allocated SDK inventory"
+  ],
+  "next_increment": {
+    "scope": "host-only evaluation owner for enrollment trust and durable retained membership lifecycle",
+    "reuse": "OT235 actual-crypto activation/traffic and existing boot/counter/invitation stores",
+    "acceptance": [
+      "Trusted signer and peer authority owned locally, not supplied as an unchecked caller assertion.",
+      "Initial peer trust requires an explicit authenticated bootstrap; local signer ownership alone is insufficient. Keep bootstrap evaluation-authorized until the product enrollment procedure is accepted.",
+      "Retained state never reconstructs or resumes traffic keys without explicit safe transition.",
+      "Restart/cancel/revoke/rekey/factory-reset preparation have exact durable refusal/cleanup behavior and meaningful interruption tests.",
+      "Remain evaluation-only pending named target evidence and explicit Phase3/selection decision."
+    ]
+  },
+  "no_new_claims": {
+    "v1_credit": false,
+    "website_change": false,
+    "radio_or_phone_actions": false,
+    "publication": false
+  },
+  "limits": [
+    "Assessment binds evidence with its exact historical scope; no migration of timing/resource acceptance between images.",
+    "This assessment does not waive the frozen eight gates or resolve historical missing traces by fabrication."
+  ],
+  "independent_review": {
+    "evidence_bindings_verified": 14,
+    "canonical_json_bindings_verified": 12,
+    "current_source_pins_verified": 20,
+    "gate_ids_match_frozen_plan": true,
+    "blockers": 0
+  }
+}

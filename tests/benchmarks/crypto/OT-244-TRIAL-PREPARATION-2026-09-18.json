@@ -1,0 +1,72 @@
+{
+  "schema": "OT244-TRIAL-PREPARATION-1",
+  "as_of": "2026-09-18T18:50:19.237501+00:00",
+  "result": "prepared; physical authorization and readiness pending",
+  "candidate": {
+    "path": "build/ot242-enrolled-ot243-c/heltec_v4_enrolled_eval.bin",
+    "bytes": 528160,
+    "sha256": "cec805d4c4b8eaea9ea6380c037b7b34a97af4a9b6fc40b02b6d98b98db7f24e"
+  },
+  "prepared": true,
+  "source_pins_verified": 1014,
+  "unchanged_operator_source_files": 12,
+  "controller_executable_semantics_unchanged": true,
+  "negative_admission_cases": [
+    "wrong binding digest",
+    "stale candidate request",
+    "wrong operator source pin"
+  ],
+  "negative_admission_cases_passed": 3,
+  "independent_review": "no preparation blocker",
+  "bindings": {
+    "proposal_sha256": "1cd6fd9094c2620dcda02b1c1fdcada2fc012b23525084830755b3590c74bd1e",
+    "controller_sha256": "927b684bd89f8c58833a9bed318f6333c27fa87eaab7bec5730781e17556c7ba",
+    "binding_sha256": "5612c718918cbefe3855e09332d83accb332ef5f975153c83a811d0f484a91b0",
+    "request_sha256": "95c57b89518d390e47cc74d9b8e200ccdd63e35cb9505571ca2f3aaa82c34cfe"
+  },
+  "candidate_attempt_limit": 1,
+  "restore_only_attempt_limit": 2,
+  "application": {
+    "offset": 65536,
+    "bytes": 733184
+  },
+  "ordinary_nvs": {
+    "offset": 53248,
+    "bytes": 12288
+  },
+  "protected_writes": false,
+  "phone_actions": false,
+  "radio_profile": {
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate_denominator": 5,
+    "power_dbm": 2,
+    "maximum_frame_bytes": 158,
+    "maximum_transmissions_per_role": 16,
+    "invitation_window_ms": 60000
+  },
+  "expected_statistics": {
+    "A": {
+      "tx_attempts": 8,
+      "tx_completed": 8,
+      "received": 7,
+      "rx_errors": 0,
+      "stopped": 1
+    },
+    "B": {
+      "tx_attempts": 7,
+      "tx_completed": 7,
+      "received": 8,
+      "rx_errors": 0,
+      "stopped": 1
+    }
+  },
+  "restoration": "fresh full application and ordinary-NVS captures; protected comparisons; independent full-span readbacks before resetting originals; normal screens separately observed",
+  "approval_exists": false,
+  "grant_issued": false,
+  "serial_enumeration": false,
+  "hardware_access": false,
+  "v1_credit": false,
+  "website_status_changed": false
+}

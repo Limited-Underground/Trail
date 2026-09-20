@@ -1,0 +1,288 @@
+{
+  "schema": "OT242-FAULT-PROVENANCE-HOST-1",
+  "date": "2026-09-18",
+  "scope": "Host diagnostic fault provenance; no activation behavior or deadline changes",
+  "source_pins": {
+    "firmware/components/security_evaluation/include/opentrail/enrolled_bench_session.hpp": {
+      "bytes": 25897,
+      "sha256": "3d34391b424b6b90b286441a071f52a3c0c113b08d60cbe4fb5cfe31e5136009"
+    },
+    "firmware/components/security_evaluation/include/opentrail/enrolled_peer_endpoint.hpp": {
+      "bytes": 17162,
+      "sha256": "b09fa4c35aa21460daaca194ce5261b16ffa634b87b894f22d0481a8697c092e"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_peer_traffic_endpoint.hpp": {
+      "bytes": 10486,
+      "sha256": "e1321fd2a05146cbce1723993400dde6b9c124cc8808465262cf2020e28e3441"
+    },
+    "tests/host/enrolled_completion_composed_tests.cpp": {
+      "bytes": 26408,
+      "sha256": "0b98a252a630a4d0703de06c04eaeacc4b5cf9d358c5fdb09a91e0bb08472c42"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_handshake_endpoint.hpp": {
+      "bytes": 14632,
+      "sha256": "1512d9d8e0d635132cbac9054bcec0aae1a6df92441f8b7fbde3a4af49840471"
+    }
+  },
+  "matrix": {
+    "result": "passed",
+    "suite_count": 43,
+    "result_json_hash": {
+      "bytes": 203101,
+      "sha256": "42a09720e18542654e5b1719503a70bf57f04d63356a12f25e5c28e18e9515e9"
+    },
+    "suites_of_interest": {
+      "enrolled_completion_composed_tests": {
+        "output": "PASS 2 enrolled completion composition groups\nPASS 4 enrolled activation boundary reproduction groups",
+        "binary": {
+          "bytes": 691886,
+          "sha256": "e468d6d16383d69e0a047c3b865f2c6befb9f2f3040d8cce44cc8b189107a436"
+        }
+      },
+      "enrolled_bench_session_tests": {
+        "output": "PASS 33 enrolled bench session groups",
+        "binary": {
+          "bytes": 517966,
+          "sha256": "938bcbd0226c8246fad47dd625727bbd3458e0bd5c9b93e48d9eeb42d0754e4e"
+        }
+      },
+      "enrolled_peer_endpoint_tests": {
+        "output": "PASS 35 enrolled peer endpoint groups",
+        "binary": {
+          "bytes": 444681,
+          "sha256": "07938a18bd885ec0ad80cadbf767838d76390e66b36d778ca76312af6d190d7a"
+        }
+      },
+      "enrolled_peer_transport_tests": {
+        "output": "PASS 23 enrolled peer transport groups",
+        "binary": {
+          "bytes": 554527,
+          "sha256": "42c86f828a854ab2e90e607dbdda7bb47845b86d64f6ed578d4339b3be77c607"
+        }
+      },
+      "security_independent_endpoint_tests": {
+        "output": "PASS 50 independent provisioned endpoint groups",
+        "binary": {
+          "bytes": 404180,
+          "sha256": "3c00756d70bf6fecfe665e00f85efb53a084a04c499dc8d18d29d7956c9fba3b"
+        }
+      },
+      "security_handshake_endpoint_tests": {
+        "output": "PASS 38 independent handshake endpoint groups",
+        "binary": {
+          "bytes": 380304,
+          "sha256": "7507eecc218a9d547fea0a19e6a1d6708779680d421a5b543b798a2f43a37019"
+        }
+      }
+    }
+  },
+  "builds": [
+    {
+      "command": "tools/Build-PairEvaluation.ps1 -BuildName \"ot230-pair-claudefix-v3-usb\" -Mode usb",
+      "artifact": "build/ot230-pair-claudefix-v3-usb/heltec_v4_pair_eval.bin",
+      "artifact_hash": {
+        "bytes": 461712,
+        "sha256": "3805f3031becad0c8dea020f26371db058ffa63a2add1ae9a1ef45f714b3c342"
+      },
+      "exit_code": 0
+    },
+    {
+      "command": "tools/Build-PairEvaluation.ps1 -BuildName \"ot230-pair-claudefix-v3-radio\" -Mode radio",
+      "artifact": "build/ot230-pair-claudefix-v3-radio/heltec_v4_pair_radio_eval.bin",
+      "artifact_hash": {
+        "bytes": 510384,
+        "sha256": "78a4c36876194ffafe85143731c7faadbcdeedece0b6d0f2beb2dc36619510ff"
+      },
+      "exit_code": 0
+    },
+    {
+      "command": "tools/Build-EnrolledEvaluation.ps1 -BuildName \"ot242-enrolled-claudefix-v3a\"",
+      "artifact": "build/ot242-enrolled-claudefix-v3a/heltec_v4_enrolled_eval.bin",
+      "artifact_hash": {
+        "bytes": 528048,
+        "sha256": "8077c1cbbbf92a3091053faf9716ade1bec8bae0a5828dff221b8eb5d0c997c3"
+      },
+      "exit_code": 0
+    },
+    {
+      "command": "tools/Build-EnrolledEvaluation.ps1 -BuildName \"ot242-enrolled-claudefix-v3b\"",
+      "artifact": "build/ot242-enrolled-claudefix-v3b/heltec_v4_enrolled_eval.bin",
+      "artifact_hash": {
+        "bytes": 528048,
+        "sha256": "8077c1cbbbf92a3091053faf9716ade1bec8bae0a5828dff221b8eb5d0c997c3"
+      },
+      "exit_code": 0
+    }
+  ],
+  "enrolled_reproducibility": {
+    "schema": "OT242-TARGET-BUILD-1",
+    "all_seven_raw_pairs_equal": true,
+    "artifacts": {
+      "heltec_v4_enrolled_eval.bin": {
+        "a": {
+          "bytes": 528048,
+          "sha256": "8077c1cbbbf92a3091053faf9716ade1bec8bae0a5828dff221b8eb5d0c997c3"
+        },
+        "b": {
+          "bytes": 528048,
+          "sha256": "8077c1cbbbf92a3091053faf9716ade1bec8bae0a5828dff221b8eb5d0c997c3"
+        },
+        "raw_equal": true
+      },
+      "heltec_v4_enrolled_eval.elf": {
+        "a": {
+          "bytes": 7416352,
+          "sha256": "6d388cd5f05b82600840c7c8432b9c96cd601ebc257c9dfaf0f78c97dd12dd5a"
+        },
+        "b": {
+          "bytes": 7416352,
+          "sha256": "6d388cd5f05b82600840c7c8432b9c96cd601ebc257c9dfaf0f78c97dd12dd5a"
+        },
+        "raw_equal": true
+      },
+      "heltec_v4_enrolled_eval.map": {
+        "a": {
+          "bytes": 7248237,
+          "sha256": "eaf188752f5e16452720117d89a45b5184fbcb198553515438f9b1d8a784fae9"
+        },
+        "b": {
+          "bytes": 7248237,
+          "sha256": "eaf188752f5e16452720117d89a45b5184fbcb198553515438f9b1d8a784fae9"
+        },
+        "raw_equal": true
+      },
+      "bootloader/bootloader.bin": {
+        "a": {
+          "bytes": 15216,
+          "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+        },
+        "b": {
+          "bytes": 15216,
+          "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+        },
+        "raw_equal": true
+      },
+      "partition_table/partition-table.bin": {
+        "a": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "b": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "raw_equal": true
+      },
+      "ota_data_initial.bin": {
+        "a": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "b": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "raw_equal": true
+      },
+      "sdkconfig": {
+        "a": {
+          "bytes": 92613,
+          "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+        },
+        "b": {
+          "bytes": 92613,
+          "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+        },
+        "raw_equal": true
+      }
+    },
+    "guards": {
+      "a": {
+        "config_guards": {
+          "CONFIG_IDF_TARGET": "\"esp32s3\"",
+          "CONFIG_ESP_MAIN_TASK_STACK_SIZE": "24576",
+          "CONFIG_ESPTOOLPY_FLASHSIZE_16MB": "y",
+          "CONFIG_ESPTOOLPY_FLASHMODE_QIO": "y",
+          "CONFIG_ESPTOOLPY_FLASHFREQ_80M": "y",
+          "CONFIG_BT_ENABLED": "y",
+          "CONFIG_BT_CONTROLLER_ENABLED": "y",
+          "CONFIG_BT_NIMBLE_ENABLED": "y",
+          "CONFIG_ESP_CONSOLE_NONE": "y",
+          "CONFIG_LOG_DEFAULT_LEVEL": "0",
+          "CONFIG_APP_REPRODUCIBLE_BUILD": "y"
+        },
+        "app_and_driver_compiled": true,
+        "bounded_radio_tus": true,
+        "protected_partition_matches": true,
+        "app_restore_span_bytes": 733184,
+        "app_size": 528048,
+        "physical_stack_measured": false
+      },
+      "b": {
+        "config_guards": {
+          "CONFIG_IDF_TARGET": "\"esp32s3\"",
+          "CONFIG_ESP_MAIN_TASK_STACK_SIZE": "24576",
+          "CONFIG_ESPTOOLPY_FLASHSIZE_16MB": "y",
+          "CONFIG_ESPTOOLPY_FLASHMODE_QIO": "y",
+          "CONFIG_ESPTOOLPY_FLASHFREQ_80M": "y",
+          "CONFIG_BT_ENABLED": "y",
+          "CONFIG_BT_CONTROLLER_ENABLED": "y",
+          "CONFIG_BT_NIMBLE_ENABLED": "y",
+          "CONFIG_ESP_CONSOLE_NONE": "y",
+          "CONFIG_LOG_DEFAULT_LEVEL": "0",
+          "CONFIG_APP_REPRODUCIBLE_BUILD": "y"
+        },
+        "app_and_driver_compiled": true,
+        "bounded_radio_tus": true,
+        "protected_partition_matches": true,
+        "app_restore_span_bytes": 733184,
+        "app_size": 528048,
+        "physical_stack_measured": false
+      }
+    },
+    "closures": {
+      "a": {
+        "source_and_dependency_count": 2888,
+        "translation_units": 1209,
+        "link_library_count": 112,
+        "license_notice_candidates": 20,
+        "manifest": {
+          "bytes": 594305,
+          "sha256": "8aa7b9512e9666c3e12798f3ce59561a7624e27be147e137d2e03c3619a1091f"
+        }
+      },
+      "b": {
+        "source_and_dependency_count": 2888,
+        "translation_units": 1209,
+        "link_library_count": 112,
+        "license_notice_candidates": 20,
+        "manifest": {
+          "bytes": 594305,
+          "sha256": "ae4c472ab6316c4aad9b05c01ddcb96aa8d40ec930a18c83fb712f8a3288e3b3"
+        }
+      }
+    },
+    "hardware_access": false,
+    "production_admission": false
+  },
+  "independent_review": {
+    "v1_resampling_misattribution": "reproduced and corrected",
+    "v1_unique_physical_cause_claim": "withdrawn; physical cause remains unproven",
+    "v2_propagation": "review passed; no stale-flag, short-circuit or cleanup-loss defect found",
+    "original_counterexample_groups_passed": 34,
+    "composed_groups_passed": {
+      "completion": 2,
+      "activation": 4
+    },
+    "v3_all_matrix_source_pins_verified": 1014,
+    "v3_line_endings_only_compared_to_accepted_v2": true,
+    "git_diff_check": "passed"
+  },
+  "physical_execution": false,
+  "limits": [
+    "Invitation expiry is a sufficient modeled mechanism, not the proven unique physical cause.",
+    "The corrected near-boundary/expired cases still reject; diagnostics do not fix activation.",
+    "No new radio/phone acceptance, production admission, V1 score or public website status change.",
+    "Changes remain local and uncommitted; publication not performed."
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "schema": "OT240-PHYSICAL-TRIAL-1",
+  "recorded_utc": "2026-09-16T13:59:06.054401+00:00",
+  "observation": "trial_failed",
+  "stage": "before_comparison_prompt",
+  "exact_failed_command": "not_recorded",
+  "candidate_attempts": 1,
+  "recovery_attempts": 0,
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB; enrolled evaluation candidate",
+  "candidate": {
+    "bytes": 525744,
+    "sha256": "42ca0e38f68dbec3e9c029a0e2203cc70cdcb74ab4fb6eb99fed89335c259dad"
+  },
+  "journal_sha256": "7a6d1c3376411fef55f6fa40c9a149c32a965b86450d41cc5722687bdaee6b32",
+  "roles": {
+    "A": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_regions_verified": 5,
+      "captured_bytes_verified": true,
+      "protected_capture_descriptors_match_request": true,
+      "restored": true
+    },
+    "B": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_regions_verified": 5,
+      "captured_bytes_verified": true,
+      "protected_capture_descriptors_match_request": true,
+      "restored": true
+    }
+  },
+  "bridge_closed": true,
+  "custody_closed": true,
+  "controller_exit_status": 0,
+  "controller_exit_source": "active controller result reported by root",
+  "normal_screens_user_confirmed": false,
+  "normal_screens_status": "pending",
+  "source_defect": {
+    "confirmed": "per-byte target scheduler delay exceeds host BEGIN command deadline",
+    "configured_tick_hz": 100,
+    "begin_line_bytes_including_lf": 521,
+    "host_command_deadline_seconds": 5,
+    "physical_failure_attributed": false,
+    "correction_status": "underway; not validated in this physical record"
+  },
+  "acceptance": {
+    "candidate_running_verified": false,
+    "comparison_verified": false,
+    "physical_confirmation_verified": false,
+    "radio_status_delivery_verified": false,
+    "phone_path_verified": false,
+    "v1_credit": false,
+    "production_selection": false
+  },
+  "limits": [
+    "Candidate write/boot intents do not prove application runtime success.",
+    "Private original capture bytes independently rehashed; on-device restoration/readback/reset is recorded by the closed controller journal.",
+    "Normal Trail screen observation remains separate and pending.",
+    "No exact failing command was retained; source timing defect is not proven physical root cause.",
+    "One physical candidate grant consumed; corrected artifacts require new execution authority."
+  ]
+}

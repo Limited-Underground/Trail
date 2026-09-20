@@ -1,0 +1,1262 @@
+{
+  "schema": "OT245-INDEPENDENT-IDLE-REPLAY-1",
+  "as_of": "2026-09-18T19:49:45.806737+00:00",
+  "result": "Host replay complete; idle work alone insufficient in tested model; physical cause unproven",
+  "production_changes": false,
+  "hardware": false,
+  "source_pins_verified": 1014,
+  "prior_matrix_suites_reused": 43,
+  "model": [
+    "Synthetic SDK read costs, not per-call hardware calibration.",
+    "Atomic node operations; frames deferred until sender completion and receiver availability.",
+    "Deterministic USB timeout and yield approximate RTOS quantization.",
+    "Radio airtime, UART byte timing, crypto and flash-write latency are omitted.",
+    "Both node clocks use the same offset; no independent drift.",
+    "Worker starts with fresh generation-one storage.",
+    "Actual production sessions, crypto and NVS backend; radio is the existing fake transport, not physical driver timing.",
+    "SDK costs172/210us are synthetic uniform charges; physical aggregate means do not calibrate individual operations.",
+    "One-second sequential holds with100ms gap are modeled, not measured user timings.",
+    "First guard is captured at its rejection; first_guard event ordering uses atomic completion rather than internal rejection time."
+  ],
+  "cases": [
+    {
+      "cost_us_per_get": 172,
+      "operator_gap_s": 10.0,
+      "idle_enabled": false,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "passed",
+      "error": null,
+      "first_failure": null,
+      "first_failure_point": null,
+      "cleanup": "verified",
+      "prompt_us": 7165432,
+      "scheduled_button_intervals_us": {
+        "A": [
+          17165432,
+          18165432
+        ],
+        "B": [
+          18265432,
+          19265432
+        ]
+      },
+      "first_status4_us": {
+        "A": 18395128,
+        "B": 19552744
+      },
+      "end_us": 45691408,
+      "first_guard": null,
+      "statistics": [
+        [
+          8,
+          8,
+          7,
+          0,
+          1
+        ],
+        [
+          7,
+          7,
+          8,
+          0,
+          1
+        ]
+      ],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 42544888,
+        "wall_union": 42291408,
+        "overlap": 253480
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 124844,
+          "state": 5,
+          "fault": 0,
+          "guard": ""
+        },
+        {
+          "role": "B",
+          "reads": 122644,
+          "state": 5,
+          "fault": 0,
+          "guard": ""
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 172,
+      "operator_gap_s": 10.0,
+      "idle_enabled": true,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "passed",
+      "error": null,
+      "first_failure": null,
+      "first_failure_point": null,
+      "cleanup": "verified",
+      "prompt_us": 7227924,
+      "scheduled_button_intervals_us": {
+        "A": [
+          17227924,
+          18227924
+        ],
+        "B": [
+          18327924,
+          19327924
+        ]
+      },
+      "first_status4_us": {
+        "A": 18449420,
+        "B": 19608500
+      },
+      "end_us": 45824420,
+      "first_guard": null,
+      "statistics": [
+        [
+          8,
+          8,
+          7,
+          0,
+          1
+        ],
+        [
+          7,
+          7,
+          8,
+          0,
+          1
+        ]
+      ],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 53392928,
+        "wall_union": 43688568,
+        "overlap": 9704360
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 156644,
+          "state": 5,
+          "fault": 0,
+          "guard": ""
+        },
+        {
+          "role": "B",
+          "reads": 153914,
+          "state": 5,
+          "fault": 0,
+          "guard": ""
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 172,
+      "operator_gap_s": 30.0,
+      "idle_enabled": false,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "status_B",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "B",
+        "RFPOLL"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 7165432,
+      "scheduled_button_intervals_us": {
+        "A": [
+          37165432,
+          38165432
+        ],
+        "B": [
+          38265432,
+          39265432
+        ]
+      },
+      "first_status4_us": {
+        "A": 38374928,
+        "B": 39532544
+      },
+      "end_us": 60349608,
+      "first_guard": {
+        "role": "B",
+        "operation": "RFPOLL",
+        "start_us": 60286312,
+        "end_us": 60327420,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "independent_handshake_endpoint.hpp:228",
+        "reads": 239
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 53012808,
+        "wall_union": 52759608,
+        "overlap": 253200
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 154880,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        },
+        {
+          "role": "B",
+          "reads": 153468,
+          "state": 6,
+          "fault": 3,
+          "guard": "independent_handshake_endpoint.hpp:228"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 172,
+      "operator_gap_s": 30.0,
+      "idle_enabled": true,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "status_B",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "B",
+        "RFPOLL"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 7227924,
+      "scheduled_button_intervals_us": {
+        "A": [
+          37227924,
+          38227924
+        ],
+        "B": [
+          38327924,
+          39327924
+        ]
+      },
+      "first_status4_us": {
+        "A": 38485180,
+        "B": 39553100
+      },
+      "end_us": 60346544,
+      "first_guard": {
+        "role": "A",
+        "operation": "idle_tick",
+        "start_us": 60310420,
+        "end_us": 60332608,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "session:invitation_window",
+        "reads": 129
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 81950088,
+        "wall_union": 56118764,
+        "overlap": 25831324
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 239680,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        },
+        {
+          "role": "B",
+          "reads": 236908,
+          "state": 6,
+          "fault": 3,
+          "guard": "independent_handshake_endpoint.hpp:228"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 172,
+      "operator_gap_s": 48.0,
+      "idle_enabled": false,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "activation_2",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "B",
+        "RFPOLL"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 7165432,
+      "scheduled_button_intervals_us": {
+        "A": [
+          55165432,
+          56165432
+        ],
+        "B": [
+          56265432,
+          57265432
+        ]
+      },
+      "first_status4_us": {
+        "A": 56374928,
+        "B": 57532544
+      },
+      "end_us": 60347960,
+      "first_guard": {
+        "role": "B",
+        "operation": "RFPOLL",
+        "start_us": 60291544,
+        "end_us": 60332652,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "independent_handshake_endpoint.hpp:228",
+        "reads": 239
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 49389800,
+        "wall_union": 49258400,
+        "overlap": 131400
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 145562,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        },
+        {
+          "role": "B",
+          "reads": 141722,
+          "state": 6,
+          "fault": 3,
+          "guard": "independent_handshake_endpoint.hpp:228"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 172,
+      "operator_gap_s": 48.0,
+      "idle_enabled": true,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "activation_2",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "B",
+        "RFCONTROL"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 7227924,
+      "scheduled_button_intervals_us": {
+        "A": [
+          55227924,
+          56227924
+        ],
+        "B": [
+          56327924,
+          57327924
+        ]
+      },
+      "first_status4_us": {
+        "A": 56488900,
+        "B": 57556820
+      },
+      "end_us": 60337728,
+      "first_guard": {
+        "role": "A",
+        "operation": "idle_tick",
+        "start_us": 60306124,
+        "end_us": 60321432,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "session:invitation_window",
+        "reads": 89
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 94758240,
+        "wall_union": 54472476,
+        "overlap": 40285764
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 278062,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        },
+        {
+          "role": "B",
+          "reads": 272992,
+          "state": 6,
+          "fault": 3,
+          "guard": "independent_handshake_endpoint.hpp:228"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 210,
+      "operator_gap_s": 10.0,
+      "idle_enabled": false,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "passed",
+      "error": null,
+      "first_failure": null,
+      "first_failure_point": null,
+      "cleanup": "verified",
+      "prompt_us": 8693260,
+      "scheduled_button_intervals_us": {
+        "A": [
+          18693260,
+          19693260
+        ],
+        "B": [
+          19793260,
+          20793260
+        ]
+      },
+      "first_status4_us": {
+        "A": 19999440,
+        "B": 21049040
+      },
+      "end_us": 52852060,
+      "first_guard": null,
+      "statistics": [
+        [
+          8,
+          8,
+          7,
+          0,
+          1
+        ],
+        [
+          7,
+          7,
+          8,
+          0,
+          1
+        ]
+      ],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 50163540,
+        "wall_union": 49914740,
+        "overlap": 248800
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 121134,
+          "state": 5,
+          "fault": 0,
+          "guard": ""
+        },
+        {
+          "role": "B",
+          "reads": 117874,
+          "state": 5,
+          "fault": 0,
+          "guard": ""
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 210,
+      "operator_gap_s": 10.0,
+      "idle_enabled": true,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "passed",
+      "error": null,
+      "first_failure": null,
+      "first_failure_point": null,
+      "cleanup": "verified",
+      "prompt_us": 8747460,
+      "scheduled_button_intervals_us": {
+        "A": [
+          18747460,
+          19747460
+        ],
+        "B": [
+          19847460,
+          20847460
+        ]
+      },
+      "first_status4_us": {
+        "A": 20116340,
+        "B": 21146740
+      },
+      "end_us": 52959460,
+      "first_guard": null,
+      "statistics": [
+        [
+          8,
+          8,
+          7,
+          0,
+          1
+        ],
+        [
+          7,
+          7,
+          8,
+          0,
+          1
+        ]
+      ],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 61516140,
+        "wall_union": 51835560,
+        "overlap": 9680580
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 148694,
+          "state": 5,
+          "fault": 0,
+          "guard": ""
+        },
+        {
+          "role": "B",
+          "reads": 144374,
+          "state": 5,
+          "fault": 0,
+          "guard": ""
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 210,
+      "operator_gap_s": 30.0,
+      "idle_enabled": false,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "status_B",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "B",
+        "RFSTATUS"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 8693260,
+      "scheduled_button_intervals_us": {
+        "A": [
+          38693260,
+          39693260
+        ],
+        "B": [
+          39793260,
+          40793260
+        ]
+      },
+      "first_status4_us": {
+        "A": 39949040,
+        "B": 41132620
+      },
+      "end_us": 60405020,
+      "first_guard": {
+        "role": "B",
+        "operation": "RFSTATUS",
+        "start_us": 59887160,
+        "end_us": 60377930,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "independent_handshake_endpoint.hpp:228",
+        "reads": 2337
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 54214020,
+        "wall_union": 53975020,
+        "overlap": 239000
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 132114,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        },
+        {
+          "role": "B",
+          "reads": 126182,
+          "state": 6,
+          "fault": 3,
+          "guard": "independent_handshake_endpoint.hpp:228"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 210,
+      "operator_gap_s": 30.0,
+      "idle_enabled": true,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "status_B",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "B",
+        "RFSTATUS"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 8747460,
+      "scheduled_button_intervals_us": {
+        "A": [
+          38747460,
+          39747460
+        ],
+        "B": [
+          39847460,
+          40847460
+        ]
+      },
+      "first_status4_us": {
+        "A": 40079140,
+        "B": 41109540
+      },
+      "end_us": 60382950,
+      "first_guard": {
+        "role": "A",
+        "operation": "idle_tick",
+        "start_us": 60334400,
+        "end_us": 60361490,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "session:invitation_window",
+        "reads": 129
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 83939520,
+        "wall_union": 58949050,
+        "overlap": 24990470
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 203664,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        },
+        {
+          "role": "B",
+          "reads": 196182,
+          "state": 6,
+          "fault": 3,
+          "guard": "independent_handshake_endpoint.hpp:228"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 210,
+      "operator_gap_s": 48.0,
+      "idle_enabled": false,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "activation_1",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "A",
+        "RFPOLL"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 8693260,
+      "scheduled_button_intervals_us": {
+        "A": [
+          56693260,
+          57693260
+        ],
+        "B": [
+          57793260,
+          58793260
+        ]
+      },
+      "first_status4_us": {
+        "A": 57949040,
+        "B": 59132620
+      },
+      "end_us": 60397500,
+      "first_guard": {
+        "role": "A",
+        "operation": "RFPOLL",
+        "start_us": 59862920,
+        "end_us": 60368810,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "independent_handshake_endpoint.hpp:228",
+        "reads": 2409
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 51158100,
+        "wall_union": 50927500,
+        "overlap": 230600
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 126452,
+          "state": 6,
+          "fault": 3,
+          "guard": "independent_handshake_endpoint.hpp:228"
+        },
+        {
+          "role": "B",
+          "reads": 117292,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 210,
+      "operator_gap_s": 48.0,
+      "idle_enabled": true,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "activation_1",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "A",
+        "RFPOLL"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 8747460,
+      "scheduled_button_intervals_us": {
+        "A": [
+          56747460,
+          57747460
+        ],
+        "B": [
+          57847460,
+          58847460
+        ]
+      },
+      "first_status4_us": {
+        "A": 58122440,
+        "B": 59152840
+      },
+      "end_us": 60381530,
+      "first_guard": {
+        "role": "A",
+        "operation": "RFPOLL",
+        "start_us": 59886060,
+        "end_us": 60354150,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "independent_handshake_endpoint.hpp:228",
+        "reads": 2229
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 97532400,
+        "wall_union": 58754410,
+        "overlap": 38777990
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 237572,
+          "state": 6,
+          "fault": 3,
+          "guard": "independent_handshake_endpoint.hpp:228"
+        },
+        {
+          "role": "B",
+          "reads": 227002,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 210,
+      "operator_gap_s": 46.5,
+      "idle_enabled": false,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "activation_2",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "B",
+        "RFCONTROL"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 8693260,
+      "scheduled_button_intervals_us": {
+        "A": [
+          55193260,
+          56193260
+        ],
+        "B": [
+          56293260,
+          57293260
+        ]
+      },
+      "first_status4_us": {
+        "A": 56502740,
+        "B": 57549040
+      },
+      "end_us": 60390020,
+      "first_guard": {
+        "role": "B",
+        "operation": "RFCONTROL",
+        "start_us": 60117440,
+        "end_us": 60371330,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "enrolled_peer_endpoint.hpp:260",
+        "reads": 1209
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 51489900,
+        "wall_union": 51212700,
+        "overlap": 277200
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 126482,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        },
+        {
+          "role": "B",
+          "reads": 118842,
+          "state": 6,
+          "fault": 3,
+          "guard": "enrolled_peer_endpoint.hpp:260"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 210,
+      "operator_gap_s": 46.5,
+      "idle_enabled": true,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "activation_2",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "B",
+        "RFCONTROL"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 8747460,
+      "scheduled_button_intervals_us": {
+        "A": [
+          55247460,
+          56247460
+        ],
+        "B": [
+          56347460,
+          57347460
+        ]
+      },
+      "first_status4_us": {
+        "A": 56586840,
+        "B": 57617240
+      },
+      "end_us": 60387830,
+      "first_guard": {
+        "role": "A",
+        "operation": "idle_tick",
+        "start_us": 60340460,
+        "end_us": 60359150,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "session:invitation_window",
+        "reads": 89
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 96383700,
+        "wall_union": 58763930,
+        "overlap": 37619770
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 234072,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        },
+        {
+          "role": "B",
+          "reads": 225032,
+          "state": 6,
+          "fault": 3,
+          "guard": "independent_handshake_endpoint.hpp:228"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 210,
+      "operator_gap_s": 47.0,
+      "idle_enabled": false,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "activation_1",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "B",
+        "RFPOLL"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 8693260,
+      "scheduled_button_intervals_us": {
+        "A": [
+          55693260,
+          56693260
+        ],
+        "B": [
+          56793260,
+          57793260
+        ]
+      },
+      "first_status4_us": {
+        "A": 57047940,
+        "B": 58070220
+      },
+      "end_us": 60386280,
+      "first_guard": {
+        "role": "B",
+        "operation": "RFPOLL",
+        "start_us": 59870520,
+        "end_us": 60367590,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "independent_handshake_endpoint.hpp:228",
+        "reads": 2367
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 51420180,
+        "wall_union": 51106280,
+        "overlap": 313900
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 127542,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        },
+        {
+          "role": "B",
+          "reads": 117450,
+          "state": 6,
+          "fault": 3,
+          "guard": "independent_handshake_endpoint.hpp:228"
+        }
+      ]
+    },
+    {
+      "cost_us_per_get": 210,
+      "operator_gap_s": 47.0,
+      "idle_enabled": true,
+      "hold_s": 1.0,
+      "yield_ms": 10,
+      "usb_timeout_ms": 10,
+      "result": "cleanup_unverified",
+      "error": "bridge_refused",
+      "first_failure": [
+        "activation_1",
+        "target_refused"
+      ],
+      "first_failure_point": [
+        "B",
+        "RFPOLL"
+      ],
+      "cleanup": "protocol_unverified_handles_closed",
+      "prompt_us": 8747460,
+      "scheduled_button_intervals_us": {
+        "A": [
+          55747460,
+          56747460
+        ],
+        "B": [
+          56847460,
+          57847460
+        ]
+      },
+      "first_status4_us": {
+        "A": 57152040,
+        "B": 58122440
+      },
+      "end_us": 60381130,
+      "first_guard": {
+        "role": "A",
+        "operation": "idle_tick",
+        "start_us": 60342740,
+        "end_us": 60361430,
+        "pressed": false,
+        "ok": false,
+        "state": 6,
+        "fault": 3,
+        "guard": "session:invitation_window",
+        "reads": 89
+      },
+      "statistics": [],
+      "scheduler_checks": {
+        "node_nonoverlap": true,
+        "global_time_monotonic": true,
+        "radio_after_sender_completion": true
+      },
+      "busy_time_us": {
+        "summed_nodes": 96772200,
+        "wall_union": 58757230,
+        "overlap": 38014970
+      },
+      "nodes": [
+        {
+          "role": "A",
+          "reads": 236192,
+          "state": 6,
+          "fault": 3,
+          "guard": "session:invitation_window"
+        },
+        {
+          "role": "B",
+          "reads": 224762,
+          "state": 6,
+          "fault": 3,
+          "guard": "enrolled_peer_endpoint.hpp:260"
+        }
+      ]
+    }
+  ],
+  "instrumentation_control": {
+    "cases": 4,
+    "results_times_counters_identical": true
+  },
+  "zero_cost_controls": 2,
+  "artifacts": {
+    "build-worker.py": {
+      "bytes": 4727,
+      "sha256": "ef78d62b61b5a1260f6399ea8a6feb3dc7103fbb2e572570fb008dcb5ae8ecac"
+    },
+    "worker.cpp": {
+      "bytes": 14392,
+      "sha256": "c6be0910c17d6eb0cf5a1b9b886954b14a0d79696c901ac79ca2ebff72e3e0e7"
+    },
+    "worker.exe": {
+      "bytes": 655792,
+      "sha256": "320b32c607c6a6ac30aada821697cb42b5fe7bc05ae987092f335f3009a8e7f2"
+    },
+    "worker-plain.exe": {
+      "bytes": 654014,
+      "sha256": "35dd161f8bfbf96fa1a8af36202cc4d515458f0118ab15cdfe89eee03ec4bf76"
+    },
+    "replay.py": {
+      "bytes": 17059,
+      "sha256": "c134117518475506716fbb89888e2214157b1dca83cb8da7a5e7c5c2e7754813"
+    },
+    "build.json": {
+      "bytes": 10719,
+      "sha256": "26b183615c878dc52bdc7f2505fcbff069e8fed1c9a4bc21d53cdcb9d7086623"
+    },
+    "plain-build.json": {
+      "bytes": 8059,
+      "sha256": "bacef0d399d7975d5fac27af203aea3e8c380c752a14e1999fd2df77e2779581"
+    },
+    "controls.json": {
+      "bytes": 3832963,
+      "sha256": "72f38a7116c3ad154b9da956ff3a16a6e38706e06377207da26a7f0f72866d83"
+    },
+    "boundary-controls.json": {
+      "bytes": 1029446,
+      "sha256": "d81ec21162cc903bf405645dd02e6ab4ecf15b64f2bedb78e652d089605c598d"
+    },
+    "zero-controls.json": {
+      "bytes": 166506,
+      "sha256": "ff35167f57a76c740bda61d44f0b645b7571616745daaf546f92ed6b0103bcc0"
+    },
+    "plain-controls.json": {
+      "bytes": 1245283,
+      "sha256": "02e69d6747d6961a30ef09806df1e70d156142aec26607b57e2f070e75d0c6c6"
+    },
+    "instrumentation-check.json": {
+      "bytes": 234,
+      "sha256": "18de6a5dfbcc409730b78804eed2aafadbe843acba4c0cecddd2f9799e63d944"
+    },
+    "replay-commands.json": {
+      "bytes": 1833,
+      "sha256": "311f33f8d1588ff98dfd2f77b55ec71e8b0fea5263063a0d83cd218d878f98f1"
+    }
+  },
+  "next_action": "Add bounded host stage/command monotonic timestamps and REVIEW remaining-window budget to the maintained operator, with privacy/error tests. No new hardware attempt without a discriminating timing capture and fresh scope.",
+  "v1_change": false,
+  "website_change": false,
+  "publication": "local uncommitted; publication pending separate authorization"
+}

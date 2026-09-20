@@ -1,0 +1,556 @@
+{
+  "schema": "OT236-SCHEDULING-PHYSICAL-3",
+  "as_of": "2026-09-16T01:18:36.784494+00:00",
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB nodes",
+  "radio": "not used; region unchanged",
+  "toolchain": {
+    "python": "3.14.6",
+    "esptool": "5.3.1",
+    "pyserial": "3.5"
+  },
+  "preflight_started": "2026-09-16T01:02:01.394594+00:00",
+  "preflight_finished": "2026-09-16T01:03:30.396308+00:00",
+  "execution_started": "2026-09-16T01:03:59.520513+00:00",
+  "execution_finished": "2026-09-16T01:17:24.585011+00:00",
+  "controller_complete": true,
+  "controller_failure": null,
+  "receipt": {
+    "authority_raw_sha256": "72635a5b2fae57bb5ad0867779980bd9b36dcb4ae7b403c0f22a34f8e7389f35",
+    "binding": {
+      "application_offset": 65536,
+      "baud": 115200,
+      "benchmark_bytes": 293216,
+      "benchmark_name": "ot236_libsodium_yield_bench.bin",
+      "benchmark_sha256": "d5abc19bed29687a459b25e28f14b12cc0ac9d21ef142b9355c0cc61ccf65c61",
+      "expected_frame_count": 1621,
+      "protocol_ready": "",
+      "protocol_start": "",
+      "restore_a": {
+        "bytes": 586736,
+        "name": "opentrail_heltec_v4_bench.bin",
+        "sha256": "43ac6dbc506c03faa63aae7a8e27195750598f06f3118bfff1ef7af84bc8d9f2"
+      },
+      "restore_b": {
+        "bytes": 587968,
+        "name": "opentrail_heltec_v4_bench.bin",
+        "sha256": "984e241dc72fad956d34b5e83f04fd307dcb95e0f18c629ac46d21da9d96d87b"
+      }
+    },
+    "claims": {
+      "candidate_selected": false,
+      "phase_two_complete": false,
+      "radio_used": false,
+      "regulatory_acceptance_proven": false,
+      "score_credit_added": false,
+      "suite_selected": false,
+      "supported_target_proven": false
+    },
+    "failure": null,
+    "node_count": 2,
+    "nodes": [
+      {
+        "benchmark_readback_verified": true,
+        "capture_diagnostics": {
+          "bytes_observed": 409090,
+          "complete_lines": 1644,
+          "empty_reads": 129,
+          "frame_lines_buffered": 1621,
+          "last_framed_iteration": -1,
+          "last_framed_kind": "local_complete",
+          "last_framed_operation": "none",
+          "last_framed_phase": "none",
+          "lifecycle": "stable_continuous",
+          "lifecycle_polls": 3,
+          "open_attempts": 1,
+          "preamble_lines_ignored": 23,
+          "read_calls": 940,
+          "rejected_line_bytes": 0,
+          "rejection_class": "none",
+          "reset_attempts": 1,
+          "stable_presence_polls": 3,
+          "start_write_attempts": 0
+        },
+        "capture_validated": true,
+        "installed_app_readback_verified": true,
+        "node": "A",
+        "restore_readback_verified": true,
+        "restore_reset_completed": true,
+        "result": {
+          "candidate_id": "espressif_libsodium",
+          "candidate_selected": false,
+          "cold_sample_count": 800,
+          "gate_count": 2,
+          "operations_completed": 8,
+          "operations_required": 8,
+          "phase2_complete": false,
+          "radio_used": false,
+          "runtime_resources": {
+            "heap_min_free_bytes": 334504,
+            "heap_start_free_bytes": 334504,
+            "max_stack_used_bytes": 4328,
+            "peak_dynamic_ram_bytes": 0,
+            "stack_allocation_bytes": 8192,
+            "stack_high_water_free_bytes": 3864,
+            "watchdog_resets": 0
+          },
+          "schema": "OTCBXRF2",
+          "scope": "candidate_local_v2",
+          "summaries": {
+            "chacha20poly1305_decrypt": {
+              "cold": {
+                "max_us": 149,
+                "median_us": 129,
+                "min_us": 129,
+                "p95_us": 129
+              },
+              "warm": {
+                "max_us": 129,
+                "median_us": 129,
+                "min_us": 129,
+                "p95_us": 129
+              }
+            },
+            "chacha20poly1305_encrypt": {
+              "cold": {
+                "max_us": 261,
+                "median_us": 126,
+                "min_us": 126,
+                "p95_us": 126
+              },
+              "warm": {
+                "max_us": 126,
+                "median_us": 126,
+                "min_us": 125,
+                "p95_us": 126
+              }
+            },
+            "ed25519_sign": {
+              "cold": {
+                "max_us": 8860,
+                "median_us": 8766,
+                "min_us": 8766,
+                "p95_us": 8766
+              },
+              "warm": {
+                "max_us": 8767,
+                "median_us": 8766,
+                "min_us": 8766,
+                "p95_us": 8766
+              }
+            },
+            "ed25519_verify": {
+              "cold": {
+                "max_us": 21881,
+                "median_us": 21643,
+                "min_us": 21641,
+                "p95_us": 21643
+              },
+              "warm": {
+                "max_us": 21643,
+                "median_us": 21642,
+                "min_us": 21640,
+                "p95_us": 21643
+              }
+            },
+            "hkdf_sha256": {
+              "cold": {
+                "max_us": 416,
+                "median_us": 388,
+                "min_us": 388,
+                "p95_us": 388
+              },
+              "warm": {
+                "max_us": 388,
+                "median_us": 388,
+                "min_us": 388,
+                "p95_us": 388
+              }
+            },
+            "noise_xk_handshake": {
+              "cold": {
+                "max_us": 116278,
+                "median_us": 116222,
+                "min_us": 116222,
+                "p95_us": 116222
+              },
+              "warm": {
+                "max_us": 116225,
+                "median_us": 116224,
+                "min_us": 116224,
+                "p95_us": 116224
+              }
+            },
+            "sha256": {
+              "cold": {
+                "max_us": 213,
+                "median_us": 85,
+                "min_us": 85,
+                "p95_us": 85
+              },
+              "warm": {
+                "max_us": 85,
+                "median_us": 85,
+                "min_us": 85,
+                "p95_us": 85
+              }
+            },
+            "x25519": {
+              "cold": {
+                "max_us": 18331,
+                "median_us": 17947,
+                "min_us": 17940,
+                "p95_us": 17947
+              },
+              "warm": {
+                "max_us": 17947,
+                "median_us": 17943,
+                "min_us": 17940,
+                "p95_us": 17947
+              }
+            }
+          },
+          "summary_count": 16,
+          "version": 2,
+          "warm_sample_count": 800
+        },
+        "result_sha256": "d49971809351d48fc21617021e7bcfa71769762c52d2c2215dc37cb34f25183d",
+        "rom_interval_verified": true
+      },
+      {
+        "benchmark_readback_verified": true,
+        "capture_diagnostics": {
+          "bytes_observed": 409090,
+          "complete_lines": 1644,
+          "empty_reads": 126,
+          "frame_lines_buffered": 1621,
+          "last_framed_iteration": -1,
+          "last_framed_kind": "local_complete",
+          "last_framed_operation": "none",
+          "last_framed_phase": "none",
+          "lifecycle": "stable_continuous",
+          "lifecycle_polls": 3,
+          "open_attempts": 1,
+          "preamble_lines_ignored": 23,
+          "read_calls": 936,
+          "rejected_line_bytes": 0,
+          "rejection_class": "none",
+          "reset_attempts": 1,
+          "stable_presence_polls": 3,
+          "start_write_attempts": 0
+        },
+        "capture_validated": true,
+        "installed_app_readback_verified": true,
+        "node": "B",
+        "restore_readback_verified": true,
+        "restore_reset_completed": true,
+        "result": {
+          "candidate_id": "espressif_libsodium",
+          "candidate_selected": false,
+          "cold_sample_count": 800,
+          "gate_count": 2,
+          "operations_completed": 8,
+          "operations_required": 8,
+          "phase2_complete": false,
+          "radio_used": false,
+          "runtime_resources": {
+            "heap_min_free_bytes": 334504,
+            "heap_start_free_bytes": 334504,
+            "max_stack_used_bytes": 4328,
+            "peak_dynamic_ram_bytes": 0,
+            "stack_allocation_bytes": 8192,
+            "stack_high_water_free_bytes": 3864,
+            "watchdog_resets": 0
+          },
+          "schema": "OTCBXRF2",
+          "scope": "candidate_local_v2",
+          "summaries": {
+            "chacha20poly1305_decrypt": {
+              "cold": {
+                "max_us": 149,
+                "median_us": 128,
+                "min_us": 128,
+                "p95_us": 128
+              },
+              "warm": {
+                "max_us": 128,
+                "median_us": 128,
+                "min_us": 128,
+                "p95_us": 128
+              }
+            },
+            "chacha20poly1305_encrypt": {
+              "cold": {
+                "max_us": 260,
+                "median_us": 126,
+                "min_us": 126,
+                "p95_us": 126
+              },
+              "warm": {
+                "max_us": 126,
+                "median_us": 126,
+                "min_us": 126,
+                "p95_us": 126
+              }
+            },
+            "ed25519_sign": {
+              "cold": {
+                "max_us": 8861,
+                "median_us": 8766,
+                "min_us": 8766,
+                "p95_us": 8766
+              },
+              "warm": {
+                "max_us": 8767,
+                "median_us": 8765,
+                "min_us": 8765,
+                "p95_us": 8765
+              }
+            },
+            "ed25519_verify": {
+              "cold": {
+                "max_us": 21881,
+                "median_us": 21642,
+                "min_us": 21640,
+                "p95_us": 21643
+              },
+              "warm": {
+                "max_us": 21643,
+                "median_us": 21641,
+                "min_us": 21640,
+                "p95_us": 21643
+              }
+            },
+            "hkdf_sha256": {
+              "cold": {
+                "max_us": 416,
+                "median_us": 388,
+                "min_us": 388,
+                "p95_us": 388
+              },
+              "warm": {
+                "max_us": 388,
+                "median_us": 388,
+                "min_us": 388,
+                "p95_us": 388
+              }
+            },
+            "noise_xk_handshake": {
+              "cold": {
+                "max_us": 116278,
+                "median_us": 116221,
+                "min_us": 116221,
+                "p95_us": 116221
+              },
+              "warm": {
+                "max_us": 116225,
+                "median_us": 116224,
+                "min_us": 116223,
+                "p95_us": 116224
+              }
+            },
+            "sha256": {
+              "cold": {
+                "max_us": 213,
+                "median_us": 85,
+                "min_us": 85,
+                "p95_us": 85
+              },
+              "warm": {
+                "max_us": 85,
+                "median_us": 85,
+                "min_us": 85,
+                "p95_us": 85
+              }
+            },
+            "x25519": {
+              "cold": {
+                "max_us": 18330,
+                "median_us": 17948,
+                "min_us": 17941,
+                "p95_us": 17948
+              },
+              "warm": {
+                "max_us": 17948,
+                "median_us": 17944,
+                "min_us": 17940,
+                "p95_us": 17948
+              }
+            }
+          },
+          "summary_count": 16,
+          "version": 2,
+          "warm_sample_count": 800
+        },
+        "result_sha256": "5eb29db6989ada08b29d15bb9e12d858b051e027f0a0f359342cd93747e5fb40",
+        "rom_interval_verified": true
+      }
+    ],
+    "privacy": {
+      "backend_error_text_recorded": false,
+      "device_identifiers_recorded": false,
+      "filesystem_paths_recorded": false,
+      "private_endpoints_recorded": false,
+      "raw_capture_recorded": false
+    },
+    "restoration_complete": true,
+    "result": "two_node_libsodium_passed_and_restored",
+    "schema": "OTLSCR3",
+    "validated_capture_custody": {
+      "A": {
+        "bytes": 407877,
+        "frame_count": 1621,
+        "sha256": "c115e9f1cc724f770fb81ce0652eea9cec4dc9a1c1d125c6b6449e3a00cfd569"
+      },
+      "B": {
+        "bytes": 407877,
+        "frame_count": 1621,
+        "sha256": "b18919e4d94055bc01d8934f3de85d3065cee41325f536719bec2b0f36116c52"
+      }
+    },
+    "version": 0
+  },
+  "postchecks": [
+    {
+      "role": "A",
+      "complete": true
+    },
+    {
+      "role": "B",
+      "complete": true
+    }
+  ],
+  "independent_audit": {
+    "audit": "passed",
+    "capture_failure_code": null,
+    "captures": {
+      "A": {
+        "bytes": 407877,
+        "frame_count": 1621,
+        "sha256": "c115e9f1cc724f770fb81ce0652eea9cec4dc9a1c1d125c6b6449e3a00cfd569"
+      },
+      "B": {
+        "bytes": 407877,
+        "frame_count": 1621,
+        "sha256": "b18919e4d94055bc01d8934f3de85d3065cee41325f536719bec2b0f36116c52"
+      }
+    },
+    "device_access": false,
+    "diagnostics": {
+      "A": {
+        "bytes_observed": 409090,
+        "complete_lines": 1644,
+        "empty_reads": 129,
+        "frame_lines_buffered": 1621,
+        "last_framed_iteration": -1,
+        "last_framed_kind": "local_complete",
+        "last_framed_operation": "none",
+        "last_framed_phase": "none",
+        "lifecycle": "stable_continuous",
+        "lifecycle_polls": 3,
+        "open_attempts": 1,
+        "preamble_lines_ignored": 23,
+        "read_calls": 940,
+        "rejected_line_bytes": 0,
+        "rejection_class": "none",
+        "reset_attempts": 1,
+        "stable_presence_polls": 3,
+        "start_write_attempts": 0
+      },
+      "B": {
+        "bytes_observed": 409090,
+        "complete_lines": 1644,
+        "empty_reads": 126,
+        "frame_lines_buffered": 1621,
+        "last_framed_iteration": -1,
+        "last_framed_kind": "local_complete",
+        "last_framed_operation": "none",
+        "last_framed_phase": "none",
+        "lifecycle": "stable_continuous",
+        "lifecycle_polls": 3,
+        "open_attempts": 1,
+        "preamble_lines_ignored": 23,
+        "read_calls": 936,
+        "rejected_line_bytes": 0,
+        "rejection_class": "none",
+        "reset_attempts": 1,
+        "stable_presence_polls": 3,
+        "start_write_attempts": 0
+      }
+    },
+    "failure_code": null,
+    "frozen_sources_verified": true,
+    "grant_sha256": "72635a5b2fae57bb5ad0867779980bd9b36dcb4ae7b403c0f22a34f8e7389f35",
+    "intervals": {
+      "A": {
+        "candidate-started": true,
+        "closed": true,
+        "release-intent": true,
+        "released": true
+      },
+      "B": {
+        "candidate-started": true,
+        "closed": true,
+        "release-intent": true,
+        "released": true
+      }
+    },
+    "journal_sha256": "948161b3fbe5dbf5b4fd5aeb2b11ce7c5977e4c7e17f8c4df3642d05cccb8bfe",
+    "originals_released": true,
+    "radio_used": false,
+    "receipt_sha256": "d9f66d155514c5598a7e7213ecc9691823d9eaddc1acf6a04eb421ae9642433e",
+    "restoration_complete": true,
+    "schema": "OT236-SCHEDULING-PHYSICAL-AUDIT-1",
+    "trial_passed": true
+  },
+  "screens_confirmed": true,
+  "screen_confirmation": "User confirmed both normal Trail screens on 2026-09-16.",
+  "scope": {
+    "attempt_count": 1,
+    "radio_used": false,
+    "phone_actions": false,
+    "nvs_write": false,
+    "automatic_retry": false,
+    "v1_credit_added": false,
+    "publication": false
+  },
+  "artifact_pins": {
+    "live.py": {
+      "bytes": 21629,
+      "sha256": "ff547fa6b3117f790c7413bc6ae19531a7772b3f869490000ae5246f621efda4"
+    },
+    "manifest.json": {
+      "bytes": 1791,
+      "sha256": "3b4646ebbc14ae3d3267549520e77909c33517242f3abfe4ea29d56cd4fddfe4"
+    },
+    "package.json": {
+      "bytes": 7269,
+      "sha256": "d5afde87e8f0b2e21a13197d5efb81530ca0234afd9b4de8d22730bfc2f6e035"
+    },
+    "proposal.json": {
+      "bytes": 2142,
+      "sha256": "06d2beef77ecb5caf0f0a33ce4b13ec55a992241c80d76058d7baf4dfdd6f744"
+    },
+    "grant.json": {
+      "bytes": 2413,
+      "sha256": "72635a5b2fae57bb5ad0867779980bd9b36dcb4ae7b403c0f22a34f8e7389f35"
+    },
+    "preflight.json": {
+      "bytes": 2621,
+      "sha256": "1120c467479b3c4b725922597c438055d45727b1e07a711f4ca196a2381e4fd4"
+    },
+    "result.json": {
+      "bytes": 13111,
+      "sha256": "63c4b0681563138a6a3c00575a1252c400a291941e08f1f1dabea3b0f98058da"
+    },
+    "audit.json": {
+      "bytes": 2395,
+      "sha256": "0bcfe17b9bf5f1603455d83bebdb50e24d1c1117de4c21d96698f4e336023e99"
+    }
+  },
+  "limitations": [
+    "Scheduling success does not recover or prove the prior failure cause.",
+    "New timing methodology remains separate from historical measured series.",
+    "Product crypto selection, provisioning and full phone-to-phone field path are not established."
+  ],
+  "screen_confirmation_at": "2026-09-16T11:41:01.934408+00:00"
+}

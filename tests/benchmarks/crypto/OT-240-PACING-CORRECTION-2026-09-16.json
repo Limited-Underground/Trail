@@ -1,0 +1,233 @@
+{
+  "schema": "OT240-PACING-CORRECTION-1",
+  "as_of": "2026-09-16",
+  "result": "host_and_build_passed",
+  "physical_trial": "not_run",
+  "historical_trial": "OT-240-PHYSICAL-2026-09-16.json",
+  "pacing": {
+    "schema": "OT240-PACING-HOST-1",
+    "scope": "actual source-extracted UART loop with 100Hz scheduler and mocked command work; not crypto latency or physical cause",
+    "source_pins": {
+      "firmware/targets/heltec_v4_enrolled_eval/main/app_main.cpp": "b2653d27c6d8ae5b5c7cbf2b43afeac768b5bd65384d3921d1aff1fcd81126e0",
+      "tests/host/enrolled_target_pacing_tests.py": "1d8578b7ab6c827bb12f05b6bb2f29a1849b0052f569243ffa9418fa9ae97e42"
+    },
+    "observed_exit_code": 0,
+    "unittest_count": 1,
+    "original_begin_modeled_ms": 5200,
+    "original_maximum_line_modeled_ms": 7000,
+    "corrected_per_byte_forced_delay_ms": 0,
+    "corrected_maximum_buffered_bytes_between_yields": 701,
+    "continuous_completed_commands_checked": 100,
+    "idle_reads_checked": 3,
+    "actual_config": {
+      "freertos_hz": 100,
+      "main_priority": 1,
+      "main_core": 0,
+      "main_stack_bytes": 24576,
+      "task_watchdog_seconds": 5,
+      "idle_watchdog_both_cores": true
+    },
+    "command_processing_runtime_in_model": false,
+    "physical_cause_proven": false,
+    "hardware_access": false
+  },
+  "diagnostics": {
+    "tests": 57,
+    "actual_two_process_interoperability": "passed",
+    "source_pins": {
+      "tools/enrolled_pair_bridge.py": "2012cb50f03146931a57eed01c4245749401d9f1d7f9cbb6e67e47c87d955901",
+      "tools/enrolled_trial_operator.py": "df217e7666708fcbf1cd091a786a84504c1e7e61765bf14b4185a866f3e1a527",
+      "tests/host/enrolled_pair_bridge_tests.py": "2aa2117ce4a0f93f6dea8a1f8c83b9bfdcee31a2852b233460dff9a44f649e65",
+      "tests/host/enrolled_trial_operator_tests.py": "5ced74841cc70a25403e76a8f9efc73b676b2ef94c6be50b3e1bc9de4330c6e8"
+    },
+    "five_second_deadline_unchanged": true,
+    "first_failure_preserved_on_cleanup_failure": true,
+    "custody_refuses_unclosed_handles": true,
+    "event_content": "fixed enum stage/reason and separate cleanup outcome only"
+  },
+  "target": {
+    "schema": "OT240-TARGET-BUILD-1",
+    "all_seven_raw_pairs_equal": true,
+    "artifacts": {
+      "heltec_v4_enrolled_eval.bin": {
+        "a": {
+          "bytes": 525760,
+          "sha256": "d8b520b7bced68b6232574d814d44328a6ce649cc5880678acc5ee62ada5618b"
+        },
+        "b": {
+          "bytes": 525760,
+          "sha256": "d8b520b7bced68b6232574d814d44328a6ce649cc5880678acc5ee62ada5618b"
+        },
+        "raw_equal": true
+      },
+      "heltec_v4_enrolled_eval.elf": {
+        "a": {
+          "bytes": 7374788,
+          "sha256": "aa01dd587d23a57256a7d5d51ef39e57b1f3ecd3fcd02b3b09a13bbc2dba6baf"
+        },
+        "b": {
+          "bytes": 7374788,
+          "sha256": "aa01dd587d23a57256a7d5d51ef39e57b1f3ecd3fcd02b3b09a13bbc2dba6baf"
+        },
+        "raw_equal": true
+      },
+      "heltec_v4_enrolled_eval.map": {
+        "a": {
+          "bytes": 7225031,
+          "sha256": "4c0a4703b6654b52db0766629208964ad0cba30ccb12af8bdffb8985629d8639"
+        },
+        "b": {
+          "bytes": 7225031,
+          "sha256": "4c0a4703b6654b52db0766629208964ad0cba30ccb12af8bdffb8985629d8639"
+        },
+        "raw_equal": true
+      },
+      "bootloader/bootloader.bin": {
+        "a": {
+          "bytes": 15216,
+          "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+        },
+        "b": {
+          "bytes": 15216,
+          "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+        },
+        "raw_equal": true
+      },
+      "partition_table/partition-table.bin": {
+        "a": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "b": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "raw_equal": true
+      },
+      "ota_data_initial.bin": {
+        "a": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "b": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "raw_equal": true
+      },
+      "sdkconfig": {
+        "a": {
+          "bytes": 92613,
+          "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+        },
+        "b": {
+          "bytes": 92613,
+          "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+        },
+        "raw_equal": true
+      }
+    },
+    "guards": {
+      "a": {
+        "config_guards": {
+          "CONFIG_IDF_TARGET": "\"esp32s3\"",
+          "CONFIG_ESP_MAIN_TASK_STACK_SIZE": "24576",
+          "CONFIG_ESPTOOLPY_FLASHSIZE_16MB": "y",
+          "CONFIG_ESPTOOLPY_FLASHMODE_QIO": "y",
+          "CONFIG_ESPTOOLPY_FLASHFREQ_80M": "y",
+          "CONFIG_BT_ENABLED": "y",
+          "CONFIG_BT_CONTROLLER_ENABLED": "y",
+          "CONFIG_BT_NIMBLE_ENABLED": "y",
+          "CONFIG_ESP_CONSOLE_NONE": "y",
+          "CONFIG_LOG_DEFAULT_LEVEL": "0",
+          "CONFIG_APP_REPRODUCIBLE_BUILD": "y"
+        },
+        "app_and_driver_compiled": true,
+        "bounded_radio_tus": true,
+        "protected_partition_matches": true,
+        "app_restore_span_bytes": 733184,
+        "app_size": 525760,
+        "physical_stack_measured": false
+      },
+      "b": {
+        "config_guards": {
+          "CONFIG_IDF_TARGET": "\"esp32s3\"",
+          "CONFIG_ESP_MAIN_TASK_STACK_SIZE": "24576",
+          "CONFIG_ESPTOOLPY_FLASHSIZE_16MB": "y",
+          "CONFIG_ESPTOOLPY_FLASHMODE_QIO": "y",
+          "CONFIG_ESPTOOLPY_FLASHFREQ_80M": "y",
+          "CONFIG_BT_ENABLED": "y",
+          "CONFIG_BT_CONTROLLER_ENABLED": "y",
+          "CONFIG_BT_NIMBLE_ENABLED": "y",
+          "CONFIG_ESP_CONSOLE_NONE": "y",
+          "CONFIG_LOG_DEFAULT_LEVEL": "0",
+          "CONFIG_APP_REPRODUCIBLE_BUILD": "y"
+        },
+        "app_and_driver_compiled": true,
+        "bounded_radio_tus": true,
+        "protected_partition_matches": true,
+        "app_restore_span_bytes": 733184,
+        "app_size": 525760,
+        "physical_stack_measured": false
+      }
+    },
+    "closures": {
+      "a": {
+        "source_and_dependency_count": 2886,
+        "translation_units": 1209,
+        "link_library_count": 112,
+        "license_notice_candidates": 20,
+        "manifest": {
+          "bytes": 593873,
+          "sha256": "59bf52b4f2887b2834278bdbb88fae00c820ca79445e76782de436bf933e0fa0"
+        }
+      },
+      "b": {
+        "source_and_dependency_count": 2886,
+        "translation_units": 1209,
+        "link_library_count": 112,
+        "license_notice_candidates": 20,
+        "manifest": {
+          "bytes": 593873,
+          "sha256": "12b534f61eff7c9330fb35380137298fb8b19d77d2466e0facc5b50e3caabec7"
+        }
+      }
+    },
+    "hardware_access": false,
+    "production_admission": false
+  },
+  "prepare": {
+    "prepared": true,
+    "proposal_sha256": "804482dbe7cc518b2221f22b24ba89b199825470ed8f30496eb268ed71c59740",
+    "controller_sha256": "b9ad1d7167d1b815feddc894f51bc3a713430daed35697423ed00724bfde626e",
+    "request_sha256": "0d234680cbb5f4dfb173943fb1623d597c15146a8f726d00b222424b12259ac4",
+    "grant_issued": false,
+    "serial_enumeration": false,
+    "hardware_access": false
+  },
+  "controller_review": {
+    "sha256": "b9ad1d7167d1b815feddc894f51bc3a713430daed35697423ed00724bfde626e",
+    "exact_allowed_events": 255,
+    "rejected_inputs": 11,
+    "logging_fault_cases": 5,
+    "result": "passed",
+    "approval_and_custody_logic_unchanged": true
+  },
+  "validation_runner": {
+    "source_sha256": "b5f7b748cfa0692ca95a7c5d8bbcf1387e3c8456775fb3daece7109dcd4d6670",
+    "new_registered_suites": [
+      "enrolled_confirmation_trial_tests",
+      "enrolled_trial_operator_tests",
+      "enrolled_target_pacing_tests"
+    ],
+    "syntax": "passed",
+    "full_matrix_rerun": false,
+    "scope": "Focused affected tests and clean target builds; earlier full matrix retained as historical evidence."
+  },
+  "limitations": [
+    "Physical failure command was not retained; pacing defect is confirmed but physical attribution remains unproven.",
+    "Mocked command work excludes cryptographic/NVS latency.",
+    "No corrected physical attempt or new grant; original visual confirmation pending.",
+    "No V1 completion, production admission, phone integration or website change."
+  ]
+}

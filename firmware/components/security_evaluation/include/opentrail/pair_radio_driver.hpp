@@ -10,6 +10,10 @@ struct PairRadioStatistics {
 class PairRadioDriver : public radio::RadioTransport {
 public:
     virtual bool start(std::uint64_t deadline_ms, unsigned maximum_transmissions) = 0;
+    // Optional bounded housekeeping for an already-started TX only. Never
+    // start queued TX, consume RX, or rearm RX. The caller retains all authority
+    // checks; an inactive no-op is not an assertion of full transport freshness.
+    virtual bool service_pending_transmit() { return true; }
     // Must latch unavailable and lower FEM even if chip shutdown is uncertain.
     virtual bool stop() = 0;
     virtual PairRadioStatistics statistics() const = 0;

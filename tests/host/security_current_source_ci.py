@@ -64,14 +64,15 @@ def run(output):
         target_names = ("heltec_v4_security_eval", "heltec_v4_invitation_eval",
                         "heltec_v4_confirmation_eval", "heltec_v4_bench",
                         "heltec_v4_security_receipt_sync", "heltec_v4_security_policy_eval",
-                        "heltec_v4_pair_eval", "heltec_v4_pair_radio_eval")
+                        "heltec_v4_pair_eval", "heltec_v4_pair_radio_eval", "heltec_v4_enrolled_eval")
         roots += [ROOT / "firmware/targets" / name / "main" for name in target_names]
         inputs = {p for directory in roots for p in directory.rglob("*")
                   if p.is_file() and p.suffix in (".py", ".cpp", ".c", ".hpp", ".h", ".json")}
         helper = ROOT / "tools/noise_xk_independent_interop.py"
         inputs.add(helper)
         inputs.update(ROOT / "tools" / name for name in (
-            "pair_bench_bridge.py", "pair_confirmation_trial.py", "pair_trial_operator.py", "pair_radio_driver_source.py"))
+            "pair_bench_bridge.py", "pair_confirmation_trial.py", "pair_trial_operator.py", "pair_radio_driver_source.py",
+            "enrolled_pair_bridge.py", "enrolled_trace_schema.py", "enrolled_confirmation_trial.py", "enrolled_trial_operator.py"))
         before = {str(p): pin(p) for p in inputs}
         component = dependencies.acquire(output / "managed-component")
         result["dependency"] = {"archive_sha256": dependencies.ARCHIVE_SHA,
@@ -152,6 +153,49 @@ def run(output):
               base, (), " independent provisioned endpoint groups")
         suite("peer_activation_store_tests", [*common, ROOT / "tests/host/peer_activation_store_tests.cpp"],
               base, (), " peer activation store groups")
+        suite("peer_membership_store_tests", [*common, ROOT / "tests/host/peer_membership_store_tests.cpp"],
+              base, (), " peer membership store groups")
+        suite("enrolled_peer_endpoint_tests", [*common, ROOT / "tests/host/enrolled_peer_endpoint_tests.cpp"],
+              base, (), " enrolled peer endpoint groups")
+        suite("enrollment_evidence_store_tests", [*common, ROOT / "tests/host/enrollment_evidence_store_tests.cpp"],
+              base, (), " enrollment evidence store groups")
+        suite("provisioned_peer_endpoint_tests", [*common, ROOT / "tests/host/provisioned_peer_endpoint_tests.cpp"],
+              base, (), " provisioned peer endpoint groups")
+        suite("evaluation_storage_bank_tests", [ROOT / "tests/host/evaluation_storage_bank_tests.cpp"],
+              base, (), " evaluation storage bank groups")
+        enrolled_includes = [*base, ROOT / "firmware/components/companion/include",
+            ROOT / "firmware/components/protocol/include", ROOT / "firmware/components/radio/include",
+            ROOT / "firmware/components/radio/test_support"]
+        radio_sources = [ROOT / "firmware/components/protocol/src/packet_codec.cpp",
+                         ROOT / "firmware/components/radio/test_support/fake_radio_transport.cpp"]
+        suite("session_generation_storage_tests", [*common, ROOT / "tests/host/session_generation_storage_tests.cpp"],
+              base, (), " session generation storage groups")
+        suite("enrolled_peer_transport_tests", [*common, *radio_sources, ROOT / "tests/host/enrolled_peer_transport_tests.cpp"],
+              enrolled_includes, (), " enrolled peer transport groups")
+        nvs_includes = [*base, ROOT / "tests/host/fixtures/security_eval_nvs",
+                        ROOT / "firmware/targets/heltec_v4_enrolled_eval/main"]
+        suite("enrolled_nvs_backend_tests", [*common, ROOT / "tests/host/enrolled_nvs_backend_tests.cpp"],
+              nvs_includes, (), " enrolled NVS backend groups")
+        suite("enrolled_nvs_session_tests", [*common, ROOT / "tests/host/enrolled_nvs_session_tests.cpp"],
+              nvs_includes, (), " enrolled NVS session groups")
+        suite("enrolled_radio_driver_tests", [ROOT / "tests/host/enrolled_radio_driver_tests.cpp",
+              ROOT / "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp"],
+              [ROOT / "tests/host/pair_radio_driver_stubs", *nvs_includes,
+               ROOT / "firmware/components/radio/include"], (), " enrolled radio driver groups")
+        diagnostic_exe = suite("enrolled_diagnostics_tests", [ROOT / "tests/host/enrolled_diagnostics_tests.cpp",
+              ROOT / "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp"],
+              [ROOT / "tests/host/pair_radio_driver_stubs", *nvs_includes,
+               ROOT / "firmware/components/radio/include"], (), " enrolled diagnostics groups")
+        suite("companion_status_bridge_tests", [*common, ROOT / "tests/host/companion_status_bridge_tests.cpp"],
+              enrolled_includes, (), " companion status bridge groups")
+        enrolled_exe = suite("enrolled_bench_session_tests", [*common, *radio_sources,
+              ROOT / "tests/host/enrolled_bench_session_tests.cpp"], enrolled_includes,
+              (), " enrolled bench session groups")
+        suite("enrolled_completion_composed_tests", [*common, *radio_sources,
+              ROOT / "tests/host/enrolled_completion_composed_tests.cpp",
+              ROOT / "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp"],
+              [ROOT / "tests/host/pair_radio_driver_stubs", *nvs_includes, *enrolled_includes],
+              (), " enrolled completion composition groups")
         suite("security_peer_traffic_tests", [*common, ROOT / "tests/host/security_peer_traffic_tests.cpp"],
               base, (), " peer traffic groups")
         suite("security_endpoint_record_tests", [*common, ROOT / "tests/host/security_endpoint_record_tests.cpp"],
@@ -200,7 +244,12 @@ def run(output):
                pair_target, entropy_target, bench_target, ROOT / "firmware/components/radio/include",
                ROOT / "firmware/components/protocol/include", *base],
               ["sodium_init"], " actual pair startup groups", startup_cases, ["-DOT_PAIR_RADIO_EVAL=1"])
-        for name, extra in (("pair_bench_bridge_tests", ["--node-exe", pair_exe]),
+        for name, extra in (("enrolled_pair_bridge_tests", ["--node-exe", enrolled_exe, "--diagnostic-exe", diagnostic_exe]),
+                            ("enrolled_trace_capture_tests", ["--diagnostic-exe", diagnostic_exe]),
+                            ("enrolled_confirmation_trial_tests", []),
+                            ("enrolled_trial_operator_tests", []),
+                            ("enrolled_target_pacing_tests", []),
+                            ("pair_bench_bridge_tests", ["--node-exe", pair_exe]),
                             ("pair_confirmation_trial_tests", []),
                             ("pair_trial_operator_tests", []), ("pair_radio_driver_source_tests", [])):
             completed = commands.run([sys.executable, "-X", "utf8", "-B",

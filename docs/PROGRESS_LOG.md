@@ -1,5 +1,286 @@
 # OpenTrail Progress Log
 
+## 2026-09-20
+
+### OT-246 Capture actual expiry and activation receive gap
+
+One authorized instrumented trial accepted both physical confirmations, then
+refused activation1 B/RFPOLL. B's original failing sample69671ms exceeds its
+69667ms invitation deadline by4ms; confirmation was accepted with31984ms left.
+The saved77-event timeline shows A's control transmission followed by28 B WAIT
+polls. Source review identifies RX disabled after final handshake consumption
+until a later full poll; the host sends activation before that poll. A receiver
+lifecycle regression is required before treating this as a validated correction.
+Per-byte host guard overhead is also measured and is not conflated with packet
+reception. See [physical findings and limits](testing/OT-246-FAILURE-CAPTURE-2026-09-18.md).
+
+Both original applications/state and protected regions were independently
+verified, restored and reset; controller/child exited0, custody closed, no retry.
+The user confirmed both normal screens. Current1016 host source pins matched
+the accepted44-suite matrix with its3 documented follow-up overrides; both
+firmware manifests'465 repository pins matched. No full matrix/build rerun,
+phone action, V1 score or website change. Git update requested by owner; exact
+publication preparation follows diagnostic closure.
+
+### OT-247 Correct host receive lifecycle and audit the entire exchange
+
+The old radio test double delivered packets even when the real receiver would
+be in standby. A lifecycle regression reproduces lost activation1; guarded
+post-receive rearming fixes the ordering. Bounded64-byte reads eliminate repeated
+USB enumeration for each byte while preserving guards around every actual read,
+including failures.97 Python tests and real C++ interoperability pass. The
+composed production session/NVS flow covers all15 receive rearms and final
+counters;13 default groups pass. Its measured-input timing sensitivity still
+expires after5 statuses (209us SDK/100ms host) or3 (209us/200ms). Physical
+readiness is therefore not claimed. See [complete audit and remaining gate](testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md).
+
+No firmware or hardware change, V1 credit or website update. Existing firmware
+source closures remain unchanged. Next: profile repeated command admission and
+durable reads before a narrowly validated transaction-level rearm correction.
+
+## 2026-09-18
+
+### OT-242 Close corrected radio trial at activation refusal
+
+One authorized trial reached matching codes and the user confirmed both physical
+button holds/releases. Activation step 1 then refused at B/RFPOLL. A completed
+3/3 TX and B 1/1; the earlier TX deadline did not recur. A reported authority/clock
+fault 3 and B session fault 6, without proving the exact cause. Four-status
+exchange was not reached. Both original applications/full NVS/protected regions
+were independently verified and both boards restored/reset; controller and child
+exited 0, custody closed, no recovery retry. The user confirmed normal screens.
+See [physical result and next gate](testing/OT-242-TX-COMPLETION-CORRECTION-2026-09-16.md).
+No source correction, Git publication, phone action, V1 score or website change.
+Next: offline confirmation-to-activation reproduction before another device trial.
+
+### OT-242 Accept host fault-provenance correction and build closure
+
+The nested invitation-window checks now preserve their own rejection result for
+accurate fault attribution. Independent review and the original counterexample
+pass; expiry remains a modeled possible cause, not a uniquely established
+physical cause. Final 43-suite matrix and all 1014 source pins verified; USB/radio
+pair builds pass and two enrolled builds match all seven artifact pairs. The
+introduced line-ending conversion is corrected without changing the reviewed
+code. See [accepted diagnostic proof and limits](testing/OT-242-TX-COMPLETION-CORRECTION-2026-09-16.md).
+No hardware or publication action, V1 score or website change. Activation remains
+unaccepted. OT-243 is planned for host-only polling/NVS-cost measurement; it has
+not started.
+
+
+### OT-243 Reduce repeated NVS lookup cost and validate full host exchange
+
+Profiled the real session/crypto/generation/NVS composition with target pre-command
+ticks. The backend now records only successfully validated fixed-size tuples;
+all subsequent reads still fetch fresh bytes, while repeated size lookups are
+omitted. Unknown records retain the original two-stage corruption boundary;
+known-record disappearance fails closed. No authority check or deadline changed.
+The unsafe unconditional single-read alternative was rejected by a CRC-like
+NOT_FOUND regression before acceptance.
+
+Full-profile SDK gets fall from 291910 to 195018 (33.2%). Under the explicit
+synthetic timing budget, the original expires during status 4 and the correction
+completes activation, all eight status deliveries and cleanup at 44.544952s.
+All 43 final suites and 1014 live source pins pass; two clean enrolled builds
+match across seven artifacts. Firmware build configuration initially hit a
+sandbox compiler-launcher restriction; unchanged builds succeeded outside it.
+See [scope, preflight and sanitized proof](testing/OT-243-NVS-POLLING-COST-2026-09-18.md).
+No hardware, phone or Git publication action occurred; changes are local and
+uncommitted. Physical cause/activation, V1 and website status remain unchanged.
+
+
+
+### OT-244 Prepare exact controlled radio trial
+
+Bound the accepted OT243 image to a fresh isolated controller/request package.
+All 1014 current-source pins, both candidate hashes and 12 unchanged maintained
+operator files verify. Preparation succeeds; wrong binding, stale candidate and
+altered source pin are rejected before hardware. Independent review found no
+preparation blocker. The existing sequential capture/restoration and custody
+procedure is retained, with one candidate attempt and no automatic retry.
+See [scope and sanitized receipt](testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md).
+No grant, serial enumeration, device/phone action or Git publication occurred.
+Physical authorization/readiness remains pending; V1 and website status unchanged.
+
+
+### OT-244 Execute one trial and restore originals after activation refusal
+
+Both local confirmations were observed by the bridge; activation1 B/RFPOLL then
+refused. Both fault3 authority/clock snapshots were preserved, without uniquely
+attributing expiry. A3/3 and B1/1 TX completed; statuses were not reached.
+Original application/state/protected readbacks passed and both originals reset;
+controller and child exited0, custody closed with no recovery retries. The user
+confirmed both normal Trail screens. No source change, repeated build/matrix,
+phone action, Git publication, V1 or website change. See
+[physical proof and next host case](testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md).
+
+### OT-245 Complete independent-node idle timing replay
+
+Reused actual sessions/crypto/NVS and bridge with independent node scheduling.
+Sixteen cases satisfy scheduling checks; ten-second confirmation-delay controls
+pass full exchange with idle off/on, differing by only107-133ms. A selected47s
+synthetic delay reproduces activation1 B/RFPOLL in both modes; physical cause
+remains unproven. Four instrumented/uninstrumented controls match and1014 prior
+matrix pins are unchanged. No production/hardware/publication, V1 or website
+change. Host worker builds passed; firmware builds/matrix reused. Next: bounded
+operator command timestamps and REVIEW remaining-window budget with privacy tests.
+See [proof and limitations](testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md).
+
+### OT-246 Prepare discriminating failure and timing capture
+
+Implemented immutable first-rejection layer/reason and original clock/deadline
+samples, plus target button/phase timestamps. Host command timing separates guard,
+serial read and write costs and records REVIEW remaining budget at the prompt.
+Long confirmation polling cannot consume the activation evidence budget; partial
+TRACE records survive as explicitly unconfirmed evidence. Protocol acceptance,
+deadlines, fresh durable reads and radio profile are unchanged.
+
+The full 44-suite matrix passed. A final three-file Python capture-budget change
+then passed all four affected suites (86 tests plus actual C++ interop); the other
+1,013 source pins remain identical. All three affected targets build; two enrolled
+builds match all seven artifacts. Exact controller preparation passes without a
+grant or enumeration. See [validation and scope](testing/OT-246-FAILURE-CAPTURE-2026-09-18.md).
+No hardware, phone or Git publication action occurred. Physical cause, V1 and
+website status remain unchanged. Next: one freshly authorized instrumented trial,
+followed by verified original/state restoration and normal-screen confirmation.
+
+## 2026-09-17
+
+### OT-242 Validate TX completion correction without expanding authority
+
+Final validation on2026-09-17 passed 43 suites: 4035 native groups, 26 scalar controls and 132 Python tests, including the maintained old-versus-corrected composition. Two initially absent ESP-IDF6.0.2 candidate builds match all seven artifact pairs; app527984bytes SHA256 8d3032493b30eff5e5a387404d61d275dd65d886dafe149bbfd820d517034793. The affected older radio target also builds successfully. Frozen source checks and exact isolated controller preparation pass without device access or grant issuance.
+
+Completion-only service preserves the two-second deadline and pre-pump button timestamp; explicit fully guarded polling precedes peer advancement. See [scope and proof](testing/OT-242-TX-COMPLETION-CORRECTION-2026-09-16.md). Corrected physical acceptance remains untested; V1 and website status unchanged.
+
+## 2026-09-16
+
+### OT-236 Close normal-screen confirmation
+
+The user confirmed both restored Heltecs show normal Trail screens. This completes
+the visual closure of the successful scheduling-v3 trial. Updated its public proof
+and current status; no new hardware action or V1/website credit. Historical trial
+records retain their original timestamps; the confirmation is dated separately.
+
+### OT-237 Reconcile current crypto admission without repeating accepted tests
+
+Bound14 historical/current evidence records and verified20 current source pins,
+plus a fresh offline reparse of both actual OT236 capture streams and restoration
+journal. Reconciled the eight existing gates; libsodium remains the evaluation
+recommendation, with Phase3/product selection withheld. Corrected stale current
+backlog capture status and removed completed controls/vector/handshake work from
+active sequencing. The next coherent host evaluation increment owns enrollment
+trust and durable membership/rekey/reset transitions. See [assessment and limits](security/OT-237-CURRENT-ADMISSION-2026-09-16.md).
+No new behavioral builds/tests, device, network, publication or website action;
+V1 completion unchanged. Source/evidence remain local/uncommitted.
+
+### OT-238 Own enrollment and durable public membership on the host
+
+Composed OT235 with locally configured evaluation trust and durable public
+membership. Restart requires exact signed evidence and a fresh confirmed session;
+rekey retires prior identities, while revoke/reset preparation persist terminal
+states. Fault and review regressions withhold staged output on changed durable
+authority, expiry, context replacement or entropy loss. Final fresh matrix passed
+1421 C++ groups, 26 scalar controls and 60 Python tests, including actual
+two-process interoperability. See [scope and proof](testing/OT-238-ENROLLMENT-MEMBERSHIP-2026-09-16.md).
+Product bootstrap, retained full-invitation storage and physical target lifecycle
+acceptance remain open. No hardware, V1/website credit or Git publication.
+
+### OT-239 Persist signed enrollment and bind storage namespaces
+
+Added full signed public-evidence storage and fixed named backend views to the
+host enrollment owner. Actual identity/boot/time checks precede evidence writes;
+restart requires evidence/membership agreement, and reset attempts both durable
+containment records. Interrupted replacement, corruption and late authority
+changes refuse output. Final fresh matrix passed 3320 C++ groups, 26 scalar
+controls and 60 Python tests, with actual two-process interoperability.
+Same-bank restart refuses retained counter authority; durable fresh-session
+allocation remains the next gate. See [scope and proof](testing/OT-239-PERSISTED-ENROLLMENT-2026-09-16.md).
+No hardware, V1/website credit or Git publication.
+
+### OT-240 Integrate durable sessions, target storage and authenticated status transport
+
+Completed one combined software batch: fresh durable session generations,
+retained enrollment/NVS composition, enrolled target, explicit USB/RF transport,
+four-status semantic bridge and guarded execution/restoration preparation.
+The fresh matrix passed 4006 C++ groups, 26 scalar controls and 67 Python tests;
+40 supplemental operator tests also passed. Two target builds match all seven
+artifact pairs; exact closure and generated-path difference are recorded in the
+[scope and bound proof](testing/OT-240-INTEGRATED-ENROLLMENT-2026-09-16.md).
+Physical execution approval remains pending. Protected BLE/Android status wiring,
+complete product reset/recovery and the remaining existing admission gates are
+not completed by this software evidence. No hardware, V1/website credit or Git
+publication occurred; changes remain local/uncommitted.
+
+### OT-240 Record failed physical attempt and verified restoration
+
+One authorized candidate attempt failed before the comparison/button prompt;
+its exact failed command was not recorded. Both original applications/full NVS
+were restored, readback-verified and reset; controller exit 0, closed custody and
+independent ten-capture verification are recorded in the [physical proof](../tests/benchmarks/crypto/OT-240-PHYSICAL-2026-09-16.json).
+Zero recovery attempts; normal Trail screen user confirmation remains pending.
+Source review confirms per-byte scheduler pacing incompatible with the host
+BEGIN deadline, but physical incident attribution is unproven. A bounded input
+correction and stage diagnostics are underway, not yet accepted here. No RF
+status delivery, phone-path acceptance, V1 or website credit was established.
+The earlier host/build proof remains a separate software baseline.
+
+### OT-240 Correct serial pacing and preserve stage-specific failures
+
+Applied bounded command/idle yielding in place of the target's per-byte delay.
+The actual-source regression passes; original-source negative control reproduces
+5200 ms BEGIN and 7000 ms maximum-line scheduler costs and fails the corrected
+assertion. Command/crypto latency is not modeled. Stage/cleanup diagnostics pass
+57 focused tests and actual two-process interoperability. Two clean corrected
+builds match all seven artifact pairs; exact successor preparation passed without
+hardware access, serial enumeration or grant issuance. See [correction proof](../tests/benchmarks/crypto/OT-240-PACING-CORRECTION-2026-09-16.json).
+The previous trial's exact failed command remains unknown and normal-screen
+confirmation remains pending. No retry, physical resolution, phone acceptance,
+V1/website credit or publication is claimed.
+
+### OT-240 Close corrected trial refusal and require integrated host reproduction
+
+The corrected physical attempt retained third-handshake-stage `target_refused`
+and protocol-cleanup-unverified/handles-closed diagnostics. No comparison,
+activation or RF fixed-status acceptance was established. Both originals/full
+NVS were restored/readback-verified/reset; ten capture descriptors and both event
+chains reverify. Controller/child exit 0, absent active lock and closed custody
+record one candidate attempt, zero recoveries. The user confirmed both normal
+Trail screens. See [corrected physical proof](../tests/benchmarks/crypto/OT-240-PACING-PHYSICAL-2026-09-16.json).
+Separate host probes (24 interleaved, 11 NVS, 47 driver groups) expose read-cost
+amplification and timing interactions without proving physical cause. Integrated
+host reproduction is underway; no new physical proposal before it establishes
+and validates the next correction. No phone acceptance or V1/website credit.
+
+### OT-240 Reproduce review-read timing and correct polling without weakening button checks
+
+Eighteen integrated host cases compare the old loop, rejected command/idle-only
+intermediate and final GPIO-edge/command/idle loop. With synthetic 200us SDK-read
+cost, the actual review/NVS/driver composition changes from 2.6928s/17 ticks and
+TX refusal to 0.7136s/4 ticks and completion. A driver-service command seam and
+injected latency limit this to mechanism evidence, not proven physical cause.
+The intermediate falsely accepted a 50ms drip-input button press; final edge
+sampling rejects it and accepts a 600ms hold with zero injected storage cost.
+Maintained actual-loop regression and one clean affected build pass, with 41
+source pins unchanged. See [review-tick proof](../tests/benchmarks/crypto/OT-240-REVIEW-TICK-CORRECTION-2026-09-16.json).
+No hardware action, new physical proposal, successful radio/phone acceptance or
+V1/website credit. Both failed physical proofs remain unchanged; restored normal
+screens were already user-confirmed.
+
+### OT-241 Prepare bounded target and exact-operation diagnostics
+
+Added one immutable target fault/timing snapshot captured before relevant
+containment and emitted after cleanup, plus the exact failed host role/subcommand.
+Originating NVS/driver faults remain distinct from generic session-boundary
+category 6. Strict parser and fixed structured persistence reject unsafe data;
+diagnostic failures do not block child reaping or restoration. The fresh affected
+matrix passed 4018 native C++ groups, 26 scalar controls and 130 Python tests across
+42 suites, with actual serializer/parser and two-process crypto interoperability.
+Two clean target builds match all seven artifact pairs. Independent controller
+review and exact preparation pass; no enumeration, hardware access or grant was
+issued. See [scope and proof](testing/OT-241-DIAGNOSTIC-TRIAL-PREPARATION-2026-09-16.md).
+Physical execution approval remains pending. OT240's failed physical trials and
+accepted host corrections remain separate; no root-cause resolution, phone-path
+acceptance, V1/website credit or publication is claimed.
+
 ## 2026-09-15
 
 ### OT-234 Complete the bounded physical radio handshake
@@ -28,6 +309,137 @@ This is a target-neutral candidate: trusted product provisioning, retained
 membership/rekey, selected production crypto/wire and protected phone/radio
 messages remain open. No hardware action, V1 credit or public website change.
 Changes remain local pending separately authorized publication.
+
+### OT-236 Prepare retained libsodium captures and independent audit
+
+Prepared the complete no-RF capture workflow using the admitted reproducible
+OT-163 libsodium benchmark. Both retained candidate binaries, ELF/map/config
+artifacts and all ten recorded source/configuration inputs match their evidence;
+the historical OT-122 physical image remains distinct. No firmware edits or
+unnecessary rebuild were made.
+
+The additive autorun protocol preserves fragmented/packed canonical frames,
+bounded boot chatter and deadlines. Capture files are exclusively created,
+flushed, read back and independently reparsed. The unchanged pinned comparison
+coordinator supplies sequential distinct-role restoration; the hardware wrapper
+also verifies all 12288 NVS bytes. Actual new Session/Backend composition is
+tested with mocked ROM/USB for success and capture failure. All 63 new tests,
+29 comparison regression tests and nine strict-parser groups pass. Independent
+review prompted stronger receipt metadata/approval-digest validation.
+
+The [scope and exact image proposal](testing/OT-236-LIBSODIUM-CAPTURE-PREPARATION-2026-09-15.md)
+links the [host proof](../tests/benchmarks/crypto/OT-236-LIBSODIUM-CAPTURE-HOST-2026-09-15.json).
+No hardware, fresh grant or remote operation occurred. Physical reset-to-open
+timing, retained captures and restoration/screens remain unexecuted. Host
+preparation is complete; source changes remain local pending separate
+publication. No V1 milestone or public website status changes.
+
+### OT-236 Stop physical preflight and isolate the stale NVS baseline
+
+The approved no-RF attempt stopped before a candidate write or grant issuance.
+Both originals were independently verified/reset. A bounded follow-up read
+isolated A's full-NVS disagreement with the historical snapshot; its static
+regions and original application matched. The reason for the changed NVS bytes
+is unknown. The user confirmed both normal Trail screens after cleanup.
+
+Independent review identified original-runtime resets between baseline checks,
+so merely accepting a fresh hash would leave the preservation boundary unsound.
+The required per-role ROM-held interval and meaningful host tests are specified
+in the [result](testing/OT-236-PREFLIGHT-RESULT-2026-09-15.md), with a
+[sanitized record](../tests/benchmarks/crypto/OT-236-PREFLIGHT-2026-09-15.json).
+Correction remains unimplemented; the failed namespace is not reusable.
+No candidate capture, NVS write, RF/phone action, publication or V1/website change.
+
+### OT-236 Correct the saved-settings preservation interval
+
+Revision2 admits a fresh double-read full-NVS baseline while holding originals
+in ROM. The baseline binds identity, package and role and remains fixed through
+candidate execution and independent restored-original/protected checks before
+release. Durable candidate-start, closure, release-intent and released markers
+prevent candidate reuse and distinguish interrupted release from later original
+runtime. Recovery requires the journal's exact baseline digests. Untouched nodes
+are released without application writes; release failure cannot publish a
+misleading restored receipt. The failed live-1 namespace remains unchanged.
+
+All83 current capture/backend/protocol tests,29 predecessor regressions and nine
+strict-parser groups pass. Actual mocked Session/IntervalBackend tests include
+original startup changing NVS and forbid further reads after release. All27
+source pins remained stable during the matrix; exact candidate/recovery artifacts
+were reverified without rebuilding. Independent review identified and resolved
+closed-before-release recovery and cleanup-before-journal-validation cases.
+See [correction and limits](testing/OT-236-NVS-INTERVAL-CORRECTION-2026-09-15.md)
+and [host proof](../tests/benchmarks/crypto/OT-236-NVS-INTERVAL-HOST-2026-09-15.json).
+A replacement physical caller remains to be integrated/reviewed; no device,
+phone, RF or remote action occurred. Local/uncommitted; no V1/website change.
+
+### OT-236 Integrate and freeze the corrected physical caller
+
+The new private caller integrates the actual revision2 Session/IntervalBackend,
+static-only admission, fresh baseline binding and pre-admission original release.
+A caller-owned authority wrapper verifies baseline files at every authority
+check without modifying the tested gate. Recovery validates the journal against
+proof-bound baseline digests before device selection; post-release checks read
+state records without reopening originals. A terminal failure marker prevents a
+partially saved complete preflight from authorizing a released interval.
+
+All14 caller tests and offline no-argument validation pass, including actual
+mocked capture/audit/recovery and failed B admission cleanup. All27 host-source
+pins are unchanged; exact caller/manifest/package hashes are frozen. No physical
+preflight, grant, baseline, candidate journal or device access occurred. The
+failed live1 files remain untouched. See [scope and approval boundary](testing/OT-236-INTERVAL-CALLER-2026-09-15.md)
+and [host proof](../tests/benchmarks/crypto/OT-236-INTERVAL-CALLER-HOST-2026-09-15.json).
+One freshly authorized no-RF trial is the next gate. Local/uncommitted; no V1 or
+public website change. No core/firmware edits, rebuild or remote operation.
+
+### OT-236 Execute the corrected interval trial and isolate capture failure
+
+Fresh physical preflight passed on both Heltecs. A candidate write/readback
+passed; strict capture stopped with frame_malformed after1417 buffered records.
+A original restoration and independent pre-release checks passed. B received no
+candidate write and was independently released. Both normal Trail screens were
+confirmed by the user. Grant consumed; no candidate retry or recovery attempt.
+
+The NVS preservation correction worked for this attempt. Frame count matches the
+boundary before the final Noise handshake operation if ordering was intact.
+A non-yielding100-handshake burst, five-second idle watchdog and direct SDK
+backtrace output support a watchdog-interference hypothesis; the rejected line
+was not retained, so no watchdog event or crash is proven. Correct scheduling
+outside measured intervals and add precise rejection diagnostics before another
+trial. See [result and limitations](testing/OT-236-INTERVAL-TRIAL-2026-09-15.md)
+and [physical proof](../tests/benchmarks/crypto/OT-236-INTERVAL-PHYSICAL-2026-09-15.json).
+No phone/RF/NVS-write action, V1/website change, source edit or remote operation.
+Physical custody remains open; local/uncommitted.
+
+
+### OT-236 Build and freeze the scheduling successor
+
+Added a one-tick blocking delay outside benchmark timestamps and before cold
+conditioning, using an additive target over pinned historical source. Added strict
+privacy-safe rejection classifications and bounded last-frame context through
+restoration receipts. Revision3 isolates successor capture/journal state; consumed
+revision2 files remain unchanged. Final123 host tests,9 parser groups and14 exact
+caller tests pass. Two fresh builds match eight raw artifact pairs;733 library
+manifest files verify. Generated-loop compiled tests exercise four cases.
+Independent diagnostics/caller/build review found no blocker. The exact private
+successor package and one-trial proposal are frozen; no grant or hardware action.
+See [evidence and remaining physical gate](testing/OT-236-SCHEDULING-SUCCESSOR-2026-09-15.md).
+The previous physical failure cause remains unproven. No V1/website credit or
+publication; local/uncommitted. Fresh successor physical authorization remains.
+
+
+### OT-236 Pass both physical captures with the scheduling successor
+
+One approved sequential scheduling-v3 trial completed both candidate readbacks
+and all1621 strict records/eight operations per Heltec. Both407877-byte canonical
+streams are retained privately and independently reparsed against the receipt.
+Both exact originals, protected regions and fresh full-NVS baselines were verified
+before release; controller exit0 and offline audit passed. No recovery attempt,
+phone action, radio transmission or NVS write. Normal-screen confirmation is
+pending. See [physical result and limits](testing/OT-236-SCHEDULING-TRIAL-2026-09-15.md).
+The grant/namespace are consumed. This bounded capture gate passed; previous
+watchdog cause remains unproven and new timing methodology stays distinct.
+Product crypto admission/selection and full V1 field testing remain open. No V1
+or website status change; local/uncommitted, no publication operation.
 
 ## 2026-09-14
 
@@ -6190,3 +6602,22 @@ See [the dated OT-020 evidence](../tests/hardware/OT-020-2026-08-13.md).
   disabling repeat made the same route fail, providing the negative control.
 - Preserved the temporary-channel cleanup evidence and recorded the remaining
   field-range, exact-SKU, power, antenna, and regulatory gates.
+
+### OT-241 Close diagnostic trials and retain exact TX deadline evidence
+
+The first authorized attempt reached comparison while the user was away, then
+refused during A/STATUS confirmation polling. A separately authorized same-image
+retry refused at handshake 3 A/RFPOLL: fault 8, TX age 2060 ms, two attempted/one
+completed transmission. A transient displayed code is recorded separately from
+the absent retry controller comparison prompt. Both attempts restored and verified
+original application/NVS for both roles, closed custody and exited 0 without a
+recovery attempt. The user separately confirmed both normal screens after each restoration.
+See [physical proof](../tests/benchmarks/crypto/OT-241-PHYSICAL-2026-09-16.json).
+No RF status, phone-path, V1 or website acceptance was earned.
+
+### OT-242 Begin completion-only TX pump correction
+
+The measured retry deadline now has an actual-path host reproduction with
+synthetic 172 us/read and a 1200 ms host gap. A completion-only TX service path is
+being implemented and validated; no further physical retry is authorized. This
+work does not retrospectively prove causes of earlier uninstrumented refusals.

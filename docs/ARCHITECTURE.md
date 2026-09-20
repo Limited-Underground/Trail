@@ -43,6 +43,13 @@ window. The candidate is fresh-only and target-neutral. Trusted product
 provisioning, retained membership, production wire selection and phone/radio
 message integration remain separate boundaries.
 
+The [persisted enrollment boundary](testing/OT-239-PERSISTED-ENROLLMENT-2026-09-16.md)
+keeps public signed invitations and membership separate from session keys and
+counter authority. The evaluation composition maps named storage views through
+one trusted backend and refuses inconsistent retained records. Product trust-root
+provisioning, durable allocation of fresh session storage and board reset cleanup
+remain explicit integration boundaries.
+
 Decision 0028 historically deferred rollback-proof companion authorization on
 the current Heltec because no independent monotonic floor was available.
 [Decision 0033](decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md)

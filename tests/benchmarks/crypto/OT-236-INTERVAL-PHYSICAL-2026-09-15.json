@@ -1,0 +1,201 @@
+{
+  "schema": "OT236-INTERVAL-PHYSICAL-2",
+  "as_of": "2026-09-15T11:41:40.833304+00:00",
+  "outcome": "capture failed; originals verified and released",
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB nodes",
+  "toolchain": {
+    "python": "3.14.6",
+    "esptool": "5.3.1",
+    "pyserial": "3.5"
+  },
+  "preflight_started": "2026-09-15T11:25:16.765686+00:00",
+  "preflight_finished": "2026-09-15T11:26:49.281354+00:00",
+  "execution_started": "2026-09-15T11:27:22.951885+00:00",
+  "execution_finished": "2026-09-15T11:36:52.987957+00:00",
+  "exit_code": 1,
+  "receipt": {
+    "authority_raw_sha256": "24346fd05b21630cff5824bc7b993dd6ce9f76d4c62ce7fc7f200dee4bdc484d",
+    "binding": {
+      "application_offset": 65536,
+      "baud": 115200,
+      "benchmark_bytes": 293120,
+      "benchmark_name": "ot121_libsodium_primitive_bench.bin",
+      "benchmark_sha256": "cf4377f56ad5d2dc4b2e53ae961f98f6e091fc170bf76c8d9f438a7fd6373d7e",
+      "expected_frame_count": 1621,
+      "protocol_ready": "",
+      "protocol_start": "",
+      "restore_a": {
+        "bytes": 586736,
+        "name": "opentrail_heltec_v4_bench.bin",
+        "sha256": "43ac6dbc506c03faa63aae7a8e27195750598f06f3118bfff1ef7af84bc8d9f2"
+      },
+      "restore_b": {
+        "bytes": 587968,
+        "name": "opentrail_heltec_v4_bench.bin",
+        "sha256": "984e241dc72fad956d34b5e83f04fd307dcb95e0f18c629ac46d21da9d96d87b"
+      }
+    },
+    "claims": {
+      "candidate_selected": false,
+      "phase_two_complete": false,
+      "radio_used": false,
+      "regulatory_acceptance_proven": false,
+      "score_credit_added": false,
+      "suite_selected": false,
+      "supported_target_proven": false
+    },
+    "failure": {
+      "capture_code": "frame_malformed",
+      "capture_diagnostics": {
+        "bytes_observed": 356643,
+        "complete_lines": 1441,
+        "empty_reads": 48,
+        "frame_lines_buffered": 1417,
+        "lifecycle": "stable_continuous",
+        "lifecycle_polls": 3,
+        "open_attempts": 1,
+        "preamble_lines_ignored": 23,
+        "read_calls": 750,
+        "reset_attempts": 1,
+        "stable_presence_polls": 3,
+        "start_write_attempts": 0
+      },
+      "code": "capture_failed"
+    },
+    "node_count": 2,
+    "nodes": [
+      {
+        "benchmark_readback_verified": true,
+        "capture_validated": false,
+        "installed_app_readback_verified": true,
+        "node": "A",
+        "restore_readback_verified": true,
+        "restore_reset_completed": true,
+        "rom_interval_verified": true
+      },
+      {
+        "benchmark_readback_verified": false,
+        "capture_validated": false,
+        "installed_app_readback_verified": true,
+        "node": "B",
+        "restore_readback_verified": false,
+        "restore_reset_completed": false,
+        "rom_interval_verified": true
+      }
+    ],
+    "privacy": {
+      "backend_error_text_recorded": false,
+      "device_identifiers_recorded": false,
+      "filesystem_paths_recorded": false,
+      "private_endpoints_recorded": false,
+      "raw_capture_recorded": false
+    },
+    "restoration_complete": true,
+    "result": "libsodium_execution_aborted",
+    "schema": "OTLSCR2",
+    "validated_capture_custody": {},
+    "version": 0
+  },
+  "originals_released": [
+    {
+      "role": "A",
+      "complete": true
+    },
+    {
+      "role": "B",
+      "complete": true
+    }
+  ],
+  "normal_screens": {
+    "source": "user confirmation",
+    "both": true
+  },
+  "candidate_roles": [
+    "A"
+  ],
+  "recovery_attempts": 0,
+  "phone_actions": false,
+  "radio_execution": false,
+  "nvs_writes": false,
+  "raw_failed_line_retained": false,
+  "validated_capture_custody": false,
+  "watchdog_event_observed": false,
+  "watchdog_interference": "source-supported hypothesis",
+  "v1_change": false,
+  "website_change": false,
+  "publication": "local uncommitted",
+  "artifacts": {
+    "live.py": {
+      "bytes": 21619,
+      "sha256": "6cd7b65f07a36bc66e846b76161d736020caa2c990518a314202b1d6f6f86672"
+    },
+    "manifest.json": {
+      "bytes": 1825,
+      "sha256": "9d7903a673b140510c1ae1c66557d10a1edd0fe074b46690a2384d37cebea196"
+    },
+    "package.json": {
+      "bytes": 6511,
+      "sha256": "b0cd689f46594ecd1c641d1fd873f46477bb08d6a6c7fa843810c5c16c317c2e"
+    },
+    "preflight.json": {
+      "bytes": 2619,
+      "sha256": "5f782bd5dac29ceb6cac5bf28ebb0a991eef515d3ced23493104bdaad8d7a42b"
+    },
+    "grant.json": {
+      "bytes": 2417,
+      "sha256": "24346fd05b21630cff5824bc7b993dd6ce9f76d4c62ce7fc7f200dee4bdc484d"
+    },
+    "approval-record.json": {
+      "bytes": 572,
+      "sha256": "db587dd9b29952718eba6796f4fd010c4aa50fd32727672d2b493e33a62596ec"
+    },
+    "result.json": {
+      "bytes": 578,
+      "sha256": "1de2690ab26d8fd04cca5c2260ccd96c773aac6df9b2f2963f35179cc0f4bda1"
+    },
+    "libsodium-interval-2-A-baseline.json": {
+      "bytes": 775,
+      "sha256": "e6a65bae165edcdec5afb7c15a2afadd37ca5f05a8db8afb4254631cb2138051"
+    },
+    "libsodium-interval-2-A-candidate-started.json": {
+      "bytes": 164,
+      "sha256": "fce77522ed07c6c559d79f71294ee14d46344948281b891c02e7d1ff7d7922c2"
+    },
+    "libsodium-interval-2-A-closed.json": {
+      "bytes": 153,
+      "sha256": "e64e97413eb5fc41ca7a2cad774fa9de2ee9d26945c4117a02d110977a67fc4f"
+    },
+    "libsodium-interval-2-A-release-intent.json": {
+      "bytes": 161,
+      "sha256": "b6f1c6b3d4ccce8aeba089beaf20b0ca0aef34716a1d93a9a9dd94ec9a2eff1d"
+    },
+    "libsodium-interval-2-A-released.json": {
+      "bytes": 155,
+      "sha256": "f4c1631c4bbd64c893a5a83c9d0b84e841f755efe5021ac9a571b01d038578d6"
+    },
+    "libsodium-interval-2-B-baseline.json": {
+      "bytes": 775,
+      "sha256": "f817bc1c0d12d9a68bbc93a2892a38b8862b14ad1bd8738f2126f0d15bda9e6b"
+    },
+    "libsodium-interval-2-B-closed.json": {
+      "bytes": 153,
+      "sha256": "6c2fbb58fc0b78d5188ec5db315429708d092a63eabfd00ffb6354236f24d9ae"
+    },
+    "libsodium-interval-2-B-release-intent.json": {
+      "bytes": 161,
+      "sha256": "a0a7af631b6eab81a15064fac697e4bf1f7c67221e02de35d975092e85c938d1"
+    },
+    "libsodium-interval-2-B-released.json": {
+      "bytes": 155,
+      "sha256": "51003507578e228afe9452bed2186ec7b89782e011abf87d333fd2d40c7695fe"
+    },
+    "libsodium-capture-2-journal.json": {
+      "bytes": 1428,
+      "sha256": "df06de513da79c49c6acfe6e9685c3791a448a7038c0e713b6335793c89b2bf2"
+    },
+    "libsodium-capture-2-execution.json": {
+      "bytes": 1990,
+      "sha256": "c47116c6d799f6b04b9b3f2d04f7fd9fc29c0922f03ac8f67d87a9fe97912430"
+    }
+  }
+}

@@ -1,0 +1,410 @@
+{
+  "schema": "OT236-SCHEDULING-SUCCESSOR-HOST-1",
+  "as_of": "2026-09-16T00:49:48.970986+00:00",
+  "result": "host_and_build_passed_physical_untested",
+  "builds": {
+    "as_of": "2026-09-16T00:42:19.270658+00:00",
+    "runs": [
+      {
+        "directory": "build/ot236-libsodium-yield-a3",
+        "artifacts": {
+          "ot236_libsodium_yield_bench.bin": {
+            "bytes": 293216,
+            "sha256": "d5abc19bed29687a459b25e28f14b12cc0ac9d21ef142b9355c0cc61ccf65c61"
+          },
+          "ot236_libsodium_yield_bench.elf": {
+            "bytes": 4493800,
+            "sha256": "41bf290bfb89a5c837032541dd1870caafcb945d0d19cc63b9073cbb50676888"
+          },
+          "ot236_libsodium_yield_bench.map": {
+            "bytes": 3972115,
+            "sha256": "5524d25d4e913056f7e8cb9368962038cb6b7215ac1901f9e82cc4688779eada"
+          },
+          "sdkconfig": {
+            "bytes": 107001,
+            "sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+          },
+          "bootloader/bootloader.bin": {
+            "bytes": 22480,
+            "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+          },
+          "partition_table/partition-table.bin": {
+            "bytes": 3072,
+            "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"
+          },
+          "ota_data_initial.bin": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "esp-idf/main/app_main.generated.c": {
+            "bytes": 25819,
+            "sha256": "be034485e307009f918dcb15b2c45de8ed88dccd00f9627e979d550092f1b915"
+          }
+        }
+      },
+      {
+        "directory": "build/ot236-libsodium-yield-b3",
+        "artifacts": {
+          "ot236_libsodium_yield_bench.bin": {
+            "bytes": 293216,
+            "sha256": "d5abc19bed29687a459b25e28f14b12cc0ac9d21ef142b9355c0cc61ccf65c61"
+          },
+          "ot236_libsodium_yield_bench.elf": {
+            "bytes": 4493800,
+            "sha256": "41bf290bfb89a5c837032541dd1870caafcb945d0d19cc63b9073cbb50676888"
+          },
+          "ot236_libsodium_yield_bench.map": {
+            "bytes": 3972115,
+            "sha256": "5524d25d4e913056f7e8cb9368962038cb6b7215ac1901f9e82cc4688779eada"
+          },
+          "sdkconfig": {
+            "bytes": 107001,
+            "sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+          },
+          "bootloader/bootloader.bin": {
+            "bytes": 22480,
+            "sha256": "96e83ebe4434cd6c9049a59f396b4f8bd06c159b40259da573bdb701c571eca5"
+          },
+          "partition_table/partition-table.bin": {
+            "bytes": 3072,
+            "sha256": "84569aa2badf3f7294042129b19d0b480784a93a550ada3253b57bc92a0671ab"
+          },
+          "ota_data_initial.bin": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "esp-idf/main/app_main.generated.c": {
+            "bytes": 25819,
+            "sha256": "be034485e307009f918dcb15b2c45de8ed88dccd00f9627e979d550092f1b915"
+          }
+        }
+      }
+    ],
+    "raw_equal": {
+      "ot236_libsodium_yield_bench.bin": true,
+      "ot236_libsodium_yield_bench.elf": true,
+      "ot236_libsodium_yield_bench.map": true,
+      "sdkconfig": true,
+      "bootloader/bootloader.bin": true,
+      "partition_table/partition-table.bin": true,
+      "ota_data_initial.bin": true,
+      "esp-idf/main/app_main.generated.c": true
+    },
+    "library_manifest": {
+      "bytes": 87846,
+      "sha256": "988fbb2b95d1b4f3850d153495f8d73482be52cb80808fa48e24a8d1e9bf91ea"
+    },
+    "verified_library_files": 733,
+    "idf": "6.0.2",
+    "compiler": "xtensa-esp-elf 15.2.0_20251204",
+    "python": "3.14.6",
+    "cmake": "4.0.3",
+    "ninja": "1.12.1",
+    "target": "esp32s3",
+    "flash": "16MB DIO 80MHz",
+    "project_version": "ot236-libsodium-yield-v1",
+    "cache_enabled": false,
+    "component_manager_enabled": false,
+    "sdkconfig_checks": [
+      "CONFIG_IDF_TARGET=\"esp32s3\"",
+      "CONFIG_APP_REPRODUCIBLE_BUILD=y",
+      "CONFIG_ESPTOOLPY_FLASHSIZE=\"16MB\"",
+      "CONFIG_ESP_TASK_WDT_EN=y",
+      "CONFIG_ESP_TASK_WDT_TIMEOUT_S=5",
+      "CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=y",
+      "CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y",
+      "CONFIG_FREERTOS_HZ=100"
+    ],
+    "generated_source_compile_entries": 1,
+    "build_directory_prefix_maps_present": true
+  },
+  "tests": [
+    {
+      "command": [
+        "python",
+        "-B",
+        "tests/host/libsodium_capture_execution_tests.py"
+      ],
+      "started_utc": "2026-09-16T00:42:39.784386+00:00",
+      "elapsed_seconds": 17.954,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "...........................\n----------------------------------------------------------------------\nRan 27 tests in 17.674s\n\nOK\n"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "tests/host/libsodium_capture_hardware_tests.py"
+      ],
+      "started_utc": "2026-09-16T00:42:57.738166+00:00",
+      "elapsed_seconds": 8.708,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ".....................................\n----------------------------------------------------------------------\nRan 37 tests in 8.343s\n\nOK\n"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "tests/host/libsodium_capture_scheduling_tests.py"
+      ],
+      "started_utc": "2026-09-16T00:43:06.446215+00:00",
+      "elapsed_seconds": 1.121,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.921s\n\nOK\n"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "tests/host/libsodium_capture_protocol_tests.py"
+      ],
+      "evidence_source": "retained tool output from this review; start timestamp not recorded",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "..........................\n----------------------------------------------------------------------\nRan 26 tests in 5.326s\n\nOK\n"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "tests/host/mbedtls_comparison_execution_tests.py"
+      ],
+      "evidence_source": "retained tool output from this review; start timestamp not recorded",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "...............\n----------------------------------------------------------------------\nRan 15 tests in 7.409s\n\nOK\n"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "tests/host/mbedtls_comparison_hardware_tests.py"
+      ],
+      "evidence_source": "retained tool output from this review; start timestamp not recorded",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "..............\n----------------------------------------------------------------------\nRan 14 tests in 2.876s\n\nOK\n"
+    },
+    {
+      "command": [
+        "python",
+        "-B",
+        "tests/host/ot121_local_primitive_frame_tests.py"
+      ],
+      "evidence_source": "retained tool output from this review; start timestamp not recorded",
+      "exit_code": 0,
+      "stdout": "PASS test_accepts_exact_local_capture\nPASS test_framing_and_json_are_strict\nPASS test_gates_require_exact_common_fields_order_and_pass\nPASS test_header_is_exact_and_local_only\nPASS test_private_text_cli_errors_and_tool_surface_are_safe\nPASS test_runtime_resources_are_exact_derived_and_zero_watchdog\nPASS test_samples_require_exact_order_count_values_and_common_fields\nPASS test_summaries_are_recomputed_exactly_without_samples_field\nPASS test_terminal_is_exact_local_completion_not_phase_two\nPASS 9 OT-121 local primitive frame test groups\n",
+      "stderr": ""
+    }
+  ],
+  "source_pins": {
+    "tools/libsodium_capture_execution.py": {
+      "bytes": 15250,
+      "sha256": "aeed651cf087d2b7d00a7d83c5d120d1d4edf2aa994c7a728b6db08f144386ce"
+    },
+    "tools/libsodium_capture_protocol.py": {
+      "bytes": 14657,
+      "sha256": "0cdacb12abe3bcbbb260f52af235392f12cf4742f010531fbc2ff3623edcd716"
+    },
+    "tools/libsodium_capture_hardware.py": {
+      "bytes": 15660,
+      "sha256": "ac463803a1965bb53c7f7dec67b3522154e07f1a832482242578cce307840c3d"
+    },
+    "tools/Test-Host.ps1": {
+      "bytes": 174393,
+      "sha256": "b385bd842dff1bd02e2264970c1a8658b7dda5c8cdceb87ce4a95c784d866544"
+    },
+    "firmware/targets/libsodium_capture_yield_eval/CMakeLists.txt": {
+      "bytes": 907,
+      "sha256": "3f7c28ec03352bd3cf80c738430abe369fe939368223ac490a18c2f8bad8dcca"
+    },
+    "firmware/targets/libsodium_capture_yield_eval/partitions.csv": {
+      "bytes": 443,
+      "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+    },
+    "firmware/targets/libsodium_capture_yield_eval/main/CMakeLists.txt": {
+      "bytes": 1894,
+      "sha256": "e026994399cd0961932eadefd44cb9cfac94897036c161eecaf75559661f9a9e"
+    },
+    "firmware/targets/libsodium_capture_yield_eval/main/compose.py": {
+      "bytes": 1703,
+      "sha256": "1d0e2530be9bd57eaf73b3245613fa03087875bce0a970ac9caeeb0cc63691d6"
+    },
+    "tests/host/libsodium_capture_execution_tests.py": {
+      "bytes": 18343,
+      "sha256": "72818d3da642fcb8b6c558819ac7feb2fb23241544d07cdb8e00ff16496a1ceb"
+    },
+    "tests/host/libsodium_capture_protocol_tests.py": {
+      "bytes": 13938,
+      "sha256": "57e4ab39682591549a922e609a51bc83be44cf502b13f70a09bedd5fa0564c18"
+    },
+    "tests/host/libsodium_capture_hardware_tests.py": {
+      "bytes": 25753,
+      "sha256": "6e72917bf3d6864bd27b5a5925d3738dc5341d2ac89be109177c6448401b3341"
+    },
+    "tests/host/libsodium_capture_scheduling_tests.py": {
+      "bytes": 6567,
+      "sha256": "9b42f901ef8b479b49f1fed1f82f23419bc119eb1d7003d8da31e76c3da57506"
+    }
+  },
+  "commands": {
+    "builds": [
+      "powershell -File .private/ot236-libsodium-capture/build-yield.ps1 -Run a3",
+      "powershell -File .private/ot236-libsodium-capture/build-yield.ps1 -Run b3"
+    ],
+    "verification": "python -B .private/ot236-libsodium-capture/verify-yield-builds.py"
+  },
+  "failed_attempts": [
+    {
+      "runs": [
+        "a",
+        "b"
+      ],
+      "classification": "execution_environment",
+      "reason": "Sandbox blocked installed compiler launcher before compilation; no source build claim."
+    },
+    {
+      "runs": [
+        "a2",
+        "b2"
+      ],
+      "classification": "cmake_configure",
+      "reason": "Source properties before idf_component_register were not scriptable in early requirements pass; moved after registration and added regression check."
+    },
+    {
+      "test": "new restoration diagnostic test",
+      "classification": "test_expectation",
+      "reason": "Expected summary but strict format uses operation_summary; corrected expectation, final matrix passes."
+    }
+  ],
+  "scope": {
+    "hardware_executed": false,
+    "authority_issued": false,
+    "radio_used": false,
+    "phone_actions": false,
+    "nvs_writes": false,
+    "publication": false,
+    "v1_credit": false
+  },
+  "limitations": [
+    "Previous watchdog interference remains a source-supported hypothesis, not a recovered physical event.",
+    "New sampling methodology must remain separate from historical timing series.",
+    "Physical strict capture, actual idle scheduling and two original-screen confirmations remain untested for successor."
+  ],
+  "caller_validation": {
+    "schema": "OT236-SCHEDULING-CALLER-VALIDATION-1",
+    "recorded_at": "2026-09-16T00:52:03.439811+00:00",
+    "evidence_kind": "retained previously observed command output; no rerun",
+    "commands": [
+      {
+        "command": "python -B .private/ot236-libsodium-capture/scheduling-v3/live.py",
+        "exit_code": 0,
+        "stdout": "{\"offline\": \"passed\", \"device_access\": false, \"authority_issued\": false}\n",
+        "stderr": ""
+      },
+      {
+        "command": "python -B .private/ot236-libsodium-capture/scheduling-v3/live-tests.py",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "..............\n----------------------------------------------------------------------\nRan 14 tests in 6.899s\n\nOK\n",
+        "tests_passed": 14
+      }
+    ],
+    "source_descriptors": {
+      ".private/ot236-libsodium-capture/scheduling-v3/live.py": {
+        "bytes": 21629,
+        "sha256": "ff547fa6b3117f790c7413bc6ae19531a7772b3f869490000ae5246f621efda4"
+      },
+      ".private/ot236-libsodium-capture/scheduling-v3/live-tests.py": {
+        "bytes": 11733,
+        "sha256": "34891340fee7c7d991d72c5d85774430afbe4bd179ea9b7a51059026d7b39593"
+      },
+      ".private/ot236-libsodium-capture/scheduling-v3/freeze.py": {
+        "bytes": 4607,
+        "sha256": "18f03b46a532f193cc58f65be82775d68970bf0366f7087fe569a1e51a4c9958"
+      },
+      ".private/ot236-libsodium-capture/scheduling-v3/package.json": {
+        "bytes": 7269,
+        "sha256": "d5afde87e8f0b2e21a13197d5efb81530ca0234afd9b4de8d22730bfc2f6e035"
+      },
+      ".private/ot236-libsodium-capture/scheduling-v3/manifest.json": {
+        "bytes": 1791,
+        "sha256": "3b4646ebbc14ae3d3267549520e77909c33517242f3abfe4ea29d56cd4fddfe4"
+      },
+      ".private/ot236-libsodium-capture/scheduling-v3/proposal.json": {
+        "bytes": 2142,
+        "sha256": "06d2beef77ecb5caf0f0a33ce4b13ec55a992241c80d76058d7baf4dfdd6f744"
+      },
+      "tools/libsodium_capture_execution.py": {
+        "bytes": 15250,
+        "sha256": "aeed651cf087d2b7d00a7d83c5d120d1d4edf2aa994c7a728b6db08f144386ce"
+      },
+      "tools/libsodium_capture_hardware.py": {
+        "bytes": 15660,
+        "sha256": "ac463803a1965bb53c7f7dec67b3522154e07f1a832482242578cce307840c3d"
+      },
+      "tools/libsodium_capture_protocol.py": {
+        "bytes": 14657,
+        "sha256": "0cdacb12abe3bcbbb260f52af235392f12cf4742f010531fbc2ff3623edcd716"
+      },
+      "firmware/targets/libsodium_capture_yield_eval/CMakeLists.txt": {
+        "bytes": 907,
+        "sha256": "3f7c28ec03352bd3cf80c738430abe369fe939368223ac490a18c2f8bad8dcca"
+      },
+      "firmware/targets/libsodium_capture_yield_eval/main/CMakeLists.txt": {
+        "bytes": 1894,
+        "sha256": "e026994399cd0961932eadefd44cb9cfac94897036c161eecaf75559661f9a9e"
+      },
+      "firmware/targets/libsodium_capture_yield_eval/main/compose.py": {
+        "bytes": 1703,
+        "sha256": "1d0e2530be9bd57eaf73b3245613fa03087875bce0a970ac9caeeb0cc63691d6"
+      },
+      "firmware/targets/libsodium_capture_yield_eval/partitions.csv": {
+        "bytes": 443,
+        "sha256": "973ce7d2d3559a792d62eacd859db1b52b7569080cb85c3f2fedeed4db6cc621"
+      },
+      "tests/host/libsodium_capture_scheduling_tests.py": {
+        "bytes": 6567,
+        "sha256": "9b42f901ef8b479b49f1fed1f82f23419bc119eb1d7003d8da31e76c3da57506"
+      }
+    },
+    "independent_review": {
+      "build_proof": {
+        "path": ".private/ot236-libsodium-capture/scheduling-build-proof.json",
+        "bytes": 4257,
+        "sha256": "77c3feec3fa5dcf29b24908c1f98b249ca2911873e0d6262039db2c57946c6ab"
+      },
+      "artifact_pairs_verified_equal": 8,
+      "artifact_descriptors_rehashed": 16,
+      "package_sources_verified": 25,
+      "package_images_verified": 3,
+      "generated_c_matches_pinned_composition": true,
+      "partition_binary_unchanged_from_ot163": true,
+      "historical_interval_v2_caller_and_manifest_preserved": true,
+      "task_watchdog_enabled": true,
+      "task_watchdog_timeout_seconds": 5,
+      "fresh_execution_namespace_unused": true,
+      "backend_interval_schema": "libsodium-nvs-interval-2",
+      "authority_schema": "libsodium-capture-authority-1",
+      "coordinator_schema": "OTLSCJ3",
+      "receipt_schema": "OTLSCR3"
+    },
+    "hardware_executed": false,
+    "authority_issued": false,
+    "physical_resolution_proven": false,
+    "limitations": [
+      "Mocked I/O tests and reproducible builds do not establish physical capture success.",
+      "Fresh identity/NVS preflight, one-use authority, physical capture/restoration and user screen confirmation remain unexecuted for this successor."
+    ]
+  },
+  "final_checks": {
+    "docs_checker": true,
+    "docs_tests": 17,
+    "publication_safety_tracked_untracked": true,
+    "git_diff_check": true,
+    "powershell_syntax": true
+  }
+}

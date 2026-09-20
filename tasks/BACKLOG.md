@@ -10,17 +10,28 @@ preserves all removed summaries and superseded sequencing; see the
 
 ## Current execution order
 
-1. Complete product crypto admission/selection and target-owned authenticated provisioning using the [OT-235 host activation/traffic candidate](../docs/testing/OT-235-PEER-TRAFFIC-INTEGRATION-2026-09-15.md). Its fresh-only receipt and signed-window traffic do not establish retained membership/rekey or a selected wire. Bind those product lifecycles before wiring protected BLE commands/events and radio message/ACK transport. Preserve the [OT-234 physical handshake](../docs/testing/OT-234-PAIR-RADIO-TARGET-2026-09-14.md); it needs no repetition absent a changed boundary. Prior physical authority is consumed; OT-229 through OT-234 were published through PR #38.
-   Preserve the [audited OT-213 outcome](../docs/testing/OT-213-DEADLINE-TRIAL-2026-09-13.md); trial grants are consumed.
-2. Close remaining applicable
-   [security gates](../docs/testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md),
-   Phase 3 admission and explicit crypto selection. Real trust provisioning,
-   confirmation UI and complete rekey remain open; fresh-only evaluation does not
-   support same-key resume. Historical raw-capture custody, physical entropy and
-   interrupted persistence are not established by target builds or host proofs.
-3. Integrate authenticated node-to-node message exchange with both phone UIs and
-   complete coherent two-pair acceptance. Current Messages screens store local
-   templates; the product radio path is not wired. Preserve offline-first V1.
+1. The [OT244 controlled radio trial](../docs/testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md)
+   failed at activation1 after both local confirmations; originals/state are
+   restored and custody closed, both normal screens confirmed. The [OT245 host replay](../docs/testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md)
+   shows idle work alone is insufficient in tested cases. [OT246 failure capture](../docs/testing/OT-246-FAILURE-CAPTURE-2026-09-18.md)
+   physically captured B invitation expiry4ms past deadline after28 WAIT polls
+   for the first activation control. Both originals and normal screens are restored.
+   [OT247](../docs/testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md) corrects guarded
+   receive rearming and per-byte host reads, with97 Python tests and composition
+   passing. Full-flow timing sensitivity still expires after5 or3 statuses. Next:
+   profile command-level durable reads and evaluate rearm within the existing
+   admitted receive transaction, preserving fresh checks and deadlines. No new
+   physical attempt before the complete timing gate passes.
+2. Close only the remaining applicable eight-gate evidence: retained restart/rekey,
+   exact-target entropy and interrupted persistence, complete reset/recovery,
+   final composition license/source/corpus binding and historical comparison
+   custody disposition. Then perform independent Phase3 admission and explicit
+   crypto/wire selection. Cold-power disassembly remains owner-deferred; do not
+   repeat unchanged accepted benchmark/control cases.
+3. Bind the four authenticated fixed statuses to protected BLE action routing and
+   versioned receive events in both phone UIs, then complete coherent two-pair
+   acceptance under the accepted contract. OT240 supplies semantic glue only;
+   current Messages templates remain local text. Preserve offline-first V1.
 
 The original pair still needs the accepted clock correction after serving as
 control. Full reset cleanup, pair isolation, first-use/large-font UI checks,
@@ -45,6 +56,18 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
+| OT-247 | host corrections validated; complete budget gate blocked | Audit complete flow and correct receive/host transport sequencing | Receiver lifecycle negative control, bounded guarded reads,97 Python tests and13 composed groups pass.209us SDK cost with100/200ms modeled host cost still expires after5/3 statuses. [Audit, evidence and next gate](../docs/testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md). |
+| OT-246 | physical diagnostic capture complete; originals restored | Capture exact failure provenance and physical stage timing | Exact B invitation expiry4ms past deadline; 28 WAIT polls after first activation TX; host guard costs measured. Both originals independently verified/restored/reset, custody closed and normal screens confirmed. [Proof and limits](../docs/testing/OT-246-FAILURE-CAPTURE-2026-09-18.md). |
+| OT-245 | host investigation complete; physical cause unproven | Replay actual bridge with independent node idle scheduling | Sixteen cases pass scheduler checks; idle adds only107–133ms in10s-delay controls.47s synthetic delay reproduces activation1 B/RFPOLL with idle on/off. Four uninstrumented controls match. [Proof and limits](../docs/testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md). |
+| OT-244 | physical activation failed; originals restored; normal screens confirmed | One controlled two-Heltec trial of the OT243 correction | Both local confirmations reached; activation1 B/RFPOLL refused, both fault3 authority/clock. Custody closed; precise failing guard/timing unproven. [Scope and result](../docs/testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md). |
+| OT-243 | host/build complete; physical untested | Reduce repeated NVS size-query work without caching authority | Per-stage/per-role profiling shows 33.2% fewer SDK gets. Original fails the bounded full-exchange timing test; correction passes activation/eight statuses/cleanup, 43 suites and seven-artifact reproducibility. Fresh reads, expiry and failure checks remain; known-key disappearance now poisons. [Evidence and limitations](../docs/testing/OT-243-NVS-POLLING-COST-2026-09-18.md). |
+| OT-242 | host correction and diagnostic validation complete; physical activation unaccepted | Service pending TX completion and preserve accurate failure provenance | Completion correction reached physical comparison but activation refused; originals restored. Diagnostic follow-up passes 43 suites, all affected target builds and seven-pair enrolled reproducibility. See [scope and proof](../docs/testing/OT-242-TX-COMPLETION-CORRECTION-2026-09-16.md). No V1 or website credit. |
+| OT-241 | physical diagnostics and restoration complete | Bounded physical refusal and timing diagnostics | Two exact-image attempts closed with verified original restoration: first missed confirmation window, retry measured TX deadline at handshake 3 A/RFPOLL. See [scope and proof](../docs/testing/OT-241-DIAGNOSTIC-TRIAL-PREPARATION-2026-09-16.md). No RF status, phone or V1 acceptance. |
+| OT-240 | host timing correction validated; physical cause unproven | Compose persistent sessions, target storage and status transport | Original and pacing-corrected physical trials failed before comparison; originals restored and normal screens confirmed. Integrated synthetic-cost reproduction, GPIO-edge/command/idle correction, maintained regression and one clean build pass. No new physical proposal or RF status acceptance. Product phone wiring remains open. See [scope and proofs](../docs/testing/OT-240-INTEGRATED-ENROLLMENT-2026-09-16.md). No V1 or website credit. |
+| OT-239 | host evaluation complete | Persist signed enrollment and bind evaluation namespaces | Owned signed-evidence persistence, isolated namespace views and coordinated reset containment pass actual-source host tests. Same-bank restart safely refuses retained session authority; fresh-session generation allocation remains open. See [scope and proof](../docs/testing/OT-239-PERSISTED-ENROLLMENT-2026-09-16.md). |
+| OT-238 | host evaluation complete | Own evaluated enrollment and durable membership lifecycle | Composed OT235 with explicit evaluation trust, durable public membership, fresh-session rekey and terminal revoke/reset preparation. Actual-source interruption/refusal and final authority checks pass. Full public-evidence persistence and product bootstrap remain open. See [scope and proof](../docs/testing/OT-238-ENROLLMENT-MEMBERSHIP-2026-09-16.md). No selected wire or device authority. |
+| OT-237 | assessment complete; selection withheld | Reconcile current crypto admission and selection gates | Fourteen evidence bindings,20 current source pins and actual retained capture/restoration re-audit pass. Eight existing gates reconciled with exact-image limits; prior accepted benchmark/control/radio work is not reopened. Next: host evaluation trust owner and durable membership lifecycle. See [assessment](../docs/security/OT-237-CURRENT-ADMISSION-2026-09-16.md). |
+| OT-236 | complete within bounded capture scope | Retain and independently audit libsodium benchmark captures | Scheduling-v3 passed both1621-record/eight-operation captures and independent strict provenance audit. Exact originals/protected/full-NVS checks and release passed; both normal screens user-confirmed2026-09-16. Grant consumed. Prior failed attempts preserved; new timing methodology remains separate. No product crypto selection or V1 credit. See [physical proof](../docs/testing/OT-236-SCHEDULING-TRIAL-2026-09-15.md). |
 | OT-235 | host integration candidate | Require durable peer activation before authenticated status traffic | Two independent endpoints exchange encrypted confirmation and activation controls; fixed-status output requires current durable receipt, exact peer activation and signed local freshness. Fresh-only persistence/reentry/fault tests; product provisioning, retained membership, selected wire and phone/radio integration remain open. See [scope and proof](../docs/testing/OT-235-PEER-TRAFFIC-INTEGRATION-2026-09-15.md). |
 | OT-234 | bounded physical radio case accepted | Wire and validate the independent pair radio target | Software matrix/reproducible builds pass. One physical attempt completed the three-frame handshake and both local confirmations; A2/2/1/0 and B1/1/2/0 TX attempt/completion/RX/error counts, both stopped. Both originals restored/readback/reset; ten captures audited, custody closed, zero recoveries. Both normal Trail screens were user-confirmed after restoration. Product trust/traffic remain open; OT-229 through OT-234 were published through PR #38, with no V1/website credit. See [scope](../docs/testing/OT-234-PAIR-RADIO-TARGET-2026-09-14.md). |
 | OT-233 | host validated | Connect independent endpoints to bounded transport | Reuse RadioTransport and experimental probe codec, maximum 154-byte frame without fragmentation. Routing selectors are not crypto authority; silent loss expires through trusted endpoint poll. 39 new groups and final 896 C++ groups, 26 controls, 47 Python tests and actual interoperability pass; 954 source pins reverify. Both fresh target regression builds match seven artifact pairs. No target wiring, radio acceptance, membership, traffic API or V1 credit. See [scope](../docs/testing/OT-233-INDEPENDENT-TRANSPORT-2026-09-14.md). |

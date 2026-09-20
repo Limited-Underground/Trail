@@ -1,0 +1,62 @@
+{
+  "schema": "OT236-INTERVAL-CALLER-HOST-2",
+  "as_of": "2026-09-15T11:22:07.122353+00:00",
+  "result": "offline_caller_prepared",
+  "source_base_commit": "477ea45de1b155dab59139172cfbb412da3e1787",
+  "private_artifact_descriptors": {
+    "live.py": {
+      "bytes": 21619,
+      "sha256": "6cd7b65f07a36bc66e846b76161d736020caa2c990518a314202b1d6f6f86672"
+    },
+    "live-tests.py": {
+      "bytes": 11731,
+      "sha256": "94d705be88919036f898e3c7f0dec44663777cc78b5308d65aa40260e03d5be4"
+    },
+    "manifest.json": {
+      "bytes": 1825,
+      "sha256": "9d7903a673b140510c1ae1c66557d10a1edd0fe074b46690a2384d37cebea196"
+    },
+    "package.json": {
+      "bytes": 6511,
+      "sha256": "b0cd689f46594ecd1c641d1fd873f46477bb08d6a6c7fa843810c5c16c317c2e"
+    },
+    "proposal.json": {
+      "bytes": 1878,
+      "sha256": "174d540a16131567e4775177c2513c7a419afcc7a28c6dcc4c41bd196b04010d"
+    }
+  },
+  "validation": [
+    {
+      "command": "python -B .private/ot236-libsodium-capture/interval-v2/live-tests.py",
+      "started_at": "2026-09-15T11:22:00.500711+00:00",
+      "duration_seconds": 6.352,
+      "exit_code": 0,
+      "output": "..............\r\n----------------------------------------------------------------------\r\nRan 14 tests in 6.070s\r\n\r\nOK",
+      "log": {
+        "bytes": 118,
+        "sha256": "ddfa2ffc666070b7e36440336a31ff8de32823628cb33deda152517d8747d272"
+      }
+    },
+    {
+      "command": "python -B .private/ot236-libsodium-capture/interval-v2/live.py",
+      "started_at": "2026-09-15T11:22:06.857919+00:00",
+      "duration_seconds": 0.253,
+      "exit_code": 0,
+      "output": "{\"offline\": \"passed\", \"device_access\": false, \"authority_issued\": false}",
+      "log": {
+        "bytes": 74,
+        "sha256": "eb82dc5235182a8c3b425754e327d2a85dd947f1e14d8e9a93b822c0ac057a4c"
+      }
+    }
+  ],
+  "unchanged_host_source_pins": 27,
+  "physical_preflight_executed": false,
+  "grant_issued": false,
+  "hardware_executed": false,
+  "phone_actions": false,
+  "radio_used": false,
+  "firmware_rebuilt": false,
+  "v1_change": false,
+  "website_change": false,
+  "publication": "local uncommitted"
+}

@@ -10,6 +10,7 @@
 // Distinct storage wrappers must also have distinct backing stores/namespaces.
 #include "opentrail/evaluation_handshake_endpoint.hpp"
 #include "opentrail/independent_confirmation_owner.hpp"
+#include "opentrail/enrolled_session_observer.hpp"
 
 namespace opentrail::security_evaluation {
 class IndependentPeerTrafficEndpoint;
@@ -158,6 +159,13 @@ public:
     // Historical local outcome only. It is never a Ready/membership capability.
     EndpointState state() const { return state_; }
     bool secrets_cleared() const { return session_.secrets_cleared(); }
+    // True only if the most recent observe() call itself rejected on the
+    // invitation-window predicate, at that call's own sampled time -- never
+    // re-derived later. Consuming (read-then-clear).
+    bool consume_window_expired() { const bool value = last_window_expired_; last_window_expired_ = false; return value; }
+    EnrolledFailureDetail consume_failure_detail() {
+        const auto value = failure_; failure_ = {}; return value;
+    }
 
 private:
     friend class IndependentPeerTrafficEndpoint;
@@ -196,6 +204,7 @@ private:
         if (busy_) { revoked_ = true; return false; }
         if (cleanup_started_) return false;
         busy_ = true;
+        failure_ = {};
         const bool accepted = action();
         if (!accepted || revoked_) {
             state_ = EndpointState::refused;
@@ -204,20 +213,42 @@ private:
         busy_ = false;
         return accepted && !revoked_ && state_ != EndpointState::refused;
     }
+    bool reject(EnrolledFailureReason reason, const ConfirmationSample* sample = nullptr) {
+        if (failure_.reason == EnrolledFailureReason::none) {
+            failure_ = {EnrolledFailureLayer::handshake_endpoint, reason, sample != nullptr,
+                invitation_begun_, false, sample ? sample->now_ms : 0, last_now_,
+                issued_ms_, deadline_ms_, 0};
+        }
+        return false;
+    }
     bool observe(bool initial = false, bool require_role = false) {
-        if (revoked_ || random_.state() != security::EntropyState::ready || revoked_) return false;
-        if (boot_started_ && (!boot_.current() || revoked_)) return false;
-        if (require_role && (!role_authority_ || !role_authority_->current() || revoked_)) return false;
-        // Sample time after durable readback, preserving the original Ready
-        // context across preparation and every later endpoint operation.
+        last_window_expired_ = false;
+        if (revoked_) return reject(EnrolledFailureReason::reentry);
+        if (random_.state() != security::EntropyState::ready) return reject(EnrolledFailureReason::entropy);
+        if (revoked_) return reject(EnrolledFailureReason::reentry);
+        if (boot_started_ && (!boot_.current() || revoked_))
+            return reject(revoked_ ? EnrolledFailureReason::reentry : EnrolledFailureReason::boot_current);
+        if (require_role && (!role_authority_ || !role_authority_->current() || revoked_))
+            return reject(revoked_ ? EnrolledFailureReason::reentry : EnrolledFailureReason::role_current);
+        // Copy this check's own sample after durable readback. Never resample
+        // during classification or cleanup, when another cause may be true.
         const auto sample = authority_.sample();
-        if (revoked_ || random_.state() != security::EntropyState::ready || revoked_ ||
-            sample.context.transport_generation == 0 || sample.context.session_nonce == 0 ||
-            sample.now_ms == std::numeric_limits<std::uint64_t>::max() ||
-            (clock_seen_ && sample.now_ms < last_now_)) return false;
+        if (revoked_) return reject(EnrolledFailureReason::reentry, &sample);
+        if (random_.state() != security::EntropyState::ready) return reject(EnrolledFailureReason::entropy, &sample);
+        if (revoked_) return reject(EnrolledFailureReason::reentry, &sample);
+        if (sample.context.transport_generation == 0 || sample.context.session_nonce == 0)
+            return reject(EnrolledFailureReason::invalid_context, &sample);
+        if (sample.now_ms == std::numeric_limits<std::uint64_t>::max())
+            return reject(EnrolledFailureReason::invalid_clock, &sample);
+        if (clock_seen_ && sample.now_ms < last_now_)
+            return reject(EnrolledFailureReason::clock_regression, &sample);
         if (initial) context_ = sample.context;
-        else if (sample.context != context_) return false;
-        if (invitation_begun_ && (sample.now_ms < issued_ms_ || sample.now_ms >= deadline_ms_)) return false;
+        else if (sample.context != context_) return reject(EnrolledFailureReason::context_changed, &sample);
+        if (invitation_begun_ && (sample.now_ms < issued_ms_ || sample.now_ms >= deadline_ms_)) {
+            last_window_expired_ = true;
+            return reject(sample.now_ms < issued_ms_ ? EnrolledFailureReason::window_before_issued :
+                EnrolledFailureReason::window_expired, &sample);
+        }
         last_now_ = sample.now_ms;
         clock_seen_ = true;
         return true;
@@ -262,5 +293,7 @@ private:
     std::uint8_t next_step_{0};
     bool clock_seen_{false}, boot_started_{false}, invitation_begun_{false}, busy_{false}, revoked_{false};
     bool cleanup_started_{false}, cleanup_ok_{false};
+    bool last_window_expired_{false};
+    EnrolledFailureDetail failure_{};
 };
 } // namespace opentrail::security_evaluation

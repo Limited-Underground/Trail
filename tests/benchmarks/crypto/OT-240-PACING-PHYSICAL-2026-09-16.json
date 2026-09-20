@@ -1,0 +1,85 @@
+{
+  "schema": "OT240-PACING-PHYSICAL-TRIAL-1",
+  "recorded_utc": "2026-09-16T14:34:58.594374+00:00",
+  "observation": "trial_failed",
+  "failure_stage": "handshake_3",
+  "failure_reason": "target_refused",
+  "exact_failed_operation": "not_recorded_within_stage",
+  "cleanup_observation": "protocol_unverified_handles_closed",
+  "candidate_attempts": 1,
+  "recovery_attempts": 0,
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB; corrected enrolled evaluation candidate",
+  "candidate": {
+    "bytes": 525760,
+    "sha256": "d8b520b7bced68b6232574d814d44328a6ce649cc5880678acc5ee62ada5618b"
+  },
+  "journal_sha256": "bc89f25e786793d8544e4e5429e9cf143b5003dddc9cffd0af5c740af5def1cc",
+  "diagnostics_sha256": "71567de719bc41823fb47d81ec4da7419a2f4ac44591d41ac49221750e2b7758",
+  "diagnostic_events": [
+    "enrolled_failure_handshake_3_target_refused",
+    "enrolled_cleanup_protocol_unverified_handles_closed"
+  ],
+  "roles": {
+    "A": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_regions_verified": 5,
+      "captured_bytes_verified": true,
+      "protected_capture_descriptors_match_request": true,
+      "restored": true
+    },
+    "B": {
+      "events": [
+        "claim_intent",
+        "candidate_write_intent",
+        "candidate_boot_intent",
+        "restore_application_intent",
+        "restore_application_verified",
+        "restore_nvs_intent",
+        "restore_nvs_verified",
+        "original_reset_intent",
+        "restored_and_reset"
+      ],
+      "captured_regions_verified": 5,
+      "captured_bytes_verified": true,
+      "protected_capture_descriptors_match_request": true,
+      "restored": true
+    }
+  },
+  "bridge_handles_closed": true,
+  "protocol_cleanup_verified": false,
+  "custody_closed": true,
+  "active_lock_absent": true,
+  "controller_exit_status": 0,
+  "child_exit_status": 0,
+  "controller_result_source": "active controller result reported by root",
+  "normal_screens_user_confirmed": true,
+  "normal_screens_confirmation_source": "explicit user confirmation relayed by root after corrected-trial restoration",
+  "physical_cause_proven": false,
+  "acceptance": {
+    "comparison_verified": false,
+    "physical_confirmation_verified": false,
+    "radio_status_delivery_verified": false,
+    "phone_path_verified": false,
+    "v1_credit": false,
+    "production_selection": false
+  },
+  "next_gate": "Host integrated real-driver and storage-cost reproduction before any new physical proposal.",
+  "limits": [
+    "Third-handshake-stage target refusal does not identify sender send/poll/statistics versus receiver poll.",
+    "No complete comparison, activation or fixed-status delivery was established.",
+    "Handle closure was verified; protocol cleanup acknowledgement was not. Independent original restoration is separately verified.",
+    "Private capture bytes independently rehashed; on-device restoration/readback/reset recorded by closed controller journal.",
+    "Three separate host probes expose storage-call amplification and driver timing mechanism, not proven physical cause.",
+    "One candidate attempt consumed; no new physical proposal before host discriminator and validated correction."
+  ]
+}

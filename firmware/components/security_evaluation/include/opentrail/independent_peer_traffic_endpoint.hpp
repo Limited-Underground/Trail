@@ -162,7 +162,12 @@ public:
         busy_ = false;
         return cleanup_ok_ && !reentered_;
     }
+    EndpointState state() const { return endpoint_.state(); }
     bool secrets_cleared() const { return endpoint_.secrets_cleared(); }
+    // Relays the durable handshake endpoint's own consuming accessor; this
+    // layer has no separate invitation-window check of its own.
+    bool consume_window_expired() { return endpoint_.consume_window_expired(); }
+    EnrolledFailureDetail consume_failure_detail() { return endpoint_.consume_failure_detail(); }
 private:
     std::array<unsigned char, 8> control(unsigned char kind) const {
         return {'O','T',1,kind,static_cast<unsigned char>(role_),0,0,0};
