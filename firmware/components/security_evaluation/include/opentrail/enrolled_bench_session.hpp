@@ -61,14 +61,16 @@ public:
                 const bool cleaned = cleanup();
                 return writer.text("OTENROLL1 CLOSED ") && writer.number(cleaned ? 1 : 0) && writer.text("\n");
             }
-            if (tokens.count == 2 && tokens.values[1] == "RFSTAT") {
+            if (tokens.count == 2 && (tokens.values[1] == "RFSTAT" || tokens.values[1] == "RFREADY")) {
                 if (!radio_ || !observe(!closed_)) return false;
                 if (!closed_ && !service_completion()) return false;
                 const auto stats=radio_->statistics();
                 if (!observe(!closed_)) return false;
-                return writer.text("OTENROLL1 RFSTAT ") && writer.number(stats.tx_attempts) && writer.text(" ") &&
+                const bool readiness = tokens.values[1] == "RFREADY";
+                return writer.text(readiness ? "OTENROLL1 RFREADY " : "OTENROLL1 RFSTAT ") && writer.number(stats.tx_attempts) && writer.text(" ") &&
                     writer.number(stats.tx_completed) && writer.text(" ") && writer.number(stats.rx_frames) && writer.text(" ") &&
-                    writer.number(stats.rx_errors) && writer.text(" ") && writer.number(stats.stopped?1:0) && writer.text("\n");
+                    writer.number(stats.rx_errors) && writer.text(" ") && writer.number(stats.stopped?1:0) &&
+                    (!readiness || (writer.text(" ") && writer.number(radio_->receive_ready()?1:0))) && writer.text("\n");
             }
             if (tokens.count == 2 && tokens.values[1] == "STATUS") {
                 if (!observe(!closed_)) return false;
@@ -299,10 +301,27 @@ private:
             return transport_ && decimal(tokens.values[2],code) && code>=1 && code<=4 &&
                 transport_->send_status(static_cast<std::uint8_t>(code),last_now_) && writer.text("OTENROLL1 OK RFSTATUS\n");
         }
+        // Additive command: older OTENROLL1 implementations refuse it closed.
+        // The initial RFPOLL still owns starting queued TX.
+        if (name == "RFFINISH" && tokens.count == 2) {
+            if (!transport_ || !radio_ || !transport_->finish_transmit(last_now_,[&] {
+                return observe() && radio_->rearm_after_transmit() && observe();
+            })) return false;
+            const auto stats=radio_->statistics();
+            return writer.text("OTENROLL1 RFFINISH ") && writer.number(stats.tx_attempts) && writer.text(" ") &&
+                writer.number(stats.tx_completed) && writer.text(" ") && writer.number(stats.rx_frames) && writer.text(" ") &&
+                writer.number(stats.rx_errors) && writer.text(" ") && writer.number(stats.stopped?1:0) &&
+                writer.text(" ") && writer.number(radio_->receive_ready()?1:0) && writer.text("\n");
+        }
         if (name == "RFPOLL" && tokens.count == 2) {
             if (!transport_) return false;
             std::uint8_t status=0;
-            switch(transport_->poll(last_now_,status)) {
+            const auto result=transport_->poll(last_now_,status,[&] {
+                // Final transport durable checks follow this admitted RX-only
+                // maintenance before the command can publish any response.
+                return radio_ && observe() && radio_->rearm_after_receive() && observe();
+            });
+            switch(result) {
                 case EnrolledTransportPoll::waiting:return writer.text("OTENROLL1 RF WAIT\n");
                 case EnrolledTransportPoll::handshake:return writer.text("OTENROLL1 RF HANDSHAKE\n");
                 case EnrolledTransportPoll::control:return writer.text("OTENROLL1 RF CONTROL\n");

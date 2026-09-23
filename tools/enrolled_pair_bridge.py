@@ -14,7 +14,7 @@ from pair_bench_bridge import BridgeError, need, decimal, unhex, identity
 from enrolled_trace_schema import (valid_host_timing, HOST_TIMING_COMMAND_LIMIT,
                                    valid_transport_timing, TRANSPORT_TIMING_FIELDS)
 
-COMMANDS = frozenset('OPEN SYNC HELLO INIT TIME BEGIN RADIO RFSEND RFPOLL RFSTAT SEND FRAME REVIEW STATUS NEXTCONTROL CONTROL TRAFFIC RFCONTROL RFSTATUS SENDSTATUS STATUSFRAME CLOSE UNKNOWN'.split())
+COMMANDS = frozenset('OPEN SYNC HELLO INIT TIME BEGIN RADIO RFSEND RFPOLL RFSTAT RFREADY RFFINISH SEND FRAME REVIEW STATUS NEXTCONTROL CONTROL TRAFFIC RFCONTROL RFSTATUS SENDSTATUS STATUSFRAME CLOSE UNKNOWN'.split())
 SNAPSHOT_FIELDS = ('fault', 'tick_last_us', 'tick_max_us', 'nvs_reads', 'nvs_read_us',
                    'tx_queue_age_ms', 'tx_age_ms', 'service_gap_ms', 'tx_attempts', 'tx_completed')
 def valid_snapshot(value):
@@ -362,17 +362,16 @@ class EnrolledBridge:
             return self.timed_exchange(e,command,expected,min(deadline,e.now()+5),startup=startup)
         def radio_send(e,command):
             need(exchange(e,command,'OK')==[command.split(' ')[0]],'radio_send_refused')
+            need(exchange(e,'RFPOLL','RF')==['WAIT'],'radio_unexpected_frame')
             while e.now()<deadline:
-                need(exchange(e,'RFPOLL','RF')==['WAIT'],'radio_unexpected_frame')
-                raw=exchange(e,'RFSTAT','RFSTAT')
-                need(len(raw)==5,'radio_statistics_invalid')
+                raw=exchange(e,'RFFINISH','RFFINISH')
+                need(len(raw)==6,'radio_statistics_invalid')
                 values=[decimal(x,0xffffffff) for x in raw]
-                need(values[3]==0 and values[4]==0 and 0<values[0]<=16 and values[1]<=values[0],
+                need(values[3]==0 and values[4]==0 and values[5] in (0,1) and
+                     0<values[0]<=16 and values[1]<=values[0],
                      'radio_statistics_invalid')
                 if values[0]==values[1]:
-                    # Completion-only target maintenance deliberately leaves RX off.
-                    # This fully guarded poll rearms it before the peer may transmit.
-                    need(exchange(e,'RFPOLL','RF')==['WAIT'],'radio_unexpected_frame')
+                    need(values[5]==1,'radio_receive_not_ready')
                     return
                 self.sleep(.02)
             raise BridgeError('radio_transmit_timeout')
@@ -381,9 +380,7 @@ class EnrolledBridge:
                 reply=exchange(e,'RFPOLL','RF')
                 if reply==['WAIT']:self.sleep(.02);continue
                 need(reply==expected,'radio_stage_invalid')
-                # Consuming RX_DONE leaves the target in standby. Rearm through
-                # the same guarded command before any following peer transmit.
-                need(exchange(e,'RFPOLL','RF')==['WAIT'],'radio_unexpected_frame')
+                # Successful admission atomically rearms RX before this response.
                 return
             raise BridgeError('bridge_timeout')
         try:

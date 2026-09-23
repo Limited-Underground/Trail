@@ -249,7 +249,51 @@ unsigned completion_only() {
     }
     return groups;
 }
+unsigned receive_rearm_only() {
+    unsigned groups=0;
+    {
+        mock::reset();EnrolledRadioDriver driver;CHECK(!driver.receive_ready());CHECK(!driver.rearm_after_receive());++groups;
+    }
+    for(unsigned mode=0;mode<6;++mode) {
+        mock::reset();EnrolledRadioDriver driver;start(driver);CHECK(driver.receive_ready());
+        const auto armed=mock::count("start_rx");CHECK(driver.rearm_after_receive());CHECK(mock::count("start_rx")==armed);
+        mock::irq=RADIOLIB_SX126X_IRQ_RX_DONE;driver.service(100);CHECK(!driver.receive_ready());
+        const auto captured=mock::calls.size();CHECK(!driver.rearm_after_receive());CHECK(mock::calls.size()==captured);
+        std::array<std::uint8_t,158> out{};CHECK(driver.receive({out.data(),out.size()}).has_frame());
+        if(mode==1){mock::fault="start_rx";mock::matching=0;}
+        if(mode==2){mock::now_us=10000000;}
+        if(mode==3){mock::delay_at="start_rx";mock::delay_ms=10000;}
+        if(mode==4){mock::callback=[&](const std::string& name){if(name=="start_rx")CHECK(!driver.rearm_after_receive());};}
+        if(mode==5){std::uint8_t byte=1;CHECK(driver.send({&byte,1},0).accepted());}
+        const auto tx=mock::count("start_tx"),frames=driver.statistics().rx_frames;
+        CHECK(driver.rearm_after_receive()==(mode==0));
+        CHECK(mock::count("start_tx")==tx && driver.statistics().rx_frames==frames);
+        CHECK(driver.receive_ready()==(mode==0));++groups;
+    }
+    {mock::reset();EnrolledRadioDriver driver;start(driver);queue_tx(driver);const auto calls=mock::calls.size();CHECK(!driver.rearm_after_receive());CHECK(mock::calls.size()==calls);++groups;}
+    return groups;
+}
+unsigned sender_rearm_only() {
+    unsigned groups=0;
+    for(unsigned mode=0;mode<7;++mode) {
+        mock::reset();EnrolledRadioDriver driver;start(driver);queue_tx(driver);
+        CHECK(driver.rearm_after_transmit());CHECK(!driver.receive_ready());
+        mock::irq=RADIOLIB_SX126X_IRQ_TX_DONE;CHECK(driver.service_pending_transmit());
+        if(mode==1)mock::fault="start_rx";
+        if(mode==2)mock::now_us=10000000;
+        if(mode==3){mock::delay_at="start_rx";mock::delay_ms=10000;}
+        if(mode==4)mock::callback=[&](const std::string& n){if(n=="start_rx")CHECK(!driver.rearm_after_transmit());};
+        if(mode==5){std::uint8_t byte=1;CHECK(driver.send({&byte,1},0).accepted());}
+        const auto tx=mock::count("start_tx"),frames=driver.statistics().rx_frames;
+        CHECK(driver.rearm_after_transmit()==(mode==0 || mode==6));
+        CHECK(mock::count("start_tx")==tx && driver.statistics().rx_frames==frames);
+        if(mode==6){mock::irq=RADIOLIB_SX126X_IRQ_RX_DONE;CHECK(!driver.rearm_after_transmit());
+            CHECK(driver.statistics().rx_frames==frames);driver.service(0);CHECK(!driver.rearm_after_transmit());}
+        ++groups;
+    }
+    return groups;
+}
 int main() {
-    const auto groups = startup() + queue_and_receive() + radio_faults() + time_and_reentry() + completion_only();
+    const auto groups = startup() + queue_and_receive() + radio_faults() + time_and_reentry() + completion_only() + receive_rearm_only() + sender_rearm_only();
     std::cout << "PASS " << groups << " enrolled radio driver groups\n";
 }

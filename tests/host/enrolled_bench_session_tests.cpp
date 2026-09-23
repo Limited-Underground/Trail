@@ -71,6 +71,9 @@ template<std::size_t N> std::array<unsigned char,N> from_hex(const std::string& 
 struct Driver final : PairRadioDriver {
     radio::test_support::FakeRadioTransport wire{158,0};
     unsigned starts{}, stops{}, attempts{}, limit{};
+    unsigned rearms{};bool rearm_ok{true};std::function<void()> on_rearm;
+    bool rearm_after_receive() override { ++rearms;auto f=std::move(on_rearm);on_rearm={};if(f)f();return rearm_ok; }
+    bool rearm_after_transmit() override { return rearm_after_receive(); }
     bool start_ok{true}, stop_ok{true}, stopped{true}, delay_completion{false};
     std::function<void()> on_service;
     std::function<void()> on_stop;
@@ -284,6 +287,17 @@ int main(int argc,char** argv) {
         auto relay=[](Peer& a,Peer& b){(void)a.call("OTENROLL1 RFSEND");(void)a.call("OTENROLL1 RFPOLL");a.driver.wire.service(100000);CHECK(b.call("OTENROLL1 RFPOLL")=="OTENROLL1 RF HANDSHAKE\n");};
         relay(p.a,p.b);relay(p.b,p.a);relay(p.a,p.b);
     };
+    for(unsigned fault=0;fault<3;++fault){
+        Pair p;p.a.driver.wire.connect(p.b.driver.wire);p.b.driver.wire.connect(p.a.driver.wire);p.begin();
+        (void)p.a.call("OTENROLL1 RADIO");(void)p.b.call("OTENROLL1 RADIO");
+        (void)p.a.call("OTENROLL1 RFSEND");(void)p.a.call("OTENROLL1 RFPOLL");p.a.driver.wire.service(100000);
+        if(fault==0)p.b.driver.rearm_ok=false;
+        else if(fault==1)p.b.driver.on_rearm=[&]{p.b.source.value.context.session_nonce++;};
+        else p.b.driver.on_rearm=[&]{p.b.backend.stores[static_cast<unsigned>(EvaluationNamespace::enrollment)].arm(Fault::corrupt_read);};
+        EnrolledBenchSession::Output output{};std::size_t size=99;
+        CHECK(!p.b.session.command("OTENROLL1 RFPOLL",output,size));
+        CHECK(size==0 && p.b.driver.rearms==1 && p.b.session.secrets_cleared());++groups;
+    }
     for(unsigned fault=0;fault<4;++fault){
         Pair p;rf_handshake(p);const auto before=p.a.driver.completions;
         if(fault==0)p.a.driver.completion_ok=false;
@@ -426,6 +440,15 @@ int main(int argc,char** argv) {
         Pair p;p.begin();(void)p.a.call("OTENROLL1 RADIO");p.a.driver.stop_ok=false;
         CHECK(!p.a.session.close());CHECK(p.a.session.secrets_cleared());
         CHECK(p.a.call("OTENROLL1 RFSTAT")=="OTENROLL1 RFSTAT 0 0 0 0 0\n");++groups;
+    }
+    for(unsigned fault=0;fault<4;++fault) {
+        Pair p;p.begin();(void)p.a.call("OTENROLL1 RADIO");
+        if(fault==0)p.a.driver.rearm_ok=false;
+        if(fault==1)p.a.driver.on_rearm=[&]{p.a.source.value.context.session_nonce++;};
+        if(fault==2)p.a.driver.on_rearm=[&]{p.a.backend.stores[static_cast<unsigned>(EvaluationNamespace::enrollment)].arm(Fault::corrupt_read);};
+        if(fault==3)p.a.driver.on_rearm=[&]{p.a.source.value.now_ms=60100;};
+        p.a.denied("OTENROLL1 RFFINISH");
+        CHECK(p.a.driver.rearms==1 && p.a.driver.stopped && p.a.session.secrets_cleared());++groups;
     }
     std::cout<<"PASS "<<groups<<" enrolled bench session groups\n";
 }

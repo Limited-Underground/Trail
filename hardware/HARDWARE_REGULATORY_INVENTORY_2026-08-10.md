@@ -12,6 +12,13 @@ engineering inventory, not a certification or legal opinion. A runtime model
 name or USA radio preset does not establish the exact SKU, FCC authorization,
 approved antenna, or lawful operating mode.
 
+## Identity correction - 2026-09-21
+
+The historical OT-DEV-002 runtime-only identity statement below is superseded
+by [OT-119](../tests/hardware/OT-119-2026-08-22.md), which independently admits
+HTIT-WB32LAF / V4.2 and its ROM profile. Antenna, electrical, regulatory and
+production-support gaps remain open. See the [current configuration audit](../docs/testing/OT-0101c-TARGET-CONFIGURATION-AUDIT-2026-09-21.md).
+
 ## Evidence layers
 
 | Device | Confirmed on this unit | Official family information | Still required |

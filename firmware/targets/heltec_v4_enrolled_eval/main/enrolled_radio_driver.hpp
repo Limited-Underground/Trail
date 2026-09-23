@@ -15,6 +15,9 @@ public:
     EnrolledRadioDriver& operator=(const EnrolledRadioDriver&) = delete;
     bool start(std::uint64_t deadline_ms, unsigned maximum_transmissions) override;
     bool service_pending_transmit() override;
+    bool rearm_after_receive() override;
+    bool rearm_after_transmit() override;
+    bool receive_ready() const override;
     bool stop() override;
     security_evaluation::PairRadioStatistics statistics() const override { return statistics_; }
     std::size_t mtu() const override { return 158; }

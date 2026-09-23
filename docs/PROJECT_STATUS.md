@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-20. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-23. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -8,6 +8,8 @@ See [archive navigation](history/README.md) for moved headings, [Architecture](A
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
 ## Current accepted capabilities
+
+OT-0247d corrected physical trial is owner-accepted. [OT-0238b reconciliation](testing/OT-0238b-PRODUCT-ENROLLMENT-RECONCILIATION-2026-09-23.md) identifies unresolved product bootstrap and retained-identity/exact-epoch semantics before product integration. Durable fresh-session storage already exists and should be reused. The owner accepted the [product design](security/PRODUCT_ENROLLMENT_REKEY_DRAFT_V1.md) on 2026-09-23. [Host identity binding, local review and durable preparation](testing/OT-0238b-LOCAL-PREPARATION-2026-09-23.md) are candidate components. Actual trusted device-port integration, possession proof, durable activation and restart recovery remain unimplemented product gates. No new device work is required.
 
 [OT241 diagnostic trials](testing/OT-241-DIAGNOSTIC-TRIAL-PREPARATION-2026-09-16.md)
 closed with both originals independently restored. The first reached comparison
@@ -49,12 +51,33 @@ first activation control, but B returned28 WAIT polls before expiry. Source revi
 found the receiving radio is not rearmed after the final handshake before that
 transmission. [OT247 complete-flow review](testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md)
 corrects guarded receive rearming and per-byte host reads;97 Python tests and
-the updated composed flow pass. Measured-input sensitivity cases still expire
-after5 or3 statuses, so physical readiness remains blocked on the full budget. Significant per-byte
-host guard overhead was also measured, not substituted for the missing-packet
-mechanism. Both originals/state are independently verified restored, custody is
-closed and both normal screens confirmed. Physical four-status delivery, phone
-integration and V1 remain open; no website status change.
+the updated composed flow pass. Its baseline sensitivity cases expire after5 or3
+statuses. The [OT-0247c host correction](testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md)
+now passes all eight deliveries and cleanup in both modeled sensitivity profiles;
+owner acceptance is recorded. [OT-0247d host preparation](testing/OT-0247d-HOST-PREPARATION-2026-09-21.md)
+bound the corrected candidate. The [single physical trial](testing/OT-0247d-PHYSICAL-2026-09-22.md)
+completed activation and seven of eight statuses, then expired in B's sender-side
+RFPOLL. Both original states are restored and normal screens confirmed. Actual
+confirmation polling and delayed-completion rearm costs exceed the modeled command
+path. The [OT-0247e actual-bridge replay](testing/OT-0247e-HOST-REPLAY-2026-09-22.md)
+completes eight deliveries but does not reproduce physical expiry; its synchronous
+serial adapter omits measured empty/partial-read guard work. Quantified residual
+evidence is owner-accepted. The [OT-0247f asynchronous model](testing/OT-0247f-ASYNC-SERIAL-MODEL-2026-09-22.md)
+now closely matches aggregate reads/guards but still completes eight deliveries.
+Matched activation/status phases remain slower physically; production correction
+and physical acceptance remain open. OT-0247f evidence is owner-accepted. The
+[OT-0247g correction](testing/OT-0247g-GUARDED-COMPLETION-2026-09-22.md) is implemented
+locally: nine nominal paired replays deliver eight statuses, with measured savings.
+Its report corrects the earlier asynchronous immediate-button model and nominal
+result claim. All 44 final host suites, both affected builds, enrolled reproducibility and
+independent lifecycle review pass; OT-0247g is owner-accepted;
+the [approved corrected-candidate trial](testing/OT-0247d-G-PHYSICAL-2026-09-23.md)
+now physically passes three handshakes, four activations and eight statuses with
+zero faults/receive errors and stopped radios. Both original firmware/state spans
+were independently restored/read back, both reset, custody closed without recovery
+retry, and the owner confirmed normal screens. Owner task acceptance is recorded. Phone
+integration, retained restart/rekey and V1 completion remain open; no public website
+status or weighted V1 credit changes from this trial alone.
 
 The [integrated enrollment candidate](testing/OT-240-INTEGRATED-ENROLLMENT-2026-09-16.md)
 combines durable fresh-session allocation, retained signed enrollment, actual
@@ -305,6 +328,13 @@ connecting protected phone messages to authenticated direct LoRa. Current phone
 Messages screens do not yet provide that product radio path. The original pair's
 pending clock correction can follow its use as the retained control.
 
+The [complete-flow read-cost audit](testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md)
+quantifies why receiver-only savings are insufficient. The approved
+[complete correction](testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md) removes
+redundant receiver and already-ready sender polls while retaining final durable
+checks and delayed-completion fallback. Host evidence is owner-accepted;
+physical activation/status acceptance remains open.
+
 ## Remaining acceptance and decisions
 
 Post-release concepts remain separately scoped in the
@@ -317,7 +347,7 @@ release commitment or completion credit.
   framing, persistent counters/replay protection, LoRa TX/RX and delivery ACKs.
 - Complete reset-domain cleanup, cross-pair denial/isolation, physical rotation
   and large-font flows, automatic production launch and release packaging/signing.
-- Target-specific radio/regulatory, antenna, power/battery and GNSS evidence;
+- [Target configuration audit](testing/OT-0101c-TARGET-CONFIGURATION-AUDIT-2026-09-21.md): experimental identity/PHY baseline only; target-specific radio/regulatory, antenna, power/battery and GNSS evidence;
   calibrated battery behavior, sustained clock accuracy and field measurements.
 - Protected storage/rollback and selected cryptography remain distinct from the
   already working local BLE ownership/name/region storage.

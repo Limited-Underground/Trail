@@ -24,7 +24,7 @@ REQUIRED = {'tools/' + n + '.py' for n in (
     'security_policy_execution', 'security_policy_input_readback')}
 
 
-COMMANDS = frozenset('OPEN SYNC HELLO INIT TIME BEGIN RADIO RFSEND RFPOLL RFSTAT SEND FRAME REVIEW STATUS NEXTCONTROL CONTROL TRAFFIC RFCONTROL RFSTATUS SENDSTATUS STATUSFRAME CLOSE UNKNOWN'.split())
+COMMANDS = frozenset('OPEN SYNC HELLO INIT TIME BEGIN RADIO RFSEND RFPOLL RFSTAT RFREADY RFFINISH SEND FRAME REVIEW STATUS NEXTCONTROL CONTROL TRAFFIC RFCONTROL RFSTATUS SENDSTATUS STATUSFRAME CLOSE UNKNOWN'.split())
 SNAPSHOT_FIELDS = ('fault', 'tick_last_us', 'tick_max_us', 'nvs_reads', 'nvs_read_us',
                    'tx_queue_age_ms', 'tx_age_ms', 'service_gap_ms', 'tx_attempts', 'tx_completed')
 def valid_snapshot(value):

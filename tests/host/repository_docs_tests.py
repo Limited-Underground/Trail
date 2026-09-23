@@ -101,6 +101,13 @@ class RepositoryDocsTests(unittest.TestCase):
         self.write("docs/PROGRESS_LOG.md", "# Progress\n## 2026-09-09\n### OT-171A Second update\n## 2026-09-08\n### OT-171A First update\n")
         self.assertEqual([], self.problems())
 
+    def test_four_digit_lowercase_child_ids_require_exact_registration(self):
+        self.write("tasks/BACKLOG.md", "# Backlog\n| OT-0101c | review pending |\n")
+        self.write("docs/PROGRESS_LOG.md", "# Progress\n## 2026-09-21\n### OT-0101c Configuration audit\n")
+        self.assertEqual([], self.problems())
+        self.write("docs/PROGRESS_LOG.md", "# Progress\n## 2026-09-21\n### OT-0101d Unregistered child\n")
+        self.assertTrue(any("not registered" in p for p in self.problems()))
+
     def test_unregistered_numbered_tasks_rejected_even_in_legacy_sections(self):
         for task, day in [("OT-999", "2026-09-08"), ("OT-171A", "2026-08-10")]:
             self.write("docs/PROGRESS_LOG.md", f"# Progress\n## {day}\n### {task} Work\n")

@@ -7,7 +7,7 @@ _TIMING_STAGES = frozenset(
                                'radio_','review_','status_','close_') for role in ('A','B')]
     + ['handshake_1','handshake_2','handshake_3','wait_local_confirmation',
        'activation_1','activation_2','activation_3','activation_4'])
-_TIMING_COMMANDS = frozenset('OPEN SYNC HELLO INIT TIME BEGIN RADIO RFSEND RFPOLL RFSTAT SEND FRAME REVIEW STATUS NEXTCONTROL CONTROL TRAFFIC RFCONTROL RFSTATUS SENDSTATUS STATUSFRAME CLOSE UNKNOWN'.split())
+_TIMING_COMMANDS = frozenset('OPEN SYNC HELLO INIT TIME BEGIN RADIO RFSEND RFPOLL RFSTAT RFREADY RFFINISH SEND FRAME REVIEW STATUS NEXTCONTROL CONTROL TRAFFIC RFCONTROL RFSTATUS SENDSTATUS STATUSFRAME CLOSE UNKNOWN'.split())
 _TIMING_REASONS = frozenset(('timeout','wrong_response_kind','invalid_frame_shape',
                            'identity_guard','partial_write','serial_read_failed',
                            'late_read','target_refused','unknown'))

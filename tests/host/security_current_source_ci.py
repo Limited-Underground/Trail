@@ -157,6 +157,12 @@ def run(output):
               base, (), " peer membership store groups")
         suite("enrolled_peer_endpoint_tests", [*common, ROOT / "tests/host/enrolled_peer_endpoint_tests.cpp"],
               base, (), " enrolled peer endpoint groups")
+        suite("enrollment_identity_binding_tests", [*common, ROOT / "tests/host/enrollment_identity_binding_tests.cpp"],
+              base, (), " enrollment identity binding groups")
+        suite("enrollment_fingerprint_review_tests", [*common, ROOT / "tests/host/enrollment_fingerprint_review_tests.cpp"],
+              base, (), " enrollment fingerprint review groups")
+        suite("enrollment_commit_coordinator_tests", [*common, ROOT / "tests/host/enrollment_commit_coordinator_tests.cpp"],
+              base, (), " enrollment commit journal groups")
         suite("enrollment_evidence_store_tests", [*common, ROOT / "tests/host/enrollment_evidence_store_tests.cpp"],
               base, (), " enrollment evidence store groups")
         suite("provisioned_peer_endpoint_tests", [*common, ROOT / "tests/host/provisioned_peer_endpoint_tests.cpp"],

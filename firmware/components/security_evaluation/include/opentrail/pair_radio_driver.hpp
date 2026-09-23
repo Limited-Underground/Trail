@@ -14,6 +14,13 @@ public:
     // start queued TX, consume RX, or rearm RX. The caller retains all authority
     // checks; an inactive no-op is not an assertion of full transport freshness.
     virtual bool service_pending_transmit() { return true; }
+    // Narrow receive-only maintenance; unsupported drivers fail closed.
+    virtual bool rearm_after_receive() { return false; }
+    // Guarded sender maintenance: never start queued TX or consume RX.
+    // Pending TX may remain pending; idle RX IRQ/data must reject.
+    virtual bool rearm_after_transmit() { return false; }
+    // Physical state snapshot only, never proof of session authorization.
+    virtual bool receive_ready() const { return false; }
     // Must latch unavailable and lower FEM even if chip shutdown is uncertain.
     virtual bool stop() = 0;
     virtual PairRadioStatistics statistics() const = 0;

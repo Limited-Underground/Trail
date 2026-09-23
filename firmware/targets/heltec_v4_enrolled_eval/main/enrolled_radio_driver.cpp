@@ -221,6 +221,33 @@ void EnrolledRadioDriver::service(std::uint64_t now_ms) {
     ++statistics_.rx_frames;
 }
 
+bool EnrolledRadioDriver::receive_ready() const {
+    return available_ && !revoked_ && !stop_done_ && receiving_ &&
+        !transmitting_ && !tx_bytes_ && !rx_bytes_;
+}
+
+bool EnrolledRadioDriver::rearm_after_receive() {
+    Lease lease(*this);
+    if (!lease.entered || !live()) return false;
+    // Never start TX, discard a captured frame, or process a new IRQ here.
+    if (transmitting_ || tx_bytes_ || rx_bytes_) return false;
+    if (receiving_) return true;
+    return arm_receive();
+}
+
+bool EnrolledRadioDriver::rearm_after_transmit() {
+    Lease lease(*this);
+    if (!lease.entered || !live()) return false;
+    if (tx_bytes_ || rx_bytes_) return false;
+    if (transmitting_) return true; // Completion-only service owns TX completion.
+    if (receiving_) {
+        // An unsolicited frame or error must not be hidden by a ready snapshot.
+        const int irq = gpio_get_level(static_cast<gpio_num_t>(14));
+        return live() && !irq;
+    }
+    return arm_receive();
+}
+
 bool EnrolledRadioDriver::service_pending_transmit() {
     Lease lease(*this);
     if (!lease.entered) return false;

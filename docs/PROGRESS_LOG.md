@@ -1,5 +1,143 @@
 # OpenTrail Progress Log
 
+## 2026-09-23
+
+### OT-0238b Add local review and durable preparation components
+
+Candidate local review now binds complete display, fresh button gesture and exact
+context to one consumed signature-binding attempt. Durable journal records prepared
+and activation-intent uncertainty with exact readback; restart never grants traffic.
+Independent review corrected final-sample reentry; focused tests pass33/991 groups.
+[Evidence and remaining integration](testing/OT-0238b-LOCAL-PREPARATION-2026-09-23.md).
+Task remains in progress. No device work, V1 credit or website status change.
+
+### OT-0238b Accept design and implement retained identity binding
+
+Owner accepted the product design. Real signature binding now ties both retained
+identities to a canonical fresh invitation and exact next epoch. Independent
+review corrected third-party issuer acceptance, with a discriminating regression.
+[Candidate evidence and remaining gates](testing/OT-0238b-IDENTITY-BINDING-2026-09-23.md)
+separate host proof from trusted local input, durable activation and recovery.
+Task remains in progress; no devices, publication or V1 credit.
+
+### OT-0238b Prepare the product enrollment/rekey design
+
+Owner-authorized design preparation produced a [concrete draft](security/PRODUCT_ENROLLMENT_REKEY_DRAFT_V1.md), independently reviewed against the accepted contract. First-peer full fingerprint verification, fresh possession proof, persistent identity/fresh-session separation and exact epoch+1 are explicit. Post-expiry cleanup remains mandatory. Owner acceptance and full recovery-protocol review remain gates; no implementation, device operation or V1 credit.
+
+### OT-0238b Reconcile evaluation and product enrollment authority
+
+Read-only source review confirms fresh generation storage already exists; USB
+evaluation trust and fresh-identity/greater-epoch rekey do not implement accepted
+product bootstrap and retained-identity/exact-epoch semantics. No unsafe promotion
+or redundant storage implementation. [Reconciliation and proposed contract work](testing/OT-0238b-PRODUCT-ENROLLMENT-RECONCILIATION-2026-09-23.md) identify the prerequisite. Implementation incomplete; no hardware or publication.
+
+### OT-0247d Validate guarded completion on both physical nodes
+
+The single approved revision2 trial passed three handshake, four activation and
+eight status transfers; exact terminal counters, zero faults/receive errors and
+clean radio/protocol closure passed. Both full originals and NVS independently
+restored/read back, reset, custody closed without recovery retries. Owner confirmed
+both normal screens. Cases/batteries untouched; no phones, source edits or publication.
+See [physical evidence](testing/OT-0247d-G-PHYSICAL-2026-09-23.md). Owner acceptance
+pending; weighted V1/public website status unchanged.
+
+## 2026-09-22
+
+### OT-0247d Run the corrected two-node trial and restore originals
+
+One authorized trial reached both confirmations, activation and seven of eight
+statuses, then invitation expiry during B's final sender poll. Both rejection
+traces captured; protocol cleanup unverified, separate from independently verified
+original application/NVS restoration, resets and closed custody. Owner confirmed
+both normal screens. Actual confirmation polling and14 sender rearms are missing
+from the accepted model's success path; user confirmation time fits its allowance.
+See [physical evidence and next boundary](testing/OT-0247d-PHYSICAL-2026-09-22.md).
+No retry, firmware correction, publication or V1 progress credit.
+
+### OT-0247e Compare actual bridge schedules and quantify residual transport work
+
+Four host scenarios complete eight deliveries; four rejection controls pass.
+Physical expiry is not reproduced. The combined model has781 guards/159 reads
+versus physical1482/541, with synchronous-response and event-quantization limits
+explicitly measured. No production correction or physical retry.
+See [replay evidence and bounded proposal](testing/OT-0247e-HOST-REPLAY-2026-09-22.md).
+Owner review pending; no V1 credit, publication or public status change.
+
+### OT-0247f Correct asynchronous host serial modeling
+
+Early writes and bounded response availability now permit real guarded empty/partial
+reads while target work overlaps. Nominal combined case has1545 guards/538 reads
+and eight deliveries; physical1482/541 and seven-delivery expiry remain distinct.
+Phase costs and stress limits quantified;10 scenarios,7 negative controls,8 transport/
+process controls and40 bridge tests pass, with independent scheduling review.
+See [async model and measured recommendation](testing/OT-0247f-ASYNC-SERIAL-MODEL-2026-09-22.md).
+No production correction, hardware, publication or V1 credit. Owner review pending.
+
+### OT-0247g Combine guarded completion and receive rearm
+
+Implemented additive RFFINISH while preserving initial queued-TX polling, existing
+diagnostics and fresh durable checks. Corrected paired replay delivers eight statuses
+in all nine nominal scenarios and saves 2.862193 to2.866955 seconds; the read-bound
+stress still fails. Seven negatives and nine transport/process/hold controls pass.
+An explicit erratum corrects OT-0247f's nominal success claim: two asynchronous
+immediate-button failures came from the host clock schedule, not a stress input.
+See [correction and retained evidence](testing/OT-0247g-GUARDED-COMPLETION-2026-09-22.md).
+Both affected firmware targets pass, with seven enrolled raw artifact pairs equal.
+All 44 final host suites and independent lifecycle review pass. The first matrix
+passed its suites but its source-consistency gate was invalidated by the authorized
+adapter edit; the final rerun passes source consistency. Owner review remains pending. No hardware, publication, V1 credit or website
+status change. Historical evidence remains unchanged.
+
+### OT-0247d Prepare the accepted OT-0247g candidate
+
+OT-0247g owner acceptance verified live. Prepared a fresh host-only trial bundle
+with RFFINISH-compatible diagnostics and unchanged execution/restoration body.
+Prior failed trial and consumed authorization preserved; no devices or grants.
+See [candidate preparation](testing/OT-0247d-G-CANDIDATE-PREPARATION-2026-09-22.md).
+Exact physical revision awaits owner approval; no V1 or publication change.
+
+## 2026-09-21
+
+### OT-0247d Prepare the accepted corrected trial bundle
+
+OT-0247c is now owner-accepted. Verified all 1016 retained matrix source pins,
+bound the accepted candidate and updated controller RFREADY diagnostics without
+changing its execution/restoration body. Host-only preparation passed; no device
+enumeration, grant or physical execution. See [preparation and remaining gates](testing/OT-0247d-HOST-PREPARATION-2026-09-21.md).
+Physical acceptance, V1 progress and public website status remain unchanged.
+
+### OT-0247c Correct redundant radio work across the complete exchange
+
+Implemented approved revision 2 after live acceptance of OT-0247a. Admitted RX
+rearms inside the existing durable operation; RFREADY avoids sender rearm only
+when the actual driver is receiving. Final fresh checks, delayed-completion
+fallback, rejection and cleanup remain. All three final host profiles deliver
+eight statuses and clean up; the slowest modeled flow is 58.509924 seconds.
+See [correction, validation and limits](testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md).
+Owner review remains required. No hardware operation, Git publication, V1 credit
+or public capability change. Earlier pending-review entries retain their dated
+submission state; OT-0247a and OT-0101c are now owner-accepted.
+
+### OT-0247a Profile complete exchange durable-read costs
+
+Added host-only per-role/phase/command and pre-tick read accounting. Default
+remains eight deliveries/cleanup; both sensitivity profiles retain exact prior
+five/three-status refusals. Fifteen receive-rearm polls account for 40430 reads,
+but even optimistic removal leaves both sensitivity projections over deadline.
+See the [read-cost audit and correction boundary](testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md).
+No firmware/hardware/Git mutation, new skill or progress credit; owner review pending.
+
+
+### OT-0101c Reconcile target and regional RF evidence
+
+Completed the approved host-only [configuration audit](testing/OT-0101c-TARGET-CONFIGURATION-AUDIT-2026-09-21.md).
+Both exact received identities and bounded evaluation PHY are documented;
+production support, antenna/electrical/regulatory and field gates remain open.
+Corrected the older regulatory inventory's unit-2 identity statement by dated
+addendum. No firmware/hardware operation, V1 score or public capability change.
+Owner review pending. Repository document checks and 18 regression tests pass;
+corrected checker support for four-digit IDs with lowercase child suffixes.
+
 ## 2026-09-20
 
 ### OT-246 Capture actual expiry and activation receive gap

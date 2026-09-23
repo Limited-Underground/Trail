@@ -39,13 +39,14 @@ class Peer:
             if self.pending:self.peer.inbox.append(self.pending);self.pending=None;self.done=self.tx
             if self.inbox:self.rx+=1;return self.inbox.pop(0)
             return ['WAIT']
+        if name=='RFFINISH':return list(map(str,(self.tx,self.done,self.rx,0,self.stopped,1)))
         if name=='RFSTAT':return list(map(str,(self.tx,self.done,self.rx,0,self.stopped)))
         if name=='CLOSE':self.stopped=1;return ['0' if self.bad=='close' else '1']
         raise AssertionError(name)
 def pair():
     a,b=Peer(1),Peer(2);a.peer=b;b.peer=a;return a,b
 class ReceiveLifecyclePeer(Peer):
-    """Radio seam: finishReceive/consume leaves standby until a full service.
+    """Radio seam: admitted receive atomically rearms before its response.
 
     Unlike an always-delivering inbox, air transmission is lost while the peer
     is not receiving. STATUS/REVIEW model completion-only target maintenance.
@@ -64,11 +65,11 @@ class ReceiveLifecyclePeer(Peer):
                 self.air['transmissions'].append(event)
                 if self.peer.receiving:self.peer.inbox.append(self.pending)
                 else:self.dropped.append(event)
-                self.pending=None;self.done=self.tx
+                self.pending=None;self.done=self.tx;self.receiving=True
                 return ['WAIT']
             if self.inbox:
-                # service captures RX_DONE in standby, receive consumes it.
-                self.receiving=False;self.rx+=1
+                # Successful admission includes rearming before the terminal response.
+                self.receiving=True;self.rx+=1
                 return self.inbox.pop(0)
             self.receiving=True
             return ['WAIT']
@@ -87,20 +88,18 @@ class Tests(unittest.TestCase):
         kinds=[frame[0] for _,frame in a.air['transmissions']]
         self.assertEqual(kinds,['HANDSHAKE']*3+['CONTROL']*4+['RECEIVED']*8)
         self.assertIn('REVIEW',b.commands);self.assertIn('STATUS',b.commands)
-    def test_receive_rearm_failure_stops_before_next_stage(self):
-        for reply in (['HANDSHAKE'],['CONTROL'],[],['WAIT','extra'],None):
-            with self.subTest(reply=reply):
-                a,b=receive_lifecycle_pair();original=b.exchange;consumed=False
+    def test_receive_admission_or_rearm_failure_stops_before_next_stage(self):
+        for failure in ('admission','rearm'):
+            with self.subTest(failure=failure):
+                a,b=receive_lifecycle_pair();original=b.exchange
                 def exchange(command,*args,**kwargs):
-                    nonlocal consumed
-                    if command=='RFPOLL' and consumed:
-                        if reply is None:raise bridge.BridgeError('device_changed')
-                        return reply
-                    result=original(command,*args,**kwargs)
-                    if result==['HANDSHAKE']:consumed=True
-                    return result
+                    if command=='RFPOLL' and b.inbox:
+                        b.receiving=False
+                        if failure=='rearm':b.inbox.pop(0)
+                        raise bridge.BridgeError('target_refused')
+                    return original(command,*args,**kwargs)
                 b.exchange=exchange;r=run(a,b,radio=True)
-                with self.assertRaises(bridge.BridgeError):r()
+                with self.assertRaisesRegex(bridge.BridgeError,'target_refused'):r()
                 self.assertEqual(r.first_failure_point,('B','RFPOLL'))
                 self.assertNotIn('RFSEND',b.commands)
                 self.assertTrue(a.closed and b.closed)
@@ -114,38 +113,82 @@ class Tests(unittest.TestCase):
         with self.assertRaises(bridge.BridgeError):r()
     def test_command_driven_radio_and_statistics(self):
         a,b=pair();r=run(a,b,radio=True);self.assertTrue(r());self.assertEqual(r.statistics,[[8,8,7,0,1],[7,7,8,0,1]])
-    def test_completed_transmit_rearms_before_peer_advances(self):
-        a,b=pair();timeline=[]
+    def test_completed_without_readiness_refuses_before_peer_advance(self):
+        a,b=pair();original=a.exchange
+        def exchange(command,*args,**kwargs):
+            result=original(command,*args,**kwargs)
+            if command=='RFFINISH':result[-1]='0'
+            return result
+        a.exchange=exchange;r=run(a,b,radio=True)
+        with self.assertRaisesRegex(bridge.BridgeError,'radio_receive_not_ready'):r()
+        self.assertEqual(r.first_failure_point,('A','RFFINISH'))
+        self.assertNotIn('RFPOLL',b.commands)
+        self.assertTrue(a.closed and b.closed)
+    def test_combined_rearm_refusal_prevents_peer_advance(self):
+        a,b=pair();original=a.exchange
+        def exchange(command,*args,**kwargs):
+            if command=='RFFINISH':raise bridge.BridgeError('target_refused')
+            return original(command,*args,**kwargs)
+        a.exchange=exchange;r=run(a,b,radio=True)
+        with self.assertRaisesRegex(bridge.BridgeError,'target_refused'):r()
+        self.assertEqual(r.first_failure_point,('A','RFFINISH'))
+        self.assertNotIn('RFPOLL',b.commands)
+        self.assertTrue(a.closed and b.closed)
+    def test_explicit_ready_skips_redundant_sender_and_receiver_polls(self):
+        a,b=receive_lifecycle_pair();timeline=[]
         for role,e in (('A',a),('B',b)):
-            original=e.exchange;e.needs_rearm=False
-            def exchange(command,*args,e=e,original=original,role=role,**kwargs):
-                verb=command.split()[0];timeline.append((role,verb))
-                if verb in ('RFSEND','RFCONTROL','RFSTATUS'):
-                    self.assertFalse(e.peer.needs_rearm,'peer RX must be rearmed before next transmission')
-                if verb=='RFPOLL':
-                    e.needs_rearm=False
+            original=e.exchange
+            def exchange(command,*args,original=original,role=role,**kwargs):
                 result=original(command,*args,**kwargs)
-                if verb=='RFSTAT' and e.tx and e.tx==e.done and not e.stopped:e.needs_rearm=True
+                timeline.append((role,command.split()[0],result))
                 return result
             e.exchange=exchange
-        r=run(a,b,radio=True);self.assertTrue(r())
-        for index,(role,verb) in enumerate(timeline):
-            if verb=='RFSTAT' and index+1<len(timeline) and timeline[index+1][1]!='CLOSE':
-                if timeline[index-1][1]=='RFPOLL':self.assertEqual(timeline[index+1],(role,'RFPOLL'))
-    def test_rearm_poll_refusal_prevents_peer_advance(self):
-        a,b=pair();original=a.exchange;completed_seen=False;events=[]
-        def exchange(command,*args,**kwargs):
-            nonlocal completed_seen
-            if command=='RFPOLL' and completed_seen:raise bridge.BridgeError('target_refused')
-            result=original(command,*args,**kwargs)
-            if command=='RFSTAT' and a.tx==a.done and a.tx:completed_seen=True
-            return result
-        a.exchange=exchange;r=run(a,b,radio=True,notify=events.append)
-        with self.assertRaisesRegex(bridge.BridgeError,'target_refused'):r()
-        self.assertEqual(r.first_failure,('handshake_1','target_refused'))
-        self.assertEqual(r.first_failure_point,('A','RFPOLL'))
-        self.assertNotIn('RFPOLL',b.commands);self.assertNotIn('RFSEND',b.commands)
-        self.assertTrue(a.closed and b.closed)
+        self.assertTrue(run(a,b,radio=True)())
+        ready_count=received_count=0
+        for index,(role,verb,result) in enumerate(timeline):
+            if verb=='RFFINISH':
+                self.assertEqual(result[-1],'1');ready_count+=1
+                self.assertNotEqual(timeline[index+1][:2],(role,'RFPOLL'))
+            if verb=='RFPOLL' and result[0] in ('HANDSHAKE','CONTROL','RECEIVED'):
+                received_count+=1
+                self.assertNotEqual(timeline[index+1][:2],(role,'RFPOLL'))
+        self.assertEqual((ready_count,received_count),(15,15))
+        self.assertEqual(a.commands.count('RFSTAT'),1)
+        self.assertEqual(b.commands.count('RFSTAT'),1)
+    def test_delayed_completion_combines_guarded_rearm(self):
+        a,b=receive_lifecycle_pair();rearms=[]
+        for e in (a,b):
+            original=e.exchange;e.waits=0
+            def exchange(command,*args,e=e,original=original,**kwargs):
+                if command=='RFPOLL' and e.pending:
+                    e.commands.append(command);e.receiving=False;e.waits=0
+                    return ['WAIT']
+                if command=='RFFINISH' and e.pending:
+                    e.commands.append(command);e.waits+=1
+                    if e.waits==1:return list(map(str,(e.tx,e.done,e.rx,0,e.stopped,0)))
+                    self.assertTrue(e.peer.receiving)
+                    e.peer.inbox.append(e.pending);e.pending=None;e.done=e.tx
+                    e.receiving=True;rearms.append(e.role)
+                    return list(map(str,(e.tx,e.done,e.rx,0,e.stopped,1)))
+                return original(command,*args,**kwargs)
+            e.exchange=exchange
+        self.assertTrue(run(a,b,radio=True)())
+        self.assertEqual(len(rearms),15)
+        self.assertEqual(a.dropped+b.dropped,[])
+    def test_malformed_readiness_refuses_before_peer_advance(self):
+        for raw in (['1','1','0','0','0'],['1','1','0','0','0','2'],
+                    ['1','1','0','0','0','-1'],['1','1','0','0','0','True'],
+                    ['1','1','0','0','0','1','extra'],['1','2','0','0','0','1']):
+            with self.subTest(raw=raw):
+                a,b=pair();original=a.exchange
+                def exchange(command,*args,**kwargs):
+                    if command=='RFFINISH':return raw
+                    return original(command,*args,**kwargs)
+                a.exchange=exchange;r=run(a,b,radio=True)
+                with self.assertRaises(bridge.BridgeError):r()
+                self.assertEqual(r.first_failure_point,('A','RFFINISH'))
+                self.assertNotIn('RFPOLL',b.commands)
+                self.assertTrue(a.closed and b.closed)
     def test_refusal_cleanup(self):
         for failure in ('review','ready','close'):
             with self.subTest(failure=failure):
@@ -468,7 +511,7 @@ class SnapshotTests(unittest.TestCase):
             snapshots=[e for e in events if type(e) is dict and e['operator']=='enrolled_target_diagnostic']
             self.assertEqual(len(snapshots),present)
     def test_third_handshake_each_radio_command_role_is_precise(self):
-        for role,verb in [('A','RFSEND'),('A','RFPOLL'),('A','RFSTAT'),('B','RFPOLL')]:
+        for role,verb in [('A','RFSEND'),('A','RFPOLL'),('A','RFFINISH'),('B','RFPOLL')]:
             a,b=pair();r=run(a,b,radio=True);endpoint=a if role=='A' else b;original=endpoint.exchange
             def exchange(command,*args,**kwargs):
                 if r.stage=='handshake_3' and command==verb:raise bridge.BridgeError('target_refused')

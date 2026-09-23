@@ -21,12 +21,14 @@ struct Handle { unsigned device; Blobs pending; };
 std::map<unsigned,Blobs> durable;
 std::map<nvs_handle_t,Handle> handles;
 unsigned device=0,next=1,commits=0,fail_commit=0;bool apply_failed=false;
-void reset(){durable.clear();handles.clear();device=0;next=1;commits=fail_commit=0;apply_failed=false;}
+std::map<unsigned,unsigned> read_counts;
+void reset(){read_counts.clear();durable.clear();handles.clear();device=0;next=1;commits=fail_commit=0;apply_failed=false;}
 }
 esp_err_t nvs_open(const char* name,int mode,nvs_handle_t* out){nvs_mock::device++; CHECK(std::string(name)=="ot240_eval"&&mode==NVS_READWRITE);*out=nvs_mock::next++;nvs_mock::handles[*out]={nvs_mock::device,{}};return ESP_OK;}
 void nvs_close(nvs_handle_t h){nvs_mock::handles.erase(h);}
 esp_err_t nvs_get_blob(nvs_handle_t h,const char* key,void* out,std::size_t* size){
  ++sdk_reads; radio_mock::now_us+=read_cost_us; if(!nvs_mock::handles.count(h))return ESP_FAIL;
+ ++nvs_mock::read_counts[nvs_mock::handles[h].device];
  auto& values=nvs_mock::durable[nvs_mock::handles[h].device];if(!values.count(key))return ESP_ERR_NVS_NOT_FOUND;
  auto& bytes=values[key];if(!out){*size=bytes.size();return ESP_OK;}
  CHECK(*size>=bytes.size());std::memcpy(out,bytes.data(),bytes.size());*size=bytes.size();return ESP_OK;
@@ -121,6 +123,9 @@ struct Driver final : PairRadioDriver {
     std::function<void()> on_completion;
     unsigned completions{0};bool completion_ok{true};
     bool service_pending_transmit()override{if(physical_mode)return !completion_enabled || physical.service_pending_transmit();++completions;auto f=std::move(on_completion);on_completion={};if(f)f();return completion_ok;}
+    bool rearm_after_receive() override { return physical_mode ? physical.rearm_after_receive() : !stopped; }
+    bool rearm_after_transmit() override { return physical_mode ? physical.rearm_after_transmit() : !stopped; }
+    bool receive_ready() const override { return physical_mode ? physical.receive_ready() : !stopped && !delay_completion; }
     bool start(std::uint64_t deadline, unsigned maximum) override {if(physical_mode)return physical.start(deadline,maximum); ++starts; limit=maximum; stopped=false; return start_ok; }
     bool stop() override {if(physical_mode)return physical.stop(); if(on_stop)on_stop();++stops; stopped=true; wire.set_available(false); return stop_ok; }
     PairRadioStatistics statistics() const override {if(physical_mode)return physical.statistics(); auto s=wire.status(); return {attempts,delay_completion?0U:s.frames_sent,s.frames_received,s.frames_dropped,stopped && stop_ok}; }
@@ -506,26 +511,43 @@ void rejection_alternatives_host() {
 void bounded_full_exchange_host(unsigned sdk_cost_us=172,unsigned host_cost_ms=0) {
     radio_mock::reset(); nvs_mock::reset(); read_cost_us=0; sdk_reads=0;
     FaultObserver fault_a,fault_b;
+    unsigned accounted_reads=0,last_a=0,last_b=0;
+    std::int64_t accounted_time=radio_mock::now_us;
+    unsigned delivered_statuses=0;
+    auto profile=[&](char role,const std::string& phase,const std::string& command,const char* bucket) {
+        const auto a=nvs_mock::read_counts[1],b=nvs_mock::read_counts[2];
+        CHECK(a+b==sdk_reads);
+        std::fprintf(stderr,"READ_COST role=%c phase=%s command=%s bucket=%s reads=%u reads_a=%u reads_b=%u total=%u elapsed_us=%lld delta_us=%lld statuses=%u\n",
+            role,phase.c_str(),command.c_str(),bucket,sdk_reads-accounted_reads,a-last_a,b-last_b,sdk_reads,
+            static_cast<long long>(radio_mock::now_us),static_cast<long long>(radio_mock::now_us-accounted_time),delivered_statuses);
+        accounted_reads=sdk_reads;last_a=a;last_b=b;accounted_time=radio_mock::now_us;
+    };
     Pair p(&fault_a,&fault_b);
+    profile('-',"initialization","INIT","initialization");
     p.a.driver.wire.connect(p.b.driver.wire);
     p.b.driver.wire.connect(p.a.driver.wire);
     read_cost_us=sdk_cost_us;
     const auto start=radio_mock::now_us;
     const auto initial_reads=sdk_reads;
     std::string transfer="setup";
-    unsigned commands=0,delivered_statuses=0;
-    auto call=[&](Peer& e,const std::string& command,const std::string& expected) {
+    unsigned commands=0,transfers=0;
+    auto call=[&](Peer& e,const std::string& command,const std::string& expected,const char* purpose=nullptr) {
         // External host-only latency is charged separately from target SDK
         // read costs; do not substitute measured whole-command wall time here.
         radio_mock::now_us+=static_cast<std::int64_t>(host_cost_ms)*1000;
+        const char role=&e==&p.a?'A':'B';
+        const auto category=purpose?std::string(purpose):command.substr(0,command.find(' '));
+        profile(role,transfer,category,"host_gap");
         ++commands;
         const bool ticked=e.session.tick(false); // app_main: before dispatching a full line
+        profile(role,transfer,category,"pre_tick");
         if(!ticked) std::fprintf(stderr,"full exchange pre-command tick refused role=%c transfer=%s command=%s elapsed_us=%lld statuses=%u sdk_gets=%u sdk_cost_us=%u host_cost_ms=%u\n",
             &e==&p.a?'A':'B',transfer.c_str(),command.c_str(),static_cast<long long>(radio_mock::now_us-start),
             delivered_statuses,sdk_reads-initial_reads,sdk_cost_us,host_cost_ms);
         CHECK(ticked);
         EnrolledBenchSession::Output output{};std::size_t bytes=0;
         const bool ok=e.session.command("OTENROLL1 "+command,output,bytes);
+        profile(role,transfer,category,"dispatch");
         if(!ok) std::fprintf(stderr,"full exchange refused role=%c transfer=%s command=%s elapsed_us=%lld fault=%u statuses=%u sdk_gets=%u sdk_cost_us=%u host_cost_ms=%u\n",
             &e==&p.a?'A':'B',transfer.c_str(),command.c_str(),static_cast<long long>(radio_mock::now_us-start),
             static_cast<unsigned>((&e==&p.a?fault_a:fault_b).first),delivered_statuses,sdk_reads-initial_reads,sdk_cost_us,host_cost_ms);
@@ -537,20 +559,22 @@ void bounded_full_exchange_host(unsigned sdk_cost_us=172,unsigned host_cost_ms=0
     for(auto* e:{&p.a,&p.b}) call(*e,"BEGIN "+p.encoded(),"OK BEGIN");
     for(auto* e:{&p.a,&p.b}) call(*e,"RADIO","OK RADIO");
     auto send=[&](Peer& src,Peer& dst,const std::string& command,const std::string& expected) {
-        transfer=command;
+        ++transfers;
+        transfer=(transfers<=3?"handshake":transfers<=7?"activation":"status")+std::to_string(transfers<=3?transfers:transfers<=7?transfers-3:transfers-7);
         call(src,command,"OK "+command.substr(0,command.find(' ')));
-        call(src,"RFPOLL","RF WAIT");
-        call(src,"RFSTAT","");
+        call(src,"RFPOLL","RF WAIT","RFPOLL_TX_COMPLETE");
+        const auto ready = call(src,"RFFINISH","");
         const auto statistics=src.driver.statistics();
         CHECK(statistics.tx_attempts==statistics.tx_completed);
-        call(src,"RFPOLL","RF WAIT"); // bridge's guarded rearm after completion
-        call(dst,"RFPOLL",expected);
+        CHECK(ready.size()>=3 && ready.substr(ready.size()-3)==" 1\n");
+        call(dst,"RFPOLL",expected,"RFPOLL_RECEIVE");
         if(command.substr(0,8)=="RFSTATUS") ++delivered_statuses;
-        call(dst,"RFPOLL","RF WAIT"); // guarded RX rearm after consuming frame
+        CHECK(dst.driver.receive_ready()); // admitted command now rearms before success
     };
     send(p.a,p.b,"RFSEND","RF HANDSHAKE");
     send(p.b,p.a,"RFSEND","RF HANDSHAKE");
     send(p.a,p.b,"RFSEND","RF HANDSHAKE");
+    transfer="review";
     std::string transcript;
     for(auto* e:{&p.a,&p.b}) {
         std::istringstream review(call(*e,"REVIEW",""));
@@ -558,14 +582,23 @@ void bounded_full_exchange_host(unsigned sdk_cost_us=172,unsigned host_cost_ms=0
         CHECK(static_cast<bool>(review>>tag>>kind>>code>>deadline>>now));
         CHECK(tag=="OTENROLL1"&&kind=="REVIEW"&&code.size()==64);
         if(transcript.empty()) transcript=code; else CHECK(transcript==code);
-        CHECK(e->session.tick(false)); // idle/released level while reviewing
+        const bool idle_ok=e->session.tick(false);
+        profile(e==&p.a?'A':'B',transfer,"RELEASE","review_tick");
+        CHECK(idle_ok); // idle/released level while reviewing
         call(*e,"STATUS","");
     }
     radio_mock::now_us+=10000000; // bounded human/host wait, no implicit approval
+    profile('-',transfer,"WAIT","human_gap");
+    transfer="confirmation";
     for(auto* e:{&p.a,&p.b}) {
-        CHECK(e->session.tick(true));
+        const bool pressed=e->session.tick(true);
+        profile(e==&p.a?'A':'B',transfer,"PRESS","button_tick");
+        CHECK(pressed);
         radio_mock::now_us+=600000;
-        CHECK(e->session.tick(false));
+        profile(e==&p.a?'A':'B',transfer,"HOLD","human_gap");
+        const bool released=e->session.tick(false);
+        profile(e==&p.a?'A':'B',transfer,"RELEASE","button_tick");
+        CHECK(released);
         CHECK(e->session.state()==EndpointState::local_confirmed);
         call(*e,"STATUS","");
     }
@@ -573,6 +606,7 @@ void bounded_full_exchange_host(unsigned sdk_cost_us=172,unsigned host_cost_ms=0
     send(p.b,p.a,"RFCONTROL","RF CONTROL");
     send(p.a,p.b,"RFCONTROL","RF CONTROL");
     send(p.b,p.a,"RFCONTROL","RF CONTROL");
+    transfer="traffic";
     call(p.a,"TRAFFIC","TRAFFIC 1");call(p.b,"TRAFFIC","TRAFFIC 1");
     for(unsigned code=1;code<=4;++code) {
         const auto n=std::to_string(code);
@@ -584,6 +618,8 @@ void bounded_full_exchange_host(unsigned sdk_cost_us=172,unsigned host_cost_ms=0
     CHECK(p.b.source.sample().now_ms<p.fields.issued_b_ms+p.fields.window_b_ms);
     const auto margin_a=p.fields.issued_a_ms+p.fields.window_a_ms-p.a.source.sample().now_ms;
     const auto margin_b=p.fields.issued_b_ms+p.fields.window_b_ms-p.b.source.sample().now_ms;
+    profile('-',"final_checks","SAMPLE","checks");
+    transfer="cleanup";
     for(auto* e:{&p.a,&p.b}) {
         call(*e,"CLOSE","CLOSED 1");
         call(*e,"RFSTAT","");
@@ -598,6 +634,8 @@ void bounded_full_exchange_host(unsigned sdk_cost_us=172,unsigned host_cost_ms=0
             phase[3]<=phase[4] && phase[4]<phase[6]);
         CHECK(observer->detail.reason==EnrolledFailureReason::none);
     }
+    profile('-',transfer,"VERIFY","checks");
+    CHECK(accounted_reads==sdk_reads);
     std::fprintf(stderr,"FULL EXCHANGE synthetic_elapsed_us=%lld sdk_gets=%u sdk_cost_us=%u host_cost_ms=%u commands=%u margin_a_ms=%llu margin_b_ms=%llu statuses=8 cleanup=passed\n",
         static_cast<long long>(radio_mock::now_us-start),sdk_reads-initial_reads,sdk_cost_us,host_cost_ms,commands,
         static_cast<unsigned long long>(margin_a),static_cast<unsigned long long>(margin_b));

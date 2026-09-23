@@ -146,7 +146,7 @@ behind the passing default profile. The model has106 commands and234296 SDK
 gets in its successful control. Startup, independent idle scheduling, actual
 airtime and target crypto execution are not completely represented.
 
-The next bounded task is to profile per-command durable reads and evaluate
+The read-cost profiling below now quantifies per-command durable reads and evaluates
 receiver rearm inside the existing admitted receive transaction. That could
 remove15 extra host command boundaries, but necessary fresh checks must remain.
 Require rearm failure, expiry and context-loss propagation; a generic service
@@ -157,3 +157,129 @@ mutation-order change and is not included in this correction.
 No new physical trial is prepared or authorized by this document. Both boards
 remain on their verified originals. Firmware inputs are unchanged; existing
 build evidence is reused. Full physical status delivery remains unaccepted.
+
+
+## OT-0247a read-cost profiling - 2026-09-21
+
+VERIFIED host evidence only. Diagnostic changes are confined to the composed
+host test; production session, storage, radio and bridge behavior is unchanged.
+All three requested profiles ran once on final inputs. Their elapsed times,
+SDK counts and refusal points exactly match the retained OT247 baseline.
+
+| Profile | Exit | Post-initialization SDK gets | Modeled elapsed | Delivery / cleanup |
+| --- | ---: | ---: | ---: | --- |
+| Default 172us/read, no host cost | 0 | 234296 | 51.498912s | Eight statuses; explicit CLOSE/stop/secret-clear checks pass; all 13 existing composed groups pass |
+| 209us/read +100ms/command | 1 expected | 192957 | 60.028013s | Five statuses; B status6 RFSTATUS dispatch refuses with authority-clock fault; later cleanup not reached |
+| 209us/read +200ms/command | 1 expected | 163225 | 60.114025s | Three statuses; B status4 TX-completion poll pre-tick refuses; later cleanup not reached |
+
+Counts are SDK nvs_get_blob calls, including length queries, data reads and
+missing-key lookups, not unique durable records or physical flash operations.
+Initialization contributes another 1152 gets (576 per role), at zero charged
+cost before the profile starts. Total default count is 235448; the historical
+post-initialization count 234296 remains unchanged.
+
+### Complete default accounting
+
+| Command purpose | Dispatches | Pre-dispatch tick reads | Dispatch reads |
+| --- | ---: | ---: | ---: |
+| BEGIN | 2 | 0 | 1698 |
+| RADIO | 2 | 0 | 0 |
+| RFSEND | 3 | 0 | 9390 |
+| RFPOLL_TX_COMPLETE | 15 | 530 | 39700 |
+| RFSTAT | 17 | 530 | 0 |
+| RFPOLL_TX_REARM | 15 | 530 | 39700 |
+| RFPOLL_RECEIVE | 15 | 0 | 51041 |
+| RFPOLL_RX_REARM | 15 | 530 | 39900 |
+| REVIEW | 2 | 1060 | 1060 |
+| STATUS | 4 | 1060 | 0 |
+| RFCONTROL | 4 | 0 | 14569 |
+| TRAFFIC | 2 | 0 | 1080 |
+| RFSTATUS | 8 | 0 | 27104 |
+| CLOSE | 2 | 0 | 258 |
+
+Pre-dispatch ticks total 4240 reads; command dispatches 225500. Separate review
+idle ticks add 1060, and four button ticks 3496: total 234296 after initialization.
+The table includes cleanup: 258 reads, 129 per role. Final state checks add zero.
+The phase/role ledger in the private analysis reconciles each event delta with
+its cumulative count and each role's SDK-handle count; there is no unassigned
+read bucket. Initialization is separate; failure profiles stop at the original
+CHECK and do not claim process/destructor cleanup. Explicit CLOSE cleanup is
+included only in the successful control.
+
+The modeled duration is exactly 234296*172us + 10s review wait + two 600ms holds
+=51.498912s. Host gaps contribute zero at default, 8.5s through 85 attempted
+commands at100ms and 14.8s through 74 attempted commands at200ms. One failing
+pre-tick in the latter means only 73 dispatches occur. Raw READ_COST elapsed_us
+is the absolute mock clock (initial origin 100000us); delta_us is the event
+increment. Subtract that origin for elapsed duration. This audit reconciles
+that offset explicitly; neither field measures physical wall time.
+
+The ten-second human wait has no concurrent idle ticks in this existing model.
+Real independent idle scheduling, NVS-write cost, airtime, crypto execution,
+UART and unmodeled host costs remain unknown. No new physical-cost claim is made.
+
+### Lifecycle review and one correction proposal
+
+Source path: EnrolledRadioDriver::service captures a frame and finishes receive;
+receive copies/clears its buffer without rearming; EnrolledPeerTransport::poll
+validates/authenticates it; bridge radio_poll then issues another full RFPOLL.
+Those 15 receiver-rearm commands account for 40430 gets: 39900 dispatch plus 530
+pre-tick. This is about 17.3% of successful post-initialization reads. The sender's
+completion and rearm operations are separate and are not removed by this proposal.
+
+Propose a narrowly scoped, Boolean-returning rearm-after-consumed-receive operation
+inside the successful admitted handshake/control/status receive command, before
+publishing its response. Keep fresh session/authority/context checks before/after,
+the driver's lease/live-deadline checks and checked startReceive failure result.
+Reject queued TX, active TX and buffered RX; preserve already-receiving state.
+Do not call generic service: it can transmit queued bytes, consume a new RX/IRQ
+or complete TX. A rearm failure, expiry, context loss or reentry must explicitly
+fail/contain, emit no successful receive response and retain diagnostics/cleanup.
+Only after equivalent regression checks may the receiver-side bridge extra poll
+be removed. Packet/delivery counters must remain exact and sender behavior unchanged.
+
+**This proposal is not sufficient timing closure by itself.** Removing all 40430
+reads and 15 host commands, unrealistically charging zero for replacement fresh
+checks, yields these optimistic arithmetic projections of the complete default
+path at the sensitivity costs:
+
+| Modeled cost | Complete unchanged-path projection | Maximum removable cost | Optimistic remaining duration |
+| --- | ---: | ---: | ---: |
+| 209us +100ms | 70.767864s | 9.949870s | 60.817994s |
+| 209us +200ms | 81.367864s | 11.449870s | 69.917994s |
+
+Cleanup occurs after the invitation checks. Excluding its 258 reads and four
+host commands, the optimistic pre-cleanup durations are 60.364072s and 69.064072s
+respectively. Both still exceed 60s before cleanup, so the conclusion does not
+rely on counting post-close work against the invitation window.
+
+These projections extrapolate the successful control's counts; they are not new
+executed flows, physical timings or a prediction of exact corrected code counts.
+Necessary fresh checks reduce actual savings. The correction's final gate must
+account for the remaining cost, pass the complete affected host sequence and
+preserve the 60-second window. Do not start a physical retry on this proposal alone.
+Any broader optimization needs its own approved scope, not cached authority,
+suppressed failure or a longer invitation window.
+
+### Validation, source binding and limits
+
+Private evidence: .private/ot0247a-read-cost contains exact build/run commands,
+three logs, full per-role/phase/command analysis and a hash manifest. Reused
+compiler/link inputs were verified present and pinned; retained production
+firmware source pins match. Earlier bridge/trace changes and the documentation
+checker change are separately identified from the one diagnostic test edit.
+Independent lifecycle review agrees with the narrow operation and timing limit.
+Repository docs checks, all 18 documentation regression tests and diff whitespace checks passed.
+No firmware build, hardware access, Git mutation, publication or V1 score change.
+Existing flow-review/diagnosis skills already cover original failure attribution,
+complete accounting and modeled-versus-physical evidence; no new skill is needed.
+Owner review is the stop point. OT-0247c remains a separately approved correction
+whose dependency acceptance and current scope must be checked before execution.
+
+
+## OT-0247c follow-on - 2026-09-21
+
+The owner accepted the profiling and approved revision 2 of the complete
+correction. [Final host correction and its separate physical gate](OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md)
+now pass all eight deliveries and cleanup in the three modeled profiles. The
+baseline failures and receiver-only projections above remain historical evidence.

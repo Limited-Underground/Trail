@@ -26,6 +26,10 @@ public:
     bool send_control(std::uint64_t now){return send_record(2,0,now);}
     bool send_status(std::uint8_t status,std::uint64_t now){return send_record(3,status,now);}
     EnrolledTransportPoll poll(std::uint64_t now,std::uint8_t& status) {
+        return poll(now,status,[]{return true;});
+    }
+    // Final durable freshness follows admitted maintenance before publication.
+    template<class Admitted> EnrolledTransportPoll poll(std::uint64_t now,std::uint8_t& status,Admitted on_admitted) {
         auto result=EnrolledTransportPoll::waiting;std::uint8_t staged=0;
         const bool ok=operation(now,[&]{
             link_.service(now);if(!fresh())return false;
@@ -55,10 +59,16 @@ public:
                 if(kind==2){if(!endpoint_.receive_control(record))return reject_endpoint(EnrolledFailureReason::control_rejected);result=EnrolledTransportPoll::control;}
                 else {if(!endpoint_.receive_status(record,staged))return reject_endpoint(EnrolledFailureReason::status_rejected);result=EnrolledTransportPoll::status;}
             }
-            return true;
+            return on_admitted();
         });
         if(ok && result==EnrolledTransportPoll::status)status=staged;
         return ok?result:EnrolledTransportPoll::refused;
+    }
+    // Same endpoint/MTU/durable admission and publication as poll, without RX
+    // consumption. The callback preserves session guards around driver work;
+    // no post-receive freshness check is needed because no receive occurs.
+    template<class Maintenance> bool finish_transmit(std::uint64_t now,Maintenance maintenance) {
+        return operation(now,[&]{return maintenance() && fresh();});
     }
     bool close(){if(busy_){revoked_=true;return false;}busy_=true;const bool ok=cleanup();busy_=false;return ok&&!revoked_;}
     EnrolledFailureDetail consume_failure_detail() {
