@@ -1,0 +1,72 @@
+{
+  "schema": "OT236-PREFLIGHT-RESULT-1",
+  "as_of": "2026-09-15T09:23:08.705511+00:00",
+  "outcome": "preflight refused; candidate not attempted",
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB bench nodes",
+  "toolchain": {
+    "python": "3.14.6",
+    "esptool": "5.3.1",
+    "pyserial": "3.5"
+  },
+  "preflight_started": "2026-09-15T09:11:53.090974+00:00",
+  "preflight_finished": "2026-09-15T09:13:14.596655+00:00",
+  "diagnosis_started": "2026-09-15T09:15:03.757645+00:00",
+  "diagnosis_finished": "2026-09-15T09:15:51.489959+00:00",
+  "flash_writes": false,
+  "nvs_writes": false,
+  "radio_execution": false,
+  "phone_actions": false,
+  "grant_issued": false,
+  "candidate_journal_created": false,
+  "initial_exception_stage": "not retained",
+  "diagnosis": {
+    "role": "A",
+    "region": "full NVS",
+    "historical_snapshot_matches": false,
+    "static_regions_match": true,
+    "original_application_matches": true,
+    "cause": "unknown",
+    "B_NVS": "not diagnosed"
+  },
+  "original_application_readback_and_reset": {
+    "A": true,
+    "B": true
+  },
+  "normal_trail_screens": {
+    "source": "user confirmation",
+    "both": true
+  },
+  "caller_mock_tests": {
+    "count": 18,
+    "passed": true
+  },
+  "physical_capture_acceptance": false,
+  "v1_change": false,
+  "website_change": false,
+  "private_evidence": {
+    "frozen_caller": {
+      "bytes": 16008,
+      "sha256": "c21abfa418e6b9ecb5ac8bb887a2a3bdec6639a52a2ee2bad858ba69896deea0"
+    },
+    "frozen_manifest": {
+      "bytes": 3047,
+      "sha256": "3c576d94926f95e2ec61be9181c8ee4afcaae39f16abe2510e6452a2f5022311"
+    },
+    "preflight": {
+      "bytes": 578,
+      "sha256": "c47ff1e27e221f1afa417876bdff29bd96ff43032ddf99167f4332d512ab9f0e"
+    },
+    "diagnosis": {
+      "bytes": 2075,
+      "sha256": "b3d427c957d52a8871822a95aeddcc98b562060172a5ba93906d9b3f3cba2e72"
+    },
+    "diagnostic_caller": {
+      "bytes": 3359,
+      "sha256": "6ed9d2807892bdbcfd50ea65cd834c7eee92eaa7869a366f81e43b67834281c1"
+    },
+    "mock_tests": {
+      "bytes": 10762,
+      "sha256": "0a9ae6b301ed4553a06406d413d339a90ecf68e819198bb8b71664e4be93df26"
+    }
+  }
+}

@@ -1,0 +1,765 @@
+{
+  "schema": "OT246-FAILURE-CAPTURE-HOST-1",
+  "as_of": "2026-09-19T00:03:22.264001+00:00",
+  "result": "diagnostic implementation and exact trial preparation validated; physical cause unproven",
+  "source_state": {
+    "branch": "codex/ot236-libsodium-capture",
+    "head": "477ea45de1b155dab59139172cfbb412da3e1787",
+    "publication": "local uncommitted; separate authorization pending"
+  },
+  "capture": {
+    "target": "DIAG1, TRACE1 with 21 bounded integer fields, then terminal; first rejection frozen before cleanup",
+    "sample": "original rejecting clock sample, previous sample, issued time and deadline; no failure-time resampling",
+    "categories": [
+      "authority window",
+      "clock regression",
+      "context change",
+      "durable current-record rejection",
+      "packet category",
+      "radio/storage failure"
+    ],
+    "target_milestones": [
+      "review ready",
+      "button press",
+      "button release",
+      "confirmation accepted",
+      "invitation started",
+      "first TRAFFIC-ready observation"
+    ],
+    "host": "command/stage duration; REVIEW remaining window and age at comparison prompt; first STATUS4; failure and cleanup",
+    "transport_fields": [
+      "guard_ns",
+      "read_ns",
+      "write_ns",
+      "guard_calls",
+      "read_calls",
+      "write_calls"
+    ],
+    "budget": {
+      "commands": 256,
+      "confirmation_status_commands": 128,
+      "total_events": 262,
+      "failed_command_retained_after_cap": true
+    },
+    "privacy": "strict category/integer allowlists; no codes, identities, keys, payloads or arbitrary exception text",
+    "partial_trace": "retained as unconfirmed evidence only; cannot satisfy acceptance",
+    "acceptance_deadlines_storage_reads_radio_profile_changed": false
+  },
+  "validation": {
+    "full_matrix": {
+      "result": "passed",
+      "suites": 44,
+      "source_pins": 1016,
+      "receipt": {
+        "bytes": 203807,
+        "sha256": "7fe9c887828bcedf459bc31b553c8045cb087059807376bdc02a70c778c22fee"
+      },
+      "suite_results": {
+        "security_policy_invitation_lifecycle_tests": {
+          "output": "PASS 91 durable invitation lifecycle groups\nRefused storage faults: 9 pristine retry cases, 19 retained refusal cases",
+          "binary": {
+            "bytes": 296189,
+            "sha256": "245601a8c41eded2566da2d95b042098b65df72cc917b25fab76f1ed1422b08b"
+          }
+        },
+        "security_policy_authorized_session_tests": {
+          "output": "PASS 41 actual authorized policy session groups",
+          "binary": {
+            "bytes": 361237,
+            "sha256": "faeed352cc5bd5efa19199a82bf77c2b9c3262cf9b196dd95b2ec551f55906ed"
+          }
+        },
+        "security_candidate_known_answer_tests": {
+          "output": "PASS 10 pinned Ed25519 known-answer and refusal groups",
+          "binary": {
+            "bytes": 536162,
+            "sha256": "a7c3ea741dabb58ae5931287a8cf38f08ec65281aa965c9c7de8be66697956f8"
+          }
+        },
+        "security_policy_invitation_tests": {
+          "output": "PASS 40 real signed invitation gate groups",
+          "binary": {
+            "bytes": 239770,
+            "sha256": "601156d5872d7005852b4d849f37ad55a753ee8bc35c6a8e43fa76263a9eb1d0"
+          }
+        },
+        "security_policy_session_tests": {
+          "output": "PASS 31 actual policy session groups",
+          "binary": {
+            "bytes": 302841,
+            "sha256": "6bc2898a3f06c7e68cb0cec92919a5e4a767c987bec040e89fd468225f465db2"
+          }
+        },
+        "security_confirmation_owner_tests": {
+          "output": "PASS 44 actual confirmation owner groups",
+          "binary": {
+            "bytes": 353241,
+            "sha256": "d84263f87a1972a3e03209ac240ae5ec45ae28ae5c03026ffd8983e7f0950f16"
+          }
+        },
+        "security_handshake_endpoint_tests": {
+          "output": "PASS 38 independent handshake endpoint groups",
+          "binary": {
+            "bytes": 380304,
+            "sha256": "9b4e65d2afd7215f22de4df30fcb6338e97a6de81bf6b4245ddab3a9695f4f32"
+          }
+        },
+        "security_independent_invitation_tests": {
+          "output": "PASS 93 independent invitation groups",
+          "binary": {
+            "bytes": 360917,
+            "sha256": "ca0427483abef73bc0cac326c1359680160d89fcb6a16030c4574f2b233a97ba"
+          }
+        },
+        "security_independent_endpoint_tests": {
+          "output": "PASS 50 independent provisioned endpoint groups",
+          "binary": {
+            "bytes": 407252,
+            "sha256": "4e5b1ca4808aa77302078458d453cebce5d91fd795a4165d83ff3af249159415"
+          }
+        },
+        "peer_activation_store_tests": {
+          "output": "PASS 66 peer activation store groups",
+          "binary": {
+            "bytes": 184358,
+            "sha256": "d8790703b2983591543e6f97d0de78d624614bc7fbeae7b2f894c67b4a4baef6"
+          }
+        },
+        "peer_membership_store_tests": {
+          "output": "PASS 274 peer membership store groups",
+          "binary": {
+            "bytes": 202018,
+            "sha256": "fd22f22e31965666dad1a277baa92ac8d04bf92c9d7dfb55efa406ac6ad0cad8"
+          }
+        },
+        "enrolled_peer_endpoint_tests": {
+          "output": "PASS 35 enrolled peer endpoint groups",
+          "binary": {
+            "bytes": 459417,
+            "sha256": "233664aa3ef1bfd72f54cfbb70d24d9d18fb892fffebb5757d07438e256714fd"
+          }
+        },
+        "enrollment_evidence_store_tests": {
+          "output": "PASS 1290 enrollment evidence store groups",
+          "binary": {
+            "bytes": 209785,
+            "sha256": "13b4daef7d0172a84bc6b0664033ef0d96fe68b8c59a4944a9035d63f89c79f5"
+          }
+        },
+        "provisioned_peer_endpoint_tests": {
+          "output": "PASS 462 provisioned peer endpoint groups",
+          "binary": {
+            "bytes": 491900,
+            "sha256": "248f0c8f9671b43c65fc9ba629f90bf5f255053965cd8c9102d4bfe38cc842b1"
+          }
+        },
+        "evaluation_storage_bank_tests": {
+          "output": "PASS 147 evaluation storage bank groups",
+          "binary": {
+            "bytes": 283494,
+            "sha256": "ac3459d9f1df8100d0d737c66b1d0c4b929606e27d749061b77ae0d24352bd71"
+          }
+        },
+        "session_generation_storage_tests": {
+          "output": "PASS 321 session generation storage groups",
+          "binary": {
+            "bytes": 588675,
+            "sha256": "c3f6efbaa4fbb7bc4494e953505b604a19c5ac811c2743a2b3063f80effc31fa"
+          }
+        },
+        "enrolled_peer_transport_tests": {
+          "output": "PASS 23 enrolled peer transport groups",
+          "binary": {
+            "bytes": 563653,
+            "sha256": "8fa85317b6957eba944e200944a60c8f98744c7132458fa3b5dddf99da967ad7"
+          }
+        },
+        "enrolled_nvs_backend_tests": {
+          "output": "PASS 261 enrolled NVS backend groups",
+          "binary": {
+            "bytes": 334248,
+            "sha256": "7b8d1d7f4128ecf7860582695cb8cdbf2884f254418a837927e393580a3596b8"
+          }
+        },
+        "enrolled_nvs_session_tests": {
+          "output": "PASS 11 enrolled NVS session groups",
+          "binary": {
+            "bytes": 590206,
+            "sha256": "31bb971cf57cd54cb181201e783ba750be61697ee29cef051cfeb77650d8c6e5"
+          }
+        },
+        "enrolled_radio_driver_tests": {
+          "output": "PASS 56 enrolled radio driver groups",
+          "binary": {
+            "bytes": 210909,
+            "sha256": "354ccaae9719b390758bdcb1eef912fcb9e2eb8635c919927d27ad1cd7dbc3ee"
+          }
+        },
+        "enrolled_diagnostics_tests": {
+          "output": "PASS 15 enrolled diagnostics groups",
+          "binary": {
+            "bytes": 334870,
+            "sha256": "b4893db5e29d6c844bb7bbb778dfa6d928396612e07c08e1c6a550e4b57f2eb1"
+          }
+        },
+        "companion_status_bridge_tests": {
+          "output": "PASS 15 companion status bridge groups",
+          "binary": {
+            "bytes": 427966,
+            "sha256": "9a3d15aa056516e97620a71498e529d1eb79cd26c847983d54640f607eb1b435"
+          }
+        },
+        "enrolled_bench_session_tests": {
+          "output": "PASS 33 enrolled bench session groups",
+          "binary": {
+            "bytes": 531436,
+            "sha256": "1118b608e941d85b7695a2f086df73cc9f8cce445f4ba5a4ee44b5d689bbc288"
+          }
+        },
+        "enrolled_completion_composed_tests": {
+          "output": "PASS 1 bounded full enrolled exchange group\nPASS 2 enrolled completion composition groups\nPASS 4 enrolled activation boundary reproduction groups\nPASS 6 enrolled exact rejection alternative groups",
+          "binary": {
+            "bytes": 736572,
+            "sha256": "c7108fa4bab01a2902ba31bfc320827184c4ec422f9107134b352de9be1d0b9c"
+          }
+        },
+        "security_peer_traffic_tests": {
+          "output": "PASS 27 peer traffic groups",
+          "binary": {
+            "bytes": 385292,
+            "sha256": "08660bc3e31259f6343ad10ac3421a6fdcefe3f6ecdca6676f70b8c1b8bf9783"
+          }
+        },
+        "security_endpoint_record_tests": {
+          "output": "PASS 32 guarded endpoint record groups",
+          "binary": {
+            "bytes": 385076,
+            "sha256": "2ab273c95d5da546cb58796e2976eb4f0c005e950b1cc74d3a5f245948592551"
+          }
+        },
+        "security_independent_transport_tests": {
+          "output": "PASS 39 independent transport groups",
+          "binary": {
+            "bytes": 389791,
+            "sha256": "431cb1df9e731843bd7bd244d774ea699134539079986e59c0164b53b8605fb3"
+          }
+        },
+        "pair_radio_session_tests": {
+          "output": "PASS 17 radio pair session groups",
+          "binary": {
+            "bytes": 422773,
+            "sha256": "c57f149ff8f5edb562c487da0961f3afec7afc3e80d1e81c915edbce43a10b60"
+          }
+        },
+        "pair_radio_driver_tests": {
+          "output": "PASS 44 radio driver groups",
+          "binary": {
+            "bytes": 197199,
+            "sha256": "403b5a0d69d27f7fe0f6b8af2351b12f37de2e0d7c27308b9978ce490233772f"
+          }
+        },
+        "pair_bench_session_tests": {
+          "output": "PASS 48 pair bench session groups",
+          "binary": {
+            "bytes": 408000,
+            "sha256": "739d9e166054d15696539991f48853ba0e351e84d6d200968b3c56450180756e"
+          }
+        },
+        "pair_target_startup_tests": {
+          "output": "PASS 30 actual pair startup groups",
+          "binary": {
+            "bytes": 548775,
+            "sha256": "d996f3325eae54fbf86a38e486e0be65edbdb5db13c92f8944f10e3f472dab8c"
+          },
+          "cases": {
+            "happy": "PASS 1 actual pair startup groups (happy)",
+            "usb_install": "PASS 1 actual pair startup groups (usb_install)",
+            "nvs_init": "PASS 1 actual pair startup groups (nvs_init)",
+            "display_init": "PASS 1 actual pair startup groups (display_init)",
+            "button_init": "PASS 1 actual pair startup groups (button_init)",
+            "boot_open": "PASS 1 actual pair startup groups (boot_open)",
+            "role_open": "PASS 1 actual pair startup groups (role_open)",
+            "tx_open": "PASS 1 actual pair startup groups (tx_open)",
+            "rx_open": "PASS 1 actual pair startup groups (rx_open)",
+            "tx_blank_read": "PASS 1 actual pair startup groups (tx_blank_read)",
+            "tx_blank_retained": "PASS 1 actual pair startup groups (tx_blank_retained)",
+            "rx_blank_read": "PASS 1 actual pair startup groups (rx_blank_read)",
+            "rx_blank_retained": "PASS 1 actual pair startup groups (rx_blank_retained)",
+            "entropy_not_idle": "PASS 1 actual pair startup groups (entropy_not_idle)",
+            "entropy_init": "PASS 1 actual pair startup groups (entropy_init)",
+            "entropy_enable": "PASS 1 actual pair startup groups (entropy_enable)",
+            "entropy_readiness": "PASS 1 actual pair startup groups (entropy_readiness)",
+            "sodium_init": "PASS 1 actual pair startup groups (sodium_init)",
+            "authority": "PASS 1 actual pair startup groups (authority)",
+            "ready_send": "PASS 1 actual pair startup groups (ready_send)",
+            "session_tick": "PASS 1 actual pair startup groups (session_tick)",
+            "usb_read": "PASS 1 actual pair startup groups (usb_read)",
+            "session_command": "PASS 1 actual pair startup groups (session_command)",
+            "invalid_control": "PASS 1 actual pair startup groups (invalid_control)",
+            "line_overflow": "PASS 1 actual pair startup groups (line_overflow)",
+            "prehello_noise": "PASS 1 actual pair startup groups (prehello_noise)",
+            "prehello_init": "PASS 1 actual pair startup groups (prehello_init)",
+            "prehello_budget": "PASS 1 actual pair startup groups (prehello_budget)",
+            "prehello_diag_budget": "PASS 1 actual pair startup groups (prehello_diag_budget)",
+            "prehello_boundary": "PASS 1 actual pair startup groups (prehello_boundary)"
+          }
+        },
+        "pair_radio_target_startup_tests": {
+          "output": "PASS 30 actual pair startup groups",
+          "binary": {
+            "bytes": 566715,
+            "sha256": "d7185651724ce14c03efe03c9c4912f5d6d23b270e4bcc0db53c0a03a8131d35"
+          },
+          "cases": {
+            "happy": "PASS 1 actual pair startup groups (happy)",
+            "usb_install": "PASS 1 actual pair startup groups (usb_install)",
+            "nvs_init": "PASS 1 actual pair startup groups (nvs_init)",
+            "display_init": "PASS 1 actual pair startup groups (display_init)",
+            "button_init": "PASS 1 actual pair startup groups (button_init)",
+            "boot_open": "PASS 1 actual pair startup groups (boot_open)",
+            "role_open": "PASS 1 actual pair startup groups (role_open)",
+            "tx_open": "PASS 1 actual pair startup groups (tx_open)",
+            "rx_open": "PASS 1 actual pair startup groups (rx_open)",
+            "tx_blank_read": "PASS 1 actual pair startup groups (tx_blank_read)",
+            "tx_blank_retained": "PASS 1 actual pair startup groups (tx_blank_retained)",
+            "rx_blank_read": "PASS 1 actual pair startup groups (rx_blank_read)",
+            "rx_blank_retained": "PASS 1 actual pair startup groups (rx_blank_retained)",
+            "entropy_not_idle": "PASS 1 actual pair startup groups (entropy_not_idle)",
+            "entropy_init": "PASS 1 actual pair startup groups (entropy_init)",
+            "entropy_enable": "PASS 1 actual pair startup groups (entropy_enable)",
+            "entropy_readiness": "PASS 1 actual pair startup groups (entropy_readiness)",
+            "sodium_init": "PASS 1 actual pair startup groups (sodium_init)",
+            "authority": "PASS 1 actual pair startup groups (authority)",
+            "ready_send": "PASS 1 actual pair startup groups (ready_send)",
+            "session_tick": "PASS 1 actual pair startup groups (session_tick)",
+            "usb_read": "PASS 1 actual pair startup groups (usb_read)",
+            "session_command": "PASS 1 actual pair startup groups (session_command)",
+            "invalid_control": "PASS 1 actual pair startup groups (invalid_control)",
+            "line_overflow": "PASS 1 actual pair startup groups (line_overflow)",
+            "prehello_noise": "PASS 1 actual pair startup groups (prehello_noise)",
+            "prehello_init": "PASS 1 actual pair startup groups (prehello_init)",
+            "prehello_budget": "PASS 1 actual pair startup groups (prehello_budget)",
+            "prehello_diag_budget": "PASS 1 actual pair startup groups (prehello_diag_budget)",
+            "prehello_boundary": "PASS 1 actual pair startup groups (prehello_boundary)"
+          }
+        },
+        "enrolled_pair_bridge_tests": {
+          "output": "PASS actual C++ diagnostic serializer / Python terminal parser interop\nPASS actual enrolled two-process C++ / Python status bridge interop\n.................................\n----------------------------------------------------------------------\nRan 33 tests in 0.032s\n\nOK",
+          "result": "passed"
+        },
+        "enrolled_trace_capture_tests": {
+          "output": "PASS 4 real target formatter / fragmented parser / operator trace cases\n......\n----------------------------------------------------------------------\nRan 6 tests in 0.028s\n\nOK",
+          "result": "passed"
+        },
+        "enrolled_confirmation_trial_tests": {
+          "output": ".....................\n----------------------------------------------------------------------\nRan 21 tests in 4.993s\n\nOK",
+          "result": "passed"
+        },
+        "enrolled_trial_operator_tests": {
+          "output": ".........................\n----------------------------------------------------------------------\nRan 25 tests in 0.559s\n\nOK",
+          "result": "passed"
+        },
+        "enrolled_target_pacing_tests": {
+          "output": "PASS corrected BEGIN=0ms MAX_LINE=0ms max_bytes_without_delay=701 idle_reads=3 yields=120\nPASS 1 actual enrolled target pacing regression\n..\n----------------------------------------------------------------------\nRan 2 tests in 1.526s\n\nOK",
+          "result": "passed"
+        },
+        "pair_bench_bridge_tests": {
+          "output": "PASS actual two-process C++ endpoint / Python provisioning bridge interop\n........................\n----------------------------------------------------------------------\nRan 24 tests in 0.014s\n\nOK",
+          "result": "passed"
+        },
+        "pair_confirmation_trial_tests": {
+          "output": "...................\n----------------------------------------------------------------------\nRan 19 tests in 5.010s\n\nOK",
+          "result": "passed"
+        },
+        "pair_trial_operator_tests": {
+          "output": "...............\n----------------------------------------------------------------------\nRan 15 tests in 0.198s\n\nOK",
+          "result": "passed"
+        },
+        "pair_radio_driver_source_tests": {
+          "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.333s\n\nOK",
+          "result": "passed"
+        },
+        "security_invitation_target_tests": {
+          "output": "PASS 130 actual invitation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+          "binary": {
+            "bytes": 404238,
+            "sha256": "5bb47dd3d4bf0a67d7cccb70c6efc05b189219ba1b35b2a202a7962477b645f0"
+          }
+        },
+        "security_confirmation_target_tests": {
+          "output": "PASS 139 actual confirmation target groups\nReal evaluation baseline: 24 commits, 6 RNG fills; SDK seams simulated; no physical interruption",
+          "binary": {
+            "bytes": 420084,
+            "sha256": "4fcfde6981eb57e1d4918c0ac17e56194ebb17fe8c6cd6e9c3b7947b46817f94"
+          }
+        },
+        "security_confirmation_ble_backend_tests": {
+          "output": "PASS 72 actual protected confirmation backend groups",
+          "binary": {
+            "bytes": 419635,
+            "sha256": "73b27c8db5edde7f6750213efcfdbbd06ece13703a7954de8934658d7f51ec9b"
+          }
+        }
+      },
+      "scalar_control": {
+        "groups": 26,
+        "result": "passed",
+        "binary": {
+          "bytes": 224357,
+          "sha256": "8fd9e77685796cfaa931872bf35114421489c1091d054a6026d451c110993be6"
+        }
+      }
+    },
+    "final_python_followup": {
+      "result": "passed",
+      "test_count": 86,
+      "suites": [
+        {
+          "suite": "enrolled_pair_bridge_tests.py",
+          "exit_status": 0,
+          "unittest_count": 34,
+          "stdout": "PASS actual C++ diagnostic serializer / Python terminal parser interop\nPASS actual enrolled two-process C++ / Python status bridge interop\n",
+          "stderr": "..................................\n----------------------------------------------------------------------\nRan 34 tests in 0.042s\n\nOK\n"
+        },
+        {
+          "suite": "enrolled_trace_capture_tests.py",
+          "exit_status": 0,
+          "unittest_count": 6,
+          "stdout": "PASS 4 real target formatter / fragmented parser / operator trace cases\n",
+          "stderr": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.030s\n\nOK\n"
+        },
+        {
+          "suite": "enrolled_trial_operator_tests.py",
+          "exit_status": 0,
+          "unittest_count": 25,
+          "stdout": "",
+          "stderr": ".........................\n----------------------------------------------------------------------\nRan 25 tests in 0.591s\n\nOK\n"
+        },
+        {
+          "suite": "enrolled_confirmation_trial_tests.py",
+          "exit_status": 0,
+          "unittest_count": 21,
+          "stdout": "",
+          "stderr": ".....................\n----------------------------------------------------------------------\nRan 21 tests in 4.750s\n\nOK\n"
+        }
+      ],
+      "source_pin_comparison": {
+        "total": 1016,
+        "unchanged": 1013,
+        "changed": [
+          {
+            "file": "tests/host/enrolled_pair_bridge_tests.py",
+            "before": {
+              "bytes": 28711,
+              "sha256": "b465361ce3801eccbdad67bbec84631e9cb135719cb9862d35d295f620d69d3d"
+            },
+            "after": {
+              "bytes": 31194,
+              "sha256": "7e2ad31afd78237e9358eced6bf9fbe3ea1edb9fa87afaf1a655734cd8414213"
+            }
+          },
+          {
+            "file": "tools/enrolled_pair_bridge.py",
+            "before": {
+              "bytes": 28582,
+              "sha256": "12cd61d516ff777c7bb01abf01049bed1d2edbc271f7726f5074de30545eb6df"
+            },
+            "after": {
+              "bytes": 29734,
+              "sha256": "0785e17e5ad15154f401beb347d3bafde09b8f9211ae8560b6dcfff1aef33a6a"
+            }
+          },
+          {
+            "file": "tools/enrolled_trace_schema.py",
+            "before": {
+              "bytes": 4582,
+              "sha256": "f18d7a41298ba3bee115fef0c17b65692b83dddaa56967f61df157a13cbeda38"
+            },
+            "after": {
+              "bytes": 5389,
+              "sha256": "b495a209f4eb593b8c0cea3ed8c56862c5965246ee34f528c75dfd0f97c59c65"
+            }
+          }
+        ],
+        "missing": []
+      },
+      "receipt": {
+        "bytes": 4507,
+        "sha256": "f4166d595ef9f7236a88c28876d4d2a70c11e6486b03a1e9af464265209bf5a0"
+      },
+      "scope": "Three Python-only pins changed after matrix; all affected Python suites rerun with unchanged matrix C++ binaries. No full-matrix rerun claimed."
+    },
+    "controller_allowlist": {
+      "checks": 12,
+      "result": "passed",
+      "hardware": false
+    },
+    "toolchain": "ESP-IDF 6.0.2; xtensa-esp-elf 15.2.0_20251204; host MSYS2 GCC 16.1.0",
+    "firmware_builds": {
+      "heltec_v4_enrolled_eval": {
+        "result": "passed twice",
+        "binary": {
+          "bytes": 532272,
+          "sha256": "1c360458679e613d0a8c2890c0623a109cf8dc853685168d7ca7bac1bb594a8b"
+        }
+      },
+      "heltec_v4_pair_eval": {
+        "result": "passed",
+        "binary": {
+          "bytes": 461920,
+          "sha256": "323328e89c53f5f27d10e1a1eb27de8ce49683650b1bf4d4a530d8cf13784834"
+        }
+      },
+      "heltec_v4_pair_radio_eval": {
+        "result": "passed",
+        "binary": {
+          "bytes": 510624,
+          "sha256": "33b22da0364c9ff05c68b92f3f13b37192058f072ddd764a9453f25cce81e58e"
+        }
+      }
+    },
+    "enrolled_reproducibility": {
+      "schema": "OT246-TARGET-BUILD-1",
+      "all_seven_raw_pairs_equal": true,
+      "artifacts": {
+        "heltec_v4_enrolled_eval.bin": {
+          "a": {
+            "bytes": 532272,
+            "sha256": "1c360458679e613d0a8c2890c0623a109cf8dc853685168d7ca7bac1bb594a8b"
+          },
+          "b": {
+            "bytes": 532272,
+            "sha256": "1c360458679e613d0a8c2890c0623a109cf8dc853685168d7ca7bac1bb594a8b"
+          },
+          "raw_equal": true
+        },
+        "heltec_v4_enrolled_eval.elf": {
+          "a": {
+            "bytes": 7456376,
+            "sha256": "6e6069c1b0b05a96d0b0497b0243dd6139625d74b427f7c6ee5507a380844f28"
+          },
+          "b": {
+            "bytes": 7456376,
+            "sha256": "6e6069c1b0b05a96d0b0497b0243dd6139625d74b427f7c6ee5507a380844f28"
+          },
+          "raw_equal": true
+        },
+        "heltec_v4_enrolled_eval.map": {
+          "a": {
+            "bytes": 7274590,
+            "sha256": "088ee4a238d3b538a8efd9f05552ef5074d8ee07a977c8c940c6b1b397232d81"
+          },
+          "b": {
+            "bytes": 7274590,
+            "sha256": "088ee4a238d3b538a8efd9f05552ef5074d8ee07a977c8c940c6b1b397232d81"
+          },
+          "raw_equal": true
+        },
+        "bootloader/bootloader.bin": {
+          "a": {
+            "bytes": 15216,
+            "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+          },
+          "b": {
+            "bytes": 15216,
+            "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+          },
+          "raw_equal": true
+        },
+        "partition_table/partition-table.bin": {
+          "a": {
+            "bytes": 3072,
+            "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+          },
+          "b": {
+            "bytes": 3072,
+            "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+          },
+          "raw_equal": true
+        },
+        "ota_data_initial.bin": {
+          "a": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "b": {
+            "bytes": 8192,
+            "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+          },
+          "raw_equal": true
+        },
+        "sdkconfig": {
+          "a": {
+            "bytes": 92613,
+            "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+          },
+          "b": {
+            "bytes": 92613,
+            "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+          },
+          "raw_equal": true
+        }
+      },
+      "guards": {
+        "a": {
+          "config_guards": {
+            "CONFIG_IDF_TARGET": "\"esp32s3\"",
+            "CONFIG_ESP_MAIN_TASK_STACK_SIZE": "24576",
+            "CONFIG_ESPTOOLPY_FLASHSIZE_16MB": "y",
+            "CONFIG_ESPTOOLPY_FLASHMODE_QIO": "y",
+            "CONFIG_ESPTOOLPY_FLASHFREQ_80M": "y",
+            "CONFIG_BT_ENABLED": "y",
+            "CONFIG_BT_CONTROLLER_ENABLED": "y",
+            "CONFIG_BT_NIMBLE_ENABLED": "y",
+            "CONFIG_ESP_CONSOLE_NONE": "y",
+            "CONFIG_LOG_DEFAULT_LEVEL": "0",
+            "CONFIG_APP_REPRODUCIBLE_BUILD": "y"
+          },
+          "app_and_driver_compiled": true,
+          "bounded_radio_tus": true,
+          "protected_partition_matches": true,
+          "app_restore_span_bytes": 733184,
+          "app_size": 532272,
+          "physical_stack_measured": false
+        },
+        "b": {
+          "config_guards": {
+            "CONFIG_IDF_TARGET": "\"esp32s3\"",
+            "CONFIG_ESP_MAIN_TASK_STACK_SIZE": "24576",
+            "CONFIG_ESPTOOLPY_FLASHSIZE_16MB": "y",
+            "CONFIG_ESPTOOLPY_FLASHMODE_QIO": "y",
+            "CONFIG_ESPTOOLPY_FLASHFREQ_80M": "y",
+            "CONFIG_BT_ENABLED": "y",
+            "CONFIG_BT_CONTROLLER_ENABLED": "y",
+            "CONFIG_BT_NIMBLE_ENABLED": "y",
+            "CONFIG_ESP_CONSOLE_NONE": "y",
+            "CONFIG_LOG_DEFAULT_LEVEL": "0",
+            "CONFIG_APP_REPRODUCIBLE_BUILD": "y"
+          },
+          "app_and_driver_compiled": true,
+          "bounded_radio_tus": true,
+          "protected_partition_matches": true,
+          "app_restore_span_bytes": 733184,
+          "app_size": 532272,
+          "physical_stack_measured": false
+        }
+      },
+      "closures": {
+        "a": {
+          "source_and_dependency_count": 2888,
+          "translation_units": 1209,
+          "link_library_count": 112,
+          "license_notice_candidates": 20,
+          "manifest": {
+            "bytes": 594306,
+            "sha256": "7ba24dbf8d0e780234d368315ab0c67ebae5046138cd2212673987b0fc53daa5"
+          }
+        },
+        "b": {
+          "source_and_dependency_count": 2888,
+          "translation_units": 1209,
+          "link_library_count": 112,
+          "license_notice_candidates": 20,
+          "manifest": {
+            "bytes": 594306,
+            "sha256": "76c3eb8a6efb67cd2082992974183ace2020a4d61800b7f695d16d4533cfd929"
+          }
+        }
+      },
+      "hardware_access": false,
+      "production_admission": false
+    },
+    "source_pins_after_followup": {
+      "tools/ble_confirmation_trial.py": {
+        "bytes": 15876,
+        "sha256": "fb22ca3ed032f5f4c85fc9006c7e3be5cae9590b2db84cc4fe27fb70a988b5f7"
+      },
+      "tools/ble_confirmation_trial_transport.py": {
+        "bytes": 16279,
+        "sha256": "7708e419b503ce394b3e0702a406bf9f3198edc0369a92bc337b2b33a3c1a6d4"
+      },
+      "tools/ble_startup_diagnostics.py": {
+        "bytes": 14644,
+        "sha256": "448d5c0f8c6f77eac034f61f78fe68b615394aa3c97677e726edd0578f302a4b"
+      },
+      "tools/enrolled_confirmation_trial.py": {
+        "bytes": 15240,
+        "sha256": "711f1208358ed82cdaad8ca617292dcc19372b1bf07b5a7abd95fe01bf1e623a"
+      },
+      "tools/enrolled_pair_bridge.py": {
+        "bytes": 29734,
+        "sha256": "0785e17e5ad15154f401beb347d3bafde09b8f9211ae8560b6dcfff1aef33a6a"
+      },
+      "tools/enrolled_trace_schema.py": {
+        "bytes": 5389,
+        "sha256": "b495a209f4eb593b8c0cea3ed8c56862c5965246ee34f528c75dfd0f97c59c65"
+      },
+      "tools/enrolled_trial_operator.py": {
+        "bytes": 20534,
+        "sha256": "9dee14c634e091acb2ba5cae7dbe365239a13d8b82f85936f949a4f707470b96"
+      },
+      "tools/pair_bench_bridge.py": {
+        "bytes": 16626,
+        "sha256": "f9550435b124fcf7480c62ca702efe99c84db594668e41496bcf853443a1b203"
+      },
+      "tools/security_policy_bundle.py": {
+        "bytes": 10318,
+        "sha256": "0512d4118bae3d5e23628e19bc75b484b7457b937620acc15cdf7969776ae7b2"
+      },
+      "tools/security_policy_capture.py": {
+        "bytes": 2444,
+        "sha256": "6aa64631a2e9893140f6ce5585c317b8d93c72421f216310c57f895dffa78fd2"
+      },
+      "tools/security_policy_deadline_operator.py": {
+        "bytes": 23269,
+        "sha256": "deb032c130dc0ca437451c39f3213555e4a0c6a37196ba0c49f9bacfaaf24687"
+      },
+      "tools/security_policy_execution.py": {
+        "bytes": 21186,
+        "sha256": "afce87da6ffdc382f402bb774e44086c1e77e9741e1da04f16be733e43ae0089"
+      },
+      "tools/security_policy_input_readback.py": {
+        "bytes": 6045,
+        "sha256": "b1c362db5c416397207f72c47ce95a329bcb1f483c94ebf1877fe7d30ba7ee37"
+      }
+    }
+  },
+  "prepared_trial": {
+    "prepared": true,
+    "proposal_sha256": "8387f9e58f9fcb4d9197d6c20c442fc1528ffd26b3c33ed68e2926b449bed0a1",
+    "controller_sha256": "e93403b934a0701ff6d78a7035bd734a95646b67116009fd049234723d74f857",
+    "request_sha256": "171e177931e32a996d9820317c192905faca14b330ef0d0d8eaa2d959832409f",
+    "grant_issued": false,
+    "serial_enumeration": false,
+    "hardware_access": false,
+    "operator_binding": {
+      "bytes": 19175,
+      "sha256": "e2ab8b181af39a3fd100a6ed3ff609d8d5a76983eff37f2de266365a10223729"
+    },
+    "candidate_attempt_limit": 1,
+    "restore_only_attempt_limit": 2,
+    "phone_actions": false,
+    "intended_hardware": "Two Heltec WiFi LoRa32 V4.2 ESP32-S3 / 16MiB",
+    "radio": "915MHz / BW125kHz / SF7 / CR4:5 / configured2dBm; max158B; max16TX per role; unchanged60s invitation",
+    "restoration": "Capture full original733184B application and12288B ordinary NVS on both before either write; independent full restore/readback/reset; compare protected spans without writing them",
+    "approval_readiness_pending": true
+  },
+  "limits": [
+    "No physical run, timing measurement or activation acceptance; OT244 restored/normal-screen state unchanged.",
+    "Three nested activation authority checks instrumented; earlier IndependentConfirmationOwner guard and overlong button hold may remain generic.",
+    "Packet rejection category does not identify an individual cryptographic primitive or corrupt byte.",
+    "Guard time includes device enumeration; serial read time includes waiting for target. Host and target clocks are not synchronized.",
+    "Host timing buffered until child exits; abrupt controller termination before flush can lose it.",
+    "Physical stack usage, startup and radio behavior remain untested."
+  ],
+  "environment_failures": [
+    "Sandbox compiler-launch restriction; unchanged builds succeeded outside sandbox. Read-only CIM inspection denied; no process action taken."
+  ],
+  "corrected_validation_failures": [
+    "Initial diagnostics fixture misleading-indentation compile warning corrected before focused and full matrix validation."
+  ],
+  "hardware_access": false,
+  "git_network_or_publication": false,
+  "v1_credit_changed": false,
+  "website_status_changed": false
+}

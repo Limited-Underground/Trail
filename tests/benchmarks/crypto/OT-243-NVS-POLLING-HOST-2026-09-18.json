@@ -1,0 +1,1917 @@
+{
+  "schema": "OT243-NVS-POLLING-HOST-1",
+  "as_of": "2026-09-18T18:30:15.479703+00:00",
+  "result": "host correction and build validation passed; physical untested",
+  "hardware": false,
+  "phone_actions": false,
+  "git_mutation": false,
+  "git_network": false,
+  "dependency_network": true,
+  "deadline_changes": false,
+  "authority_checks_removed": false,
+  "cached_record_bytes": false,
+  "shape_bookkeeping_bytes": 44,
+  "known_record_disappearance": "terminal storage fault; tightened under serialized no-key-deletion backend contract",
+  "sources": {
+    "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_nvs_backend.hpp": {
+      "bytes": 7195,
+      "sha256": "62e28bb406b25de119e4abdcd84cf9f44866f407da7b4a34dcf1a0f6fe53a871"
+    },
+    "tests/host/enrolled_nvs_backend_tests.cpp": {
+      "bytes": 13307,
+      "sha256": "d96518dd3094412d8c91f0ec0333b8cdcc5bd794aa6e3db22f98d3e84045bc2f"
+    },
+    "tests/host/fixtures/security_eval_nvs/nvs.h": {
+      "bytes": 615,
+      "sha256": "d04061b70b583c3ceb1e01bfaf43b90bb8a14fe8d15a4d3b9994b6be660fcf48"
+    },
+    "tests/host/enrolled_completion_composed_tests.cpp": {
+      "bytes": 30695,
+      "sha256": "fc0ac6badf5fcaaa5ff70dae23a29085fbafabca0c9c9df3fe8248b8d818ac89"
+    }
+  },
+  "baseline_backend": {
+    "bytes": 5950,
+    "sha256": "3cc62ca1629a8bba5d54c59b8dd3c0b1ceccbc0f93c93602e03df45a18d483f3"
+  },
+  "matrix": {
+    "suites": 43,
+    "source_pins_verified": 1014,
+    "result": {
+      "bytes": 203147,
+      "sha256": "9d414bf36b5215795f85e4521b78b7e99f3b15405b9140923861993a6087e7c0"
+    }
+  },
+  "focused": {
+    "nvs_backend_groups": 261,
+    "nvs_session_groups": 11,
+    "diagnostics_groups": 9,
+    "diagnostics_python_tests": 24,
+    "completion_groups": 2,
+    "activation_boundary_groups": 4,
+    "full_exchange_groups": 1
+  },
+  "profile": {
+    "before_total_sdk_gets": 291910,
+    "after_total_sdk_gets": 195018,
+    "before_by_role": {
+      "A": 150350,
+      "B": 141560
+    },
+    "after_by_role": {
+      "A": 100464,
+      "B": 94554
+    },
+    "reduction_percent": 33.19242232194854,
+    "includes_initialization": true,
+    "generation": 1,
+    "rows_exclude_initialization": true,
+    "rows": [
+      {
+        "stage": "begin_pre_tick",
+        "role": "A",
+        "state": 1,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "begin",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 1253,
+        "after_sdk_gets": 849,
+        "before_synthetic_sdk_us": 215516,
+        "after_synthetic_sdk_us": 146028
+      },
+      {
+        "stage": "radio_pre_tick",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "radio",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "begin_pre_tick",
+        "role": "B",
+        "state": 1,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "begin",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 1253,
+        "after_sdk_gets": 849,
+        "before_synthetic_sdk_us": 215516,
+        "after_synthetic_sdk_us": 146028
+      },
+      {
+        "stage": "radio_pre_tick",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "radio",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake1_send_pre_tick",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake1_send",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 4617,
+        "after_sdk_gets": 3090,
+        "before_synthetic_sdk_us": 794124,
+        "after_synthetic_sdk_us": 531480
+      },
+      {
+        "stage": "handshake1_tx_pre_tick",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake1_tx",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 3735,
+        "after_sdk_gets": 2500,
+        "before_synthetic_sdk_us": 642420,
+        "after_synthetic_sdk_us": 430000
+      },
+      {
+        "stage": "handshake1_txstat_pre_tick",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake1_txstat",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake1_rearm_pre_tick",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake1_rearm",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 3735,
+        "after_sdk_gets": 2500,
+        "before_synthetic_sdk_us": 642420,
+        "after_synthetic_sdk_us": 430000
+      },
+      {
+        "stage": "handshake1_receive_pre_tick",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake1_receive",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 4617,
+        "after_sdk_gets": 3090,
+        "before_synthetic_sdk_us": 794124,
+        "after_synthetic_sdk_us": 531480
+      },
+      {
+        "stage": "handshake2_send_pre_tick",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake2_send",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 4617,
+        "after_sdk_gets": 3090,
+        "before_synthetic_sdk_us": 794124,
+        "after_synthetic_sdk_us": 531480
+      },
+      {
+        "stage": "handshake2_tx_pre_tick",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake2_tx",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 3735,
+        "after_sdk_gets": 2500,
+        "before_synthetic_sdk_us": 642420,
+        "after_synthetic_sdk_us": 430000
+      },
+      {
+        "stage": "handshake2_txstat_pre_tick",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake2_txstat",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake2_rearm_pre_tick",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake2_rearm",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 3735,
+        "after_sdk_gets": 2500,
+        "before_synthetic_sdk_us": 642420,
+        "after_synthetic_sdk_us": 430000
+      },
+      {
+        "stage": "handshake2_receive_pre_tick",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake2_receive",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 4617,
+        "after_sdk_gets": 3090,
+        "before_synthetic_sdk_us": 794124,
+        "after_synthetic_sdk_us": 531480
+      },
+      {
+        "stage": "handshake3_send_pre_tick",
+        "role": "A",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake3_send",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 4797,
+        "after_sdk_gets": 3210,
+        "before_synthetic_sdk_us": 825084,
+        "after_synthetic_sdk_us": 552120
+      },
+      {
+        "stage": "handshake3_tx_pre_tick",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "handshake3_tx",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 3735,
+        "after_sdk_gets": 2500,
+        "before_synthetic_sdk_us": 642420,
+        "after_synthetic_sdk_us": 430000
+      },
+      {
+        "stage": "handshake3_txstat_pre_tick",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "handshake3_txstat",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake3_rearm_pre_tick",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "handshake3_rearm",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 3735,
+        "after_sdk_gets": 2500,
+        "before_synthetic_sdk_us": 642420,
+        "after_synthetic_sdk_us": 430000
+      },
+      {
+        "stage": "handshake3_receive_pre_tick",
+        "role": "B",
+        "state": 2,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "handshake3_receive",
+        "role": "B",
+        "state": 3,
+        "before_sdk_gets": 4797,
+        "after_sdk_gets": 3210,
+        "before_synthetic_sdk_us": 825084,
+        "after_synthetic_sdk_us": 552120
+      },
+      {
+        "stage": "review_pre_tick",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "review",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "idle_review",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "status_review_pre_tick",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "status_review",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "press",
+        "role": "A",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "release",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 1818,
+        "after_sdk_gets": 1218,
+        "before_synthetic_sdk_us": 312696,
+        "after_synthetic_sdk_us": 209496
+      },
+      {
+        "stage": "status_confirmed_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status_confirmed",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "review_pre_tick",
+        "role": "B",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "review",
+        "role": "B",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "idle_review",
+        "role": "B",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "status_review_pre_tick",
+        "role": "B",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "status_review",
+        "role": "B",
+        "state": 3,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "press",
+        "role": "B",
+        "state": 3,
+        "before_sdk_gets": 792,
+        "after_sdk_gets": 530,
+        "before_synthetic_sdk_us": 136224,
+        "after_synthetic_sdk_us": 91160
+      },
+      {
+        "stage": "release",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 1818,
+        "after_sdk_gets": 1218,
+        "before_synthetic_sdk_us": 312696,
+        "after_synthetic_sdk_us": 209496
+      },
+      {
+        "stage": "status_confirmed_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status_confirmed",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation1_send_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation1_send",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5127,
+        "after_sdk_gets": 3430,
+        "before_synthetic_sdk_us": 881844,
+        "after_synthetic_sdk_us": 589960
+      },
+      {
+        "stage": "activation1_tx_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation1_tx",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 3735,
+        "after_sdk_gets": 2500,
+        "before_synthetic_sdk_us": 642420,
+        "after_synthetic_sdk_us": 430000
+      },
+      {
+        "stage": "activation1_txstat_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation1_txstat",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation1_rearm_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation1_rearm",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 3735,
+        "after_sdk_gets": 2500,
+        "before_synthetic_sdk_us": 642420,
+        "after_synthetic_sdk_us": 430000
+      },
+      {
+        "stage": "activation1_receive_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation1_receive",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5396,
+        "after_sdk_gets": 3610,
+        "before_synthetic_sdk_us": 928112,
+        "after_synthetic_sdk_us": 620920
+      },
+      {
+        "stage": "activation2_send_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation2_send",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5547,
+        "after_sdk_gets": 3710,
+        "before_synthetic_sdk_us": 954084,
+        "after_synthetic_sdk_us": 638120
+      },
+      {
+        "stage": "activation2_tx_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation2_tx",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4035,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 694020,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "activation2_txstat_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation2_txstat",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation2_rearm_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation2_rearm",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4035,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 694020,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "activation2_receive_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation2_receive",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5396,
+        "after_sdk_gets": 3610,
+        "before_synthetic_sdk_us": 928112,
+        "after_synthetic_sdk_us": 620920
+      },
+      {
+        "stage": "activation3_send_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation3_send",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5606,
+        "after_sdk_gets": 3749,
+        "before_synthetic_sdk_us": 964232,
+        "after_synthetic_sdk_us": 644828
+      },
+      {
+        "stage": "activation3_tx_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation3_tx",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 4035,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 694020,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "activation3_txstat_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation3_txstat",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation3_rearm_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation3_rearm",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 4035,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 694020,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "activation3_receive_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation3_receive",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5591,
+        "after_sdk_gets": 3738,
+        "before_synthetic_sdk_us": 961652,
+        "after_synthetic_sdk_us": 642936
+      },
+      {
+        "stage": "activation4_send_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation4_send",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5511,
+        "after_sdk_gets": 3680,
+        "before_synthetic_sdk_us": 947892,
+        "after_synthetic_sdk_us": 632960
+      },
+      {
+        "stage": "activation4_tx_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation4_tx",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "activation4_txstat_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation4_txstat",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation4_rearm_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation4_rearm",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "activation4_receive_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "activation4_receive",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5490,
+        "after_sdk_gets": 3669,
+        "before_synthetic_sdk_us": 944280,
+        "after_synthetic_sdk_us": 631068
+      },
+      {
+        "stage": "traffic_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "traffic",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 810,
+        "after_sdk_gets": 540,
+        "before_synthetic_sdk_us": 139320,
+        "after_synthetic_sdk_us": 92880
+      },
+      {
+        "stage": "traffic_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "traffic",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 810,
+        "after_sdk_gets": 540,
+        "before_synthetic_sdk_us": 139320,
+        "after_synthetic_sdk_us": 92880
+      },
+      {
+        "stage": "status1_send_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_send",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5085,
+        "after_sdk_gets": 3388,
+        "before_synthetic_sdk_us": 874620,
+        "after_synthetic_sdk_us": 582736
+      },
+      {
+        "stage": "status1_tx_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_tx",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status1_txstat_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_txstat",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_rearm_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_rearm",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status1_receive_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_receive",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5069,
+        "after_sdk_gets": 3378,
+        "before_synthetic_sdk_us": 871868,
+        "after_synthetic_sdk_us": 581016
+      },
+      {
+        "stage": "status1_send_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_send",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5085,
+        "after_sdk_gets": 3388,
+        "before_synthetic_sdk_us": 874620,
+        "after_synthetic_sdk_us": 582736
+      },
+      {
+        "stage": "status1_tx_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_tx",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status1_txstat_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_txstat",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_rearm_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_rearm",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status1_receive_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status1_receive",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5069,
+        "after_sdk_gets": 3378,
+        "before_synthetic_sdk_us": 871868,
+        "after_synthetic_sdk_us": 581016
+      },
+      {
+        "stage": "status2_send_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_send",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5085,
+        "after_sdk_gets": 3388,
+        "before_synthetic_sdk_us": 874620,
+        "after_synthetic_sdk_us": 582736
+      },
+      {
+        "stage": "status2_tx_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_tx",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status2_txstat_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_txstat",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_rearm_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_rearm",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status2_receive_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_receive",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5069,
+        "after_sdk_gets": 3378,
+        "before_synthetic_sdk_us": 871868,
+        "after_synthetic_sdk_us": 581016
+      },
+      {
+        "stage": "status2_send_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_send",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5085,
+        "after_sdk_gets": 3388,
+        "before_synthetic_sdk_us": 874620,
+        "after_synthetic_sdk_us": 582736
+      },
+      {
+        "stage": "status2_tx_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_tx",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status2_txstat_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_txstat",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_rearm_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_rearm",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status2_receive_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status2_receive",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5069,
+        "after_sdk_gets": 3378,
+        "before_synthetic_sdk_us": 871868,
+        "after_synthetic_sdk_us": 581016
+      },
+      {
+        "stage": "status3_send_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_send",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5085,
+        "after_sdk_gets": 3388,
+        "before_synthetic_sdk_us": 874620,
+        "after_synthetic_sdk_us": 582736
+      },
+      {
+        "stage": "status3_tx_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_tx",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status3_txstat_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_txstat",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_rearm_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_rearm",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status3_receive_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_receive",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5069,
+        "after_sdk_gets": 3378,
+        "before_synthetic_sdk_us": 871868,
+        "after_synthetic_sdk_us": 581016
+      },
+      {
+        "stage": "status3_send_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_send",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5085,
+        "after_sdk_gets": 3388,
+        "before_synthetic_sdk_us": 874620,
+        "after_synthetic_sdk_us": 582736
+      },
+      {
+        "stage": "status3_tx_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_tx",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status3_txstat_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_txstat",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_rearm_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_rearm",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status3_receive_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status3_receive",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5069,
+        "after_sdk_gets": 3378,
+        "before_synthetic_sdk_us": 871868,
+        "after_synthetic_sdk_us": 581016
+      },
+      {
+        "stage": "status4_send_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_send",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5085,
+        "after_sdk_gets": 3388,
+        "before_synthetic_sdk_us": 874620,
+        "after_synthetic_sdk_us": 582736
+      },
+      {
+        "stage": "status4_tx_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_tx",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status4_txstat_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_txstat",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_rearm_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_rearm",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status4_receive_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_receive",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5069,
+        "after_sdk_gets": 3378,
+        "before_synthetic_sdk_us": 871868,
+        "after_synthetic_sdk_us": 581016
+      },
+      {
+        "stage": "status4_send_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_send",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 5085,
+        "after_sdk_gets": 3388,
+        "before_synthetic_sdk_us": 874620,
+        "after_synthetic_sdk_us": 582736
+      },
+      {
+        "stage": "status4_tx_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_tx",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status4_txstat_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_txstat",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_rearm_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_rearm",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 4050,
+        "after_sdk_gets": 2700,
+        "before_synthetic_sdk_us": 696600,
+        "after_synthetic_sdk_us": 464400
+      },
+      {
+        "stage": "status4_receive_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "status4_receive",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 5069,
+        "after_sdk_gets": 3378,
+        "before_synthetic_sdk_us": 871868,
+        "after_synthetic_sdk_us": 581016
+      },
+      {
+        "stage": "close_pre_tick",
+        "role": "A",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "close",
+        "role": "A",
+        "state": 5,
+        "before_sdk_gets": 196,
+        "after_sdk_gets": 129,
+        "before_synthetic_sdk_us": 33712,
+        "after_synthetic_sdk_us": 22188
+      },
+      {
+        "stage": "close_pre_tick",
+        "role": "B",
+        "state": 4,
+        "before_sdk_gets": 0,
+        "after_sdk_gets": 0,
+        "before_synthetic_sdk_us": 0,
+        "after_synthetic_sdk_us": 0
+      },
+      {
+        "stage": "close",
+        "role": "B",
+        "state": 5,
+        "before_sdk_gets": 196,
+        "after_sdk_gets": 129,
+        "before_synthetic_sdk_us": 33712,
+        "after_synthetic_sdk_us": 22188
+      }
+    ]
+  },
+  "timing_regression": {
+    "charged_us_per_sdk_get": 172,
+    "additional_gap_us": 10000000,
+    "button_holds_us": [
+      600000,
+      600000
+    ],
+    "clock_model": "shared serialized clock, not independently concurrent devices",
+    "before": {
+      "result": "refused",
+      "stage": "status_4_A_to_B",
+      "role": "B",
+      "command": "RFPOLL",
+      "synthetic_elapsed_us": 60042496,
+      "fault": 3
+    },
+    "after": {
+      "result": "passed",
+      "synthetic_elapsed_us": 44544952,
+      "sdk_gets_after_initialization": 193866,
+      "activation_controls": 4,
+      "received_statuses": 8,
+      "cleanup": "passed"
+    },
+    "limitations": [
+      "Synthetic cost calibrated from earlier aggregate counters; call types need not cost the same physically.",
+      "Generation-one fresh ledger fixture; retained occupancy changes counts.",
+      "Concurrent idle loops, radio airtime, UART, crypto and flash-write latency omitted.",
+      "No physical cause or elapsed-time improvement established."
+    ]
+  },
+  "builds": {
+    "target": "heltec_v4_enrolled_eval",
+    "names": [
+      "ot242-enrolled-ot243-c",
+      "ot242-enrolled-ot243-d"
+    ],
+    "idf": "6.0.2",
+    "toolchain": "xtensa esp-15.2.0_20251204",
+    "project_version": "ot242-enrolled-completion-v1",
+    "all_seven_raw_pairs_equal": true,
+    "artifacts": {
+      "heltec_v4_enrolled_eval.bin": {
+        "a": {
+          "bytes": 528160,
+          "sha256": "cec805d4c4b8eaea9ea6380c037b7b34a97af4a9b6fc40b02b6d98b98db7f24e"
+        },
+        "b": {
+          "bytes": 528160,
+          "sha256": "cec805d4c4b8eaea9ea6380c037b7b34a97af4a9b6fc40b02b6d98b98db7f24e"
+        },
+        "raw_equal": true
+      },
+      "heltec_v4_enrolled_eval.elf": {
+        "a": {
+          "bytes": 7420032,
+          "sha256": "46b8b65cd067f99d3da68a635f609756b9a6d88cb9bf23c8e8cf8799e8d7962f"
+        },
+        "b": {
+          "bytes": 7420032,
+          "sha256": "46b8b65cd067f99d3da68a635f609756b9a6d88cb9bf23c8e8cf8799e8d7962f"
+        },
+        "raw_equal": true
+      },
+      "heltec_v4_enrolled_eval.map": {
+        "a": {
+          "bytes": 7248371,
+          "sha256": "29f30adc67b8a4db81a1820fe4c2f59dd069f467aa3ddeafefbafc525c604c48"
+        },
+        "b": {
+          "bytes": 7248371,
+          "sha256": "29f30adc67b8a4db81a1820fe4c2f59dd069f467aa3ddeafefbafc525c604c48"
+        },
+        "raw_equal": true
+      },
+      "bootloader/bootloader.bin": {
+        "a": {
+          "bytes": 15216,
+          "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+        },
+        "b": {
+          "bytes": 15216,
+          "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+        },
+        "raw_equal": true
+      },
+      "partition_table/partition-table.bin": {
+        "a": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "b": {
+          "bytes": 3072,
+          "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+        },
+        "raw_equal": true
+      },
+      "ota_data_initial.bin": {
+        "a": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "b": {
+          "bytes": 8192,
+          "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+        },
+        "raw_equal": true
+      },
+      "sdkconfig": {
+        "a": {
+          "bytes": 92613,
+          "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+        },
+        "b": {
+          "bytes": 92613,
+          "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+        },
+        "raw_equal": true
+      }
+    },
+    "guards": {
+      "a": {
+        "config_guards": {
+          "CONFIG_IDF_TARGET": "\"esp32s3\"",
+          "CONFIG_ESP_MAIN_TASK_STACK_SIZE": "24576",
+          "CONFIG_ESPTOOLPY_FLASHSIZE_16MB": "y",
+          "CONFIG_ESPTOOLPY_FLASHMODE_QIO": "y",
+          "CONFIG_ESPTOOLPY_FLASHFREQ_80M": "y",
+          "CONFIG_BT_ENABLED": "y",
+          "CONFIG_BT_CONTROLLER_ENABLED": "y",
+          "CONFIG_BT_NIMBLE_ENABLED": "y",
+          "CONFIG_ESP_CONSOLE_NONE": "y",
+          "CONFIG_LOG_DEFAULT_LEVEL": "0",
+          "CONFIG_APP_REPRODUCIBLE_BUILD": "y"
+        },
+        "app_and_driver_compiled": true,
+        "bounded_radio_tus": true,
+        "protected_partition_matches": true,
+        "app_restore_span_bytes": 733184,
+        "app_size": 528160,
+        "physical_stack_measured": false
+      },
+      "b": {
+        "config_guards": {
+          "CONFIG_IDF_TARGET": "\"esp32s3\"",
+          "CONFIG_ESP_MAIN_TASK_STACK_SIZE": "24576",
+          "CONFIG_ESPTOOLPY_FLASHSIZE_16MB": "y",
+          "CONFIG_ESPTOOLPY_FLASHMODE_QIO": "y",
+          "CONFIG_ESPTOOLPY_FLASHFREQ_80M": "y",
+          "CONFIG_BT_ENABLED": "y",
+          "CONFIG_BT_CONTROLLER_ENABLED": "y",
+          "CONFIG_BT_NIMBLE_ENABLED": "y",
+          "CONFIG_ESP_CONSOLE_NONE": "y",
+          "CONFIG_LOG_DEFAULT_LEVEL": "0",
+          "CONFIG_APP_REPRODUCIBLE_BUILD": "y"
+        },
+        "app_and_driver_compiled": true,
+        "bounded_radio_tus": true,
+        "protected_partition_matches": true,
+        "app_restore_span_bytes": 733184,
+        "app_size": 528160,
+        "physical_stack_measured": false
+      }
+    },
+    "closures": {
+      "a": {
+        "source_and_dependency_count": 2888,
+        "translation_units": 1209,
+        "link_library_count": 112,
+        "license_notice_candidates": 20,
+        "manifest": {
+          "bytes": 594305,
+          "sha256": "93a97252a006ba607b356b3dc5c3cd0b2c26228524d310dc180df12b60502596"
+        }
+      },
+      "b": {
+        "source_and_dependency_count": 2888,
+        "translation_units": 1209,
+        "link_library_count": 112,
+        "license_notice_candidates": 20,
+        "manifest": {
+          "bytes": 594305,
+          "sha256": "f1938e64002458ff98a814d902e761848251a76abbb849cdc94aa918133aace3"
+        }
+      }
+    }
+  },
+  "v1_credit": false,
+  "public_website_status_changed": false
+}

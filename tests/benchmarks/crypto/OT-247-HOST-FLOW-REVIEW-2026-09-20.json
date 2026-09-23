@@ -1,0 +1,89 @@
+{
+  "schema": "OT247-HOST-FLOW-REVIEW-1",
+  "as_of": "2026-09-20T08:43:17.505620+00:00",
+  "scope": "Host bridge correction, lifecycle audit and timing sensitivity; no new hardware operation",
+  "source_sha256": {
+    "tools/enrolled_pair_bridge.py": "6143bdaa104374d92928fddb97016cbafa153496dec92c89276bcaddbb3b291c",
+    "tests/host/enrolled_pair_bridge_tests.py": "18caa003e1cdc363fb62df45719bd94f975da2b4ca14de108fec6d285de9ec34",
+    "tests/host/enrolled_trace_capture_tests.py": "67d9e9b65641841880eef120d3f4daaefb0e54ca89f3270cbaddb539c908910e",
+    "tests/host/enrolled_completion_composed_tests.cpp": "799a7740d3570ae376ee0a08063ce51b6ee7c61eb97a83dae7fb7339c2fa6ce4"
+  },
+  "firmware_changed": false,
+  "corrections": [
+    "Guarded receiver rearm after each accepted frame; unexpected rearm result stops advancement.",
+    "Bounded up-to64-byte reads, fresh guards before/after actual reads including exceptions, bounded preserved tails and unchanged deadlines."
+  ],
+  "regressions": [
+    "Original receive ordering drops first activation control in a receiver-lifecycle model; corrected flow delivers3 handshake,4 activation and8 status frames with exact final counters.",
+    "At modeled10ms per guard, bytewise terminal collection misses unchanged1s budget; chunked collection completes below0.2s.",
+    "Identity loss, malformed or unsolicited rearm replies, split/coalesced lines, excessive lengths, invalid availability, delayed reads and incomplete terminal traces remain fail-closed."
+  ],
+  "validation": {
+    "python_tests": 97,
+    "suites": [
+      {
+        "suite": "enrolled_pair_bridge_tests.py",
+        "exit_status": 0,
+        "stdout": "PASS actual C++ diagnostic serializer / Python terminal parser interop\nPASS actual enrolled two-process C++ / Python status bridge interop\n",
+        "stderr": ".....................................\n----------------------------------------------------------------------\nRan 37 tests in 0.041s\n\nOK\n"
+      },
+      {
+        "suite": "enrolled_trace_capture_tests.py",
+        "exit_status": 0,
+        "stdout": "PASS 8 real target formatter / fragmented and chunked parser / operator trace cases\n",
+        "stderr": "..............\n----------------------------------------------------------------------\nRan 14 tests in 0.056s\n\nOK\n"
+      },
+      {
+        "suite": "enrolled_trial_operator_tests.py",
+        "exit_status": 0,
+        "stdout": "",
+        "stderr": ".........................\n----------------------------------------------------------------------\nRan 25 tests in 0.585s\n\nOK\n"
+      },
+      {
+        "suite": "enrolled_confirmation_trial_tests.py",
+        "exit_status": 0,
+        "stdout": "",
+        "stderr": ".....................\n----------------------------------------------------------------------\nRan 21 tests in 4.257s\n\nOK\n"
+      }
+    ],
+    "composed_default": {
+      "exit_status": 0,
+      "groups": 13,
+      "modeled_elapsed_us": 51498912,
+      "sdk_gets": 234296,
+      "commands": 106,
+      "statuses": 8,
+      "cleanup": "passed",
+      "sdk_read_cost_us": 172,
+      "host_cost_ms": 0,
+      "pre_cleanup_margin_ms": 8546
+    },
+    "modeled_budget_cases": [
+      {
+        "sdk_read_cost_us": 209,
+        "host_cost_ms": 100,
+        "exit_status": 1,
+        "elapsed_us": 60028013,
+        "statuses": 5,
+        "failure": "B RFSTATUS3 authority-clock expiry"
+      },
+      {
+        "sdk_read_cost_us": 209,
+        "host_cost_ms": 200,
+        "exit_status": 1,
+        "elapsed_us": 60114025,
+        "statuses": 3,
+        "failure": "B pre-command tick before RFPOLL after RFSTATUS2"
+      }
+    ],
+    "final_private_validation_sha256": "0b5fee28e5b8c848a6cb3f523c2c9e675f7a02bf9e31c26c8b68a2aa4abf2a16"
+  },
+  "acceptance": "Host corrections validated; complete physical exchange not ready because modeled timing cases still expire.",
+  "limitations": [
+    "SDK209us is rounded physical aggregate mean, not measured worst-case read latency.100/200ms host command costs are sensitivity assumptions, not observed post-fix performance.",
+    "Composition uses actual session,crypto,NVS adapter code but synthetic SDK/radio/scheduling seams. Startup HELLO/INIT/TIME, independent idle scheduling, actual air time and target crypto CPU time are not fully modeled.",
+    "No firmware rebuild because firmware inputs remain unchanged. Accepted OT246 firmware source closures still match. No new trial binding or device operation.",
+    "No phone/V1/website acceptance increase."
+  ],
+  "next_action": "Profile per-command durable-read work in the complete sequence, then evaluate receiver rearm inside its existing admitted transaction with fresh checks and driver-failure propagation. Preserve deadline and authority; do not launch another trial before the full budget gate passes."
+}

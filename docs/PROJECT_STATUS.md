@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-15. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-23. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -8,6 +8,107 @@ See [archive navigation](history/README.md) for moved headings, [Architecture](A
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
 ## Current accepted capabilities
+
+OT-0247d corrected physical trial is owner-accepted. [OT-0238b reconciliation](testing/OT-0238b-PRODUCT-ENROLLMENT-RECONCILIATION-2026-09-23.md) identifies unresolved product bootstrap and retained-identity/exact-epoch semantics before product integration. Durable fresh-session storage already exists and should be reused. The owner accepted the [product design](security/PRODUCT_ENROLLMENT_REKEY_DRAFT_V1.md) on 2026-09-23. [Host identity binding, local review and durable preparation](testing/OT-0238b-LOCAL-PREPARATION-2026-09-23.md) are candidate components. [First-enrollment host composition](testing/OT-0238b-FIRST-ENROLLMENT-2026-09-23.md) now connects provisioned identity, fresh possession, consumed local review, durable invitation/activation and membership gates. Retained rekey/recovery and physical target adapters remain unfinished; this is not product-ready enrollment. No new device work is required.
+
+[OT241 diagnostic trials](testing/OT-241-DIAGNOSTIC-TRIAL-PREPARATION-2026-09-16.md)
+closed with both originals independently restored. The first reached comparison
+while the user was away; the same-image retry measured a TX completion deadline
+at handshake 3, A/RFPOLL (2060 ms, two attempts/one completion). The user saw a
+brief code on retry, but no controller comparison prompt occurred. Normal screens
+were confirmed after the first attempt; both normal screens were also confirmed after retry restoration.
+[OT242 TX completion correction](testing/OT-242-TX-COMPLETION-CORRECTION-2026-09-16.md)
+passes its host matrix and reproducible builds. Its single authorized physical
+trial reached matching-code comparison and both user button confirmations, then
+failed at activation step 1, B/RFPOLL. The earlier TX deadline did not recur;
+A completed 3/3 transmissions and B 1/1. A reported authority/clock fault 3 and
+B session fault 6; the exact cause remains unproven. Both originals and saved
+states were independently restored, verified and reset, custody closed, and the
+user confirmed normal screens. The subsequent host reproduction and diagnostic
+provenance correction are accepted with a passing 43-suite matrix, all affected
+target builds and reproducible enrolled artifacts. This identifies expiry at its
+rejecting check without resampling afterward; it does not prove the physical
+cause or fix activation.
+[OT243 polling/NVS correction](testing/OT-243-NVS-POLLING-COST-2026-09-18.md)
+now preserves fresh durable reads while eliminating repeated size queries for
+previously validated slots. The full host exchange passes within its unchanged
+window, with 33.2% fewer SDK gets; 43 suites and reproducible enrolled builds
+pass. This is host/build evidence, not physical latency or activation acceptance.
+The [OT244 controlled two-Heltec trial](testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md)
+reached both local confirmations, then failed at activation1 B/RFPOLL with
+authority/clock fault3 on both nodes. Original applications/state are verified
+restored and custody closed; the user confirmed both normal screens. Exact clock guard
+and timing remain unproven. The [OT245 independent-idle replay](testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md)
+shows only107-133ms additional elapsed time in the tested10s-delay cases; a47s
+synthetic delay reproduces the failure with idle on/off. It does not establish
+physical cause. The [OT246 failure capture](testing/OT-246-FAILURE-CAPTURE-2026-09-18.md)
+is now implemented and validated: original rejecting samples, target button/phase
+times and host command/transport costs. The 44-suite matrix, three affected target
+builds, reproducible enrolled artifacts and final Python follow-up pass. One exact
+instrumented trial is now closed: B rejected at the exact invitation-expiry check,
+4ms past deadline, after accepting confirmation with31.984s remaining. A sent the
+first activation control, but B returned28 WAIT polls before expiry. Source review
+found the receiving radio is not rearmed after the final handshake before that
+transmission. [OT247 complete-flow review](testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md)
+corrects guarded receive rearming and per-byte host reads;97 Python tests and
+the updated composed flow pass. Its baseline sensitivity cases expire after5 or3
+statuses. The [OT-0247c host correction](testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md)
+now passes all eight deliveries and cleanup in both modeled sensitivity profiles;
+owner acceptance is recorded. [OT-0247d host preparation](testing/OT-0247d-HOST-PREPARATION-2026-09-21.md)
+bound the corrected candidate. The [single physical trial](testing/OT-0247d-PHYSICAL-2026-09-22.md)
+completed activation and seven of eight statuses, then expired in B's sender-side
+RFPOLL. Both original states are restored and normal screens confirmed. Actual
+confirmation polling and delayed-completion rearm costs exceed the modeled command
+path. The [OT-0247e actual-bridge replay](testing/OT-0247e-HOST-REPLAY-2026-09-22.md)
+completes eight deliveries but does not reproduce physical expiry; its synchronous
+serial adapter omits measured empty/partial-read guard work. Quantified residual
+evidence is owner-accepted. The [OT-0247f asynchronous model](testing/OT-0247f-ASYNC-SERIAL-MODEL-2026-09-22.md)
+now closely matches aggregate reads/guards but still completes eight deliveries.
+Matched activation/status phases remain slower physically; production correction
+and physical acceptance remain open. OT-0247f evidence is owner-accepted. The
+[OT-0247g correction](testing/OT-0247g-GUARDED-COMPLETION-2026-09-22.md) is implemented
+locally: nine nominal paired replays deliver eight statuses, with measured savings.
+Its report corrects the earlier asynchronous immediate-button model and nominal
+result claim. All 44 final host suites, both affected builds, enrolled reproducibility and
+independent lifecycle review pass; OT-0247g is owner-accepted;
+the [approved corrected-candidate trial](testing/OT-0247d-G-PHYSICAL-2026-09-23.md)
+now physically passes three handshakes, four activations and eight statuses with
+zero faults/receive errors and stopped radios. Both original firmware/state spans
+were independently restored/read back, both reset, custody closed without recovery
+retry, and the owner confirmed normal screens. Owner task acceptance is recorded. Phone
+integration, retained restart/rekey and V1 completion remain open; no public website
+status or weighted V1 credit changes from this trial alone.
+
+The [integrated enrollment candidate](testing/OT-240-INTEGRATED-ENROLLMENT-2026-09-16.md)
+combines durable fresh-session allocation, retained signed enrollment, actual
+NVS storage, independent activation and fixed-status exchange over USB or
+explicitly armed evaluation radio. The combined host matrix, supplemental
+operator tests and reproducible target builds pass. The original physical attempt
+failed before comparison. The pacing correction then passed focused validation
+and matching builds, but its physical trial refused at handshake stage 3 before
+comparison. Exact operation and root cause remain unknown. Both originals were
+restored/readback-verified/reset, custody is closed, and the user confirmed both
+normal Trail screens. Integrated host reproduction now demonstrates the injected
+storage-cost/driver timing mechanism; GPIO-edge plus command/idle ticking passes
+18 cases, maintained input-loop regression and one clean affected build. Physical
+cause remains unproven; no new physical proposal or RF fixed-status acceptance
+is established.
+The companion semantic bridge is implemented, but protected BLE action routing
+and Android receive events/UI are not wired. Product trust/bootstrap, complete
+reset/recovery, exact-target interruption/entropy evidence and final admission
+remain open. Full V1 testing is not ready; no completion or website credit.
+
+The [OT-236 scheduling trial](testing/OT-236-SCHEDULING-TRIAL-2026-09-15.md)
+passed on both Heltecs: eight operations and1621 retained records each, with
+independent strict capture/provenance audit. Both exact original applications
+were restored and independently verified with protected/full-NVS checks before
+release. The user confirmed both normal Trail screens on2026-09-16. The bounded capture gate
+is passed; prior watchdog interference remains a hypothesis because its failed
+line was not retained. Revised sampling timings remain separate from historical
+measurements. The [current admission assessment](security/OT-237-CURRENT-ADMISSION-2026-09-16.md)
+binds the completed corpus and identifies the remaining target/product lifecycle
+gates. Libsodium remains the evaluation recommendation; Phase3 and production
+crypto/wire selection remain withheld. No V1 credit.
 
 The [OT-235 host candidate](testing/OT-235-PEER-TRAFFIC-INTEGRATION-2026-09-15.md)
 composes independent local confirmation, authenticated peer activation, durable
@@ -227,6 +328,13 @@ connecting protected phone messages to authenticated direct LoRa. Current phone
 Messages screens do not yet provide that product radio path. The original pair's
 pending clock correction can follow its use as the retained control.
 
+The [complete-flow read-cost audit](testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md)
+quantifies why receiver-only savings are insufficient. The approved
+[complete correction](testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md) removes
+redundant receiver and already-ready sender polls while retaining final durable
+checks and delayed-completion fallback. Host evidence is owner-accepted;
+physical activation/status acceptance remains open.
+
 ## Remaining acceptance and decisions
 
 Post-release concepts remain separately scoped in the
@@ -239,7 +347,7 @@ release commitment or completion credit.
   framing, persistent counters/replay protection, LoRa TX/RX and delivery ACKs.
 - Complete reset-domain cleanup, cross-pair denial/isolation, physical rotation
   and large-font flows, automatic production launch and release packaging/signing.
-- Target-specific radio/regulatory, antenna, power/battery and GNSS evidence;
+- [Target configuration audit](testing/OT-0101c-TARGET-CONFIGURATION-AUDIT-2026-09-21.md): experimental identity/PHY baseline only; target-specific radio/regulatory, antenna, power/battery and GNSS evidence;
   calibrated battery behavior, sustained clock accuracy and field measurements.
 - Protected storage/rollback and selected cryptography remain distinct from the
   already working local BLE ownership/name/region storage.

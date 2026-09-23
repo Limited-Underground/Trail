@@ -10,17 +10,34 @@ preserves all removed summaries and superseded sequencing; see the
 
 ## Current execution order
 
-1. Complete product crypto admission/selection and target-owned authenticated provisioning using the [OT-235 host activation/traffic candidate](../docs/testing/OT-235-PEER-TRAFFIC-INTEGRATION-2026-09-15.md). Its fresh-only receipt and signed-window traffic do not establish retained membership/rekey or a selected wire. Bind those product lifecycles before wiring protected BLE commands/events and radio message/ACK transport. Preserve the [OT-234 physical handshake](../docs/testing/OT-234-PAIR-RADIO-TARGET-2026-09-14.md); it needs no repetition absent a changed boundary. Prior physical authority is consumed; OT-229 through OT-234 were published through PR #38.
-   Preserve the [audited OT-213 outcome](../docs/testing/OT-213-DEADLINE-TRIAL-2026-09-13.md); trial grants are consumed.
-2. Close remaining applicable
-   [security gates](../docs/testing/OT-163-CRYPTO-INTEGRATION-GATES-2026-09-10.md),
-   Phase 3 admission and explicit crypto selection. Real trust provisioning,
-   confirmation UI and complete rekey remain open; fresh-only evaluation does not
-   support same-key resume. Historical raw-capture custody, physical entropy and
-   interrupted persistence are not established by target builds or host proofs.
-3. Integrate authenticated node-to-node message exchange with both phone UIs and
-   complete coherent two-pair acceptance. Current Messages screens store local
-   templates; the product radio path is not wired. Preserve offline-first V1.
+1. The [OT244 controlled radio trial](../docs/testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md)
+   failed at activation1 after both local confirmations; originals/state are
+   restored and custody closed, both normal screens confirmed. The [OT245 host replay](../docs/testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md)
+   shows idle work alone is insufficient in tested cases. [OT246 failure capture](../docs/testing/OT-246-FAILURE-CAPTURE-2026-09-18.md)
+   physically captured B invitation expiry4ms past deadline after28 WAIT polls
+   for the first activation control. Both originals and normal screens are restored.
+   [OT247](../docs/testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md) corrects guarded
+   receive rearming and per-byte host reads, with97 Python tests and composition
+   passing. OT-0247a profiling is owner-accepted. The
+   [OT-0247c correction](../docs/testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md)
+   passes the complete modeled timing gate with fresh checks and unchanged
+   deadlines and is owner-accepted. [OT-0247d host preparation](../docs/testing/OT-0247d-HOST-PREPARATION-2026-09-21.md)
+   bound the candidate. The [physical trial](../docs/testing/OT-0247d-PHYSICAL-2026-09-22.md)
+   reached seven of eight statuses before expiry. The subsequent accepted OT-0247g
+   correction now [passes its authorized physical trial](../docs/testing/OT-0247d-G-PHYSICAL-2026-09-23.md):
+   eight statuses, cleanup, original restoration and normal screens. Owner task
+   acceptance is recorded. OT-0238b design is owner-accepted; implement trusted
+   bootstrap, retained identity binding and durable activation/recovery; see its report below.
+2. Close only the remaining applicable eight-gate evidence: retained restart/rekey,
+   exact-target entropy and interrupted persistence, complete reset/recovery,
+   final composition license/source/corpus binding and historical comparison
+   custody disposition. Then perform independent Phase3 admission and explicit
+   crypto/wire selection. Cold-power disassembly remains owner-deferred; do not
+   repeat unchanged accepted benchmark/control cases.
+3. Bind the four authenticated fixed statuses to protected BLE action routing and
+   versioned receive events in both phone UIs, then complete coherent two-pair
+   acceptance under the accepted contract. OT240 supplies semantic glue only;
+   current Messages templates remain local text. Preserve offline-first V1.
 
 The original pair still needs the accepted clock correction after serving as
 control. Full reset cleanup, pair isolation, first-use/large-font UI checks,
@@ -45,6 +62,18 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
+| OT-247 | host correction accepted; physical timing gate failed | Audit complete flow and correct receive/host transport sequencing | Baseline five/three-status failures retained in [audit](../docs/testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md). [OT-0247c](../docs/testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md) passes eight statuses and cleanup in all three host profiles. |
+| OT-246 | physical diagnostic capture complete; originals restored | Capture exact failure provenance and physical stage timing | Exact B invitation expiry4ms past deadline; 28 WAIT polls after first activation TX; host guard costs measured. Both originals independently verified/restored/reset, custody closed and normal screens confirmed. [Proof and limits](../docs/testing/OT-246-FAILURE-CAPTURE-2026-09-18.md). |
+| OT-245 | host investigation complete; physical cause unproven | Replay actual bridge with independent node idle scheduling | Sixteen cases pass scheduler checks; idle adds only107–133ms in10s-delay controls.47s synthetic delay reproduces activation1 B/RFPOLL with idle on/off. Four uninstrumented controls match. [Proof and limits](../docs/testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md). |
+| OT-244 | physical activation failed; originals restored; normal screens confirmed | One controlled two-Heltec trial of the OT243 correction | Both local confirmations reached; activation1 B/RFPOLL refused, both fault3 authority/clock. Custody closed; precise failing guard/timing unproven. [Scope and result](../docs/testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md). |
+| OT-243 | host/build complete; physical untested | Reduce repeated NVS size-query work without caching authority | Per-stage/per-role profiling shows 33.2% fewer SDK gets. Original fails the bounded full-exchange timing test; correction passes activation/eight statuses/cleanup, 43 suites and seven-artifact reproducibility. Fresh reads, expiry and failure checks remain; known-key disappearance now poisons. [Evidence and limitations](../docs/testing/OT-243-NVS-POLLING-COST-2026-09-18.md). |
+| OT-242 | host correction and diagnostic validation complete; physical activation unaccepted | Service pending TX completion and preserve accurate failure provenance | Completion correction reached physical comparison but activation refused; originals restored. Diagnostic follow-up passes 43 suites, all affected target builds and seven-pair enrolled reproducibility. See [scope and proof](../docs/testing/OT-242-TX-COMPLETION-CORRECTION-2026-09-16.md). No V1 or website credit. |
+| OT-241 | physical diagnostics and restoration complete | Bounded physical refusal and timing diagnostics | Two exact-image attempts closed with verified original restoration: first missed confirmation window, retry measured TX deadline at handshake 3 A/RFPOLL. See [scope and proof](../docs/testing/OT-241-DIAGNOSTIC-TRIAL-PREPARATION-2026-09-16.md). No RF status, phone or V1 acceptance. |
+| OT-240 | host timing correction validated; physical cause unproven | Compose persistent sessions, target storage and status transport | Original and pacing-corrected physical trials failed before comparison; originals restored and normal screens confirmed. Integrated synthetic-cost reproduction, GPIO-edge/command/idle correction, maintained regression and one clean build pass. No new physical proposal or RF status acceptance. Product phone wiring remains open. See [scope and proofs](../docs/testing/OT-240-INTEGRATED-ENROLLMENT-2026-09-16.md). No V1 or website credit. |
+| OT-239 | host evaluation complete | Persist signed enrollment and bind evaluation namespaces | Owned signed-evidence persistence, isolated namespace views and coordinated reset containment pass actual-source host tests. Same-bank restart safely refuses retained session authority; fresh-session generation allocation remains open. See [scope and proof](../docs/testing/OT-239-PERSISTED-ENROLLMENT-2026-09-16.md). |
+| OT-238 | host evaluation complete | Own evaluated enrollment and durable membership lifecycle | Composed OT235 with explicit evaluation trust, durable public membership, fresh-session rekey and terminal revoke/reset preparation. Actual-source interruption/refusal and final authority checks pass. Full public-evidence persistence and product bootstrap remain open. See [scope and proof](../docs/testing/OT-238-ENROLLMENT-MEMBERSHIP-2026-09-16.md). No selected wire or device authority. |
+| OT-237 | assessment complete; selection withheld | Reconcile current crypto admission and selection gates | Fourteen evidence bindings,20 current source pins and actual retained capture/restoration re-audit pass. Eight existing gates reconciled with exact-image limits; prior accepted benchmark/control/radio work is not reopened. Next: host evaluation trust owner and durable membership lifecycle. See [assessment](../docs/security/OT-237-CURRENT-ADMISSION-2026-09-16.md). |
+| OT-236 | complete within bounded capture scope | Retain and independently audit libsodium benchmark captures | Scheduling-v3 passed both1621-record/eight-operation captures and independent strict provenance audit. Exact originals/protected/full-NVS checks and release passed; both normal screens user-confirmed2026-09-16. Grant consumed. Prior failed attempts preserved; new timing methodology remains separate. No product crypto selection or V1 credit. See [physical proof](../docs/testing/OT-236-SCHEDULING-TRIAL-2026-09-15.md). |
 | OT-235 | host integration candidate | Require durable peer activation before authenticated status traffic | Two independent endpoints exchange encrypted confirmation and activation controls; fixed-status output requires current durable receipt, exact peer activation and signed local freshness. Fresh-only persistence/reentry/fault tests; product provisioning, retained membership, selected wire and phone/radio integration remain open. See [scope and proof](../docs/testing/OT-235-PEER-TRAFFIC-INTEGRATION-2026-09-15.md). |
 | OT-234 | bounded physical radio case accepted | Wire and validate the independent pair radio target | Software matrix/reproducible builds pass. One physical attempt completed the three-frame handshake and both local confirmations; A2/2/1/0 and B1/1/2/0 TX attempt/completion/RX/error counts, both stopped. Both originals restored/readback/reset; ten captures audited, custody closed, zero recoveries. Both normal Trail screens were user-confirmed after restoration. Product trust/traffic remain open; OT-229 through OT-234 were published through PR #38, with no V1/website credit. See [scope](../docs/testing/OT-234-PAIR-RADIO-TARGET-2026-09-14.md). |
 | OT-233 | host validated | Connect independent endpoints to bounded transport | Reuse RadioTransport and experimental probe codec, maximum 154-byte frame without fragmentation. Routing selectors are not crypto authority; silent loss expires through trusted endpoint poll. 39 new groups and final 896 C++ groups, 26 controls, 47 Python tests and actual interoperability pass; 954 source pins reverify. Both fresh target regression builds match seven artifact pairs. No target wiring, radio acceptance, membership, traffic API or V1 credit. See [scope](../docs/testing/OT-233-INDEPENDENT-TRANSPORT-2026-09-14.md). |
@@ -451,3 +480,147 @@ Trail Device Utility` working display recorded in OT-019H. Current source uses
 `Inspection only` plus attorney-review-pending status. The historical packaged
 artifact evidence remains evidence for the exact older package and is not
 silently relabeled.
+
+
+## Checklist task allocations
+
+Owner-requested ID assignment only; all rows are planned and grant no implementation,
+hardware or publication authority. Four-digit numbers identify parent tasks; lowercase
+letter suffixes identify child work. Historical IDs, filenames and accepted evidence
+remain unchanged. Completed historical parent records are not reopened by child allocation.
+These rows own the IDs used by the private checklist. Resolve overlapping planning
+and implementation scope before execution; do not perform the same work twice.
+
+| ID | Status | Parent | Task | Acceptance |
+| --- | --- | --- | --- | --- |
+| OT-0248 | planned | — | Reconcile accepted firmware scope, targets, protocol fixtures and completed evidence | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0247a | owner accepted | OT-0247 | Profile complete exchange durable-read costs | Source-bound baseline and five/three-status sensitivity failures retained; receiver-only savings insufficient. [Audit](../docs/testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md). |
+| OT-0249 | planned | — | Close only evidence-backed firmware/security/protocol gaps in approved V1: identity, provisioning, replay, compatibility, queues and recovery | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0250 | planned | — | Validate full supported two-node behavior, faults, recovery and measured field limits | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0251 | planned | — | Reconcile operator/support docs, artifact compatibility, upgrade/rollback and V1 acceptance evidence | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0252 | planned | — | Map implemented screens, permissions, protected BLE, saved state and accepted phone evidence to existing tasks | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0253 | planned | — | Define bounded fixes for remaining approved app behavior, diagnostics, reconnect, interruption and data preservation gaps | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0254 | planned | — | Validate upgrade and fresh-install paths as distinct tests, including expected recovery and connection failures | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0255 | planned | — | Complete approved UI/operator acceptance, packaging, compatibility and release evidence | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0256 | planned | — | Recover existing Tracker decisions, hardware/code evidence and map ownership without inventing a new root | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0257 | planned | — | Propose bounded tracking scope, reporting cadence, identity/privacy, power and loss/recovery behavior | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0258 | planned | — | Define implementation gaps and tests only after approved scope: location loss, radio loss, battery and recovery | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0259 | planned | — | Define supported-hardware field evidence, operator docs and acceptance/release gates | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0260 | planned | — | Recover Console decisions and evidence; map hardware/components and engineering ownership | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0261 | planned | — | Propose bounded UI, storage, power and firmware integration requirements from approved use cases | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0262 | planned | — | Define approved implementation and recovery tests, including storage/power failure and optional-service loss | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0263 | planned | — | Define hardware/user acceptance, support docs and release gates | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0264 | planned | — | Reconcile prototypes, firmware, hardware, deployment needs and accepted role/non-goals | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0265 | planned | — | Propose only approved relay/loop/duplicate/TTL/priority/congestion behavior and compatibility contracts | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0266 | planned | — | Bound hardware/antenna/enclosure/power, provisioning, diagnostics and recovery work | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0267 | planned | — | Define interoperability/load/range/power/recovery validation and deployment/support/release gates | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0247b | planned | OT-0247 | Resolve radio activation timing | All eight statuses and cleanup fit the unchanged invitation window under realistic timing; retain old-defect negative controls. Only then perform a separately authorized two-device trial with verified restoration. |
+| OT-0238a | planned | OT-0238 | Complete peer enrollment, revoke and rekey | Names or received bytes never establish trust. Retained membership never automatically resumes old traffic keys. Actual two-node lifecycle evidence passes. |
+| OT-0237a | planned | OT-0237 | Close security admission and select crypto/wire | Every applicable admission gate has accepted evidence or an explicitly resolved disposition. Reuse unchanged accepted benchmarks. Owner-deferred cold-power disassembly remains deferred, never silently waived. |
+| OT-0005h | planned | OT-0005 | Connect secure radio and protected BLE status delivery | Real Phone A to Phone B status exchange and reply pass; local message templates are not delivery evidence. Failure never falls back to plaintext. |
+| OT-0168a | planned | OT-0168 | Finish factory reset and ownership recovery | Old phone rejected; fresh unowned pairing succeeds after verified reset. Cancellation before commit preserves data; uncertain cleanup grants no access. Cross-pair control denied. |
+| OT-0170a | planned | OT-0170 | Finish first-use setup and saved-device recovery | First use and large fonts accepted; warm restart retains correct state; reconnect uses the correct peer; setup is resumable. Deferred keypad work remains deferred. |
+| OT-0173a | planned | OT-0173 | Complete private group workflow | Permissions enforced on actual transport and retained across restart; unauthorized joins and removed members denied. |
+| OT-0174a | planned | OT-0174 | Complete consent-based discovery and direct contacts | No content before consent; no group/location leakage through discovery; stale and blocked contacts cannot bypass policy. |
+| OT-0175a | planned | OT-0175 | Complete typed and quick messaging | Queued, Sent, Delivered and Failed reflect real state; only authenticated acknowledgement earns Delivered; no duplicate presentation. |
+| OT-0176a | planned | OT-0176 | Complete location sharing and coordinate details | No silent reactivation; immediate stop; current/stale/unavailable/disabled and timestamp/age displayed accurately; copy/external-open works within consent/retention policy. No built-in map requirement. |
+| OT-0101b | planned | OT-0101 | Complete target, GNSS, battery and field validation | Measured results support only the accepted hardware/region; loss and latency, configuration and degraded behavior recorded. Owner-deferred invasive work remains explicitly unresolved. |
+| OT-0172a | planned | OT-0172 | Accept complete production UI and accessibility | Real populated production UI works with normal/large fonts and rotation. Successful user flows do not expose developer-service plumbing. |
+| OT-0177a | planned | OT-0177 | Accept private support and diagnostic export | Inspect actual export and production package; no secret/private payload leakage or automatic upload. |
+| OT-0086a | planned | OT-0086 | Freeze and validate signed Android pilot release | Exact candidate passes clean install/reinstall, background/process/reboot, permissions/Bluetooth/notifications, accessibility/endurance/thermal/support cases. Signing and installation require separate authorization. |
+| OT-0089a | planned | OT-0089 | Pass coherent two-phone/two-Heltec V1 acceptance | Same signed artifact on both approved phones; no duplicates/misroutes; bounded failure/retry. Any skipped, mixed, stale or contradictory evidence denies complete V1 acceptance. |
+| OT-0089b | planned | OT-0089 | Accept V1 release and publish approved artifacts | All required V1 gates accepted with no unresolved required exclusion; progress updated only from accepted evidence; release artifacts and documentation agree. Private pilot does not imply Google Play/public-store acceptance. |
+
+
+## V1 remaining executable task register
+
+Planning only: the remaining approved V1 scope is decomposed below. Registration grants no execution, physical, signing or publication approval. Existing accepted evidence remains authoritative. Full scope and acceptance: [V1 remaining task plan](V1_REMAINING_PLAN.md). Optional product tracks are excluded.
+
+| ID | Status | Parent milestone | Bounded task |
+|---|---|---|---|
+| OT-0247c | owner-accepted | OT-0247b | [Correct complete radio-exchange redundant work](../docs/testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md); approved revision 2, host gate passes |
+| OT-0247d | corrected physical trial owner-accepted | OT-0247b | [Eight statuses, cleanup and verified original restoration](../docs/testing/OT-0247d-G-PHYSICAL-2026-09-23.md); historical failed attempt preserved |
+| OT-0247e | owner-accepted host investigation | OT-0247b | [Actual bridge replay and quantified transport residual](../docs/testing/OT-0247e-HOST-REPLAY-2026-09-22.md): eight deliveries in all four models; physical expiry not reproduced, no production correction. |
+| OT-0247f | owner-accepted host investigation | OT-0247b | [Asynchronous serial model and phase residual](../docs/testing/OT-0247f-ASYNC-SERIAL-MODEL-2026-09-22.md): read/guard counts reconciled, physical expiry not reproduced; combined completion/rearm recommendation only. |
+| OT-0247g | host implementation owner accepted | OT-0247b | [Guarded completion/rearm and paired replay](../docs/testing/OT-0247g-GUARDED-COMPLETION-2026-09-22.md): nine nominal schedules deliver eight statuses with measured savings; OT-0247f timing erratum recorded. All 44 final host suites, both affected builds, enrolled reproducibility and independent review pass; owner acceptance verified; corrected physical trial passes, task acceptance pending. |
+| OT-0238b | in progress: first-enrollment host composition; retained lifecycle/target integration remain | OT-0238a | [Bootstrap and retained-identity/exact-epoch reconciliation](../docs/testing/OT-0238b-PRODUCT-ENROLLMENT-RECONCILIATION-2026-09-23.md); current evaluation must not be promoted as product authority |
+| OT-0238c | planned | OT-0238a | Accept retained restart, revoke and fresh rekey |
+| OT-0237b | planned | OT-0237a | Accept exact-target entropy and startup failure behavior |
+| OT-0237c | planned | OT-0237a | Accept interrupted counter and receive persistence |
+| OT-0237d | planned | OT-0237a | Accept complete secret retirement and diagnostic privacy |
+| OT-0237e | planned | OT-0237a | Close final security evidence admission and selection |
+| OT-0005i | planned | OT-0005h | Bind selected secure transport to Companion firmware |
+| OT-0005j | planned | OT-0005h | Bind protected BLE status commands and receive events |
+| OT-0168b | planned | OT-0168a | Complete reset-domain and receipt composition |
+| OT-0168c | planned | OT-0168a | Accept reset interruption and both physical reset paths |
+| OT-0101c | owner accepted | OT-0101b | [Configuration evidence audit](../docs/testing/OT-0101c-TARGET-CONFIGURATION-AUDIT-2026-09-21.md); experimental baseline frozen, support/field claims remain blocked |
+| OT-0101d | planned | OT-0101b | Accept battery indication and power behavior |
+| OT-0101e | planned | OT-0101b | Accept GNSS and sustained clock behavior |
+| OT-0101f | planned | OT-0101b | Accept live OLED radio and degraded status display |
+| OT-0089e | planned | OT-0089a | Accept bounded field and endurance observations |
+| OT-0089f | planned | OT-0089b | Reconcile release evidence and operator documentation |
+| OT-0089g | planned | OT-0089b | Publish approved release and verify exact remote artifacts |
+| OT-0300 | planned | OT-0086a | Reconcile Android retention and sharing policy |
+| OT-0301 | planned | OT-0170a | Complete ordered resumable onboarding |
+| OT-0302 | planned | OT-0170a | Complete protected setup settings bindings |
+| OT-0303 | planned | OT-0170a | Complete reset-aware saved-device recovery |
+| OT-0304 | planned | OT-0170a | Accept physical first-use and production launch |
+| OT-0305 | planned | OT-0173a | Bind durable authenticated group profile |
+| OT-0306 | planned | OT-0173a | Complete invitation and join workflows |
+| OT-0307 | planned | OT-0173a | Complete group administration and leave |
+| OT-0308 | planned | OT-0173a | Validate group persistence and interruption |
+| OT-0309 | planned | OT-0174a | Bind authenticated public-name discovery |
+| OT-0310 | planned | OT-0174a | Complete direct-contact consent transport |
+| OT-0311 | planned | OT-0174a | Complete persistent block and unblock |
+| OT-0312 | planned | OT-0175a | Implement authenticated bounded typed messages |
+| OT-0313 | planned | OT-0175a | Complete quick statuses and personal templates |
+| OT-0314 | planned | OT-0175a | Bind message queue and truthful delivery |
+| OT-0315 | planned | OT-0176a | Implement informed group sharing policy |
+| OT-0316 | planned | OT-0176a | Bind authenticated location and immediate stop |
+| OT-0317 | planned | OT-0176a | Complete truthful coordinate details |
+| OT-0318 | planned | OT-0172a | Complete responsive populated production UI |
+| OT-0319 | planned | OT-0172a | Accept production usability and accessibility |
+| OT-0320 | planned | OT-0177a | Accept user-reviewed support export |
+| OT-0321 | planned | OT-0177a | Accept bounded diagnostics and production exclusion |
+| OT-0322 | planned | OT-0086a | Freeze Android pilot candidate prerequisites |
+| OT-0323 | planned | OT-0086a | Build and audit immutable signed pilot candidate |
+| OT-0324 | planned | OT-0086a | Accept installation removal and reinstall |
+| OT-0325 | planned | OT-0086a | Accept lifecycle permissions and Bluetooth recovery |
+| OT-0326 | planned | OT-0086a | Accept endurance thermal and privacy matrix |
+| OT-0327 | planned | OT-0086a | Evaluate complete Android operational release evidence |
+| OT-0328 | planned | OT-0089a | Freeze coherent two-pair acceptance set |
+| OT-0329 | planned | OT-0089a | Accept bidirectional offline V1 messaging |
+| OT-0330 | planned | OT-0089a | Accept coherent rejection interruption and recovery |
+| OT-0331 | planned | OT-0089a | Reconcile Android V1 acceptance and release handoff |
+
+
+## Optional product definition task register
+
+Pending planning only; base V1 unchanged. These definition-stage tasks are not complete product delivery estimates. Implementation-through-release successors must be registered after scope, contract and target decisions. Full scope, acceptance and dependencies: [optional product task plan](OPTIONAL_PRODUCTS_PLAN.md).
+
+| ID | Status | Parent milestone | Bounded task |
+|---|---|---|---|
+| OT-0256a | planned | OT-0256 | Recover Tracker evidence and ownership |
+| OT-0256b | planned | OT-0256 | Prepare the tracking-only product decision |
+| OT-0257a | planned | OT-0257 | Specify location privacy and reporting policy |
+| OT-0257b | planned | OT-0257 | Prepare Tracker target and power selection criteria |
+| OT-0258a | planned | OT-0258 | Map Tracker implementation slices and contract tests |
+| OT-0258b | planned | OT-0258 | Write Tracker failure and recovery test procedures |
+| OT-0259a | planned | OT-0259 | Prepare Tracker physical acceptance and measurement plan |
+| OT-0259b | planned | OT-0259 | Prepare Tracker operator and release checklist |
+| OT-0260a | planned | OT-0260 | Reconcile Console scope with historical client work |
+| OT-0260b | planned | OT-0260 | Prepare Console hardware and interface decision |
+| OT-0261a | planned | OT-0261 | Define the approved Console interaction flow |
+| OT-0261b | planned | OT-0261 | Specify microSD and power failure behavior |
+| OT-0262a | planned | OT-0262 | Map Console target integration and host gates |
+| OT-0262b | planned | OT-0262 | Prepare Console recovery and optional-service tests |
+| OT-0263a | planned | OT-0263 | Prepare Console physical UI and endurance acceptance |
+| OT-0263b | planned | OT-0263 | Prepare Console operator and release acceptance |
+| OT-0264a | planned | OT-0264 | Reconcile repeater prototype evidence and scope |
+| OT-0264b | planned | OT-0264 | Prepare dedicated versus client/repeater role decision |
+| OT-0265a | planned | OT-0265 | Define a secure forwarding contract review |
+| OT-0265b | planned | OT-0265 | Specify bounded relay scheduling and congestion tests |
+| OT-0266a | planned | OT-0266 | Prepare repeater hardware and deployment profile |
+| OT-0266b | planned | OT-0266 | Specify provisioning, diagnostics and durable recovery |
+| OT-0267a | planned | OT-0267 | Prepare relay interoperability and fault acceptance |
+| OT-0267b | planned | OT-0267 | Prepare repeater deployment and release guidance |

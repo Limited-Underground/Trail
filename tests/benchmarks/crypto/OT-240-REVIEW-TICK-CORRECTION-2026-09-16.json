@@ -1,0 +1,297 @@
+{
+  "schema": "OT240-REVIEW-TICK-CORRECTION-1",
+  "as_of": "2026-09-16",
+  "result": "host_and_one_clean_build_passed",
+  "physical_cause_proven": false,
+  "physical_acceptance": false,
+  "v1_credit": false,
+  "source_evidence_sha256": "4e492ff3074ff08026cfdb0d978c84b8e8ef7884936e2c9c2c9a0718015f84a6",
+  "target_source_pins": {
+    "firmware/targets/heltec_v4_enrolled_eval/CMakeLists.txt": {
+      "bytes": 3164,
+      "sha256": "eaadb6327f1182a05521bd6d47ac2c6c12bb6b6109b916513051d3dcee4ef301"
+    },
+    "firmware/targets/heltec_v4_enrolled_eval/partitions.csv": {
+      "bytes": 557,
+      "sha256": "9c27fd7e647ace6eb32524281bfaa52cd370419fec2457f1acdebc6b0cbfa52a"
+    },
+    "firmware/targets/heltec_v4_enrolled_eval/README.md": {
+      "bytes": 2090,
+      "sha256": "28ba6e2b484b5fffe8419a6d52d289b424911123c8c2b514e6b726dd14dbbb06"
+    },
+    "firmware/targets/heltec_v4_enrolled_eval/sdkconfig.defaults": {
+      "bytes": 740,
+      "sha256": "eee7112f92ec96330fd8d09ba5595b12c0ca77a8c1b138a4520a8b487b0ef7c2"
+    },
+    "firmware/targets/heltec_v4_enrolled_eval/main/app_main.cpp": {
+      "bytes": 6217,
+      "sha256": "6f93f5f2cc8fffae2ce92672d34d6f931197f5700fcf414e9be92b9d2eb734fd"
+    },
+    "firmware/targets/heltec_v4_enrolled_eval/main/CMakeLists.txt": {
+      "bytes": 1980,
+      "sha256": "b7488975806b11b9025d7869085923d23485366400acd23bcb5cf8ca3421d1b0"
+    },
+    "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_nvs_backend.hpp": {
+      "bytes": 5290,
+      "sha256": "ba9afdb30a314ca2d0fb99254e535051d26a47af2a7289a45be66a6566575041"
+    },
+    "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp": {
+      "bytes": 9375,
+      "sha256": "9b91edc0abee1cce8595b8349f416b2b2d88dd20665baf531b2b3ce380c86c68"
+    },
+    "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.hpp": {
+      "bytes": 2484,
+      "sha256": "c41ca972ac5dbc29e8bab326d8a530fce1faa8eaa2c20af05aaa055ea4c5064a"
+    },
+    "firmware/components/security_evaluation/include/opentrail/authorized_policy_session.hpp": {
+      "bytes": 4954,
+      "sha256": "34a7143034055f2f65ecaffa6f9a652babf5c72379e1d38daad56db3c9f7e3e1"
+    },
+    "firmware/components/security_evaluation/include/opentrail/companion_status_bridge.hpp": {
+      "bytes": 2259,
+      "sha256": "294c49fb536b05d83a14a83a7d4209c1c4852125ef29ad08e12b43448a077eb3"
+    },
+    "firmware/components/security_evaluation/include/opentrail/enrolled_bench_session.hpp": {
+      "bytes": 23284,
+      "sha256": "060ea731c5bba6493018149a4eae7efbcdbd4b6a5389f4dc98ab275e8dc3e5e4"
+    },
+    "firmware/components/security_evaluation/include/opentrail/enrolled_peer_endpoint.hpp": {
+      "bytes": 16076,
+      "sha256": "5de87bcb99f7cfe959f314447b6da088b0b7b008c440716f953ddf93653fa677"
+    },
+    "firmware/components/security_evaluation/include/opentrail/enrolled_peer_transport.hpp": {
+      "bytes": 7322,
+      "sha256": "3ed43c4d6ceb86604c4fcc2ba452c0a209bf1f9a04062c9ab5698189363ae2d3"
+    },
+    "firmware/components/security_evaluation/include/opentrail/enrollment_evidence_store.hpp": {
+      "bytes": 9109,
+      "sha256": "6ebe236764a8de724f48125dc7c14bff97f91d51c9bef583908b805108cbb5e8"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_confirmation_owner.hpp": {
+      "bytes": 10289,
+      "sha256": "8f77009a3f53bc8ddc0ddde8979ef41cd07efb893c950df768b78d05795ea701"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_control.hpp": {
+      "bytes": 2479,
+      "sha256": "6d249aa716f541ae07fdde45019a104ded7c814a6ac73392711ed4cee263d27d"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_control_diagnostic.hpp": {
+      "bytes": 3185,
+      "sha256": "ab91411e080da470eff4f0815810c69c8f409eb14f8aaee825c996ea857d1329"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_control_synchronizing.hpp": {
+      "bytes": 9660,
+      "sha256": "4eed69cb35601b4e76f42bd0cc57aa00287afcc752b4b07d4752304dded6ae0f"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_handshake_endpoint.hpp": {
+      "bytes": 11393,
+      "sha256": "743864bc654e1effc309e15197a8fa5c89ea2b216030c7215609dc895a086d2a"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_invitation.hpp": {
+      "bytes": 5987,
+      "sha256": "6f54e83862d625ffe93ac9f93c8ceb484416d4fdfc1f0ac4f9e879388952aa84"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_invitation_authority.hpp": {
+      "bytes": 15481,
+      "sha256": "57a8d93ecf1cd1655804bd19aa0cd6964c33743cb53054ac28616fd0f57d43ee"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_policy_session.hpp": {
+      "bytes": 10355,
+      "sha256": "ac1119a0be627895cf68be58d782e1891392fa4241e935a060f5f9a1b21888ab"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_receipt_boundary.hpp": {
+      "bytes": 1743,
+      "sha256": "c58b40e2a6400dd5d04a97780f69dfcbd292c919043793214899de6ff0fa2321"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_replay_store.hpp": {
+      "bytes": 8735,
+      "sha256": "6d7c3113d9d929ed09e24c5b36c46135f34c9761fc3523ec0e281c597dc818f3"
+    },
+    "firmware/components/security_evaluation/include/opentrail/evaluation_storage_bank.hpp": {
+      "bytes": 4013,
+      "sha256": "d48b856d2f12fe9cb6b50e2450df490927cf5bb83b5bc2190f073ce51dce2b97"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_authorized_policy_session.hpp": {
+      "bytes": 5104,
+      "sha256": "8118c2e1771feca24a9862cbfb86146fbd88cdf52c2674568615d86370690193"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_confirmation_owner.hpp": {
+      "bytes": 10060,
+      "sha256": "16959c0b0a2a64fbfa3adb496e36fb8fa9b0dfb13d890542a11b6eec691abae3"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_handshake_endpoint.hpp": {
+      "bytes": 13976,
+      "sha256": "b90fc0e5a564a40f9bb77aea8ab4ee5617f4171ce5daedeecccdaf6bb20ebff8"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_handshake_transport.hpp": {
+      "bytes": 7419,
+      "sha256": "783dc415d280666e502d99dca1e2ae35e9ba4b9d0d673be992d648af2c4a4e2c"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_invitation.hpp": {
+      "bytes": 8947,
+      "sha256": "fb9a704132f7f1214796eae60bd938374ac4c11e169ae09e3ea4eb09bdf596bb"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_invitation_authority.hpp": {
+      "bytes": 10653,
+      "sha256": "f08424bd54abdf4dd8da58b7f69850d426761e32e1d0bcd9d404647503a13d44"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_peer_traffic_endpoint.hpp": {
+      "bytes": 10264,
+      "sha256": "06b063eca8cca3a496f2afef8c6932dcf825858daddbbac441ec70d763d4475b"
+    },
+    "firmware/components/security_evaluation/include/opentrail/independent_policy_session.hpp": {
+      "bytes": 10490,
+      "sha256": "c47bd0a44b7c59c87782cc751733324e8c9a560801694efd1928ea8116673854"
+    },
+    "firmware/components/security_evaluation/include/opentrail/pair_bench_radio_channel.hpp": {
+      "bytes": 803,
+      "sha256": "2d8b45c189c421f0a165f61cb7d787bffb26119ade2f310ea636c7bddd094817"
+    },
+    "firmware/components/security_evaluation/include/opentrail/pair_bench_session.hpp": {
+      "bytes": 19213,
+      "sha256": "b4df69481a435f4546841846ee73919403f55f9d6fa329f470126f81baf0d60f"
+    },
+    "firmware/components/security_evaluation/include/opentrail/pair_radio_channel.hpp": {
+      "bytes": 6812,
+      "sha256": "8bbbcf71a927ae9df552c669dbeb3dc8135c50e4409c3faeb1ed112e48dc07e4"
+    },
+    "firmware/components/security_evaluation/include/opentrail/pair_radio_driver.hpp": {
+      "bytes": 781,
+      "sha256": "c129849710e226addbc775223996973cde7ed6163aeb8c229a20b28b4dc90df2"
+    },
+    "firmware/components/security_evaluation/include/opentrail/peer_activation_store.hpp": {
+      "bytes": 5018,
+      "sha256": "47d9d424dc05d7beb923c34abfe524ad7bb5b27e5ac2c433de3c5939c6f371ea"
+    },
+    "firmware/components/security_evaluation/include/opentrail/peer_membership_store.hpp": {
+      "bytes": 9478,
+      "sha256": "9689d945d2df0eb805b1e55bc8bd262c5d72594fe1f8f914d28e6e5408594792"
+    },
+    "firmware/components/security_evaluation/include/opentrail/session_generation_storage.hpp": {
+      "bytes": 9136,
+      "sha256": "cbb9b2d6be1d62a1803361bfd7cfd19193f3ae74c5ecba167f1cfcb87e3690e6"
+    }
+  },
+  "source_unchanged_during_build": true,
+  "public_regression": {
+    "path": "tests/host/enrolled_target_pacing_tests.py",
+    "bytes": 6002,
+    "sha256": "fccaa0778d7c9f961578445cd261c8b6cb3307b3dadad5d02077c030498ef4eb",
+    "exit_code": 0,
+    "stdout": "PASS corrected BEGIN=0ms MAX_LINE=0ms max_bytes_without_delay=701 idle_reads=3 yields=120\nPASS 1 actual enrolled target pacing regression\n",
+    "stderr": ".\n----------------------------------------------------------------------\nRan 1 test in 0.972s\n\nOK\n"
+  },
+  "integrated": {
+    "cases": 18,
+    "all_expected_outcomes_pass": true,
+    "proofs": {
+      "integrated_probe.py": {
+        "bytes": 9089,
+        "sha256": "089fa17bdd1486c416964de54304912cddf13d99afb184c76f5cefde6d874244"
+      },
+      "integrated-original.cpp": {
+        "bytes": 22022,
+        "sha256": "50b8c345651cfe5284bc3ee9a96c4a13de33a7dd4c7f3398eba03605c3ce948a"
+      },
+      "integrated-boundary_only.cpp": {
+        "bytes": 22304,
+        "sha256": "2b4cec6879eda50a8e01b32961fa9e2ed83059413bb7ddc38b805bb33c769c09"
+      },
+      "integrated-fixed.cpp": {
+        "bytes": 22748,
+        "sha256": "f604443da948867e56e7280ccffbc8caf431ee1726e277a9130bf54350e5d614"
+      },
+      "integrated-result.json": {
+        "bytes": 27757,
+        "sha256": "d040765e822933e2d1260636b0374ba28d0dfeda885fd52d6ea45f14ca6be6cb"
+      }
+    },
+    "outcomes": [
+      "PASS original pump injected_get_cost_us=200 tick_gets=792 ticks=17 dispatches=1 halted=1 completed=0 elapsed_us=2692800",
+      "PASS original partial injected_get_cost_us=200 tick_gets=792 ticks=16 dispatches=0 halted=0 completed=0 elapsed_us=2604400",
+      "PASS original deadline injected_get_cost_us=200 tick_gets=792 ticks=14 dispatches=0 halted=1 completed=0 elapsed_us=2097200",
+      "PASS original revoke injected_get_cost_us=200 tick_gets=792 ticks=14 dispatches=0 halted=1 completed=0 elapsed_us=2097200",
+      "PASS original button injected_get_cost_us=0 tick_gets=792 ticks=75 dispatches=1 halted=0 completed=0 elapsed_us=719000",
+      "PASS original valid_hold injected_get_cost_us=0 tick_gets=792 ticks=75 dispatches=1 halted=0 completed=0 elapsed_us=719000",
+      "PASS boundary_only pump injected_get_cost_us=200 tick_gets=792 ticks=4 dispatches=1 halted=0 completed=1 elapsed_us=713600",
+      "PASS boundary_only partial injected_get_cost_us=200 tick_gets=792 ticks=3 dispatches=0 halted=0 completed=0 elapsed_us=545200",
+      "PASS boundary_only deadline injected_get_cost_us=200 tick_gets=792 ticks=1 dispatches=0 halted=1 completed=0 elapsed_us=28000",
+      "PASS boundary_only revoke injected_get_cost_us=200 tick_gets=792 ticks=1 dispatches=0 halted=1 completed=0 elapsed_us=28000",
+      "PASS boundary_only button injected_get_cost_us=0 tick_gets=792 ticks=4 dispatches=1 halted=0 completed=0 elapsed_us=719000",
+      "PASS boundary_only valid_hold injected_get_cost_us=0 tick_gets=792 ticks=4 dispatches=1 halted=0 completed=0 elapsed_us=719000",
+      "PASS fixed pump injected_get_cost_us=200 tick_gets=792 ticks=4 dispatches=1 halted=0 completed=1 elapsed_us=713600",
+      "PASS fixed partial injected_get_cost_us=200 tick_gets=792 ticks=3 dispatches=0 halted=0 completed=0 elapsed_us=545200",
+      "PASS fixed deadline injected_get_cost_us=200 tick_gets=792 ticks=1 dispatches=0 halted=1 completed=0 elapsed_us=28000",
+      "PASS fixed revoke injected_get_cost_us=200 tick_gets=792 ticks=1 dispatches=0 halted=1 completed=0 elapsed_us=28000",
+      "PASS fixed button injected_get_cost_us=0 tick_gets=792 ticks=6 dispatches=1 halted=0 completed=0 elapsed_us=719000",
+      "PASS fixed valid_hold injected_get_cost_us=0 tick_gets=792 ticks=6 dispatches=1 halted=0 completed=0 elapsed_us=719000"
+    ],
+    "limitations": [
+      "200us per SDK read is synthetic, not measured device latency",
+      "Real review session, NVS adapter and radio driver; serial command dispatch uses a driver-service seam",
+      "Button cases use zero injected storage latency to isolate sampling",
+      "Private mechanism reproduction is not part of CI",
+      "Physical root cause remains unproven"
+    ]
+  },
+  "build": {
+    "path": "build\\ot240-enrolled-tick-b",
+    "exit_code": 0,
+    "artifacts": {
+      "heltec_v4_enrolled_eval.bin": {
+        "bytes": 525872,
+        "sha256": "9d4216e440ac9ecaa7a5471afd220f4090ffbf518f00c43e71fd8dde5028a044"
+      },
+      "heltec_v4_enrolled_eval.elf": {
+        "bytes": 7376052,
+        "sha256": "6a1739222e2dc4986f40242804c657d65b3d58ecfc4ea50478e6f519ff3d6d48"
+      },
+      "heltec_v4_enrolled_eval.map": {
+        "bytes": 7226208,
+        "sha256": "5e6619167077cecbbe0607918975de63bfd66d2541fb78a16eb5f4d5594926f5"
+      },
+      "bootloader/bootloader.bin": {
+        "bytes": 15216,
+        "sha256": "604af9d70953d917734f45b4c1cb764a23c17c8e3e5b28e11e1f3f6a02ef1c38"
+      },
+      "partition_table/partition-table.bin": {
+        "bytes": 3072,
+        "sha256": "f3372a1f30cbdd98d6fbcf7808c85c46dcaa249105ba9da883ef21e05efe90a4"
+      },
+      "ota_data_initial.bin": {
+        "bytes": 8192,
+        "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+      },
+      "sdkconfig": {
+        "bytes": 92613,
+        "sha256": "79473c37a1c376eebd2034cfdc6bcd88d6bd9845efba231d54acdf87bf950dd0"
+      }
+    },
+    "config_guards": {
+      "CONFIG_IDF_TARGET": "\"esp32s3\"",
+      "CONFIG_ESP_MAIN_TASK_STACK_SIZE": "24576",
+      "CONFIG_ESPTOOLPY_FLASHSIZE_16MB": "y",
+      "CONFIG_ESPTOOLPY_FLASHMODE_QIO": "y",
+      "CONFIG_ESPTOOLPY_FLASHFREQ_80M": "y",
+      "CONFIG_APP_REPRODUCIBLE_BUILD": "y",
+      "CONFIG_FREERTOS_HZ": "100"
+    },
+    "log": {
+      "bytes": 177627,
+      "sha256": "3530754049399671a8c9053cf4b41b71845926ce9b8956aa2c36b87e46fd207c"
+    },
+    "toolchain": "ESP-IDF6.0.2; Xtensa15.2.0_20251204; CMake4.0.3; Ninja1.12.1",
+    "clean_build": true,
+    "reproducibility_comparison": false
+  },
+  "superseded_build": "ot240-enrolled-tick-a stopped during configuration after review finding; retained without acceptance",
+  "hardware_access": false,
+  "new_physical_proposal": false,
+  "independent_review": "passed: GPIO transition sampling, framing, pre-dispatch guards, negative controls and stated evidence limits",
+  "remaining": [
+    "No device latency measurement or unique physical root cause proof.",
+    "No new physical trial proposal or authorization.",
+    "Stable partial input can defer full cleanup until newline, idle or bounded overflow; guarded commands refuse expired or revoked authority.",
+    "Full protected BLE and Android receive path remain unwired."
+  ]
+}

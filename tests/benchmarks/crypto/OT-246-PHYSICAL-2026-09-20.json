@@ -1,0 +1,1815 @@
+{
+  "schema": "OT246-PHYSICAL-TRIAL-1",
+  "recorded_utc": "2026-09-20T08:12:15.391426+00:00",
+  "outcome": "failed_activation_1",
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3/16MiB",
+  "firmware_version": "ot242-enrolled-completion-v1 with OT246 diagnostics",
+  "candidate": {
+    "bytes": 532272,
+    "sha256": "1c360458679e613d0a8c2890c0623a109cf8dc853685168d7ca7bac1bb594a8b"
+  },
+  "radio": {
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate": "4/5",
+    "configured_dbm": 2,
+    "max_frame_bytes": 158,
+    "max_tx_per_role": 16,
+    "invitation_window_ms": 60000
+  },
+  "local_confirmations": "User confirmed matching codes and both button holds/releases. Host observed STATUS4 on both roles; B target recorded its accepted confirmation.",
+  "diagnostic_events": [
+    {
+      "operator": "enrolled_failure_activation_1_target_refused"
+    },
+    {
+      "command": "RFPOLL",
+      "operator": "enrolled_failure_point",
+      "role": "B"
+    },
+    {
+      "operator": "enrolled_target_diagnostic",
+      "role": "B",
+      "snapshot": {
+        "fault": 3,
+        "nvs_read_us": 25400663,
+        "nvs_reads": 121682,
+        "service_gap_ms": 14542,
+        "tick_last_us": 400836,
+        "tick_max_us": 400836,
+        "tx_age_ms": 0,
+        "tx_attempts": 1,
+        "tx_completed": 1,
+        "tx_queue_age_ms": 0
+      }
+    },
+    {
+      "operator": "enrolled_target_trace",
+      "role": "B",
+      "trace": {
+        "activation_ms": 0,
+        "button_press_count": 1,
+        "button_press_ms": 36484,
+        "button_release_count": 1,
+        "button_release_ms": 37307,
+        "confirmed_ms": 37683,
+        "deadline_ms": 69667,
+        "fault": 3,
+        "flags": 3,
+        "frozen_us": 69700131,
+        "invitation_ms": 12829,
+        "issued_ms": 9667,
+        "layer": 3,
+        "milestone_deadline_ms": 69667,
+        "milestone_issued_ms": 9667,
+        "milestone_mask": 31,
+        "now_ms": 69671,
+        "previous_ms": 69661,
+        "reason": 7,
+        "review_ms": 28538,
+        "session_started_ms": 0
+      }
+    },
+    {
+      "operator": "enrolled_cleanup_protocol_unverified_handles_closed"
+    }
+  ],
+  "host_timing": [
+    {
+      "command": "SYNC",
+      "duration_us": 20140,
+      "elapsed_us": 20151,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "sync_A",
+      "start_us": 11,
+      "transport": {
+        "guard_calls": 2,
+        "guard_ns": 16270200,
+        "read_calls": 0,
+        "read_ns": 0,
+        "write_calls": 1,
+        "write_ns": 187600
+      },
+      "version": 1
+    },
+    {
+      "command": "SYNC",
+      "duration_us": 19746,
+      "elapsed_us": 40028,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "sync_B",
+      "start_us": 20282,
+      "transport": {
+        "guard_calls": 2,
+        "guard_ns": 16518000,
+        "read_calls": 0,
+        "read_ns": 0,
+        "write_calls": 1,
+        "write_ns": 186200
+      },
+      "version": 1
+    },
+    {
+      "command": "HELLO",
+      "duration_us": 673117,
+      "elapsed_us": 713454,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "hello_A",
+      "start_us": 40337,
+      "transport": {
+        "guard_calls": 55,
+        "guard_ns": 455302200,
+        "read_calls": 26,
+        "read_ns": 128777800,
+        "write_calls": 1,
+        "write_ns": 169300
+      },
+      "version": 1
+    },
+    {
+      "command": "INIT",
+      "duration_us": 2513362,
+      "elapsed_us": 3226932,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "init_A",
+      "start_us": 713570,
+      "transport": {
+        "guard_calls": 239,
+        "guard_ns": 2130578000,
+        "read_calls": 118,
+        "read_ns": 107280200,
+        "write_calls": 1,
+        "write_ns": 246800
+      },
+      "version": 1
+    },
+    {
+      "command": "HELLO",
+      "duration_us": 1941794,
+      "elapsed_us": 5168859,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "hello_B",
+      "start_us": 3227065,
+      "transport": {
+        "guard_calls": 221,
+        "guard_ns": 1788487300,
+        "read_calls": 109,
+        "read_ns": 3395000,
+        "write_calls": 1,
+        "write_ns": 100100
+      },
+      "version": 1
+    },
+    {
+      "command": "INIT",
+      "duration_us": 2249030,
+      "elapsed_us": 7418013,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "init_B",
+      "start_us": 5168983,
+      "transport": {
+        "guard_calls": 235,
+        "guard_ns": 1975512100,
+        "read_calls": 116,
+        "read_ns": 113435800,
+        "write_calls": 1,
+        "write_ns": 259200
+      },
+      "version": 1
+    },
+    {
+      "command": "TIME",
+      "duration_us": 2137399,
+      "elapsed_us": 9555542,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "time_A",
+      "start_us": 7418143,
+      "transport": {
+        "guard_calls": 239,
+        "guard_ns": 1930611900,
+        "read_calls": 118,
+        "read_ns": 3456200,
+        "write_calls": 1,
+        "write_ns": 155700
+      },
+      "version": 1
+    },
+    {
+      "command": "TIME",
+      "duration_us": 2087485,
+      "elapsed_us": 11643159,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "time_B",
+      "start_us": 9555674,
+      "transport": {
+        "guard_calls": 235,
+        "guard_ns": 1921254200,
+        "read_calls": 116,
+        "read_ns": 3512400,
+        "write_calls": 1,
+        "write_ns": 106100
+      },
+      "version": 1
+    },
+    {
+      "command": "BEGIN",
+      "duration_us": 762171,
+      "elapsed_us": 12405809,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "begin_A",
+      "start_us": 11643638,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 421723600,
+        "read_calls": 21,
+        "read_ns": 281080800,
+        "write_calls": 1,
+        "write_ns": 962700
+      },
+      "version": 1
+    },
+    {
+      "command": "BEGIN",
+      "duration_us": 664398,
+      "elapsed_us": 13070416,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "begin_B",
+      "start_us": 12406018,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 375839700,
+        "read_calls": 21,
+        "read_ns": 254266600,
+        "write_calls": 1,
+        "write_ns": 880400
+      },
+      "version": 1
+    },
+    {
+      "command": "RADIO",
+      "duration_us": 387472,
+      "elapsed_us": 13458020,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "radio_A",
+      "start_us": 13070548,
+      "transport": {
+        "guard_calls": 41,
+        "guard_ns": 333799700,
+        "read_calls": 19,
+        "read_ns": 19888600,
+        "write_calls": 1,
+        "write_ns": 141500
+      },
+      "version": 1
+    },
+    {
+      "command": "RADIO",
+      "duration_us": 384857,
+      "elapsed_us": 13843000,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "radio_B",
+      "start_us": 13458143,
+      "transport": {
+        "guard_calls": 41,
+        "guard_ns": 336041300,
+        "read_calls": 19,
+        "read_ns": 20946800,
+        "write_calls": 1,
+        "write_ns": 110600
+      },
+      "version": 1
+    },
+    {
+      "command": "RFSEND",
+      "duration_us": 1165498,
+      "elapsed_us": 15008615,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "handshake_1",
+      "start_us": 13843117,
+      "transport": {
+        "guard_calls": 53,
+        "guard_ns": 525788200,
+        "read_calls": 25,
+        "read_ns": 537228700,
+        "write_calls": 1,
+        "write_ns": 181700
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 979846,
+      "elapsed_us": 15988573,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "handshake_1",
+      "start_us": 15008727,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 485237800,
+        "read_calls": 22,
+        "read_ns": 427956900,
+        "write_calls": 1,
+        "write_ns": 158100
+      },
+      "version": 1
+    },
+    {
+      "command": "RFSTAT",
+      "duration_us": 538261,
+      "elapsed_us": 16526943,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "handshake_1",
+      "start_us": 15988682,
+      "transport": {
+        "guard_calls": 57,
+        "guard_ns": 485837600,
+        "read_calls": 27,
+        "read_ns": 897300,
+        "write_calls": 1,
+        "write_ns": 139900
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 979999,
+      "elapsed_us": 17507060,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "handshake_1",
+      "start_us": 16527061,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 510305600,
+        "read_calls": 21,
+        "read_ns": 409846900,
+        "write_calls": 1,
+        "write_ns": 205000
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 1187127,
+      "elapsed_us": 18694315,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "handshake_1",
+      "start_us": 17507188,
+      "transport": {
+        "guard_calls": 59,
+        "guard_ns": 547913200,
+        "read_calls": 28,
+        "read_ns": 581899100,
+        "write_calls": 1,
+        "write_ns": 137800
+      },
+      "version": 1
+    },
+    {
+      "command": "RFSEND",
+      "duration_us": 1126042,
+      "elapsed_us": 19820472,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "handshake_2",
+      "start_us": 18694430,
+      "transport": {
+        "guard_calls": 53,
+        "guard_ns": 528495900,
+        "read_calls": 25,
+        "read_ns": 555855200,
+        "write_calls": 1,
+        "write_ns": 118700
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 933256,
+      "elapsed_us": 20753839,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "handshake_2",
+      "start_us": 19820583,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 456294100,
+        "read_calls": 22,
+        "read_ns": 436681400,
+        "write_calls": 1,
+        "write_ns": 122900
+      },
+      "version": 1
+    },
+    {
+      "command": "RFSTAT",
+      "duration_us": 502669,
+      "elapsed_us": 21256620,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "handshake_2",
+      "start_us": 20753951,
+      "transport": {
+        "guard_calls": 57,
+        "guard_ns": 462503800,
+        "read_calls": 27,
+        "read_ns": 810500,
+        "write_calls": 1,
+        "write_ns": 103200
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 932393,
+      "elapsed_us": 22189133,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "handshake_2",
+      "start_us": 21256740,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 459098600,
+        "read_calls": 22,
+        "read_ns": 434737600,
+        "write_calls": 1,
+        "write_ns": 118800
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 1192846,
+      "elapsed_us": 23382091,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "handshake_2",
+      "start_us": 22189245,
+      "transport": {
+        "guard_calls": 57,
+        "guard_ns": 596212300,
+        "read_calls": 27,
+        "read_ns": 534833200,
+        "write_calls": 1,
+        "write_ns": 120400
+      },
+      "version": 1
+    },
+    {
+      "command": "RFSEND",
+      "duration_us": 1132013,
+      "elapsed_us": 24514224,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "handshake_3",
+      "start_us": 23382211,
+      "transport": {
+        "guard_calls": 53,
+        "guard_ns": 527249600,
+        "read_calls": 25,
+        "read_ns": 551178400,
+        "write_calls": 1,
+        "write_ns": 97800
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 1166489,
+      "elapsed_us": 25680824,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "handshake_3",
+      "start_us": 24514335,
+      "transport": {
+        "guard_calls": 49,
+        "guard_ns": 501669400,
+        "read_calls": 23,
+        "read_ns": 612544100,
+        "write_calls": 1,
+        "write_ns": 142800
+      },
+      "version": 1
+    },
+    {
+      "command": "RFSTAT",
+      "duration_us": 683216,
+      "elapsed_us": 26364149,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "handshake_3",
+      "start_us": 25680933,
+      "transport": {
+        "guard_calls": 59,
+        "guard_ns": 499261200,
+        "read_calls": 28,
+        "read_ns": 127975200,
+        "write_calls": 1,
+        "write_ns": 168700
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 1107528,
+      "elapsed_us": 27471793,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "handshake_3",
+      "start_us": 26364265,
+      "transport": {
+        "guard_calls": 49,
+        "guard_ns": 497413700,
+        "read_calls": 23,
+        "read_ns": 538474500,
+        "write_calls": 1,
+        "write_ns": 103800
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 1264636,
+      "elapsed_us": 28736543,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "handshake_3",
+      "start_us": 27471907,
+      "transport": {
+        "guard_calls": 59,
+        "guard_ns": 652730300,
+        "read_calls": 28,
+        "read_ns": 558715700,
+        "write_calls": 1,
+        "write_ns": 117700
+      },
+      "version": 1
+    },
+    {
+      "command": "REVIEW",
+      "duration_us": 2092670,
+      "elapsed_us": 30829332,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "review_A",
+      "start_us": 28736662,
+      "transport": {
+        "guard_calls": 199,
+        "guard_ns": 1665972700,
+        "read_calls": 98,
+        "read_ns": 216108900,
+        "write_calls": 1,
+        "write_ns": 166000
+      },
+      "version": 1
+    },
+    {
+      "command": "REVIEW",
+      "duration_us": 1973074,
+      "elapsed_us": 32802522,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "review_B",
+      "start_us": 30829448,
+      "transport": {
+        "guard_calls": 193,
+        "guard_ns": 1616393300,
+        "read_calls": 95,
+        "read_ns": 218802500,
+        "write_calls": 1,
+        "write_ns": 128900
+      },
+      "version": 1
+    },
+    {
+      "elapsed_us": 32802658,
+      "kind": "comparison",
+      "operator": "enrolled_host_timing",
+      "review_age_us": {
+        "A": 1973218,
+        "B": 27
+      },
+      "review_remaining_ms": {
+        "A": 38374,
+        "B": 38477
+      },
+      "version": 1
+    },
+    {
+      "command": "STATUS",
+      "duration_us": 700798,
+      "elapsed_us": 33503534,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "wait_local_confirmation",
+      "start_us": 32802736,
+      "transport": {
+        "guard_calls": 61,
+        "guard_ns": 528999500,
+        "read_calls": 29,
+        "read_ns": 113935600,
+        "write_calls": 1,
+        "write_ns": 147700
+      },
+      "version": 1
+    },
+    {
+      "command": "STATUS",
+      "duration_us": 746341,
+      "elapsed_us": 34249987,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "wait_local_confirmation",
+      "start_us": 33503646,
+      "transport": {
+        "guard_calls": 59,
+        "guard_ns": 536763500,
+        "read_calls": 28,
+        "read_ns": 166307800,
+        "write_calls": 1,
+        "write_ns": 99400
+      },
+      "version": 1
+    },
+    {
+      "command": "STATUS",
+      "duration_us": 747017,
+      "elapsed_us": 35047962,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "wait_local_confirmation",
+      "start_us": 34300945,
+      "transport": {
+        "guard_calls": 61,
+        "guard_ns": 558002900,
+        "read_calls": 29,
+        "read_ns": 111593500,
+        "write_calls": 1,
+        "write_ns": 202600
+      },
+      "version": 1
+    },
+    {
+      "command": "STATUS",
+      "duration_us": 725696,
+      "elapsed_us": 35773771,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "wait_local_confirmation",
+      "start_us": 35048075,
+      "transport": {
+        "guard_calls": 59,
+        "guard_ns": 489978600,
+        "read_calls": 28,
+        "read_ns": 180686200,
+        "write_calls": 1,
+        "write_ns": 128300
+      },
+      "version": 1
+    },
+    {
+      "command": "STATUS",
+      "duration_us": 564213,
+      "elapsed_us": 36388624,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "wait_local_confirmation",
+      "start_us": 35824411,
+      "transport": {
+        "guard_calls": 59,
+        "guard_ns": 512602300,
+        "read_calls": 28,
+        "read_ns": 849800,
+        "write_calls": 1,
+        "write_ns": 178700
+      },
+      "version": 1
+    },
+    {
+      "elapsed_us": 36388734,
+      "kind": "status4",
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "version": 1
+    },
+    {
+      "command": "STATUS",
+      "duration_us": 781772,
+      "elapsed_us": 37170547,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "wait_local_confirmation",
+      "start_us": 36388775,
+      "transport": {
+        "guard_calls": 59,
+        "guard_ns": 528974800,
+        "read_calls": 28,
+        "read_ns": 206655400,
+        "write_calls": 1,
+        "write_ns": 121600
+      },
+      "version": 1
+    },
+    {
+      "command": "STATUS",
+      "duration_us": 556942,
+      "elapsed_us": 37778018,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "wait_local_confirmation",
+      "start_us": 37221076,
+      "transport": {
+        "guard_calls": 59,
+        "guard_ns": 504746700,
+        "read_calls": 28,
+        "read_ns": 803000,
+        "write_calls": 1,
+        "write_ns": 216100
+      },
+      "version": 1
+    },
+    {
+      "command": "STATUS",
+      "duration_us": 525395,
+      "elapsed_us": 38303522,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "wait_local_confirmation",
+      "start_us": 37778127,
+      "transport": {
+        "guard_calls": 57,
+        "guard_ns": 485043500,
+        "read_calls": 27,
+        "read_ns": 947100,
+        "write_calls": 1,
+        "write_ns": 121300
+      },
+      "version": 1
+    },
+    {
+      "elapsed_us": 38303628,
+      "kind": "status4",
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "version": 1
+    },
+    {
+      "command": "RFCONTROL",
+      "duration_us": 1256875,
+      "elapsed_us": 39560547,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "activation_1",
+      "start_us": 38303672,
+      "transport": {
+        "guard_calls": 59,
+        "guard_ns": 625384500,
+        "read_calls": 28,
+        "read_ns": 566396000,
+        "write_calls": 1,
+        "write_ns": 203600
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 997230,
+      "elapsed_us": 40557890,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "activation_1",
+      "start_us": 39560660,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 495156300,
+        "read_calls": 22,
+        "read_ns": 437578000,
+        "write_calls": 1,
+        "write_ns": 104700
+      },
+      "version": 1
+    },
+    {
+      "command": "RFSTAT",
+      "duration_us": 511578,
+      "elapsed_us": 41069581,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "activation_1",
+      "start_us": 40558003,
+      "transport": {
+        "guard_calls": 57,
+        "guard_ns": 461187900,
+        "read_calls": 27,
+        "read_ns": 796400,
+        "write_calls": 1,
+        "write_ns": 222500
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 949880,
+      "elapsed_us": 42019574,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "activation_1",
+      "start_us": 41069694,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 460053200,
+        "read_calls": 22,
+        "read_ns": 425158400,
+        "write_calls": 1,
+        "write_ns": 152200
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 1038480,
+      "elapsed_us": 43058168,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 42019688,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 588929300,
+        "read_calls": 21,
+        "read_ns": 414302500,
+        "write_calls": 1,
+        "write_ns": 106300
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 923721,
+      "elapsed_us": 44002221,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 43078500,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 463051600,
+        "read_calls": 22,
+        "read_ns": 417716800,
+        "write_calls": 1,
+        "write_ns": 124800
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 1003326,
+      "elapsed_us": 45026012,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 44022686,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 557112800,
+        "read_calls": 21,
+        "read_ns": 409035000,
+        "write_calls": 1,
+        "write_ns": 124100
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 971542,
+      "elapsed_us": 46017813,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 45046271,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 504236900,
+        "read_calls": 22,
+        "read_ns": 424855100,
+        "write_calls": 1,
+        "write_ns": 130200
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 921177,
+      "elapsed_us": 46959421,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 46038244,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 406389800,
+        "read_calls": 22,
+        "read_ns": 477188300,
+        "write_calls": 1,
+        "write_ns": 131200
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 936399,
+      "elapsed_us": 47916474,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 46980075,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 474513400,
+        "read_calls": 22,
+        "read_ns": 422047000,
+        "write_calls": 1,
+        "write_ns": 130800
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 949746,
+      "elapsed_us": 48886788,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 47937042,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 461150400,
+        "read_calls": 22,
+        "read_ns": 450500300,
+        "write_calls": 1,
+        "write_ns": 108100
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 934844,
+      "elapsed_us": 49842238,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 48907394,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 470390800,
+        "read_calls": 22,
+        "read_ns": 423142900,
+        "write_calls": 1,
+        "write_ns": 115800
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 979735,
+      "elapsed_us": 50842270,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 49862535,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 522544000,
+        "read_calls": 22,
+        "read_ns": 418304800,
+        "write_calls": 1,
+        "write_ns": 107000
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 951226,
+      "elapsed_us": 51813728,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 50862502,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 482055800,
+        "read_calls": 22,
+        "read_ns": 430202200,
+        "write_calls": 1,
+        "write_ns": 129200
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 960905,
+      "elapsed_us": 52795267,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 51834362,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 486026300,
+        "read_calls": 21,
+        "read_ns": 438650900,
+        "write_calls": 1,
+        "write_ns": 104500
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 978873,
+      "elapsed_us": 53794565,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 52815692,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 514526600,
+        "read_calls": 21,
+        "read_ns": 427192100,
+        "write_calls": 1,
+        "write_ns": 118100
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 953482,
+      "elapsed_us": 54768397,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 53814915,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 466150100,
+        "read_calls": 22,
+        "read_ns": 446971800,
+        "write_calls": 1,
+        "write_ns": 121100
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 970696,
+      "elapsed_us": 55759338,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 54788642,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 527001100,
+        "read_calls": 21,
+        "read_ns": 408334900,
+        "write_calls": 1,
+        "write_ns": 117900
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 928867,
+      "elapsed_us": 56708799,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 55779932,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 476132400,
+        "read_calls": 21,
+        "read_ns": 413696900,
+        "write_calls": 1,
+        "write_ns": 106100
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 968405,
+      "elapsed_us": 57697570,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 56729165,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 493670100,
+        "read_calls": 22,
+        "read_ns": 432035500,
+        "write_calls": 1,
+        "write_ns": 172500
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 925753,
+      "elapsed_us": 58643806,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 57718053,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 490014600,
+        "read_calls": 21,
+        "read_ns": 395817100,
+        "write_calls": 1,
+        "write_ns": 110500
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 930701,
+      "elapsed_us": 59595172,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 58664471,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 501595700,
+        "read_calls": 21,
+        "read_ns": 387780700,
+        "write_calls": 1,
+        "write_ns": 123200
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 929324,
+      "elapsed_us": 60544832,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 59615508,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 471309700,
+        "read_calls": 21,
+        "read_ns": 418519500,
+        "write_calls": 1,
+        "write_ns": 123300
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 967111,
+      "elapsed_us": 61532608,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 60565497,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 500115900,
+        "read_calls": 22,
+        "read_ns": 425997700,
+        "write_calls": 1,
+        "write_ns": 124300
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 933545,
+      "elapsed_us": 62486540,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 61552995,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 493859400,
+        "read_calls": 21,
+        "read_ns": 398157100,
+        "write_calls": 1,
+        "write_ns": 124500
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 951384,
+      "elapsed_us": 63458709,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 62507325,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 475225300,
+        "read_calls": 22,
+        "read_ns": 432891000,
+        "write_calls": 1,
+        "write_ns": 127900
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 965098,
+      "elapsed_us": 64444216,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 63479118,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 511439000,
+        "read_calls": 22,
+        "read_ns": 413344300,
+        "write_calls": 1,
+        "write_ns": 153700
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 929226,
+      "elapsed_us": 65393931,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 64464705,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 466781300,
+        "read_calls": 21,
+        "read_ns": 422926400,
+        "write_calls": 1,
+        "write_ns": 115500
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 1013184,
+      "elapsed_us": 66427703,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 65414519,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 532783600,
+        "read_calls": 22,
+        "read_ns": 436267300,
+        "write_calls": 1,
+        "write_ns": 179700
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 1014334,
+      "elapsed_us": 67462307,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 66447973,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 554712800,
+        "read_calls": 22,
+        "read_ns": 417850400,
+        "write_calls": 1,
+        "write_ns": 163000
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 931108,
+      "elapsed_us": 68414085,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 67482977,
+      "transport": {
+        "guard_calls": 47,
+        "guard_ns": 456271000,
+        "read_calls": 22,
+        "read_ns": 433459400,
+        "write_calls": 1,
+        "write_ns": 128100
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 955265,
+      "elapsed_us": 69390041,
+      "kind": "command",
+      "ok": true,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 68434776,
+      "transport": {
+        "guard_calls": 45,
+        "guard_ns": 495138400,
+        "read_calls": 21,
+        "read_ns": 415913100,
+        "write_calls": 1,
+        "write_ns": 259400
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "duration_us": 3760890,
+      "elapsed_us": 73171227,
+      "kind": "command",
+      "ok": false,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "activation_1",
+      "start_us": 69410337,
+      "transport": {
+        "guard_calls": 391,
+        "guard_ns": 3284162900,
+        "read_calls": 194,
+        "read_ns": 194826900,
+        "write_calls": 1,
+        "write_ns": 121500
+      },
+      "version": 1
+    },
+    {
+      "command": "RFPOLL",
+      "elapsed_us": 73171371,
+      "kind": "failure",
+      "last_command": {
+        "command": "RFPOLL",
+        "duration_us": 3760890,
+        "elapsed_us": 73171227,
+        "ok": false,
+        "role": "B",
+        "stage": "activation_1",
+        "start_us": 69410337,
+        "transport": {
+          "guard_calls": 391,
+          "guard_ns": 3284162900,
+          "read_calls": 194,
+          "read_ns": 194826900,
+          "write_calls": 1,
+          "write_ns": 121500
+        }
+      },
+      "operator": "enrolled_host_timing",
+      "reason": "target_refused",
+      "role": "B",
+      "stage": "activation_1",
+      "version": 1
+    },
+    {
+      "command": "CLOSE",
+      "duration_us": 2003143,
+      "elapsed_us": 75174648,
+      "kind": "command",
+      "ok": false,
+      "operator": "enrolled_host_timing",
+      "role": "A",
+      "stage": "close_A",
+      "start_us": 73171505,
+      "transport": {
+        "guard_calls": 216,
+        "guard_ns": 1809120000,
+        "read_calls": 106,
+        "read_ns": 3506000,
+        "write_calls": 1,
+        "write_ns": 148400
+      },
+      "version": 1
+    },
+    {
+      "command": "CLOSE",
+      "duration_us": 2043677,
+      "elapsed_us": 77218444,
+      "kind": "command",
+      "ok": false,
+      "operator": "enrolled_host_timing",
+      "role": "B",
+      "stage": "close_B",
+      "start_us": 75174767,
+      "transport": {
+        "guard_calls": 31,
+        "guard_ns": 525944600,
+        "read_calls": 14,
+        "read_ns": 1484494700,
+        "write_calls": 1,
+        "write_ns": 120400
+      },
+      "version": 1
+    },
+    {
+      "elapsed_us": 77228622,
+      "kind": "cleanup",
+      "operator": "enrolled_host_timing",
+      "outcome": "protocol_unverified_handles_closed",
+      "version": 1
+    }
+  ],
+  "host_stage_summary": {
+    "sync_A": {
+      "commands": 1,
+      "duration_us": 20140,
+      "guard_ns": 16270200,
+      "read_ns": 0,
+      "write_ns": 187600,
+      "guard_calls": 2
+    },
+    "sync_B": {
+      "commands": 1,
+      "duration_us": 19746,
+      "guard_ns": 16518000,
+      "read_ns": 0,
+      "write_ns": 186200,
+      "guard_calls": 2
+    },
+    "hello_A": {
+      "commands": 1,
+      "duration_us": 673117,
+      "guard_ns": 455302200,
+      "read_ns": 128777800,
+      "write_ns": 169300,
+      "guard_calls": 55
+    },
+    "init_A": {
+      "commands": 1,
+      "duration_us": 2513362,
+      "guard_ns": 2130578000,
+      "read_ns": 107280200,
+      "write_ns": 246800,
+      "guard_calls": 239
+    },
+    "hello_B": {
+      "commands": 1,
+      "duration_us": 1941794,
+      "guard_ns": 1788487300,
+      "read_ns": 3395000,
+      "write_ns": 100100,
+      "guard_calls": 221
+    },
+    "init_B": {
+      "commands": 1,
+      "duration_us": 2249030,
+      "guard_ns": 1975512100,
+      "read_ns": 113435800,
+      "write_ns": 259200,
+      "guard_calls": 235
+    },
+    "time_A": {
+      "commands": 1,
+      "duration_us": 2137399,
+      "guard_ns": 1930611900,
+      "read_ns": 3456200,
+      "write_ns": 155700,
+      "guard_calls": 239
+    },
+    "time_B": {
+      "commands": 1,
+      "duration_us": 2087485,
+      "guard_ns": 1921254200,
+      "read_ns": 3512400,
+      "write_ns": 106100,
+      "guard_calls": 235
+    },
+    "begin_A": {
+      "commands": 1,
+      "duration_us": 762171,
+      "guard_ns": 421723600,
+      "read_ns": 281080800,
+      "write_ns": 962700,
+      "guard_calls": 45
+    },
+    "begin_B": {
+      "commands": 1,
+      "duration_us": 664398,
+      "guard_ns": 375839700,
+      "read_ns": 254266600,
+      "write_ns": 880400,
+      "guard_calls": 45
+    },
+    "radio_A": {
+      "commands": 1,
+      "duration_us": 387472,
+      "guard_ns": 333799700,
+      "read_ns": 19888600,
+      "write_ns": 141500,
+      "guard_calls": 41
+    },
+    "radio_B": {
+      "commands": 1,
+      "duration_us": 384857,
+      "guard_ns": 336041300,
+      "read_ns": 20946800,
+      "write_ns": 110600,
+      "guard_calls": 41
+    },
+    "handshake_1": {
+      "commands": 5,
+      "duration_us": 4850731,
+      "guard_ns": 2555082400,
+      "read_ns": 1957828900,
+      "write_ns": 822500,
+      "guard_calls": 261
+    },
+    "handshake_2": {
+      "commands": 5,
+      "duration_us": 4687206,
+      "guard_ns": 2502604700,
+      "read_ns": 1962917900,
+      "write_ns": 584000,
+      "guard_calls": 261
+    },
+    "handshake_3": {
+      "commands": 5,
+      "duration_us": 5353882,
+      "guard_ns": 2678324200,
+      "read_ns": 2388887900,
+      "write_ns": 630800,
+      "guard_calls": 269
+    },
+    "review_A": {
+      "commands": 1,
+      "duration_us": 2092670,
+      "guard_ns": 1665972700,
+      "read_ns": 216108900,
+      "write_ns": 166000,
+      "guard_calls": 199
+    },
+    "review_B": {
+      "commands": 1,
+      "duration_us": 1973074,
+      "guard_ns": 1616393300,
+      "read_ns": 218802500,
+      "write_ns": 128900,
+      "guard_calls": 193
+    },
+    "wait_local_confirmation": {
+      "commands": 8,
+      "duration_us": 5348174,
+      "guard_ns": 4145111800,
+      "read_ns": 781778400,
+      "write_ns": 1215700,
+      "guard_calls": 474
+    },
+    "activation_1": {
+      "commands": 33,
+      "duration_us": 34293910,
+      "guard_ns": 19169072900,
+      "read_ns": 13477856700,
+      "write_ns": 4485300,
+      "guard_calls": 1893
+    },
+    "close_A": {
+      "commands": 1,
+      "duration_us": 2003143,
+      "guard_ns": 1809120000,
+      "read_ns": 3506000,
+      "write_ns": 148400,
+      "guard_calls": 216
+    },
+    "close_B": {
+      "commands": 1,
+      "duration_us": 2043677,
+      "guard_ns": 525944600,
+      "read_ns": 1484494700,
+      "write_ns": 120400,
+      "guard_calls": 31
+    }
+  },
+  "findings": [
+    "B first rejection: IndependentHandshakeEndpoint layer3, window_expired reason7, original sampled now69671ms exceeds deadline69667ms by4ms. Previous sample69661ms. This establishes the actual rejecting check.",
+    "B accepted physical confirmation at37683ms with31984ms remaining. Button hold823ms, one press/release. No activation-ready milestone.",
+    "After both STATUS4 observations, A RFCONTROL/RFPOLL/RFSTAT/RFPOLL succeeded. B then returned28 successful RFPOLL WAIT responses before its refusal; the first control packet was not accepted.",
+    "Activation1 commands consumed34.293910s including19.1690729s guard callbacks and13.4778567s serial reads. Guard callbacks enumerate USB devices; serial time includes target waiting. These durations include refusal-response collection after the actual rejection.",
+    "All72 commands consumed48.3695648s in5197 guard callbacks. Host overhead is measured but is not alone proof of why the first activation packet was missed."
+  ],
+  "journal_sha256": "7a201bdb038d5dc69f2ec0000c44986056c331cc3998a9b5301c0ef3a08904ef",
+  "diagnostics_sha256": "2f78cbc0443cc64e4d275b082bf86b63af8e079a63ab8fd7f281eaea6e271451",
+  "host_timing_sha256": "411a979bdb6dc69a02485928e394d7d5ba7a1aaf61cc3c9ad40a3879af035be3",
+  "restoration": {
+    "custody_closed": true,
+    "active_lock_absent": true,
+    "roles": {
+      "A": {
+        "restored": true,
+        "events": [
+          "claim_intent",
+          "candidate_write_intent",
+          "candidate_boot_intent",
+          "restore_application_intent",
+          "restore_application_verified",
+          "restore_nvs_intent",
+          "restore_nvs_verified",
+          "original_reset_intent",
+          "restored_and_reset"
+        ]
+      },
+      "B": {
+        "restored": true,
+        "events": [
+          "claim_intent",
+          "candidate_write_intent",
+          "candidate_boot_intent",
+          "restore_application_intent",
+          "restore_application_verified",
+          "restore_nvs_intent",
+          "restore_nvs_verified",
+          "original_reset_intent",
+          "restored_and_reset"
+        ]
+      }
+    },
+    "visual_confirmation": "User confirmed both normal Trail screens after controller closure.",
+    "controller_exit": 0,
+    "child_exit": 0,
+    "candidate_attempts": 1,
+    "recovery_attempts": 0,
+    "independent_capture_audit": {
+      "result": "passed",
+      "capture_hashes_and_sizes": 10,
+      "application_prefixes": 2,
+      "protected_descriptors": 6,
+      "fresh_namespace_checks": 2
+    }
+  },
+  "limitations": [
+    "Only B terminal diagnostic/trace was captured; A cleanup exceeded its response budget. Protocol cleanup remains unverified, separately from verified original restoration.",
+    "Final radio RX/loss/duplicate counters unavailable; four-status exchange not reached. Bench separation and over-air latency unmeasured.",
+    "Host and target clocks are not synchronized; command end includes response collection and is not the target rejection instant.",
+    "No phone integration, V1 credit, or website status change."
+  ],
+  "next_action": "Trace receiver arming across final handshake and first activation, reproduce any ordering defect host-side, and distinguish it from the independently measured per-byte host guard overhead before another physical trial."
+}

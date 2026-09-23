@@ -116,7 +116,7 @@ def check_repository(root: Path) -> list[str]:
     if sum(level == 1 for _, level, _ in progress_titles) != 1:
         problems.append(f"{PROGRESS}: require exactly one level-one document title")
     registry_prose = "\n".join(line for _, line in prose_lines(contents.get("tasks/BACKLOG.md", "")))
-    registered = set(re.findall(r"^\|\s*(OT-\d+[A-Z]*)\s*\|", registry_prose, re.MULTILINE))
+    registered = set(re.findall(r"^\|\s*(OT-\d+[A-Za-z]*)\s*\|", registry_prose, re.MULTILINE))
     seen = set()
     previous_date = None
     current_date = None
@@ -138,11 +138,11 @@ def check_repository(root: Path) -> list[str]:
             else:
                 problems.append(f"{PROGRESS}:{number}: level-two headings must be YYYY-MM-DD dates")
         if level == 3:
-            task = re.match(r"^(OT-\d+[A-Z]*)(?=\s|$)", title)
+            task = re.match(r"^(OT-\d+[A-Za-z]*)(?=\s|$)", title)
             if task and task[1] not in registered:
                 problems.append(f"{PROGRESS}:{number}: task {task[1]} is not registered in tasks/BACKLOG.md")
         if level == 3 and current_date is not None and current_date >= OT_HEADING_START:
-            if not re.match(r"^OT-\d+[A-Z]*\s+\S", title) or _RANGE.match(title) or _DATE.search(title):
+            if not re.match(r"^OT-\d+[A-Za-z]*\s+\S", title) or _RANGE.match(title) or _DATE.search(title):
                 problems.append(f"{PROGRESS}:{number}: use one individual OT task heading without a date or range")
     return problems
 

@@ -1,0 +1,187 @@
+{
+  "schema": "OT242-PHYSICAL-TRIAL-1",
+  "date": "2026-09-18",
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3/16MiB",
+  "firmware_version": "ot242-enrolled-completion-v1",
+  "outcome": "failed_activation_1",
+  "closure": {
+    "schema": "OT242-PHYSICAL-CLOSURE-1",
+    "recorded_utc": "2026-09-18T14:52:22.025512+00:00",
+    "observation": "trial_failed",
+    "candidate": {
+      "bytes": 527984,
+      "sha256": "8d3032493b30eff5e5a387404d61d275dd65d886dafe149bbfd820d517034793"
+    },
+    "journal_sha256": "6ee809f5733fd4f858f9f1dea6b3a9fab0883ef3ecdb75a481c376f2c62cef2f",
+    "controller_result_sha256": "d220f22e42dc1c3eca75be1343606bc71492dbe2e19e1d2c666cfaf7c8010dcc",
+    "diagnostics_sha256": "33c58119219efcd21d19a28f72d5f0ce376c8d8311d8aaade341677505f46a30",
+    "diagnostic_events": [
+      {
+        "operator": "enrolled_failure_activation_1_target_refused"
+      },
+      {
+        "command": "RFPOLL",
+        "operator": "enrolled_failure_point",
+        "role": "B"
+      },
+      {
+        "operator": "enrolled_target_diagnostic",
+        "role": "A",
+        "snapshot": {
+          "fault": 3,
+          "nvs_read_us": 12254748,
+          "nvs_reads": 71566,
+          "service_gap_ms": 27052,
+          "tick_last_us": 399494,
+          "tick_max_us": 399494,
+          "tx_age_ms": 0,
+          "tx_attempts": 3,
+          "tx_completed": 3,
+          "tx_queue_age_ms": 0
+        }
+      },
+      {
+        "operator": "enrolled_target_diagnostic",
+        "role": "B",
+        "snapshot": {
+          "fault": 6,
+          "nvs_read_us": 24205805,
+          "nvs_reads": 145216,
+          "service_gap_ms": 11190,
+          "tick_last_us": 385873,
+          "tick_max_us": 385873,
+          "tx_age_ms": 0,
+          "tx_attempts": 1,
+          "tx_completed": 1,
+          "tx_queue_age_ms": 0
+        }
+      },
+      {
+        "operator": "enrolled_cleanup_protocol_unverified_handles_closed"
+      }
+    ],
+    "roles": {
+      "A": {
+        "events": [
+          "claim_intent",
+          "candidate_write_intent",
+          "candidate_boot_intent",
+          "restore_application_intent",
+          "restore_application_verified",
+          "restore_nvs_intent",
+          "restore_nvs_verified",
+          "original_reset_intent",
+          "restored_and_reset"
+        ],
+        "captured_regions_verified": 5,
+        "captured_bytes_verified": true,
+        "protected_capture_descriptors_match_request": true,
+        "restored": true
+      },
+      "B": {
+        "events": [
+          "claim_intent",
+          "candidate_write_intent",
+          "candidate_boot_intent",
+          "restore_application_intent",
+          "restore_application_verified",
+          "restore_nvs_intent",
+          "restore_nvs_verified",
+          "original_reset_intent",
+          "restored_and_reset"
+        ],
+        "captured_regions_verified": 5,
+        "captured_bytes_verified": true,
+        "protected_capture_descriptors_match_request": true,
+        "restored": true
+      }
+    },
+    "bridge_handles_closed": true,
+    "custody_closed": true,
+    "active_lock_absent": true,
+    "controller_exit_status": 0,
+    "child_exit_status": 0,
+    "exit_status_evidence": "Controller owner observed child and controller exit 0 after custody closure; separate physical-controller-exit.json.",
+    "visual_confirmation": "User confirmed both normal Trail screens after verified restoration and controller closure.",
+    "candidate_attempts": 1,
+    "recovery_attempts": 0,
+    "limits": [
+      "Backup hashes verified offline; restoration/readback/reset reported by closed journal.",
+      "Diagnostics do not prove restoration, application startup, or root cause.",
+      "RF counts, comparison, button confirmation and acceptance need separate controller evidence.",
+      "No phone-path, V1 credit, production selection or website change inferred."
+    ],
+    "comparison_callback_observed": true,
+    "user_confirmed_matching_codes_and_both_buttons": true
+  },
+  "radio_setup": {
+    "bandwidth_hz": 125000,
+    "coding_rate_denominator": 5,
+    "expected_completed_transmissions": {
+      "A": 8,
+      "B": 7
+    },
+    "expected_received_frames": {
+      "A": 7,
+      "B": 8
+    },
+    "frequency_hz": 915000000,
+    "maximum_duration_ms": 60000,
+    "maximum_frame_bytes": 158,
+    "maximum_transmissions": {
+      "A": 16,
+      "B": 16
+    },
+    "power_dbm": 2,
+    "spreading_factor": 7,
+    "context": "Two USB-connected Heltec WiFi LoRa32 V4.2 ESP32-S3/16MiB nodes on the bench. User authorized proceeding in reply to antenna/normal-screen/nearby readiness request.",
+    "exact_distance_m": null,
+    "distance_status": "Unmeasured; not range validation."
+  },
+  "radio_observations": {
+    "roles": {
+      "A": {
+        "tx_attempts": 3,
+        "tx_completed": 3,
+        "received_frames": null,
+        "packet_loss": null,
+        "duplicate_frames": null,
+        "end_to_end_latency_ms": null
+      },
+      "B": {
+        "tx_attempts": 1,
+        "tx_completed": 1,
+        "received_frames": null,
+        "packet_loss": null,
+        "duplicate_frames": null,
+        "end_to_end_latency_ms": null
+      }
+    },
+    "source": "Frozen target diagnostics at failure/cleanup. Completed TX does not prove peer receipt. Null metrics are unavailable, not zero."
+  },
+  "findings": {
+    "stage": "activation_1",
+    "role": "B",
+    "command": "RFPOLL",
+    "reason": "target_refused",
+    "comparison_prompt_reached": true,
+    "user_confirmed_matching_codes_and_both_buttons": true,
+    "previous_tx_completion_timeout_recurred": false,
+    "A_fault": 3,
+    "B_fault": 6,
+    "root_cause": "Unproven. A reports authority/clock failure and B session failure; exact condition and ordering need host reproduction."
+  },
+  "acceptance": {
+    "handshake_and_comparison": "reached",
+    "physical_confirmation": "User confirmed both button holds/releases; host advanced to activation.",
+    "four_status_exchange_each_direction": "not reached",
+    "independent_restore_and_reset": "passed",
+    "normal_screens_after_restore": "user confirmed",
+    "full_V1": "not accepted"
+  },
+  "limits": [
+    "One bounded trial; absence of TX deadline failure is not reliability proof.",
+    "No further hardware retry authorized by this record.",
+    "No phone actions, V1 score change, website change or Git publication."
+  ]
+}

@@ -2761,6 +2761,13 @@ if ($LASTEXITCODE -ne 0) {
     throw ('Corrected mbedTLS comparison hardware composition tests failed with exit code {0}.' -f $LASTEXITCODE)
 }
 
+foreach ($captureTest in @('libsodium_capture_protocol_tests.py', 'libsodium_capture_execution_tests.py', 'libsodium_capture_hardware_tests.py', 'libsodium_capture_scheduling_tests.py')) {
+    & $python.Source (Join-Path $projectRoot ('tests\host\' + $captureTest))
+    if ($LASTEXITCODE -ne 0) {
+        throw ('Libsodium capture validation failed: {0} (exit {1}).' -f $captureTest, $LASTEXITCODE)
+    }
+}
+
 & $python.Source (Join-Path $projectRoot 'tests\host\ot150_mbedtls_psa_hardware_adapter_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw ('OT-150 mbedTLS/PSA hardware adapter tests failed with exit code {0}.' -f $LASTEXITCODE)

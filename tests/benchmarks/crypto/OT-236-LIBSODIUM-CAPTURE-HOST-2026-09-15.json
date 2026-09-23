@@ -1,0 +1,305 @@
+{
+  "schema": "OT236-HOST-PREPARATION-1",
+  "as_of": "2026-09-15T09:01:25.979913+00:00",
+  "result": "host_preparation_passed",
+  "source_base_commit": "477ea45de1b155dab59139172cfbb412da3e1787",
+  "validation_python": "3.14.6",
+  "tests": [
+    {
+      "command": "python -B tests/host/libsodium_capture_protocol_tests.py",
+      "started_at": "2026-09-15T09:01:05.391625+00:00",
+      "duration_seconds": 1.489,
+      "exit_code": 0,
+      "output": "....................\r\n----------------------------------------------------------------------\r\nRan 20 tests in 1.309s\r\n\r\nOK",
+      "log": {
+        "bytes": 124,
+        "sha256": "301c00e81e74776257f2e1cc508c4c92cf4ed4fde14194dd55d995b8a10333e4"
+      }
+    },
+    {
+      "command": "python -B tests/host/libsodium_capture_execution_tests.py",
+      "started_at": "2026-09-15T09:01:05.392128+00:00",
+      "duration_seconds": 12.128,
+      "exit_code": 0,
+      "output": "....................\r\n----------------------------------------------------------------------\r\nRan 20 tests in 11.743s\r\n\r\nOK",
+      "log": {
+        "bytes": 125,
+        "sha256": "a5dd430921de59af7dc44e562b0bcf92b9363fee9f690fa5a5b766b9a428d353"
+      }
+    },
+    {
+      "command": "python -B tests/host/libsodium_capture_hardware_tests.py",
+      "started_at": "2026-09-15T09:01:05.392502+00:00",
+      "duration_seconds": 4.202,
+      "exit_code": 0,
+      "output": ".......................\r\n----------------------------------------------------------------------\r\nRan 23 tests in 3.762s\r\n\r\nOK",
+      "log": {
+        "bytes": 127,
+        "sha256": "5f201648196dff06689162d35f8c7c42e7c9d7c3aec3cb68850068687b1f79be"
+      }
+    },
+    {
+      "command": "python -B tests/host/ot121_local_primitive_frame_tests.py",
+      "started_at": "2026-09-15T09:01:06.886481+00:00",
+      "duration_seconds": 19.08,
+      "exit_code": 0,
+      "output": "PASS test_accepts_exact_local_capture\r\nPASS test_framing_and_json_are_strict\r\nPASS test_gates_require_exact_common_fields_order_and_pass\r\nPASS test_header_is_exact_and_local_only\r\nPASS test_private_text_cli_errors_and_tool_surface_are_safe\r\nPASS test_runtime_resources_are_exact_derived_and_zero_watchdog\r\nPASS test_samples_require_exact_order_count_values_and_common_fields\r\nPASS test_summaries_are_recomputed_exactly_without_samples_field\r\nPASS test_terminal_is_exact_local_completion_not_phase_two\r\nPASS 9 OT-121 local primitive frame test groups",
+      "log": {
+        "bytes": 551,
+        "sha256": "60d08e20a5bdc8693ff20a1508730ac432e3eefb38597d782c1083ed7465c4ec"
+      }
+    },
+    {
+      "command": "python -B tests/host/mbedtls_comparison_execution_tests.py",
+      "started_at": "2026-09-15T09:01:09.601760+00:00",
+      "duration_seconds": 3.174,
+      "exit_code": 0,
+      "output": "...............\r\n----------------------------------------------------------------------\r\nRan 15 tests in 2.777s\r\n\r\nOK",
+      "log": {
+        "bytes": 119,
+        "sha256": "3ec64780fb434a4c2b08f60df38317687033beba019b9b65eba5a018b54df5c2"
+      }
+    },
+    {
+      "command": "python -B tests/host/mbedtls_comparison_hardware_tests.py",
+      "started_at": "2026-09-15T09:01:12.786872+00:00",
+      "duration_seconds": 2.503,
+      "exit_code": 0,
+      "output": "..............\r\n----------------------------------------------------------------------\r\nRan 14 tests in 2.118s\r\n\r\nOK",
+      "log": {
+        "bytes": 118,
+        "sha256": "12c6c02746db23923306f785d4e4d8387863552e327cbca95911aec8d40968e2"
+      }
+    }
+  ],
+  "source_pins": {
+    "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.c": {
+      "bytes": 17876,
+      "sha256": "8534fe1a6a4b68cd37e491ebd0f564dd38fd3935fb21d8f2d45aa8333ae442b8"
+    },
+    "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.h": {
+      "bytes": 3218,
+      "sha256": "b7c649434cdffe648e467bb117849ae0296a73fa041d614d3d4ba32578e40c45"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/historical_common_sdkconfig_ot120.defaults": {
+      "bytes": 1368,
+      "sha256": "84d54e5d730ba28ceba0c97831a477303db128d63ede7575bec52013770d70c0"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/reproducible.defaults": {
+      "bytes": 63,
+      "sha256": "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/include/ot121_benchmark_frame.h": {
+      "bytes": 7541,
+      "sha256": "cc5a4596400a8a2766e66fcab6b7d51dceecbc4f3c1be4055a2581d400415d4c"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium/main/app_main.c": {
+      "bytes": 25704,
+      "sha256": "ff5330a7d224be8d3abce8350432ca8573ccb9ce33780d68c559e0a85aa23bbf"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium/main/CMakeLists.txt": {
+      "bytes": 544,
+      "sha256": "242f42b4624d330deae1e67bfd4f2b62823680ba7a4a6958b7a866091e103cfc"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium/sdkconfig.overlay": {
+      "bytes": 35,
+      "sha256": "b7b722dc1bcc2c5917bee365f2123171ec398b0a0f295d61e7a7e8c26b99c832"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_candidate/CMakeLists.txt": {
+      "bytes": 642,
+      "sha256": "456c9bdf08eb2bff566081a621f235e07ca3bc4888d67a6ed1c1ac5012974bbb"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_candidate/main/CMakeLists.txt": {
+      "bytes": 915,
+      "sha256": "a6bd3c2c2fdb1455a152dbe1a8f58e441d2640f84350feade1a3a84eb0114abe"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_candidate/partitions.csv": {
+      "bytes": 452,
+      "sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"
+    },
+    "tests/benchmarks/crypto/OT-163-LIBSODIUM-MATCHED-RESOURCE-2026-09-10.json": {
+      "bytes": 9587,
+      "sha256": "924d5b4c49e12698918ac4728bc43dafbb1420f8129d9fb83cc1c02657260806"
+    },
+    "tools/libsodium_capture_execution.py": {
+      "bytes": 9306,
+      "sha256": "9b5e444ab3114fa7cbf4d5fcd90d4135a4145c032566ac6874e296bf54a04631"
+    },
+    "tools/libsodium_capture_hardware.py": {
+      "bytes": 2477,
+      "sha256": "6fb122e9c2d41380ba3319b82c06a449fb4d340a1af6fed2063aeeb416f82fa0"
+    },
+    "tools/libsodium_capture_protocol.py": {
+      "bytes": 10396,
+      "sha256": "394d0d846d3d4cb5d7a9289ca97d66e491e3ef10080c1fe983855d07606d0da5"
+    },
+    "tools/mbedtls_comparison_execution.py": {
+      "bytes": 17957,
+      "sha256": "1ec11f2cf82cea3455fde1984fe6081d03361c172144209503c724bc3072b6aa"
+    },
+    "tools/mbedtls_comparison_hardware.py": {
+      "bytes": 16888,
+      "sha256": "2e70b37a4e24718289164a6166c88d18e0fd4a6d7e1bbbab2c6ddb28f5cde46b"
+    },
+    "tools/ot121_local_primitive_frames.py": {
+      "bytes": 12303,
+      "sha256": "67fc915e11302da88cd589fdf97ae192081c7adf28c0c55ff8814a8c6759dd16"
+    },
+    "tools/ot149_mbedtls_psa_frames.py": {
+      "bytes": 12472,
+      "sha256": "a431e45c8ab2098d6973171f4c325c7f5d7e2b6f183e01b3422086dbac6d15c9"
+    },
+    "tools/ot150_mbedtls_psa_coordinator.py": {
+      "bytes": 26440,
+      "sha256": "1602d9bf1a306a1b88c701bebd8cff920adf75d80533f09baba5de7b72144b97"
+    },
+    "tools/ot150_mbedtls_psa_protocol_runner.py": {
+      "bytes": 10599,
+      "sha256": "82c2d8d39220e41d8f0e69bbbebfbcd30929ee0a01a692b996319a9bfdbcba92"
+    },
+    "tests/host/libsodium_capture_protocol_tests.py": {
+      "bytes": 8848,
+      "sha256": "515bbe394d7a311e25f60534fbfb236f7f146ac23520e3057cc987540755b0b9"
+    },
+    "tests/host/libsodium_capture_execution_tests.py": {
+      "bytes": 13125,
+      "sha256": "36eb43ee1ac30d811b99e20ad14e400fdb1684a1e857050f9c548d4e61aa642e"
+    },
+    "tests/host/libsodium_capture_hardware_tests.py": {
+      "bytes": 13918,
+      "sha256": "d19b6a3570db19181d6896ef7b367f23b63d57889e3acf52be03e5dfac3bd81c"
+    },
+    "tests/host/ot121_local_primitive_frame_tests.py": {
+      "bytes": 14562,
+      "sha256": "b931fb5a2e8cdf776512e59c9b546f4109d81cfc01b8d80d419f958fb3ea7f71"
+    },
+    "tests/host/mbedtls_comparison_execution_tests.py": {
+      "bytes": 10120,
+      "sha256": "a158037726de356563c2c9f98259a25f67a478b2a4db7010b3a697941de51fe7"
+    },
+    "tests/host/mbedtls_comparison_hardware_tests.py": {
+      "bytes": 11114,
+      "sha256": "47a5d0e208f7102ee09ee48c6c0065c113cd3cd8dfc849b07bc675c85729765c"
+    }
+  },
+  "reused_build_evidence": "tests/benchmarks/crypto/OT-163-LIBSODIUM-MATCHED-RESOURCE-2026-09-10.json",
+  "reused_builds": [
+    {
+      "role": "A",
+      "build_directory": "build/libsodium-candidate-a1",
+      "artifacts": {
+        "application_bin": {
+          "bytes": 293120,
+          "sha256": "cf4377f56ad5d2dc4b2e53ae961f98f6e091fc170bf76c8d9f438a7fd6373d7e"
+        },
+        "application_elf": {
+          "bytes": 4493776,
+          "sha256": "0b208c9fc37e38ab43f2cbfa426a45ac1d1b17602f144c8540532e92966e78c4"
+        },
+        "linker_map": {
+          "bytes": 3970783,
+          "sha256": "1137467a77486a2e9aaecc70e358dc64e310cfef444f52286f73fa97bd79b75a"
+        },
+        "generated_sdkconfig": {
+          "bytes": 107001,
+          "sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+        }
+      }
+    },
+    {
+      "role": "B",
+      "build_directory": "build/libsodium-candidate-b1",
+      "artifacts": {
+        "application_bin": {
+          "bytes": 293120,
+          "sha256": "cf4377f56ad5d2dc4b2e53ae961f98f6e091fc170bf76c8d9f438a7fd6373d7e"
+        },
+        "application_elf": {
+          "bytes": 4493776,
+          "sha256": "0b208c9fc37e38ab43f2cbfa426a45ac1d1b17602f144c8540532e92966e78c4"
+        },
+        "linker_map": {
+          "bytes": 3970783,
+          "sha256": "1137467a77486a2e9aaecc70e358dc64e310cfef444f52286f73fa97bd79b75a"
+        },
+        "generated_sdkconfig": {
+          "bytes": 107001,
+          "sha256": "b4fb46a1d2fa27953a9e9f02cd87da8be60c09d7f5e3ef00905839f7f38f2f9f"
+        }
+      }
+    }
+  ],
+  "unchanged_build_inputs": {
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_candidate/CMakeLists.txt": {
+      "bytes": 642,
+      "sha256": "456c9bdf08eb2bff566081a621f235e07ca3bc4888d67a6ed1c1ac5012974bbb"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_candidate/partitions.csv": {
+      "bytes": 452,
+      "sha256": "4f064c125aa641697e0539eaf9eda9d1cdecab46dd8ff387988b900f3efe2389"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium_ot163_candidate/main/CMakeLists.txt": {
+      "bytes": 915,
+      "sha256": "a6bd3c2c2fdb1455a152dbe1a8f58e441d2640f84350feade1a3a84eb0114abe"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium/main/app_main.c": {
+      "bytes": 25704,
+      "sha256": "ff5330a7d224be8d3abce8350432ca8573ccb9ce33780d68c559e0a85aa23bbf"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/include/ot121_benchmark_frame.h": {
+      "bytes": 7541,
+      "sha256": "cc5a4596400a8a2766e66fcab6b7d51dceecbc4f3c1be4055a2581d400415d4c"
+    },
+    "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.c": {
+      "bytes": 17876,
+      "sha256": "8534fe1a6a4b68cd37e491ebd0f564dd38fd3935fb21d8f2d45aa8333ae442b8"
+    },
+    "tests/benchmarks/crypto/adapters/libsodium_noise_xk_v0/noise_xk_libsodium.h": {
+      "bytes": 3218,
+      "sha256": "b7c649434cdffe648e467bb117849ae0296a73fa041d614d3d4ba32578e40c45"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/historical_common_sdkconfig_ot120.defaults": {
+      "bytes": 1368,
+      "sha256": "84d54e5d730ba28ceba0c97831a477303db128d63ede7575bec52013770d70c0"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot120_candidate_builds/reproducible.defaults": {
+      "bytes": 63,
+      "sha256": "995ce0b6c1a557b0132208af3744fc6672b3a026719c47d1cd50580004373fa6"
+    },
+    "tests/benchmarks/crypto/esp_idf/ot121_candidate_benchmarks/libsodium/sdkconfig.overlay": {
+      "bytes": 35,
+      "sha256": "b7b722dc1bcc2c5917bee365f2123171ec398b0a0f295d61e7a7e8c26b99c832"
+    }
+  },
+  "images": [
+    {
+      "name": "ot121_libsodium_primitive_bench.bin",
+      "bytes": 293120,
+      "sha256": "cf4377f56ad5d2dc4b2e53ae961f98f6e091fc170bf76c8d9f438a7fd6373d7e"
+    },
+    {
+      "name": "opentrail_heltec_v4_bench.bin",
+      "bytes": 586736,
+      "sha256": "43ac6dbc506c03faa63aae7a8e27195750598f06f3118bfff1ef7af84bc8d9f2"
+    },
+    {
+      "name": "opentrail_heltec_v4_bench.bin",
+      "bytes": 587968,
+      "sha256": "984e241dc72fad956d34b5e83f04fd307dcb95e0f18c629ac46d21da9d96d87b"
+    }
+  ],
+  "scope": {
+    "host_mock_only": true,
+    "hardware_executed": false,
+    "authority_issued": false,
+    "radio_used": false,
+    "phase_two_complete": false,
+    "candidate_selected": false,
+    "score_credit_added": false
+  },
+  "limitations": [
+    "Historical OT122 physical image differs; no physical acceptance transferred.",
+    "Reset-to-open autorun timing is physically untested.",
+    "Fresh physical preflight, one-use grant and original-screen confirmation remain required."
+  ]
+}

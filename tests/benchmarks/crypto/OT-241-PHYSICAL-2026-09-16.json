@@ -1,0 +1,309 @@
+{
+  "schema": "OT241-PHYSICAL-TRIALS-1",
+  "date": "2026-09-16",
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3 16MB",
+  "same_candidate_both_attempts": true,
+  "attempts": {
+    "first": {
+      "schema": "OT241-PHYSICAL-CLOSURE-1",
+      "recorded_utc": "2026-09-16T19:27:42.204431+00:00",
+      "observation": "trial_failed",
+      "candidate": {
+        "bytes": 527664,
+        "sha256": "80b59d532929c337d342857b23ef4c4874c877f0790acfa7883554b15a493fc2"
+      },
+      "journal_sha256": "6c11b1da356a245bda66449c8a641cb8c8c386f505172c2f64c53089f6c8022b",
+      "controller_result_sha256": "e3eb8bcc9087b2b0304d2be1dff68089f810606b59054df5306cfca529f18e3a",
+      "diagnostics_sha256": "4adeca688126efef947f5cd7cdd9409512492f6d77156b523c741f18a416198b",
+      "diagnostic_events": [
+        {
+          "operator": "enrolled_failure_wait_local_confirmation_target_refused"
+        },
+        {
+          "command": "STATUS",
+          "operator": "enrolled_failure_point",
+          "role": "A"
+        },
+        {
+          "operator": "enrolled_target_diagnostic",
+          "role": "A",
+          "snapshot": {
+            "fault": 3,
+            "nvs_read_us": 37384411,
+            "nvs_reads": 217135,
+            "service_gap_ms": 38463,
+            "tick_last_us": 7,
+            "tick_max_us": 176456,
+            "tx_age_ms": 0,
+            "tx_attempts": 2,
+            "tx_completed": 2,
+            "tx_queue_age_ms": 0
+          }
+        },
+        {
+          "operator": "enrolled_target_diagnostic",
+          "role": "B",
+          "snapshot": {
+            "fault": 6,
+            "nvs_read_us": 34828043,
+            "nvs_reads": 202418,
+            "service_gap_ms": 38829,
+            "tick_last_us": 129166,
+            "tick_max_us": 176421,
+            "tx_age_ms": 0,
+            "tx_attempts": 1,
+            "tx_completed": 1,
+            "tx_queue_age_ms": 0
+          }
+        },
+        {
+          "operator": "enrolled_cleanup_protocol_unverified_handles_closed"
+        }
+      ],
+      "roles": {
+        "A": {
+          "events": [
+            "claim_intent",
+            "candidate_write_intent",
+            "candidate_boot_intent",
+            "restore_application_intent",
+            "restore_application_verified",
+            "restore_nvs_intent",
+            "restore_nvs_verified",
+            "original_reset_intent",
+            "restored_and_reset"
+          ],
+          "captured_regions_verified": 5,
+          "captured_bytes_verified": true,
+          "protected_capture_descriptors_match_request": true,
+          "restored": true
+        },
+        "B": {
+          "events": [
+            "claim_intent",
+            "candidate_write_intent",
+            "candidate_boot_intent",
+            "restore_application_intent",
+            "restore_application_verified",
+            "restore_nvs_intent",
+            "restore_nvs_verified",
+            "original_reset_intent",
+            "restored_and_reset"
+          ],
+          "captured_regions_verified": 5,
+          "captured_bytes_verified": true,
+          "protected_capture_descriptors_match_request": true,
+          "restored": true
+        }
+      },
+      "bridge_handles_closed": true,
+      "custody_closed": true,
+      "active_lock_absent": true,
+      "controller_exit_status": 0,
+      "child_exit_status": 0,
+      "exit_status_evidence": "Controller owner observed child and controller exit 0 after custody closure.",
+      "visual_confirmation": "Both normal Trail screens explicitly confirmed by user after restoration",
+      "candidate_attempts": 1,
+      "recovery_attempts": 0,
+      "limits": [
+        "Backup hashes verified offline; restoration/readback/reset reported by closed journal.",
+        "Diagnostics do not prove restoration, application startup, or root cause.",
+        "RF counts, comparison, button confirmation and acceptance need separate controller evidence.",
+        "No phone-path, V1 credit, production selection or website change inferred."
+      ],
+      "user_context": "User reported being away during the physical confirmation window; both normal Trail screens confirmed after restoration.",
+      "radio_observations": {
+        "source": "Bound target diagnostic snapshots at failure/cleanup; completed TX is not peer delivery.",
+        "roles": {
+          "A": {
+            "tx_attempts": 2,
+            "tx_completed": 2,
+            "received_frames": null,
+            "packet_loss": null,
+            "duplicate_frames": null,
+            "end_to_end_latency_ms": null
+          },
+          "B": {
+            "tx_attempts": 1,
+            "tx_completed": 1,
+            "received_frames": null,
+            "packet_loss": null,
+            "duplicate_frames": null,
+            "end_to_end_latency_ms": null
+          }
+        },
+        "unavailable_metrics": "RX counts, packet loss, duplicate counts and end-to-end latency were not measured/available; null does not mean zero."
+      }
+    },
+    "same_image_retry": {
+      "schema": "OT241-PHYSICAL-CLOSURE-1",
+      "recorded_utc": "2026-09-16T19:49:27.326542+00:00",
+      "observation": "trial_failed",
+      "candidate": {
+        "bytes": 527664,
+        "sha256": "80b59d532929c337d342857b23ef4c4874c877f0790acfa7883554b15a493fc2"
+      },
+      "journal_sha256": "e00d715b0d5e8f618201cc70386f31a074d5dfa394fc480d0ec59da8c9cf3294",
+      "controller_result_sha256": "4d66478dc4e859b5a43c760705b94a392135b6ba67366b5f2863b9ff224293e8",
+      "diagnostics_sha256": "36b756027fbad6dd9153adb773dcb1b0b2ff02ff7f87bf6f306f507aee5d16d4",
+      "diagnostic_events": [
+        {
+          "operator": "enrolled_failure_handshake_3_target_refused"
+        },
+        {
+          "command": "RFPOLL",
+          "operator": "enrolled_failure_point",
+          "role": "A"
+        },
+        {
+          "operator": "enrolled_target_diagnostic",
+          "role": "A",
+          "snapshot": {
+            "fault": 8,
+            "nvs_read_us": 6432997,
+            "nvs_reads": 37486,
+            "service_gap_ms": 7324,
+            "tick_last_us": 151664,
+            "tick_max_us": 176450,
+            "tx_age_ms": 2060,
+            "tx_attempts": 2,
+            "tx_completed": 1,
+            "tx_queue_age_ms": 0
+          }
+        },
+        {
+          "operator": "enrolled_target_diagnostic",
+          "role": "B",
+          "snapshot": {
+            "fault": 0,
+            "nvs_read_us": 3202375,
+            "nvs_reads": 18748,
+            "service_gap_ms": 10352,
+            "tick_last_us": 0,
+            "tick_max_us": 0,
+            "tx_age_ms": 0,
+            "tx_attempts": 1,
+            "tx_completed": 1,
+            "tx_queue_age_ms": 0
+          }
+        },
+        {
+          "operator": "enrolled_cleanup_protocol_unverified_handles_closed"
+        }
+      ],
+      "roles": {
+        "A": {
+          "events": [
+            "claim_intent",
+            "candidate_write_intent",
+            "candidate_boot_intent",
+            "restore_application_intent",
+            "restore_application_verified",
+            "restore_nvs_intent",
+            "restore_nvs_verified",
+            "original_reset_intent",
+            "restored_and_reset"
+          ],
+          "captured_regions_verified": 5,
+          "captured_bytes_verified": true,
+          "protected_capture_descriptors_match_request": true,
+          "restored": true
+        },
+        "B": {
+          "events": [
+            "claim_intent",
+            "candidate_write_intent",
+            "candidate_boot_intent",
+            "restore_application_intent",
+            "restore_application_verified",
+            "restore_nvs_intent",
+            "restore_nvs_verified",
+            "original_reset_intent",
+            "restored_and_reset"
+          ],
+          "captured_regions_verified": 5,
+          "captured_bytes_verified": true,
+          "protected_capture_descriptors_match_request": true,
+          "restored": true
+        }
+      },
+      "bridge_handles_closed": true,
+      "custody_closed": true,
+      "active_lock_absent": true,
+      "controller_exit_status": 0,
+      "child_exit_status": 0,
+      "exit_status_evidence": "Controller owner observed child and controller exit 0 after custody closure.",
+      "visual_confirmation": "Both normal Trail screens explicitly confirmed by user after verified restoration",
+      "candidate_attempts": 1,
+      "recovery_attempts": 0,
+      "limits": [
+        "Backup hashes verified offline; restoration/readback/reset reported by closed journal.",
+        "Diagnostics do not prove restoration, application startup, or root cause.",
+        "RF counts, comparison, button confirmation and acceptance need separate controller evidence.",
+        "No phone-path, V1 credit, production selection or website change inferred."
+      ],
+      "user_context": "User returned for same-image retry and reported a displayed code appeared for one or two seconds then disappeared; no controller physical-comparison prompt occurred.",
+      "radio_observations": {
+        "source": "Bound target diagnostic snapshots at failure/cleanup; completed TX is not peer delivery.",
+        "roles": {
+          "A": {
+            "tx_attempts": 2,
+            "tx_completed": 1,
+            "received_frames": null,
+            "packet_loss": null,
+            "duplicate_frames": null,
+            "end_to_end_latency_ms": null
+          },
+          "B": {
+            "tx_attempts": 1,
+            "tx_completed": 1,
+            "received_frames": null,
+            "packet_loss": null,
+            "duplicate_frames": null,
+            "end_to_end_latency_ms": null
+          }
+        },
+        "unavailable_metrics": "RX counts, packet loss, duplicate counts and end-to-end latency were not measured/available; null does not mean zero."
+      }
+    }
+  },
+  "findings": {
+    "first_failure": {
+      "stage": "wait_local_confirmation",
+      "role": "A",
+      "command": "STATUS",
+      "reason": "target_refused",
+      "comparison_prompt_reached": true
+    },
+    "retry_failure": {
+      "stage": "handshake_3",
+      "role": "A",
+      "command": "RFPOLL",
+      "reason": "target_refused",
+      "comparison_prompt_reached": false,
+      "measured_fault": "TX completion deadline",
+      "tx_age_ms": 2060,
+      "tx_attempts": 2,
+      "tx_completed": 1
+    }
+  },
+  "limits": [
+    "First missed human confirmation window and retry pre-comparison TX deadline are distinct.",
+    "Same image passed the first handshake and refused during the retry handshake; lower-level cause remains unresolved.",
+    "No successful activated encrypted fixed-status exchange, phone path, V1 credit, production selection or website change.",
+    "No further physical retry authorized by this record."
+  ],
+  "radio_setup": {
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate_denominator": 5,
+    "configured_power_dbm": 2,
+    "maximum_transmissions_per_node": 16,
+    "maximum_duration_ms": 60000,
+    "context": "Two USB-connected Heltec nodes on the bench; antennas confirmed attached by user.",
+    "exact_distance_m": null,
+    "distance_status": "not recorded; not range validation"
+  },
+  "diagnostic_boundary": "The retry measured a TX completion deadline. Which host pause or lower-level condition caused missed completion is not uniquely established; earlier uninstrumented trial causes remain unproven."
+}

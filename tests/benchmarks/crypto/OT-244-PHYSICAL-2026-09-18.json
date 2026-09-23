@@ -1,0 +1,122 @@
+{
+  "schema": "OT244-PHYSICAL-TRIAL-1",
+  "recorded_utc": "2026-09-18T19:22:49.431917+00:00",
+  "outcome": "failed_activation_1",
+  "hardware": "two Heltec WiFi LoRa32 V4.2 ESP32-S3/16MiB",
+  "firmware_version": "ot242-enrolled-completion-v1",
+  "candidate": {
+    "bytes": 528160,
+    "sha256": "cec805d4c4b8eaea9ea6380c037b7b34a97af4a9b6fc40b02b6d98b98db7f24e"
+  },
+  "radio": {
+    "frequency_hz": 915000000,
+    "bandwidth_hz": 125000,
+    "spreading_factor": 7,
+    "coding_rate": "4/5",
+    "configured_dbm": 2,
+    "max_frame_bytes": 158,
+    "max_tx_per_role": 16
+  },
+  "local_confirmations": "Bridge reached activation only after observing STATUS state4 for both roles; user reported done.",
+  "diagnostic_events": [
+    {
+      "operator": "enrolled_failure_activation_1_target_refused"
+    },
+    {
+      "command": "RFPOLL",
+      "operator": "enrolled_failure_point",
+      "role": "B"
+    },
+    {
+      "operator": "enrolled_target_diagnostic",
+      "role": "A",
+      "snapshot": {
+        "fault": 3,
+        "nvs_read_us": 10714521,
+        "nvs_reads": 50603,
+        "service_gap_ms": 30960,
+        "tick_last_us": 347864,
+        "tick_max_us": 347864,
+        "tx_age_ms": 0,
+        "tx_attempts": 3,
+        "tx_completed": 3,
+        "tx_queue_age_ms": 0
+      }
+    },
+    {
+      "operator": "enrolled_target_diagnostic",
+      "role": "B",
+      "snapshot": {
+        "fault": 3,
+        "nvs_read_us": 24682778,
+        "nvs_reads": 118982,
+        "service_gap_ms": 9970,
+        "tick_last_us": 335231,
+        "tick_max_us": 335231,
+        "tx_age_ms": 0,
+        "tx_attempts": 1,
+        "tx_completed": 1,
+        "tx_queue_age_ms": 0
+      }
+    },
+    {
+      "operator": "enrolled_cleanup_protocol_unverified_handles_closed"
+    }
+  ],
+  "journal_sha256": "95680ac8cfaae20bf6073dc57ba3638acb1eaffe640c35f73aa13971d9215956",
+  "diagnostics_sha256": "dc4c3cc3c2b844087dd3fc379bcd281c2edbd1c9b94d5b537d6e56a86eb4a294",
+  "restoration": {
+    "custody_closed": true,
+    "active_lock_absent": true,
+    "roles": {
+      "A": {
+        "restored": true,
+        "events": [
+          "claim_intent",
+          "candidate_write_intent",
+          "candidate_boot_intent",
+          "restore_application_intent",
+          "restore_application_verified",
+          "restore_nvs_intent",
+          "restore_nvs_verified",
+          "original_reset_intent",
+          "restored_and_reset"
+        ]
+      },
+      "B": {
+        "restored": true,
+        "events": [
+          "claim_intent",
+          "candidate_write_intent",
+          "candidate_boot_intent",
+          "restore_application_intent",
+          "restore_application_verified",
+          "restore_nvs_intent",
+          "restore_nvs_verified",
+          "original_reset_intent",
+          "restored_and_reset"
+        ]
+      }
+    },
+    "visual_confirmation": "User confirmed both normal Trail screens after controller closure.",
+    "controller_exit": 0,
+    "child_exit": 0,
+    "candidate_attempts": 1,
+    "recovery_attempts": 0,
+    "independent_capture_audit": {
+      "result": "passed",
+      "capture_hashes_and_sizes": 10,
+      "application_prefixes": 2,
+      "protected_descriptors": 6,
+      "fresh_namespace_checks": 2
+    }
+  },
+  "limitations": [
+    "Fault3 is authority/clock, not unique proof of invitation expiry.",
+    "No precise confirmation/activation timestamps were saved.",
+    "Protocol cleanup unverified; passive handles closed; original restoration is separately verified.",
+    "Final radio RX/loss/duplicate counters unavailable; statuses not reached; latency and bench separation unmeasured.",
+    "No phone integration, V1 score or public website status change."
+  ],
+  "next_action": "Host replay actual bridge ordering with independent per-node idle loops, measured SDK cost and exact guard provenance; do not double count concurrent wall time."
+}

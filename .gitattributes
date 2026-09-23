@@ -813,3 +813,129 @@ tests/hardware/OT-204-RECEIPT-TRIAL-2026-09-12.json -text
 /tests/host/security_peer_traffic_fixture.hpp -text
 /tests/host/security_peer_traffic_tests.cpp -text
 /tests/host/security_endpoint_record_tests.cpp -text
+
+# OT-236 exact capture composition and host acceptance inputs.
+/tools/libsodium_capture_execution.py -text
+/tools/libsodium_capture_protocol.py -text
+/tools/libsodium_capture_hardware.py -text
+/tests/host/libsodium_capture_execution_tests.py -text
+/tests/host/libsodium_capture_protocol_tests.py -text
+/tests/host/libsodium_capture_hardware_tests.py -text
+/firmware/targets/libsodium_capture_yield_eval/CMakeLists.txt -text
+/firmware/targets/libsodium_capture_yield_eval/main/CMakeLists.txt -text
+/firmware/targets/libsodium_capture_yield_eval/main/compose.py -text
+/firmware/targets/libsodium_capture_yield_eval/partitions.csv -text
+/tests/host/libsodium_capture_scheduling_tests.py -text
+/firmware/components/security_evaluation/include/opentrail/peer_membership_store.hpp -text
+/firmware/components/security_evaluation/include/opentrail/enrolled_peer_endpoint.hpp -text
+/tests/host/peer_membership_store_tests.cpp -text
+/tests/host/enrolled_peer_endpoint_tests.cpp -text
+
+# OT-239 exact public enrollment persistence and namespace inputs.
+/firmware/components/security_evaluation/include/opentrail/enrollment_evidence_store.hpp -text
+/firmware/components/security_evaluation/include/opentrail/evaluation_storage_bank.hpp -text
+/tests/host/enrollment_evidence_store_tests.cpp -text
+/tests/host/provisioned_peer_endpoint_tests.cpp -text
+/tests/host/evaluation_storage_bank_tests.cpp -text
+
+# OT-240 integration batch source pins.
+/firmware/components/security_evaluation/include/opentrail/session_generation_storage.hpp -text
+/firmware/components/security_evaluation/include/opentrail/enrolled_peer_transport.hpp -text
+/firmware/components/security_evaluation/include/opentrail/companion_status_bridge.hpp -text
+/firmware/components/security_evaluation/include/opentrail/enrolled_bench_session.hpp -text
+/tests/host/session_generation_storage_tests.cpp -text
+/tests/host/enrolled_peer_transport_tests.cpp -text
+/tests/host/enrolled_nvs_backend_tests.cpp -text
+/tests/host/enrolled_nvs_session_tests.cpp -text
+/tests/host/enrolled_radio_driver_tests.cpp -text
+/tests/host/companion_status_bridge_tests.cpp -text
+/tests/host/enrolled_bench_session_tests.cpp -text
+/tests/host/enrolled_pair_bridge_tests.py -text
+/tools/enrolled_pair_bridge.py -text
+/tools/Build-EnrolledEvaluation.ps1 -text
+/firmware/targets/heltec_v4_enrolled_eval/CMakeLists.txt -text
+/firmware/targets/heltec_v4_enrolled_eval/sdkconfig.defaults -text
+/firmware/targets/heltec_v4_enrolled_eval/partitions.csv -text
+/firmware/targets/heltec_v4_enrolled_eval/main/CMakeLists.txt -text
+/firmware/targets/heltec_v4_enrolled_eval/main/app_main.cpp -text
+/firmware/targets/heltec_v4_enrolled_eval/main/enrolled_nvs_backend.hpp -text
+/firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp -text
+/firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.hpp -text
+/tools/enrolled_confirmation_trial.py -text
+/tools/enrolled_trial_operator.py -text
+/tests/host/enrolled_confirmation_trial_tests.py -text
+/tests/host/enrolled_trial_operator_tests.py -text
+/tests/host/enrolled_target_pacing_tests.py -text
+/firmware/components/security_evaluation/include/opentrail/enrolled_session_observer.hpp -text
+/firmware/targets/heltec_v4_enrolled_eval/main/enrolled_diagnostics.hpp -text
+/tests/host/enrolled_diagnostics_tests.cpp -text
+/tests/host/enrolled_completion_composed_tests.cpp -text
+/tools/enrolled_trace_schema.py -text
+/tests/host/enrolled_trace_capture_tests.py -text
+
+# OT-247 publication preserves admitted source and evidence bytes.
+# CRLF is intentional; ordinary trailing-space/indent checks remain enabled.
+# Four admitted source fixtures retain their existing terminal blank line.
+/firmware/components/security_evaluation/include/opentrail/companion_status_bridge.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/security_evaluation/include/opentrail/enrolled_bench_session.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/security_evaluation/include/opentrail/enrollment_evidence_store.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/security_evaluation/include/opentrail/session_generation_storage.hpp -text whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+/firmware/targets/heltec_v4_enrolled_eval/CMakeLists.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/targets/heltec_v4_enrolled_eval/main/CMakeLists.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/targets/heltec_v4_enrolled_eval/main/app_main.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/targets/heltec_v4_enrolled_eval/main/enrolled_nvs_backend.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/targets/heltec_v4_enrolled_eval/partitions.csv -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/targets/heltec_v4_enrolled_eval/sdkconfig.defaults -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-236-INTERVAL-CALLER-HOST-2026-09-15.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-236-INTERVAL-PHYSICAL-2026-09-15.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-236-LIBSODIUM-CAPTURE-HOST-2026-09-15.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-236-NVS-INTERVAL-HOST-2026-09-15.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-236-PREFLIGHT-2026-09-15.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-236-SCHEDULING-PHYSICAL-2026-09-15.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-236-SCHEDULING-SUCCESSOR-HOST-2026-09-15.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-237-CURRENT-ADMISSION-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-238-ENROLLMENT-MEMBERSHIP-HOST-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-239-PERSISTED-ENROLLMENT-HOST-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-240-INTEGRATION-HOST-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-240-PACING-CORRECTION-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-240-PACING-PHYSICAL-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-240-PHYSICAL-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-240-REVIEW-TICK-CORRECTION-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-241-DIAGNOSTICS-HOST-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-241-PHYSICAL-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-242-FAULT-PROVENANCE-HOST-2026-09-18.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-242-PHYSICAL-2026-09-18.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-242-TX-COMPLETION-HOST-2026-09-16.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-243-NVS-POLLING-HOST-2026-09-18.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-244-PHYSICAL-2026-09-18.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-244-TRIAL-PREPARATION-2026-09-18.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-245-IDLE-REPLAY-HOST-2026-09-18.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-246-FAILURE-CAPTURE-HOST-2026-09-18.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-246-PHYSICAL-2026-09-20.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/benchmarks/crypto/OT-247-HOST-FLOW-REVIEW-2026-09-20.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/companion_status_bridge_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrolled_bench_session_tests.cpp -text whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrolled_completion_composed_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrolled_confirmation_trial_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrolled_nvs_backend_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrolled_nvs_session_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrolled_pair_bridge_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrolled_peer_transport_tests.cpp -text whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrolled_target_pacing_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrolled_trial_operator_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrollment_evidence_store_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/libsodium_capture_execution_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/libsodium_capture_hardware_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/libsodium_capture_protocol_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/provisioned_peer_endpoint_tests.cpp -text whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/session_generation_storage_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tools/Build-EnrolledEvaluation.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tools/enrolled_confirmation_trial.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tools/enrolled_pair_bridge.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tools/enrolled_trial_operator.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tools/libsodium_capture_execution.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tools/libsodium_capture_protocol.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/security_evaluation/include/opentrail/independent_handshake_endpoint.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/security_evaluation/include/opentrail/pair_radio_driver.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/fixtures/security_eval_nvs/nvs.h -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tools/Test-Host.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
