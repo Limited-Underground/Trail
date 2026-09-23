@@ -2,6 +2,26 @@
 
 ## 2026-09-23
 
+### OT-0238b Bound local display and button ownership
+
+Added a trusted-IO host adapter with exclusive display revision readback, fresh
+button release per page, reset preemption and safe input handoff. Complete bounded
+layout includes identity/code, role, group and purpose. [Validation and target
+preflight](testing/OT-0238b-REVIEW-DEVICE-PORT-2026-09-23.md). Actual target IO remains
+unwired; no hardware, V1 credit or public website status change.
+
+
+### OT-0238b Retain committed pairing and require fresh rekey
+
+Retained evidence now includes both identity signatures, and the journal records
+completed membership only after exact readback. Matching actual owners sign fresh
+state comparisons before a new exact-next-epoch handshake. Old keys never resume;
+revoke/reset preparation contains traffic. Independent review added live commit
+guards and exact store ownership checks. [Host validation and remaining target
+gates](testing/OT-0238b-RETAINED-REKEY-2026-09-23.md). No hardware, V1 credit or
+public website status change; task remains in progress.
+
+
 ### OT-0238b Compose trusted first enrollment
 
 Persistent identity provisioning, fresh dual possession, consumed physical-review

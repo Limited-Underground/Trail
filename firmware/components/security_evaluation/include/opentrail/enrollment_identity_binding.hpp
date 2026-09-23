@@ -25,16 +25,18 @@ inline EnrollmentIdentitySigningBytes enrollment_identity_signing_bytes(
     return bytes;
 }
 class EnrollmentIdentityVerifier;
+class EnrollmentBindingStore;
 class VerifiedIdentityBinding final {
 public:
-    const IndependentInvitation& invitation() const { return invitation_; }
+    const IndependentInvitation& invitation() const { return proof_.invitation; }
     const RetainedEnrollmentIdentities& identities() const { return identities_; }
+    const EnrollmentIdentityProof& proof() const { return proof_; }
 private:
     friend class EnrollmentIdentityVerifier;
-    VerifiedIdentityBinding(RetainedEnrollmentIdentities identities, IndependentInvitation invitation)
-        : identities_(identities), invitation_(invitation) {}
+    VerifiedIdentityBinding(RetainedEnrollmentIdentities identities, EnrollmentIdentityProof proof)
+        : identities_(identities), proof_(proof) {}
     RetainedEnrollmentIdentities identities_;
-    IndependentInvitation invitation_;
+    EnrollmentIdentityProof proof_;
 };
 class EnrollmentIdentityVerifier final {
 public:
@@ -47,9 +49,15 @@ public:
     // Reuse checks cover this immediate predecessor only. Older history, rollback
     // protection and once-only acceptance require the durable product owner.
     explicit EnrollmentIdentityVerifier(const VerifiedIdentityBinding& prior)
-        : pins_(prior.identities_), inviter_(independent_invitation_detail::decode(prior.invitation_).signer),
-          group_(independent_invitation_detail::decode(prior.invitation_).group), prior_(prior) {}
+        : pins_(prior.identities_), inviter_(independent_invitation_detail::decode(prior.proof_.invitation).signer),
+          group_(independent_invitation_detail::decode(prior.proof_.invitation).group), prior_(prior) {}
     bool verify(const EnrollmentIdentityProof& proof, std::optional<VerifiedIdentityBinding>& output) const {
+        return verify_impl(proof, output, true);
+    }
+private:
+    friend class EnrollmentBindingStore;
+    // Only retained local provenance storage may reverify the exact stored epoch.
+    bool verify_impl(const EnrollmentIdentityProof& proof, std::optional<VerifiedIdentityBinding>& output, bool transition) const {
         const auto candidate = proof;
         const auto fields = independent_invitation_detail::decode(candidate.invitation);
         IndependentInvitation canonical{};
@@ -57,18 +65,18 @@ public:
             pins_.initiator == pins_.responder || !invitation_detail::nonzero(inviter_) || group_ == 0 || inviter_ != pins_.initiator ||
             !encode_independent_invitation(fields, canonical) || canonical.payload != candidate.invitation.payload ||
             fields.group != group_ || fields.signer != inviter_) return false;
-        if (prior_) {
-            const auto previous = independent_invitation_detail::decode(prior_->invitation_);
+        if (transition && prior_) {
+            const auto previous = independent_invitation_detail::decode(prior_->proof_.invitation);
             if (previous.epoch == std::numeric_limits<std::uint32_t>::max() || fields.epoch != previous.epoch + 1 ||
                 fields.nonce == previous.nonce || fields.peer_a == previous.peer_a || fields.peer_a == previous.peer_b ||
                 fields.peer_b == previous.peer_a || fields.peer_b == previous.peer_b) return false;
-        } else if (fields.epoch != 1) return false;
+        } else if (transition && fields.epoch != 1) return false;
         const auto bytes = enrollment_identity_signing_bytes(pins_, candidate.invitation);
         if (crypto_sign_verify_detached(candidate.invitation.signature.data(), candidate.invitation.payload.data(),
                 candidate.invitation.payload.size(), inviter_.data()) != 0 ||
             crypto_sign_verify_detached(candidate.initiator_signature.data(), bytes.data(), bytes.size(), pins_.initiator.data()) != 0 ||
             crypto_sign_verify_detached(candidate.responder_signature.data(), bytes.data(), bytes.size(), pins_.responder.data()) != 0) return false;
-        output = VerifiedIdentityBinding(pins_, candidate.invitation);
+        output = VerifiedIdentityBinding(pins_, candidate);
         return true;
     }
 private:

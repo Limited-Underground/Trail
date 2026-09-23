@@ -1,85 +1,5 @@
-#include "security_peer_traffic_fixture.hpp"
-#include "opentrail/product_enrollment_activation.hpp"
-using namespace peer_traffic_test;
-namespace {
-struct Backend final : EvaluationGenerationBackend {
-    std::array<std::array<CallbackStorage,7>,3> stores;
-    CallbackStorage& at(std::uint64_t g,EvaluationNamespace n){CHECK(g<3);return stores[g][static_cast<unsigned>(n)];}
-    persistence::StorageReadResult read(std::uint64_t g,EvaluationNamespace n,Domain d,std::size_t s,persistence::MutableStorageByteView v) override{return at(g,n).read_slot(d,s,v);}
-    Error erase(std::uint64_t g,EvaluationNamespace n,Domain d,std::size_t s) override{return at(g,n).erase_slot(d,s);}
-    Error write(std::uint64_t g,EvaluationNamespace n,Domain d,std::size_t s,std::size_t o,persistence::StorageByteView v) override{return at(g,n).write_slot(d,s,o,v);}
-    Error sync(std::uint64_t g,EvaluationNamespace n,Domain d,std::size_t s) override{return at(g,n).sync_slot(d,s);}
-};
-struct Port final : FingerprintReviewPort {
-    FingerprintReviewSample value{};
-    FingerprintReviewFrame frame{};
-    FingerprintReviewSample sample() override{return value;}
-    bool show(const FingerprintReviewFrame& f) override{frame=f;value.display_revision=f.revision;return true;}
-};
-void entropy(security::test_support::FakeSecureRandomSource& random,unsigned seed) {
-    std::array<unsigned char,128> bytes{};
-    for(unsigned i=0;i<bytes.size();++i) bytes[i]=static_cast<unsigned char>(seed+i);
-    CHECK(random.load_bytes(bytes.data(),bytes.size()));random.set_state(security::EntropyState::ready);
-}
-struct Node {
-    CallbackStorage identity_storage,boot,roles,tx,rx,trust,journal,membership;
-    security::test_support::FakeSecureRandomSource random,identity_random;
-    EnrollmentIdentityStore identity{identity_storage,identity_random};
-    Backend backend; GenerationLedgerStorage ledger{backend}; SessionGenerationAllocator allocator{ledger,backend,2};
-    Source clock; Port port; InvitationKey key{}; InvitationRole role;
-    std::uint64_t generation{};
-    std::optional<ProductEnrollmentActivation> endpoint;
-    std::optional<ReviewedEnrollmentIdentity> reviewed;
-    std::optional<EnrollmentPreparationOwner> preparation;
-    std::optional<TrustedEnrollmentBinding> trusted;
-    Node(InvitationRole r,unsigned seed):role(r){
-        entropy(random,seed);entropy(identity_random,seed+40);CHECK(identity.initialize());CHECK(identity.public_key(key));
-        CHECK(allocator.initialize());CHECK(allocator.allocate(generation));clock.value={{seed+1,seed+2},1101};
-    }
-    void prepare(const InvitationKey& signer,const InvitationKey& peer){
-        endpoint.emplace(random,boot,roles,tx,rx,trust,journal,membership,clock,port,role,signer);
-        if(role==InvitationRole::responder){InvitationBootAuthority previous(boot);CHECK(previous.start());}
-        CHECK(endpoint->prepare_identity());
-        port.value.context={endpoint->boot_context(),generation,1};port.value.now_ms=100;
-        EnrollmentFingerprintReview review(port,key,role,17);CHECK(review.begin(peer));CHECK(review.show_peer());CHECK(review.poll());
-        port.value.now_ms=101;port.value.button_down=true;CHECK(review.poll());
-        port.value.now_ms=1101;port.value.button_down=false;CHECK(review.poll());CHECK(review.take_review(reviewed));
-        preparation.emplace(random,identity,allocator,port,std::move(*reviewed));
-    }
-};
-struct ProductPair {
-    Node a{InvitationRole::initiator,1},b{InvitationRole::responder,81};
-    ProductPair(){
-        a.prepare(a.key,b.key);b.prepare(a.key,a.key);
-        RetainedEnrollmentIdentities pins{a.key,b.key};EnrollmentPossessionStatement statement{};statement.group=17;
-        statement.initiator_context={a.endpoint->boot_context(),a.generation,1};
-        statement.responder_context={b.endpoint->boot_context(),b.generation,1};
-        CHECK(a.preparation->prepare_challenge(statement.initiator_challenge));
-        CHECK(b.preparation->prepare_challenge(statement.responder_challenge));
-        EnrollmentPossessionProof proof{};proof.statement=statement;EnrollmentPossessionAttempt ap(pins,statement),bp(pins,statement);
-        CHECK(ap.sign(InvitationRole::initiator,a.identity,proof.initiator_signature));
-        CHECK(bp.sign(InvitationRole::responder,b.identity,proof.responder_signature));
-        std::optional<VerifiedEnrollmentPossession> av,bv;CHECK(ap.verify(proof,av));CHECK(bp.verify(proof,bv));
-        CHECK(a.preparation->accept_possession(*av));CHECK(b.preparation->accept_possession(*bv));
-        IndependentInvitationFields f{};f.group=17;f.epoch=1;f.signer=a.key;
-        f.peer_a=a.endpoint->public_identity();f.peer_b=b.endpoint->public_identity();
-        f.boot_a=a.endpoint->boot_context();f.boot_b=b.endpoint->boot_context();
-        f.nonce.fill(3);f.issued_a_ms=1101;f.issued_b_ms=1101;f.window_a_ms=60000;f.window_b_ms=60000;
-        EnrollmentIdentityProof binding{};CHECK(a.preparation->issue_invitation(f,binding.invitation));
-        CHECK(a.preparation->sign_binding(binding.invitation,binding.initiator_signature));
-        CHECK(b.preparation->sign_binding(binding.invitation,binding.responder_signature));
-        CHECK(a.preparation->authorize(binding,a.trusted));CHECK(b.preparation->authorize(binding,b.trusted));
-    }
-    void begin(){CHECK(a.endpoint->begin(*a.trusted));CHECK(b.endpoint->begin(*b.trusted));}
-    void handshake(){begin();auto transfer=[](Node& from,Node& to){HandshakeFrame frame{};CHECK(from.endpoint->next_handshake(frame));CHECK(to.endpoint->receive_handshake(frame));};transfer(a,b);transfer(b,a);transfer(a,b);}
-    void confirm(){handshake();for(auto* n:{&a,&b}){CHECK(n->endpoint->poll_confirmation());
-        n->port.value.now_ms=1102;n->port.value.button_down=true;n->clock.value.now_ms=1102;CHECK(n->endpoint->poll_confirmation());
-        n->port.value.now_ms=2102;n->port.value.button_down=false;n->clock.value.now_ms=2102;CHECK(n->endpoint->poll_confirmation());}}
-    static void control(Node& from,Node& to){EvaluationRecord r{};CHECK(from.endpoint->next_control(r));CHECK(to.endpoint->receive_control(r));}
-    void controls(){confirm();control(a,b);control(b,a);control(a,b);control(b,a);}
-    void activate(){controls();CHECK(a.endpoint->commit_membership());CHECK(b.endpoint->commit_membership());}
-};
-}
+#include "product_enrollment_fixture.hpp"
+using namespace product_enrollment_test;
 int main(){
     unsigned groups=0;
     {ProductPair p;p.activate();CHECK(p.a.endpoint->ready()&&p.b.endpoint->ready());
@@ -93,8 +13,8 @@ int main(){
      CHECK(!p.a.endpoint->next_control(r));CHECK(same_record(r,before));CHECK(p.a.endpoint->secrets_cleared());++groups;}
     {ProductPair p;p.activate();p.a.membership.arm(Fault::read_error);CHECK(!p.a.endpoint->ready());CHECK(p.a.endpoint->secrets_cleared());++groups;}
     {ProductPair p;p.activate();CHECK(p.a.endpoint->close());
-     ProductEnrollmentActivation restarted(p.a.random,p.a.boot,p.a.roles,p.a.tx,p.a.rx,p.a.trust,p.a.journal,p.a.membership,p.a.clock,p.a.port,p.a.role,p.a.key);
-     CHECK(!restarted.prepare_identity());CHECK(restarted.secrets_cleared());++groups;}
+     ProductEnrollmentActivation restarted(p.a.random,p.a.boot,p.a.roles,p.a.tx,p.a.rx,p.a.trust,p.a.journal,p.a.membership,p.a.evidence,p.a.binding_proof,p.a.clock,p.a.port,p.a.role,p.a.key);
+     CHECK(restarted.prepare_identity());EvaluationRecord old{};CHECK(!restarted.send_status(1,old));CHECK(restarted.secrets_cleared());++groups;}
     {ProductPair p;p.begin();CHECK(!p.a.endpoint->begin(*p.a.trusted));CHECK(p.a.endpoint->secrets_cleared());++groups;}
     {ProductPair p;CHECK(!p.a.endpoint->begin(*p.b.trusted));CHECK(p.a.endpoint->secrets_cleared());++groups;}
     {ProductPair p;p.a.preparation->cancel();CHECK(!p.a.endpoint->begin(*p.a.trusted));CHECK(p.a.endpoint->secrets_cleared());++groups;}

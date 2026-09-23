@@ -26,6 +26,7 @@ struct FingerprintReviewFrame {
     InvitationRole local_role{};
     bool peer_page{};
     std::uint64_t revision{};
+    std::uint64_t group{};
 };
 class FingerprintReviewPort {
 public:
@@ -169,7 +170,7 @@ private:
     bool render(bool peer) {
         if (revision_ == std::numeric_limits<std::uint64_t>::max()) return stop();
         ++revision_; peer_page_=peer; confirmed_=false; released_=false; pressed_=false;
-        FingerprintReviewFrame frame{}; frame.revision=revision_; frame.peer_page=peer; frame.local_role=role_;
+        FingerprintReviewFrame frame{}; frame.revision=revision_; frame.peer_page=peer; frame.local_role=role_; frame.group=group_;
         constexpr char hex[]="0123456789ABCDEF";
         const auto& key=peer ? peer_ : local_;
         for (std::size_t i=0;i<key.size();++i) {

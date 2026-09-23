@@ -161,6 +161,10 @@ def run(output):
               base, (), " enrollment identity binding groups")
         suite("enrollment_fingerprint_review_tests", [*common, ROOT / "tests/host/enrollment_fingerprint_review_tests.cpp"],
               base, (), " enrollment fingerprint review groups")
+        suite("enrollment_review_layout_tests", [*common, ROOT / "tests/host/enrollment_review_layout_tests.cpp"],
+              base, (), " enrollment review layout groups")
+        suite("enrollment_review_device_port_tests", [*common, ROOT / "tests/host/enrollment_review_device_port_tests.cpp"],
+              base, (), " groups passed")
         suite("enrollment_commit_coordinator_tests", [*common, ROOT / "tests/host/enrollment_commit_coordinator_tests.cpp"],
               base, (), " enrollment commit journal groups")
         suite("enrollment_identity_store_tests", [*common, ROOT / "tests/host/enrollment_identity_store_tests.cpp"],
@@ -169,6 +173,14 @@ def run(output):
               base, (), " enrollment possession:")
         suite("product_enrollment_activation_tests", [*common, ROOT / "tests/host/product_enrollment_activation_tests.cpp"],
               base, (), " product enrollment activation groups")
+        suite("enrollment_binding_store_tests", [*common, ROOT / "tests/host/enrollment_binding_store_tests.cpp"],
+              base, (), " enrollment binding store groups")
+        suite("enrollment_retained_state_tests", [*common, ROOT / "tests/host/enrollment_retained_state_tests.cpp"],
+              base, (), " retained state groups")
+        suite("product_enrollment_rekey_tests", [*common, ROOT / "tests/host/product_enrollment_rekey_tests.cpp"],
+              base, (), " product enrollment rekey groups")
+        suite("product_enrollment_authority_tests", [*common, ROOT / "tests/host/product_enrollment_authority_tests.cpp"],
+              base, (), " product enrollment authority groups")
         suite("enrollment_evidence_store_tests", [*common, ROOT / "tests/host/enrollment_evidence_store_tests.cpp"],
               base, (), " enrollment evidence store groups")
         suite("provisioned_peer_endpoint_tests", [*common, ROOT / "tests/host/provisioned_peer_endpoint_tests.cpp"],
