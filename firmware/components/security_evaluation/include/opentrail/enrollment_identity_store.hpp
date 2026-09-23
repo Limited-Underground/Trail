@@ -1,7 +1,9 @@
 #pragma once
 // Host candidate: exclusively owned ot_identity_v1 namespace, distinct from
 // session/membership stores. Persisted seeds are NOT sealed by this component.
-// Production backend confidentiality and rollback protection remain target gates.
+// Target composition must isolate access and include this namespace in reset.
+// V1 excludes hostile physical flash rewrite/rollback (Decision 0033); this
+// component does not require or claim sealed storage or rollback-proof identity.
 // Checksums detect accidental damage, not authenticated storage or whole-store rollback.
 // Trusted composition supplies an isolated namespace and serializes every owner.
 // No erase/reset API: factory reset must cover all identity and membership domains.

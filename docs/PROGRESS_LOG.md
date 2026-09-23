@@ -2,6 +2,30 @@
 
 ## 2026-09-23
 
+### OT-0301 Bind ordered Android setup to actual device readbacks
+
+Connected name/region UI actions to the live exact-session configuration owner.
+Pending operations invalidate stale revisions; reconnect resumes from new device
+readbacks. Public-profile completion remains blocked rather than inferred from
+local drafts. [Implementation, tests and remaining dependency](testing/OT-0301-ONBOARDING-2026-09-23.md).
+No hardware, installed APK, physical UI acceptance or V1 credit.
+
+
+### OT-0300 Reconcile current Android data policy
+
+Resolved the historical transient-only policy conflict using accepted Decisions
+0009/0103/0104. Saved ownership, block/consent, device versus app cleanup and
+reviewed exports now have explicit boundaries. Frozen historical plan remains
+unchanged; a current successor is still required for release. [Evidence](testing/OT-0300-RETENTION-RECONCILIATION-2026-09-23.md).
+Owner acceptance pending; no hardware, V1 credit or public website change.
+
+### OT-0238b Reconcile the actual target integration boundary
+
+Confirmed the accepted V1 scope excludes hostile physical flash rollback; no new
+secure-element/eFuse/secure-boot requirement. Corrected identity-store comments
+without changing behavior. [Actual remaining ownership and reset gates](testing/OT-0238b-TARGET-INTEGRATION-BOUNDARY-2026-09-23.md).
+
+
 ### OT-0238b Bound local display and button ownership
 
 Added a trusted-IO host adapter with exclusive display revision readback, fresh
