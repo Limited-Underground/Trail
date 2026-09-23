@@ -2,6 +2,16 @@
 
 ## 2026-09-23
 
+### OT-0238b Compose trusted first enrollment
+
+Persistent identity provisioning, fresh dual possession, consumed physical-review
+receipts and durable session allocation now feed the actual handshake/activation
+components. Trusted transcript gestures gate preparation; durable intent precedes
+control output and committed membership gates status traffic. Independent review
+closed receipt reuse and continued-generation gaps.
+[Validation and remaining lifecycle gates](testing/OT-0238b-FIRST-ENROLLMENT-2026-09-23.md).
+Task remains in progress; no device work, V1 credit or website status change.
+
 ### OT-0238b Add local review and durable preparation components
 
 Candidate local review now binds complete display, fresh button gesture and exact
