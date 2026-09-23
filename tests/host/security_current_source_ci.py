@@ -169,6 +169,14 @@ def run(output):
               base, (), " enrollment possession:")
         suite("product_enrollment_activation_tests", [*common, ROOT / "tests/host/product_enrollment_activation_tests.cpp"],
               base, (), " product enrollment activation groups")
+        suite("enrollment_binding_store_tests", [*common, ROOT / "tests/host/enrollment_binding_store_tests.cpp"],
+              base, (), " enrollment binding store groups")
+        suite("enrollment_retained_state_tests", [*common, ROOT / "tests/host/enrollment_retained_state_tests.cpp"],
+              base, (), " retained state groups")
+        suite("product_enrollment_rekey_tests", [*common, ROOT / "tests/host/product_enrollment_rekey_tests.cpp"],
+              base, (), " product enrollment rekey groups")
+        suite("product_enrollment_authority_tests", [*common, ROOT / "tests/host/product_enrollment_authority_tests.cpp"],
+              base, (), " product enrollment authority groups")
         suite("enrollment_evidence_store_tests", [*common, ROOT / "tests/host/enrollment_evidence_store_tests.cpp"],
               base, (), " enrollment evidence store groups")
         suite("provisioned_peer_endpoint_tests", [*common, ROOT / "tests/host/provisioned_peer_endpoint_tests.cpp"],

@@ -1,9 +1,9 @@
 #pragma once
 // OT-0238b candidate durable-journal subset. A dedicated PersistentStorage owns
 // ALL five domains; do not alias membership/evidence/session storage. This schema
-// records public uncertainty only. It neither authenticates local confirmation
-// nor peer activation, and offers NO committed-membership or traffic API.
-// Recovery/commit producer integration remains required. Checksums are corruption
+// records public enrollment state only. It neither authenticates local confirmation
+// nor peer activation and offers no traffic API. Only the product activation owner
+// may persist its verified commitment. Checksums are corruption
 // detection, not protection against adversarial full-storage rollback.
 #include "opentrail/enrollment_identity_binding.hpp"
 
@@ -24,7 +24,7 @@ private:
     explicit PreparedEnrollmentReceipt(EnrollmentCommitContext c):context_(c) {}
     EnrollmentCommitContext context_;
 };
-enum class EnrollmentJournalState { unavailable, empty, prepared, activation_possible, reconcile };
+enum class EnrollmentJournalState { unavailable, empty, prepared, activation_possible, active_committed, reconcile };
 class EnrollmentCommitCoordinator final {
 public:
     explicit EnrollmentCommitCoordinator(persistence::PersistentStorage& storage):storage_(storage) {}
@@ -40,10 +40,14 @@ public:
             if(decode(retained_[0],committed,current) && current.generation==1 && current.stage==1 && blank(retained_[1])) {
                 record_=current; current_slot_=0; restarted_=true; return true;
             }
-            if(decode(retained_[1],committed,current) && decode(retained_[0],transitioning,prior) &&
-               prior.generation==1 && prior.stage==1 && current.generation==2 && current.stage==2 &&
-               equal(current.context,prior.context)) {
-                record_=current; current_slot_=1; restarted_=true; return true;
+            for(std::size_t slot=0;slot<2;++slot) {
+                if(decode(retained_[slot],committed,current) && decode(retained_[1-slot],transitioning,prior) &&
+                   current.generation>1 && prior.generation==current.generation-1 &&
+                   slot==(current.generation-1)%2 &&
+                   ((prior.stage==3 && current.stage==1 && rekey_context(prior.context,current.context)) ||
+                    (prior.stage<3 && current.stage==prior.stage+1 && equal(current.context,prior.context)))) {
+                    record_=current; current_slot_=slot; restarted_=true; return true;
+                }
             }
             return refuse();
         });
@@ -52,7 +56,8 @@ public:
         EnrollmentJournalState result=EnrollmentJournalState::unavailable;
         if(!operation([&] {
             if(!initialized_ || !exact()) return refuse();
-            result=empty_ ? EnrollmentJournalState::empty : restarted_ ? EnrollmentJournalState::reconcile :
+            result=empty_ ? EnrollmentJournalState::empty : record_.stage==3 ? EnrollmentJournalState::active_committed :
+                restarted_ ? EnrollmentJournalState::reconcile :
                 record_.stage==1 ? EnrollmentJournalState::prepared : EnrollmentJournalState::activation_possible;
             return true;
         })) return EnrollmentJournalState::unavailable;
@@ -82,7 +87,8 @@ public:
         const auto c=receipt.context();
         return operation([&] {
             if(!initialized_ || !exact() || empty_ || restarted_ || record_.stage!=1 || !equal(c,record_.context)) return refuse();
-            return commit({c,2,2});
+            if(record_.generation==std::numeric_limits<std::uint64_t>::max()) return refuse();
+            return commit({c,record_.generation+1,2});
         });
     }
     bool read_public(EnrollmentCommitContext& output) const {
@@ -97,6 +103,42 @@ public:
     }
     bool failed() const { return failed_; }
 private:
+    friend class ProductEnrollmentActivation;
+    // The product owner must first authenticate matching retained records and
+    // authorize a fresh binding; the journal only enforces durable continuity.
+    bool prepare_rekey(const VerifiedIdentityBinding& binding,std::uint64_t generation,
+                       const std::array<std::uint8_t,16>& operation_id,
+                       std::optional<PreparedEnrollmentReceipt>& output) {
+        EnrollmentCommitContext c{};
+        c.identities=binding.identities();
+        const auto fields=independent_invitation_detail::decode(binding.invitation());
+        c.group=fields.group;c.epoch=fields.epoch;c.session_generation=generation;c.operation=operation_id;
+        const auto bytes=enrollment_identity_signing_bytes(c.identities,binding.invitation());
+        crypto_hash_sha256(c.evidence_digest.data(),bytes.data(),bytes.size());
+        const bool ok=operation([&] {
+            if(!initialized_ || !exact() || empty_ || record_.stage!=3 || !valid(c) ||
+               !rekey_context(record_.context,c) || record_.generation==std::numeric_limits<std::uint64_t>::max()) return refuse();
+            if(!commit({c,record_.generation+1,1})) return false;
+            restarted_=false;return true;
+        });
+        if(ok) output=PreparedEnrollmentReceipt(c);
+        return ok;
+    }
+    // This private transition records the product owner's verified endpoint and
+    // durable membership/evidence result, never a caller-provided Boolean. A
+    // retained committed record is public metadata, not resumed traffic authority.
+    bool mark_active_committed(const PreparedEnrollmentReceipt& receipt,
+        bool (*guard)(void*)=nullptr,void* guard_context=nullptr) {
+        const auto c=receipt.context();
+        const bool ok=operation([&] {
+            if(!initialized_ || !exact() || empty_ || restarted_ || record_.stage!=2 ||
+               !equal(c,record_.context)) return refuse();
+            if(record_.generation==std::numeric_limits<std::uint64_t>::max()) return refuse();
+            guard_=guard;guard_context_=guard_context;
+            return commit({c,record_.generation+1,3});
+        });
+        guard_=nullptr;guard_context_=nullptr;return ok;
+    }
     using Bytes=authority_detail::Bytes;
     using Bank=std::array<Bytes,5>;
     using Snapshot=std::array<Bank,2>;
@@ -113,6 +155,11 @@ private:
             invitation_detail::nonzero(c.identities.initiator) && invitation_detail::nonzero(c.identities.responder) &&
             invitation_detail::nonzero(c.evidence_digest) && invitation_detail::nonzero(c.operation);
     }
+    static bool rekey_context(const EnrollmentCommitContext& prior,const EnrollmentCommitContext& next) {
+        return prior.identities.initiator==next.identities.initiator && prior.identities.responder==next.identities.responder &&
+            prior.group==next.group && prior.epoch!=std::numeric_limits<std::uint32_t>::max() && next.epoch==prior.epoch+1 &&
+            next.session_generation>prior.session_generation && prior.evidence_digest!=next.evidence_digest && prior.operation!=next.operation;
+    }
     template<class Action> bool operation(Action action) const {
         if (busy_ || reentered_) { reentered_=true; return refuse(); }
         if (failed_) return false;
@@ -120,7 +167,7 @@ private:
         if (reentered_) (void)refuse();
         busy_=false; return result && !failed_ && !reentered_;
     }
-    bool live() const { return !failed_ && !reentered_; }
+    bool live() const { return !failed_ && !reentered_ && (!guard_ || guard_(guard_context_)) && !failed_ && !reentered_; }
     bool refuse() const { failed_=true; return false; }
     static auto domain(std::size_t d) { return static_cast<persistence::StorageDomain>(d); }
     bool snapshot(Snapshot& output) const {
@@ -168,7 +215,7 @@ private:
         r.context.session_generation=authority_detail::get(b.data()+76,8);
         std::memcpy(r.context.evidence_digest.data(),b.data()+84,32);
         std::memcpy(r.context.operation.data(),b.data()+116,16);
-        if(!r.generation || (r.stage!=1 && r.stage!=2) || !valid(r.context) || in!=encode(r,marker)) return false;
+        if(!r.generation || r.stage!=(r.generation-1)%3+1 || !valid(r.context) || in!=encode(r,marker)) return false;
         output=r; return true;
     }
     bool write(std::size_t d,std::size_t s,std::size_t offset,const std::uint8_t* bytes,std::size_t size) {
@@ -206,5 +253,6 @@ private:
     Snapshot retained_{}; Record record_{}; std::size_t current_slot_{0};
     bool initialized_{false},empty_{false},restarted_{false};
     mutable bool failed_{false},busy_{false},reentered_{false};
+    bool (*guard_)(void*){nullptr};void* guard_context_{nullptr};
 };
 } // namespace opentrail::security_evaluation

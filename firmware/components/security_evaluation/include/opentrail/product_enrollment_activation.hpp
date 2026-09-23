@@ -1,11 +1,14 @@
 #pragma once
 // Candidate host composition, not a product trust-root producer. Its outer owner
 // supplies locally authenticated binding/confirmation and a reserved generation.
-// This first-enrollment slice never resumes traffic or repairs uncertain journals.
+// Retained committed peers may start a fresh rekey; old traffic never resumes.
+// Uncertain journals remain blocked. Reset preparation is containment, not reset.
 #include "opentrail/enrollment_commit_coordinator.hpp"
 #include "opentrail/independent_peer_traffic_endpoint.hpp"
 #include "opentrail/peer_membership_store.hpp"
 #include "opentrail/enrollment_preparation_owner.hpp"
+#include "opentrail/enrollment_evidence_store.hpp"
+#include "opentrail/enrollment_binding_store.hpp"
 
 namespace opentrail::security_evaluation {
 class ProductEnrollmentActivation final {
@@ -14,23 +17,43 @@ public:
         persistence::PersistentStorage& boot, persistence::PersistentStorage& roles,
         persistence::PersistentStorage& tx, persistence::PersistentStorage& rx,
         persistence::PersistentStorage& activation, persistence::PersistentStorage& journal,
-        persistence::PersistentStorage& membership, ConfirmationAuthority& clock,FingerprintReviewPort& port,
+        persistence::PersistentStorage& membership, persistence::PersistentStorage& evidence,
+        persistence::PersistentStorage& binding_proof, ConfirmationAuthority& clock,FingerprintReviewPort& port,
         InvitationRole role, const InvitationKey& signer)
         : endpoint_(random,boot,roles,tx,rx,activation,clock,role,signer),
-          journal_(journal), membership_(membership), port_(port),role_(role), signer_(signer) {
-        const persistence::PersistentStorage* stores[]{&boot,&roles,&tx,&rx,&activation,&journal,&membership};
+          journal_(journal), membership_(membership), evidence_(evidence), binding_store_(binding_proof),
+          port_(port),role_(role), signer_(signer) {
+        const persistence::PersistentStorage* stores[]{&boot,&roles,&tx,&rx,&activation,&journal,&membership,&evidence,&binding_proof};
         isolated_=true;
-        for(unsigned i=0;i<7;++i) for(unsigned j=0;j<i;++j) if(stores[i]==stores[j]) isolated_=false;
+        for(unsigned i=0;i<9;++i) for(unsigned j=0;j<i;++j) if(stores[i]==stores[j]) isolated_=false;
     }
     ~ProductEnrollmentActivation() { (void)close(); }
     ProductEnrollmentActivation(const ProductEnrollmentActivation&)=delete;
     ProductEnrollmentActivation& operator=(const ProductEnrollmentActivation&)=delete;
     bool prepare_identity() {
         return operation([&] {
-            if(prepared_ || !isolated_ || !journal_.initialize() ||
-               journal_.state()!=EnrollmentJournalState::empty || !membership_.initialize() ||
-               !membership_.empty() || !endpoint_.prepare_identity()) return false;
+            if(prepared_ || !isolated_ || !journal_.initialize() || !membership_.initialize() ||
+               !evidence_.initialize() || !binding_store_.initialize()) return false;
+            const auto state=journal_.state();
+            if(state==EnrollmentJournalState::empty) {
+                if(!membership_.empty() || !evidence_.empty() || !binding_store_.empty())return false;
+            } else if(state==EnrollmentJournalState::active_committed) {
+                IndependentInvitation invitation{};PeerMembership member{};
+                if(!journal_.read_public(prior_context_) || !evidence_.read(invitation) ||
+                   !binding_store_.read(invitation,prior_) || !membership_.read(member) ||
+                   member.state!=MembershipState::active || member.binding!=prior_context_.evidence_digest)return false;
+                prior_member_generation_=member.generation;
+            } else return false;
+            if(!endpoint_.prepare_identity())return false;
             prepared_=true; return true;
+        });
+    }
+    bool prepare_retained_comparison(security::SecureRandomSource& random,EnrollmentIdentityStore& identity,
+        SessionGenerationAllocator& allocator,std::optional<EnrollmentRetainedStateOwner>& output) {
+        return operation([&]{
+            if(!prepared_ || begun_ || !prior_ || output)return false;
+            output.emplace(random,journal_,membership_,evidence_,binding_store_,identity,allocator,port_,role_);
+            return true;
         });
     }
     const InvitationKey& public_identity() const { return endpoint_.public_identity(); }
@@ -45,7 +68,13 @@ public:
             const auto operation_id=trusted.operation();
             context_=trusted.context();
             const auto f=independent_invitation_detail::decode(binding.invitation());
-            if(!prepared_ || begun_ || f.epoch!=1 || f.signer!=signer_ ||
+            const auto& previous=source_->prior_binding();
+            if(prior_.has_value()!=previous.has_value() ||
+               (prior_ && (!source_->retained_owner_ || !source_->retained_owner_->owns(journal_,membership_,evidence_,binding_store_))) ||
+               (prior_ && (prior_->invitation().payload!=previous->invitation().payload ||
+                prior_->invitation().signature!=previous->invitation().signature)))return false;
+            if(!prepared_ || begun_ || (prior_ ? f.epoch!=prior_context_.epoch+1 ||
+               prior_context_.epoch==std::numeric_limits<std::uint32_t>::max() : f.epoch!=1) || f.signer!=signer_ ||
                (role_!=InvitationRole::initiator && role_!=InvitationRole::responder)) return false;
             const auto& own=role_==InvitationRole::initiator ? f.peer_a : f.peer_b;
             const auto& boot=role_==InvitationRole::initiator ? f.boot_a : f.boot_b;
@@ -105,6 +134,10 @@ public:
                     // The underlying owner requires its own live object address;
                     // snapshot above binds the displayed contents, never authority.
                     if(!endpoint_.confirm(*current_offer) || reentered_) return false;
+                    if(prior_) {
+                        if(!source_->handoff_retained())return false;
+                        return journal_.prepare_rekey(*binding_,generation_,operation_id_,receipt_);
+                    }
                     return journal_.prepare(*binding_,generation_,operation_id_,receipt_);
                 }
                 released_=true;return true;
@@ -136,7 +169,14 @@ public:
         return operation([&]{
             if(committed_ || !intent_ || !receipt_ ||
                journal_.state()!=EnrollmentJournalState::activation_possible || !endpoint_.ready() ||
-               !membership_.enroll(receipt_->context().evidence_digest)) return false;
+               !evidence_.replace(binding_->invitation()) || !binding_store_.replace(*binding_) ||
+               !(prior_ ? membership_.rekey(receipt_->context().evidence_digest) : membership_.enroll(receipt_->context().evidence_digest)) || !retained_exact() ||
+               reentered_ || !source_->active_generation_current() || !endpoint_.ready() || reentered_ ||
+               !journal_.mark_active_committed(*receipt_,[](void* owner){
+                   auto& self=*static_cast<ProductEnrollmentActivation*>(owner);
+                   return !self.reentered_ && self.source_->active_generation_current() &&
+                       self.endpoint_.ready() && !self.reentered_;
+               },this)) return false;
             committed_=true; return current();
         });
     }
@@ -153,6 +193,24 @@ public:
         return ok;
     }
     bool ready() { return operation([&]{return current();}); }
+    // This is containment, not a factory reset or an erase-to-unenrolled API.
+    // Cleanup failure must never skip the durable membership tombstone.
+    bool revoke() {
+        if(busy_) { reentered_=true; return false; }
+        const bool cleaned=close();
+        busy_=true;const bool revoked=membership_.revoke();busy_=false;
+        return cleaned && revoked && !reentered_;
+    }
+    bool prepare_reset() {
+        if(busy_) { reentered_=true; return false; }
+        const bool cleaned=close();
+        busy_=true;
+        const bool member=membership_.prepare_reset();
+        const bool evidence=evidence_.prepare_reset();
+        const bool binding=binding_store_.prepare_reset();
+        busy_=false;
+        return cleaned && member && evidence && binding && !reentered_;
+    }
     bool close() {
         if(busy_) { reentered_=true; return false; }
         if(closed_) return cleanup_ok_;
@@ -161,11 +219,21 @@ public:
     }
     bool secrets_cleared() const { return endpoint_.secrets_cleared(); }
 private:
-    bool current() {
+    bool retained_exact() {
+        IndependentInvitation invitation{};
+        std::optional<VerifiedIdentityBinding> retained;
         PeerMembership member{};
-        return committed_ && receipt_ && journal_.state()==EnrollmentJournalState::activation_possible &&
-            membership_.read(member) && member.state==MembershipState::active && member.generation==1 &&
-            member.binding==receipt_->context().evidence_digest && endpoint_.ready();
+        return binding_ && receipt_ && evidence_.read(invitation) && binding_store_.read(invitation,retained) &&
+            retained && retained->identities().initiator==binding_->identities().initiator &&
+            retained->identities().responder==binding_->identities().responder &&
+            invitation.payload==binding_->invitation().payload && invitation.signature==binding_->invitation().signature &&
+            membership_.read(member) && member.state==MembershipState::active &&
+            member.generation==(prior_ ? prior_member_generation_+1 : 1) &&
+            member.binding==receipt_->context().evidence_digest;
+    }
+    bool current() {
+        return committed_ && receipt_ && journal_.state()==EnrollmentJournalState::active_committed &&
+            retained_exact() && endpoint_.ready();
     }
     template<class Action> bool operation(Action action) {
         if(busy_) { reentered_=true; return false; }
@@ -181,6 +249,8 @@ private:
     IndependentPeerTrafficEndpoint endpoint_;
     EnrollmentCommitCoordinator journal_;
     PeerMembershipStore membership_;
+    EnrollmentEvidenceStore evidence_;
+    EnrollmentBindingStore binding_store_;
     FingerprintReviewPort& port_; FingerprintReviewContext context_{};
     EnrollmentPreparationOwner* source_{nullptr}; // Owner/dependencies must outlive this composition.
     std::optional<IndependentConfirmationOffer> confirmation_;
@@ -189,6 +259,9 @@ private:
     InvitationRole role_; InvitationKey signer_;
     std::optional<PreparedEnrollmentReceipt> receipt_;
     std::optional<VerifiedIdentityBinding> binding_;
+    std::optional<VerifiedIdentityBinding> prior_;
+    EnrollmentCommitContext prior_context_{};
+    std::uint64_t prior_member_generation_{};
     std::uint64_t generation_{0}; std::array<std::uint8_t,16> operation_id_{};
     bool isolated_{false},prepared_{false},begun_{false},intent_{false},committed_{false};
     bool busy_{false},reentered_{false},closed_{false},cleanup_ok_{false};
