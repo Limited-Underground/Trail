@@ -163,11 +163,12 @@ def admitted_target_sources(cmake: str) -> list[str]:
     require("if(OPENTRAIL_CONFIRMATION_EVALUATION)" in evaluation and
             set(evaluation_tokens) == expected_evaluation and len(evaluation_tokens) == 7,
             "evaluation source set must remain exact and opt-in")
-    require(len(ordinary_tokens) == 47 and len(set(ordinary_tokens)) == 47 and
+    require(len(ordinary_tokens) == 48 and len(set(ordinary_tokens)) == 48 and
+            "enrollment_identity_nvs_storage.cpp" in ordinary_tokens and
             not expected_evaluation.intersection(ordinary_tokens) and
             ordinary.count("${OPENTRAIL_CONFIRMATION_SOURCES}") == 1 and
             "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp" in ordinary_tokens,
-            "ordinary build must retain 47 unique sources and one conditional insertion")
+            "ordinary build must retain 48 unique sources and one conditional insertion")
     return ordinary_tokens + evaluation_tokens
 
 
@@ -212,6 +213,8 @@ def test_contract() -> None:
         "main/heltec_v4_factory_reset_input.hpp",
         "main/heltec_v4_factory_reset_storage.cpp",
         "main/heltec_v4_factory_reset_storage.hpp",
+        "main/enrollment_identity_nvs_storage.cpp",
+        "main/enrollment_identity_nvs_storage.hpp",
         # Retained as dormant history only. The build and application gates
         # below prove this former 3-second pairing input is unreachable.
         "main/heltec_v4_pairing_input.cpp",
@@ -1235,7 +1238,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 53,
+    require(len(other_linked_sources) == 54,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1310,7 +1313,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 53,
+    require(len(other_linked_sources) == 54,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2285,7 +2288,7 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(len(admitted_target_sources(cmake)) == 54,
+    require(len(admitted_target_sources(cmake)) == 55,
             "target must admit 47 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (

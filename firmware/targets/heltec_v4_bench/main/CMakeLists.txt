@@ -38,6 +38,7 @@ idf_component_register(
         "heltec_v4_battery.cpp"
         "heltec_v4_factory_reset_input.cpp"
         "heltec_v4_factory_reset_storage.cpp"
+        "enrollment_identity_nvs_storage.cpp"
         "heltec_v4_gnss.cpp"
         "heltec_v4_oled.cpp"
         "heltec_oled_presentation.cpp"
@@ -70,6 +71,8 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/device_factory_reset_executor.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_public_link_info.cpp"
     INCLUDE_DIRS
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/include"
+        "${OPENTRAIL_COMPONENT_ROOT}/security_evaluation/include"
         ${OPENTRAIL_CONFIRMATION_INCLUDES}
         "${OPENTRAIL_COMPONENT_ROOT}/ui/include"
         "${OPENTRAIL_COMPONENT_ROOT}/time/include"

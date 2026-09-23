@@ -19,6 +19,16 @@ reviewed exports now have explicit boundaries. Frozen historical plan remains
 unchanged; a current successor is still required for release. [Evidence](testing/OT-0300-RETENTION-RECONCILIATION-2026-09-23.md).
 Owner acceptance pending; no hardware, V1 credit or public website change.
 
+### OT-0238b Bind dormant identity storage and exact reset cleanup
+
+Added the target NVS adapter for the existing enrollment identity namespace and
+its exact factory-reset cleanup. Staged old identity bytes cannot be committed
+by a stale adapter after reset; uncertain writes fail closed. Startup does not
+activate enrollment or provision identity. [Implementation, lifecycle review and
+validation](testing/OT-0238b-IDENTITY-NVS-2026-09-23.md) distinguish SDK-seam tests,
+firmware builds and remaining live-runtime/physical gates. No hardware, V1 credit
+or public website change.
+
 ### OT-0238b Reconcile the actual target integration boundary
 
 Confirmed the accepted V1 scope excludes hostile physical flash rollback; no new

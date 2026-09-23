@@ -7,10 +7,10 @@
 // Checksums detect accidental damage, not authenticated storage or whole-store rollback.
 // Trusted composition supplies an isolated namespace and serializes every owner.
 // No erase/reset API: factory reset must cover all identity and membership domains.
+#include "opentrail/enrollment_identity_storage_contract.hpp"
 #include "opentrail/independent_invitation.hpp"
 #include "opentrail/secure_random.hpp"
 namespace opentrail::security_evaluation {
-inline constexpr char kEnrollmentIdentityStorageNamespace[]="ot_identity_v1";
 class EnrollmentIdentityStore final {
 public:
     EnrollmentIdentityStore(persistence::PersistentStorage& storage, security::SecureRandomSource& random)
