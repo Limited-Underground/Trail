@@ -2,6 +2,15 @@
 
 ## 2026-09-23
 
+### OT-0238b Bound local display and button ownership
+
+Added a trusted-IO host adapter with exclusive display revision readback, fresh
+button release per page, reset preemption and safe input handoff. Complete bounded
+layout includes identity/code, role, group and purpose. [Validation and target
+preflight](testing/OT-0238b-REVIEW-DEVICE-PORT-2026-09-23.md). Actual target IO remains
+unwired; no hardware, V1 credit or public website status change.
+
+
 ### OT-0238b Retain committed pairing and require fresh rekey
 
 Retained evidence now includes both identity signatures, and the journal records

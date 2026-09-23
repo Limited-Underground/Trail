@@ -161,6 +161,10 @@ def run(output):
               base, (), " enrollment identity binding groups")
         suite("enrollment_fingerprint_review_tests", [*common, ROOT / "tests/host/enrollment_fingerprint_review_tests.cpp"],
               base, (), " enrollment fingerprint review groups")
+        suite("enrollment_review_layout_tests", [*common, ROOT / "tests/host/enrollment_review_layout_tests.cpp"],
+              base, (), " enrollment review layout groups")
+        suite("enrollment_review_device_port_tests", [*common, ROOT / "tests/host/enrollment_review_device_port_tests.cpp"],
+              base, (), " groups passed")
         suite("enrollment_commit_coordinator_tests", [*common, ROOT / "tests/host/enrollment_commit_coordinator_tests.cpp"],
               base, (), " enrollment commit journal groups")
         suite("enrollment_identity_store_tests", [*common, ROOT / "tests/host/enrollment_identity_store_tests.cpp"],

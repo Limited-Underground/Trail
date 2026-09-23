@@ -116,6 +116,7 @@ public:
                 constexpr char label[]="OT-CODE1";std::memcpy(frame.domain.data(),label,sizeof(label));
                 frame.purpose=EnrollmentDisplayPurpose::transcript_confirmation;
                 frame.local_role=role_;frame.peer_page=true;frame.revision=sample.display_revision+1;
+                frame.group=independent_invitation_detail::decode(binding_->invitation()).group;
                 constexpr char hex[]="0123456789ABCDEF";
                 for(unsigned i=0;i<4;++i){frame.digits[0][i*2]=hex[current_offer->transcript()[i]>>4];frame.digits[0][i*2+1]=hex[current_offer->transcript()[i]&15];}
                 revision_=frame.revision;
