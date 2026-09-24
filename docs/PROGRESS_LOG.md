@@ -2,6 +2,15 @@
 
 ## 2026-09-24
 
+### OT-0238b Admit one bounded request on the selected protected phone path
+
+Added the pending-only request owner and the selected protected configuration
+route after a confirmed Ready snapshot. Exact disconnect, authority loss,
+delivery failure or expiry, and containment cancel or retire the request.
+The existing Android app cannot send this action yet; local review, activation
+and physical validation remain open. [Lifecycle and validation boundary](testing/OT-0238b-SELECTED-REQUEST-2026-09-24.md).
+No device operation, V1 credit or website change.
+
 ### OT-0238b Bind retained identity to runtime startup and retirement
 
 Connected the actual identity storage owner after reset restoration and before

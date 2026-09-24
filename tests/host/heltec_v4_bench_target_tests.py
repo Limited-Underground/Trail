@@ -3339,7 +3339,49 @@ def test_retained_identity_runtime_surface():
             "every containment including repeated/failed teardown must retire first")
     require("identity_.load_existing()" in owner and "identity_.initialize()" not in owner and
             "if(retired) return" in owner and "retired=true" in owner,
-            "boot must not provision; preconstruction retirement must be terminal")
+             "boot must not provision; preconstruction retirement must be terminal")
+
+
+def test_selected_enrollment_request_route():
+    gatt = (TARGET / "main/companion_nimble_gatt.cpp").read_text()
+    runtime = (TARGET / "main/companion_nimble_runtime.cpp").read_text()
+    base = runtime[runtime.index("class ConfigurationBaseAuthority final"):
+                   runtime.index("ConfigurationBaseAuthority g_configuration_base;")]
+    require("CompanionActionKind::start_enrollment" in base and
+            "admit_selected_enrollment_request(request_context," in base and
+            "#if OPENTRAIL_CONFIRMATION_EVALUATION\n                return false;" in base,
+            "normal selected kind-2 action must route only to pending admission")
+    admission = gatt[gatt.index("bool admit_selected_enrollment_request("):
+                     gatt.index("bool companion_nimble_gatt_definition_self_check()")]
+    for gate in ("#if OPENTRAIL_CONFIRMATION_EVALUATION", "GattLock lock;",
+                 "selected_enrollment_lane_admissible(", "g_phone_status.ready(",
+                 "decode_configuration_frame(", "CompanionActionKind::start_enrollment",
+                 "g_selected_enrollment_requests.admit("):
+        require(gate in admission, f"selected enrollment admission gate missing: {gate}")
+    disconnect = gatt[gatt.index("case BLE_GAP_EVENT_DISCONNECT: {"):
+                      gatt.index("case BLE_GAP_EVENT_ENC_CHANGE:")]
+    require(disconnect.index("const auto pending_enrollment") <
+            disconnect.index("g_adapter->disconnect(handle)") <
+            disconnect.index("if (disconnected == CompanionGattAdapterError::none)") <
+            disconnect.index("cancel_exact(") and
+            "pending_enrollment.authority.transport_generation" in disconnect and
+            "pending_enrollment.authority.session_nonce" in disconnect,
+            "only accepted exact active-link disconnect may cancel pending request")
+    require("if (g_configuration_lane.occupied && g_configuration_lane.expired(now_ms()))" in gatt and
+            "if (!delivered_current)\n                    cancel_enrollment_for_lane" in gatt,
+            "every lane phase and late indication must release pending request")
+    contain = runtime[runtime.index("bool contain_stack() override"):
+                      runtime.index("bool contain_stack() override") + 900]
+    require(contain.index("retire_retained_enrollment_identity()") <
+            contain.index("if (!retire_selected_enrollment_request()) return false;") <
+            contain.index("if (contained_)"),
+            "both identity and pending request must retire before fallible teardown")
+    retirement = gatt[gatt.index("bool retire_selected_enrollment_request()"):
+                      gatt.index("void service_companion_configuration()")]
+    require("if (!lock) return false;" in retirement and
+            "invalidate_companion_configuration_locked(true);" in retirement and
+            "g_configuration_revoked && !g_configuration_lane.occupied" in retirement,
+            "selected containment must retire and invalidate under one checked lock")
 
 
 def main() -> int:
@@ -3356,7 +3398,8 @@ def main() -> int:
              test_build_only_tooling,
              test_automatic_termination_acceptance_surface,
              test_factory_reset_surfaces, test_secure_random_surface,
-             test_configuration_transport_and_storage_surface, test_retained_identity_runtime_surface)
+             test_configuration_transport_and_storage_surface, test_retained_identity_runtime_surface,
+             test_selected_enrollment_request_route)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

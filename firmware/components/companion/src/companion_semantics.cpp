@@ -101,7 +101,7 @@ bool known_position(CompanionPositionSharingState value) {
 
 bool known_action(CompanionActionKind value) {
     return value >= CompanionActionKind::quick_status &&
-           value <= CompanionActionKind::factory_reset;
+           value <= CompanionActionKind::start_enrollment;
 }
 
 bool known_quick_status(protocol::QuickStatusKind value) {

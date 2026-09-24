@@ -369,6 +369,13 @@ $builds = @(
         )
     },
     @{
+        Name = 'selected enrollment pending request lifecycle'
+        Output = Join-Path $buildDirectory 'selected_enrollment_request_owner_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\selected_enrollment_request_owner_tests.cpp')
+        )
+    },
+    @{
         Name = 'one-connection companion GATT session lifecycle'
         Output = Join-Path $buildDirectory 'companion_gatt_session_tests.exe'
         Sources = @(

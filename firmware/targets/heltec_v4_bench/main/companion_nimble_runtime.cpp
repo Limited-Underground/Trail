@@ -173,7 +173,7 @@ std::atomic<bool> g_suppress_next_adv_complete{false};
 std::uint64_t current_ms();
 class ConfigurationBaseAuthority final : public ConfigurationBaseHandler {
 public:
-    bool execute(const DeviceNameContext&, const ConfigurationFrame& request,
+    bool execute(const DeviceNameContext& request_context, const ConfigurationFrame& request,
                  ConfigurationFrame& response) override {
         response = {};
         response.session_nonce = request.session_nonce;
@@ -190,7 +190,24 @@ public:
                 {response.payload.data(), response.payload.size()});
         } else if (request.kind == 2) {
             const auto action = decode_companion_action_request(payload);
-            if (!action.decoded() || g_factory_reset_action_authority == nullptr) return false;
+            if (!action.decoded()) return false;
+            if (action.value.kind == CompanionActionKind::start_enrollment) {
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+                return false;
+#else
+                response.kind = 0x82;
+                encoded = encode_companion_action_result(
+                    {action.value.kind, action.value.quick_status, 0,
+                     CompanionActionDisposition::admitted,
+                     CompanionActionRejectReason::none},
+                    {response.payload.data(), response.payload.size()});
+                if (!encoded.encoded() ||
+                    !admit_selected_enrollment_request(request_context,
+                                                        request.exchange_id))
+                    return false;
+#endif
+            } else {
+            if (g_factory_reset_action_authority == nullptr) return false;
             const auto prepared = g_factory_reset_action_authority->prepare_action(action.value);
             if (!prepared.ready()) return false;
             response.kind = 0x82;
@@ -203,6 +220,7 @@ public:
             if (committed != CompanionAuthorityError::none) {
                 observe_companion_app_factory_reset_command(false, current_ms());
                 return false;
+            }
             }
         } else return false;
         response.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
@@ -603,6 +621,7 @@ public:
         // Retire volatile identity before any reset cleanup or stack teardown.
         opentrail::targets::heltec_v4_bench::retire_retained_enrollment_identity();
 #endif
+        if (!retire_selected_enrollment_request()) return false;
         if (contained_) return shutdown_complete_;
         // Application-owner cleanup must drain the non-owning entropy guard
         // before this existing owner stops/deinitializes the BLE controller.
