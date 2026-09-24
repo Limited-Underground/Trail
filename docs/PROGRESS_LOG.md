@@ -2,6 +2,16 @@
 
 ## 2026-09-23
 
+### OT-0238b Bind leased enrollment display to the actual OLED driver
+
+Added exclusive revisioned review display ownership, complete eight-row OLED
+rendering and the missing group-separator glyph. Reset invalidates the lease
+before drawing; stale callbacks cannot restore over reset, and failures conceal
+and disable the display owner. This is dormant target code; BOOT/input arbitration
+and product enrollment routing remain open. [Focused validation, affected builds
+and limits](testing/OT-0238b-DISPLAY-LEASE-2026-09-23.md).
+No hardware operation, physical visibility acceptance or V1 credit.
+
 ### OT-0301 Bind ordered Android setup to actual device readbacks
 
 Connected name/region UI actions to the live exact-session configuration owner.

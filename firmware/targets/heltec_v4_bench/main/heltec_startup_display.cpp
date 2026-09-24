@@ -1,4 +1,5 @@
 #include "heltec_startup_display.hpp"
+#include <limits>
 
 namespace opentrail::target::heltec_v4_bench {
 
@@ -67,7 +68,7 @@ bool StartupDisplayOwner::set_setup_code(const ui::SetupCode& code) {
 
 bool StartupDisplayOwner::show_pairing_pin(
     const std::array<char, 6>& digits) {
-    if (!started_ || !status_.available ||
+    if (!started_ || !status_.available || review_.lease ||
         factory_reset_overlay_ != FactoryResetOverlay::none) {
         return false;
     }
@@ -126,6 +127,7 @@ bool StartupDisplayOwner::show_factory_reset_confirmation() {
         return false;
     }
 
+    review_ = {}; // Reset preempts even if rendering the reset page fails.
     StartupDisplayView overlay{};
     overlay.frame = StartupDisplayFrame::factory_reset_confirmation;
     if (!port_.render(overlay)) {
@@ -173,6 +175,7 @@ bool StartupDisplayOwner::show_factory_reset_in_progress() {
         return false;
     }
 
+    review_ = {}; // Never let late review cleanup restore over reset.
     StartupDisplayView overlay{};
     overlay.frame = StartupDisplayFrame::factory_resetting;
     if (!port_.render(overlay)) {
@@ -196,7 +199,7 @@ bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
         (!view.has_footer || view_.footer.columns == view.footer.columns)) {
         return true;
     }
-    if (pairing_pin_visible_ ||
+    if (pairing_pin_visible_ || review_.lease ||
         factory_reset_overlay_ != FactoryResetOverlay::none) {
         view_ = view;
         has_view_ = true;
@@ -210,6 +213,48 @@ bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
     view_ = view;
     has_view_ = true;
     status_.frame = view.frame;
+    ++status_.render_count;
+    return true;
+}
+
+bool StartupDisplayOwner::acquire_enrollment_review(std::uint64_t& lease) {
+    lease = 0;
+    if (!started_ || !status_.available || !has_view_ || pairing_pin_visible_ ||
+        review_.lease || factory_reset_overlay_ != FactoryResetOverlay::none ||
+        last_review_lease_ == std::numeric_limits<std::uint64_t>::max()) return false;
+    review_ = {++last_review_lease_, 0};
+    lease = review_.lease;
+    return true;
+}
+
+void StartupDisplayOwner::fail_enrollment_review() {
+    review_ = {};
+    (void)port_.conceal();
+    status_.available = false;
+}
+
+bool StartupDisplayOwner::render_enrollment_review(std::uint64_t lease,
+    std::uint64_t revision, const security_evaluation::EnrollmentReviewLayout& layout) {
+    if (!lease || lease != review_.lease || !status_.available) return false;
+    if (review_.revision == std::numeric_limits<std::uint64_t>::max() ||
+        revision != review_.revision + 1 ||
+        !security_evaluation::enrollment_review_cells_valid(layout) ||
+        !port_.render_enrollment_review(layout)) {
+        fail_enrollment_review();
+        return false;
+    }
+    review_.revision = revision; // Only after the complete driver frame succeeds.
+    ++status_.render_count;
+    return true;
+}
+
+bool StartupDisplayOwner::release_enrollment_review(std::uint64_t lease) {
+    if (!lease || lease != review_.lease || !status_.available) return false;
+    review_ = {};
+    if (!has_view_ || !port_.render(view_)) {
+        fail_enrollment_review();
+        return false;
+    }
     ++status_.render_count;
     return true;
 }

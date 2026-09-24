@@ -25,6 +25,8 @@ public:
     [[nodiscard]] bool content_changed() const override { return configuration_dirty_; }
     [[nodiscard]] bool render_pairing_pin(
         const PairingPinDisplayView& view) override;
+    [[nodiscard]] bool render_enrollment_review(
+        const security_evaluation::EnrollmentReviewLayout& layout) override;
     [[nodiscard]] bool conceal() override;
     // App-owner task only; copies bounded readback metadata, never performs I/O.
     void set_configuration(std::string_view name, time::OledClockReading clock,

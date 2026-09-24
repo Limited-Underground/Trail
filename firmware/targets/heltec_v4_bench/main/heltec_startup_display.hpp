@@ -8,6 +8,7 @@
 #include "opentrail/companion_v1_bond_owner.hpp"
 #include "opentrail/compact_status_footer.hpp"
 #include "opentrail/setup_label.hpp"
+#include "opentrail/enrollment_review_display.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 
@@ -80,6 +81,12 @@ struct CompactStatusSnapshot {
     std::uint64_t render_now_ms{0};
 };
 
+// A display lease is render ownership only; BOOT input and review authority
+// require the future serialized application composition.
+struct EnrollmentDisplayStatus {
+    std::uint64_t lease{}, revision{};
+};
+
 class StartupDisplayPort {
 public:
     virtual ~StartupDisplayPort() = default;
@@ -89,6 +96,8 @@ public:
     [[nodiscard]] virtual bool render(const StartupDisplayView& view) = 0;
     [[nodiscard]] virtual bool render_pairing_pin(
         const PairingPinDisplayView& view) = 0;
+    [[nodiscard]] virtual bool render_enrollment_review(
+        const security_evaluation::EnrollmentReviewLayout&) { return false; }
     // Emergency best-effort concealment that remains callable after an
     // ordinary render failure. Implementations must not depend on the normal
     // display-owner availability latch.
@@ -101,6 +110,8 @@ public:
 class StartupDisplayOwner {
 public:
     explicit StartupDisplayOwner(StartupDisplayPort& port) : port_(port) {}
+    StartupDisplayOwner(const StartupDisplayOwner&) = delete;
+    StartupDisplayOwner& operator=(const StartupDisplayOwner&) = delete;
 
     [[nodiscard]] bool start();
     [[nodiscard]] bool show(StartupDisplayFrame frame);
@@ -121,6 +132,13 @@ public:
     [[nodiscard]] bool clear_factory_reset_confirmation();
     [[nodiscard]] bool show_factory_reset_in_progress();
     [[nodiscard]] StartupDisplayStatus status() const { return status_; }
+    // Serialized app-owner calls only. Reset always invalidates this lease;
+    // normal views update behind it. No product route acquires it yet.
+    [[nodiscard]] bool acquire_enrollment_review(std::uint64_t& lease);
+    [[nodiscard]] bool render_enrollment_review(std::uint64_t lease,
+        std::uint64_t revision, const security_evaluation::EnrollmentReviewLayout&);
+    [[nodiscard]] bool release_enrollment_review(std::uint64_t lease);
+    [[nodiscard]] EnrollmentDisplayStatus enrollment_review_status() const { return review_; }
 
 private:
     enum class FactoryResetOverlay : std::uint8_t {
@@ -131,7 +149,10 @@ private:
 
     [[nodiscard]] bool show_view(const StartupDisplayView& view);
 
+    void fail_enrollment_review();
     StartupDisplayPort& port_;
+    EnrollmentDisplayStatus review_{};
+    std::uint64_t last_review_lease_{};
     ui::SetupCode setup_code_{};
     StartupDisplayStatus status_{};
     StartupDisplayView view_{};

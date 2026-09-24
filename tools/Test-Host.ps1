@@ -139,6 +139,7 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'firmware\components\persistence\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\persistence\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\security\include'),
+    '-I', (Join-Path $projectRoot 'firmware\components\security_evaluation\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\security\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\simulation\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\time\include'),

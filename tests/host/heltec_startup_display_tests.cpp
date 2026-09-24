@@ -45,6 +45,13 @@ public:
         return pairing_render_succeeds;
     }
 
+    bool render_enrollment_review(const opentrail::security_evaluation::EnrollmentReviewLayout&) override {
+        ++review_calls;
+        return review_succeeds;
+    }
+    bool review_succeeds{true};
+    unsigned review_calls{};
+
     bool conceal() override {
         ++conceal_calls;
         return conceal_succeeds;
@@ -744,9 +751,71 @@ void test_phone_authority_redraw_and_overlay() {
     require(owner.show_compact_status(StartupDisplayFrame::ble_connected,snapshot),"revoke while link remains");
     require(port.views.size()==count+1 && !port.views.back().phone_ready,"revocation redraw");
 }
+void test_review_lease_and_latest_view() {
+    using opentrail::security_evaluation::EnrollmentReviewLayout;
+    FakeDisplayPort port; StartupDisplayOwner owner(port); std::uint64_t lease=99,other=99;
+    require(!owner.acquire_enrollment_review(lease) && lease==0,"unstarted review refused");
+    require(owner.start() && owner.show(StartupDisplayFrame::ble_advertising),"review start");
+    require(owner.acquire_enrollment_review(lease) && lease,"review lease");
+    require(!owner.acquire_enrollment_review(other) && other==0,"exclusive review lease");
+    require(owner.enrollment_review_status().revision==0,"no display revision on acquisition");
+    EnrollmentReviewLayout layout{};
+    require(owner.render_enrollment_review(lease,1,layout),"first complete review frame");
+    const auto views=port.views.size();
+    require(owner.show(StartupDisplayFrame::ble_connected) && port.views.size()==views,"normal view retained");
+    require(!owner.show_pairing_pin({'1','2','3','4','5','6'}),"PIN cannot overwrite review");
+    require(owner.render_enrollment_review(lease,2,layout),"next revision");
+    require(owner.enrollment_review_status().revision==2,"successful revision published");
+    require(owner.release_enrollment_review(lease) && !owner.enrollment_review_status().lease,"released");
+    require(port.views.back().frame==StartupDisplayFrame::ble_connected,"latest status restored");
+    require(owner.acquire_enrollment_review(other) && other>lease,"fresh lease");
+    const auto renders=port.review_calls;
+    require(!owner.render_enrollment_review(lease,3,layout) && port.review_calls==renders,"stale render refused");
+    require(!owner.release_enrollment_review(lease) && owner.enrollment_review_status().lease==other,"stale release cannot steal owner");
+}
+
+void test_review_reset_preemption() {
+    for (const bool committing : {false,true}) {
+        FakeDisplayPort port; StartupDisplayOwner owner(port); std::uint64_t lease{};
+        require(owner.start() && owner.acquire_enrollment_review(lease),"reset review start");
+        require(owner.render_enrollment_review(lease,1,{}),"reset review frame");
+        require(committing ? owner.show_factory_reset_in_progress() : owner.show_factory_reset_confirmation(),"reset preempts review");
+        require(owner.enrollment_review_status().lease==0 && owner.enrollment_review_status().revision==0,"reset clears lease and revision");
+        const auto views=port.views.size();
+        require(!owner.release_enrollment_review(lease) && !owner.render_enrollment_review(lease,2,{}),"late review refuses after reset");
+        require(port.views.size()==views,"late release cannot restore over reset");
+        std::uint64_t refused{}; require(!owner.acquire_enrollment_review(refused),"reset excludes new review");
+        if (!committing) {
+            require(owner.clear_factory_reset_confirmation(),"reset cancelled");
+            require(owner.acquire_enrollment_review(refused) && refused>lease,"new lease after reset cancel");
+        }
+    }
+    FakeDisplayPort port;StartupDisplayOwner owner(port);std::uint64_t lease{};
+    require(owner.start() && owner.show_pairing_pin({'1','2','3','4','5','6'}),"PIN ownership");
+    require(!owner.acquire_enrollment_review(lease),"review cannot steal PIN");
+}
+
+void test_review_failure_concealment() {
+    for (unsigned mode=0;mode<5;++mode) {
+        FakeDisplayPort port;StartupDisplayOwner owner(port);std::uint64_t lease{};
+        require(owner.start() && owner.acquire_enrollment_review(lease),"failure setup");
+        require(owner.render_enrollment_review(lease,1,{}),"initial frame");
+        if(mode==0) {port.review_succeeds=false;require(!owner.render_enrollment_review(lease,2,{}),"render failure");}
+        if(mode==1) {port.failing_render_call=port.views.size()+1;require(!owner.release_enrollment_review(lease),"restore failure");}
+        if(mode==2) require(!owner.render_enrollment_review(lease,1,{}),"replayed revision fails");
+        if(mode==3) {opentrail::security_evaluation::EnrollmentReviewLayout invalid{};invalid.text[0][0]='?';require(!owner.render_enrollment_review(lease,2,invalid),"unsupported glyph fails");}
+        if(mode==4) {port.failing_render_call=port.views.size()+1;require(!owner.show_factory_reset_confirmation(),"reset render failure");}
+        require(port.conceal_calls==1 && !owner.status().available,"failure conceals and latches");
+        require(!owner.enrollment_review_status().lease,"no stale lease after failure");
+        require(!owner.release_enrollment_review(lease),"failure release cannot claim restoration");
+    }
+}
 }  // namespace
 
 int main() {
+    test_review_lease_and_latest_view();
+    test_review_reset_preemption();
+    test_review_failure_concealment();
     test_setup_fallback_requires_current_unowned_authority();
     test_setup_label_generation_advertising_and_actual_owner();
     test_runtime_phone_authority_fences();
@@ -762,6 +831,6 @@ int main() {
     test_pairing_pin_is_transient_and_clear_restores_latest_footer();
     test_factory_reset_overlay_suppresses_redraw_and_restores_latest_view();
     test_factory_reset_render_and_restore_failures_conceal();
-    std::cout << "15 Heltec startup display groups passed.\n";
+    std::cout << "18 Heltec startup display groups passed.\n";
     return 0;
 }

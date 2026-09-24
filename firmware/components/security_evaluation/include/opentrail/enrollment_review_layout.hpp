@@ -4,12 +4,9 @@
 // clipping may substitute for the full fingerprint, group, role and purpose.
 #include "opentrail/enrollment_fingerprint_review.hpp"
 #include <string_view>
+#include "opentrail/enrollment_review_display.hpp"
 
 namespace opentrail::security_evaluation {
-struct EnrollmentReviewLayout {
-    static constexpr std::size_t rows=8,columns=21;
-    std::array<std::array<char,columns+1>,rows> text{};
-};
 inline bool enrollment_review_layout(const FingerprintReviewFrame& frame,EnrollmentReviewLayout& output) {
     if(!frame.revision || !frame.group ||
        (frame.local_role!=InvitationRole::initiator && frame.local_role!=InvitationRole::responder))return false;
