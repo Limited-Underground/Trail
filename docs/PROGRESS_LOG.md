@@ -2,6 +2,16 @@
 
 ## 2026-09-23
 
+### OT-0238b Serialize BOOT observations and reset priority
+
+Bound the actual GPIO, monotonic clock and leased display to one input owner.
+Normal and contained reset routes retain their existing executors; review draws
+sample again after the complete frame is visible. Reset invalidates review immediately; cleanup acknowledges only verified
+display preemption. A fresh stable release prevents gesture reuse.
+The enrollment review entry remains dormant pending trusted product routing.
+[Implementation, validation and limits](testing/OT-0238b-BOOT-ARBITRATION-2026-09-23.md).
+No device operation, physical acceptance or V1 credit.
+
 ### OT-0238b Bind leased enrollment display to the actual OLED driver
 
 Added exclusive revisioned review display ownership, complete eight-row OLED

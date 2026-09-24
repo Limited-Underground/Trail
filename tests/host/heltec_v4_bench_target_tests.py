@@ -163,12 +163,12 @@ def admitted_target_sources(cmake: str) -> list[str]:
     require("if(OPENTRAIL_CONFIRMATION_EVALUATION)" in evaluation and
             set(evaluation_tokens) == expected_evaluation and len(evaluation_tokens) == 7,
             "evaluation source set must remain exact and opt-in")
-    require(len(ordinary_tokens) == 48 and len(set(ordinary_tokens)) == 48 and
+    require(len(ordinary_tokens) == 49 and len(set(ordinary_tokens)) == 49 and
             "enrollment_identity_nvs_storage.cpp" in ordinary_tokens and
             not expected_evaluation.intersection(ordinary_tokens) and
             ordinary.count("${OPENTRAIL_CONFIRMATION_SOURCES}") == 1 and
             "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp" in ordinary_tokens,
-            "ordinary build must retain 48 unique sources and one conditional insertion")
+            "ordinary build must retain 49 unique sources and one conditional insertion")
     return ordinary_tokens + evaluation_tokens
 
 
@@ -211,6 +211,8 @@ def test_contract() -> None:
         "main/heltec_v4_gnss.hpp",
         "main/heltec_v4_factory_reset_input.cpp",
         "main/heltec_v4_factory_reset_input.hpp",
+        "main/heltec_enrollment_input_arbiter.cpp",
+        "main/heltec_enrollment_input_arbiter.hpp",
         "main/heltec_v4_factory_reset_storage.cpp",
         "main/heltec_v4_factory_reset_storage.hpp",
         "main/enrollment_identity_nvs_storage.cpp",
@@ -1238,7 +1240,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 54,
+    require(len(other_linked_sources) == 55,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1313,7 +1315,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 54,
+    require(len(other_linked_sources) == 55,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2288,7 +2290,7 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(len(admitted_target_sources(cmake)) == 55,
+    require(len(admitted_target_sources(cmake)) == 56,
             "target must admit 47 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
@@ -2790,10 +2792,8 @@ def test_factory_reset_surfaces() -> None:
     for required in (
         "kHeltecV4FactoryResetButtonGpio = 0",
         "kHeltecV4FactoryResetButtonPressedLevel = 0",
-        "CompanionFactoryResetGesture gesture_",
-        "CompanionFactoryResetGestureEvent poll(",
-        "CompanionFactoryResetGestureEvent cancel(",
-        "bool rearm_after_noncommit(std::uint64_t now_ms)",
+        "bool initialize()",
+        "bool sample(bool& pressed)",
     ):
         require(required in input_header,
                 f"factory-reset input header is missing: {required}")
@@ -2803,13 +2803,28 @@ def test_factory_reset_surfaces() -> None:
         "GPIO_PULLUP_ENABLE",
         "GPIO_PULLDOWN_DISABLE",
         "GPIO_INTR_DISABLE",
-        "gesture_.reset(factory_reset_button_pressed(), now_ms)",
-        "gesture_.observe(factory_reset_button_pressed(), now_ms)",
-        "gesture_.cancel(factory_reset_button_pressed(), now_ms)",
-        "gesture_.rearm_after_noncommit(",
+        "gpio_get_level(kFactoryResetButton)",
+        "level != 0 && level != 1",
     ):
         require(required in input_source,
                 f"factory-reset input source is missing: {required}")
+    arbiter = (TARGET / "main/heltec_enrollment_input_arbiter.cpp").read_text(encoding="utf-8")
+    arbiter_header = (TARGET / "main/heltec_enrollment_input_arbiter.hpp").read_text(encoding="utf-8")
+    require("CompanionFactoryResetGesture gesture_" in arbiter_header and
+            "EnrollmentReviewDeviceIo" in arbiter_header and
+            "const auto raw_us=esp_timer_get_time()" in arbiter and
+            "input_.sample(pressed)" in arbiter and
+            "handle_event(gesture_.observe(button_down_,now_ms_))" in arbiter and
+            "token==generation_" in arbiter and "token!=consumed_generation_" in arbiter and
+            "fresh_release_sample_=true" in arbiter and
+            "service_tick() && context_bound_" in arbiter,
+            "actual arbiter must own checked sampling, reset priority, exact mutation tokens and post-frame observation")
+    observe_body = arbiter[arbiter.index("bool HeltecEnrollmentInputArbiter::observe("):
+                           arbiter.index("bool HeltecEnrollmentInputArbiter::acquire(")]
+    require("esp_timer_get_time" not in observe_body and "input_.sample" not in observe_body,
+            "review observation must remain cache-only")
+    require("bind_admitted_context(" not in SOURCE.read_text(encoding="utf-8"),
+            "target must not activate enrollment from this input adapter increment")
     for forbidden in (
         "gpio_isr_handler_add",
         "gpio_install_isr_service",
@@ -2952,12 +2967,12 @@ def test_factory_reset_surfaces() -> None:
         app_main.rindex("const auto reset_event"):
         app_main.index("g_gnss.service(elapsed_ms)")
     ]
-    require("heltec_v4_factory_reset_input.hpp" in app_main and
-            "g_factory_reset_input.poll(elapsed_ms)" in reset_loop and
+    require("heltec_enrollment_input_arbiter.hpp" in app_main and
+            "g_factory_reset_input.poll()" in reset_loop and
             reset_loop.index(
                 "CompanionFactoryResetGestureEvent::prompt_requested") <
             reset_loop.index("show_factory_reset_confirmation()") <
-            reset_loop.index("g_factory_reset_input.cancel(elapsed_ms)") <
+            reset_loop.index("g_factory_reset_input.cancel(reset_generation)") <
             reset_loop.index(
                 "CompanionFactoryResetGestureEvent::prompt_cancelled") <
             reset_loop.index("clear_factory_reset_confirmation()") <
@@ -3010,11 +3025,11 @@ def test_factory_reset_surfaces() -> None:
             "contain_companion_nimble_runtime_for_recovery()" in runtime_failure and
             "if (!ble_containment_verified)" in runtime_failure and
             "StartupDisplayFrame::ble_error" in runtime_failure and
-            "g_factory_reset_input.poll(now_ms)" in runtime_failure and
+            "g_factory_reset_input.poll()" in runtime_failure and
             runtime_failure.index("fault_companion_pairing_window()") <
             runtime_failure.index("contain_companion_nimble_runtime_for_recovery()") <
             runtime_failure.index("if (!ble_containment_verified)") <
-            runtime_failure.index("g_factory_reset_input.poll(now_ms)") and
+            runtime_failure.index("g_factory_reset_input.poll()") and
             runtime_failure.index(
                 "CompanionFactoryResetGestureEvent::prompt_requested") <
             runtime_failure.index("show_factory_reset_confirmation()") <
@@ -3025,7 +3040,7 @@ def test_factory_reset_surfaces() -> None:
             runtime_failure.index("verified_intent") <
             runtime_failure.index("reconciliation_required") <
             runtime_failure.index("esp_restart()") <
-            runtime_failure.index("rearm_after_noncommit(now_ms)"),
+            runtime_failure.index("rearm_after_noncommit(reset_generation)"),
             "BLE failure containment must independently verify stack shutdown, reboot only durable/uncertain intent, and otherwise rearm")
 
     containment_gate = nimble_runtime[
@@ -3051,7 +3066,7 @@ def test_factory_reset_surfaces() -> None:
         app_main.index("ESP_LOGI(kLogTag, \"companion runtime started\")")
     ]
     require(input_initialization.index(
-                "g_factory_reset_input.initialize(started_at_ms)") <
+                "g_factory_reset_input.initialize()") <
             input_initialization.index("start_companion_nimble_runtime("),
             "physical reset input must be available before companion runtime startup can fail")
 

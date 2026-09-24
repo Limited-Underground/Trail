@@ -37,6 +37,7 @@ idf_component_register(
         "heltec_startup_display.cpp"
         "heltec_v4_battery.cpp"
         "heltec_v4_factory_reset_input.cpp"
+        "heltec_enrollment_input_arbiter.cpp"
         "heltec_v4_factory_reset_storage.cpp"
         "enrollment_identity_nvs_storage.cpp"
         "heltec_v4_gnss.cpp"
