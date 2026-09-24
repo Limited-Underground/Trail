@@ -163,11 +163,12 @@ def admitted_target_sources(cmake: str) -> list[str]:
     require("if(OPENTRAIL_CONFIRMATION_EVALUATION)" in evaluation and
             set(evaluation_tokens) == expected_evaluation and len(evaluation_tokens) == 7,
             "evaluation source set must remain exact and opt-in")
-    require(len(ordinary_tokens) == 47 and len(set(ordinary_tokens)) == 47 and
+    require(len(ordinary_tokens) == 50 and len(set(ordinary_tokens)) == 50 and
+            "enrollment_identity_nvs_storage.cpp" in ordinary_tokens and
             not expected_evaluation.intersection(ordinary_tokens) and
             ordinary.count("${OPENTRAIL_CONFIRMATION_SOURCES}") == 1 and
             "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp" in ordinary_tokens,
-            "ordinary build must retain 47 unique sources and one conditional insertion")
+            "ordinary build must retain 50 unique sources and one conditional insertion")
     return ordinary_tokens + evaluation_tokens
 
 
@@ -210,8 +211,14 @@ def test_contract() -> None:
         "main/heltec_v4_gnss.hpp",
         "main/heltec_v4_factory_reset_input.cpp",
         "main/heltec_v4_factory_reset_input.hpp",
+        "main/heltec_enrollment_input_arbiter.cpp",
+        "main/heltec_enrollment_input_arbiter.hpp",
         "main/heltec_v4_factory_reset_storage.cpp",
         "main/heltec_v4_factory_reset_storage.hpp",
+        "main/enrollment_identity_nvs_storage.cpp",
+        "main/enrollment_identity_nvs_storage.hpp",
+        "main/heltec_enrollment_identity_owner.cpp",
+        "main/heltec_enrollment_identity_owner.hpp",
         # Retained as dormant history only. The build and application gates
         # below prove this former 3-second pairing input is unreachable.
         "main/heltec_v4_pairing_input.cpp",
@@ -1235,7 +1242,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 53,
+    require(len(other_linked_sources) == 56,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1310,7 +1317,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 53,
+    require(len(other_linked_sources) == 56,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2285,8 +2292,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(len(admitted_target_sources(cmake)) == 54,
-            "target must admit 47 ordinary and seven evaluation source units")
+    require(len(admitted_target_sources(cmake)) == 57,
+            "target must admit 50 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
@@ -2787,10 +2794,8 @@ def test_factory_reset_surfaces() -> None:
     for required in (
         "kHeltecV4FactoryResetButtonGpio = 0",
         "kHeltecV4FactoryResetButtonPressedLevel = 0",
-        "CompanionFactoryResetGesture gesture_",
-        "CompanionFactoryResetGestureEvent poll(",
-        "CompanionFactoryResetGestureEvent cancel(",
-        "bool rearm_after_noncommit(std::uint64_t now_ms)",
+        "bool initialize()",
+        "bool sample(bool& pressed)",
     ):
         require(required in input_header,
                 f"factory-reset input header is missing: {required}")
@@ -2800,13 +2805,28 @@ def test_factory_reset_surfaces() -> None:
         "GPIO_PULLUP_ENABLE",
         "GPIO_PULLDOWN_DISABLE",
         "GPIO_INTR_DISABLE",
-        "gesture_.reset(factory_reset_button_pressed(), now_ms)",
-        "gesture_.observe(factory_reset_button_pressed(), now_ms)",
-        "gesture_.cancel(factory_reset_button_pressed(), now_ms)",
-        "gesture_.rearm_after_noncommit(",
+        "gpio_get_level(kFactoryResetButton)",
+        "level != 0 && level != 1",
     ):
         require(required in input_source,
                 f"factory-reset input source is missing: {required}")
+    arbiter = (TARGET / "main/heltec_enrollment_input_arbiter.cpp").read_text(encoding="utf-8")
+    arbiter_header = (TARGET / "main/heltec_enrollment_input_arbiter.hpp").read_text(encoding="utf-8")
+    require("CompanionFactoryResetGesture gesture_" in arbiter_header and
+            "EnrollmentReviewDeviceIo" in arbiter_header and
+            "const auto raw_us=esp_timer_get_time()" in arbiter and
+            "input_.sample(pressed)" in arbiter and
+            "handle_event(gesture_.observe(button_down_,now_ms_))" in arbiter and
+            "token==generation_" in arbiter and "token!=consumed_generation_" in arbiter and
+            "fresh_release_sample_=true" in arbiter and
+            "service_tick() && context_bound_" in arbiter,
+            "actual arbiter must own checked sampling, reset priority, exact mutation tokens and post-frame observation")
+    observe_body = arbiter[arbiter.index("bool HeltecEnrollmentInputArbiter::observe("):
+                           arbiter.index("bool HeltecEnrollmentInputArbiter::acquire(")]
+    require("esp_timer_get_time" not in observe_body and "input_.sample" not in observe_body,
+            "review observation must remain cache-only")
+    require("bind_admitted_context(" not in SOURCE.read_text(encoding="utf-8"),
+            "target must not activate enrollment from this input adapter increment")
     for forbidden in (
         "gpio_isr_handler_add",
         "gpio_install_isr_service",
@@ -2949,12 +2969,12 @@ def test_factory_reset_surfaces() -> None:
         app_main.rindex("const auto reset_event"):
         app_main.index("g_gnss.service(elapsed_ms)")
     ]
-    require("heltec_v4_factory_reset_input.hpp" in app_main and
-            "g_factory_reset_input.poll(elapsed_ms)" in reset_loop and
+    require("heltec_enrollment_input_arbiter.hpp" in app_main and
+            "g_factory_reset_input.poll()" in reset_loop and
             reset_loop.index(
                 "CompanionFactoryResetGestureEvent::prompt_requested") <
             reset_loop.index("show_factory_reset_confirmation()") <
-            reset_loop.index("g_factory_reset_input.cancel(elapsed_ms)") <
+            reset_loop.index("g_factory_reset_input.cancel(reset_generation)") <
             reset_loop.index(
                 "CompanionFactoryResetGestureEvent::prompt_cancelled") <
             reset_loop.index("clear_factory_reset_confirmation()") <
@@ -3007,11 +3027,11 @@ def test_factory_reset_surfaces() -> None:
             "contain_companion_nimble_runtime_for_recovery()" in runtime_failure and
             "if (!ble_containment_verified)" in runtime_failure and
             "StartupDisplayFrame::ble_error" in runtime_failure and
-            "g_factory_reset_input.poll(now_ms)" in runtime_failure and
+            "g_factory_reset_input.poll()" in runtime_failure and
             runtime_failure.index("fault_companion_pairing_window()") <
             runtime_failure.index("contain_companion_nimble_runtime_for_recovery()") <
             runtime_failure.index("if (!ble_containment_verified)") <
-            runtime_failure.index("g_factory_reset_input.poll(now_ms)") and
+            runtime_failure.index("g_factory_reset_input.poll()") and
             runtime_failure.index(
                 "CompanionFactoryResetGestureEvent::prompt_requested") <
             runtime_failure.index("show_factory_reset_confirmation()") <
@@ -3022,7 +3042,7 @@ def test_factory_reset_surfaces() -> None:
             runtime_failure.index("verified_intent") <
             runtime_failure.index("reconciliation_required") <
             runtime_failure.index("esp_restart()") <
-            runtime_failure.index("rearm_after_noncommit(now_ms)"),
+            runtime_failure.index("rearm_after_noncommit(reset_generation)"),
             "BLE failure containment must independently verify stack shutdown, reboot only durable/uncertain intent, and otherwise rearm")
 
     containment_gate = nimble_runtime[
@@ -3048,7 +3068,7 @@ def test_factory_reset_surfaces() -> None:
         app_main.index("ESP_LOGI(kLogTag, \"companion runtime started\")")
     ]
     require(input_initialization.index(
-                "g_factory_reset_input.initialize(started_at_ms)") <
+                "g_factory_reset_input.initialize()") <
             input_initialization.index("start_companion_nimble_runtime("),
             "physical reset input must be available before companion runtime startup can fail")
 
@@ -3306,6 +3326,64 @@ def test_configuration_transport_and_storage_surface() -> None:
             "name persistence must participate in reset erase and fresh absence verification")
 
 
+def test_retained_identity_runtime_surface():
+    runtime = (TARGET / "main/companion_nimble_runtime.cpp").read_text()
+    owner = (TARGET / "main/heltec_enrollment_identity_owner.cpp").read_text()
+    configure = runtime[runtime.index("const auto owner_restored ="):runtime.index("bool register_protected_service()")]
+    require(configure.index("if (owner_unowned !=") < configure.index("load_retained_enrollment_identity()") < configure.index("g_boot_unowned ="),
+            "retained identity must load only after reset restoration and owner consistency")
+    require("#if !OPENTRAIL_CONFIRMATION_EVALUATION" in configure,
+            "product retained identity must remain excluded from confirmation profile")
+    contain = runtime[runtime.index("bool contain_stack() override"):runtime.index("bool contain_stack() override")+800]
+    require(contain.index("retire_retained_enrollment_identity()") < contain.index("if (contained_)"),
+            "every containment including repeated/failed teardown must retire first")
+    require("identity_.load_existing()" in owner and "identity_.initialize()" not in owner and
+            "if(retired) return" in owner and "retired=true" in owner,
+             "boot must not provision; preconstruction retirement must be terminal")
+
+
+def test_selected_enrollment_request_route():
+    gatt = (TARGET / "main/companion_nimble_gatt.cpp").read_text()
+    runtime = (TARGET / "main/companion_nimble_runtime.cpp").read_text()
+    base = runtime[runtime.index("class ConfigurationBaseAuthority final"):
+                   runtime.index("ConfigurationBaseAuthority g_configuration_base;")]
+    require("CompanionActionKind::start_enrollment" in base and
+            "admit_selected_enrollment_request(request_context," in base and
+            "#if OPENTRAIL_CONFIRMATION_EVALUATION\n                return false;" in base,
+            "normal selected kind-2 action must route only to pending admission")
+    admission = gatt[gatt.index("bool admit_selected_enrollment_request("):
+                     gatt.index("bool companion_nimble_gatt_definition_self_check()")]
+    for gate in ("#if OPENTRAIL_CONFIRMATION_EVALUATION", "GattLock lock;",
+                 "selected_enrollment_lane_admissible(", "g_phone_status.ready(",
+                 "decode_configuration_frame(", "CompanionActionKind::start_enrollment",
+                 "g_selected_enrollment_requests.admit("):
+        require(gate in admission, f"selected enrollment admission gate missing: {gate}")
+    disconnect = gatt[gatt.index("case BLE_GAP_EVENT_DISCONNECT: {"):
+                      gatt.index("case BLE_GAP_EVENT_ENC_CHANGE:")]
+    require(disconnect.index("const auto pending_enrollment") <
+            disconnect.index("g_adapter->disconnect(handle)") <
+            disconnect.index("if (disconnected == CompanionGattAdapterError::none)") <
+            disconnect.index("cancel_exact(") and
+            "pending_enrollment.authority.transport_generation" in disconnect and
+            "pending_enrollment.authority.session_nonce" in disconnect,
+            "only accepted exact active-link disconnect may cancel pending request")
+    require("if (g_configuration_lane.occupied && g_configuration_lane.expired(now_ms()))" in gatt and
+            "if (!delivered_current)\n                    cancel_enrollment_for_lane" in gatt,
+            "every lane phase and late indication must release pending request")
+    contain = runtime[runtime.index("bool contain_stack() override"):
+                      runtime.index("bool contain_stack() override") + 900]
+    require(contain.index("retire_retained_enrollment_identity()") <
+            contain.index("if (!retire_selected_enrollment_request()) return false;") <
+            contain.index("if (contained_)"),
+            "both identity and pending request must retire before fallible teardown")
+    retirement = gatt[gatt.index("bool retire_selected_enrollment_request()"):
+                      gatt.index("void service_companion_configuration()")]
+    require("if (!lock) return false;" in retirement and
+            "invalidate_companion_configuration_locked(true);" in retirement and
+            "g_configuration_revoked && !g_configuration_lane.occupied" in retirement,
+            "selected containment must retire and invalidate under one checked lock")
+
+
 def main() -> int:
     tests = (test_contract, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
@@ -3320,7 +3398,8 @@ def main() -> int:
              test_build_only_tooling,
              test_automatic_termination_acceptance_surface,
              test_factory_reset_surfaces, test_secure_random_surface,
-             test_configuration_transport_and_storage_surface)
+             test_configuration_transport_and_storage_surface, test_retained_identity_runtime_surface,
+             test_selected_enrollment_request_route)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

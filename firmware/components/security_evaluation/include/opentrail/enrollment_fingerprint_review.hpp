@@ -2,32 +2,9 @@
 // OT-0238b candidate owner; hardware port/provisioning integration is not yet wired.
 // Serialized owner polls a trusted device port. No command/caller confirm Boolean.
 #include "opentrail/enrollment_identity_binding.hpp"
+#include "opentrail/enrollment_review_io.hpp"
 
 namespace opentrail::security_evaluation {
-struct FingerprintReviewContext {
-    InvitationToken boot{};
-    std::uint64_t generation{}, request{};
-    bool operator==(const FingerprintReviewContext& b) const {
-        return boot == b.boot && generation == b.generation && request == b.request;
-    }
-};
-struct FingerprintReviewSample {
-    FingerprintReviewContext context{};
-    std::uint64_t now_ms{}, display_revision{};
-    bool button_down{};
-};
-enum class EnrollmentDisplayPurpose { identity_review, transcript_confirmation };
-struct FingerprintReviewFrame {
-    EnrollmentDisplayPurpose purpose{EnrollmentDisplayPurpose::identity_review};
-    // Fixed candidate domain is displayed alongside all 64 hex digits; not an
-    // accepted final fingerprint algorithm. Every line fits the 128px OLED.
-    std::array<char,17> domain{'O','T','-','I','D','1',' ','E','D','2','5','5','1','9',0};
-    std::array<std::array<char,17>,4> digits{};
-    InvitationRole local_role{};
-    bool peer_page{};
-    std::uint64_t revision{};
-    std::uint64_t group{};
-};
 class FingerprintReviewPort {
 public:
     virtual ~FingerprintReviewPort() = default;

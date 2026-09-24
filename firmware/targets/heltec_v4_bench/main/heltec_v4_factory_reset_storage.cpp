@@ -13,6 +13,7 @@
 #include "companion_v1_heltec_adapters.hpp"
 #include "companion_name_storage.hpp"
 #include "companion_region_storage.hpp"
+#include "enrollment_identity_nvs_storage.hpp"
 
 namespace opentrail::targets::heltec_v4_bench {
 namespace {
@@ -477,13 +478,16 @@ HeltecV4FactoryResetUserDomainStorage::inspect_absence() {
     if (region.error != DeviceFactoryResetPortError::none) {
         return {region.error, false};
     }
+    const auto identity = inspect_user_namespace(security_evaluation::kEnrollmentIdentityStorageNamespace);
+    if(identity.error != DeviceFactoryResetPortError::none) return {identity.error,false};
     return {DeviceFactoryResetPortError::none,
-            owner.absent && state.absent && name.absent && region.absent};
+            owner.absent && state.absent && name.absent && region.absent && identity.absent};
 }
 
 DeviceFactoryResetAbsenceSnapshot
 HeltecV4FactoryResetUserDomainStorage::erase_all_and_verify_absent() {
     static_assert(!kHeltecV4FactoryResetHasActiveMapPackageStorage);
+    invalidate_enrollment_identity_storage_for_reset();
 
     const auto owner = erase_owner_namespace_and_verify();
     if (owner.error != DeviceFactoryResetPortError::none) {
@@ -502,6 +506,8 @@ HeltecV4FactoryResetUserDomainStorage::erase_all_and_verify_absent() {
         return {region.error, false};
     }
 
+    const auto identity = erase_user_namespace_and_verify(security_evaluation::kEnrollmentIdentityStorageNamespace);
+    if(identity.error != DeviceFactoryResetPortError::none || !identity.absent) return {identity.error,false};
     const auto* partition = exact_state_partition();
     if (partition == nullptr ||
         esp_partition_erase_range(partition, 0, partition->size) != ESP_OK) {

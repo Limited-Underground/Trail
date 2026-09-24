@@ -325,9 +325,60 @@ void protected_snapshot_phone_ready() {
     phone.clear();EXPECT(!phone.ready(h.source.state,generation));
 }
 
+void selected_enrollment_requires_exact_ready_lane() {
+    using opentrail::target::heltec_v4_bench::ConfigurationLane;
+    using opentrail::target::heltec_v4_bench::selected_enrollment_lane_admissible;
+    DeviceNameAuthority current{DeviceNamePhase::connected,
+                                {1, 2, 3, 4, 5, 6, 7}, 100};
+    ConfigurationLane lane{};
+    lane.occupied = true;
+    lane.executing = true;
+    lane.context = current.context;
+    lane.connection = 8;
+    lane.token = 9;
+    lane.exchange = 10;
+    lane.admitted_ms = 100;
+    CompanionGattAdapterStatus status{};
+    status.connected = true;
+    status.secure_bond = true;
+    status.transport_generation = 5;
+    status.lifecycle.encrypted = true;
+    status.lifecycle.authenticated_bond = true;
+    status.lifecycle.application_authorized = true;
+    status.lifecycle.normal_session_active = true;
+    status.lifecycle.session_nonce = 7;
+    auto allowed = [&] {
+        return selected_enrollment_lane_admissible(
+            lane, current, status, true, true, false, 10, current.now_ms);
+    };
+    EXPECT(allowed());
+    EXPECT(!selected_enrollment_lane_admissible(
+        lane, current, status, true, false, false, 10, current.now_ms));
+    EXPECT(!selected_enrollment_lane_admissible(
+        lane, current, status, false, true, false, 10, current.now_ms));
+    EXPECT(!selected_enrollment_lane_admissible(
+        lane, current, status, true, true, true, 10, current.now_ms));
+    current.context.transport_generation++;
+    EXPECT(!allowed());
+    current.context = lane.context;
+    status.transport_generation++;
+    EXPECT(!allowed());
+    status.transport_generation = 5;
+    status.lifecycle.application_authorized = false;
+    EXPECT(!allowed());
+    status.lifecycle.application_authorized = true;
+    status.pending.valid = true;
+    EXPECT(!allowed());
+    status.pending.valid = false;
+    current.now_ms = 5100;
+    EXPECT(!allowed());
+    current.now_ms = 100;
+    EXPECT(allowed());
 }
-int main(){protected_snapshot_phone_ready();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
+
+}
+int main(){protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
     if(failures) return 1;
-    std::cout<<"PASS: 11 composed configuration dispatcher groups\n";
+    std::cout<<"PASS: 12 composed configuration dispatcher groups\n";
     return 0;
 }

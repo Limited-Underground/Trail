@@ -390,6 +390,39 @@ void test_action_requests_reject_ambiguous_or_unknown_values() {
            CompanionSemanticCodecError::reserved_bits_set);
 }
 
+void test_enrollment_start_is_versioned_pending_request_only() {
+    const CompanionActionRequest request{
+        CompanionActionKind::start_enrollment, QuickStatusKind::ok, 0};
+    std::array<std::uint8_t, kCompanionActionRequestBytes> bytes{};
+    EXPECT(encode_companion_action_request(
+        request, {bytes.data(), bytes.size()}).encoded());
+    EXPECT(bytes[4] == kCompanionSemanticMajor);
+    EXPECT(bytes[5] == kCompanionSemanticMinor);
+    EXPECT(bytes[6] == 6);
+    const auto decoded = decode_companion_action_request(
+        {bytes.data(), bytes.size()});
+    EXPECT(decoded.decoded());
+    EXPECT(decoded.value.kind == CompanionActionKind::start_enrollment);
+    auto altered = bytes;
+    altered[7] = 1;
+    EXPECT(decode_companion_action_request(
+        {altered.data(), altered.size()}).error ==
+           CompanionSemanticCodecError::reserved_bits_set);
+    altered = bytes;
+    altered[8] = 1;
+    EXPECT(decode_companion_action_request(
+        {altered.data(), altered.size()}).error ==
+           CompanionSemanticCodecError::incoherent_action);
+    const CompanionActionResult pending{
+        CompanionActionKind::start_enrollment, QuickStatusKind::ok, 0,
+        CompanionActionDisposition::admitted, CompanionActionRejectReason::none};
+    std::array<std::uint8_t, kCompanionActionResultBytes> response{};
+    EXPECT(encode_companion_action_result(
+        pending, {response.data(), response.size()}).encoded());
+    EXPECT(decode_companion_action_result(
+        {response.data(), response.size()}).decoded());
+}
+
 void test_outbound_action_result_means_queued_not_delivered() {
     const CompanionActionResult queued{
         CompanionActionKind::quick_status,
@@ -604,6 +637,7 @@ int main() {
     test_position_start_and_stop_are_explicit_distinct_intents();
     test_factory_reset_has_exact_receipt_vectors();
     test_action_requests_reject_ambiguous_or_unknown_values();
+    test_enrollment_start_is_versioned_pending_request_only();
     test_outbound_action_result_means_queued_not_delivered();
     test_local_and_rejected_results_are_typed_and_coherent();
     test_result_codec_rejects_delivery_like_or_incoherent_states();
@@ -614,6 +648,6 @@ int main() {
                   << " companion semantic codec assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 14 companion semantic payload scenario groups\n";
+    std::cout << "PASS: 15 companion semantic payload scenario groups\n";
     return EXIT_SUCCESS;
 }

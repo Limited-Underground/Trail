@@ -70,9 +70,10 @@ private:
 };
 
 // Erases the complete current Trail user persistence boundary: every entry in
-// ot_v1_owner, ot_name_v1 and every byte of the exact raw ot_state partition. It never
+// ot_v1_owner, ot_name_v1, ot_region_v1, ot_identity_v1 and every byte of
+// the exact raw ot_state partition. It never
 // erases the default NVS partition, application/OTA partitions, otadata,
-// bootloader, eFuses, immutable identity, or calibration domains.
+// bootloader, eFuses, immutable hardware identity, or calibration domains.
 class HeltecV4FactoryResetUserDomainStorage final
     : public companion::DeviceFactoryResetUserDomainPort {
 public:

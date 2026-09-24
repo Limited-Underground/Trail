@@ -1,6 +1,7 @@
 #include "companion_nimble_gatt.hpp"
 #include "companion_nimble_runtime.hpp"
 #include "companion_configuration_lane.hpp"
+#include "opentrail/selected_enrollment_request_owner.hpp"
 #include "confirmation_evaluation_config.hpp"
 #include "opentrail/companion_confirmation_codec.hpp"
 #if OPENTRAIL_CONFIRMATION_EVALUATION
@@ -143,6 +144,7 @@ bool g_configuration_name_loaded = false;
 std::uint64_t g_configuration_blocked_generation = 0;
 std::uint64_t g_configuration_token = (std::uint64_t{1} << 63);
 ConfigurationLane g_configuration_lane{};
+SelectedEnrollmentRequestOwner g_selected_enrollment_requests;
 ConfigurationPhoneStatus g_phone_status;
 ble_npl_event g_configuration_response_event{};
 void configuration_response_event(ble_npl_event*);
@@ -369,6 +371,7 @@ void update_configuration_authority() {
     if (g_configuration_revoked) {
         g_configuration_authority.phase = DeviceNamePhase::revoked;
         g_phone_status.clear();
+        g_selected_enrollment_requests.retire();
         return;
     }
     const auto status = g_adapter == nullptr ? CompanionGattAdapterStatus{} : g_adapter->status();
@@ -385,16 +388,34 @@ void update_configuration_authority() {
         }
         g_configuration_authority.phase = DeviceNamePhase::disconnected;
         g_phone_status.clear();
+        if (g_selected_enrollment_requests.pending())
+            (void)g_selected_enrollment_requests.observe(
+                g_configuration_authority,
+                g_selected_enrollment_requests.request().connection_handle);
         return;
     }
     g_configuration_authority = {DeviceNamePhase::connected,
         {1, 1, 1, 1, status.transport_generation,
          status.transport_generation, life.session_nonce}, now_ms()};
     g_phone_status.observe(g_configuration_authority);
+    if (g_selected_enrollment_requests.pending())
+        (void)g_selected_enrollment_requests.observe(
+            g_configuration_authority,
+            g_selected_enrollment_requests.request().connection_handle);
+}
+
+void cancel_enrollment_for_lane(const ConfigurationLane& lane) {
+    const auto pending = g_selected_enrollment_requests.request();
+    if (lane.occupied && pending.connection_handle == lane.connection &&
+        pending.authority == lane.context &&
+        pending.delivery_token == lane.token &&
+        pending.exchange_id == lane.exchange)
+        (void)g_selected_enrollment_requests.cancel_exact(pending);
 }
 
 void clear_configuration_lane() {
     if (g_configuration_lane.occupied) {
+        cancel_enrollment_for_lane(g_configuration_lane);
         g_indication_port.cancel_reservation(g_configuration_lane.token);
         g_indication_port.abandon_indication(g_configuration_lane.token);
     }
@@ -741,6 +762,45 @@ bool definition_is_pristine() {
 
 }  // namespace
 
+bool admit_selected_enrollment_request(
+    const DeviceNameContext& context, std::uint32_t exchange_id) {
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    (void)context;
+    (void)exchange_id;
+    return false;
+#else
+    GattLock lock;
+    if (!lock || g_adapter == nullptr || g_configuration_dispatcher == nullptr ||
+        !g_configuration_selected || g_configuration_revoked ||
+        companion_app_factory_reset_blocks_protected_access()) return false;
+    update_configuration_authority();
+    const auto status = g_adapter->status();
+    const auto tick = now_ms();
+    g_configuration_authority.now_ms = tick;
+    const auto& lane = g_configuration_lane;
+    if (lane.context != context ||
+        !selected_enrollment_lane_admissible(
+            lane, g_configuration_authority, status,
+            g_configuration_selected,
+            g_phone_status.ready(g_configuration_authority,
+                                 status.transport_generation),
+            companion_app_factory_reset_blocks_protected_access(),
+            exchange_id, tick)) return false;
+    const auto frame = decode_configuration_frame(
+        lane.record.data(), lane.bytes, kSelectedConfigurationMinor);
+    if (!frame.decoded() || frame.value.kind != 2 ||
+        frame.value.exchange_id != exchange_id ||
+        frame.value.session_nonce != context.session_nonce) return false;
+    const auto action = decode_companion_action_request(
+        {frame.value.payload.data(), frame.value.payload_bytes});
+    if (!action.decoded() ||
+        action.value.kind != CompanionActionKind::start_enrollment) return false;
+    return g_selected_enrollment_requests.admit(
+        g_configuration_authority, lane.connection, lane.token, exchange_id) ==
+        SelectedEnrollmentRequestResult::admitted;
+#endif
+}
+
 bool companion_nimble_gatt_definition_self_check() {
     const auto info = decode_companion_authorization_protocol_info(
         {kAuthorizationProtocolInfo.data(), kAuthorizationProtocolInfo.size()});
@@ -839,9 +899,26 @@ static int configuration_guarded_gap_event(ble_gap_event* event, void* argument)
             return static_cast<int>(connected.error);
         }
         case BLE_GAP_EVENT_DISCONNECT: {
+            const auto before = g_adapter->status();
+            const auto pending_enrollment = g_selected_enrollment_requests.request();
+            const auto handle = event->disconnect.conn.conn_handle;
             const auto disconnected =
-                g_adapter->disconnect(event->disconnect.conn.conn_handle);
+                g_adapter->disconnect(handle);
             if (disconnected == CompanionGattAdapterError::none) {
+                if (pending_enrollment.connection_handle == handle &&
+                    pending_enrollment.authority.transport_generation ==
+                        before.transport_generation &&
+                    pending_enrollment.authority.session_nonce ==
+                        before.lifecycle.session_nonce)
+                    (void)g_selected_enrollment_requests.cancel_exact(
+                        pending_enrollment);
+                if (g_configuration_lane.occupied &&
+                    g_configuration_lane.connection == handle &&
+                    g_configuration_lane.context.transport_generation ==
+                        before.transport_generation &&
+                    g_configuration_lane.context.session_nonce ==
+                        before.lifecycle.session_nonce)
+                    clear_configuration_lane();
                 observe_companion_app_factory_reset_response(false);
             }
             return static_cast<int>(disconnected);
@@ -893,16 +970,23 @@ static int configuration_guarded_gap_event(ble_gap_event* event, void* argument)
                 const bool confirmed = event->notify_tx.status == BLE_HS_EDONE &&
                     refresh_security(event->notify_tx.conn_handle) == 0;
                 update_configuration_authority();
+                const auto completed_ms = now_ms();
+                g_configuration_authority.now_ms = completed_ms;
+                const bool delivered_current = confirmed &&
+                    g_configuration_lane.current(g_configuration_authority) &&
+                    !g_configuration_lane.expired(completed_ms);
                 g_phone_status.complete(g_configuration_lane, g_configuration_authority,
-                                        confirmed, now_ms(), kSelectedConfigurationMinor);
+                                        delivered_current, completed_ms, kSelectedConfigurationMinor);
+                if (!delivered_current)
+                    cancel_enrollment_for_lane(g_configuration_lane);
                 g_indication_port.observe_completion(pending.delivery_token);
                 g_configuration_lane = {};
-                observe_companion_app_factory_reset_response(confirmed);
-                if (!confirmed) {
+                observe_companion_app_factory_reset_response(delivered_current);
+                if (!delivered_current) {
                     g_configuration_blocked_generation = pending.transport_generation;
                     g_configuration_selected = false;
                     g_configuration_authority.phase = DeviceNamePhase::disconnected;
-                } else queue_verified_gatt_progress(event->notify_tx.conn_handle, now_ms());
+                } else queue_verified_gatt_progress(event->notify_tx.conn_handle, completed_ms);
                 return 0;
             }
             if (event->notify_tx.status == BLE_HS_EDONE) {
@@ -994,8 +1078,6 @@ int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
     if (!lock) return static_cast<int>(CompanionGattAdapterError::not_registered);
     const auto result = configuration_guarded_gap_event(event, argument);
     update_configuration_authority();
-    if (event != nullptr && event->type == BLE_GAP_EVENT_DISCONNECT)
-        clear_configuration_lane();
     return result;
 }
 
@@ -1019,9 +1101,11 @@ bool close_companion_confirmation() {
     return g_confirmation_backend == nullptr || g_confirmation_backend->close();
 }
 
-void invalidate_companion_configuration(bool revoke) {
-    GattLock lock;
-    if (!lock) return;
+void invalidate_companion_configuration_locked(bool revoke) {
+    if (revoke) g_selected_enrollment_requests.retire();
+    else if (g_selected_enrollment_requests.pending())
+        (void)g_selected_enrollment_requests.cancel_exact(
+            g_selected_enrollment_requests.request());
     if (g_adapter != nullptr)
         g_configuration_blocked_generation = g_adapter->status().transport_generation;
     g_configuration_selected = false;
@@ -1029,6 +1113,27 @@ void invalidate_companion_configuration(bool revoke) {
     g_configuration_revoked = g_configuration_revoked || revoke;
     g_configuration_authority.phase = g_configuration_revoked ? DeviceNamePhase::revoked : DeviceNamePhase::disconnected;
     clear_configuration_lane();
+}
+
+void invalidate_companion_configuration(bool revoke) {
+    GattLock lock;
+    if (!lock) return;
+    invalidate_companion_configuration_locked(revoke);
+}
+
+bool retire_selected_enrollment_request() {
+    if (g_configuration_mutex == nullptr) {
+        // No GATT callback exists before mutex creation.
+        invalidate_companion_configuration_locked(true);
+        return g_selected_enrollment_requests.retired() &&
+               !g_selected_enrollment_requests.pending();
+    }
+    GattLock lock;
+    if (!lock) return false;
+    invalidate_companion_configuration_locked(true);
+    return g_selected_enrollment_requests.retired() &&
+           !g_selected_enrollment_requests.pending() &&
+           g_configuration_revoked && !g_configuration_lane.occupied;
 }
 
 void service_companion_configuration() {
@@ -1056,7 +1161,7 @@ void service_companion_configuration() {
         if (lock) {
             update_configuration_authority();
             g_configuration_authority.now_ms = now_ms();
-            if (g_configuration_lane.indicated && g_configuration_lane.expired(now_ms())) {
+            if (g_configuration_lane.occupied && g_configuration_lane.expired(now_ms())) {
                 invalidate_companion_configuration();
                 observe_companion_app_factory_reset_response(false);
             }

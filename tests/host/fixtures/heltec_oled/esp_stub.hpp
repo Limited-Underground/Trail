@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <vector>
+#include <functional>
 
 using esp_err_t = int;
 using gpio_num_t = int;
@@ -14,8 +15,10 @@ inline constexpr int ESP_OK = 0;
 inline constexpr int ESP_FAIL = -1;
 inline constexpr int ESP_ERR_INVALID_STATE = 0x103;
 inline constexpr int GPIO_MODE_OUTPUT = 1;
+inline constexpr int GPIO_MODE_INPUT = 2;
+inline constexpr int GPIO_NUM_0=0, GPIO_PULLUP_ENABLE=1, GPIO_PULLDOWN_DISABLE=0, GPIO_INTR_DISABLE=0;
 inline constexpr int I2C_CLK_SRC_DEFAULT = 0;
-struct gpio_config_t { std::uint64_t pin_bit_mask{}; int mode{}; };
+struct gpio_config_t { std::uint64_t pin_bit_mask{}; int mode{},pull_up_en{},pull_down_en{},intr_type{}; };
 struct i2c_master_bus_config_t {
     int i2c_port{}, sda_io_num{}, scl_io_num{}, clk_source{}, glitch_ignore_cnt{};
     struct { bool enable_internal_pullup{}; } flags;
@@ -32,6 +35,10 @@ struct esp_lcd_panel_dev_config_t {
 namespace heltec_oled_stub {
 struct State {
     std::int64_t now_us{1'000'000};
+    unsigned gpio_reads{},clock_reads{};
+    int button_level{1};
+    bool fail_input_config{};
+    std::function<void()> on_draw=[]{};
     int draw_failures{}, power_off_calls{}, panel_off_calls{}, panel_on_calls{};
     bool fail_all_draws{false}, fail_panel_off{false}, fail_power_off{false};
     bool bounds_valid{true}, mirrored{false};
@@ -42,7 +49,8 @@ inline State state;
 inline void reset() { state = State{}; }
 template<typename... Args> inline void log(const char*, const char*, Args...) {}
 }
-inline int gpio_config(const gpio_config_t*) { return ESP_OK; }
+inline int gpio_config(const gpio_config_t* config) { return config->mode==GPIO_MODE_INPUT && heltec_oled_stub::state.fail_input_config ? ESP_FAIL : ESP_OK; }
+inline int gpio_get_level(gpio_num_t) { ++heltec_oled_stub::state.gpio_reads;return heltec_oled_stub::state.button_level; }
 inline int gpio_set_level(gpio_num_t gpio, int level) {
     if (gpio == 36 && level == 1) {
         ++heltec_oled_stub::state.power_off_calls;
@@ -90,11 +98,12 @@ inline int esp_lcd_panel_draw_bitmap(esp_lcd_panel_handle_t, int x0, int y0, int
     std::array<std::uint8_t, 1024> frame{};
     std::copy_n(static_cast<const std::uint8_t*>(data), frame.size(), frame.begin());
     s.frames.push_back(frame);
+    auto callback=s.on_draw; callback();
     if (s.fail_all_draws) return ESP_FAIL;
     if (s.draw_failures > 0) { --s.draw_failures; return ESP_FAIL; }
     return ESP_OK;
 }
-inline std::int64_t esp_timer_get_time() { return heltec_oled_stub::state.now_us; }
+inline std::int64_t esp_timer_get_time() { ++heltec_oled_stub::state.clock_reads;return heltec_oled_stub::state.now_us; }
 inline std::uint32_t pdMS_TO_TICKS(std::uint32_t ms) { return ms; }
 inline void vTaskDelay(std::uint32_t) {}
 #define ESP_LOGW(...) heltec_oled_stub::log(__VA_ARGS__)

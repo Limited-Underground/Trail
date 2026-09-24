@@ -65,6 +65,7 @@ $fastStructuralTests = @(
     @{ File = 'raw_byte_checkout_policy_tests.py'; Failure = 'Authoritative raw-byte checkout policy tests failed.' },
     @{ File = 'heltec_v4_bench_target_tests.py'; Failure = 'Heltec V4 bench target admission tests failed.' },
     @{ File = 'heltec_v4_factory_reset_storage_tests.py'; Failure = 'Heltec V4 factory-reset storage admission tests failed.' },
+    @{ File = 'enrollment_identity_nvs_tests.py'; Failure = 'Identity NVS and factory-reset behavioral tests failed.' },
     @{ File = 'heltec_v4_bench_partition_transition_tests.py'; Failure = 'Heltec V4 protected-storage transition admission tests failed.' },
     @{ File = 'ot120_candidate_build_harness_tests.py'; Failure = 'OT-120 candidate build-harness tests failed.' },
     @{ File = 'ot121_candidate_benchmark_harness_tests.py'; Failure = 'OT-121/OT-123 candidate benchmark-harness tests failed.' },
@@ -138,6 +139,7 @@ $commonArguments = @(
     '-I', (Join-Path $projectRoot 'firmware\components\persistence\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\persistence\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\security\include'),
+    '-I', (Join-Path $projectRoot 'firmware\components\security_evaluation\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\security\test_support'),
     '-I', (Join-Path $projectRoot 'firmware\components\simulation\include'),
     '-I', (Join-Path $projectRoot 'firmware\components\time\include'),
@@ -364,6 +366,13 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_request_coordinator_tests.cpp')
+        )
+    },
+    @{
+        Name = 'selected enrollment pending request lifecycle'
+        Output = Join-Path $buildDirectory 'selected_enrollment_request_owner_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\selected_enrollment_request_owner_tests.cpp')
         )
     },
     @{

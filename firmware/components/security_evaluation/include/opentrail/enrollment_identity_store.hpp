@@ -1,14 +1,16 @@
 #pragma once
 // Host candidate: exclusively owned ot_identity_v1 namespace, distinct from
 // session/membership stores. Persisted seeds are NOT sealed by this component.
-// Production backend confidentiality and rollback protection remain target gates.
+// Target composition must isolate access and include this namespace in reset.
+// V1 excludes hostile physical flash rewrite/rollback (Decision 0033); this
+// component does not require or claim sealed storage or rollback-proof identity.
 // Checksums detect accidental damage, not authenticated storage or whole-store rollback.
 // Trusted composition supplies an isolated namespace and serializes every owner.
 // No erase/reset API: factory reset must cover all identity and membership domains.
+#include "opentrail/enrollment_identity_storage_contract.hpp"
 #include "opentrail/independent_invitation.hpp"
 #include "opentrail/secure_random.hpp"
 namespace opentrail::security_evaluation {
-inline constexpr char kEnrollmentIdentityStorageNamespace[]="ot_identity_v1";
 class EnrollmentIdentityStore final {
 public:
     EnrollmentIdentityStore(persistence::PersistentStorage& storage, security::SecureRandomSource& random)
@@ -16,6 +18,26 @@ public:
     EnrollmentIdentityStore(const EnrollmentIdentityStore&)=delete;
     EnrollmentIdentityStore& operator=(const EnrollmentIdentityStore&)=delete;
     ~EnrollmentIdentityStore() { sodium_memzero(retained_.data(),sizeof(retained_)); }
+    enum class LoadResult { absent, ready, fault };
+    // Boot restoration must never create a durable identity or request entropy.
+    LoadResult load_existing() {
+        LoadResult result=LoadResult::fault;
+        operation([&] {
+            if(initialized_) return refuse();
+            initialized_=true;
+            if(!snapshot(retained_)) return refuse();
+            bool empty=true;for(const auto& slot:retained_)for(auto byte:slot)empty&=byte==0xff;
+            if(empty) {
+                sodium_memzero(retained_.data(),sizeof(retained_));
+                result=LoadResult::absent;return true;
+            }
+            if(!valid() || !exact()) return refuse();
+            ready_=true;result=LoadResult::ready;return true;
+        });
+        return failed_ ? LoadResult::fault : result;
+    }
+    // Serialized terminal revocation; cannot reload or provision this instance.
+    void retire() { (void)refuse(); }
     bool initialize() {
         return operation([&] {
             if (initialized_) return refuse();

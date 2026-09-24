@@ -1,6 +1,6 @@
 # Android Operational Release Acceptance v0
 
-Status: plan contract accepted; execution blocked
+Status: historical plan contract accepted; current V1 successor required; execution blocked
 
 Schema: `OTAR0/v0`
 
@@ -23,6 +23,38 @@ The canonical plan is
 [`OT-086-ANDROID-OPERATIONAL-RELEASE-PLAN-V0.json`](../../tests/release-plans/OT-086-ANDROID-OPERATIONAL-RELEASE-PLAN-V0.json).
 The deterministic validator is
 [`android_release_admission.py`](../../tools/android_release_admission.py).
+
+## Current V1 policy reconciliation
+
+The [current V1 authority table](ANDROID_PRIVATE_PILOT_OPERATIONAL_POLICY_V0.md#current-v1-retention-and-sharing-authority)
+explicitly reconciles OT-088's transient-only/no-sharing promises with Decisions
+0103 and 0104. Saved device ownership, durable group/block controls, bounded
+phone-local drafts/templates, informed peer location sharing and user-reviewed
+support export are accepted product requirements. They are not newly accepted
+release evidence. Device-owned state, Android bonds, app-private data and
+external exported copies have different cleanup owners; uninstall is not a
+device reset or remote revocation.
+
+The canonical OTAR0 JSON and validator retain their historical exact values:
+`persistent_product_storage: prohibited`,
+`companion_location_use: ephemeral_local_display_only`, and
+`third_party_sharing: none`. A successful historical plan validation cannot
+admit a current candidate that retains or shares data under the later design.
+An explicitly accepted successor plan/policy and matching validator/evidence
+must resolve those values before current V1 release evaluation. Historical
+policy IDs and approval flags cannot silently cover the expanded behavior.
+
+The successor must bind each actual data domain to its authority, purpose,
+storage owner, bounds, user disclosure, recipient/consent rule and cleanup
+trigger. Verify restart/reconnect preserve block and consent; leaving/removal
+stops unauthorized peer access; Optional-to-Required does not reactivate opted-
+out sharing; device reset and app uninstall meet their separate promises; and
+backup/transfer, support URI grants, external-copy limitations and production
+exclusion of V1-Test diagnostics hold on the admitted matrix. Unknown data
+bounds or absent cleanup evidence deny the affected gate. The
+[OT-0300 reconciliation](../testing/OT-0300-RETENTION-RECONCILIATION-2026-09-23.md)
+records source evidence and remaining engineering gates without inventing
+retention periods or reopening already accepted sharing defaults.
 
 ## Evidence-set rule
 
@@ -128,9 +160,11 @@ forward or credited as upgrade evidence.
 - Battery, thermal, background stability, and bounded endurance observations
   use a frozen duration and pass threshold.
 - Privacy inspection covers logs, notifications, screenshots, backups, recent
-  tasks, crash output, app storage, and public evidence. Device addresses,
-  phone identifiers, owner bindings, coordinates, keys, group/channel material,
-  pairing secrets, tokens, and private paths are excluded.
+  tasks, crash output, app storage, and public evidence. Secrets, device/phone
+  identifiers, owner bindings, coordinates and private paths remain excluded
+  from public evidence and unintended disclosure surfaces. Intended authorized
+  product views and accepted storage/sharing domains follow the current V1
+  authority table; their existence is not a logging or export exception.
 - Support and recovery documentation identifies installation source, supported
   versions, known limitations, upgrade/rollback/removal steps, and a user-
   visible failure path.
@@ -168,15 +202,17 @@ candidate, and it earns no partial fifth-gate credit.
 
 OT-088 ([Decision 0032](../decisions/0032-android-private-pilot-operational-policy-freeze.md),
 [policy](ANDROID_PRIVATE_PILOT_OPERATIONAL_POLICY_V0.md),
-[evidence](../../tests/hardware/OT-088-2026-08-19.md)) freezes the offline and
+[evidence](../../tests/hardware/OT-088-2026-08-19.md)) froze the historical offline and
 transient privacy/data-safety promise, first-release removal/no-downgrade route,
 and bounded best-effort private-pilot support policy. This satisfies exactly
 three additional policy prerequisites, not their later execution checks.
 
-The checked-in plan remains blocked on three exact prerequisites: physical
+The unchanged historical validator reports three exact prerequisites: physical
 acceptance matrix, release identity, and signer/custody. Full lifecycle,
 privacy, operational endurance, usability, rollback, support, and coherent
-cleanup evidence also remain unexecuted. The
+cleanup evidence also remain unexecuted. The current V1 policy/plan mismatch
+is an additional release-admission gate described above; it is not represented
+by a new blocker in the unchanged historical validator. The
 distribution scope is frozen as
 `private-sideload-v1-pilot`; freezing that scope supplies no package, signing,
 installation, support, or release evidence.

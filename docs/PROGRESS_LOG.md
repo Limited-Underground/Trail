@@ -1,6 +1,80 @@
 # OpenTrail Progress Log
 
+## 2026-09-24
+
+### OT-0238b Admit one bounded request on the selected protected phone path
+
+Added the pending-only request owner and the selected protected configuration
+route after a confirmed Ready snapshot. Exact disconnect, authority loss,
+delivery failure or expiry, and containment cancel or retire the request.
+The existing Android app cannot send this action yet; local review, activation
+and physical validation remain open. [Lifecycle and validation boundary](testing/OT-0238b-SELECTED-REQUEST-2026-09-24.md).
+No device operation, V1 credit or website change.
+
+### OT-0238b Bind retained identity to runtime startup and retirement
+
+Connected the actual identity storage owner after reset restoration and before
+BLE callbacks. It loads only existing identity, refuses corrupt/uncertain state,
+and clears live identity before reset or containment, including containment
+before lazy construction. No identity is provisioned at boot and no signing or
+enrollment request interface is exposed. [Validation and limits](testing/OT-0238b-RETAINED-IDENTITY-2026-09-24.md).
+Full enrollment remains in progress; no devices, V1 credit or website change.
+
 ## 2026-09-23
+
+### OT-0238b Serialize BOOT observations and reset priority
+
+Bound the actual GPIO, monotonic clock and leased display to one input owner.
+Normal and contained reset routes retain their existing executors; review draws
+sample again after the complete frame is visible. Reset invalidates review immediately; cleanup acknowledges only verified
+display preemption. A fresh stable release prevents gesture reuse.
+The enrollment review entry remains dormant pending trusted product routing.
+[Implementation, validation and limits](testing/OT-0238b-BOOT-ARBITRATION-2026-09-23.md).
+No device operation, physical acceptance or V1 credit.
+
+### OT-0238b Bind leased enrollment display to the actual OLED driver
+
+Added exclusive revisioned review display ownership, complete eight-row OLED
+rendering and the missing group-separator glyph. Reset invalidates the lease
+before drawing; stale callbacks cannot restore over reset, and failures conceal
+and disable the display owner. This is dormant target code; BOOT/input arbitration
+and product enrollment routing remain open. [Focused validation, affected builds
+and limits](testing/OT-0238b-DISPLAY-LEASE-2026-09-23.md).
+No hardware operation, physical visibility acceptance or V1 credit.
+
+### OT-0301 Bind ordered Android setup to actual device readbacks
+
+Connected name/region UI actions to the live exact-session configuration owner.
+Pending operations invalidate stale revisions; reconnect resumes from new device
+readbacks. Public-profile completion remains blocked rather than inferred from
+local drafts. [Implementation, tests and remaining dependency](testing/OT-0301-ONBOARDING-2026-09-23.md).
+No hardware, installed APK, physical UI acceptance or V1 credit.
+
+
+### OT-0300 Reconcile current Android data policy
+
+Resolved the historical transient-only policy conflict using accepted Decisions
+0009/0103/0104. Saved ownership, block/consent, device versus app cleanup and
+reviewed exports now have explicit boundaries. Frozen historical plan remains
+unchanged; a current successor is still required for release. [Evidence](testing/OT-0300-RETENTION-RECONCILIATION-2026-09-23.md).
+Owner acceptance pending; no hardware, V1 credit or public website change.
+
+### OT-0238b Bind dormant identity storage and exact reset cleanup
+
+Added the target NVS adapter for the existing enrollment identity namespace and
+its exact factory-reset cleanup. Staged old identity bytes cannot be committed
+by a stale adapter after reset; uncertain writes fail closed. Startup does not
+activate enrollment or provision identity. [Implementation, lifecycle review and
+validation](testing/OT-0238b-IDENTITY-NVS-2026-09-23.md) distinguish SDK-seam tests,
+firmware builds and remaining live-runtime/physical gates. No hardware, V1 credit
+or public website change.
+
+### OT-0238b Reconcile the actual target integration boundary
+
+Confirmed the accepted V1 scope excludes hostile physical flash rollback; no new
+secure-element/eFuse/secure-boot requirement. Corrected identity-store comments
+without changing behavior. [Actual remaining ownership and reset gates](testing/OT-0238b-TARGET-INTEGRATION-BOUNDARY-2026-09-23.md).
+
 
 ### OT-0238b Bound local display and button ownership
 

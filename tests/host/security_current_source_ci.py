@@ -165,10 +165,27 @@ def run(output):
               base, (), " enrollment review layout groups")
         suite("enrollment_review_device_port_tests", [*common, ROOT / "tests/host/enrollment_review_device_port_tests.cpp"],
               base, (), " groups passed")
+        bench = ROOT / "firmware/targets/heltec_v4_bench/main"
+        suite("heltec_enrollment_input_arbiter_tests", [*common,
+              *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
+                "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp")],
+              *[ROOT / "firmware/components" / name for name in ("companion/src/companion_factory_reset_gesture.cpp",
+                "ui/src/compact_status_footer.cpp", "ui/src/oled_presentation.cpp", "time/src/oled_clock.cpp")],
+              ROOT / "tests/host/heltec_enrollment_input_arbiter_tests.cpp"],
+              [*base, bench, ROOT / "tests/host/fixtures/heltec_oled",
+               *[ROOT / "firmware/components" / name / "include" for name in ("companion", "ui", "time", "protocol", "radio")]],
+              (), " actual enrollment input arbiter groups")
         suite("enrollment_commit_coordinator_tests", [*common, ROOT / "tests/host/enrollment_commit_coordinator_tests.cpp"],
               base, (), " enrollment commit journal groups")
         suite("enrollment_identity_store_tests", [*common, ROOT / "tests/host/enrollment_identity_store_tests.cpp"],
               base, (), " identity store groups")
+        suite("heltec_enrollment_identity_owner_tests", [*common,
+              ROOT / "tests/host/heltec_enrollment_identity_owner_tests.cpp",
+              *[ROOT / "firmware/targets/heltec_v4_bench/main" / name for name in
+                ("heltec_enrollment_identity_owner.cpp", "enrollment_identity_nvs_storage.cpp", "heltec_v4_factory_reset_storage.cpp")]],
+              [*base, ROOT / "tests/host/fixtures/identity_nvs", ROOT / "firmware/targets/heltec_v4_bench/main",
+               *[ROOT / "firmware/components" / name / "include" for name in ("companion", "radio", "protocol", "location", "time")]],
+              (), " actual retained identity owner groups")
         suite("enrollment_possession_proof_tests", [*common, ROOT / "tests/host/enrollment_possession_proof_tests.cpp"],
               base, (), " enrollment possession:")
         suite("product_enrollment_activation_tests", [*common, ROOT / "tests/host/product_enrollment_activation_tests.cpp"],

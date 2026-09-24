@@ -241,7 +241,84 @@ void unowned_setup_label_remains_after_pairing_timeout() {
     EXPECT(stub::state.frames.back()==expected.present(view,61000,"Saved Name",{},0).pixels);
 }
 
+void review_cells_reach_all_actual_panel_rows() {
+    using opentrail::security_evaluation::EnrollmentReviewLayout;
+    stub::reset(); HeltecV4Oled port; StartupDisplayOwner owner(port);
+    EXPECT(owner.start()); std::uint64_t lease{}; EXPECT(owner.acquire_enrollment_review(lease));
+    EnrollmentReviewLayout layout{};
+    // Exact edge-cell fixture. Independent expected SSD1306 columns prove the
+    // complete 21-cell row and all eight pages reach the real driver boundary.
+    for (auto& row : layout.text) { row.fill('A'); row[21]=0; }
+    EXPECT(owner.render_enrollment_review(lease,1,layout));
+    std::array<std::uint8_t,1024> expected{};
+    constexpr std::array<std::uint8_t,5> a{0x7E,0x11,0x11,0x11,0x7E};
+    for(unsigned row=0;row<8;++row)for(unsigned cell=0;cell<21;++cell)
+        for(unsigned x=0;x<5;++x)expected[row*128+1+cell*6+x]=a[x];
+    EXPECT(stub::state.frames.back()==expected);EXPECT(stub::state.bounds_valid);
+    // The group separator must not be silently rendered as a blank glyph.
+    layout={};layout.text[6][0]='G';layout.text[6][1]=':';
+    EXPECT(owner.render_enrollment_review(lease,2,layout));
+    const auto& pixels=stub::state.frames.back();
+    EXPECT(pixels[6*128+8]==0x36 && pixels[6*128+9]==0x36);
+    for(unsigned row=0;row<8;++row)if(row!=6)
+        for(unsigned x=0;x<128;++x)EXPECT(pixels[row*128+x]==0);
+    // Four complete 16-digit fingerprint rows and the full group occupy their
+    // exact cells. Fixed glyph columns independently check every visible digit.
+    constexpr char digits[]="0123456789ABCDEF";
+    constexpr std::array<std::array<std::uint8_t,5>,16> hex{{
+        {0x3E,0x51,0x49,0x45,0x3E},{0,0x42,0x7F,0x40,0},
+        {0x42,0x61,0x51,0x49,0x46},{0x21,0x41,0x45,0x4B,0x31},
+        {0x18,0x14,0x12,0x7F,0x10},{0x27,0x45,0x45,0x45,0x39},
+        {0x3C,0x4A,0x49,0x49,0x30},{0x01,0x71,0x09,0x05,0x03},
+        {0x36,0x49,0x49,0x49,0x36},{0x06,0x49,0x49,0x29,0x1E},
+        {0x7E,0x11,0x11,0x11,0x7E},{0x7F,0x49,0x49,0x49,0x36},
+        {0x3E,0x41,0x41,0x41,0x22},{0x7F,0x41,0x41,0x22,0x1C},
+        {0x7F,0x49,0x49,0x49,0x41},{0x7F,0x09,0x09,0x09,0x01}}};
+    for(unsigned row=2;row<6;++row)for(unsigned cell=0;cell<16;++cell)layout.text[row][cell]=digits[cell];
+    for(unsigned cell=0;cell<16;++cell)layout.text[6][cell+2]=digits[cell];
+    EXPECT(owner.render_enrollment_review(lease,3,layout));
+    const auto& fingerprint=stub::state.frames.back();
+    for(unsigned row=2;row<7;++row)for(unsigned cell=0;cell<16;++cell)
+        for(unsigned x=0;x<5;++x)EXPECT(fingerprint[row*128+1+(cell+(row==6?2:0))*6+x]==hex[cell][x]);
+    EXPECT(owner.release_enrollment_review(lease));
+    EXPECT(stub::state.frames.back()==kTrailStartupLogoSsd1306);
+}
+
+void review_driver_rejects_clipping_and_conceals_failures() {
+    using opentrail::security_evaluation::EnrollmentReviewLayout;
+    for(unsigned mode=0;mode<5;++mode) {
+        stub::reset();HeltecV4Oled port;StartupDisplayOwner owner(port);std::uint64_t lease{};
+        EXPECT(owner.start());EXPECT(owner.acquire_enrollment_review(lease));
+        EnrollmentReviewLayout layout{};layout.text[0][0]='A';
+        EXPECT(owner.render_enrollment_review(lease,1,layout));
+        if(mode==0) layout.text[7].fill('A'); // Missing terminator.
+        if(mode==1) layout.text[0][2]='B'; // Hidden bytes after the NUL.
+        if(mode==2) stub::state.draw_failures=1;
+        if(mode==3) stub::state.now_us=-1;
+        if(mode==4) {stub::state.fail_all_draws=true;stub::state.fail_panel_off=true;}
+        EXPECT(!owner.render_enrollment_review(lease,2,layout));
+        EXPECT(!owner.status().available && owner.enrollment_review_status().lease==0);
+        EXPECT(stub::state.power_off_calls>=1);
+        const auto count=stub::state.frames.size();
+        EXPECT(!owner.render_enrollment_review(lease,3,layout));
+        EXPECT(stub::state.frames.size()==count);
+    }
+}
+
+void review_reset_uses_actual_driver_and_rejects_stale_release() {
+    stub::reset();HeltecV4Oled port;StartupDisplayOwner owner(port);std::uint64_t lease{};
+    EXPECT(owner.start());EXPECT(owner.acquire_enrollment_review(lease));
+    opentrail::security_evaluation::EnrollmentReviewLayout layout{};layout.text[0][0]='A';
+    EXPECT(owner.render_enrollment_review(lease,1,layout));
+    EXPECT(owner.show_factory_reset_confirmation());const auto reset=stub::state.frames.back();
+    EXPECT(!owner.release_enrollment_review(lease));EXPECT(stub::state.frames.back()==reset);
+    EXPECT(owner.clear_factory_reset_confirmation());EXPECT(stub::state.frames.back()==kTrailStartupLogoSsd1306);
+}
+
 int main() {
+    review_cells_reach_all_actual_panel_rows();
+    review_driver_rejects_clipping_and_conceals_failures();
+    review_reset_uses_actual_driver_and_rejects_stale_release();
     unowned_setup_label_remains_after_pairing_timeout();
     metadata_redraw_and_overlays_preserve_latest_clock();
     clock_minute_redraw_survives_unchanged_transport_footer();
@@ -254,6 +331,6 @@ int main() {
     pairing_clear_and_failure_use_real_owner_and_port();
     rollback_cannot_be_followed_by_pairing_digits();
     if (failures) return 1;
-    std::cout << "PASS actual Heltec OLED port: 11 groups\n";
+    std::cout << "PASS actual Heltec OLED port: 14 groups\n";
     return 0;
 }

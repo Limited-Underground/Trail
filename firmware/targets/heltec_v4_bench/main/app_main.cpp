@@ -15,7 +15,7 @@
 #include "heltec_v4_battery.hpp"
 #include "heltec_v4_gnss.hpp"
 #include "heltec_v4_oled.hpp"
-#include "heltec_v4_factory_reset_input.hpp"
+#include "heltec_enrollment_input_arbiter.hpp"
 #include "heltec_v4_secure_random.hpp"
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_pairing_window.hpp"
@@ -31,7 +31,7 @@ using opentrail::target::heltec_v4_bench::startup_display_frame_for_ble_phase;
 using opentrail::target::heltec_v4_bench::companion_nimble_runtime_status;
 using opentrail::companion::CompanionFactoryResetGestureEvent;
 using opentrail::target::heltec_v4_bench::PairingPinDisplayPortAdapter;
-using opentrail::target::heltec_v4_bench::HeltecV4FactoryResetInput;
+using opentrail::target::heltec_v4_bench::HeltecEnrollmentInputArbiter;
 using opentrail::target::heltec_v4_bench::HeltecV4SecureRandom;
 
 constexpr char kLogTag[] = "ot_bench";
@@ -47,7 +47,7 @@ HeltecV4SecureRandom g_pairing_random;
 opentrail::companion::CompanionPairingWindow g_pairing_window{
     g_pairing_random, g_pairing_display};
 #if !OPENTRAIL_CONFIRMATION_EVALUATION
-HeltecV4FactoryResetInput g_factory_reset_input;
+HeltecEnrollmentInputArbiter g_factory_reset_input{g_startup_display};
 #endif
 HeltecV4Gnss g_gnss;
 opentrail::ui::compact_status_footer::Metric g_battery_percent{};
@@ -197,17 +197,16 @@ bool run_companion_codec_self_check() {
 #endif
     while (true) {
 #if !OPENTRAIL_CONFIRMATION_EVALUATION
-        const auto now_ms =
-            static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
         if (!ble_containment_verified) {
             vTaskDelay(pdMS_TO_TICKS(100));
             continue;
         }
-        const auto reset_event = g_factory_reset_input.poll(now_ms);
+        const auto reset_event = g_factory_reset_input.poll();
+        const auto reset_generation = g_factory_reset_input.generation();
         if (reset_event ==
             CompanionFactoryResetGestureEvent::prompt_requested) {
             if (!g_startup_display.show_factory_reset_confirmation()) {
-                (void)g_factory_reset_input.cancel(now_ms);
+                (void)g_factory_reset_input.cancel(reset_generation);
             }
         } else if (reset_event ==
                    CompanionFactoryResetGestureEvent::prompt_cancelled) {
@@ -239,7 +238,7 @@ bool run_companion_codec_self_check() {
             // complete physical gesture again.
             observe_display_result(
                 g_startup_display.clear_factory_reset_confirmation());
-            (void)g_factory_reset_input.rearm_after_noncommit(now_ms);
+            (void)g_factory_reset_input.rearm_after_noncommit(reset_generation);
         }
 #endif
         // No BLE, GNSS, battery, heartbeat, pairing, or normal command
@@ -276,7 +275,7 @@ extern "C" void app_main() {
     const auto started_at_ms =
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
 #if !OPENTRAIL_CONFIRMATION_EVALUATION
-    if (!g_factory_reset_input.initialize(started_at_ms)) {
+    if (!g_factory_reset_input.initialize()) {
         contain_runtime_failure();
     }
 #endif
@@ -339,11 +338,12 @@ extern "C" void app_main() {
             contain_runtime_failure();
         }
 #if !OPENTRAIL_CONFIRMATION_EVALUATION
-        const auto reset_event = g_factory_reset_input.poll(elapsed_ms);
+        const auto reset_event = g_factory_reset_input.poll();
+        const auto reset_generation = g_factory_reset_input.generation();
         if (reset_event ==
             CompanionFactoryResetGestureEvent::prompt_requested) {
             if (!g_startup_display.show_factory_reset_confirmation()) {
-                (void)g_factory_reset_input.cancel(elapsed_ms);
+                (void)g_factory_reset_input.cancel(reset_generation);
             }
         } else if (reset_event ==
                    CompanionFactoryResetGestureEvent::prompt_cancelled) {

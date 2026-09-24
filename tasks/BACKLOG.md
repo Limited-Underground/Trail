@@ -543,7 +543,7 @@ Planning only: the remaining approved V1 scope is decomposed below. Registration
 | OT-0247e | owner-accepted host investigation | OT-0247b | [Actual bridge replay and quantified transport residual](../docs/testing/OT-0247e-HOST-REPLAY-2026-09-22.md): eight deliveries in all four models; physical expiry not reproduced, no production correction. |
 | OT-0247f | owner-accepted host investigation | OT-0247b | [Asynchronous serial model and phase residual](../docs/testing/OT-0247f-ASYNC-SERIAL-MODEL-2026-09-22.md): read/guard counts reconciled, physical expiry not reproduced; combined completion/rearm recommendation only. |
 | OT-0247g | host implementation owner accepted | OT-0247b | [Guarded completion/rearm and paired replay](../docs/testing/OT-0247g-GUARDED-COMPLETION-2026-09-22.md): nine nominal schedules deliver eight statuses with measured savings; OT-0247f timing erratum recorded. All 44 final host suites, both affected builds, enrolled reproducibility and independent review pass; owner acceptance verified; corrected physical trial passes, task acceptance pending. |
-| OT-0238b | in progress: retained rekey host composition; target integration remains | OT-0238a | [Bootstrap and retained-identity/exact-epoch reconciliation](../docs/testing/OT-0238b-PRODUCT-ENROLLMENT-RECONCILIATION-2026-09-23.md); [retained rekey host evidence](../docs/testing/OT-0238b-RETAINED-REKEY-2026-09-23.md); [screen/button host adapter](../docs/testing/OT-0238b-REVIEW-DEVICE-PORT-2026-09-23.md); target adapters/physical acceptance and uncertain repair remain |
+| OT-0238b | in progress: retained rekey host composition; target integration remains | OT-0238a | [Bootstrap and retained-identity/exact-epoch reconciliation](../docs/testing/OT-0238b-PRODUCT-ENROLLMENT-RECONCILIATION-2026-09-23.md); [retained rekey host evidence](../docs/testing/OT-0238b-RETAINED-REKEY-2026-09-23.md); [screen/button host adapter](../docs/testing/OT-0238b-REVIEW-DEVICE-PORT-2026-09-23.md); [dormant identity NVS/reset adapter](../docs/testing/OT-0238b-IDENTITY-NVS-2026-09-23.md); [leased target display](../docs/testing/OT-0238b-DISPLAY-LEASE-2026-09-23.md); [target BOOT/reset arbitration](../docs/testing/OT-0238b-BOOT-ARBITRATION-2026-09-23.md); [retained identity startup/retirement](../docs/testing/OT-0238b-RETAINED-IDENTITY-2026-09-24.md); [selected pending phone request](../docs/testing/OT-0238b-SELECTED-REQUEST-2026-09-24.md); Android action/UI, local review, remaining storage/activation composition, physical acceptance and uncertain repair remain |
 | OT-0238c | planned | OT-0238a | Accept retained restart, revoke and fresh rekey |
 | OT-0237b | planned | OT-0237a | Accept exact-target entropy and startup failure behavior |
 | OT-0237c | planned | OT-0237a | Accept interrupted counter and receive persistence |
@@ -560,8 +560,8 @@ Planning only: the remaining approved V1 scope is decomposed below. Registration
 | OT-0089e | planned | OT-0089a | Accept bounded field and endurance observations |
 | OT-0089f | planned | OT-0089b | Reconcile release evidence and operator documentation |
 | OT-0089g | planned | OT-0089b | Publish approved release and verify exact remote artifacts |
-| OT-0300 | planned | OT-0086a | Reconcile Android retention and sharing policy |
-| OT-0301 | planned | OT-0170a | Complete ordered resumable onboarding |
+| OT-0300 | ready for owner review | OT-0086a | [Reconcile Android retention and sharing policy](../docs/testing/OT-0300-RETENTION-RECONCILIATION-2026-09-23.md) |
+| OT-0301 | host portion implemented; final flow blocked | OT-0170a | [Ordered name/region onboarding](../docs/testing/OT-0301-ONBOARDING-2026-09-23.md); public-profile support and OT-0302 ordering remain |
 | OT-0302 | planned | OT-0170a | Complete protected setup settings bindings |
 | OT-0303 | planned | OT-0170a | Complete reset-aware saved-device recovery |
 | OT-0304 | planned | OT-0170a | Accept physical first-use and production launch |
