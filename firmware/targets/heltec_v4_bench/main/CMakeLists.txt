@@ -40,6 +40,7 @@ idf_component_register(
         "heltec_enrollment_input_arbiter.cpp"
         "heltec_v4_factory_reset_storage.cpp"
         "enrollment_identity_nvs_storage.cpp"
+        "heltec_enrollment_identity_owner.cpp"
         "heltec_v4_gnss.cpp"
         "heltec_v4_oled.cpp"
         "heltec_oled_presentation.cpp"
@@ -97,7 +98,7 @@ idf_component_register(
         esp_lcd
         mbedtls
         nvs_flash
-    PRIV_REQUIRES ${OPENTRAIL_CONFIRMATION_REQUIRES}
+    PRIV_REQUIRES espressif__libsodium ${OPENTRAIL_CONFIRMATION_REQUIRES}
 )
 target_compile_definitions(${COMPONENT_LIB} PRIVATE OPENTRAIL_CONFIRMATION_EVALUATION=$<BOOL:${OPENTRAIL_CONFIRMATION_EVALUATION}>)
 if(OPENTRAIL_CONFIRMATION_EVALUATION)
@@ -108,3 +109,6 @@ if(OPENTRAIL_CONFIRMATION_EVALUATION)
     target_compile_features(${COMPONENT_LIB} PRIVATE cxx_std_17)
     target_compile_options(${COMPONENT_LIB} PRIVATE -fstack-usage)
 endif()
+
+target_link_libraries(${COMPONENT_LIB} PRIVATE idf::espressif__libsodium)
+target_compile_features(${COMPONENT_LIB} PRIVATE cxx_std_17)

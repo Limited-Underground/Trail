@@ -16,6 +16,7 @@
 #include "companion_region_storage.hpp"
 #include "companion_v1_heltec_adapters.hpp"
 #include "heltec_startup_display.hpp"
+#include "heltec_enrollment_identity_owner.hpp"
 #include "heltec_v4_factory_reset_storage.hpp"
 #include "esp_err.h"
 #include "esp_system.h"
@@ -515,6 +516,11 @@ public:
              DeviceFactoryResetPhase::idle_unowned)) {
             return fail_security_configuration(9);
         }
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+        // Reset restoration is complete and the serialization lock is held.
+        // No BLE host task exists yet. Optional identity faults do not disable BLE.
+        (void)opentrail::targets::heltec_v4_bench::load_retained_enrollment_identity();
+#endif
         g_boot_unowned = owner_unowned;
         return true;
     }
@@ -593,6 +599,10 @@ public:
     }
 
     bool contain_stack() override {
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+        // Retire volatile identity before any reset cleanup or stack teardown.
+        opentrail::targets::heltec_v4_bench::retire_retained_enrollment_identity();
+#endif
         if (contained_) return shutdown_complete_;
         // Application-owner cleanup must drain the non-owning entropy guard
         // before this existing owner stops/deinitializes the BLE controller.

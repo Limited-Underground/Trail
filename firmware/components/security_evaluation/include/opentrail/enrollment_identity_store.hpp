@@ -18,6 +18,26 @@ public:
     EnrollmentIdentityStore(const EnrollmentIdentityStore&)=delete;
     EnrollmentIdentityStore& operator=(const EnrollmentIdentityStore&)=delete;
     ~EnrollmentIdentityStore() { sodium_memzero(retained_.data(),sizeof(retained_)); }
+    enum class LoadResult { absent, ready, fault };
+    // Boot restoration must never create a durable identity or request entropy.
+    LoadResult load_existing() {
+        LoadResult result=LoadResult::fault;
+        operation([&] {
+            if(initialized_) return refuse();
+            initialized_=true;
+            if(!snapshot(retained_)) return refuse();
+            bool empty=true;for(const auto& slot:retained_)for(auto byte:slot)empty&=byte==0xff;
+            if(empty) {
+                sodium_memzero(retained_.data(),sizeof(retained_));
+                result=LoadResult::absent;return true;
+            }
+            if(!valid() || !exact()) return refuse();
+            ready_=true;result=LoadResult::ready;return true;
+        });
+        return failed_ ? LoadResult::fault : result;
+    }
+    // Serialized terminal revocation; cannot reload or provision this instance.
+    void retire() { (void)refuse(); }
     bool initialize() {
         return operation([&] {
             if (initialized_) return refuse();

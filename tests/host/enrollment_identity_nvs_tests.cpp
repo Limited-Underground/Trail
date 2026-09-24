@@ -65,6 +65,7 @@ constexpr auto secret=StorageDomain::secret_material;
 bool read(EnrollmentIdentityNvsStorage& s,std::array<std::uint8_t,64>& out){return s.read_slot(secret,0,{out.data(),out.size()}).read();}
 bool stage(EnrollmentIdentityNvsStorage& s,std::uint8_t value=0xf0){return s.write_slot(secret,0,0,{&value,1})==StorageError::none;}
 bool sync(EnrollmentIdentityNvsStorage& s){return s.sync_slot(secret,0)==StorageError::none;}
+#ifndef OPENTRAIL_IDENTITY_NVS_FIXTURE_ONLY
 int main(){
  int groups=0;std::array<std::uint8_t,64> out{};
  reset();{EnrollmentIdentityNvsStorage s;assert(read(s,out)&&out[0]==0xff&&disk.empty());assert(stage(s)&&sets==0);assert(sync(s)&&sets==1);assert(read(s,out)&&out[0]==0xf0);EnrollmentIdentityNvsStorage resumed;assert(read(resumed,out)&&out[0]==0xf0);assert(!stage(s,0xff));assert(read(s,out));}++groups;
@@ -85,3 +86,5 @@ int main(){
  reset();{EnrollmentIdentityNvsStorage old;assert(stage(old)&&sync(old));error_namespace=kEnrollmentIdentityStorageNamespace;erase_error=ESP_FAIL;HeltecV4FactoryResetUserDomainStorage reset_port;assert(!reset_port.erase_all_and_verify_absent().verified_absent);erase_error=0;assert(!read(old,out));assert(reset_port.erase_all_and_verify_absent().verified_absent);}++groups;
  assert(handles.empty());std::cout<<"PASS "<<groups<<" actual identity NVS and factory-reset groups\n";
 }
+
+#endif

@@ -163,12 +163,12 @@ def admitted_target_sources(cmake: str) -> list[str]:
     require("if(OPENTRAIL_CONFIRMATION_EVALUATION)" in evaluation and
             set(evaluation_tokens) == expected_evaluation and len(evaluation_tokens) == 7,
             "evaluation source set must remain exact and opt-in")
-    require(len(ordinary_tokens) == 49 and len(set(ordinary_tokens)) == 49 and
+    require(len(ordinary_tokens) == 50 and len(set(ordinary_tokens)) == 50 and
             "enrollment_identity_nvs_storage.cpp" in ordinary_tokens and
             not expected_evaluation.intersection(ordinary_tokens) and
             ordinary.count("${OPENTRAIL_CONFIRMATION_SOURCES}") == 1 and
             "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp" in ordinary_tokens,
-            "ordinary build must retain 49 unique sources and one conditional insertion")
+            "ordinary build must retain 50 unique sources and one conditional insertion")
     return ordinary_tokens + evaluation_tokens
 
 
@@ -217,6 +217,8 @@ def test_contract() -> None:
         "main/heltec_v4_factory_reset_storage.hpp",
         "main/enrollment_identity_nvs_storage.cpp",
         "main/enrollment_identity_nvs_storage.hpp",
+        "main/heltec_enrollment_identity_owner.cpp",
+        "main/heltec_enrollment_identity_owner.hpp",
         # Retained as dormant history only. The build and application gates
         # below prove this former 3-second pairing input is unreachable.
         "main/heltec_v4_pairing_input.cpp",
@@ -1240,7 +1242,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 55,
+    require(len(other_linked_sources) == 56,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1315,7 +1317,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 55,
+    require(len(other_linked_sources) == 56,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2290,8 +2292,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(len(admitted_target_sources(cmake)) == 56,
-            "target must admit 47 ordinary and seven evaluation source units")
+    require(len(admitted_target_sources(cmake)) == 57,
+            "target must admit 50 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
@@ -3324,6 +3326,22 @@ def test_configuration_transport_and_storage_surface() -> None:
             "name persistence must participate in reset erase and fresh absence verification")
 
 
+def test_retained_identity_runtime_surface():
+    runtime = (TARGET / "main/companion_nimble_runtime.cpp").read_text()
+    owner = (TARGET / "main/heltec_enrollment_identity_owner.cpp").read_text()
+    configure = runtime[runtime.index("const auto owner_restored ="):runtime.index("bool register_protected_service()")]
+    require(configure.index("if (owner_unowned !=") < configure.index("load_retained_enrollment_identity()") < configure.index("g_boot_unowned ="),
+            "retained identity must load only after reset restoration and owner consistency")
+    require("#if !OPENTRAIL_CONFIRMATION_EVALUATION" in configure,
+            "product retained identity must remain excluded from confirmation profile")
+    contain = runtime[runtime.index("bool contain_stack() override"):runtime.index("bool contain_stack() override")+800]
+    require(contain.index("retire_retained_enrollment_identity()") < contain.index("if (contained_)"),
+            "every containment including repeated/failed teardown must retire first")
+    require("identity_.load_existing()" in owner and "identity_.initialize()" not in owner and
+            "if(retired) return" in owner and "retired=true" in owner,
+            "boot must not provision; preconstruction retirement must be terminal")
+
+
 def main() -> int:
     tests = (test_contract, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
@@ -3338,7 +3356,7 @@ def main() -> int:
              test_build_only_tooling,
              test_automatic_termination_acceptance_surface,
              test_factory_reset_surfaces, test_secure_random_surface,
-             test_configuration_transport_and_storage_surface)
+             test_configuration_transport_and_storage_surface, test_retained_identity_runtime_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

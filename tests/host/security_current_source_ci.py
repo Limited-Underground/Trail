@@ -179,6 +179,13 @@ def run(output):
               base, (), " enrollment commit journal groups")
         suite("enrollment_identity_store_tests", [*common, ROOT / "tests/host/enrollment_identity_store_tests.cpp"],
               base, (), " identity store groups")
+        suite("heltec_enrollment_identity_owner_tests", [*common,
+              ROOT / "tests/host/heltec_enrollment_identity_owner_tests.cpp",
+              *[ROOT / "firmware/targets/heltec_v4_bench/main" / name for name in
+                ("heltec_enrollment_identity_owner.cpp", "enrollment_identity_nvs_storage.cpp", "heltec_v4_factory_reset_storage.cpp")]],
+              [*base, ROOT / "tests/host/fixtures/identity_nvs", ROOT / "firmware/targets/heltec_v4_bench/main",
+               *[ROOT / "firmware/components" / name / "include" for name in ("companion", "radio", "protocol", "location", "time")]],
+              (), " actual retained identity owner groups")
         suite("enrollment_possession_proof_tests", [*common, ROOT / "tests/host/enrollment_possession_proof_tests.cpp"],
               base, (), " enrollment possession:")
         suite("product_enrollment_activation_tests", [*common, ROOT / "tests/host/product_enrollment_activation_tests.cpp"],

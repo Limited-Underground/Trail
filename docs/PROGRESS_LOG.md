@@ -1,5 +1,16 @@
 # OpenTrail Progress Log
 
+## 2026-09-24
+
+### OT-0238b Bind retained identity to runtime startup and retirement
+
+Connected the actual identity storage owner after reset restoration and before
+BLE callbacks. It loads only existing identity, refuses corrupt/uncertain state,
+and clears live identity before reset or containment, including containment
+before lazy construction. No identity is provisioned at boot and no signing or
+enrollment request interface is exposed. [Validation and limits](testing/OT-0238b-RETAINED-IDENTITY-2026-09-24.md).
+Full enrollment remains in progress; no devices, V1 credit or website change.
+
 ## 2026-09-23
 
 ### OT-0238b Serialize BOOT observations and reset priority

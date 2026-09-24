@@ -62,5 +62,8 @@ int main(){unsigned groups=0;
         Storage s;Random r;EnrollmentIdentityStore owner(s,r);CHECK(owner.initialize());s.arm(fault,n);
         InvitationKey key{};key.fill(91);auto saved=key;CHECK(!owner.public_key(key)&&key==saved&&owner.failed());++groups;
     }
+    {Storage s;Random r;EnrollmentIdentityStore empty(s,r);CHECK(empty.load_existing()==EnrollmentIdentityStore::LoadResult::absent);CHECK(r.fills==0);CHECK(!empty.initialize());++groups;}
+    {Storage s;Random r;EnrollmentIdentityStore first(s,r);CHECK(first.initialize());EnrollmentIdentityStore loaded(s,r);CHECK(loaded.load_existing()==EnrollmentIdentityStore::LoadResult::ready);CHECK(r.fills==1);loaded.retire();InvitationKey key{};key.fill(9);auto saved=key;CHECK(loaded.failed()&&!loaded.public_key(key)&&key==saved);CHECK(!loaded.initialize()&&loaded.load_existing()==EnrollmentIdentityStore::LoadResult::fault);++groups;}
+    {HookStorage s;Random r;EnrollmentIdentityStore first(s,r);CHECK(first.initialize());EnrollmentIdentityStore loaded(s,r);bool once=false;s.hook=[&]{if(!once){once=true;loaded.retire();}};CHECK(loaded.load_existing()==EnrollmentIdentityStore::LoadResult::fault);++groups;}
     std::cout<<"PASS "<<groups<<" identity store groups\n";
 }
