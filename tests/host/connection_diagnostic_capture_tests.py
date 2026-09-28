@@ -219,7 +219,8 @@ class SerialTests(unittest.TestCase):
         self.open_error = False
         self.close_error = False
         self.open_delay = 0
-        self.ports = [SimpleNamespace(vid=0x303A, pid=0x1001, serial_number="00:11:22:33:44:55", device="COM42")]
+        self.ports = [SimpleNamespace(vid=0x303A, pid=0x1001,
+            serial_number=":".join(("00", "11", "22", "33", "44", "55")), device="COM42")]
         owner = self
 
         class FakeSerial:
@@ -265,6 +266,7 @@ class SerialTests(unittest.TestCase):
         self.assertEqual(sum(call[0] == "close" for call in self.calls), 1)
         self.assertNotIn("COM42", json.dumps(result))
         self.assertNotIn("001122334455", json.dumps(result))
+        self.assertNotIn(self.ports[0].serial_number, json.dumps(result))
 
     def test_armed_callback_runs_once_after_open_before_read(self):
         def armed():

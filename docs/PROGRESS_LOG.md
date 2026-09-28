@@ -13,8 +13,12 @@ remain frozen and require refreshed test pins before another physical attempt.
 GitHub passed those affected tests and exposed the next stale live-config pin.
 The checkout-byte registry now binds the previously reviewed 8192-byte BLE stack
 configuration; its CRLF/BOM policy and all historical pins remain unchanged.
-The 291-input checkout audit passes. Full GitHub validation is pending these
-corrections. No device access, V1 progress
+The 291-input checkout audit passes. The next full run passed functional tests
+up to the final publication scan, which flagged a synthetic colon-form identity
+literal in a test. Constructing that same runtime fixture as the scanner's own
+tests do preserves normalization coverage; an added assertion rejects its
+appearance in reports. All 31 capture tests and the unchanged publication scan
+pass. Full GitHub validation is pending these corrections. No device access, V1 progress
 credit or public website status change occurred.
 
 ### OT-0101e Prepare protected-read diagnostics and display comparison
