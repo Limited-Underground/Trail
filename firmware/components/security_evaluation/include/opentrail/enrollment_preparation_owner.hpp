@@ -2,6 +2,7 @@
 #include "opentrail/enrollment_fingerprint_review.hpp"
 #include "opentrail/enrollment_possession_proof.hpp"
 #include "opentrail/session_generation_storage.hpp"
+#include "opentrail/enrollment_retained_state.hpp"
 
 namespace opentrail::security_evaluation {
 class EnrollmentPreparationOwner;
@@ -31,8 +32,9 @@ private:
     EnrollmentPreparationOwner& owner()const{return *owner_;}
     VerifiedIdentityBinding binding_;std::uint64_t generation_;std::array<std::uint8_t,16> operation_;InvitationRole role_;FingerprintReviewContext context_;EnrollmentPreparationOwner* owner_;bool spent_{};
 };
-// First-enrollment host composition. The actual allocator, device identity owner,
-// trusted local review and fresh dual possession proofs precede invitation signing.
+// Enrollment/rekey host composition. The actual allocator, device identity owner,
+// trusted local review or owned retained comparison, and fresh dual possession
+// proofs precede invitation signing.
 // Target port and entropy hardware remain separately validated dependencies.
 // All dependencies share one serialized owner. Terminal port samples are read-only:
 // they must not mutate allocator/identity state or invoke other owners. No concurrent
@@ -41,7 +43,16 @@ class EnrollmentPreparationOwner final {
 public:
     EnrollmentPreparationOwner(security::SecureRandomSource& random,EnrollmentIdentityStore& identity,SessionGenerationAllocator& allocator,
         FingerprintReviewPort& port,ReviewedEnrollmentIdentity&& review)
-        :random_(random),identity_(identity),allocator_(allocator),port_(port),review_(std::move(review)){failed_=!review_.consume();}
+        :random_(random),identity_(identity),allocator_(allocator),port_(port),
+         identities_(review.identities()),context_(review.context()),role_(review.role()),group_(review.group()),
+         confirmed_(review.confirmed_at()),deadline_(review.deadline()),revision_(review.display_revision()) { failed_=!review.consume(); }
+    EnrollmentPreparationOwner(security::SecureRandomSource& random,EnrollmentIdentityStore& identity,SessionGenerationAllocator& allocator,
+        FingerprintReviewPort& port,ComparedRetainedEnrollment&& retained)
+        :random_(random),identity_(identity),allocator_(allocator),port_(port),
+         identities_(retained.prior().identities()),context_(retained.context()),role_(retained.role()),
+         group_(independent_invitation_detail::decode(retained.prior().invitation()).group),
+         confirmed_(retained.confirmed_at()),deadline_(retained.deadline()),revision_(retained.display_revision()),
+         prior_(retained.prior()),retained_owner_(&retained.owner()) { failed_=!retained.consume(); }
     EnrollmentPreparationOwner(const EnrollmentPreparationOwner&)=delete;
     EnrollmentPreparationOwner& operator=(const EnrollmentPreparationOwner&)=delete;
     bool prepare_challenge(std::array<std::uint8_t,32>& output){
@@ -58,10 +69,10 @@ public:
     bool accept_possession(const VerifiedEnrollmentPossession& proof){
         return operation([&]{
             if(possession_ || !challenge_ready_ || !fresh())return false;
-            const auto& p=proof.identities();const auto& pins=review_.identities();const auto& s=proof.statement();
+            const auto& p=proof.identities();const auto& pins=identities_;const auto& s=proof.statement();
             const auto& c=initiator()?s.initiator_context:s.responder_context;
-            if(p.initiator!=pins.initiator || p.responder!=pins.responder || s.group!=review_.group() ||
-                (initiator()?s.initiator_challenge:s.responder_challenge)!=challenge_ || c.boot!=review_.context().boot || c.generation!=review_.context().generation || c.request!=review_.context().request)return false;
+            if(p.initiator!=pins.initiator || p.responder!=pins.responder || s.group!=group_ ||
+                (initiator()?s.initiator_challenge:s.responder_challenge)!=challenge_ || c.boot!=context_.boot || c.generation!=context_.generation || c.request!=context_.request)return false;
             possession_=proof;possession_at_=last_;return fresh();
         });
     }
@@ -81,8 +92,8 @@ public:
             if(signed_ || !possession_ || !fresh() || !valid(copy) ||
                 (initiator() && (!issued_ || copy.payload!=issued_invitation_.payload || copy.signature!=issued_invitation_.signature)))return false;
             signed_=true;
-            if(crypto_sign_verify_detached(copy.signature.data(),copy.payload.data(),copy.payload.size(),review_.identities().initiator.data())!=0)return false;
-            const auto bytes=enrollment_identity_signing_bytes(review_.identities(),copy);
+            if(crypto_sign_verify_detached(copy.signature.data(),copy.payload.data(),copy.payload.size(),identities_.initiator.data())!=0)return false;
+            const auto bytes=enrollment_identity_signing_bytes(identities_,copy);
             if(!identity_.sign(bytes.data(),bytes.size(),staged) || !fresh() || !valid(copy))return false;
             signed_invitation_=copy;signature_=staged;return true;
         });
@@ -95,13 +106,14 @@ public:
             authorized_=true;
             if(copy.invitation.payload!=signed_invitation_.payload || copy.invitation.signature!=signed_invitation_.signature ||
                 (initiator()?copy.initiator_signature:copy.responder_signature)!=signature_)return false;
-            if(!EnrollmentIdentityVerifier(review_.identities(),review_.identities().initiator,review_.group()).verify(copy,verified))return false;
-            const auto bytes=enrollment_identity_signing_bytes(review_.identities(),copy.invitation);InvitationKey digest{};
+            const auto verifier=prior_ ? EnrollmentIdentityVerifier(*prior_) : EnrollmentIdentityVerifier(identities_,identities_.initiator,group_);
+            if(!verifier.verify(copy,verified))return false;
+            const auto bytes=enrollment_identity_signing_bytes(identities_,copy.invitation);InvitationKey digest{};
             if(crypto_hash_sha256(digest.data(),bytes.data(),bytes.size())!=0)return false;
             std::memcpy(op.data(),digest.data(),op.size());
             return invitation_detail::nonzero(op) && fresh() && valid(copy.invitation);
         });
-        if(ok){output=TrustedEnrollmentBinding(*verified,review_.context().generation,op,review_.role(),review_.context(),*this);}return ok;
+        if(ok){output=TrustedEnrollmentBinding(*verified,context_.generation,op,role_,context_,*this);}return ok;
     }
     void cancel(){failed_=true;}
 private:
@@ -109,23 +121,28 @@ private:
     friend class ProductEnrollmentActivation;
     bool active_generation_current(){
         InvitationKey key{};
-        return !failed_ && token_consumed_ && allocator_.current(review_.context().generation) &&
-            identity_.public_key(key) && key==(initiator()?review_.identities().initiator:review_.identities().responder) && !failed_;
+        return !failed_ && token_consumed_ && (!retained_owner_ || (retained_handoff_ ? retained_owner_->live() : retained_owner_->retained_current())) && allocator_.current(context_.generation) &&
+            identity_.public_key(key) && key==(initiator()?identities_.initiator:identities_.responder) && !failed_;
     }
     bool consume_token(){return operation([&]{if(!authorized_ || token_consumed_)return false;token_consumed_=true;return fresh() && valid(signed_invitation_);});}
-    bool token_consumed_{};
-    bool initiator()const{return review_.role()==InvitationRole::initiator;}
+    bool handoff_retained() {
+        if(!prior_ || retained_handoff_ || !retained_owner_ || !retained_owner_->retained_current()) return false;
+        retained_handoff_=true;return true;
+    }
+    const std::optional<VerifiedIdentityBinding>& prior_binding()const{return prior_;}
+    bool token_consumed_{},retained_handoff_{};
+    bool initiator()const{return role_==InvitationRole::initiator;}
     bool fresh(){
         InvitationKey local{};
-        if(failed_ || !allocator_.current(review_.context().generation) || !identity_.public_key(local) ||
-            local!=(initiator()?review_.identities().initiator:review_.identities().responder))return false;
+        if(failed_ || (retained_owner_ && !retained_owner_->current()) || !allocator_.current(context_.generation) || !identity_.public_key(local) ||
+            local!=(initiator()?identities_.initiator:identities_.responder))return false;
         const auto s=port_.sample();
-        if(failed_ || !(s.context==review_.context()) || s.display_revision!=review_.display_revision() ||
-            s.now_ms<review_.confirmed_at() || s.now_ms<last_ || s.now_ms>=review_.deadline())return false;
-        if(!allocator_.current(review_.context().generation) || failed_)return false;
+        if(failed_ || !(s.context==context_) || s.display_revision!=revision_ ||
+            s.now_ms<confirmed_ || s.now_ms<last_ || s.now_ms>=deadline_)return false;
+        if(!allocator_.current(context_.generation) || failed_)return false;
         const auto after=port_.sample();
         if(failed_ || !(after.context==s.context) || after.display_revision!=s.display_revision ||
-            after.now_ms<s.now_ms || after.now_ms>=review_.deadline())return false;
+            after.now_ms<s.now_ms || after.now_ms>=deadline_)return false;
         last_=after.now_ms;return true;
     }
     bool valid(const IndependentInvitation& invitation)const{
@@ -134,7 +151,9 @@ private:
         const auto& s=possession_->statement();
         const auto issued=initiator()?f.issued_a_ms:f.issued_b_ms;const auto window=initiator()?f.window_a_ms:f.window_b_ms;
         return encode_independent_invitation(f,canonical) && canonical.payload==invitation.payload &&
-            f.signer==review_.identities().initiator && f.group==review_.group() && f.epoch==1 &&
+            f.signer==identities_.initiator && f.group==group_ &&
+            (prior_ ? independent_invitation_detail::decode(prior_->invitation()).epoch!=std::numeric_limits<std::uint32_t>::max() &&
+                f.epoch==independent_invitation_detail::decode(prior_->invitation()).epoch+1 : f.epoch==1) &&
             f.boot_a==s.initiator_context.boot && f.boot_b==s.responder_context.boot &&
             issued>=possession_at_ && issued<=last_ && last_-issued<window;
     }
@@ -145,7 +164,10 @@ private:
     security::SecureRandomSource& random_;
     std::array<std::uint8_t,32> challenge_{};bool challenge_ready_{};
     EnrollmentIdentityStore& identity_;SessionGenerationAllocator& allocator_;FingerprintReviewPort& port_;
-    ReviewedEnrollmentIdentity review_;std::optional<VerifiedEnrollmentPossession> possession_;
+    RetainedEnrollmentIdentities identities_;FingerprintReviewContext context_;InvitationRole role_;std::uint64_t group_;
+    std::uint64_t confirmed_,deadline_,revision_;
+    std::optional<VerifiedIdentityBinding> prior_;EnrollmentRetainedStateOwner* retained_owner_{};
+    std::optional<VerifiedEnrollmentPossession> possession_;
     IndependentInvitation issued_invitation_{},signed_invitation_{};std::array<std::uint8_t,64> signature_{};
     std::uint64_t last_{},possession_at_{};bool failed_{},busy_{},issued_{},signed_{},authorized_{};
 };
