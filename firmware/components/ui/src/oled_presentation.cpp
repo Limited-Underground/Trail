@@ -214,7 +214,8 @@ Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
         std::snprintf(line.data(), line.size(), "BAT:%s%% GPS:%s", battery.data(), satellites.data());
         row(frame, 4, line.data());
         const char* gps = "GPS UNKNOWN";
-        if (fresh(snapshot.gps_sampled_at_ms, now_ms)) {
+        if (snapshot.gps_fix == GpsFix::stale) gps = "GPS STALE";
+        else if (fresh(snapshot.gps_sampled_at_ms, now_ms)) {
             if (snapshot.gps_fix == GpsFix::fix) gps = "GPS FIX";
             else if (snapshot.gps_fix == GpsFix::no_fix) gps = "GPS NO FIX";
         }

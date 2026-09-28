@@ -34,7 +34,7 @@ internal class AndroidV1TestLogStorage(context: Context) : V1TestConnectionLogSt
     override fun clear(): Boolean { file.delete(); return !file.baseFile.exists() && !File(file.baseFile.path + ".bak").exists() }
 }
 
-/** Bounded worker queue keeps disk I/O out of BLE/UI callbacks. Only safe enums cross it. */
+/** Bounded worker queue keeps disk I/O out of BLE/UI callbacks. Only safe enums/numbers cross it. */
 internal class V1TestLogRuntime private constructor(context: Context) {
     private val storage = AndroidV1TestLogStorage(context.applicationContext)
     private var startElapsed = SystemClock.elapsedRealtime()
@@ -56,6 +56,10 @@ internal class V1TestLogRuntime private constructor(context: Context) {
     fun lifecycle(state: V1TestAppLifecycleState) {
         val observed = SystemClock.elapsedRealtime()
         submit { if (!log.recordLifecycle(elapsedSince(observed), state)) queueFailure = true }
+    }
+    fun protectedRead(diagnostic: ProtectedProtocolInfoDiagnostic) {
+        val observed = SystemClock.elapsedRealtime()
+        submit { if (!log.recordProtectedRead(elapsedSince(observed), diagnostic)) queueFailure = true }
     }
     fun trace(generation: Long, state: TrailAppUiState.BluetoothDevice) {
         val observed = SystemClock.elapsedRealtime()

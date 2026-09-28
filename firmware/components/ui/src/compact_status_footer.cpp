@@ -27,8 +27,10 @@ Glyph glyph(char value) {
         case 'B': return {0x7F, 0x49, 0x49, 0x49, 0x36};
         case 'C': return {0x3E, 0x41, 0x41, 0x41, 0x22};
         case 'E': return {0x7F, 0x49, 0x49, 0x49, 0x41};
+        case 'F': return {0x7F, 0x09, 0x09, 0x09, 0x01};
         case 'G': return {0x3E, 0x41, 0x49, 0x49, 0x7A};
         case 'L': return {0x7F, 0x40, 0x40, 0x40, 0x40};
+        case 'N': return {0x7F, 0x06, 0x18, 0x60, 0x7F};
         case 'P': return {0x7F, 0x09, 0x09, 0x09, 0x06};
         case 'R': return {0x7F, 0x09, 0x19, 0x29, 0x46};
         case 'S': return {0x46, 0x49, 0x49, 0x49, 0x31};
@@ -120,8 +122,18 @@ Fields format(
     }
 
     copy_prefix(fields.gps, "GPS:");
-    if (fresh_valid_metric(snapshot.gps_satellites, 99U,
+    if (snapshot.gps_fix == GpsFixCode::no_fix &&
+        fresh_valid_metric(snapshot.gps_satellites, 99U,
                            freshness.gps_fresh_for_ms, now_ms)) {
+        fields.gps[4] = 'N';
+        fields.gps[5] = 'F';
+    } else if (snapshot.gps_fix == GpsFixCode::stale) {
+        fields.gps[4] = 'S';
+        fields.gps[5] = 'T';
+    } else if ((snapshot.gps_fix == GpsFixCode::valid ||
+                snapshot.gps_fix == GpsFixCode::satellite_count_only) &&
+               fresh_valid_metric(snapshot.gps_satellites, 99U,
+                                  freshness.gps_fresh_for_ms, now_ms)) {
         append_decimal(fields.gps, 4U, snapshot.gps_satellites.value);
     } else {
         fields.gps[4] = '-';

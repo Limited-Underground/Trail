@@ -37,6 +37,54 @@ bool supported_sentence_kind(const char (&value)[5]) {
 
 }  // namespace
 
+void NmeaSatelliteObserver::CoordinateProbe::consume(
+    char value, std::uint8_t degree_digits) {
+    if (value == '.') {
+        if (decimal || whole_digits != degree_digits + 2U) invalid = true;
+        decimal = true;
+        return;
+    }
+    if (value < '0' || value > '9') {
+        invalid = true;
+        return;
+    }
+    const auto digit = static_cast<std::uint8_t>(value - '0');
+    if (!decimal) {
+        if (whole_digits >= degree_digits + 2U) {
+            invalid = true;
+            return;
+        }
+        if (whole_digits < degree_digits)
+            degrees = static_cast<std::uint16_t>(degrees * 10U + digit);
+        else
+            minutes = static_cast<std::uint8_t>(minutes * 10U + digit);
+        ++whole_digits;
+    } else {
+        if (fractional_digits >= 8U) invalid = true;
+        else {
+            fractional_nonzero |= digit != 0;
+            ++fractional_digits;
+        }
+    }
+}
+
+bool NmeaSatelliteObserver::CoordinateProbe::valid(
+    std::uint8_t degree_digits, std::uint16_t max_degrees) const {
+    return !invalid && whole_digits == degree_digits + 2U && decimal &&
+           fractional_digits != 0 && minutes < 60U &&
+           degrees <= max_degrees &&
+           (degrees != max_degrees || (minutes == 0 && !fractional_nonzero));
+}
+
+void NmeaSatelliteObserver::clear_candidate_position() {
+    latitude_ = {};
+    longitude_ = {};
+    north_south_bytes_ = 0;
+    east_west_bytes_ = 0;
+    north_south_valid_ = false;
+    east_west_valid_ = false;
+}
+
 void NmeaSatelliteObserver::begin_sentence() {
     parse_state_ = ParseState::body;
     sentence_bytes_ = 1;
@@ -46,6 +94,10 @@ void NmeaSatelliteObserver::begin_sentence() {
     sentence_kind_bytes_ = 0;
     candidate_satellites_ = 0;
     satellite_digits_ = 0;
+    fix_field_bytes_ = 0;
+    candidate_fix_ = false;
+    candidate_non_gnss_mode_ = false;
+    clear_candidate_position();
     candidate_supported_ = false;
     candidate_invalid_ = false;
     saw_carriage_return_ = false;
@@ -60,6 +112,13 @@ void NmeaSatelliteObserver::finish_field() {
             sentence_kind_bytes_ == 5 && supported_sentence_kind(sentence_kind_);
         if (!candidate_supported_) {
             candidate_invalid_ = true;
+        }
+    } else if (field_index_ == 6) {
+        if (fix_field_bytes_ == 0) {
+            candidate_invalid_ = true;
+        }
+        if (sentence_kind_[3] == 'N' && candidate_non_gnss_mode_) {
+            candidate_fix_ = false;
         }
     } else if (field_index_ == 7 && satellite_digits_ == 0) {
         candidate_invalid_ = true;
@@ -86,6 +145,53 @@ void NmeaSatelliteObserver::consume_body_character(char value) {
         return;
     }
 
+    if (field_index_ == 2) {
+        latitude_.consume(value, 2);
+        return;
+    }
+    if (field_index_ == 3) {
+        north_south_valid_ = north_south_bytes_ == 0 &&
+                             (value == 'N' || value == 'S');
+        ++north_south_bytes_;
+        return;
+    }
+    if (field_index_ == 4) {
+        longitude_.consume(value, 3);
+        return;
+    }
+    if (field_index_ == 5) {
+        east_west_valid_ = east_west_bytes_ == 0 &&
+                           (value == 'E' || value == 'W');
+        ++east_west_bytes_;
+        return;
+    }
+    if (field_index_ == 6) {
+        if (sentence_kind_[3] == 'G') {
+            // GGA 0 is no fix; 1..5 are satellite-derived fixes. Estimated,
+            // manual and simulated quality must not claim a GNSS fix.
+            if (fix_field_bytes_ != 0 || value < '0' || value > '8') {
+                candidate_invalid_ = true;
+            } else {
+                candidate_fix_ = value >= '1' && value <= '5';
+            }
+        } else {
+            // GNS permits one mode per constellation. A/D/P/R/F identify
+            // satellite-derived modes; E/M/S are not GNSS fixes. Any such
+            // mode makes the combined sentence unsuitable for a fix claim.
+            if (fix_field_bytes_ >= 4) {
+                candidate_invalid_ = true;
+            } else if (value == 'A' || value == 'D' || value == 'P' ||
+                       value == 'R' || value == 'F') {
+                candidate_fix_ = true;
+            } else if (value == 'E' || value == 'M' || value == 'S') {
+                candidate_non_gnss_mode_ = true;
+            } else if (value != 'N') {
+                candidate_invalid_ = true;
+            }
+        }
+        ++fix_field_bytes_;
+        return;
+    }
     if (field_index_ != 7) {
         return;
     }
@@ -100,11 +206,13 @@ void NmeaSatelliteObserver::consume_body_character(char value) {
 
 bool NmeaSatelliteObserver::candidate_complete() const {
     return candidate_supported_ && !candidate_invalid_ && field_index_ >= 7 &&
-           satellite_digits_ != 0 && checksum_ == expected_checksum_;
+           fix_field_bytes_ != 0 && satellite_digits_ != 0 &&
+           checksum_ == expected_checksum_;
 }
 
 NmeaIngestResult NmeaSatelliteObserver::reject_sentence() {
     parse_state_ = ParseState::discard;
+    clear_candidate_position();
     return NmeaIngestResult::sentence_rejected;
 }
 
@@ -113,6 +221,7 @@ NmeaIngestResult NmeaSatelliteObserver::ingest(
     std::uint64_t received_at_ms) {
     if (byte == static_cast<std::uint8_t>('$')) {
         begin_sentence();
+        last_byte_at_ms_ = received_at_ms;
         return NmeaIngestResult::none;
     }
 
@@ -120,6 +229,7 @@ NmeaIngestResult NmeaSatelliteObserver::ingest(
         parse_state_ == ParseState::discard) {
         return NmeaIngestResult::none;
     }
+    last_byte_at_ms_ = received_at_ms;
 
     ++sentence_bytes_;
     if (sentence_bytes_ > kHeltecV4MaxNmeaSentenceBytes) {
@@ -174,11 +284,20 @@ NmeaIngestResult NmeaSatelliteObserver::ingest(
             }
             parse_state_ = ParseState::waiting_for_start;
             if (!candidate_complete()) {
+                clear_candidate_position();
                 return NmeaIngestResult::sentence_rejected;
             }
             has_observation_ = true;
+            // A receiver flag without bounded coordinates is not a usable
+            // location fix. The coordinates are inspected but never retained.
+            fix_valid_ = candidate_fix_ && candidate_satellites_ != 0 &&
+                         latitude_.valid(2, 90) &&
+                         longitude_.valid(3, 180) &&
+                         north_south_bytes_ == 1 && north_south_valid_ &&
+                         east_west_bytes_ == 1 && east_west_valid_;
             satellites_ = candidate_satellites_;
             sampled_at_ms_ = received_at_ms;
+            clear_candidate_position();
             return NmeaIngestResult::observation_accepted;
 
         case ParseState::waiting_for_start:
@@ -203,6 +322,28 @@ GnssSatelliteObservation NmeaSatelliteObserver::snapshot(
     return {GnssSatelliteState::valid, satellites_, sampled_at_ms_};
 }
 
+GnssFixObservation NmeaSatelliteObserver::fix(
+    std::uint64_t now_ms,
+    std::uint64_t fresh_for_ms) const {
+    if (!has_observation_) return {};
+    if (now_ms < sampled_at_ms_) return {GnssFixState::invalid, 0};
+    if (fresh_for_ms == 0 || now_ms - sampled_at_ms_ >= fresh_for_ms)
+        return {GnssFixState::stale, sampled_at_ms_};
+    return {fix_valid_ ? GnssFixState::valid : GnssFixState::no_fix,
+            sampled_at_ms_};
+}
+
+void NmeaSatelliteObserver::expire_partial(std::uint64_t now_ms) {
+    constexpr std::uint64_t kPartialSentenceTimeoutMs = 1'000;
+    if (parse_state_ == ParseState::waiting_for_start ||
+        parse_state_ == ParseState::discard) return;
+    if (now_ms < last_byte_at_ms_ ||
+        now_ms - last_byte_at_ms_ >= kPartialSentenceTimeoutMs) {
+        clear_candidate_position();
+        parse_state_ = ParseState::discard;
+    }
+}
+
 void NmeaSatelliteObserver::reset() {
     parse_state_ = ParseState::waiting_for_start;
     sentence_bytes_ = 0;
@@ -212,12 +353,18 @@ void NmeaSatelliteObserver::reset() {
     sentence_kind_bytes_ = 0;
     candidate_satellites_ = 0;
     satellite_digits_ = 0;
+    fix_field_bytes_ = 0;
+    candidate_fix_ = false;
+    candidate_non_gnss_mode_ = false;
+    clear_candidate_position();
     candidate_supported_ = false;
     candidate_invalid_ = false;
     saw_carriage_return_ = false;
     has_observation_ = false;
+    fix_valid_ = false;
     satellites_ = 0;
     sampled_at_ms_ = 0;
+    last_byte_at_ms_ = 0;
 }
 
 #ifdef ESP_PLATFORM
@@ -297,14 +444,25 @@ void HeltecV4Gnss::service(std::uint64_t now_ms) {
     if (!initialized_) {
         return;
     }
+    observer_.expire_partial(now_ms);
     std::uint8_t buffer[128]{};
     constexpr auto uart = static_cast<uart_port_t>(kHeltecV4GnssUartNumber);
     const int received = uart_read_bytes(uart, buffer, sizeof(buffer), 0);
+    if (received < 0) {
+        ++diagnostics_.uart_read_errors;
+        return;
+    }
     if (received <= 0) {
         return;
     }
+    diagnostics_.bytes_received += static_cast<std::uint64_t>(received);
     for (int index = 0; index < received; ++index) {
-        static_cast<void>(observer_.ingest(buffer[index], now_ms));
+        const auto result = observer_.ingest(buffer[index], now_ms);
+        if (result == NmeaIngestResult::observation_accepted) {
+            ++diagnostics_.accepted_sentences;
+        } else if (result == NmeaIngestResult::sentence_rejected) {
+            ++diagnostics_.rejected_sentences;
+        }
     }
 }
 #else

@@ -1,7 +1,10 @@
 #include "companion_nimble_runtime.hpp"
 #include "confirmation_evaluation_config.hpp"
-#if OPENTRAIL_CONFIRMATION_EVALUATION
+#include "companion_connection_diagnostics.hpp"
+#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
 #include "companion_host_stack_observer.hpp"
+#endif
+#if OPENTRAIL_CONFIRMATION_EVALUATION
 #include "confirmation_runtime_guard.hpp"
 #endif
 
@@ -534,13 +537,13 @@ public:
             configMAX_PRIORITIES - 4, &host_task_, NIMBLE_CORE);
         if (result != pdPASS) return false;
         host_started_ = true;
-#if OPENTRAIL_CONFIRMATION_EVALUATION
+#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
         host_stack_observer_.record_created(host_task_);
 #endif
         return true;
     }
 
-#if OPENTRAIL_CONFIRMATION_EVALUATION
+#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
     bool host_stack_minimum_free_bytes(std::uint32_t& bytes) const {
         return host_stack_observer_.minimum_free_bytes(bytes);
     }
@@ -609,7 +612,7 @@ public:
         // returned or the run loop had already published its exit, delete the
         // exact task before deinitializing host/controller state. No callback
         // is required for cleanup.
-#if OPENTRAIL_CONFIRMATION_EVALUATION
+#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
         host_stack_observer_.clear_before_delete();
 #endif
         if (host_task_ != nullptr) {
@@ -713,7 +716,7 @@ private:
     bool host_run_exited_{false};
     std::uint8_t own_address_type_{BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT};
     TaskHandle_t host_task_{nullptr};
-#if OPENTRAIL_CONFIRMATION_EVALUATION
+#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
     CompanionHostStackObserver host_stack_observer_{};
 #endif
 };
@@ -780,7 +783,9 @@ void runtime_on_sync() {
                        kCompanionBleInvalidConnectionHandle, current_ms()});
 }
 
-void runtime_on_reset(int) {
+void runtime_on_reset(int reason) {
+    connection_diagnostics::record(connection_diagnostics::Kind::host_reset,
+        static_cast<std::uint32_t>(reason));
 #if OPENTRAIL_CONFIRMATION_EVALUATION
     g_confirmation_runtime_guard.revoke();
 #endif
@@ -802,6 +807,14 @@ void runtime_host_task(void*) {
 int runtime_gap_event(ble_gap_event* event, void*) {
     if (event == nullptr) return 0;
     const auto observed = current_ms();
+    using connection_diagnostics::record;
+    using connection_diagnostics::Kind;
+    if (event->type == BLE_GAP_EVENT_CONNECT)
+        record(Kind::connect, static_cast<std::uint32_t>(event->connect.status));
+    else if (event->type == BLE_GAP_EVENT_ENC_CHANGE)
+        record(Kind::encryption, static_cast<std::uint32_t>(event->enc_change.status));
+    else if (event->type == BLE_GAP_EVENT_DISCONNECT)
+        record(Kind::disconnect, static_cast<std::uint32_t>(event->disconnect.reason));
     switch (event->type) {
         case BLE_GAP_EVENT_CONNECT: {
             if (event->connect.status != 0) {
@@ -1415,7 +1428,7 @@ bool companion_confirmation_runtime_current() {
 #endif
 }
 
-#if OPENTRAIL_CONFIRMATION_EVALUATION
+#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
 bool companion_nimble_host_stack_minimum_free_bytes(std::uint32_t& bytes) {
     return g_runtime_port.host_stack_minimum_free_bytes(bytes);
 }

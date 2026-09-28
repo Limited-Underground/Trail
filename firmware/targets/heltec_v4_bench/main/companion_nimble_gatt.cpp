@@ -1,4 +1,5 @@
 #include "companion_nimble_gatt.hpp"
+#include "companion_connection_diagnostics.hpp"
 #include "companion_nimble_runtime.hpp"
 #include "companion_configuration_lane.hpp"
 #include "confirmation_evaluation_config.hpp"
@@ -541,20 +542,29 @@ int protocol_info_access(std::uint16_t connection_handle,
                          std::uint16_t attribute_handle,
                          ble_gatt_access_ctxt* context,
                          void*) {
+    using connection_diagnostics::Kind;
+    using connection_diagnostics::record;
+    record(Kind::protocol_enter);
     GattLock lock;
-    if (!lock) return BLE_ATT_ERR_INSUFFICIENT_RES;
+    record(Kind::protocol_lock, lock ? 1U : 0U);
+    const auto finish = [](int result, std::uint32_t bytes = 0) {
+        record(Kind::protocol_exit, static_cast<std::uint32_t>(result), bytes);
+        return result;
+    };
+    if (!lock) return finish(BLE_ATT_ERR_INSUFFICIENT_RES);
     if (companion_app_factory_reset_blocks_protected_access()) {
-        return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+        return finish(BLE_ATT_ERR_INSUFFICIENT_AUTHOR);
     }
     if (context == nullptr || context->om == nullptr ||
         context->op != BLE_GATT_ACCESS_OP_READ_CHR ||
         attribute_handle != g_protocol_info_handle) {
-        return BLE_ATT_ERR_UNLIKELY;
+        return finish(BLE_ATT_ERR_UNLIKELY);
     }
     const auto security = refresh_security(connection_handle);
+    record(Kind::protocol_security, static_cast<std::uint32_t>(security));
     if (security != 0) {
         update_configuration_authority();
-        return security;
+        return finish(security);
     }
     const auto status = g_adapter->status();
     if (status.lifecycle.application_authorized && status.lifecycle.normal_session_active) {
@@ -563,16 +573,16 @@ int protocol_info_access(std::uint16_t connection_handle,
             status.transport_generation == g_configuration_blocked_generation ||
             !status.lifecycle.indication_subscribed ||
             status.lifecycle.att_mtu < 151) {
-            return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+            return finish(BLE_ATT_ERR_INSUFFICIENT_AUTHOR);
         }
         std::array<std::uint8_t, kConfigurationInfoBytes> offer{};
         const auto encoded = encode_configuration_info({kSelectedConfigurationCapabilities, kSelectedConfigurationMinor}, offer.data(), offer.size());
         if (!encoded.encoded() || os_mbuf_append(context->om, offer.data(), offer.size()) != 0)
-            return BLE_ATT_ERR_INSUFFICIENT_RES;
+            return finish(BLE_ATT_ERR_INSUFFICIENT_RES);
         g_configuration_selected = true;
         update_configuration_authority();
         queue_verified_gatt_progress(connection_handle, now_ms());
-        return 0;
+        return finish(0, kConfigurationInfoBytes);
     }
     std::array<std::uint8_t,
                kCompanionAuthorizationProtocolInfoBytes> encoded{};
@@ -581,13 +591,13 @@ int protocol_info_access(std::uint16_t connection_handle,
         {encoded.data(), encoded.size()});
     if (result.error != CompanionGattAuthorizationError::none ||
         result.encoded_bytes != encoded.size()) {
-        return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+        return finish(BLE_ATT_ERR_INSUFFICIENT_AUTHOR);
     }
     if (os_mbuf_append(context->om, encoded.data(), encoded.size()) != 0) {
-        return BLE_ATT_ERR_INSUFFICIENT_RES;
+        return finish(BLE_ATT_ERR_INSUFFICIENT_RES);
     }
     queue_verified_gatt_progress(connection_handle, now_ms());
-    return 0;
+    return finish(0, kCompanionAuthorizationProtocolInfoBytes);
 }
 
 int public_link_info_access(std::uint16_t connection_handle,
@@ -944,6 +954,9 @@ static int configuration_guarded_gap_event(ble_gap_event* event, void* argument)
             }
             const auto refresh =
                 refresh_security(event->authorize.conn_handle);
+            connection_diagnostics::record(connection_diagnostics::Kind::authorization_check,
+                event->authorize.attr_handle == g_protocol_info_handle && event->authorize.is_read != 0 ? 1U : 0U,
+                static_cast<std::uint32_t>(refresh));
             const auto command_write =
                 event->authorize.attr_handle == g_command_handle &&
                 event->authorize.is_read == 0;
@@ -990,12 +1003,25 @@ static int configuration_guarded_gap_event(ble_gap_event* event, void* argument)
 }
 
 int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
+    using connection_diagnostics::Kind;
+    using connection_diagnostics::record;
+    const auto kind = event == nullptr ? 255U : static_cast<unsigned>(event->type);
+    record(Kind::gap_enter, kind);
     GattLock lock;
-    if (!lock) return static_cast<int>(CompanionGattAdapterError::not_registered);
+    record(Kind::gap_lock, kind, lock ? 1U : 0U);
+    if (!lock) {
+        record(Kind::gap_exit, kind, static_cast<unsigned>(CompanionGattAdapterError::not_registered));
+        return static_cast<int>(CompanionGattAdapterError::not_registered);
+    }
     const auto result = configuration_guarded_gap_event(event, argument);
+    if (event != nullptr && event->type == BLE_GAP_EVENT_AUTHORIZE)
+        record(Kind::authorization,
+            event->authorize.attr_handle == g_protocol_info_handle && event->authorize.is_read != 0 ? 1U : 0U,
+            static_cast<std::uint32_t>(event->authorize.out_response));
     update_configuration_authority();
     if (event != nullptr && event->type == BLE_GAP_EVENT_DISCONNECT)
         clear_configuration_lane();
+    record(Kind::gap_exit, kind, static_cast<std::uint32_t>(result));
     return result;
 }
 

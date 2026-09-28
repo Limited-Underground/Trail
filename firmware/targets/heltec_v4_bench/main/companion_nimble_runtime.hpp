@@ -67,7 +67,7 @@ companion_nimble_runtime_status();
 
 // Application-owner diagnostic only. False leaves bytes unchanged and means
 // that no live exact BLE host task is available to this calling task.
-#if defined(OPENTRAIL_CONFIRMATION_EVALUATION) && OPENTRAIL_CONFIRMATION_EVALUATION
+#if (defined(OPENTRAIL_CONFIRMATION_EVALUATION) && OPENTRAIL_CONFIRMATION_EVALUATION) || OPENTRAIL_CONNECTION_DIAGNOSTICS
 [[nodiscard]] bool companion_nimble_host_stack_minimum_free_bytes(
     std::uint32_t& bytes);
 #endif

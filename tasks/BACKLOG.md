@@ -555,7 +555,7 @@ Planning only: the remaining approved V1 scope is decomposed below. Registration
 | OT-0168c | planned | OT-0168a | Accept reset interruption and both physical reset paths |
 | OT-0101c | owner accepted | OT-0101b | [Configuration evidence audit](../docs/testing/OT-0101c-TARGET-CONFIGURATION-AUDIT-2026-09-21.md); experimental baseline frozen, support/field claims remain blocked |
 | OT-0101d | planned | OT-0101b | Accept battery indication and power behavior |
-| OT-0101e | planned | OT-0101b | Accept GNSS and sustained clock behavior |
+| OT-0101e | in progress; remaining-case operator prepared | OT-0101b | [Corrected-stack physical result](../docs/testing/OT-0101e-BLE-STACK-RETEST-2026-09-28.md) confirms same-session Ready/advancing clock and verified original restoration. [Lifecycle preparation](../docs/testing/OT-0101e-LIFECYCLE-PREPARATION-2026-09-28.md) provides the bounded loss/recovery/disconnect/warm-restart controller,73 affected host checks and inert exact-input verification. Next: corrected owner-approved restart expectation and fresh exact hardware authorization/readiness before one session. Silent-stream physical stale and invasive power cases remain separate. No full task acceptance or V1 credit. |
 | OT-0101f | planned | OT-0101b | Accept live OLED radio and degraded status display |
 | OT-0089e | planned | OT-0089a | Accept bounded field and endurance observations |
 | OT-0089f | planned | OT-0089b | Reconcile release evidence and operator documentation |

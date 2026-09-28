@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
+option(OPENTRAIL_CONNECTION_DIAGNOSTICS "Enable bounded OT0101e connection observations" OFF)
+option(OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY "Keep live sensor fields in diagnostic display" ON)
+if(NOT OPENTRAIL_CONNECTION_DIAGNOSTICS AND NOT OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY)
+    message(FATAL_ERROR "Sensor display isolation requires connection diagnostics")
+endif()
 option(OPENTRAIL_CONFIRMATION_EVALUATION "Enable OT216 protected BLE confirmation evaluation" OFF)
 if(OPENTRAIL_CONFIRMATION_EVALUATION)
     get_filename_component(OPENTRAIL_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
@@ -19,3 +24,10 @@ if(OPENTRAIL_CONFIRMATION_EVALUATION)
     endif()
 endif()
 project(opentrail_heltec_v4_bench)
+
+# OT0101e host-stack admission: existing sdkconfig overrides defaults on resume.
+if(NOT CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE MATCHES "^[0-9]+$" OR
+   CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE LESS 8192)
+    message(FATAL_ERROR "OpenTrail BLE host task requires at least 8192 stack bytes")
+endif()
+# End OT0101e host-stack admission.

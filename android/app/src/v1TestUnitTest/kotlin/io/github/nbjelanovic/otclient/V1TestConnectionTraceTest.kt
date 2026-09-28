@@ -102,9 +102,9 @@ class V1TestConnectionTraceTest {
         assertEquals(before, log.snapshot())
         storage.writeResult = true
         assertTrue(log.startSession())
-        assertTrue(storage.bytes!!.decodeToString().startsWith("OTCL\t3\t2\n"))
+        assertTrue(storage.bytes!!.decodeToString().startsWith("OTCL\t4\t2\n"))
         val reloaded = V1TestConnectionLog(storage)
-        assertEquals(3, reloaded.loadedVersion)
+        assertEquals(4, reloaded.loadedVersion)
         assertEquals(before, reloaded.snapshot())
     }
 
@@ -131,7 +131,7 @@ class V1TestConnectionTraceTest {
     }
 
     @Test
-    fun nearlyFullVersion2MigrationEvictsOldestWithinTheVersion3ByteBudget() {
+    fun nearlyFullVersion2MigrationEvictsOldestWithinTheCurrentByteBudget() {
         val rows = mutableListOf<String>()
         var encoded = "OTCL\t2\t1\n"
         for (ordinal in 1..512) {
@@ -399,7 +399,7 @@ class V1TestConnectionTraceTest {
     }
 
     @Test
-    fun version3RoundTripsCanonicallyAndVersion1RemainsReadable() {
+    fun version4RoundTripsCanonicallyAndVersion1RemainsReadable() {
         val version1 = Storage().apply {
             bytes = "OTCL\t1\t2\n1\t5\tC\tREADY\n2\t7\tL\tFOREGROUND\n".toByteArray()
         }
@@ -409,26 +409,26 @@ class V1TestConnectionTraceTest {
         assertEquals(2, upgraded.snapshot().size)
         assertTrue(upgraded.startSession())
         // The first write upgrades the durable file; the version-1 records are preserved exactly.
-        assertTrue(requireNotNull(version1.bytes).decodeToString().startsWith("OTCL\t3\t3\n"))
+        assertTrue(requireNotNull(version1.bytes).decodeToString().startsWith("OTCL\t4\t3\n"))
         assertEquals(2, upgraded.snapshot().size)
 
         val machine = V1TestConnectionTraceMachine()
         val emissions = savedOwnerConnection(machine, GENERATION, from = 0)
         val storage = Storage()
         val log = V1TestConnectionLog(storage)
-        assertEquals(3, log.loadedVersion)
+        assertEquals(4, log.loadedVersion)
         assertTrue(log.startSession())
         emissions.forEachIndexed { index, emission ->
             assertTrue(log.recordTrace(index.toLong(), emission))
         }
         val encoded = requireNotNull(storage.bytes).decodeToString()
-        assertTrue(encoded.startsWith("OTCL\t3\t1\n"))
+        assertTrue(encoded.startsWith("OTCL\t4\t1\n"))
         assertTrue(
             encoded.contains("1\t0\tS\tCONNECTION_ATTEMPT_STARTED\t1\t1\t$GENERATION\t0\t0\tNONE\tUNAVAILABLE\n"),
             encoded,
         )
         val reloaded = V1TestConnectionLog(storage)
-        assertEquals(3, reloaded.loadedVersion)
+        assertEquals(4, reloaded.loadedVersion)
         assertEquals(log.snapshot(), reloaded.snapshot())
         assertEquals(
             emissions,
@@ -443,7 +443,7 @@ class V1TestConnectionTraceTest {
             assertTrue(rewritten.recordTrace(it.elapsedMillis, trace))
         }
         assertContentEquals(storage.bytes, second.bytes)
-        assertTrue(reloaded.exportText().contains("format 3, loaded 3"))
+        assertTrue(reloaded.exportText().contains("format 4, loaded 4"))
         assertTrue(reloaded.exportText().contains("never from a UI label"))
     }
 
@@ -451,7 +451,7 @@ class V1TestConnectionTraceTest {
     fun malformedInconsistentAndUnsupportedTraceDataIsRejected() {
         val malformed = listOf(
             // Unsupported and impossible versions.
-            "OTCL\t4\t1\n",
+            "OTCL\t5\t1\n",
             "OTCL\t0\t1\n",
             // A stage record inside a version-1 file.
             "OTCL\t1\t1\n1\t0\tS\tREADY_REACHED\t1\t1\t1\t0\t0\tNONE\n",
