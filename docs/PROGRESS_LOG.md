@@ -10,7 +10,11 @@ the same containment refusal before the correction. All 75 affected checks pass
 in separate interpreters; independent review found no blocking issue. Production
 path, symlink, junction and hash guards are unchanged. Historical private bindings
 remain frozen and require refreshed test pins before another physical attempt.
-Full GitHub validation is pending this correction. No device access, V1 progress
+GitHub passed those affected tests and exposed the next stale live-config pin.
+The checkout-byte registry now binds the previously reviewed 8192-byte BLE stack
+configuration; its CRLF/BOM policy and all historical pins remain unchanged.
+The 291-input checkout audit passes. Full GitHub validation is pending these
+corrections. No device access, V1 progress
 credit or public website status change occurred.
 
 ### OT-0101e Prepare protected-read diagnostics and display comparison
