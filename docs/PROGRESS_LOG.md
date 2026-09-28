@@ -2,6 +2,17 @@
 
 ## 2026-09-28
 
+### OT-0101e Correct temporary-root admission in CI fixtures
+
+The shared binding fixture now resolves its temporary root, matching the
+production command-line tools. A deterministic path-alias regression reproduced
+the same containment refusal before the correction. All 75 affected checks pass
+in separate interpreters; independent review found no blocking issue. Production
+path, symlink, junction and hash guards are unchanged. Historical private bindings
+remain frozen and require refreshed test pins before another physical attempt.
+Full GitHub validation is pending this correction. No device access, V1 progress
+credit or public website status change occurred.
+
 ### OT-0101e Prepare protected-read diagnostics and display comparison
 
 Added bounded V1-Test callback status/timing observations, firmware event/stack

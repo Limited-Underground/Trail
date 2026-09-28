@@ -116,7 +116,7 @@ class BindingTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.binding_path = self.root / '.private' / 'binding.json'
         self.binding_path.parent.mkdir()
         self.files = {}
@@ -146,6 +146,21 @@ class BindingTests(unittest.TestCase):
         raw = engine.canonical(self.binding)
         self.binding_path.write_bytes(raw)
         return operator.verify_binding(self.root, self.binding_path, engine.sha(raw), recovery)
+
+    def test_temporary_directory_alias_matches_canonical_cli_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            parent = Path(directory) / 'alias parent'
+            parent.mkdir()
+            temporary = mock.Mock()
+            temporary.name = str(parent / '..')
+            fixture = BindingTests()
+            try:
+                with mock.patch.object(tempfile, 'TemporaryDirectory', return_value=temporary):
+                    fixture.setUp()
+                self.assertEqual(fixture.verify()['profile'], 'A')
+                self.assertEqual(fixture.root, Path(directory).resolve())
+            finally:
+                fixture.doCleanups()
 
     def test_exact_binding_and_profile_pin(self):
         self.assertEqual(self.verify()['profile'], 'A')
