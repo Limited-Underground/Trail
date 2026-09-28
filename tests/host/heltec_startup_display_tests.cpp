@@ -362,6 +362,8 @@ void test_dynamic_compact_footer_observations_and_redraw() {
     CompactStatusSnapshot snapshot{};
     snapshot.battery_percent = {ObservationState::valid, 100, 950};
     snapshot.gps_satellites = {ObservationState::valid, 12, 950};
+    snapshot.gps_fix =
+        opentrail::ui::compact_status_footer::GpsFixCode::valid;
     snapshot.freshness = {100, 100};
     snapshot.activity_supported = true;
     snapshot.activity = Direction::tx;
@@ -376,6 +378,18 @@ void test_dynamic_compact_footer_observations_and_redraw() {
                 StartupDisplayFrame::ble_connected, snapshot),
             "dynamic connected footer accepted");
     require(port.views.size() == 2, "dynamic footer rendered");
+    require(port.views.back().battery_percent.state == ObservationState::valid &&
+                port.views.back().battery_percent.value == 100 &&
+                port.views.back().battery_percent.sampled_at_ms == 950 &&
+                port.views.back().battery_fresh_for_ms == 100,
+            "typed battery observation not forwarded to normal display");
+    require(port.views.back().gps_satellites.state == ObservationState::valid &&
+                port.views.back().gps_satellites.value == 12 &&
+                port.views.back().gps_satellites.sampled_at_ms == 950 &&
+                port.views.back().gps_fix ==
+                    opentrail::ui::compact_status_footer::GpsFixCode::valid &&
+                port.views.back().gps_fresh_for_ms == 100,
+            "typed GNSS observation not forwarded to normal display");
     const auto& page = port.views.back().footer;
     require(glyph_at(page, 25) == one && glyph_at(page, 31) == zero &&
                 glyph_at(page, 37) == zero &&
@@ -400,6 +414,14 @@ void test_dynamic_compact_footer_observations_and_redraw() {
             "changed battery observation accepted");
     require(port.views.size() == 3,
             "changed observation redraws unchanged BLE frame");
+    require(port.views.back().battery_percent.value == 99,
+            "changed battery not forwarded to normal display");
+    snapshot.gps_satellites.sampled_at_ms = 951;
+    require(owner.show_compact_status(
+                StartupDisplayFrame::ble_connected, snapshot),
+            "updated GNSS sample accepted");
+    require(port.views.size() == 4,
+            "typed GNSS change did not trigger redraw");
 }
 
 void test_dynamic_compact_footer_fail_closed_boundaries() {

@@ -14,7 +14,7 @@ class V1TestConnectionLogTest {
         assertTrue(second.startSession())
         assertTrue(second.recordConnection(1, V1TestPhoneConnectionState.DISCONNECTED))
         assertEquals(listOf(1L, 2L), second.snapshot().map { it.session })
-        assertTrue(second.exportText().contains("Activity-bound observation"))
+        assertTrue(second.exportText().contains("not a continuous radio trace"))
         assertTrue(second.exportText().contains("Gaps are unobserved"))
     }
 
@@ -64,7 +64,7 @@ class V1TestConnectionLogTest {
 
     @Test fun corruptionIsExplicitAndCannotBeOverwrittenUntilClear() {
         val malformed = listOf(
-            "", "OTCL\t4\t0\n", "OTCL\t1\t0", "OTCL\t1\t0\n1\t0\tC\tREADY\n",
+            "", "OTCL\t5\t0\n", "OTCL\t1\t0", "OTCL\t1\t0\n1\t0\tC\tREADY\n",
             "OTCL\t1\t1\n1\t0\tC\tUNRECOGNIZED\n", "OTCL\t1\t1\n1\t0\tNOTE\ttext\n",
             "OTCL\t1\t1\n1\t2\tC\tREADY\n1\t1\tC\tFAILED\n", "OTCL\t1\t01\n",
             "OTCL\t1\t1\n1\t-1\tC\tREADY\n", "OTCL\t1\t9223372036854775808\n",
@@ -106,6 +106,58 @@ class V1TestConnectionLogTest {
         assertEquals(V1TestConnectionLogStatus.EXHAUSTED, log.status)
         assertEquals(0, storage.writes)
     }
+
+    @Test fun boundedProtectedReadFactsRoundTripAndKeepOldVersion3Rows() {
+        val storage = Storage().apply {
+            bytes = ("OTCL\t3\t1\n1\t0\tS\tPROTECTED_PROTOCOL_INFO_REJECTED\t1\t1\t7\t0\t0\tCONNECTION_START_FAILED\tGATT_PLATFORM_FAILURE\n").toByteArray()
+        }
+        val log = V1TestConnectionLog(storage)
+        assertEquals(3, log.loadedVersion)
+        val oldRows = log.snapshot()
+        assertTrue(log.startSession())
+        assertTrue(log.recordProtectedRead(1, diagnostic()))
+        val reloaded = V1TestConnectionLog(storage)
+        assertEquals(4, reloaded.loadedVersion)
+        assertEquals(oldRows, reloaded.snapshot().take(1))
+        assertEquals(log.snapshot(), reloaded.snapshot())
+        assertTrue(reloaded.exportText().contains("READ_CALLBACK_VALUE\tPLATFORM_FAILURE\t5095\t2\t1\t133\t0\t0\t0"))
+        assertTrue(reloaded.exportText().contains("not proof of explicit device rejection"))
+    }
+
+    @Test fun protectedReadRowsRejectUnknownEnumsUnboundedNumbersAndNoncanonicalFlags() {
+        val storage = Storage()
+        val log = V1TestConnectionLog(storage)
+        assertTrue(log.startSession())
+        assertTrue(log.recordProtectedRead(1, diagnostic()))
+        val encoded = requireNotNull(storage.bytes).decodeToString()
+        val row = encoded.lines()[1].split('\t')
+        val invalidFields = listOf(3 to "0", 4 to "0", 5 to "RAW_TEXT", 6 to "RAW_TEXT",
+            7 to "60001", 8 to "-1", 9 to "9223372036854775807", 10 to "65536",
+            11 to "true", 12 to "513", 13 to "2", 14 to "4", 15 to "true", 16 to "2", 17 to "01")
+        invalidFields.forEach { (index, invalid) ->
+            val fields = row.toMutableList().also { it[index] = invalid }
+            val malformed = "OTCL\t4\t1\n${fields.joinToString("\t")}\n"
+            val bad = V1TestConnectionLog(Storage().apply { bytes = malformed.toByteArray() })
+            assertEquals(V1TestConnectionLogStatus.CORRUPT, bad.status, "$index=$invalid")
+        }
+        assertEquals(V1TestConnectionLogStatus.CORRUPT,
+            V1TestConnectionLog(Storage().apply { bytes = encoded.replace("OTCL\t4", "OTCL\t3").toByteArray() }).status)
+    }
+
+    @Test fun protectedReadRowsShareExistingByteAndRecordBudgets() {
+        val storage = Storage()
+        val log = V1TestConnectionLog(storage)
+        assertTrue(log.startSession())
+        repeat(600) { assertTrue(log.recordProtectedRead(it.toLong(), diagnostic().copy(connection = Long.MAX_VALUE))) }
+        assertTrue(log.snapshot().size <= 512)
+        assertTrue(requireNotNull(storage.bytes).size <= 65_536)
+        assertEquals(599L, log.snapshot().last().elapsedMillis)
+        assertEquals(log.snapshot(), V1TestConnectionLog(storage).snapshot())
+    }
+
+    private fun diagnostic() = ProtectedProtocolInfoDiagnostic(1, 1,
+        ProtectedProtocolInfoDiagnosticOrigin.READ_CALLBACK_VALUE, ProtectedProtocolInfoDiagnosticOutcome.PLATFORM_FAILURE,
+        5095, 2, 1, 133, false, 0, false, null, true, true, true)
 
     private class Storage : V1TestConnectionLogStorage {
         var bytes: ByteArray? = null

@@ -676,6 +676,10 @@ class AndroidBluetoothGattFacade(
         private val observer: (BleGattEvent) -> Unit,
     ) : BleGattLease {
         private val operations = AndroidGattOperationGate()
+        private val protocolInfoDiagnostics = ProtectedProtocolInfoDiagnostics.create(
+            appContext as? ProtectedProtocolInfoDiagnosticObserver,
+            SystemClock::elapsedRealtime,
+        )
         private val commandQueue = AndroidGattCommandQueue(operations)
         private var queuedWriteDeadline: Long? = null
         private val queuedWriteTimeout = Runnable {
@@ -772,15 +776,33 @@ class AndroidBluetoothGattFacade(
 
         private val callback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(callbackGatt: BluetoothGatt, status: Int, newState: Int) {
-                postToMain { handleConnectionState(callbackGatt, status, newState) }
+                val callbackAt = SystemClock.elapsedRealtime()
+                postToMain {
+                    protocolInfoDiagnostics.record(
+                        ProtectedProtocolInfoDiagnosticOrigin.CONNECTION_STATE_CALLBACK,
+                        if (owns(callbackGatt)) ProtectedProtocolInfoDiagnosticOutcome.CALLBACK_OBSERVED
+                        else ProtectedProtocolInfoDiagnosticOutcome.IGNORED_STALE,
+                        owns(callbackGatt), operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING,
+                        status = status, newState = newState, callbackAt = callbackAt,
+                    )
+                    handleConnectionState(callbackGatt, status, newState)
+                }
             }
 
             override fun onServicesDiscovered(callbackGatt: BluetoothGatt, status: Int) {
-                postToMain { handleServicesDiscovered(callbackGatt, status) }
+                val callbackAt = SystemClock.elapsedRealtime()
+                postToMain {
+                    recordProtocolInfoCallback(ProtectedProtocolInfoDiagnosticOrigin.SERVICES_DISCOVERED_CALLBACK,
+                        callbackGatt, callbackAt, status)
+                    handleServicesDiscovered(callbackGatt, status)
+                }
             }
 
             override fun onMtuChanged(callbackGatt: BluetoothGatt, mtu: Int, status: Int) {
+                val callbackAt = SystemClock.elapsedRealtime()
                 postToMain {
+                    recordProtocolInfoCallback(ProtectedProtocolInfoDiagnosticOrigin.MTU_CALLBACK,
+                        callbackGatt, callbackAt, status)
                     if (!owns(callbackGatt)) return@postToMain
                     if (!requireProtectedCallbackPrerequisites()) return@postToMain
                     val statusFailure = AndroidGattStatusPolicy.failure(status)
@@ -796,7 +818,8 @@ class AndroidBluetoothGattFacade(
                 value: ByteArray,
                 status: Int,
             ) {
-                handleProtocolInfoRead(callbackGatt, characteristic, value, status)
+                handleProtocolInfoRead(callbackGatt, characteristic, value, status,
+                    ProtectedProtocolInfoDiagnosticOrigin.READ_CALLBACK_VALUE)
             }
 
             @Suppress("DEPRECATION")
@@ -807,7 +830,8 @@ class AndroidBluetoothGattFacade(
             ) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) return
                 val value = characteristic.value?.copyOf() ?: byteArrayOf()
-                handleProtocolInfoRead(callbackGatt, characteristic, value, status)
+                handleProtocolInfoRead(callbackGatt, characteristic, value, status,
+                    ProtectedProtocolInfoDiagnosticOrigin.READ_CALLBACK_LEGACY)
             }
 
             override fun onDescriptorWrite(
@@ -815,7 +839,10 @@ class AndroidBluetoothGattFacade(
                 descriptor: BluetoothGattDescriptor,
                 status: Int,
             ) {
+                val callbackAt = SystemClock.elapsedRealtime()
                 postToMain {
+                    recordProtocolInfoCallback(ProtectedProtocolInfoDiagnosticOrigin.DESCRIPTOR_WRITE_CALLBACK,
+                        callbackGatt, callbackAt, status)
                     if (!owns(callbackGatt)) return@postToMain
                     if (!requireProtectedCallbackPrerequisites()) return@postToMain
                     val statusFailure = AndroidGattStatusPolicy.failure(status)
@@ -852,7 +879,10 @@ class AndroidBluetoothGattFacade(
                 characteristic: BluetoothGattCharacteristic,
                 status: Int,
             ) {
+                val callbackAt = SystemClock.elapsedRealtime()
                 postToMain {
+                    recordProtocolInfoCallback(ProtectedProtocolInfoDiagnosticOrigin.CHARACTERISTIC_WRITE_CALLBACK,
+                        callbackGatt, callbackAt, status)
                     if (!owns(callbackGatt)) return@postToMain
                     if (!requireProtectedCallbackPrerequisites()) return@postToMain
                     val statusFailure = AndroidGattStatusPolicy.failure(status)
@@ -872,7 +902,17 @@ class AndroidBluetoothGattFacade(
             }
 
             override fun onServiceChanged(callbackGatt: BluetoothGatt) {
-                postToMain { handleServiceChanged(callbackGatt) }
+                val callbackAt = SystemClock.elapsedRealtime()
+                postToMain {
+                    protocolInfoDiagnostics.record(
+                        ProtectedProtocolInfoDiagnosticOrigin.SERVICE_CHANGED_CALLBACK,
+                        if (owns(callbackGatt)) ProtectedProtocolInfoDiagnosticOutcome.CALLBACK_OBSERVED
+                        else ProtectedProtocolInfoDiagnosticOutcome.IGNORED_STALE,
+                        owns(callbackGatt), operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING,
+                        callbackAt = callbackAt,
+                    )
+                    handleServiceChanged(callbackGatt)
+                }
             }
         }
 
@@ -1065,11 +1105,46 @@ class AndroidBluetoothGattFacade(
             }
 
         @SuppressLint("MissingPermission")
-        override fun readProtocolInfo(): Boolean =
-            beginGattOperation(AndroidBlePlatformOperation.READ_PROTOCOL_INFO, { operations.beginProtocolInfoRead() }) { current ->
-                val characteristic = protocolInfo ?: return@beginGattOperation false
-                current.readCharacteristic(characteristic)
+        override fun readProtocolInfo(): Boolean {
+            if (!onMainThread()) return false
+            protocolInfoDiagnostics.begin(gatt?.let(::owns) == true,
+                operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING)
+            return beginGattOperation(
+                AndroidBlePlatformOperation.READ_PROTOCOL_INFO,
+                { operations.beginProtocolInfoRead() },
+                rejected = ::recordProtocolInfoInitiation,
+            ) { current ->
+                val characteristic = protocolInfo
+                if (characteristic == null) {
+                    recordProtocolInfoInitiation(ProtectedProtocolInfoDiagnosticOutcome.TARGET_UNAVAILABLE)
+                    false
+                } else {
+                    current.readCharacteristic(characteristic).also { started ->
+                        recordProtocolInfoInitiation(if (started) ProtectedProtocolInfoDiagnosticOutcome.STARTED
+                            else ProtectedProtocolInfoDiagnosticOutcome.START_REJECTED)
+                    }
+                }
             }
+        }
+
+        private fun recordProtocolInfoInitiation(outcome: ProtectedProtocolInfoDiagnosticOutcome) {
+            protocolInfoDiagnostics.record(ProtectedProtocolInfoDiagnosticOrigin.READ_INITIATION,
+                outcome, gatt?.let(::owns) == true,
+                operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING)
+        }
+
+        private fun recordProtocolInfoCallback(
+            origin: ProtectedProtocolInfoDiagnosticOrigin,
+            callbackGatt: BluetoothGatt,
+            callbackAt: Long,
+            status: Int? = null,
+        ) {
+            protocolInfoDiagnostics.record(origin,
+                if (owns(callbackGatt)) ProtectedProtocolInfoDiagnosticOutcome.CALLBACK_OBSERVED
+                else ProtectedProtocolInfoDiagnosticOutcome.IGNORED_STALE,
+                owns(callbackGatt), operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING,
+                status = status, callbackAt = callbackAt)
+        }
 
         @SuppressLint("MissingPermission")
         override fun subscribeStreamIndications(): Boolean =
@@ -1123,6 +1198,10 @@ class AndroidBluetoothGattFacade(
                 return
             }
             if (leaseClosed) return
+            protocolInfoDiagnostics.record(ProtectedProtocolInfoDiagnosticOrigin.LEASE_CLOSE_REQUESTED,
+                ProtectedProtocolInfoDiagnosticOutcome.CLOSE_REQUESTED, gatt?.let(::owns) == true,
+                operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING)
+            protocolInfoDiagnostics.finish()
             leaseClosed = true
             mainHandler.removeCallbacks(queuedWriteTimeout)
             queuedWriteDeadline = null
@@ -1330,11 +1409,21 @@ class AndroidBluetoothGattFacade(
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray,
             status: Int,
+            origin: ProtectedProtocolInfoDiagnosticOrigin,
         ) {
+            val callbackAt = SystemClock.elapsedRealtime()
             postToMain {
-                if (!owns(callbackGatt)) return@postToMain
-                when (
-                    AndroidProtectedProtocolInfoReadPolicy.evaluate(
+                val handlingAt = SystemClock.elapsedRealtime()
+                if (!owns(callbackGatt)) {
+                    protocolInfoDiagnostics.record(origin, ProtectedProtocolInfoDiagnosticOutcome.IGNORED_STALE,
+                        false, operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING,
+                        status = status, valueBytes = value.size,
+                        exactCharacteristic = AndroidGattCharacteristicOwnershipPolicy.owns(protocolInfo, characteristic),
+                        callbackAt = callbackAt, handlingAt = handlingAt)
+                    return@postToMain
+                }
+                val readWasPending = operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING
+                val admission = AndroidProtectedProtocolInfoReadPolicy.evaluate(
                         active = owns(callbackGatt),
                         connectPermissionGranted = operationAllowed(AndroidBlePlatformOperation.READ_PROTOCOL_INFO),
                         bondedPrerequisite = bondedPrerequisiteSatisfied(),
@@ -1342,12 +1431,25 @@ class AndroidBluetoothGattFacade(
                         status = status,
                         valueBytes = value.size,
                     )
-                ) {
+                fun record(outcome: ProtectedProtocolInfoDiagnosticOutcome) {
+                    protocolInfoDiagnostics.record(origin, outcome, owns(callbackGatt),
+                        readWasPending,
+                        status = status, valueBytes = value.size,
+                        exactCharacteristic = AndroidGattCharacteristicOwnershipPolicy.owns(protocolInfo, characteristic),
+                        callbackAt = callbackAt, handlingAt = handlingAt)
+                }
+                if (admission != AndroidProtectedReadAdmission.ACCEPT) {
+                    record(admission.diagnosticOutcome())
+                }
+                when (admission) {
                     AndroidProtectedReadAdmission.IGNORE -> Unit
                     AndroidProtectedReadAdmission.ACCEPT -> {
                         if (!operations.acceptProtocolInfo()) {
+                            record(ProtectedProtocolInfoDiagnosticOutcome.ORDER_REJECTED)
                             fail(BleGattFailure.PLATFORM_FAILURE)
                         } else {
+                            record(ProtectedProtocolInfoDiagnosticOutcome.ACCEPT)
+                            protocolInfoDiagnostics.finish()
                             observer(BleGattEvent.ProtectedProtocolInfoRead(value.copyOf()))
                         }
                     }
@@ -1366,7 +1468,15 @@ class AndroidBluetoothGattFacade(
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray,
         ) {
+            val callbackAt = SystemClock.elapsedRealtime()
             postToMain {
+                protocolInfoDiagnostics.record(ProtectedProtocolInfoDiagnosticOrigin.STREAM_CALLBACK,
+                    if (owns(callbackGatt)) ProtectedProtocolInfoDiagnosticOutcome.CALLBACK_OBSERVED
+                    else ProtectedProtocolInfoDiagnosticOutcome.IGNORED_STALE,
+                    owns(callbackGatt), operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING,
+                    valueBytes = value.size,
+                    exactCharacteristic = AndroidGattCharacteristicOwnershipPolicy.owns(stream, characteristic),
+                    callbackAt = callbackAt)
                 if (!owns(callbackGatt)) return@postToMain
                 if (!requireProtectedCallbackPrerequisites()) return@postToMain
                 if (
@@ -1410,6 +1520,7 @@ class AndroidBluetoothGattFacade(
         private fun beginGattOperation(
             platformOperation: AndroidBlePlatformOperation,
             advance: () -> Boolean,
+            rejected: ((ProtectedProtocolInfoDiagnosticOutcome) -> Unit)? = null,
             operation: (BluetoothGatt) -> Boolean,
         ): Boolean {
             if (
@@ -1418,14 +1529,25 @@ class AndroidBluetoothGattFacade(
                 Build.VERSION.SDK_INT < ANDROID_BLE_MINIMUM_API ||
                 !operationAllowed(platformOperation) ||
                 !bondedPrerequisiteSatisfied()
-            ) return false
-            val current = gatt ?: return false
-            if (!advance()) return false
+            ) {
+                rejected?.invoke(ProtectedProtocolInfoDiagnosticOutcome.PRECONDITION_REJECTED)
+                return false
+            }
+            val current = gatt ?: run {
+                rejected?.invoke(ProtectedProtocolInfoDiagnosticOutcome.GATT_UNAVAILABLE)
+                return false
+            }
+            if (!advance()) {
+                rejected?.invoke(ProtectedProtocolInfoDiagnosticOutcome.ORDER_REJECTED)
+                return false
+            }
             return try {
                 operation(current)
             } catch (_: SecurityException) {
+                rejected?.invoke(ProtectedProtocolInfoDiagnosticOutcome.SECURITY_EXCEPTION)
                 false
             } catch (_: IllegalArgumentException) {
+                rejected?.invoke(ProtectedProtocolInfoDiagnosticOutcome.ARGUMENT_EXCEPTION)
                 false
             }
         }

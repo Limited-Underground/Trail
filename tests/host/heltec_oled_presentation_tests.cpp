@@ -180,9 +180,92 @@ void exact_phone_status_only_on_connected_surface() {
     view.frame=StartupDisplayFrame::ble_error;
     require(mapper.present(view,6,"Bench",{},1).surface==Surface::failure,"Ready overrides containment");
 }
+
+void typed_gnss_observation_controls_visible_status() {
+    using opentrail::ui::compact_status_footer::GpsFixCode;
+    using opentrail::ui::compact_status_footer::ObservationState;
+    HeltecOledPresentation mapper;
+    StartupDisplayView view{};
+    view.frame = StartupDisplayFrame::ble_connected;
+    view.gps_fresh_for_ms = 5'000;
+    view.gps_satellites = {ObservationState::valid, 8, 1'000};
+    view.gps_fix = GpsFixCode::valid;
+    auto frame = mapper.present(view, 1'001, "Bench", {}, 1);
+    require(row(frame, 4) == "BAT:--% GPS:8" && row(frame, 5) == "GPS FIX",
+            "fresh GNSS fix missing from normal screen");
+    view.gps_satellites.value = 0;
+    view.gps_fix = GpsFixCode::no_fix;
+    frame = mapper.present(view, 1'002, "Bench", {}, 1);
+    require(row(frame, 4) == "BAT:--% GPS:0" && row(frame, 5) == "GPS NO FIX",
+            "fresh zero-satellite no-fix hidden");
+    view.gps_fix = GpsFixCode::stale;
+    frame = mapper.present(view, 6'000, "Bench", {}, 1);
+    require(row(frame, 5) == "GPS UNKNOWN", "forged stale without stale sample shown");
+    view.gps_satellites = {ObservationState::stale, 0, 1'000};
+    frame = mapper.present(view, 6'000, "Bench", {}, 1);
+    require(row(frame, 4) == "BAT:--% GPS:--" && row(frame, 5) == "GPS STALE",
+            "stale GNSS displayed as current");
+    view.gps_satellites.sampled_at_ms = 0;
+    frame = mapper.present(view, 6'000, "Bench", {}, 1);
+    require(row(frame, 5) == "GPS UNKNOWN", "stale without prior sample shown");
+    view.gps_satellites.sampled_at_ms = 2'000;
+    frame = mapper.present(view, 6'000, "Bench", {}, 1);
+    require(row(frame, 5) == "GPS UNKNOWN", "premature stale shown");
+    view.gps_satellites.sampled_at_ms = 7'000;
+    frame = mapper.present(view, 6'000, "Bench", {}, 1);
+    require(row(frame, 5) == "GPS UNKNOWN", "future stale shown");
+    view.gps_satellites = {ObservationState::valid, 0, 1'000};
+    view.gps_fix = GpsFixCode::valid;
+    frame = mapper.present(view, 6'001, "Bench", {}, 1);
+    require(row(frame, 4) == "BAT:--% GPS:--" && row(frame, 5) == "GPS UNKNOWN",
+            "expired GNSS displayed as current");
+    view.gps_satellites.sampled_at_ms = 7'000;
+    frame = mapper.present(view, 6'002, "Bench", {}, 1);
+    require(row(frame, 4) == "BAT:--% GPS:--" && row(frame, 5) == "GPS UNKNOWN",
+            "future GNSS observation displayed");
+    view.gps_satellites = {ObservationState::invalid, 8, 6'002};
+    frame = mapper.present(view, 6'003, "Bench", {}, 1);
+    require(row(frame, 4) == "BAT:--% GPS:--" && row(frame, 5) == "GPS UNKNOWN",
+            "invalid GNSS observation displayed");
+    view.gps_satellites = {ObservationState::valid, 8, 6'003};
+    view.gps_fix = GpsFixCode::unavailable;
+    frame = mapper.present(view, 6'004, "Bench", {}, 1);
+    require(row(frame, 4) == "BAT:--% GPS:--" && row(frame, 5) == "GPS UNKNOWN",
+            "unavailable GNSS observation displayed");
+    view.has_footer = true;
+    view.footer.columns.fill(0xff);
+    frame = mapper.present(view, 6'005, "Bench", {}, 1);
+    require(row(frame, 4) == "BAT:--% GPS:--" && row(frame, 5) == "GPS UNKNOWN",
+            "footer pixels promoted into GNSS telemetry");
+}
+
+void typed_battery_observation_controls_visible_status() {
+    using opentrail::ui::compact_status_footer::ObservationState;
+    HeltecOledPresentation mapper;
+    StartupDisplayView view{};
+    view.frame = StartupDisplayFrame::ble_connected;
+    view.battery_fresh_for_ms = 30'000;
+    view.battery_percent = {ObservationState::valid, 74, 1'000};
+    require(row(mapper.present(view, 1'001, "Bench", {}, 1), 4) == "BAT:74% GPS:--",
+            "fresh battery missing from normal screen");
+    view.battery_percent.value = 101;
+    require(row(mapper.present(view, 1'002, "Bench", {}, 1), 4) == "BAT:--% GPS:--",
+            "out-of-range battery displayed");
+    view.battery_percent = {ObservationState::valid, 74, 1'000};
+    require(row(mapper.present(view, 31'000, "Bench", {}, 1), 4) == "BAT:--% GPS:--",
+            "expired battery displayed");
+    view.battery_percent = {ObservationState::invalid, 74, 31'000};
+    require(row(mapper.present(view, 31'001, "Bench", {}, 1), 4) == "BAT:--% GPS:--",
+            "invalid battery displayed");
+    view.battery_percent = {ObservationState::valid, 74, 32'000};
+    require(row(mapper.present(view, 31'002, "Bench", {}, 1), 4) == "BAT:--% GPS:--",
+            "future battery displayed");
+}
 }  // namespace
 
 int main() {
+    typed_battery_observation_controls_visible_status();
+    typed_gnss_observation_controls_visible_status();
     exact_phone_status_only_on_connected_surface();
     all_catalog_selections_remain_transmit_disabled();
     every_frame_and_invalid_fail_closed();
@@ -190,6 +273,6 @@ int main() {
     safety_surfaces_and_transition_clear_lower_content();
     rollback_contains_all_later_views();
     typed_name_and_clock_survive_region_warning_only();
-    std::cout << "PASS: 7 Heltec OLED presentation scenario groups\n";
+    std::cout << "PASS: 8 Heltec OLED presentation scenario groups\n";
     return 0;
 }

@@ -37,6 +37,11 @@ bool StartupDisplayOwner::show_compact_status(
     StartupDisplayView view{};
     view.frame = frame;
     view.phone_ready = snapshot.phone_ready;
+    view.battery_percent = snapshot.battery_percent;
+    view.battery_fresh_for_ms = snapshot.freshness.battery_fresh_for_ms;
+    view.gps_satellites = snapshot.gps_satellites;
+    view.gps_fix = snapshot.gps_fix;
+    view.gps_fresh_for_ms = snapshot.freshness.gps_fresh_for_ms;
     if (!startup_display_compact_footer_page(frame, snapshot, view.footer)) {
         return false;
     }
@@ -192,6 +197,15 @@ bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
     }
     if (has_view_ && !port_.content_changed() && view_.frame == view.frame &&
         view_.phone_ready == view.phone_ready &&
+        view_.battery_percent.state == view.battery_percent.state &&
+        view_.battery_percent.value == view.battery_percent.value &&
+        view_.battery_percent.sampled_at_ms == view.battery_percent.sampled_at_ms &&
+        view_.battery_fresh_for_ms == view.battery_fresh_for_ms &&
+        view_.gps_satellites.state == view.gps_satellites.state &&
+        view_.gps_satellites.value == view.gps_satellites.value &&
+        view_.gps_satellites.sampled_at_ms == view.gps_satellites.sampled_at_ms &&
+        view_.gps_fix == view.gps_fix &&
+        view_.gps_fresh_for_ms == view.gps_fresh_for_ms &&
         view_.has_footer == view.has_footer &&
         (!view.has_footer || view_.footer.columns == view.footer.columns)) {
         return true;
@@ -260,6 +274,7 @@ bool startup_display_compact_footer_page(
     Snapshot snapshot{};
     snapshot.battery_percent = status.battery_percent;
     snapshot.gps_satellites = status.gps_satellites;
+    snapshot.gps_fix = status.gps_fix;
     switch (frame) {
         case StartupDisplayFrame::ble_starting:
             snapshot.ble = BleCode::starting;

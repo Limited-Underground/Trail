@@ -23,6 +23,7 @@ idf_component_register(
     SRCS
         ${OPENTRAIL_CONFIRMATION_SOURCES}
         "app_main.cpp"
+        "companion_connection_diagnostics.cpp"
         "companion_boot_self_check.cpp"
         "companion_nimble_gatt.cpp"
         "companion_nimble_runtime.cpp"
@@ -95,7 +96,17 @@ idf_component_register(
         nvs_flash
     PRIV_REQUIRES ${OPENTRAIL_CONFIRMATION_REQUIRES}
 )
-target_compile_definitions(${COMPONENT_LIB} PRIVATE OPENTRAIL_CONFIRMATION_EVALUATION=$<BOOL:${OPENTRAIL_CONFIRMATION_EVALUATION}>)
+target_compile_definitions(${COMPONENT_LIB} PRIVATE
+    OPENTRAIL_CONFIRMATION_EVALUATION=$<BOOL:${OPENTRAIL_CONFIRMATION_EVALUATION}>
+    OPENTRAIL_CONNECTION_DIAGNOSTICS=$<BOOL:${OPENTRAIL_CONNECTION_DIAGNOSTICS}>
+    OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY=$<BOOL:${OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY}>)
+if(OPENTRAIL_CONNECTION_DIAGNOSTICS)
+    if(OPENTRAIL_CONFIRMATION_EVALUATION)
+        message(FATAL_ERROR "Connection comparison uses the ordinary 4096-byte BLE profile")
+    endif()
+    target_compile_features(${COMPONENT_LIB} PRIVATE cxx_std_17)
+    target_compile_options(${COMPONENT_LIB} PRIVATE -fstack-usage)
+endif()
 if(OPENTRAIL_CONFIRMATION_EVALUATION)
     # IDF's early requirements pass does not inherit this custom cache option.
     # Resolve the admitted target here so its exported headers/link dependencies

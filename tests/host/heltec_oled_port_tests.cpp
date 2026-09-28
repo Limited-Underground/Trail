@@ -45,6 +45,46 @@ void real_port_delivers_presentation_frames() {
     EXPECT(stub::state.bounds_valid);
 }
 
+void normal_panel_renders_live_and_stale_gnss() {
+    using opentrail::ui::compact_status_footer::GpsFixCode;
+    using opentrail::ui::compact_status_footer::ObservationState;
+    stub::reset();
+    HeltecV4Oled port;
+    StartupDisplayOwner owner{port};
+    HeltecOledPresentation expected;
+    EXPECT(owner.start());
+    port.set_configuration("Bench", {}, 1);
+    CompactStatusSnapshot status{};
+    status.battery_percent = {ObservationState::valid, 74, 1'000};
+    status.gps_satellites = {ObservationState::valid, 8, 1'000};
+    status.gps_fix = GpsFixCode::valid;
+    status.freshness = {30'000, 5'000};
+    status.render_now_ms = 1'000;
+    EXPECT(owner.show_compact_status(StartupDisplayFrame::ble_connected, status));
+    StartupDisplayView view{};
+    view.frame = StartupDisplayFrame::ble_connected;
+    view.battery_percent = status.battery_percent;
+    view.battery_fresh_for_ms = 30'000;
+    view.gps_satellites = status.gps_satellites;
+    view.gps_fix = status.gps_fix;
+    view.gps_fresh_for_ms = 5'000;
+    auto frame = expected.present(view, 1'000, "Bench", {}, 1);
+    EXPECT(std::string(frame.rows[4].data()) == "BAT:74% GPS:8");
+    EXPECT(std::string(frame.rows[5].data()) == "GPS FIX");
+    EXPECT(stub::state.frames.back() == frame.pixels);
+    stub::state.now_us = 6'000'000;
+    status.gps_satellites = {ObservationState::stale, 0, 1'000};
+    status.gps_fix = GpsFixCode::stale;
+    status.render_now_ms = 6'000;
+    EXPECT(owner.show_compact_status(StartupDisplayFrame::ble_connected, status));
+    view.gps_satellites = status.gps_satellites;
+    view.gps_fix = GpsFixCode::stale;
+    frame = expected.present(view, 6'000, "Bench", {}, 1);
+    EXPECT(std::string(frame.rows[4].data()) == "BAT:74% GPS:--");
+    EXPECT(std::string(frame.rows[5].data()) == "GPS STALE");
+    EXPECT(stub::state.frames.back() == frame.pixels);
+}
+
 void draw_failure_conceals_and_latches_port() {
     stub::reset(); HeltecV4Oled port; EXPECT(port.initialize());
     stub::state.draw_failures = 1;
@@ -242,6 +282,7 @@ void unowned_setup_label_remains_after_pairing_timeout() {
 }
 
 int main() {
+    normal_panel_renders_live_and_stale_gnss();
     unowned_setup_label_remains_after_pairing_timeout();
     metadata_redraw_and_overlays_preserve_latest_clock();
     clock_minute_redraw_survives_unchanged_transport_footer();
@@ -254,6 +295,6 @@ int main() {
     pairing_clear_and_failure_use_real_owner_and_port();
     rollback_cannot_be_followed_by_pairing_digits();
     if (failures) return 1;
-    std::cout << "PASS actual Heltec OLED port: 11 groups\n";
+    std::cout << "PASS actual Heltec OLED port: 12 groups\n";
     return 0;
 }

@@ -3,8 +3,8 @@ package io.github.nbjelanovic.otclient
 internal const val V1_TEST_CONNECTION_LOG_MAX_RECORDS = 512
 internal const val V1_TEST_CONNECTION_LOG_MAX_BYTES = 64 * 1024
 
-/** Written format. Versions 1 and 2 remain readable; every write upgrades to version 3. */
-internal const val V1_TEST_CONNECTION_LOG_VERSION = 3
+/** Written format. Versions 1 through 3 remain readable; every write upgrades to version 4. */
+internal const val V1_TEST_CONNECTION_LOG_VERSION = 4
 internal const val V1_TEST_CONNECTION_LOG_MIN_READABLE_VERSION = 1
 
 enum class V1TestConnectionLogStatus { READY, CORRUPT, STORAGE_FAILURE, SESSION_REQUIRED, INVALID_EVENT, EXHAUSTED }
@@ -14,6 +14,8 @@ sealed interface V1TestConnectionLogEvent {
     data class Lifecycle(val state: V1TestAppLifecycleState) : V1TestConnectionLogEvent
     /** Version-2 typed protected-flow milestone. */
     data class Trace(val emission: V1TestTraceEmission) : V1TestConnectionLogEvent
+    /** Version-4 bounded platform facts for a protected ProtocolInfo request. */
+    data class ProtectedRead(val diagnostic: ProtectedProtocolInfoDiagnostic) : V1TestConnectionLogEvent
 }
 
 data class V1TestConnectionLogRecord(
@@ -93,6 +95,9 @@ class V1TestConnectionLog(private val storage: V1TestConnectionLogStorage) {
     fun recordTrace(elapsedMillis: Long, emission: V1TestTraceEmission): Boolean =
         append(elapsedMillis, V1TestConnectionLogEvent.Trace(emission))
 
+    fun recordProtectedRead(elapsedMillis: Long, diagnostic: ProtectedProtocolInfoDiagnostic): Boolean =
+        append(elapsedMillis, V1TestConnectionLogEvent.ProtectedRead(diagnostic))
+
     private fun append(elapsed: Long, event: V1TestConnectionLogEvent): Boolean {
         if (!available) return false
         val session = currentSession ?: return fail(V1TestConnectionLogStatus.SESSION_REQUIRED)
@@ -118,7 +123,7 @@ class V1TestConnectionLog(private val storage: V1TestConnectionLogStorage) {
 
     fun exportText(): String = buildString {
         appendLine("Trail V1-Test connection log (format $V1_TEST_CONNECTION_LOG_VERSION, loaded $loadedVersion)")
-        appendLine("Activity-bound observation, not a continuous radio trace.")
+        appendLine("Observed connection, lifecycle, stage and protected-read events; not a continuous radio trace.")
         appendLine("Elapsed milliseconds restart at each recording session. Gaps are unobserved, not proof of disconnection.")
         appendLine("Connection and app lifecycle rows are coarse presentation categories.")
         appendLine("Stage rows are typed milestones taken from exact runtime transitions, never from a UI label.")
@@ -128,11 +133,17 @@ class V1TestConnectionLog(private val storage: V1TestConnectionLogStorage) {
         appendLine("Generation is the bound connected-device service generation, not the private BLE transport generation.")
         appendLine("Reason and connection_diagnostic are separate runtime facts; UNAVAILABLE means not captured, including older records.")
         appendLine("PROTECTED_PROTOCOL_INFO_REJECTED and SNAPSHOT_REJECTED identify the failure phase, not proof of explicit device rejection.")
+        appendLine("G rows are platform observations for one protected read; connection/request are local counters, not device identities.")
+        appendLine("G rows can continue while the Activity is detached. ACCEPT means adapter read admission, not authorization or Ready.")
+        appendLine("LEASE_CLOSE_REQUESTED records cleanup initiation, not proof that platform teardown completed.")
+        appendLine("G since_ms is observed request age; dispatch_ms is callback-to-handler delay; handling_ms ends before runtime delivery.")
+        appendLine("G UNAVAILABLE is unobserved/out of bounds; status/bytes out-of-range flags preserve that distinction. LIMIT_REACHED ends the 16-event request budget.")
         appendLine("No BLE PIN, key, group secret, message content, address, or raw payload is recorded. No automatic upload.")
         appendLine("Recorder status: ${status.name}")
         appendLine("Records: ${records.size}/$V1_TEST_CONNECTION_LOG_MAX_RECORDS")
         appendLine("C/L: session\telapsed_ms\tkind\tstate")
         appendLine("S:   session\telapsed_ms\tS\tstage\ttransaction\tordinal\tgeneration\tsince_ms\tattempt\treason\tconnection_diagnostic")
+        appendLine("G:   session\telapsed_ms\tG\tconnection\trequest\torigin\toutcome\tsince_ms\tdispatch_ms\thandling_ms\tstatus\tstatus_out_of_range\tbytes\tbytes_out_of_range\tnew_state\tcurrent_gatt\texact_characteristic\tpending_read")
         records.forEach { appendLine(recordLine(it)) }
     }
 
@@ -189,6 +200,13 @@ class V1TestConnectionLog(private val storage: V1TestConnectionLogStorage) {
             is V1TestConnectionLogEvent.Trace -> with(event.emission) {
                 "S\t${stage.name}\t$transaction\t$ordinal\t$generation\t$sinceMillis\t$attempt\t${reason.name}\t${connectionDiagnostic?.name ?: "UNAVAILABLE"}"
             }
+            is V1TestConnectionLogEvent.ProtectedRead -> with(event.diagnostic) {
+                listOf("G", connection, request, origin.name, outcome.name,
+                    sinceMillis ?: "UNAVAILABLE", dispatchMillis ?: "UNAVAILABLE", handlingMillis ?: "UNAVAILABLE",
+                    status ?: "UNAVAILABLE", flag(statusOutOfRange), valueBytes ?: "UNAVAILABLE",
+                    flag(valueBytesOutOfRange), newState ?: "UNAVAILABLE", flag(currentGatt),
+                    exactCharacteristic?.let(::flag) ?: "UNAVAILABLE", flag(pendingRead)).joinToString("\t")
+            }
         }
         return "${record.session}\t${record.elapsedMillis}\t$suffix"
     }
@@ -234,6 +252,7 @@ class V1TestConnectionLog(private val storage: V1TestConnectionLogStorage) {
                 "S" -> if (version < 2 || fields.size != (if (version == 2) 10 else 11)) null else {
                     decodeTrace(fields, previousOrdinal)
                 }
+                "G" -> if (version < 4 || fields.size != 18) null else decodeProtectedRead(fields)
                 else -> null
             } ?: return null
             if (event is V1TestConnectionLogEvent.Trace) previousOrdinal = event.emission.ordinal
@@ -264,4 +283,34 @@ class V1TestConnectionLog(private val storage: V1TestConnectionLogStorage) {
     private fun number(value: String): Long? = value.takeIf {
         it.isNotEmpty() && it.all { character -> character in '0'..'9' } && (it == "0" || !it.startsWith('0'))
     }?.toLongOrNull()
+
+    private fun flag(value: Boolean): String = if (value) "1" else "0"
+
+    private fun decodeProtectedRead(fields: List<String>): V1TestConnectionLogEvent.ProtectedRead? = runCatching {
+        fun boundedOptional(index: Int, max: Long): Long? =
+            if (fields[index] == "UNAVAILABLE") null else
+                requireNotNull(number(fields[index])?.takeIf { it <= max })
+        fun boolean(index: Int): Boolean = when (fields[index]) {
+            "0" -> false
+            "1" -> true
+            else -> throw IllegalArgumentException("Invalid diagnostic flag")
+        }
+        V1TestConnectionLogEvent.ProtectedRead(ProtectedProtocolInfoDiagnostic(
+            connection = requireNotNull(number(fields[3])),
+            request = requireNotNull(number(fields[4])),
+            origin = ProtectedProtocolInfoDiagnosticOrigin.valueOf(fields[5]),
+            outcome = ProtectedProtocolInfoDiagnosticOutcome.valueOf(fields[6]),
+            sinceMillis = boundedOptional(7, PROTECTED_READ_DIAGNOSTIC_MAX_MILLIS),
+            dispatchMillis = boundedOptional(8, PROTECTED_READ_DIAGNOSTIC_MAX_MILLIS),
+            handlingMillis = boundedOptional(9, PROTECTED_READ_DIAGNOSTIC_MAX_MILLIS),
+            status = boundedOptional(10, PROTECTED_READ_DIAGNOSTIC_MAX_STATUS.toLong())?.toInt(),
+            statusOutOfRange = boolean(11),
+            valueBytes = boundedOptional(12, PROTECTED_READ_DIAGNOSTIC_MAX_BYTES.toLong())?.toInt(),
+            valueBytesOutOfRange = boolean(13),
+            newState = boundedOptional(14, 3)?.toInt(),
+            currentGatt = boolean(15),
+            exactCharacteristic = if (fields[16] == "UNAVAILABLE") null else boolean(16),
+            pendingRead = boolean(17),
+        ))
+    }.getOrNull()
 }

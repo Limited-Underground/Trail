@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-23. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-28. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -158,12 +158,55 @@ The [independent evaluation endpoints](testing/OT-227-INDEPENDENT-HANDSHAKE-ENDP
   produced a narrowly corrected adapter for a real-library nonnull contract issue.
   See the [consolidated admission evidence](security/CRYPTO_ADMISSION_BATCH_2026-09-10.md).
 
+## Current GNSS and protected connection investigation
+
+OT-0101e remains in progress. The [one diagnostic A trial](../tests/hardware/OT-0101e-2026-09-25.md)
+showed GPS:6 / GPS FIX, then detected an `ot_ble_host` stack overflow and panic
+reboot during protected phone connection. The updated S24 app reached protected
+Ready and synchronized the physical clock on the original-firmware control;
+the candidate failed its exact protected read after 5099 ms. This confirms a
+firmware stack fault in this attempt. Its exact overflowing function and any
+causal role of GNSS/display work remain unknown; earlier failures are not
+retrospectively proven to have the same cause.
+
+Original firmware and saved settings were independently restored and verified,
+the controller closed, and the owner confirmed the usual Trail screen. One
+restored-original saved-device reconnect reached Ready and reported clock sync.
+The diagnostic APK remains installed with app data and pairing preserved.
+The [host stack correction](testing/OT-0101e-BLE-STACK-CORRECTION-2026-09-28.md)
+applies the existing evaluation target's 8192-byte BLE allocation to the
+ordinary/GNSS target. Two fresh diagnostic builds match across seven artifacts;
+the ordinary build and seven configuration/negative-admission tests pass.
+A production build guard rejects stale undersized configurations. The
+[exact-image retest preparation](testing/OT-0101e-BLE-STACK-RETEST-PREPARATION-2026-09-28.md)
+passes 46 focused cases, isolated input verification and independent review;
+the [approved corrected-stack trial](testing/OT-0101e-BLE-STACK-RETEST-2026-09-28.md)
+now reaches protected Ready and a synchronized, advancing physical clock across
+184.7712608 seconds on the same connection. No overflow/restart was captured;
+measured BLE minimum free stack was3996 bytes. Originals/settings and all protected
+spans were independently verified restored, custody closed, and restored-original
+phone Ready/clock sync recovered. GNSS fix loss/recovery and restart acceptance
+remain open; normal-screen owner closure is recorded in the hardware evidence.
+The [remaining-case review](testing/OT-0101e-REMAINING-GNSS-CLOCK-REVIEW-2026-09-28.md)
+finds no new GPS freshness defect. It identifies a checklist mismatch: accepted
+clock state is volatile across device restart and must synchronize after fresh
+Ready; saved region settings persist. Natural fix loss, stream staleness and
+phone telemetry are distinct evidence boundaries. A revised expected restart
+result is needed before new hardware. The
+[lifecycle preparation](testing/OT-0101e-LIFECYCLE-PREPARATION-2026-09-28.md)
+now supplies a host-validated ordered controller with one guarded warm restart,
+durable first-failure evidence and unchanged original restoration. Corrected
+revision2 is Pending/Proposed in the private checklist; owner approval and a
+fresh exact hardware grant remain required. Plain-language owner instructions
+were aligned with that proposal.
+No V1 credit or public website status changed.
+
 ## Last verified bench configuration
 
 | Pair | Firmware | Android app | Evidence boundary |
 | --- | --- | --- | --- |
 | Original Heltec / Note20 | `ot178-phone-v1`, 586,736 bytes, SHA prefix `43AC6DBC` | V1-Test SHA prefix `CCC4F1EB` | Retained paired control; still needs the newer clock correction. |
-| Second Heltec / S24 Ultra | `ot171-label-v1`, 587,968 bytes, SHA prefix `984E241D` | V1-Test 12,505,942 bytes, SHA prefix `5FD10EF0` | Trail Bench 2 / US915; latest app-only Ready observed in 31.015 seconds with protected name/region readback and clock-sync acknowledgement. |
+| Second Heltec / S24 Ultra | `ot171-label-v1`, 587,968 bytes, SHA prefix `984E241D` | Diagnostic V1-Test 11,974,618 bytes, SHA prefix `79603E1A` | Trail Bench 2 / US915; original restored/readback verified; saved-device session 22 reached protected Ready and reported clock sync. Owner confirmed the usual Trail screen. |
 
 These are recorded observations, not a fresh live-device inventory. Full hashes,
 setup, and results are in [pairing-flow evidence](testing/OT-171-PAIRING-FLOW-2026-09-08.md)

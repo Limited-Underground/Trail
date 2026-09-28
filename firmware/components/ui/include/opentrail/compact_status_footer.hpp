@@ -14,6 +14,7 @@ enum class ObservationState : std::uint8_t {
     unavailable = 0,
     valid,
     invalid,
+    stale,
 };
 
 struct Metric {
@@ -31,6 +32,14 @@ enum class BleCode : std::uint8_t {
     error,
 };
 
+enum class GpsFixCode : std::uint8_t {
+    satellite_count_only = 0,
+    valid,
+    no_fix,
+    stale,
+    unavailable,
+};
+
 enum class Direction : std::uint8_t {
     none = 0,
     tx,
@@ -45,6 +54,7 @@ struct Freshness {
 struct Snapshot {
     Metric battery_percent{};
     Metric gps_satellites{};
+    GpsFixCode gps_fix{GpsFixCode::satellite_count_only};
     BleCode ble{BleCode::unavailable};
 };
 

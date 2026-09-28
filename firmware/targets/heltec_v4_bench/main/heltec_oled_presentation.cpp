@@ -10,6 +10,35 @@ ui::oled_presentation::Frame HeltecOledPresentation::present(
     ui::oled_presentation::Snapshot snapshot{};
     snapshot.device_name = name;
     snapshot.clock = clock;
+    using ui::compact_status_footer::GpsFixCode;
+    using ui::compact_status_footer::ObservationState;
+    const auto& battery = view.battery_percent;
+    if (battery.state == ObservationState::valid && battery.value <= 100 &&
+        battery.sampled_at_ms <= now_ms && view.battery_fresh_for_ms != 0 &&
+        now_ms - battery.sampled_at_ms < view.battery_fresh_for_ms) {
+        snapshot.battery = {true, battery.value, battery.sampled_at_ms};
+    }
+    const auto& satellites = view.gps_satellites;
+    const bool current = satellites.state == ObservationState::valid &&
+        satellites.value <= 99 && satellites.sampled_at_ms <= now_ms &&
+        view.gps_fresh_for_ms != 0 &&
+        now_ms - satellites.sampled_at_ms < view.gps_fresh_for_ms;
+    if (current && (view.gps_fix == GpsFixCode::valid ||
+                    view.gps_fix == GpsFixCode::no_fix)) {
+        snapshot.satellites = {true, satellites.value, satellites.sampled_at_ms};
+        snapshot.gps_sampled_at_ms = satellites.sampled_at_ms;
+        if (view.gps_fix == GpsFixCode::valid)
+            snapshot.gps_fix = ui::oled_presentation::GpsFix::fix;
+        else if (view.gps_fix == GpsFixCode::no_fix)
+            snapshot.gps_fix = ui::oled_presentation::GpsFix::no_fix;
+    } else if (view.gps_fix == GpsFixCode::stale &&
+               satellites.state == ObservationState::stale &&
+               satellites.sampled_at_ms != 0 &&
+               satellites.sampled_at_ms <= now_ms &&
+               view.gps_fresh_for_ms != 0 &&
+               now_ms - satellites.sampled_at_ms >= view.gps_fresh_for_ms) {
+        snapshot.gps_fix = ui::oled_presentation::GpsFix::stale;
+    }
     const auto* label = companion::region_selection_label(region_selection);
     snapshot.region_configured = label != nullptr;
     snapshot.region_label = label == nullptr ? "" : label;
