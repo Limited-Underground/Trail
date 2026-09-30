@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-24. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-29. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -18,7 +18,13 @@ The [selected phone request boundary](testing/OT-0238b-SELECTED-REQUEST-2026-09-
 adds a pending-only protected configuration action after confirmed Ready, with
 exact cancellation on disconnect, loss, expiry, delivery failure and reset.
 The current Android app cannot send it. Local review, durable activation,
-retained recovery and physical acceptance are still open.
+retained recovery and physical acceptance are still open. The
+[current execution-gate review](testing/OT-0238b-EXECUTION-GATE-2026-09-29.md)
+confirms a scope/order conflict: production identity and wire selection remains
+unapproved, while its required security evidence depends on enrollment being
+completed first. The proposed correction separates isolated evaluation-candidate
+validation from final selected production binding; no gate or scope is changed
+by the proposal. Full OT-0238b completion cannot currently be claimed.
 
 [OT241 diagnostic trials](testing/OT-241-DIAGNOSTIC-TRIAL-PREPARATION-2026-09-16.md)
 closed with both originals independently restored. The first reached comparison
@@ -166,6 +172,32 @@ The [independent evaluation endpoints](testing/OT-227-INDEPENDENT-HANDSHAKE-ENDP
   an additive entropy lifecycle guard are now host-validated. The Noise proof also
   produced a narrowly corrected adapter for a real-library nonnull contract issue.
   See the [consolidated admission evidence](security/CRYPTO_ADMISSION_BATCH_2026-09-10.md).
+
+## Optional product planning
+
+The owner accepted the Tracker, Console and Repeater product proposals
+OT-0256b, OT-0260b and OT-0264b. Their approved follow-on planning now supplies
+the [Tracker privacy/reporting policy](testing/OT-0257a-TRACKER-POLICY-2026-09-29.md),
+[Console touch flow](testing/OT-0261a-CONSOLE-FLOW-2026-09-29.md) and
+[Repeater security review](testing/OT-0265a-REPEATER-SECURITY-REVIEW-2026-09-29.md).
+These are independently reviewed, owner-accepted proposals, not
+implemented products. Numeric Tracker limits require measurement and review;
+Console hardware and request adapters remain unselected; current OTSL0/v0
+remains direct-only pending a separate relay-capable contract. Base V1 scope,
+completion credit and public website capability status are unchanged.
+
+The next independently reviewed planning results define
+[Tracker target/power criteria](testing/OT-0257b-TRACKER-TARGET-CRITERIA-2026-09-29.md),
+[Console media/power failure policy](testing/OT-0261b-CONSOLE-STORAGE-POWER-2026-09-29.md)
+and [Repeater scheduling/congestion cases](testing/OT-0265b-REPEATER-SCHEDULING-2026-09-29.md).
+These proposals are now owner-accepted. They provide selection and failure criteria, not
+selected hardware, measured limits, a storage-content decision or a new radio
+construction. Implementation successors must retain those explicit prerequisites.
+
+The independently reviewed [Repeater deployment profile](testing/OT-0266a-REPEATER-DEPLOYMENT-PROFILE-2026-09-29.md)
+defines required evidence for board/revision, radio/antenna, enclosure, power,
+resources and independent recovery, separating specifications from received-unit
+measurements. Owner review is pending; no candidate or operating limit is selected.
 
 ## Last verified bench configuration
 

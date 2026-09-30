@@ -1,5 +1,109 @@
 # OpenTrail Progress Log
 
+## 2026-09-29
+
+### OT-0238b Reconcile production selection and candidate validation order
+
+Source and live prerequisite review confirmed that the task's production
+enrollment requirement precedes the security selection it must consume, while
+the selection's evidence depends on enrollment acceptance. Recorded the task
+Blocked, preserving approval and existing partial implementation. The candidate-
+first sequencing proposal preserves all eight admission gates, explicit final
+selection and later production binding. Independent review confirmed the current
+dependencies and corrected the status/eight-gate wording. No code, hardware,
+cryptography selection, V1 credit or publication changed.
+[Review and proposed correction](testing/OT-0238b-EXECUTION-GATE-2026-09-29.md).
+
+### OT-0256b Prepare the tracking-only product decision
+
+Prepared a concrete owner-equipment, one-receiver proposal with deliberate
+start/stop and stopped-on-restart recommendations. Operator, subject, setup,
+recipient and restart choices are explicit for owner review. Lifecycle failures
+and versioned receiver compatibility remain separate implementation gates.
+Independent review and documentation checks pass; no device behavior or V1
+completion is claimed. [Proposal](testing/OT-0256b-TRACKER-PROPOSAL-2026-09-29.md).
+
+### OT-0260b Prepare Console interfaces and assembly criteria
+
+Prepared one-screen ESP32/LoRa/microSD/battery assembly requirements, concrete
+resource/recovery interfaces and explicit unresolved choices. Proposed GNSS
+omission is owner-selectable and requires reviewing the older GPS-required
+composition before implementation. Independent review and documentation checks
+pass. No board, purchase or compatibility claim is authorized by the proposal.
+[Proposal](testing/OT-0260b-CONSOLE-PROPOSAL-2026-09-29.md).
+
+### OT-0264b Prepare dedicated versus combined repeater role decision
+
+Proposed a dedicated-first sender/repeater/receiver topology while retaining the
+combined-role direction. Owner choice remains explicit. Secure forwarding,
+unchanged direct operation, bounded queues and recovery are defined as proposed
+requirements; actual cryptographic/wire compatibility remains a later gate.
+Independent review and documentation checks pass. No device, RF, V1 progress or
+publication claim. [Proposal](testing/OT-0264b-REPEATER-ROLE-PROPOSAL-2026-09-29.md).
+
+### OT-0257a Prepare Tracker privacy and reporting policy
+
+Prepared explicit consent, recipient binding, no-history, cadence and stop/reset
+recommendations. Disabled sharing cannot be revived by a fix, reconnect or
+restart; an enabled waiting session remains visibly distinct. Numeric limits
+require measured evidence and owner review. Independent source/lifecycle review
+found no blocking issue. [Policy proposal](testing/OT-0257a-TRACKER-POLICY-2026-09-29.md).
+
+### OT-0261a Define Console touch and result flow
+
+Prepared a concrete template-message sequence and startup, current-revision
+confirmation, pending, failed, uncertain and recovery states. Optional storage
+and GPS failures remain separate; bridge acknowledgement cannot stand for
+endpoint delivery. Independent source/lifecycle review found no blocking issue.
+[Touch-flow proposal](testing/OT-0261a-CONSOLE-FLOW-2026-09-29.md).
+
+### OT-0265a Review secure repeater forwarding precedence
+
+Resolved the historical single-repeater analysis against the later direct-only
+V1 and OTSL0/v0 decisions. Proposed future authenticated membership/permission,
+immutable bytes, durable replay and bounded transmission requirements without
+choosing cryptography or changing normative contracts. Independent review found
+no blocking issue. [Review](testing/OT-0265a-REPEATER-SECURITY-REVIEW-2026-09-29.md).
+The three planning artifacts retain separate implementation/physical gates;
+no hardware, behavior change, V1 credit or public capability change occurred.
+
+### OT-0257b Define Tracker target and power selection criteria
+
+Prepared source-backed location, clock, radio, local control, power, security
+storage and independent recovery criteria for exact received hardware. Whole-unit
+power measurements and explicit responsiveness/runtime goals precede support
+claims. No target, purchase or numeric default is selected. Independent review
+passed. [Criteria](testing/OT-0257b-TRACKER-TARGET-CRITERIA-2026-09-29.md).
+
+### OT-0261b Define Console microSD and power failure policy
+
+Prepared absent/full/corrupt/read-only/removable media, interrupted commit,
+low/unknown power, sleep/wake and restart behavior. Optional card content cannot
+grant authority or fabricate delivery. First content, retention and workflow
+remain specific owner choices; numeric power limits await measurement. Independent
+review passed. [Policy](testing/OT-0261b-CONSOLE-STORAGE-POWER-2026-09-29.md).
+
+### OT-0265b Define Repeater scheduling and congestion review
+
+Proposed bounded FIFO/newest-refusal, per-source/global admission, original
+expiry, save-before-release, dispatch airtime accounting and one-submission
+behavior, with explicit combined-mode fairness and failure cases. No relay format,
+hardware or numeric budget selected. Independent review passed.
+[Proposal](testing/OT-0265b-REPEATER-SCHEDULING-2026-09-29.md).
+The three planning artifacts passed the repository checker and 18 documentation
+regressions on final shared records. No behavioral test, device, V1 credit or
+public capability claim was added; implementation remains separately gated.
+
+### OT-0266a Prepare Repeater deployment evidence profile
+
+Prepared a source-backed profile for exact received hardware, region/antenna,
+enclosure, supply/energy, bounded security resources and independent recovery.
+The complete evaluation-to-operation/restoration sequence distinguishes candidate
+specifications from measurements and retains dedicated-first versus future
+combined-role evidence. Independent review, 11 local report links, repository
+checker and 18 documentation regressions pass. No candidate, purchase, numeric
+limit, device result or V1/public status change. [Profile](testing/OT-0266a-REPEATER-DEPLOYMENT-PROFILE-2026-09-29.md).
+
 ## 2026-09-24
 
 ### OT-0238b Admit one bounded request on the selected protected phone path
