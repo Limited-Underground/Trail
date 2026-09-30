@@ -106,8 +106,25 @@ class V1TestDiagnosticSeparationTest {
         )
         assertTrue(log.contains("V1_TEST_CONNECTION_LOG_MAX_RECORDS = 512"))
         assertTrue(log.contains("V1_TEST_CONNECTION_LOG_MAX_BYTES = 64 * 1024"))
-        assertTrue(log.contains("V1_TEST_CONNECTION_LOG_VERSION = 3"))
+        assertTrue(log.contains("V1_TEST_CONNECTION_LOG_VERSION = 4"))
         assertTrue(log.contains("V1_TEST_CONNECTION_LOG_MIN_READABLE_VERSION = 1"))
+    }
+
+    @Test
+    fun protectedReadObservationIsTypedAndOnlyTheTestApplicationRecordsIt() {
+        val model = projectFile("src/main/kotlin/io/github/nbjelanovic/otclient/ProtectedProtocolInfoDiagnostics.kt").readText()
+        val data = model.substringAfter("data class ProtectedProtocolInfoDiagnostic(").substringBefore(") {")
+        listOf("String", "ByteArray", "BluetoothDevice", "BluetoothGatt", "UUID").forEach {
+            assertFalse(data.contains(it), "Diagnostic fields must not carry $it")
+        }
+        val main = productionSources().joinToString("\n") { it.readText() }
+        assertFalse(main.contains("override fun observeProtectedProtocolInfo"))
+        val provider = projectFile("src/v1Test/kotlin/io/github/nbjelanovic/otclient/V1TestApplication.kt").readText()
+        assertTrue(provider.contains("ProtectedProtocolInfoDiagnosticObserver"))
+        assertTrue(provider.contains(".protectedRead(diagnostic)"))
+        val adapter = projectFile("src/main/kotlin/io/github/nbjelanovic/otclient/AndroidBluetoothGattFacade.kt").readText()
+        assertTrue(adapter.contains("appContext as? ProtectedProtocolInfoDiagnosticObserver"))
+        assertTrue(model.contains("runCatching { sink.observeProtectedProtocolInfo(diagnostic) }"))
     }
 
     @Test

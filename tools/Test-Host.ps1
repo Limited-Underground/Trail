@@ -55,6 +55,24 @@ foreach ($bleTrialTest in @('ble_confirmation_trial_tests.py', 'ble_confirmation
     & $python.Source -X utf8 -B (Join-Path $projectRoot ('tests\host\' + $bleTrialTest))
     if ($LASTEXITCODE -ne 0) { throw "BLE trial test failed: $bleTrialTest" }
 }
+# OT-0101e: one-device GNSS custody and privacy-safe observation preparation.
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\gnss_observation_trial_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'GNSS observation trial tests failed.' }
+
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\gnss_lifecycle_trial_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'GNSS lifecycle sequence and restoration tests failed.' }
+
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\connection_diagnostic_capture_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'Connection diagnostic capture tests failed.' }
+
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\connection_diagnostic_trial_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'Connection diagnostic custody and operator tests failed.' }
+
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\connection_stack_retest_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'Connection stack retest admission tests failed.' }
+
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\connection_capture_custody_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'Connection capture process-lifetime tests failed.' }
 
 $fastStructuralTests = @(
     @{ File = 'host_validation_checkout_tests.py'; Failure = 'Host validation history checkout tests failed.' },
@@ -64,6 +82,7 @@ $fastStructuralTests = @(
     @{ File = 'crypto_benchmark_baseline_historical_harness_tests.py'; Failure = 'OTCBL0 historical successor tamper tests failed.' },
     @{ File = 'raw_byte_checkout_policy_tests.py'; Failure = 'Authoritative raw-byte checkout policy tests failed.' },
     @{ File = 'heltec_v4_bench_target_tests.py'; Failure = 'Heltec V4 bench target admission tests failed.' },
+    @{ File = 'heltec_v4_ble_stack_config_tests.py'; Failure = 'Heltec V4 BLE stack configuration admission tests failed.' },
     @{ File = 'heltec_v4_factory_reset_storage_tests.py'; Failure = 'Heltec V4 factory-reset storage admission tests failed.' },
     @{ File = 'enrollment_identity_nvs_tests.py'; Failure = 'Identity NVS and factory-reset behavioral tests failed.' },
     @{ File = 'heltec_v4_bench_partition_transition_tests.py'; Failure = 'Heltec V4 protected-storage transition admission tests failed.' },
@@ -159,6 +178,32 @@ $commonArguments = @(
 )
 
 $builds = @(
+    @{
+        Name = 'connection diagnostics sensor display 1'
+        Output = Join-Path $buildDirectory 'connection_diagnostics_1_tests.exe'
+        Arguments = @('-pthread', '-DOPENTRAIL_CONNECTION_DIAGNOSTICS=1', '-DOPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY=1')
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_startup_display.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_oled_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\compact_status_footer.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\oled_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
+            (Join-Path $projectRoot 'tests\host\connection_diagnostics_tests.cpp')
+        )
+    },
+    @{
+        Name = 'connection diagnostics sensor display 0'
+        Output = Join-Path $buildDirectory 'connection_diagnostics_0_tests.exe'
+        Arguments = @('-pthread', '-DOPENTRAIL_CONNECTION_DIAGNOSTICS=1', '-DOPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY=0')
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_startup_display.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_oled_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\compact_status_footer.cpp'),
+            (Join-Path $projectRoot 'firmware\components\ui\src\oled_presentation.cpp'),
+            (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
+            (Join-Path $projectRoot 'tests\host\connection_diagnostics_tests.cpp')
+        )
+    },
     @{
         Name = 'evaluation confirmation runtime fault guard'
         Output = Join-Path $buildDirectory 'security_confirmation_runtime_guard_tests.exe'

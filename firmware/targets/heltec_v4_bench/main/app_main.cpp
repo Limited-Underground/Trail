@@ -10,6 +10,7 @@
 #include "companion_authorization_storage.hpp"
 #include "companion_nimble_gatt.hpp"
 #include "companion_nimble_runtime.hpp"
+#include "diagnostic_sensor_display.hpp"
 #include "confirmation_evaluation_config.hpp"
 #include "heltec_startup_display.hpp"
 #include "heltec_v4_battery.hpp"
@@ -62,7 +63,9 @@ void observe_display_result(bool succeeded) {
 
 CompactStatusSnapshot compact_status_snapshot(std::uint64_t now_ms) {
     using opentrail::target::heltec_v4_bench::GnssSatelliteState;
+    using opentrail::target::heltec_v4_bench::GnssFixState;
     using opentrail::ui::compact_status_footer::ObservationState;
+    using opentrail::ui::compact_status_footer::GpsFixCode;
 
     CompactStatusSnapshot snapshot{};
     snapshot.phone_ready = opentrail::target::heltec_v4_bench::companion_nimble_phone_ready();
@@ -71,13 +74,25 @@ CompactStatusSnapshot compact_status_snapshot(std::uint64_t now_ms) {
     snapshot.render_now_ms = now_ms;
 
     const auto gnss = g_gnss.satellites(now_ms, kGnssFreshForMs);
+    const auto fix = g_gnss.fix(now_ms, kGnssFreshForMs);
+    switch (fix.state) {
+        case GnssFixState::valid: snapshot.gps_fix = GpsFixCode::valid; break;
+        case GnssFixState::no_fix: snapshot.gps_fix = GpsFixCode::no_fix; break;
+        case GnssFixState::stale: snapshot.gps_fix = GpsFixCode::stale; break;
+        case GnssFixState::unavailable:
+        case GnssFixState::invalid:
+        default: snapshot.gps_fix = GpsFixCode::unavailable; break;
+    }
     if (gnss.state == GnssSatelliteState::valid) {
         snapshot.gps_satellites = {
             ObservationState::valid, gnss.satellites, gnss.sampled_at_ms};
+    } else if (gnss.state == GnssSatelliteState::stale) {
+        snapshot.gps_satellites = {
+            ObservationState::stale, 0, gnss.sampled_at_ms};
     } else if (gnss.state == GnssSatelliteState::invalid) {
         snapshot.gps_satellites.state = ObservationState::invalid;
     }
-    return snapshot;
+    return opentrail::target::heltec_v4_bench::diagnostic_sensor_display(snapshot);
 }
 
 bool run_companion_codec_self_check() {
@@ -308,9 +323,40 @@ extern "C" void app_main() {
         ESP_LOGW(kLogTag, "battery ADC unavailable; battery status remains unknown");
     }
 
+#if OPENTRAIL_CONNECTION_DIAGNOSTICS
+    namespace diag = opentrail::target::heltec_v4_bench::connection_diagnostics;
+    ESP_LOGI(kLogTag, "conn_diag boot reset=%u sensor_display=%u",
+             static_cast<unsigned>(esp_reset_reason()),
+             static_cast<unsigned>(OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY));
+    std::uint32_t display_calls = 0, display_failures = 0, display_max_us = 0;
+    std::uint64_t next_connection_diagnostic_ms = started_at_ms;
+#endif
     std::uint64_t next_heartbeat_ms = started_at_ms;
     std::uint64_t next_battery_sample_ms = started_at_ms;
+    std::uint64_t next_gnss_diagnostic_ms = started_at_ms + 30'000;
     while (true) {
+#if OPENTRAIL_CONNECTION_DIAGNOSTICS
+        const auto observed_ms =
+            static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+        // Bounded drain, before service locks. No callback performs serial I/O.
+        diag::Event event;
+        for (unsigned count = 0; count < 8 && diag::events.pop(event); ++count) {
+            ESP_LOGI(kLogTag, "conn_diag event k=%u t=%u a=%u b=%u",
+                     static_cast<unsigned>(event.kind), event.uptime_ms,
+                     event.first, event.second);
+        }
+        if (observed_ms >= next_connection_diagnostic_ms) {
+            std::uint32_t host_free = 0;
+            const bool host_observed = opentrail::target::heltec_v4_bench::
+                companion_nimble_host_stack_minimum_free_bytes(host_free);
+            ESP_LOGI(kLogTag,
+                "conn_diag sample t=%u host_valid=%u host_free=%u calls=%u renders=%u failures=%u max_us=%u dropped=%u",
+                static_cast<unsigned>(observed_ms), static_cast<unsigned>(host_observed),
+                host_free, display_calls, g_startup_display.status().render_count,
+                display_failures, display_max_us, diag::events.dropped());
+            next_connection_diagnostic_ms = observed_ms + 1000;
+        }
+#endif
         const auto elapsed_ms =
             static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
         const auto runtime_result =
@@ -368,6 +414,16 @@ extern "C" void app_main() {
         }
 #endif
         g_gnss.service(elapsed_ms);
+        if (elapsed_ms >= next_gnss_diagnostic_ms) {
+            const auto counts = g_gnss.diagnostics();
+            ESP_LOGI(kLogTag,
+                     "gnss_diag bytes=%llu accepted=%llu rejected=%llu uart_errors=%llu",
+                     static_cast<unsigned long long>(counts.bytes_received),
+                     static_cast<unsigned long long>(counts.accepted_sentences),
+                     static_cast<unsigned long long>(counts.rejected_sentences),
+                     static_cast<unsigned long long>(counts.uart_read_errors));
+            next_gnss_diagnostic_ms = elapsed_ms + 30'000;
+        }
         if (elapsed_ms >= next_battery_sample_ms) {
             const auto reading = opentrail::heltec_v4::battery_read();
             const auto sampled_at_ms =
@@ -386,10 +442,22 @@ extern "C" void app_main() {
         const auto render_now_ms =
             static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
         if (render_now_ms - boot_started_at_ms >= kMinimumLogoPeriodMs) {
-            observe_display_result(g_startup_display.show_compact_status(
+#if OPENTRAIL_CONNECTION_DIAGNOSTICS
+            const auto display_started_us = esp_timer_get_time();
+#endif
+            const bool display_succeeded = g_startup_display.show_compact_status(
                 startup_display_frame_for_ble_phase(
                     runtime_status.phase),
-                compact_status_snapshot(render_now_ms)));
+                compact_status_snapshot(render_now_ms));
+            observe_display_result(display_succeeded);
+#if OPENTRAIL_CONNECTION_DIAGNOSTICS
+            ++display_calls;
+            if (!display_succeeded) ++display_failures;
+            const auto duration = esp_timer_get_time() - display_started_us;
+            const auto bounded = duration < 0 ? UINT32_MAX :
+                duration > UINT32_MAX ? UINT32_MAX : static_cast<std::uint32_t>(duration);
+            if (bounded > display_max_us) display_max_us = bounded;
+#endif
         }
         if (elapsed_ms >= next_heartbeat_ms) {
             ESP_LOGI(kLogTag, "heartbeat elapsed_ms=%llu",

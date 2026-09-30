@@ -163,12 +163,12 @@ def admitted_target_sources(cmake: str) -> list[str]:
     require("if(OPENTRAIL_CONFIRMATION_EVALUATION)" in evaluation and
             set(evaluation_tokens) == expected_evaluation and len(evaluation_tokens) == 7,
             "evaluation source set must remain exact and opt-in")
-    require(len(ordinary_tokens) == 50 and len(set(ordinary_tokens)) == 50 and
+    require(len(ordinary_tokens) == 51 and len(set(ordinary_tokens)) == 51 and
             "enrollment_identity_nvs_storage.cpp" in ordinary_tokens and
             not expected_evaluation.intersection(ordinary_tokens) and
             ordinary.count("${OPENTRAIL_CONFIRMATION_SOURCES}") == 1 and
             "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp" in ordinary_tokens,
-            "ordinary build must retain 50 unique sources and one conditional insertion")
+            "ordinary build must retain 51 unique sources and one conditional insertion")
     return ordinary_tokens + evaluation_tokens
 
 
@@ -195,6 +195,9 @@ def test_contract() -> None:
         "main/companion_nimble_runtime.cpp",
         "main/companion_nimble_runtime.hpp",
         "main/companion_host_stack_observer.hpp",
+        "main/companion_connection_diagnostics.hpp",
+        "main/companion_connection_diagnostics.cpp",
+        "main/diagnostic_sensor_display.hpp",
         "main/companion_configuration_lane.hpp",
         "main/companion_name_storage.cpp",
         "main/companion_name_storage.hpp",
@@ -1242,7 +1245,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 56,
+    require(len(other_linked_sources) == 57,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1317,7 +1320,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 56,
+    require(len(other_linked_sources) == 57,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1538,7 +1541,14 @@ def test_display_surface() -> None:
             "contain_failure" in gnss_source and
             "uart_driver_delete" in gnss_source,
             "GNSS adapter must remain a bounded UART satellite observer")
-    for forbidden in ("latitude", "longitude", "altitude", "ESP_LOG", "printf("):
+    # OT-0101e validates coordinate shape transiently so a receiver quality
+    # flag with no usable position cannot be presented as a fix. The parser
+    # clears its bounded probes on completion, rejection and idle timeout;
+    # no coordinate is exposed by the adapter or written to diagnostics.
+    require("clear_candidate_position();" in gnss_source and
+            "observer_.expire_partial(now_ms)" in gnss_source,
+            "GNSS coordinate probes must be cleared and timed out")
+    for forbidden in ("altitude", "ESP_LOG", "printf("):
         require(forbidden not in gnss_source,
                 f"GNSS adapter must not retain or emit private data: {forbidden}")
 
@@ -2292,8 +2302,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(len(admitted_target_sources(cmake)) == 57,
-            "target must admit 50 ordinary and seven evaluation source units")
+    require(len(admitted_target_sources(cmake)) == 58,
+            "target must admit 51 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",

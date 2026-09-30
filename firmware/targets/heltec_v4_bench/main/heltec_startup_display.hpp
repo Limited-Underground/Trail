@@ -54,6 +54,12 @@ struct StartupDisplayView {
     bool has_footer{false};
     bool phone_ready{false};
     ui::compact_status_footer::Page footer{};
+    ui::compact_status_footer::Metric battery_percent{};
+    std::uint64_t battery_fresh_for_ms{0};
+    ui::compact_status_footer::Metric gps_satellites{};
+    ui::compact_status_footer::GpsFixCode gps_fix{
+        ui::compact_status_footer::GpsFixCode::unavailable};
+    std::uint64_t gps_fresh_for_ms{0};
 };
 
 // Ephemeral render-only view. The owner never retains this object or exposes
@@ -72,6 +78,8 @@ struct CompactStatusSnapshot {
     bool phone_ready{false};
     ui::compact_status_footer::Metric battery_percent{};
     ui::compact_status_footer::Metric gps_satellites{};
+    ui::compact_status_footer::GpsFixCode gps_fix{
+        ui::compact_status_footer::GpsFixCode::unavailable};
     ui::compact_status_footer::Freshness freshness{};
     bool activity_supported{false};
     ui::compact_status_footer::Direction activity{

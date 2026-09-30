@@ -104,6 +104,200 @@ combined-role evidence. Independent review, 11 local report links, repository
 checker and 18 documentation regressions pass. No candidate, purchase, numeric
 limit, device result or V1/public status change. [Profile](testing/OT-0266a-REPEATER-DEPLOYMENT-PROFILE-2026-09-29.md).
 
+### OT-0101e Record partial lifecycle result and verified restoration
+
+One separately authorized Heltec/Note20 trial passed baseline connection/fix,
+normal phone disconnect and owner-observed clock advancement after more than
+two minutes disconnected. GPS loss was inconclusive; GPS recovery and candidate
+restart/reconnect were not reached. Original application/settings were verified
+restored, the owner confirmed the usual screen, and the original reconnected
+normally. Preserve the passed retention result and revise the next environmental
+test plan before further physical work. The
+[sanitized checkpoint](testing/OT-0101e-LIFECYCLE-PROGRESS-2026-09-29.md)
+retains exact artifact and evidence limits; unpublished GNSS helper changes are
+outside this publication packet. No V1 credit or new field-readiness claim.
+
+## 2026-09-28
+
+### OT-0101e Correct temporary-root admission in CI fixtures
+
+The shared binding fixture now resolves its temporary root, matching the
+production command-line tools. A deterministic path-alias regression reproduced
+the same containment refusal before the correction. All 75 affected checks pass
+in separate interpreters; independent review found no blocking issue. Production
+path, symlink, junction and hash guards are unchanged. Historical private bindings
+remain frozen and require refreshed test pins before another physical attempt.
+GitHub passed those affected tests and exposed the next stale live-config pin.
+The checkout-byte registry now binds the previously reviewed 8192-byte BLE stack
+configuration; its CRLF/BOM policy and all historical pins remain unchanged.
+The 291-input checkout audit passes. The next full run passed functional tests
+up to the final publication scan, which flagged a synthetic colon-form identity
+literal in a test. Constructing that same runtime fixture as the scanner's own
+tests do preserves normalization coverage; an added assertion rejects its
+appearance in reports. All 31 capture tests and the unchanged publication scan
+pass. Full GitHub validation is pending these corrections. No device access, V1 progress
+credit or public website status change occurred.
+
+### OT-0101e Prepare protected-read diagnostics and display comparison
+
+Added bounded V1-Test callback status/timing observations, firmware event/stack
+and display counters, a privacy-safe passive serial collector, and two opt-in
+firmware profiles that differ only in showing the copied battery/GPS display
+fields. The actual display composition and affected security/runtime checks
+pass; this is host/build preparation, not a physical connection correction.
+The earlier 5.1-second failure still has no proven physical cause. Hardware,
+app installation, Git publication and deployment were not performed; V1 credit
+and public website status are unchanged. Exact final checks, artifact hashes,
+preflight, limitations and the controlled next step are in the
+[diagnostic preparation](testing/OT-0101e-CONNECTION-DIAGNOSTICS-2026-09-28.md).
+
+Prepared the exact diagnostic V1-Test APK using the unchanged existing test
+certificate and verified its package, permissions, diagnostic classes and DEX
+checksums. Added a bounded capture/operator composition using the maintained
+original-state restoration engine, exact A/B pins and separate one-use grant
+schemas. 104 affected host checks passed, including three real Windows
+process-lifetime probes without serial/device access. The reviewed sequence and
+exact artifacts are in the [bounded trial plan](testing/OT-0101e-CONNECTION-TRIAL-PLAN-2026-09-28.md).
+The original-firmware control and candidate connection remain untested with this
+APK. No app was installed or device changed; physical cause and V1 credit remain
+unchanged.
+
+### OT-0101e Capture Bluetooth stack fault and restore original
+
+One authorized Bench 2/S24 diagnostic A trial captured `ot_ble_host`
+stack-overflow detection and panic reboot during protected connection.
+The candidate showed GPS:6 / GPS FIX, but its exact protected read failed after
+5099 ms. The original-firmware control and restored original both reached
+protected Ready with the updated diagnostic app and preserved app data/bond.
+Original application/NVS and protected spans were independently verified,
+controller exited 0 with custody closed, and owner confirmed the usual screen.
+No case opening, battery disconnection, Bench1 change or radio transmission.
+
+Source/configuration review found the ordinary target retained a 4096-byte BLE
+allocation while the accepted evaluation correction uses 8192. The narrow shared
+allocation correction passed independent source review, all seven configuration
+checks and the 17 existing target groups. Two fresh diagnostic builds match all
+seven artifacts, and an ordinary build passes. A production build guard rejects
+stale undersized configurations. Exact report:
+[host correction](testing/OT-0101e-BLE-STACK-CORRECTION-2026-09-28.md).
+The exact overflowing call
+and any GNSS/display causal role remain unknown. No additional device attempt,
+V1 credit, Git publication or public website status change. Physical evidence:
+[bounded diagnostic trial](../tests/hardware/OT-0101e-2026-09-25.md).
+
+### OT-0101e Prepare exact corrected-stack device retest
+
+Added one exact corrected-image profile to the maintained custody engine while
+preserving historical source and old A/B image descriptors. The new immutable
+binding passes 46 focused host cases, isolated input verification without device
+access, and independent lifecycle review. S24 inspection confirms the unchanged
+installed diagnostic app and restored-original protected Ready. Fresh exact
+physical approval/readiness and visible clock confirmation are still required;
+no corrected grant or candidate write occurred. No V1 or public status change.
+[Preparation evidence](testing/OT-0101e-BLE-STACK-RETEST-PREPARATION-2026-09-28.md).
+
+### OT-0101e Validate corrected BLE stack and advancing clock
+
+One separately approved Bench2/S24 trial reached protected Ready with the exact
+8192-byte BLE-stack candidate. Both protected reads passed; the owner confirmed
+GPS10/FIX then9 satellites and clock advancement across184.7712608 seconds on the
+same connection. Independent capture review found no overflow/restart and3996
+bytes measured minimum free BLE stack. Original firmware/NVS and protected spans
+were independently verified restored, custody closed, and restored-original app
+Ready/clock sync recovered. Loss/recovery and restart gates remain; no V1 credit,
+Git publication or public website change. See the
+[physical result](testing/OT-0101e-BLE-STACK-RETEST-2026-09-28.md).
+
+### OT-0101e Review remaining GPS and restart cases
+
+Host-only source and saved-evidence review, independently checked, found no new
+GPS-to-OLED freshness defect. Accepted time is volatile across device reboot,
+contrary to the checklist's combined clock/region retention wording. Prepared
+the concrete expectation correction without changing its approved revision.
+Distinguished natural no-fix, silent-stream stale, missing phone GNSS telemetry,
+same-boot disconnect and warm restart; defined the remaining operator boundaries
+before further physical work. Existing behavioral tests/builds were reused;
+documentation checks and18 documentation tests passed. No devices were touched,
+V1 credit or public status changed. See the
+[review](testing/OT-0101e-REMAINING-GNSS-CLOCK-REVIEW-2026-09-28.md).
+
+### OT-0101e Prepare the remaining GPS and clock test session
+
+Added a dedicated host-validated lifecycle controller and distinct exact-input
+authority schemas. Phone-stopped acknowledgement precedes the120-second retention
+timer; the phone stays off through natural GPS loss/recovery and one guarded warm
+restart, then unknown clock precedes fresh protected reconnect/region readback.
+Every phase is durably journaled, first failure is retained and the existing
+original-span restoration/recovery is reused. Independent review's missing helper
+pin was fixed with a regression. All73 affected host checks and the real inert
+runtime input check pass; unchanged firmware/APK builds were reused. No device,
+grant issuance, publication, V1 credit or public website status change. Corrected
+owner approval and fresh exact hardware permission are the next gate. See the
+[preparation](testing/OT-0101e-LIFECYCLE-PREPARATION-2026-09-28.md).
+
+Saved a sanitized preparation summary to the private checklist, proposed the
+bounded restart-expectation correction as revision2 (Pending/Proposed), and
+aligned its simple device/participation descriptions. Owner approval is still
+required; no one-use hardware grant was issued. A detailed upload containing
+internal paths was rejected by automatic approval review and did not execute;
+the approved replacement contained only a short task summary and test counts.
+
+## 2026-09-27
+
+### OT-0101e Gate clock observation on a real saved-device connection
+
+The GNSS trial operator now waits for the S24 saved-owner protected connection
+and a visibly synchronized Heltec clock before starting its two timed readings.
+Focused custody/operator tests passed 11/11 and the exact-hash host binding
+check passed. One separately authorized Bench 2 run stopped at that gate
+because V1-Test was in Add Device. The operator restored and independently
+verified the original application and saved settings, reset the device and
+closed custody. Direct S24 ADB inspection then showed that a clean app restart,
+`Find device` and `Start Bluetooth device service` reconnected to restored
+Bench 2 and synchronized its clock without clearing app data or pairing.
+The candidate clock and GNSS loss/recovery remain untested; no V1 credit or
+public status changed. See the [hardware record](../tests/hardware/OT-0101e-2026-09-25.md).
+After the owner's normal-screen confirmation, the operator was corrected so a
+not-ready phone report keeps the candidate running while ADB recovery is tried
+within a ten-minute bound. The S24's saved-owner path was directly rechecked on
+the restored original; focused tests and the new exact-hash operator check pass.
+In a third owner-authorized Bench 2 trial, the candidate displayed `GPS:11` /
+`GPS FIX` but the clock stayed `--:--`. The S24 discovered the candidate and
+opened GATT; its protected ProtocolInfo read failed after about 5.1 seconds
+with `BLE-GATT-PLATFORM-FAILURE`, including after a clean app restart. The
+ten-minute phone gate timed out. The controller restored and verified the
+original application and NVS, read back all five captured spans, reset Bench 2,
+and closed custody; the owner confirmed its normal screen. The GNSS candidate
+has a current-fix observation, while its sustained clock and loss/recovery
+acceptance remain open. Host-side BLE path diagnosis precedes another flash.
+
+## 2026-09-25
+
+### OT-0101e Bind Bench 2 and capture its original state
+
+The owner selected Trail Bench 2 for the GNSS trial and authorized one
+read-only USB service-mode preparation. Its distinct electronic identity was
+enrolled and verified; original application, NVS, bootloader, partition and OTA
+spans were captured privately. Independent application/NVS repeat reads matched,
+and the owner confirmed the normal Trail screen after reset. The GNSS trial
+operator's focused host tests and isolated runtime probe passed. The owner's
+open-sky no-count report exposed a normal-screen data-path defect: the installed
+image leaves both GPS lines at defaults. A corrected ESP-IDF 6.0.2 candidate
+now forwards typed GNSS and battery observations, preserves stale/invalid
+fail-closed status, and logs only aggregate receiver counters. The affected
+OLED/target and custody tests pass. One authorized, restored Bench 2 trial then
+showed current `GPS FIX` at six and later ten satellites, backed by bounded
+receiver counters. Its clock remained unset because S24 V1-Test did not reach
+the clock-sync path. The original application and saved NVS were restored and
+independently verified; the owner confirmed the normal Trail screen. The S24's
+subsequent no-device message came from the Add Device search. On 2026-09-27,
+the S24's preserved V1-Test installation, log and Android bond were verified;
+one clean saved-owner route reached protected Ready and reported display-clock
+synchronization on the restored original. Sustained clock, loss/recovery and
+restart cases remain open. No V1 credit or public website status changed. See
+the [bounded preflight](testing/OT-0101e-TRIAL-PREFLIGHT-2026-09-25.md) and
+[physical result](../tests/hardware/OT-0101e-2026-09-25.md).
+
 ## 2026-09-24
 
 ### OT-0238b Admit one bounded request on the selected protected phone path

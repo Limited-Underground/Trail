@@ -154,6 +154,20 @@ void test_gps_invalid_stale_future_and_out_of_range_are_hidden() {
     EXPECT(visible(footer::format(snapshot, {100, 100}, 100).gps) == "GPS:--");
 }
 
+void test_gps_fix_state_display() {
+    auto snapshot = valid_snapshot(50, 8, 100);
+    const auto freshness = footer::Freshness{100, 100};
+    snapshot.gps_fix = footer::GpsFixCode::valid;
+    EXPECT(visible(footer::format(snapshot, freshness, 100).gps) == "GPS:8");
+    snapshot.gps_fix = footer::GpsFixCode::no_fix;
+    EXPECT(visible(footer::format(snapshot, freshness, 100).gps) == "GPS:NF");
+    EXPECT(visible(footer::format(snapshot, freshness, 200).gps) == "GPS:--");
+    snapshot.gps_fix = footer::GpsFixCode::stale;
+    EXPECT(visible(footer::format(snapshot, freshness, 200).gps) == "GPS:ST");
+    snapshot.gps_fix = footer::GpsFixCode::unavailable;
+    EXPECT(visible(footer::format(snapshot, freshness, 100).gps) == "GPS:--");
+}
+
 void test_ble_code_set_and_unknown_value_fail_closed() {
     auto snapshot = valid_snapshot(50, 12, 10);
     const std::array<std::pair<footer::BleCode, const char*>, 6> cases{{
@@ -333,6 +347,7 @@ int main() {
     test_battery_freshness_future_expiry_and_uint64_boundaries();
     test_gps_valid_boundaries_and_compact_width();
     test_gps_invalid_stale_future_and_out_of_range_are_hidden();
+    test_gps_fix_state_display();
     test_ble_code_set_and_unknown_value_fail_closed();
     test_exact_numeric_punctuation_and_activity_glyphs();
     test_render_geometry_gaps_height_and_unknown_glyphs();

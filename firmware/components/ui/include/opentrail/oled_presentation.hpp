@@ -22,7 +22,7 @@ enum class Surface : std::uint8_t {
 };
 enum class PhoneState : std::uint8_t { unknown, disconnected, reconnecting, ready };
 enum class GroupState : std::uint8_t { unknown, none, member, administrator };
-enum class GpsFix : std::uint8_t { unknown, no_fix, fix };
+enum class GpsFix : std::uint8_t { unknown, no_fix, fix, stale };
 
 struct Metric {
     bool valid{false};

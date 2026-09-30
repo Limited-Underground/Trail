@@ -69,9 +69,9 @@ def main():
             containment.index('vTaskDelete(host_task_);'), 'Task observation survives deletion')
     require(runtime.count('vTaskDelete(host_task_);') == runtime.count('host_stack_observer_.clear_before_delete();') == 1,
             'Unreviewed host deletion/observation path')
-    require('#if OPENTRAIL_CONFIRMATION_EVALUATION\n        host_stack_observer_.record_created(host_task_);\n#endif' in creation and
-            '#if OPENTRAIL_CONFIRMATION_EVALUATION\n        host_stack_observer_.clear_before_delete();\n#endif' in containment,
-            'Headroom observation escaped evaluation profile')
+    require('#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS\n        host_stack_observer_.record_created(host_task_);\n#endif' in creation and
+            '#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS\n        host_stack_observer_.clear_before_delete();\n#endif' in containment,
+            'Headroom observation escaped explicit evaluation/diagnostic profiles')
     heartbeat = body(app, '        if (elapsed_ms >= next_heartbeat_ms) {', '        vTaskDelay(pdMS_TO_TICKS(100));')
     require('companion_nimble_host_stack_minimum_free_bytes(ble_host_stack_bytes)' in heartbeat and
             heartbeat.count('"ble_host_stack minimum_free_bytes=%u"') == app.count('"ble_host_stack minimum_free_bytes=%u"') == 1 and
