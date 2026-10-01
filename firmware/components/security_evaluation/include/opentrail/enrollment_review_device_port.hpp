@@ -3,32 +3,6 @@
 #include "opentrail/enrollment_review_layout.hpp"
 
 namespace opentrail::security_evaluation {
-struct EnrollmentDeviceObservation {
-    FingerprintReviewContext context{};
-    std::uint64_t now_ms{}, lease{}, display_revision{};
-    bool button_down{}, reset_pending{};
-};
-
-// Implement only in the trusted, serialized application owner. One arbiter owns
-// ALL GPIO sampling and display writers. A reset preempts enrollment, invalidates
-// its lease/revision, and cannot reuse its held gesture. Packet handlers must not
-// implement this interface. Acquiring a lease performs no enrollment approval.
-class EnrollmentReviewDeviceIo {
-public:
-    virtual ~EnrollmentReviewDeviceIo() = default;
-    virtual bool observe(EnrollmentDeviceObservation&) = 0;
-    // Must return a fresh nonzero exclusive lease, with display revision zero.
-    virtual bool acquire(std::uint64_t& lease) = 0;
-    // Render every canonical layout row without clipping. Publish the supplied
-    // revision only after the complete frame is visible under the same lease.
-    virtual bool render(std::uint64_t lease, const FingerprintReviewFrame&,
-                        const EnrollmentReviewLayout&) = 0;
-    // Remove this overlay (or observe that reset already preempted it). Keep
-    // reset input inhibited until a fresh stable release is observed. A failed
-    // conceal/restore must not report successful release.
-    virtual bool release(std::uint64_t lease) = 0;
-};
-
 class EnrollmentReviewDevicePort final : public FingerprintReviewPort {
 public:
     explicit EnrollmentReviewDevicePort(EnrollmentReviewDeviceIo& io) : io_(io) {}
@@ -88,6 +62,13 @@ public:
     void cancel() {
         poison(busy_);
         if (!busy_) { busy_=true; finish(); }
+    }
+
+    // Resource cleanup only. A port that never obtained a lease owns no
+    // display resource; an obtained lease requires the actual verified release.
+    // This does not imply fresh reset input or enrollment confirmation.
+    bool cleanup_verified() const {
+        return !busy_ && failed_ && !handoff_failed_ && (!lease_ || release_verified_);
     }
 
     // Handoff evidence for the single input arbiter, never enrollment authority.

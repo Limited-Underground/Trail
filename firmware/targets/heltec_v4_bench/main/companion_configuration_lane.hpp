@@ -1,6 +1,7 @@
 #pragma once
 #include "opentrail/companion_configuration_dispatcher.hpp"
 #include "opentrail/companion_semantics.hpp"
+#include "opentrail/companion_gatt_authorization_adapter.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 // Pure fixed-memory lane used by the real GATT/app handoff. External short
@@ -30,6 +31,27 @@ struct ConfigurationLane {
             context.session_nonce == nonce && exchange == id && token == delivery;
     }
 };
+
+// Pure admission predicate for the real selected Command lane. Callers supply
+// only observations from the protected adapter and confirmed Snapshot owner.
+[[nodiscard]] inline bool selected_enrollment_lane_admissible(
+    const ConfigurationLane& lane,
+    const companion::DeviceNameAuthority& authority,
+    const companion::CompanionGattAdapterStatus& status,
+    bool selected, bool phone_ready, bool reset_blocked,
+    std::uint32_t exchange_id, std::uint64_t now_ms) {
+    return selected && phone_ready && !reset_blocked && lane.occupied &&
+        lane.executing && !lane.indicated && !lane.response_ready &&
+        !lane.expired(now_ms) && lane.current(authority) &&
+        lane.exchange == exchange_id && !status.pending.valid &&
+        status.connected && status.secure_bond &&
+        status.lifecycle.encrypted &&
+        status.lifecycle.authenticated_bond &&
+        status.lifecycle.application_authorized &&
+        status.lifecycle.normal_session_active &&
+        status.transport_generation == lane.context.transport_generation &&
+        status.lifecycle.session_nonce == lane.context.session_nonce;
+}
 // Render-only proof of an acknowledged protected Snapshot for this exact
 // authority. It grants no command or radio permission.
 class ConfigurationPhoneStatus {

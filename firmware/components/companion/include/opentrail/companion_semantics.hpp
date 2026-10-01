@@ -56,6 +56,8 @@ enum class CompanionActionKind : std::uint8_t {
     start_position_sharing = 3,
     stop_position_sharing = 4,
     factory_reset = 5,
+    // OTA0/v0 request only. Admitted means a bounded local request is pending.
+    start_enrollment = 6,
 };
 
 enum class CompanionActionDisposition : std::uint8_t {

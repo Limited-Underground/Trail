@@ -95,5 +95,23 @@ int main(){
         f.port.value.now_ms=variant==1?500:variant==3?4000:1101;f.port.value.button_down=false;assert(f.owner->poll());
         std::optional<VerifiedIdentityBinding> out;assert(!f.owner->bind(f.proof(),out) && !out);++groups;
     }
+    // A selected request may already have consumed most of its preparation
+    // time. Its deadline survives the review receipt, rather than restarting.
+    {
+        Fixture f; f.port.value.now_ms=118000;
+        assert(f.owner->begin_until(f.pins.responder,120000));
+        assert(f.owner->show_peer());assert(f.owner->poll());
+        f.port.value.now_ms=118001;f.port.value.button_down=true;assert(f.owner->poll());
+        f.port.value.now_ms=119001;f.port.value.button_down=false;assert(f.owner->poll());
+        std::optional<ReviewedEnrollmentIdentity> out;assert(f.owner->take_review(out));
+        assert(out && out->deadline()==120000);++groups;
+    }
+    for(auto deadline:{std::uint64_t{99},std::uint64_t{100},std::uint64_t{120101}}) {
+        Fixture f;assert(!f.owner->begin_until(f.pins.responder,deadline));++groups;
+    }
+    {
+        Fixture f;assert(f.owner->begin_until(f.pins.responder,1100));
+        assert(f.owner->show_peer());f.port.value.now_ms=1100;assert(!f.owner->poll());++groups;
+    }
     std::cout<<"PASS "<<groups<<" enrollment fingerprint review groups (hardware port simulated)\n";
 }

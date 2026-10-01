@@ -675,7 +675,7 @@ private fun BluetoothCandidateList(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(candidate.publicLabel)
-                    Text("Match this label with the one on your Heltec before authorizing.",
+                    Text("Step 1 of 5 · Match this exact label with the one on your Heltec before authorizing.",
                         style = MaterialTheme.typography.bodySmall)
                     Button(
                         onClick = { controller.selectBluetoothDevice(candidate.endpointToken) },
@@ -755,7 +755,15 @@ private fun BluetoothReadyPanel(
     val device = connectedDevicePresentation(session.configuration)
     StatusCard(device.title, device.detail)
     SnapshotSummary("Device status", session.snapshot)
-    BleConfigurationPanel(session,controller)
+    var editConfiguration by remember(session.companion.endpointToken, session.sessionNonce, session.configuration.editorSessionId) {
+        mutableStateOf(false)
+    }
+    if(editConfiguration || V1OnboardingProjection.nameVerified(session.configuration)) {
+        androidx.compose.material3.TextButton(onClick={ editConfiguration=!editConfiguration }) {
+            Text(if(editConfiguration) "Resume setup" else "Edit saved name or region")
+        }
+    }
+    BleConfigurationPanel(session,controller,onboarding=!editConfiguration)
     GroupLocationSection(session.groupLocation)
     ActionControls { controller.submitBluetoothAction(it) }
     OutlinedButton(

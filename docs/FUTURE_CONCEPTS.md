@@ -91,6 +91,32 @@ supported, or physically accepted.
   no implementation or physical acceptance evidence yet; assign an `OT-###`
   work item only when the enhancement is promoted into active implementation.
 
+## Receive-only channel scan and coordinated channel choice
+
+- **Name:** Receive-only channel scan and coordinated channel choice
+- **Summary:** Offer a bounded scan of permitted supported radio channels and
+  suggest a quieter choice. The user decides whether to apply a coordinated
+  change to their Trail group; scanning does not silently change its channel.
+- **Status:** accepted direction
+- **Earliest eligible milestone:** Post-V1 candidate, unscheduled. The existing
+  logo-first idle display and button-driven status pages remain the first
+  post-V1 enhancement. This direction adds no V1 acceptance gate.
+- **Dependencies:** Define permitted profiles, scan duration and measurement
+  method, honest confidence/age indicators, scheduling with ordinary traffic,
+  and an authenticated coordinated transition/recovery procedure that does not
+  strand group members. Review regional constraints before implementation.
+- **Safety, privacy, and security boundaries:** Receive-only assessment of
+  channel activity, not reading other users' messages or promising protocol
+  interoperability. One radio cannot scan another channel and keep listening
+  on its normal channel simultaneously. Explain that interruption. A suggestion
+  is specific to the measurement time and location, not a guarantee of reliable
+  delivery or an interference-free channel. No automatic channel hopping.
+- **Schedule and progress boundary:** No implementation, supported-hardware
+  claim, delivery date, release commitment or completion credit.
+- **Decision and evidence links:** Owner direction relayed from the Trail
+  Features planning discussion on 2026-09-23; no implementation or physical
+  acceptance evidence. This register's promotion policy applies before work.
+
 ## Provisioning-independent public lane and Public Assistance Broadcast
 
 - **Name:** Provisioning-independent public lane and Public Assistance

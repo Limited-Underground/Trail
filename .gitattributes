@@ -939,3 +939,43 @@ tests/hardware/OT-204-RECEIPT-TRIAL-2026-09-12.json -text
 /firmware/components/security_evaluation/include/opentrail/pair_radio_driver.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /tests/host/fixtures/security_eval_nvs/nvs.h -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /tools/Test-Host.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# OT-0238c isolated candidate target inputs preserve exact LF bytes.
+/firmware/targets/heltec_v4_enrollment_candidate_eval/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tests/host/enrollment_candidate_target_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tests/host/fixtures/enrollment_candidate_target/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tools/Build-EnrollmentCandidateEvaluation.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tools/enrollment_candidate_usb_client.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tests/host/enrollment_candidate_usb_client_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+
+# OT-0238c host controller/custody inputs preserve exact LF bytes.
+/tools/enrollment_candidate_controller.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tools/enrollment_candidate_custody.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tests/host/enrollment_candidate_controller_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tests/host/enrollment_candidate_custody_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+tools/enrollment_candidate_rom_adapter.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+tools/enrollment_candidate_operator.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+tests/host/enrollment_candidate_rom_adapter_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+tests/host/enrollment_candidate_operator_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+
+# OT-0168b reset tests and OT-0238c isolated runner/view preserve exact LF bytes.
+/tools/enrollment_candidate_runtime.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tools/enrollment_candidate_runner.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tools/enrollment_candidate_private_view.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tests/host/enrollment_candidate_runtime_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tests/host/enrollment_candidate_runner_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tests/host/enrollment_candidate_private_view_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tests/host/factory_reset_target_composition_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/tests/host/factory_reset_target_composition_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/docs/testing/OT-0168b-RESET-COMPOSITION-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+/docs/testing/OT-0238c-RUNNER-PROCEDURE-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab
+
+# Preserve exact validated reset/test sources and candidate evidence during publication.
+/firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_storage.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/enrollment_fingerprint_review_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/testing/OT-0238b-CANDIDATE-CLOCK-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/testing/OT-0238b-CANDIDATE-CONTAINMENT-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/testing/OT-0238b-CANDIDATE-DEVICE-SESSION-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/testing/OT-0238b-CANDIDATE-RECOVERY-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/testing/OT-0238b-CANDIDATE-REKEY-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/testing/OT-0238b-CANDIDATE-RESET-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

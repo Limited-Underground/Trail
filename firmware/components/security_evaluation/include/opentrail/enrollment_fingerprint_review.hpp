@@ -2,32 +2,9 @@
 // OT-0238b candidate owner; hardware port/provisioning integration is not yet wired.
 // Serialized owner polls a trusted device port. No command/caller confirm Boolean.
 #include "opentrail/enrollment_identity_binding.hpp"
+#include "opentrail/enrollment_review_io.hpp"
 
 namespace opentrail::security_evaluation {
-struct FingerprintReviewContext {
-    InvitationToken boot{};
-    std::uint64_t generation{}, request{};
-    bool operator==(const FingerprintReviewContext& b) const {
-        return boot == b.boot && generation == b.generation && request == b.request;
-    }
-};
-struct FingerprintReviewSample {
-    FingerprintReviewContext context{};
-    std::uint64_t now_ms{}, display_revision{};
-    bool button_down{};
-};
-enum class EnrollmentDisplayPurpose { identity_review, transcript_confirmation };
-struct FingerprintReviewFrame {
-    EnrollmentDisplayPurpose purpose{EnrollmentDisplayPurpose::identity_review};
-    // Fixed candidate domain is displayed alongside all 64 hex digits; not an
-    // accepted final fingerprint algorithm. Every line fits the 128px OLED.
-    std::array<char,17> domain{'O','T','-','I','D','1',' ','E','D','2','5','5','1','9',0};
-    std::array<std::array<char,17>,4> digits{};
-    InvitationRole local_role{};
-    bool peer_page{};
-    std::uint64_t revision{};
-    std::uint64_t group{};
-};
 class FingerprintReviewPort {
 public:
     virtual ~FingerprintReviewPort() = default;
@@ -43,9 +20,9 @@ public:
     ReviewedEnrollmentIdentity(const ReviewedEnrollmentIdentity&)=delete;
     ReviewedEnrollmentIdentity& operator=(const ReviewedEnrollmentIdentity&)=delete;
     ReviewedEnrollmentIdentity(ReviewedEnrollmentIdentity&& b) noexcept
-        :identities_(b.identities_),context_(b.context_),role_(b.role_),group_(b.group_),confirmed_(b.confirmed_),deadline_(b.deadline_),revision_(b.revision_),spent_(b.spent_){b.spent_=true;}
+        :identities_(b.identities_),context_(b.context_),role_(b.role_),group_(b.group_),confirmed_(b.confirmed_),deadline_(b.deadline_),revision_(b.revision_),port_(b.port_),spent_(b.spent_){b.spent_=true;}
     ReviewedEnrollmentIdentity& operator=(ReviewedEnrollmentIdentity&& b) noexcept {
-        if(this!=&b){identities_=b.identities_;context_=b.context_;role_=b.role_;group_=b.group_;confirmed_=b.confirmed_;deadline_=b.deadline_;revision_=b.revision_;spent_=b.spent_;b.spent_=true;}return *this;
+        if(this!=&b){identities_=b.identities_;context_=b.context_;role_=b.role_;group_=b.group_;confirmed_=b.confirmed_;deadline_=b.deadline_;revision_=b.revision_;port_=b.port_;spent_=b.spent_;b.spent_=true;}return *this;
     }
     const RetainedEnrollmentIdentities& identities() const { return identities_; }
     const FingerprintReviewContext& context() const { return context_; }
@@ -59,10 +36,14 @@ private:
     friend class EnrollmentPreparationOwner;
     bool consume(){if(spent_)return false;spent_=true;return true;}
     ReviewedEnrollmentIdentity(RetainedEnrollmentIdentities ids,FingerprintReviewContext ctx,
-        InvitationRole role,std::uint64_t group,std::uint64_t at,std::uint64_t deadline,std::uint64_t revision)
-        : identities_(ids),context_(ctx),role_(role),group_(group),confirmed_(at),deadline_(deadline),revision_(revision) {}
+        InvitationRole role,std::uint64_t group,std::uint64_t at,std::uint64_t deadline,std::uint64_t revision,
+        FingerprintReviewPort& port)
+        : identities_(ids),context_(ctx),role_(role),group_(group),confirmed_(at),deadline_(deadline),revision_(revision),port_(&port) {}
     RetainedEnrollmentIdentities identities_; FingerprintReviewContext context_; InvitationRole role_;
-    std::uint64_t group_,confirmed_,deadline_,revision_; bool spent_{};
+    std::uint64_t group_,confirmed_,deadline_,revision_;
+    // The originating port (and any request guard it composes) must survive the
+    // handoff. A receipt cannot be paired with a less restrictive replacement.
+    FingerprintReviewPort* port_; bool spent_{};
 };
 class EnrollmentFingerprintReview final {
 public:
@@ -72,6 +53,16 @@ public:
     EnrollmentFingerprintReview(const EnrollmentFingerprintReview&) = delete;
     EnrollmentFingerprintReview& operator=(const EnrollmentFingerprintReview&) = delete;
     bool begin(const InvitationKey& untrusted_peer) {
+        return begin_impl(untrusted_peer, std::nullopt);
+    }
+    // A previously admitted request owns this deadline in the SAME monotonic
+    // clock domain as the port. Handoff must never create another full window.
+    bool begin_until(const InvitationKey& untrusted_peer, std::uint64_t deadline) {
+        return begin_impl(untrusted_peer, deadline);
+    }
+private:
+    bool begin_impl(const InvitationKey& untrusted_peer,
+                    std::optional<std::uint64_t> inherited_deadline) {
         if (busy_ || begun_ || spent_) return stop();
         Guard guard(*this);
         if (!invitation_detail::nonzero(local_) || !invitation_detail::nonzero(untrusted_peer) ||
@@ -82,10 +73,13 @@ public:
         if (spent_ || sample.context.generation == 0 || sample.context.request == 0 ||
             !invitation_detail::nonzero(sample.context.boot) ||
             sample.now_ms > std::numeric_limits<std::uint64_t>::max() - review_window_ms) return stop();
-        context_ = sample.context; last_ = sample.now_ms; deadline_ = last_ + review_window_ms;
+        context_ = sample.context; last_ = sample.now_ms;
+        deadline_ = inherited_deadline.value_or(last_ + review_window_ms);
+        if (deadline_ <= last_ || deadline_ - last_ > review_window_ms) return stop();
         begun_ = true;
         return render(false); // Own identity must be inspectable before peer review.
     }
+public:
     bool show_peer() { return page(true); }
     bool show_local() { return page(false); }
     bool poll() {
@@ -146,7 +140,7 @@ public:
             after.now_ms<sample.now_ms || after.now_ms>=deadline_) return stop();
         const auto pins=role_==InvitationRole::initiator ? RetainedEnrollmentIdentities{local_,peer_}
                                                        : RetainedEnrollmentIdentities{peer_,local_};
-        output=ReviewedEnrollmentIdentity(pins,context_,role_,group_,confirmed_at_,deadline_,revision_);
+        output=ReviewedEnrollmentIdentity(pins,context_,role_,group_,confirmed_at_,deadline_,revision_,port_);
         return true;
     }
     void cancel() { cancelled_ = true; (void)stop(); }

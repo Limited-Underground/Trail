@@ -13,6 +13,7 @@
 #include "companion_v1_heltec_adapters.hpp"
 #include "companion_name_storage.hpp"
 #include "companion_region_storage.hpp"
+#include "enrollment_identity_nvs_storage.hpp"
 
 namespace opentrail::targets::heltec_v4_bench {
 namespace {
@@ -47,6 +48,14 @@ struct KeyPresence {
     DeviceFactoryResetPortError error{DeviceFactoryResetPortError::failed};
     bool present{false};
 };
+
+// The optional confirmation profile shares default NVS with the ordinary
+// firmware. Its retained invitation/counter records remain prior-user data
+// even when that profile is not compiled. Never erase the whole default NVS:
+// reset intent, peer bonds and factory-only namespaces have separate owners.
+constexpr std::array<const char*, 7> kConfirmationResetNamespaces{
+    "ot216_ia", "ot216_ib", "ot216_ta", "ot216_tb",
+    "ot216_ra", "ot216_rb", "ot216_boot"};
 
 KeyPresence find_key(nvs_handle_t handle, const char* key) {
     nvs_type_t type = NVS_TYPE_ANY;
@@ -477,13 +486,22 @@ HeltecV4FactoryResetUserDomainStorage::inspect_absence() {
     if (region.error != DeviceFactoryResetPortError::none) {
         return {region.error, false};
     }
+    const auto identity = inspect_user_namespace(security_evaluation::kEnrollmentIdentityStorageNamespace);
+    if(identity.error != DeviceFactoryResetPortError::none) return {identity.error,false};
+    bool confirmation_absent = true;
+    for (const auto* name : kConfirmationResetNamespaces) {
+        const auto inspected = inspect_user_namespace(name);
+        if (inspected.error != DeviceFactoryResetPortError::none) return {inspected.error, false};
+        confirmation_absent = confirmation_absent && inspected.absent;
+    }
     return {DeviceFactoryResetPortError::none,
-            owner.absent && state.absent && name.absent && region.absent};
+            owner.absent && state.absent && name.absent && region.absent && identity.absent && confirmation_absent};
 }
 
 DeviceFactoryResetAbsenceSnapshot
 HeltecV4FactoryResetUserDomainStorage::erase_all_and_verify_absent() {
     static_assert(!kHeltecV4FactoryResetHasActiveMapPackageStorage);
+    invalidate_enrollment_identity_storage_for_reset();
 
     const auto owner = erase_owner_namespace_and_verify();
     if (owner.error != DeviceFactoryResetPortError::none) {
@@ -502,6 +520,16 @@ HeltecV4FactoryResetUserDomainStorage::erase_all_and_verify_absent() {
         return {region.error, false};
     }
 
+    const auto identity = erase_user_namespace_and_verify(security_evaluation::kEnrollmentIdentityStorageNamespace);
+    if(identity.error != DeviceFactoryResetPortError::none || !identity.absent) return {identity.error,false};
+    for (const auto* name : kConfirmationResetNamespaces) {
+        const auto before = inspect_user_namespace(name);
+        if (before.error != DeviceFactoryResetPortError::none) return {before.error, false};
+        // Do not allocate seven never-used namespaces on ordinary devices.
+        if (before.absent) continue;
+        const auto erased = erase_user_namespace_and_verify(name);
+        if (erased.error != DeviceFactoryResetPortError::none || !erased.absent) return {erased.error, false};
+    }
     const auto* partition = exact_state_partition();
     if (partition == nullptr ||
         esp_partition_erase_range(partition, 0, partition->size) != ESP_OK) {

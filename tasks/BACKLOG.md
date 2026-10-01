@@ -26,8 +26,11 @@ preserves all removed summaries and superseded sequencing; see the
    reached seven of eight statuses before expiry. The subsequent accepted OT-0247g
    correction now [passes its authorized physical trial](../docs/testing/OT-0247d-G-PHYSICAL-2026-09-23.md):
    eight statuses, cleanup, original restoration and normal screens. Owner task
-   acceptance is recorded. OT-0238b design is owner-accepted; implement trusted
-   bootstrap, retained identity binding and durable activation/recovery; see its report below.
+   acceptance is recorded. OT-0238b revision 2 host candidate is owner-accepted.
+   OT-0238c computer preparation now includes the isolated runner, private view
+   and complete six-span procedure. Exact one-case grant and fresh readiness
+   precede separately authorized device acceptance. OT-0168b reset composition
+   is implemented and owner-accepted; OT-0168c owns physical gates.
 2. Close only the remaining applicable eight-gate evidence: retained restart/rekey,
    exact-target entropy and interrupted persistence, complete reset/recovery,
    final composition license/source/corpus binding and historical comparison
@@ -543,25 +546,25 @@ Planning only: the remaining approved V1 scope is decomposed below. Registration
 | OT-0247e | owner-accepted host investigation | OT-0247b | [Actual bridge replay and quantified transport residual](../docs/testing/OT-0247e-HOST-REPLAY-2026-09-22.md): eight deliveries in all four models; physical expiry not reproduced, no production correction. |
 | OT-0247f | owner-accepted host investigation | OT-0247b | [Asynchronous serial model and phase residual](../docs/testing/OT-0247f-ASYNC-SERIAL-MODEL-2026-09-22.md): read/guard counts reconciled, physical expiry not reproduced; combined completion/rearm recommendation only. |
 | OT-0247g | host implementation owner accepted | OT-0247b | [Guarded completion/rearm and paired replay](../docs/testing/OT-0247g-GUARDED-COMPLETION-2026-09-22.md): nine nominal schedules deliver eight statuses with measured savings; OT-0247f timing erratum recorded. All 44 final host suites, both affected builds, enrolled reproducibility and independent review pass; owner acceptance verified; corrected physical trial passes, task acceptance pending. |
-| OT-0238b | in progress: retained rekey host composition; target integration remains | OT-0238a | [Bootstrap and retained-identity/exact-epoch reconciliation](../docs/testing/OT-0238b-PRODUCT-ENROLLMENT-RECONCILIATION-2026-09-23.md); [retained rekey host evidence](../docs/testing/OT-0238b-RETAINED-REKEY-2026-09-23.md); [screen/button host adapter](../docs/testing/OT-0238b-REVIEW-DEVICE-PORT-2026-09-23.md); target adapters/physical acceptance and uncertain repair remain |
-| OT-0238c | planned | OT-0238a | Accept retained restart, revoke and fresh rekey |
+| OT-0238b | owner-accepted isolated evaluation host candidate | OT-0238a | [Bootstrap and retained-identity/exact-epoch reconciliation](../docs/testing/OT-0238b-PRODUCT-ENROLLMENT-RECONCILIATION-2026-09-23.md); [retained rekey host evidence](../docs/testing/OT-0238b-RETAINED-REKEY-2026-09-23.md); [screen/button host adapter](../docs/testing/OT-0238b-REVIEW-DEVICE-PORT-2026-09-23.md); [dormant identity NVS/reset adapter](../docs/testing/OT-0238b-IDENTITY-NVS-2026-09-23.md); [leased target display](../docs/testing/OT-0238b-DISPLAY-LEASE-2026-09-23.md); [target BOOT/reset arbitration](../docs/testing/OT-0238b-BOOT-ARBITRATION-2026-09-23.md); [retained identity startup/retirement](../docs/testing/OT-0238b-RETAINED-IDENTITY-2026-09-24.md); [selected pending phone request](../docs/testing/OT-0238b-SELECTED-REQUEST-2026-09-24.md); [Current execution gate and sequencing proposal](../docs/testing/OT-0238b-EXECUTION-GATE-2026-09-29.md); [Approved candidate-first sequence and request handoff](../docs/testing/OT-0238b-CANDIDATE-HANDOFF-2026-09-30.md). Complete isolated candidate evidence before OT-0237e selection; final production enrollment binding remains required under OT-0005i. The [concrete first-enrollment host session](../docs/testing/OT-0238b-CANDIDATE-SESSION-2026-09-30.md) now composes actual identity/generation, review, invitation, durable activation and status owners. [Concrete retained-session rekey](../docs/testing/OT-0238b-CANDIDATE-REKEY-2026-09-30.md) now connects matching committed state through fresh exact-next-epoch activation and status exchange. [Concrete session containment](../docs/testing/OT-0238b-CANDIDATE-CONTAINMENT-2026-09-30.md) now retires traffic and verifies revocation/post-reset-intent tombstones with independent failure outcomes. [Integrated candidate reset](../docs/testing/OT-0238b-CANDIDATE-RESET-2026-09-30.md) composes the existing executor, fixed-capacity erase/absence inventory and reconstructed startup gate in host tests. [Authenticated candidate recovery](../docs/testing/OT-0238b-CANDIDATE-RECOVERY-2026-09-30.md) now completes eligible interrupted public commitments and exercises fresh exact-next-epoch activation/status. No verifiable archive on either side, torn/incoherent records, reset and revocation still refuse; no old-key resume or erase-to-retry. [Actual display/input session composition](../docs/testing/OT-0238b-CANDIDATE-DEVICE-SESSION-2026-09-30.md) now covers first enrollment, rekey and supported recovery through real owners, with exact context cleanup. [Fresh clock/input binding and r2 acceptance closure](../docs/testing/OT-0238b-CANDIDATE-CLOCK-2026-09-30.md) now prove advancing-time setup/rekey/both recovery flows and preserve queued reset delivery. Required revision-2 host candidate scope is owner-accepted. Next: finish OT-0238c physical-controller preparation, then separately authorized target lifecycle/security acceptance. Separate target/production/physical gates remain under their owning tasks; candidate completion does not select production cryptography or complete OT-0238a |
+| OT-0238c | in progress: complete computer preparation validated | OT-0238a | [Runner/private view/procedure](../docs/testing/OT-0238c-RUNNER-PROCEDURE-2026-09-30.md) composes the accepted target, controller, custody and USB adapters. Focused tests, independent review, actual isolated child preflight and complete 73-suite matrix pass. Refreshed affected firmware A/B pairs match nine artifacts per configuration. Exact private request/profile inputs, one-case grant and fresh readiness remain required for separate two-node lifecycle acceptance. No device access, production selection or V1 credit. |
 | OT-0237b | planned | OT-0237a | Accept exact-target entropy and startup failure behavior |
 | OT-0237c | planned | OT-0237a | Accept interrupted counter and receive persistence |
 | OT-0237d | planned | OT-0237a | Accept complete secret retirement and diagnostic privacy |
 | OT-0237e | planned | OT-0237a | Close final security evidence admission and selection |
-| OT-0005i | planned | OT-0005h | Bind selected secure transport to Companion firmware |
+| OT-0005i | planned | OT-0005h | Bind selected secure transport and final production enrollment to Companion firmware after OT-0237e; revalidate affected admission evidence and finish actual enrollment/rekey/recovery/revoke/reset adapters. OT-0238a remains open until this binding is accepted. |
 | OT-0005j | planned | OT-0005h | Bind protected BLE status commands and receive events |
-| OT-0168b | planned | OT-0168a | Complete reset-domain and receipt composition |
+| OT-0168b | owner-accepted computer implementation | OT-0168a | [Actual reset-domain/receipt composition](../docs/testing/OT-0168b-RESET-COMPOSITION-2026-09-30.md) corrects seven retained optional-confirmation namespaces, preserves reset/factory state and verifies absence before access. Shared app/physical executor and real ports pass 26 new composition groups, complete 73-suite matrix, independent review and all affected reproducible build pairs. OT-0168c retains physical interruption and both trigger paths. |
 | OT-0168c | planned | OT-0168a | Accept reset interruption and both physical reset paths |
 | OT-0101c | owner accepted | OT-0101b | [Configuration evidence audit](../docs/testing/OT-0101c-TARGET-CONFIGURATION-AUDIT-2026-09-21.md); experimental baseline frozen, support/field claims remain blocked |
 | OT-0101d | planned | OT-0101b | Accept battery indication and power behavior |
-| OT-0101e | in progress; remaining-case operator prepared | OT-0101b | [Corrected-stack physical result](../docs/testing/OT-0101e-BLE-STACK-RETEST-2026-09-28.md) confirms same-session Ready/advancing clock and verified original restoration. [Lifecycle preparation](../docs/testing/OT-0101e-LIFECYCLE-PREPARATION-2026-09-28.md) provides the bounded loss/recovery/disconnect/warm-restart controller,73 affected host checks and inert exact-input verification. Next: corrected owner-approved restart expectation and fresh exact hardware authorization/readiness before one session. Silent-stream physical stale and invasive power cases remain separate. No full task acceptance or V1 credit. |
+| OT-0101e | in progress; partial lifecycle result | OT-0101b | [Corrected-stack physical result](../docs/testing/OT-0101e-BLE-STACK-RETEST-2026-09-28.md) and [2026-09-29 lifecycle checkpoint](../docs/testing/OT-0101e-LIFECYCLE-PROGRESS-2026-09-29.md): baseline, normal phone disconnect and visible clock advancement while disconnected passed; GPS loss inconclusive, recovery and candidate restart/reconnect not reached. Originals independently verified restored and owner-confirmed normal. Next: review separate clock/restart and environmental GPS loss/recovery plans before fresh physical authorization; retain passed retention evidence. Silent-stream physical stale and invasive power cases remain separate. No full task acceptance or V1 credit. |
 | OT-0101f | planned | OT-0101b | Accept live OLED radio and degraded status display |
 | OT-0089e | planned | OT-0089a | Accept bounded field and endurance observations |
 | OT-0089f | planned | OT-0089b | Reconcile release evidence and operator documentation |
 | OT-0089g | planned | OT-0089b | Publish approved release and verify exact remote artifacts |
-| OT-0300 | planned | OT-0086a | Reconcile Android retention and sharing policy |
-| OT-0301 | planned | OT-0170a | Complete ordered resumable onboarding |
+| OT-0300 | ready for owner review | OT-0086a | [Reconcile Android retention and sharing policy](../docs/testing/OT-0300-RETENTION-RECONCILIATION-2026-09-23.md) |
+| OT-0301 | host portion implemented; final flow blocked | OT-0170a | [Ordered name/region onboarding](../docs/testing/OT-0301-ONBOARDING-2026-09-23.md); public-profile support and OT-0302 ordering remain |
 | OT-0302 | planned | OT-0170a | Complete protected setup settings bindings |
 | OT-0303 | planned | OT-0170a | Complete reset-aware saved-device recovery |
 | OT-0304 | planned | OT-0170a | Accept physical first-use and production launch |
@@ -600,27 +603,27 @@ Pending planning only; base V1 unchanged. These definition-stage tasks are not c
 
 | ID | Status | Parent milestone | Bounded task |
 |---|---|---|---|
-| OT-0256a | planned | OT-0256 | Recover Tracker evidence and ownership |
-| OT-0256b | planned | OT-0256 | Prepare the tracking-only product decision |
-| OT-0257a | planned | OT-0257 | Specify location privacy and reporting policy |
-| OT-0257b | planned | OT-0257 | Prepare Tracker target and power selection criteria |
+| OT-0256a | owner accepted | OT-0256 | Recover Tracker evidence and ownership; [review report](../docs/testing/OT-0256a-TRACKER-EVIDENCE-2026-09-23.md). Planning only; implementation and publication are not authorized by this task. |
+| OT-0256b | owner accepted | OT-0256 | Prepare the tracking-only product decision; [proposal](../docs/testing/OT-0256b-TRACKER-PROPOSAL-2026-09-29.md). Planning only; choices and successor implementation remain separately gated. |
+| OT-0257a | planning proposal owner-accepted | OT-0257 | Specify location privacy and reporting policy; [review proposal](../docs/testing/OT-0257a-TRACKER-POLICY-2026-09-29.md). Planning only; implementation and physical acceptance remain separate. |
+| OT-0257b | planning proposal owner-accepted | OT-0257 | [Tracker target and power selection criteria](../docs/testing/OT-0257b-TRACKER-TARGET-CRITERIA-2026-09-29.md). Exact candidate, use environment and measured power/response limits remain prerequisites. |
 | OT-0258a | planned | OT-0258 | Map Tracker implementation slices and contract tests |
 | OT-0258b | planned | OT-0258 | Write Tracker failure and recovery test procedures |
 | OT-0259a | planned | OT-0259 | Prepare Tracker physical acceptance and measurement plan |
 | OT-0259b | planned | OT-0259 | Prepare Tracker operator and release checklist |
-| OT-0260a | planned | OT-0260 | Reconcile Console scope with historical client work |
-| OT-0260b | planned | OT-0260 | Prepare Console hardware and interface decision |
-| OT-0261a | planned | OT-0261 | Define the approved Console interaction flow |
-| OT-0261b | planned | OT-0261 | Specify microSD and power failure behavior |
+| OT-0260a | owner accepted | OT-0260 | Reconcile Console scope with historical client work; [review report](../docs/testing/OT-0260a-CONSOLE-EVIDENCE-2026-09-23.md). Planning only; implementation and publication are not authorized by this task. |
+| OT-0260b | owner accepted | OT-0260 | Prepare Console hardware and interface decision; [proposal](../docs/testing/OT-0260b-CONSOLE-PROPOSAL-2026-09-29.md). Planning only; choices and successor implementation remain separately gated. |
+| OT-0261a | planning proposal owner-accepted | OT-0261 | Define the approved Console interaction flow; [review proposal](../docs/testing/OT-0261a-CONSOLE-FLOW-2026-09-29.md). Planning only; implementation and physical acceptance remain separate. |
+| OT-0261b | planning proposal owner-accepted | OT-0261 | [Console microSD and power failure policy](../docs/testing/OT-0261b-CONSOLE-STORAGE-POWER-2026-09-29.md). Content purpose, retention/workflow and measured hardware/power limits remain explicit choices. |
 | OT-0262a | planned | OT-0262 | Map Console target integration and host gates |
 | OT-0262b | planned | OT-0262 | Prepare Console recovery and optional-service tests |
 | OT-0263a | planned | OT-0263 | Prepare Console physical UI and endurance acceptance |
 | OT-0263b | planned | OT-0263 | Prepare Console operator and release acceptance |
-| OT-0264a | planned | OT-0264 | Reconcile repeater prototype evidence and scope |
-| OT-0264b | planned | OT-0264 | Prepare dedicated versus client/repeater role decision |
-| OT-0265a | planned | OT-0265 | Define a secure forwarding contract review |
-| OT-0265b | planned | OT-0265 | Specify bounded relay scheduling and congestion tests |
-| OT-0266a | planned | OT-0266 | Prepare repeater hardware and deployment profile |
+| OT-0264a | owner accepted | OT-0264 | Reconcile repeater prototype evidence and scope; [review report](../docs/testing/OT-0264a-REPEATER-EVIDENCE-2026-09-23.md). Planning only; implementation and publication are not authorized by this task. |
+| OT-0264b | owner accepted | OT-0264 | Prepare dedicated versus client/repeater role decision; [proposal](../docs/testing/OT-0264b-REPEATER-ROLE-PROPOSAL-2026-09-29.md). Planning only; choices and successor implementation remain separately gated. |
+| OT-0265a | planning proposal owner-accepted | OT-0265 | Define a secure forwarding contract review; [review proposal](../docs/testing/OT-0265a-REPEATER-SECURITY-REVIEW-2026-09-29.md). Planning only; implementation and physical acceptance remain separate. |
+| OT-0265b | planning proposal owner-accepted | OT-0265 | [Repeater scheduling and congestion proposal](../docs/testing/OT-0265b-REPEATER-SCHEDULING-2026-09-29.md). Relay-capable security construction, target and measured numeric budgets remain prerequisites. |
+| OT-0266a | planning profile reviewed; owner acceptance pending | OT-0266 | [Repeater hardware and deployment evidence profile](../docs/testing/OT-0266a-REPEATER-DEPLOYMENT-PROFILE-2026-09-29.md). Candidate specifications remain separate from received-unit measurements; target, installation and protected radio construction remain unselected. |
 | OT-0266b | planned | OT-0266 | Specify provisioning, diagnostics and durable recovery |
 | OT-0267a | planned | OT-0267 | Prepare relay interoperability and fault acceptance |
 | OT-0267b | planned | OT-0267 | Prepare repeater deployment and release guidance |

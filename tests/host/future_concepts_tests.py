@@ -58,6 +58,7 @@ def test_required_register_structure_and_status_vocabulary() -> None:
     assert [title for title, _ in entries] == [
         "Optional client/repeater mode on user devices",
         "Logo-first idle display and button-driven status pages",
+        "Receive-only channel scan and coordinated channel choice",
         "Provisioning-independent public lane and Public Assistance Broadcast"
     ]
     statuses = []
@@ -69,7 +70,7 @@ def test_required_register_structure_and_status_vocabulary() -> None:
         assert len(entry_statuses) == 1
         assert entry_statuses[0] in ALLOWED_STATUSES
         statuses.extend(entry_statuses)
-    assert statuses == ["accepted direction", "accepted direction", "accepted direction"]
+    assert statuses == ["accepted direction"] * 4
     for allowed in sorted(ALLOWED_STATUSES):
         assert f"`{allowed}`" in text
 
@@ -92,6 +93,26 @@ def test_optional_client_repeater_remains_unscheduled_and_evidence_gated() -> No
         "simultaneous client traffic",
         "packet/loss/duplicate/latency/airtime accounting",
         "power-loss, restart, and battery operation tests",
+    ):
+        assert boundary in text, boundary
+
+
+def test_channel_scan_remains_optional_coordinated_and_unscheduled() -> None:
+    entries = dict(concept_entries(register()))
+    text = flattened(entries["Receive-only channel scan and coordinated channel choice"])
+    for boundary in (
+        "Post-V1 candidate, unscheduled",
+        "remain the first post-V1 enhancement",
+        "adds no V1 acceptance gate",
+        "user decides whether to apply a coordinated change",
+        "does not silently change its channel",
+        "does not strand group members",
+        "Receive-only assessment of channel activity",
+        "not reading other users' messages",
+        "One radio cannot scan another channel and keep listening",
+        "not a guarantee of reliable delivery",
+        "No automatic channel hopping",
+        "No implementation, supported-hardware claim, delivery date",
     ):
         assert boundary in text, boundary
 
@@ -244,6 +265,7 @@ def main() -> None:
     tests = [
         test_required_register_structure_and_status_vocabulary,
         test_optional_client_repeater_remains_unscheduled_and_evidence_gated,
+        test_channel_scan_remains_optional_coordinated_and_unscheduled,
         test_post_v2_deferred_unscheduled_and_no_progress_credit,
         test_parallel_lane_and_single_radio_semantics_are_explicit,
         test_assistance_location_and_private_text_boundaries_are_complete,

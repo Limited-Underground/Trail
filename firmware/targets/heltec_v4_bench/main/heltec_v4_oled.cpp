@@ -70,6 +70,7 @@ std::array<std::uint8_t, kGlyphWidth> glyph_for(char value) {
         case 'i': return {0x00, 0x44, 0x7D, 0x40, 0x00};
         case 'l': return {0x00, 0x41, 0x7F, 0x40, 0x00};
         case '-': return {0x08, 0x08, 0x08, 0x08, 0x08};
+        case ':': return {0x00, 0x36, 0x36, 0x00, 0x00};
         case '?': return {0x02, 0x01, 0x51, 0x09, 0x06};
         default: return {0, 0, 0, 0, 0};
     }
@@ -257,6 +258,30 @@ bool HeltecV4Oled::render_pairing_pin(const PairingPinDisplayView& view) {
         panel_, 0, 0, kDisplayWidth, kDisplayHeight, pixels.data());
     pixels.fill(0);
     return result == ESP_OK || record_failure("pairing-draw", result);
+}
+
+bool HeltecV4Oled::render_enrollment_review(
+    const security_evaluation::EnrollmentReviewLayout& layout) {
+    if (!initialized_ || panel_ == nullptr ||
+        !security_evaluation::enrollment_review_cells_valid(layout)) return false;
+    std::uint64_t now_ms = 0;
+    if (!admit_display_time(now_ms)) return false;
+    std::array<std::uint8_t, kTrailStartupLogoBytes> pixels{};
+    static_assert(security_evaluation::EnrollmentReviewLayout::columns * kGlyphAdvance <= kDisplayWidth);
+    static_assert(security_evaluation::EnrollmentReviewLayout::rows * 8 == kDisplayHeight);
+    for (std::size_t row = 0; row < layout.rows; ++row) {
+        // Validation guarantees NUL termination within the fixed row, but draw
+        // every cell (including spaces) so no earlier page can survive.
+        draw_scaled_text(pixels, layout.text[row].data(), layout.columns, row * 8, 1);
+    }
+    const auto result = esp_lcd_panel_draw_bitmap(
+        panel_, 0, 0, kDisplayWidth, kDisplayHeight, pixels.data());
+    pixels.fill(0);
+    if (result != ESP_OK) {
+        (void)conceal();
+        return record_failure("review-draw", result);
+    }
+    return true;
 }
 
 bool HeltecV4Oled::conceal() {

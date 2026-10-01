@@ -6,6 +6,7 @@ int main(){
  ProductPair pair;
  const auto check=[&](const FingerprintReviewFrame& f){
   EnrollmentReviewLayout out{};CHECK(enrollment_review_layout(f,out));
+  CHECK(enrollment_review_cells_valid(out));
   for(const auto& row:out.text)CHECK(std::strlen(row.data())<=21 && row[21]==0);
   CHECK(std::string_view(out.text[6].data())=="G:0000000000000011");
   CHECK(std::string_view(out.text[7].data())=="HOLD 1S THEN RELEASE");

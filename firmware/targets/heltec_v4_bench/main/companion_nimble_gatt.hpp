@@ -14,10 +14,16 @@ namespace opentrail::target::heltec_v4_bench {
     companion::DeviceNamePersistence&, companion::ConfigurationBaseHandler&,
     companion::RegionPersistence&);
 void service_companion_configuration();
+// Called only by the normal selected configuration owner after a kind-2
+// request is decoded. It admits a pending phone request, not enrollment.
+[[nodiscard]] bool admit_selected_enrollment_request(
+    const companion::DeviceNameContext&, std::uint32_t exchange_id);
 // Application-owner only; no GATT mutex may be held. Must succeed before the
 // existing NimBLE/controller owner disables its shared physical entropy source.
 [[nodiscard]] bool close_companion_confirmation();
 void invalidate_companion_configuration(bool revoke = false);
+// Terminal containment gate. Must succeed before BLE teardown or reset cleanup.
+[[nodiscard]] bool retire_selected_enrollment_request();
 [[nodiscard]] time::OledClockReading companion_configuration_clock();
 [[nodiscard]] companion::DeviceNamePayload companion_configuration_name();
 [[nodiscard]] companion::ConfigurationRegionPayload companion_configuration_region();

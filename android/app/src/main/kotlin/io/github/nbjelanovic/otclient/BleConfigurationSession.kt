@@ -65,7 +65,7 @@ internal class BleConfigurationSession(
         if(closed || !isCurrent() || busy) return false
         val request=create() ?: return false
         namePending=request
-        update(state.copy(busy=true,notice="Waiting for device readback…"))
+        update(state.copy(busy=true,nameRevision=null,notice="Waiting for device readback…"))
         return transmit(4,request.exchangeId,request.encodedPayload())
     }
     fun synchronizeTime(): Boolean {

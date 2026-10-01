@@ -19,10 +19,11 @@ public:
         persistence::PersistentStorage& activation, persistence::PersistentStorage& journal,
         persistence::PersistentStorage& membership, persistence::PersistentStorage& evidence,
         persistence::PersistentStorage& binding_proof, ConfirmationAuthority& clock,FingerprintReviewPort& port,
-        InvitationRole role, const InvitationKey& signer)
+        InvitationRole role, const InvitationKey& signer,
+        bool (*lifecycle_guard)(void*)=nullptr,void* lifecycle_context=nullptr)
         : endpoint_(random,boot,roles,tx,rx,activation,clock,role,signer),
           journal_(journal), membership_(membership), evidence_(evidence), binding_store_(binding_proof),
-          port_(port),role_(role), signer_(signer) {
+          port_(port),role_(role), signer_(signer),lifecycle_guard_(lifecycle_guard),lifecycle_context_(lifecycle_context) {
         const persistence::PersistentStorage* stores[]{&boot,&roles,&tx,&rx,&activation,&journal,&membership,&evidence,&binding_proof};
         isolated_=true;
         for(unsigned i=0;i<9;++i) for(unsigned j=0;j<i;++j) if(stores[i]==stores[j]) isolated_=false;
@@ -175,8 +176,8 @@ public:
                reentered_ || !source_->active_generation_current() || !endpoint_.ready() || reentered_ ||
                !journal_.mark_active_committed(*receipt_,[](void* owner){
                    auto& self=*static_cast<ProductEnrollmentActivation*>(owner);
-                   return !self.reentered_ && self.source_->active_generation_current() &&
-                       self.endpoint_.ready() && !self.reentered_;
+                   return !self.reentered_ && self.lifecycle_current() && self.source_->active_generation_current() &&
+                       self.endpoint_.ready() && !self.reentered_ && self.lifecycle_current() && !self.reentered_;
                },this)) return false;
             committed_=true; return current();
         });
@@ -220,6 +221,9 @@ public:
     }
     bool secrets_cleared() const { return endpoint_.secrets_cleared(); }
 private:
+    // Optional serialized application-owner guard, also observed within the
+    // irreversible journal transition. It supplies no peer or commit authority.
+    bool lifecycle_current() {return !lifecycle_guard_ || lifecycle_guard_(lifecycle_context_);}
     bool retained_exact() {
         IndependentInvitation invitation{};
         std::optional<VerifiedIdentityBinding> retained;
@@ -240,9 +244,10 @@ private:
         if(busy_) { reentered_=true; return false; }
         if(closed_) return false;
         busy_=true;
-        bool ok=(!begun_ || (source_ && source_->active_generation_current())) && !reentered_;
+        bool ok=lifecycle_current() && (!begun_ || (source_ && source_->active_generation_current())) && !reentered_;
         if(ok) ok=action();
         if(ok && begun_) ok=source_ && source_->active_generation_current();
+        if(ok)ok=lifecycle_current();
         busy_=false;
         if(!ok || reentered_) { (void)close(); return false; }
         return true;
@@ -258,6 +263,7 @@ private:
     std::uint64_t revision_{},last_{},pressed_at_{};
     bool displayed_{},released_{},pressed_{};
     InvitationRole role_; InvitationKey signer_;
+    bool (*lifecycle_guard_)(void*){nullptr};void* lifecycle_context_{nullptr};
     std::optional<PreparedEnrollmentReceipt> receipt_;
     std::optional<VerifiedIdentityBinding> binding_;
     std::optional<VerifiedIdentityBinding> prior_;
