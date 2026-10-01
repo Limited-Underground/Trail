@@ -1,5 +1,26 @@
 # OpenTrail Progress Log
 
+## 2026-10-01
+
+### OT-0302 Complete protected public-profile settings host support
+
+Added atomic public name/visibility settings with fresh protected authority,
+exact durable readback and uncertain-write reconciliation; reset verifies the
+new namespace is erased. Existing private name and twelve-region behavior remain.
+The affected 15 native/6 Python jobs, six fresh firmware builds and nine raw
+artifact pairs per profile pass. [Evidence and limits](testing/OT-0302-PUBLIC-PROFILE-SETTINGS-2026-10-01.md).
+Host validated; owner review pending. No physical, discovery, RF or V1 credit.
+
+### OT-0301 Complete ordered resumable setup-to-Messages host flow
+
+Completed current-session setup and one-shot Messages handoff with live-state
+revalidation, interrupted-step recovery and explicit navigation/rotation state.
+Final combined Android results: 1,303 passing tests, all three lint variants,
+four APK builds and unsigned-release audit. Independent review has no blockers.
+[Evidence and artifact pins](testing/OT-0301-SETUP-COMPLETION-2026-10-01.md).
+Host validated; owner review pending. Debug/V1Test are locally debug-signed;
+Release is unsigned. No installation, physical UI acceptance or V1 credit.
+
 ## 2026-09-30
 
 ### OT-0238b Correct candidate sequencing and preserve the request through review

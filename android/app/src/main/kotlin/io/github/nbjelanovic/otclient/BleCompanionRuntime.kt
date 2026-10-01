@@ -2,6 +2,7 @@ package io.github.nbjelanovic.otclient
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame
+import io.github.nbjelanovic.otprotocol.CompanionPublicProfileCodec
 import io.github.nbjelanovic.otprotocol.CompanionConfirmationCodec
 import io.github.nbjelanovic.otprotocol.COMPANION_MINIMUM_ATT_MTU
 import io.github.nbjelanovic.otprotocol.COMPANION_FACTORY_RESET_CAPABILITY
@@ -1282,6 +1283,7 @@ class BleCompanionRuntime(
 
     private fun decodeNormalInfo(value: ByteArray): CompanionProtocolInfo? {
         val configuration=CompanionConfigurationCodec.decodeInfo(value) ?: CompanionConfigurationCodec.decodeInfo(value,3) ?:
+            CompanionConfigurationCodec.decodeInfo(value,CompanionPublicProfileCodec.PROFILE) ?:
             if(evaluationConfirmationEnabled) CompanionConfigurationCodec.decodeInfo(value,CompanionConfirmationCodec.PROFILE) else null
         configurationInfo=configuration
         return if(configuration!=null) CompanionProtocolInfo(capabilities=configuration.capabilities,
@@ -1350,6 +1352,8 @@ class BleCompanionRuntime(
         continueAfterAuthorizationPromotion(companion,claim)
     }
 
+    fun readPublicProfile(): Boolean { requireOwnerThread(); return configurationOperation { it.readPublicProfile() } }
+    fun writePublicProfile(name: String, visible: Boolean): Boolean { requireOwnerThread(); return configurationOperation { it.writePublicProfile(name,visible) } }
     fun readRadioRegion(): Boolean { requireOwnerThread(); return configurationOperation { it.readRegion() } }
     fun writeRadioRegion(selectionId: Int): Boolean { requireOwnerThread(); return configurationOperation { it.writeRegion(selectionId) } }
     fun readDeviceName(): Boolean { requireOwnerThread(); return configurationOperation { it.readName() } }
@@ -1662,7 +1666,7 @@ class BleCompanionRuntime(
             }
             return
         }
-        if(configurationFrame?.kind in listOf(0x86,0x87,0x88)) {
+        if(configurationFrame?.kind in listOf(0x86,0x87,0x88,CompanionPublicProfileCodec.RESPONSE)) {
             if(configurationSession?.receive(checkNotNull(configurationFrame)) == true) {
                 armConfigurationTimeout()
                 return

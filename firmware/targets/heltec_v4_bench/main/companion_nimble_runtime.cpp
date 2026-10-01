@@ -1,3 +1,4 @@
+#include "companion_public_profile_storage.hpp"
 #include "companion_nimble_runtime.hpp"
 #include "confirmation_evaluation_config.hpp"
 #include "companion_connection_diagnostics.hpp"
@@ -1442,7 +1443,8 @@ CompanionBleRuntimeError start_companion_nimble_runtime(
     if (!initialize_companion_configuration(
             opentrail::targets::heltec_v4_bench::companion_name_storage(),
             g_configuration_base,
-            opentrail::targets::heltec_v4_bench::companion_region_storage())) return CompanionBleRuntimeError::contained;
+            opentrail::targets::heltec_v4_bench::companion_region_storage(),
+            &opentrail::targets::heltec_v4_bench::companion_public_profile_storage())) return CompanionBleRuntimeError::contained;
     return g_runtime_owner.start(now_ms, true);
 }
 

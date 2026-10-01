@@ -12,7 +12,7 @@ namespace opentrail::target::heltec_v4_bench {
 // Configuration work is copied on the host and executed only by app_main.
 [[nodiscard]] bool initialize_companion_configuration(
     companion::DeviceNamePersistence&, companion::ConfigurationBaseHandler&,
-    companion::RegionPersistence&);
+    companion::RegionPersistence&, companion::PublicProfilePersistence* public_profile = nullptr);
 void service_companion_configuration();
 // Called only by the normal selected configuration owner after a kind-2
 // request is decoded. It admits a pending phone request, not enrollment.

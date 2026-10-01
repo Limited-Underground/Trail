@@ -1468,6 +1468,44 @@ class BleCompanionRuntimeTest {
         assertFalse(runtime.synchronizeDisplayTime())
     }
 
+    @Test fun publicProfileTraversesProtectedRuntimeAndLosesOldIndicationsWithoutRetry() {
+        val f=ConfigurationFixture(profile=5);f.name();f.clock()
+        fun state()=assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration
+        assertTrue(state().publicProfileAvailable)
+        assertFalse(f.runtime.readPublicProfile()) // Region readback is still missing.
+        assertTrue(f.runtime.readRadioRegion())
+        f.respond(0x88,checkNotNull(f.codec.encodeRegion(io.github.nbjelanovic.otprotocol.CompanionRegionPayload(0x81,revision=1u,selectionId=12))))
+        val codec=io.github.nbjelanovic.otprotocol.CompanionPublicProfileCodec
+        fun payload(kind:Int,revision:ULong=0u,name:String="",visible:Boolean=true)=checkNotNull(codec.encode(
+            io.github.nbjelanovic.otprotocol.CompanionPublicProfilePayload(kind,revision=revision,name=name,visible=visible)))
+        assertTrue(f.runtime.readPublicProfile());assertEquals(8,f.last().kind)
+        f.respond(0x8a,payload(0x81))
+        assertEquals(0uL,state().publicRevision);assertEquals(true,state().publiclyDiscoverable)
+        assertTrue(f.runtime.writePublicProfile("Rider",false));assertNull(state().publicRevision)
+        val mutation=f.last();val requested=checkNotNull(codec.decode(mutation.payload))
+        assertEquals("Rider",requested.name);assertFalse(requested.visible)
+        f.respond(0x8a,payload(0x82,1u,"Rider",false),mutation.exchangeId)
+        assertEquals("Rider",state().publicName);assertEquals(false,state().publiclyDiscoverable)
+        assertTrue(f.runtime.readPublicProfile());val stale=f.last().exchangeId
+        val count=f.gatt.commands.size;f.scheduler.advanceBy(6_000)
+        assertNull(state().publicRevision);assertFalse(state().busy);assertEquals(count,f.gatt.commands.size)
+        assertTrue(f.runtime.readPublicProfile());val current=f.last().exchangeId
+        f.respond(0x8a,payload(0x81,1u,"Late",true),stale)
+        assertNull(state().publicName);assertTrue(state().busy)
+        f.respond(0x8a,payload(0x81,1u,"Rider",false),current)
+        assertEquals("Rider",state().publicName)
+        // Disconnect invalidates the old GATT observer even when it bypasses the fixture gate.
+        f.runtime.disconnect();val closedCount=f.gatt.commands.size
+        f.gatt.emitStale(BleGattEvent.StreamIndication(checkNotNull(f.codec.encodeFrame(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(0x8a,17u,current,payload(0x81,2u,"Old",true),5)))))
+        assertFalse(f.runtime.state is BleRuntimeState.Ready)
+        assertFalse(f.runtime.writePublicProfile("Old",true));assertEquals(closedCount,f.gatt.commands.size)
+        val next=ConfigurationFixture(profile=5);next.name();next.clock()
+        assertNull(assertIs<BleRuntimeState.Ready>(next.runtime.state).session.configuration.publicRevision)
+        assertFalse(next.runtime.writePublicProfile("Rider",false))
+        next.runtime.close();f.runtime.close()
+    }
+
     private class ConfigurationFixture(val firstSetup: Boolean = false, val profile: Int = 3,
         optIn: Boolean = false, withController: Boolean = false) {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
@@ -1896,6 +1934,7 @@ class BleCompanionRuntimeTest {
             return writeResult
         }
         override fun close() { closed = true;operationGate?.close() }
+        fun emitStale(event: BleGattEvent) { observer(event) }
         fun emit(event: BleGattEvent) {
             operationGate?.let { gate -> when(event) {
                 BleGattEvent.ProfileReady -> { check(gate.beginDiscovery());check(gate.acceptProfile()) }

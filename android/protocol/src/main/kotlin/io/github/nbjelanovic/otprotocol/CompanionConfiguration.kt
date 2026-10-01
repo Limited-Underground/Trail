@@ -1,6 +1,6 @@
 package io.github.nbjelanovic.otprotocol
 
-/** Isolated candidate 0.2 profile; no advertisement, authority or dispatch. */
+/** Strict negotiated configuration profiles; codec validation does not establish authority. */
 data class CompanionConfigurationInfo(
     val capabilities: Int,
     val role: Int = 1,
@@ -49,7 +49,7 @@ object CompanionConfigurationCodec {
 
     private fun validInfo(value: CompanionConfigurationInfo) = value.role == 1 &&
         (value.minorVersion == 2 && value.capabilities in 0..255 && value.capabilities and KNOWN_CAPABILITIES.inv() == 0 ||
-            value.minorVersion == 3 && value.capabilities == 0xff ||
+            value.minorVersion in listOf(3, CompanionPublicProfileCodec.PROFILE) && value.capabilities == 0xff ||
             value.minorVersion == CompanionConfirmationCodec.PROFILE && value.capabilities == CompanionConfirmationCodec.CAPABILITIES) &&
         value.capabilities and (NAME_CAPABILITY or TIME_CAPABILITY) != 0 &&
         value.maxPayloadBytes == MAX_PAYLOAD_BYTES && value.minimumAttMtu == MINIMUM_MTU &&
@@ -58,7 +58,7 @@ object CompanionConfigurationCodec {
     /** Capacity/feature compatibility only; this does not authenticate or establish Ready. */
     fun transportCompatible(info: CompanionConfigurationInfo, requiredCapability: Int, mtu: Int,
                             sendCapacity: Int, receiveCapacity: Int, indications: Boolean): Boolean =
-        validInfo(info) && (requiredCapability in listOf(NAME_CAPABILITY,TIME_CAPABILITY) || requiredCapability == REGION_CAPABILITY && info.minorVersion in listOf(3,CompanionConfirmationCodec.PROFILE)) &&
+        validInfo(info) && (requiredCapability in listOf(NAME_CAPABILITY,TIME_CAPABILITY) || requiredCapability == REGION_CAPABILITY && info.minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE)) &&
             info.capabilities and requiredCapability != 0 && mtu in MINIMUM_MTU..65535 &&
             sendCapacity >= MAX_RECORD_BYTES && receiveCapacity >= MAX_RECORD_BYTES && indications
 
@@ -71,7 +71,7 @@ object CompanionConfigurationCodec {
     }
 
     fun decodeInfo(bytes: ByteArray, expectedMinorVersion: Int = 2): CompanionConfigurationInfo? {
-        if(bytes.size != 16 || !magic(bytes,infoMagic) || u8(bytes,4)!=0 || expectedMinorVersion !in listOf(2,3,CompanionConfirmationCodec.PROFILE) || u8(bytes,5)!=expectedMinorVersion ||
+        if(bytes.size != 16 || !magic(bytes,infoMagic) || u8(bytes,4)!=0 || expectedMinorVersion !in listOf(2,3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || u8(bytes,5)!=expectedMinorVersion ||
             u8(bytes,14)!=0 || u8(bytes,15)!=0) return null
         return CompanionConfigurationInfo(u8(bytes,7),u8(bytes,6),get(bytes,8,2).toInt(),
             get(bytes,10,2).toInt(),u8(bytes,12),u8(bytes,13),u8(bytes,5)).takeIf(::validInfo)
@@ -129,7 +129,7 @@ object CompanionConfigurationCodec {
     }
 
     private fun validPayload(kind: Int, payload: ByteArray, minorVersion: Int): Boolean {
-        if(minorVersion !in listOf(2,3,CompanionConfirmationCodec.PROFILE) || payload.size>MAX_PAYLOAD_BYTES) return false
+        if(minorVersion !in listOf(2,3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || payload.size>MAX_PAYLOAD_BYTES) return false
         return when(kind) {
             1,2,0x81,0x82,0x83 -> true // Existing semantic validation remains a separate dispatch gate.
             4 -> CompanionNamePayloadCodec.decode(payload)?.kind in listOf(CompanionNameKind.READ,CompanionNameKind.WRITE)
@@ -137,10 +137,14 @@ object CompanionConfigurationCodec {
                 CompanionNameKind.APPLIED,CompanionNameKind.REJECTED,CompanionNameKind.UNCERTAIN)
             5 -> decodeTime(payload)?.kind in listOf(1,3)
             0x87 -> decodeTime(payload)?.kind in listOf(2,4)
-            6 -> minorVersion in listOf(3,CompanionConfirmationCodec.PROFILE) && decodeRegion(payload)?.kind in listOf(1,2)
-            0x88 -> minorVersion in listOf(3,CompanionConfirmationCodec.PROFILE) && decodeRegion(payload)?.kind in listOf(0x81,0x82,0x83,0x84)
+            6 -> minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) && decodeRegion(payload)?.kind in listOf(1,2)
+            0x88 -> minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) && decodeRegion(payload)?.kind in listOf(0x81,0x82,0x83,0x84)
             7 -> minorVersion == CompanionConfirmationCodec.PROFILE && CompanionConfirmationCodec.decode(payload)?.op in listOf(1,2,3)
             0x89 -> minorVersion == CompanionConfirmationCodec.PROFILE && CompanionConfirmationCodec.decode(payload)?.op in listOf(4,5)
+            CompanionPublicProfileCodec.REQUEST -> minorVersion == CompanionPublicProfileCodec.PROFILE &&
+                CompanionPublicProfileCodec.decode(payload)?.kind in listOf(1,2)
+            CompanionPublicProfileCodec.RESPONSE -> minorVersion == CompanionPublicProfileCodec.PROFILE &&
+                CompanionPublicProfileCodec.decode(payload)?.kind in listOf(0x81,0x82,0x83,0x84)
             else -> false
         }
     }
@@ -157,7 +161,7 @@ object CompanionConfigurationCodec {
 
     fun decodeFrame(bytes: ByteArray, expectedMinorVersion: Int = 2): CompanionConfigurationFrame? {
         if(bytes.size !in 20..MAX_RECORD_BYTES || !magic(bytes,frameMagic) || u8(bytes,4)!=0 ||
-            expectedMinorVersion !in listOf(2,3,CompanionConfirmationCodec.PROFILE) || u8(bytes,5)!=expectedMinorVersion || u8(bytes,7)!=0 || u8(bytes,16)!=0 || u8(bytes,17)!=1 ||
+            expectedMinorVersion !in listOf(2,3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || u8(bytes,5)!=expectedMinorVersion || u8(bytes,7)!=0 || u8(bytes,16)!=0 || u8(bytes,17)!=1 ||
             get(bytes,18,2).toInt()!=bytes.size-20) return null
         val session=get(bytes,8,4).toUInt();val exchange=get(bytes,12,4).toUInt()
         val payload=bytes.copyOfRange(20,bytes.size);val kind=u8(bytes,6)

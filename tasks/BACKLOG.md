@@ -564,8 +564,8 @@ Planning only: the remaining approved V1 scope is decomposed below. Registration
 | OT-0089f | planned | OT-0089b | Reconcile release evidence and operator documentation |
 | OT-0089g | planned | OT-0089b | Publish approved release and verify exact remote artifacts |
 | OT-0300 | ready for owner review | OT-0086a | [Reconcile Android retention and sharing policy](../docs/testing/OT-0300-RETENTION-RECONCILIATION-2026-09-23.md) |
-| OT-0301 | host portion implemented; final flow blocked | OT-0170a | [Ordered name/region onboarding](../docs/testing/OT-0301-ONBOARDING-2026-09-23.md); public-profile support and OT-0302 ordering remain |
-| OT-0302 | planned | OT-0170a | Complete protected setup settings bindings |
+| OT-0301 | host validated; owner review pending | OT-0170a | [Ordered resumable setup-to-Messages flow](../docs/testing/OT-0301-SETUP-COMPLETION-2026-10-01.md); physical UI acceptance remains open |
+| OT-0302 | host validated; owner review pending | OT-0170a | [Protected atomic public name/visibility settings](../docs/testing/OT-0302-PUBLIC-PROFILE-SETTINGS-2026-10-01.md); exact readback, existing regions preserved; no discovery or TX |
 | OT-0303 | planned | OT-0170a | Complete reset-aware saved-device recovery |
 | OT-0304 | planned | OT-0170a | Accept physical first-use and production launch |
 | OT-0305 | planned | OT-0173a | Bind durable authenticated group profile |

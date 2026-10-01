@@ -77,6 +77,8 @@ class ConnectedDeviceSessionOwner(
         !closed && controller.cancelGroupConfirmation(offer)
     override fun readRadioRegion(): Boolean = !closed && controller.readRadioRegion()
     override fun writeRadioRegion(selectionId: Int): Boolean = !closed && controller.writeRadioRegion(selectionId)
+    override fun readPublicProfile(): Boolean = !closed && controller.readPublicProfile()
+    override fun writePublicProfile(name: String, visible: Boolean): Boolean = !closed && controller.writePublicProfile(name,visible)
     override fun readDeviceName(): Boolean = !closed && controller.readDeviceName()
     override fun writeDeviceName(name: String): Boolean = !closed && controller.writeDeviceName(name)
     override fun synchronizeDisplayTime(): Boolean = !closed && controller.synchronizeDisplayTime()

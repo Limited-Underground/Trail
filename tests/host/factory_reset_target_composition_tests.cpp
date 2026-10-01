@@ -38,7 +38,7 @@ void seed() {
     retain_bonds=retain_partition=partition_read_fails=false;raw_erased=false;
     for(const char* name:{"ot_v1_owner","ot_name_v1","ot_region_v1",kEnrollmentIdentityStorageNamespace})
         disk[name]["orphan_or_user"]={Bytes(5,0x71)};
-    for(const char* name:{"ot216_boot","ot216_ia","ot216_ib","ot216_ta","ot216_tb","ot216_ra","ot216_rb"})
+    for(const char* name:{"ot_public_v1","ot216_boot","ot216_ia","ot216_ib","ot216_ta","ot216_tb","ot216_ra","ot216_rb"})
         disk[name]["retained_evaluation"]={Bytes(5,0x72)};
     disk["factory_calibration"]["retain"]={Bytes(5,0x42)};
 }
@@ -52,7 +52,7 @@ struct Target {
 constexpr std::uint64_t receipt=0x1122334455667788;
 void owned(Target& t){assert(t.executor.restore().phase==DeviceFactoryResetPhase::idle_old_state);}
 void complete(Target& t){assert(t.executor.continue_cleanup().accepted());assert(t.executor.status().reboot_unowned_permitted);assert(t.user.inspect_absence().verified_absent);assert(t.bonds.inspect_empty().verified_absent);assert(!disk["factory_calibration"].empty());
-    for(const char* name:{"ot216_boot","ot216_ia","ot216_ib","ot216_ta","ot216_tb","ot216_ra","ot216_rb"})assert(disk[name].empty());
+    for(const char* name:{"ot_public_v1","ot216_boot","ot216_ia","ot216_ib","ot216_ta","ot216_tb","ot216_ra","ot216_rb"})assert(disk[name].empty());
 }
 void denied(Target& t){assert(!t.executor.status().reboot_unowned_permitted);assert(t.executor.status().phase!=DeviceFactoryResetPhase::idle_unowned);}
 int main(){int groups=0;
@@ -120,7 +120,7 @@ int main(){int groups=0;
     }++groups;}
     // Every retained optional-profile namespace participates in absence and
     // idempotent recovery, including names unused by the current application.
-    for(const char* name:{"ot216_boot","ot216_ia","ot216_ib","ot216_ta","ot216_tb","ot216_ra","ot216_rb"}) {
+    for(const char* name:{"ot_public_v1","ot216_boot","ot216_ia","ot216_ib","ot216_ta","ot216_tb","ot216_ra","ot216_rb"}) {
         seed();{Target t;owned(t);assert(t.executor.begin(receipt).accepted());
             error_namespace=name;erase_error=ESP_FAIL;
             assert(!t.executor.continue_cleanup().accepted());denied(t);assert(!disk[name].empty());
@@ -135,9 +135,9 @@ int main(){int groups=0;
         ++groups;
     }
     seed();{
-        for(const char* name:{"ot216_boot","ot216_ia","ot216_ib","ot216_ta","ot216_tb","ot216_ra","ot216_rb"})disk.erase(name);
+        for(const char* name:{"ot_public_v1","ot216_boot","ot216_ia","ot216_ib","ot216_ta","ot216_tb","ot216_ra","ot216_rb"})disk.erase(name);
         Target t;owned(t);assert(t.executor.begin().accepted());assert(t.executor.continue_cleanup().accepted());
-        for(const char* name:{"ot216_boot","ot216_ia","ot216_ib","ot216_ta","ot216_tb","ot216_ra","ot216_rb"})assert(disk.count(name)==0);
+        for(const char* name:{"ot_public_v1","ot216_boot","ot216_ia","ot216_ib","ot216_ta","ot216_tb","ot216_ra","ot216_rb"})assert(disk.count(name)==0);
     }++groups;
     // A completion receipt with residue must re-enter cleanup, not grant access.
     seed();{Target t;owned(t);assert(t.executor.begin(receipt).accepted());complete(t);}

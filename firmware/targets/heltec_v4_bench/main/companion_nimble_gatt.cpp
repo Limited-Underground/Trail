@@ -41,7 +41,7 @@ constexpr char kLogTag[] = "companion_gatt";
 constexpr std::uint8_t kSelectedConfigurationMinor = kConfirmationEvaluationMinor;
 constexpr std::uint8_t kSelectedConfigurationCapabilities = kConfirmationEvaluationCapabilities;
 #else
-constexpr std::uint8_t kSelectedConfigurationMinor = 3;
+constexpr std::uint8_t kSelectedConfigurationMinor = kPublicProfileMinor;
 constexpr std::uint8_t kSelectedConfigurationCapabilities = 0xff;
 #endif
 
@@ -684,7 +684,8 @@ int command_access(std::uint16_t connection_handle,
             g_configuration_authority.phase != DeviceNamePhase::connected ||
             frame.value.session_nonce != g_configuration_authority.context.session_nonce ||
             (frame.value.kind != 1 && frame.value.kind != 2 && frame.value.kind != 4 && frame.value.kind != 5 && frame.value.kind != 6 &&
-             !(kSelectedConfigurationMinor == kConfirmationEvaluationMinor && frame.value.kind == 7)) ||
+             !(kSelectedConfigurationMinor == kConfirmationEvaluationMinor && frame.value.kind == 7) &&
+             !(kSelectedConfigurationMinor == kPublicProfileMinor && frame.value.kind == 8)) ||
             g_configuration_token == std::numeric_limits<std::uint64_t>::max())
             return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
         const auto token = ++g_configuration_token;
@@ -1108,7 +1109,7 @@ int companion_nimble_gatt_gap_event(ble_gap_event* event, void* argument) {
 }
 
 bool initialize_companion_configuration(DeviceNamePersistence& storage, ConfigurationBaseHandler& base,
-    RegionPersistence& region_storage) {
+    RegionPersistence& region_storage, PublicProfilePersistence* public_profile) {
     if (g_configuration_mutex != nullptr || g_configuration_dispatcher != nullptr) return false;
     g_configuration_mutex = xSemaphoreCreateRecursiveMutexStatic(&g_configuration_mutex_storage);
     if (g_configuration_mutex == nullptr) return false;
@@ -1116,7 +1117,8 @@ bool initialize_companion_configuration(DeviceNamePersistence& storage, Configur
     g_confirmation_backend = &confirmation_evaluation_backend(g_confirmation_source);
 #endif
     static ConfigurationDispatcher dispatcher{g_configuration_source, storage, base, &region_storage,
-        kSelectedConfigurationMinor, g_confirmation_backend};
+        kSelectedConfigurationMinor, g_confirmation_backend,
+        kSelectedConfigurationMinor == kPublicProfileMinor ? public_profile : nullptr};
     g_configuration_dispatcher = &dispatcher;
     g_configuration_storage = &storage;
     g_configuration_region_storage = &region_storage;

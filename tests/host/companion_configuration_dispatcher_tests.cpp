@@ -11,7 +11,8 @@ int failures=0;
 #define EXPECT(x) do { if(!(x)) { ++failures; std::cerr<<__LINE__<<": " #x "\n"; } } while(false)
 struct Source:DeviceNameAuthoritySource {
     DeviceNameAuthority state{DeviceNamePhase::connected,{1,2,3,4,5,6,7},0};
-    DeviceNameAuthority current() noexcept override { return state; }
+    std::function<void()> sample_hook;
+    DeviceNameAuthority current() noexcept override { if(sample_hook)sample_hook(); return state; }
 };
 struct Store:DeviceNamePersistence {
     DeviceNameLoadResult state{DeviceNameLoadStatus::absent,{}};
@@ -66,10 +67,19 @@ struct RegionStore:RegionPersistence {
         return uncertain ? RegionCommitStatus::possibly_committed : RegionCommitStatus::committed;
     }
 };
+struct PublicStore:PublicProfilePersistence {
+    PublicProfileLoadResult state{PublicProfileLoadStatus::absent,{}};
+    int commits=0;std::function<void()> hook;
+    PublicProfileLoadResult load() noexcept override {return state;}
+    PublicProfileCommitStatus commit(const PublicProfilePayload& value) noexcept override {
+        ++commits; state={PublicProfileLoadStatus::present,value};if(hook)hook();
+        return PublicProfileCommitStatus::committed;
+    }
+};
 struct Harness {
-    Source source; Store store; Base base; RegionStore regions;std::uint8_t minor;
+    Source source; Store store; Base base; RegionStore regions;PublicStore public_profile;std::uint8_t minor;
     ConfigurationDispatcher owner;
-    explicit Harness(std::uint8_t version=2):minor(version),owner(source,store,base,version==3?&regions:nullptr,version){}
+    explicit Harness(std::uint8_t version=2):minor(version),owner(source,store,base,(version==3||version==5)?&regions:nullptr,version,nullptr,version==5?&public_profile:nullptr){}
     ConfigurationFrame frame(std::uint8_t kind,std::uint32_t exchange) {
         ConfigurationFrame f{}; f.minor_version=minor;f.kind=kind; f.exchange_id=exchange; f.session_nonce=source.state.context.session_nonce; return f;
     }
@@ -377,8 +387,47 @@ void selected_enrollment_requires_exact_ready_lane() {
 }
 
 }
-int main(){protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
+void public_profile_dispatch_composition() {
+    for(int transition=0;transition<4;++transition) {
+        Harness h(5);h.ready();
+        auto request=h.frame(8,2);
+        PublicProfilePayload payload;payload.kind=DeviceNameKind::write;
+        payload.visible=true;payload.name_bytes=5;std::copy_n("Trail",5,payload.name.begin());
+        const auto encoded=encode_public_profile_payload(payload,request.payload.data(),request.payload.size());
+        EXPECT(encoded.encoded());request.payload_bytes=static_cast<std::uint16_t>(encoded.encoded_bytes);
+        EXPECT(h.submit(request).code==ConfigurationDispatchCode::accepted);
+        if(transition==1)h.source.state.phase=DeviceNamePhase::disconnected;
+        if(transition==2)h.source.state.phase=DeviceNamePhase::revoked;
+        if(transition==3)EXPECT(h.owner.lifecycle(h.source.state.context,DeviceNameLifecycle::reset));
+        const auto result=h.owner.execute();
+        if(transition){EXPECT(h.public_profile.commits==0);EXPECT(result.code!=ConfigurationDispatchCode::responded);continue;}
+        EXPECT(result.code==ConfigurationDispatchCode::responded);EXPECT(h.public_profile.commits==1);
+        auto decoded=decode_configuration_frame(result.record.data(),result.bytes,5);EXPECT(decoded.decoded());
+        EXPECT(decoded.value.kind==0x8a);
+        EXPECT(decode_public_profile_payload(decoded.value.payload.data(),decoded.value.payload_bytes).value.kind==DeviceNameKind::applied);
+        EXPECT(h.submit(request).code==ConfigurationDispatchCode::replayed);EXPECT(h.public_profile.commits==1);
+        auto changed=request;changed.payload[16]=0;EXPECT(h.submit(changed).code==ConfigurationDispatchCode::conflict);
+        EXPECT(h.submit(h.region(3,1)).code==ConfigurationDispatchCode::accepted);(void)h.owner.execute();
+        EXPECT(h.submit(request).code==ConfigurationDispatchCode::stale);
+    }
+    {
+        Harness h(5);h.ready();auto request=h.frame(8,2);
+        PublicProfilePayload payload;payload.kind=DeviceNameKind::write;payload.name_bytes=1;payload.name[0]='T';
+        request.payload_bytes=static_cast<std::uint16_t>(encode_public_profile_payload(payload,request.payload.data(),request.payload.size()).encoded_bytes);
+        int observations=0;
+        h.public_profile.hook=[&]{h.source.state.now_ms=4999;h.source.sample_hook=[&]{if(++observations>=3)h.source.state.now_ms=5000;};};
+        EXPECT(h.submit(request).code==ConfigurationDispatchCode::accepted);
+        EXPECT(h.owner.execute().code==ConfigurationDispatchCode::no_result);
+        EXPECT(h.public_profile.commits==1);
+    }
+    Harness h(5);auto request=h.frame(8,1);PublicProfilePayload read;
+    request.payload_bytes=static_cast<std::uint16_t>(encode_public_profile_payload(read,request.payload.data(),request.payload.size()).encoded_bytes);
+    EXPECT(h.submit(request).code==ConfigurationDispatchCode::unauthorized);
+    EXPECT(h.public_profile.commits==0);
+    for(std::uint8_t minor:{2,3,127}){request.minor_version=minor;std::array<std::uint8_t,148> out{};EXPECT(!encode_configuration_frame(request,out.data(),out.size()).encoded());}
+}
+int main(){public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
     if(failures) return 1;
-    std::cout<<"PASS: 12 composed configuration dispatcher groups\n";
+    std::cout<<"PASS: 13 composed configuration dispatcher groups\n";
     return 0;
 }

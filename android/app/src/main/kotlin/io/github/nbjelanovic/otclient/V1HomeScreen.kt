@@ -8,6 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,15 +21,18 @@ import kotlinx.coroutines.delay
 @Composable
 internal fun V1HomeScreen(
     state: TrailAppUiState,
+    liveRuntime: () -> BleRuntimeState?,
     onRefreshGroupConfirmation: () -> Boolean = { false },
     onConfirmGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
     onCancelGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
-    deviceContent: @Composable () -> Unit,
+    deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit) -> Unit,
 ) {
-    // Freeze the launch choice before the splash; runtime changes must not navigate for the user.
-    var selected by rememberSaveable {
-        mutableStateOf(v1InitialHomeDestination(state).name)
+    val launchSaver=remember { Saver<V1HomeLaunchState,Any>(
+        save={ it.save() },restore={ V1HomeLaunchState.restore(it) }) }
+    var navigation by rememberSaveable(stateSaver=launchSaver) {
+        mutableStateOf(V1HomeLaunchState.initial(state))
     }
+    val currentRuntime by rememberUpdatedState(liveRuntime)
     var splashFinished by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(1_800); splashFinished = true }
     if (!splashFinished) {
@@ -39,7 +43,7 @@ internal fun V1HomeScreen(
         }
         return
     }
-    val destination = V1AppDestination.entries.firstOrNull { it.name == selected } ?: V1AppDestination.MESSAGES
+    val destination = navigation.destination
     val retainedPages = rememberSaveableStateHolder()
     val bluetooth = state as? TrailAppUiState.BluetoothDevice
     val runtime = bluetooth?.runtimeState
@@ -62,9 +66,9 @@ internal fun V1HomeScreen(
     }
     V1AppShell(
         state = V1AppNavigationState.empty().select(destination),
-        onDestinationSelected = { selected = it.name },
+        onDestinationSelected = { navigation = navigation.select(it) },
         messages = { retainedPages.SaveableStateProvider("messages") {
-            V1MessagesScreen(status, onConnect = { selected = V1AppDestination.DEVICE.name })
+            V1MessagesScreen(status, onConnect = { navigation = navigation.beginSetup(currentRuntime()) })
         } },
         group = { retainedPages.SaveableStateProvider("group") {
             V1GroupScreen(
@@ -112,7 +116,9 @@ internal fun V1HomeScreen(
                         Text("Device", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
                         TextButton(onClick = { support = true }) { Text("Help & support") }
                     }
-                    Box(Modifier.weight(1f)) { deviceContent() }
+                    Box(Modifier.weight(1f)) { deviceContent { scope ->
+                        navigation = navigation.finish(scope,currentRuntime)
+                    } }
                     TextButton(onClick = { setupDraft = true }) { Text("Prepare setup choices") }
                 }
             }

@@ -91,6 +91,8 @@ interface ConnectedDeviceSessionPort {
     fun cancelGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean = false
     fun readRadioRegion(): Boolean = false
     fun writeRadioRegion(selectionId: Int): Boolean = false
+    fun readPublicProfile(): Boolean = false
+    fun writePublicProfile(name: String, visible: Boolean): Boolean = false
     fun readDeviceName(): Boolean = false
     fun writeDeviceName(name: String): Boolean = false
     fun synchronizeDisplayTime(): Boolean = false

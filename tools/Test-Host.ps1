@@ -85,6 +85,7 @@ $fastStructuralTests = @(
     @{ File = 'heltec_v4_ble_stack_config_tests.py'; Failure = 'Heltec V4 BLE stack configuration admission tests failed.' },
     @{ File = 'heltec_v4_factory_reset_storage_tests.py'; Failure = 'Heltec V4 factory-reset storage admission tests failed.' },
     @{ File = 'enrollment_identity_nvs_tests.py'; Failure = 'Identity NVS and factory-reset behavioral tests failed.' },
+    @{ File = 'public_profile_settings_tests.py'; Failure = 'Public profile settings behavioral tests failed.' },
     @{ File = 'heltec_v4_bench_partition_transition_tests.py'; Failure = 'Heltec V4 protected-storage transition admission tests failed.' },
     @{ File = 'ot120_candidate_build_harness_tests.py'; Failure = 'OT-120 candidate build-harness tests failed.' },
     @{ File = 'ot121_candidate_benchmark_harness_tests.py'; Failure = 'OT-121/OT-123 candidate benchmark-harness tests failed.' },
@@ -301,6 +302,7 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_public_profile_codec.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_configuration_codec_tests.cpp')
         )
     },
@@ -313,7 +315,9 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_public_profile_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_dispatcher.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_public_profile_owner.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_region_owner.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
@@ -331,7 +335,9 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_request_coordinator.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_public_profile_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_dispatcher.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_public_profile_owner.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_region_owner.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
@@ -346,6 +352,7 @@ $builds = @(
         RunArguments = @((Join-Path $projectRoot 'tests\fixtures\companion_configuration_v03.tsv').Replace('\', '/'))
         Sources = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_public_profile_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_region_owner.cpp'),
@@ -359,6 +366,7 @@ $builds = @(
         Sources = @(
             (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\companion_region_storage.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_public_profile_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_region_storage_tests.cpp')
         )

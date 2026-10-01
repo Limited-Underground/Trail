@@ -163,12 +163,12 @@ def admitted_target_sources(cmake: str) -> list[str]:
     require("if(OPENTRAIL_CONFIRMATION_EVALUATION)" in evaluation and
             set(evaluation_tokens) == expected_evaluation and len(evaluation_tokens) == 7,
             "evaluation source set must remain exact and opt-in")
-    require(len(ordinary_tokens) == 51 and len(set(ordinary_tokens)) == 51 and
+    require(len(ordinary_tokens) == 54 and len(set(ordinary_tokens)) == 54 and
             "enrollment_identity_nvs_storage.cpp" in ordinary_tokens and
             not expected_evaluation.intersection(ordinary_tokens) and
             ordinary.count("${OPENTRAIL_CONFIRMATION_SOURCES}") == 1 and
             "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp" in ordinary_tokens,
-            "ordinary build must retain 51 unique sources and one conditional insertion")
+            "ordinary build must retain 54 unique sources and one conditional insertion")
     return ordinary_tokens + evaluation_tokens
 
 
@@ -203,6 +203,8 @@ def test_contract() -> None:
         "main/companion_name_storage.hpp",
         "main/companion_region_storage.cpp",
         "main/companion_region_storage.hpp",
+        "main/companion_public_profile_storage.cpp",
+        "main/companion_public_profile_storage.hpp",
         "main/companion_v1_heltec_adapters.cpp",
         "main/companion_v1_heltec_adapters.hpp",
         "partitions.csv",
@@ -1245,7 +1247,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 57,
+    require(len(other_linked_sources) == 60,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1320,7 +1322,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 57,
+    require(len(other_linked_sources) == 60,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2302,8 +2304,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(len(admitted_target_sources(cmake)) == 58,
-            "target must admit 51 ordinary and seven evaluation source units")
+    require(len(admitted_target_sources(cmake)) == 61,
+            "target must admit 54 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
@@ -3296,6 +3298,8 @@ def test_configuration_transport_and_storage_surface() -> None:
     reset = FACTORY_RESET_STORAGE_SOURCE.read_text(encoding="utf-8")
     for token in ("companion_name_storage.cpp", "companion_region_storage.cpp",
                   "companion_region_owner.cpp", "companion_configuration_codec.cpp",
+                  "companion_public_profile_codec.cpp", "companion_public_profile_owner.cpp",
+                  "companion_public_profile_storage.cpp",
                   "companion_configuration_dispatcher.cpp", "companion_device_name_codec.cpp",
                   "companion_device_name_owner.cpp", "oled_time_admission.cpp"):
         require(cmake.count(token) == 1, f"configuration source must link exactly once: {token}")
@@ -3304,10 +3308,10 @@ def test_configuration_transport_and_storage_surface() -> None:
                  "status.secure_bond", "life.encrypted", "life.authenticated_bond",
                  "g_configuration_blocked_generation", "g_configuration_revoked"):
         require(gate in gatt, f"configuration authority gate missing: {gate}")
-    require("#if OPENTRAIL_CONFIRMATION_EVALUATION\nconstexpr std::uint8_t kSelectedConfigurationMinor = kConfirmationEvaluationMinor;\nconstexpr std::uint8_t kSelectedConfigurationCapabilities = kConfirmationEvaluationCapabilities;\n#else\nconstexpr std::uint8_t kSelectedConfigurationMinor = 3;\nconstexpr std::uint8_t kSelectedConfigurationCapabilities = 0xff;\n#endif" in gatt and
+    require("#if OPENTRAIL_CONFIRMATION_EVALUATION\nconstexpr std::uint8_t kSelectedConfigurationMinor = kConfirmationEvaluationMinor;\nconstexpr std::uint8_t kSelectedConfigurationCapabilities = kConfirmationEvaluationCapabilities;\n#else\nconstexpr std::uint8_t kSelectedConfigurationMinor = kPublicProfileMinor;\nconstexpr std::uint8_t kSelectedConfigurationCapabilities = 0xff;\n#endif" in gatt and
             "encode_configuration_info({kSelectedConfigurationCapabilities, kSelectedConfigurationMinor}" in gatt and
             "g_adapter->read_protocol_info(" in gatt,
-            "selected normal0.3 must retain the restricted claim ProtocolInfo path")
+            "selected normal0.5 must retain the restricted claim ProtocolInfo path")
     for surface in ("kConfigurationRecordBytes", "decode_configuration_frame",
                     "g_indication_port.reserve(", "g_configuration_lane.matches(",
                     "g_configuration_lane.can_execute(", "work.admitted_ms",
@@ -3319,6 +3323,11 @@ def test_configuration_transport_and_storage_surface() -> None:
             "erase_user_namespace_and_verify(kCompanionRegionNvsNamespace)" in reset and
             "inspect_user_namespace(kCompanionRegionNvsNamespace)" in reset,
             "region must use strict profile3 and whole-namespace reset admission")
+    require("kSelectedConfigurationMinor == kPublicProfileMinor && frame.value.kind == 8" in gatt and
+            "kSelectedConfigurationMinor == kPublicProfileMinor ? public_profile : nullptr" in gatt and
+            "companion_public_profile_storage()" in runtime and
+            "kCompanionPublicProfileNvsNamespace" in reset,
+            "public profile must use exact negotiated operation, actual storage and reset inventory")
     command = gatt.split("int command_access(", 2)[-1].split("int stream_access", 1)[0]
     require("g_configuration_dispatcher->execute" not in command and
             "g_configuration_dispatcher->submit" not in command and

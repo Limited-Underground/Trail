@@ -288,6 +288,14 @@ class TrailConnectedDeviceService : Service() {
             assertMainThread()
             return attached?.writeRadioRegion(selectionId) == true
         }
+        override fun readPublicProfile(): Boolean {
+            assertMainThread()
+            return attached?.readPublicProfile() == true
+        }
+        override fun writePublicProfile(name: String, visible: Boolean): Boolean {
+            assertMainThread()
+            return attached?.writePublicProfile(name,visible) == true
+        }
         override fun readDeviceName(): Boolean {
             assertMainThread()
             return attached?.readDeviceName() == true

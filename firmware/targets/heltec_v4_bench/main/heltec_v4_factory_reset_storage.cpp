@@ -1,4 +1,5 @@
 #include "heltec_v4_factory_reset_storage.hpp"
+#include "companion_public_profile_storage.hpp"
 
 #include <array>
 #include <cstddef>
@@ -53,7 +54,8 @@ struct KeyPresence {
 // firmware. Its retained invitation/counter records remain prior-user data
 // even when that profile is not compiled. Never erase the whole default NVS:
 // reset intent, peer bonds and factory-only namespaces have separate owners.
-constexpr std::array<const char*, 7> kConfirmationResetNamespaces{
+constexpr std::array<const char*, 8> kConfirmationResetNamespaces{
+    kCompanionPublicProfileNvsNamespace,
     "ot216_ia", "ot216_ib", "ot216_ta", "ot216_tb",
     "ot216_ra", "ot216_rb", "ot216_boot"};
 

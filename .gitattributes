@@ -979,3 +979,25 @@ tests/host/enrollment_candidate_operator_tests.py -text whitespace=blank-at-eol,
 /docs/testing/OT-0238b-CANDIDATE-RECOVERY-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /docs/testing/OT-0238b-CANDIDATE-REKEY-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /docs/testing/OT-0238b-CANDIDATE-RESET-2026-09-30.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# OT-0302 reviewed settings sources preserve validated raw bytes.
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/BleConfigurationPanel.kt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/android/app/src/main/kotlin/io/github/nbjelanovic/otclient/V1OnboardingBinding.kt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/android/app/src/test/kotlin/io/github/nbjelanovic/otclient/BlePublicProfileSettingsTest.kt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/android/app/src/test/kotlin/io/github/nbjelanovic/otclient/V1OnboardingBindingTest.kt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/android/protocol/src/main/kotlin/io/github/nbjelanovic/otprotocol/CompanionPublicProfile.kt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/android/protocol/src/test/kotlin/io/github/nbjelanovic/otprotocol/CompanionPublicProfileTest.kt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/platform/COMPANION_PUBLIC_PROFILE_V1.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/companion/include/opentrail/companion_device_name_codec.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/companion/include/opentrail/companion_public_profile_codec.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/companion/include/opentrail/companion_public_profile_owner.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/companion/src/companion_device_name_codec.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/companion/src/companion_public_profile_codec.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/components/companion/src/companion_public_profile_owner.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/targets/heltec_v4_bench/main/companion_public_profile_storage.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/firmware/targets/heltec_v4_bench/main/companion_public_profile_storage.hpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/fixtures/companion_public_profile_v1_vectors.csv -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/companion_configuration_dispatcher_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/heltec_v4_bench_target_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/public_profile_settings_tests.cpp -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/host/public_profile_settings_tests.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
