@@ -37,6 +37,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertNotNull
 import kotlin.test.assertFailsWith
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class BleCompanionRuntimeTest {
@@ -1738,6 +1739,77 @@ class BleCompanionRuntimeTest {
         assertTrue(staleExchange>0u)
     }
 
+    private class CommitModeReceiptStorage : FactoryResetReceiptStorage {
+        val values=linkedMapOf<String,Long>()
+        var failAfterMemoryUpdate=false
+        override fun readLong(key:String)=values[key]
+        override fun writeLongs(values:Map<String,Long>,removeKeys:Set<String>):Boolean {
+            removeKeys.forEach(this.values::remove);this.values.putAll(values)
+            return !failAfterMemoryUpdate
+        }
+        override fun remove(keys:Set<String>):Boolean { keys.forEach(values::remove);return true }
+    }
+
+    @Test fun actualReceiptStoreResetCorrelationDoesNotCleanAnotherPairOrReviveOldCallbacks() {
+        val storage=CommitModeReceiptStorage()
+        val store=AndroidFactoryResetReceiptStore(storage,{5000L},{RESET_RECEIPT})
+        val foreignStorage=CommitModeReceiptStorage()
+        val foreign=AndroidFactoryResetReceiptStore(foreignStorage,{5000L},{RESET_RECEIPT+1u})
+        assertEquals(RESET_RECEIPT+1u,foreign.stage());val foreignBefore=foreignStorage.values.toMap()
+        val facade=TestBluetoothFacade(receiptStore=store,returningOwnerScanSupported=true).apply {
+            factoryResetCleanupResult=FactoryResetLocalCleanupResult.SYSTEM_BOND_REMAINS
+        }
+        val f=Fixture(facade);val gatt=f.readyGatt(71)
+        assertTrue(f.runtime.submitFactoryReset());val requestsAfterReset=gatt.commands.size
+        gatt.emit(BleGattEvent.StreamIndication(actionResultEnvelope(71,1,CompanionActionResult(
+            kind=CompanionActionKind.FACTORY_RESET,factoryResetReceipt=RESET_RECEIPT,
+            disposition=CompanionActionDisposition.ADMITTED))))
+        gatt.emit(BleGattEvent.Disconnected)
+        val oldScan=facade.resetVerificationScans.single()
+        oldScan.emit(BleScanEvent.FactoryResetReceiptObserved(RESET_RECEIPT+1u))
+        assertIs<BleRuntimeState.FactoryResetNotVerified>(f.runtime.state)
+        assertEquals(RESET_RECEIPT,store.load());assertEquals(foreignBefore,foreignStorage.values)
+        assertTrue(f.runtime.retryFactoryResetVerification())
+        facade.resetVerificationScans.last().emit(BleScanEvent.FactoryResetReceiptObserved(RESET_RECEIPT))
+        val complete=assertIs<BleRuntimeState.FactoryResetComplete>(f.runtime.state)
+        assertTrue(complete.systemBondRemovalRequired)
+        assertTrue(store.requiresFreshSetup());assertNull(store.load())
+        assertEquals(foreignBefore,foreignStorage.values);assertEquals(listOf(RESET_RECEIPT),facade.factoryResetCleanupReceipts)
+        oldScan.emit(BleScanEvent.FactoryResetReceiptObserved(RESET_RECEIPT+1u))
+        gatt.emitStale(BleGattEvent.StreamIndication(snapshotEnvelope(71,99)))
+        assertSame(complete,f.runtime.state)
+        assertTrue(requestFreshSetupAfterReset(complete,{f.runtime.state},{f.runtime.requestScan()}))
+        assertIs<BleRuntimeState.Scanning>(f.runtime.state)
+        assertEquals(requestsAfterReset,gatt.commands.size) // Fresh scan sends no commands and starts no connection.
+        assertTrue(facade.scans.last().started)
+        f.runtime.close()
+        val restartedFacade=TestBluetoothFacade(receiptStore=store,returningOwnerScanSupported=true)
+        val restarted=BleCompanionRuntime(restartedFacade,TestRuntimeScheduler());restarted.onLifecycleStart()
+        assertIs<BleRuntimeState.Idle>(restarted.state)
+        assertTrue(restartedFacade.returningOwnerScans.isEmpty());assertTrue(restartedFacade.connections.isEmpty())
+        restarted.close()
+    }
+
+    @Test fun failedReceiptCompletionAfterMemoryUpdateStaysUnverifiedAcrossRuntimeRecovery() {
+        val storage=CommitModeReceiptStorage();val store=AndroidFactoryResetReceiptStore(storage,{5000L},{RESET_RECEIPT})
+        assertEquals(RESET_RECEIPT,store.stage())
+        val facade=TestBluetoothFacade(receiptStore=store,returningOwnerScanSupported=true)
+        val runtime=BleCompanionRuntime(facade,TestRuntimeScheduler());runtime.onLifecycleStart()
+        assertIs<BleRuntimeState.FactoryResetVerifying>(runtime.state)
+        storage.failAfterMemoryUpdate=true
+        facade.resetVerificationScans.single().emit(BleScanEvent.FactoryResetReceiptObserved(RESET_RECEIPT))
+        val held=assertIs<BleRuntimeState.FactoryResetNotVerified>(runtime.state)
+        assertEquals(FactoryResetNotVerifiedReason.LOCAL_RECORD_CLEAR_FAILED,held.reason)
+        assertNull(store.load());assertTrue(store.requiresFreshSetup())
+        assertTrue(facade.connections.isEmpty());assertTrue(facade.returningOwnerScans.isEmpty())
+        runtime.close()
+        val freshFacade=TestBluetoothFacade(receiptStore=store,returningOwnerScanSupported=true)
+        val recovered=BleCompanionRuntime(freshFacade,TestRuntimeScheduler());recovered.onLifecycleStart()
+        assertIs<BleRuntimeState.Idle>(recovered.state)
+        assertTrue(freshFacade.returningOwnerScans.isEmpty());assertTrue(freshFacade.connections.isEmpty())
+        recovered.close()
+    }
+
     private class Fixture(
         val facade: TestBluetoothFacade = TestBluetoothFacade(),
         scheduler: TestRuntimeScheduler = TestRuntimeScheduler(),
@@ -1812,6 +1884,7 @@ class BleCompanionRuntimeTest {
         private val connectionCreationSupported: Boolean = true,
         private val returningOwnerScanSupported: Boolean = false,
         private val enforceOperationGate: Boolean = false,
+        private val receiptStore: AndroidFactoryResetReceiptStore? = null,
     ) : AndroidBluetoothFacade {
         var preflight = BlePreflight()
         var civilTime=12345u to 2
@@ -1839,19 +1912,22 @@ class BleCompanionRuntimeTest {
             if (returningOwnerScanSupported) TestScanLease(observer).also(returningOwnerScans::add) else null
 
         override fun stageFactoryResetReceipt(): ULong? {
+            if(receiptStore!=null) return receiptStore.stage()
             if (pendingFactoryResetReceipt != null) return null
             pendingFactoryResetReceipt = RESET_RECEIPT
             return RESET_RECEIPT
         }
 
         var freshSetupRequired = false
-        override fun requiresFreshSetupAfterVerifiedReset() = freshSetupRequired
+        override fun requiresFreshSetupAfterVerifiedReset() = receiptStore?.requiresFreshSetup() ?: freshSetupRequired
         override fun authenticatedSessionReady() {
+            if(receiptStore!=null) { receiptStore.authenticatedReady();return }
             freshSetupRequired = false
         }
-        override fun loadPendingFactoryResetReceipt(): ULong? = pendingFactoryResetReceipt
+        override fun loadPendingFactoryResetReceipt(): ULong? = if(receiptStore!=null) receiptStore.load() else pendingFactoryResetReceipt
 
         override fun clearPendingFactoryResetReceipt(receipt: ULong): Boolean {
+            if(receiptStore!=null) return receiptStore.clearExact(receipt)
             if (pendingFactoryResetReceipt != receipt) return false
             pendingFactoryResetReceipt = null
             return true
@@ -1861,13 +1937,20 @@ class BleCompanionRuntimeTest {
             receipt: ULong,
             observer: (BleScanEvent) -> Unit,
         ): BleScanLease? =
-            if (receipt == pendingFactoryResetReceipt) {
+            if (receipt == loadPendingFactoryResetReceipt()) {
                 TestScanLease(observer).also(resetVerificationScans::add)
             } else {
                 null
             }
 
         override fun completeFactoryResetVerification(receipt: ULong): FactoryResetLocalCleanupResult {
+            if(receiptStore!=null) {
+                if(receiptStore.load()!=receipt) return FactoryResetLocalCleanupResult.FAILED
+                factoryResetCleanupReceipts+=receipt
+                if(factoryResetCleanupResult==FactoryResetLocalCleanupResult.FAILED || !receiptStore.completeVerified(receipt))
+                    return FactoryResetLocalCleanupResult.FAILED
+                return factoryResetCleanupResult
+            }
             if (receipt != pendingFactoryResetReceipt) return FactoryResetLocalCleanupResult.FAILED
             factoryResetCleanupReceipts += receipt
             if (factoryResetCleanupResult != FactoryResetLocalCleanupResult.FAILED) {

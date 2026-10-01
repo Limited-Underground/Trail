@@ -106,18 +106,35 @@ class AndroidFactoryResetReceiptStoreTest {
         assertFalse(store.requiresFreshSetup())
     }
 
+    @Test
+    fun failedCompletionAfterMemoryUpdateNeverReportsVerifiedOrReenablesReturningOwner() {
+        val storage=InMemoryReceiptStorage()
+        val store=AndroidFactoryResetReceiptStore(storage,{5000L},{7uL})
+        assertEquals(7uL,store.stage())
+        storage.failWriteAfterMemoryUpdate=true
+        assertFalse(store.completeVerified(7uL))
+        assertNull(store.load())
+        assertTrue(store.requiresFreshSetup())
+        assertEquals(mapOf(AndroidFactoryResetReceiptStore.FRESH_SETUP_KEY to 1L),storage.values)
+        val sameProcessRecovered=AndroidFactoryResetReceiptStore(storage,{6000L},{9uL})
+        assertTrue(sameProcessRecovered.requiresFreshSetup())
+        assertFalse(sameProcessRecovered.completeVerified(7uL))
+        assertTrue(sameProcessRecovered.requiresFreshSetup())
+    }
+
     private class InMemoryReceiptStorage : FactoryResetReceiptStorage {
         val values = linkedMapOf<String, Long>()
 
         override fun readLong(key: String): Long? = values[key]
 
         var failWrite = false
+        var failWriteAfterMemoryUpdate = false
         var failRemoveAfterMemoryUpdate = false
         override fun writeLongs(values: Map<String, Long>, removeKeys: Set<String>): Boolean {
             if (failWrite) return false
             removeKeys.forEach(this.values::remove)
             this.values.putAll(values)
-            return true
+            return !failWriteAfterMemoryUpdate
         }
 
         override fun remove(keys: Set<String>): Boolean {
