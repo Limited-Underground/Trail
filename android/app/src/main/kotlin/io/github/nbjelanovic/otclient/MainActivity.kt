@@ -609,22 +609,21 @@ private fun BluetoothRuntimePanel(
             }
         }
         is BleRuntimeState.FactoryResetComplete -> {
-            StatusCard(
-                "Factory reset verified",
-                "Local session state cleared. Please navigate to Android Bluetooth Settings to manually remove the system device bond.",
-            )
-            if (state.systemBondRemovalRequired) {
-                StatusCard(
-                    "Remove old Android pairing",
-                    "Android still lists the old Bluetooth bond. Open Bluetooth settings and forget the old Trail pairing before pairing this reset device again.",
-                )
+            val recovery=factoryResetRecoveryPresentation(state)
+            StatusCard("Factory reset verified",recovery.detail)
+            recovery.bondGuidance?.let {
+                StatusCard("Check the old Android pairing",it)
                 Button(onClick = openBluetoothSettings, modifier = Modifier.fillMaxWidth()) {
                     Text("Open Bluetooth settings")
                 }
-            } else {
-                Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
-                    Text("Add a Trail device")
-                }
+            }
+            Text(recovery.windowGuidance)
+            Button(onClick = {
+                requestFreshSetupAfterReset(state,
+                    { (controller.state as? TrailAppUiState.BluetoothDevice)?.runtimeState },
+                    { controller.scanBluetoothDevices() })
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text("Start fresh device setup")
             }
         }
         is BleRuntimeState.Reconnecting -> {

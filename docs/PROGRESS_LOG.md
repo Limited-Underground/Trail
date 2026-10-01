@@ -21,6 +21,59 @@ four APK builds and unsigned-release audit. Independent review has no blockers.
 Host validated; owner review pending. Debug/V1Test are locally debug-signed;
 Release is unsigned. No installation, physical UI acceptance or V1 credit.
 
+### OT-0302 Owner acceptance of protected settings host support
+
+The owner accepted revision 2 on the [OT-0302 task](https://limitedunderground.com/lab/tasks/2dd60842-d2ad-4186-a831-b5d00dbceaca).
+Saved checklist version 472 (`.private/next-approved-20261001-after-pr44/state-v472.json`)
+records Completed. The [validated host evidence](testing/OT-0302-PUBLIC-PROFILE-SETTINGS-2026-10-01.md)
+is published through merged PR #44; physical UI/device and release acceptance remain
+separate. No hardware execution or V1 credit is added by owner acceptance.
+
+### OT-0301 Owner acceptance of resumable onboarding host flow
+
+The owner accepted revision 1 on the [OT-0301 task](https://limitedunderground.com/lab/tasks/35733e49-c1cf-4bfc-8bbd-61705398cbff).
+The same checklist version 472 records Completed; [validated host evidence](testing/OT-0301-SETUP-COMPLETION-2026-10-01.md)
+is published through merged PR #44. Physical first-use, display/rotation and
+production-launch acceptance remain separately open. No installation or V1 credit.
+
+### OT-0303 Record reset-recovery dependency correction
+
+The [accepted host reset composition](testing/OT-0168b-RESET-COMPOSITION-2026-09-30.md)
+supports the unchanged computer-only recovery scope; physical reset acceptance stays
+separate. The dependency-only metadata edit was refused by the maintained checklist
+client, and readback confirmed the original task unchanged at version 472/revision 1.
+Normal block and attention updates then succeeded; saved `OT-0303-final-order-check.json`
+records version 474, Approved revision 1, Blocked and waiting. No implementation started.
+
+Owner step: open [OT-0303](https://limitedunderground.com/lab/tasks/98893ef6-147e-440d-9079-93921404be76),
+choose **Edit scope**, replace dependency **OT-0168a** with **OT-0168b**, keep
+**OT-0302**, save and approve the new revision. Purpose, safety rules and acceptance
+remain unchanged. No hardware or V1 credit is implied by this task-order correction.
+
+### OT-0303 Complete computer-only reset-aware recovery
+
+The owner approved dependency-corrected revision 2; fresh version 476 verified
+accepted OT-0302/OT-0168b before start. Added outcome-aware manual pairing guidance
+and live completion-instance fencing for explicit fresh setup. Existing protected
+returning-owner and reset receipt/persistence contracts remain unchanged.
+Focused 101 tests pass after one missing test-import correction; the final affected
+Android matrix reports 1,318 passing recorded executions, three lint variants, four APKs
+and unsigned-release audit. A three-byte line-ending correction then passed a
+second cached matrix with identical APK pins and independent byte proof.
+Independent frozen review has no findings.
+[Evidence, pins and model limits](testing/OT-0303-RESET-RECOVERY-2026-10-01.md).
+Host validated; owner review pending. No physical test, install, Git publication,
+firmware change, public website capability change or V1 credit.
+
+### OT-0303 Owner acceptance of reset-recovery host scope
+
+The owner accepted revision 2 on the [OT-0303 task](https://limitedunderground.com/lab/tasks/98893ef6-147e-440d-9079-93921404be76).
+Fresh maintained check version 480 (`.private/after-ot0303-acceptance-20261001/OT-0303-check.json`)
+records Approved and Completed. The [validated host evidence](testing/OT-0303-RESET-RECOVERY-2026-10-01.md)
+remains local/uncommitted; Git publication requires a separate scoped PR operation.
+Physical Android/reset/pairing and release acceptance remain open. No hardware,
+installation, public website capability change or V1 credit is added.
+
 ## 2026-09-30
 
 ### OT-0238b Correct candidate sequencing and preserve the request through review
