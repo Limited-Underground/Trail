@@ -9,12 +9,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import io.github.nbjelanovic.otprotocol.RegionSelectionCatalog
+import io.github.nbjelanovic.otprotocol.CompanionPublicProfileCodec
 
 // UI restoration epoch only: never an identity, protocol field, or persisted preference.
 private val nameEditorProcessEpoch=java.util.UUID.randomUUID().toString()
 
 @Composable
-internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailUiController, onboarding: Boolean = false) {
+internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailUiController, onboarding: Boolean = false,
+    onSetupComplete: (V1OnboardingScope) -> Unit = {}) {
     val state=session.configuration
     if(!state.available) {
         if(onboarding) Text("Step 3 of 5 · Device name. Waiting for protected device configuration support.")
@@ -30,9 +32,15 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
             is V1OnboardingCommand.WriteName -> controller.writeDeviceName(command.value)
             V1OnboardingCommand.ReadRegion -> controller.readRadioRegion()
             is V1OnboardingCommand.WriteRegion -> controller.writeRadioRegion(command.selectionId)
+            V1OnboardingCommand.ReadPublicProfile -> controller.readPublicProfile()
+            is V1OnboardingCommand.WritePublicProfile -> controller.writePublicProfile(command.name,command.visible)
         } },
     ) }
     val stage=V1OnboardingProjection.stage(BleRuntimeState.Ready(session))
+    val completeSetup by rememberUpdatedState(onSetupComplete)
+    LaunchedEffect(scope,onboarding,stage,state.busy) {
+        if(onboarding && stage==V1SetupStage.COMPLETE && !state.busy) completeSetup(scope)
+    }
     fun submit(command: V1OnboardingCommand): Boolean = binding.submit(scope,command,onboarding)
     var attemptedRegionRead by remember(scope) { mutableStateOf(false) }
     LaunchedEffect(scope,stage,state.busy) {
@@ -59,9 +67,26 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
     val name=editor.text
     var regionChoice by rememberSaveable(session.sessionNonce) { mutableStateOf<Int?>(null) }
     var regionMenu by remember { mutableStateOf(false) }
+    var publicText by rememberSaveable(editorScope) { mutableStateOf(draft?.publicName?.value.orEmpty()) }
+    var publicVisible by rememberSaveable(editorScope) { mutableStateOf(draft?.publiclyDiscoverable ?: true) }
+    var publicEdited by rememberSaveable(editorScope) { mutableStateOf(false) }
+    var attemptedPublicRead by remember(scope) { mutableStateOf(false) }
+    LaunchedEffect(scope,stage,state.busy,state.publicRevision) {
+        if(onboarding && stage==V1SetupStage.PUBLIC_PROFILE && state.publicProfileAvailable &&
+            state.publicRevision==null && !state.busy && !attemptedPublicRead) {
+            attemptedPublicRead=true
+            submit(V1OnboardingCommand.ReadPublicProfile)
+        }
+    }
+    LaunchedEffect(editorScope,state.publicRevision,state.publicName,state.publiclyDiscoverable) {
+        if(!publicEdited && state.publicRevision!=null) {
+            if(state.publicName!=null) publicText=state.publicName
+            state.publiclyDiscoverable?.let { publicVisible=it }
+        }
+    }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-            Text(if(onboarding) "Step ${stage.ordinal+1} of 5 · ${when(stage) {
+            Text(if(onboarding && stage==V1SetupStage.COMPLETE) "Setup preferences verified" else if(onboarding) "Step ${stage.ordinal+1} of 5 · ${when(stage) {
                 V1SetupStage.NAME_DEVICE -> "Name your device"
                 V1SetupStage.CONFIRM_RADIO_REGION -> "Choose your radio region"
                 else -> "Public name and visibility"
@@ -107,9 +132,28 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
             if(onboarding && stage==V1SetupStage.CONFIRM_RADIO_REGION && !state.regionAvailable) {
                 Text("This firmware cannot read back a saved radio region. Setup is paused until compatible device support is available.")
             }
-            if(onboarding && stage==V1SetupStage.PUBLIC_PROFILE) {
-                Text("Device name and saved region were read back from this connected device.")
-                Text("Public name and visibility need the upcoming device update. Setup cannot be completed yet. Preferences saved under Prepare setup choices remain drafts; no public discovery is enabled.")
+            if(stage in listOf(V1SetupStage.PUBLIC_PROFILE,V1SetupStage.COMPLETE)) {
+                HorizontalDivider()
+                Text("Public name and visibility",style=MaterialTheme.typography.titleMedium)
+                if(state.publicProfileAvailable) {
+                    Text("Device readback: ${state.publicName ?: if(state.publicRevision==0uL) "Not configured" else "Not confirmed"}")
+                    Text("Saved visibility: ${state.publiclyDiscoverable?.let { if(it) "On" else "Off" } ?: "Not confirmed"}")
+                    OutlinedTextField(value=publicText,onValueChange={ publicText=it;publicEdited=true },
+                        label={ Text("Public name") },enabled=!state.busy,singleLine=true,modifier=Modifier.fillMaxWidth())
+                    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                        Text("Public visibility")
+                        Switch(checked=publicVisible,onCheckedChange={ publicVisible=it;publicEdited=true },enabled=!state.busy)
+                    }
+                    val validPublic=V1PublicName.create(publicText)!=null && CompanionPublicProfileCodec.validName(publicText)
+                    if(publicText.isNotEmpty() && !validPublic) Text("Use a shorter public name with letters, numbers and ordinary name punctuation.")
+                    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick={ submit(V1OnboardingCommand.ReadPublicProfile) },enabled=!state.busy) { Text("Read public settings") }
+                        Button(onClick={ submit(V1OnboardingCommand.WritePublicProfile(publicText,publicVisible)) },
+                            enabled=!state.busy && validPublic && state.publicRevision!=null && state.publicRevision!=ULong.MAX_VALUE) { Text("Apply public settings") }
+                    }
+                    Text(if(stage==V1SetupStage.COMPLETE) "Setup preferences are verified on this device. Saving them does not start public discovery."
+                        else "Saving these preferences does not start public discovery. Setup resumes after protected readback.")
+                } else Text("This firmware cannot read back public name and visibility. Setup remains paused; saved phone choices are drafts.")
                 Text("A saved region does not configure the radio or authorize transmission. Radio TX remains disabled.")
             }
             Text("The clock syncs automatically on connection and when your phone's time changes, using its local time and 12/24-hour preference. You can also sync it here.",style=MaterialTheme.typography.bodySmall)

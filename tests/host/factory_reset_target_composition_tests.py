@@ -29,7 +29,7 @@ def run():
         result = subprocess.run([str(executable)], text=True, capture_output=True, timeout=30)
         if result.returncode:
             raise RuntimeError(result.stderr or str(result.returncode))
-        assert result.stdout.strip() == 'PASS 26 actual target reset composition groups', result.stdout
+        assert result.stdout.strip() == 'PASS 27 actual target reset composition groups', result.stdout
         print(result.stdout.strip())
 
 if __name__ == '__main__':

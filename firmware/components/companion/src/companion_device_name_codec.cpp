@@ -43,6 +43,9 @@ DeviceNameCodecError validate(const DeviceNamePayload& value) {
 } // namespace
 
 bool valid_device_name_utf8(const std::uint8_t* bytes, std::size_t size) {
+    return valid_bounded_name_utf8(bytes, size, kDeviceNameMaxUtf16Units);
+}
+bool valid_bounded_name_utf8(const std::uint8_t* bytes, std::size_t size, std::size_t max_utf16_units) {
     if (bytes == nullptr || size == 0 || size > kDeviceNameMaxUtf8Bytes ||
         bytes[0] == 0x20 || bytes[size - 1] == 0x20) return false;
     std::size_t offset = 0;
@@ -70,7 +73,7 @@ bool valid_device_name_utf8(const std::uint8_t* bytes, std::size_t size) {
             (codepoint >= 0xd800 && codepoint <= 0xdfff) || codepoint <= 0x1f ||
             (codepoint >= 0x7f && codepoint <= 0x9f)) return false;
         utf16_units += codepoint > 0xffff ? 2 : 1;
-        if (utf16_units > kDeviceNameMaxUtf16Units) return false;
+        if (utf16_units > max_utf16_units) return false;
     }
     return true;
 }

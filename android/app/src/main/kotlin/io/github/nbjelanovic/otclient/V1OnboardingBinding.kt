@@ -34,7 +34,8 @@ internal object V1OnboardingProjection {
                     configuration.regionRevision == 0uL ||
                     configuration.regionSelectionId?.let(RegionSelectionCatalog::find) == null ->
                     V1SetupStage.CONFIRM_RADIO_REGION
-                else -> V1SetupStage.PUBLIC_PROFILE
+                !publicVerified(configuration) || configuration.busy -> V1SetupStage.PUBLIC_PROFILE
+                else -> V1SetupStage.COMPLETE
             }
         }
         is BleRuntimeState.Connecting, is BleRuntimeState.Negotiating,
@@ -45,8 +46,12 @@ internal object V1OnboardingProjection {
 
     // Saved region selection is not compatible RF configuration or TX authority.
     val radioTransmissionAllowed: Boolean get() = false
-    // No protected public-name/visibility command exists in this device profile.
-    val canComplete: Boolean get() = false
+    fun publicVerified(configuration: BleConfigurationState): Boolean = configuration.publicProfileAvailable &&
+        configuration.publicRevision?.let { it>0uL }==true &&
+        configuration.publicName?.let(V1PublicName::create)!=null &&
+        configuration.publicName?.let(io.github.nbjelanovic.otprotocol.CompanionPublicProfileCodec::validName)==true &&
+        configuration.publiclyDiscoverable!=null
+    fun canComplete(runtime: BleRuntimeState?): Boolean = stage(runtime)==V1SetupStage.COMPLETE
 }
 
 internal sealed interface V1OnboardingCommand {
@@ -54,6 +59,8 @@ internal sealed interface V1OnboardingCommand {
     data class WriteName(val value: String) : V1OnboardingCommand
     data object ReadRegion : V1OnboardingCommand
     data class WriteRegion(val selectionId: Int) : V1OnboardingCommand
+    data object ReadPublicProfile : V1OnboardingCommand
+    data class WritePublicProfile(val name: String, val visible: Boolean) : V1OnboardingCommand
 }
 
 /** Validate at click time; a stale composable cannot mutate a replacement session. */
@@ -77,6 +84,11 @@ internal class V1OnboardingBinding(
                 V1OnboardingProjection.nameVerified(state) &&
                 state.regionAvailable && state.regionRevision != null && state.regionRevision != ULong.MAX_VALUE &&
                 RegionSelectionCatalog.find(command.selectionId) != null
+            V1OnboardingCommand.ReadPublicProfile -> stage in listOf(V1SetupStage.PUBLIC_PROFILE,V1SetupStage.COMPLETE) && state.publicProfileAvailable
+            is V1OnboardingCommand.WritePublicProfile -> stage in listOf(V1SetupStage.PUBLIC_PROFILE,V1SetupStage.COMPLETE) && state.publicProfileAvailable &&
+                state.publicRevision!=null && state.publicRevision!=ULong.MAX_VALUE &&
+                V1PublicName.create(command.name)!=null &&
+                io.github.nbjelanovic.otprotocol.CompanionPublicProfileCodec.validName(command.name)
         }
         return permitted && send(command)
     }

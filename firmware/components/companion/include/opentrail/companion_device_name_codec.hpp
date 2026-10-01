@@ -48,6 +48,7 @@ struct DeviceNameEncodeResult {
 };
 
 [[nodiscard]] bool valid_device_name_utf8(const std::uint8_t* bytes, std::size_t size);
+[[nodiscard]] bool valid_bounded_name_utf8(const std::uint8_t* bytes, std::size_t size, std::size_t max_utf16_units);
 [[nodiscard]] DeviceNameDecodeResult decode_device_name_payload(const std::uint8_t* bytes, std::size_t size);
 [[nodiscard]] DeviceNameEncodeResult encode_device_name_payload(
     const DeviceNamePayload& value, std::uint8_t* output, std::size_t capacity);

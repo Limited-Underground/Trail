@@ -163,10 +163,11 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
         homeStateHolder.SaveableStateProvider("home") {
         V1HomeScreen(
             state = state,
+            liveRuntime = { (controller.state as? TrailAppUiState.BluetoothDevice)?.runtimeState },
             onRefreshGroupConfirmation = controller::refreshGroupConfirmation,
             onConfirmGroupConfirmation = controller::confirmGroupConfirmation,
             onCancelGroupConfirmation = controller::cancelGroupConfirmation,
-        ) {
+        ) { onSetupComplete ->
           if (state == TrailAppUiState.ChooseMode) {
             V1OnboardingScreen(
                 state = V1OnboardingScreenState(statusMessage =
@@ -199,6 +200,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
                     requestNotificationPermission = requestNotificationPermission,
                     openAppSettings = openAppSettings,
                     openBluetoothSettings = openBluetoothSettings,
+                    onSetupComplete = onSetupComplete,
                     openDeviceSettings = { session ->
                         deviceSettingsAuthority = DeviceSettingsAuthority(
                             session.companion.endpointToken,
@@ -310,6 +312,7 @@ private fun BluetoothDevicePanel(
     openAppSettings: () -> Unit,
     openBluetoothSettings: () -> Unit,
     openDeviceSettings: (BleActiveSession) -> Unit,
+    onSetupComplete: (V1OnboardingScope) -> Unit,
 ) {
     Text("Bluetooth device mode · no local fallback", style = MaterialTheme.typography.bodySmall)
     when {
@@ -382,6 +385,7 @@ private fun BluetoothDevicePanel(
                 requestNearbyPermissions,
                 openBluetoothSettings,
                 openDeviceSettings,
+                onSetupComplete,
             )
         }
     }
@@ -394,6 +398,7 @@ private fun BluetoothAuthorizedRuntimePanel(
     requestNearbyPermissions: () -> Unit,
     openBluetoothSettings: () -> Unit,
     openDeviceSettings: (BleActiveSession) -> Unit,
+    onSetupComplete: (V1OnboardingScope) -> Unit,
 ) {
     when (val authorization = state.authorizationState) {
         DeviceAuthorizationUiState.None -> BluetoothRuntimePanel(
@@ -402,6 +407,7 @@ private fun BluetoothAuthorizedRuntimePanel(
             requestNearbyPermissions,
             openBluetoothSettings,
             openDeviceSettings,
+            onSetupComplete,
         )
         is DeviceAuthorizationUiState.Starting -> {
             val purpose = authorization.purpose
@@ -437,6 +443,7 @@ private fun BluetoothAuthorizedRuntimePanel(
                 requestNearbyPermissions,
                 openBluetoothSettings,
                 openDeviceSettings,
+                onSetupComplete,
             )
         }
         is DeviceAuthorizationUiState.Denied -> AuthorizationEndedPanel(
@@ -494,6 +501,7 @@ private fun BluetoothRuntimePanel(
     requestNearbyPermissions: () -> Unit,
     openBluetoothSettings: () -> Unit,
     openDeviceSettings: (BleActiveSession) -> Unit,
+    onSetupComplete: (V1OnboardingScope) -> Unit,
 ) {
     when (state) {
         BleRuntimeState.Inactive -> StatusCard(
@@ -573,7 +581,7 @@ private fun BluetoothRuntimePanel(
                 Text("Cancel connection")
             }
         }
-        is BleRuntimeState.Ready -> BluetoothReadyPanel(state.session, controller, openDeviceSettings)
+        is BleRuntimeState.Ready -> BluetoothReadyPanel(state.session, controller, openDeviceSettings, onSetupComplete)
         is BleRuntimeState.FactoryResetRequesting -> StatusCard(
             "Reset request sent",
             "Waiting for the exact protected device response. Nothing has been reported as erased or complete.",
@@ -751,6 +759,7 @@ private fun BluetoothReadyPanel(
     session: BleActiveSession,
     controller: TrailUiController,
     openDeviceSettings: (BleActiveSession) -> Unit,
+    onSetupComplete: (V1OnboardingScope) -> Unit,
 ) {
     val device = connectedDevicePresentation(session.configuration)
     StatusCard(device.title, device.detail)
@@ -763,7 +772,7 @@ private fun BluetoothReadyPanel(
             Text(if(editConfiguration) "Resume setup" else "Edit saved name or region")
         }
     }
-    BleConfigurationPanel(session,controller,onboarding=!editConfiguration)
+    BleConfigurationPanel(session,controller,onboarding=!editConfiguration,onSetupComplete=onSetupComplete)
     GroupLocationSection(session.groupLocation)
     ActionControls { controller.submitBluetoothAction(it) }
     OutlinedButton(

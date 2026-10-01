@@ -2,6 +2,7 @@
 #include "opentrail/companion_configuration_codec.hpp"
 #include "opentrail/companion_device_name_owner.hpp"
 #include "opentrail/companion_region_owner.hpp"
+#include "opentrail/companion_public_profile_owner.hpp"
 #include "opentrail/oled_time_admission.hpp"
 
 namespace opentrail::companion {
@@ -42,7 +43,7 @@ class ConfigurationDispatcher final {
 public:
     ConfigurationDispatcher(DeviceNameAuthoritySource&, DeviceNamePersistence&, ConfigurationBaseHandler&,
         RegionPersistence* region = nullptr, std::uint8_t selected_minor = 2,
-        ConfigurationConfirmationBackend* confirmation = nullptr);
+        ConfigurationConfirmationBackend* confirmation = nullptr, PublicProfilePersistence* public_profile = nullptr);
     ConfigurationDispatcher(const ConfigurationDispatcher&) = delete;
     ConfigurationDispatcher& operator=(const ConfigurationDispatcher&) = delete;
     [[nodiscard]] ConfigurationDispatchResult submit(const DeviceNameContext&, const std::uint8_t*,
@@ -78,6 +79,7 @@ private:
     TimeSource time_source_;
     DeviceNameOwner name_owner_;
     std::optional<RegionOwner> region_owner_;
+    std::optional<PublicProfileOwner> public_profile_owner_;
     std::uint8_t selected_minor_{2};
     time::OledTimeAdmissionOwner time_owner_;
     DeviceNameAuthority authority_{};
