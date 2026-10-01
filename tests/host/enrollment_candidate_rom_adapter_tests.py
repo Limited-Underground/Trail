@@ -403,7 +403,8 @@ class ROMAdapterTests(unittest.TestCase):
     def test_real_runtime_dispatch_argv_environment_and_reply_validation(self):
         f = self.fixture()
         with mock.patch.dict('os.environ', {'PYTHONPATH': 'unsafe', 'ESPTOOL_PORT': 'unsafe'}):
-            self.assertEqual(f.runtime.route('12:34:56:78:9A:BC', 100), 'COM19')
+            formatted_mac = ':'.join(f.sdk.mac[i:i + 2] for i in range(0, len(f.sdk.mac), 2)).upper()
+            self.assertEqual(f.runtime.route(formatted_mac, 100), 'COM19')
         argv, kwargs = f.runner_calls[-1]
         self.assertEqual(argv[1:5], ['-I', '-S', '-B', '-c'])
         self.assertEqual(argv[5], adapter.WORKER)
