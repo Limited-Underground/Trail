@@ -88,8 +88,10 @@ public:
             if(signed_ || !check_current())return false;
             const auto previous=independent_invitation_detail::decode(prior_->invitation());
             if(!valid_context(candidate.context) || candidate.context.boot==(initiator()?previous.boot_b:previous.boot_a) ||
-                !invitation_detail::nonzero(candidate.challenge) || candidate.challenge==local_.challenge ||
-                candidate.context.boot==local_.context.boot)return false;
+                !invitation_detail::nonzero(candidate.challenge) || candidate.challenge==local_.challenge)return false;
+            // Boot counters are local to each device and can agree. Distinct
+            // pinned identities, fresh contexts/challenges and signer role are
+            // bound below; each device must still differ from its own prior boot.
             staged.initiator=initiator()?local_:candidate;staged.responder=initiator()?candidate:local_;
             const auto bytes=signing_bytes(staged,role_);
             signed_=true;

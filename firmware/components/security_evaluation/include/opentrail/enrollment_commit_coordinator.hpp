@@ -2,8 +2,8 @@
 // OT-0238b candidate durable-journal subset. A dedicated PersistentStorage owns
 // ALL five domains; do not alias membership/evidence/session storage. This schema
 // records public enrollment state only. It neither authenticates local confirmation
-// nor peer activation and offers no traffic API. Only the product activation owner
-// may persist its verified commitment. Checksums are corruption
+// nor peer activation and offers no traffic API. Product activation and the
+// authenticated recovery owner may persist public commitment. Checksums are corruption
 // detection, not protection against adversarial full-storage rollback.
 #include "opentrail/enrollment_identity_binding.hpp"
 
@@ -104,6 +104,30 @@ public:
     bool failed() const { return failed_; }
 private:
     friend class ProductEnrollmentActivation;
+    friend class EnrollmentRecoveryOwner;
+    // Candidate recovery may inspect a complete durable stage without treating
+    // restarted PREPARED/ACTIVATION_POSSIBLE as traffic authority.
+    bool recovery_snapshot(EnrollmentCommitContext& context,std::uint8_t& stage) const {
+        EnrollmentCommitContext c{};std::uint8_t s{};
+        const bool ok=operation([&]{
+            if(!initialized_ || empty_ || !exact())return false;
+            c=record_.context;s=record_.stage;return true;
+        });
+        if(ok){context=c;stage=s;}return ok;
+    }
+    // Only the authenticated recovery owner can finish this exact public record.
+    // This transition never restores an endpoint or old traffic-key authority.
+    bool complete_recovery_public(const EnrollmentCommitContext& context,
+        bool (*guard)(void*),void* guard_context) {
+        const bool ok=operation([&]{
+            if(!initialized_ || empty_ || !exact() || !equal(context,record_.context) ||
+                record_.stage!=2 || !guard || record_.generation==std::numeric_limits<std::uint64_t>::max())return false;
+            guard_=guard;guard_context_=guard_context;
+            return commit({context,record_.generation+1,3});
+        });
+        guard_=nullptr;guard_context_=nullptr;return ok;
+    }
+
     // The product owner must first authenticate matching retained records and
     // authorize a fresh binding; the journal only enforces durable continuity.
     bool prepare_rekey(const VerifiedIdentityBinding& binding,std::uint64_t generation,

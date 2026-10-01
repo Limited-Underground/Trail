@@ -36,6 +36,8 @@ namespace heltec_oled_stub {
 struct State {
     std::int64_t now_us{1'000'000};
     unsigned gpio_reads{},clock_reads{};
+    std::int64_t clock_read_cost_us{},gpio_read_cost_us{},draw_cost_us{};
+    std::function<void()> on_clock=[]{},on_gpio=[]{};
     int button_level{1};
     bool fail_input_config{};
     std::function<void()> on_draw=[]{};
@@ -50,7 +52,10 @@ inline void reset() { state = State{}; }
 template<typename... Args> inline void log(const char*, const char*, Args...) {}
 }
 inline int gpio_config(const gpio_config_t* config) { return config->mode==GPIO_MODE_INPUT && heltec_oled_stub::state.fail_input_config ? ESP_FAIL : ESP_OK; }
-inline int gpio_get_level(gpio_num_t) { ++heltec_oled_stub::state.gpio_reads;return heltec_oled_stub::state.button_level; }
+inline int gpio_get_level(gpio_num_t) {
+    auto& s=heltec_oled_stub::state;++s.gpio_reads;s.now_us+=s.gpio_read_cost_us;
+    auto callback=s.on_gpio;callback();return s.button_level;
+}
 inline int gpio_set_level(gpio_num_t gpio, int level) {
     if (gpio == 36 && level == 1) {
         ++heltec_oled_stub::state.power_off_calls;
@@ -98,12 +103,16 @@ inline int esp_lcd_panel_draw_bitmap(esp_lcd_panel_handle_t, int x0, int y0, int
     std::array<std::uint8_t, 1024> frame{};
     std::copy_n(static_cast<const std::uint8_t*>(data), frame.size(), frame.begin());
     s.frames.push_back(frame);
+    s.now_us+=s.draw_cost_us;
     auto callback=s.on_draw; callback();
     if (s.fail_all_draws) return ESP_FAIL;
     if (s.draw_failures > 0) { --s.draw_failures; return ESP_FAIL; }
     return ESP_OK;
 }
-inline std::int64_t esp_timer_get_time() { ++heltec_oled_stub::state.clock_reads;return heltec_oled_stub::state.now_us; }
+inline std::int64_t esp_timer_get_time() {
+    auto& s=heltec_oled_stub::state;++s.clock_reads;s.now_us+=s.clock_read_cost_us;
+    auto callback=s.on_clock;callback();return s.now_us;
+}
 inline std::uint32_t pdMS_TO_TICKS(std::uint32_t ms) { return ms; }
 inline void vTaskDelay(std::uint32_t) {}
 #define ESP_LOGW(...) heltec_oled_stub::log(__VA_ARGS__)

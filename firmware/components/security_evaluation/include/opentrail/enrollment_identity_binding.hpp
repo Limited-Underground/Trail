@@ -56,7 +56,8 @@ public:
     }
 private:
     friend class EnrollmentBindingStore;
-    // Only retained local provenance storage may reverify the exact stored epoch.
+    friend class EnrollmentRecoveryOwner; // Exact archived proof, never traffic resumption.
+    // Retained provenance and recovery owners may reverify the exact archived epoch.
     bool verify_impl(const EnrollmentIdentityProof& proof, std::optional<VerifiedIdentityBinding>& output, bool transition) const {
         const auto candidate = proof;
         const auto fields = independent_invitation_detail::decode(candidate.invitation);

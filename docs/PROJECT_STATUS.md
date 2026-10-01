@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-09-29. This page summarizes accepted behavior and the next work; dated
+As of 2026-09-30. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -19,12 +19,65 @@ adds a pending-only protected configuration action after confirmed Ready, with
 exact cancellation on disconnect, loss, expiry, delivery failure and reset.
 The current Android app cannot send it. Local review, durable activation,
 retained recovery and physical acceptance are still open. The
-[current execution-gate review](testing/OT-0238b-EXECUTION-GATE-2026-09-29.md)
-confirms a scope/order conflict: production identity and wire selection remains
-unapproved, while its required security evidence depends on enrollment being
-completed first. The proposed correction separates isolated evaluation-candidate
-validation from final selected production binding; no gate or scope is changed
-by the proposal. Full OT-0238b completion cannot currently be claimed.
+[approved sequencing correction and guarded handoff](testing/OT-0238b-CANDIDATE-HANDOFF-2026-09-30.md)
+resolve the prior scope/order conflict: isolated candidate evidence precedes
+OT-0237e selection, and OT-0005i retains final production enrollment binding.
+The host handoff carries the exact live request and original deadline through
+local review and preparation. Its public candidate and local authority seam are
+evaluation-only; no target/Android producer or production trust root is enabled.
+The [concrete first-enrollment session](testing/OT-0238b-CANDIDATE-SESSION-2026-09-30.md)
+now owns actual identity/generation allocation, review, possession, invitation,
+durable activation and status exchange in host tests. It preserves cancellation
+through final commit and detaches the phone only after success. Interrupted
+writes retain their actual durable state. The
+[concrete retained-session rekey](testing/OT-0238b-CANDIDATE-REKEY-2026-09-30.md)
+now loads matching committed records and runs fresh signed comparison, exact-next-
+epoch activation and protected status exchange. It uses a dedicated durable boot
+store, rejects old traffic and refuses uncertain records without repair.
+[Session containment](testing/OT-0238b-CANDIDATE-CONTAINMENT-2026-09-30.md)
+retires traffic and verifies revocation/reset tombstones. The
+[integrated candidate reset](testing/OT-0238b-CANDIDATE-RESET-2026-09-30.md) now
+composes the existing executor, fixed-capacity storage erasure and reconstructed
+startup gate; stale session owners cannot act after reset. The
+[reviewed candidate recovery](testing/OT-0238b-CANDIDATE-RECOVERY-2026-09-30.md)
+now authenticates eligible interrupted commitments, completes their public records
+and composes fresh exact-next-epoch activation and status exchange. Unverifiable proof,
+torn records and unprovable mixed states remain refused. The
+[full session display/input composition](testing/OT-0238b-CANDIDATE-DEVICE-SESSION-2026-09-30.md)
+now uses the actual review, Heltec input, leased display and OLED owners through
+first enrollment, rekey and supported recovery, with truthful exact cleanup.
+The [fresh clock/input binding](testing/OT-0238b-CANDIDATE-CLOCK-2026-09-30.md)
+now refreshes real input/time inside the authority bracket without consuming
+queued reset events. All 63 current-source suites and both affected build pairs
+pass; advancing-time setup/rekey/both recovery flows each exchange eight statuses.
+SDK I/O and elapsed costs are simulated; production scheduling/latency remain
+unmeasured. Required revision-2 host candidate scope is covered. Separate target lifecycle/security, production selection/binding and physical acceptance remain under their owning tasks.
+OT-0238b revision 2 host candidate is owner-accepted.
+The [OT-0238c isolated target preparation](testing/OT-0238c-TARGET-PREPARATION-2026-09-30.md)
+passes 108 focused groups, the complete 65-suite matrix, independent review
+and two matching builds. Its actual target caller, sparse NVS and inert USB
+client now keep test data separate from original settings. The named area
+repurposes part of OTA0 and requires exact capture/provision/restore.
+The [host controller/custody core](testing/OT-0238c-HOST-CONTROLLER-2026-09-30.md)
+now passes both focused suites, independent review and the complete 67-suite
+matrix. It relays device-generated records with fresh human checkpoints and
+preserves six-span originals through sequential restoration/recovery.
+Its I/O, flash and observations are injected and simulated. The [concrete ROM/passive USB/private prompts](testing/OT-0238c-USB-ADAPTER-2026-09-30.md)
+are now composed by the [isolated runner and complete procedure](testing/OT-0238c-RUNNER-PROCEDURE-2026-09-30.md).
+Computer preparation passes focused tests, independent review, the complete
+73-suite matrix and actual isolated child admission. Synthetic native-window
+smoke passed; real usability and device I/O remain unmeasured. Exact request,
+private identity/profile inputs and a fresh one-case grant are still required
+before separately authorized two-node acceptance. OT-0238c stays In Progress.
+
+[OT-0168b reset composition](testing/OT-0168b-RESET-COMPOSITION-2026-09-30.md)
+corrects seven retained confirmation-test namespaces omitted from ordinary
+factory reset. Actual marker/user/bond ports and the shared executor pass 26
+new composition groups; precommit preservation, interrupted cleanup and receipt
+non-authority are covered. All three affected firmware configuration pairs
+rebuild reproducibly. Computer implementation is owner-accepted;
+OT-0168c retains separate physical acceptance.
+No production completion, V1 credit or public website status change is claimed.
 
 [OT241 diagnostic trials](testing/OT-241-DIAGNOSTIC-TRIAL-PREPARATION-2026-09-16.md)
 closed with both originals independently restored. The first reached comparison

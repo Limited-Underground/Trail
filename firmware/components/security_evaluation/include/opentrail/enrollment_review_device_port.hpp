@@ -64,6 +64,13 @@ public:
         if (!busy_) { busy_=true; finish(); }
     }
 
+    // Resource cleanup only. A port that never obtained a lease owns no
+    // display resource; an obtained lease requires the actual verified release.
+    // This does not imply fresh reset input or enrollment confirmation.
+    bool cleanup_verified() const {
+        return !busy_ && failed_ && !handoff_failed_ && (!lease_ || release_verified_);
+    }
+
     // Handoff evidence for the single input arbiter, never enrollment authority.
     // No target reset recognizer is connected by this host adapter.
     bool reset_handoff_ready() {

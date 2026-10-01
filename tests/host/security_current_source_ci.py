@@ -64,15 +64,29 @@ def run(output):
         target_names = ("heltec_v4_security_eval", "heltec_v4_invitation_eval",
                         "heltec_v4_confirmation_eval", "heltec_v4_bench",
                         "heltec_v4_security_receipt_sync", "heltec_v4_security_policy_eval",
-                        "heltec_v4_pair_eval", "heltec_v4_pair_radio_eval", "heltec_v4_enrolled_eval")
+                        "heltec_v4_pair_eval", "heltec_v4_pair_radio_eval", "heltec_v4_enrolled_eval",
+                        "heltec_v4_enrollment_candidate_eval")
         roots += [ROOT / "firmware/targets" / name / "main" for name in target_names]
         inputs = {p for directory in roots for p in directory.rglob("*")
                   if p.is_file() and p.suffix in (".py", ".cpp", ".c", ".hpp", ".h", ".json")}
         helper = ROOT / "tools/noise_xk_independent_interop.py"
         inputs.add(helper)
         inputs.update(ROOT / "tools" / name for name in (
-            "pair_bench_bridge.py", "pair_confirmation_trial.py", "pair_trial_operator.py", "pair_radio_driver_source.py",
+            "enrollment_candidate_controller.py", "enrollment_candidate_custody.py",
+            "enrollment_candidate_rom_adapter.py", "enrollment_candidate_operator.py",
+            "enrollment_candidate_runtime.py", "enrollment_candidate_runner.py",
+            "enrollment_candidate_private_view.py",
+            "enrollment_candidate_usb_client.py", "pair_bench_bridge.py", "pair_confirmation_trial.py", "pair_trial_operator.py", "pair_radio_driver_source.py",
             "enrolled_pair_bridge.py", "enrolled_trace_schema.py", "enrolled_confirmation_trial.py", "enrolled_trial_operator.py"))
+        # Actual ROM runtime/reset-marker helper import closure stays source-bound.
+        inputs.update(ROOT / "tools" / name for name in (
+            'ble_confirmation_trial.py',
+            'security_policy_bundle.py',
+            'security_policy_capture.py',
+            'security_policy_deadline_operator.py',
+            'security_policy_execution.py',
+            'security_policy_input_readback.py',
+        ))
         before = {str(p): pin(p) for p in inputs}
         component = dependencies.acquire(output / "managed-component")
         result["dependency"] = {"archive_sha256": dependencies.ARCHIVE_SHA,
@@ -161,6 +175,19 @@ def run(output):
               base, (), " enrollment identity binding groups")
         suite("enrollment_fingerprint_review_tests", [*common, ROOT / "tests/host/enrollment_fingerprint_review_tests.cpp"],
               base, (), " enrollment fingerprint review groups")
+        suite("enrollment_candidate_preparation_tests", [*common, ROOT / "tests/host/enrollment_candidate_preparation_tests.cpp"],
+              [*base, ROOT / "firmware/components/companion/include"],
+              (), " enrollment candidate preparation groups")
+        suite("enrollment_candidate_session_tests", [*common, ROOT / "tests/host/enrollment_candidate_session_tests.cpp"],
+              [*base, ROOT / "firmware/components/companion/include"],
+              (), " enrollment candidate session groups")
+        suite("enrollment_candidate_recovery_tests", [*common, ROOT / "tests/host/enrollment_candidate_recovery_tests.cpp"],
+              [*base, ROOT / "firmware/components/companion/include"],
+              (), " enrollment candidate recovery groups")
+        suite("enrollment_candidate_reset_tests", [*common, ROOT / "tests/host/enrollment_candidate_reset_tests.cpp",
+              ROOT / "firmware/components/companion/src/device_factory_reset_executor.cpp"],
+              [*base, ROOT / "firmware/components/companion/include"],
+              (), " enrollment candidate reset groups")
         suite("enrollment_review_layout_tests", [*common, ROOT / "tests/host/enrollment_review_layout_tests.cpp"],
               base, (), " enrollment review layout groups")
         suite("enrollment_review_device_port_tests", [*common, ROOT / "tests/host/enrollment_review_device_port_tests.cpp"],
@@ -175,6 +202,29 @@ def run(output):
               [*base, bench, ROOT / "tests/host/fixtures/heltec_oled",
                *[ROOT / "firmware/components" / name / "include" for name in ("companion", "ui", "time", "protocol", "radio")]],
               (), " actual enrollment input arbiter groups")
+        suite("enrollment_candidate_device_session_tests", [*common,
+              *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
+                "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp")],
+              *[ROOT / "firmware/components" / name for name in ("companion/src/companion_factory_reset_gesture.cpp",
+                "ui/src/compact_status_footer.cpp", "ui/src/oled_presentation.cpp", "time/src/oled_clock.cpp")],
+              ROOT / "tests/host/enrollment_candidate_device_session_tests.cpp"],
+              [*base, bench, ROOT / "tests/host/fixtures/heltec_oled",
+               *[ROOT / "firmware/components" / name / "include" for name in ("companion", "ui", "time", "protocol", "radio")]],
+              (), " actual candidate device session groups")
+        candidate_target = ROOT / "firmware/targets/heltec_v4_enrollment_candidate_eval/main"
+        candidate_fixture = ROOT / "tests/host/fixtures/enrollment_candidate_target"
+        suite("enrollment_candidate_target_tests", [*common,
+              *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
+                "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp",
+                "heltec_v4_factory_reset_storage.cpp", "confirmation_nonowning_entropy.cpp", "heltec_v4_secure_random.cpp", "enrollment_identity_nvs_storage.cpp")],
+              *[ROOT / "firmware/components" / name for name in ("companion/src/companion_factory_reset_gesture.cpp",
+                "companion/src/device_factory_reset_executor.cpp", "security/src/serialized_secure_random.cpp",
+                "ui/src/compact_status_footer.cpp", "ui/src/oled_presentation.cpp", "time/src/oled_clock.cpp")],
+              candidate_target / "candidate_runtime.cpp", candidate_target / "candidate_store_runtime.cpp",
+              candidate_fixture / "candidate_target_stub.cpp", ROOT / "tests/host/enrollment_candidate_target_tests.cpp"],
+              [*base, bench, candidate_target, candidate_fixture, ROOT / "tests/host/fixtures/heltec_oled",
+               *[ROOT / "firmware/components" / name / "include" for name in ("companion", "ui", "time", "protocol", "radio", "location")]],
+              (), " actual enrollment candidate target groups")
         suite("enrollment_commit_coordinator_tests", [*common, ROOT / "tests/host/enrollment_commit_coordinator_tests.cpp"],
               base, (), " enrollment commit journal groups")
         suite("enrollment_identity_store_tests", [*common, ROOT / "tests/host/enrollment_identity_store_tests.cpp"],
@@ -287,6 +337,15 @@ def run(output):
               ["sodium_init"], " actual pair startup groups", startup_cases, ["-DOT_PAIR_RADIO_EVAL=1"])
         for name, extra in (("enrolled_pair_bridge_tests", ["--node-exe", enrolled_exe, "--diagnostic-exe", diagnostic_exe]),
                             ("enrolled_trace_capture_tests", ["--diagnostic-exe", diagnostic_exe]),
+                            ("enrollment_candidate_usb_client_tests", []),
+                            ("enrollment_candidate_controller_tests", []),
+                            ("enrollment_candidate_custody_tests", []),
+                            ("enrollment_candidate_rom_adapter_tests", []),
+                            ("enrollment_candidate_operator_tests", []),
+                            ("enrollment_candidate_runtime_tests", []),
+                            ("enrollment_candidate_runner_tests", []),
+                            ("enrollment_candidate_private_view_tests", []),
+                            ("factory_reset_target_composition_tests", []),
                             ("enrolled_confirmation_trial_tests", []),
                             ("enrolled_trial_operator_tests", []),
                             ("enrolled_target_pacing_tests", []),
@@ -294,7 +353,7 @@ def run(output):
                             ("pair_confirmation_trial_tests", []),
                             ("pair_trial_operator_tests", []), ("pair_radio_driver_source_tests", [])):
             completed = commands.run([sys.executable, "-X", "utf8", "-B",
-                ROOT / "tests/host" / (name + ".py"), *extra], env=env, check=True, timeout=90)
+                ROOT / "tests/host" / (name + ".py"), *extra], env=env, check=True, timeout=(120 if name == "enrollment_candidate_runner_tests" else 90))
             result["suites"][name] = {"output": (completed.stdout + completed.stderr).strip(),
                                       "result": "passed"}
             print(name + " passed", flush=True)

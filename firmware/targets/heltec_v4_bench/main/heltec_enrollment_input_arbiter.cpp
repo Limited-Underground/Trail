@@ -97,6 +97,10 @@ HeltecEnrollmentInputArbiter::Event HeltecEnrollmentInputArbiter::poll() {
     const auto event=pending_event_;pending_event_=Event::none;
     return finish(initialized_) ? event : Event::none;
 }
+bool HeltecEnrollmentInputArbiter::service_review_tick() {
+    if (!enter()) return false;
+    return finish(initialized_ && service_tick());
+}
 HeltecEnrollmentInputArbiter::Event HeltecEnrollmentInputArbiter::cancel(std::uint64_t token) {
     if (!enter()) return Event::none;
     Event event=Event::none;
@@ -125,6 +129,15 @@ bool HeltecEnrollmentInputArbiter::bind_admitted_context(const se::FingerprintRe
     const bool ok=idle_for_review() && !lease_ && !context_bound_ &&
         nonzero && context.generation && context.request && !(context==last_context_);
     if (ok) { context_=last_context_=context;context_bound_=true;preempted_lease_=0; }
+    return finish(ok);
+}
+bool HeltecEnrollmentInputArbiter::release_admitted_context(const se::FingerprintReviewContext& context) {
+    if (!enter()) return false;
+    const auto shown=display_.enrollment_review_status();
+    const bool ok=sample_valid_ && context.generation && context.request &&
+        context==last_context_ && !lease_ && !revision_ && !shown.lease && !shown.revision &&
+        (!context_bound_ || context==context_);
+    if (ok) {context_bound_=false;context_={};}
     return finish(ok);
 }
 bool HeltecEnrollmentInputArbiter::observe(se::EnrollmentDeviceObservation& output) {

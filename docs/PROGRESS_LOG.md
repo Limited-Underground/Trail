@@ -1,5 +1,195 @@
 # OpenTrail Progress Log
 
+## 2026-09-30
+
+### OT-0238b Correct candidate sequencing and preserve the request through review
+
+Applied the owner-authorized candidate-first task sequence, retaining explicit
+production selection and final enrollment binding. Six corrected checklist
+revisions are approved; OT-0238b remains In Progress. Implemented the evaluation
+request-to-review handoff with actual public identity export, exact request and
+local-intent checks, shared monotonic-clock domain and inherited deadline.
+The opaque receipt retains its guarded port through preparation. Independent
+review reproduced and corrected raw-port substitution and late identity-retirement
+output leaks before the final 59-suite affected matrix passed. Documentation
+checker, 18 regressions and diff checks pass. No firmware target includes the
+changed headers; no device, firmware-build, publication, V1-credit or public
+capability change is claimed. Full candidate lifecycle and production integration
+remain required. [Result and next boundary](testing/OT-0238b-CANDIDATE-HANDOFF-2026-09-30.md).
+
+### OT-0238b Compose first enrollment through durable activation and traffic
+
+Added the concrete evaluation session owner connecting the selected request to
+actual identity/generation allocation, local fingerprint review, dual possession,
+invitation, handshake, local transcript confirmation and durable activation.
+The two-node host flow delivers eight authenticated statuses with independent
+clock offsets; phone disconnect after successful commit leaves membership intact.
+Independent review reproduced and corrected late cancellation before the final
+journal marker. Failed/interrupted writes preserve their actual durable state
+and refuse old-key reuse. All 60 current-source suites pass, including 61 new
+session groups. Earlier interrupted runs and test-reporting failure are preserved.
+The measured 78,418 host read callbacks are not physical timing acceptance.
+All 18 targets remain outside the changed include closure. No devices, Git
+publication, V1 credit or public capability change. Retained lifecycle orchestration,
+real adapters and exact target timing remain open; OT-0238b stays In Progress.
+[Full result and next boundary](testing/OT-0238b-CANDIDATE-SESSION-2026-09-30.md).
+
+### OT-0238b Connect retained membership to fresh session rekey
+
+Extended the concrete session through load-existing identity, committed-state
+preflight, real retained comparison, fresh possession and exact-next-epoch
+activation. Added dedicated durable boot ownership and corrected rejection of
+legitimately equal independent boot counters; stale/reflected proofs still fail.
+Explicit shutdown ordering resolves the comparison/activation lifetime cycle.
+Two successive host renewals deliver eight protected statuses each; old traffic,
+invalid retained records, cancellation and interrupted commit are refused.
+All 60 current-source suites pass, including 98 session groups; independent
+review and a discriminating mutant cover the boot correction. No devices, V1
+credit, public capability change or publication. OT-0238b remains In Progress;
+reset/revocation orchestration and uncertain-state recovery remain unfinished.
+[Full result and next boundary](testing/OT-0238b-CANDIDATE-REKEY-2026-09-30.md).
+
+### OT-0238b Connect session revocation and reset containment
+
+Added trusted local revocation and post-committed-reset-intent containment to the
+concrete candidate session. Live traffic closes before independently verified
+membership/evidence/binding tombstones; stale allocations and changed reset
+markers refuse mutation. Results separate volatile clearance, resource release,
+interruption and each durable outcome. Pre-intent write failure can preserve old
+committed records and is never reported as revocation. No all-domain reset or
+automatic repair is claimed. All 60 current-source suites pass, including 148
+session groups; independent adversarial and lifecycle review passed. No hardware,
+V1 credit, public capability change or publication. OT-0238b stays In Progress.
+[Result and next executor-integration boundary](testing/OT-0238b-CANDIDATE-CONTAINMENT-2026-09-30.md).
+
+### OT-0238b Integrate the complete candidate reset sequence
+
+Composed the existing factory-reset executor with concrete candidate storage
+deletion, fixed-capacity inventory and a reset-aware session-construction gate.
+Identity is verified absent before counters are recycled; stale session owners
+remain invalid after fresh setup. Marker, interruption/reconstruction, absence
+and lifetime checks prevent early completion. The final 61-suite matrix,
+focused reset-executor regression and independent review pass. Other user domains,
+bonds and physical drivers remain simulated. No hardware, publication, V1 credit
+or public capability change. OT-0238b remains In Progress; uncertain enrollment
+recovery and real adapters/acceptance remain.
+[Full evidence and limits](testing/OT-0238b-CANDIDATE-RESET-2026-09-30.md).
+
+### OT-0238b Recover interrupted enrollment through a fresh connection
+
+Independently reviewed and implemented the candidate recovery protocol and
+composed eligible interrupted public commitments through fresh epoch+1
+handshake, local confirmation, activation and bidirectional status delivery.
+Archived proof is anchored to the current local identity; CRC journal facts
+cannot establish a peer root. Unverifiable proof, torn or inconsistent records,
+revocation/reset and stale exchange authority remain refusals. Final 62-suite
+matrix, focused checks, independent review and documentation checks pass.
+Actual device adapters and timing remain unvalidated. No devices, publication,
+V1 credit or public capability change. OT-0238b remains In Progress.
+[Evidence and limits](testing/OT-0238b-CANDIDATE-RECOVERY-2026-09-30.md).
+
+### OT-0238b Connect complete sessions to actual display and button owners
+
+Composed the actual review port, Heltec input arbiter, leased display and OLED
+renderer through first enrollment, fresh rekey and supported interrupted recovery
+to durable activation and eight statuses. Added exact context cleanup for display
+acquisition refusal; failed release/reset preemption/reentry cannot grant traffic.
+The final 63-suite matrix, independent review, both standard/confirmation
+reproducible build pairs and documentation checks pass. SDK I/O and clock timing
+remain simulated; cached-sample rollover refusal is explicit. No devices,
+publication, V1 credit or public capability change. OT-0238b remains In Progress.
+[Evidence and remaining clock/scheduling gate](testing/OT-0238b-CANDIDATE-DEVICE-SESSION-2026-09-30.md).
+
+### OT-0238b Fix stale clock/input sampling in complete candidate flows
+
+Reproduced the old one-millisecond cached-sample refusal, then bound a fresh
+non-consuming real arbiter tick inside session sampling and before drawing.
+Advancing-time first setup, rekey and both supported recovery flows each deliver
+eight statuses; reset preemption preserves one-shot event delivery. All 33 focused
+groups, the final 63-suite matrix, independent review, both affected reproducible
+build pairs and documentation checks pass. Timing costs remain virtual; a slower
+storage pressure profile safely refuses and its precise internal cause remains
+unobserved. Revision-2 required host scope is reconciled and ready for owner
+review; target/production/physical acceptance stays in its owning tasks.
+No devices, publication, V1 credit or public capability change.
+[Evidence and remaining host/target gates](testing/OT-0238b-CANDIDATE-CLOCK-2026-09-30.md).
+
+### OT-0238c Prepare the isolated two-node lifecycle target
+
+Verified owner acceptance of OT-0238b revision 2 and started approved OT-0238c
+revision 1. Added the actual candidate session/reset/display/input caller,
+conservative sparse NVS ownership and inert typed USB client. Reset preparation
+stops after durable intent; existing original-state recovery remains mandatory.
+All 108 focused groups, 23 client groups, the final 65-suite matrix, independent
+review and two matching fresh target builds pass. Source-bound storage limits
+and virtual timings do not establish physical admission. The full physical
+controller must additionally preserve/provision/restore the named storage span
+in original OTA0. Exact separately authorized two-node validation remains pending;
+OT-0238c stays In Progress. No hardware, Git mutation, publication, V1 credit
+or public website capability change.
+[Detailed preparation and remaining gate](testing/OT-0238c-TARGET-PREPARATION-2026-09-30.md).
+
+### OT-0238c Validate host orchestration and six-span custody
+
+Added a two-node public-record relay and six-span original-state custody core.
+Fresh typed checkpoints, fixed deadlines, restart/recovery and isolated
+cancel/revoke/reset cases are tested through the unchanged Endpoint parser.
+Independent review corrected stale samplers, failed-close retry, interrupted
+table restoration, durable journal states and concurrent recovery ownership.
+Both focused suites, the final 67-suite matrix and independent review pass.
+Existing firmware and both eight-artifact build sets are unchanged and reused.
+All device I/O/flash/observations here are injected; the concrete ROM/passive
+adapter and usable comparison UI remain before separately authorized devices.
+OT-0238c stays In Progress. No hardware, Git mutation, publication, V1 credit
+or public website capability change.
+[Detailed host result and next gate](testing/OT-0238c-HOST-CONTROLLER-2026-09-30.md).
+
+### OT-0238c Prepare the ROM/passive USB adapter and private checkpoints
+
+Added two inert host adapter/operator modules and two focused suites. Actual
+worker/admission and prompt code passed 32 focused tests,
+independent source review and the complete 69-suite matrix with synthetic
+SDK/USB inputs. Frozen core, target dependencies and both prior build sets are
+unchanged. Runtime assembly is an explicit remaining gate: the old capsule
+cannot directly import the new worktree modules. No hardware, Git mutation,
+SDK changes, publication, V1 credit or public website status change.
+Approved OT-0238c revision 1 remains In Progress.
+[Evidence and exact remaining gate](testing/OT-0238c-USB-ADAPTER-2026-09-30.md).
+
+### OT-0168b Complete actual reset-domain and receipt composition
+
+Fixed a reproduced reset inventory gap: seven optional confirmation namespaces
+could survive ordinary factory reset. The exact namespace cleanup now preserves
+marker/calibration state and skips absent namespaces without allocation. Actual
+marker/user/bond ports and executor/authority pass 26 new composition groups;
+precommit preservation, partial cleanup/reboot and receipt residue are covered.
+Independent review and the complete 73-suite matrix pass. Fresh A/B builds of
+standard bench, confirmation bench and enrollment candidate each match nine raw
+artifact pairs. Computer implementation is submitted for owner review. Physical
+acceptance remains OT-0168c; no hardware, publication or V1 credit.
+[Detailed evidence](testing/OT-0168b-RESET-COMPOSITION-2026-09-30.md).
+
+### OT-0238c Complete isolated runner, private view and lifecycle procedure
+
+Composed real source-pinned runtime admission, shared hardware lease, sequential
+ROM/passive ownership, controller/custody and transient Windows checkpoints.
+Execute and restore-only recovery remain separate; recovery visual observation
+never rewrites core owner confirmation. Source/input drift, original deadlines,
+settled-untouched recovery, private output and cleanup failures are covered.
+Focused tests, independent review, actual isolated child preflight and synthetic
+native-window smoke pass. The same final 73-suite matrix validates this batch.
+OT-0238c remains In Progress pending separately authorized exact two-node cases.
+No devices, grants, Git mutation, V1 credit or public website change.
+[Complete procedure and boundaries](testing/OT-0238c-RUNNER-PROCEDURE-2026-09-30.md).
+
+### OT-0168b Owner accepts computer reset implementation
+
+Current hosted approval records revision 1 Completed. The accepted reset-domain
+computer implementation retains its source-bound 26-group composition tests,
+73-suite matrix and three reproducible affected-target build pairs. OT-0168c
+retains physical reset and interruption acceptance. No physical or V1 release
+credit is added by this computer acceptance.
+
 ## 2026-09-29
 
 ### OT-0238b Reconcile production selection and candidate validation order

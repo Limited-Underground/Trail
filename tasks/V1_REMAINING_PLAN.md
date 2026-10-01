@@ -20,12 +20,12 @@ Optional products and V1.5 are excluded. Each physical or release task must firs
 - Acceptance: Three handshake, four activation and eight status transfers; matching physical confirmation; exact terminal counters and clean closure. Original application/NVS independently restored and normal screens confirmed. Failure remains recorded without automatic retry.
 - Dependencies: OT-0247c.
 
-## OT-0238b Bind product-owned enrollment and durable membership
+## OT-0238b Complete isolated enrollment and durable-membership candidate
 
 - Parent milestone: OT-0238a.
-- Scope: Reconcile actual OT238/239 composition with accepted product enrollment; bind explicit trust bootstrap, isolated storage ownership, invitation consumption and durable activation.
+- Scope: Complete the existing isolated evaluation enrollment composition using the accepted product workflow and existing libsodium 1.0.22 evaluation profile. Bind explicit local trust bootstrap, isolated storage ownership, invitation consumption and durable activation. Name the untrusted peer-candidate producer, authorized local role/group authority, original preparation-deadline owner, refusal behavior and phone/firmware compatibility before connecting them. The initial bounded increment is the host-tested request-to-local-review handoff; that increment alone does not complete this task. Preserve production identity/domain/wire selection under OT-0237e and final selected production enrollment binding under OT-0005i. No candidate trust root is provisioned into production by this task.
 - Exclusions: No V1 scope expansion, plaintext fallback, cached authorization, extended invitation deadline, weakened parser/security gate, optional infrastructure dependency, unrelated changes or progress credit from planning. Hardware, signing and publication require exact separately authorized execution boundaries.
-- Acceptance: Actual production components prove trusted enrollment versus rejected name/received-byte/Boolean authority; cancellation, readback failure and restart cannot expose uncommitted membership or old traffic keys.
+- Acceptance: Actual candidate components prove trusted enrollment versus rejected name/received-byte/Boolean authority; cancellation, readback failure and restart cannot expose uncommitted membership or old traffic keys. Preserve the original preparation deadline, the unchanged invitation window, fresh possession proofs and local transcript confirmation. Actual stores and interruption/refusal tests establish the host candidate lifecycle; target lifecycle/security acceptance remains in OT-0238c and the existing security/reset tasks. Request-to-review handoff success is partial evidence only: provisioning, the real peer-candidate producer, invitation, durable activation, retained rekey/recovery and reset composition must remain explicit unfinished boundaries until proven. Candidate completion does not select production cryptography or complete OT-0238a; final production binding remains required under OT-0005i.
 - Dependencies: OT-0247d.
 
 ## OT-0238c Accept retained restart, revoke and fresh rekey
@@ -39,7 +39,7 @@ Optional products and V1.5 are excluded. Each physical or release task must firs
 ## OT-0237b Accept exact-target entropy and startup failure behavior
 
 - Parent milestone: OT-0237a.
-- Scope: Validate final target entropy source, unavailable/failing source and restart behavior using source-bound fault seams and applicable authorized target observations.
+- Scope: Validate the exact frozen enrollment candidate target entropy source, unavailable/failing source and restart behavior using source-bound fault seams and applicable authorized target observations.
 - Exclusions: No V1 scope expansion, plaintext fallback, cached authorization, extended invitation deadline, weakened parser/security gate, optional infrastructure dependency, unrelated changes or progress credit from planning. Hardware, signing and publication require exact separately authorized execution boundaries.
 - Acceptance: No secret/session creation on unavailable or invalid entropy; restart behavior and logging are bounded. Cold-power/brownout evidence remains visibly deferred until owner permits required physical work.
 - Dependencies: OT-0238b.
@@ -55,7 +55,7 @@ Optional products and V1.5 are excluded. Each physical or release task must firs
 ## OT-0237d Accept complete secret retirement and diagnostic privacy
 
 - Parent milestone: OT-0237a.
-- Scope: Audit and exercise final target abort, timeout, failure, revoke, rekey and factory-reset cleanup paths, including diagnostic output.
+- Scope: Audit and exercise the exact frozen enrollment candidate target abort, timeout, failure, revoke, rekey and factory-reset cleanup paths, including diagnostic output.
 - Exclusions: No V1 scope expansion, plaintext fallback, cached authorization, extended invitation deadline, weakened parser/security gate, optional infrastructure dependency, unrelated changes or progress credit from planning. Hardware, signing and publication require exact separately authorized execution boundaries.
 - Acceptance: Required secrets/authority become inaccessible after retirement; ordinary output excludes keys, PINs, identities and private payloads. State precisely which memory/storage cleanup is proven; no whole-memory wipe claim.
 - Dependencies: OT-0238c, OT-0168c.
@@ -63,7 +63,7 @@ Optional products and V1.5 are excluded. Each physical or release task must firs
 ## OT-0237e Close final security evidence admission and selection
 
 - Parent milestone: OT-0237a.
-- Scope: Bind final composition to source/license/notices/vector/corpus evidence, reconcile historical Monocypher capture custody explicitly, perform independent eight-gate admission and obtain explicit suite/handshake/KDF/wire selection.
+- Scope: Bind the frozen candidate composition submitted for selection to source/license/notices/vector/corpus evidence, reconcile historical Monocypher capture custody explicitly, perform independent eight-gate admission and obtain explicit suite/handshake/KDF/wire selection.
 - Exclusions: No V1 scope expansion, plaintext fallback, cached authorization, extended invitation deadline, weakened parser/security gate, optional infrastructure dependency, unrelated changes or progress credit from planning. Hardware, signing and publication require exact separately authorized execution boundaries.
 - Acceptance: Each applicable gate has accepted exact evidence or an explicit authorized disposition. Unchanged benchmarks reused. No library/wire selection inferred from successful evaluation.
 - Dependencies: OT-0237b, OT-0237c, OT-0237d.
@@ -71,9 +71,9 @@ Optional products and V1.5 are excluded. Each physical or release task must firs
 ## OT-0005i Bind selected secure transport to Companion firmware
 
 - Parent milestone: OT-0005h.
-- Scope: Integrate selected versioned framing, exact identities/direction, durable nonce/replay state, authenticated acknowledgements, exact-byte retry and bounded queue/failure behavior into the supported Companion target.
+- Scope: After explicit OT-0237e selection, integrate selected versioned framing, exact identities/direction, durable nonce/replay state, authenticated acknowledgements, exact-byte retry and bounded queue/failure behavior into the supported Companion target. This task also owns final production enrollment binding: selected identity provisioning and fingerprint domain, public peer-candidate input, authorized local role/group requests, trusted local review and possession proofs, invitations, durable membership/activation, retained rekey/reconciliation, revocation and reset paths. Preserve the accepted enrollment workflow and separate Android UI gate. Compare the resulting production composition with the admitted candidate and revalidate every affected gate before product acceptance.
 - Exclusions: No V1 scope expansion, plaintext fallback, cached authorization, extended invitation deadline, weakened parser/security gate, optional infrastructure dependency, unrelated changes or progress credit from planning. Hardware, signing and publication require exact separately authorized execution boundaries.
-- Acceptance: Actual target composition rejects malformed, wrong-peer, corrupted, replayed and old-epoch packets before unauthorized state/data exposure. Retry and restart preserve nonce and delivery semantics; no plaintext fallback.
+- Acceptance: Actual target composition rejects malformed, wrong-peer, corrupted, replayed and old-epoch packets before unauthorized state/data exposure. Retry and restart preserve nonce and delivery semantics; no plaintext fallback. Final enrollment binding uses only the explicitly selected identity/domain/wire contract; candidate evaluation alone is insufficient. Complete enrollment/rekey/revoke/reset behavior, actual target adapters and changed source/artifact bindings must have applicable host and separately authorized target evidence. Any difference that invalidates admitted evidence requires affected-gate revalidation; unresolved required evidence blocks completion. OT-0238a cannot complete before this final enrollment binding is accepted.
 - Dependencies: OT-0237e.
 
 ## OT-0005j Bind protected BLE status commands and receive events

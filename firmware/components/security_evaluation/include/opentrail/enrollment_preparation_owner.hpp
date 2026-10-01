@@ -36,8 +36,10 @@ private:
 // trusted local review or owned retained comparison, and fresh dual possession
 // proofs precede invitation signing.
 // Target port and entropy hardware remain separately validated dependencies.
-// All dependencies share one serialized owner. Terminal port samples are read-only:
-// they must not mutate allocator/identity state or invoke other owners. No concurrent
+// All dependencies share one serialized owner. Terminal port samples may observe
+// read-only request/identity guards, but must not allocate, provision, sign, or
+// mutate backing stores/invoke enrollment operations. Fail-closed retirement is
+// permitted; the guard must retain it through its final observation. No concurrent
 // backing writer is permitted; the guards detect reentry, not arbitrary data races.
 class EnrollmentPreparationOwner final {
 public:
@@ -45,7 +47,9 @@ public:
         FingerprintReviewPort& port,ReviewedEnrollmentIdentity&& review)
         :random_(random),identity_(identity),allocator_(allocator),port_(port),
          identities_(review.identities()),context_(review.context()),role_(review.role()),group_(review.group()),
-         confirmed_(review.confirmed_at()),deadline_(review.deadline()),revision_(review.display_revision()) { failed_=!review.consume(); }
+         confirmed_(review.confirmed_at()),deadline_(review.deadline()),revision_(review.display_revision()) {
+        failed_=!review.consume() || review.port_!=&port_;
+    }
     EnrollmentPreparationOwner(security::SecureRandomSource& random,EnrollmentIdentityStore& identity,SessionGenerationAllocator& allocator,
         FingerprintReviewPort& port,ComparedRetainedEnrollment&& retained)
         :random_(random),identity_(identity),allocator_(allocator),port_(port),

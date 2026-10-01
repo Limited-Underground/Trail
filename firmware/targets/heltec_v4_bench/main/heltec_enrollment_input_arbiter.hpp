@@ -15,6 +15,10 @@ public:
     HeltecEnrollmentInputArbiter& operator=(const HeltecEnrollmentInputArbiter&) = delete;
     [[nodiscard]] bool initialize();
     [[nodiscard]] companion::CompanionFactoryResetGestureEvent poll();
+    // Serialized review sampling uses this same input/clock owner between live
+    // authority observations. Reset preempts normally; its event stays queued
+    // for the app task's existing poll/dispatch path, never discarded here.
+    [[nodiscard]] bool service_review_tick();
     [[nodiscard]] companion::CompanionFactoryResetGestureEvent cancel(std::uint64_t generation);
     [[nodiscard]] bool rearm_after_noncommit(std::uint64_t generation);
     [[nodiscard]] std::uint64_t generation() const { return sample_valid_ ? generation_ : 0; }
@@ -23,6 +27,9 @@ public:
     // A future trusted product owner must supply an already-admitted exact
     // context. This method has NO production caller and admits no peer/Boolean.
     [[nodiscard]] bool bind_admitted_context(const security_evaluation::FingerprintReviewContext&);
+    // Exact trusted context cleanup after the review lease was retired or its
+    // acquisition refused. Never cancels reset, draws, or samples input/time.
+    [[nodiscard]] bool release_admitted_context(const security_evaluation::FingerprintReviewContext&);
     bool observe(security_evaluation::EnrollmentDeviceObservation&) override;
     bool acquire(std::uint64_t& lease) override;
     bool render(std::uint64_t lease, const security_evaluation::FingerprintReviewFrame&,
