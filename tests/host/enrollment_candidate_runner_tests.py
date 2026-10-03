@@ -10,6 +10,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import subprocess
 import sys
 from types import SimpleNamespace
 import unittest
@@ -1361,6 +1362,87 @@ class ReturnedFailureTests(unittest.TestCase):
         self.assertEqual(check.call_count, 2)
         with self.assertRaisesRegex(core.ControllerError, '^host_clock_invalid$'):
             clock.check(50)
+
+
+
+class ROMFailureReceiptTests(unittest.TestCase):
+    def fixture(self):
+        f = RunnerFixture()
+        self.addCleanup(f.cleanup)
+        return f
+
+    def real_runtime(self, f, invoke):
+        return rom.Runtime(f.assembly.manifest_path, f.assembly.manifest_sha256, f.disk.private,
+            subprocess_run=invoke, manifest_verifier=lambda *args: {
+                'worktree': str(f.disk.worktree), 'root': str(f.disk.destination)},
+            monotonic=f.clock)
+
+    def test_real_timeout_survives_different_cleanup_failure_in_production_receipt(self):
+        f = self.fixture()
+        calls = []
+        def invoke(argv, **kwargs):
+            operation = json.loads(kwargs['input'])['operation']
+            calls.append(operation)
+            if operation == 'boot_candidate':
+                f.clock.value = json.loads(kwargs['input'])['deadline']
+                raise subprocess.TimeoutExpired('SECRET_COMMAND', kwargs['timeout'],
+                    output=b'SECRET_STDOUT', stderr=b'SECRET_STDERR')
+            return SimpleNamespace(returncode=1, stdout=json.dumps(
+                {'ok': False, 'closed': False, 'category': 'host_clock_invalid'}).encode(),
+                stderr=b'SECRET_STDERR')
+        actual = self.real_runtime(f, invoke)
+        f.old.runtime.failure_snapshot = actual.failure_snapshot
+        factory = f.backend_factory
+        def backends(selected_runtime, lease, **kwargs):
+            backend = factory(selected_runtime, lease, **kwargs)
+            if kwargs['role'] == 'B':
+                backend.boot_candidate = lambda deadline: actual.invoke(
+                    {'operation': 'boot_candidate', 'identity': prior.IDENTITIES['B']}, deadline)
+                backend.reset_original = lambda deadline: actual.invoke(
+                    {'operation': 'reset_original', 'identity': prior.IDENTITIES['B']}, deadline)
+            return backend
+        f.backend_factory = backends
+        result = f.run()
+        self.assertEqual(result.first_failure, ('install_B', 'rom_operation_failed'))
+        self.assertEqual(result.cleanup_failure, ('restore_B', 'host_clock_invalid'))
+        self.assertEqual(calls, ['boot_candidate', 'reset_original'])
+        receipt = json.loads(result.receipt_path.read_bytes())
+        self.assertEqual(receipt['rom_failure'], actual.failure_snapshot())
+        self.assertEqual((receipt['rom_failure']['operation'], receipt['rom_failure']['cause']),
+            ('boot_candidate', 'subprocess_timeout'))
+        self.assertEqual(receipt['first_failure'], list(result.first_failure))
+        self.assertEqual(receipt['cleanup_failure'], list(result.cleanup_failure))
+        self.assertNotIn('SECRET', result.receipt_path.read_text())
+        self.assertTrue(actual.assert_idle())
+
+    def test_optional_snapshot_is_sanitized_without_changing_runner_outcome(self):
+        for fault in ('absent', 'exception', 'operation', 'extra', 'mutable'):
+            f = self.fixture()
+            def timeout(*args, **kwargs):
+                raise subprocess.TimeoutExpired('SECRET_COMMAND', kwargs['timeout'])
+            actual = self.real_runtime(f, timeout)
+            with self.assertRaises(rom.AdapterError):
+                actual.route(prior.IDENTITIES['A'], f.preflight().execute_deadline)
+            value = actual.failure_snapshot()
+            if fault == 'exception':
+                def snapshot():
+                    raise RuntimeError('SECRET_SNAPSHOT')
+                f.old.runtime.failure_snapshot = snapshot
+            elif fault != 'absent':
+                if fault == 'operation': value['operation'] = 'SECRET'
+                if fault == 'extra': value['native_output'] = 'SECRET'
+                f.old.runtime.failure_snapshot = lambda: value
+            result = f.run()
+            self.assertEqual(result.outcome, 'passed')
+            self.assertIsNone(result.first_failure)
+            receipt = json.loads(result.receipt_path.read_bytes())
+            if fault == 'mutable':
+                self.assertEqual(receipt['rom_failure'], actual.failure_snapshot())
+                value['category'] = 'SECRET'
+                self.assertEqual(receipt['rom_failure']['category'], 'rom_operation_failed')
+            else:
+                self.assertIsNone(receipt['rom_failure'])
+            self.assertNotIn('SECRET', result.receipt_path.read_text())
 
 
 if __name__ == '__main__': unittest.main(verbosity=2)
