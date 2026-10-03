@@ -113,6 +113,7 @@ def run(output):
             "enrollment_candidate_controller.py", "enrollment_candidate_custody.py",
             "enrollment_candidate_rom_adapter.py", "enrollment_candidate_operator.py",
             "enrollment_candidate_runtime.py", "enrollment_candidate_runner.py",
+            "enrollment_candidate_original_capture.py", "enrollment_candidate_capture_runner.py",
             "enrollment_candidate_private_view.py",
             "enrollment_candidate_usb_client.py", "pair_bench_bridge.py", "pair_confirmation_trial.py", "pair_trial_operator.py", "pair_radio_driver_source.py",
             "enrolled_pair_bridge.py", "enrolled_trace_schema.py", "enrolled_confirmation_trial.py", "enrolled_trial_operator.py"))
@@ -251,18 +252,34 @@ def run(output):
               (), " actual candidate device session groups")
         candidate_target = ROOT / "firmware/targets/heltec_v4_enrollment_candidate_eval/main"
         candidate_fixture = ROOT / "tests/host/fixtures/enrollment_candidate_target"
-        suite("enrollment_candidate_target_tests", [*common,
+        candidate_sources = [*common,
               *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
                 "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp",
                 "heltec_v4_factory_reset_storage.cpp", "confirmation_nonowning_entropy.cpp", "heltec_v4_secure_random.cpp", "enrollment_identity_nvs_storage.cpp")],
               *[ROOT / "firmware/components" / name for name in ("companion/src/companion_factory_reset_gesture.cpp",
                 "companion/src/device_factory_reset_executor.cpp", "security/src/serialized_secure_random.cpp",
                 "ui/src/compact_status_footer.cpp", "ui/src/oled_presentation.cpp", "time/src/oled_clock.cpp")],
-              candidate_target / "candidate_runtime.cpp", candidate_target / "candidate_store_runtime.cpp",
-              candidate_fixture / "candidate_target_stub.cpp", ROOT / "tests/host/enrollment_candidate_target_tests.cpp"],
-              [*base, bench, candidate_target, candidate_fixture, ROOT / "tests/host/fixtures/heltec_oled",
-               *[ROOT / "firmware/components" / name / "include" for name in ("companion", "ui", "time", "protocol", "radio", "location")]],
+              candidate_target / "candidate_runtime.cpp", candidate_target / "candidate_store_runtime.cpp"]
+        candidate_includes = [*base, bench, candidate_target, candidate_fixture,
+              ROOT / "tests/host/fixtures/heltec_oled",
+              *[ROOT / "firmware/components" / name / "include" for name in
+                ("companion", "ui", "time", "protocol", "radio", "location")]]
+        suite("enrollment_candidate_target_tests", [*candidate_sources,
+              candidate_fixture / "candidate_target_stub.cpp",
+              ROOT / "tests/host/enrollment_candidate_target_tests.cpp"], candidate_includes,
               (), " actual enrollment candidate target groups")
+        entropy_fixture = ROOT / "tests/host/fixtures/enrollment_candidate_entropy_admission"
+        suite("enrollment_candidate_entropy_admission_tests", [*candidate_sources,
+              candidate_target / "app_main.cpp", entropy_fixture / "entropy_admission_stub.cpp",
+              ROOT / "tests/host/enrollment_candidate_entropy_admission_tests.cpp"],
+              [entropy_fixture, *candidate_includes], ("sodium_init",),
+              " actual enrollment candidate entropy admission groups")
+        suite("enrollment_candidate_startup_diagnostics_tests", [*candidate_sources,
+              candidate_target / "app_main.cpp", entropy_fixture / "entropy_admission_stub.cpp",
+              ROOT / "tests/host/enrollment_candidate_entropy_admission_tests.cpp"],
+              [entropy_fixture, *candidate_includes], ("sodium_init",),
+              " actual enrollment candidate entropy admission groups",
+              defines=("-DOT_CANDIDATE_STARTUP_DIAGNOSTICS=1",))
         suite("enrollment_commit_coordinator_tests", [*common, ROOT / "tests/host/enrollment_commit_coordinator_tests.cpp"],
               base, (), " enrollment commit journal groups")
         suite("enrollment_identity_store_tests", [*common, ROOT / "tests/host/enrollment_identity_store_tests.cpp"],
@@ -382,6 +399,8 @@ def run(output):
                             ("enrollment_candidate_operator_tests", []),
                             ("enrollment_candidate_runtime_tests", []),
                             ("enrollment_candidate_runner_tests", []),
+                            ("enrollment_candidate_original_capture_tests", []),
+                            ("enrollment_candidate_capture_runner_tests", []),
                             ("enrollment_candidate_private_view_tests", []),
                             ("factory_reset_target_composition_tests", []),
                             ("enrolled_confirmation_trial_tests", []),

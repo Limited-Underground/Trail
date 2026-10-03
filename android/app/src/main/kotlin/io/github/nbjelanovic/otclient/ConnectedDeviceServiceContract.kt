@@ -69,6 +69,8 @@ fun interface ConnectedDeviceStateObservation : AutoCloseable
 interface ConnectedDeviceServiceConnector : AutoCloseable {
     fun startFromVisibleUserAction(): ConnectedDeviceServiceStartFailure?
     fun bind(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding?
+    /** Observe an already running owner only. Implementations must not create or start a service. */
+    fun bindExisting(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? = null
     fun stopService()
 }
 

@@ -1,5 +1,256 @@
 # OpenTrail Progress Log
 
+## 2026-10-03
+
+### OT-0238c Carry verified startup into enrollment with fresh leases
+
+Per-role boot probes now run immediately after initial/warm boot and close before
+the next device operation. First/retained/recovery enrollment uses fresh queries
+and separate monotonically ordered leases; no probe readiness or deadline is
+reused. Exact first failure, bounded per-role/generation summaries and final owner
+confirmation survive a failure before enrollment starts. The final 10-suite /
+344-test matrix, independent review, additive v9 isolated entrypoints and full
+nonconsuming synthetic package admission pass. Existing firmware inputs/artifacts
+match and are reused without rebuilding. [Owning evidence](testing/OT-0238c-ENROLLMENT-STARTUP-2026-10-03.md).
+
+One first-enrollment plan and inert session are prepared with verified private
+image paths. No live grants, devices, Git publication or V1/public credit.
+Full OT-0238c stays In Progress; next is fresh owner readiness and exact one-trial
+authorization. Historical physical causation remains unproven.
+
+### OT-0238c Prepare cumulative GitHub delivery; postpone device trial
+
+The owner deferred the prepared first-enrollment test before route enumeration,
+grant issuance or device access and requested immediate GitHub publication.
+The current delivery includes the reviewed enrollment/entropy changes, Android
+service-attachment/start/layout/support fixes, settings/recovery tools and their
+sanitized evidence. Partial OT-0266b requirements remain explicitly In Progress.
+Private captures, identities, grants and build artifacts are excluded.
+
+All 52 changed source/test/configuration files matched saved validation pins.
+The three synthetic transport-test address literals are now constructed with
+identical values; all 85 transport tests and the unchanged publication-safety
+scanner pass. Existing source-bound 344 enrollment tests, 1,435 Android/protocol
+results and firmware build evidence remain distinct from physical acceptance.
+Byte-preserving attributes protect reviewed source/evidence during publication.
+Required GitHub documentation/host checks and independent review gate the merge.
+No hardware result, V1 credit or public website capability change is claimed.
+
+## 2026-10-02
+
+### OT-0238c Close restoration-only recovery after the held first-case setup
+
+One fresh authorized candidate recovery restored B's six original spans,
+verified guarded original boot and handle closure, and recorded the owner's
+usual-screen acknowledgement. A was already restored and received no device
+operation. Outer original-capture release used the same absolute 30-minute
+ceiling; durable receipts and independent audit confirm both custody ledgers
+settled, ACTIVE markers absent, no pending journal and lease release.
+[Recovery evidence and preserved failure history](../tests/hardware/OT-0238c-FIRST-V3-2026-10-01.md).
+
+The October 1 installation failure and unknown underlying cause remain recorded.
+Enrollment and every later lifecycle case remain untested in this attempt.
+OT-0238c stays In Progress; the next bounded work is host-only worker overhead
+and failure-category correction. No trial replay, V1 credit, Git publication,
+remote verification or public website capability change.
+
+
+### OT-0238c Reduce guarded-read worker overhead and preserve fixed failures
+
+Opt-in same-handle reads retain full fresh admission before/after, uncached
+flash/security checks, exact bytes, closure, both acquisition passes, freshness,
+mutation/reset guards and unchanged ceilings. Unknown SDK errors stay unknown;
+actual clock and owned fixed categories survive without diagnostic resampling.
+Independent review caught and corrected the SDK flash-ID cache before validation.
+Actual-worker/simulated-SDK launch counts improve 74 to 26 for acquisition and
+36 to 12 for freshness; physical speed and prior rejection cause remain unknown.
+The final 76-suite affected matrix passes once, using the byte-verified accepted
+dependency closure offline. Additive fourteen-policy/3,574-file v4 assembly and
+both real isolated inert entrypoints pass. Frozen v3/history remain intact.
+[Owning host evidence](testing/OT-0238c-HOST-EFFICIENCY-2026-10-02.md).
+
+OT-0238c remains In Progress. Next: review v4-bound first-case inputs before
+fresh separately authorized device execution. No device operation, firmware
+build/change, V1 credit, publication or public website capability change.
+
+### OT-0238c Prepare current-bound v4 first enrollment and recovery plan
+
+Reused the fourteen-policy/3,574-file v4 controller after maintained full assembly
+verification, reviewed source pins and existing 76-suite/isolated-entrypoint
+evidence. All 375 current firmware repository dependencies, nine reproducible
+artifact pairs, exact raw/padded images and static unit/profile associations
+match. Fresh private local bindings and capture request reference v4; previous
+trial/plan/recovery files and closed custody remain preserved.
+[Owning plan](testing/OT-0238c-LIVE-TEST-PLAN-V4-2026-10-02.md).
+
+Independent review corrected old trial/recovery timing attribution and retained
+the 900-second remaining-execution handoff gate plus separate usual-screen
+observation after early setup failure. New proposal allocates 35 minutes for
+execution and 25 for cleanup within one 60-minute ceiling; cleanup sufficiency
+is unmeasured. Previous failure cause remains unknown. No hardware, grants,
+executable package, repeated matrix/build, Git publication or V1/public credit.
+Next: fresh owner readiness and one exact first-case authority, then new live
+original acquisition/package admission. Full OT-0238c remains In Progress.
+
+### OT-0238c V4 first trial times out; originals restored
+
+One freshly authorized first/group-1 USB attempt passed current live original
+capture, independent handoff admission and both sequential candidate write/boot
+guards. The common 35-minute execution ceiling expired before a retained first
+enrollment checkpoint; authenticated statuses were 0/8. Both six-span originals,
+original boots, closed handles and fresh owner usual-screen acknowledgements
+are verified. Candidate and capture receipts close both ledgers and leases within
+the common 60-minute ceiling. [Owning physical evidence](../tests/hardware/OT-0238c-FIRST-V4-2026-10-02.md).
+
+The owner observed both startup logos. That observation and guarded boot do not
+establish application health or a specific failure. Read-only source review finds
+post-return clock checks can replace an earlier controller result with the saved
+`candidate_case / deadline_expired`; the earliest physical cause remains unknown.
+Next: host-only returned-first-failure preservation and bounded startup-stage
+diagnostics before another separately authorized trial. No product change,
+repeated build/matrix, RF/phone operation, Git publication, V1 credit or public
+website capability change. OT-0238c remains In Progress.
+
+### OT-0238c Preserve returned failures and record fixed startup boundaries
+
+Both result collectors now validate and retain the returned first failure before
+unchanged post-return checks. Nine privacy-safe pre-operation phases reach the
+actual durable runner; successful append owns its sequence even if the post-write
+clock expires. Before/after regressions distinguish old masking and sequence reuse;
+actual simulated HELLO timeout retains its original transport failure through both
+receipts with full original restoration and release. Independent review has no
+unresolved findings. All 10 affected Python suites / 231 tests pass once; unchanged
+native/security and 375 firmware dependencies reuse existing verified evidence.
+Additive fourteen-policy/3,574-file v5 and both actual isolated inert entrypoints
+pass; frozen v4/history remain preserved. [Owning host evidence](testing/OT-0238c-STARTUP-DIAGNOSTICS-2026-10-02.md).
+
+The previous physical cause remains unknown. Next: review a bounded discriminating
+startup plan before fresh separately authorized device work. No new wire command,
+deadline change, firmware build, device/grant operation, Git publication or V1/public
+credit. Full OT-0238c remains In Progress; local implementation ready for review.
+
+### OT-0238c Prepare one-device startup-only diagnosis
+
+Added distinct startup_A to the maintained controller/custody/runner: only A gets
+candidate writes/passive HELLO and BOOTSTATUS, while pair originals remain under
+the existing recovery lease. B native closure is verified without boot before
+the probe; original sweep/boot occurs at restoration without B writes. Exact
+case/result/actions and ordered bounded diagnostic records prevent enrollment
+credit or broad first-case authority. Fixed refusal remains primary through
+secondary query/record/cleanup failures. New command caps do not extend original
+authority. Meaningful frozen-v5 controls, independent review, one final affected
+10-suite/260-test matrix, additive v6 and both actual isolated inert entrypoints
+pass. Firmware inputs/native evidence reuse is verified; no device operation,
+operational grant, Git publication or V1/public credit. [Owning evidence and next
+one-case plan](testing/OT-0238c-STARTUP-PROBE-2026-10-02.md). Physical cause and
+full enrollment/lifecycle acceptance remain open; next gate is fresh exact-device
+permission/readiness.
+
+### OT-0238c Startup-only attempt times out; originals returned within the same ceiling
+
+One authorized startup_A/group-1 attempt saved both current originals, admitted
+the exact live handoff and installed/booted the unchanged candidate only A.
+Eight fixed markers end at HELLO; `hello_A / deadline_expired` remains primary,
+with no accepted HELLO/BOOTSTATUS, enrollment checkpoint or authenticated status.
+A restored during the initial run; B stopped before its final original sweep.
+Maintained restoration-only recovery skipped settled A, verified/booted unchanged
+B without writes and collected the real owner usual-screen ACK. Outer release
+settled both custody ledgers and leases inside the original UTC/monotonic cleanup
+ceiling. Historical held/cleanup failures remain preserved. Independent file-only
+audit verifies 24 original copies, 14 policy pins and all baseline dirty/held facts.
+Three exact frozen enumeration-only samples take 9.4-12.35 ms; they do not explain
+a full five-second expiry or reconstruct the failed query. The physical cause and
+B's unretained secondary category remain unknown. Next: host-only low-overhead
+budget/I/O timing and separate cleanup failure, preserving existing guards/caps.
+[Owning physical evidence](../tests/hardware/OT-0238c-STARTUP-A-2026-10-02.md).
+No further trial, V1/public credit, Git publication or deployment. Full OT-0238c
+remains In Progress.
+
+### OT-0238c Retain query timing and first separate cleanup failure
+
+Host-only fixed in-memory observations now distinguish pre-write expiry,
+guard/I/O cost, parsed rejection and accepted return, including clipped startup
+budget and pre-Endpoint progress work. One terminal summary follows passive
+closure under unchanged execution authority. Primary and first cleanup failures
+remain separate through journal/runner/recovery; actual restoration exception
+method/domain/boundary is retained without later-clock guessing.
+
+Independent review/15 edge checks, all 10 affected suites/291 tests and additive
+v7 isolated inert entrypoints pass. Review corrections and rejected preliminary
+input-change matrix remain recorded. All 375 firmware pins and frozen v6/history
+are preserved; no device, firmware rebuild, grant, Git or deployment operation.
+[Owning evidence](testing/OT-0238c-TERMINAL-TELEMETRY-2026-10-02.md).
+OT-0238c remains In Progress; physical cause/lifecycle/V1 acceptance unchanged.
+Next: review one v7-bound startup-only procedure/inputs before fresh device
+readiness and authorization. No public website capability change.
+
+
+### OT-0238c Prepare the v7 startup diagnostic and recovery review
+
+Prepared one startup_A/group-1 trial against the validated v7 runtime and
+unchanged firmware. Fresh static private bindings carry no device authority.
+The procedure maps query counters/timing to supported conclusions and keeps
+primary, cleanup and restoration failures separate. It excludes old recovery
+assumptions that would mistake a retained historical error for failed recovery.
+[Current procedure and exact preparation evidence](testing/OT-0238c-STARTUP-V7-PLAN-2026-10-02.md).
+
+Next: fresh readiness/permission, then exact live device/original/package
+admission. No device enumeration/access, operational grant/package, V1 credit,
+Git publication or public website capability change. The full task remains
+In Progress; preparation reuses validated host evidence on matching inputs.
+
+### OT-0238c Capture the v7 terminal boundary and restore both originals
+
+One expressly authorized A-only startup test completed the full HELLO write;
+33 reads returned 80 bytes, but no reply was parsed before the final post-read
+deadline check. HELLO had its full five seconds; the received contents and
+firmware boot stage remain unknown. Independent source review found no framing
+or USB-route mismatch; a conditional driver-install failure-path defect is
+recorded without attributing this attempt to it.
+
+Both original six-span sets, original boots and closed handles are verified.
+The actual pair usual-screen ACK, settled custody and released leases pass the
+independent final audit. No cleanup failure, recovery or repeated trial.
+[Owning result, timing and source evidence](../tests/hardware/OT-0238c-STARTUP-V7-A-2026-10-02.md).
+All policy/firmware pins stayed exact; reused host evidence, no rebuild. Next:
+host-only reply-framing/expiry reproduction and the conditional failure-path
+review. OT-0238c remains In Progress; no V1/public credit or Git publication.
+
+### OT-0238c Record startup internals and retain late diagnostic bytes
+
+Added bounded candidate startup stages, internal initialization outcomes,
+first-input/dispatch/reply markers and the direct ROM reset code. Corrected
+the source path that read an absent USB driver after installation failure;
+its relevance to the prior physical attempt remains unproven. The collector
+now preserves fixed classifications from late-returned bytes while retaining
+strict fresh replies, original deadlines, primary failures and restoration.
+
+Actual target checks pass OFF 20 / ON 54 groups and 108 existing target groups.
+Actual producer/collector composition and the final 10-suite / 330-test matrix
+pass. Additive v8 and both actual isolated entrypoints pass independent review;
+v7 is preserved. Two fresh diagnostic builds match all nine artifacts, retain
+the current configuration/layout and fit the existing restoration span.
+Final one-test binding/review and fresh physical admission remain separate.
+[Owning result and exact evidence](testing/OT-0238c-STARTUP-OBSERVABILITY-2026-10-02.md).
+No device action, V1 credit, Git publication or public website capability change.
+Full OT-0238c remains In Progress.
+
+### OT-0238c Pass diagnostic startup and return both originals
+
+One authorized A-only v8 trial passed fresh READY and BOOTSTATUS zero in about
+121/119 ms. Fixed records show loop return, first command byte, line dispatch
+and reply attempt. The earlier failure's cause remains unproven; several coupled
+diagnostic/observation changes differ. Both originals, boots, real usual-screen
+ACK and final custody/lease closure pass with no cleanup failure or recovery.
+Controller exit 0 at October 3 02:04:15 UTC. A path-only image-package correction
+before authority consumption kept exact bytes/request/grant/deadlines. The first
+audit's nominal-versus-effective deadline comparison is preserved and corrected
+against the actual original controller receipt. No runtime receipt changed.
+[Owning physical evidence](../tests/hardware/OT-0238c-STARTUP-V8-A-2026-10-02.md).
+Next: actual isolated enrollment-case preparation using the passed startup
+combination; no repeat startup-only test proposed. OT-0238c remains In Progress.
+No V1 credit, Git publication, public website capability change or deployment.
+
 ## 2026-10-01
 
 ### OT-0302 Complete protected public-profile settings host support
@@ -73,6 +324,343 @@ records Approved and Completed. The [validated host evidence](testing/OT-0303-RE
 remains local/uncommitted; Git publication requires a separate scoped PR operation.
 Physical Android/reset/pairing and release acceptance remain open. No hardware,
 installation, public website capability change or V1 credit is added.
+
+### OT-0304 Reproduce replacement-screen connection observation loss
+
+Owner-authorized V1-Test replacement and saved-pair checks on Note20/Trail Bench
+and S24/Trail Bench 2 preserved drafts through rotation and enlarged text/reopening,
+but both replacement screens showed disconnected while their started foreground
+services remained present. Explicit existing-service reattachment recovered both.
+Both clock displays are owner-confirmed; original phone display settings restored
+and exact unsaved test drafts removed. [Physical checkpoint and limits](testing/OT-0304-ACTIVITY-RECREATION-2026-10-01.md).
+OT-0304a is proposed for host-only observation recovery; full first-use remains
+open. No firmware/reset/re-pairing, RF, V1 credit, website or Git publication.
+
+### OT-0304a Restore existing connection observation after Activity recreation
+
+Approved revision 1 host correction is implementation-complete, pending owner
+acceptance. Replacement/reopened screens attach only to the live existing binder;
+permission/generation/callback fences and detach-only failure preserve ownership.
+Both replacement and delayed-reopen discriminators fail before and pass after.
+Final focused 51 pass; one final Android matrix reports 1,317 executions
+and 58 reused results, three lint reports and four audited APKs.
+Independent source review passes. [Evidence and boundaries](testing/OT-0304a-EXISTING-SERVICE-OBSERVATION-2026-10-01.md).
+Actual phone confirmation, OT-0304 first-use and publication remain separate;
+no hardware operation, firmware change, V1 credit or public capability change.
+
+
+### OT-0304a Owner accepts screen-observation host correction
+
+The owner accepted revision 1 on the [OT-0304a task](https://limitedunderground.com/lab/tasks/7d1bf0b5-40b5-40c3-93af-c0c19d11a28a).
+Fresh maintained checklist version 492 records Approved and Completed; the
+acceptance receipt is retained in `.private/ot0304a-activity-observation-20261001/owner-acceptance-check.json`.
+[Validated host evidence](testing/OT-0304a-EXISTING-SERVICE-OBSERVATION-2026-10-01.md)
+is owner-accepted. Actual phone rotation/reopening and OT-0304 full first-use
+remain separate physical gates. This acceptance reconciliation performs no
+device operation, firmware change, Git publication, V1-credit or public
+website capability change.
+
+
+### OT-0304 Observe Note20 startup failure and restore previous app
+
+One owner-authorized Note20/Trail Bench-only app update independently verified
+the exact OT-0304a candidate, but the explicit Start button left the app at
+Start required; no foreground/start-requested owner or current connection trace
+appeared. Rotation/reopening/larger-font steps were not reached. Source review
+found a pending passive-binding suppression path and missing accepted-lease/no-
+callback host case; unique physical attribution remains uninstrumented.
+The prior APK was restored and independently read back; its same saved-device
+route reached fresh protected Ready. Display/stay-awake values stayed unchanged;
+no draft, Heltec/S24/Bench2 action or radio transmission. [Evidence](testing/OT-0304-NOTE20-STARTUP-2026-10-01.md).
+OT-0304b is registered as a proposed bounded host correction. OT-0304 remains
+blocked and OT-0304a retains its accepted host scope; no V1/public capability
+credit, new product build or Git publication.
+
+
+### OT-0304b Allow explicit Start through a pending attachment
+
+Approved host-only revision 1 reproduces the ignored Start with the actual
+Activity/runtime/service-owner composition. Pending local attachment now retires
+before explicit startup, with ownership, cleanup reentrancy, current permissions
+and callback fences retained. Before discriminator fails; 62 focused checks and
+one independently reviewed frozen Android matrix pass.
+[Source-bound evidence and remaining gates](testing/OT-0304b-PENDING-START-2026-10-01.md).
+Host complete; owner review pending. No devices, installation, Git/publication,
+V1 credit or public website capability change. OT-0304 physical gates remain open.
+
+### OT-0304b Owner accepts pending-Start host correction
+
+The owner accepted revision 1 on the [OT-0304b task](https://limitedunderground.com/lab/tasks/48dc646c-3f2d-4989-b82c-0a702d435723).
+Fresh maintained checklist version 501 records Approved and Completed.
+[Validated host evidence](testing/OT-0304b-PENDING-START-2026-10-01.md) is
+owner-accepted. The acceptance receipt and documentation reconciliation are
+retained separately under `.private/ot0304b-acceptance-20261001/`; original
+closed host evidence and prior physical results are preserved.
+Actual Android startup/rotation and full OT-0304 first-use/profile/custody/
+warm-board/production acceptance remain separate. This documentation
+reconciliation performs no device operation, firmware change, Git publication,
+V1-credit or public website capability change.
+
+
+### OT-0304 Confirm Note20 startup and Activity recreation on the corrected app
+
+One separately authorized app-only checkpoint independently verifies the exact
+OT-0304b candidate on Note20/Trail Bench. One explicit Start reaches fresh
+protected Ready; the tested setup destination, exact unsaved draft and connected
+presentation survive rotation, ordinary Home/reopening and larger text.
+Clock acknowledgement is independently confirmed on the Heltec by the owner.
+Candidate remains installed; only the exact test draft was cleared and original
+display/stay-awake values are independently verified restored. First immediate
+display-restoration mismatch and one successful idempotent continuation are
+retained with cause unknown. [Physical evidence and limits](testing/OT-0304b-NOTE20-CONFIRMATION-2026-10-01.md).
+No Heltec/other-pair operation, app-data clear, pairing change or radio-send action.
+Host evidence reused; no new Android build/test. Full first-use/profile/custody,
+warm-board and production acceptance remain open, with OT-0304 still blocked.
+No uninterrupted BLE or unique prior physical-cause claim, V1 credit, website
+capability change, Git publication or deployment.
+
+
+
+### OT-0304 Standard firmware and recovery preparation
+
+Prepared the [standard firmware/setup recovery boundary](testing/OT-0304-FIRMWARE-RECOVERY-PREPARATION-2026-10-01.md) without another device attempt. The accepted profile5 standard image already supports device-backed public settings; 390 actual firmware repository dependencies,18 retained A/B artifacts,181 Android inputs,12 tool pins and the tested APK match. Reused prior builds/tests; no product correction, hardware or publication. Reviewed staged existing-pair settings/warm restart before fresh reset: old five-span custody omits ot_state, and an APK is not phone-private/OS-bond rollback. Exact resident image/layout/originals and a fresh-state retention decision remain gates. No V1/public capability change; prior evidence and unrelated owner work preserved.
+
+### OT-0304 Read current Trail Bench layout; stop on incomplete application read
+
+One owner-authorized original-only check verified exact board identity and matching partition/erased OTA metadata. Application read and guarded restart failed; a fresh-route restart-only cleanup also failed. No firmware/settings writes or phone/other-pair operation occurred. Owner reported "screen is back on" after the requested manual RESET/RST; a separate manual closeout released custody without changing failed USB receipts. Both failures are preserved; current firmware/profile remains unknown and no regression cause is inferred. Independent reviews and 14 reader/four cleanup fake tests pass. [Evidence and continuation](testing/OT-0304-READONLY-FIRMWARE-CHECK-2026-10-01.md). No V1/public capability credit or publication.
+
+### OT-0304 Preserve the USB reader's first failing boundary
+
+Corrected loss of command/check failure detail in the maintained ROM transport,
+without changing device commands, guards or acceptance. The actual pinned vendor
+CLI can replace a primary exception during teardown; a narrow observer now saves
+its fixed category/stage first and restores every alias. Strict parent validation
+and bounded copied history keep private data out and preserve failure through
+cleanup. Five affected host suites pass 124/124, actual-vendor inert cases 16/16,
+and the isolated device-free runtime probe passes. Independent review corrected
+standalone probe initialization and impossible metadata attribution. Intermediate
+fixture assumptions/errors are retained. [Owning result and continuation](testing/OT-0304-READER-DIAGNOSIS-2026-10-01.md).
+The previous physical cause/current firmware remain unknown. No device access,
+firmware/app build, V1/public capability credit or publication. OT-0304 remains
+incomplete; any further original-only measurement requires a fresh pinned runner
+and a new bounded grant, without replaying closed receipts.
+
+### OT-0304 Prepare durable first-failure capture for one fresh original-only check
+
+Prepared a fresh private reader that pins itself and exactly six maintained tools,
+guards the accepted table/erased OTA before reading the fixed factory prefix twice,
+and saves primary and cleanup outcomes separately. Interruption or evidence failure
+cannot skip attempted-claim restart or authorize closing incomplete custody.
+Independent review corrected transient journal/capture failure closure. Inert tests
+and the real isolated capsule's device-free check pass; prior maintained diagnostics
+validation is reused unchanged. [Reviewed flow, evidence and limits](testing/OT-0304-READONLY-READER-PREPARATION-2026-10-01.md).
+Old device receipts/owner work are preserved. No device, phone, product rebuild,
+Git publication or website operation occurred. Full OT-0304 remains incomplete;
+fresh readiness/grant and external frozen-hash comparison precede one device check.
+No V1 credit or public capability change.
+### OT-0304 Confirm repeatable original reads and automatic restart on Trail Bench
+
+One fresh owner-authorized original-only check passes matching table/erased OTA,
+two exact 733184-byte factory-prefix reads and guarded original restart. All reads
+match retained originals; no writes, phone or other-pair operations. Primary and
+cleanup results are separately durable, independently audited, with empty failure
+histories and closed custody. Owner confirms the usual Trail screen. The measured
+factory image is the older ot178-phone-v1 retained image; executing slot/profile,
+complete current saved-state custody and earlier USB refusal cause remain unknown.
+[Physical evidence and continuation](testing/OT-0304-ORIGINAL-READER-PHYSICAL-2026-10-01.md).
+Prior reader validation is reused; no product rebuild or publication. Grant is
+consumed. Finish the current original/settings custody plan before a separately
+approved standard firmware/settings trial. Full first-use remains incomplete;
+no V1 credit or public website capability change.
+### OT-0304 Prepare complete original and saved-state custody reader
+
+Added an original-only read capability for two fixed 512 KiB ot_state chunks;
+both parent and worker enforce exact spans and legacy write authority is unchanged.
+The fresh private runner captures/rereads all seven required regions, preserves
+current opaque NVS/state, pins one-use custody and saves primary/cleanup separately.
+Partial reads, interruption, evidence/release failures and the 900-second
+start-next-operation acquisition bound are tested; cleanup retains its own reserve.
+Final affected five-suite matrix passes 137 methods, runner inert suite 34;
+actual isolated device-free check and independent source/flow review pass.
+[Owning preparation and limits](testing/OT-0304-COMPLETE-CUSTODY-PREPARATION-2026-10-01.md).
+Documentation checker, 18 regressions and diff check pass. Earlier physical
+receipts/grants and unrelated owner files remain unchanged. No device access,
+grant, product rebuild, Git network/publication, V1 credit or website change.
+Next finish the host-only standard candidate/restoration adapter so custody,
+trial and restoration can share one separately authorized physical session.
+Full first-use/production acceptance and prior physical cause remain unresolved.
+
+### OT-0304 Combine complete custody, standard settings observation and restoration
+
+Added a typed seven-region transport and bounded one-device standard trial
+engine; legacy five-span authority stays unchanged. Fresh doubled reads can
+reuse hash-equal retained originals; current NVS/state have private custody.
+The engine grants restoration only for bound original bytes, closes phone GATT
+and reconnect activity before ROM, and checks all seven regions once before
+the durable original-boot intent. Uncertain original boot requires reconciliation
+instead of replaying stale settings. Grant/replay, interruption, disk/ACK failure,
+readback and recovery fences pass focused and final affected host validation;
+the frozen device-free check and independent source/flow review pass.
+[Evidence, commands and limits](testing/OT-0304-COMBINED-SETTINGS-TRIAL-PREPARATION-2026-10-01.md).
+The exact standard image and tested APK are reused; no product rebuild or
+device/phone/port operation, grant, Git network/publication or website deployment.
+Full first-use/settings/warm-board/production acceptance and actual profile/caps
+remain open; no V1/public capability credit. One combined physical session is
+the next gate after exact authorization and current readiness.
+
+### OT-0304 Run the combined standard settings trial on Trail Bench/Note20
+
+One authorized physical session verified doubled seven-region original custody,
+application-only candidate write/readback/restart, fresh protected Ready and
+current valid name/region READs through the preserved pairing. The public phase
+was incomplete when computer-side observation time expired; post-tap absent UI
+is supplemental, not a complete receipt. Explicit phone disconnect/Idle and
+exact original restoration with final seven-region equality, restart and custody
+closure passed. No extra trial, settings write, app clear, other-pair operation,
+V1/public credit or publication. Product source remains unchanged. Earlier host
+helper failures are preserved. [Owning physical result and continuation](testing/OT-0304-STANDARD-SETTINGS-PHYSICAL-2026-10-01.md).
+
+### OT-0304 Compact the landscape status strip
+
+Owner-requested correction uses a 28dp minimum/2dp vertical padding in landscape
+with one-line status text, unchanged fonts/icons and natural enlarged-text growth.
+The test-only log action shares the existing Device heading row; portrait remains
+unchanged. Three source files only; independent review and the final offline
+three-variant build/test/lint gate pass (432/431/487 tests, zero lint issues).
+New outputs preserve the previous APK. Separate Note20 layout observation is
+recorded in the linked evidence; full first-use remains incomplete. No firmware,
+Git network/publication, V1 credit or public website change.
+[Evidence and exact candidate](testing/OT-0304-LANDSCAPE-STATUS-STRIP-2026-10-01.md).
+
+### OT-0304 Automate current phone settings observation
+
+Prepared an inert, scoped Note20 helper for saved-pair startup, ordered current
+name/region/public READs, immediate durable owner ACK verification and explicit
+disconnect. Clean chooser and separately granted retained-Idle process reopen
+require fresh trace sessions; stale values, background/reconnect, uncertain
+dispatch, persistence failure and expiry cannot advance acceptance. Original
+600/300-second budgets and seven-region restoration ownership remain unchanged.
+The new helper's 46 checks, five saved-capture checks and four exact immutable-
+owner composition checks pass. Retained custody/observer/operator suites pass
+42/20/15 tests respectively.
+Independent review, documentation checker/18 regressions, runner syntax and
+diff check pass. Initial format/clean-entry discriminator failures and a
+missing-isolation invocation remain preserved.
+[Owning result and exact boundaries](testing/OT-0304-AUTOMATED-PHONE-OBSERVATION-2026-10-01.md).
+No device, grant, product rebuild, Git network/publication or website deployment.
+Full OT-0304 remains incomplete; next is a separately authorized Trail Bench/
+Note20 session with new exact input pins. No V1/public capability credit.
+
+### OT-0237b Validate candidate startup and unavailable-entropy refusal
+
+Approved revision 2 host work passes twenty fresh-process actual-entrypoint cases
+and one complete 74-suite current-source security matrix. Existing secret-creation
+refusals need no product correction; seed-fill failure may retain only nonsecret
+intent, and public READY/export after qualification loss is explicitly bounded.
+The old build reuse gate refused two accepted settings inputs newer than its
+pins. One fresh candidate compile and actual-dependency audit pass; the initial
+sandbox dispatcher/configure failure is preserved as an environment failure.
+[Owning evidence and exact artifact](testing/OT-0237b-ENTROPY-STARTUP-HOST-2026-10-01.md).
+Physical RNG quality, restart and power interruption remain open. No device,
+production crypto selection, Git publication, V1 credit or public capability change.
+
+### OT-0320a Bind support report region to current protected readback
+
+Approved host child adds one pure current-state projector and a support-snapshot
+binding. Actual codec/runtime/current-callback and session-owner tests remove
+stale region proof through pending/uncertain work, disconnect/reconnect, stop,
+close and reset. All other catalog choices remain unavailable; firmware/model
+and existing sharing/retention boundaries are unchanged. Ninety-five focused
+cases and one affected Android matrix pass (1,377 fresh app tests plus 58 cached
+protocol results); three lint variants and exact unsigned package audit pass.
+Four APKs were assembled, no instrumentation executed on a phone. Independent
+review, source freeze and prior dirty/EOL preservation checks pass; initial cache
+access and test-only enum/owner-fixture failures are retained.
+[Owning result and remaining gates](testing/OT-0320a-VERIFIED-SUPPORT-REGION-2026-10-01.md).
+Implementation complete; owner review pending. No device, production release,
+Git publication, V1 credit or public website capability change.
+
+### OT-0320a Record owner acceptance of verified support-region host work
+
+The owner accepted revision 1 of the [validated support-region host child](testing/OT-0320a-VERIFIED-SUPPORT-REGION-2026-10-01.md).
+Live checklist version 556 records Completed. Full OT-0320 phone export,
+production usability and release gates remain open. No new execution,
+hardware, publication or weighted V1 progress change accompanies acceptance.
+
+### OT-0238c Refresh first-case inputs and identify the original-acquisition boundary
+
+Reused the independently audited current-source A image and made one fresh B
+build; nine raw pairs, actual dependencies and 23 source-bound resource reports
+match. Preserved the first comparison refusal caused by CMake output paths;
+independent exact-byte review passes. The unchanged capsule also passes
+assembly-only isolated admission, without a package or device access.
+The next physical case is not ready: existing read-only custody omits OTA0
+prefix, while the candidate backend requires already-known original hashes.
+A reviewed two-role acquisition/freshness handoff is required before consuming
+candidate authority. No device attempt, grant, product source change, Git
+publication, V1 credit or public website capability change.
+[Owning first-case audit and precise next correction](testing/OT-0238c-FIRST-CASE-PREPARATION-2026-10-01.md).
+
+### OT-0238c Complete six-span original acquisition and live custody handoff
+
+Three parallel implementation lanes completed the read-only ROM seam,
+actual acquisition/release coordinator and isolated capture-to-candidate
+runner. Fresh double-captured originals remain ROM-held; a fresh complete
+sweep precedes candidate grant consumption. Custody transfers per role,
+with independent cleanup, durable first-failure receipts and no ambiguous
+reset replay. Interrupted settled marker closure has a record-only recovery;
+pending/torn journals remain an explicit reconciliation boundary.
+
+The final 76-suite affected matrix, independent frozen-source review and
+both actual isolated assembly-only entrypoints pass. New additive runtime
+v3 pins fourteen policy files and 3,574 inventory files; old v2 is preserved
+as historical host evidence. All 375 current firmware repository inputs
+still match the prior validated A/B build pair; no rebuild was required.
+[Owning flow, exact artifacts, commands and limitations](testing/OT-0238c-ORIGINAL-CAPTURE-2026-10-01.md).
+
+OT-0238c remains In Progress. No actual device/profile/original acquisition,
+grant, hardware or Git publication occurred. V1/public credit and concurrent
+HomeAssistant focus remain unchanged. The next gate is separately authorized
+current-profile capture and one exact physical first-case handoff.
+
+### OT-0238c exact-unit profiles and first device-test plan
+
+Parallel source reviews establish independent accepted static evidence for
+both numbered Heltec V4.2 units and reconcile their private identity registry
+with the accepted GNSS snapshot. Materialized private A/B identities, one
+opaque binding key, profiles and the maintained acquisition request; no grant
+or execution package. Fresh actual-board guards remain mandatory.
+
+Current v3/image files and normalized write spans match their frozen pins.
+One inert assembly/runtime verification sample measured file-check cost;
+physical timing and human feasibility remain unknown. Reused the unchanged
+76-suite evidence; no rebuild or repeat full matrix.
+[Plain-language owner instructions and exact plan](testing/OT-0238c-LIVE-TEST-PLAN-V3-2026-10-01.md).
+
+One root preparation literal mismatch failed before creating input outputs,
+then was corrected against the maintained registry writer and preserved in
+private evidence. No device/product failure is inferred. OT-0238c remains
+In Progress; no hardware, grant, Git publication or V1/public credit.
+Next: fresh readiness and authorization for one exact acquisition/first case.
+
+### OT-0238c First physical setup stops; original recovery remains held
+
+One expressly authorized USB acquisition/first-case attempt saved and audited
+both six-span originals and passed live handoff freshness. Sequential candidate
+writes/readbacks passed, but B boot verification stopped with a generic
+`install_B / custody_operation_failed` before enrollment or human checkpoints.
+Original restoration fully settled A. The launcher then stopped at the
+one-hour ceiling with B application restoration unresolved, both ACTIVE
+records and a valid pending closure-only update retained; no final receipts.
+
+All original files, baseline dirty work, frozen policy/firmware inputs and
+V1/focus records are preserved. Independent file/source reviews establish
+an exact restoration-only continuation under fresh authority, pending owner
+approval. No extra trial, source change, repeated build/matrix, Git publication
+or V1/public capability credit. Deadline proximity does not uniquely prove
+the initial cause. After recovery, correct repeated worker launches and
+retain fixed categories at the actual rejecting boundary.
+[Owning physical evidence and immediate recovery gate](../tests/hardware/OT-0238c-FIRST-V3-2026-10-01.md).
 
 ## 2026-09-30
 

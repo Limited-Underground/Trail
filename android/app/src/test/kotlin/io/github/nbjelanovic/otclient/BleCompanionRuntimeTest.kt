@@ -29,6 +29,8 @@ import io.github.nbjelanovic.otprotocol.CompanionQuickStatus
 import io.github.nbjelanovic.otprotocol.CompanionRadioState
 import io.github.nbjelanovic.otprotocol.CompanionSemanticCodec
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
+import io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame
+import io.github.nbjelanovic.otprotocol.CompanionRegionPayload
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -1507,20 +1509,182 @@ class BleCompanionRuntimeTest {
         next.runtime.close();f.runtime.close()
     }
 
+    @Test
+    fun supportRegionRequiresCurrentReadAfterPendingUncertainAndAppliedWrite() {
+        val f = ConfigurationFixture(withController = true)
+        f.name("private-runtime-name-sentinel"); f.clock()
+        fun projection() = V1SupportRegionProjector.from(checkNotNull(f.controller).state)
+        assertNull(projection())
+        assertTrue(f.runtime.readRadioRegion())
+        val first = f.last().exchangeId
+        f.respond(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 5u, selectionId = 1))))
+        assertEquals(V1RadioRegion.US915, projection())
+
+        assertTrue(f.runtime.readRadioRegion())
+        val current = f.last().exchangeId
+        assertNull(projection())
+        f.respond(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 5u, selectionId = 1))), first)
+        assertNull(projection())
+        f.gatt.emit(BleGattEvent.StreamIndication(checkNotNull(f.codec.encodeFrame(
+            CompanionConfigurationFrame(0x88, 18u, current,
+                checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 6u, selectionId = 1))), 3)))))
+        assertNull(projection())
+        assertTrue(assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration.busy)
+        f.respond(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 6u, selectionId = 1))))
+        assertEquals(V1RadioRegion.US915, projection())
+
+        assertTrue(f.runtime.writeRadioRegion(1)); assertNull(projection())
+        f.respond(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x82, revision = 7u, selectionId = 1))))
+        assertEquals(1, assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration.regionSelectionId)
+        assertNull(projection()) // APPLIED has no current READ revision.
+        assertTrue(f.runtime.readRadioRegion())
+        f.respond(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 7u, selectionId = 13))))
+        assertNull(projection()) // Invalid response retains no readback proof.
+        assertTrue(f.runtime.readRadioRegion())
+        f.respond(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 7u, selectionId = 1))))
+        assertEquals(V1RadioRegion.US915, projection())
+        f.runtime.close()
+    }
+
+    @Test
+    fun supportRegionTimeoutAndUncertainDispatchNeverReuseTheRetainedChoiceOrRetry() {
+        val f = ConfigurationFixture(withController = true)
+        f.name(); f.clock()
+        fun projection() = V1SupportRegionProjector.from(checkNotNull(f.controller).state)
+        fun readBack() {
+            assertTrue(f.runtime.readRadioRegion())
+            f.respond(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 5u, selectionId = 1))))
+            assertEquals(V1RadioRegion.US915, projection())
+        }
+        listOf(false, true).forEach { write ->
+            readBack()
+            assertTrue(if (write) f.runtime.writeRadioRegion(1) else f.runtime.readRadioRegion())
+            val exchange = f.last().exchangeId
+            val count = f.gatt.commands.size
+            assertNull(projection())
+            f.scheduler.advanceBy(6000)
+            assertNull(projection())
+            assertEquals(1, assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration.regionSelectionId)
+            assertEquals(count, f.gatt.commands.size)
+            f.respond(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(if (write) 0x82 else 0x81,
+                revision = if (write) 6u else 5u, selectionId = 1))), exchange)
+            assertNull(projection()); assertEquals(count, f.gatt.commands.size)
+        }
+        readBack()
+        f.gatt.writeResult = false
+        val count = f.gatt.commands.size
+        assertFalse(f.runtime.writeRadioRegion(1))
+        assertNull(projection()); assertEquals(count + 1, f.gatt.commands.size)
+        assertFalse(f.runtime.writeRadioRegion(1)); assertEquals(count + 1, f.gatt.commands.size)
+        f.runtime.close()
+    }
+
+    @Test
+    fun supportRegionIsInvalidatedByDisconnectStopCloseAndResetRequest() {
+        listOf("disconnect", "stop", "close", "reset").forEach { action ->
+            val f = ConfigurationFixture(withSessionOwner = true)
+            val owner = checkNotNull(f.owner)
+            f.name(); f.clock()
+            assertTrue(f.runtime.readRadioRegion())
+            f.respond(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 5u, selectionId = 1))))
+            fun projection() = V1SupportRegionProjector.from(owner.state)
+            assertEquals(V1RadioRegion.US915, projection())
+            val oldExchange = f.last().exchangeId
+            when (action) {
+                "disconnect" -> owner.disconnect()
+                "stop" -> checkNotNull(f.controller).onLifecycleStop()
+                "close" -> owner.close()
+                else -> {
+                    assertTrue(f.runtime.submitFactoryReset())
+                    assertIs<BleRuntimeState.FactoryResetRequesting>(f.runtime.state)
+                }
+            }
+            assertNull(projection(), action)
+            f.gatt.emitStale(BleGattEvent.StreamIndication(checkNotNull(f.codec.encodeFrame(
+                CompanionConfigurationFrame(0x88, 17u, oldExchange,
+                    checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 5u, selectionId = 1))), 3)))))
+            assertNull(projection(), action)
+            owner.close()
+        }
+    }
+
+    @Test
+    fun supportRegionReconnectRejectsReleasedGattEvenWhenBootNonceIsReused() {
+        val f = ConfigurationFixture(withController = true)
+        f.name(); f.clock()
+        assertTrue(f.runtime.readRadioRegion())
+        f.respond(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 5u, selectionId = 1))))
+        fun projection() = V1SupportRegionProjector.from(checkNotNull(f.controller).state)
+        assertEquals(V1RadioRegion.US915, projection())
+        val oldOwner = assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration.editorSessionId
+        assertTrue(f.runtime.readRadioRegion())
+        val late = checkNotNull(f.codec.encodeFrame(CompanionConfigurationFrame(0x88, 17u, f.last().exchangeId,
+            checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81, revision = 5u, selectionId = 1))), 3)))
+        f.gatt.emit(BleGattEvent.Disconnected)
+        assertIs<BleRuntimeState.Reconnecting>(f.runtime.state); assertNull(projection())
+        f.gatt.emitStale(BleGattEvent.StreamIndication(late)); assertNull(projection())
+        f.scheduler.runNext()
+        val next = f.facade.connections.last()
+        next.emit(BleGattEvent.ProfileReady)
+        next.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(17)))
+        next.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
+        next.emit(BleGattEvent.StreamIndicationsSubscribed)
+        next.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(17)))
+        next.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(17)))
+        next.emit(BleGattEvent.ProtectedProtocolInfoRead(checkNotNull(f.codec.encodeInfo(
+            io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo(0xff, minorVersion = 3)))))
+        val request = checkNotNull(f.codec.decodeFrame(next.commands.last(), 3))
+        val payload = checkNotNull(CompanionProtocolCodec.decodeFragment(snapshotEnvelope(17, 1)).value).payload
+        next.emit(BleGattEvent.StreamIndication(checkNotNull(f.codec.encodeFrame(
+            CompanionConfigurationFrame(0x81, 17u, request.exchangeId, payload, 3)))))
+        val fresh = assertIs<BleRuntimeState.Ready>(f.runtime.state).session
+        assertEquals(17, fresh.sessionNonce)
+        assertTrue(fresh.configuration.editorSessionId != oldOwner)
+        assertNull(fresh.configuration.regionRevision); assertNull(projection())
+        val commands = next.commands.size
+        f.gatt.emitStale(BleGattEvent.StreamIndication(late))
+        assertNull(projection()); assertEquals(commands, next.commands.size)
+        assertEquals(fresh.configuration,
+            assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration)
+        fun respondNext(kind: Int, bytes: ByteArray) {
+            val exchange = checkNotNull(f.codec.decodeFrame(next.commands.last(), 3)).exchangeId
+            next.emit(BleGattEvent.StreamIndication(checkNotNull(f.codec.encodeFrame(
+                CompanionConfigurationFrame(kind, 17u, exchange, bytes, 3)))))
+        }
+        respondNext(0x86, checkNotNull(io.github.nbjelanovic.otprotocol.CompanionNamePayloadCodec.encode(
+            io.github.nbjelanovic.otprotocol.CompanionNamePayload(io.github.nbjelanovic.otprotocol.CompanionNameKind.SNAPSHOT))))
+        respondNext(0x87, checkNotNull(f.codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(2, challenge = 12u))))
+        respondNext(0x87, checkNotNull(f.codec.encodeTime(io.github.nbjelanovic.otprotocol.CompanionTimePayload(4, challenge = 12u))))
+        assertTrue(f.runtime.readRadioRegion())
+        respondNext(0x88, checkNotNull(f.codec.encodeRegion(CompanionRegionPayload(0x81))))
+        assertTrue(f.runtime.readRadioRegion())
+        assertEquals(checkNotNull(f.codec.decodeFrame(late, 3)).exchangeId,
+            checkNotNull(f.codec.decodeFrame(next.commands.last(), 3)).exchangeId)
+        f.gatt.emitStale(BleGattEvent.StreamIndication(late))
+        assertNull(projection())
+        assertTrue(assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration.busy)
+        next.emit(BleGattEvent.StreamIndication(late))
+        assertEquals(V1RadioRegion.US915, projection())
+        f.runtime.close()
+    }
+
     private class ConfigurationFixture(val firstSetup: Boolean = false, val profile: Int = 3,
-        optIn: Boolean = false, withController: Boolean = false) {
+        optIn: Boolean = false, withController: Boolean = false, withSessionOwner: Boolean = false) {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
         val scheduler=TestRuntimeScheduler()
         var now=100L
         val runtime=BleCompanionRuntime(facade,scheduler,evaluationConfirmationEnabled=optIn,confirmationClockMillis={now})
-        val controller=if(withController) TrailAppController(CompanionAppController(FakeCompanionTransport()),runtime,
+        val controller=if(withController || withSessionOwner) TrailAppController(CompanionAppController(FakeCompanionTransport()),runtime,
             NearbyDevicesPermissionReader { NearbyDevicesPermissionState.GRANTED },RuntimeDeviceAuthorizationClaimClient(runtime),scheduler,
             groupConfirmationAdapter=RuntimeV1GroupConfirmationAdapter(runtime),groupConfirmationClock={now}) else null
+        val owner = if (withSessionOwner) ConnectedDeviceSessionOwner(1, checkNotNull(controller)) else null
         val gatt: TestGattLease
         val codec=io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
         init {
-            controller?.chooseBluetoothDeviceMode()
-            runtime.onLifecycleStart()
+            if (owner == null) {
+                controller?.chooseBluetoothDeviceMode()
+                runtime.onLifecycleStart()
+            }
             if(firstSetup) {
                 runtime.requestScan()
                 val match=CANDIDATE.copy(publicLabel="Trail-23ABCD")

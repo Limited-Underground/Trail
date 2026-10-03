@@ -23,7 +23,11 @@ import threading
 import time
 
 from enrollment_candidate_custody import Admission, SPANS, descriptor, validate_request
-from enrollment_candidate_controller import Clock
+from enrollment_candidate_controller import Clock, ControllerError
+
+
+WORKER_FAILURE_CATEGORIES = frozenset(('rom_adapter_refused', 'rom_operation_failed',
+    'host_clock_invalid', 'deadline_invalid', 'deadline_expired'))
 
 
 class AdapterError(RuntimeError):
@@ -55,6 +59,37 @@ class DeviceProfile:
 
 
 @dataclass(frozen=True, repr=False)
+class CaptureAdmission:
+    device_binding: str
+    model: str
+    flash_bytes: int
+    security: str
+    layout_sha256: str
+    boot_selection: str
+    rom_held: bool
+
+
+def capture_authority(value):
+    """Validate an externally admitted authority; this does not issue a grant."""
+    need(type(value) is dict and set(value) == {'schema', 'runtime_sha256',
+         'request_sha256', 'grant_sha256', 'attempt', 'role', 'device_binding',
+         'actions', 'capture_deadline', 'cleanup_deadline'}, 'capture_authority_invalid')
+    need(value['schema'] == 'OT-CANDIDATE-CAPTURE-AUTHORITY-1'
+         and value['role'] in ('A', 'B') and type(value['attempt']) is str
+         and re.fullmatch('[0-9a-f]{32}', value['attempt']), 'capture_authority_invalid')
+    for name in ('runtime_sha256', 'request_sha256', 'grant_sha256', 'device_binding'):
+        need(type(value[name]) is str and re.fullmatch('[0-9a-f]{64}', value[name]),
+             'capture_authority_invalid')
+    need(type(value['actions']) is list and value['actions'] ==
+         ['guard_original', 'read_six_spans', 'reset_original'], 'capture_authority_invalid')
+    for name in ('capture_deadline', 'cleanup_deadline'):
+        need(type(value[name]) in (int, float) and math.isfinite(value[name]),
+             'capture_authority_invalid')
+    need(value['capture_deadline'] <= value['cleanup_deadline'], 'capture_authority_invalid')
+    return json.loads(json.dumps(value, allow_nan=False))
+
+
+@dataclass(frozen=True, repr=False)
 class PassiveToken:
     binding: str
     generation: int
@@ -66,9 +101,17 @@ class PassiveToken:
 # ESP32S3ROM.connect(mode, attempts), cmds.read_flash/write_flash/reset_chip.
 WORKER_LOGIC = r'''
 import base64, contextlib, hashlib, io, math, re, struct, time
+WORKER_FAILURE_CATEGORIES=frozenset(('rom_adapter_refused','rom_operation_failed',
+    'host_clock_invalid','deadline_invalid','deadline_expired'))
 class WorkerError(RuntimeError): pass
-def require(value):
-    if not value: raise WorkerError('rom_worker_refused')
+def require(value,category='rom_adapter_refused'):
+    if not value: raise WorkerError(category)
+
+def failure_answer(error):
+    category='rom_operation_failed'
+    if (type(error) is WorkerError and len(error.args)==1 and type(error.args[0]) is str
+            and error.args[0] in WORKER_FAILURE_CATEGORIES):category=error.args[0]
+    return {'ok':False,'closed':False,'category':category}
 def pin(raw): return {'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
 def normalized(value):
     require(type(value) is str and re.fullmatch(r'(?:[0-9a-fA-F]{12}|[0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5}|[0-9a-fA-F]{2}(?:-[0-9a-fA-F]{2}){5})',value))
@@ -105,9 +148,47 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
     def check():
         nonlocal last
         now=clock();require(type(now) in (int,float) and math.isfinite(now)
-            and (last is None or now>=last) and type(deadline) in (int,float)
-            and math.isfinite(deadline) and now<deadline);last=now
-    expected=normalized(q['identity'])
+            and (last is None or now>=last),'host_clock_invalid')
+        require(type(deadline) in (int,float) and math.isfinite(deadline),'deadline_invalid')
+        require(now<deadline,'deadline_expired');last=now
+    expected=normalized(q['identity']);op=q['operation']
+    capture=q.get('mode')=='capture-only'
+    observed={}
+    if capture:
+        keys={'schema','deadline','identity','operation','mode','authority','observed','runtime_sha256'}
+        if op in ('read','guarded_read'):keys.add('span')
+        if 'manifest' in q:keys.add('manifest')
+        require(set(q)==keys and op in ('guard','read','guarded_read','reset_original'))
+        authority=q['authority']
+        require(type(authority) is dict and set(authority)=={'schema','runtime_sha256',
+            'request_sha256','grant_sha256','attempt','role','device_binding','actions',
+            'capture_deadline','cleanup_deadline'}
+            and authority['schema']=='OT-CANDIDATE-CAPTURE-AUTHORITY-1'
+            and authority['role'] in ('A','B') and type(authority['attempt']) is str
+            and re.fullmatch('[0-9a-f]{32}',authority['attempt']))
+        for name in ('runtime_sha256','request_sha256','grant_sha256','device_binding'):
+            require(type(authority[name]) is str and re.fullmatch('[0-9a-f]{64}',authority[name]))
+        require(authority['runtime_sha256']==q['runtime_sha256']
+            and type(authority['actions']) is list and authority['actions']==
+                ['guard_original','read_six_spans','reset_original'])
+        for name in ('capture_deadline','cleanup_deadline'):
+            require(type(authority[name]) in (int,float) and math.isfinite(authority[name]))
+        bound=authority['cleanup_deadline'] if op=='reset_original' else authority['capture_deadline']
+        require(authority['capture_deadline']<=authority['cleanup_deadline']
+            and type(deadline) in (int,float) and math.isfinite(deadline) and deadline<=bound)
+        observed=q['observed'];require(type(observed) is dict and set(observed)<=set(REGIONS))
+        for name,value in observed.items():
+            require(type(value) is dict and set(value)=={'bytes','sha256'}
+                and type(value['bytes']) is int and value['bytes']==REGIONS[name][1]
+                and type(value['sha256']) is str and re.fullmatch('[0-9a-f]{64}',value['sha256']))
+        if op in ('read','guarded_read'):require(q['span'] in REGIONS)
+    else:
+        # An acquisition envelope cannot be promoted by changing its mode.
+        require('authority' not in q and 'observed' not in q and 'runtime_sha256' not in q)
+        if op=='guarded_read':
+            keys={'schema','deadline','identity','operation','mode','originals','candidate','span'}
+            if 'manifest' in q:keys.add('manifest')
+            require(set(q)==keys and q['span'] in REGIONS)
     def route():
         check();ports=list(comports());check();matches=[]
         for port in ports:
@@ -119,59 +200,79 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
             and re.fullmatch(r'COM[1-9][0-9]{0,3}',matches[0].device))
         value=matches[0].device;require(sum(p.device==value for p in ports)==1)
         check();return value
-    selected=route();op=q['operation']
+    selected=route()
     if op=='route':return {'ok':True,'closed':True,'route':selected}
-    require(op in ('guard','read','write','boot_candidate','restart_candidate','reset_original','hold_rom'))
+    require(op in ('guard','read','guarded_read','write','boot_candidate','restart_candidate','reset_original','hold_rom'))
     require(reset is not None)
     reset.ResetStrategy.__call__=lambda strategy:strict_reset(strategy,check)
-    require(q['mode'] in ('normal','restore-only'))
-    originals=q['originals'];candidate=q['candidate']
-    require(type(originals) is dict and set(originals)==set(REGIONS)
-        and type(candidate) is dict and set(candidate)=={'application','partition','ota0_prefix'})
-    for name,(_,size) in REGIONS.items():
-        value=originals[name];require(type(value) is dict and set(value)=={'bytes','sha256'}
-            and value['bytes']==size and re.fullmatch('[0-9a-f]{64}',value['sha256']))
-    for name,value in candidate.items():
-        require(type(value) is dict and set(value)=={'bytes','sha256'}
-            and value['bytes']==REGIONS[name][1] and re.fullmatch('[0-9a-f]{64}',value['sha256']))
-    esp=None;result=None;diagnostics=io.StringIO()
+    require(q['mode'] in ('normal','restore-only','capture-only'))
+    originals=candidate=None
+    if not capture:
+        originals=q['originals'];candidate=q['candidate']
+        require(type(originals) is dict and set(originals)==set(REGIONS)
+            and type(candidate) is dict and set(candidate)=={'application','partition','ota0_prefix'})
+        for name,(_,size) in REGIONS.items():
+            value=originals[name];require(type(value) is dict and set(value)=={'bytes','sha256'}
+                and value['bytes']==size and re.fullmatch('[0-9a-f]{64}',value['sha256']))
+        for name,value in candidate.items():
+            require(type(value) is dict and set(value)=={'bytes','sha256'}
+                and value['bytes']==REGIONS[name][1] and re.fullmatch('[0-9a-f]{64}',value['sha256']))
+    esp=None;result=None;first_error=None;diagnostics=io.StringIO()
     try:
         with contextlib.redirect_stdout(diagnostics),contextlib.redirect_stderr(diagnostics):
             check();require(route()==selected)
             esp=rom_class(selected,115200,False)
             esp.connect('default-reset',attempts=1);check()
-            require(esp.CHIP_NAME=='ESP32-S3' and esp.IS_STUB is False
-                and esp.sync_stub_detected is False and esp.secure_download_mode is False)
-            si=esp.get_security_info(cache=False);check()
-            require(type(si) is dict and type(si['flags']) is int and 0<=si['flags']<1<<11
-                and not si['flags']&((1<<0)|(1<<2)|(1<<8)|(1<<9)|(1<<10))
-                and si['chip_id']==9 and type(si['flash_crypt_cnt']) is int
-                and 0<=si['flash_crypt_cnt']<=7 and si['flash_crypt_cnt'].bit_count()%2==0
-                and esp.get_secure_boot_enabled()==0 and esp.get_flash_encryption_enabled() is False
-                and esp.get_encrypted_download_disabled()==0)
-            mac=esp.read_mac('BASE_MAC');require(type(mac) in (tuple,list) and len(mac)==6
-                and all(type(x) is int and 0<=x<=255 for x in mac)
-                and bytes(mac).hex()==expected);check();require(route()==selected)
-            cmds.attach_flash(esp);require(cmds.detect_flash_size(esp)=='16MB' and esp.flash_type()==0);check()
             def read(name):
                 check();require(route()==selected)
                 offset,size=REGIONS[name]
                 raw=cmds.read_flash(esp,offset,size,output=None,flash_size='keep',no_progress=True)
                 check();require(type(raw) is bytes and len(raw)==size and route()==selected);return raw
-            table=read('partition');kind=None
-            if pin(table)==originals['partition']:
-                layout(table,ORIGINAL);kind='original'
-            elif pin(table)==candidate['partition']:
-                layout(table,CANDIDATE);kind='candidate'
-            else:require(q['mode']=='restore-only')
-            ota=read('otadata')
-            factory=(kind=='candidate' or (kind=='original' and ota==b'\xff'*8192))
-            require(factory or q['mode']=='restore-only')
-            selection='verified-factory' if factory else 'verified-rom-restore-only'
-            admission={'layout_sha256':hashlib.sha256(table).hexdigest(),'boot_selection':selection}
+            def fresh_admission():
+                # Guarded reads repeat every admission predicate on the same
+                # connected handle; no cached security/layout result is reused.
+                if op=='guarded_read':require(esp._port.is_open is True and route()==selected)
+                require(esp.CHIP_NAME=='ESP32-S3' and esp.IS_STUB is False
+                    and esp.sync_stub_detected is False and esp.secure_download_mode is False)
+                si=esp.get_security_info(cache=False);check()
+                require(type(si) is dict and type(si['flags']) is int and 0<=si['flags']<1<<11
+                    and not si['flags']&((1<<0)|(1<<2)|(1<<8)|(1<<9)|(1<<10))
+                    and si['chip_id']==9 and type(si['flash_crypt_cnt']) is int
+                    and 0<=si['flash_crypt_cnt']<=7 and si['flash_crypt_cnt'].bit_count()%2==0
+                    and esp.get_secure_boot_enabled()==0 and esp.get_flash_encryption_enabled() is False
+                    and esp.get_encrypted_download_disabled()==0)
+                mac=esp.read_mac('BASE_MAC');require(type(mac) in (tuple,list) and len(mac)==6
+                    and all(type(x) is int and 0<=x<=255 for x in mac)
+                    and bytes(mac).hex()==expected);check();require(route()==selected)
+                cmds.attach_flash(esp)
+                if op=='guarded_read':
+                    # detect_flash_size uses flash_id(cache=True) in pinned
+                    # esptool. Refresh explicitly even if attach_flash's
+                    # startup probe reused the prior ID or swallowed failure.
+                    esp.flash_id(cache=False);check()
+                require(cmds.detect_flash_size(esp)=='16MB' and esp.flash_type()==0);check()
+                table=read('partition');kind=None
+                if capture:
+                    layout(table,ORIGINAL);kind='original'
+                elif pin(table)==originals['partition']:
+                    layout(table,ORIGINAL);kind='original'
+                elif pin(table)==candidate['partition']:
+                    layout(table,CANDIDATE);kind='candidate'
+                else:require(q['mode']=='restore-only')
+                ota=read('otadata')
+                factory=(kind=='candidate' or (kind=='original' and ota==b'\xff'*8192))
+                require(factory or q['mode']=='restore-only')
+                selection='verified-factory' if factory else 'verified-rom-restore-only'
+                return kind,factory,{'layout_sha256':hashlib.sha256(table).hexdigest(),'boot_selection':selection}
+            kind,factory,admission=fresh_admission()
             if op=='read':
                 name=q['span'];require(name in REGIONS);result={'ok':True,'closed':True,
                     'data':base64.b64encode(read(name)).decode('ascii'),'admission':admission}
+            elif op=='guarded_read':
+                raw=read(q['span'])
+                _,_,post_admission=fresh_admission()
+                result={'ok':True,'closed':True,'data':base64.b64encode(raw).decode('ascii'),
+                    'admission':admission,'post_admission':post_admission}
             elif op=='write':
                 name=q['span'];require(name in REGIONS and name!='bootloader')
                 raw=base64.b64decode(q['data'],validate=True);require(len(raw)==REGIONS[name][1])
@@ -198,6 +299,23 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
                     names=candidate if op=='boot_candidate' else ('application','partition')
                     for name in names:require(pin(read(name))==candidate[name])
                     for name in ('bootloader','nvs','otadata'):require(pin(read(name))==originals[name])
+                elif capture:
+                    # Discovery cannot fake missing original pins. Cleanup must
+                    # prove a full stable untouched sweep under its own cap.
+                    require(op=='reset_original' and kind=='original')
+                    sweep={}
+                    for name in REGIONS:
+                        raw=read(name)
+                        if name in observed:require(pin(raw)==observed[name])
+                        else:require(read(name)==raw)
+                        sweep[name]=raw
+                    layout(sweep['partition'],ORIGINAL)
+                    require(sweep['otadata']==b'\xff'*8192)
+                    from ble_confirmation_trial import safe_reset_marker
+                    try:require(safe_reset_marker(sweep['nvs']) is True)
+                    except Exception:require(False)
+                    # Recheck mutable default NVS immediately before reset.
+                    require(read('nvs')==sweep['nvs'])
                 else:
                     require(q['mode']=='restore-only' and kind=='original')
                     for name in REGIONS:require(pin(read(name))==originals[name])
@@ -213,9 +331,14 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
                 result={'ok':True,'closed':True,'admission':admission}
             else:result={'ok':True,'closed':True,'admission':admission}
             require(len(diagnostics.getvalue())<=1048576)
+    except BaseException as error:
+        first_error=error;raise
     finally:
         if esp is not None:
-            esp._port.close();require(esp._port.is_open is False)
+            try:
+                esp._port.close();require(esp._port.is_open is False)
+            except BaseException:
+                if first_error is None:raise
     check();return result
 '''
 
@@ -240,6 +363,7 @@ try:
     import esptool.reset as reset
     from esptool.targets.esp32s3 import ESP32S3ROM
     from serial.tools.list_ports import comports
+    from ble_confirmation_trial import safe_reset_marker
     require(esptool.__version__=='5.3.1' and serial.__version__=='3.5')
     for module in tuple(sys.modules.values()):
         origin=getattr(module,'__file__',None)
@@ -248,8 +372,8 @@ try:
                 and path.relative_to(root).as_posix() in m['files'])
     answer=execute_request(q,ESP32S3ROM,cmds,comports,loader=loader,reset=reset)
     print(json.dumps(answer,separators=(',',':')))
-except BaseException:
-    print('{"ok":false,"closed":false}');sys.exit(1)
+except BaseException as error:
+    print(json.dumps(failure_answer(error),separators=(',',':')));sys.exit(1)
 '''
 
 
@@ -272,11 +396,14 @@ class Runtime:
 
     def verify(self, deadline):
         self.clock.check(deadline)
-        if self.verifier is None:
-            from security_policy_deadline_operator import verify_manifest
-            manifest = verify_manifest(self.manifest_path, self.manifest_sha256)
-        else:
-            manifest = self.verifier(self.manifest_path, self.manifest_sha256)
+        try:
+            if self.verifier is None:
+                from security_policy_deadline_operator import verify_manifest
+                manifest = verify_manifest(self.manifest_path, self.manifest_sha256)
+            else:
+                manifest = self.verifier(self.manifest_path, self.manifest_sha256)
+        except BaseException:
+            raise AdapterError('rom_operation_failed') from None
         self.clock.check(deadline)
         need(type(manifest) is dict and self.private_root.resolve() ==
              (Path(manifest['worktree']) / '.private').resolve())
@@ -314,6 +441,8 @@ class Runtime:
             manifest = self.verify(deadline)
             query = dict(payload, manifest=manifest, deadline=deadline,
                          schema='OT-CANDIDATE-ROM-WORKER-1')
+            if payload.get('mode') == 'capture-only':
+                query['runtime_sha256'] = self.manifest_sha256
             raw = json.dumps(query, separators=(',', ':'), allow_nan=False).encode('ascii')
             need(len(raw) <= 3000000)
             env = {k: v for k, v in os.environ.items() if not k.upper().startswith(('PYTHON', 'ESPTOOL_'))}
@@ -321,25 +450,43 @@ class Runtime:
             self._active = True
             remaining = deadline - self.clock.now()
             need(remaining > 0, 'deadline_expired')
-            result = self.runner([str(Path(manifest['root']) / 'python.exe'), '-I', '-S', '-B', '-c', WORKER],
-                input=raw, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=remaining,
-                check=False, cwd=manifest['root'], env=env)
-            self.clock.check(deadline)
-            need(result.returncode == 0 and type(result.stdout) is bytes and len(result.stdout) <= 1100000
+            try:
+                result = self.runner([str(Path(manifest['root']) / 'python.exe'), '-I', '-S', '-B', '-c', WORKER],
+                    input=raw, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=remaining,
+                    check=False, cwd=manifest['root'], env=env)
+            except BaseException:
+                raise AdapterError('rom_operation_failed') from None
+            need(type(result.stdout) is bytes and len(result.stdout) <= 1100000
                  and type(result.stderr) is bytes and len(result.stderr) <= 1048576)
             answer = json.loads(result.stdout)
+            if result.returncode != 0:
+                need(type(answer) is dict and set(answer) == {'ok', 'closed', 'category'}
+                     and answer['ok'] is False and answer['closed'] is False
+                     and type(answer['category']) is str and answer['category'] in WORKER_FAILURE_CATEGORIES,
+                     'rom_operation_failed')
+                raise AdapterError(answer['category'])
+            self.clock.check(deadline)
             op = payload['operation']
-            keys = {'ok', 'closed', 'route'} if op == 'route' else {'ok', 'closed', 'admission', 'data'} if op == 'read' else {'ok', 'closed', 'admission'}
+            keys = {'ok', 'closed', 'route'} if op == 'route' else \
+                {'ok', 'closed', 'admission', 'post_admission', 'data'} if op == 'guarded_read' else \
+                {'ok', 'closed', 'admission', 'data'} if op == 'read' else {'ok', 'closed', 'admission'}
             need(type(answer) is dict and set(answer) == keys and answer['ok'] is True and answer['closed'] is True)
             if op == 'route':
                 need(type(answer['route']) is str and re.fullmatch(r'COM[1-9][0-9]{0,3}', answer['route']))
             else:
-                admission = answer['admission']
-                need(type(admission) is dict and set(admission) == {'layout_sha256', 'boot_selection'}
-                     and type(admission['layout_sha256']) is str and re.fullmatch('[0-9a-f]{64}', admission['layout_sha256'])
-                     and admission['boot_selection'] in ('verified-factory', 'verified-rom-restore-only'))
+                for name in ('admission', 'post_admission') if op == 'guarded_read' else ('admission',):
+                    admission = answer[name]
+                    need(type(admission) is dict and set(admission) == {'layout_sha256', 'boot_selection'}
+                         and type(admission['layout_sha256']) is str and re.fullmatch('[0-9a-f]{64}', admission['layout_sha256'])
+                         and admission['boot_selection'] in ('verified-factory', 'verified-rom-restore-only'))
+                    if payload.get('mode') == 'capture-only':
+                        need(admission['boot_selection'] == 'verified-factory')
+                if op == 'guarded_read':
+                    need(type(answer['data']) is str)
+                    raw = base64.b64decode(answer['data'], validate=True)
+                    need(payload.get('span') in SPANS and len(raw) == SPANS[payload['span']][1])
             return answer
-        except AdapterError:
+        except (AdapterError, ControllerError):
             raise
         except BaseException:
             raise AdapterError('rom_operation_failed') from None
@@ -444,6 +591,13 @@ class HardwareLease:
         return not self._command.locked() and all(
             not state['uncertain'] and state['mode'] != 'passive' for state in self._states.values())
 
+    def holds_rom(self, binding):
+        """Inert proof of current same-process custody; never acquires it."""
+        state = self._states.get(binding)
+        return (self._file is not None and not self._file.closed and not self._command.locked()
+                and type(state) is dict and not state['uncertain'] and state['mode'] == 'rom'
+                and state['token'] is None and state['handle'] is None)
+
     def close(self):
         if not self.assert_idle() or any(state['mode'] not in ('original-ready', 'unclaimed') for state in self._states.values()):
             return False
@@ -463,6 +617,8 @@ class HardwareLease:
 
 
 class ROMBackend:
+    supports_guarded_read = True
+
     def __init__(self, runtime, lease, *, request, role, images, binding_key,
                  expected_identity, device_profile, recovery_only=False):
         request = validate_request(request)
@@ -569,6 +725,26 @@ class ROMBackend:
                 self._counts[name] = self._counts.get(name, 0) + 1
             return raw
 
+    def guarded_read(self, binding, offset, size, deadline):
+        with self._lock:
+            need(binding == self._binding)
+            name = next((n for n, span in SPANS.items() if span == (offset, size)), None)
+            need(name is not None and type(offset) is int and type(size) is int)
+            try:
+                answer = self._call('guarded_read', deadline, span=name)
+                before = self._admission(answer)
+                after = self._admission({'admission': answer['post_admission']})
+                raw = base64.b64decode(answer['data'], validate=True)
+                need(len(raw) == size)
+                if not self._mutated and not self._restore_only:
+                    need(descriptor(raw) == self.request['roles'][self.role]['originals'][name])
+                    self._captures[name] = raw
+                    self._counts[name] = self._counts.get(name, 0) + 1
+                return before, raw, after
+            except BaseException:
+                self._failed, self._mode = True, 'failed'
+                raise
+
     def write(self, offset, raw, deadline):
         with self._lock:
             name = next((name for name, span in SPANS.items() if span == (offset, len(raw))), None)
@@ -629,6 +805,149 @@ class ROMBackend:
         with self._lock:
             need(self._restore_only)
             self._safe_nvs(deadline)
+            self._call('reset_original', deadline)
+            self.lease.mark_boot(self._binding, original=True)
+            self._mode = 'original'
+            return True
+
+    def close(self):
+        return self.runtime.assert_idle() is True and self.lease._state(self._binding)['mode'] != 'passive'
+
+    def assert_idle(self):
+        return self.close()
+
+
+class CaptureROMBackend:
+    """Externally authorized read-only discovery; successful capture holds ROM.
+
+    Known originals are outputs, not admission placeholders. Reset is a single
+    cleanup attempt, and its worker proves an untouched complete safe sweep.
+    The coordinator owns durable grant consumption, reset intent and per-role
+    handoff. Handle-idle alone never releases the shared hardware lease.
+    """
+    supports_guarded_read = True
+
+    def __init__(self, runtime, lease, *, authority, role, binding_key,
+                 expected_identity, device_profile):
+        authority = capture_authority(authority)
+        need(role == authority['role'] and runtime.manifest_sha256 == authority['runtime_sha256'],
+             'capture_authority_invalid')
+        self.runtime, self.lease, self.role = runtime, lease, role
+        self._authority = authority
+        self._identity, self._binding = identity(expected_identity), authority['device_binding']
+        need(hmac.compare_digest(opaque_identity(binding_key, self._identity), self._binding))
+        need(type(device_profile) is DeviceProfile and device_profile.model == 'heltec_v4_esp32s3'
+             and device_profile.device_binding == self._binding and device_profile.flash_bytes == 16777216
+             and type(device_profile.evidence_sha256) is str
+             and re.fullmatch('[0-9a-f]{64}', device_profile.evidence_sha256))
+        self._profile = device_profile
+        self._claimed, self._failed, self._reset_attempted = False, False, False
+        self._mode, self._lock = 'idle', threading.RLock()
+        self._pins, self._counts = {}, {}
+
+    def __repr__(self):
+        return '<OTCAND1 capture-only six-span ROM backend>'
+
+    @property
+    def pins(self):
+        with self._lock:
+            return json.loads(json.dumps(self._pins))
+
+    @property
+    def complete(self):
+        with self._lock:
+            return (not self._failed and set(self._pins) == set(SPANS)
+                    and all(self._counts.get(name, 0) >= 2 for name in SPANS))
+
+    def _deadline(self, deadline, cleanup=False):
+        bound = self._authority['cleanup_deadline' if cleanup else 'capture_deadline']
+        need(type(deadline) in (int, float) and math.isfinite(deadline) and deadline <= bound,
+             'deadline_extended')
+        self.runtime.clock.check(deadline)
+
+    def _call(self, operation, deadline, **fields):
+        need(operation in ('guard', 'read', 'guarded_read', 'reset_original') and
+             set(fields) == ({'span'} if operation in ('read', 'guarded_read') else set()), 'capture_operation_refused')
+        cleanup = operation == 'reset_original'
+        need(self._claimed and self._mode in (('rom', 'failed') if cleanup else ('rom',)),
+             'rom_owner_required')
+        need(cleanup or not self._failed, 'capture_terminal')
+        need(self.runtime.manifest_sha256 == self._authority['runtime_sha256'], 'runtime_binding_invalid')
+        self._deadline(deadline, cleanup)
+        need(self.lease.holds_rom(self._binding), 'rom_owner_required')
+        need(self.lease._command.acquire(blocking=False), 'hardware_lease_busy')
+        try:
+            return self.runtime.invoke({'operation': operation, 'identity': self._identity,
+                'mode': 'capture-only', 'authority': self._authority,
+                'observed': self.pins, **fields}, deadline)
+        except BaseException:
+            self._failed, self._mode = True, 'failed'
+            raise
+        finally:
+            self.lease._command.release()
+
+    def _admission(self, answer):
+        row = answer['admission']
+        need(row['boot_selection'] == 'verified-factory' and self.lease.holds_rom(self._binding))
+        return CaptureAdmission(self._binding, self._profile.model, self._profile.flash_bytes,
+            'verified-read-only', row['layout_sha256'], row['boot_selection'], True)
+
+    def claim(self, binding, deadline):
+        with self._lock:
+            need(binding == self._binding and not self._claimed and not self._reset_attempted,
+                 'capture_claim_refused')
+            self._deadline(deadline)
+            self.lease.enter_rom(binding, deadline)
+            self._claimed, self._mode = True, 'rom'
+            return self._admission(self._call('guard', deadline))
+
+    def guard(self, binding, deadline):
+        with self._lock:
+            need(binding == self._binding)
+            return self._admission(self._call('guard', deadline))
+
+    def read(self, offset, size, deadline):
+        with self._lock:
+            name = next((n for n, span in SPANS.items() if span == (offset, size)), None)
+            need(name is not None and type(offset) is int and type(size) is int)
+            try:
+                answer = self._call('read', deadline, span=name)
+                raw = base64.b64decode(answer['data'], validate=True)
+                need(len(raw) == size)
+                value = descriptor(raw)
+                need(name not in self._pins or self._pins[name] == value, 'capture_changed')
+                self._pins[name] = value
+                self._counts[name] = self._counts.get(name, 0) + 1
+                return raw
+            except BaseException:
+                self._failed, self._mode = True, 'failed'
+                raise
+
+    def guarded_read(self, binding, offset, size, deadline):
+        with self._lock:
+            need(binding == self._binding)
+            name = next((n for n, span in SPANS.items() if span == (offset, size)), None)
+            need(name is not None and type(offset) is int and type(size) is int)
+            try:
+                answer = self._call('guarded_read', deadline, span=name)
+                before = self._admission(answer)
+                after = self._admission({'admission': answer['post_admission']})
+                raw = base64.b64decode(answer['data'], validate=True)
+                need(len(raw) == size)
+                value = descriptor(raw)
+                need(name not in self._pins or self._pins[name] == value, 'capture_changed')
+                self._pins[name] = value
+                self._counts[name] = self._counts.get(name, 0) + 1
+                return before, raw, after
+            except BaseException:
+                self._failed, self._mode = True, 'failed'
+                raise
+
+    def reset_original(self, deadline):
+        with self._lock:
+            need(self._claimed and not self._reset_attempted, 'capture_reset_refused')
+            self._deadline(deadline, True)
+            self._reset_attempted = True # Includes ambiguous worker/reset/close outcomes.
             self._call('reset_original', deadline)
             self.lease.mark_boot(self._binding, original=True)
             self._mode = 'original'

@@ -25,6 +25,7 @@ internal fun V1HomeScreen(
     onRefreshGroupConfirmation: () -> Boolean = { false },
     onConfirmGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
     onCancelGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
+    additionalDeviceTools: @Composable () -> Unit = {},
     deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit) -> Unit,
 ) {
     val launchSaver=remember { Saver<V1HomeLaunchState,Any>(
@@ -115,6 +116,7 @@ internal fun V1HomeScreen(
                         verticalAlignment = Alignment.CenterVertically) {
                         Text("Device", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
                         TextButton(onClick = { support = true }) { Text("Help & support") }
+                        additionalDeviceTools()
                     }
                     Box(Modifier.weight(1f)) { deviceContent { scope ->
                         navigation = navigation.finish(scope,currentRuntime)
@@ -211,6 +213,6 @@ private fun v1SupportSnapshot(state: TrailAppUiState): V1SafeDiagnosticSnapshot 
     val version = remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Not available" }
     val health = V1SupportHealthProjector.from(state)
     return V1SafeDiagnosticSnapshot(label(version), label("Not available"), label(Build.MODEL),
-        label(Build.VERSION.RELEASE), label("Not available"), null, health.connection,
+        label(Build.VERSION.RELEASE), label("Not available"), V1SupportRegionProjector.from(state), health.connection,
         health.radio, health.gps, health.power, null, health.lastCode)
 }

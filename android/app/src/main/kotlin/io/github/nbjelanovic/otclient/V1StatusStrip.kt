@@ -1,5 +1,6 @@
 package io.github.nbjelanovic.otclient
 
+import android.content.res.Configuration
 import android.text.format.DateFormat
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Canvas
@@ -13,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -41,6 +43,8 @@ internal fun configureTrailFullscreen(activity: ComponentActivity) {
 @Composable
 internal fun V1StatusStrip(state: TrailAppUiState) {
     val context = LocalContext.current
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val statusMaxLines = if (landscape) 1 else Int.MAX_VALUE
     val metrics = V1DeviceStatusStripProjector.from(state)
     val clock by produceState(initialValue = DateFormat.getTimeFormat(context).format(Date())) {
         while (true) {
@@ -50,11 +54,11 @@ internal fun V1StatusStrip(state: TrailAppUiState) {
     }
     val active = MaterialTheme.colorScheme.primary
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
+    Row(Modifier.fillMaxWidth().heightIn(min = if (landscape) 28.dp else 48.dp)
         .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-        .padding(horizontal = 12.dp, vertical = 8.dp),
+        .padding(horizontal = 12.dp, vertical = if (landscape) 2.dp else 8.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(clock, fontSize = 13.sp, modifier = Modifier.semantics { contentDescription = "Phone time $clock" })
+        Text(clock, fontSize = 13.sp, maxLines = statusMaxLines, modifier = Modifier.semantics { contentDescription = "Phone time $clock" })
         Canvas(Modifier.size(15.dp, 20.dp).semantics {
             contentDescription = if (metrics.bluetoothConnected) "Bluetooth connected" else "Bluetooth disconnected"
         }) {
@@ -79,7 +83,7 @@ internal fun V1StatusStrip(state: TrailAppUiState) {
                 drawLine(color, Offset(0f, size.height / 2), Offset(size.width * .2f, size.height / 2), 1.dp.toPx())
                 drawLine(color, Offset(size.width * .8f, size.height / 2), Offset(size.width, size.height / 2), 1.dp.toPx())
             }
-            Text(metrics.satellites?.toString() ?: "—", fontSize = 12.sp)
+            Text(metrics.satellites?.toString() ?: "—", fontSize = 12.sp, maxLines = statusMaxLines)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier.semantics(mergeDescendants = true) {
@@ -90,15 +94,15 @@ internal fun V1StatusStrip(state: TrailAppUiState) {
                 drawRect(muted, size = androidx.compose.ui.geometry.Size(size.width * .85f, size.height), style = Stroke(1.dp.toPx()))
                 drawLine(muted, Offset(size.width, size.height * .3f), Offset(size.width, size.height * .7f), 2.dp.toPx())
             }
-            Text(metrics.batteryPercent?.let { "$it%" } ?: "—", fontSize = 12.sp)
-            if (metrics.externalPower == true) Text("+", fontSize = 12.sp)
+            Text(metrics.batteryPercent?.let { "$it%" } ?: "—", fontSize = 12.sp, maxLines = statusMaxLines)
+            if (metrics.externalPower == true) Text("+", fontSize = 12.sp, maxLines = statusMaxLines)
         }
         Row(modifier = Modifier.semantics(mergeDescendants = true) {
             contentDescription = "Heltec transmit ${metrics.transmitting ?: "unavailable"}; receive ${metrics.receiving ?: "unavailable"}"
         }) {
-            Text("↑", color = if (metrics.transmitting == true) active else muted.copy(alpha = .45f), fontSize = 16.sp)
-            Text("↓", color = if (metrics.receiving == true) active else muted.copy(alpha = .45f), fontSize = 16.sp)
-            if (metrics.transmitting == null && metrics.receiving == null) Text("—", fontSize = 12.sp, color = muted)
+            Text("↑", color = if (metrics.transmitting == true) active else muted.copy(alpha = .45f), fontSize = 16.sp, maxLines = statusMaxLines)
+            Text("↓", color = if (metrics.receiving == true) active else muted.copy(alpha = .45f), fontSize = 16.sp, maxLines = statusMaxLines)
+            if (metrics.transmitting == null && metrics.receiving == null) Text("—", fontSize = 12.sp, maxLines = statusMaxLines, color = muted)
         }
     }
 }

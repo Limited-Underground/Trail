@@ -288,6 +288,8 @@ class World:
         self.token_count = 0
         self.close_role = None
         self.close_once_role = None
+        self.startup_diagnostics = False
+        self.startup_bytes = b'OTBOOT1 0 3 1\n'
 
     def token(self):
         self.token_count += 1
@@ -301,6 +303,8 @@ class World:
         handle.close_once_failure = self.close_once_role == role
         if self.stale_generation == (role, generation):
             handle.received.extend(b'OTCAND1 READY 1\n')
+        if self.startup_diagnostics:
+            handle.received.extend(self.startup_bytes)
         self.handles.append(handle)
         self.events.append(('open', role, generation, deadline))
         class ObservedEndpoint(wire.Endpoint):
@@ -308,7 +312,7 @@ class World:
                 self.deadlines.append((role, generation, command.split(' ')[0], absolute_deadline))
                 return super().exchange(command, absolute_deadline)
         return ObservedEndpoint(handle, lambda: handle.is_open and self.routes[role] == handle.route,
-                                monotonic=self.clock)
+                                monotonic=self.clock, startup_diagnostics=self.startup_diagnostics)
 
     def checkpoint(self, checkpoint, sample):
         kind, roles = checkpoint['kind'], tuple(checkpoint['roles'])
@@ -352,6 +356,7 @@ class World:
         return self.persist
 
     def run(self, case='first', *, deadline=1000.0, group=17):
+        self.startup_diagnostics = case == 'startup_A'
         instance = controller.Controller(self.factory, self.checkpoint, self.restart,
             monotonic=self.clock, token_factory=self.token, record=self.record)
         return instance.run(case, group, deadline)
@@ -392,6 +397,31 @@ class ControllerTests(unittest.TestCase):
             self.assertEqual(commands[-1], 'CLOSE')
         self.assertEqual([row[1] for row in world.events if row[0] == 'checkpoint'],
                          ['fingerprint_local', 'fingerprint', 'fingerprint', 'transcript'])
+
+    def test_each_operation_lease_requires_fresh_hello_and_bootstatus_before_begin(self):
+        for case in ('first', 'retained_rekey', 'recovery_after_A_commit', 'recovery_after_B_commit'):
+            with self.subTest(case=case):
+                world = World(); result = world.run(case)
+                self.assert_passed(result)
+                for generation in range(1, result.generations + 1):
+                    for role in controller.ROLES:
+                        self.assertEqual(world.commands(role, generation)[:3], ['HELLO', 'BOOTSTATUS', 'BEGIN'])
+
+    def test_operation_bootstatus_contradiction_or_failure_stops_before_begin(self):
+        for fault in ('nonzero', 'refused', 'partial', 'late'):
+            with self.subTest(fault=fault):
+                world = World()
+                if fault == 'nonzero':
+                    execute = world.nodes['B'].execute
+                    world.nodes['B'].execute = lambda command: (b'OTCAND1 BOOTSTATUS 1\n'
+                        if command == 'BOOTSTATUS' else execute(command))
+                else:
+                    world.faults[('B', 1, 'BOOTSTATUS')] = fault
+                result = world.run()
+                self.assertEqual(result.outcome, 'failed')
+                self.assertEqual(result.first_failure[0], 'bootstatus_B')
+                self.assertNotIn('BEGIN', world.commands())
+                self.assertTrue(result.handles_closed)
 
     def test_sampler_ok_without_typed_receipt_cannot_finish_review(self):
         world = World()
@@ -764,6 +794,267 @@ class ControllerTests(unittest.TestCase):
         self.assertFalse(instance.close())
         self.assertFalse(instance.assert_idle())
         self.assertEqual(world.handles[0].close_calls, 1)
+
+
+class StartupControllerTests(unittest.TestCase):
+    """Diagnostic-only control using the real bounded, terminal wire client."""
+
+    def instance(self, world, **overrides):
+        world.startup_diagnostics = True
+        options = dict(monotonic=world.clock, token_factory=world.token, record=world.record)
+        options.update(overrides)
+        return controller.Controller(world.factory, world.checkpoint, world.restart, **options)
+
+    def records(self, world):
+        return [row[1] for row in world.events if row[0] == 'record']
+
+    def event(self, phase, value):
+        return {'schema': 'OT-CANDIDATE-STARTUP-1', 'phase': phase,
+                'role': 'A', 'generation': 1, 'value': value}
+
+    def assert_probe_only(self, world, result):
+        self.assertEqual((result.status_transfers, result.generations, result.checkpoints), (0, 1, 0))
+        self.assertEqual([row[1:3] for row in world.events if row[0] == 'open'], [('A', 1)])
+        self.assertEqual(world.commands('B'), [])
+        self.assertTrue(set(world.commands()) <= {'HELLO', 'BOOTSTATUS'})
+        self.assertEqual(world.restart_count, 0)
+        self.assertEqual(world.token_count, 0)
+        self.assertEqual(world.deliveries, [])
+        self.assertFalse(any(row[0] == 'checkpoint' for row in world.events))
+        self.assertLessEqual(len(self.records(world)), 2)
+
+    def test_healthy_probe_uses_fragmented_startup_noise_and_no_enrollment(self):
+        world = World()
+        execute = world.nodes['A'].execute
+        world.nodes['A'].execute = lambda command: (b'OTBOOT1 0 3 1\n' if command == 'HELLO' else b'') + execute(command)
+        result = world.run('startup_A')
+        self.assert_probe_only(world, result)
+        self.assertEqual(world.commands(), ['HELLO', 'BOOTSTATUS'])
+        self.assertEqual((result.outcome, result.first_failure, result.refusals), ('passed', None, ()))
+        self.assertTrue(result.handles_closed)
+        self.assertEqual(self.records(world), [self.event('hello', 'ready'), self.event('bootstatus', 0)])
+
+    def test_exact_hello_refusal_allows_one_stage_read_and_remains_primary(self):
+        for stage in range(10):
+            with self.subTest(stage=stage):
+                world = World()
+                world.faults[('A', 1, 'HELLO')] = 'refused'
+                world.nodes['A'].execute = lambda command: f'OTCAND1 BOOTSTATUS {stage}\n'.encode()
+                instance = self.instance(world)
+                result = instance.run('startup_A', 17, 1000)
+                self.assert_probe_only(world, result)
+                self.assertEqual(result.first_failure, ('hello_A', 'target_refused'))
+                self.assertEqual(result.refusals, (('A', 'HELLO'),))
+                self.assertEqual(result.outcome, 'failed')
+                self.assertTrue(result.handles_closed)
+                self.assertTrue(instance.endpoints['A'].failed)
+                self.assertFalse(instance.endpoints['A'].ready)
+                self.assertEqual(world.commands(), ['HELLO', 'BOOTSTATUS'])
+                self.assertEqual(self.records(world), [self.event('hello', 'refused'), self.event('bootstatus', stage)])
+
+    def test_nonrefusal_hello_faults_allow_close_only(self):
+        faults = {'partial': 'partial_write', 'exception': 'serial_operation_failed',
+                  'route_swap': 'identity_guard', 'late': 'deadline_expired',
+                  'malformed': 'invalid_response', 'queued': 'unsolicited_response',
+                  'timeout': 'deadline_expired'}
+        for fault, category in faults.items():
+            with self.subTest(fault=fault):
+                world = World()
+                if fault == 'queued':
+                    world.stale_generation = ('A', 1)
+                elif fault == 'malformed':
+                    world.nodes['A'].execute = lambda command: b'OTCAND1 READY 01\n'
+                elif fault == 'timeout':
+                    world.nodes['A'].execute = lambda command: b''
+                    factory = world.factory
+                    def delayed_factory(*args):
+                        endpoint = factory(*args)
+                        read = endpoint.handle.read
+                        def empty_read(count):
+                            world.clock.value += .5
+                            return read(count)
+                        endpoint.handle.read = empty_read
+                        return endpoint
+                    world.factory = delayed_factory
+                else:
+                    world.faults[('A', 1, 'HELLO')] = fault
+                result = world.run('startup_A')
+                self.assert_probe_only(world, result)
+                self.assertEqual(result.first_failure, ('boot_observation_A' if fault == 'queued' else 'hello_A', category))
+                self.assertEqual(result.refusals, ())
+                self.assertNotIn('BOOTSTATUS', world.commands())
+                self.assertEqual(self.records(world), [])
+                self.assertTrue(result.handles_closed)
+
+    def test_only_exact_owned_refusal_enables_diagnostic_query(self):
+        class SpoofedClientError(wire.ClientError):
+            pass
+        for error in (SpoofedClientError('target_refused'), controller.ControllerError('target_refused'),
+                      RuntimeError('target_refused')):
+            with self.subTest(error=type(error).__name__):
+                world = World()
+                factory = world.factory
+                def fake_refusal(*args):
+                    endpoint = factory(*args)
+                    def exchange(command, deadline):
+                        world.events.append(('wire', 'A', 1, command))
+                        raise error
+                    endpoint.exchange = exchange
+                    return endpoint
+                world.factory = fake_refusal
+                result = world.run('startup_A')
+                self.assert_probe_only(world, result)
+                self.assertEqual(world.commands(), ['HELLO'])
+                self.assertEqual(result.refusals, ())
+                self.assertEqual(self.records(world), [])
+                self.assertTrue(result.handles_closed)
+
+    def test_secondary_boot_fault_cannot_replace_exact_hello_refusal(self):
+        for fault in ('partial', 'exception', 'refused', 'route_swap', 'bad_response', 'timeout'):
+            with self.subTest(fault=fault):
+                world = World()
+                world.faults[('A', 1, 'HELLO')] = 'refused'
+                if fault == 'timeout':
+                    world.nodes['A'].execute = lambda command: b''
+                    factory = world.factory
+                    def delayed_factory(*args):
+                        endpoint = factory(*args)
+                        read = endpoint.handle.read
+                        def empty_read(count):
+                            if world.commands().count('BOOTSTATUS'):
+                                world.clock.value += .5
+                            return read(count)
+                        endpoint.handle.read = empty_read
+                        return endpoint
+                    world.factory = delayed_factory
+                else:
+                    world.faults[('A', 1, 'BOOTSTATUS')] = fault
+                result = world.run('startup_A')
+                self.assert_probe_only(world, result)
+                self.assertEqual(result.first_failure, ('hello_A', 'target_refused'))
+                self.assertEqual(result.refusals, (('A', 'HELLO'),))
+                self.assertEqual(world.commands(), ['HELLO', 'BOOTSTATUS'])
+                self.assertEqual(self.records(world), [self.event('hello', 'refused'), self.event('bootstatus_failed', 'failed')])
+                self.assertTrue(result.handles_closed)
+
+    def test_ready_then_nonzero_stage_is_recorded_and_rejected(self):
+        for stage in range(1, 10):
+            with self.subTest(stage=stage):
+                world = World()
+                execute = world.nodes['A'].execute
+                world.nodes['A'].execute = lambda command: (f'OTCAND1 BOOTSTATUS {stage}\n'.encode()
+                    if command == 'BOOTSTATUS' else execute(command))
+                result = world.run('startup_A')
+                self.assert_probe_only(world, result)
+                self.assertEqual(result.first_failure, ('bootstatus_A', 'reply_invalid'))
+                self.assertEqual(result.refusals, ())
+                self.assertEqual(self.records(world), [self.event('hello', 'ready'), self.event('bootstatus', stage)])
+                self.assertTrue(result.handles_closed)
+
+    def test_ready_then_query_fault_is_primary_before_failed_observation(self):
+        for fault, category in (('partial', 'partial_write'), ('exception', 'serial_operation_failed'),
+                                ('refused', 'target_refused'), ('bad_response', 'unexpected_response')):
+            with self.subTest(fault=fault):
+                world = World()
+                world.faults[('A', 1, 'BOOTSTATUS')] = fault
+                result = world.run('startup_A')
+                self.assert_probe_only(world, result)
+                self.assertEqual(result.first_failure, ('bootstatus_A', category))
+                self.assertEqual(result.refusals, ())
+                self.assertEqual(self.records(world), [self.event('hello', 'ready'), self.event('bootstatus_failed', 'failed')])
+
+    def test_record_failure_or_expiry_blocks_boot_query(self):
+        for refused in (False, True):
+            for fault in ('false', 'raise', 'expiry'):
+                with self.subTest(refused=refused, fault=fault):
+                    world = World()
+                    if refused:
+                        world.faults[('A', 1, 'HELLO')] = 'refused'
+                    def record(event):
+                        world.record(event)
+                        if fault == 'raise':
+                            raise RuntimeError('private record detail')
+                        if fault == 'expiry':
+                            world.clock.value = world.deadlines[0][3]
+                        return fault != 'false'
+                    result = self.instance(world, record=record).run('startup_A', 17, 1000)
+                    self.assert_probe_only(world, result)
+                    expected = ('hello_A', 'target_refused') if refused else ('hello_A',
+                        'record_failed' if fault == 'false' else 'controller_operation_failed' if fault == 'raise' else 'deadline_expired')
+                    self.assertEqual(result.first_failure, expected)
+                    self.assertEqual(world.commands(), ['HELLO'])
+                    self.assertTrue(result.handles_closed)
+
+    def test_boot_observation_failure_preserves_primary_and_never_retries(self):
+        for refused in (False, True):
+            for query_failed in (False, True):
+                world = World()
+                if refused:
+                    world.faults[('A', 1, 'HELLO')] = 'refused'
+                if query_failed:
+                    world.faults[('A', 1, 'BOOTSTATUS')] = 'partial'
+                def record(event):
+                    world.record(event)
+                    return event['phase'] == 'hello'
+                result = self.instance(world, record=record).run('startup_A', 17, 1000)
+                expected = ('hello_A', 'target_refused') if refused else ('bootstatus_A',
+                    'partial_write' if query_failed else 'record_failed')
+                self.assertEqual(result.first_failure, expected)
+                self.assert_probe_only(world, result)
+                self.assertEqual(world.commands(), ['HELLO', 'BOOTSTATUS'])
+
+    def test_startup_and_command_caps_include_opening_recording_and_original_deadline(self):
+        for original, opening, record_delay in ((1000, 20, 3), (1000, 55, 4), (11, .1, .2)):
+            with self.subTest(original=original, opening=opening):
+                world = World()
+                world.clock.value, world.clock.step = 10, 0
+                factory = world.factory
+                def slow_factory(*args):
+                    endpoint = factory(*args)
+                    world.clock.value += opening
+                    return endpoint
+                world.factory = slow_factory
+                def record(event):
+                    world.record(event)
+                    if event['phase'] == 'hello':
+                        world.clock.value += record_delay
+                    return True
+                result = self.instance(world, record=record).run('startup_A', 17, original)
+                self.assert_probe_only(world, result)
+                self.assertEqual(result.outcome, 'passed', result.first_failure)
+                total = min(original, 70)
+                self.assertEqual(next(row[3] for row in world.events if row[0] == 'open'), total)
+                self.assertEqual([row[3] for row in world.deadlines],
+                    [min(total, 10 + opening + 5), min(total, 10 + opening + record_delay + 5)])
+
+    def test_late_ready_reply_cannot_enable_query_despite_live_total_cap(self):
+        world = World()
+        execute = world.nodes['A'].execute
+        def late_hello(command):
+            if command == 'HELLO':
+                world.clock.value += 6
+            return execute(command)
+        world.nodes['A'].execute = late_hello
+        result = world.run('startup_A')
+        self.assert_probe_only(world, result)
+        self.assertEqual(result.first_failure, ('hello_A', 'deadline_expired'))
+        self.assertEqual(world.commands(), ['HELLO'])
+        self.assertEqual(self.records(world), [])
+
+    def test_failed_close_is_sticky_and_never_sends_protocol_close(self):
+        for refused in (False, True):
+            world = World()
+            world.close_once_role = 'A'
+            if refused:
+                world.faults[('A', 1, 'HELLO')] = 'refused'
+            instance = self.instance(world)
+            result = instance.run('startup_A', 17, 1000)
+            self.assert_probe_only(world, result)
+            self.assertEqual(result.first_failure, ('hello_A', 'target_refused') if refused else ('cleanup', 'handles_not_closed'))
+            self.assertFalse(result.handles_closed)
+            self.assertEqual(world.handles[0].close_calls, 1)
+            self.assertFalse(instance.close())
+            self.assertEqual(world.handles[0].close_calls, 1)
 
 
 if __name__ == '__main__':

@@ -26,11 +26,11 @@ struct Tokens {
 }
 CandidateRuntime::CandidateRuntime(Display& display,Input& input,security::SecureRandomSource& random,
     CandidateNvsStorage& storage,companion::DeviceFactoryResetMarkerPort& marker,
-    companion::DeviceFactoryResetUserDomainPort& other,companion::DeviceFactoryResetBondDomainPort& bonds)
+    companion::DeviceFactoryResetUserDomainPort& other,companion::DeviceFactoryResetBondDomainPort& bonds,StartupDiagnosticPort diagnostics)
     :display_(display),input_(input),random_(random),storage_(storage),marker_(marker),
      reset_(storage.external(CandidateNvsStorage::Store::identity),storage.external(CandidateNvsStorage::Store::journal),
         storage.external(CandidateNvsStorage::Store::binding),storage.external(CandidateNvsStorage::Store::boot),
-        storage,CandidateNvsStorage::kCapacity,marker,other,bonds){}
+         storage,CandidateNvsStorage::kCapacity,marker,other,bonds),diagnostics_(diagnostics){}
 CandidateRuntime::~CandidateRuntime(){(void)close();}
 bool CandidateRuntime::enter(){if(busy_){reentered_=true;failed_=true;return false;}busy_=true;return true;}
 bool CandidateRuntime::finish(bool ok){if(!ok || reentered_){failed_=true;request_.retire();(void)cleanup();}busy_=false;return ok && !failed_ && !reentered_;}
@@ -46,18 +46,22 @@ bool CandidateRuntime::initialize() {
     if(!enter())return false;
     if(attempted_ || failed_)return finish(false);
     attempted_=true;
-    const auto marker=marker_.load();
-    if(marker.error!=companion::DeviceFactoryResetPortError::none || marker.state!=companion::DeviceFactoryResetMarkerState::absent || marker.reset_receipt ||
-       !storage_.ready() || !storage_.budget_ok() || random_.state()!=security::EntropyState::ready)return finish(false);
+    diagnostics_.mark(18,0);const auto marker=marker_.load();
+    if(marker.error!=companion::DeviceFactoryResetPortError::none || marker.state!=companion::DeviceFactoryResetMarkerState::absent || marker.reset_receipt){diagnostics_.mark(18,2);return finish(false);}
+    diagnostics_.mark(18,1);diagnostics_.mark(19,0);
+    if(!storage_.ready() || !storage_.budget_ok() || random_.state()!=security::EntropyState::ready){diagnostics_.mark(19,2);return finish(false);}
+    diagnostics_.mark(19,1);diagnostics_.mark(20,0);
     const auto restored=reset_.restore();
-    if(!restored.accepted() || (restored.phase!=companion::DeviceFactoryResetPhase::idle_old_state && restored.phase!=companion::DeviceFactoryResetPhase::idle_unowned))return finish(false);
+    if(!restored.accepted() || (restored.phase!=companion::DeviceFactoryResetPhase::idle_old_state && restored.phase!=companion::DeviceFactoryResetPhase::idle_unowned)){diagnostics_.mark(20,2);return finish(false);}
+    diagnostics_.mark(20,1);diagnostics_.mark(21,0);
     std::array<std::uint8_t,52> bytes{};const auto result=random_.fill(bytes.data(),bytes.size());
-    if(!result.ok() || result.bytes_written!=bytes.size())return finish(false);
+    if(!result.ok() || result.bytes_written!=bytes.size()){diagnostics_.mark(21,2);return finish(false);}
     auto number=[&](unsigned at,unsigned count){std::uint64_t n=0;for(unsigned i=0;i<count;++i)n|=std::uint64_t(bytes[at+i])<<(8*i);return n;};
     context_={number(0,8),number(8,8),number(16,8),number(24,8),number(32,8),number(40,8),static_cast<std::uint32_t>(number(48,4))};
     sodium_memzero(bytes.data(),bytes.size());
-    if(!context_.device || !context_.runtime || !context_.owner || !context_.owner_generation || !context_.transport_generation || !context_.controller || !context_.session_nonce)return finish(false);
-    initialized_=true;return finish(tick());
+    if(!context_.device || !context_.runtime || !context_.owner || !context_.owner_generation || !context_.transport_generation || !context_.controller || !context_.session_nonce){diagnostics_.mark(21,2);return finish(false);}
+    diagnostics_.mark(21,1);initialized_=true;diagnostics_.mark(22,0);
+    const bool ok=tick(true);diagnostics_.mark(22,ok?1:2);return finish(ok);
 }
 bool CandidateRuntime::dispatch() {
     using Event=companion::CompanionFactoryResetGestureEvent;
@@ -83,11 +87,15 @@ bool CandidateRuntime::dispatch() {
     }
     return true;
 }
-bool CandidateRuntime::tick() {
+bool CandidateRuntime::tick(bool startup) {
     if(!initialized_ || failed_ || reentered_)return false;
-    if(!dispatch() || reentered_)return false;
+    if(startup)diagnostics_.mark(23,0);
+    if(!dispatch() || reentered_){if(startup)diagnostics_.mark(23,2);return false;}
+    if(startup)diagnostics_.mark(23,1);
     if(reset_prepared_)return true;
-    const auto authority=current();if(authority.phase!=companion::DeviceNamePhase::connected)return false;
+    if(startup)diagnostics_.mark(24,0);
+    const auto authority=current();if(authority.phase!=companion::DeviceNamePhase::connected){if(startup)diagnostics_.mark(24,2);return false;}
+    if(startup)diagnostics_.mark(24,1);
     if(request_.pending() && !request_.observe(authority,1)){if(session_)(void)session_->close();return false;}
     return true;
 }
