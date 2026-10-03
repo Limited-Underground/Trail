@@ -36,6 +36,29 @@ Byte-preserving attributes protect reviewed source/evidence during publication.
 Required GitHub documentation/host checks and independent review gate the merge.
 No hardware result, V1 credit or public website capability change is claimed.
 
+### OT-0238c Record v9 setup failure and verified pair restoration
+
+One fresh first/group-1 USB trial passed A READY/BOOTSTATUS zero and both candidate
+span write/readbacks. B stopped during its unlogged guarded boot transition with
+install_B / rom_operation_failed, before enrollment or comparison/button steps.
+Both original sets, full six-span sweeps, original boots and handle/custody/lease
+release pass independent review. The final usual-screen checkpoint has no owner
+ACK; its separate owner_confirmation / deadline_expired and launcher exit1 are
+preserved. Deadline expiry is plausible but unproven as the primary cause.
+[Actual physical evidence and limits](../tests/hardware/OT-0238c-FIRST-V9-2026-10-03.md).
+
+### OT-0238c Preserve typed ROM first failures without changing authority
+
+After actual controller closure and independent source/input preservation review,
+the adapter retains a bounded immutable first failure and the candidate receipt
+accepts only its exact sanitized schema. Timeout, runner exception, worker rejection,
+invalid response and host guard remain distinguishable while existing rejection
+categories, authority clocks, deadlines and recovery behavior are unchanged.
+The final ten-suite / 352-test matrix passes; documentation/publication checks
+and independent review precede the authorized GitHub delivery. No firmware rebuild,
+device retry, runtime repack, V1 credit or public website change.
+[Host evidence and successor-runtime gate](testing/OT-0238c-ROM-FAILURE-DIAGNOSTICS-2026-10-03.md).
+
 ## 2026-10-02
 
 ### OT-0238c Close restoration-only recovery after the held first-case setup

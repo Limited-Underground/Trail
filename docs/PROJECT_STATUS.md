@@ -142,11 +142,16 @@ byte-identical private copies and unchanged authority/deadlines. Prior physical
 causation remains unproven. The [enrollment startup preparation](testing/OT-0238c-ENROLLMENT-STARTUP-2026-10-03.md)
 now probes each role immediately after boot, then admits fresh operation leases.
 First/retained/recovery host composition, 344 tests and additive v9 package
-admission pass; unchanged firmware builds are reused. Next: fresh owner readiness
-and exact authorization for the prepared first-enrollment case. No repeat startup-
-only test is proposed. The owner postponed this physical case before any device
-access; both originals remain unchanged. The reviewed source/evidence are included
-in the current GitHub delivery. Physical lifecycle/production gates stay open; no V1 credit.
+admission pass; unchanged firmware builds are reused. The
+[authorized v9 first case](../tests/hardware/OT-0238c-FIRST-V9-2026-10-03.md)
+passed A startup, then stopped at B's guarded boot transition before enrollment.
+Both originals/readback/boots and closed resources are verified; the final owner
+screen ACK is absent and its separate expiry is recorded. The precise B cause
+remains unproven. [Bounded host ROM attribution](testing/OT-0238c-ROM-FAILURE-DIAGNOSTICS-2026-10-03.md)
+now passes 352 tests with unchanged rejection/security/deadline behavior.
+Next: review a successor runtime and complete preparation/boot costs against the
+unchanged ceilings before any freshly authorized physical case. Consumed v9 plans
+are historical. Physical lifecycle/production gates stay open; no V1 credit.
 
 [OT-0237b startup/entropy host admission](testing/OT-0237b-ENTROPY-STARTUP-HOST-2026-10-01.md)
 passes twenty actual-entrypoint cases and the complete 74-suite security matrix.

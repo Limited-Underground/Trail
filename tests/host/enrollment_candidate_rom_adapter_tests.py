@@ -1061,5 +1061,149 @@ class GuardedReadTests(unittest.TestCase):
             self.assertEqual(raised.exception.args, ('rom_operation_failed',))
 
 
+
+class ROMFailureSnapshotTests(unittest.TestCase):
+    def fixture(self):
+        f = Fixture()
+        self.addCleanup(f.cleanup)
+        return f
+
+    def test_real_invoke_distinguishes_timeout_runner_and_fixed_worker_failure(self):
+        for kind, cause, category, code in (
+                ('timeout', 'subprocess_timeout', 'rom_operation_failed', None),
+                ('exception', 'runner_exception', 'rom_operation_failed', None),
+                ('spoof', 'runner_exception', 'rom_operation_failed', None),
+                ('worker', 'worker_nonzero', 'deadline_expired', 1)):
+            f = self.fixture()
+            calls = []
+            def invoke(argv, **kwargs):
+                calls.append(kwargs['timeout'])
+                f.clock.value = 100
+                if kind == 'timeout':
+                    raise subprocess.TimeoutExpired('SECRET_COMMAND', kwargs['timeout'],
+                        output=b'SECRET_STDOUT', stderr=b'SECRET_STDERR')
+                if kind == 'exception':
+                    raise OSError('SECRET_NATIVE_DETAIL')
+                if kind == 'spoof':
+                    raise controller.ControllerError('deadline_expired')
+                return SimpleNamespace(returncode=1, stdout=json.dumps(
+                    {'ok': False, 'closed': False, 'category': category}).encode(),
+                    stderr=b'SECRET_STDERR')
+            f.runtime.runner = invoke
+            with self.subTest(kind=kind), self.assertRaises(adapter.AdapterError) as raised:
+                f.runtime.route(f.sdk.mac, 100)
+            self.assertEqual(raised.exception.args, (category,))
+            snapshot = f.runtime.failure_snapshot()
+            self.assertEqual((snapshot['operation'], snapshot['boundary'], snapshot['cause'],
+                snapshot['category'], snapshot['returncode']),
+                ('route', 'response' if kind == 'worker' else 'runner', cause, category, code))
+            self.assertEqual(snapshot['deadline_ns'], 100_000_000_000)
+            self.assertEqual(snapshot['entry_allowance_ns'], 90_000_000_000)
+            self.assertEqual(snapshot['elapsed_ns'], 90_000_000_000)
+            self.assertTrue(snapshot['timing_valid'] and snapshot['deadline_expired'])
+            self.assertEqual(f.runtime.clock.last, 10)
+            self.assertEqual(calls, [90])
+            self.assertTrue(f.runtime.assert_idle())
+            self.assertNotIn('SECRET', json.dumps(snapshot))
+            self.assertNotIn(f.sdk.mac, json.dumps(snapshot))
+
+    def test_invalid_or_missing_worker_result_stays_generic_and_private(self):
+        results = (None, SimpleNamespace(returncode=1, stdout=b'SECRET_BAD_JSON', stderr=b''),
+            SimpleNamespace(returncode=1, stdout=b'{"ok":false,"closed":false,"category":"SECRET"}',
+                stderr=b'SECRET_STDERR'))
+        for result in results:
+            f = self.fixture()
+            calls = []
+            def invoke(*args, **kwargs):
+                calls.append(True)
+                return result
+            f.runtime.runner = invoke
+            with self.subTest(result_type=type(result).__name__), self.assertRaises(adapter.AdapterError) as raised:
+                f.runtime.route(f.sdk.mac, 100)
+            self.assertEqual(raised.exception.args, ('rom_operation_failed',))
+            snapshot = f.runtime.failure_snapshot()
+            self.assertEqual(snapshot['boundary'], 'response')
+            self.assertEqual(snapshot['cause'], 'response_invalid')
+            self.assertEqual(snapshot['returncode'], 1 if result is results[-1] else None)
+            self.assertEqual(snapshot['category'], 'rom_operation_failed')
+            self.assertNotIn('SECRET', json.dumps(snapshot))
+            self.assertEqual(calls, [True])
+            self.assertTrue(f.runtime.assert_idle())
+
+    def test_first_snapshot_survives_later_failure_and_caller_mutation(self):
+        f = self.fixture()
+        f.runner_fault = 'timeout'
+        with self.assertRaises(adapter.AdapterError):
+            f.runtime.route(f.sdk.mac, 100)
+        original = f.runtime.failure_snapshot()
+        changed = f.runtime.failure_snapshot()
+        changed['category'] = 'SECRET'
+        f.runner_fault = None
+        def other(*args, **kwargs):
+            raise RuntimeError('SECRET_OTHER_FAILURE')
+        f.runtime.runner = other
+        with self.assertRaises(adapter.AdapterError):
+            f.runtime.route(f.sdk.mac, 100)
+        self.assertEqual(f.runtime.failure_snapshot(), original)
+        self.assertTrue(f.runtime.assert_idle())
+
+    def test_diagnostic_clock_failure_never_replaces_worker_category_or_updates_clock(self):
+        for fault in ('rollback', 'source'):
+            f = self.fixture()
+            def invoke(*args, **kwargs):
+                if fault == 'rollback':
+                    f.clock.value = 9
+                else:
+                    f.runtime.clock.clock = lambda: (_ for _ in ()).throw(OSError('SECRET_CLOCK'))
+                return SimpleNamespace(returncode=1, stdout=json.dumps(
+                    {'ok': False, 'closed': False, 'category': 'deadline_expired'}).encode(), stderr=b'')
+            f.runtime.runner = invoke
+            with self.subTest(fault=fault), self.assertRaises(adapter.AdapterError) as raised:
+                f.runtime.route(f.sdk.mac, 100)
+            self.assertEqual(raised.exception.args, ('deadline_expired',))
+            snapshot = f.runtime.failure_snapshot()
+            self.assertEqual((snapshot['cause'], snapshot['category']), ('worker_nonzero', 'deadline_expired'))
+            self.assertFalse(snapshot['timing_valid'])
+            self.assertIsNone(snapshot['elapsed_ns'])
+            self.assertIsNone(snapshot['deadline_expired'])
+            self.assertEqual(f.runtime.clock.last, 10)
+            self.assertTrue(f.runtime.assert_idle())
+
+    def test_success_has_no_failure_and_post_return_expiry_retains_original_guard(self):
+        f = self.fixture()
+        self.assertEqual(f.runtime.route(f.sdk.mac, 100), 'COM19')
+        self.assertIsNone(f.runtime.failure_snapshot())
+        f = self.fixture()
+        f.runner_fault = 'late'
+        with self.assertRaises(controller.ControllerError) as raised:
+            f.runtime.route(f.sdk.mac, 100)
+        self.assertEqual(raised.exception.args, ('deadline_expired',))
+        snapshot = f.runtime.failure_snapshot()
+        self.assertEqual((snapshot['boundary'], snapshot['cause'], snapshot['category']),
+            ('postcheck', 'host_guard', 'deadline_expired'))
+        self.assertTrue(snapshot['deadline_expired'])
+        self.assertTrue(f.runtime.assert_idle())
+
+    def test_failure_snapshot_validator_is_exact_and_never_formats_private_objects(self):
+        f = self.fixture()
+        f.runner_fault = 'timeout'
+        with self.assertRaises(adapter.AdapterError):
+            f.runtime.route(f.sdk.mac, 100)
+        original = f.runtime.failure_snapshot()
+        class Poison:
+            def __str__(self):
+                raise AssertionError('private value was formatted')
+        corruptions = ({'operation': 'SECRET'}, {'boundary': 'SECRET'}, {'cause': 'SECRET'},
+            {'category': 'SECRET'}, {'returncode': True}, {'returncode': 1 << 40},
+            {'elapsed_ns': -1}, {'deadline_ns': float('nan')},
+            {'deadline_expired': 'SECRET'}, {'timing_valid': 1}, {'extra': Poison()})
+        for fields in corruptions:
+            with self.subTest(fields=tuple(fields)), self.assertRaises(adapter.AdapterError):
+                adapter.validate_rom_failure_snapshot(dict(original, **fields))
+        projected = adapter.validate_rom_failure_snapshot(original)
+        original['operation'] = 'SECRET'
+        self.assertEqual(projected['operation'], 'route')
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

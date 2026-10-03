@@ -24,7 +24,7 @@ from enrollment_candidate_custody import (ACTIVE, Budget, CustodyResult, validat
     validate_grant, execute, recover, Error as CustodyError)
 from enrollment_candidate_operator import (CandidateOperator, CheckpointUI, CapturedReferences,
     OperatorError, PROGRESS_PHASES, QUERY_BOUNDARIES)
-from enrollment_candidate_rom_adapter import Runtime, HardwareLease, ROMBackend, DeviceProfile, opaque_identity, identity, AdapterError
+from enrollment_candidate_rom_adapter import Runtime, HardwareLease, ROMBackend, DeviceProfile, opaque_identity, identity, AdapterError, validate_rom_failure_snapshot
 from enrollment_candidate_usb_client import (ClientError, NO_ARGUMENTS, HEX_ARGUMENTS,
     validate_query_snapshot, validate_startup_snapshot)
 from enrollment_candidate_runtime import RuntimeErrorFixed
@@ -524,6 +524,16 @@ class _Events:
         return True
 
 
+def _rom_failure(runtime):
+    """Observation only: invalid or unavailable diagnostics cannot change custody."""
+    try:
+        snapshot = getattr(runtime, 'failure_snapshot', None)
+        value = snapshot() if snapshot is not None else None
+        return None if value is None else validate_rom_failure_snapshot(value)
+    except BaseException:
+        return None
+
+
 def _category(error):
     if type(error) in (RunnerError, RuntimeErrorFixed, ControllerError, CustodyError,
                         OperatorError, AdapterError, ClientError, CaptureError):
@@ -764,6 +774,7 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
         'first_failure': first, 'runner_failure': fault, 'cleanup_failure': cleanup_fault,
         'custody': _safe_custody(custody),
         'owner_observed': owner, 'lease_released': released,
+        'rom_failure': _rom_failure(runtime),
         'events': descriptor(regular(events.path).read_bytes()) if events is not None else None}
     restoration_failures = {role: dict(backend.restoration_failure)
         for role, backend in backends.items() if backend.restoration_failure is not None}

@@ -57,10 +57,16 @@ preserves all removed summaries and superseded sequencing; see the
    ACK and custody/lease closure without cleanup failure or recovery. The
    [enrollment startup preparation](../docs/testing/OT-0238c-ENROLLMENT-STARTUP-2026-10-03.md)
    now passes the affected host matrix and additive v9 package admission with
-   immediate per-role startup probes and fresh enrollment leases. Next: fresh
-   owner readiness and exact authorization for the prepared first-enrollment case.
-   No repeat startup-only test is proposed. Prior cause remains unproven. First enrollment and remaining
-   target lifecycle/security acceptance stay open. OT-0168b reset composition
+   immediate per-role startup probes and fresh enrollment leases. The
+   [v9 first-case trial](../tests/hardware/OT-0238c-FIRST-V9-2026-10-03.md) stopped
+   at B boot before enrollment; both originals and resources are verified closed,
+   but the final visual ACK is absent. The underlying cause remains unproven.
+   [Host ROM attribution](../docs/testing/OT-0238c-ROM-FAILURE-DIAGNOSTICS-2026-10-03.md)
+   passes 352 tests without changing guards or ceilings. Next: independently
+   bind a successor runtime and reconcile the full preparation/boot workload with
+   existing limits before seeking fresh exact physical authorization. No consumed
+   plan replay. First enrollment and target lifecycle/security acceptance stay open.
+   OT-0168b reset composition
    is implemented and owner-accepted; OT-0168c owns physical gates.
 2. Close only the remaining applicable eight-gate evidence: retained restart/rekey,
    exact-target entropy and interrupted persistence, complete reset/recovery,

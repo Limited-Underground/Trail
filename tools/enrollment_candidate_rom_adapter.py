@@ -39,6 +39,63 @@ def need(value, category='rom_adapter_refused'):
         raise AdapterError(category)
 
 
+
+ROM_FAILURE_OPERATIONS = frozenset(('route', 'guard', 'read', 'guarded_read', 'write',
+    'hold_rom', 'boot_candidate', 'restart_candidate', 'reset_original', 'unknown'))
+ROM_FAILURE_BOUNDARIES = {
+    'subprocess_timeout': frozenset(('runner',)),
+    'runner_exception': frozenset(('runner',)),
+    'worker_nonzero': frozenset(('response',)),
+    'response_invalid': frozenset(('response',)),
+    'host_exception': frozenset(('verify', 'encode')),
+    'host_guard': frozenset(('precheck', 'runner', 'postcheck'))}
+ROM_FAILURE_FIELDS = frozenset(('schema', 'operation', 'boundary', 'cause', 'category',
+    'deadline_ns', 'entry_allowance_ns', 'elapsed_ns', 'timing_valid', 'deadline_expired', 'returncode'))
+MAX_DIAGNOSTIC_NS = 0x7fffffffffffffff
+
+
+@dataclass(frozen=True, repr=False)
+class ROMFailureSnapshot:
+    operation: str
+    boundary: str
+    cause: str
+    category: str
+    deadline_ns: int | None
+    entry_allowance_ns: int | None
+    elapsed_ns: int | None
+    timing_valid: bool
+    deadline_expired: bool | None
+    returncode: int | None
+
+
+def validate_rom_failure_snapshot(value):
+    """Exact public projection; arbitrary native output never crosses it."""
+    need(type(value) is dict and set(value) == ROM_FAILURE_FIELDS)
+    need(type(value['schema']) is str and value['schema'] == 'OT-CANDIDATE-ROM-FAILURE-1'
+         and type(value['operation']) is str and value['operation'] in ROM_FAILURE_OPERATIONS
+         and type(value['cause']) is str and value['cause'] in ROM_FAILURE_BOUNDARIES
+         and type(value['boundary']) is str
+         and value['boundary'] in ROM_FAILURE_BOUNDARIES[value['cause']]
+         and type(value['category']) is str and value['category'] in WORKER_FAILURE_CATEGORIES)
+    for name in ('deadline_ns', 'entry_allowance_ns', 'elapsed_ns'):
+        need(value[name] is None or (type(value[name]) is int and 0 <= value[name] <= MAX_DIAGNOSTIC_NS))
+    need(type(value['timing_valid']) is bool
+         and (value['deadline_expired'] is None or type(value['deadline_expired']) is bool)
+         and (value['returncode'] is None or (type(value['returncode']) is int
+             and -(1 << 31) <= value['returncode'] < (1 << 31))))
+    need((value['timing_valid'] and all(value[name] is not None for name in
+          ('deadline_ns', 'entry_allowance_ns', 'elapsed_ns', 'deadline_expired')))
+         or (not value['timing_valid'] and value['elapsed_ns'] is None and value['deadline_expired'] is None))
+    return dict(value)
+
+
+def _diagnostic_ns(value):
+    if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+        return None
+    scaled = value * 1000000000
+    return int(scaled) if math.isfinite(scaled) and scaled <= MAX_DIAGNOSTIC_NS else None
+
+
 def identity(value):
     need(type(value) is str and re.fullmatch(
         r'(?:[0-9a-fA-F]{12}|[0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5}|[0-9a-fA-F]{2}(?:-[0-9a-fA-F]{2}){5})', value))
@@ -393,6 +450,7 @@ class Runtime:
         need(type(manifest_sha256) is str and re.fullmatch('[0-9a-f]{64}', manifest_sha256))
         self.runner, self.verifier, self.clock = subprocess_run, manifest_verifier, Clock(monotonic)
         self._active, self._lock = False, threading.Lock()
+        self._first_failure = None
 
     def verify(self, deadline):
         self.clock.check(deadline)
@@ -434,11 +492,49 @@ class Runtime:
         self.clock.check(deadline)
         return serial.Serial, ports.comports
 
+    def failure_snapshot(self):
+        """A defensive public copy of the first failure, with no authority."""
+        value = self._first_failure
+        return None if value is None else validate_rom_failure_snapshot(
+            dict(schema='OT-CANDIDATE-ROM-FAILURE-1', **vars(value)))
+
+    def _remember_failure(self, payload, deadline, boundary, cause, error, started, allowance, code):
+        if self._first_failure is not None:
+            return
+        try:
+            operation = payload.get('operation') if type(payload) is dict else None
+            operation = operation if type(operation) is str and operation in ROM_FAILURE_OPERATIONS else 'unknown'
+            category = 'rom_operation_failed'
+            if (type(error) in (AdapterError, ControllerError) and len(error.args) == 1
+                    and type(error.args[0]) is str and error.args[0] in WORKER_FAILURE_CATEGORIES):
+                category = error.args[0]
+            # Observe the issuing clock after deciding the failure. Never update
+            # Clock.last, perform a deadline check, or replace the original error.
+            try:
+                sampled = self.clock.clock()
+            except BaseException:
+                sampled = None
+            elapsed = (_diagnostic_ns(sampled - started) if started is not None
+                and type(sampled) in (int, float) and math.isfinite(sampled)
+                and sampled >= started and sampled >= self.clock.last else None)
+            deadline_ns, allowance_ns = _diagnostic_ns(deadline), _diagnostic_ns(allowance)
+            valid = elapsed is not None and deadline_ns is not None and allowance_ns is not None
+            self._first_failure = ROMFailureSnapshot(operation, boundary, cause, category,
+                deadline_ns, allowance_ns, elapsed if valid else None, valid,
+                sampled >= deadline if valid else None, code)
+        except BaseException:
+            # Diagnostic failure cannot grant, retry, or alter operation outcome.
+            pass
+
     def invoke(self, payload, deadline):
         need(self._lock.acquire(blocking=False), 'runtime_busy')
+        started, allowance, code = None, None, None
+        boundary, cause = 'precheck', 'host_guard'
         try:
             self.clock.check(deadline)
+            boundary, cause = 'verify', 'host_exception'
             manifest = self.verify(deadline)
+            boundary, cause = 'encode', 'host_exception'
             query = dict(payload, manifest=manifest, deadline=deadline,
                          schema='OT-CANDIDATE-ROM-WORKER-1')
             if payload.get('mode') == 'capture-only':
@@ -448,24 +544,37 @@ class Runtime:
             env = {k: v for k, v in os.environ.items() if not k.upper().startswith(('PYTHON', 'ESPTOOL_'))}
             env['ESPTOOL_CFGFILE'] = str(Path(manifest['root']) / 'esptool.cfg')
             self._active = True
-            remaining = deadline - self.clock.now()
+            boundary, cause = 'runner', 'host_guard'
+            started = self.clock.now()
+            remaining = deadline - started
+            allowance = remaining
             need(remaining > 0, 'deadline_expired')
+            cause = 'runner_exception'
             try:
                 result = self.runner([str(Path(manifest['root']) / 'python.exe'), '-I', '-S', '-B', '-c', WORKER],
                     input=raw, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=remaining,
                     check=False, cwd=manifest['root'], env=env)
-            except BaseException:
+            except BaseException as error:
+                if type(error) is subprocess.TimeoutExpired:
+                    cause = 'subprocess_timeout'
                 raise AdapterError('rom_operation_failed') from None
+            boundary, cause = 'response', 'response_invalid'
             need(type(result.stdout) is bytes and len(result.stdout) <= 1100000
                  and type(result.stderr) is bytes and len(result.stderr) <= 1048576)
             answer = json.loads(result.stdout)
-            if result.returncode != 0:
+            returncode = result.returncode
+            if type(returncode) is int and -(1 << 31) <= returncode < (1 << 31):
+                code = returncode
+            if returncode != 0:
                 need(type(answer) is dict and set(answer) == {'ok', 'closed', 'category'}
                      and answer['ok'] is False and answer['closed'] is False
                      and type(answer['category']) is str and answer['category'] in WORKER_FAILURE_CATEGORIES,
                      'rom_operation_failed')
+                cause = 'worker_nonzero'
                 raise AdapterError(answer['category'])
+            boundary, cause = 'postcheck', 'host_guard'
             self.clock.check(deadline)
+            boundary, cause = 'response', 'response_invalid'
             op = payload['operation']
             keys = {'ok', 'closed', 'route'} if op == 'route' else \
                 {'ok', 'closed', 'admission', 'post_admission', 'data'} if op == 'guarded_read' else \
@@ -486,9 +595,11 @@ class Runtime:
                     raw = base64.b64decode(answer['data'], validate=True)
                     need(payload.get('span') in SPANS and len(raw) == SPANS[payload['span']][1])
             return answer
-        except (AdapterError, ControllerError):
+        except (AdapterError, ControllerError) as error:
+            self._remember_failure(payload, deadline, boundary, cause, error, started, allowance, code)
             raise
-        except BaseException:
+        except BaseException as error:
+            self._remember_failure(payload, deadline, boundary, cause, error, started, allowance, code)
             raise AdapterError('rom_operation_failed') from None
         finally:
             self._active = False
