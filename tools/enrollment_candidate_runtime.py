@@ -18,6 +18,7 @@ import sys
 import time
 
 SOURCE_NAMES = ('enrollment_candidate_runtime.py', 'enrollment_candidate_runner.py',
+    'enrollment_candidate_capture_runner.py', 'enrollment_candidate_original_capture.py',
     'enrollment_candidate_private_view.py', 'enrollment_candidate_operator.py',
     'enrollment_candidate_rom_adapter.py', 'enrollment_candidate_controller.py',
     'enrollment_candidate_custody.py', 'enrollment_candidate_usb_client.py',
@@ -245,38 +246,46 @@ def launch(assembly_path, assembly_sha256, mode, package_path=None, package_sha2
            subprocess_run=subprocess.run, monotonic=time.monotonic, utc=time.time,
            assembly_verifier=verify_assembly):
     """Launch the actual artifact; this function never accesses devices itself."""
-    need(mode in ('help', 'preflight', 'execute', 'recover'), 'mode_invalid')
+    need(mode in ('help', 'preflight', 'execute', 'recover',
+        'capture-help', 'capture-preflight', 'capture', 'release'), 'mode_invalid')
+    capture_mode = mode in ('capture-help', 'capture-preflight', 'capture', 'release')
     from enrollment_candidate_controller import Clock
     clock = Clock(monotonic)
     start = clock.now()
     assembly = assembly_verifier(assembly_path, assembly_sha256)
     args = [str(assembly.root / 'python.exe'), '-I', '-S', '-B',
-            str(assembly.root / 'policy/enrollment_candidate_runner.py')]
+            str(assembly.root / ('policy/enrollment_candidate_capture_runner.py'
+                if capture_mode else 'policy/enrollment_candidate_runner.py'))]
     timeout = 120.0
     ceiling = start + timeout
-    if mode == 'help':
+    if mode in ('help', 'capture-help'):
         need(package_path is None and package_sha256 is None, 'package_invalid')
         args += ['--help']
     else:
         args += ['--mode', mode, '--assembly', str(assembly.assembly_path),
                  '--assembly-sha256', assembly.assembly_sha256]
         if package_path is not None:
-            from enrollment_candidate_runner import preflight
+            if capture_mode:
+                from enrollment_candidate_capture_runner import preflight
+            else:
+                from enrollment_candidate_runner import preflight
             prepared = preflight(package_path, package_sha256, utc=utc, monotonic=monotonic,
                                  assembly_verifier=assembly_verifier)
             need(prepared.assembly.assembly_sha256 == assembly.assembly_sha256, 'assembly_invalid')
             args += ['--package', str(prepared.package_path), '--package-sha256', prepared.package_sha256]
-            if mode in ('execute', 'recover'):
+            if mode in ('execute', 'recover', 'capture', 'release'):
                 need(mode == prepared.operation, 'mode_invalid')
-                clock.check(prepared.restore_deadline)
-                remaining = prepared.restore_deadline - clock.now()
+                restoration = prepared.cleanup_deadline if capture_mode else prepared.restore_deadline
+                execution = prepared.capture_deadline if capture_mode else prepared.execute_deadline
+                clock.check(restoration)
+                remaining = restoration - clock.now()
                 need(remaining > 0, 'deadline_expired')
                 timeout = remaining
-                ceiling = prepared.restore_deadline
-                args += ['--execute-deadline', str(prepared.execute_deadline),
-                         '--restore-deadline', str(prepared.restore_deadline)]
+                ceiling = restoration
+                args += [('--capture-deadline' if capture_mode else '--execute-deadline'), str(execution),
+                         ('--cleanup-deadline' if capture_mode else '--restore-deadline'), str(restoration)]
         else:
-            need(mode == 'preflight' and package_sha256 is None, 'package_invalid')
+            need(mode in ('preflight', 'capture-preflight') and package_sha256 is None, 'package_invalid')
     env = {k: v for k, v in os.environ.items() if not k.upper().startswith(('PYTHON', 'ESPTOOL_'))}
     env['ESPTOOL_CFGFILE'] = str(assembly.root / 'esptool.cfg')
     try:
@@ -288,19 +297,22 @@ def launch(assembly_path, assembly_sha256, mode, package_path=None, package_sha2
         clock.check(ceiling)
         need(type(result.stdout) is bytes and len(result.stdout) <= 32768
             and type(result.stderr) is bytes and len(result.stderr) <= 32768, 'child_refused')
-        if mode == 'help':
+        if mode in ('help', 'capture-help'):
             need(result.returncode == 0, 'child_refused')
-            return {'schema': 'OT-CANDIDATE-LAUNCH-1', 'mode': 'help', 'outcome': 'available'}
+            return {'schema': 'OT-ORIGINAL-CAPTURE-LAUNCH-1' if capture_mode else 'OT-CANDIDATE-LAUNCH-1',
+                    'mode': mode, 'outcome': 'available'}
         answer = decode(result.stdout)
         from enrollment_candidate_runner import PUBLIC_CATEGORIES
         need(type(answer) is dict and set(answer) == {'schema', 'mode', 'outcome', 'category'}
-            and answer['schema'] == 'OT-CANDIDATE-LAUNCH-1' and answer['mode'] == mode
-            and answer['outcome'] in ({'ready', 'failed', 'held'} if mode == 'preflight' else
-                {'passed', 'failed', 'held'} if mode == 'execute' else {'recovered', 'failed', 'held'})
+            and answer['schema'] == ('OT-ORIGINAL-CAPTURE-LAUNCH-1' if capture_mode else 'OT-CANDIDATE-LAUNCH-1')
+            and answer['mode'] == mode
+            and answer['outcome'] in ({'ready', 'failed', 'held'} if mode in ('preflight', 'capture-preflight') else
+                {'passed', 'failed', 'held'} if mode in ('execute', 'capture') else
+                {'released', 'failed', 'held'} if mode == 'release' else {'recovered', 'failed', 'held'})
             and (answer['category'] is None or (type(answer['category']) is str
                 and answer['category'] in PUBLIC_CATEGORIES)), 'child_refused')
         need(answer['outcome'] not in ('ready', 'passed') or answer['category'] is None, 'child_refused')
-        need((result.returncode == 0) == (answer['outcome'] in ('ready', 'passed', 'recovered')), 'child_refused')
+        need((result.returncode == 0) == (answer['outcome'] in ('ready', 'passed', 'recovered', 'released')), 'child_refused')
         return answer
     except RuntimeErrorFixed:
         raise

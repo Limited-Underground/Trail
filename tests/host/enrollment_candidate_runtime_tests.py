@@ -83,6 +83,38 @@ class RuntimeTests(unittest.TestCase):
         return SimpleNamespace(returncode=returncode, stdout=encoded({'schema': 'OT-CANDIDATE-LAUNCH-1',
             'mode': mode, 'outcome': outcome, 'category': category}), stderr=b'')
 
+    def test_capture_launcher_has_distinct_entrypoint_schema_and_fixed_deadline_arguments(self):
+        from enrollment_candidate_capture_runner_tests import Fixture
+        f = Fixture(); self.addCleanup(f.cleanup)
+        calls = []
+        def child(argv, **kwargs):
+            calls.append((argv, kwargs))
+            return SimpleNamespace(returncode=1, stdout=encoded({'schema': 'OT-ORIGINAL-CAPTURE-LAUNCH-1',
+                'mode': 'capture', 'outcome': 'failed', 'category': 'handoff_invalid'}), stderr=b'')
+        result = runtime.launch(f.assembly.assembly_path, f.assembly.assembly_sha256, 'capture',
+            f.capture_package_path, f.capture_package_sha, subprocess_run=child,
+            monotonic=f.clock, utc=f.utc)
+        self.assertEqual(result['category'], 'handoff_invalid')
+        argv, kwargs = calls[0]
+        self.assertEqual(argv[4], str(f.assembly.root / 'policy/enrollment_candidate_capture_runner.py'))
+        self.assertIn('--capture-deadline', argv)
+        self.assertIn('--cleanup-deadline', argv)
+        self.assertLessEqual(float(argv[argv.index('--capture-deadline') + 1]), 102)
+        self.assertLessEqual(float(argv[argv.index('--cleanup-deadline') + 1]), 202)
+        self.assertLessEqual(kwargs['timeout'], 200)
+        self.assertEqual(kwargs['stdin'], subprocess.DEVNULL)
+        self.assertEqual(f.factory_calls, [])
+        # An otherwise plausible candidate-family response cannot satisfy the
+        # capture family's protocol, and preflight/help never compose hardware.
+        with self.assertRaisesRegex(runtime.RuntimeErrorFixed, '^child_refused$'):
+            runtime.launch(f.assembly.assembly_path, f.assembly.assembly_sha256, 'capture-preflight',
+                subprocess_run=lambda *a, **k: self.child(mode='capture-preflight'), monotonic=f.clock)
+        available = runtime.launch(f.assembly.assembly_path, f.assembly.assembly_sha256, 'capture-help',
+            subprocess_run=lambda *a, **k: SimpleNamespace(returncode=0, stdout=b'help', stderr=b''),
+            monotonic=f.clock)
+        self.assertEqual(available, {'schema': 'OT-ORIGINAL-CAPTURE-LAUNCH-1',
+            'mode': 'capture-help', 'outcome': 'available'})
+
     def test_actual_import_is_inert_and_decoder_rejects_ambiguous_records(self):
         original = builtins.__import__
         def imported(name, *args, **kwargs):

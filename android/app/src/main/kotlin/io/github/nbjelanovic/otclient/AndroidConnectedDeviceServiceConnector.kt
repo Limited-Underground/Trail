@@ -28,14 +28,23 @@ class AndroidConnectedDeviceServiceConnector(private val context: Context) : Con
         }
     }
 
-    override fun bind(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? {
+    override fun bind(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? =
+        bindWithFlags(Context.BIND_AUTO_CREATE, observer)
+
+    override fun bindExisting(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? =
+        bindWithFlags(0, observer)
+
+    private fun bindWithFlags(
+        flags: Int,
+        observer: (ConnectedDeviceServiceConnection) -> Unit,
+    ): ConnectedDeviceServiceBinding? {
         if (activeBinding != null) return null
         val binding = AndroidBinding(observer)
         val accepted = try {
             appContext.bindService(
                 Intent(appContext, TrailConnectedDeviceService::class.java),
                 binding.connection,
-                Context.BIND_AUTO_CREATE,
+                flags,
             )
         } catch (_: SecurityException) {
             false

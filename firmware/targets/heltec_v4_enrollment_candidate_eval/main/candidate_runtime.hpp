@@ -2,6 +2,7 @@
 #include <optional>
 #include "candidate_nvs_storage.hpp"
 #include "candidate_usb_codec.hpp"
+#include "startup_diagnostic_port.hpp"
 #include "heltec_enrollment_input_arbiter.hpp"
 #include "opentrail/enrollment_candidate_reset.hpp"
 #include "opentrail/enrollment_session_review_device_port.hpp"
@@ -17,7 +18,7 @@ public:
     using Display=heltec_v4_bench::StartupDisplayOwner;
     CandidateRuntime(Display&,Input&,security::SecureRandomSource&,CandidateNvsStorage&,
         companion::DeviceFactoryResetMarkerPort&,companion::DeviceFactoryResetUserDomainPort&,
-        companion::DeviceFactoryResetBondDomainPort&);
+        companion::DeviceFactoryResetBondDomainPort&,StartupDiagnosticPort diagnostics={});
     ~CandidateRuntime();
     CandidateRuntime(const CandidateRuntime&)=delete;
     CandidateRuntime& operator=(const CandidateRuntime&)=delete;
@@ -34,7 +35,7 @@ private:
     using Device=security_evaluation::EnrollmentSessionReviewDevicePort<Input>;
     companion::DeviceNameAuthority current() noexcept override;
     bool begin(unsigned,unsigned,std::uint64_t);
-    bool tick();
+    bool tick(bool startup=false);
     bool dispatch();
     bool enter();
     bool finish(bool);
@@ -46,6 +47,7 @@ private:
     companion::SelectedEnrollmentRequestOwner request_{};
     companion::DeviceNameContext context_{};
     security_evaluation::EnrollmentCandidateReset reset_;
+    StartupDiagnosticPort diagnostics_{};
     std::optional<Device> device_;std::optional<Session> session_;
     Output line_{};std::size_t line_size_{};
     std::uint64_t last_us_{},next_request_{},preemptions_{};

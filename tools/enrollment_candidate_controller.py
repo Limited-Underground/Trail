@@ -10,11 +10,11 @@ import re
 import secrets
 import time
 
-from enrollment_candidate_usb_client import ClientError
+from enrollment_candidate_usb_client import ClientError, Reply, validate_startup_snapshot
 
 ROLES = ('A', 'B')
 CASES = frozenset(('first', 'retained_rekey', 'recovery_after_A_commit',
-                  'recovery_after_B_commit', 'cancel', 'revoke', 'reset_preparation'))
+                  'recovery_after_B_commit', 'cancel', 'revoke', 'reset_preparation', 'startup_A'))
 
 
 class ControllerError(RuntimeError):
@@ -24,6 +24,14 @@ class ControllerError(RuntimeError):
 def need(value, category):
     if not value:
         raise ControllerError(category)
+
+
+def sampled_duration_ns(seconds):
+    """Bound existing clock deltas without affecting an owned rejection."""
+    if type(seconds) not in (int, float) or math.isnan(seconds):
+        return None
+    seconds = max(0, seconds)
+    return 0x7fffffffffffffff if seconds >= 0x7fffffffffffffff / 1e9 else int(seconds * 1e9)
 
 
 class Clock:
@@ -60,6 +68,14 @@ class TrialResult:
 
 
 @dataclass(frozen=True)
+class StartupResult:
+    role: str
+    generation: int
+    first_failure: tuple | None
+    handles_closed: bool
+
+
+@dataclass(frozen=True)
 class CheckpointAck:
     schema: str
     kind: str
@@ -76,11 +92,13 @@ class Controller:
         self.record, self.notify = record, notify
         self.endpoints, self.all_endpoints, self.retired = {}, [], set()
         self.used, self.running = False, False
+        self.preparation_started = False
         self.stage, self.first_failure = 'not_started', None
         self.transfers, self.generations, self.checkpoints = 0, 0, 0
         self.refusals, self.seen_tokens = [], set()
         self._checkpoint_phase = None
         self._close_attempted, self._close_uncertain = set(), False
+        self.startup_observation = None
 
     def _event(self, event, deadline):
         self.clock.check(deadline)
@@ -91,28 +109,111 @@ class Controller:
 
     def _send(self, role, command, deadline):
         self.stage = command.split(' ', 1)[0].lower() + '_' + role
+        if self.startup_observation is not None:
+            self.startup_observation['controller_boundary'] = 'precheck'
         self.clock.check(deadline)
+        if self.startup_observation is not None:
+            self.startup_observation['controller_boundary'] = 'endpoint'
         result = self.endpoints[role].exchange(command, deadline)
+        if self.startup_observation is not None:
+            self.startup_observation['controller_boundary'] = 'postcheck'
         self.clock.check(deadline)
+        if self.startup_observation is not None:
+            self.startup_observation['controller_boundary'] = 'returned'
         return result
 
     def _value(self, role, command, deadline):
         return self._send(role, command, deadline).values[0]
 
-    def _open(self, deadline):
+    def _open(self, deadline, *, roles=ROLES, hello=True):
         need(self.assert_idle(), 'handles_not_closed')
         self.generations += 1
         self.endpoints, self.retired = {}, set()
-        for role in ROLES:
+        for role in roles:
+            startup = self.clock.ceiling(deadline, 60) if hello else deadline
             self.stage = 'open_' + role
             self.clock.check(deadline)
-            endpoint = self.factory(role, self.generations, deadline)
+            endpoint = self.factory(role, self.generations, startup)
             need(endpoint is not None and endpoint not in self.all_endpoints
                  and callable(endpoint.exchange) and callable(endpoint.close), 'endpoint_invalid')
             self.endpoints[role] = endpoint
             self.all_endpoints.append(endpoint)
             self.clock.check(deadline)
-            self._send(role, 'HELLO', deadline)
+            if hello:
+                self.clock.check(startup)
+                # An operation lease is a fresh admission. A prior closed boot
+                # probe supplies no authorization and its replay has ended.
+                reply = self._send(role, 'HELLO', self.clock.ceiling(startup, 5))
+                need(type(reply) is Reply and reply.kind == 'READY' and reply.values == ('1',),
+                     'reply_invalid')
+                reply = self._send(role, 'BOOTSTATUS', self.clock.ceiling(startup, 5))
+                need(type(reply) is Reply and reply.kind == 'BOOTSTATUS' and reply.values == ('0',),
+                     'reply_invalid')
+
+    def _startup(self, deadline, *, role='A', generation=1):
+        """One diagnostic lease; never starts enrollment or sends wire cleanup."""
+        startup = self.clock.ceiling(deadline, 60)
+        sampled_start = self.clock.last
+        self.startup_observation = dict(shared_allowance_ns=sampled_duration_ns(startup - sampled_start),
+            open_sampled_elapsed_ns=0, open_returned=False, hello_allowance_ns=None,
+            controller_boundary='not_entered')
+        try:
+            self._open(startup, roles=(role,), hello=False)
+            self.startup_observation['open_returned'] = True
+        finally:
+            # Existing authority samples only. This is a sampled lower bound
+            # if opening raises before its final check, not a physical timer.
+            self.startup_observation['open_sampled_elapsed_ns'] = sampled_duration_ns(
+                self.clock.last - sampled_start)
+        self.stage = 'boot_observation_' + role
+        self.clock.check(startup)
+        observer = getattr(self.endpoints[role], 'observe_startup', None)
+        need(callable(observer), 'endpoint_invalid')
+        observation = validate_startup_snapshot(observer(startup))
+        need(observation['milestone'] in ('loop', 'stopped'), 'reply_invalid')
+        self.clock.check(startup)
+        hello_deadline = self.clock.ceiling(startup, 5)
+        self.startup_observation['hello_allowance_ns'] = sampled_duration_ns(
+            hello_deadline - self.clock.last)
+        try:
+            reply = self._send(role, 'HELLO', hello_deadline)
+        except ClientError as error:
+            # Only the exact owned refusal leaves inspection reachable on the
+            # existing terminal Endpoint. Timeout and other faults are close-only.
+            if type(error) is not ClientError or error.args != ('target_refused',):
+                raise
+            self.first_failure = ('hello_' + role, 'target_refused')
+            self.refusals.append((role, 'HELLO'))
+            hello_value = 'refused'
+        else:
+            need(type(reply) is Reply and reply.kind == 'READY' and reply.values == ('1',),
+                 'reply_invalid')
+            hello_value = 'ready'
+        self._event({'schema': 'OT-CANDIDATE-STARTUP-1', 'phase': 'hello',
+                     'role': role, 'generation': generation, 'value': hello_value}, hello_deadline)
+        self.stage = 'bootstatus_' + role
+        try:
+            query_deadline = self.clock.ceiling(startup, 5)
+            reply = self._send(role, 'BOOTSTATUS', query_deadline)
+            need(type(reply) is Reply and reply.kind == 'BOOTSTATUS'
+                 and reply.values in tuple((str(stage),) for stage in range(10)), 'reply_invalid')
+            stage = int(reply.values[0])
+        except BaseException as error:
+            if self.first_failure is None:
+                category = (str(error) if type(error) in (ClientError, ControllerError)
+                            else 'controller_operation_failed')
+                self.first_failure = (self.stage, category)
+            # Observation only, under the ORIGINAL total cap. No further wire
+            # operation follows a failed query, even if this record also fails.
+            self._event({'schema': 'OT-CANDIDATE-STARTUP-1', 'phase': 'bootstatus_failed',
+                         'role': role, 'generation': generation, 'value': 'failed'}, startup)
+            raise
+        # Stage zero is also exposed after firmware containment; it cannot undo
+        # a refused HELLO. READY with a nonzero stopped stage is contradictory.
+        if hello_value == 'ready' and stage != 0:
+            self.first_failure = ('bootstatus_' + role, 'reply_invalid')
+        self._event({'schema': 'OT-CANDIDATE-STARTUP-1', 'phase': 'bootstatus',
+                     'role': role, 'generation': generation, 'value': stage}, query_deadline)
 
     def _close_sessions(self, deadline):
         for role in ROLES:
@@ -209,7 +310,7 @@ class Controller:
         The custody owner calls this only after its independent six-span sweep,
         original restart and ROM-handle closure. There is no USB sampling here.
         """
-        need(self.used and not self.running and self.assert_idle(), 'handles_not_closed')
+        need((self.used or self.preparation_started) and not self.running and self.assert_idle(), 'handles_not_closed')
         return self._human('usual_screen', ROLES, None, deadline)
 
     def _begin(self, mode, group, deadline):
@@ -319,12 +420,15 @@ class Controller:
         try:
             need(case in CASES and type(group) is int and 0 < group < 1 << 64, 'case_invalid')
             self.clock.check(deadline)
-            self._open(deadline)
+            if case == 'startup_A':
+                self._startup(deadline)
+            else:
+                self._open(deadline)
             if case == 'cancel':
                 preparation, _ = self._begin(0, group, deadline)
                 self._send('A', 'CANCEL', preparation)
                 self.retired.add('A')
-            else:
+            elif case != 'startup_A':
                 activation = self._controls(0, group, deadline)
                 if case.startswith('recovery_after_'):
                     role = 'A' if case == 'recovery_after_A_commit' else 'B'
@@ -350,10 +454,12 @@ class Controller:
                         reply = self._send('A', 'RESETSTATUS', activation)
                         need(reply.values == ('3', '1'), 'reset_intent_unverified')
                         self.retired.add('A')
-            self._close_sessions(deadline)
+            if case != 'startup_A':
+                self._close_sessions(deadline)
         except BaseException as error:
             category = str(error) if isinstance(error, (ClientError, ControllerError)) else 'controller_operation_failed'
-            self.first_failure = (self.stage, category)
+            if self.first_failure is None:
+                self.first_failure = (self.stage, category)
         finally:
             closed = self.close() and self.assert_idle()
             if not closed and self.first_failure is None:

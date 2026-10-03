@@ -9,10 +9,13 @@ import tempfile
 import time
 import unittest
 from unittest.mock import patch
+from dataclasses import replace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
 import enrollment_candidate_custody as custody
 from enrollment_candidate_controller import TrialResult
+from enrollment_candidate_controller import ControllerError
+from enrollment_candidate_rom_adapter import AdapterError
 
 
 EXPECTED_SPANS = {
@@ -265,6 +268,12 @@ class Controller:
         self.failure = None
         self.advance = None
 
+    def startup_probe(self, role, generation, deadline):
+        self.log.append((role, 'startup_probe', generation, deadline))
+        if self.devices[role].mode != 'candidate' or not self.idle:
+            raise AssertionError('probe ran before boot or with open handles')
+        return custody.StartupResult(role, generation, None, True)
+
     def run(self, case, group, deadline):
         self.idle = False
         self.log.append(('controller', 'run', case, deadline))
@@ -361,6 +370,128 @@ class CustodyTests(unittest.TestCase):
         self.assertNotEqual(self.devices['A'].original['ota0_prefix'], b'\xff' * 16384)
         self.assertNotEqual(self.devices['A'].original['ota0_prefix'],
                             self.devices['B'].original['ota0_prefix'])
+
+    def test_startup_grant_names_only_A_mutation_and_pair_original_recovery(self):
+        self.request['case'] = 'startup_A'
+        expected = ['capture_both_six_spans', 'candidate_install_A',
+            'explicit_first_candidate_nvs_provision_A', 'candidate_boot_A',
+            'case:startup_A', 'startup_commands_A', 'restore_A_six_spans',
+            'verify_both_original_six_spans', 'original_boot_both']
+        self.assertEqual(custody.actions_for(self.request, 'execute'), expected)
+        raw, pin = self.grant()
+        self.assertEqual(custody.validate_grant(self.request, raw, pin, 'execute', lambda: 150)['actions'], expected)
+        forged = custody.decode(raw)
+        forged['actions'] = custody.actions_for(dict(self.request, case='first'), 'execute')
+        raw = custody.canonical(forged)
+        with self.assertRaisesRegex(custody.Error, '^grant_invalid$'):
+            custody.validate_grant(self.request, raw, digest(raw), 'execute', lambda: 150)
+
+    def test_startup_captures_pair_installs_only_A_and_sweeps_unmutated_B(self):
+        self.request['case'] = 'startup_A'
+        observed = []
+        def probe(case, group, deadline):
+            observed.append((self.devices['A'].mode, self.devices['B'].mode,
+                             self.backends['B'].assert_idle()))
+            self.log.append(('controller', 'run', case, deadline))
+            return TrialResult(case, 'passed', 'bootstatus_A', None, 0, 1, True, 0)
+        self.controller.run = probe
+        result = self.execute()
+        self.assert_restored(result)
+        self.assertEqual(observed, [('candidate', 'rom', True)])
+        self.assertEqual(result.observation, 'passed')
+        self.assertIsNone(result.first_failure)
+        self.assertFalse(self.events('write', 'B') or self.events('restore', 'B')
+                         or self.events('boot_candidate', 'B'))
+        self.assertTrue(self.events('boot_candidate', 'A'))
+        self.assertEqual([event[2] for event in self.events('restore', 'A')], list(EXPECTED_ORDER[:-1]))
+        first_write = self.log.index(self.events('write', 'A')[0])
+        self.assertTrue(all([event[2] for event in self.log[:first_write]
+            if event[0] == role and event[1] == 'read'].count(name) >= 2
+            for role in ('A', 'B') for name in EXPECTED_SPANS))
+        self.assertLess(self.log.index(self.events('close', 'B')[0]), first_write)
+        probe_index = self.log.index(self.events('run', 'controller')[0])
+        self.assertGreater(self.log.index(self.events('reset_original', 'B')[0]), probe_index)
+        state = custody.decode(custody.Journal(self.root, '1' * 32).file.read_bytes())
+        custody._validate_state(state, self.request, '1' * 32)
+        self.assertFalse(any(event.startswith('candidate_') or event.startswith('restore_') and
+            event.endswith('_intent') and event != 'restore_claim_intent' for event in state['roles']['B']['events']))
+
+    def test_startup_B_handle_closure_failure_prevents_A_install(self):
+        self.request['case'] = 'startup_A'
+        self.backends['B'].close_uncertain = True
+        result = self.execute()
+        self.assertEqual(result.first_failure, ('capture_B', 'rom_close_unconfirmed'))
+        self.assertFalse(self.events('write') or self.events('run', 'controller'))
+        self.assertFalse(result.custody_released)
+
+    def test_startup_result_cannot_claim_enrollment_or_unrelated_refusals(self):
+        valid = TrialResult('startup_A', 'passed', 'bootstatus_A', None, 0, 1, True, 0)
+        custody._trial_result(valid, 'startup_A')
+        first = TrialResult('first', 'passed', 'close_B', None, 8, 1, True, 4)
+        custody._trial_result(first, 'first')
+        with self.assertRaisesRegex(custody.Error, '^trial_result_invalid$'):
+            custody._trial_result(TrialResult('first', 'passed', 'bootstatus_A', None, 0, 1, True, 0), 'first')
+        failed = TrialResult('startup_A', 'failed', 'hello_A', ('hello_A', 'target_refused'),
+                             0, 1, True, 0, (('A', 'HELLO'),))
+        custody._trial_result(failed, 'startup_A')
+        from dataclasses import replace
+        for result in (replace(valid, status_transfers=1), replace(valid, generations=2),
+            replace(valid, checkpoints=1), replace(valid, refusals=(('A', 'HELLO'),)),
+            replace(failed, refusals=(('B', 'HELLO'),)), replace(failed, refusals=(('A', 'SENDSTATUS'),)),
+            replace(failed, first_failure=None)):
+            with self.subTest(result=result), self.assertRaisesRegex(custody.Error, '^trial_result_invalid$'):
+                custody._trial_result(result, 'startup_A')
+
+    def test_each_initial_probe_is_inside_durable_bridge_and_before_other_install(self):
+        original_probe = self.controller.startup_probe
+        states = []
+        def probe(role, generation, deadline):
+            state = custody.decode(custody.Journal(self.root, '1' * 32).file.read_bytes())
+            states.append((role, generation, state['bridge_open']))
+            self.assertTrue(state['bridge_open'])
+            self.assertTrue(state['roles'][role]['handles_closed'])
+            self.assertEqual(state['roles'][role]['events'][-1], 'candidate_boot_verified')
+            return original_probe(role, generation, deadline)
+        self.controller.startup_probe = probe
+        original_write = self.backends['B'].write
+        def write(offset, raw, deadline):
+            if raw != self.devices['B'].original[self.backends['B']._name(offset, len(raw))]:
+                state = custody.decode(custody.Journal(self.root, '1' * 32).file.read_bytes())
+                self.assertFalse(state['bridge_open'])
+                self.assertEqual(states, [('A', 1, True)])
+            return original_write(offset, raw, deadline)
+        self.backends['B'].write = write
+        result = self.execute()
+        self.assert_restored(result)
+        self.assertEqual(states, [('A', 1, True), ('B', 1, True)])
+        self.assertLess(self.log.index(self.events('startup_probe', 'A')[0]),
+                        self.log.index(self.events('write', 'B')[0]))
+        self.assertLess(self.log.index(self.events('startup_probe', 'B')[0]),
+                        self.log.index(self.events('run', 'controller')[0]))
+
+    def test_initial_probe_failure_before_main_preserves_cause_after_expiry(self):
+        expected = ('hello_A', 'target_refused')
+        def probe(role, generation, deadline):
+            self.clock.value = deadline + 1
+            return custody.StartupResult(role, generation, expected, True)
+        self.controller.startup_probe = probe
+        result = self.execute()
+        self.assert_restored(result)
+        self.assertEqual(result.first_failure, expected)
+        self.assertFalse(self.events('run', 'controller'))
+        self.assertFalse(self.events('write', 'B'))
+        state = custody.decode(custody.Journal(self.root, '1' * 32).file.read_bytes())
+        self.assertEqual(state['first_failure'], list(expected))
+        self.assertFalse(state['bridge_open'])
+
+    def test_invalid_probe_receipt_cannot_start_second_install(self):
+        bad = custody.StartupResult('B', 1, None, True)
+        self.controller.startup_probe = lambda *args: bad
+        result = self.execute()
+        self.assert_restored(result)
+        self.assertEqual(result.first_failure, ('boot_observation_A', 'trial_result_invalid'))
+        self.assertFalse(self.events('run', 'controller'))
+        self.assertFalse(self.events('write', 'B'))
 
     def test_capture_barrier_sequential_install_and_verified_restore_order(self):
         result = self.execute()
@@ -480,6 +611,256 @@ class CustodyTests(unittest.TestCase):
         recovered = self.recover()
         self.assert_restored(recovered)
         self.assertEqual(recovered.first_failure, self.controller.failure)
+
+    def test_cleanup_failure_keeps_HELLO_primary_and_survives_successful_recovery(self):
+        self.controller.failure = ('hello_A', 'deadline_expired')
+        with patch.object(self.backends['B'], 'hold_rom', side_effect=AdapterError('rom_operation_failed')):
+            failed = self.execute()
+        expected = ('restore_B', 'rom_operation_failed')
+        self.assertEqual(failed.first_failure, self.controller.failure)
+        self.assertEqual(getattr(failed, 'cleanup_failure', None), expected)
+        self.assertFalse(failed.custody_released)
+        journal = custody.Journal(self.root, '1' * 32)
+        durable = custody.decode(journal.file.read_bytes())
+        self.assertEqual(durable['first_failure'], list(self.controller.failure))
+        self.assertEqual(durable['cleanup_failure'], list(expected))
+        self.log.clear()
+        recovered = self.recover()
+        self.assert_restored(recovered)
+        self.assertEqual(recovered.first_failure, self.controller.failure)
+        self.assertEqual(recovered.cleanup_failure, expected)
+        self.assertFalse(self.events('claim', 'A'))
+        self.assertFalse(self.events('boot_candidate'))
+        self.assertFalse(self.events('run'))
+        durable = custody.decode(journal.file.read_bytes())
+        self.assertEqual(durable['cleanup_failure'], list(expected))
+        self.assertTrue(durable['closed'])
+
+    def test_first_cleanup_rejection_is_sticky_when_both_originals_fail(self):
+        self.controller.failure = ('hello_A', 'target_refused')
+        with patch.object(self.backends['A'], 'hold_rom', side_effect=AdapterError('rom_operation_failed')), \
+                patch.object(self.backends['B'], 'hold_rom', side_effect=ControllerError('deadline_expired')):
+            failed = self.execute()
+        self.assertEqual(failed.first_failure, self.controller.failure)
+        self.assertEqual(getattr(failed, 'cleanup_failure', None), ('restore_A', 'rom_operation_failed'))
+        self.assertFalse(failed.custody_released)
+        self.assertFalse(failed.roles['A']['restore_verified'])
+        self.assertFalse(failed.roles['B']['restore_verified'])
+        recovered = self.recover()
+        self.assert_restored(recovered)
+        self.assertEqual(recovered.cleanup_failure, ('restore_A', 'rom_operation_failed'))
+        self.assertEqual(recovered.first_failure, self.controller.failure)
+
+    def test_passive_cleanup_records_caught_owned_category_without_replacing_primary(self):
+        self.controller.failure = ('hello_A', 'target_refused')
+        with patch.object(self.controller, 'close', side_effect=ControllerError('deadline_expired')):
+            result = self.execute()
+        self.assertEqual(result.first_failure, self.controller.failure)
+        self.assertEqual(getattr(result, 'cleanup_failure', None), ('passive_cleanup', 'deadline_expired'))
+        self.assertFalse(result.custody_released)
+        self.assertFalse(self.events('restore'))
+        self.assertFalse(self.events('reset_original'))
+        durable = custody.decode(custody.Journal(self.root, '1' * 32).file.read_bytes())
+        self.assertEqual(durable['cleanup_failure'], ['passive_cleanup', 'deadline_expired'])
+
+    def test_false_passive_closure_and_owner_ack_keep_separate_fixed_cleanup(self):
+        self.controller.close_uncertain = True
+        result = self.execute()
+        self.assertEqual(result.first_failure, ('cleanup', 'handles_not_closed'))
+        self.assertEqual(getattr(result, 'cleanup_failure', None),
+                         ('passive_cleanup', 'passive_handles_unconfirmed'))
+        self.setUp()
+        self.controller.failure = ('hello_A', 'target_refused')
+        self.controller.confirm_original = lambda deadline: True
+        result = self.execute()
+        self.assertTrue(result.custody_released)
+        self.assertFalse(result.owner_confirmed)
+        self.assertEqual(result.first_failure, self.controller.failure)
+        self.assertEqual(getattr(result, 'cleanup_failure', None),
+                         ('owner_confirmation', 'owner_confirmation_missing'))
+
+    def test_legacy_journal_parse_does_not_upgrade_and_recovery_remains_available(self):
+        self.backends['A'].fault = ('restore', 'write', 'nvs', 'partial')
+        failed = self.execute()
+        journal = custody.Journal(self.root, '1' * 32)
+        legacy = custody.decode(journal.file.read_bytes())
+        legacy.pop('cleanup_failure', None)
+        raw = custody.canonical(legacy) + b'\n'
+        journal.file.write_bytes(raw)
+        self.assertIs(custody._validate_state(legacy, self.request, '1' * 32), legacy)
+        self.assertNotIn('cleanup_failure', legacy)
+        self.assertEqual(journal.file.read_bytes(), raw)
+        self.assertIsNone(custody._result(legacy).cleanup_failure)
+        recovered = self.recover()
+        self.assert_restored(recovered)
+        self.assertEqual(recovered.first_failure, failed.first_failure)
+        self.assertIsNone(recovered.cleanup_failure)
+        self.assertNotIn('cleanup_failure', custody.decode(journal.file.read_bytes()))
+        old_result = custody.CustodyResult('1' * 32, 'failed', failed.first_failure,
+                                          failed.roles, False)
+        self.assertIsNone(old_result.cleanup_failure)
+
+    def test_cleanup_shape_and_pending_cannot_replace_or_drop_saved_failure(self):
+        self.controller.failure = ('hello_A', 'target_refused')
+        with patch.object(self.backends['B'], 'hold_rom', side_effect=AdapterError('rom_operation_failed')):
+            self.execute()
+        state = custody.decode(custody.Journal(self.root, '1' * 32).file.read_bytes())
+        for invalid in ([], True, ('restore_B', 'rom_operation_failed'),
+                        ['restore_C', 'deadline_expired'], ['restore_B', 'PRIVATE'],
+                        ['restore_B', 'deadline_expired', 'PRIVATE']):
+            value = custody.decode(custody.canonical(state))
+            value['cleanup_failure'] = invalid
+            with self.subTest(invalid_type=type(invalid).__name__), \
+                    self.assertRaisesRegex(custody.Error, '^journal_invalid$'):
+                custody._validate_state(value, self.request, '1' * 32)
+        for replacement in (None, ['restore_A', 'rom_operation_failed'],
+                            ['restore_B', 'deadline_expired']):
+            pending = custody.decode(custody.canonical(state))
+            pending['cleanup_failure'] = replacement
+            with self.subTest(pending_cleanup=replacement), \
+                    self.assertRaisesRegex(custody.Error, '^journal_invalid$'):
+                custody._pending_progress(state, pending)
+        pending = custody.decode(custody.canonical(state))
+        del pending['cleanup_failure']
+        with self.assertRaisesRegex(custody.Error, '^journal_invalid$'):
+            custody._pending_progress(state, pending)
+        legacy = custody.decode(custody.canonical(pending))
+        self.assertIs(custody._pending_progress(legacy, state), state)
+
+    def test_cleanup_collector_hides_unowned_text_and_accepts_only_fixed_stages(self):
+        class Unknown(RuntimeError):
+            def __str__(self): raise AssertionError('private error text was inspected')
+        class OwnedSubclass(AdapterError): pass
+        for error in (Unknown('PRIVATE'), OwnedSubclass('deadline_expired'),
+                      AdapterError('PRIVATE'), AdapterError('deadline_expired', 'PRIVATE')):
+            state = {'first_failure': ['hello_A', 'target_refused']}
+            custody._cleanup_failure(state, 'restore_B', error)
+            self.assertEqual(state['cleanup_failure'], ['restore_B', 'custody_operation_failed'])
+            self.assertEqual(state['first_failure'], ['hello_A', 'target_refused'])
+            custody._cleanup_failure(state, 'restore_A', ControllerError('deadline_expired'))
+            self.assertEqual(state['cleanup_failure'], ['restore_B', 'custody_operation_failed'])
+        with self.assertRaisesRegex(custody.Error, '^journal_invalid$'):
+            custody._cleanup_failure({'first_failure': None}, 'PRIVATE', AdapterError('deadline_expired'))
+
+    def test_owned_install_rejection_survives_cleanup_and_unknown_text_is_hidden(self):
+        for error, expected in ((AdapterError('rom_operation_failed'), 'rom_operation_failed'),
+                                (ControllerError('deadline_expired'), 'deadline_expired'),
+                                (RuntimeError('deadline_expired'), 'custody_operation_failed')):
+            self.setUp()
+            backend = self.backends['B']; original_write = backend.write
+            def write(offset, raw, deadline):
+                if raw != backend.device.original[backend._name(offset, len(raw))]:
+                    raise error
+                return original_write(offset, raw, deadline)
+            with self.subTest(error_type=type(error).__name__), patch.object(backend, 'write', side_effect=write):
+                result = self.execute()
+            self.assertEqual(result.first_failure, ('install_B', expected))
+            self.assert_restored(result)
+            durable = custody.decode((self.root / ('enrollment-candidate-' + '1' * 32 + '.json')).read_bytes())
+            self.assertEqual(durable['first_failure'], ['install_B', expected])
+
+    def test_returned_failure_survives_expiry_and_full_restoration(self):
+        self.controller.failure = ('hello_A', 'serial_operation_failed')
+        # Cleanup crosses execute=60, within the unchanged restore=160 ceiling.
+        self.controller.advance = 61
+        result = self.execute()
+        self.assertEqual(result.observation, 'failed')
+        self.assertEqual(result.first_failure, self.controller.failure)
+        self.assert_restored(result)
+        durable = custody.decode(custody.Journal(self.root, '1' * 32).file.read_bytes())
+        self.assertEqual(durable['first_failure'], list(self.controller.failure))
+        self.assertTrue(self.events('reset_original', 'A'))
+        self.assertTrue(self.events('reset_original', 'B'))
+        self.assertEqual({event[3] for event in self.events('restore')}, {160.0})
+
+    def test_returned_failure_never_extends_restoration(self):
+        self.controller.failure = ('hello_A', 'serial_operation_failed')
+        self.controller.advance = 161
+        result = self.execute()
+        self.assertEqual(result.first_failure, self.controller.failure)
+        self.assertEqual(result.observation, 'failed')
+        self.assertFalse(result.custody_released)
+        self.assertFalse(self.events('restore'))
+        self.assertFalse(self.events('reset_original'))
+        self.assertTrue((self.root / custody.ACTIVE).exists())
+        self.assertTrue(all(attempt[4] < attempt[3] for backend in self.backends.values()
+                            for attempt in backend.attempts))
+
+    def test_malformed_late_result_cannot_supply_preserved_failure(self):
+        valid = TrialResult('first', 'failed', 'hello_A',
+            ('hello_A', 'serial_operation_failed'), 0, 0, True, 0)
+        class Spoof(TrialResult): pass
+        for malformed in (object(), replace(valid, case='cancel'),
+                          replace(valid, first_failure=None), replace(valid, status_transfers=True),
+                          replace(valid, outcome='passed'), Spoof(**vars(valid))):
+            self.setUp()
+            original = self.controller.run
+            def run(*args):
+                original(*args)
+                self.clock.value = 61
+                return malformed
+            self.controller.run = run
+            with self.subTest(result_type=type(malformed).__name__):
+                result = self.execute()
+            self.assertEqual(result.first_failure, ('candidate_case', 'trial_result_invalid'))
+            self.assertEqual(result.observation, 'failed')
+            self.assert_restored(result)
+
+    def test_collector_does_not_inspect_unknown_or_unapproved_owned_text(self):
+        class Spoof(RuntimeError):
+            def __str__(self): raise AssertionError('unknown exception text was inspected')
+        class OwnedSubclass(AdapterError): pass
+        for error in (Spoof('deadline_expired'), OwnedSubclass('deadline_expired'),
+                      custody.Error('SECRET_WORD'),
+                      AdapterError('deadline_expired', 'SECRET_WORD')):
+            state = {'first_failure': None}
+            custody._failure(state, 'install_B', error)
+            self.assertEqual(state['first_failure'], ['install_B', 'custody_operation_failed'])
+        custody._failure(state, 'restore_B', custody.Error('record_failed'))
+        self.assertEqual(state['first_failure'], ['install_B', 'custody_operation_failed'])
+
+    def test_atomic_read_admissions_and_shape_are_required_without_fallback(self):
+        raw, _ = self.grant()
+        budget = custody.Budget(custody.decode(raw), lambda: 150, self.clock)
+        backend = self.backends['A']
+        backend.claim(backend.device.binding, budget.execute)
+        admission = backend._admission()
+        value = (admission, backend.device.original['bootloader'], admission)
+        backend.supports_guarded_read = True
+        for malformed in (list(value), value[:2], (admission, value[1][:-1], admission),
+                          (replace(admission, security='unknown'), value[1], admission),
+                          (admission, value[1], replace(admission, security='unknown'))):
+            with self.subTest(shape=type(malformed).__name__), \
+                    patch.object(backend, 'guarded_read', return_value=malformed, create=True), \
+                    patch.object(backend, 'guard', side_effect=AssertionError('atomic fallback guard')), \
+                    patch.object(backend, 'read', side_effect=AssertionError('atomic fallback read')):
+                with self.assertRaises(custody.Error):
+                    custody._read(backend, self.request, 'A', 'bootloader', budget)
+        with patch.object(backend, 'guarded_read', side_effect=AdapterError('rom_operation_failed'), create=True):
+            with self.assertRaisesRegex(AdapterError, '^rom_operation_failed$'):
+                custody._read(backend, self.request, 'A', 'bootloader', budget)
+
+    def test_atomic_custody_completes_all_candidate_and_restoration_sweeps(self):
+        atomic_calls = []
+        for role, backend in self.backends.items():
+            backend.supports_guarded_read = True
+            def guarded_read(binding, offset, size, deadline, backend=backend, role=role):
+                atomic_calls.append((role, backend._name(offset, size), backend.phase))
+                before = backend.guard(binding, deadline)
+                raw = backend.read(offset, size, deadline)
+                return before, raw, backend.guard(binding, deadline)
+            backend.guarded_read = guarded_read
+        result = self.execute()
+        self.assert_restored(result)
+        self.assertEqual(result.observation, 'passed')
+        for role in ('A', 'B'):
+            for name in EXPECTED_SPANS:
+                # Original capture still reads each span twice; the final
+                # restoration still includes an independent full sweep.
+                self.assertGreaterEqual(sum(r == role and n == name and phase == 'capture'
+                    for r, n, phase in atomic_calls), 2)
+                self.assertGreaterEqual(sum(r == role and n == name and phase == 'restore'
+                    for r, n, phase in atomic_calls), 1)
 
     def test_typed_identity_layout_security_and_rom_guards_refuse_before_write(self):
         for values in ({'device_binding': 'e' * 64}, {'model': 'other-board'},

@@ -50,6 +50,9 @@ foreach ($containedSuite in @('radiolib_busy_source', 'noise_xk_contained_firmwa
 }
 & $python.Source (Join-Path $projectRoot 'tools\region_selection_catalog.py')
 if ($LASTEXITCODE -ne 0) { throw 'Generated saved-region catalog differs.' }
+# OT-0304: inert phone automation and current readback/ACK admission.
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\standard_settings_phone_observation_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'Standard settings phone observation tests failed.' }
 # OT-218: exact-span BLE custody, real transport composition and observer admission.
 foreach ($bleTrialTest in @('ble_confirmation_trial_tests.py', 'ble_confirmation_trial_transport_tests.py', 'ble_confirmation_operator_tests.py', 'ble_startup_diagnostics_tests.py')) {
     & $python.Source -X utf8 -B (Join-Path $projectRoot ('tests\host\' + $bleTrialTest))

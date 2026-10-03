@@ -251,20 +251,25 @@ class ConnectedDeviceServiceTest {
     }
 
     @Test
-    fun newActivityOwnerRestoresNoServiceOrClaimAndDoesNotAutoBind() {
-        val connector = FakeConnector()
+    fun replacementActivityObservesOnlyAnExistingOwnerWithoutStartingOrClaiming() {
+        val connector = FakeConnector().apply {
+            synchronousConnection = ConnectedDeviceServiceConnection.Connected(FakePort(41))
+        }
         val first = fixture(connector = connector)
         first.controller.onLifecycleStart()
         first.controller.chooseBluetoothDeviceMode()
         first.controller.startBluetoothService()
         assertEquals(1, connector.startCount)
 
+        first.controller.onLifecycleStop()
+        first.controller.close()
         val recreated = fixture(connector = connector)
         recreated.controller.onLifecycleStart()
 
-        assertEquals(TrailAppUiState.ChooseMode, recreated.controller.state)
+        assertEquals(ConnectedDeviceServiceUiState.RUNNING,
+            assertIs<TrailAppUiState.BluetoothDevice>(recreated.controller.state).serviceState)
         assertEquals(1, connector.startCount)
-        assertEquals(1, connector.bindCount)
+        assertEquals(2, connector.bindCount)
 
         recreated.controller.chooseLocalTestMode()
         assertEquals(1, connector.stopCount)
@@ -677,6 +682,7 @@ class ConnectedDeviceServiceTest {
 
     private class FakeConnector : ConnectedDeviceServiceConnector {
         var startCount = 0
+        var running = false
         var bindCount = 0
         var stopCount = 0
         var closeCount = 0
@@ -687,6 +693,7 @@ class ConnectedDeviceServiceTest {
 
         override fun startFromVisibleUserAction(): ConnectedDeviceServiceStartFailure? {
             startCount += 1
+            if (startFailure == null) running = true
             return startFailure
         }
 
@@ -697,7 +704,11 @@ class ConnectedDeviceServiceTest {
             return FakeBinding().also(bindings::add)
         }
 
+        override fun bindExisting(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? =
+            if (running) bind(observer) else null
+
         override fun stopService() {
+            running = false
             stopCount += 1
         }
 

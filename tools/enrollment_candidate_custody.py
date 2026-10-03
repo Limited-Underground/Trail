@@ -16,7 +16,7 @@ import re
 import threading
 import time
 
-from enrollment_candidate_controller import CASES, CheckpointAck, Clock, TrialResult
+from enrollment_candidate_controller import StartupResult, CASES, CheckpointAck, Clock, TrialResult, ControllerError
 
 ROLES = ('A', 'B')
 SPANS = {'bootloader': (0, 32768), 'partition': (0x8000, 4096),
@@ -27,8 +27,21 @@ FROZEN_APPLICATION = {'bytes': 637520,
     'sha256': '93cd4e6d9011d5877cb02e9f0384958239c52a08a28f45700279bc2962cd8e0d'}
 HEX64, HEX32 = re.compile('[0-9a-f]{64}'), re.compile('[0-9a-f]{32}')
 ACTIVE = 'enrollment-candidate-active.json'
+_CLEANUP_STAGES = frozenset(('passive_cleanup', 'restore_A', 'restore_B', 'owner_confirmation'))
 _PROCESS = threading.Lock()
 _CLOSURE = threading.local()
+_FAILURE_CATEGORIES = frozenset('''admission_invalid backend_invalid bootloader_changed
+candidate_boot_uncertain capture_incomplete capture_readback_failed controller_busy
+custody_held custody_operation_failed deadline_expired deadline_extended deadline_invalid
+duplicate_identity final_readback_failed grant_expired grant_invalid grant_used
+hardware_lease_busy host_clock_invalid image_changed image_invalid journal_invalid
+journal_pending layout_not_isolated original_boot_state_uncertain original_changed
+original_layout_required original_mismatch original_pin_invalid original_reset_uncertain
+owner_confirmation_missing pair_invalid passive_handles_unconfirmed passive_owner_active
+pending_reset_storage private_path_invalid private_root_invalid read_invalid record_failed
+protected_changed recovery_binding_invalid record_invalid request_invalid restore_readback_failed rom_adapter_refused rom_close_unconfirmed
+rom_hold_unverified rom_operation_failed rom_owner_required runtime_binding_invalid runtime_busy
+trial_result_invalid write_invalid write_readback_failed'''.split())
 
 
 class Error(RuntimeError):
@@ -99,6 +112,11 @@ def validate_request(request):
 
 def actions_for(request, operation):
     need(operation in ('execute', 'recover'), 'grant_invalid')
+    if operation == 'execute' and request['case'] == 'startup_A':
+        return ['capture_both_six_spans', 'candidate_install_A',
+                'explicit_first_candidate_nvs_provision_A', 'candidate_boot_A',
+                'case:startup_A', 'startup_commands_A', 'restore_A_six_spans',
+                'verify_both_original_six_spans', 'original_boot_both']
     return (['capture_both_six_spans', 'sequential_candidate_install',
              'explicit_first_candidate_nvs_provision', 'candidate_boot',
              'case:' + request['case'], 'restore_both_six_spans', 'original_boot']
@@ -147,6 +165,7 @@ class CustodyResult:
     roles: dict
     custody_released: bool
     owner_confirmed: bool = False
+    cleanup_failure: tuple | None = None
 
 
 def _path(root, name):
@@ -237,6 +256,16 @@ def _guard(backend, request, role, budget, restoring=False):
 
 
 def _read(backend, request, role, name, budget, restoring=False):
+    if getattr(backend, 'supports_guarded_read', False) is True:
+        value = backend.guarded_read(request['roles'][role]['device_binding'],
+                                     *SPANS[name], budget.check(restoring))
+        budget.check(restoring)
+        need(type(value) is tuple and len(value) == 3, 'read_invalid')
+        before, raw, after = value
+        _admit(before, request, role, restoring)
+        need(type(raw) is bytes and len(raw) == SPANS[name][1], 'read_invalid')
+        _admit(after, request, role, restoring)
+        return raw
     _guard(backend, request, role, budget, restoring)
     value = backend.read(*SPANS[name], budget.check(restoring))
     _guard(backend, request, role, budget, restoring)
@@ -309,10 +338,27 @@ def _backend_close(backend):
     return result
 
 
+def _failure_category(error):
+    # Imported only at the collector boundary: the adapter imports this
+    # inert orchestration module, so a module-level import would cycle.
+    from enrollment_candidate_rom_adapter import AdapterError
+    category = 'custody_operation_failed'
+    if type(error) in (Error, AdapterError, ControllerError):
+        args = error.args
+        if len(args) == 1 and type(args[0]) is str and args[0] in _FAILURE_CATEGORIES:
+            category = args[0]
+    return category
+
+
 def _failure(state, stage, error):
     if state['first_failure'] is None:
-        category = str(error) if isinstance(error, Error) else 'custody_operation_failed'
-        state['first_failure'] = [stage, category]
+        state['first_failure'] = [stage, _failure_category(error)]
+
+
+def _cleanup_failure(state, stage, error):
+    need(type(stage) is str and stage in _CLEANUP_STAGES, 'journal_invalid')
+    if state.get('cleanup_failure') is None:
+        state['cleanup_failure'] = [stage, _failure_category(error)]
 
 
 def _settled(row):
@@ -321,8 +367,12 @@ def _settled(row):
 
 
 def _validate_state(state, request, attempt):
-    need(type(state) is dict and set(state) == {'schema', 'attempt', 'request', 'observation',
-         'first_failure', 'closed', 'owner_confirmed', 'bridge_open', 'roles'}
+    # New readers accept old journals without adding fields during parsing.
+    # Frozen v6 readers cannot consume newly extended journals: compatibility
+    # is intentionally new-reader/old-journal, not bidirectional.
+    fields = {'schema', 'attempt', 'request', 'observation', 'first_failure',
+              'closed', 'owner_confirmed', 'bridge_open', 'roles'}
+    need(type(state) is dict and set(state) in (fields, fields | {'cleanup_failure'})
          and state['schema'] == 'OT-CANDIDATE-JOURNAL-1' and state['attempt'] == attempt
          and state['request'] == request and state['observation'] in ('not_observed', 'passed', 'failed')
          and all(type(state[k]) is bool for k in ('closed', 'owner_confirmed', 'bridge_open'))
@@ -330,6 +380,10 @@ def _validate_state(state, request, attempt):
     fault = state['first_failure']
     need(fault is None or (type(fault) is list and len(fault) == 2 and
          all(type(value) is str and re.fullmatch('[A-Za-z_]{1,64}', value) for value in fault)), 'journal_invalid')
+    cleanup = state.get('cleanup_failure')
+    need(cleanup is None or (type(cleanup) is list and len(cleanup) == 2
+         and type(cleanup[0]) is str and cleanup[0] in _CLEANUP_STAGES
+         and type(cleanup[1]) is str and cleanup[1] in _FAILURE_CATEGORIES), 'journal_invalid')
     allowed = {'claim_intent', 'restore_claim_intent', 'candidate_boot_intent', 'candidate_boot_verified',
                'six_span_sweep_verified', 'original_reset_intent', 'original_boot_verified', 'rom_handles_closed'}
     allowed |= {'candidate_' + name + '_' + end for name in ('application', 'partition', 'ota0_prefix')
@@ -385,6 +439,8 @@ def _pending_progress(previous, pending):
     need(previous['schema'] == pending['schema'] and previous['attempt'] == pending['attempt']
          and previous['request'] == pending['request'], 'journal_invalid')
     need(previous['first_failure'] is None or pending['first_failure'] == previous['first_failure'], 'journal_invalid')
+    need(previous.get('cleanup_failure') is None
+         or pending.get('cleanup_failure') == previous['cleanup_failure'], 'journal_invalid')
     need(not previous['closed'] or pending['closed'], 'journal_invalid')
     for role in ROLES:
         before, after = previous['roles'][role], pending['roles'][role]
@@ -397,7 +453,8 @@ def _pending_progress(previous, pending):
 def _trial_result(result, case):
     expected = {'first': (8, 1, 4), 'retained_rekey': (16, 2, 5),
                 'recovery_after_A_commit': (8, 2, 5), 'recovery_after_B_commit': (8, 2, 5),
-                'cancel': (0, 1, 0), 'revoke': (8, 1, 4), 'reset_preparation': (8, 1, 5)}
+                'cancel': (0, 1, 0), 'revoke': (8, 1, 4), 'reset_preparation': (8, 1, 5),
+                'startup_A': (0, 1, 0)}
     need(type(result) is TrialResult and result.case == case and result.outcome in ('passed', 'failed')
          and type(result.stage) is str and re.fullmatch('[A-Za-z_]{1,64}', result.stage)
          and type(result.handles_closed) is bool
@@ -413,6 +470,8 @@ def _trial_result(result, case):
              and (result.status_transfers, result.generations, result.checkpoints) == expected[case], 'trial_result_invalid')
     else:
         need(result.first_failure is not None, 'trial_result_invalid')
+        if case == 'startup_A':
+            need(result.refusals in ((), (('A', 'HELLO'),)), 'trial_result_invalid')
 
 
 def _restore_role(journal, state, role, backend, budget):
@@ -487,7 +546,8 @@ def _result(state):
                         tuple(state['first_failure']) if state['first_failure'] else None,
                         {role: {key: state['roles'][role][key] for key in
                          ('restore_verified', 'original_boot_allowed', 'handles_closed', 'settled_untouched')}
-                         for role in ROLES}, state['closed'], state['owner_confirmed'])
+                         for role in ROLES}, state['closed'], state['owner_confirmed'],
+                        tuple(state['cleanup_failure']) if state.get('cleanup_failure') else None)
 
 
 def _restore_all(journal, state, backends, budget):
@@ -495,6 +555,7 @@ def _restore_all(journal, state, backends, budget):
         try:
             _restore_role(journal, state, role, backends[role], budget)
         except BaseException as error:
+            _cleanup_failure(state, 'restore_' + role, error)
             _failure(state, 'restore_' + role, error)
             # Close only this owner's ROM handle; no reset or retry.
             state['roles'][role]['handles_closed'] = _backend_close(backends[role])
@@ -593,7 +654,7 @@ def _execute(root, request, grant_raw, grant_sha, images, backends, controller, 
     _used(root, grant, grant_sha)
     journal = Journal(root, grant['attempt'])
     state = {'schema': 'OT-CANDIDATE-JOURNAL-1', 'attempt': grant['attempt'], 'request': request,
-             'observation': 'not_observed', 'first_failure': None, 'closed': False,
+             'observation': 'not_observed', 'first_failure': None, 'cleanup_failure': None, 'closed': False,
              'owner_confirmed': False, 'bridge_open': False,
              'roles': {role: {'captures': {}, 'events': [], 'restore_verified': False,
                              'original_boot_allowed': False, 'handles_closed': False,
@@ -612,7 +673,15 @@ def _execute(root, request, grant_raw, grant_sha, images, backends, controller, 
             original = _capture(journal, state, role, backends[role], budget)
             admission = _guard(backends[role], request, role, budget)
             need(admission.layout_sha256 == sha(original['partition']), 'original_layout_required')
-        for role in ROLES:
+        install_roles = ('A',) if request['case'] == 'startup_A' else ROLES
+        if request['case'] == 'startup_A':
+            # B remains captured in ROM custody. Closing its native handle
+            # neither boots it nor releases its original-recovery obligation.
+            stage = 'capture_B'
+            need(_backend_close(backends['B']), 'rom_close_unconfirmed')
+            state['roles']['B']['handles_closed'] = True
+            journal.event(state, 'B', 'rom_handles_closed')
+        for role in install_roles:
             stage = 'install_' + role
             _originals(journal, state, role)
             for name, raw in (('application', images['application'].ljust(SPANS['application'][1], b'\xff')),
@@ -629,24 +698,49 @@ def _execute(root, request, grant_raw, grant_sha, images, backends, controller, 
             need(_backend_close(backends[role]), 'rom_close_unconfirmed')
             state['roles'][role]['handles_closed'] = True
             journal.event(state, role, 'candidate_boot_verified')
+            if request['case'] != 'startup_A':
+                # Read the bounded boot replay before the other board's slow
+                # ROM work. No live passive lease survives this callback.
+                stage = 'boot_observation_' + role
+                need(callable(getattr(controller, 'startup_probe', None)), 'backend_invalid')
+                state['bridge_open'] = True
+                journal.save(state)
+                probe = controller.startup_probe(role, 1, budget.check())
+                need(type(probe) is StartupResult and probe.role == role and probe.generation == 1
+                     and type(probe.handles_closed) is bool, 'trial_result_invalid')
+                if probe.first_failure is not None:
+                    need(type(probe.first_failure) is tuple and len(probe.first_failure) == 2
+                         and all(type(v) is str and re.fullmatch('[A-Za-z_]{1,64}', v)
+                                 for v in probe.first_failure), 'trial_result_invalid')
+                    state['first_failure'] = list(probe.first_failure)
+                    raise Error(probe.first_failure[1])
+                need(probe.handles_closed and controller.assert_idle(), 'passive_handles_unconfirmed')
+                state['bridge_open'] = False
+                journal.save(state)
+                budget.check()
         stage = 'candidate_case'
         state['bridge_open'] = True
         journal.save(state)
         result = controller.run(request['case'], request['group'], budget.check())
-        budget.check()
         _trial_result(result, request['case'])
-        state['observation'] = result.outcome
+        # Capture the validated rejecting step before a later clock sample:
+        # controller cleanup may cross the execution ceiling. The check still
+        # runs and a late successful result still fails closed below.
         if result.first_failure is not None:
             state['first_failure'] = list(result.first_failure)
+        budget.check()
+        state['observation'] = result.outcome
         journal.save(state)
     except BaseException as error:
         _failure(state, stage, error)
         state['observation'] = 'failed'
+    passive_error = Error('passive_handles_unconfirmed')
     try:
         passive_closed = controller.close() is True and controller.assert_idle() is True
-    except BaseException:
-        passive_closed = False
+    except BaseException as error:
+        passive_error, passive_closed = error, False
     if not passive_closed:
+        _cleanup_failure(state, 'passive_cleanup', passive_error)
         _failure(state, 'passive_cleanup', Error('passive_handles_unconfirmed'))
         for role in ROLES:
             state['roles'][role]['handles_closed'] = False
@@ -665,6 +759,7 @@ def _execute(root, request, grant_raw, grant_sha, images, backends, controller, 
             state['owner_confirmed'] = True
             journal.save(state)
         except BaseException as error:
+            _cleanup_failure(state, 'owner_confirmation', error)
             _failure(state, 'owner_confirmation', error)
             journal.save(state)
     return _result(state)

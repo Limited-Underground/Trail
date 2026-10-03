@@ -2,6 +2,7 @@ package io.github.nbjelanovic.otclient
 
 import android.Manifest
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -100,6 +102,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
     val homeStateHolder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     var deviceSettingsAuthority by remember { mutableStateOf<DeviceSettingsAuthority?>(null) }
     val context = LocalContext.current
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { controller.onNearbyDevicesPermissionResult() }
@@ -145,7 +148,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
 
     Column(modifier = Modifier.fillMaxSize().imePadding()) {
       V1StatusStrip(state)
-      additionalTools()
+      if (!landscape) additionalTools()
       androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
       Surface(modifier = Modifier.fillMaxSize()) {
         if (bluetooth?.factoryResetConfirmationVisible == true) {
@@ -167,6 +170,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             onRefreshGroupConfirmation = controller::refreshGroupConfirmation,
             onConfirmGroupConfirmation = controller::confirmGroupConfirmation,
             onCancelGroupConfirmation = controller::cancelGroupConfirmation,
+            additionalDeviceTools = { if (landscape) additionalTools() },
         ) { onSetupComplete ->
           if (state == TrailAppUiState.ChooseMode) {
             V1OnboardingScreen(

@@ -35,6 +35,10 @@ class TrailActivityController(
     private var deliveringObserver = false
     private var bindingGeneration = 0L
     private var activeBindingGeneration = 0L
+    private var bindingIsAttachment = false
+    private var retiringPendingAttachment = false
+    private var bindingSubmissionInFlight = false
+    private var observationToken: Any? = null
     private var deferredConnection: Pair<Long, ConnectedDeviceServiceConnection>? = null
     private var lifecycleActive = false
     private var closed = false
@@ -137,15 +141,36 @@ class TrailActivityController(
             previous == NearbyDevicesPermissionState.GRANTED &&
             permissionState != NearbyDevicesPermissionState.GRANTED
         ) {
-            port?.refreshPermissionState()
-            stopServiceIfOwned()
+            if (bindingIsAttachment) detachServiceAttachment() else {
+                activeBindingGeneration = 0L
+                observationToken = null
+                port?.refreshPermissionState()
+                stopServiceIfOwned()
+            }
         }
         if (mode == TrailConnectionMode.BLUETOOTH_DEVICE) publishBluetooth()
     }
 
     override fun startBluetoothService() {
         requireOwnerThread()
-        if (!canMutate() || !lifecycleActive || mode != TrailConnectionMode.BLUETOOTH_DEVICE || serviceRequested) return
+        if (!canMutate() || !lifecycleActive || mode != TrailConnectionMode.BLUETOOTH_DEVICE ||
+            retiringPendingAttachment) return
+        if (serviceRequested) {
+            if (!bindingIsAttachment || port != null) return
+            retiringPendingAttachment = true
+            try {
+                // Retire the local pending request before lease cleanup can reenter this controller.
+                serviceRequested = false
+                serviceLaunchSubmitted = false
+                serviceState = ConnectedDeviceServiceUiState.START_REQUIRED
+                serviceFailure = null
+                unbindObservation()
+            } finally {
+                retiringPendingAttachment = false
+            }
+        }
+        if (!canMutate() || !lifecycleActive || mode != TrailConnectionMode.BLUETOOTH_DEVICE ||
+            serviceRequested || binding != null || port != null) return
         permissionState = permissionReader.current()
         notificationPermissionState = notificationPermissionReader.current()
         val admission = ConnectedDeviceForegroundServicePolicy.admit(
@@ -159,6 +184,7 @@ class TrailActivityController(
             publishBluetooth()
             return
         }
+        bindingIsAttachment = false
         serviceRequested = true
         serviceLaunchSubmitted = false
         serviceState = ConnectedDeviceServiceUiState.STARTING
@@ -168,6 +194,16 @@ class TrailActivityController(
             !canMutate() || !lifecycleActive || mode != TrailConnectionMode.BLUETOOTH_DEVICE ||
             !serviceRequested
         ) return
+        // Presentation callbacks can change permission after the first visible-action admission.
+        permissionState = permissionReader.current()
+        notificationPermissionState = notificationPermissionReader.current()
+        if (permissionState != NearbyDevicesPermissionState.GRANTED) {
+            serviceRequested = false
+            serviceState = ConnectedDeviceServiceUiState.START_FAILED
+            serviceFailure = ConnectedDeviceServiceStartFailure.NEARBY_PERMISSION_MISSING
+            publishBluetooth()
+            return
+        }
         val failure = serviceConnector.startFromVisibleUserAction()
         if (failure != null) {
             serviceRequested = false
@@ -247,7 +283,11 @@ class TrailActivityController(
     private fun onLifecycleStartNow() {
         lifecycleActive = true
         refreshPermissionState()
-        if (serviceRequested && binding == null) bindToRequestedService()
+        if (
+            !closed && lifecycleActive && !retiringPendingAttachment &&
+            mode != TrailConnectionMode.LOCAL_TEST && binding == null &&
+            permissionState == NearbyDevicesPermissionState.GRANTED
+        ) bindToRequestedService(existingOnly = true)
     }
 
     override fun onLifecycleStop() {
@@ -263,13 +303,16 @@ class TrailActivityController(
     private fun onLifecycleStopNow() {
         cancelServiceOwnedFactoryResetConfirmation()
         lifecycleActive = false
-        if (serviceRequested && !serviceLaunchSubmitted) {
+        if (serviceRequested && !serviceLaunchSubmitted && !bindingIsAttachment) {
             serviceRequested = false
             serviceState = ConnectedDeviceServiceUiState.START_REQUIRED
             serviceFailure = null
             if (mode == TrailConnectionMode.BLUETOOTH_DEVICE) publishBluetooth()
         }
         unbindObservation()
+        serviceState = ConnectedDeviceServiceUiState.START_REQUIRED
+        serviceFailure = null
+        if (mode == TrailConnectionMode.BLUETOOTH_DEVICE) publishBluetooth()
     }
 
     override fun close() {
@@ -294,83 +337,110 @@ class TrailActivityController(
         serviceConnector.close()
     }
 
-    private fun bindToRequestedService() {
-        if (closed || !serviceRequested || !lifecycleActive || binding != null) return
+    private fun bindToRequestedService(existingOnly: Boolean = false) {
+        if (closed || !lifecycleActive || binding != null || activeBindingGeneration != 0L) return
+        if (!existingOnly && !serviceRequested) return
+        bindingIsAttachment = existingOnly
+        if (existingOnly) serviceRequested = true
         val nextGeneration = nextBindingGeneration()
         if (nextGeneration == null) {
-            serviceConnector.stopService()
-            serviceRequested = false
-            serviceLaunchSubmitted = false
-            serviceState = ConnectedDeviceServiceUiState.START_FAILED
-            serviceFailure = ConnectedDeviceServiceStartFailure.SERVICE_UNAVAILABLE
-            publishBluetooth()
+            failServiceConnection()
             return
         }
         activeBindingGeneration = nextGeneration
-        val next = serviceConnector.bind { connection -> onServiceConnection(nextGeneration, connection) }
+        bindingSubmissionInFlight = true
+        val next = try {
+            val callback = { connection: ConnectedDeviceServiceConnection ->
+                onServiceConnection(nextGeneration, connection)
+            }
+            if (existingOnly) serviceConnector.bindExisting(callback) else serviceConnector.bind(callback)
+        } catch (_: Exception) {
+            null
+        } finally {
+            bindingSubmissionInFlight = false
+        }
         if (next == null) {
-            if (activeBindingGeneration == nextGeneration) activeBindingGeneration = 0L
-            serviceConnector.stopService()
-            serviceRequested = false
-            serviceLaunchSubmitted = false
-            serviceState = ConnectedDeviceServiceUiState.START_FAILED
-            serviceFailure = ConnectedDeviceServiceStartFailure.SERVICE_UNAVAILABLE
-            publishBluetooth()
+            if (activeBindingGeneration == nextGeneration) failServiceConnection()
         } else if (
-            closed || !serviceRequested || mode != TrailConnectionMode.BLUETOOTH_DEVICE ||
+            closed || !lifecycleActive || !serviceRequested ||
             activeBindingGeneration != nextGeneration || binding != null
         ) {
-            next.close()
+            closeObservationLease(next)
         } else {
             binding = next
+            val deferred = deferredConnection
+            deferredConnection = null
+            if (deferred != null) onServiceConnection(deferred.first, deferred.second)
         }
     }
 
     private fun onServiceConnection(generation: Long, connection: ConnectedDeviceServiceConnection) {
         requireOwnerThread()
         if (
-            closed || generation != activeBindingGeneration || !serviceRequested ||
-            mode != TrailConnectionMode.BLUETOOTH_DEVICE
+            closed || !lifecycleActive || generation != activeBindingGeneration || !serviceRequested ||
+            mode == TrailConnectionMode.LOCAL_TEST
         ) return
-        if (deliveringObserver) {
+        if (deliveringObserver || bindingSubmissionInFlight) {
             deferredConnection = generation to connection
+            return
+        }
+        permissionState = permissionReader.current()
+        notificationPermissionState = notificationPermissionReader.current()
+        if (permissionState != NearbyDevicesPermissionState.GRANTED) {
+            failServiceConnection()
             return
         }
         when (connection) {
             is ConnectedDeviceServiceConnection.Connected -> {
                 val nextPort = connection.port
-                if (nextPort.generation < 0L) {
+                val ownerGeneration = try {
+                    nextPort.generation
+                } catch (_: Exception) {
                     failServiceConnection()
                     return
                 }
-                portObservation?.close()
-                portObservation = null
-                port = nextPort
-                portGeneration = nextPort.generation
-                serviceState = if (portGeneration == 0L) {
-                    ConnectedDeviceServiceUiState.STARTING
-                } else {
-                    ConnectedDeviceServiceUiState.RUNNING
+                if (ownerGeneration < 0L || (bindingIsAttachment && ownerGeneration == 0L)) {
+                    failServiceConnection()
+                    return
                 }
-                serviceFailure = null
-                val observation = nextPort.observe { next -> onPortState(nextPort.generation, next) }
+                releasePortObservation()
+                port = nextPort
+                portGeneration = ownerGeneration
+                val token = Any()
+                observationToken = token
+                var admitted = false
+                var pendingPublication = false
+                val observation = try {
+                    nextPort.observe {
+                        if (!admitted) pendingPublication = true else {
+                            onPortState(generation, nextPort, ownerGeneration, token)
+                        }
+                    }
+                } catch (_: Exception) {
+                    null
+                }
                 if (
-                    observation == null || closed || !lifecycleActive || !serviceRequested ||
-                    mode != TrailConnectionMode.BLUETOOTH_DEVICE ||
-                    generation != activeBindingGeneration || port !== nextPort
+                    observation == null || !isCurrentObservation(generation, nextPort, ownerGeneration, token) ||
+                    permissionReader.current() != NearbyDevicesPermissionState.GRANTED ||
+                    currentPortGeneration(nextPort) != ownerGeneration
                 ) {
-                    observation?.close()
-                    if (
-                        observation == null && !closed && serviceRequested &&
-                        mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
-                        generation == activeBindingGeneration && port === nextPort
-                    ) {
+                    if (isCurrentObservation(generation, nextPort, ownerGeneration, token)) {
+                        permissionState = permissionReader.current()
                         failServiceConnection()
                     }
+                    closeObservationLease(observation)
                     return
                 }
                 portObservation = observation
-                if (portGeneration == 0L) {
+                admitted = true
+                mode = TrailConnectionMode.BLUETOOTH_DEVICE
+                serviceState = if (ownerGeneration == 0L) ConnectedDeviceServiceUiState.STARTING
+                    else ConnectedDeviceServiceUiState.RUNNING
+                serviceFailure = null
+                // Read current binder state only after the observation lease is accepted.
+                if (pendingPublication) onPortState(generation, nextPort, ownerGeneration, token)
+                else publishBluetooth()
+                if (isCurrentObservation(generation, nextPort, ownerGeneration, token) && ownerGeneration == 0L) {
                     armServiceStartupDeadline(generation, nextPort)
                 }
             }
@@ -378,45 +448,70 @@ class TrailActivityController(
         }
     }
 
-    private fun onPortState(generation: Long, next: TrailAppUiState.BluetoothDevice) {
+    private fun isCurrentObservation(
+        bindingGeneration: Long,
+        expectedPort: ConnectedDeviceSessionPort,
+        ownerGeneration: Long,
+        token: Any,
+    ): Boolean = !closed && lifecycleActive && serviceRequested &&
+        activeBindingGeneration == bindingGeneration && port === expectedPort &&
+        portGeneration == ownerGeneration && observationToken === token
+
+    private fun onPortState(
+        bindingGeneration: Long,
+        expectedPort: ConnectedDeviceSessionPort,
+        ownerGeneration: Long,
+        token: Any,
+    ) {
         requireOwnerThread()
-        if (portGeneration == 0L && generation > 0L && port?.generation == generation) {
-            portGeneration = generation
-            serviceState = ConnectedDeviceServiceUiState.RUNNING
-            closeServiceStartupDeadline()
+        if (!isCurrentObservation(bindingGeneration, expectedPort, ownerGeneration, token)) return
+        permissionState = permissionReader.current()
+        notificationPermissionState = notificationPermissionReader.current()
+        if (permissionState != NearbyDevicesPermissionState.GRANTED) {
+            failServiceConnection()
+            return
         }
-        if (
-            closed || mode != TrailConnectionMode.BLUETOOTH_DEVICE || !serviceRequested ||
-            generation != portGeneration || port?.generation != generation
-        ) return
-        publish(
-            next.copy(
-                serviceState = serviceState,
-                notificationPermissionState = notificationPermissionState,
-                serviceFailure = null,
-            ),
-        )
+        if (currentPortGeneration(expectedPort) != ownerGeneration) {
+            // A binder can acquire or replace its owner. Admit a fresh observation for that owner.
+            onServiceConnection(bindingGeneration, ConnectedDeviceServiceConnection.Connected(expectedPort))
+            return
+        }
+        publishBluetooth()
+    }
+
+    private fun currentPortGeneration(expectedPort: ConnectedDeviceSessionPort): Long? = try {
+        expectedPort.generation
+    } catch (_: Exception) {
+        null
     }
 
     private fun failServiceConnection() {
-        closeServiceStartupDeadline()
-        portObservation?.close()
-        portObservation = null
-        port = null
-        portGeneration = 0L
-        binding?.close()
-        binding = null
-        activeBindingGeneration = 0L
-        serviceConnector.stopService()
+        if (bindingIsAttachment) {
+            detachServiceAttachment()
+            return
+        }
+        unbindObservation()
         serviceRequested = false
         serviceLaunchSubmitted = false
         serviceState = ConnectedDeviceServiceUiState.START_FAILED
         serviceFailure = ConnectedDeviceServiceStartFailure.SERVICE_UNAVAILABLE
-        publishBluetooth()
+        serviceConnector.stopService()
+        if (mode == TrailConnectionMode.BLUETOOTH_DEVICE) publishBluetooth()
+    }
+
+    private fun detachServiceAttachment() {
+        unbindObservation()
+        serviceRequested = false
+        serviceLaunchSubmitted = false
+        serviceState = ConnectedDeviceServiceUiState.START_REQUIRED
+        serviceFailure = null
+        if (mode == TrailConnectionMode.BLUETOOTH_DEVICE) publishBluetooth()
     }
 
     private fun stopServiceIfOwned(forceStop: Boolean = false) {
         val hadRequest = serviceRequested || binding != null || port != null
+        activeBindingGeneration = 0L
+        observationToken = null
         cancelServiceOwnedFactoryResetConfirmation()
         unbindObservation()
         serviceRequested = false
@@ -427,18 +522,39 @@ class TrailActivityController(
     }
 
     private fun unbindObservation() {
-        closeServiceStartupDeadline()
-        portObservation?.close()
-        portObservation = null
-        port = null
-        portGeneration = 0L
-        binding?.close()
+        val oldBinding = binding
         binding = null
         activeBindingGeneration = 0L
+        deferredConnection = null
+        releasePortObservation()
+        closeObservationLease(oldBinding)
+    }
+
+    private fun releasePortObservation() {
+        val oldObservation = portObservation
+        portObservation = null
+        observationToken = null
+        port = null
+        portGeneration = 0L
+        closeServiceStartupDeadline()
+        closeObservationLease(oldObservation)
+    }
+
+    private fun closeObservationLease(lease: AutoCloseable?) {
+        try {
+            lease?.close()
+        } catch (_: Exception) {
+            // A retired observation has no service ownership or callback authority.
+        }
     }
 
     private fun publishBluetooth() {
-        val portState = port?.state
+        val portState = try {
+            port?.state
+        } catch (_: Exception) {
+            failServiceConnection()
+            return
+        }
         val runtime = portState?.runtimeState ?: BleRuntimeState.Idle
         val authorization = portState?.authorizationState ?: DeviceAuthorizationUiState.None
         publish(

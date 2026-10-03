@@ -36,3 +36,7 @@ idf_component_register(
 target_compile_features(${COMPONENT_LIB} PRIVATE cxx_std_17)
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wall -Wextra -Werror -fstack-usage)
 target_link_libraries(${COMPONENT_LIB} PRIVATE idf::espressif__libsodium)
+option(OT_CANDIDATE_STARTUP_DIAGNOSTICS "Fixed startup diagnostics for the isolated evaluation image" OFF)
+if(OT_CANDIDATE_STARTUP_DIAGNOSTICS)
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE OT_CANDIDATE_STARTUP_DIAGNOSTICS=1)
+endif()

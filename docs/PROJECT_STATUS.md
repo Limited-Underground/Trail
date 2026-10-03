@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-10-01. This page summarizes accepted behavior and the next work; dated
+As of 2026-10-03. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -71,6 +71,91 @@ Computer preparation passes focused tests, independent review, the complete
 smoke passed; real usability and device I/O remain unmeasured. Exact request,
 private identity/profile inputs and a fresh one-case grant are still required
 before separately authorized two-node acceptance. OT-0238c stays In Progress.
+The [current first-case audit](testing/OT-0238c-FIRST-CASE-PREPARATION-2026-10-01.md)
+refreshes the stale image with a matching current-source build pair and passes
+assembly-only admission. The missing two-role six-span original acquisition
+is now [implemented and host-validated](testing/OT-0238c-ORIGINAL-CAPTURE-2026-10-01.md):
+live ROM-held freshness precedes candidate grant consumption, and per-role
+custody/release handles early failures. All 76 final suites, independent
+review and both actual isolated entrypoints pass with additive runtime v3.
+Both exact-unit static profiles and the private capture request are now
+[prepared and independently sourced](testing/OT-0238c-LIVE-TEST-PLAN-V3-2026-10-01.md).
+One authorized [physical setup attempt](../tests/hardware/OT-0238c-FIRST-V3-2026-10-01.md)
+captured both originals but stopped before enrollment. Its separately authorized
+October 2 restoration-only continuation verified B's original restoration,
+boot and owner usual-screen acknowledgement, then closed both custody ledgers.
+A was already restored and received no device operation in that continuation.
+First enrollment and all remaining lifecycle/production gates remain open.
+No trial replay, V1 credit or public website capability change.
+The [host-only guarded-read and diagnostic correction](testing/OT-0238c-HOST-EFFICIENCY-2026-10-02.md)
+passes independent review, the final 76-suite matrix and both actual
+isolated v4 entrypoints. Original capture/freshness now use 26/12 worker
+launches instead of 74/36 in the actual-worker/simulated-SDK fixture,
+with full fresh guards and unchanged sweeps/deadlines. Physical speed
+and the previous failure cause remain unproven. The [v4 first-case inputs and complete trial plan](testing/OT-0238c-LIVE-TEST-PLAN-V4-2026-10-02.md)
+passed current-bound admission before one authorized
+[v4 physical attempt](../tests/hardware/OT-0238c-FIRST-V4-2026-10-02.md).
+Both candidate writes and guarded boot operations verified, but execution expired
+before a retained first-enrollment checkpoint; authenticated statuses were 0/8.
+Both six-span originals, original boots, handles, owner usual-screen observations
+and custody/lease release are verified within the common 60-minute ceiling.
+The saved fault is `candidate_case / deadline_expired`; post-return clock checks
+can mask an earlier controller failure, so the earliest failing step is unknown.
+The [startup observation correction](testing/OT-0238c-STARTUP-DIAGNOSTICS-2026-10-02.md)
+is host-validated: returned failures survive both later clock checks, nine fixed
+startup boundaries are durable, and post-write expiry retains unique sequences.
+Independent review, all 10 affected Python suites (231 tests), additive v5 admission
+and both actual isolated inert entrypoints pass. Deadlines, wire commands and
+firmware remain unchanged; the previous earliest physical cause is still unknown.
+The [startup-only diagnostic](testing/OT-0238c-STARTUP-PROBE-2026-10-02.md)
+now passes independent review, 10 affected suites / 260 tests and additive v6
+inert admission. It installs/queries only A, retains exact HELLO/BOOTSTATUS
+observations and restores both original custody roles; it never starts enrollment.
+The [authorized startup_A observation](../tests/hardware/OT-0238c-STARTUP-A-2026-10-02.md)
+failed at `hello_A / deadline_expired`, with eight progress markers and no
+accepted HELLO/BOOTSTATUS result. Both originals, boots, final owner ACK and
+custody/lease closure are verified; a same-ceiling restoration-only continuation
+finished B's unchanged-original sweep/boot without B writes. The physical cause
+and B's earlier secondary cleanup category remain unknown. Current enumeration
+timings do not explain a full five-second expiry. The [terminal timing and
+separate cleanup-failure correction](testing/OT-0238c-TERMINAL-TELEMETRY-2026-10-02.md) now
+passes independent review, 10 affected suites / 291 tests and additive v7 inert
+admission. It distinguishes pre-write, I/O and post-parse boundaries without
+changing guards or deadlines. Historical physical causes remain unknown.
+The [authorized v7 startup observation](../tests/hardware/OT-0238c-STARTUP-V7-A-2026-10-02.md)
+retained a full command write, 33 reads and 80 received bytes, but no parsed
+HELLO reply before post-read deadline expiry. Both originals, original boots,
+real screen ACK and custody/lease closure pass; no cleanup failure or recovery.
+That attempt's received content and firmware boot stage remain unknown. The
+[bounded startup observability correction](testing/OT-0238c-STARTUP-OBSERVABILITY-2026-10-02.md)
+now passes actual firmware-entrypoint and producer/collector host checks,
+10 combined suites / 330 tests and both isolated v8 entrypoints. It preserves
+late-byte classifications, records internal startup boundaries, and corrects
+reading from an absent USB driver after installation failure. That defect is
+not established as the physical cause. Two fresh diagnostic firmware builds
+match all nine artifacts and fit the existing recovery span. The subsequent
+[authorized v8 startup test](../tests/hardware/OT-0238c-STARTUP-V8-A-2026-10-02.md)
+passed fresh READY and BOOTSTATUS zero in about 121/119 ms. Both originals,
+boots, real screen ACK and final custody/lease closure are verified; no cleanup
+failure or recovery. Image-path admission was corrected before consumption with
+byte-identical private copies and unchanged authority/deadlines. Prior physical
+causation remains unproven. The [enrollment startup preparation](testing/OT-0238c-ENROLLMENT-STARTUP-2026-10-03.md)
+now probes each role immediately after boot, then admits fresh operation leases.
+First/retained/recovery host composition, 344 tests and additive v9 package
+admission pass; unchanged firmware builds are reused. Next: fresh owner readiness
+and exact authorization for the prepared first-enrollment case. No repeat startup-
+only test is proposed. The owner postponed this physical case before any device
+access; both originals remain unchanged. The reviewed source/evidence are included
+in the current GitHub delivery. Physical lifecycle/production gates stay open; no V1 credit.
+
+[OT-0237b startup/entropy host admission](testing/OT-0237b-ENTROPY-STARTUP-HOST-2026-10-01.md)
+passes twenty actual-entrypoint cases and the complete 74-suite security matrix.
+A fresh current-source candidate compile passes after the reuse gate detected
+accepted settings inputs newer than the historical image. Host failure/refusal,
+nonsecret partial intent and reconstructed-owner behavior are source-bound;
+physical RNG quality, SDK behavior, target restart and power interruption remain
+unobserved. Full OT-0237b/security acceptance remains open; no production selection,
+V1 credit or public website capability change.
 
 [OT-0168b reset composition](testing/OT-0168b-RESET-COMPOSITION-2026-09-30.md)
 corrects seven retained confirmation-test namespaces omitted from ordinary
@@ -227,6 +312,14 @@ The [independent evaluation endpoints](testing/OT-227-INDEPENDENT-HANDSHAKE-ENDP
   an additive entropy lifecycle guard are now host-validated. The Noise proof also
   produced a narrowly corrected adapter for a real-library nonnull contract issue.
   See the [consolidated admission evidence](security/CRYPTO_ADMISSION_BATCH_2026-09-10.md).
+
+[OT-0320a verified support-region projection](testing/OT-0320a-VERIFIED-SUPPORT-REGION-2026-10-01.md)
+is owner-accepted for its validated host-only scope under approved revision 1. The preview uses only this protected Ready session's
+positive US915 readback and removes it during uncertainty, reset or session loss.
+Focused tests, the final affected Android matrix, three lint variants and exact
+unsigned package inspection pass. Firmware/model remain unavailable; physical
+Save/Share, recipient, URI cleanup and full OT-0320 dependencies remain open.
+No V1 credit or public website capability change.
 
 ## Optional product planning
 
@@ -480,6 +573,55 @@ checks and delayed-completion fallback. Host evidence is owner-accepted;
 physical activation/status acceptance remains open.
 
 ## Remaining acceptance and decisions
+
+The [compact landscape status strip](testing/OT-0304-LANDSCAPE-STATUS-STRIP-2026-10-01.md)
+now builds and passes the affected Android tests/lint. It removes the extra
+landscape test-log row and preserves portrait sizing. This new APK has separate
+Note20 layout validation; prior physical evidence remains artifact-bound.
+
+
+The [new-artifact Note20 checkpoint](testing/OT-0304b-NOTE20-CONFIRMATION-2026-10-01.md)
+passes explicit startup to fresh protected Ready, rotation/reopening, draft
+retention and the bounded larger-text check. Test text was cleared and original
+display settings verified; the updated app was retained. Earlier lifecycle/start
+failures and the first display-restoration mismatch remain in linked evidence.
+[OT-0304a](testing/OT-0304a-EXISTING-SERVICE-OBSERVATION-2026-10-01.md) and
+[OT-0304b](testing/OT-0304b-PENDING-START-2026-10-01.md) are owner-accepted for host
+scope. The S24 is untested on this new artifact; public-profile readback was
+unavailable during the Note20 checkpoint.
+
+The [approved original-only physical check](testing/OT-0304-ORIGINAL-READER-PHYSICAL-2026-10-01.md)
+passes table/erased OTA and two exact factory-prefix reads, guarded restart,
+closed custody and separate owner usual-screen confirmation. Factory bytes
+identify the older ot178-phone-v1 image. Executing slot/profile and the earlier
+USB refusal cause remain unknown; the earlier failure was not reproduced or
+erased. [Reader diagnostics](testing/OT-0304-READER-DIAGNOSIS-2026-10-01.md) retain
+the validated attribution correction.
+
+The [complete saved-state reader](testing/OT-0304-COMPLETE-CUSTODY-PREPARATION-2026-10-01.md)
+and [combined operator](testing/OT-0304-COMBINED-SETTINGS-TRIAL-PREPARATION-2026-10-01.md)
+now have [one actual Trail Bench/Note20 trial](testing/OT-0304-STANDARD-SETTINGS-PHYSICAL-2026-10-01.md).
+Fresh doubled seven-region custody, application-only candidate write/readback,
+protected Ready and valid name/region READs passed. The public phase remained
+incomplete when the computer-side observation budget expired; post-tap absent
+UI evidence is narrower than a completed phase receipt. Phone Idle, exact original
+restoration, the independent seven-region equality sweep, original restart and
+closed custody are verified. Candidate-screen observation is separate from final
+owner restoration confirmation. That trial changed no product source; its evidence is preserved.
+
+The [automatic phone observation helper](testing/OT-0304-AUTOMATED-PHONE-OBSERVATION-2026-10-01.md)
+now passes host validation against saved actual captures and the unchanged
+receipt/ACK owner. It handles clean entry, a separately granted retained-Idle
+process reopen, ordered current READs and bounded closure without extending
+deadlines. Android I/O and elapsed time remain simulated; no device was accessed.
+The accepted standard image and tested landscape Note20 APK are unchanged;
+future session inputs must explicitly pin the new helper/current APK separately
+from the preserved older operator manifest. Actual runtime profile/capability
+metadata remains unknown. Absent public settings are not completed setup.
+Fresh chosen settings, fresh phone state, warm-board and production acceptance
+remain separate. Full OT-0304 remains incomplete; next is one separately
+authorized Trail Bench/Note20 automatic observation session. No V1 credit or
+public website capability change.
 
 Post-release concepts remain separately scoped in the
 [future-concepts register](FUTURE_CONCEPTS.md).
