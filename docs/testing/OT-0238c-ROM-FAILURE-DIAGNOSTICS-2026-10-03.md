@@ -63,6 +63,27 @@ publication-safety and diff checks are recorded there before publication.
 | tests/host/enrollment_candidate_rom_adapter_tests.py | 70692 | `b359bb0efc1eefc3896723154cc50c4e301ecf4079a77cec60861a8cfcf3593b` |
 | tests/host/enrollment_candidate_runner_tests.py | 89326 | `af4f24f5331b36566e01398b74ac1dd411be3b363a660804c0760e0e28b3eae0` |
 
+## CI launcher correction
+
+During publication, the earlier [main workflow failure](https://github.com/Limited-Underground/Trail/actions/runs/37099204608)
+showed that the complete enrollment candidate runner suite was terminated by its
+120-second CI process allowance. The source-bound run above passed all 60 tests
+in 317.046 seconds. This is evidence of an inadequate whole-suite allowance;
+the earlier timeout does not establish a failing assertion or a device defect.
+
+The same source-bound matrix passed all 15 capture-runner tests in 145.17 seconds
+with four host workers, exceeding their existing 90-second whole-suite allowance.
+Concurrent I/O can affect that measurement; it does not establish a hosted failure.
+
+The CI launcher now allows 600 seconds for the complete candidate runner suite
+and 300 seconds for the complete capture-runner suite. All other 90-second
+children, custody grouping, suite list and 30-minute GitHub job ceiling are
+unchanged. These test-process allowances do not change application, worker,
+device, authorization or invitation deadlines. Focused validation checks the
+exact byte replacement and parsed timeout expression. Full required GitHub CI
+must pass on the final commit before merge; its result belongs to the PR and
+private publication closeout, rather than to the earlier local matrix receipt.
+
 ## Physical/runtime boundary and next gate
 
 No firmware input changed, so no firmware rebuild was required. No device access,
