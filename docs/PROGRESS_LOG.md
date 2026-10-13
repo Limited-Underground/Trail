@@ -21,6 +21,25 @@ accepted this host scope. Actual private evidence stays local, while public
 synthetic selectors are validated separately for publication. No runnable
 package, grant, device work, full OT-0238c acceptance or V1 credit.
 [Owning evidence](testing/OT-0238e-REVOKE-ADMISSION-2026-10-13.md).
+
+## 2026-10-12
+
+### OT-0238c Record capture/release and one retained-rekey USB pass
+
+One authorized capture-only run passed and released both nodes with original
+firmware preserved. Its guarded-read equality/lease closure relies on pinned
+source and successful receipts; separate per-read telemetry/live lock probing
+was absent. A later separately authorized retained-rekey/group-1 USB case passed
+initial enrollment, both guarded restarts, fresh activation, 8 + 8 authenticated
+statuses, eight actual device confirmations and expected old-epoch refusal.
+Exact current-attempt originals/settings were restored and verified; clean
+boots, handles/custody/leases and fresh owner usual screens passed independent
+closure review. Historical failures/holds remain preserved. RF, Android BLE,
+revoke/reset/recovery, full OT-0238c and V1 acceptance remain open. No V1 score
+or public website capability change.
+[Capture-only evidence](../tests/hardware/OT-0238c-CAPTURE-RELEASE-2026-10-12.md);
+[retained-rekey evidence](../tests/hardware/OT-0238c-RETAINED-REKEY-2026-10-12.md).
+
 ## 2026-10-11
 
 ### OT-0238c Preserve settings mismatch and manual recovery observations
