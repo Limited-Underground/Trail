@@ -21,7 +21,8 @@ from enrollment_candidate_runtime import (Assembly, canonical, decode, descripto
     pin_valid, read_pin, regular, verify_assembly)
 from enrollment_candidate_controller import Clock, Controller, ControllerError, CheckpointAck, ROLES, CASES
 from enrollment_candidate_custody import (ACTIVE, Budget, CustodyResult, validate_request,
-    validate_grant, execute, recover, Error as CustodyError)
+    validate_grant, execute, recover, MIN_HANDOFF_REMAINING, MIN_PRE_A_REMAINING, MIN_RESTORE_RESERVE,
+    Error as CustodyError)
 from enrollment_candidate_operator import (CandidateOperator, CheckpointUI, CapturedReferences,
     OperatorError, PROGRESS_PHASES, QUERY_BOUNDARIES)
 from enrollment_candidate_rom_adapter import Runtime, HardwareLease, ROMBackend, DeviceProfile, opaque_identity, identity, AdapterError, validate_rom_failure_snapshot
@@ -32,7 +33,10 @@ from enrollment_candidate_original_capture import CaptureError, _CATEGORIES as C
 
 # A lexical word is not a trusted diagnostic. Only these reviewed fixed codes
 # and owned exception types may cross a durable/public result boundary.
-PUBLIC_CATEGORIES = frozenset('''activation_failed activation_invalid admission_invalid
+PUBLIC_CATEGORIES = frozenset('''review_response_invalid review_scope_invalid device_confirmation_missing device_confirmation_source
+review_bad_request review_inactive review_token_mismatch review_context_changed review_display_changed review_expired
+review_gesture_invalid review_device_failure original_screen_reply_invalid
+activation_failed activation_invalid admission_invalid budget_insufficient adoption_invalid
 artifact_write_failed assembly_changed assembly_invalid backend_invalid base_changed
 base_policy_conflict bootloader_changed candidate_boot_uncertain capture_incomplete
 capture_readback_failed case_invalid checkpoint_group_invalid checkpoint_inactive
@@ -224,6 +228,61 @@ class RunnerResult:
     runner_failure: tuple | None = None
     cleanup_failure: tuple | None = None
     restoration_failures: dict | None = None
+    restart_failure: 'RestartFailure | None' = None
+
+
+@dataclass(frozen=True)
+class RestartFailure:
+    role: str | None
+    method: str
+    boundary: str
+    category: str
+
+    def snapshot(self):
+        return dict(role=self.role, method=self.method, boundary=self.boundary,
+                    category=self.category)
+
+
+class _PairRestart:
+    """One sequential attempt; freeze the first sanitized rejecting boundary."""
+    def __init__(self, backends, lease, execution, clock):
+        self.backends, self.lease, self.execution, self.clock = backends, lease, execution, clock
+        self.failure, self.used = None, False
+
+    def run(self, operator, deadline):
+        role, method, boundary = None, 'restart_candidate', 'precheck'
+        try:
+            need(not self.used, 'restart_not_admitted')
+            self.used = True # A rejection or uncertain callback never permits retry.
+            limit = min(deadline, self.execution)
+            method = 'clock'
+            self.clock.check(limit)
+            method, boundary = 'assert_idle', 'call'
+            need(self.lease.assert_idle() is True, 'handles_not_closed')
+            for role in ROLES:
+                method, boundary = 'restart_candidate', 'call'
+                answer = self.backends[role].restart_candidate(limit)
+                boundary = 'returned'
+                need(answer is True, 'restart_failed')
+                method, boundary = 'close', 'call'
+                answer = self.backends[role].close()
+                boundary = 'returned'
+                need(answer is True, 'rom_close_unconfirmed')
+                method, boundary = 'startup_probe', 'call'
+                probe = operator.startup_probe(role, 2, limit)
+                boundary = 'returned'
+                need(probe.first_failure is None and probe.handles_closed, 'restart_failed')
+                method, boundary = 'assert_idle', 'call'
+                need(self.lease.assert_idle() is True, 'handles_not_closed')
+            role, method, boundary = None, 'clock', 'postcheck'
+            self.clock.check(limit)
+            return True
+        except BaseException as error:
+            if self.failure is None:
+                # No clock resampling, callback dictionaries, raw diagnostics or
+                # later cleanup state may replace the first rejection.
+                self.failure = RestartFailure(role, method, boundary, _category(error))
+            raise
 
 
 class _BoundBackend:
@@ -258,14 +317,25 @@ class _BoundBackend:
             raise
 
     def claim(self, binding, deadline):
-        # Frozen custody writes ACTIVE and this role's claim_intent before
-        # reaching here. The acquisition coordinator verifies those durable
-        # records and transfers only this role, before any candidate claim I/O.
-        if not self.claimed and self.adopt is not None:
-            need(self.adopt() is True, 'capture_handoff_invalid')
         self.restoring = self.restoring or self.claimed
         self.claimed = True
-        return self._invoke('claim', deadline, binding)
+        method = 'restore_claim' if self.restoring and callable(getattr(self.backend, 'restore_claim', None)) else 'claim'
+        return self._invoke(method, deadline, binding)
+
+    def restore_claim(self, binding, deadline):
+        self.restoring = True
+        return self.claim(binding, deadline)
+
+    @property
+    def supports_live_adoption(self):
+        return self.adopt is not None
+
+    def adopt_originals(self, journal, state, role, deadline):
+        need(not self.claimed and self.adopt is not None and not self.restoring, 'capture_handoff_invalid')
+        limit = self._limit(deadline)
+        need(self.adopt(journal, state, self.backend, limit) is True, 'capture_handoff_invalid')
+        self.clock.check(limit)
+        return True
 
     def guard(self, binding, deadline):
         return self._invoke('guard', deadline, binding)
@@ -362,6 +432,72 @@ def _write_once(path, raw, *, on_create=None):
     need(path.read_bytes() == raw, 'receipt_failed')
 
 
+def _final_queries(value, case):
+    """Bounded private metadata; never admits a command, reason or payload."""
+    need(set(value) == {'schema', 'queries'} and type(value['queries']) is list
+         and 1 <= len(value['queries']) <= 8, 'event_invalid')
+    maximum = 2 if case in ('retained_rekey', 'recovery_after_A_commit', 'recovery_after_B_commit') else 1
+    expected = []
+    for generation in range(1, maximum + 1):
+        if generation == 1 and case.startswith('recovery_after_'):
+            expected.append(('commit', 'A' if case == 'recovery_after_A_commit' else 'B', generation))
+        else:
+            expected.extend((phase, role, generation) for phase in ('commit', 'ready') for role in ROLES)
+    need(len(value['queries']) <= len(expected), 'event_invalid')
+    fields = {'phase', 'role', 'generation', 'boundary', 'entry_allowance_ns',
+        'sampled_elapsed_ns', 'sampled_remaining_ns', 'rejected', 'query', 'diagnostic_failure'}
+    query_fields = {'phase', 'role', 'generation', 'boundary', 'entry_allowance_ns',
+        'prelude_elapsed_ns', 'elapsed_ns', 'timing_valid', 'transport', 'sampled_remaining_ns', 'diagnostic_failure'}
+    failures = ('query_unavailable', 'query_snapshot', 'query_finish', 'authority_sample_invalid',
+                'observation_clock_invalid', 'observer_reentry')
+    def duration(item, names):
+        need(all(item[name] is None or (type(item[name]) is int and
+            0 <= item[name] <= 0x7fffffffffffffff) for name in names), 'event_invalid')
+    def failure(item):
+        need(item is None or type(item) is str and item in failures, 'event_invalid')
+    rows = []
+    for index, row in enumerate(value['queries']):
+        need(type(row) is dict and set(row) == fields
+            and (row['phase'], row['role'], row['generation']) == expected[index]
+            and type(row['phase']) is str and type(row['role']) is str
+            and type(row['generation']) is int and type(row['boundary']) is str
+            and row['boundary'] in ('precheck', 'endpoint', 'postcheck', 'returned')
+            and type(row['rejected']) is bool
+            and row['rejected'] == (row['boundary'] != 'returned')
+            and (not row['rejected'] or index == len(value['queries']) - 1), 'event_invalid')
+        duration(row, ('entry_allowance_ns', 'sampled_elapsed_ns', 'sampled_remaining_ns'))
+        failure(row['diagnostic_failure'])
+        query = row['query']
+        if query is None:
+            need(row['boundary'] == 'precheck' or row['diagnostic_failure'] is not None, 'event_invalid')
+        else:
+            need(row['boundary'] != 'precheck' and type(query) is dict and set(query) == query_fields
+                 and all(query[k] == row[k] and type(query[k]) is type(row[k])
+                     for k in ('phase', 'role', 'generation'))
+                 and type(query['boundary']) is str and query['boundary'] in QUERY_BOUNDARIES
+                 and type(query['timing_valid']) is bool, 'event_invalid')
+            duration(query, ('entry_allowance_ns', 'prelude_elapsed_ns', 'elapsed_ns', 'sampled_remaining_ns'))
+            failure(query['diagnostic_failure'])
+            need(query['timing_valid'] or query['prelude_elapsed_ns'] is None and query['elapsed_ns'] is None,
+                 'event_invalid')
+            need(query['prelude_elapsed_ns'] is None or query['elapsed_ns'] is not None
+                 and query['prelude_elapsed_ns'] <= query['elapsed_ns'], 'event_invalid')
+            transport = query['transport']
+            if transport is None:
+                need(query['boundary'] in ('owner_check', 'progress') or query['diagnostic_failure'] is not None,
+                     'event_invalid')
+            else:
+                need(query['boundary'] in ('endpoint', 'postcheck', 'returned'), 'event_invalid')
+                try:
+                    transport = validate_query_snapshot(transport)
+                except BaseException:
+                    raise RunnerError('event_invalid') from None
+                need(transport['stream'] is None, 'event_invalid')
+            query = dict(query, transport=transport)
+        rows.append(dict(row, query=query))
+    return rows
+
+
 class _Events:
     def __init__(self, root, attempt, request_sha, grant_sha, clock, execution, restoration, *, case=None):
         self.path = root / ('enrollment-candidate-runner-' + attempt + '-events.jsonl')
@@ -374,12 +510,33 @@ class _Events:
         self.max_generation = 2 if case in ('retained_rekey', 'recovery_after_A_commit',
             'recovery_after_B_commit') else 1
         self.query_summary_count = 0
+        self.final_summary_count = 0
         self.startup_counts, self.probe_summaries = {}, set()
 
     def __call__(self, value):
         need(type(value) is dict, 'event_invalid')
         result = dict(self.binding, sequence=self.count)
-        if value.get('schema') in ('OT-CANDIDATE-CHECKPOINT-1', 'OT-CANDIDATE-ACK-1'):
+        if value.get('schema') in ('OT-CANDIDATE-DEVICE-CHECKPOINT-1', 'OT-CANDIDATE-DEVICE-CONFIRMED-1'):
+            checkpoint = value['schema'] == 'OT-CANDIDATE-DEVICE-CHECKPOINT-1'
+            fields = {'schema', 'kind', 'roles', 'token', 'deadline'} if checkpoint else {
+                'schema', 'kind', 'role', 'token', 'purpose', 'review_generation', 'display_revision', 'gesture', 'elapsed_ns'}
+            need(set(value) == fields and value['kind'] in ('fingerprint_local', 'fingerprint', 'transcript')
+                 and type(value['token']) is str and re.fullmatch('[0-9a-f]{32}', value['token'])
+                 and value['token'] != '0' * 32, 'event_invalid')
+            if checkpoint:
+                need(value['roles'] in (ROLES, ('A',), ('B',)) and type(value['deadline']) in (int, float)
+                     and math.isfinite(value['deadline']) and value['deadline'] <= self.execution, 'event_invalid')
+                result.update(schema=value['schema'], kind=value['kind'], roles=value['roles'])
+            else:
+                need(value['role'] in ROLES and value['purpose'] == {'fingerprint_local':'LOCAL', 'fingerprint':'PEER',
+                    'transcript':'CODE'}[value['kind']] and all(type(value[k]) is int and 0 < value[k] < 1 << 64
+                    for k in ('review_generation', 'display_revision'))
+                    and value['gesture'] == 'ACCEPTED' and type(value['elapsed_ns']) is int
+                    and 0 <= value['elapsed_ns'] <= 120000000000, 'event_invalid')
+                result.update({k: value[k] for k in fields - {'token'}})
+            result['token_sha256'] = hashlib.sha256(value['token'].encode('ascii')).hexdigest()
+            ceiling = self.execution
+        elif value.get('schema') in ('OT-CANDIDATE-CHECKPOINT-1', 'OT-CANDIDATE-ACK-1'):
             need(set(value) == ({'schema', 'kind', 'roles', 'token', 'deadline'}
                  if value['schema'] == 'OT-CANDIDATE-CHECKPOINT-1' else {'schema', 'kind', 'roles', 'token'})
                  and value['kind'] in ('fingerprint_local', 'fingerprint', 'transcript', 'reset_gesture', 'usual_screen')
@@ -491,6 +648,10 @@ class _Events:
             if scoped:
                 result.update(role=role, generation=generation)
             ceiling = self.execution
+        elif value.get('schema') == 'OT-CANDIDATE-FINAL-SUMMARY-1':
+            need(self.case in CASES - {'startup_A', 'cancel'} and self.final_summary_count == 0, 'event_invalid')
+            result.update(schema=value['schema'], queries=_final_queries(value, self.case))
+            ceiling = self.execution
         elif value.get('stage') == 'authenticated_status':
             need(self.case != 'startup_A' and set(value) == {'stage', 'source', 'destination', 'value'}
                  and value['source'] in ROLES and value['destination'] in ROLES
@@ -511,6 +672,8 @@ class _Events:
         need(self.path.read_bytes() == prior + raw, 'receipt_failed')
         # A durable row owns its sequence even if the post-write check expires.
         self.count += 1
+        if value.get('schema') == 'OT-CANDIDATE-FINAL-SUMMARY-1':
+            self.final_summary_count += 1
         if value.get('schema') == 'OT-CANDIDATE-PROGRESS-1':
             self.progress_count += 1
         if value.get('schema') == 'OT-CANDIDATE-STARTUP-1':
@@ -590,7 +753,9 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
         operator_factory=CandidateOperator, view_factory=_view_factory,
         assembly_verifier=verify_assembly, require_isolated=False,
         execute_deadline=None, restore_deadline=None,
-        capture_session=None, held_runtime=None, held_lease=None, handoff_validator=None):
+        capture_session=None, held_runtime=None, held_lease=None, handoff_validator=None,
+        bench_presentation=False):
+    need(type(bench_presentation) is bool, 'mode_invalid')
     prepared = preflight(package_path, package_sha256, utc=utc, monotonic=monotonic,
                          assembly_verifier=assembly_verifier)
     need(mode in ('execute', 'recover') and prepared.operation == mode, 'mode_invalid')
@@ -620,10 +785,21 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
     clock.check(execution)
     request, grant = prepared.request, prepared.grant
     need(validate_grant(request, prepared.grant_raw, prepared.grant_sha256, mode, utc) == grant, 'grant_changed')
+    if mode == 'execute' and view_factory is _view_factory:
+        # Refuse an unavailable owner input desktop before any acquisition.
+        # Recovery must remain available under its existing restoration gates.
+        from enrollment_candidate_private_view import ensure_input_desktop
+        try:
+            ready = ensure_input_desktop() is True
+        except BaseException:
+            ready = False
+        need(ready, 'private_view_failed')
+        clock.check(execution)
     runtime, lease, events = held_runtime, held_lease, None
     custody, owner, released, fault, view, operator = None, False, False, None, None, None
     cleanup_fault = None
     backends = {}
+    restart = None
     stage = 'composition'
     capture_release_attempted = False
     def release_capture():
@@ -642,8 +818,8 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
             role=role, images=dict(prepared.images), binding_key=prepared.binding_key,
             expected_identity=identities[role], device_profile=profiles[role], recovery_only=mode == 'recover'),
             execution, restoration, mode == 'recover', clock,
-            adopt=(lambda role=role: capture_session.transfer_role(role,
-                prepared.evidence_root, prepared.request, grant['attempt']))
+            adopt=(lambda journal, state, backend, deadline, role=role: capture_session.adopt_role(role,
+                journal, state, prepared.request, grant['attempt'], backend, deadline, restoration))
                 if capture_session is not None else None) for role in ROLES}
         events = _Events(prepared.evidence_root, grant['attempt'], hashlib.sha256(prepared.request_raw).hexdigest(),
                          prepared.grant_sha256, clock, execution, restoration, case=request['case'])
@@ -659,24 +835,28 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
             need(lease.acquire(execution) is True, 'hardware_lease_busy')
         if mode == 'execute':
             view = view_factory()
-            def restart(deadline):
-                clock.check(min(deadline, execution))
-                need(lease.assert_idle() is True, 'handles_not_closed')
-                for role in ROLES:
-                    need(backends[role].restart_candidate(min(deadline, execution)) is True, 'restart_failed')
-                    need(backends[role].close() is True, 'rom_close_unconfirmed')
-                    probe = operator.startup_probe(role, 2, min(deadline, execution))
-                    need(probe.first_failure is None and probe.handles_closed, 'restart_failed')
-                    need(lease.assert_idle() is True, 'handles_not_closed')
-                clock.check(min(deadline, execution))
-                return True
+            restart = _PairRestart(backends, lease, execution, clock)
+            # This explicit bench-context switch changes presentation only.
+            # Package-bound A/B identities and admission remain authoritative.
+            def original_view():
+                from enrollment_candidate_private_view import OriginalScreenReplyView
+                return OriginalScreenReplyView(prepared.evidence_root, attempt=grant['attempt'],
+                    request_sha256=hashlib.sha256(prepared.request_raw).hexdigest(),
+                    grant_sha256=prepared.grant_sha256, monotonic=monotonic, utc=utc)
+            presentation = ({'role_labels': {'A': 'Trail Bench', 'B': 'Trail Bench 2'}}
+                            if bench_presentation else {})
             operator = operator_factory(runtime, lease, identities, prepared.binding_key,
-                opaque_identity, view, restart, record=events, monotonic=monotonic)
+                opaque_identity, view, lambda deadline: restart.run(operator, deadline),
+                record=events, monotonic=monotonic,
+                cleanup_view_factory=original_view if bench_presentation else view_factory, **presentation)
             need(operator.activate(prepared.request, prepared.grant_raw, prepared.grant_sha256,
                  execution, utc=utc) is True, 'activation_failed')
             if capture_session is not None:
                 # Fresh immutable receipt checks, complete current six-span
                 # sweeps and same held-ROM owners precede candidate _used.
+                now = clock.now()
+                need(execution - now >= MIN_HANDOFF_REMAINING and restoration - execution >= MIN_RESTORE_RESERVE,
+                     'budget_insufficient')
                 need(capture_session.verify(prepared.request, runtime=runtime, lease=lease,
                     identities=identities, binding_key=prepared.binding_key,
                     profiles=profiles, deadline=execution) is True, 'capture_handoff_invalid')
@@ -688,6 +868,9 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
                     _ref(ref, private)
                 assembly_verifier(prepared.assembly.assembly_path, prepared.assembly.assembly_sha256)
                 clock.check(execution)
+                now = clock.now()
+                need(execution - now >= MIN_PRE_A_REMAINING and restoration - execution >= MIN_RESTORE_RESERVE,
+                     'budget_insufficient')
             stage = 'execute'
             custody = _snapshot_custody(execute(prepared.evidence_root, prepared.request, prepared.grant_raw,
                 prepared.grant_sha256, dict(prepared.images), backends,
@@ -775,6 +958,7 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
         'custody': _safe_custody(custody),
         'owner_observed': owner, 'lease_released': released,
         'rom_failure': _rom_failure(runtime),
+        'restart_failure': restart.failure.snapshot() if restart is not None and restart.failure is not None else None,
         'events': descriptor(regular(events.path).read_bytes()) if events is not None else None}
     restoration_failures = {role: dict(backend.restoration_failure)
         for role, backend in backends.items() if backend.restoration_failure is not None}
@@ -821,7 +1005,8 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
         except BaseException:
             receipt_path = None
     return RunnerResult(mode, outcome, first, custody, owner, released, receipt_path,
-                        fault, cleanup_fault, restoration_failures)
+                        fault, cleanup_fault, restoration_failures,
+                        restart.failure if restart is not None else None)
 
 
 def main(argv=None):
@@ -836,10 +1021,12 @@ def main(argv=None):
     parser.add_argument('--package-sha256')
     parser.add_argument('--execute-deadline', type=float)
     parser.add_argument('--restore-deadline', type=float)
+    parser.add_argument('--bench-presentation', action='store_true')
     mode = 'preflight'
     try:
         args = parser.parse_args(argv)
         mode = args.mode
+        need(not args.bench_presentation or mode in ('execute', 'recover'), 'mode_invalid')
         assembly = verify_assembly(args.assembly, args.assembly_sha256, require_isolated=True)
         need((args.package is None) == (args.package_sha256 is None), 'package_invalid')
         need((args.execute_deadline is None) == (args.restore_deadline is None), 'deadline_invalid')
@@ -853,7 +1040,8 @@ def main(argv=None):
         else:
             need(args.package is not None, 'package_invalid')
             result = run(args.package, args.package_sha256, mode, require_isolated=True,
-                execute_deadline=args.execute_deadline, restore_deadline=args.restore_deadline)
+                execute_deadline=args.execute_deadline, restore_deadline=args.restore_deadline,
+                bench_presentation=args.bench_presentation)
             outcome = result.outcome
             category = result.first_failure[1] if result.first_failure else None
     except SystemExit:

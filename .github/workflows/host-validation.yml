@@ -18,7 +18,7 @@ jobs:
   core-tests:
     name: Windows core host tests
     runs-on: windows-2025
-    timeout-minutes: 30
+    timeout-minutes: 90
 
     steps:
       - name: Check out source

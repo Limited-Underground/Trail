@@ -1183,6 +1183,46 @@ class CustodyTests(unittest.TestCase):
                     child.communicate(timeout=5)
 
 
+class OperatorFailureCategoryTests(unittest.TestCase):
+    def test_final_ui_owned_categories_preserved_without_widening_other_types(self):
+        from enrollment_candidate_operator import OperatorError
+        class Derived(OperatorError): pass
+        class StringSubclass(str): pass
+        expected = ('checkpoint_reentry', 'checkpoint_inactive', 'private_view_not_cleared',
+                    'private_view_failed', 'human_confirmation_missing', 'handles_not_closed',
+                    'activation_expired')
+        for category in expected:
+            with self.subTest(category=category):
+                self.assertEqual(custody._failure_category(OperatorError(category)), category)
+                for error in (RuntimeError(category), Derived(category),
+                              ControllerError(category), AdapterError(category),
+                              OperatorError(StringSubclass(category)),
+                              OperatorError(category, 'private detail')):
+                    self.assertEqual(custody._failure_category(error), 'custody_operation_failed')
+        self.assertEqual(custody._failure_category(OperatorError('private detail')),
+                         'custody_operation_failed')
+        self.assertEqual(custody._failure_category(ControllerError('deadline_expired')),
+                         'deadline_expired')
+
+    def test_final_ui_category_persists_valid_journal_without_erasing_primary(self):
+        from enrollment_candidate_operator import OperatorError
+        f = CustodyTests('test_exact_six_span_contract_and_nonblank_originals')
+        f.setUp(); self.addCleanup(f.doCleanups)
+        primary = ('fingerprint_local_AB', 'deadline_expired')
+        f.controller.run = lambda case, group, deadline: TrialResult(case, 'failed', primary[0],
+            primary, 0, 1, True, 0)
+        def rejected(deadline): raise OperatorError('checkpoint_reentry')
+        f.controller.confirm_original = rejected
+        result = f.execute()
+        self.assertEqual(result.first_failure, primary)
+        self.assertEqual(result.cleanup_failure, ('owner_confirmation', 'checkpoint_reentry'))
+        self.assertTrue(result.custody_released)
+        self.assertFalse(result.owner_confirmed)
+        state = custody.decode(custody.Journal(f.root, '1' * 32).file.read_bytes())
+        self.assertEqual(state['cleanup_failure'], list(result.cleanup_failure))
+        custody._validate_state(state, f.request, '1' * 32)
+
+
 def lease_child(root):
     fixture = CustodyTests('test_exact_six_span_contract_and_nonblank_originals')
     fixture.setUp()

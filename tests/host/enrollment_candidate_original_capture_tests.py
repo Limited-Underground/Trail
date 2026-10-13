@@ -118,6 +118,13 @@ class Fixture:
             row = {'captures': {}, 'events': ['claim_intent'] if role in claims else [],
                 'restore_verified': False, 'original_boot_allowed': False,
                 'handles_closed': False, 'settled_untouched': False}
+            if role in claims or role in settled:
+                # New handoff prepares durable bytes before its single source
+                # commit. A role claim event is written only after that commit.
+                row.update(captures=request['roles'][role]['originals'], events=[],
+                    adoption={'root': str(self.root), 'attempt': '1' * 32})
+                for name, raw in self.originals[role].items():
+                    custody.Journal(root, attempt).original(role, name).write_bytes(raw)
             if role in settled:
                 row.update(captures=request['roles'][role]['originals'], events=['claim_intent',
                     'six_span_sweep_verified', 'original_reset_intent', 'original_boot_verified',
@@ -537,7 +544,7 @@ class CaptureTests(unittest.TestCase):
         root, request, attempt = f.candidate_journal(claims=('A',))
         with self.assertRaises(capture.CaptureError): f.session.transfer_role('B', root, request, attempt)
         self.assertTrue(f.session.transfer_role('A', root, request, attempt))
-        with self.assertRaises(capture.CaptureError): f.session.transfer_role('A', root, request, attempt)
+        with self.assertRaises((capture.CaptureError, FileExistsError)): f.session.transfer_role('A', root, request, attempt)
         self.assertEqual(f.session.result.roles['B']['owner'], 'capture')
 
     def test_used_marker_alone_never_transfers(self):

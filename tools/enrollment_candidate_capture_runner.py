@@ -20,8 +20,16 @@ from enrollment_candidate_runtime import (Assembly, canonical, decode, descripto
     pin_valid, read_pin, regular, verify_assembly)
 from enrollment_candidate_rom_adapter import Runtime, HardwareLease, DeviceProfile, identity, opaque_identity
 from enrollment_candidate_original_capture import (CaptureSession, CaptureError,
-    validate_request, validate_grant, recover_release, ACTIVE)
+    validate_request, validate_grant, recover_release, retained_link_preflight, RETAINED_REQUESTS, CURRENT_NVS_REQUEST, ACTIVE)
 import enrollment_candidate_runner as candidate
+
+
+def _require_input_desktop():
+    from enrollment_candidate_private_view import ensure_input_desktop
+    try:
+        candidate.need(ensure_input_desktop() is True, 'private_view_failed')
+    except BaseException:
+        raise candidate.RunnerError('private_view_failed') from None
 
 
 @dataclass(frozen=True)
@@ -58,7 +66,10 @@ def _new_private_file(path, private):
 
 def preflight(package_path, package_sha256, *, utc=time.time, monotonic=time.monotonic,
               assembly_verifier=verify_assembly):
-    """Inert, nonconsuming package admission with an initially absent handoff."""
+    """Nonconsuming package admission; retained mode probes a private hard link.
+
+    No hardware or grant is consumed. The probe is removed before returning.
+    """
     clock = Clock(monotonic)
     start, started_utc = clock.now(), utc()
     candidate.need(type(started_utc) in (int, float) and math.isfinite(started_utc), 'clock_invalid')
@@ -70,7 +81,7 @@ def preflight(package_path, package_sha256, *, utc=time.time, monotonic=time.mon
     candidate.need(type(package) is dict and set(package) == {'schema', 'operation', 'evidence_root',
         'assembly', 'request', 'grant', 'identities', 'binding_key', 'profiles', 'handoff'}
         and package['schema'] == 'OT-ORIGINAL-CAPTURE-RUNNER-1'
-        and package['operation'] in ('capture', 'release'), 'package_invalid')
+        and package['operation'] in ('capture', 'capture-only', 'release'), 'package_invalid')
     assembly_ref = package['assembly']
     candidate.need(type(assembly_ref) is dict and set(assembly_ref) == {'path', 'bytes', 'sha256'}
         and pin_valid({k: assembly_ref[k] for k in ('bytes', 'sha256')}), 'reference_invalid')
@@ -88,7 +99,10 @@ def preflight(package_path, package_sha256, *, utc=time.time, monotonic=time.mon
     candidate.need(not any(evidence_root.resolve().is_relative_to(Path(root).resolve())
         for root in (assembly.root, base['root'])), 'evidence_root_invalid')
     request = validate_request(decode(data['request']))
-    grant = validate_grant(request, data['grant'], refs['grant']['sha256'], package['operation'], utc)
+    capture_only = package['operation'] == 'capture-only'
+    candidate.need(not capture_only or request['schema'] == CURRENT_NVS_REQUEST, 'mode_invalid')
+    grant = validate_grant(request, data['grant'], refs['grant']['sha256'],
+        'capture' if capture_only else package['operation'], utc)
     candidate.need(request['runtime_sha256'] == assembly.manifest_sha256, 'runtime_binding_invalid')
     candidate.need(grant['issued_utc'] <= started_utc < grant['capture_expires_utc'], 'grant_expired')
     capture_deadline = start + grant['capture_expires_utc'] - started_utc
@@ -115,14 +129,20 @@ def preflight(package_path, package_sha256, *, utc=time.time, monotonic=time.mon
             and row['evidence_sha256'] == request['roles'][role]['profile_evidence_sha256'], 'profile_invalid')
         checked[role] = DeviceProfile(**row)
     candidate.need(not (evidence_root / ('enrollment-original-used-' + grant['attempt'])).exists(), 'grant_used')
-    if package['operation'] == 'capture':
+    if package['operation'] in ('capture', 'capture-only'):
         candidate.need(not (evidence_root / ACTIVE).exists()
             and not (evidence_root / candidate.ACTIVE).exists(), 'custody_held')
-        handoff = _new_private_file(package['handoff'], private)
-        candidate.need(not any(handoff.resolve().is_relative_to(Path(root).resolve())
-            for root in (assembly.root, base['root'])), 'handoff_invalid')
+        if capture_only:
+            candidate.need(package['handoff'] is None, 'handoff_invalid')
+            handoff = None
+        else:
+            handoff = _new_private_file(package['handoff'], private)
+            candidate.need(not any(handoff.resolve().is_relative_to(Path(root).resolve())
+                for root in (assembly.root, base['root'])), 'handoff_invalid')
         candidate.need(not any((evidence_root / ('enrollment-original-' + grant['attempt'] + suffix)).exists()
             for suffix in ('.json', '.pending', '-pins.json', '-handoff.json')), 'capture_session_used')
+        if request['schema'] in RETAINED_REQUESTS:
+            retained_link_preflight(request, private, evidence_root)
     else:
         candidate.need(package['handoff'] is None, 'handoff_invalid')
         handoff = None
@@ -185,14 +205,43 @@ class CaptureRunnerResult:
     receipt_path: Path | None = None
 
 
+def _retained_mode(session, result):
+    if result is not None and result.outcome == 'released_with_nvs_drift':
+        return 'retained_mismatch_released_with_nvs_drift'
+    cleanup = result.cleanup_failure if result is not None else None
+    if cleanup is not None:
+        return ('retained_mismatch_unresolved' if cleanup[1].startswith('release_')
+            and cleanup[1].endswith('_changed') else 'retained_not_verified')
+    if (session is not None and session._verified and result is not None
+            and result.first_failure is None):
+        return 'retained_verified'
+    failure = result.first_failure if result is not None else None
+    if (failure is not None and failure[0].startswith('freshness_')
+            and failure[1] in ('capture_changed', 'original_changed')):
+        return 'retained_mismatch_unresolved'
+    if session is not None and session._release_records:
+        return 'retained_mismatch_unresolved'
+    return 'retained_not_verified'
+
+
+def _current_nvs_mode(session, result):
+    # A new snapshot earns this label only after strict six-span verification.
+    verified = (session is not None and session.current_nvs and session._verified
+        and result is not None and result.capture_complete and result.first_failure is None
+        and result.cleanup_failure is None)
+    return ("retained_firmware_current_nvs_verified" if verified
+        else "retained_firmware_current_nvs_not_verified")
+
+
 def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.monotonic,
         runtime_factory=Runtime, lease_factory=HardwareLease, capture_backend_factory=None,
         candidate_backend_factory=candidate.ROMBackend, operator_factory=candidate.CandidateOperator,
         view_factory=candidate._view_factory, assembly_verifier=verify_assembly, wait=time.sleep,
-        require_isolated=False, capture_deadline=None, cleanup_deadline=None):
+        require_isolated=False, capture_deadline=None, cleanup_deadline=None, bench_presentation=False):
+    candidate.need(type(bench_presentation) is bool, 'mode_invalid')
     prepared = preflight(package_path, package_sha256, utc=utc, monotonic=monotonic,
         assembly_verifier=assembly_verifier)
-    candidate.need(mode in ('capture', 'release') and mode == prepared.operation, 'mode_invalid')
+    candidate.need(mode in ('capture', 'capture-only', 'release') and mode == prepared.operation, 'mode_invalid')
     if require_isolated:
         verify_assembly(prepared.assembly.assembly_path, prepared.assembly.assembly_sha256, require_isolated=True)
     for supplied in (capture_deadline, cleanup_deadline):
@@ -203,6 +252,8 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
     clock = Clock(monotonic)
     clock.check(execution)
     _recheck(prepared, assembly_verifier)
+    if mode in ('capture', 'capture-only') and view_factory is candidate._view_factory:
+        _require_input_desktop()
     private = prepared.assembly.worktree / '.private'
     runtime, lease, session, capture_result, candidate_result = None, None, None, None, None
     first, cleanup, released, stage = None, None, False, 'composition'
@@ -215,28 +266,31 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
             binding_key=prepared.binding_key, profiles=dict(prepared.profiles), utc=utc, monotonic=monotonic,
             backend_factory=capture_backend_factory, capture_deadline=execution, cleanup_deadline=restoration)
         _recheck(prepared, assembly_verifier)
-        if mode == 'capture':
-            _new_private_file(prepared.handoff_path, private)
+        if mode in ('capture', 'capture-only'):
+            if mode == 'capture':
+                _new_private_file(prepared.handoff_path, private)
             session = CaptureSession(private, prepared.evidence_root, prepared.request, prepared.grant_raw,
                 prepared.grant_sha256, **kwargs)
             stage = 'capture'
             capture_result = session.capture()
             candidate.need(capture_result.outcome == 'captured' and capture_result.capture_complete,
                 'capture_incomplete')
-            stage = 'handoff'
-            ref, unchanged = _await_handoff(prepared, session, clock, wait)
-            # The externally supplied candidate package remains subject to its
-            # normal exact request/grant/identity/profile/runtime admission.
-            stage = 'candidate'
-            candidate_result = candidate.run(ref['path'], ref['sha256'], 'execute', utc=utc,
-                monotonic=monotonic, backend_factory=candidate_backend_factory,
-                operator_factory=operator_factory, view_factory=view_factory,
-                assembly_verifier=assembly_verifier, require_isolated=require_isolated,
-                execute_deadline=min(execution, session.capture_deadline),
-                restore_deadline=min(restoration, session.cleanup_deadline),
-                capture_session=session, held_runtime=runtime, held_lease=lease, handoff_validator=unchanged)
-            first = candidate_result.first_failure
-            candidate_cleanup = candidate_result.cleanup_failure
+            if mode == 'capture':
+                stage = 'handoff'
+                ref, unchanged = _await_handoff(prepared, session, clock, wait)
+                # The externally supplied candidate package remains subject to its
+                # normal exact request/grant/identity/profile/runtime admission.
+                stage = 'candidate'
+                candidate_result = candidate.run(ref['path'], ref['sha256'], 'execute', utc=utc,
+                    monotonic=monotonic, backend_factory=candidate_backend_factory,
+                    operator_factory=operator_factory, view_factory=view_factory,
+                    assembly_verifier=assembly_verifier, require_isolated=require_isolated,
+                    execute_deadline=min(execution, session.capture_deadline),
+                    restore_deadline=min(restoration, session.cleanup_deadline),
+                    capture_session=session, held_runtime=runtime, held_lease=lease, handoff_validator=unchanged,
+                    bench_presentation=bench_presentation)
+                first = candidate_result.first_failure
+                candidate_cleanup = candidate_result.cleanup_failure
         else:
             stage = 'release'
             capture_result = recover_release(private, prepared.evidence_root, prepared.request,
@@ -269,7 +323,7 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
         prepared.evidence_root / ACTIVE).exists() or (
         candidate_result is not None and candidate_result.outcome == 'held')
     success = first is None and cleanup is None and released and capture_result is not None
-    outcome = ('held' if held else 'released' if success and mode == 'release' else
+    outcome = ('held' if held else 'released' if success and mode in ('release', 'capture-only') else
         'passed' if success and candidate_result is not None and candidate_result.outcome == 'passed' else 'failed')
     # Persist the composed outcome, including pre-candidate failures which the
     # two custody journals cannot otherwise attribute to the package/handoff.
@@ -286,6 +340,11 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
         'capture_complete': bool(capture_result and capture_result.capture_complete),
         'capture_custody_released': bool(capture_result and capture_result.custody_released),
         'candidate_outcome': candidate_result.outcome if candidate_result else None}
+    if prepared.request['schema'] in RETAINED_REQUESTS:
+        receipt['original_mode'] = (('retained_firmware_current_nvs_capture_only_released'
+            if outcome == 'released' else 'retained_firmware_current_nvs_capture_only_not_verified')
+            if mode == 'capture-only' else _current_nvs_mode(session, capture_result)
+            if prepared.request['schema'] == CURRENT_NVS_REQUEST else _retained_mode(session, capture_result))
     try:
         clock.check(restoration)
         candidate._write_once(pending, canonical(receipt) + b'\n', on_create=created.add)
@@ -305,6 +364,8 @@ def run(package_path, package_sha256, mode, *, utc=time.time, monotonic=time.mon
             if receipt_path in created and receipt_path.exists(): receipt_path.rename(unaccepted)
             elif pending in created and pending.exists(): pending.rename(unaccepted)
             receipt.update(outcome=outcome, first_failure=first, cleanup_failure=cleanup)
+            if mode == 'capture-only':
+                receipt['original_mode'] = 'retained_firmware_current_nvs_capture_only_not_verified'
             candidate._write_once(receipt_path, canonical(receipt) + b'\n')
         except BaseException:
             receipt_path = None
@@ -317,17 +378,19 @@ def main(argv=None):
         def error(self, message):
             raise candidate.RunnerError('runner_refused')
     parser = Parser(description='Original six-span acquisition and held-ROM handoff; no authority issuer.')
-    parser.add_argument('--mode', choices=('capture-preflight', 'capture', 'release'), required=True)
+    parser.add_argument('--mode', choices=('capture-preflight', 'capture', 'capture-only', 'release'), required=True)
     parser.add_argument('--assembly', required=True)
     parser.add_argument('--assembly-sha256', required=True)
     parser.add_argument('--package')
     parser.add_argument('--package-sha256')
     parser.add_argument('--capture-deadline', type=float)
     parser.add_argument('--cleanup-deadline', type=float)
+    parser.add_argument('--bench-presentation', action='store_true')
     mode = 'capture-preflight'
     try:
         args = parser.parse_args(argv)
         mode = args.mode
+        candidate.need(not args.bench_presentation or mode in ('capture', 'capture-only', 'release'), 'mode_invalid')
         assembly = verify_assembly(args.assembly, args.assembly_sha256, require_isolated=True)
         candidate.need((args.package is None) == (args.package_sha256 is None), 'package_invalid')
         candidate.need((args.capture_deadline is None) == (args.cleanup_deadline is None), 'deadline_invalid')
@@ -340,8 +403,11 @@ def main(argv=None):
             outcome, category = 'ready', None
         else:
             candidate.need(args.package is not None, 'package_invalid')
+            if mode in ('capture', 'capture-only'):
+                _require_input_desktop()
             result = run(args.package, args.package_sha256, mode, require_isolated=True,
-                capture_deadline=args.capture_deadline, cleanup_deadline=args.cleanup_deadline)
+                capture_deadline=args.capture_deadline, cleanup_deadline=args.cleanup_deadline,
+                bench_presentation=args.bench_presentation)
             outcome = result.outcome
             fault = result.first_failure or result.cleanup_failure
             category = fault[1] if fault else None

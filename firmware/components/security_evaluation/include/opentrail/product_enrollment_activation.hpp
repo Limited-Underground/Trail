@@ -103,7 +103,7 @@ public:
     }
     // Trusted device-port gesture only: callers cannot pass a confirmation bool
     // or an offer as authority. A held-at-entry button is never confirmation.
-    bool poll_confirmation() {
+    bool poll_confirmation(bool short_release_waits=false) {
         return operation([&]{
             if(!begun_ || !binding_ || receipt_) return false;
             const auto* current_offer=endpoint_.offer();
@@ -132,6 +132,7 @@ public:
             if(!sample.button_down) {
                 if(pressed_) {
                     const auto elapsed=sample.now_ms-pressed_at_;pressed_=false;
+                    if(short_release_waits && elapsed<1000){released_=true;return true;}
                     if(elapsed<1000 || elapsed>3000) return false;
                     // The underlying owner requires its own live object address;
                     // snapshot above binds the displayed contents, never authority.
@@ -148,6 +149,20 @@ public:
             if(!pressed_){pressed_=true;pressed_at_=sample.now_ms;}
             return sample.now_ms-pressed_at_<=3000;
         });
+    }
+    // Versioned observation: the legacy CONFIRM operation remains one-shot.
+    // Once receipt_ exists, validate its still-live display/context/window;
+    // never call the consuming physical owner again.
+    bool start_review_confirmation(EnrollmentGestureObservation& output) {
+        if(displayed_ || receipt_)return false;
+        return poll_confirmation(true) && confirmation_observation(output);
+    }
+    bool poll_review_confirmation(EnrollmentGestureObservation& output) {
+        if(!displayed_)return false;
+        return (receipt_ || poll_confirmation(true)) && confirmation_observation(output);
+    }
+    std::uint64_t review_confirmation_deadline_ms() const {
+        return confirmation_ ? confirmation_->deadline_ms() : 0;
     }
     bool next_control(EvaluationRecord& output) {
         EvaluationRecord staged{};
@@ -221,6 +236,23 @@ public:
     }
     bool secrets_cleared() const { return endpoint_.secrets_cleared(); }
 private:
+    bool confirmation_observation(EnrollmentGestureObservation& output) {
+        EnrollmentGestureObservation staged{};
+        const bool ok=operation([&]{
+            if(!begun_ || !binding_ || !confirmation_ || !displayed_)return false;
+            const auto sample=port_.sample();
+            if(reentered_ || !(sample.context==context_) || sample.display_revision!=revision_ ||
+                sample.now_ms<last_ || sample.now_ms>=confirmation_->deadline_ms())return false;
+            last_=sample.now_ms;
+            const bool accepted=receipt_.has_value();
+            staged={revision_,accepted,accepted?EnrollmentReviewGesture::accepted:
+                pressed_?EnrollmentReviewGesture::pressing:released_?EnrollmentReviewGesture::ready:
+                EnrollmentReviewGesture::wait_release};
+            return true;
+        });
+        if(ok)output=staged;
+        return ok;
+    }
     // Optional serialized application-owner guard, also observed within the
     // irreversible journal transition. It supplies no peer or commit authority.
     bool lifecycle_current() {return !lifecycle_guard_ || lifecycle_guard_(lifecycle_context_);}

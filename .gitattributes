@@ -1057,3 +1057,8 @@ tests/host/enrollment_candidate_operator_tests.py -text whitespace=blank-at-eol,
 /tools/enrollment_candidate_original_capture.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /tools/standard_settings_phone_observation.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /tools/standard_settings_trial.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Passive historical source fixtures retain their exact trusted byte pins.
+/tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_rom_adapter.py.fixture -text
+/tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_original_capture.py.fixture -text
+/tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_capture_runner.py.fixture -text

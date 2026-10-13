@@ -292,6 +292,75 @@ public:
     bool show_peer() {return operation([&]{return handoff_ && handoff_->show_peer();});}
     bool show_local() {return operation([&]{return handoff_ && handoff_->show_local();});}
     bool poll_review() {return operation([&]{return handoff_ && handoff_->poll();});}
+    // REVIEW1 is a scoped observer, never caller approval. Its epoch is local
+    // to this exact session; every page arms a fresh physical hold/release.
+    bool review_start(EnrollmentReviewPurpose purpose,const EnrollmentReviewToken& token,EnrollmentReviewState& output) {
+        review_refusal_=EnrollmentReviewRefusal::device_failure;
+        const auto bit=static_cast<unsigned>(purpose);
+        if(bit>2 || !invitation_detail::nonzero(token))return review_reject(EnrollmentReviewRefusal::bad_request);
+        if((review_seen_&(1U<<bit)) || (review_active_ && !review_confirmed_))
+            return review_reject(EnrollmentReviewRefusal::inactive);
+        for(unsigned i=0;i<3;++i)if((review_seen_&(1U<<i)) && review_tokens_[i]==token)
+            return review_reject(EnrollmentReviewRefusal::token_mismatch);
+        EnrollmentGestureObservation observed{};
+        const bool ok=operation([&]{
+            if(review_epoch_==std::numeric_limits<std::uint64_t>::max())return false;
+            if(purpose==EnrollmentReviewPurpose::local) {
+                if(!handoff_ || preparation_ || !handoff_->show_local())return false;
+                if(!handoff_->poll_confirmation(true,observed))return false;
+            } else if(purpose==EnrollmentReviewPurpose::peer) {
+                if(!handoff_ || preparation_ || !handoff_->local_confirmed() || !handoff_->show_peer())return false;
+                if(!handoff_->poll_confirmation(false,observed))return false;
+            } else {
+                if(!trusted_ || !endpoint_ || !endpoint_->start_review_confirmation(observed))return false;
+            }
+            if(observed.confirmed || !observed.revision)return false;
+            review_active_=true;review_confirmed_=false;review_purpose_=purpose;review_token_=token;
+            review_revision_=observed.revision;++review_epoch_;review_seen_|=1U<<bit;review_tokens_[bit]=token;
+            return true;
+        });
+        if(ok)output=review_state(observed);
+        return ok;
+    }
+    bool review_poll(const EnrollmentReviewToken& token,EnrollmentReviewState& output) {
+        review_refusal_=EnrollmentReviewRefusal::device_failure;
+        if(!review_active_)return review_reject(EnrollmentReviewRefusal::inactive);
+        if(token!=review_token_)return review_reject(EnrollmentReviewRefusal::token_mismatch);
+        EnrollmentGestureObservation observed{};
+        const bool ok=operation([&]{
+            // Trusted port callbacks are inside the same serialized owner
+            // boundary as every other session action. Reentry is terminal.
+            const auto scope_current=[&]{
+            const auto current=device_.sample();
+            if(!invitation_detail::nonzero(current.context.boot) || !current.context.generation || !current.context.request)
+                return false;
+            if(!(current.context==review_context_)){review_refusal_=EnrollmentReviewRefusal::context_changed;return false;}
+            if(current.display_revision!=review_revision_){review_refusal_=EnrollmentReviewRefusal::display_changed;return false;}
+            if(current.now_ms>=request_.deadline_ms){review_refusal_=EnrollmentReviewRefusal::expired;return false;}
+            if(review_purpose_==EnrollmentReviewPurpose::code) {
+                const auto deadline=endpoint_?endpoint_->review_confirmation_deadline_ms():0;
+                if(!deadline)return false;
+                if(current.now_ms>=deadline){review_refusal_=EnrollmentReviewRefusal::expired;return false;}
+            }
+            return !failed_;
+            };
+            if(!scope_current())return false;
+            const bool accepted=review_purpose_==EnrollmentReviewPurpose::code?
+                endpoint_ && endpoint_->poll_review_confirmation(observed):
+                handoff_ && handoff_->poll_confirmation(review_purpose_==EnrollmentReviewPurpose::local,observed);
+            if(!accepted && handoff_)review_refusal_=handoff_->review_refusal();
+            // A callback during physical observation cannot publish a receipt
+            // against a replaced context/page after that observation.
+            return accepted && scope_current();
+        });
+        if(ok) {
+            if(observed.revision!=review_revision_ || (review_confirmed_ && !observed.confirmed))
+                return review_reject(EnrollmentReviewRefusal::display_changed);
+            review_confirmed_=observed.confirmed;output=review_state(observed);
+        }
+        return ok;
+    }
+    EnrollmentReviewRefusal review_refusal() const {return review_refusal_;}
     bool finish_review(EvaluationEnrollmentOffer& out) {
         EvaluationEnrollmentOffer staged{};
         const bool ok=operation([&] {
@@ -457,6 +526,12 @@ public:
     bool quiescent() const {return !busy_ && cleaned_ && !endpoint_ && secrets_cleared();}
     bool belongs_to_reset_gate(const EnrollmentSessionResetGate& gate) const{return reset_gate_==&gate;}
 private:
+    bool review_reject(EnrollmentReviewRefusal reason) {
+        review_refusal_=reason;(void)cancel();return false;
+    }
+    EnrollmentReviewState review_state(const EnrollmentGestureObservation& value) const {
+        return {review_token_,role_,review_purpose_,review_epoch_,value.revision,value.confirmed,value.gesture};
+    }
     bool reset_intent_current() {
         if(!containment_marker_)return true;
         const auto now=containment_marker_->load();
@@ -666,6 +741,13 @@ private:
     std::optional<EnrollmentPreparationOwner> preparation_;std::optional<EnrollmentPossessionAttempt> possession_;
     std::optional<TrustedEnrollmentBinding> trusted_;
     std::optional<ProductEnrollmentActivation> endpoint_; // Explicit close/break-cycle order is in cleanup().
+    EnrollmentReviewToken review_token_{};
+    std::array<EnrollmentReviewToken,3> review_tokens_{};
+    std::uint64_t review_epoch_{},review_revision_{};
+    unsigned review_seen_{};
+    EnrollmentReviewPurpose review_purpose_{};
+    EnrollmentReviewRefusal review_refusal_{EnrollmentReviewRefusal::device_failure};
+    bool review_active_{},review_confirmed_{};
     EvaluationEnrollmentOffer local_offer_{},peer_offer_{};EnrollmentPossessionStatement statement_{};
     std::array<std::uint8_t,64> possession_signature_{},binding_signature_{};
     std::optional<EvaluationEnrollmentClockMark> local_mark_,peer_mark_;std::optional<IndependentInvitation> invitation_;

@@ -244,11 +244,13 @@ def verify_assembly(assembly_path, assembly_sha256, *, manifest_verifier=None, r
 
 def launch(assembly_path, assembly_sha256, mode, package_path=None, package_sha256=None, *,
            subprocess_run=subprocess.run, monotonic=time.monotonic, utc=time.time,
-           assembly_verifier=verify_assembly):
+           assembly_verifier=verify_assembly, bench_presentation=False):
     """Launch the actual artifact; this function never accesses devices itself."""
     need(mode in ('help', 'preflight', 'execute', 'recover',
-        'capture-help', 'capture-preflight', 'capture', 'release'), 'mode_invalid')
-    capture_mode = mode in ('capture-help', 'capture-preflight', 'capture', 'release')
+        'capture-help', 'capture-preflight', 'capture', 'capture-only', 'release'), 'mode_invalid')
+    need(type(bench_presentation) is bool and (not bench_presentation or
+         mode in ('execute', 'recover', 'capture', 'capture-only', 'release')), 'mode_invalid')
+    capture_mode = mode in ('capture-help', 'capture-preflight', 'capture', 'capture-only', 'release')
     from enrollment_candidate_controller import Clock
     clock = Clock(monotonic)
     start = clock.now()
@@ -273,7 +275,7 @@ def launch(assembly_path, assembly_sha256, mode, package_path=None, package_sha2
                                  assembly_verifier=assembly_verifier)
             need(prepared.assembly.assembly_sha256 == assembly.assembly_sha256, 'assembly_invalid')
             args += ['--package', str(prepared.package_path), '--package-sha256', prepared.package_sha256]
-            if mode in ('execute', 'recover', 'capture', 'release'):
+            if mode in ('execute', 'recover', 'capture', 'capture-only', 'release'):
                 need(mode == prepared.operation, 'mode_invalid')
                 restoration = prepared.cleanup_deadline if capture_mode else prepared.restore_deadline
                 execution = prepared.capture_deadline if capture_mode else prepared.execute_deadline
@@ -286,6 +288,8 @@ def launch(assembly_path, assembly_sha256, mode, package_path=None, package_sha2
                          ('--cleanup-deadline' if capture_mode else '--restore-deadline'), str(restoration)]
         else:
             need(mode in ('preflight', 'capture-preflight') and package_sha256 is None, 'package_invalid')
+    if bench_presentation:
+        args += ['--bench-presentation']
     env = {k: v for k, v in os.environ.items() if not k.upper().startswith(('PYTHON', 'ESPTOOL_'))}
     env['ESPTOOL_CFGFILE'] = str(assembly.root / 'esptool.cfg')
     try:
@@ -308,10 +312,12 @@ def launch(assembly_path, assembly_sha256, mode, package_path=None, package_sha2
             and answer['mode'] == mode
             and answer['outcome'] in ({'ready', 'failed', 'held'} if mode in ('preflight', 'capture-preflight') else
                 {'passed', 'failed', 'held'} if mode in ('execute', 'capture') else
-                {'released', 'failed', 'held'} if mode == 'release' else {'recovered', 'failed', 'held'})
+                {'released', 'failed', 'held'} if mode in ('release', 'capture-only') else {'recovered', 'failed', 'held'})
             and (answer['category'] is None or (type(answer['category']) is str
                 and answer['category'] in PUBLIC_CATEGORIES)), 'child_refused')
         need(answer['outcome'] not in ('ready', 'passed') or answer['category'] is None, 'child_refused')
+        need(mode != 'capture-only' or answer['outcome'] != 'released'
+             or answer['category'] is None, 'child_refused')
         need((result.returncode == 0) == (answer['outcome'] in ('ready', 'passed', 'recovered', 'released')), 'child_refused')
         return answer
     except RuntimeErrorFixed:

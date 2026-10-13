@@ -41,6 +41,7 @@ private:
     bool finish(bool);
     bool cleanup();
     bool execute(std::string_view,Output&,std::size_t&);
+    security_evaluation::EnrollmentReviewRefusal review_refusal_{security_evaluation::EnrollmentReviewRefusal::device_failure};
     static bool text(Output&,std::size_t&,std::string_view);
     Display& display_;Input& input_;security::SecureRandomSource& random_;CandidateNvsStorage& storage_;
     companion::DeviceFactoryResetMarkerPort& marker_;

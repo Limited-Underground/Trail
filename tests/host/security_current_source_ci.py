@@ -115,6 +115,10 @@ def run(output):
             "enrollment_candidate_runtime.py", "enrollment_candidate_runner.py",
             "enrollment_candidate_original_capture.py", "enrollment_candidate_capture_runner.py",
             "enrollment_candidate_private_view.py",
+            "enrollment_candidate_owner_workflow.py",
+            "enrollment_candidate_interactive_launch.py",
+            "enrollment_candidate_visible_session.py",
+            "enrollment_candidate_predevice_resume.py",
             "enrollment_candidate_usb_client.py", "pair_bench_bridge.py", "pair_confirmation_trial.py", "pair_trial_operator.py", "pair_radio_driver_source.py",
             "enrolled_pair_bridge.py", "enrolled_trace_schema.py", "enrolled_confirmation_trial.py", "enrolled_trial_operator.py"))
         # Actual ROM runtime/reset-marker helper import closure stays source-bound.
@@ -396,12 +400,15 @@ def run(output):
                             ("enrollment_candidate_controller_tests", []),
                             ("enrollment_candidate_custody_tests", []),
                             ("enrollment_candidate_rom_adapter_tests", []),
+                            ("enrollment_candidate_budget_adoption_tests", []),
                             ("enrollment_candidate_operator_tests", []),
                             ("enrollment_candidate_runtime_tests", []),
                             ("enrollment_candidate_runner_tests", []),
                             ("enrollment_candidate_original_capture_tests", []),
                             ("enrollment_candidate_capture_runner_tests", []),
                             ("enrollment_candidate_private_view_tests", []),
+                            ("enrollment_candidate_interactive_launch_tests", []),
+                            ("enrollment_candidate_predevice_resume_tests", []),
                             ("factory_reset_target_composition_tests", []),
                             ("enrolled_confirmation_trial_tests", []),
                             ("enrolled_trial_operator_tests", []),
@@ -415,7 +422,8 @@ def run(output):
                 result["suites"][name] = custody_suite(commands, path, env)
             else:
                 completed = commands.run([sys.executable, "-X", "utf8", "-B", path, *extra],
-                    env=env, check=True, timeout={"enrollment_candidate_runner_tests": 600,
+                    env=env, check=True, timeout={"enrollment_candidate_budget_adoption_tests": 600,
+                             "enrollment_candidate_runner_tests": 600,
                              "enrollment_candidate_capture_runner_tests": 300}.get(name, 90))
                 result["suites"][name] = {"output": (completed.stdout + completed.stderr).strip(),
                                           "result": "passed"}

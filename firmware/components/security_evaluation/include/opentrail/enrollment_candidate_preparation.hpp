@@ -105,6 +105,14 @@ public:
     bool show_peer() { return operation([&] { return review_ && review_->show_peer(); }); }
     bool show_local() { return operation([&] { return review_ && review_->show_local(); }); }
     bool poll() { return operation([&] { return review_ && review_->poll(); }); }
+    bool local_confirmed() const {return review_ && review_->local_confirmed() && !failed_;}
+    EnrollmentReviewRefusal review_refusal() const {return review_?review_->review_refusal():EnrollmentReviewRefusal::device_failure;}
+    bool poll_confirmation(bool local,EnrollmentGestureObservation& output) {
+        EnrollmentGestureObservation staged{};
+        const bool ok=operation([&]{return review_ && review_->poll_confirmation(local,staged);});
+        if(ok)output=staged;
+        return ok;
+    }
     bool take_review(std::optional<ReviewedEnrollmentIdentity>& output) {
         std::optional<ReviewedEnrollmentIdentity> staged;
         const bool ok = operation([&] {

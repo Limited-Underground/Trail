@@ -5,6 +5,26 @@
 #include "opentrail/enrollment_review_io.hpp"
 
 namespace opentrail::security_evaluation {
+enum class EnrollmentReviewPurpose : std::uint8_t { local, peer, code };
+enum class EnrollmentReviewGesture : std::uint8_t { wait_release, ready, pressing, accepted };
+enum class EnrollmentReviewRefusal : std::uint8_t {
+    bad_request, inactive, token_mismatch, context_changed, display_changed,
+    expired, gesture_invalid, device_failure
+};
+using EnrollmentReviewToken=std::array<std::uint8_t,16>;
+struct EnrollmentGestureObservation {
+    std::uint64_t revision{};
+    bool confirmed{};
+    EnrollmentReviewGesture gesture{EnrollmentReviewGesture::wait_release};
+};
+struct EnrollmentReviewState {
+    EnrollmentReviewToken token{};
+    InvitationRole role{};
+    EnrollmentReviewPurpose purpose{};
+    std::uint64_t generation{}, revision{};
+    bool confirmed{};
+    EnrollmentReviewGesture gesture{EnrollmentReviewGesture::wait_release};
+};
 class FingerprintReviewPort {
 public:
     virtual ~FingerprintReviewPort() = default;
@@ -82,26 +102,46 @@ private:
 public:
     bool show_peer() { return page(true); }
     bool show_local() { return page(false); }
-    bool poll() {
+    bool poll() {return poll_display(false);}
+    // The versioned observer owns LOCAL independently of the PEER receipt.
+    // A completed observation is stable, but its live page/context/window is
+    // still checked. The ordinary legacy POLL contract remains unchanged.
+    bool poll_confirmation(bool local,EnrollmentGestureObservation& out) {
+        if(local==peer_page_ || !poll_display(local))return false;
+        const bool confirmed=peer_page_?confirmed_:local_confirmed_;
+        out={revision_,confirmed,confirmed?EnrollmentReviewGesture::accepted:
+            pressed_?EnrollmentReviewGesture::pressing:released_?EnrollmentReviewGesture::ready:
+            EnrollmentReviewGesture::wait_release};
+        return true;
+    }
+    bool local_confirmed() const {return local_confirmed_ && !spent_ && !cancelled_;}
+    EnrollmentReviewRefusal review_refusal() const {return refusal_;}
+private:
+    bool poll_display(bool local_allowed) {
         if (busy_) return stop();
         Guard guard(*this);
         FingerprintReviewSample sample{};
         if (!observe(sample)) return stop();
-        if (!peer_page_ || confirmed_) return true;
+        if(!peer_page_ && !local_allowed)return true;
+        auto& confirmed=peer_page_?confirmed_:local_confirmed_;
+        if(confirmed)return true;
         if (!sample.button_down) {
             if (pressed_) {
                 const auto held = sample.now_ms - pressed_at_;
                 pressed_ = false;
                 if (held >= hold_ms && held <= maximum_hold_ms) {
-                    confirmed_ = true; confirmed_at_ = sample.now_ms;
+                    confirmed = true; confirmed_at_ = sample.now_ms;
                 }
             }
             released_ = true;
         } else if (released_ && !pressed_) {
             pressed_ = true; pressed_at_ = sample.now_ms;
-        } else if (pressed_ && sample.now_ms - pressed_at_ > maximum_hold_ms) return stop();
+        } else if (pressed_ && sample.now_ms - pressed_at_ > maximum_hold_ms) {
+            refusal_=EnrollmentReviewRefusal::gesture_invalid;return stop();
+        }
         return true;
     }
+public:
     // Consumes only this owner's local physical review. It does not prove the
     // required pre-invitation possession exchange or durable membership. The
     // product coordinator must supply those gates before creating an invitation.
@@ -146,12 +186,15 @@ public:
     void cancel() { cancelled_ = true; (void)stop(); }
 private:
     struct Guard { EnrollmentFingerprintReview& owner; explicit Guard(EnrollmentFingerprintReview& o):owner(o){o.busy_=true;} ~Guard(){owner.busy_=false;} };
-    bool stop() { spent_=true; confirmed_=false; return false; }
+    bool stop() { spent_=true; confirmed_=false; local_confirmed_=false; return false; }
     bool observe(FingerprintReviewSample& sample) {
         if (!begun_ || spent_ || cancelled_) return false;
         sample=port_.sample();
-        if (spent_ || !(sample.context == context_) || sample.display_revision != revision_ ||
-            sample.now_ms < last_ || sample.now_ms >= deadline_) return false;
+        if(spent_)return false;
+        if(!(sample.context==context_)) {refusal_=EnrollmentReviewRefusal::context_changed;return false;}
+        if(sample.display_revision!=revision_) {refusal_=EnrollmentReviewRefusal::display_changed;return false;}
+        if(sample.now_ms<last_)return false;
+        if(sample.now_ms>=deadline_) {refusal_=EnrollmentReviewRefusal::expired;return false;}
         last_=sample.now_ms;
         return true;
     }
@@ -163,6 +206,9 @@ private:
     }
     bool render(bool peer) {
         if (revision_ == std::numeric_limits<std::uint64_t>::max()) return stop();
+        // Only the legitimate LOCAL -> PEER transition preserves the distinct
+        // own-identity observation. An unrelated page change invalidates it.
+        local_confirmed_=peer && !peer_page_ && local_confirmed_;
         ++revision_; peer_page_=peer; confirmed_=false; released_=false; pressed_=false;
         FingerprintReviewFrame frame{}; frame.revision=revision_; frame.peer_page=peer; frame.local_role=role_; frame.group=group_;
         constexpr char hex[]="0123456789ABCDEF";
@@ -180,6 +226,7 @@ private:
     const InvitationKey local_; const InvitationRole role_; const std::uint64_t group_;
     InvitationKey peer_{}; FingerprintReviewContext context_{};
     std::uint64_t deadline_{},last_{},revision_{},pressed_at_{},confirmed_at_{};
-    bool begun_{},spent_{},cancelled_{},busy_{},peer_page_{},released_{},pressed_{},confirmed_{};
+    bool begun_{},spent_{},cancelled_{},busy_{},peer_page_{},released_{},pressed_{},confirmed_{},local_confirmed_{};
+    EnrollmentReviewRefusal refusal_{EnrollmentReviewRefusal::device_failure};
 };
 }

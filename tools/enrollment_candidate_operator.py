@@ -20,8 +20,8 @@ import time
 
 from enrollment_candidate_controller import CheckpointAck, Clock, Controller, ControllerError, StartupResult, ROLES, sampled_duration_ns
 from enrollment_candidate_custody import Budget, validate_grant, validate_request
-from enrollment_candidate_usb_client import (Endpoint, Reply, ClientError,
-    validate_startup_snapshot, validate_query_snapshot)
+from enrollment_candidate_usb_client import (Endpoint, Reply, ClientError, ReviewState,
+    REVIEW_REFUSALS, validate_startup_snapshot, validate_query_snapshot)
 
 
 PROGRESS_PHASES = frozenset(('runtime_verify', 'route', 'serial_api',
@@ -67,7 +67,7 @@ class _QueryObservation:
         return self.row
 
 
-class OperatorError(RuntimeError):
+class OperatorError(ControllerError):
     """Fixed categories only; no device, fingerprint or transport detail."""
 
 
@@ -93,6 +93,7 @@ class PrivatePrompt:
     group: int
     # Only the trusted transient view receives these; repr is safe to inspect.
     references: tuple = field(repr=False)
+    device_only: bool = False
 
 
 class CapturedReferences:
@@ -168,11 +169,28 @@ class CheckpointUI:
     adapter accepts an exact typed ACK only from explicit human view input and
     returns the controller's frozen dictionary contract. It never persists rows.
     """
-    def __init__(self, references, view, *, group=None, monotonic=time.monotonic, wait=time.sleep):
+    def __init__(self, references, view, *, group=None, role_labels=None, monotonic=time.monotonic, wait=time.sleep):
         self.references, self.view, self.clock, self.wait = references, view, Clock(monotonic), wait
         self.active, self.failed, self.group = False, False, group
+        self.clear_verified = True
+        # Labels are presentation only and must come from the caller's bound
+        # role context. Generic devices retain A/B; never infer bench identity.
+        labels = dict(zip(ROLES, ROLES)) if role_labels is None else role_labels
+        need(type(labels) is dict and set(labels) == set(ROLES)
+             and all(type(label) is str and 1 <= len(label) <= 24
+                     and label == label.strip()
+                     and all(32 <= ord(char) <= 126 for char in label)
+                     for label in labels.values())
+             and labels['A'] != labels['B'], 'checkpoint_invalid')
+        self.role_labels = dict(labels)
+
+    def _device(self, role):
+        label = self.role_labels[role]
+        return role if label == role else role + ' (' + label + ')'
 
     def __call__(self, point, sample):
+        if type(point) is dict and point.get('schema') == 'OT-CANDIDATE-DEVICE-CHECKPOINT-1':
+            return self._device_checkpoint(point, sample)
         if self.active:
             self.failed = True
             self.references.clear()
@@ -192,34 +210,38 @@ class CheckpointUI:
             if kind == 'fingerprint_local':
                 need(roles == ROLES, 'checkpoint_invalid')
                 rows = self.references.local()
-                instructions = ('Compare every row on each device MY ID page with its local reference.',
+                instructions = ('Compare all four MY ID rows on ' + self._device('A') + ' and ' + self._device('B') + ' with their saved references below.',
                                 'Check OT-ID1, INVITER on A, MEMBER on B and the selected group.',
-                                'Explicitly acknowledge only after both own pages match.')
+                                'Do not press Button 1 at this checkpoint.',
+                                'If both MY ID pages match, click the computer confirmation button. Otherwise cancel.')
             elif kind == 'fingerprint':
                 need(len(roles) == 1, 'checkpoint_invalid')
                 rows = self.references.peer(roles[0])
-                instructions = ('Compare every row on this device PEER ID page with the other device saved own reference.',
-                                'Check OT-ID1, the selected group and local role.',
-                                'After matching: release BOOT, hold for 1 second, release; then explicitly acknowledge.')
+                instructions = ('On device ' + self._device(roles[0]) + ', compare all four PEER ID rows with ' + self._device('B' if roles[0] == 'A' else 'A') + ' saved reference below.',
+                                'Check OT-ID1, group and local role. Start with Button 1 not held down.',
+                                'If all match: hold Button 1 (top button) about 1 second, then let go. Never hold 10 seconds (reset). Otherwise cancel.',
+                                'Only AFTER the physical Button 1 press, click the computer confirmation button.')
             elif kind == 'transcript':
                 need(roles == ROLES, 'checkpoint_invalid')
-                instructions = ('Compare the complete code on both device COMPARE CODE pages and check OT-CODE1/group.',
-                                'After matching: release BOOT, hold for 1 second and release on each device.',
-                                'Explicitly acknowledge the observed comparison and gestures.')
+                instructions = ('Compare the COMPLETE code on ' + self._device('A') + ' and ' + self._device('B') + ' COMPARE CODE pages; check OT-CODE1 and group.',
+                                'Start with Button 1 not held down on either device.',
+                                'If all match: on EACH device hold Button 1 (top button) about 1 second, then let go. Never hold 10 seconds (reset). Otherwise cancel.',
+                                'Only AFTER both physical Button 1 presses, click the computer confirmation button.')
             elif kind == 'reset_gesture':
                 need(roles == ('A',), 'checkpoint_invalid')
-                instructions = ('On A, hold BOOT for 10 seconds to request the reset prompt.',
+                instructions = ('On ' + self._device('A') + ', hold Button 1 (top button) for 10 seconds to request the reset prompt.',
                                 'Release, then press and release within the confirmation window.',
                                 'Acknowledge only the physical gesture; later RESETSTATUS must independently verify intent.')
             elif kind == 'usual_screen':
                 need(roles == ROLES, 'checkpoint_invalid')
-                instructions = ('After restoration and verified handle closure, inspect both usual device screens.',
-                                'Explicitly acknowledge both observed original screens; no USB command is sent here.')
+                instructions = ('Inspect the usual original screen on BOTH devices: ' + self._device('A') + ' and ' + self._device('B') + ', after restoration.',
+                                'If both usual screens are back, click the computer confirmation button. Otherwise cancel.')
             else:
                 raise OperatorError('checkpoint_invalid')
             need(type(self.group) is int and 0 < self.group < 1 << 64, 'checkpoint_group_invalid')
             prompt = PrivatePrompt(kind, roles, token, deadline, instructions, self.group, rows)
             shown = True
+            self.clear_verified = False
             need(_fixed(lambda: self.view.show(prompt), 'private_view_failed') is True, 'private_view_failed')
             need(not self.failed, 'checkpoint_reentry')
             while True:
@@ -238,7 +260,7 @@ class CheckpointUI:
                          'human_confirmation_missing')
                     clear_attempted = True
                     need(_fixed(self.view.close, 'private_view_failed') is True, 'private_view_not_cleared')
-                    cleared = True
+                    cleared = self.clear_verified = True
                     self.clock.check(deadline)
                     need(not self.failed, 'checkpoint_reentry')
                     self.references.confirmed(kind, roles)
@@ -255,8 +277,118 @@ class CheckpointUI:
                 try:
                     if self.view.close() is not True:
                         self.failed = True
+                    else:
+                        self.clear_verified = True
                 except BaseException:
                     self.failed = True
+            self.active = False
+
+    def _device_checkpoint(self, point, sample):
+        need(not self.active and not self.failed, 'checkpoint_reentry')
+        self.active = True
+        shown, cleared, clear_attempted = False, False, False
+        try:
+            need(set(point) == {'schema', 'kind', 'roles', 'token', 'deadline', 'initial'}, 'checkpoint_invalid')
+            kind, roles, token, deadline = (point[k] for k in ('kind', 'roles', 'token', 'deadline'))
+            purpose = {'fingerprint_local': 'LOCAL', 'fingerprint': 'PEER', 'transcript': 'CODE'}.get(kind)
+            need(purpose is not None and roles in (ROLES, ('A',), ('B',))
+                 and (kind != 'fingerprint' or len(roles) == 1)
+                 and type(self.group) is int and 0 < self.group < 1 << 64, 'checkpoint_invalid')
+            scopes = {}
+            def board_sample():
+                try:
+                    return sample()
+                except ClientError as error:
+                    allowed = {'review_' + reason.lower() for reason in REVIEW_REFUSALS} | {
+                        'target_refused', 'review_response_invalid'}
+                    if type(error) is ClientError and len(error.args) == 1 and error.args[0] in allowed:
+                        raise OperatorError(error.args[0]) from None
+                    raise OperatorError('checkpoint_sample_failed') from None
+                except ControllerError as error:
+                    if type(error) is ControllerError and error.args in (('deadline_expired',),
+                            ('host_clock_invalid',), ('review_scope_invalid',), ('checkpoint_inactive',), ('record_failed',)):
+                        raise OperatorError(error.args[0]) from None
+                    raise OperatorError('checkpoint_sample_failed') from None
+            def observed(values):
+                need(type(values) is tuple and 0 < len(values) <= len(roles), 'device_confirmation_missing')
+                states = {}
+                for value in values:
+                    need(type(value) is ReviewState and value.token == token and value.purpose == purpose
+                         and value.role in ('1', '2'), 'review_scope_invalid')
+                    role = 'A' if value.role == '1' else 'B'
+                    need(role in roles and role not in states and (role not in scopes or scopes[role] == value.scope),
+                         'review_scope_invalid')
+                    scopes[role] = value.scope
+                    states[role] = value
+                return states
+            states = observed(point['initial'])
+            refs = dict(self.references.local()) if kind == 'fingerprint_local' else (
+                dict(self.references.peer(roles[0])) if kind == 'fingerprint' else {})
+            def presentation(states):
+                role = next((r for r in roles if r not in states or states[r].state != 'CONFIRMED'), roles[-1])
+                state = states.get(role)
+                gesture = 'WAIT_RELEASE' if state is None else state.gesture
+                name = self._device(role)
+                if kind == 'fingerprint_local':
+                    compare = 'Compare all four MY ID rows on ' + name + ' with its saved reference below.'
+                    labels = 'Check OT-ID1, group and INVITER on A / MEMBER on B.'
+                    rows = ((role, refs[role]),)
+                elif kind == 'fingerprint':
+                    other = 'B' if role == 'A' else 'A'
+                    compare = 'Compare all four PEER ID rows on ' + name + ' with ' + self._device(other) + ' saved reference below.'
+                    labels = 'Check OT-ID1, group and local role.'
+                    rows = ((other, refs[other]),)
+                else:
+                    compare = 'Compare the COMPLETE code and group on BOTH boards; check OT-CODE1.'
+                    labels = 'Confirm only if both complete codes match.'
+                    rows = ()
+                action = {
+                    'WAIT_RELEASE': name + ': release Button 1 (top button), then wait.',
+                    'READY': name + ': hold Button 1 (top button) about 2 seconds, then let go.',
+                    'PRESSING': name + ': keep Button 1 held about 2 seconds total, then let go.',
+                    'ACCEPTED': name + ': physical confirmation accepted. Advancing.',
+                }.get(gesture)
+                need(action is not None, 'review_scope_invalid')
+                return PrivatePrompt(kind, (role,), token, deadline,
+                    (compare, labels, action, 'Never hold 10 seconds. Cancel refuses this checkpoint.'), self.group, rows, True)
+            prompt = presentation(states)
+            self.clock.check(deadline)
+            self.clear_verified = False
+            shown = True
+            need(_fixed(lambda: self.view.show(prompt), 'private_view_failed') is True, 'private_view_failed')
+            while True:
+                self.clock.check(deadline)
+                states = observed(board_sample())
+                self.clock.check(deadline)
+                # Cancel is processed before accepting even a completed target
+                # receipt. A computer click can never supply device authority.
+                need(_fixed(self.view.poll, 'private_view_failed') is None, 'device_confirmation_source')
+                updated = presentation(states)
+                if updated != prompt:
+                    update = getattr(self.view, 'update', None)
+                    if update is not None:
+                        need(_fixed(lambda: update(updated), 'private_view_failed') is True, 'private_view_failed')
+                    prompt = updated
+                if set(states) == set(roles) and all(s.state == 'CONFIRMED' for s in states.values()):
+                    clear_attempted = True
+                    need(_fixed(self.view.close, 'private_view_failed') is True, 'private_view_not_cleared')
+                    cleared = self.clear_verified = True
+                    self.clock.check(deadline)
+                    self.references.confirmed(kind, roles)
+                    return {'kind': kind, 'roles': roles, 'token': token, 'device_confirmed': True}
+                remaining = deadline - self.clock.now()
+                need(remaining > 0, 'deadline_expired')
+                _fixed(lambda: self.wait(min(.02, remaining)), 'private_view_failed')
+        except BaseException:
+            self.failed = True
+            self.references.clear()
+            raise
+        finally:
+            if shown and not cleared and not clear_attempted:
+                try:
+                    self.clear_verified = self.view.close() is True
+                except BaseException:
+                    self.clear_verified = False
             self.active = False
 
 
@@ -273,6 +405,7 @@ class PassiveEndpoint(Endpoint):
         self._observation_reentered = False
         self.boot_observation = None
         self.diagnostic_failure = None
+        self.final_query_observation = None
 
     def _diagnostic_failed(self, phase):
         if self.diagnostic_failure is None:
@@ -313,10 +446,16 @@ class PassiveEndpoint(Endpoint):
                 raise ClientError('invalid_response') from None
 
     def exchange(self, command, deadline):
+        if command in ('COMMIT', 'READY'):
+            # A rejection at the wrapper barrier cannot inherit a prior final
+            # command's transport receipt.
+            self.final_query_observation = None
         if self._observing:
             self.failed, self._refused = True, False
             self._observation_reentered = True
             raise ClientError('client_busy')
+        if command in ('COMMIT', 'READY'):
+            return self._final_exchange(command, deadline)
         observation = None
         if command in ('HELLO', 'BOOTSTATUS'):
             # Set the barrier BEFORE invoking the observation-only callback.
@@ -362,6 +501,62 @@ class PassiveEndpoint(Endpoint):
                 if diagnostic_failed and completed:
                     self.failed, self._refused = True, False
                     raise ClientError('invalid_response') from None
+
+    def _final_exchange(self, command, deadline):
+        # Keep final timing separate from the fail-closed startup diagnostics.
+        # No inline record callback, new guard, clock check or serial operation.
+        self._observing, self._observation_reentered = True, False
+        self.final_query_observation = None
+        observation, completed, invalid_authority = None, False, False
+        try:
+            observation = _QueryObservation(self.owner.observation_clock,
+                command.lower(), self.role, self.generation)
+            reply = self._exchange(command, deadline, observation)
+            completed = True
+            return reply
+        except BaseException as error:
+            invalid_authority = error.args == ('host_clock_invalid',) or (
+                observation is not None and observation.row['boundary'] in ('owner_check', 'postcheck')
+                and error.args != ('deadline_expired',))
+            raise
+        finally:
+            failure, transport = None, None
+            try:
+                if observation is not None:
+                    if observation.row['boundary'] in ('endpoint', 'postcheck', 'returned'):
+                        try:
+                            transport = self.query_snapshot()
+                        except BaseException:
+                            failure = 'query_snapshot'
+                    observation.row['transport'] = transport
+                    try:
+                        row = dict(observation.finish())
+                    except BaseException:
+                        failure = failure or 'query_finish'
+                        row = dict(observation.row, timing_valid=False,
+                            prelude_elapsed_ns=None, elapsed_ns=None)
+                    row['sampled_remaining_ns'] = None
+                    # The owner sample is deliberately distinct from endpoint
+                    # allowance/elapsed: these clocks must not be subtracted.
+                    sampled = self.owner.clock.last
+                    if (not invalid_authority and type(sampled) in (int, float) and math.isfinite(sampled)
+                            and type(deadline) in (int, float) and math.isfinite(deadline)):
+                        row['sampled_remaining_ns'] = sampled_duration_ns(deadline - sampled)
+                    if self._observation_reentered and completed:
+                        row['boundary'] = 'postcheck'
+                    row['diagnostic_failure'] = ('authority_sample_invalid' if invalid_authority else
+                        failure or ('observer_reentry' if self._observation_reentered else
+                            'observation_clock_invalid' if not row['timing_valid'] else None))
+                    self.final_query_observation = row
+            except BaseException:
+                # Missing telemetry is explicit in the controller summary. It
+                # never overwrites an already-owned command result or rejection.
+                self.final_query_observation = None
+            finally:
+                self._observing = False
+            if self._observation_reentered and completed:
+                self.failed, self._refused = True, False
+                raise ClientError('client_busy')
 
     def _exchange(self, command, deadline, observation):
         self.owner.check(deadline)
@@ -616,22 +811,71 @@ class CandidateOperator:
     and return True before notify. Neither event path receives private rows.
     restart is a separately source-reviewed custody operation; it is called
     only after verified passive release, under the original activation ceiling.
+    The runner supplies cleanup_view_factory for one independent restoration
+    observation. Without that explicit factory, a failed human UI remains terminal.
     """
     def __init__(self, runtime, lease, identities, binding_key, identity_binding,
                  view, restart, *, record, monotonic=time.monotonic,
                  wait=time.sleep, notify=lambda event: None,
-                 observation_clock=time.perf_counter_ns):
+                 observation_clock=time.perf_counter_ns, cleanup_view_factory=None, role_labels=None):
         self.references = CapturedReferences()
         self.passive = PassiveEndpoints(runtime, lease, identities, binding_key,
                                         identity_binding, self.references, monotonic=monotonic,
                                         progress=record, observation_clock=observation_clock)
         self.record = record
-        self.human = CheckpointUI(self.references, view, monotonic=monotonic, wait=wait)
+        self.human = CheckpointUI(self.references, view, role_labels=role_labels, monotonic=monotonic, wait=wait)
         self._restart = restart
         self.probes, self.probe_controllers = {}, {}
         self._probing = False
-        self.controller = Controller(self.passive, self.human, self.restart,
+        self._cleanup_view_factory = cleanup_view_factory
+        self.cleanup_human = None
+        self._cleanup_used, self._cleanup_active = False, False
+        self._cleanup_deadline = None
+        self.controller = Controller(self.passive, self._checkpoint, self.restart,
                                      monotonic=monotonic, record=record, notify=notify)
+
+    def _cleanup_check(self, deadline):
+        need(not self.human.active and not self.controller.running and not self._probing
+             and self.assert_idle() and self.passive.lease.assert_idle() is True,
+             'handles_not_closed')
+        self.passive.clock.check(deadline)
+        _fixed(lambda: self.passive.budget.check(True), 'activation_expired')
+
+    def _checkpoint(self, point, sample):
+        if point.get('kind') != 'usual_screen' or self._cleanup_view_factory is None:
+            return self.human(point, sample)
+        need(self._cleanup_active and self.cleanup_human is None
+             and point['deadline'] == self._cleanup_deadline, 'checkpoint_inactive')
+        deadline = self._cleanup_deadline
+        self._cleanup_check(deadline)
+        # A previously uncertain clear cannot be repaired by retrying here.
+        need(self.human.clear_verified, 'private_view_not_cleared')
+        self.human.clear_verified = False
+        need(_fixed(self.human.view.close, 'private_view_failed') is True,
+             'private_view_not_cleared')
+        self.human.clear_verified = True
+        self._cleanup_check(deadline)
+        view = _fixed(self._cleanup_view_factory, 'private_view_failed')
+        need(view is not self.human.view, 'private_view_failed')
+        self.cleanup_human = CheckpointUI(CapturedReferences(), view,
+            group=self.human.group, role_labels=self.human.role_labels,
+            monotonic=self.passive.monotonic, wait=self.human.wait)
+        started = False
+        try:
+            self._cleanup_check(deadline)
+            started = True
+            result = self.cleanup_human(point, sample)
+            self._cleanup_check(deadline)
+            return result
+        finally:
+            # CheckpointUI owns show/clear; never retry an uncertain clear.
+            if not started:
+                self.cleanup_human.clear_verified = False
+                try:
+                    self.cleanup_human.clear_verified = view.close() is True
+                except BaseException:
+                    pass
+            self._cleanup_active = False
 
     def activate(self, *args, **kwargs):
         result = self.passive.activate(*args, **kwargs)
@@ -719,7 +963,24 @@ class CandidateOperator:
                 if result.first_failure is None:
                     result = replace(result, outcome='failed', stage='startup_summary',
                                      first_failure=('startup_summary', 'record_failed'))
+        elif self.controller.final_observations:
+            try:
+                self._record_final_summary()
+            except BaseException:
+                # Best-effort telemetry cannot replace the trial's first
+                # failure, or turn an accepted exchange into a logger failure.
+                pass
         return result
+
+    def _record_final_summary(self):
+        need(self.assert_idle(), 'handles_not_closed')
+        self.passive.clock.check(self.passive.deadline)
+        _fixed(self.passive.budget.check, 'activation_expired')
+        need(_fixed(lambda: self.record(dict(schema='OT-CANDIDATE-FINAL-SUMMARY-1',
+            queries=[dict(row) for row in self.controller.final_observations])),
+            'record_failed') is True, 'record_failed')
+        self.passive.clock.check(self.passive.deadline)
+        _fixed(self.passive.budget.check, 'activation_expired')
 
     def _record_query_summary(self, *, role='A', generation=1, probe=None):
         # The query and startup caps have ended. Only the original execution
@@ -751,7 +1012,9 @@ class CandidateOperator:
         self.references.clear()
         core = self.controller.close() is True
         passive = self.passive.close() is True
-        return core and passive
+        view = self.cleanup_human is None or (not self.cleanup_human.active
+                                             and self.cleanup_human.clear_verified)
+        return core and passive and view
 
     def assert_idle(self):
         return self.controller.assert_idle() is True and self.passive.assert_idle()
@@ -762,4 +1025,15 @@ class CandidateOperator:
         self.passive.clock.check(deadline)
         deadline = min(deadline, self.passive.budget.restore)
         _fixed(lambda: self.passive.budget.check(True), 'activation_expired')
-        return self.controller.confirm_original(deadline)
+        if self._cleanup_view_factory is None:
+            return self.controller.confirm_original(deadline)
+        need(not self._cleanup_used, 'checkpoint_reentry')
+        # Consume this one cleanup observation before any callback can reenter.
+        self._cleanup_used = True
+        self._cleanup_deadline = deadline
+        self._cleanup_check(deadline)
+        self._cleanup_active = True
+        try:
+            return self.controller.confirm_original(deadline)
+        finally:
+            self._cleanup_active = False
