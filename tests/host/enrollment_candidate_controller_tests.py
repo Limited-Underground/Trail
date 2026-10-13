@@ -45,6 +45,8 @@ class Node:
         self.archive_received = False
         self.frame_tx = self.frame_rx = self.control_tx = self.control_rx = 0
         self.values = {}
+        self.review_scope = None
+        self.review_epoch = 0
 
     @property
     def peer(self):
@@ -116,6 +118,26 @@ class Node:
                 return self.ok(verb)
             if verb == 'POLL':
                 return self.ok(verb)
+            if verb == 'REVIEWSTART':
+                purpose, token = args
+                self.world.events.append(('review_start', self.role, self.generation, purpose))
+                self.require(purpose in ('LOCAL', 'PEER', 'CODE'))
+                if purpose in ('LOCAL', 'PEER'):
+                    self.require(self.peer_received)
+                    if purpose == 'PEER': self.require(self.local_observed)
+                    self.visible_page = 'local' if purpose == 'LOCAL' else 'peer'
+                    self.local_shown = self.local_shown or purpose == 'LOCAL'
+                    self.peer_shown = self.peer_shown or purpose == 'PEER'
+                else: self.require(self.frame_rx == (1 if self.role == 'A' else 2))
+                self.review_epoch += 1
+                self.review_scope = (token, purpose, self.review_epoch)
+                return self.answer('REVIEWSTATE', f'1 {token} {1 if self.role == "A" else 2} {purpose} {self.review_epoch:016x} {self.review_epoch:016x} WAITING READY')
+            if verb == 'REVIEWPOLL':
+                self.require(self.review_scope is not None and args[0] == self.review_scope[0])
+                token, purpose, epoch = self.review_scope
+                accepted = self.local_observed if purpose == 'LOCAL' else self.reviewed if purpose == 'PEER' else self.confirmed
+                state, gesture = ('CONFIRMED', 'ACCEPTED') if accepted else ('WAITING', 'READY')
+                return self.answer('REVIEWSTATE', f'1 {token} {1 if self.role == "A" else 2} {purpose} {epoch:016x} {epoch:016x} {state} {gesture}')
             if verb == 'FINISH':
                 self.require(self.local_shown and self.local_observed and self.peer_shown
                              and self.reviewed and self.visible_page == 'peer')
@@ -317,6 +339,23 @@ class World:
     def checkpoint(self, checkpoint, sample):
         kind, roles = checkpoint['kind'], tuple(checkpoint['roles'])
         self.events.append(('checkpoint', kind, roles, checkpoint['deadline']))
+        if checkpoint['schema'] == 'OT-CANDIDATE-DEVICE-CHECKPOINT-1':
+            self.clock.value += self.checkpoint_delay.get(kind, 0)
+            if self.sample_only or self.sample_only_kind == kind:
+                return None
+            while True:
+                values = sample()
+                for value in values:
+                    role = 'A' if value.role == '1' else 'B'
+                    if value.state != 'CONFIRMED' and self.no_gesture_kind != kind:
+                        if kind == 'fingerprint_local': self.nodes[role].local_observed = True
+                        elif kind == 'fingerprint': self.nodes[role].reviewed = True
+                        else: self.nodes[role].confirmed = True
+                if len(values) == len(roles) and all(v.state == 'CONFIRMED' for v in values):
+                    receipt = {'kind': kind, 'roles': roles, 'token': checkpoint['token'], 'device_confirmed': True}
+                    if self.receipt_fault: receipt.update(self.receipt_fault)
+                    return receipt
+                self.clock.value += .02
         if kind == 'reset_gesture' and not self.sample_only:
             for role in roles:
                 self.nodes[role].reset_intent = True
@@ -429,7 +468,7 @@ class ControllerTests(unittest.TestCase):
         result = world.run()
         self.assertEqual(result.outcome, 'failed')
         self.assertTrue(result.handles_closed)
-        self.assertIn('POLL', world.commands())
+        self.assertIn('REVIEWPOLL', world.commands())
         self.assertNotIn('FINISH', world.commands())
         self.assertNotIn('COMMIT', world.commands())
         self.assertNotIn('CLOSE', world.commands())
@@ -503,7 +542,8 @@ class ControllerTests(unittest.TestCase):
         world.sample_only_kind = 'transcript'
         result = world.run()
         self.assertEqual(result.outcome, 'failed')
-        self.assertGreaterEqual(world.commands().count('CONFIRM'), 4)
+        self.assertIn('REVIEWPOLL', world.commands())
+        self.assertNotIn('CONFIRM', world.commands())
         self.assertNotIn('NEXTCONTROL', world.commands())
         self.assertNotIn('COMMIT', world.commands())
 
@@ -514,8 +554,8 @@ class ControllerTests(unittest.TestCase):
                 world.no_gesture_kind = kind
                 result = world.run()
                 self.assertEqual(result.outcome, 'failed')
-                self.assertEqual(result.first_failure[1], 'target_refused')
-                self.assertEqual(world.commands().count(first_denied), 1)
+                self.assertEqual(result.first_failure[1], 'deadline_expired')
+                self.assertEqual(world.commands().count(first_denied), 0)
                 self.assertNotIn('COMMIT', world.commands())
                 self.assertNotIn('CLOSE', world.commands())
 
@@ -760,23 +800,61 @@ class ControllerTests(unittest.TestCase):
         self.assert_passed(world.run())
         events = world.events
         local_gate = next(i for i, row in enumerate(events)
-                          if row[:2] == ('checkpoint', 'fingerprint_local'))
+                          if row[0] == 'record' and row[1].get('schema') == 'OT-CANDIDATE-DEVICE-CHECKPOINT-1'
+                          and row[1].get('kind') == 'fingerprint_local')
         for role in ('A', 'B'):
             own_page = next(i for i, row in enumerate(events)
-                            if row == ('wire', role, 1, 'SHOWLOCAL'))
+                            if row == ('review_start', role, 1, 'LOCAL'))
             peer_page = next(i for i, row in enumerate(events)
-                             if row == ('wire', role, 1, 'SHOWPEER'))
+                             if row == ('review_start', role, 1, 'PEER'))
             gesture = next(i for i, row in enumerate(events)
-                           if row == ('wire', role, 1, 'POLL'))
+                           if row[0] == 'record' and row[1].get('schema') == 'OT-CANDIDATE-DEVICE-CONFIRMED-1'
+                           and row[1]['role'] == role and row[1]['purpose'] == 'PEER')
             finish = next(i for i, row in enumerate(events)
                           if row == ('wire', role, 1, 'FINISH'))
-            self.assertLess(own_page, local_gate)
+            self.assertLess(local_gate, own_page)
             self.assertLess(local_gate, peer_page)
             self.assertLess(peer_page, gesture)
             self.assertLess(gesture, finish)
         a_finish = next(i for i, row in enumerate(events) if row == ('wire', 'A', 1, 'FINISH'))
-        b_peer = next(i for i, row in enumerate(events) if row == ('wire', 'B', 1, 'SHOWPEER'))
+        b_peer = next(i for i, row in enumerate(events) if row == ('review_start', 'B', 1, 'PEER'))
         self.assertLess(a_finish, b_peer)
+
+    def test_six_actual_scoped_confirmations_replace_all_comparison_computer_acks(self):
+        world = World(); self.assert_passed(world.run())
+        records = [row[1] for row in world.events if row[0] == 'record']
+        actual = [r for r in records if r.get('schema') == 'OT-CANDIDATE-DEVICE-CONFIRMED-1']
+        self.assertEqual([('A','LOCAL'),('B','LOCAL'),('A','PEER'),('B','PEER'),('A','CODE'),('B','CODE')],
+                         [(r['role'],r['purpose']) for r in actual])
+        self.assertFalse(any(r.get('schema') == 'OT-CANDIDATE-ACK-1' for r in records))
+
+    def test_legacy_ok_and_wrong_scoped_reply_cannot_advance_to_finish(self):
+        for variant in ('legacy', 'token', 'role', 'purpose', 'generation', 'revision'):
+            with self.subTest(variant=variant):
+                world = World(); node=world.nodes['A']; original=node.execute
+                def execute(command, variant=variant):
+                    answer=original(command)
+                    if command.startswith('REVIEWPOLL'):
+                        if variant=='legacy': return b'OTCAND1 OK POLL\n'
+                        parts=answer.decode().split()
+                        at={'token':3,'role':4,'purpose':5,'generation':6,'revision':7}[variant]
+                        parts[at]={'token':'f'*32,'role':'2','purpose':'PEER','generation':'0000000000000002',
+                                   'revision':'0000000000000002'}[variant]
+                        return (' '.join(parts)+'\n').encode()
+                    return answer
+                node.execute=execute
+                result=world.run()
+                self.assertEqual('failed',result.outcome)
+                self.assertNotIn('FINISH',world.commands())
+                self.assertNotIn('COMMIT',world.commands())
+
+    def test_presenter_cannot_fabricate_device_receipt_without_target_sampling(self):
+        world=World()
+        world.checkpoint=lambda point,sample: {'kind':point['kind'],'roles':point['roles'],
+            'token':point['token'],'device_confirmed':True}
+        result=world.run()
+        self.assertEqual(('fingerprint_local_AB','device_confirmation_missing'),result.first_failure)
+        self.assertNotIn('FINISH',world.commands())
 
     def test_transient_failed_close_is_not_retried_and_uncertainty_remains_sticky(self):
         world = World()
@@ -1055,6 +1133,51 @@ class StartupControllerTests(unittest.TestCase):
             self.assertEqual(world.handles[0].close_calls, 1)
             self.assertFalse(instance.close())
             self.assertEqual(world.handles[0].close_calls, 1)
+
+
+class FinalControllerObservationTests(unittest.TestCase):
+    def instance(self, samples):
+        calls = []
+        def clock():
+            calls.append(True)
+            sample = next(samples)
+            if isinstance(sample, BaseException): raise sample
+            return sample
+        endpoint = type('Endpoint', (), {'final_query_observation': None,
+            'exchange': lambda self, command, deadline: wire.Reply('OK', (command,))})()
+        instance = controller.Controller(None, None, None, monotonic=clock, record=lambda event: True)
+        instance.generations, instance.endpoints = 1, {'A': endpoint}
+        return instance, calls
+
+    def test_original_two_authority_samples_and_no_record_callback(self):
+        instance, calls = self.instance(iter((1.0, 2.0)))
+        instance.record = lambda event: self.fail('inline record callback')
+        reply = instance._send('A', 'COMMIT', 10)
+        self.assertEqual(reply.values, ('COMMIT',))
+        self.assertEqual(len(calls), 2)
+        row = instance.final_observations[0]
+        self.assertEqual((row['sampled_elapsed_ns'], row['sampled_remaining_ns']), (1000000000, 8000000000))
+
+    def test_rollback_nonfinite_or_raising_clock_never_reuses_prior_sample(self):
+        for bad in (0.5, float('nan'), float('inf')):
+            with self.subTest(sample=bad):
+                instance, calls = self.instance(iter((1.0, bad)))
+                instance.clock.now()
+                with self.assertRaisesRegex(controller.ControllerError, '^host_clock_invalid$'):
+                    instance._send('A', 'COMMIT', 10)
+                row = instance.final_observations[0]
+                self.assertEqual(row['diagnostic_failure'], 'authority_sample_invalid')
+                self.assertIsNone(row['sampled_remaining_ns'])
+                self.assertIsNone(row['sampled_elapsed_ns'])
+                self.assertIsNone(row['query'])
+                self.assertEqual(len(calls), 2)
+        instance, calls = self.instance(iter((1.0, RuntimeError('PRIVATE'))))
+        instance.clock.now()
+        with self.assertRaisesRegex(RuntimeError, '^PRIVATE$'):
+            instance._send('A', 'COMMIT', 10)
+        row = instance.final_observations[0]
+        self.assertEqual(row['diagnostic_failure'], 'authority_sample_invalid')
+        self.assertIsNone(row['sampled_remaining_ns'])
 
 
 if __name__ == '__main__':

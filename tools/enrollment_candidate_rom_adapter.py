@@ -22,12 +22,15 @@ import sys
 import threading
 import time
 
-from enrollment_candidate_custody import Admission, SPANS, descriptor, validate_request
+from enrollment_candidate_custody import (Admission, SPANS, canonical, descriptor, validate_request,
+    MIN_PRE_A_REMAINING, MIN_PRE_B_REMAINING, MIN_CLEANUP_REMAINING, MIN_RESTORE_RESERVE)
 from enrollment_candidate_controller import Clock, ControllerError
 
 
 WORKER_FAILURE_CATEGORIES = frozenset(('rom_adapter_refused', 'rom_operation_failed',
-    'host_clock_invalid', 'deadline_invalid', 'deadline_expired'))
+    'host_clock_invalid', 'deadline_invalid', 'deadline_expired', 'budget_insufficient',
+    'pending_reset_storage', 'release_nvs_unstable', 'release_nvs_invalid',
+    *(f'release_{name}_changed' for name in SPANS)))
 
 
 class AdapterError(RuntimeError):
@@ -41,7 +44,7 @@ def need(value, category='rom_adapter_refused'):
 
 
 ROM_FAILURE_OPERATIONS = frozenset(('route', 'guard', 'read', 'guarded_read', 'write',
-    'hold_rom', 'boot_candidate', 'restart_candidate', 'reset_original', 'unknown'))
+    'hold_rom', 'boot_candidate', 'restart_candidate', 'reset_original', 'release_snapshot', 'unknown'))
 ROM_FAILURE_BOUNDARIES = {
     'subprocess_timeout': frozenset(('runner',)),
     'runner_exception': frozenset(('runner',)),
@@ -159,7 +162,9 @@ class PassiveToken:
 WORKER_LOGIC = r'''
 import base64, contextlib, hashlib, io, math, re, struct, time
 WORKER_FAILURE_CATEGORIES=frozenset(('rom_adapter_refused','rom_operation_failed',
-    'host_clock_invalid','deadline_invalid','deadline_expired'))
+    'host_clock_invalid','deadline_invalid','deadline_expired','budget_insufficient',
+    'pending_reset_storage','release_nvs_unstable','release_nvs_invalid',
+    *('release_'+name+'_changed' for name in ('bootloader','partition','otadata','nvs','application','ota0_prefix'))))
 class WorkerError(RuntimeError): pass
 def require(value,category='rom_adapter_refused'):
     if not value: raise WorkerError(category)
@@ -214,8 +219,9 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
     if capture:
         keys={'schema','deadline','identity','operation','mode','authority','observed','runtime_sha256'}
         if op in ('read','guarded_read'):keys.add('span')
+        if op=='reset_original' and 'release_nvs' in q:keys.add('release_nvs')
         if 'manifest' in q:keys.add('manifest')
-        require(set(q)==keys and op in ('guard','read','guarded_read','reset_original'))
+        require(set(q)==keys and op in ('guard','read','guarded_read','release_snapshot','reset_original'))
         authority=q['authority']
         require(type(authority) is dict and set(authority)=={'schema','runtime_sha256',
             'request_sha256','grant_sha256','attempt','role','device_binding','actions',
@@ -230,7 +236,7 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
                 ['guard_original','read_six_spans','reset_original'])
         for name in ('capture_deadline','cleanup_deadline'):
             require(type(authority[name]) in (int,float) and math.isfinite(authority[name]))
-        bound=authority['cleanup_deadline'] if op=='reset_original' else authority['capture_deadline']
+        bound=authority['cleanup_deadline'] if op in ('release_snapshot','reset_original') else authority['capture_deadline']
         require(authority['capture_deadline']<=authority['cleanup_deadline']
             and type(deadline) in (int,float) and math.isfinite(deadline) and deadline<=bound)
         observed=q['observed'];require(type(observed) is dict and set(observed)<=set(REGIONS))
@@ -239,9 +245,27 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
                 and type(value['bytes']) is int and value['bytes']==REGIONS[name][1]
                 and type(value['sha256']) is str and re.fullmatch('[0-9a-f]{64}',value['sha256']))
         if op in ('read','guarded_read'):require(q['span'] in REGIONS)
+        if op=='release_snapshot' or 'release_nvs' in q:require(set(observed)==set(REGIONS))
+        if 'release_nvs' in q:
+            value=q['release_nvs']
+            require(type(value) is dict and set(value)=={'bytes','sha256'}
+                and type(value['bytes']) is int and value['bytes']==REGIONS['nvs'][1]
+                and type(value['sha256']) is str and re.fullmatch('[0-9a-f]{64}',value['sha256']))
     else:
         # An acquisition envelope cannot be promoted by changing its mode.
-        require('authority' not in q and 'observed' not in q and 'runtime_sha256' not in q)
+        require(op!='release_snapshot')
+        require('authority' not in q and 'observed' not in q and 'runtime_sha256' not in q
+            and 'release_nvs' not in q)
+        if 'first_write_budget' in q:
+            from enrollment_candidate_custody import MIN_PRE_A_REMAINING,MIN_PRE_B_REMAINING,MIN_RESTORE_RESERVE,MIN_CLEANUP_REMAINING
+            reserve=q['first_write_budget']
+            require(op=='write' and q.get('span')=='application' and q.get('write_kind')=='candidate'
+                and q['mode']=='normal' and type(reserve) is dict
+                and set(reserve)=={'role','remaining','restoration_deadline'} and reserve['role'] in ('A','B')
+                and type(reserve['remaining']) is int
+                and reserve['remaining']==(MIN_PRE_A_REMAINING if reserve['role']=='A' else MIN_PRE_B_REMAINING)
+                and type(reserve['restoration_deadline']) in (int,float)
+                and math.isfinite(reserve['restoration_deadline']))
         if op=='guarded_read':
             keys={'schema','deadline','identity','operation','mode','originals','candidate','span'}
             if 'manifest' in q:keys.add('manifest')
@@ -259,7 +283,8 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
         check();return value
     selected=route()
     if op=='route':return {'ok':True,'closed':True,'route':selected}
-    require(op in ('guard','read','guarded_read','write','boot_candidate','restart_candidate','reset_original','hold_rom'))
+    require(op in ('guard','read','guarded_read','write','boot_candidate','restart_candidate','reset_original','hold_rom','release_snapshot'))
+    require(op!='release_snapshot' or capture)
     require(reset is not None)
     reset.ResetStrategy.__call__=lambda strategy:strict_reset(strategy,check)
     require(q['mode'] in ('normal','restore-only','capture-only'))
@@ -310,7 +335,10 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
                 require(cmds.detect_flash_size(esp)=='16MB' and esp.flash_type()==0);check()
                 table=read('partition');kind=None
                 if capture:
-                    layout(table,ORIGINAL);kind='original'
+                    try:layout(table,ORIGINAL)
+                    except WorkerError:
+                        require(False,'release_partition_changed' if op in ('release_snapshot','reset_original') else 'rom_adapter_refused')
+                    kind='original'
                 elif pin(table)==originals['partition']:
                     layout(table,ORIGINAL);kind='original'
                 elif pin(table)==candidate['partition']:
@@ -318,10 +346,31 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
                 else:require(q['mode']=='restore-only')
                 ota=read('otadata')
                 factory=(kind=='candidate' or (kind=='original' and ota==b'\xff'*8192))
-                require(factory or q['mode']=='restore-only')
+                require(factory or q['mode']=='restore-only',
+                    'release_otadata_changed' if capture and op in ('release_snapshot','reset_original') else 'rom_adapter_refused')
                 selection='verified-factory' if factory else 'verified-rom-restore-only'
                 return kind,factory,{'layout_sha256':hashlib.sha256(table).hexdigest(),'boot_selection':selection}
             kind,factory,admission=fresh_admission()
+            def release_sweep(snapshot=False):
+                require(capture and kind=='original' and factory)
+                sweep={}
+                for name in REGIONS:
+                    raw=read(name)
+                    expected=q.get('release_nvs') if name=='nvs' and 'release_nvs' in q else observed.get(name)
+                    if snapshot and name=='nvs':pass
+                    elif expected is not None:require(pin(raw)==expected,'release_'+name+'_changed')
+                    else:require(read(name)==raw,'release_'+name+'_changed')
+                    sweep[name]=raw
+                layout(sweep['partition'],ORIGINAL)
+                require(sweep['otadata']==b'\xff'*8192,'release_otadata_changed')
+                from ble_confirmation_trial import safe_reset_marker
+                try:require(safe_reset_marker(sweep['nvs']) is True,'pending_reset_storage')
+                except WorkerError:raise
+                except Exception as error:
+                    category='pending_reset_storage' if type(error.args)==tuple and error.args==('pending_reset_storage',) else 'release_nvs_invalid'
+                    require(False,category)
+                require(read('nvs')==sweep['nvs'],'release_nvs_unstable')
+                return sweep
             if op=='read':
                 name=q['span'];require(name in REGIONS);result={'ok':True,'closed':True,
                     'data':base64.b64encode(read(name)).decode('ascii'),'admission':admission}
@@ -330,6 +379,9 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
                 _,_,post_admission=fresh_admission()
                 result={'ok':True,'closed':True,'data':base64.b64encode(raw).decode('ascii'),
                     'admission':admission,'post_admission':post_admission}
+            elif op=='release_snapshot':
+                sweep=release_sweep(True)
+                result={'ok':True,'closed':True,'data':base64.b64encode(sweep['nvs']).decode('ascii'),'admission':admission}
             elif op=='write':
                 name=q['span'];require(name in REGIONS and name!='bootloader')
                 raw=base64.b64decode(q['data'],validate=True);require(len(raw)==REGIONS[name][1])
@@ -342,6 +394,13 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
                 # Separate loader.flash_block retries must also be single-shot.
                 # This is local to the isolated worker, never a capsule edit.
                 loader.WRITE_BLOCK_ATTEMPTS=1
+                if 'first_write_budget' in q:
+                    # Real worker admission/hash/connect cost consumes the
+                    # same immutable clock. Refuse at the SDK mutation itself.
+                    check();now=last;reserve=q['first_write_budget']
+                    require(deadline-now>=reserve['remaining']
+                        and reserve['restoration_deadline']-deadline>=MIN_RESTORE_RESERVE
+                        and reserve['restoration_deadline']-now>=MIN_CLEANUP_REMAINING,'budget_insufficient')
                 cmds.write_flash(esp,[(REGIONS[name][0],raw)],flash_size='keep',flash_mode='keep',
                     flash_freq='keep',no_compress=True,no_progress=True,force=False,
                     erase_all=False,encrypt=False,ignore_flash_enc_efuse=False)
@@ -360,19 +419,7 @@ def execute_request(q,rom_class,cmds,comports,clock=time.monotonic,*,loader=None
                     # Discovery cannot fake missing original pins. Cleanup must
                     # prove a full stable untouched sweep under its own cap.
                     require(op=='reset_original' and kind=='original')
-                    sweep={}
-                    for name in REGIONS:
-                        raw=read(name)
-                        if name in observed:require(pin(raw)==observed[name])
-                        else:require(read(name)==raw)
-                        sweep[name]=raw
-                    layout(sweep['partition'],ORIGINAL)
-                    require(sweep['otadata']==b'\xff'*8192)
-                    from ble_confirmation_trial import safe_reset_marker
-                    try:require(safe_reset_marker(sweep['nvs']) is True)
-                    except Exception:require(False)
-                    # Recheck mutable default NVS immediately before reset.
-                    require(read('nvs')==sweep['nvs'])
+                    release_sweep()
                 else:
                     require(q['mode']=='restore-only' and kind=='original')
                     for name in REGIONS:require(pin(read(name))==originals[name])
@@ -578,7 +625,7 @@ class Runtime:
             op = payload['operation']
             keys = {'ok', 'closed', 'route'} if op == 'route' else \
                 {'ok', 'closed', 'admission', 'post_admission', 'data'} if op == 'guarded_read' else \
-                {'ok', 'closed', 'admission', 'data'} if op == 'read' else {'ok', 'closed', 'admission'}
+                {'ok', 'closed', 'admission', 'data'} if op in ('read', 'release_snapshot') else {'ok', 'closed', 'admission'}
             need(type(answer) is dict and set(answer) == keys and answer['ok'] is True and answer['closed'] is True)
             if op == 'route':
                 need(type(answer['route']) is str and re.fullmatch(r'COM[1-9][0-9]{0,3}', answer['route']))
@@ -616,6 +663,7 @@ class HardwareLease:
     def __init__(self, private_root, *, monotonic=time.monotonic):
         self.private_root, self.clock = _private(private_root), Clock(monotonic)
         self._file, self._states, self._command = None, {}, threading.Lock()
+        self._epoch = object()
 
     def acquire(self, deadline):
         self.clock.check(deadline)
@@ -637,6 +685,7 @@ class HardwareLease:
                 handle.write(b'\0');os.fsync(handle.fileno())
             self.clock.check(deadline)
             self._file = handle
+            self._epoch = object()
             return True
         except BaseException:
             handle.close()
@@ -651,7 +700,16 @@ class HardwareLease:
         self.acquire(deadline)
         state = self._state(binding)
         need(not state['uncertain'] and state['mode'] != 'passive', 'passive_owner_active')
+        if state['mode'] != 'rom':
+            state['rom_epoch'] = object()
         state['mode'] = 'rom'
+
+    def rom_token(self, binding):
+        need(self.holds_rom(binding), 'rom_owner_required')
+        return (self._epoch, self._file, self._state(binding)['rom_epoch'])
+
+    def same_rom_token(self, binding, token):
+        return self.holds_rom(binding) and self.rom_token(binding) == token
 
     def mark_boot(self, binding, original=False):
         state = self._state(binding)
@@ -752,6 +810,26 @@ class ROMBackend:
         self._mode, self._lock = 'idle', threading.RLock()
         self._execute_deadline, self._restore_deadline = None, None
         self._initial_boot, self._warm_restart = False, False
+        self._adoption_token = None
+
+    def adopt_originals(self, proof, deadline, restoration_deadline):
+        with self._lock:
+            need(type(proof) is _LiveCaptureProof and not self._claimed and not self._failed and not self._mutated
+                 and not self._restore_only and self._adoption_token is None, 'rom_adapter_refused')
+            raw, token = proof.consume(self, deadline)
+            self._captures = raw
+            # Counts remain actual candidate reads; the independent live proof
+            # is a separate authorization path, never reconstructed counters.
+            self._adoption_token = token
+            need(type(restoration_deadline) in (int, float) and math.isfinite(restoration_deadline)
+                 and deadline <= restoration_deadline <= proof.producer._authority['cleanup_deadline'], 'deadline_extended')
+            self._adoption_restore_deadline = restoration_deadline
+            return True
+
+    def restore_claim(self, binding, deadline):
+        with self._lock:
+            self._restore_only = True
+            return self.claim(binding, deadline)
 
     def __repr__(self):
         return '<OTCAND1 six-span ROM backend>'
@@ -794,7 +872,7 @@ class ROMBackend:
         from ble_confirmation_trial import safe_reset_marker
         answer = self._call('read', deadline, span='nvs')
         raw = base64.b64decode(answer['data'], validate=True)
-        need(descriptor(raw) == self.request['roles'][self.role]['originals']['nvs'])
+        need(descriptor(raw) == self.request['roles'][self.role]['originals']['nvs'], 'original_changed')
         try:
             need(safe_reset_marker(raw) is True, 'pending_reset_storage')
         except BaseException:
@@ -864,12 +942,20 @@ class ROMBackend:
                 need(descriptor(raw) == self.request['roles'][self.role]['originals'][name])
                 kind = 'restore'
             else:
-                need(set(self._captures) == set(SPANS) and all(self._counts.get(n, 0) >= 2 for n in SPANS)
+                adopted = (self._adoption_token is not None and
+                    self.lease.same_rom_token(self._binding, self._adoption_token))
+                need(set(self._captures) == set(SPANS) and
+                     (adopted or (self._adoption_token is None and all(self._counts.get(n, 0) >= 2 for n in SPANS)))
                      and name in self._candidate and raw == self._candidate[name])
                 kind = 'candidate'
             self._mutated = True # Never recapture originals after uncertain write.
+            fields = {}
+            if kind == 'candidate' and name == 'application' and self._adoption_token is not None:
+                fields['first_write_budget'] = {'role': self.role,
+                    'remaining': MIN_PRE_A_REMAINING if self.role == 'A' else MIN_PRE_B_REMAINING,
+                    'restoration_deadline': self._adoption_restore_deadline}
             self._call('write', deadline, span=name, write_kind=kind,
-                       data=base64.b64encode(raw).decode('ascii'))
+                       data=base64.b64encode(raw).decode('ascii'), **fields)
             return True
 
     def hold_rom(self, deadline):
@@ -928,6 +1014,45 @@ class ROMBackend:
         return self.close()
 
 
+class _LiveCaptureProof:
+    def __init__(self, producer, request, originals, token, session, journal):
+        self.producer, self.request = producer, canonical(request)
+        self.originals, self.token, self.used = dict(originals), token, False
+        self.session, self.journal = session, journal
+        self.retained = session.retained
+
+    def consume(self, consumer, deadline):
+        producer = self.producer
+        need(type(producer) is CaptureROMBackend and type(consumer) is ROMBackend, 'rom_adapter_refused')
+        from enrollment_candidate_original_capture import CaptureSession
+        from enrollment_candidate_custody import _validate_state,_adoption_commit,_originals,decode
+        need(type(self.session) is CaptureSession and self.session._verified and not self.session._release_used
+             and self.session._backends[consumer.role] is producer
+             and self.session.retained == self.retained
+             and self.session._candidate == self.request and not self.journal.pending.exists(), 'rom_adapter_refused')
+        state = _validate_state(decode(self.journal.file.read_bytes()),consumer.request,self.journal.attempt)
+        destination = self.session._state['candidate']
+        need(destination['attempt'] == self.journal.attempt and
+             Path(destination['root']).resolve() == Path(self.journal.root).resolve(), 'rom_adapter_refused')
+        need(_adoption_commit(state,consumer.role,self.journal.root) is True and
+             _originals(self.journal,state,consumer.role) == self.originals, 'rom_adapter_refused')
+        producer._deadline(deadline)
+        need(type(producer) is CaptureROMBackend and producer._proof is self
+             and not self.used and not producer._failed and not producer._reset_attempted
+             and producer._mode == 'rom' and producer._proof_ready(self.session)
+             and consumer.runtime is producer.runtime and consumer.lease is producer.lease
+             and consumer.role == producer.role and consumer._profile == producer._profile
+             and consumer._identity == producer._identity and consumer._binding == producer._binding
+             and canonical(consumer.request) == self.request
+             and producer.lease.same_rom_token(producer._binding, self.token)
+             and consumer.runtime.manifest_sha256 == producer._authority['runtime_sha256']
+             and all(descriptor(self.originals[n]) == producer.pins[n] ==
+                consumer.request['roles'][consumer.role]['originals'][n] for n in SPANS), 'rom_adapter_refused')
+        self.used = True
+        producer._adopted = True
+        return dict(self.originals), self.token
+
+
 class CaptureROMBackend:
     """Externally authorized read-only discovery; successful capture holds ROM.
 
@@ -955,6 +1080,75 @@ class CaptureROMBackend:
         self._claimed, self._failed, self._reset_attempted = False, False, False
         self._mode, self._lock = 'idle', threading.RLock()
         self._pins, self._counts = {}, {}
+        self._hold_token, self._proof, self._adopted = None, None, False
+        self._retained_expected = None
+        self._current_nvs = False
+        self._release_session, self._release_nvs = None, None
+        self._release_probe_used = False
+
+    def bind_retained_originals(self, session, pins):
+        from enrollment_candidate_original_capture import CaptureSession, validate_retained_source
+        with self._lock:
+            need(type(session) is CaptureSession and session.retained
+                and session._backends.get(self.role) is self
+                and hashlib.sha256(canonical(session.request)).hexdigest() == self._authority['request_sha256']
+                and not self._claimed and not self._pins and not self._counts
+                and self._retained_expected is None, 'rom_adapter_refused')
+            expected, _ = validate_retained_source(session.request, session.private)
+            need(pins == expected[self.role], 'rom_adapter_refused')
+            self._retained_expected = json.loads(json.dumps(pins))
+            self._current_nvs = session.current_nvs
+            self._release_session = session
+
+    def prepare_original_release(self, session, deadline):
+        """Cleanup-only current NVS evidence; never candidate or backup authority."""
+        with self._lock:
+            need(session is self._release_session and self._retained_expected is not None
+                and not self._current_nvs
+                and not self._release_probe_used and not self._reset_attempted
+                and self._proof is None and not self._adopted
+                and self.lease.same_rom_token(self._binding, self._hold_token), 'capture_reset_refused')
+            session._release_snapshot_guard(self.role, self)
+            self._release_probe_used = True
+            answer = self._call('release_snapshot', deadline)
+            self._admission(answer)
+            raw = base64.b64decode(answer['data'], validate=True)
+            need(len(raw) == SPANS['nvs'][1], 'rom_adapter_refused')
+            pin = descriptor(raw)
+            if pin != self._retained_expected['nvs']:
+                session._save_release_snapshot(self.role, self, raw)
+                self._release_nvs = pin
+            return pin != self._retained_expected['nvs']
+
+    def live_proof(self, request, originals, deadline, *, session, journal):
+        with self._lock:
+            self._deadline(deadline)
+            need(self._proof is None and not self._adopted and not self._reset_attempted
+                 and not self._failed and self._mode == 'rom' and self._proof_ready(session)
+                 and self.lease.same_rom_token(self._binding, self._hold_token)
+                 and set(originals) == set(SPANS) and all(type(originals[n]) is bytes
+                    and descriptor(originals[n]) == self.pins[n] == request['roles'][self.role]['originals'][n]
+                    for n in SPANS), 'rom_adapter_refused')
+            self._proof = _LiveCaptureProof(self, request, originals, self._hold_token, session, journal)
+            return self._proof
+
+    def _proof_ready(self, session):
+        from enrollment_candidate_original_capture import CaptureSession
+        # Retained mode is frozen in the grant-bound request, not a caller's
+        # flag. Counts always reflect real reads of this producer/ROM hold.
+        need(type(session) is CaptureSession and session._verified and not session._release_used
+            and session._backends.get(self.role) is self, 'rom_adapter_refused')
+        if session.retained:
+            if session.current_nvs:
+                return (self._current_nvs and not self._failed and set(self._pins) == set(SPANS)
+                    and self.pins == session.pins[self.role]
+                    and all(self._retained_expected[n] == self.pins[n]
+                        and self._counts.get(n, 0) == 1 for n in SPANS if n != 'nvs')
+                    and self._counts.get('nvs', 0) == 3)
+            return (not self._failed and set(self._pins) == set(SPANS)
+                and self._retained_expected == self.pins == session.pins[self.role]
+                and all(self._counts.get(n, 0) == 1 for n in SPANS))
+        return self.complete and all(self._counts.get(n, 0) >= 3 for n in SPANS)
 
     def __repr__(self):
         return '<OTCAND1 capture-only six-span ROM backend>'
@@ -977,20 +1171,40 @@ class CaptureROMBackend:
         self.runtime.clock.check(deadline)
 
     def _call(self, operation, deadline, **fields):
-        need(operation in ('guard', 'read', 'guarded_read', 'reset_original') and
+        need(operation in ('guard', 'read', 'guarded_read', 'release_snapshot', 'reset_original') and
              set(fields) == ({'span'} if operation in ('read', 'guarded_read') else set()), 'capture_operation_refused')
-        cleanup = operation == 'reset_original'
+        cleanup = operation in ('release_snapshot', 'reset_original')
         need(self._claimed and self._mode in (('rom', 'failed') if cleanup else ('rom',)),
              'rom_owner_required')
         need(cleanup or not self._failed, 'capture_terminal')
+        need(not self._adopted, 'capture_terminal')
         need(self.runtime.manifest_sha256 == self._authority['runtime_sha256'], 'runtime_binding_invalid')
         self._deadline(deadline, cleanup)
         need(self.lease.holds_rom(self._binding), 'rom_owner_required')
+        if cleanup:
+            need(self.lease.same_rom_token(self._binding, self._hold_token), 'rom_owner_required')
+        observed = (self._retained_expected if cleanup and self._retained_expected is not None
+            else self.pins)
+        if cleanup and self._current_nvs:
+            # A failed or incomplete acquisition cannot fall back to historical
+            # settings or mint cleanup drift as this attempt's baseline.
+            session = self._release_session
+            need(session.current_nvs and not session._journal.pending.exists(), 'capture_reset_refused')
+            raw = session._raw(self.role, 'nvs')
+            current = descriptor(raw)
+            need(self._pins.get('nvs') == current, 'capture_reset_refused')
+            observed = dict(self._retained_expected, nvs=current)
+        extra = {}
+        if operation == 'reset_original' and self._release_nvs is not None:
+            # holds_rom/token checks require the command owner to be idle.
+            # Validate durable proof before taking exclusive worker ownership.
+            self._release_session._verify_release_snapshot(self.role, self, self._release_nvs)
+            extra['release_nvs'] = self._release_nvs
         need(self.lease._command.acquire(blocking=False), 'hardware_lease_busy')
         try:
             return self.runtime.invoke({'operation': operation, 'identity': self._identity,
                 'mode': 'capture-only', 'authority': self._authority,
-                'observed': self.pins, **fields}, deadline)
+                'observed': observed, **fields, **extra}, deadline)
         except BaseException:
             self._failed, self._mode = True, 'failed'
             raise
@@ -1009,6 +1223,7 @@ class CaptureROMBackend:
                  'capture_claim_refused')
             self._deadline(deadline)
             self.lease.enter_rom(binding, deadline)
+            self._hold_token = self.lease.rom_token(binding)
             self._claimed, self._mode = True, 'rom'
             return self._admission(self._call('guard', deadline))
 
@@ -1021,11 +1236,13 @@ class CaptureROMBackend:
         with self._lock:
             name = next((n for n, span in SPANS.items() if span == (offset, size)), None)
             need(name is not None and type(offset) is int and type(size) is int)
+            need(not (self._current_nvs and name == 'nvs'), 'capture_operation_refused')
             try:
                 answer = self._call('read', deadline, span=name)
                 raw = base64.b64decode(answer['data'], validate=True)
                 need(len(raw) == size)
                 value = descriptor(raw)
+                need(self._retained_expected is None or self._retained_expected[name] == value, 'capture_changed')
                 need(name not in self._pins or self._pins[name] == value, 'capture_changed')
                 self._pins[name] = value
                 self._counts[name] = self._counts.get(name, 0) + 1
@@ -1045,7 +1262,15 @@ class CaptureROMBackend:
                 after = self._admission({'admission': answer['post_admission']})
                 raw = base64.b64decode(answer['data'], validate=True)
                 need(len(raw) == size)
+                if self._current_nvs and name == 'nvs':
+                    from ble_confirmation_trial import safe_reset_marker
+                    try:
+                        need(safe_reset_marker(raw) is True, 'pending_reset_storage')
+                    except BaseException:
+                        raise AdapterError('pending_reset_storage') from None
                 value = descriptor(raw)
+                need(self._retained_expected is None or (self._current_nvs and name == 'nvs')
+                    or self._retained_expected[name] == value, 'capture_changed')
                 need(name not in self._pins or self._pins[name] == value, 'capture_changed')
                 self._pins[name] = value
                 self._counts[name] = self._counts.get(name, 0) + 1

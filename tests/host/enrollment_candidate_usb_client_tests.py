@@ -3,6 +3,7 @@ from collections import deque
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
 import enrollment_candidate_usb_client as client
@@ -107,6 +108,110 @@ def endpoint(replies=()):
 
 
 class Tests(unittest.TestCase):
+    def control_reply(self):
+        # Maintained stateful producer; public values remain synthetic fixtures.
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from enrollment_candidate_controller_tests import World
+        world = World()
+        node = world.nodes['A']
+        node.hello = node.session = node.confirmed = True
+        raw = node.execute('NEXTCONTROL')
+        self.assertEqual(len(raw), 233)
+        return raw
+
+    def test_queued_control_reply_uses_one_bounded_read_with_fresh_guards(self):
+        raw = self.control_reply()
+        e, s, c = endpoint([b'OTCAND1 READY 1\n', raw])
+        e.exchange('HELLO', 10)
+        s.read_calls = 0
+        result = e.exchange('NEXTCONTROL', 10)
+        self.assertEqual(result, client.parse_reply('NEXTCONTROL', raw[:-1]))
+        q = e.query_snapshot()
+        self.assertEqual((s.read_calls, q['read_attempted'], q['read_returned']), (1, 1, 1))
+        self.assertEqual((q['guard_attempted'], q['guard_returned']), (13, 13))
+        self.assertEqual(q['received_bytes'], len(raw))
+        self.assertTrue(q['reply_parsed'] and q['reply_returned'])
+        self.assertEqual(s.writes, [b'OTCAND1 HELLO\n', b'OTCAND1 NEXTCONTROL\n'])
+
+    def test_control_reply_fragmentation_and_empty_queue_preserve_parser_and_guards(self):
+        raw = self.control_reply()
+        expected = client.parse_reply('NEXTCONTROL', raw[:-1])
+        for size in (1, 7, 64):
+            with self.subTest(fragment=size):
+                c = Clock()
+                s = FragmentSerial([], c, [b'OTCAND1 READY 1\n'])
+                e = client.Endpoint(s, lambda: s.is_open, monotonic=c)
+                e.exchange('HELLO', 60)
+                fragments = [raw[index:index + size] for index in range(0, len(raw), size)]
+                fragments.insert(1, b'')
+                s.write_hook = lambda: s.fragments.extend(fragments)
+                s.read_calls = 0
+                self.assertEqual(e.exchange('NEXTCONTROL', 60), expected)
+                q = e.query_snapshot()
+                self.assertEqual(q['read_attempted'], len(fragments))
+                self.assertEqual(s.read_calls, len(fragments))
+                self.assertEqual(q['guard_attempted'], 8 + 5 * len(fragments))
+                self.assertEqual(q['guard_returned'], q['guard_attempted'])
+                self.assertEqual(q['received_bytes'], len(raw))
+
+    def test_batched_control_reply_keeps_line_parser_and_tail_rejections(self):
+        raw = self.control_reply()
+        for response, error in ((raw[:-2] + b'g\n', 'invalid_public_value'),
+                (b'x' * client.MAX_LINE_BYTES + b'\n', 'line_overflow'),
+                (raw + b'X', 'unexpected_response_tail'),
+                (raw + raw, 'unexpected_response_tail')):
+            with self.subTest(error=error, received=len(response)):
+                e, s, c = endpoint([b'OTCAND1 READY 1\n', response])
+                e.exchange('HELLO', 10)
+                requested = []
+                read = s.read
+                def bounded_read(count):
+                    requested.append(count)
+                    return read(count)
+                s.read = bounded_read
+                with self.assertRaisesRegex(client.ClientError, '^' + error + '$'):
+                    e.exchange('NEXTCONTROL', 10)
+                self.assertTrue(e.failed)
+                self.assertFalse(e.query_snapshot()['reply_returned'])
+                self.assertTrue(all(1 <= count <= client.MAX_LINE_BYTES for count in requested))
+                before = list(s.writes)
+                with self.assertRaisesRegex(client.ClientError, '^lease_terminal$'):
+                    e.exchange('COMMIT', 10)
+                self.assertEqual(s.writes, before)
+        e, s, c = endpoint([b'OTCAND1 READY 1\n', raw])
+        e.exchange('HELLO', 10)
+        parse = client.parse_reply
+        def queued_after_parse(verb, line):
+            result = parse(verb, line)
+            s.received.extend(b'OTCAND1 OK COMMIT\n')
+            return result
+        with patch.object(client, 'parse_reply', queued_after_parse), self.assertRaisesRegex(
+                client.ClientError, '^unexpected_response_tail$'):
+            e.exchange('NEXTCONTROL', 10)
+        self.assertTrue(e.query_snapshot()['reply_parsed'])
+        self.assertFalse(e.query_snapshot()['reply_returned'])
+        self.assertTrue(e.failed)
+
+    def test_batched_control_read_cannot_survive_original_deadline_or_identity_loss(self):
+        raw = self.control_reply()
+        for failure in ('deadline_expired', 'identity_guard'):
+            with self.subTest(failure=failure):
+                e, s, c = endpoint([b'OTCAND1 READY 1\n', raw])
+                e.exchange('HELLO', 10)
+                s.read_calls = 0
+                s.read_hook = (lambda: setattr(c, 'value', 10)) if failure == 'deadline_expired' else (
+                    lambda: setattr(s, 'is_open', False))
+                with self.assertRaisesRegex(client.ClientError, '^' + failure + '$'):
+                    e.exchange('NEXTCONTROL', 10)
+                q = e.query_snapshot()
+                self.assertEqual((s.read_calls, q['received_bytes']), (1, len(raw)))
+                self.assertFalse(q['reply_parsed'] or q['reply_returned'])
+                self.assertTrue(e.failed)
+                before = list(s.writes)
+                with self.assertRaisesRegex(client.ClientError, '^lease_terminal$'):
+                    e.exchange('COMMIT', 100)
+                self.assertEqual(s.writes, before)
+
     def test_stream_preserves_complete_final_late_reply_without_admitting_it(self):
         # The actual V7 rejection point was post_read_after_guard: final bytes
         # must survive that failure without moving parse_reply before the guard.
@@ -671,7 +776,8 @@ class Tests(unittest.TestCase):
                     self.assertEqual((q['read_attempted'], q['received_bytes']), (0, 0))
                 elif fault == 'value':
                     self.assertEqual(q['received_bytes'], len(reply))
-                    self.assertGreater(q['read_returned'], 1)
+                    self.assertEqual(q['read_returned'], 1)
+                    self.assertEqual((q['guard_attempted'], q['guard_returned']), (13, 13))
                 self.assertNotIn(value, repr(q))
                 self.assertNotIn(reply.decode(), repr(q))
                 self.assertEqual(set(q), client.QUERY_FIELDS)
@@ -1055,6 +1161,33 @@ class Tests(unittest.TestCase):
                     client.command_bytes('SENDSTATUS ' + value)
                 with self.assertRaises(client.ClientError):
                     client.parse_reply('STATUS', ('OTCAND1 VALUE ' + value).encode())
+
+
+class VersionedReviewTests(unittest.TestCase):
+    def test_strict_version_scope_and_state_pairs(self):
+        token='1'*32
+        base=['OTCAND1','REVIEWSTATE','1',token,'1','LOCAL','0000000000000001','0000000000000002','WAITING','READY']
+        reply=client.parse_reply('REVIEWPOLL', ' '.join(base).encode())
+        state=client.review_state(reply)
+        self.assertEqual((state.token,state.role,state.purpose,state.generation,state.revision,state.state,state.gesture),(token,'1','LOCAL',1,2,'WAITING','READY'))
+        for index,bad in ((2,'2'),(3,'0'*32),(3,'A'*32),(4,'0'),(5,'OTHER'),(6,'1'),(6,'0000000000000000'),(7,'FFFFFFFFFFFFFFFF'),(8,'OK'),(9,'ACCEPTED')):
+            changed=list(base);changed[index]=bad
+            with self.subTest(index=index,bad=bad),self.assertRaises(client.ClientError):client.parse_reply('REVIEWPOLL',' '.join(changed).encode())
+        for gesture in ('WAIT_RELEASE','READY','PRESSING'):
+            base[9]=gesture;self.assertEqual(client.review_state(client.parse_reply('REVIEWPOLL',' '.join(base).encode())).state,'WAITING')
+        base[8:]=['CONFIRMED','ACCEPTED'];self.assertEqual(client.review_state(client.parse_reply('REVIEWPOLL',' '.join(base).encode())).state,'CONFIRMED')
+    def test_legacy_ok_never_counts_and_refusal_is_allowlisted(self):
+        for verb in ('REVIEWSTART','REVIEWPOLL'):
+            with self.assertRaises(client.ClientError):client.parse_reply(verb,('OTCAND1 OK '+verb).encode())
+            for reason in client.REVIEW_REFUSALS:
+                with self.assertRaisesRegex(client.ClientError,'^review_'+reason.lower()+'$'):client.parse_reply(verb,('OTCAND1 REVIEWREFUSED 1 '+reason).encode())
+        for raw in (b'OTCAND1 REVIEWREFUSED 1 SECRET',b'OTCAND1 REVIEWREFUSED 2 EXPIRED',b'OTCAND1 REVIEWREFUSED 1 EXPIRED extra'):
+            with self.assertRaises(client.ClientError):client.parse_reply('REVIEWPOLL',raw)
+    def test_commands_have_no_arbitrary_purpose_token_authority(self):
+        self.assertEqual(client.command_bytes('REVIEWSTART LOCAL '+'1'*32)[0],'REVIEWSTART')
+        self.assertEqual(client.command_bytes('REVIEWPOLL '+'2'*32)[0],'REVIEWPOLL')
+        for action in ('REVIEWSTART OTHER '+'1'*32,'REVIEWSTART LOCAL '+'0'*32,'REVIEWPOLL '+'a'*31,'REVIEWPOLL '+'A'*32):
+            with self.assertRaises(client.ClientError):client.command_bytes(action)
 
 
 if __name__ == '__main__':

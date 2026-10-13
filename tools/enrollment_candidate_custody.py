@@ -27,6 +27,11 @@ FROZEN_APPLICATION = {'bytes': 637520,
     'sha256': '93cd4e6d9011d5877cb02e9f0384958239c52a08a28f45700279bc2962cd8e0d'}
 HEX64, HEX32 = re.compile('[0-9a-f]{64}'), re.compile('[0-9a-f]{32}')
 ACTIVE = 'enrollment-candidate-active.json'
+MIN_HANDOFF_REMAINING = 1400
+MIN_PRE_A_REMAINING = 1100
+MIN_PRE_B_REMAINING = 700
+MIN_RESTORE_RESERVE = 1200
+MIN_CLEANUP_REMAINING = 1200
 _CLEANUP_STAGES = frozenset(('passive_cleanup', 'restore_A', 'restore_B', 'owner_confirmation'))
 _PROCESS = threading.Lock()
 _CLOSURE = threading.local()
@@ -41,7 +46,10 @@ owner_confirmation_missing pair_invalid passive_handles_unconfirmed passive_owne
 pending_reset_storage private_path_invalid private_root_invalid read_invalid record_failed
 protected_changed recovery_binding_invalid record_invalid request_invalid restore_readback_failed rom_adapter_refused rom_close_unconfirmed
 rom_hold_unverified rom_operation_failed rom_owner_required runtime_binding_invalid runtime_busy
-trial_result_invalid write_invalid write_readback_failed'''.split())
+trial_result_invalid write_invalid write_readback_failed budget_insufficient adoption_invalid'''.split())
+_OPERATOR_FAILURE_CATEGORIES = frozenset(('checkpoint_reentry', 'checkpoint_inactive',
+    'private_view_not_cleared', 'private_view_failed', 'human_confirmation_missing',
+    'handles_not_closed', 'activation_expired'))
 
 
 class Error(RuntimeError):
@@ -230,6 +238,46 @@ class Budget:
         self.last_utc = now
         return ceiling
 
+    def feasible(self, remaining):
+        self.check()
+        now = self.clock.now()
+        need(self.execute - now >= remaining and self.restore - self.execute >= MIN_RESTORE_RESERVE
+             and self.restore - now >= MIN_CLEANUP_REMAINING, 'budget_insufficient')
+
+
+def _adoption_commit(state, role, candidate_root=None):
+    """One write-once source marker decides recovery ownership after a crash."""
+    ref = state['roles'][role].get('adoption')
+    if ref is None:
+        return None
+    need(type(ref) is dict and set(ref) == {'root', 'attempt'} and type(ref['root']) is str
+         and type(ref['attempt']) is str and HEX32.fullmatch(ref['attempt']), 'adoption_invalid')
+    root = Path(ref['root'])
+    need(root.is_dir() and not root.is_symlink() and not getattr(root, 'is_junction', lambda: False)(),
+         'adoption_invalid')
+    path = _path(root, 'enrollment-original-' + ref['attempt'] + '-' + role + '.transfer')
+    if not path.exists():
+        return False
+    source = decode(_path(root, 'enrollment-original-' + ref['attempt'] + '.json').read_bytes())
+    need(type(source) is dict and source.get('schema') == 'OT-ORIGINAL-CAPTURE-JOURNAL-1'
+         and source.get('attempt') == ref['attempt'] and source.get('capture_complete') is True
+         and source.get('request',{}).get('runtime_sha256') == state['request']['runtime_sha256']
+         and source.get('roles',{}).get(role,{}).get('pins') == state['request']['roles'][role]['originals'],
+         'adoption_invalid')
+    destination = source.get('candidate')
+    need(type(destination) is dict and set(destination) == {'root','attempt','request'}
+         and destination['attempt'] == state['attempt'] and destination['request'] == state['request'], 'adoption_invalid')
+    exact_root = str(Path(destination['root']).resolve())
+    source_private = next((p for p in root.resolve().parents if p.name == '.private'),None)
+    need(source_private is not None and Path(exact_root).is_relative_to(source_private)
+         and Path(exact_root) != source_private, 'adoption_invalid')
+    need(candidate_root is None or str(Path(candidate_root).resolve()) == exact_root, 'adoption_invalid')
+    expected = {'schema': 'OT-ORIGINAL-TRANSFER-1', 'source_attempt': ref['attempt'],
+        'candidate_attempt': state['attempt'], 'role': role,
+        'request_sha256': sha(canonical(state['request'])), 'candidate_root': exact_root}
+    need(decode(path.read_bytes()) == expected, 'adoption_invalid')
+    return True
+
 
 def _admit(value, request, role, restoring=False):
     row = request['roles'][role]
@@ -274,7 +322,8 @@ def _read(backend, request, role, name, budget, restoring=False):
 
 
 def _claim(backend, request, role, budget, restoring=False):
-    value = backend.claim(request['roles'][role]['device_binding'], budget.check(restoring))
+    method = backend.restore_claim if restoring and callable(getattr(backend,'restore_claim',None)) else backend.claim
+    value = method(request['roles'][role]['device_binding'], budget.check(restoring))
     _admit(value, request, role, restoring)
     budget.check(restoring)
     _guard(backend, request, role, budget, restoring)
@@ -317,9 +366,22 @@ def _write(journal, state, role, backend, name, raw, budget, restoring=False):
     prefix = 'restore_' if restoring else 'candidate_'
     need(type(raw) is bytes and len(raw) == SPANS[name][1], 'write_invalid')
     _guard(backend, state['request'], role, budget, restoring)
-    journal.event(state, role, prefix + name + '_intent')
     _guard(backend, state['request'], role, budget, restoring)
-    backend.write(SPANS[name][0], raw, budget.check(restoring))
+    if not restoring and name == 'application' and state['roles'][role].get('adoption') is not None:
+        # Recheck after both fresh guards and their real worker overhead, at
+        # the exact first mutation boundary. A budget refusal adds no intent.
+        budget.feasible(MIN_PRE_A_REMAINING if role == 'A' else MIN_PRE_B_REMAINING)
+    journal.event(state, role, prefix + name + '_intent')
+    try:
+        backend.write(SPANS[name][0], raw, budget.check(restoring))
+    except BaseException as error:
+        from enrollment_candidate_rom_adapter import AdapterError
+        if (not restoring and name == 'application' and type(error) is AdapterError
+                and error.args == ('budget_insufficient',) and state['roles'][role].get('adoption') is not None):
+            # Only the actual worker's fixed pre-SDK reserve refusal proves
+            # this intent did not mutate flash. Unknown writes stay uncertain.
+            journal.event(state, role, 'candidate_application_budget_refused')
+        raise
     need(_read(backend, state['request'], role, name, budget, restoring) == raw, 'write_readback_failed')
     journal.event(state, role, prefix + name + '_verified')
 
@@ -342,6 +404,13 @@ def _failure_category(error):
     # Imported only at the collector boundary: the adapter imports this
     # inert orchestration module, so a module-level import would cycle.
     from enrollment_candidate_rom_adapter import AdapterError
+    from enrollment_candidate_operator import OperatorError
+    # Only the exact owned operator type and these final UI categories pass.
+    # Do not broaden the controller/adapter collectors or admit subclasses.
+    if type(error) is OperatorError:
+        args = error.args
+        if len(args) == 1 and type(args[0]) is str and args[0] in _OPERATOR_FAILURE_CATEGORIES:
+            return args[0]
     category = 'custody_operation_failed'
     if type(error) in (Error, AdapterError, ControllerError):
         args = error.args
@@ -383,16 +452,19 @@ def _validate_state(state, request, attempt):
     cleanup = state.get('cleanup_failure')
     need(cleanup is None or (type(cleanup) is list and len(cleanup) == 2
          and type(cleanup[0]) is str and cleanup[0] in _CLEANUP_STAGES
-         and type(cleanup[1]) is str and cleanup[1] in _FAILURE_CATEGORIES), 'journal_invalid')
+         and type(cleanup[1]) is str and cleanup[1] in (_FAILURE_CATEGORIES | _OPERATOR_FAILURE_CATEGORIES)),
+         'journal_invalid')
     allowed = {'claim_intent', 'restore_claim_intent', 'candidate_boot_intent', 'candidate_boot_verified',
-               'six_span_sweep_verified', 'original_reset_intent', 'original_boot_verified', 'rom_handles_closed'}
+               'six_span_sweep_verified', 'original_reset_intent', 'original_boot_verified', 'rom_handles_closed',
+               'candidate_application_budget_refused'}
     allowed |= {'candidate_' + name + '_' + end for name in ('application', 'partition', 'ota0_prefix')
                 for end in ('intent', 'verified')}
     allowed |= {'restore_' + name + '_' + end for name in RESTORE_ORDER
                 for end in ('intent', 'verified')}
     for role, row in state['roles'].items():
-        need(type(row) is dict and set(row) == {'captures', 'events', 'restore_verified',
+        row_fields = {'captures', 'events', 'restore_verified',
              'original_boot_allowed', 'handles_closed', 'settled_untouched'}
+        need(type(row) is dict and set(row) in (row_fields, row_fields | {'adoption'})
              and type(row['captures']) is dict and set(row['captures']) <= set(SPANS)
              and type(row['events']) is list and all(type(e) is str and e in allowed for e in row['events'])
              and all(type(row[k]) is bool for k in ('restore_verified', 'original_boot_allowed',
@@ -400,13 +472,18 @@ def _validate_state(state, request, attempt):
         for name, pin in row['captures'].items():
             need(_pin(pin, SPANS[name][1]) and pin == request['roles'][role]['originals'][name], 'journal_invalid')
         events = row['events']
+        if 'adoption' in row:
+            _adoption_commit(state, role)
         if not events:
-            need(not row['captures'] and not row['restore_verified'] and not row['original_boot_allowed']
+            need((not row['captures'] or 'adoption' in row) and not row['restore_verified'] and not row['original_boot_allowed']
                  and (not row['handles_closed'] or row['settled_untouched']), 'journal_invalid')
         else:
             need(events[0] == 'claim_intent' and not row['settled_untouched'], 'journal_invalid')
         for index, event in enumerate(events):
             prior = events[:index]
+            if event == 'candidate_application_budget_refused':
+                need('adoption' in row and 'candidate_application_intent' in prior
+                     and not any(e.endswith('_verified') and e.startswith('candidate_') for e in prior), 'journal_invalid')
             if event.startswith('candidate_') and event.endswith('_verified'):
                 need(event[:-8] + 'intent' in prior, 'journal_invalid')
             if event.startswith('restore_') and event.endswith('_verified') and event != 'restore_bootloader_verified':
@@ -423,7 +500,8 @@ def _validate_state(state, request, attempt):
         need(row['restore_verified'] == ('six_span_sweep_verified' in events), 'journal_invalid')
         need(row['original_boot_allowed'] == ('original_boot_verified' in events)
              and (not row['original_boot_allowed'] or row['restore_verified']), 'journal_invalid')
-        need(not row['settled_untouched'] or (not events and not row['captures'] and row['handles_closed']), 'journal_invalid')
+        need(not row['settled_untouched'] or (not events and (not row['captures'] or 'adoption' in row)
+             and row['handles_closed'] and _adoption_commit(state, role) is not True), 'journal_invalid')
         need(not row['handles_closed'] or row['settled_untouched']
              or 'candidate_boot_verified' in events or 'rom_handles_closed' in events, 'journal_invalid')
         if row['original_boot_allowed'] and row['handles_closed']:
@@ -476,6 +554,17 @@ def _trial_result(result, case):
 
 def _restore_role(journal, state, role, backend, budget):
     row = state['roles'][role]
+    committed = _adoption_commit(state, role, journal.root)
+    if committed is False:
+        need(not row['events'], 'adoption_invalid')
+        row['handles_closed'] = _backend_close(backend)
+        row['settled_untouched'] = row['handles_closed']
+        journal.save(state)
+        return
+    if committed is True and not row['events']:
+        # Transfer commit survived but claim checkpoint did not. Candidate now
+        # owns the persisted originals and must restore/verify this role.
+        journal.event(state, role, 'claim_intent')
     if row['original_boot_allowed'] and row['handles_closed']:
         return
     if row['original_boot_allowed']:
@@ -504,7 +593,9 @@ def _restore_role(journal, state, role, backend, budget):
     # An ambiguous durable reset checkpoint never authorizes overwriting it.
     boot_uncertain = ('original_reset_intent' in row['events']
                       and 'original_boot_verified' not in row['events'])
-    mutated = any(event.startswith('candidate_') and event.endswith('_intent') for event in row['events'])
+    mutated = any(event.startswith('candidate_') and event.endswith('_intent')
+        and not (event == 'candidate_application_intent' and 'candidate_application_budget_refused' in row['events'])
+        for event in row['events'])
     if boot_uncertain:
         for name in SPANS:
             need(_read(backend, state['request'], role, name, budget, True) == captured[name],
@@ -668,6 +759,15 @@ def _execute(root, request, grant_raw, grant_sha, images, backends, controller, 
         # Both complete independently verified captures precede the first write.
         for role in ROLES:
             stage = 'capture_' + role
+            if getattr(backends[role], 'supports_live_adoption', False):
+                budget.feasible(MIN_PRE_A_REMAINING)
+                backends[role].adopt_originals(journal, state, role, budget.check())
+                journal.event(state, role, 'claim_intent')
+                _claim(backends[role], request, role, budget)
+                original = _originals(journal, state, role)
+                admission = _guard(backends[role], request, role, budget)
+                need(admission.layout_sha256 == sha(original['partition']), 'original_layout_required')
+                continue
             journal.event(state, role, 'claim_intent')
             _claim(backends[role], request, role, budget)
             original = _capture(journal, state, role, backends[role], budget)

@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <memory>
 #include <string>
+#include <sstream>
 #include <vector>
 
 #define CHECK(condition) do { if(!(condition)){std::fprintf(stderr,"FAIL %s:%d: %s\n",__FILE__,__LINE__,#condition);std::abort();} } while(false)
@@ -303,6 +304,66 @@ unsigned codec_groups(){using namespace opentrail::security_evaluation;
     CHECK(!target::usb::parse(std::string(80,'G'),sentinel) && sentinel.version==17);
     return 1;
 }
+std::vector<std::string> state_fields(const std::string& answer){
+    std::istringstream input(answer);std::vector<std::string> fields;std::string word;
+    while(input>>word)fields.push_back(word);
+    CHECK(fields.size()==10 && fields[0]=="OTCAND1" && fields[1]=="REVIEWSTATE" && fields[2]=="1");
+    CHECK(fields[6].size()==16 && fields[7].size()==16);return fields;
+}
+constexpr const char* local_token="11111111111111111111111111111111";
+constexpr const char* peer_token="22222222222222222222222222222222";
+constexpr const char* code_token="33333333333333333333333333333333";
+std::vector<std::string> review_poll(Node& n,const char* token){return state_fields(n.command(std::string("REVIEWPOLL ")+token));}
+void typed_refuse(Node& n,const std::string& action,const char* reason){std::string answer;CHECK(!n.command("OTCAND1 "+action,answer));if(answer!=std::string("OTCAND1 REVIEWREFUSED 1 ")+reason+"\n")std::fprintf(stderr,"typed failure expected=%s got=%s",reason,answer.c_str());CHECK(answer==std::string("OTCAND1 REVIEWREFUSED 1 ")+reason+"\n");CHECK(n.display->enrollment_review_status().lease==0);}
+void typed_gesture(Node& n,const char* token,unsigned hold=2000){
+    n.service(1,false);review_poll(n,token);n.service(40,false);CHECK(review_poll(n,token)[9]=="READY");
+    n.service(1,true);review_poll(n,token);n.service(40,true);CHECK(review_poll(n,token)[9]=="PRESSING");
+    n.service(hold,false);review_poll(n,token);n.service(40,false);
+    CHECK(review_poll(n,token)[8]=="CONFIRMED");
+}
+unsigned versioned_review_groups(){unsigned groups=0;
+    // Real target framing + board arbiter debounce: entry's synthetic pressed
+    // sample is WAIT_RELEASE, never authorization. The accepted receipt is
+    // stable and exact, not resampled into a new confirmation.
+    {Pair p;p.begin();auto initial=state_fields(p.a.command(std::string("REVIEWSTART LOCAL ")+local_token));
+     CHECK(initial[3]==local_token && initial[4]=="1" && initial[5]=="LOCAL" && initial[8]=="WAITING" && initial[9]=="WAIT_RELEASE");
+     p.a.service(1,false);review_poll(p.a,local_token);p.a.service(40,false);CHECK(review_poll(p.a,local_token)[9]=="READY");
+     p.a.service(1,true);review_poll(p.a,local_token);p.a.service(40,true);CHECK(review_poll(p.a,local_token)[9]=="PRESSING");
+     p.a.service(100,false);review_poll(p.a,local_token);p.a.service(1,false);review_poll(p.a,local_token);p.a.service(40,false);CHECK(review_poll(p.a,local_token)[9]=="READY");
+     typed_gesture(p.a,local_token);auto accepted=review_poll(p.a,local_token);
+     p.a.service(40,true);CHECK(review_poll(p.a,local_token)==accepted);
+     // Local confirmation cannot authorize FINISH; that is a peer receipt.
+     p.a.refuse("FINISH");p.a.preserved();++groups;}
+    // Held at entry remains waiting until release then a fresh complete hold.
+    {Pair p;p.begin();p.a.service(40,true);auto initial=state_fields(p.a.command(std::string("REVIEWSTART LOCAL ")+local_token));
+     CHECK(initial[8]=="WAITING");p.a.service(2100,true);CHECK(review_poll(p.a,local_token)[9]=="WAIT_RELEASE");
+     typed_gesture(p.a,local_token);++groups;}
+    for(unsigned fault=0;fault<5;++fault){Pair p;p.begin();p.a.command(std::string("REVIEWSTART LOCAL ")+local_token);
+     if(fault==0)typed_refuse(p.a,std::string("REVIEWPOLL ")+peer_token,"TOKEN_MISMATCH");
+     if(fault==1)typed_refuse(p.a,std::string("REVIEWSTART LOCAL ")+peer_token,"INACTIVE");
+     if(fault==2){p.a.oled_sdk_state.now_us+=120000000;typed_refuse(p.a,std::string("REVIEWPOLL ")+local_token,"DEVICE_FAILURE");}
+     if(fault==3){p.a.service(1,false);review_poll(p.a,local_token);p.a.service(40,false);review_poll(p.a,local_token);p.a.service(1,true);review_poll(p.a,local_token);p.a.service(40,true);review_poll(p.a,local_token);p.a.service(4000,true);typed_refuse(p.a,std::string("REVIEWPOLL ")+local_token,"GESTURE_INVALID");}
+     if(fault==4)typed_refuse(p.a,"REVIEWSTART LOCAL 00000000000000000000000000000000","BAD_REQUEST");
+     p.a.preserved();++groups;}
+    // Full six-gesture path; accept A CODE, leave B waiting, query A without
+    // consuming receipt or GPIO gesture again, then complete B and controls.
+    {Pair p;p.begin();for(auto* n:{&p.a,&p.b}){
+       n->command(std::string("REVIEWSTART LOCAL ")+local_token);typed_gesture(*n,local_token);
+       auto peer=state_fields(n->command(std::string("REVIEWSTART PEER ")+peer_token));CHECK(peer[5]=="PEER");
+       typed_gesture(*n,peer_token);}
+     p.offer_a=p.a.value("FINISH","OFFER");p.offer_b=p.b.value("FINISH","OFFER");
+     const auto as=p.a.value("POSSESS "+p.offer_b,"POSSESSION"),bs=p.b.value("POSSESS "+p.offer_a,"POSSESSION");p.a.command("ACCEPTPOSSESS "+bs);p.b.command("ACCEPTPOSSESS "+as);
+     const auto am=p.a.value("MARK","MARK"),bm=p.b.value("MARK","MARK");p.a.command("PEERMARK "+bm);p.b.command("PEERMARK "+am);
+     const auto invite=p.a.value("INVITE","INVITATION"),asig=p.a.value("SIGN "+invite,"SIGNATURE"),bsig=p.b.value("SIGN "+invite,"SIGNATURE");p.a.command("BIND "+bsig);p.b.command("BIND "+asig);
+     p.b.command("FRAME "+p.a.value("NEXTFRAME","FRAME"));p.a.command("FRAME "+p.b.value("NEXTFRAME","FRAME"));p.b.command("FRAME "+p.a.value("NEXTFRAME","FRAME"));
+     p.a.command(std::string("REVIEWSTART CODE ")+code_token);p.b.command(std::string("REVIEWSTART CODE ")+code_token);
+     typed_gesture(p.a,code_token);auto accepted=review_poll(p.a,code_token);CHECK(review_poll(p.b,code_token)[8]=="WAITING");
+     p.a.service(300,true);CHECK(review_poll(p.a,code_token)==accepted);typed_gesture(p.b,code_token);
+     p.b.command("CONTROL "+p.a.value("NEXTCONTROL","CONTROL"));p.a.command("CONTROL "+p.b.value("NEXTCONTROL","CONTROL"));
+     p.b.command("CONTROL "+p.a.value("NEXTCONTROL","CONTROL"));p.a.command("CONTROL "+p.b.value("NEXTCONTROL","CONTROL"));
+     p.a.command("COMMIT");p.b.command("COMMIT");p.a.command("READY");p.b.command("READY");p.statuses();CHECK(p.transfers==8);p.a.preserved();p.b.preserved();++groups;}
+    return groups;
+}
 unsigned runtime_groups(){unsigned groups=0;
     {Pair p;p.activate();p.statuses();CHECK(p.transfers==8);flow("first",p,p.a.start_us,p.b.start_us);const auto old=p.a.value("SENDSTATUS 1","STATUS");const auto a_start=p.a.now_us(),b_start=p.b.now_us();
      p.a.restart();p.b.restart();p.b.refuse("STATUS "+old);p.b.restart();p.activate(1);p.statuses();CHECK(p.transfers==16);
@@ -381,6 +442,6 @@ unsigned runtime_groups(){unsigned groups=0;
     return groups;
 }
 }
-int main(){const auto groups=target_test::storage_groups()+target_test::partition_groups()+target_test::startup_groups()+target_test::codec_groups()+target_test::runtime_groups();std::printf("PASS %u actual enrollment candidate target groups\n",groups);
+int main(){const auto groups=target_test::storage_groups()+target_test::partition_groups()+target_test::startup_groups()+target_test::codec_groups()+target_test::runtime_groups()+target_test::versioned_review_groups();std::printf("PASS %u actual enrollment candidate target groups\n",groups);
     for(const auto& row:target_test::flows)std::printf("FLOW %s transfers=8 elapsed_a_ms=%llu elapsed_b_ms=%llu peak_blobs_a=%zu peak_blobs_b=%zu live_blobs_a=%zu live_blobs_b=%zu default_entries_a=%zu default_entries_b=%zu named_entries_a=%zu named_entries_b=%zu\n",row.name,static_cast<unsigned long long>(row.a_ms),static_cast<unsigned long long>(row.b_ms),row.peak_a,row.peak_b,row.live_a,row.live_b,row.default_a,row.default_b,row.named_a,row.named_b);
     std::printf("MODEL clock_us=1000 gpio_us=1000 draw_us=3000 nvs_call_us=10 chunk_bytes=256 chunk_tick_ms=10; SDK shapes and occupancy simulated\n");}

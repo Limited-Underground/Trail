@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-As of 2026-10-03. This page summarizes accepted behavior and the next work; dated
+As of 2026-10-11. This page summarizes accepted behavior and the next work; dated
 history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -149,9 +149,158 @@ Both originals/readback/boots and closed resources are verified; the final owner
 screen ACK is absent and its separate expiry is recorded. The precise B cause
 remains unproven. [Bounded host ROM attribution](testing/OT-0238c-ROM-FAILURE-DIAGNOSTICS-2026-10-03.md)
 now passes 352 tests with unchanged rejection/security/deadline behavior.
-Next: review a successor runtime and complete preparation/boot costs against the
-unchanged ceilings before any freshly authorized physical case. Consumed v9 plans
-are historical. Physical lifecycle/production gates stay open; no V1 credit.
+The [host preparation budget correction](testing/OT-0238c-BUDGET-FIT-2026-10-04.md)
+now replaces duplicate candidate sweeps with once-only live custody proof and
+atomic recovery ownership. Static review precedes authority; phase-specific
+reserves include the actual worker's admission overhead. A pinned old/current
+worker comparison demonstrates refusal before an under-budget SDK write.
+Final affected validation and successor package evidence belong to that report.
+The [v10 physical trial](../tests/hardware/OT-0238c-FIRST-V10-2026-10-04.md)
+passed both installations, boots and startup checks, then stopped at A's FINISH
+refusal after the computer checkpoint advanced before the owner's physical
+button gesture. Both originals and final usual screens are independently
+verified and released. The [short-popup and retained-backup correction](testing/OT-0238c-RETAINED-RETRY-2026-10-04.md)
+passes 389 affected tests with independent source review. It reuses the verified
+backup with one fresh guarded equality sweep. The [v11 retry](../tests/hardware/OT-0238c-FIRST-V11-2026-10-04.md)
+passed both startups but expired at the unacknowledged MY ID checkpoint;
+original restoration and resource release are verified, final runtime visual
+ACK absent. Computer-side correction requires Claude review before further
+device access. The [computer-side popup correction](testing/OT-0238c-POPUP-READINESS-2026-10-04.md)
+adds early native-desktop refusal and a separate one-shot final observation.
+The current wrong-desktop defect is reproduced natively; historical v11 cause
+is not uniquely established. Consumed v9/v10/v11 plans remain historical. Physical
+lifecycle/production gates stay open; no V1 credit.
+
+The [visible-launch and neutral-readiness increment](testing/OT-0238c-VISIBLE-LAUNCH-2026-10-05.md)
+adds a fixed owner-terminal entry point, TEST ONLY visibility probe and
+human-only practice receipt. The 456-test, 14-suite matrix, 25-test postmatrix
+preparation check and 24-test admission-helper correction check pass. The
+initial offline binding and corrected replacement binding each passed two
+independent reviews; actual original pins and physical equality remain unknown.
+The first owner command returned `lock_policy_unavailable` before a popup. The
+owner screenshot showed “Screen saver (None)”; a read-only query found a stale
+activation flag but no configured screen-saver executable. The guard falsely
+refused; its narrow correction passed independent source review. A fresh labeled neutral check matched the generated word and position, recorded
+both clicks and clearing, and confirmed owner readability. The separate
+four-checkpoint computer-only practice completed in 85.349 seconds, a lower
+bound only. One separately authorized physical trial failed at
+`finish_A / target_refused` after MY ID for A/B and PEER A; B PEER and
+compare-code were not reached. Physical-button acceptance and exact target
+cause are unknown. Both candidates and original six-span images were restored
+and verified; original boots, handle/lease/journal closure passed independent
+review, and the owner confirmed both usual screens. The shared 120-second
+window is unchanged. Prior v12 evidence remains accepted (408 affected host
+tests and Claude's focused 72-test review). No enrollment acceptance or V1
+credit was earned; website status is unchanged.
+
+The [physical-button confirmation repair](testing/OT-0238c-BUTTON-CONFIRMATION-2026-10-05.md)
+passes independent source review, 483 Python tests, 865 compiled groups,
+two matching current-source firmware builds and 30 private preparation tests.
+The new v14 package passes synthetic admission and static binding review.
+Device comparisons require device-confirmed Button 1 gestures; one final
+restoration chat reply replaces the extra computer acknowledgement.
+The [current physical first-case attempt](../tests/hardware/OT-0238c-FIRST-2026-10-06.md)
+passed both candidate boots and all six device-button confirmations, but failed
+at `commit_B / deadline_expired` under the shared 120-second enrollment window.
+Checkpoint time alone consumed 102.640 seconds; exact B commit delivery/apply
+remains unknown. Both originals, boots, final owner screen reply and custody
+release passed independent closure review. OT-0238c stays In Progress; enrollment,
+later lifecycle and production acceptance remain open, with no V1/public credit.
+The [neutral setup readability correction](testing/OT-0238c-READABILITY-2026-10-06.md)
+responds to the owner's hard-to-read labels. Larger probe-only text and grouped
+coordinates pass 53 focused tests. The neutral-only 300-second popup/720-second
+launcher correction passes 59 focused tests, 37 preparation checks and independent
+review; the owner completed its actual visible setup and reported easy labels.
+Firmware, device/practice fonts, attestation and physical deadlines are unchanged.
+The [computer-only timing isolation](testing/OT-0238c-TIMING-ISOLATION-2026-10-06.md)
+passes 12 actual host-controller/USB-client cases and three actual target-code
+checks with independent review. Expiry before or after a COMMIT write/reply can
+produce the same saved failure; the historical B delivery/apply boundary remains
+unknown. Separate host and target tests do not prove combined physical timing
+fit. The [bounded COMMIT/READY timing diagnostics](testing/OT-0238c-COMMIT-TIMING-2026-10-07.md)
+now pass 311 affected host tests, focused failure/equivalence checks and independent
+source review. They distinguish guard, write, reply/parse and final decision
+boundaries using existing query counters and clock samples. Deadlines, fresh
+authorization and USB operations remain unchanged. No new physical result or
+historical B delivery conclusion follows. The [bounded reply batching correction](testing/OT-0238c-REPLY-BATCHING-2026-10-08.md)
+passes 247 affected host tests and independent review. Fully queued long replies
+avoid artificial 64-byte splits while each actual read retains fresh checks;
+startup reads, parser rules and deadlines remain unchanged. Physical latency and
+timing fit remain unmeasured. The v16 capsule passes independent provenance/copy
+review, isolated verification and deliberate inert refusal. Full trial admission
+remains separate. The [reviewed successor launcher binding](testing/OT-0238c-LAUNCH-BINDING-2026-10-08.md)
+passes 35 interactive and 16 template/preclock wrapper tests, source/static
+admission and independent literal/repoint review. The familiar launcher path
+now points to v16; owner instructions and limits are unchanged. Historical
+records and original launcher bytes are preserved. That preparation itself ran
+no native readiness or device test. The subsequent October 8 visible word/position
+check and human-only practice passed, but computer coordination stopped before
+any grant or device action. The [pre-device resume correction](testing/OT-0238c-PREDEVICE-RESUME-2026-10-08.md)
+passes 76 affected host tests and three real read-only Windows process checks.
+It preserves historical checks and requires fresh approval before one current
+readability/ready popup; physical clocks and v16/core inputs remain unchanged.
+Final static, succession, binding, owner-plan and literal-launcher reviews pass,
+with an isolated import-path regression and the familiar CMD repointed to the
+reviewed resume bytes. The October 9 owner-authorized launch then stopped before
+current readiness or any device action; its original terminal category is UNKNOWN.
+The [historical-readiness correction](testing/OT-0238c-HISTORICAL-READINESS-2026-10-09.md)
+separates pinned historical evidence from current native admission, retains fresh
+authority checks and saves bounded terminal failure metadata. Its affected host,
+pure/static, exact-bootstrap and read-only current-native gates pass independent
+review. That host correction itself ran no new popup/device attempt.
+The subsequent [October 9 physical FIRST case](../tests/hardware/OT-0238c-FIRST-2026-10-09.md)
+passed on both exact V4.2 nodes: six device confirmations, successful COMMIT/READY
+and eight authenticated USB-bridge status transfers. Final READY B retained
+21.138 seconds of the original shared deadline. Both six-span originals, boots,
+closed handles/custody and actual owner screen confirmation pass independent
+review. No RF claim follows. Retained/revoke/rekey/recovery and broader Android
+protected-BLE/direct-LoRa acceptance remain separate; full OT-0238c stays In Progress.
+
+The [retained-session preparation](testing/OT-0238c-RETAINED-PREPARATION-2026-10-09.md)
+now binds the exact restart/rekey case through reviewed fixed inputs, fresh owner
+intent and derived authorization. All 91 affected external host tests and the
+actual pure-template/isolated bootstrap checks pass. The familiar launcher is
+repointed to independently reviewed inert bytes; firmware/core/originals and
+passed practice remain reused. The [October 10 retained attempt](../tests/hardware/OT-0238c-RETAINED-2026-10-10.md)
+passed the initial enrollment and eight statuses, then failed at automatic restart
+before generation 2. Both originals, boots, owner screen confirmation and closed
+custody are independently verified. The [computer-only restart correction](testing/OT-0238c-RESTART-DIAGNOSTICS-2026-10-10.md)
+preserves sanitized first-rejection details and passes the affected tests, including
+the isolated permitted rerun of an environment-blocked case. The past physical
+cause remains UNKNOWN. The [reviewed diagnostic successor](testing/OT-0238c-RESTART-PACKAGE-2026-10-10.md)
+is assembled and connected to the familiar launcher without execution. Exact
+runtime succession, 63 affected host cases, collector/static/bootstrap gates and
+independent reviews pass. The [October 11 attempt](../tests/hardware/OT-0238c-CAPTURE-MISMATCH-2026-10-11.md)
+stopped before candidate installation on a retained NVS mismatch. Automatic
+release failed; owner-authorized sequential Button 2 restarts returned both
+usual screens. Automated custody remains unresolved and failed journals are
+preserved. The [computer-only mismatch/release correction](testing/OT-0238c-CAPTURE-MISMATCH-2026-10-11.md)
+passes all 137 affected host tests and independent final-source review.
+Candidate admission remains blocked on mismatch. The [reviewed recovery-gated
+successor](testing/OT-0238c-LAUNCHER-RECOVERY-2026-10-11.md) is assembled and
+connected to the familiar launcher without execution. All 124 launcher/policy
+tests and 16 disposition tests pass. The old hold and all 39 historical files
+remain intact; manual screen observations do not prove automated closure.
+The dedicated diagnostic controller, launcher and receipt consumer pass 25
+focused host cases and four maintained-session simulations; final independent
+review approved their frozen sources. The [authorized recovery inspection](../tests/hardware/OT-0238c-RECOVERY-INSPECTION-2026-10-11.md)
+now completed with reviewed evidence: both five-span original firmware checks
+and single guarded restarts passed; the owner confirmed usual screens. Current
+NVS differs on both nodes and is preserved separately; strict freshness stopped
+at A NVS. New diagnostic custody is closed; historical hold/baseline remain
+unchanged and candidate entry blocked. Actual-runtime admission exposed and
+corrected a fourteen-source versus thirty-six-file inventory check before device
+access; 26 affected tests and actual-capsule regression pass. The [current-settings
+correction](testing/OT-0238c-CURRENT-SETTINGS-CHECK-2026-10-11.md) now reuses five
+immutable firmware backups and captures/verifies/restores exact fresh settings
+for each attempt. Only PHY calibration differs in the inspected live payloads;
+the historical trigger remains unknown. The finite inspection evidence gate,
+281 local host cases and exact v2 package passed independent review. The familiar
+launcher is repointed, not run; old held records remain preserved. Next is one
+separately authorized device attempt. Retained/new-key acceptance and full
+OT-0238c remain open; no V1 or public website capability credit.
+
+
 
 [OT-0237b startup/entropy host admission](testing/OT-0237b-ENTROPY-STARTUP-HOST-2026-10-01.md)
 passes twenty actual-entrypoint cases and the complete 74-suite security matrix.

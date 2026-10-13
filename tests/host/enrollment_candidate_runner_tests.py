@@ -11,6 +11,8 @@ import io
 import json
 from pathlib import Path
 import subprocess
+import tempfile
+import threading
 import sys
 from types import SimpleNamespace
 import unittest
@@ -30,6 +32,182 @@ import enrollment_candidate_private_view as private
 import enrollment_candidate_runtime_tests as runtime_fixture
 import enrollment_candidate_operator_tests as prior
 import enrollment_candidate_custody_tests as flash
+import enrollment_candidate_rom_adapter_tests as rom_dispatch
+
+
+class ComposedROMRestartFixture:
+    """Real adapter/dispatch; synthetic SDK and in-memory lease acquisition.
+
+    Initial provisioning uses the production adapter, while startup transport
+    is a closed synthetic lease. No physical SDK, worker process or UI runs.
+    Live capture adoption/proof construction is outside this fixture's scope.
+    """
+    class Lease:
+        _state = rom.HardwareLease._state
+        enter_rom = rom.HardwareLease.enter_rom
+        mark_boot = rom.HardwareLease.mark_boot
+        begin_passive = rom.HardwareLease.begin_passive
+        attach_passive = rom.HardwareLease.attach_passive
+        release_passive = rom.HardwareLease.release_passive
+        assert_idle = rom.HardwareLease.assert_idle
+        def __init__(self, clock):
+            self.clock, self._command = core.Clock(clock), threading.Lock()
+            self._states, self._file = {}, object()
+        def acquire(self, deadline):
+            self.clock.check(deadline)
+            return True
+        def release_app(self, binding, generation):
+            token = self.begin_passive(binding, generation, 1000.0)
+            handle = SimpleNamespace(is_open=False, port='COM19')
+            self.attach_passive(token, handle, 'COM19')
+            assert self.release_passive(token, handle) is True
+
+    class Runtime:
+        def __init__(self, fixture):
+            self.fixture, self.clock = fixture, core.Clock(fixture.clock)
+            self.manifest_sha256, self.calls = '1' * 64, []
+            self.fault, self.failure = None, None
+        def invoke(self, payload, deadline):
+            self.clock.check(deadline)
+            role = next(r for r,v in self.fixture.identities.items() if v == payload['identity'])
+            self.calls.append((role,payload['operation'],payload.get('span'),deadline))
+            if self.fault == role and payload['operation'] == 'restart_candidate':
+                # Real transport is replaced; its fixed independent snapshot is
+                # asserted separately from the runner's first backend rejection.
+                self.failure = dict(schema='OT-CANDIDATE-ROM-FAILURE-1',operation='restart_candidate',
+                    boundary='response',cause='worker_nonzero',category='rom_operation_failed',
+                    deadline_ns=None,entry_allowance_ns=None,elapsed_ns=None,timing_valid=False,
+                    deadline_expired=None,returncode=1)
+                raise rom.AdapterError('rom_operation_failed')
+            sdk = self.fixture.sdks[role]
+            return rom_dispatch.execute_request(dict(schema='OT-CANDIDATE-ROM-WORKER-1',
+                deadline=deadline,**payload),sdk.rom,sdk,sdk.comports,sdk.clock,
+                loader=sdk.loader,reset=sdk.reset)
+        def assert_idle(self): return True
+        def failure_snapshot(self): return None if self.failure is None else dict(self.failure)
+
+    def __init__(self):
+        self.clock = rom_dispatch.FakeClock()
+        self.clock.value = 110.0
+        self.identities, self.key = {'A':'123456789aba','B':'123456789abb'}, b'K'*32
+        self.bindings = {r:rom.opaque_identity(self.key,v) for r,v in self.identities.items()}
+        self.originals = {n:b'\xff'*size for n,(_,size) in rom.SPANS.items()}
+        self.originals['partition'] = rom_dispatch.table_from_csv(ROOT/'firmware/targets/heltec_v4_bench/partitions.csv')
+        self.images = dict(application=b'HOST-ONLY-CANDIDATE',partition=rom_dispatch.table_from_csv(
+            ROOT/'firmware/targets/heltec_v4_enrollment_candidate_eval/partitions.csv'))
+        self.request = dict(schema='OT-CANDIDATE-REQUEST-1',runtime_sha256='1'*64,case='retained_rekey',group=1,
+            images={n:rom.descriptor(v) for n,v in self.images.items()},roles={r:dict(device_binding=self.bindings[r],
+                originals={n:rom.descriptor(v) for n,v in self.originals.items()}) for r in core.ROLES})
+        self.lease, self.runtime = self.Lease(self.clock), self.Runtime(self)
+        self.sdks = {r:rom_dispatch.FakeSDK(self.originals,self.clock) for r in core.ROLES}
+        self.adapters, self.backends = {}, {}
+        for role in core.ROLES:
+            sdk = self.sdks[role]
+            sdk.mac = self.identities[role];sdk.ports[0].serial_number = sdk.mac
+            profile = rom.DeviceProfile('heltec_v4_esp32s3',self.bindings[role],16777216,'a'*64)
+            actual = rom.ROMBackend(self.runtime,self.lease,request=self.request,role=role,images=self.images,
+                binding_key=self.key,expected_identity=self.identities[role],device_profile=profile)
+            bound = runner._BoundBackend(actual,1000.0,1800.0,False,core.Clock(self.clock))
+            bound.claim(self.bindings[role],1000.0)
+            for _ in range(2):
+                for offset,size in rom.SPANS.values(): bound.read(offset,size,1000.0)
+            for name in ('application','partition','ota0_prefix'):
+                bound.write(rom.SPANS[name][0],actual._candidate[name],1000.0)
+            bound.boot_candidate(1000.0);self.lease.release_app(self.bindings[role],1)
+            sdk.memory['ota0_prefix'] = b'PREPARED'.ljust(16384,b'\x7f')
+            self.adapters[role],self.backends[role] = actual,bound
+        self.operator = operator.CandidateOperator.__new__(operator.CandidateOperator)
+        op = self.operator
+        op.references,op.probes,op.probe_controllers = operator.CapturedReferences(),{},{}
+        op._probing,op.human,op.record = False,lambda *args:None,lambda value:None
+        op.passive = SimpleNamespace(check=lambda cap:self.runtime.clock.check(cap),assert_idle=lambda:True,
+            lease=self.lease,clock=core.Clock(self.clock),deadline=1000.0,request=self.request,monotonic=self.clock)
+        op.controller = SimpleNamespace(generations=1,running=True,used=True,stage='case',first_failure=None,
+            _close_sessions=lambda cap:None,close=lambda:True,assert_idle=lambda:True,
+            clock=core.Clock(self.clock),_open=lambda cap:None)
+        op._record_query_summary = lambda **kwargs:None
+        self.restart = runner._PairRestart(self.backends,self.lease,1000.0,core.Clock(self.clock))
+        op._restart = lambda cap:self.restart.run(op,cap)
+        op.controller.restart = op.restart
+        self.probes, self.entry = [], len(self.runtime.calls)
+
+    def run(self):
+        fixture = self
+        def startup(probe_controller,deadline,*,role,generation):
+            fixture.probes.append((role,generation))
+            fixture.lease.release_app(fixture.bindings[role],2)
+        with patch.object(core.Controller,'_startup',startup), patch.object(subprocess,'run',
+                side_effect=AssertionError('unexpected process boundary')):
+            core.Controller._restart(self.operator.controller,1000.0)
+
+    def restore(self):
+        # Same production backend recovery mode and exact-original write gates.
+        for role in core.ROLES:
+            backend = self.backends[role]
+            backend.restore_claim(self.bindings[role],1800.0)
+            for name in rom.SPANS:
+                if name != 'bootloader': backend.write(rom.SPANS[name][0],self.originals[name],1800.0)
+            for name,(offset,size) in rom.SPANS.items():
+                assert backend.read(offset,size,1800.0) == self.originals[name]
+            assert backend.reset_original(1800.0) is True
+            assert backend.close() is True
+
+
+class ComposedROMRestartTests(unittest.TestCase):
+    def test_successful_pair_preserves_prepared_storage_and_has_no_diagnostic(self):
+        f = ComposedROMRestartFixture();f.run()
+        self.assertIsNone(f.restart.failure)
+        self.assertEqual(f.probes,[('A',2),('B',2)])
+        calls = f.runtime.calls[f.entry:]
+        self.assertEqual([(r,op) for r,op,_,_ in calls],[('A','read'),('A','restart_candidate'),('B','read'),('B','restart_candidate')])
+        self.assertTrue(all(s.memory['ota0_prefix']==b'PREPARED'.ljust(16384,b'\x7f') for s in f.sdks.values()))
+        f.restore()
+        self.assertTrue(all(s.memory == f.originals for s in f.sdks.values()))
+
+    def test_real_adapter_rejections_freeze_first_cause_skip_startup_and_restore(self):
+        for fault,category,method,boundary in (
+                ('nvs','original_changed','restart_candidate','call'),
+                ('state','restart_not_admitted','restart_candidate','call'),
+                ('worker','rom_operation_failed','restart_candidate','call'),
+                ('close','rom_close_unconfirmed','close','returned')):
+            with self.subTest(fault=fault):
+                f = ComposedROMRestartFixture()
+                if fault=='nvs': f.sdks['A'].memory['nvs']=b'X'*12288
+                elif fault=='state': f.adapters['A']._mode='rom'
+                elif fault=='worker': f.runtime.fault='A'
+                else: f.backends['A'].close=lambda:False
+                with self.assertRaisesRegex(operator.OperatorError,'^restart_failed$'): f.run()
+                first = f.restart.failure
+                self.assertEqual(first.snapshot(),dict(role='A',method=method,boundary=boundary,category=category))
+                self.assertEqual(f.probes,[])
+                calls = len(f.runtime.calls)
+                with self.assertRaisesRegex(operator.OperatorError,'^restart_failed$'): f.run()
+                self.assertIs(f.restart.failure,first)
+                self.assertEqual(len(f.runtime.calls),calls)
+                if fault=='worker':
+                    self.assertEqual(runner._rom_failure(f.runtime)['cause'],'worker_nonzero')
+                else: self.assertIsNone(runner._rom_failure(f.runtime))
+                f.runtime.fault=None
+                if fault=='close': f.backends['A'].close=f.adapters['A'].close
+                f.restore()
+                self.assertTrue(all(s.memory==f.originals for s in f.sdks.values()))
+                self.assertIs(f.restart.failure,first)
+
+    def test_unknown_callback_and_failed_bookkeeping_never_admit_retry(self):
+        f = ComposedROMRestartFixture()
+        def unknown(deadline): raise ValueError('PRIVATE UNREVIEWED DETAIL')
+        f.backends['A'].restart_candidate=unknown
+        with self.assertRaisesRegex(operator.OperatorError,'^restart_failed$'): f.run()
+        self.assertEqual(f.restart.failure.category,'runner_operation_failed')
+        self.assertNotIn('PRIVATE',json.dumps(f.restart.failure.snapshot()))
+        g = ComposedROMRestartFixture();g.backends['A'].restart_candidate=unknown
+        with patch.object(runner,'RestartFailure',side_effect=MemoryError('synthetic bookkeeping')):
+            with self.assertRaisesRegex(operator.OperatorError,'^restart_failed$'): g.run()
+        calls=len(g.runtime.calls)
+        with self.assertRaisesRegex(operator.OperatorError,'^restart_failed$'): g.run()
+        self.assertEqual(len(g.runtime.calls),calls)
+        self.assertEqual(g.restart.failure.category,'restart_not_admitted')
+        self.assertEqual(g.probes,[])
 
 
 class RunnerFixture:
@@ -140,7 +318,12 @@ class RunnerFixture:
                 self.text = text
                 f.old.view.show(f.current_view._point)
                 return True
+            def update(self,text):
+                self.text=text
+                f.old.view.update(f.current_view._point)
+                return True
             def poll(self):
+                f.old.view.update(f.current_view._point)
                 observed = f.old.view.poll()
                 return 'confirm' if observed is not None else None
             def clear(self):
@@ -186,6 +369,29 @@ class RunnerTests(unittest.TestCase):
     def fixture(self, **kwargs):
         f = RunnerFixture(**kwargs); self.addCleanup(f.cleanup); return f
 
+    def test_explicit_bench_presentation_reaches_operator_without_changing_bound_roles(self):
+        f = self.fixture()
+        from unittest.mock import patch
+        import enrollment_candidate_private_view as pv
+        calls=[]
+        def explicit_fixture_reply(root, **fields):
+            calls.append((root,fields))
+            return prior.PrivateView(f.old.world)
+        with patch.object(pv,'OriginalScreenReplyView',side_effect=explicit_fixture_reply):
+            result = f.run(bench_presentation=True)
+        self.assertEqual(len(calls),1)
+        self.assertEqual(calls[0][1]['attempt'],'1'*32)
+        self.assertEqual(result.outcome, 'passed')
+        self.assertEqual(f.current_operator.human.role_labels,
+                         {'A': 'Trail Bench', 'B': 'Trail Bench 2'})
+        self.assertEqual(f.current_operator.passive.identities, prior.IDENTITIES)
+        generic = self.fixture()
+        generic.run()
+        self.assertEqual(generic.current_operator.human.role_labels, {'A': 'A', 'B': 'B'})
+        for bad in (1, 'true', None):
+            with self.assertRaisesRegex(runner.RunnerError, '^mode_invalid$'):
+                runner.run(None, None, 'execute', bench_presentation=bad)
+
     def startup_rows(self, fixture):
         path = fixture.evidence / ('enrollment-candidate-runner-' + '1' * 32 + '-events.jsonl')
         return [json.loads(line) for line in path.read_bytes().splitlines()]
@@ -206,6 +412,119 @@ class RunnerTests(unittest.TestCase):
         self.assertFalse(any(row.get('stage') == 'authenticated_status' for row in rows))
         self.assertTrue(all(row['role'] == 'A' and row['generation'] == 1 for row in rows
                             if row.get('schema') == 'OT-CANDIDATE-PROGRESS-1'))
+
+    def test_default_execute_desktop_guard_refuses_before_all_acquisition(self):
+        for result in (False, 1, RuntimeError('private native detail')):
+            with self.subTest(result=type(result).__name__):
+                f = self.fixture()
+                options = {'side_effect': result} if isinstance(result, BaseException) else {'return_value': result}
+                with patch.object(private, 'ensure_input_desktop', create=True, **options) as guard:
+                    with self.assertRaisesRegex(runner.RunnerError, '^private_view_failed$'):
+                        runner.run(f.package_path, f.package_sha, 'execute', utc=f.utc,
+                            monotonic=f.clock, runtime_factory=f.runtime_factory,
+                            lease_factory=f.lease_factory, backend_factory=f.backend_factory,
+                            operator_factory=f.operator_factory, view_factory=runner._view_factory)
+                guard.assert_called_once_with()
+                self.assertEqual(f.factory_calls, [])
+                self.assertEqual(f.log, [])
+                self.assertEqual(f.old.world.handles, [])
+                self.assertFalse((f.evidence / custody.ACTIVE).exists())
+
+    def test_native_desktop_guard_skips_recovery_and_custom_host_view(self):
+        f = self.fixture()
+        with patch.object(private, 'ensure_input_desktop', side_effect=AssertionError('native guard in fake seam')) as guard:
+            self.assertEqual(f.run().outcome, 'passed')
+            guard.assert_not_called()
+        f = self.fixture()
+        f.reset_fault_role = 'B'
+        self.assertFalse(f.run().custody.custody_released)
+        f.end_simulated_process()
+        f.make_package('recover', '2' * 32, '1' * 32)
+        make_backend = f.backend_factory
+        def unfinished_restore(*args, **kwargs):
+            backend = make_backend(*args, **kwargs)
+            if kwargs['role'] == 'B':
+                def refused(deadline): raise OSError('synthetic recovery reset refusal')
+                backend.reset_original = refused
+            return backend
+        with patch.object(private, 'ensure_input_desktop', side_effect=AssertionError('recovery gated on desktop')) as guard:
+            result = runner.run(f.package_path, f.package_sha, 'recover', utc=f.utc,
+                monotonic=f.clock, runtime_factory=f.runtime_factory, lease_factory=f.lease_factory,
+                backend_factory=unfinished_restore, operator_factory=f.operator_factory,
+                view_factory=runner._view_factory)
+            guard.assert_not_called()
+        self.assertFalse(result.custody.custody_released)
+        self.assertFalse(result.owner_observed)
+
+    def test_native_cancel_uses_fresh_final_observation_without_usb_reentry(self):
+        f = self.fixture()
+        make_view = f.view_factory
+        cancelled = []
+        def make_cancelling_view():
+            view = make_view()
+            make_backend = view._factory
+            def make_input_backend():
+                backend = make_backend()
+                poll = backend.poll
+                def cancel_enrollment():
+                    if view._point.kind == 'fingerprint_local':
+                        cancelled.append('synthetic cancel event')
+                        return 'cancel'
+                    return poll()
+                backend.poll = cancel_enrollment
+                return backend
+            view._factory = make_input_backend
+            return view
+        f.view_factory = make_cancelling_view
+        result = f.run()
+        self.assertEqual(cancelled, ['synthetic cancel event'])
+        self.assertTrue(result.owner_observed and result.custody.owner_confirmed)
+        self.assertIsNone(result.cleanup_failure)
+        self.assertEqual(result.first_failure, ('fingerprint_local_AB', 'private_view_failed'))
+        self.assertTrue(f.current_operator.human.failed)
+        self.assertEqual(f.factory_calls.count(('view',)), 2)
+        self.assertEqual([row[0] for row in f.old.view.shows], ['fingerprint_local', 'usual_screen'])
+        self.assertTrue(all(device.flash == device.original for device in f.devices.values()))
+        self.assertEqual(f.old.world.restart_count, 0)
+
+    def test_expired_enrollment_fresh_cleanup_keeps_primary_and_restores_before_ack(self):
+        f = self.fixture()
+        final_seen = []
+        def inspect(prompt):
+            if prompt.kind == 'usual_screen':
+                final_seen.append(prompt.token)
+                self.assertTrue(all(device.flash == device.original and device.mode == 'original'
+                                    for device in f.devices.values()))
+                self.assertTrue(all(backend.assert_idle() for backend in f.backend_instances))
+                self.assertTrue(f.current_operator.assert_idle() and f.current_lease.assert_idle())
+        f.old.view.on_show = inspect
+        make_view = f.view_factory
+        def make_expiring_view():
+            view = make_view()
+            show = view.show
+            def expire_after_show(prompt):
+                result = show(prompt)
+                if prompt.kind == 'fingerprint_local': f.clock.value = prompt.deadline
+                return result
+            view.show = expire_after_show
+            return view
+        f.view_factory = make_expiring_view
+        result = f.run()
+        self.assertEqual(result.first_failure, ('fingerprint_local_AB', 'deadline_expired'))
+        self.assertIsNone(result.cleanup_failure)
+        self.assertTrue(result.owner_observed and result.custody.owner_confirmed)
+        self.assertTrue(result.custody.custody_released and result.lease_released)
+        self.assertEqual(len(final_seen), 1)
+        self.assertEqual(f.factory_calls.count(('view',)), 2)
+        self.assertTrue(f.current_operator.human.failed)
+        self.assertIsNot(f.current_operator.cleanup_human.view, f.current_operator.human.view)
+        self.assertEqual(f.current_operator.cleanup_human.references._keys, {})
+        rows = self.startup_rows(f)
+        final_acks = [row for row in rows if row.get('schema') == 'OT-CANDIDATE-ACK-1'
+                      and row.get('kind') == 'usual_screen']
+        self.assertEqual([row['token_sha256'] for row in final_acks],
+                         [hashlib.sha256(token.encode('ascii')).hexdigest() for token in final_seen])
+        self.assertEqual(f.old.world.restart_count, 0)
 
     def test_actual_startup_A_opens_with_B_in_ROM_then_recovers_pair(self):
         f = self.fixture(case='startup_A')
@@ -786,12 +1105,36 @@ class RunnerTests(unittest.TestCase):
                          {('A', 1): True, ('B', 1): True, ('A', 2): True, ('B', 2): False})
         self.assertTrue(all(not h.is_open and h.close_calls == 1 for h in f.old.world.handles))
         self.assertEqual(f.old.view.shows[-1][0], 'usual_screen')
+        self.assertEqual(result.restart_failure.snapshot(),dict(role='B',method='startup_probe',
+            boundary='returned',category='restart_failed'))
+        self.assertEqual(json.loads(result.receipt_path.read_bytes())['restart_failure'],result.restart_failure.snapshot())
+
+    def test_restart_backend_rejection_receipt_survives_original_restoration(self):
+        f = self.fixture(case='retained_rekey')
+        original_factory=f.backend_factory
+        def backend_factory(*args,**kwargs):
+            backend=original_factory(*args,**kwargs)
+            if backend.role=='A':
+                def reject(deadline): raise rom.AdapterError('deadline_extended')
+                backend.restart_candidate=reject
+            return backend
+        f.backend_factory=backend_factory
+        result=f.run()
+        self.assertEqual(result.first_failure,('restart','restart_failed'))
+        expected=dict(role='A',method='restart_candidate',boundary='call',category='deadline_extended')
+        self.assertEqual(result.restart_failure.snapshot(),expected)
+        self.assertEqual(json.loads(result.receipt_path.read_bytes())['restart_failure'],expected)
+        self.assertTrue(result.owner_observed and result.custody.custody_released and result.lease_released)
+        self.assertTrue(all(d.flash==d.original and d.mode=='original' for d in f.devices.values()))
+        self.assertFalse(any(generation==2 for _,generation in f.current_operator.probes))
 
     def test_same_case_restart_is_sequential_fresh_and_uses_original_ceiling(self):
         for case in ('retained_rekey', 'recovery_after_A_commit', 'recovery_after_B_commit'):
             f = self.fixture(case=case); result = f.run()
             with self.subTest(case=case):
                 self.assertEqual(result.outcome, 'passed')
+                self.assertIsNone(result.restart_failure)
+                self.assertIsNone(json.loads(result.receipt_path.read_bytes())['restart_failure'])
                 resets = [e for e in f.log if e[1] == 'restart_candidate']
                 self.assertEqual([e[0] for e in resets], ['A', 'B'])
                 self.assertTrue(all(e[3] <= 110 for e in resets))
@@ -1443,6 +1786,165 @@ class ROMFailureReceiptTests(unittest.TestCase):
             else:
                 self.assertIsNone(receipt['rom_failure'])
             self.assertNotIn('SECRET', result.receipt_path.read_text())
+
+
+class DeviceReceiptCollectorTests(unittest.TestCase):
+    def test_device_receipt_has_only_fixed_scope_hash_and_elapsed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            event=runner._Events(Path(folder),'1'*32,'a'*64,'b'*64,core.Clock(flash.Clock()),120,3600)
+            raw=dict(schema='OT-CANDIDATE-DEVICE-CONFIRMED-1',kind='fingerprint_local',role='A',token='2'*32,purpose='LOCAL',review_generation=1,display_revision=2,gesture='ACCEPTED',elapsed_ns=2000000000)
+            self.assertTrue(event(raw));saved=json.loads(event.path.read_text())
+            self.assertNotIn('token',saved);self.assertEqual(saved['gesture'],'ACCEPTED');self.assertEqual(saved['elapsed_ns'],2000000000)
+            self.assertNotIn('2'*32,event.path.read_text())
+            for field,bad in (('gesture','PRESSING'),('elapsed_ns',-1),('review_generation',0),('purpose','CODE'),('role','C')):
+                changed=dict(raw);changed[field]=bad
+                with self.subTest(field=field),self.assertRaises(runner.RunnerError):event(changed)
+
+
+class FinalTimingTests(unittest.TestCase):
+    def fixture(self, case='first'):
+        f = prior.Fixture(case=case); self.addCleanup(f.cleanup); f.activate()
+        events = runner._Events(f.root, '9' * 32, 'a' * 64, 'b' * 64,
+            core.Clock(f.world.clock), 100, 150, case=case)
+        original = f.instance.record
+        def record(value):
+            return events(value) if value.get('schema') == 'OT-CANDIDATE-FINAL-SUMMARY-1' else original(value)
+        f.instance.record = record
+        return f, events
+
+    def summary(self, events):
+        rows = [json.loads(line) for line in events.path.read_text().splitlines()]
+        self.assertEqual(len(rows), 1)
+        return rows[0]
+
+    def test_actual_producer_collector_first_rekey_recovery_and_fragmentation(self):
+        for case, expected in (('first', 4), ('retained_rekey', 8),
+                ('recovery_after_A_commit', 5), ('recovery_after_B_commit', 5)):
+            for size in (7, 64):
+                with self.subTest(case=case, read_size=size):
+                    f, events = self.fixture(case)
+                    original = prior.SerialHandle.read
+                    def read(handle, count): return original(handle, min(count, size))
+                    with patch.object(prior.SerialHandle, 'read', read): result = f.run()
+                    self.assertEqual(result.outcome, 'passed')
+                    summary = self.summary(events)
+                    self.assertEqual(len(summary['queries']), expected)
+                    for row in summary['queries']:
+                        self.assertEqual((row['boundary'], row['rejected']), ('returned', False))
+                        transport = row['query']['transport']
+                        self.assertEqual((transport['write_attempted'], transport['write_returned']), (1, 1))
+                        self.assertTrue(transport['reply_parsed'] and transport['reply_returned'])
+                        self.assertIsNone(transport['stream'])
+                    raw = events.path.read_text()
+                    self.assertLess(len(raw), 24000)
+                    for private in ('token', 'device_binding', 'OTCAND1', 'fingerprint', 'COM1', 'COM2'):
+                        self.assertNotIn(private, raw)
+                    with self.assertRaisesRegex(runner.RunnerError, '^event_invalid$'):
+                        events(dict(schema=summary['schema'], queries=summary['queries']))
+
+    def test_same_deadline_error_now_distinguishes_five_commit_boundaries(self):
+        cases = [('COMMIT', crossing) for crossing in ('initial_before_guard', 'post_write_before_guard',
+            'post_read_before_guard', 'post_parse_before_guard', 'controller_postcheck')]
+        cases += [('READY', crossing) for crossing in ('post_parse_before_guard', 'controller_postcheck')]
+        for verb, crossing in cases:
+            with self.subTest(verb=verb, crossing=crossing):
+                f, events = self.fixture()
+                active, limit = {}, []
+                activate, final = core.Controller._activate, operator.PassiveEndpoint._final_exchange
+                operation = wire.Endpoint._query_operation
+                def observed_activate(controller, deadline):
+                    limit.append(deadline); return activate(controller, deadline)
+                def observed_final(endpoint, command, deadline):
+                    active[endpoint.role] = command
+                    try:
+                        reply = final(endpoint, command, deadline)
+                        if endpoint.role == 'B' and command == verb and crossing == 'controller_postcheck':
+                            f.world.clock.value = deadline
+                        return reply
+                    finally: active.pop(endpoint.role, None)
+                def observed_operation(endpoint, boundary):
+                    operation(endpoint, boundary)
+                    if endpoint.role == 'B' and active.get('B') == verb and boundary == crossing:
+                        f.world.clock.value = limit[0]
+                with patch.object(core.Controller, '_activate', observed_activate), \
+                        patch.object(operator.PassiveEndpoint, '_final_exchange', observed_final), \
+                        patch.object(wire.Endpoint, '_query_operation', observed_operation):
+                    result = f.run()
+                self.assertEqual(result.first_failure, (verb.lower() + '_B', 'deadline_expired'))
+                self.assertTrue(result.handles_closed)
+                row = self.summary(events)['queries'][-1]
+                self.assertEqual(row['role'], 'B')
+                self.assertEqual(row['boundary'], 'postcheck' if crossing == 'controller_postcheck' else 'endpoint')
+                transport = row['query']['transport']
+                if crossing == 'controller_postcheck':
+                    self.assertTrue(transport['reply_returned'])
+                    self.assertEqual(row['sampled_remaining_ns'], 0)
+                else:
+                    self.assertEqual(transport['last_operation'], crossing)
+                    self.assertEqual(transport['write_attempted'], int(crossing != 'initial_before_guard'))
+                    self.assertEqual(transport['reply_parsed'], crossing == 'post_parse_before_guard')
+                    self.assertFalse(transport['reply_returned'])
+
+    def test_precheck_never_attaches_stale_query_or_enters_endpoint(self):
+        f, events = self.fixture()
+        original = core.Controller._send_checked
+        def send(controller, role, command, deadline, row):
+            if role == 'B' and command == 'COMMIT': f.world.clock.value = deadline
+            return original(controller, role, command, deadline, row)
+        with patch.object(core.Controller, '_send_checked', send): result = f.run()
+        self.assertEqual(result.first_failure, ('commit_B', 'deadline_expired'))
+        row = self.summary(events)['queries'][-1]
+        self.assertEqual(row['boundary'], 'precheck')
+        self.assertIsNone(row['query'])
+        self.assertNotIn(('wire', 'B', 1, 'COMMIT'), f.world.events)
+
+    def test_final_snapshot_finish_and_record_errors_preserve_owned_result(self):
+        for fault in ('snapshot', 'finish', 'record', 'clock'):
+            for refusal in (False, True):
+                with self.subTest(fault=fault, refusal=refusal):
+                    f, events = self.fixture()
+                    if refusal: f.world.faults[('B', 1, 'COMMIT')] = 'refused'
+                    snapshot, finish, sample = operator.PassiveEndpoint.query_snapshot, operator._QueryObservation.finish, operator._QueryObservation.sample
+                    def bad_snapshot(endpoint):
+                        if endpoint.final_query_observation is None and endpoint._observing and endpoint._query and endpoint._query['last_operation'] != 'command':
+                            # Restrict injected callback failure to a final wrapper.
+                            if endpoint._query['stream'] is None: raise RuntimeError('PRIVATE')
+                        return snapshot(endpoint)
+                    def bad_finish(observation):
+                        if observation.row['phase'] in ('commit', 'ready'): raise RuntimeError('PRIVATE')
+                        return finish(observation)
+                    def bad_sample(observation):
+                        if observation.row['phase'] in ('commit', 'ready'):
+                            observation.row['timing_valid'] = False
+                            return None
+                        return sample(observation)
+                    if fault == 'record':
+                        f.instance.record = lambda value: (_ for _ in ()).throw(RuntimeError('PRIVATE'))
+                    with patch.object(operator.PassiveEndpoint, 'query_snapshot', bad_snapshot if fault == 'snapshot' else snapshot), \
+                            patch.object(operator._QueryObservation, 'finish', bad_finish if fault == 'finish' else finish), \
+                            patch.object(operator._QueryObservation, 'sample', bad_sample if fault == 'clock' else sample):
+                        result = f.run()
+                    self.assertEqual(result.first_failure, ('commit_B', 'target_refused') if refusal else None)
+                    if fault == 'record': self.assertEqual(events.path.read_bytes(), b'')
+                    else:
+                        rows = self.summary(events)['queries']
+                        self.assertTrue(any(row['query']['diagnostic_failure'] in
+                            ('query_snapshot', 'query_finish', 'observation_clock_invalid') for row in rows))
+
+    def test_final_metadata_invalid_fields_rejected_without_writes(self):
+        f, events = self.fixture(); self.assertEqual(f.run().outcome, 'passed')
+        value = dict(schema='OT-CANDIDATE-FINAL-SUMMARY-1', queries=self.summary(events)['queries'])
+        invalid = []
+        for key, item in (('phase', 'PRIVATE'), ('generation', True), ('sampled_remaining_ns', -1),
+                ('boundary', 'PRIVATE'), ('diagnostic_failure', 'PRIVATE'), ('query', None)):
+            bad = json.loads(json.dumps(value)); bad['queries'][0][key] = item; invalid.append(bad)
+        bad = json.loads(json.dumps(value)); bad['queries'][0]['query']['transport']['private'] = 'PRIVATE'; invalid.append(bad)
+        bad = json.loads(json.dumps(value)); bad['queries'] *= 3; invalid.append(bad)
+        bad = json.loads(json.dumps(value)); bad['queries'][1] = bad['queries'][0]; invalid.append(bad)
+        for bad in invalid:
+            with self.subTest(bad=bad):
+                with self.assertRaisesRegex(runner.RunnerError, '^event_invalid$'):
+                    runner._final_queries(bad, 'first')
 
 
 if __name__ == '__main__': unittest.main(verbosity=2)

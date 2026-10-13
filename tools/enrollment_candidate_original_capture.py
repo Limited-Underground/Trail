@@ -12,15 +12,19 @@ import os
 from pathlib import Path
 import re
 import time
+import uuid
 
 from enrollment_candidate_controller import Clock, ControllerError
 from enrollment_candidate_custody import (ACTIVE as CANDIDATE_ACTIVE, Budget,
     SPANS, ROLES, canonical, decode, descriptor, sha, validate_request as candidate_request,
-    _validate_state as candidate_state, Error as CustodyError)
+    _validate_state as candidate_state, _adoption_commit, _originals,
+    _once as candidate_once, Journal as CandidateJournal, Error as CustodyError)
 import enrollment_candidate_rom_adapter as rom
 
 
 ACTIVE = 'enrollment-original-active.json'
+CURRENT_NVS_REQUEST = 'OT-RETAINED-FIRMWARE-CURRENT-NVS-REQUEST-1'
+RETAINED_REQUESTS = ('OT-RETAINED-ORIGINAL-REQUEST-1', CURRENT_NVS_REQUEST)
 ACTIONS = ['guard_original', 'read_six_spans', 'reset_original']
 HEX64, HEX32 = re.compile('[0-9a-f]{64}'), re.compile('[0-9a-f]{32}')
 _CATEGORIES = frozenset('''capture_operation_failed request_invalid grant_invalid grant_expired
@@ -32,7 +36,9 @@ hardware_lease_busy handles_not_closed freshness_invalid handoff_invalid handoff
 candidate_custody_unresolved deadline_expired deadline_extended deadline_invalid host_clock_invalid
 pending_reset_storage rom_adapter_refused rom_operation_failed rom_owner_required runtime_busy
 passive_owner_active capture_authority_invalid capture_operation_refused capture_terminal
-capture_claim_refused capture_changed capture_reset_refused'''.split())
+capture_claim_refused capture_changed capture_reset_refused release_nvs_unstable release_nvs_invalid
+release_bootloader_changed release_partition_changed release_otadata_changed release_nvs_changed
+release_application_changed release_ota0_prefix_changed'''.split())
 
 
 class CaptureError(RuntimeError):
@@ -53,14 +59,25 @@ def _category(error):
 
 
 def validate_request(value):
-    need(type(value) is dict and set(value) == {'schema', 'runtime_sha256', 'roles'}
-        and value['schema'] == 'OT-ORIGINAL-CAPTURE-REQUEST-1'
+    fields = {'schema', 'runtime_sha256', 'roles'}
+    retained = type(value) is dict and value.get('schema') in RETAINED_REQUESTS
+    need(type(value) is dict and set(value) == (fields | {'retained'} if retained else fields)
+        and (retained or value['schema'] == 'OT-ORIGINAL-CAPTURE-REQUEST-1')
         and type(value['runtime_sha256']) is str and HEX64.fullmatch(value['runtime_sha256'])
         and type(value['roles']) is dict and set(value['roles']) == set(ROLES), 'request_invalid')
     for row in value['roles'].values():
         need(type(row) is dict and set(row) == {'device_binding', 'profile_evidence_sha256'}
             and all(type(v) is str and HEX64.fullmatch(v) for v in row.values()), 'request_invalid')
     need(value['roles']['A']['device_binding'] != value['roles']['B']['device_binding'], 'pair_invalid')
+    if retained:
+        need(type(value['retained']) is dict and set(value['retained']) == {
+            'source_journal', 'restore_journal', 'capture_result', 'candidate_result',
+            'events', 'owner_ack', 'closure_review'}, 'request_invalid')
+        for ref in value['retained'].values():
+            need(type(ref) is dict and set(ref) == {'path', 'bytes', 'sha256'}
+                and type(ref['path']) is str and Path(ref['path']).is_absolute()
+                and type(ref['bytes']) is int and 0 < ref['bytes'] <= 131072
+                and type(ref['sha256']) is str and HEX64.fullmatch(ref['sha256']), 'request_invalid')
     return decode(canonical(value))
 
 
@@ -136,6 +153,129 @@ class _Journal:
         return _path(self.root, 'enrollment-original-' + self.attempt + '-pins.json')
 
 
+def validate_retained_source(request, private_root):
+    """Read-only admission of closed originals; never reconstruct live custody."""
+    request = validate_request(request)
+    need(request['schema'] in RETAINED_REQUESTS, 'request_invalid')
+    private = _regular(private_root, True).resolve()
+    need(private.name == '.private', 'private_root_invalid')
+    raw = {}
+    refs = request['retained']
+    for name, ref in refs.items():
+        path = _regular(ref['path'])
+        need(path.resolve().is_relative_to(private), 'private_path_invalid')
+        raw[name] = path.read_bytes()
+        need(descriptor(raw[name]) == {k: ref[k] for k in ('bytes', 'sha256')}, 'original_changed')
+    source, restored = decode(raw['source_journal']), decode(raw['restore_journal'])
+    need(type(source) is dict and source.get('schema') == 'OT-ORIGINAL-CAPTURE-JOURNAL-1'
+        and source.get('phase') == 'released' and source.get('capture_complete') is True
+        and source.get('first_failure') is None and source.get('cleanup_failure') is None
+        and type(source.get('attempt')) is str and HEX32.fullmatch(source['attempt']), 'journal_invalid')
+    source_request = validate_request(source['request'])
+    # The original acquisition is the immutable baseline, never another retry.
+    need(source_request['schema'] == 'OT-ORIGINAL-CAPTURE-REQUEST-1'
+        and source_request['roles'] == request['roles'], 'identity_binding_invalid')
+    source_root = Path(refs['source_journal']['path']).parent
+    journal = _Journal(source_root, source['attempt'])
+    need(journal.file == Path(refs['source_journal']['path']) and not journal.pending.exists()
+        and not _path(source_root, ACTIVE).exists()
+        and not _path(source_root, CANDIDATE_ACTIVE).exists(), 'journal_invalid')
+    receipt_raw = _regular(journal.pins_path).read_bytes()
+    need(descriptor(receipt_raw) == source.get('receipt'), 'original_changed')
+    pins, paths = {}, {}
+    for role in ROLES:
+        row = source['roles'][role]
+        need(row['owner'] == 'candidate-released' and row['entered'] is True
+            and set(row['pins']) == set(SPANS), 'journal_invalid')
+        pins[role], paths[role] = row['pins'], {}
+        for name in SPANS:
+            path = _regular(journal.original(role, name))
+            value = path.read_bytes()
+            need(len(value) == SPANS[name][1] and descriptor(value) == pins[role][name], 'original_changed')
+            paths[role][name] = path
+    need(decode(receipt_raw) == {'schema': 'OT-ORIGINAL-CAPTURE-PINS-1', 'attempt': source['attempt'],
+        'request_sha256': sha(canonical(source_request)), 'runtime_sha256': source_request['runtime_sha256'],
+        'roles': {r: dict(source_request['roles'][r], originals=pins[r]) for r in ROLES}}, 'journal_invalid')
+    need(type(restored) is dict and type(restored.get('attempt')) is str
+        and HEX32.fullmatch(restored['attempt']), 'journal_invalid')
+    restored_request = candidate_request(restored['request'])
+    candidate_state(restored, restored_request, restored['attempt'])
+    restore_root = Path(refs['restore_journal']['path']).parent
+    restore_journal = CandidateJournal(restore_root, restored['attempt'])
+    need(restore_journal.file == Path(refs['restore_journal']['path'])
+        and not restore_journal.pending.exists() and not _path(restore_root, CANDIDATE_ACTIVE).exists()
+        and not _path(restore_root, ACTIVE).exists() and restored['closed'] is True
+        and restored['owner_confirmed'] is True and restored['bridge_open'] is False
+        and restored.get('cleanup_failure') is None, 'candidate_custody_unresolved')
+    need(all(restored_request['roles'][r] == {'device_binding': request['roles'][r]['device_binding'],
+        'originals': pins[r]} and restored['roles'][r]['restore_verified'] is True
+        and restored['roles'][r]['original_boot_allowed'] is True
+        and restored['roles'][r]['handles_closed'] is True
+        and restored['roles'][r]['settled_untouched'] is False for r in ROLES), 'journal_invalid')
+    for role in ROLES:
+        _originals(restore_journal, restored, role)
+    captured_result, result = decode(raw['capture_result']), decode(raw['candidate_result'])
+    need(captured_result.get('schema') == 'OT-ORIGINAL-CAPTURE-RUNNER-RESULT-1'
+        and captured_result.get('attempt') == source['attempt'] and captured_result.get('operation') == 'capture'
+        and captured_result.get('request_sha256') == sha(canonical(source_request))
+        and captured_result.get('grant_sha256') == source['grant_sha256']
+        and captured_result.get('capture_complete') is True
+        and captured_result.get('capture_custody_released') is True
+        and captured_result.get('lease_released') is True and captured_result.get('cleanup_failure') is None,
+        'candidate_custody_unresolved')
+    need(result.get('schema') == 'OT-CANDIDATE-RUNNER-RESULT-1'
+        and result.get('attempt') == restored['attempt'] and result.get('operation') == 'execute'
+        and result.get('request_sha256') == sha(canonical(restored_request))
+        and result.get('lease_released') is True and result.get('owner_observed') is True
+        and result.get('cleanup_failure') is None and not result.get('restoration_failures')
+        and type(result.get('custody')) is dict and result['custody'].get('custody_released') is True
+        and result['custody'].get('owner_confirmed') is True
+        and result.get('events') == descriptor(raw['events']), 'candidate_custody_unresolved')
+    events = [decode(line) for line in raw['events'].splitlines()]
+    matching = [e for e in events if e.get('kind') == 'usual_screen'
+        and e.get('roles') == list(ROLES) and e.get('request_sha256') == result['request_sha256']
+        and e.get('grant_sha256') == result['grant_sha256']]
+    checkpoints = [e for e in matching if e.get('schema') == 'OT-CANDIDATE-CHECKPOINT-1']
+    acks = [e for e in matching if e.get('schema') == 'OT-CANDIDATE-ACK-1']
+    need(len(checkpoints) == len(acks) == 1 and checkpoints[0]['sequence'] < acks[0]['sequence']
+        and checkpoints[0]['token_sha256'] == acks[0]['token_sha256']
+        and HEX64.fullmatch(acks[0]['token_sha256']), 'candidate_custody_unresolved')
+    owner, review = decode(raw['owner_ack']), decode(raw['closure_review'])
+    need(owner.get('source') == 'fresh_human_reply' and owner.get('both_usual_screens_observed') is True
+        and owner.get('computer_checkpoint_clicked') is True, 'candidate_custody_unresolved')
+    need(review.get('outcome') == 'closure_and_original_backup_integrity_verified'
+        and review.get('findings') == [] and type(review.get('references')) is dict
+        and review.get('retained_originals', {}).get('eligible_as_verified_backup_inputs_for_reviewed_retained_retry') is True
+        and all(review['references'].get(Path(ref['path']).name) == ref
+            for name, ref in refs.items() if name != 'closure_review'), 'journal_invalid')
+    return pins, paths
+
+
+def retained_link_preflight(request, private_root, destination_root):
+    """Prove actual same-volume hard-link support before consuming authority."""
+    pins, paths = validate_retained_source(request, private_root)
+    root = _regular(destination_root, True)
+    need(root.resolve().is_relative_to(Path(private_root).resolve()), 'private_root_invalid')
+    probe = _path(root, '.retained-link-check-' + uuid.uuid4().hex)
+    created = False
+    try:
+        os.link(paths['A']['partition'], probe)
+        created = True
+        need(os.path.samefile(paths['A']['partition'], probe)
+            and descriptor(_regular(probe).read_bytes()) == pins['A']['partition'], 'original_changed')
+    finally:
+        if created:
+            probe.unlink()
+    return pins, paths
+
+
+def _link_original(source, destination, pin):
+    need(descriptor(_regular(source).read_bytes()) == pin, 'original_changed')
+    os.link(source, destination)  # Exclusive publication; never copy or overwrite.
+    need(os.path.samefile(source, destination)
+        and descriptor(_regular(destination).read_bytes()) == pin, 'original_changed')
+
+
 @dataclass(frozen=True)
 class CaptureResult:
     attempt: str
@@ -171,6 +311,9 @@ class CaptureSession:
         self._backends, self._started, self._verified = {}, False, False
         self._candidate = None
         self._release_used = False
+        self._hold_tokens = {}
+        self._release_records = {}
+        self._capture_process = False
         for ceiling in (capture_deadline, cleanup_deadline):
             need(ceiling is None or (type(ceiling) in (int, float) and math.isfinite(ceiling)), 'deadline_extended')
         self._capture_ceiling, self._cleanup_ceiling = capture_deadline, cleanup_deadline
@@ -181,6 +324,14 @@ class CaptureSession:
     @property
     def request(self):
         return decode(self._request)
+
+    @property
+    def retained(self):
+        return self.request['schema'] in RETAINED_REQUESTS
+
+    @property
+    def current_nvs(self):
+        return self.request['schema'] == CURRENT_NVS_REQUEST
 
     @property
     def pins(self):
@@ -210,6 +361,8 @@ class CaptureSession:
         released = state['phase'] == 'released'
         outcome = 'released' if released and not state['first_failure'] else 'failed' if released else \
             'captured' if state['capture_complete'] and not state['first_failure'] and not state['cleanup_failure'] else 'held'
+        if released and self._release_records:
+            outcome = 'released_with_nvs_drift'
         return CaptureResult(state['attempt'], outcome, state['capture_complete'],
             tuple(state['first_failure']) if state['first_failure'] else None,
             tuple(state['cleanup_failure']) if state['cleanup_failure'] else None,
@@ -252,6 +405,12 @@ class CaptureSession:
             self._backends[role] = factory(self.runtime, self.lease, authority=self._authority(grant, role),
                 role=role, binding_key=self._key, expected_identity=self._identities[role],
                 device_profile=self._profiles[role])
+            if self.retained:
+                # Recovery also pins reset checks to the authoritative saved
+                # originals, even if this process has not completed its sweep.
+                pins, _ = validate_retained_source(self.request, self.private)
+                need(type(self._backends[role]) is rom.CaptureROMBackend, 'handoff_invalid')
+                self._backends[role].bind_retained_originals(self, pins[role])
         need(self._backends['A'] is not self._backends['B'], 'pair_invalid')
 
     def _start(self, operation):
@@ -269,6 +428,11 @@ class CaptureSession:
         self._paths()
         used = _path(self.root, 'enrollment-original-used-' + grant['attempt'])
         need(not used.exists(), 'grant_used')
+        if operation == 'capture' and self.retained:
+            # No source substitution or unsupported link filesystem can spend
+            # the grant, acquire devices or quietly create replacement backups.
+            self._retained_pins, self._retained_paths = retained_link_preflight(
+                self.request, self.private, self.root)
         need(self.lease.acquire(self._budget.check()) is True, 'hardware_lease_busy')
         if operation == 'capture':
             # Refuse known original/candidate custody while holding the OS
@@ -328,6 +492,7 @@ class CaptureSession:
 
     def capture(self):
         grant = self._start('capture')
+        self._capture_process = True
         self._journal = _Journal(self.root, grant['attempt'])
         self._state = {'schema': 'OT-ORIGINAL-CAPTURE-JOURNAL-1', 'attempt': grant['attempt'],
             'request': self.request, 'grant_sha256': self._grant_sha, 'phase': 'capturing',
@@ -346,16 +511,27 @@ class CaptureSession:
                 row['entered'] = True
                 self._journal.save(self._state)
                 self._admit(backend.claim(self.request['roles'][role]['device_binding'], self._budget.check()), role)
+                self._hold_tokens[role] = self.lease.rom_token(self.request['roles'][role]['device_binding'])
                 for name in SPANS:
                     stage = 'capture_' + role + '_' + name
-                    raw = self._read(role, name)
-                    _once(self._journal.original(role, name), raw)
-                    row['pins'][name] = descriptor(raw)
+                    if self.retained and not (self.current_nvs and name == 'nvs'):
+                        pin = self._retained_pins[role][name]
+                        _link_original(self._retained_paths[role][name], self._journal.original(role, name), pin)
+                        row['pins'][name] = pin
+                    else:
+                        raw = self._read(role, name)
+                        if self.current_nvs:
+                            # Two guarded reads freeze settings under this ROM
+                            # hold before any durable baseline is published.
+                            need(self._read(role, name) == raw, 'capture_readback_failed')
+                        _once(self._journal.original(role, name), raw)
+                        row['pins'][name] = descriptor(raw)
                     self._journal.save(self._state)
-                for name in SPANS:
-                    stage = 'repeat_' + role + '_' + name
-                    need(self._read(role, name) == self._raw(role, name), 'capture_readback_failed')
-                need(backend.complete is True and backend.pins == row['pins'], 'capture_incomplete')
+                if not self.retained:
+                    for name in SPANS:
+                        stage = 'repeat_' + role + '_' + name
+                        need(self._read(role, name) == self._raw(role, name), 'capture_readback_failed')
+                    need(backend.complete is True and backend.pins == row['pins'], 'capture_incomplete')
                 need(backend.close() is True and backend.assert_idle() is True, 'rom_close_unconfirmed')
                 row['handles_closed'] = True
                 self._journal.save(self._state)
@@ -374,7 +550,7 @@ class CaptureSession:
             self.release()
         return self.result
 
-    def _receipt(self):
+    def _receipt(self, *, allow_pending=False):
         need(self._state['capture_complete'] is True and self._state['receipt'] is not None,
             'capture_incomplete')
         raw = _regular(self._journal.pins_path).read_bytes()
@@ -386,12 +562,21 @@ class CaptureSession:
                 'profile_evidence_sha256': self.request['roles'][r]['profile_evidence_sha256'],
                 'originals': self.pins[r]} for r in ROLES}}
         need(value == expected and decode(_regular(self._journal.file).read_bytes()) == self._state
-            and not self._journal.pending.exists(), 'journal_invalid')
+            and (allow_pending or not self._journal.pending.exists()), 'journal_invalid')
         need(decode(_regular(_path(self.root, ACTIVE)).read_bytes()) ==
             {'attempt': self._state['attempt'], 'request_sha256': sha(self._request)}, 'journal_invalid')
         for role in ROLES:
             for name in SPANS:
                 self._raw(role, name)
+        if self.retained:
+            pins, paths = validate_retained_source(self.request, self.private)
+            names = tuple(n for n in SPANS if not (self.current_nvs and n == 'nvs'))
+            need(all(pins[r][n] == self.pins[r][n]
+                and os.path.samefile(paths[r][n], self._journal.original(r, n))
+                for r in ROLES for n in names), 'original_changed')
+            if self.current_nvs:
+                need(all(not os.path.samefile(paths[r]['nvs'], self._journal.original(r, 'nvs'))
+                    for r in ROLES), 'original_changed')
 
     def verify(self, request, *, runtime, lease, identities, binding_key, profiles, deadline):
         need(self._state is not None and self._state['phase'] == 'held' and not self._verified,
@@ -410,6 +595,8 @@ class CaptureSession:
                     'originals': self.pins[role]} and self._state['roles'][role]['owner'] == 'capture'
                     and self.lease.holds_rom(self.request['roles'][role]['device_binding']) is True,
                     'freshness_invalid')
+                need(self.lease.same_rom_token(self.request['roles'][role]['device_binding'],
+                    self._hold_tokens[role]), 'freshness_invalid')
                 for name in SPANS:
                     stage = 'freshness_' + role + '_' + name
                     self.clock.check(deadline)
@@ -424,11 +611,35 @@ class CaptureSession:
             self._failure(stage, error)
             raise CaptureError(_category(error)) from None
 
+    def adopt_role(self, role, journal, state, request, attempt, backend, deadline, restoration_deadline):
+        need(type(backend) is rom.ROMBackend and type(self._backends.get(role)) is rom.CaptureROMBackend,
+             'handoff_invalid')
+        need(not self._release_used and self._state['phase'] in ('verified', 'mixed'), 'handoff_invalid')
+        self._receipt()
+        originals = {name: self._raw(role, name) for name in SPANS}
+        row = state['roles'][role]
+        need(not row['events'] and not row['captures'] and 'adoption' not in row, 'handoff_invalid')
+        row['adoption'] = {'root': str(self.root), 'attempt': self._state['attempt']}
+        journal.save(state)
+        for name, raw in originals.items():
+            if self.retained:
+                _link_original(self._journal.original(role, name), journal.original(role, name), descriptor(raw))
+            else:
+                candidate_once(journal.original(role, name), raw)
+            row['captures'][name] = descriptor(raw)
+            journal.save(state)
+        _originals(journal, state, role)
+        self.transfer_role(role, journal.root, request, attempt)
+        proof = self._backends[role].live_proof(request, originals, deadline, session=self, journal=journal)
+        need(backend.adopt_originals(proof, deadline, restoration_deadline) is True, 'handoff_invalid')
+        return True
+
     def transfer_role(self, role, candidate_root, request, attempt):
         need(role in ROLES and self._verified and self._candidate == canonical(candidate_request(request))
             and self._state['roles'][role]['owner'] == 'capture', 'handoff_invalid')
         self._budget.check()
-        need(self.lease.holds_rom(self.request['roles'][role]['device_binding']) is True, 'handoff_invalid')
+        need(not self._release_used and self.lease.same_rom_token(
+            self.request['roles'][role]['device_binding'], self._hold_tokens[role]), 'handoff_invalid')
         root = _regular(candidate_root, True)
         need(root.resolve().is_relative_to(self.private.resolve()) and root != self.private
             and type(attempt) is str and HEX32.fullmatch(attempt), 'handoff_invalid')
@@ -437,14 +648,32 @@ class CaptureSession:
         state = candidate_state(decode(_regular(_path(root, 'enrollment-candidate-' + attempt + '.json')).read_bytes()),
             decode(self._candidate), attempt)
         need(not _path(root, 'enrollment-candidate-' + attempt + '.pending').exists()
-            and 'claim_intent' in state['roles'][role]['events'] and state['closed'] is False,
+            and not state['roles'][role]['events'] and state['closed'] is False
+            and state['roles'][role].get('adoption') == {'root': str(self.root), 'attempt': self._state['attempt']},
             'handoff_invalid')
+        _originals(CandidateJournal(root, attempt), state, role)
         custody = {'root': str(root), 'attempt': attempt, 'request': decode(self._candidate)}
         need(self._state['candidate'] is None or self._state['candidate'] == custody, 'handoff_invalid')
-        self._state['candidate'] = custody
-        self._state['roles'][role]['owner'] = 'candidate'
-        self._state['phase'] = 'mixed'
-        self._journal.save(self._state)
+        # Save the destination before committing ownership. If a later mirror
+        # save fails, both recovery paths still use this write-once marker.
+        if self._state['candidate'] is None:
+            self._state['candidate'] = custody
+            self._journal.save(self._state)
+        marker = _path(self.root, 'enrollment-original-' + self._state['attempt'] + '-' + role + '.transfer')
+        expected = {'schema': 'OT-ORIGINAL-TRANSFER-1', 'source_attempt': self._state['attempt'],
+            'candidate_attempt': attempt, 'role': role, 'request_sha256': sha(self._candidate),
+            'candidate_root': str(root.resolve())}
+        need(not marker.exists(), 'handoff_used')
+        prepared = _path(self.root, marker.name + '.pending')
+        _once(prepared, canonical(expected) + b'\n')
+        need(decode(_regular(prepared).read_bytes()) == expected, 'record_failed')
+        # The fully flushed and checked marker becomes visible atomically.
+        # A partial preparation file never changes the recovery owner.
+        os.link(prepared, marker) # Atomic publication that cannot overwrite.
+        prepared.unlink()
+        need(decode(_regular(marker).read_bytes()) == expected, 'record_failed')
+        # The marker alone is authoritative. No second ownership mirror save
+        # can strand a successful commit behind an interrupted .pending file.
         return True
 
     def _candidate_settled(self, role):
@@ -482,6 +711,60 @@ class CaptureSession:
             self._state['phase'] = 'held'
             self._failure('release_record', error, True)
 
+    def _release_snapshot_guard(self, role, backend):
+        need(self._release_used and self._capture_process and not self._verified and self.retained
+            and self._state is not None and self._state['candidate'] is None
+            and self._backends.get(role) is backend and type(backend) is rom.CaptureROMBackend
+            and all(row['owner'] == 'capture' for row in self._state['roles'].values())
+            and all(not b._adopted and b._proof is None for b in self._backends.values()), 'capture_reset_refused')
+        row = self._state['roles'][role]
+        need(row['entered'] and not row['reset_intent'] and not row['original_boot_allowed']
+            and self.lease.same_rom_token(self.request['roles'][role]['device_binding'],
+                self._hold_tokens[role]), 'capture_reset_refused')
+        need(not self._journal.pending.exists(), 'journal_pending')
+        self._budget.check(True)
+
+    def _release_record(self, role, raw):
+        return {'schema': 'OT-ORIGINAL-NVS-DRIFT-EVIDENCE-1', 'attempt': self._state['attempt'],
+            'role': role, 'device_binding': self.request['roles'][role]['device_binding'],
+            'request_sha256': sha(self._request), 'grant_sha256': self._grant_sha,
+            'runtime_sha256': self.request['runtime_sha256'],
+            'retained_nvs': self._retained_pins[role]['nvs'], 'current_nvs': descriptor(raw),
+            'purpose': 'cleanup_only_not_retained_baseline'}
+
+    def _release_paths(self, role):
+        name = f'enrollment-original-{self._state["attempt"]}-{role}-current-nvs-drift'
+        return _path(self.root, name + '.bin'), _path(self.root, name + '.json')
+
+    def _save_release_snapshot(self, role, backend, raw):
+        self._release_snapshot_guard(role, backend)
+        need(type(raw) is bytes and len(raw) == SPANS['nvs'][1]
+            and descriptor(raw) != self._retained_pins[role]['nvs'] and role not in self._release_records,
+            'capture_reset_refused')
+        record = self._release_record(role, raw)
+        data, receipt = self._release_paths(role)
+        _once(data, raw)
+        _once(receipt, canonical(record) + b'\n')
+        self._release_records[role] = canonical(record)
+        self._state['roles'][role]['release_nvs_evidence'] = descriptor(receipt.read_bytes())
+        self._journal.save(self._state)
+
+    def _verify_release_snapshot(self, role, backend, pin):
+        need(self._release_used and self._backends.get(role) is backend and backend._release_session is self
+            and role in self._release_records and self._state['candidate'] is None
+            and all(row['owner'] == 'capture' for row in self._state['roles'].values())
+            and all(not b._adopted and b._proof is None for b in self._backends.values())
+            and self.lease.same_rom_token(self.request['roles'][role]['device_binding'],
+                self._hold_tokens[role]) and not self._journal.pending.exists(), 'capture_reset_refused')
+        need(self._state['roles'][role]['reset_intent'] is True
+            and decode(_regular(self._journal.file).read_bytes()) == self._state, 'capture_reset_refused')
+        data, receipt = self._release_paths(role)
+        raw, saved = _regular(data).read_bytes(), _regular(receipt).read_bytes()
+        need(descriptor(raw) == pin and canonical(decode(saved)) == self._release_records[role]
+            == canonical(self._release_record(role, raw))
+            and descriptor(saved) == self._state['roles'][role]['release_nvs_evidence'], 'record_failed')
+        self._budget.check(True)
+
     def release(self):
         need(self._state is not None, 'capture_session_used')
         if self._release_used:
@@ -490,6 +773,7 @@ class CaptureSession:
         for role in ROLES:
             row = self._state['roles'][role]
             try:
+                self._reconcile_transfer(role)
                 if row['owner'] == 'candidate':
                     if self._candidate_settled(role):
                         row['owner'] = 'candidate-released'
@@ -511,11 +795,16 @@ class CaptureSession:
                     continue
                 need(not row['reset_intent'], 'original_boot_state_uncertain')
                 backend = self._backends[role]
-                # Reset is the only acquisition operation allowed after its
-                # capture ceiling. The worker freshly compares its observed
-                # pins, sweeps missing spans twice, and checks safe NVS itself.
+                # Cleanup-only snapshot/reset may use the cleanup ceiling;
+                # neither renews capture or candidate freshness authority.
+                # The reset worker independently compares every span and NVS.
                 for name in row['pins']:
                     self._raw(role, name)
+                if (self._capture_process and not self._verified and self.retained and not self.current_nvs
+                        and self._state['candidate'] is None
+                        and all(r['owner'] == 'capture' for r in self._state['roles'].values())
+                        and all(not b._adopted and b._proof is None for b in self._backends.values())):
+                    backend.prepare_original_release(self, self._budget.check(True))
                 row['reset_intent'] = True
                 self._journal.save(self._state)
                 need(backend.reset_original(self._budget.check(True)) is True, 'original_reset_uncertain')
@@ -537,6 +826,18 @@ class CaptureSession:
             self._finish_release()
         return self.result
 
+    def _reconcile_transfer(self, role):
+        marker = _path(self.root, 'enrollment-original-' + self._state['attempt'] + '-' + role + '.transfer')
+        if not marker.exists():
+            return
+        value = self._state['candidate']
+        need(type(value) is dict, 'journal_invalid')
+        probe = {'attempt': value['attempt'], 'request': value['request'], 'roles': {role:
+            {'adoption': {'root': str(self.root), 'attempt': self._state['attempt']}}}}
+        need(_adoption_commit(probe, role) is True, 'journal_invalid')
+        if self._state['roles'][role]['owner'] == 'capture':
+            self._state['roles'][role]['owner'] = 'candidate'
+
 
 def recover_release(private_root, evidence_root, request, grant_raw, grant_sha256, **kwargs):
     """A new release-only grant can resolve saved, unadopted original custody.
@@ -552,8 +853,24 @@ def recover_release(private_root, evidence_root, request, grant_raw, grant_sha25
         and session.root.resolve().is_relative_to(session.private.resolve()), 'private_root_invalid')
     origin = grant['origin_attempt']
     session._journal = _Journal(session.root, origin)
-    need(not session._journal.pending.exists(), 'journal_pending')
     state = decode(_regular(session._journal.file).read_bytes())
+    interrupted_transfer = session._journal.pending.exists()
+    if interrupted_transfer:
+        pending = decode(_regular(session._journal.pending).read_bytes())
+        # Only an uncommitted destination-preparation save is recoverable here.
+        # All original pins/owners/reset facts must be byte-for-byte unchanged,
+        # and no role commit may exist. Other pending shapes stay held.
+        need(type(pending) is dict and state.get('candidate') is None
+             and type(pending.get('candidate')) is dict
+             and dict(pending, candidate=None) == state
+             and not any(_path(session.root, 'enrollment-original-' + origin + '-' + r + '.transfer').exists()
+                 for r in ROLES), 'journal_pending')
+        destination = pending['candidate']
+        need(set(destination) == {'root','attempt','request'} and type(destination['root']) is str
+             and _regular(destination['root'],True).resolve().is_relative_to(session.private.resolve())
+             and type(destination['attempt']) is str and HEX32.fullmatch(destination['attempt'])
+             and candidate_request(destination['request'])['runtime_sha256'] == session.request['runtime_sha256'],
+             'journal_pending')
     need(type(state) is dict and set(state) == {'schema', 'attempt', 'request', 'grant_sha256',
         'phase', 'capture_complete', 'first_failure', 'cleanup_failure', 'receipt', 'candidate', 'roles'}
         and state['schema'] == 'OT-ORIGINAL-CAPTURE-JOURNAL-1' and state['attempt'] == origin
@@ -586,7 +903,7 @@ def recover_release(private_root, evidence_root, request, grant_raw, grant_sha25
         need(not row['reset_intent'] or row['original_boot_allowed'], 'original_boot_state_uncertain')
     session._state = state
     adopted = any(row['owner'] in ('candidate', 'candidate-released') for row in state['roles'].values())
-    need((state['candidate'] is not None) == adopted, 'journal_invalid')
+    need(not adopted or state['candidate'] is not None, 'journal_invalid')
     for role in ROLES:
         for name, pin in state['roles'][role]['pins'].items():
             need(type(pin) is dict and set(pin) == {'bytes', 'sha256'}
@@ -598,9 +915,13 @@ def recover_release(private_root, evidence_root, request, grant_raw, grant_sha25
             need(session._candidate_settled(role), 'candidate_custody_unresolved')
     if state['capture_complete']:
         need(all(set(row['pins']) == set(SPANS) for row in state['roles'].values()), 'journal_invalid')
-        session._receipt()
+        session._receipt(allow_pending=interrupted_transfer)
     else:
         need(state['receipt'] is None, 'journal_invalid')
+    for role in ROLES:
+        session._reconcile_transfer(role)
+        if state['roles'][role]['owner'] in ('candidate', 'candidate-released'):
+            need(session._candidate_settled(role), 'candidate_custody_unresolved')
     closure_only = state['phase'] == 'released'
     if closure_only:
         # Released+matching ACTIVE is the exact interrupted closure shape.
@@ -612,6 +933,10 @@ def recover_release(private_root, evidence_root, request, grant_raw, grant_sha25
     # Validate saved custody and originals before fresh release authority is
     # consumed. Never replay the prior capture grant or reconstruct a handoff.
     grant = session._start('release')
+    if interrupted_transfer:
+        interrupted = _path(session.root, 'enrollment-original-' + grant['attempt'] + '.interrupted')
+        need(not interrupted.exists(), 'journal_pending')
+        os.replace(session._journal.pending, interrupted)
     if closure_only:
         session._release_used = True
         session._finish_release()

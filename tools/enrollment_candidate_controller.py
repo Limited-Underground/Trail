@@ -10,7 +10,7 @@ import re
 import secrets
 import time
 
-from enrollment_candidate_usb_client import ClientError, Reply, validate_startup_snapshot
+from enrollment_candidate_usb_client import ClientError, Reply, ReviewState, review_state, review_token, validate_startup_snapshot
 
 ROLES = ('A', 'B')
 CASES = frozenset(('first', 'retained_rekey', 'recovery_after_A_commit',
@@ -99,6 +99,7 @@ class Controller:
         self._checkpoint_phase = None
         self._close_attempted, self._close_uncertain = set(), False
         self.startup_observation = None
+        self.final_observations = []
 
     def _event(self, event, deadline):
         self.clock.check(deadline)
@@ -109,18 +110,64 @@ class Controller:
 
     def _send(self, role, command, deadline):
         self.stage = command.split(' ', 1)[0].lower() + '_' + role
+        final = command in ('COMMIT', 'READY')
+        row = None
+        if final and len(self.final_observations) < 8:
+            row = dict(phase=command.lower(), role=role, generation=self.generations,
+                boundary='precheck', entry_allowance_ns=None, sampled_elapsed_ns=None,
+                sampled_remaining_ns=None, rejected=True, query=None, diagnostic_failure=None)
+            self.final_observations.append(row)
+        try:
+            return self._send_checked(role, command, deadline, row)
+        finally:
+            # Existing authority samples only: no clock, I/O or record callback.
+            # The checked helper freezes these before any later close/recovery.
+            if row is not None and row['boundary'] != 'precheck':
+                try:
+                    query = self.endpoints[role].final_query_observation
+                    row['query'] = dict(query) if type(query) is dict else None
+                    if row['query'] is None and row['diagnostic_failure'] is None:
+                        row['diagnostic_failure'] = 'query_unavailable'
+                except BaseException:
+                    if row['diagnostic_failure'] is None:
+                        row['diagnostic_failure'] = 'query_snapshot'
+
+    def _send_checked(self, role, command, deadline, row):
+        started = None
         if self.startup_observation is not None:
             self.startup_observation['controller_boundary'] = 'precheck'
-        self.clock.check(deadline)
-        if self.startup_observation is not None:
-            self.startup_observation['controller_boundary'] = 'endpoint'
-        result = self.endpoints[role].exchange(command, deadline)
-        if self.startup_observation is not None:
-            self.startup_observation['controller_boundary'] = 'postcheck'
-        self.clock.check(deadline)
-        if self.startup_observation is not None:
-            self.startup_observation['controller_boundary'] = 'returned'
-        return result
+        try:
+            self.clock.check(deadline)
+            started = self.clock.last
+            if row is not None:
+                row['entry_allowance_ns'] = sampled_duration_ns(deadline - started)
+                row['boundary'] = 'endpoint'
+            if self.startup_observation is not None:
+                self.startup_observation['controller_boundary'] = 'endpoint'
+            result = self.endpoints[role].exchange(command, deadline)
+            if row is not None:
+                row['boundary'] = 'postcheck'
+            if self.startup_observation is not None:
+                self.startup_observation['controller_boundary'] = 'postcheck'
+            self.clock.check(deadline)
+            if row is not None:
+                row['boundary'], row['rejected'] = 'returned', False
+            if self.startup_observation is not None:
+                self.startup_observation['controller_boundary'] = 'returned'
+            return result
+        except BaseException as error:
+            if row is not None and (error.args == ('host_clock_invalid',) or
+                    row['boundary'] in ('precheck', 'postcheck') and error.args != ('deadline_expired',)):
+                row['diagnostic_failure'] = 'authority_sample_invalid'
+            raise
+        finally:
+            if row is not None and row['diagnostic_failure'] != 'authority_sample_invalid':
+                sampled = self.clock.last
+                if (type(sampled) in (int, float) and math.isfinite(sampled)
+                        and type(deadline) in (int, float) and math.isfinite(deadline)):
+                    row['sampled_remaining_ns'] = sampled_duration_ns(deadline - sampled)
+                    if started is not None:
+                        row['sampled_elapsed_ns'] = sampled_duration_ns(sampled - started)
 
     def _value(self, role, command, deadline):
         return self._send(role, command, deadline).values[0]
@@ -313,6 +360,94 @@ class Controller:
         need((self.used or self.preparation_started) and not self.running and self.assert_idle(), 'handles_not_closed')
         return self._human('usual_screen', ROLES, None, deadline)
 
+    def _device_review(self, kind, roles, purpose, deadline):
+        """Only strict target-owned REVIEW1 receipts advance a device step.
+
+        Roles are armed in order. Once accepted, a role is not resampled while
+        the other waits; both scopes are revalidated at the final boundary.
+        The cancel-only presenter cannot supply a physical confirmation.
+        """
+        need(self._checkpoint_phase is None and roles in (ROLES, ('A',), ('B',)), 'checkpoint_reentry')
+        token = self.tokens()
+        need(review_token(token) and token not in self.seen_tokens, 'checkpoint_token_invalid')
+        self.seen_tokens.add(token)
+        self.stage = kind + '_' + ''.join(roles)
+        point = {'schema': 'OT-CANDIDATE-DEVICE-CHECKPOINT-1', 'kind': kind,
+                 'roles': tuple(roles), 'token': token, 'deadline': deadline}
+        started = self.clock.now()
+        self._event(point, deadline)
+        phase, active, sampling = object(), True, False
+        self._checkpoint_phase = phase
+        generation, running = self.generations, self.running
+        owned = {role: self.endpoints[role] for role in roles}
+        states, scopes = {}, {}
+        def parse(role, reply, *, start=False):
+            state = review_state(reply)
+            need(state.token == token and state.role == ('1' if role == 'A' else '2')
+                 and state.purpose == purpose, 'review_scope_invalid')
+            if start:
+                need(state.state == 'WAITING', 'review_scope_invalid')
+                scopes[role] = state.scope
+            else:
+                need(state.scope == scopes[role]
+                     and (states[role].state != 'CONFIRMED' or state.state == 'CONFIRMED'), 'review_scope_invalid')
+            states[role] = state
+            return state
+        def begin(role):
+            parse(role, self._send(role, 'REVIEWSTART ' + purpose + ' ' + token, deadline), start=True)
+        def sample():
+            nonlocal sampling
+            need(active and self._checkpoint_phase is phase and not sampling
+                 and self.generations == generation and self.running is running
+                 and all(self.endpoints[role] is endpoint for role, endpoint in owned.items()), 'checkpoint_inactive')
+            sampling = True
+            try:
+                self.clock.check(deadline)
+                role = next((r for r in roles if r not in states or states[r].state != 'CONFIRMED'), None)
+                if role is not None:
+                    if role not in states:
+                        begin(role)
+                    else:
+                        prior = states[role].state
+                        state = parse(role, self._send(role, 'REVIEWPOLL ' + token, deadline))
+                        if prior != 'CONFIRMED' and state.state == 'CONFIRMED':
+                            self._event({'schema': 'OT-CANDIDATE-DEVICE-CONFIRMED-1', 'kind': kind,
+                                'role': role, 'token': token, 'purpose': purpose,
+                                'review_generation': state.generation, 'display_revision': state.revision,
+                                'gesture': state.gesture, 'elapsed_ns': sampled_duration_ns(self.clock.now() - started)}, deadline)
+                self.clock.check(deadline)
+                return tuple(states[r] for r in roles if r in states)
+            finally:
+                sampling = False
+        try:
+            begin(roles[0])
+            # Both CODE pages must be visible for complete comparison before
+            # either physical confirmation. Only the current role is polled.
+            if purpose == 'CODE':
+                for role in roles[1:]:
+                    begin(role)
+            presented = dict(point, initial=tuple(states[r] for r in roles if r in states))
+            self.stage = kind + '_' + ''.join(roles)
+            answer = self.human(presented, sample)
+            self.stage = kind + '_' + ''.join(roles)
+            need(type(answer) is dict and set(answer) == {'kind', 'roles', 'token', 'device_confirmed'}
+                 and answer['kind'] == kind and tuple(answer['roles']) == roles and answer['token'] == token
+                 and answer['device_confirmed'] is True and set(states) == set(roles)
+                 and all(type(states[r]) is ReviewState and states[r].state == 'CONFIRMED' for r in roles),
+                 'device_confirmation_missing')
+            for role in roles:
+                state = parse(role, self._send(role, 'REVIEWPOLL ' + token, deadline))
+                need(state.state == 'CONFIRMED', 'device_confirmation_missing')
+            self.clock.check(deadline)
+            self.checkpoints += 1
+            return tuple(states[r] for r in roles)
+        except ControllerError:
+            self.stage = kind + '_' + ''.join(roles)
+            raise
+        finally:
+            active = False
+            self._checkpoint_phase = None
+
     def _begin(self, mode, group, deadline):
         preparation = self.clock.ceiling(deadline, 120)
         recovery = self.clock.ceiling(preparation, 60) if mode == 2 else None
@@ -326,13 +461,10 @@ class Controller:
             b = self._value('B', 'EXPORT', preparation)
             self._send('A', 'PEER ' + b, preparation)
             self._send('B', 'PEER ' + a, preparation)
-            for role in ROLES:
-                self._send(role, 'SHOWLOCAL', preparation)
-            self._human('fingerprint_local', ROLES, None, preparation)
+            self._device_review('fingerprint_local', ROLES, 'LOCAL', preparation)
             offers = []
             for role in ROLES:
-                self._send(role, 'SHOWPEER', preparation)
-                self._human('fingerprint', (role,), 'POLL', preparation)
+                self._device_review('fingerprint', (role,), 'PEER', preparation)
                 offers.append(self._value(role, 'FINISH', preparation))
             return tuple(offers)
         if mode == 2:
@@ -376,9 +508,7 @@ class Controller:
         self._send('B', 'BIND ' + ar, activation)
         for source, dest in (('A', 'B'), ('B', 'A'), ('A', 'B')):
             self._send(dest, 'FRAME ' + self._value(source, 'NEXTFRAME', activation), activation)
-        for role in ROLES:
-            self._send(role, 'CONFIRM', activation)
-        self._human('transcript', ROLES, 'CONFIRM', activation)
+        self._device_review('transcript', ROLES, 'CODE', activation)
         for source, dest in (('A', 'B'), ('B', 'A'), ('A', 'B'), ('B', 'A')):
             self._send(dest, 'CONTROL ' + self._value(source, 'NEXTCONTROL', activation), activation)
         return activation

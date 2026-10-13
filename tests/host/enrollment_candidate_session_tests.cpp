@@ -736,6 +736,71 @@ int main() {
         CHECK(fired && result.membership==CS::unavailable && result.volatile_cleared);
         CHECK(bytes(member)==original && mutations(member)==writes);++groups;
     }
+    // Scoped observation binds original request/context/page/window and
+    // distinguishes a LOCAL physical receipt from peer authority.
+    for(unsigned fault=0;fault<4;++fault){
+        FreshPair p;EnrollmentReviewToken token{};token.fill(0x11);EnrollmentReviewState state{};
+        CHECK(p.a.owner->review_start(EnrollmentReviewPurpose::local,token,state));
+        CHECK(!state.confirmed && state.purpose==EnrollmentReviewPurpose::local && state.generation && state.revision);
+        if(fault==0){++p.a.device.value.context.request;CHECK(!p.a.owner->review_poll(token,state));CHECK(p.a.owner->review_refusal()==EnrollmentReviewRefusal::context_changed);}
+        if(fault==1){++p.a.device.value.display_revision;CHECK(!p.a.owner->review_poll(token,state));CHECK(p.a.owner->review_refusal()==EnrollmentReviewRefusal::display_changed);}
+        if(fault==2){p.a.authority.value.now_ms+=120000;CHECK(!p.a.owner->review_poll(token,state));CHECK(p.a.owner->review_refusal()==EnrollmentReviewRefusal::device_failure);}
+        if(fault==3){token[0]^=1;CHECK(!p.a.owner->review_poll(token,state));CHECK(p.a.owner->review_refusal()==EnrollmentReviewRefusal::token_mismatch);}
+        CHECK(!p.a.owner->finish_review(p.a.offer));++groups;
+    }
+    for(unsigned fault=0;fault<3;++fault){
+        FreshPair p;p.handshake();EnrollmentReviewToken token{};token.fill(0x33);EnrollmentReviewState state{};
+        CHECK(p.a.owner->review_start(EnrollmentReviewPurpose::code,token,state));CHECK(!state.confirmed);
+        ++p.a.authority.value.now_ms;p.a.device.value.button_down=true;CHECK(p.a.owner->review_poll(token,state));
+        p.a.authority.value.now_ms+=100;p.a.device.value.button_down=false;CHECK(p.a.owner->review_poll(token,state));
+        CHECK(!state.confirmed && state.gesture==EnrollmentReviewGesture::ready);
+        ++p.a.authority.value.now_ms;p.a.device.value.button_down=true;CHECK(p.a.owner->review_poll(token,state));
+        p.a.authority.value.now_ms+=2000;p.a.device.value.button_down=false;CHECK(p.a.owner->review_poll(token,state));CHECK(state.confirmed);
+        const auto generation=state.generation,revision=state.revision;
+        p.a.device.value.button_down=true;CHECK(p.a.owner->review_poll(token,state));
+        CHECK(state.confirmed && state.generation==generation && state.revision==revision);
+        if(fault==0)++p.a.device.value.context.request;
+        if(fault==1)++p.a.device.value.display_revision;
+        if(fault==2)p.a.authority.value.now_ms+=60000;
+        CHECK(!p.a.owner->review_poll(token,state));EvaluationRecord output{};CHECK(!p.a.owner->next_control(output));++groups;
+    }
+    {FreshPair p;EnrollmentReviewToken token{};token.fill(0x44);EnrollmentReviewState state{};
+     CHECK(p.a.owner->review_start(EnrollmentReviewPurpose::local,token,state));bool fired=false;
+     p.a.device.callback=[&]{if(!fired){fired=true;EnrollmentReviewState nested{};CHECK(!p.a.owner->review_poll(token,nested));}};
+     CHECK(!p.a.owner->review_poll(token,state));CHECK(fired && p.a.owner->quiescent());
+     CHECK(!p.a.owner->finish_review(p.a.offer));++groups;}
+    for(unsigned phase=0;phase<3;++phase)for(unsigned action=0;action<3;++action){
+        FreshPair p;EnrollmentReviewToken token{},other{};token.fill(0x55);other.fill(0x66);EnrollmentReviewState state{};
+        auto purpose=phase==0?EnrollmentReviewPurpose::local:phase==1?EnrollmentReviewPurpose::peer:EnrollmentReviewPurpose::code;
+        if(phase==2)p.handshake();
+        if(phase==1){EnrollmentReviewToken local{};local.fill(0x22);CHECK(p.a.owner->review_start(EnrollmentReviewPurpose::local,local,state));
+            ++p.a.authority.value.now_ms;p.a.device.value.button_down=true;CHECK(p.a.owner->review_poll(local,state));
+            p.a.authority.value.now_ms+=2000;p.a.device.value.button_down=false;CHECK(p.a.owner->review_poll(local,state));CHECK(state.confirmed);}
+        CHECK(p.a.owner->review_start(purpose,token,state));const auto generation=state.generation,revision=state.revision;bool fired=false;
+        p.a.device.callback=[&]{if(!fired){fired=true;EnrollmentReviewState nested{};
+            if(action==0)CHECK(!p.a.owner->review_start(purpose,other,nested));
+            if(action==1)CHECK(!p.a.owner->finish_review(p.a.offer));
+            if(action==2)CHECK(!p.a.owner->review_poll(token,nested));
+            CHECK(!nested.confirmed);}};
+        CHECK(!p.a.owner->review_poll(token,state));CHECK(fired && !state.confirmed && state.generation==generation && state.revision==revision);
+        CHECK(p.a.owner->quiescent());++groups;
+    }
+    // A page changed by the callback after the physical observer's own sample
+    // is caught by the final scope check before any scoped state is published.
+    {FreshPair p;EnrollmentReviewToken token{};token.fill(0x77);EnrollmentReviewState state{};
+     CHECK(p.a.owner->review_start(EnrollmentReviewPurpose::local,token,state));unsigned samples=0;
+     p.a.device.callback=[&]{if(++samples==3)++p.a.device.value.display_revision;};
+     CHECK(!p.a.owner->review_poll(token,state));CHECK(!state.confirmed && p.a.owner->quiescent());++groups;}
+    // CODE's narrower window is checked again at the final scoped callback,
+    // even when its physical observer accepted inside the original 120s window.
+    {FreshPair p;p.handshake();EnrollmentReviewToken token{};token.fill(0x78);EnrollmentReviewState state{};
+     const auto began=p.a.authority.value.now_ms;CHECK(p.a.owner->review_start(EnrollmentReviewPurpose::code,token,state));
+     ++p.a.authority.value.now_ms;p.a.device.value.button_down=true;CHECK(p.a.owner->review_poll(token,state));
+     p.a.authority.value.now_ms+=2000;p.a.device.value.button_down=false;unsigned samples=0;
+     p.a.device.callback=[&]{if(++samples==4)p.a.authority.value.now_ms=began+60000;};
+     CHECK(!p.a.owner->review_poll(token,state));CHECK(!state.confirmed);
+     CHECK(p.a.owner->review_refusal()==EnrollmentReviewRefusal::expired);
+     CHECK(p.a.owner->quiescent());EvaluationRecord output{};CHECK(!p.a.owner->next_control(output));++groups;}
     std::cout<<"PASS "<<groups<<" enrollment candidate session groups\n";
 }
 #endif

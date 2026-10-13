@@ -113,7 +113,7 @@ class PrivateView:
     def poll(self):
         self.polls += 1
         p = self.active
-        if self.no_ack == p.kind:
+        if self.no_ack == p.kind and not p.device_only:
             return None
         if self.world is not None and self.no_gesture != p.kind:
             for role in p.roles:
@@ -138,7 +138,13 @@ class PrivateView:
             return core.CheckpointAck('OT-CANDIDATE-ACK-1', 'usual_screen', p.roles, p.token)
         if self.ack_fault == 'wrong_schema':
             return core.CheckpointAck('other', p.kind, p.roles, p.token)
+        if p.device_only:
+            return None
         return core.CheckpointAck('OT-CANDIDATE-ACK-1', p.kind, p.roles, p.token)
+
+    def update(self, prompt):
+        self.active = prompt
+        return True
 
     def close(self):
         self.closes += 1
@@ -301,7 +307,7 @@ class Fixture:
 
     def record(self, event):
         self.world.events.append(('record', dict(event)))
-        return not (event.get('schema') == 'OT-CANDIDATE-ACK-1'
+        return not (event.get('schema') in ('OT-CANDIDATE-ACK-1', 'OT-CANDIDATE-DEVICE-CONFIRMED-1')
                     and event.get('kind') == self.record_fault)
 
     def restart(self, deadline):
@@ -526,7 +532,7 @@ class OperatorTests(unittest.TestCase):
             return event.get('phase') != 'boot_observation'
         f.instance.passive.progress = reject
         result = f.run()
-        self.assertEqual(result.first_failure, ('boot_observation_A', 'controller_operation_failed'))
+        self.assertEqual(result.first_failure, ('boot_observation_A', 'record_failed'))
         self.assertEqual(f.world.commands(), [])
         endpoint = f.instance.passive.endpoints[0]
         self.assertIsNone(endpoint.startup_snapshot())
@@ -749,7 +755,7 @@ class OperatorTests(unittest.TestCase):
 
     def test_sample_ok_without_ack_expires_without_advancement(self):
         f = self.fixture()
-        f.view.no_ack = 'fingerprint'
+        f.view.no_gesture = 'fingerprint'
         f.activate(1.15)
         result = f.run()
         self.assertEqual(result.outcome, 'failed')
@@ -776,12 +782,66 @@ class OperatorTests(unittest.TestCase):
                     ui(point(), lambda: self.fail('terminal UI sampled again'))
                 self.assertEqual(view.closes, 1)
 
+    def test_actual_first_flow_batches_queued_controls_without_changing_final_queries(self):
+        # Real operator/controller/lease/parser; synthetic target, transport and
+        # enumeration cost. This is no physical timing or authentication claim.
+        traces = []
+        for size in (wire.MAX_LINE_BYTES, 1, 7, 64):
+            with self.subTest(fragment=size):
+                f = self.fixture()
+                f.activate()
+                rows = []
+                open_handle, exchange = SerialHandle.open, wire.Endpoint.exchange
+                enumerate_ports = f.runtime.comports
+                def opened(handle):
+                    open_handle(handle)
+                    handle.read_size = size
+                def fresh_ports():
+                    f.world.clock.value += .001
+                    return enumerate_ports()
+                def observed(endpoint, command, deadline):
+                    result = exchange(endpoint, command, deadline)
+                    q = endpoint.query_snapshot()
+                    rows.append((endpoint.handle.node.role, endpoint.handle.node.generation,
+                                 command.split(' ')[0], deadline, q))
+                    return result
+                f.runtime.comports = fresh_ports
+                with patch.object(SerialHandle, 'open', opened), patch.object(
+                        wire.Endpoint, 'exchange', observed):
+                    result = f.run()
+                self.assertEqual((result.outcome, result.status_transfers, result.checkpoints),
+                                 ('passed', 8, 4), result.first_failure)
+                self.assertTrue(result.handles_closed and f.instance.assert_idle())
+                controls = [row for row in rows if row[1] == 1 and row[2] == 'NEXTCONTROL']
+                finals = [row for row in rows if row[1] == 1 and row[2] in ('COMMIT', 'READY')]
+                self.assertEqual((len(controls), len(finals)), (4, 4))
+                for row in controls:
+                    reads = (233 + size - 1) // size
+                    self.assertEqual(row[4]['received_bytes'], 233)
+                    self.assertEqual(row[4]['read_attempted'], reads)
+                    self.assertEqual(row[4]['guard_attempted'], 8 + 5 * reads)
+                    self.assertEqual(row[4]['guard_returned'], row[4]['guard_attempted'])
+                    self.assertTrue(row[4]['reply_returned'])
+                if size in (wire.MAX_LINE_BYTES, 64):
+                    self.assertTrue(all(row[4]['read_attempted'] == 1 and
+                        row[4]['guard_attempted'] == 13 for row in finals))
+                traces.append((f.world.commands(), rows, f.world.clock.value))
+        self.assertTrue(all(trace[0] == traces[0][0] for trace in traces))
+        queued, chunked = traces[0], traces[-1]
+        queued_controls = [row for row in queued[1] if row[1] == 1 and row[2] == 'NEXTCONTROL']
+        chunked_controls = [row for row in chunked[1] if row[1] == 1 and row[2] == 'NEXTCONTROL']
+        self.assertEqual(sum(row[4]['read_attempted'] for row in chunked_controls) -
+                         sum(row[4]['read_attempted'] for row in queued_controls), 12)
+        self.assertEqual(sum(row[4]['guard_attempted'] for row in chunked_controls) -
+                         sum(row[4]['guard_attempted'] for row in queued_controls), 60)
+        self.assertLess(queued[2], chunked[2])
+
     def test_actual_first_flow_durable_ack_and_private_owner_confirmation(self):
         f = self.fixture()
         seen_refs = []
         def inspect(prompt):
             if prompt.kind == 'fingerprint_local':
-                self.assertEqual(prompt.references, (('A', EXPECTED_A), ('B', EXPECTED_B)))
+                self.assertEqual(prompt.references, ((prompt.roles[0], EXPECTED_A if prompt.roles == ('A',) else EXPECTED_B),))
             elif prompt.kind == 'fingerprint':
                 other = 'B' if prompt.roles == ('A',) else 'A'
                 self.assertEqual(prompt.references, ((other, EXPECTED_B if other == 'B' else EXPECTED_A),))
@@ -794,7 +854,7 @@ class OperatorTests(unittest.TestCase):
         for index, row in enumerate(f.world.events):
             if row[0] == 'wire' and row[3] in ('FINISH', 'NEXTCONTROL'):
                 expected_kind = 'fingerprint' if row[3] == 'FINISH' else 'transcript'
-                self.assertTrue(any(prev[0] == 'record' and prev[1].get('schema') == 'OT-CANDIDATE-ACK-1'
+                self.assertTrue(any(prev[0] == 'record' and prev[1].get('schema') == 'OT-CANDIDATE-DEVICE-CONFIRMED-1'
                     and prev[1].get('kind') == expected_kind for prev in f.world.events[:index]))
         self.assertEqual(seen_refs, [True, True, True, False])
         self.assertNotIn(EXPECTED_A[0], repr(f.world.events))
@@ -806,6 +866,75 @@ class OperatorTests(unittest.TestCase):
         self.assertEqual(ack.kind, 'usual_screen')
         self.assertEqual(len(f.world.commands()), wire_count)
         self.assertEqual(f.view.shows[-1][0], 'usual_screen')
+
+    def test_checkpoint_instructions_distinguish_comparison_gesture_and_computer_click(self):
+        f = self.fixture()
+        prompts = []
+        f.view.on_show = prompts.append
+        f.activate()
+        self.assertEqual(f.run().outcome, 'passed')
+        self.assertEqual([p.kind for p in prompts],
+                         ['fingerprint_local', 'fingerprint', 'fingerprint', 'transcript'])
+        own, peer_a, peer_b, code = prompts
+        self.assertIn('all four MY ID rows', own.instructions[0])
+        self.assertEqual(own.references, (('A', EXPECTED_A),))
+        for p in prompts:
+            self.assertTrue(p.device_only)
+            self.assertIn('Button 1 (top button) about 2 seconds', p.instructions[2])
+            self.assertNotIn('computer confirmation', ' '.join(p.instructions))
+            self.assertIn('Cancel refuses', ' '.join(p.instructions))
+        for p, other_rows in ((peer_a, EXPECTED_B), (peer_b, EXPECTED_A)):
+            self.assertIn('all four PEER ID rows', p.instructions[0])
+            self.assertEqual(p.references[0][1], other_rows)
+        self.assertIn('COMPLETE code', code.instructions[0])
+        f.utc.value = 201
+        f.instance.confirm_original(220)
+        restored = prompts[-1]
+        self.assertEqual(restored.kind, 'usual_screen')
+        self.assertIn('BOTH devices', restored.instructions[0])
+        self.assertIn('computer confirmation', restored.instructions[1])
+        for p in prompts:
+            self.assertNotIn('BOOT', ' '.join(p.instructions))
+            self.assertTrue('Otherwise cancel.' in ' '.join(p.instructions) or 'Cancel refuses' in ' '.join(p.instructions))
+
+    def test_role_labels_are_explicit_bounded_presentation_and_preserved_for_cleanup(self):
+        f = self.fixture()
+        labels = {'A': 'Trail Bench', 'B': 'Trail Bench 2'}
+        f.instance.human.role_labels = dict(labels)
+        prompts = []
+        f.view.on_show = prompts.append
+        f.activate()
+        self.assertEqual(f.run().outcome, 'passed')
+        own, peer_a, peer_b, code = prompts
+        for p in (own, peer_a, peer_b, code):
+            self.assertIn(('A (Trail Bench)' if p.roles == ('A',) else 'B (Trail Bench 2)'), ' '.join(p.instructions))
+            self.assertLessEqual(len(p.instructions), 4)
+            self.assertTrue(all(len(step) <= 256 and step.isascii() for step in p.instructions))
+            self.assertNotIn('release Button 1, hold', ' '.join(p.instructions))
+            import enrollment_candidate_private_view as private
+            self.assertLessEqual(len(private._prompt_text(p).split('\r\n')), 25)
+        self.assertEqual(own.references, (('A', EXPECTED_A),))
+        restored = []
+        def cleanup_view():
+            view = PrivateView(f.world)
+            view.on_show = restored.append
+            return view
+        f.instance._cleanup_view_factory = cleanup_view
+        f.utc.value = 201
+        f.instance.confirm_original(220)
+        self.assertIn('A (Trail Bench)', restored[0].instructions[0])
+        self.assertIn('B (Trail Bench 2)', restored[0].instructions[0])
+        view = PrivateView()
+        ui = operator.CheckpointUI(references(), view, group=17, role_labels=labels)
+        labels['A'] = 'changed after construction'
+        self.assertEqual(ui.role_labels['A'], 'Trail Bench')
+        generic = operator.CheckpointUI(references(), view, group=17)
+        self.assertEqual(generic.role_labels, {'A': 'A', 'B': 'B'})
+        for invalid in ({'A': 'Trail Bench'}, {'A': 'same', 'B': 'same'},
+                        {'A': 'x' * 25, 'B': 'B'}, {'A': 'bad\nlabel', 'B': 'B'},
+                        {'A': ' A', 'B': 'B'}):
+            with self.assertRaisesRegex(operator.OperatorError, '^checkpoint_invalid$'):
+                operator.CheckpointUI(references(), view, group=17, role_labels=invalid)
 
     def test_ack_record_failure_and_absent_target_gesture_do_not_pass(self):
         for fault in ('record', 'gesture'):
@@ -823,8 +952,25 @@ class OperatorTests(unittest.TestCase):
                     self.assertNotIn('FINISH', f.world.commands())
                     self.assertEqual(result.first_failure[1], 'record_failed')
                 else:
-                    self.assertEqual(f.world.commands().count('FINISH'), 1)
+                    self.assertEqual(f.world.commands().count('FINISH'), 0)
                 self.assertTrue(f.instance.assert_idle())
+
+    def test_button_instruction_is_published_only_after_scoped_ready(self):
+        clock=target_fixture.Clock();view=PrivateView();prompts=[]
+        view.on_show=prompts.append
+        original=view.update
+        def update(p):prompts.append(p);return original(p)
+        view.update=update
+        token='1'*32
+        def state(status,gesture):return wire.ReviewState(token,'1','LOCAL',1,2,status,gesture)
+        observations=iter(((state('WAITING','READY'),),(state('WAITING','PRESSING'),),(state('CONFIRMED','ACCEPTED'),wire.ReviewState(token,'2','LOCAL',1,2,'CONFIRMED','ACCEPTED'))))
+        ui=operator.CheckpointUI(references(),view,group=17,monotonic=clock,wait=lambda seconds:None)
+        checkpoint=dict(schema='OT-CANDIDATE-DEVICE-CHECKPOINT-1',kind='fingerprint_local',roles=ROLES,token=token,deadline=100,initial=(state('WAITING','WAIT_RELEASE'),))
+        result=ui(checkpoint,lambda:next(observations))
+        self.assertTrue(result['device_confirmed']);self.assertNotIn('2 seconds',prompts[0].instructions[2])
+        self.assertIn('release Button 1',prompts[0].instructions[2]);self.assertIn('hold Button 1',prompts[1].instructions[2])
+        self.assertIn('keep Button 1 held',prompts[2].instructions[2]);self.assertTrue(all(p.device_only for p in prompts))
+        self.assertEqual(view.closes,1)
 
     def test_actual_lease_exact_handle_and_no_reset_open_configuration(self):
         f = self.fixture()
@@ -1250,6 +1396,233 @@ class OperatorTests(unittest.TestCase):
                 self.assertEqual(len(f.world.commands()), count)
                 self.assertFalse(any(row[0] == 'record' and row[1].get('schema') == 'OT-CANDIDATE-ACK-1'
                     and row[1].get('kind') == 'usual_screen' for row in f.world.events))
+
+
+class FreshCleanupTests(unittest.TestCase):
+    fixture = OperatorTests.fixture
+    # Concrete controller/parser/passive/lease with synthetic human inputs.
+    # These are computer-only observations, never device/display acceptance.
+    def failed_trial(self, fault='expired'):
+        f = self.fixture()
+        f.activate()
+        fresh = PrivateView(f.world)
+        calls = []
+        def factory():
+            calls.append('fresh')
+            return fresh
+        f.instance._cleanup_view_factory = factory
+        if fault in ('expired', 'uncertain_clear'):
+            if fault == 'uncertain_clear': f.view.close_fault = 'false'
+            def expired(prompt):
+                f.world.clock.value = prompt.deadline
+            f.view.on_show = expired
+        elif fault == 'cancel':
+            f.view.ack_fault = 'raw_true'
+        result = f.run()
+        self.assertEqual(result.outcome, 'failed')
+        self.assertTrue(f.instance.human.failed)
+        self.assertFalse(f.instance.human.active)
+        self.assertTrue(f.instance.assert_idle())
+        f.utc.value = 201
+        return f, fresh, calls, result
+
+    def screen_acks(self, f):
+        return [row[1] for row in f.world.events if row[0] == 'record'
+            and row[1].get('schema') == 'OT-CANDIDATE-ACK-1'
+            and row[1].get('kind') == 'usual_screen']
+
+    def test_expired_enrollment_gets_fresh_final_checkpoint_and_explicit_ack(self):
+        f, fresh, calls, result = self.failed_trial()
+        self.assertEqual(result.first_failure, ('fingerprint_local_AB', 'deadline_expired'))
+        commands, runtime_calls = list(f.world.commands()), list(f.runtime.calls)
+        def inspect(prompt):
+            recorded = [row[1] for row in f.world.events if row[0] == 'record'
+                and row[1].get('schema') == 'OT-CANDIDATE-CHECKPOINT-1'
+                and row[1].get('kind') == 'usual_screen']
+            self.assertEqual(recorded[-1]['token'], prompt.token)
+            self.assertEqual(self.screen_acks(f), [])
+            self.assertEqual(f.instance.cleanup_human.references._keys, {})
+            self.assertLessEqual(prompt.deadline, f.instance.passive.budget.restore)
+        fresh.on_show = inspect
+        ack = f.instance.confirm_original(999)
+        self.assertEqual(ack.kind, 'usual_screen')
+        self.assertEqual(calls, ['fresh'])
+        self.assertEqual([row[0] for row in fresh.shows], ['usual_screen'])
+        self.assertEqual([row[0] for row in f.view.shows], ['fingerprint_local'])
+        self.assertTrue(f.instance.human.failed)
+        self.assertEqual(f.world.commands(), commands)
+        self.assertEqual(f.runtime.calls, runtime_calls)
+        self.assertEqual(f.world.restart_count, 0)
+        self.assertEqual(len(self.screen_acks(f)), 1)
+        self.assertNotEqual(ack.token, next(row[1]['token'] for row in f.world.events
+            if row[0] == 'record' and row[1].get('schema') == 'OT-CANDIDATE-DEVICE-CHECKPOINT-1'))
+        with self.assertRaises(operator.OperatorError):
+            f.instance.confirm_original(999)
+        self.assertEqual(calls, ['fresh'])
+
+    def test_rejected_enrollment_fresh_final_ack_preserves_failed_original(self):
+        f, fresh, calls, result = self.failed_trial('cancel')
+        self.assertEqual(result.first_failure, ('fingerprint_local_AB', 'device_confirmation_source'))
+        self.assertEqual(f.instance.confirm_original(999).kind, 'usual_screen')
+        self.assertTrue(f.instance.human.failed)
+        self.assertEqual(len(self.screen_acks(f)), 1)
+
+    def test_cleanup_factory_requires_verified_original_clear_idle_and_live_budget(self):
+        for fault in ('unverified', 'close_false', 'close_raise', 'active', 'running',
+                      'probing', 'controller_busy', 'passive_busy', 'lease_busy', 'expired'):
+            with self.subTest(fault=fault):
+                f, fresh, calls, _ = self.failed_trial('uncertain_clear' if fault == 'unverified' else 'expired')
+                patches = []
+                if fault == 'unverified':
+                    self.assertFalse(f.instance.human.clear_verified)
+                    f.view.close_fault = None
+                elif fault == 'close_false': f.view.close_fault = 'false'
+                elif fault == 'close_raise': f.view.close_fault = 'raise'
+                elif fault == 'active': f.instance.human.active = True
+                elif fault == 'running': f.instance.controller.running = True
+                elif fault == 'probing': f.instance._probing = True
+                elif fault == 'controller_busy': patches.append(patch.object(f.instance.controller, 'assert_idle', return_value=False))
+                elif fault == 'passive_busy': patches.append(patch.object(f.instance.passive, 'assert_idle', return_value=False))
+                elif fault == 'lease_busy': patches.append(patch.object(f.lease, 'assert_idle', return_value=False))
+                elif fault == 'expired': f.world.clock.value = f.instance.passive.budget.restore
+                commands = list(f.world.commands())
+                for ctx in patches: ctx.start(); self.addCleanup(ctx.stop)
+                with self.assertRaises((operator.OperatorError, core.ControllerError)):
+                    f.instance.confirm_original(999)
+                for ctx in patches: ctx.stop()
+                self.assertEqual(calls, [])
+                self.assertEqual(fresh.shows, [])
+                self.assertEqual(self.screen_acks(f), [])
+                self.assertEqual(f.world.commands(), commands)
+                f.instance.human.active = f.instance.controller.running = f.instance._probing = False
+
+    def test_fresh_final_checkpoint_invalid_ack_expiry_and_uncertain_clear_refuse(self):
+        for fault in ('wrong_token', 'stale_token', 'cancel', 'timeout', 'late_clear', 'close_false', 'close_raise'):
+            with self.subTest(fault=fault):
+                f, fresh, calls, _ = self.failed_trial()
+                if fault == 'wrong_token': fresh.ack_fault = 'wrong_token'
+                elif fault == 'stale_token':
+                    stale = next(row[1]['token'] for row in f.world.events if row[0] == 'record'
+                        and row[1].get('schema') == 'OT-CANDIDATE-DEVICE-CHECKPOINT-1')
+                    fresh.poll = lambda: core.CheckpointAck('OT-CANDIDATE-ACK-1',
+                        'usual_screen', ROLES, stale)
+                elif fault == 'cancel': fresh.ack_fault = 'raw_true'
+                elif fault == 'timeout':
+                    fresh.no_ack = 'usual_screen'
+                    fresh.on_show = lambda prompt: setattr(f.world.clock, 'value', prompt.deadline)
+                elif fault == 'late_clear': fresh.close_advance = f.instance.passive.budget.restore
+                elif fault == 'close_false': fresh.close_fault = 'false'
+                elif fault == 'close_raise': fresh.close_fault = 'raise'
+                commands = list(f.world.commands())
+                with self.assertRaises((operator.OperatorError, core.ControllerError)):
+                    f.instance.confirm_original(999)
+                self.assertEqual(self.screen_acks(f), [])
+                self.assertEqual(f.world.commands(), commands)
+                with self.assertRaises((operator.OperatorError, core.ControllerError)):
+                    f.instance.confirm_original(999)
+                self.assertEqual(calls, ['fresh'])
+                if fault.startswith('close_'):
+                    self.assertFalse(f.instance.close())
+                    self.assertEqual(fresh.closes, 1)
+
+    def test_cleanup_factory_reentry_identity_and_late_construction_refuse(self):
+        for fault in ('same_view', 'raise', 'reentry', 'expired'):
+            with self.subTest(fault=fault):
+                f, fresh, calls, _ = self.failed_trial()
+                def factory():
+                    calls.append('fresh')
+                    if fault == 'same_view': return f.view
+                    if fault == 'raise': raise RuntimeError('private callback detail')
+                    if fault == 'reentry': return f.instance.confirm_original(999)
+                    f.world.clock.value = f.instance.passive.budget.restore
+                    return fresh
+                f.instance._cleanup_view_factory = factory
+                with self.assertRaises((operator.OperatorError, core.ControllerError)):
+                    f.instance.confirm_original(999)
+                self.assertEqual(calls, ['fresh'])
+                self.assertEqual(fresh.shows, [])
+                self.assertEqual(self.screen_acks(f), [])
+                if fault == 'expired': self.assertEqual(fresh.closes, 1)
+
+    def test_no_factory_preserves_terminal_refusal(self):
+        f, fresh, calls, _ = self.failed_trial()
+        f.instance._cleanup_view_factory = None
+        with self.assertRaisesRegex(operator.OperatorError, 'checkpoint_reentry'):
+            f.instance.confirm_original(999)
+        self.assertEqual(calls, [])
+        self.assertEqual(self.screen_acks(f), [])
+
+
+class FinalWrapperTests(unittest.TestCase):
+    def test_final_wrapper_preserves_invalid_owner_clock_without_stale_allowance(self):
+        from types import SimpleNamespace
+        clock = operator.Clock(lambda: .5); clock.last = 1.0
+        owner = SimpleNamespace(request={'case': 'first'}, clock=clock,
+            monotonic=lambda: .5, observation_clock=lambda: 1,
+            check=lambda deadline: clock.check(deadline))
+        endpoint = operator.PassiveEndpoint(SimpleNamespace(is_open=True), lambda: True,
+            owner, None, 'A', 1)
+        with self.assertRaisesRegex(operator.ControllerError, '^host_clock_invalid$'):
+            endpoint.exchange('COMMIT', 10)
+        row = endpoint.final_query_observation
+        self.assertEqual((row['boundary'], row['diagnostic_failure']), ('owner_check', 'authority_sample_invalid'))
+        self.assertIsNone(row['sampled_remaining_ns'])
+        self.assertIsNone(row['transport'])
+        endpoint.final_query_observation = dict(transport='PRIVATE-PRIOR-QUERY')
+        endpoint._observing = True
+        with self.assertRaisesRegex(operator.ClientError, '^client_busy$'):
+            endpoint.exchange('READY', 10)
+        self.assertIsNone(endpoint.final_query_observation)
+
+    def test_final_instrumentation_has_identical_authority_guard_and_sdk_trace(self):
+        traces = []
+        for observed in (False, True):
+            f = Fixture(); self.addCleanup(f.cleanup); f.activate()
+            trace, active = [], []
+            final = operator.PassiveEndpoint._final_exchange
+            count = operator.Endpoint._query_count
+            clock_type, tick = type(f.world.clock), type(f.world.clock).__call__
+            def clock(this):
+                if active: trace.append(('authority_clock',))
+                return tick(this)
+            def counted(endpoint, key, amount=1):
+                if active: trace.append((key, amount))
+                return count(endpoint, key, amount)
+            def exchange(endpoint, command, deadline):
+                active.append(True)
+                try:
+                    return final(endpoint, command, deadline) if observed else endpoint._exchange(command, deadline, None)
+                finally: active.pop()
+            with patch.object(clock_type, '__call__', clock), \
+                    patch.object(operator.Endpoint, '_query_count', counted), \
+                    patch.object(operator.PassiveEndpoint, '_final_exchange', exchange):
+                self.assertEqual(f.run().outcome, 'passed')
+            traces.append(trace)
+        self.assertEqual(traces[0], traces[1])
+        self.assertEqual(sum(row == ('write_attempted', 1) for row in traces[1]), 4)
+
+    def test_final_observer_reentry_cannot_close_or_send_an_extra_command(self):
+        for refusal in (False, True):
+            with self.subTest(refusal=refusal):
+                f = Fixture(); self.addCleanup(f.cleanup); f.activate()
+                if refusal: f.world.faults[('B', 1, 'COMMIT')] = 'refused'
+                finish = operator._QueryObservation.finish
+                rejected = []
+                def reentered(observation):
+                    if observation.row['phase'] == 'commit' and observation.row['role'] == 'B':
+                        endpoint = f.instance.controller.endpoints['B']
+                        for operation in (endpoint.close, lambda: endpoint.exchange('READY', 100)):
+                            with self.assertRaisesRegex(operator.ClientError, '^client_busy$'):
+                                operation()
+                            rejected.append(True)
+                    return finish(observation)
+                with patch.object(operator._QueryObservation, 'finish', reentered): result = f.run()
+                self.assertEqual(result.first_failure, ('commit_B', 'target_refused' if refusal else 'client_busy'))
+                self.assertEqual(len(rejected), 2)
+                self.assertNotIn('READY', f.world.commands())
+                self.assertTrue(result.handles_closed)
+                row = f.instance.controller.final_observations[-1]['query']
+                self.assertEqual(row['diagnostic_failure'], 'observer_reentry')
 
 
 if __name__ == '__main__':

@@ -717,6 +717,25 @@ class CaptureROMAdapterTests(unittest.TestCase):
             self.assertEqual(f.sdk.trace, [])
             self.assertEqual(f.sdk.calls, 0)
 
+    def test_cleanup_envelopes_cannot_enter_candidate_paths_or_omit_original_pins(self):
+        for mode in ('normal', 'restore-only'):
+            for operation in ('guard', 'reset_original', 'release_snapshot'):
+                f=self.fixture()
+                query={'schema':'OT-CANDIDATE-ROM-WORKER-1','deadline':100,
+                    'identity':'123456789abc','operation':operation,'mode':mode,
+                    'originals':f.request['roles']['A']['originals'],
+                    'candidate':{k:adapter.descriptor(v) for k,v in f.backend._candidate.items()},
+                    'release_nvs':adapter.descriptor(f.originals['nvs'])}
+                with self.subTest(mode=mode,operation=operation),self.assertRaises(WorkerError):
+                    execute_request(query,f.sdk.rom,f.sdk,f.sdk.comports,f.clock,loader=f.sdk.loader,reset=f.sdk.reset)
+                self.assertEqual(f.sdk.calls,0);self.assertEqual(f.sdk.trace,[])
+        for operation in ('release_snapshot','reset_original'):
+            f=self.fixture()
+            query=f.capture_q(operation,release_nvs=adapter.descriptor(f.originals['nvs'])) if operation=='reset_original' else f.capture_q(operation)
+            with self.assertRaises(WorkerError):
+                execute_request(query,f.sdk.rom,f.sdk,f.sdk.comports,f.clock,loader=f.sdk.loader,reset=f.sdk.reset)
+            self.assertEqual(f.sdk.calls,0)
+
     def test_actual_capture_worker_reads_unknown_exact_six_spans_and_guards_original(self):
         f = self.fixture()
         for name in adapter.SPANS:

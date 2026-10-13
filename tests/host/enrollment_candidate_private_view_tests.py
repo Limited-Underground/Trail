@@ -68,6 +68,7 @@ class NativeAPI:
         self.trace, self.windows, self.messages = [], {}, []
         self.next_handle, self.last_error, self.affinity = 100, 0, 0
         self.callback_value, self.fail, self.create_count = None, None, 0
+        self.desktop_ready, self.minimized = True, False
         self.c = SimpleNamespace(byref=lambda value: value,
             set_last_error=lambda value: setattr(self, 'last_error', value),
             get_last_error=lambda: self.last_error,
@@ -86,9 +87,11 @@ class NativeAPI:
             GetWindowTextW=self.get_text, DestroyWindow=self.destroy,
             IsWindow=lambda h: h in self.windows and self.windows[h]['alive'],
             IsWindowVisible=lambda h: self.windows[h]['visible'],
+            IsIconic=lambda h: self.minimized,
             ShowWindow=self.show, SendMessageW=lambda *args: 0,
             DefWindowProcW=lambda *args: 77, PeekMessageW=self.peek,
             TranslateMessage=lambda message: True, DispatchMessageW=self.dispatch)
+    def input_desktop_ready(self): return self.desktop_ready
     def register(self, klass):
         self.callback_value = klass.procedure; self.trace.append('register'); return 1
     def unregister(self, *args):
@@ -139,6 +142,79 @@ class NativeAPI:
 
 
 class PrivateViewTests(unittest.TestCase):
+    def test_non_input_desktop_is_refused_before_any_native_window(self):
+        api = NativeAPI(); api.desktop_ready = False
+        backend = private._Win32Backend(api_factory=lambda: api)
+        with self.assertRaisesRegex(private.ViewError, '^native_view_desktop_unavailable$'):
+            backend.open('TEST ONLY')
+        self.assertEqual(api.create_count, 0)
+        self.assertNotIn('register', api.trace)
+        self.assertTrue(backend.clear())
+
+    def test_desktop_loss_refuses_poll_before_and_after_message_dispatch(self):
+        for boundary in ('entry', 'return'):
+            api = NativeAPI(); backend = private._Win32Backend(api_factory=lambda: api)
+            backend.open('TEST ONLY')
+            api.messages.append((backend._window, 0x111, 1001, backend._confirm))
+            ready = iter([False] if boundary == 'entry' else [True, False])
+            api.input_desktop_ready = lambda: next(ready)
+            with self.subTest(boundary=boundary), self.assertRaisesRegex(private.ViewError,
+                    '^native_view_desktop_unavailable$'):
+                backend.poll()
+            self.assertTrue(backend.clear())
+            self.assertTrue(all(not row['alive'] for row in api.windows.values()))
+
+    def test_native_desktop_queries_close_only_owned_handle_and_fail_closed(self):
+        for fault in (None, 'session-read', 'session-mismatch', 'no-console',
+                      'station', 'thread', 'input', 'read', 'input-read', 'close', 'raise', 'input-raise'):
+            calls, names = [], {11: 'WinSta0', 12: 'Default', 13: 'Default'}
+            if fault == 'station': names[11] = 'ServiceStation'
+            if fault == 'thread': names[12] = 'NotInput'
+            def read(handle, index, buffer, size, needed):
+                self.assertEqual(index, 2)
+                if fault == 'raise' or fault == 'input-raise' and handle == 13:
+                    raise OSError('native detail must not escape')
+                if fault == 'read' or fault == 'input-read' and handle == 13: return False
+                buffer.value = names[handle]; return True
+            def close(handle):
+                calls.append(handle); return fault != 'close'
+            api = object.__new__(private._Win32Api)
+            api.c = SimpleNamespace(create_unicode_buffer=lambda size: SimpleNamespace(value=''),
+                byref=lambda value: value, sizeof=lambda value: 512)
+            api.w = SimpleNamespace(DWORD=lambda: SimpleNamespace(value=0))
+            def session_id(pid, value):
+                value.value = 7; return fault != 'session-read'
+            api.kernel = SimpleNamespace(GetCurrentThreadId=lambda: 99, GetCurrentProcessId=lambda: 88,
+                ProcessIdToSessionId=session_id,
+                WTSGetActiveConsoleSessionId=lambda: 0xffffffff if fault == 'no-console' else 8 if fault == 'session-mismatch' else 7)
+            api.user = SimpleNamespace(GetProcessWindowStation=lambda: 11,
+                GetThreadDesktop=lambda ident: 12, OpenInputDesktop=lambda *args: 0 if fault == 'input' else 13,
+                GetUserObjectInformationW=read, CloseDesktop=close)
+            with self.subTest(fault=fault):
+                self.assertEqual(api.input_desktop_ready(), fault is None)
+                self.assertEqual(calls, [] if fault in ('read', 'raise', 'input', 'session-read',
+                    'session-mismatch', 'no-console') else [13])
+
+    def test_hidden_or_minimized_native_window_refuses_events_before_and_after_pump(self):
+        for fault in ('hidden', 'minimized'):
+            for boundary in ('entry', 'return'):
+                api = NativeAPI(); backend = private._Win32Backend(api_factory=lambda: api)
+                backend.open('TEST ONLY')
+                def hide():
+                    if fault == 'hidden': api.windows[backend._window]['visible'] = False
+                    else: api.minimized = True
+                api.messages.append((backend._window, 0x111, 1001, backend._confirm))
+                if boundary == 'entry': hide()
+                else:
+                    dispatch = api.user.DispatchMessageW
+                    def lose(message):
+                        result = dispatch(message); hide(); return result
+                    api.user.DispatchMessageW = lose
+                with self.subTest(fault=fault, boundary=boundary), self.assertRaisesRegex(private.ViewError,
+                        '^native_view_lost$'):
+                    backend.poll()
+                self.assertTrue(backend.clear())
+
     def fixture(self):
         clock, made = Clock(), []
         def factory():
@@ -193,6 +269,52 @@ class PrivateViewTests(unittest.TestCase):
             with self.subTest(change=tuple(change)), self.assertRaises(private.ViewError): view.show(replace(p, **change))
             self.assertEqual(made, [])
             self.assertTrue(view.close())
+
+    def test_native_confirmation_labels_and_numbered_instructions_keep_private_references(self):
+        expected = {
+            'fingerprint_local': 'MY ID matches \u2014 continue',
+            'fingerprint': 'Button 1 pressed \u2014 continue',
+            'transcript': 'Both Button 1 presses done \u2014 continue',
+            'reset_gesture': 'Reset gesture done \u2014 continue',
+            'usual_screen': 'Usual screens confirmed \u2014 continue',
+        }
+        for kind, caption in expected.items():
+            with self.subTest(kind=kind):
+                p = replace(prompt(kind), instructions=('Compare displayed values.', 'Then confirm your observation.'))
+                text = private._prompt_text(p)
+                self.assertIn('1. Compare displayed values.', text)
+                self.assertIn('2. Then confirm your observation.', text)
+                for role, rows in p.references:
+                    self.assertLess(text.index('2. Then'), text.index('Device ' + role + ' saved OWN reference:'))
+                    self.assertTrue(all(row in text for row in rows))
+                api = NativeAPI()
+                backend = private._Win32Backend(api_factory=lambda: api)
+                self.assertTrue(backend.open(text))
+                self.assertEqual(api.windows[backend._confirm]['text'], caption)
+                self.assertIsNone(backend.poll())  # A label cannot produce an ACK.
+                self.assertTrue(backend.clear())
+
+    def test_excessive_wrapped_lines_refuse_before_backend_open(self):
+        view, clock, made = self.fixture()
+        p = replace(prompt('fingerprint_local'), instructions=('x ' * 128,) * 4)
+        with self.assertRaises(private.ViewError):
+            view.show(p)
+        self.assertEqual(made, [])
+
+    def test_neutral_native_format_is_clearly_test_only_and_requires_explicit_click(self):
+        for kind, caption in (('TEST_WORD', 'Word sent - continue'),
+                              ('TEST_COMPARE', 'Difference sent - continue')):
+            text = ('TEST ONLY - no device action\r\n\r\nCheckpoint: ' + kind
+                    + '\r\nNo devices, grants or enrollment authority.\r\n'
+                    + '1. Read the example.\r\n2. Type the answer in chat.\r\n'
+                    + '3. Click continue.\r\nEXAMPLE ONLY: 0123456789ABCDEF')
+            api = NativeAPI()
+            backend = private._Win32Backend(api_factory=lambda: api)
+            self.assertTrue(backend.open(text))
+            self.assertEqual(api.windows[backend._window]['text'], 'TEST ONLY - no device action')
+            self.assertEqual(api.windows[backend._confirm]['text'], caption)
+            self.assertIsNone(backend.poll())
+            self.assertTrue(backend.clear())
 
     def test_cancel_bad_event_deadline_and_clock_rollback_never_ack(self):
         for fault in ('cancel', 'bad-event', 'poll-error', 'expired', 'late-confirm', 'rollback'):
@@ -318,6 +440,59 @@ class PrivateViewTests(unittest.TestCase):
                 if fault == 'font-delete':
                     self.assertIn(native, private._LIVE_NATIVE)
                     self.assertIsNotNone(native._font)
+
+
+class DeviceAndRestorationTests(unittest.TestCase):
+    def test_native_device_window_has_only_cancel_and_updates_same_scope(self):
+        api=NativeAPI();clock=Clock();native=private._Win32Backend(api_factory=lambda:api)
+        view=private.WindowsPrivateView(backend_factory=lambda:native,monotonic=clock)
+        p=replace(prompt('fingerprint_local'),roles=('A',),references=(('A',prior.EXPECTED_A),),device_only=True)
+        self.assertTrue(view.show(p));self.assertIsNone(native._confirm)
+        self.assertEqual(api.create_count,3) # window, text, Cancel; no Continue
+        self.assertIsNone(view.poll())
+        self.assertTrue(view.update(replace(p,roles=('B',),references=(('B',prior.EXPECTED_B),))))
+        self.assertIsNone(view.poll());self.assertTrue(view.close())
+        self.assertTrue(all(not x['text'] for x in api.windows.values()))
+    def test_computer_confirm_event_cannot_create_a_device_ack(self):
+        clock=Clock();backend=Backend(clock);view=private.WindowsPrivateView(backend_factory=lambda:backend,monotonic=clock)
+        p=replace(prompt('transcript'),roles=('A',),device_only=True)
+        view.show(p);backend.events.append('confirm')
+        with self.assertRaises(private.ViewError):view.poll()
+        self.assertIsNone(view._point)
+    def reply_fixture(self):
+        import tempfile,json
+        temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup);clock=Clock();now=[100.0]
+        view=private.OriginalScreenReplyView(temp.name,attempt='1'*32,request_sha256='2'*64,grant_sha256='3'*64,monotonic=clock,utc=lambda:now[0])
+        p=prompt('usual_screen');self.assertTrue(view.show(p));request=json.loads(view.request_path.read_text())
+        reply={k:request[k] for k in ('attempt','request_sha256','grant_sha256','roles','token_sha256')}
+        reply.update(prompt_sha256=__import__('hashlib').sha256(view.request_path.read_bytes()).hexdigest(),schema='OT-ORIGINAL-SCREEN-REPLY-1',source='fresh_human_chat_reply',received_utc=100.0,both_original_screens_observed=True)
+        return view,clock,now,reply
+    def test_original_reply_is_inert_then_exact_fresh_owner_statement(self):
+        import json
+        view,clock,now,reply=self.reply_fixture();self.assertIsNone(view.poll());self.assertFalse(view.reply_path.exists())
+        view.reply_path.write_text(json.dumps(reply));ack=view.poll();self.assertIs(type(ack),core.CheckpointAck);self.assertEqual(ack.kind,'usual_screen')
+        self.assertIsNone(view.poll());self.assertTrue(view.close())
+    def test_wrong_binding_stale_inferred_missing_or_expired_reply_is_terminal(self):
+        import json
+        for field,bad in (('prompt_sha256','4'*64),('attempt','4'*32),('request_sha256','4'*64),('grant_sha256','4'*64),('token_sha256','4'*64),('source','inferred_reply'),('received_utc',99.0),('received_utc',101.0),('both_original_screens_observed',False),('roles',['A'])):
+            with self.subTest(field=field,bad=bad):
+                view,clock,now,reply=self.reply_fixture();reply[field]=bad;view.reply_path.write_text(json.dumps(reply))
+                with self.assertRaises(private.ViewError):view.poll()
+                with self.assertRaises(private.ViewError):view.poll()
+        view,clock,now,reply=self.reply_fixture();clock.value=100.0
+        with self.assertRaises(core.ControllerError):view.poll()
+    def test_changed_original_prompt_cannot_accept_a_bound_reply(self):
+        import json
+        view,clock,now,reply=self.reply_fixture();view.request_path.write_bytes(view.request_path.read_bytes()+b' ')
+        view.reply_path.write_text(json.dumps(reply))
+        with self.assertRaises(private.ViewError):view.poll()
+
+    def test_preexisting_original_reply_is_not_current_observation(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            view=private.OriginalScreenReplyView(folder,attempt='1'*32,request_sha256='2'*64,grant_sha256='3'*64,monotonic=Clock(),utc=lambda:100)
+            view.reply_path.write_text('{}')
+            with self.assertRaises(private.ViewError):view.show(prompt('usual_screen'))
 
 
 if __name__ == '__main__': unittest.main(verbosity=2)

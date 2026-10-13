@@ -23,6 +23,39 @@ struct Tokens {
         }
     }
 };
+bool review_token(std::string_view value,EnrollmentReviewToken& output) {
+    if(value.size()!=32)return false;
+    EnrollmentReviewToken staged{};
+    for(std::size_t i=0;i<staged.size();++i) {
+        const int a=usb::digit(value[2*i]),b=usb::digit(value[2*i+1]);
+        if(a<0 || b<0)return false;
+        staged[i]=static_cast<std::uint8_t>((a<<4)|b);
+    }
+    if(!invitation_detail::nonzero(staged))return false;
+    output=staged;return true;
+}
+bool review_state(const EnrollmentReviewState& state,CandidateRuntime::Output& output,std::size_t& size) {
+    char token[33]{};constexpr char digits[]="0123456789abcdef";
+    for(std::size_t i=0;i<state.token.size();++i){token[2*i]=digits[state.token[i]>>4];token[2*i+1]=digits[state.token[i]&15];}
+    constexpr const char* purposes[]={"LOCAL","PEER","CODE"};
+    constexpr const char* gestures[]={"WAIT_RELEASE","READY","PRESSING","ACCEPTED"};
+    const auto purpose=static_cast<unsigned>(state.purpose),gesture=static_cast<unsigned>(state.gesture);
+    const auto role=static_cast<unsigned>(state.role);
+    if(purpose>=3 || gesture>=4 || role<1 || role>2 || !state.generation || !state.revision ||
+        !invitation_detail::nonzero(state.token) || state.confirmed!=(state.gesture==EnrollmentReviewGesture::accepted))return false;
+    const int n=std::snprintf(output.data(),output.size(),"OTCAND1 REVIEWSTATE 1 %s %u %s %016llx %016llx %s %s\n",
+        token,static_cast<unsigned>(state.role),purposes[purpose],static_cast<unsigned long long>(state.generation),
+        static_cast<unsigned long long>(state.revision),state.confirmed?"CONFIRMED":"WAITING",gestures[gesture]);
+    if(n<=0 || static_cast<std::size_t>(n)>=output.size())return false;
+    size=static_cast<std::size_t>(n);return true;
+}
+bool review_refused(EnrollmentReviewRefusal reason,CandidateRuntime::Output& output,std::size_t& size) {
+    constexpr const char* reasons[]={"BAD_REQUEST","INACTIVE","TOKEN_MISMATCH","CONTEXT_CHANGED","DISPLAY_CHANGED","EXPIRED","GESTURE_INVALID","DEVICE_FAILURE"};
+    auto index=static_cast<unsigned>(reason);if(index>=8)index=7;
+    const int n=std::snprintf(output.data(),output.size(),"OTCAND1 REVIEWREFUSED 1 %s\n",reasons[index]);
+    if(n<=0 || static_cast<std::size_t>(n)>=output.size())return false;
+    size=static_cast<std::size_t>(n);return true;
+}
 }
 CandidateRuntime::CandidateRuntime(Display& display,Input& input,security::SecureRandomSource& random,
     CandidateNvsStorage& storage,companion::DeviceFactoryResetMarkerPort& marker,
@@ -120,6 +153,23 @@ bool CandidateRuntime::begin(unsigned mode,unsigned role,std::uint64_t group) {
 bool CandidateRuntime::text(Output& out,std::size_t& size,std::string_view value){if(value.size()>out.size())return false;std::copy(value.begin(),value.end(),out.begin());size=value.size();return true;}
 bool CandidateRuntime::execute(std::string_view line,Output& out,std::size_t& size) {
     Tokens t(line);if(t.size<2 || t.value[0]!="OTCAND1")return false;const auto name=t.value[1];
+    if(name=="REVIEWSTART" || name=="REVIEWPOLL") {
+        if(!session_){review_refusal_=EnrollmentReviewRefusal::inactive;return false;}
+        EnrollmentReviewToken token{};EnrollmentReviewState state{};
+        bool ok=false;
+        if(name=="REVIEWSTART" && t.size==4) {
+            const auto purpose=t.value[2]=="LOCAL"?EnrollmentReviewPurpose::local:
+                t.value[2]=="PEER"?EnrollmentReviewPurpose::peer:EnrollmentReviewPurpose::code;
+            if((t.value[2]!="LOCAL" && t.value[2]!="PEER" && t.value[2]!="CODE") || !review_token(t.value[3],token)) {
+                review_refusal_=EnrollmentReviewRefusal::bad_request;return false;
+            }
+            ok=session_->review_start(purpose,token,state);
+        } else if(name=="REVIEWPOLL" && t.size==3 && review_token(t.value[2],token))
+            ok=session_->review_poll(token,state);
+        else {review_refusal_=EnrollmentReviewRefusal::bad_request;return false;}
+        if(!ok){review_refusal_=session_->review_refusal();return false;}
+        return review_state(state,out,size);
+    }
     if(name=="HELLO" && t.size==2)return text(out,size,"OTCAND1 READY 1\n");
     if(name=="BOOTSTATUS" && t.size==2)return text(out,size,"OTCAND1 BOOTSTATUS 0\n");
     if(name=="RESETSTATUS" && t.size==2){const auto s=reset_.status();const int n=std::snprintf(out.data(),out.size(),"OTCAND1 RESETSTATUS %u %u\n",static_cast<unsigned>(s.phase),s.intent_verified?1U:0U);if(n<=0 || static_cast<std::size_t>(n)>=out.size())return false;size=static_cast<std::size_t>(n);return true;}
@@ -165,6 +215,9 @@ bool CandidateRuntime::execute(std::string_view line,Output& out,std::size_t& si
 }
 bool CandidateRuntime::command(std::string_view line,Output& out,std::size_t& size) {
     size=0;if(!enter())return false;
+    constexpr std::string_view start_prefix="OTCAND1 REVIEWSTART ",poll_prefix="OTCAND1 REVIEWPOLL ";
+    const bool review=line.substr(0,start_prefix.size())==start_prefix || line.substr(0,poll_prefix.size())==poll_prefix;
+    review_refusal_=EnrollmentReviewRefusal::device_failure;
     // Read-only reset status stays reachable after terminal containment. It
     // cannot clear intent, reopen admission, sample a stale clock or run cleanup.
     if((failed_ || reset_prepared_) && (line=="OTCAND1 RESETSTATUS" || line=="OTCAND1 BOOTSTATUS")) {
@@ -179,7 +232,7 @@ bool CandidateRuntime::command(std::string_view line,Output& out,std::size_t& si
     if(ok && request_.pending())ok=request_.observe(current(),1);
     if(reset_prepared_ && line!="OTCAND1 RESETSTATUS")ok=false;
     const bool accepted=finish(ok);
-    if(!accepted){(void)text(out,size,"OTCAND1 REFUSED\n");}return accepted;
+    if(!accepted){if(review)(void)review_refused(review_refusal_,out,size);else (void)text(out,size,"OTCAND1 REFUSED\n");}return accepted;
 }
 bool CandidateRuntime::receive(char byte,Output& out,std::size_t& size) {
     size=0;

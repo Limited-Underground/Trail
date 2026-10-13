@@ -38,6 +38,11 @@ VALUE_REPLIES = {'EXPORT': 'CANDIDATE', 'FINISH': 'OFFER',
 NO_ARGUMENTS = frozenset(('HELLO RESETSTATUS BOOTSTATUS CLOSE CANCEL REVOKE EXPORT FINISH '
     'RETAINBEGIN RECOVERBEGIN ARCHIVE MARK INVITE NEXTFRAME NEXTCONTROL '
     'SHOWPEER SHOWLOCAL POLL CONFIRM COMMIT READY').split())
+REVIEW_PURPOSES = frozenset(('LOCAL', 'PEER', 'CODE'))
+REVIEW_REFUSALS = frozenset(('BAD_REQUEST', 'INACTIVE', 'TOKEN_MISMATCH', 'CONTEXT_CHANGED',
+    'DISPLAY_CHANGED', 'EXPIRED', 'GESTURE_INVALID', 'DEVICE_FAILURE'))
+REVIEW_GESTURES = frozenset(('WAIT_RELEASE', 'READY', 'PRESSING', 'ACCEPTED'))
+REVIEW_FAILURE_CATEGORIES = frozenset('review_' + reason.lower() for reason in REVIEW_REFUSALS)
 
 QUERY_COUNTER_MAX = 0xffffffff
 QUERY_DURATION_MAX = 0x7fffffffffffffff
@@ -356,6 +361,10 @@ def command_bytes(command):
     elif verb == 'SENDSTATUS':
         require(len(args) == 1, 'invalid_command')
         decimal(args[0], 8, 1)
+    elif verb == 'REVIEWSTART':
+        require(len(args) == 2 and args[0] in REVIEW_PURPOSES and review_token(args[1]), 'invalid_command')
+    elif verb == 'REVIEWPOLL':
+        require(len(args) == 1 and review_token(args[0]), 'invalid_command')
     elif verb in HEX_ARGUMENTS:
         require(len(args) == 1, 'invalid_command')
         public_hex(args[0], HEX_ARGUMENTS[verb])
@@ -372,6 +381,38 @@ class Reply:
     values: tuple = field(repr=False)
 
 
+def review_token(value):
+    return type(value) is str and re.fullmatch('[0-9a-f]{32}', value) and value != '0' * 32
+
+
+@dataclass(frozen=True)
+class ReviewState:
+    token: str = field(repr=False)
+    role: str
+    purpose: str
+    generation: int
+    revision: int
+    state: str
+    gesture: str
+
+    @property
+    def scope(self):
+        return self.token, self.role, self.purpose, self.generation, self.revision
+
+
+def review_state(reply):
+    require(type(reply) is Reply and reply.kind == 'REVIEWSTATE' and len(reply.values) == 8,
+            'review_response_invalid')
+    require(all(type(value) is str for value in reply.values), 'review_response_invalid')
+    version, token, role, purpose, generation, revision, state, gesture = reply.values
+    require(version == '1' and review_token(token) and role in ('1', '2') and purpose in REVIEW_PURPOSES
+            and type(generation) is str and re.fullmatch('[0-9a-f]{16}', generation) and int(generation, 16) > 0
+            and type(revision) is str and re.fullmatch('[0-9a-f]{16}', revision) and int(revision, 16) > 0
+            and ((state == 'WAITING' and gesture in REVIEW_GESTURES - {'ACCEPTED'})
+                 or (state == 'CONFIRMED' and gesture == 'ACCEPTED')), 'review_response_invalid')
+    return ReviewState(token, role, purpose, int(generation, 16), int(revision, 16), state, gesture)
+
+
 def parse_reply(verb, line):
     require(type(line) is bytes and 0 < len(line) <= MAX_LINE_BYTES
             and all(32 <= c <= 126 for c in line), 'invalid_response')
@@ -379,6 +420,17 @@ def parse_reply(verb, line):
     parts = line.decode('ascii').split(' ')
     require(all(parts) and len(parts) >= 2, 'invalid_response')
     kind, values = parts[1], tuple(parts[2:])
+    if verb in ('REVIEWSTART', 'REVIEWPOLL'):
+        if kind == 'REVIEWREFUSED':
+            require(len(values) == 2 and values[0] == '1' and values[1] in REVIEW_REFUSALS,
+                    'review_response_invalid')
+            raise ClientError('review_' + values[1].lower())
+        if kind == 'REFUSED':
+            require(not values, 'invalid_response')
+            raise ClientError('target_refused')
+        parsed = Reply(kind, values)
+        review_state(parsed)
+        return parsed
     if kind == 'REFUSED':
         require(not values, 'invalid_response')
         raise ClientError('target_refused')
@@ -754,7 +806,7 @@ class Endpoint:
                 self._query_operation('read_timeout')
                 self.handle.timeout = min(.1, self._remaining(deadline))
                 available = self._available(deadline, inspect_refusal)
-                count = max(1, min(64, available))
+                count = max(1, min(MAX_LINE_BYTES, available))
                 self._admit(deadline, inspect_refusal, context='pre_read')
                 self._query_operation('read')
                 self._query_count('read_attempted')
@@ -787,7 +839,7 @@ class Endpoint:
                     try:
                         result = parse_reply(verb, complete)
                     except ClientError as error:
-                        if str(error) == 'target_refused':
+                        if str(error) == 'target_refused' or str(error) in REVIEW_FAILURE_CATEGORIES:
                             self._query['reply_refused'] = True
                         raise
                     self._query['reply_parsed'] = True
@@ -803,7 +855,7 @@ class Endpoint:
         except ClientError as error:
             self.failed = True
             if str(error) != 'lease_terminal':
-                self._refused = str(error) == 'target_refused'
+                self._refused = str(error) == 'target_refused' or str(error) in REVIEW_FAILURE_CATEGORIES
             raise
         except Exception:
             self.failed = True

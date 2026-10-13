@@ -86,6 +86,12 @@ class RuntimeTests(unittest.TestCase):
     def test_capture_launcher_has_distinct_entrypoint_schema_and_fixed_deadline_arguments(self):
         from enrollment_candidate_capture_runner_tests import Fixture
         f = Fixture(); self.addCleanup(f.cleanup)
+        # No transport runs here; freeze this synthetic clock so exact issued
+        # ceilings can be compared across launcher/preflight clock samples.
+        f.clock.step = 0
+        origin, issued_now = f.clock(), f.utc.value
+        capture_ceiling = origin + f.capture_grant['capture_expires_utc'] - issued_now
+        cleanup_ceiling = origin + f.capture_grant['cleanup_expires_utc'] - issued_now
         calls = []
         def child(argv, **kwargs):
             calls.append((argv, kwargs))
@@ -99,9 +105,11 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(argv[4], str(f.assembly.root / 'policy/enrollment_candidate_capture_runner.py'))
         self.assertIn('--capture-deadline', argv)
         self.assertIn('--cleanup-deadline', argv)
-        self.assertLessEqual(float(argv[argv.index('--capture-deadline') + 1]), 102)
-        self.assertLessEqual(float(argv[argv.index('--cleanup-deadline') + 1]), 202)
-        self.assertLessEqual(kwargs['timeout'], 200)
+        self.assertEqual(capture_ceiling - origin, 2100)
+        self.assertEqual(cleanup_ceiling - origin, 3600)
+        self.assertEqual(float(argv[argv.index('--capture-deadline') + 1]), capture_ceiling)
+        self.assertEqual(float(argv[argv.index('--cleanup-deadline') + 1]), cleanup_ceiling)
+        self.assertLessEqual(kwargs['timeout'], cleanup_ceiling - origin)
         self.assertEqual(kwargs['stdin'], subprocess.DEVNULL)
         self.assertEqual(f.factory_calls, [])
         # An otherwise plausible candidate-family response cannot satisfy the
@@ -114,6 +122,69 @@ class RuntimeTests(unittest.TestCase):
             monotonic=f.clock)
         self.assertEqual(available, {'schema': 'OT-ORIGINAL-CAPTURE-LAUNCH-1',
             'mode': 'capture-help', 'outcome': 'available'})
+
+    def test_capture_only_launcher_selects_capture_family_and_accepts_only_released_terminal(self):
+        from enrollment_candidate_capture_runner_tests import Fixture, CaptureRunnerTests
+        f = Fixture(); self.addCleanup(f.cleanup)
+        CaptureRunnerTests().capture_only_retry(f)
+        f.clock.step = 0
+        calls = []
+        def child(outcome, category=None):
+            def reply(argv, **kwargs):
+                calls.append((argv, kwargs))
+                return SimpleNamespace(returncode=0, stdout=encoded({
+                    'schema':'OT-ORIGINAL-CAPTURE-LAUNCH-1', 'mode':'capture-only',
+                    'outcome':outcome, 'category':category}), stderr=b'')
+            return reply
+        factories = len(f.factory_calls)
+        result = runtime.launch(f.assembly.assembly_path, f.assembly.assembly_sha256, 'capture-only',
+            f.capture_package_path, f.capture_package_sha, subprocess_run=child('released'),
+            monotonic=f.clock, utc=f.utc)
+        self.assertEqual(result['outcome'], 'released')
+        argv, kwargs = calls[0]
+        self.assertEqual(argv[4], str(f.assembly.root / 'policy/enrollment_candidate_capture_runner.py'))
+        self.assertEqual(argv[argv.index('--mode') + 1], 'capture-only')
+        self.assertIn('--capture-deadline', argv)
+        self.assertIn('--cleanup-deadline', argv)
+        self.assertEqual(len(f.factory_calls), factories)
+        for outcome in ('passed', 'recovered'):
+            with self.subTest(outcome=outcome), self.assertRaisesRegex(runtime.RuntimeErrorFixed, '^child_refused$'):
+                runtime.launch(f.assembly.assembly_path, f.assembly.assembly_sha256, 'capture-only',
+                    f.capture_package_path, f.capture_package_sha, subprocess_run=child(outcome),
+                    monotonic=f.clock, utc=f.utc)
+        with self.assertRaisesRegex(runtime.RuntimeErrorFixed, '^child_refused$'):
+            runtime.launch(f.assembly.assembly_path, f.assembly.assembly_sha256, 'capture-only',
+                f.capture_package_path, f.capture_package_sha,
+                subprocess_run=child('released', 'receipt_failed'), monotonic=f.clock, utc=f.utc)
+        calls.clear()
+        with self.assertRaisesRegex(runtime.RuntimeErrorFixed, '^mode_invalid$'):
+            runtime.launch(f.assembly.assembly_path, f.assembly.assembly_sha256, 'capture',
+                f.capture_package_path, f.capture_package_sha, subprocess_run=child('released'),
+                monotonic=f.clock, utc=f.utc)
+        self.assertEqual(calls, [])
+
+    def test_bench_presentation_is_a_fixed_explicit_launcher_argument(self):
+        from enrollment_candidate_capture_runner_tests import Fixture
+        f = Fixture(); self.addCleanup(f.cleanup)
+        f.clock.step = 0
+        calls = []
+        def child(argv, **kwargs):
+            calls.append(argv)
+            return SimpleNamespace(returncode=1, stdout=encoded({
+                'schema': 'OT-ORIGINAL-CAPTURE-LAUNCH-1', 'mode': 'capture',
+                'outcome': 'failed', 'category': 'handoff_invalid'}), stderr=b'')
+        runtime.launch(f.assembly.assembly_path, f.assembly.assembly_sha256, 'capture',
+            f.capture_package_path, f.capture_package_sha, subprocess_run=child,
+            monotonic=f.clock, utc=f.utc, bench_presentation=True)
+        self.assertEqual(calls[0].count('--bench-presentation'), 1)
+        self.assertNotIn('Trail Bench', calls[0])
+        for bad in (1, 'true', None):
+            with self.assertRaisesRegex(runtime.RuntimeErrorFixed, '^mode_invalid$'):
+                runtime.launch(None, None, 'capture', bench_presentation=bad,
+                    assembly_verifier=lambda *a: self.fail('invalid flag reached assembly'))
+        with self.assertRaisesRegex(runtime.RuntimeErrorFixed, '^mode_invalid$'):
+            runtime.launch(None, None, 'preflight', bench_presentation=True,
+                assembly_verifier=lambda *a: self.fail('preflight flag reached assembly'))
 
     def test_actual_import_is_inert_and_decoder_rejects_ambiguous_records(self):
         original = builtins.__import__
