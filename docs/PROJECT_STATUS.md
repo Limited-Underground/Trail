@@ -296,9 +296,17 @@ immutable firmware backups and captures/verifies/restores exact fresh settings
 for each attempt. Only PHY calibration differs in the inspected live payloads;
 the historical trigger remains unknown. The finite inspection evidence gate,
 281 local host cases and exact v2 package passed independent review. The familiar
-launcher is repointed, not run; old held records remain preserved. Next is one
-separately authorized device attempt. Retained/new-key acceptance and full
-OT-0238c remain open; no V1 or public website capability credit.
+launcher preparation was followed by the [October 12 capture-only pass](../tests/hardware/OT-0238c-CAPTURE-RELEASE-2026-10-12.md)
+and the separately authorized [retained-rekey USB pass](../tests/hardware/OT-0238c-RETAINED-REKEY-2026-10-12.md).
+Initial enrollment, both guarded restarts, fresh-key activation, 8 + 8 authenticated
+USB statuses, eight actual device confirmations and expected old-epoch refusal
+passed. Both exact current-attempt original sets/settings, original boots,
+handles/custody/leases and fresh owner usual-screen confirmation passed independent
+closure review with no first or cleanup failures. Historical failed journals and
+holds remain preserved; the prior failure cause is not established by this pass.
+Only this retained-rekey USB case is accepted. RF, Android protected BLE, revoke,
+factory reset/recovery and full OT-0238c remain separate open gates; no V1 or
+public website capability credit.
 
 
 
@@ -385,7 +393,9 @@ now physically passes three handshakes, four activations and eight statuses with
 zero faults/receive errors and stopped radios. Both original firmware/state spans
 were independently restored/read back, both reset, custody closed without recovery
 retry, and the owner confirmed normal screens. Owner task acceptance is recorded. Phone
-integration, retained restart/rekey and V1 completion remain open; no public website
+integration, broader lifecycle and V1 completion remain open; the later
+[retained-rekey USB case](../tests/hardware/OT-0238c-RETAINED-REKEY-2026-10-12.md)
+is accepted separately. No public website
 status or weighted V1 credit changes from this trial alone.
 
 The [integrated enrollment candidate](testing/OT-240-INTEGRATED-ENROLLMENT-2026-09-16.md)

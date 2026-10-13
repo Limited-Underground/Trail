@@ -1446,6 +1446,12 @@
           "overall": 46,
           "overall_exact": 45.5,
           "reason": "OT-213 completed one approved bounded invitation-candidate attempt; audited status `pass`. Both roles accepted matching BEGIN markers and strict pass receipts for the invitation candidate through the corrected OT-212 host operator. Both original applications and full NVS were independently restored/verified and restarted. Custody is closed, grants consumed and snapshots stale. No automatic retry, radio/phone transport acceptance, crypto selection, V1 score increase or public website status change. Local/uncommitted."
+        },
+        {
+          "date": "2026-10-13",
+          "overall": 46,
+          "overall_exact": 45.5,
+          "reason": "Reconciled independently reviewed October 12 physical evidence: current-settings capture/release and one retained-rekey/group-1 USB case passed, including both guarded restarts, fresh activation, 8 + 8 statuses, eight device confirmations, old-epoch refusal and exact original/current-settings restoration with fresh owner screens. Owning reports: tests/hardware/OT-0238c-CAPTURE-RELEASE-2026-10-12.md and tests/hardware/OT-0238c-RETAINED-REKEY-2026-10-12.md. Guarded capture equality relies on pinned source plus successful receipts; no separate per-read telemetry or live capture-only lock probe. RF, Android BLE, revoke/reset/recovery, full OT-0238c and V1 acceptance remain open. Historical failure evidence remains unchanged. No milestone completion, weight, weighted total or public website capability change."
         }
       ]
     },
