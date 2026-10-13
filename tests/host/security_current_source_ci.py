@@ -422,7 +422,8 @@ def run(output):
                 result["suites"][name] = custody_suite(commands, path, env)
             else:
                 completed = commands.run([sys.executable, "-X", "utf8", "-B", path, *extra],
-                    env=env, check=True, timeout={"enrollment_candidate_runner_tests": 600,
+                    env=env, check=True, timeout={"enrollment_candidate_budget_adoption_tests": 600,
+                             "enrollment_candidate_runner_tests": 600,
                              "enrollment_candidate_capture_runner_tests": 300}.get(name, 90))
                 result["suites"][name] = {"output": (completed.stdout + completed.stderr).strip(),
                                           "result": "passed"}
