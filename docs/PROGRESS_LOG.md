@@ -1,5 +1,17 @@
 # OpenTrail Progress Log
 
+## 2026-10-17
+
+### OT-175 Validate existing phone inbox foundations for publication
+
+Extracted existing host-only consent, synchronized inbox and snapshot storage
+foundations while preserving newer public reset, notification and gallery guards.
+The 25 focused tests and complete 1,510-test Android matrix passed, with all three
+variant lints, four APK assemblies, unsigned-package inspection and independent
+source review. The plaintext storage adapter remains unwired; protected storage,
+transport/controller composition and physical acceptance remain open. No V1 or
+public website capability change. [Validation and limits](testing/OT-175-PHONE-INBOX-PUBLICATION-2026-10-17.md).
+
 ## 2026-10-13
 
 ### OT-0238d Allow the remove-access test choice
