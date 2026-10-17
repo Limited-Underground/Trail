@@ -9,6 +9,24 @@ import kotlin.test.assertTrue
 
 class ConnectedDeviceManifestPolicyTest {
     @Test
+    fun plaintextInboxStorageAdapterRemainsAppPrivateAndUnwired() {
+        val adapter = projectFile(
+            "src/main/kotlin/io/github/nbjelanovic/otclient/AndroidV1InboxStorage.kt",
+        ).readText()
+        val production = projectDirectory("src/main/kotlin/io/github/nbjelanovic/otclient")
+            .walkTopDown().filter { it.isFile && it.extension == "kt" && it.name != "AndroidV1InboxStorage.kt" }.toList()
+        assertTrue(adapter.contains("context.noBackupFilesDir.resolve(FILE_NAME)"))
+        assertTrue(adapter.contains("AtomicFile"))
+        assertTrue(adapter.contains("stream.fd.sync()"))
+        assertTrue(adapter.contains("synchronized(FILE_LOCK)"))
+        assertTrue(adapter.contains("readLocked()"))
+        assertTrue(adapter.contains("val FILE_LOCK = Any()"))
+        assertFalse(adapter.contains("getExternalFilesDir"))
+        assertFalse(adapter.contains("cacheDir"))
+        assertEquals(0, production.sumOf { Regex("AndroidV1InboxStorage\\s*\\(").findAll(it.readText()).count() })
+    }
+
+    @Test
     fun fullscreenEditorsResizeAndSampleGalleryRemainsAbsent() {
         val main = projectFile("src/main/AndroidManifest.xml").readText()
         val variant = projectFile("src/v1Test/AndroidManifest.xml").readText()
@@ -505,6 +523,14 @@ class ConnectedDeviceManifestPolicyTest {
         if (direct.isFile) return direct
         val fromAndroid = File("app", path)
         require(fromAndroid.isFile) { "Required Android source file is missing: $path" }
+        return fromAndroid
+    }
+
+    private fun projectDirectory(path: String): File {
+        val direct = File(path)
+        if (direct.isDirectory) return direct
+        val fromAndroid = File("app", path)
+        require(fromAndroid.isDirectory) { "Required Android source directory is missing: $path" }
         return fromAndroid
     }
 }

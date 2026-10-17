@@ -518,9 +518,13 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
         android_ns + "name": "android.support.FILE_PROVIDER_PATHS",
         android_ns + "resource": "@xml/support_file_paths",
     }
+    forbidden_file_class = re.compile(r"java\.io\.File(?!NotFoundException\b)")
+    assert forbidden_file_class.search("import java.io.File") is not None
+    assert forbidden_file_class.search("import java.io.FileInputStream") is not None
+    assert forbidden_file_class.search("import java.io.FileNotFoundException") is None
     for path, source in production_by_path.items():
         if path != support_path:
-            assert "java.io.File" not in source
+            assert forbidden_file_class.search(source) is None
             assert "cacheDir" not in source
     # Admit the actual private store and its bounded data, not occurrences of a
     # type name (including explanatory comments). The verified-reset marker is
