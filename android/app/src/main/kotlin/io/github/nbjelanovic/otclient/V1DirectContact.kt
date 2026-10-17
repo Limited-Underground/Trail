@@ -17,6 +17,7 @@ class V1DirectPeerToken private constructor(private val bytes: ByteArray) {
 
     override fun hashCode(): Int = bytes.contentHashCode()
     override fun toString(): String = "V1DirectPeerToken(redacted)"
+    internal fun copyBytes(): ByteArray = bytes.copyOf()
 
     companion object {
         const val SIZE_BYTES = 16
