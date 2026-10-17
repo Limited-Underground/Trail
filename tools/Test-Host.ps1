@@ -183,6 +183,14 @@ $commonArguments = @(
 
 $builds = @(
     @{
+        Name = 'host-only durable device inbox model'
+        Output = Join-Path $buildDirectory 'device_inbox_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\device_inbox.cpp'),
+            (Join-Path $projectRoot 'tests\host\device_inbox_tests.cpp')
+        )
+    },
+    @{
         Name = 'connection diagnostics sensor display 1'
         Output = Join-Path $buildDirectory 'connection_diagnostics_1_tests.exe'
         Arguments = @('-pthread', '-DOPENTRAIL_CONNECTION_DIAGNOSTICS=1', '-DOPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY=1')
