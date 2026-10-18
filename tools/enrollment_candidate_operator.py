@@ -18,7 +18,7 @@ import math
 import re
 import time
 
-from enrollment_candidate_controller import CheckpointAck, Clock, Controller, ControllerError, StartupResult, ROLES, sampled_duration_ns
+from enrollment_candidate_controller import CheckpointAck, Clock, Controller, ControllerError, StartupResult, ROLES, RECOVERY_PHASES, sampled_duration_ns
 from enrollment_candidate_custody import Budget, validate_grant, validate_request
 from enrollment_candidate_usb_client import (Endpoint, Reply, ClientError, ReviewState,
     REVIEW_REFUSALS, validate_startup_snapshot, validate_query_snapshot)
@@ -406,6 +406,7 @@ class PassiveEndpoint(Endpoint):
         self.boot_observation = None
         self.diagnostic_failure = None
         self.final_query_observation = None
+        self.recovery_query_observation = None
 
     def _diagnostic_failed(self, phase):
         if self.diagnostic_failure is None:
@@ -446,6 +447,11 @@ class PassiveEndpoint(Endpoint):
                 raise ClientError('invalid_response') from None
 
     def exchange(self, command, deadline):
+        recovery = (type(command) is str and self.generation == 2 and self.owner.request['case'] in
+            ('recovery_after_A_commit', 'recovery_after_B_commit') and
+            command.split(' ', 1)[0] in RECOVERY_PHASES)
+        if recovery:
+            self.recovery_query_observation = None
         if command in ('COMMIT', 'READY'):
             # A rejection at the wrapper barrier cannot inherit a prior final
             # command's transport receipt.
@@ -456,6 +462,8 @@ class PassiveEndpoint(Endpoint):
             raise ClientError('client_busy')
         if command in ('COMMIT', 'READY'):
             return self._final_exchange(command, deadline)
+        if recovery:
+            return self._final_exchange(command, deadline, recovery=True)
         observation = None
         if command in ('HELLO', 'BOOTSTATUS'):
             # Set the barrier BEFORE invoking the observation-only callback.
@@ -502,15 +510,16 @@ class PassiveEndpoint(Endpoint):
                     self.failed, self._refused = True, False
                     raise ClientError('invalid_response') from None
 
-    def _final_exchange(self, command, deadline):
+    def _final_exchange(self, command, deadline, *, recovery=False):
         # Keep final timing separate from the fail-closed startup diagnostics.
         # No inline record callback, new guard, clock check or serial operation.
         self._observing, self._observation_reentered = True, False
-        self.final_query_observation = None
+        attribute = 'recovery_query_observation' if recovery else 'final_query_observation'
+        setattr(self, attribute, None)
         observation, completed, invalid_authority = None, False, False
         try:
             observation = _QueryObservation(self.owner.observation_clock,
-                command.lower(), self.role, self.generation)
+                command.split(' ', 1)[0].lower() if recovery else command.lower(), self.role, self.generation)
             reply = self._exchange(command, deadline, observation)
             completed = True
             return reply
@@ -547,11 +556,11 @@ class PassiveEndpoint(Endpoint):
                     row['diagnostic_failure'] = ('authority_sample_invalid' if invalid_authority else
                         failure or ('observer_reentry' if self._observation_reentered else
                             'observation_clock_invalid' if not row['timing_valid'] else None))
-                    self.final_query_observation = row
+                    setattr(self, attribute, row)
             except BaseException:
                 # Missing telemetry is explicit in the controller summary. It
                 # never overwrites an already-owned command result or rejection.
-                self.final_query_observation = None
+                setattr(self, attribute, None)
             finally:
                 self._observing = False
             if self._observation_reentered and completed:
@@ -970,7 +979,24 @@ class CandidateOperator:
                 # Best-effort telemetry cannot replace the trial's first
                 # failure, or turn an accepted exchange into a logger failure.
                 pass
+        if self.controller.recovery_observations:
+            try:
+                self._record_recovery_summary()
+            except BaseException:
+                # Observation cannot replace the owned result or revive a query.
+                pass
         return result
+
+    def _record_recovery_summary(self):
+        need(self.assert_idle(), 'handles_not_closed')
+        self.passive.clock.check(self.passive.deadline)
+        _fixed(self.passive.budget.check, 'activation_expired')
+        need(_fixed(lambda: self.record(dict(schema='OT-CANDIDATE-RECOVERY-SUMMARY-1',
+            budget=dict(self.controller.recovery_budget),
+            queries=[dict(row) for row in self.controller.recovery_observations])),
+            'record_failed') is True, 'record_failed')
+        self.passive.clock.check(self.passive.deadline)
+        _fixed(self.passive.budget.check, 'activation_expired')
 
     def _record_final_summary(self):
         need(self.assert_idle(), 'handles_not_closed')

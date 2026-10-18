@@ -10,11 +10,12 @@ import re
 import secrets
 import time
 
-from enrollment_candidate_usb_client import ClientError, Reply, ReviewState, review_state, review_token, validate_startup_snapshot
+from enrollment_candidate_usb_client import ClientError, Reply, ReviewState, review_state, review_token, validate_startup_snapshot, validate_query_snapshot
 
 ROLES = ('A', 'B')
 CASES = frozenset(('first', 'retained_rekey', 'recovery_after_A_commit',
                   'recovery_after_B_commit', 'cancel', 'revoke', 'reset_preparation', 'startup_A'))
+RECOVERY_PHASES = frozenset(('ARCHIVE', 'ACCEPTARCHIVE', 'RECOVERBEGIN', 'RECOVERSIGN', 'RECOVERFINISH'))
 
 
 class ControllerError(RuntimeError):
@@ -100,6 +101,8 @@ class Controller:
         self._close_attempted, self._close_uncertain = set(), False
         self.startup_observation = None
         self.final_observations = []
+        self.recovery_observations, self.recovery_budget = [], None
+        self._recovery_origin = None
 
     def _event(self, event, deadline):
         self.clock.check(deadline)
@@ -111,12 +114,20 @@ class Controller:
     def _send(self, role, command, deadline):
         self.stage = command.split(' ', 1)[0].lower() + '_' + role
         final = command in ('COMMIT', 'READY')
+        verb = command.split(' ', 1)[0]
+        recovery = self.recovery_budget is not None and self.generations == 2 and verb in RECOVERY_PHASES
         row = None
         if final and len(self.final_observations) < 8:
             row = dict(phase=command.lower(), role=role, generation=self.generations,
                 boundary='precheck', entry_allowance_ns=None, sampled_elapsed_ns=None,
                 sampled_remaining_ns=None, rejected=True, query=None, diagnostic_failure=None)
             self.final_observations.append(row)
+        elif recovery and len(self.recovery_observations) < 9:
+            row = dict(phase=verb.lower(), role=role, generation=self.generations,
+                boundary='precheck', entry_allowance_ns=None, sampled_elapsed_ns=None,
+                sampled_remaining_ns=None, rejected=True, query=None, diagnostic_failure=None,
+                shared_sampled_elapsed_ns=None)
+            self.recovery_observations.append(row)
         try:
             return self._send_checked(role, command, deadline, row)
         finally:
@@ -124,13 +135,24 @@ class Controller:
             # The checked helper freezes these before any later close/recovery.
             if row is not None and row['boundary'] != 'precheck':
                 try:
-                    query = self.endpoints[role].final_query_observation
+                    query = (self.endpoints[role].recovery_query_observation if recovery
+                        else self.endpoints[role].final_query_observation)
                     row['query'] = dict(query) if type(query) is dict else None
+                    if recovery and row['query'] is not None and query['transport'] is not None:
+                        row['query']['transport'] = validate_query_snapshot(query['transport'])
                     if row['query'] is None and row['diagnostic_failure'] is None:
                         row['diagnostic_failure'] = 'query_unavailable'
                 except BaseException:
                     if row['diagnostic_failure'] is None:
                         row['diagnostic_failure'] = 'query_snapshot'
+                    if recovery:
+                        row['query'] = None
+            if recovery and row is not None and row['diagnostic_failure'] != 'authority_sample_invalid':
+                # Reuse the last authority sample, never sample another clock.
+                try:
+                    row['shared_sampled_elapsed_ns'] = sampled_duration_ns(self.clock.last - self._recovery_origin)
+                except BaseException:
+                    row['diagnostic_failure'] = row['diagnostic_failure'] or 'authority_sample_invalid'
 
     def _send_checked(self, role, command, deadline, row):
         started = None
@@ -451,6 +473,9 @@ class Controller:
     def _begin(self, mode, group, deadline):
         preparation = self.clock.ceiling(deadline, 120)
         recovery = self.clock.ceiling(preparation, 60) if mode == 2 else None
+        if mode == 2 and self.generations == 2:
+            self._recovery_origin = self.clock.last
+            self.recovery_budget = dict(initial_allowance_ns=sampled_duration_ns(recovery - self._recovery_origin))
         for role, number in (('A', 1), ('B', 2)):
             self._send(role, f'BEGIN {mode} {number} {group}', preparation)
         return preparation, recovery

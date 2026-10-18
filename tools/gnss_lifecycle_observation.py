@@ -1,20 +1,24 @@
 """Bounded, device-free state machine for OT-0101e physical observations.
 
-Only the custody engine supplies the single warm-restart capability. Inputs are
-operator attestations/owner screen readings, not device-generated telemetry.
+Only the custody engine supplies the real warm-restart capability. The separate
+host-only API below uses an injected synthetic capability. Inputs are operator
+attestations/owner screen readings, not device-generated telemetry.
 Importing this module cannot open a device or issue an authorization grant.
 """
 import json
+import math
 import queue
 import secrets
 import time
 
 CASES = ('baseline', 'phone_stopped', 'phone_disconnected', 'gps_loss', 'gps_recovery',
          'restart_guard', 'warm_restart', 'clock_cleared', 'fresh_reconnect')
-BUDGETS = (300, 60, 180, 300, 300, 30, 720, 60, 180)
-PLAN = {'schema': 'OT0101E-LIFECYCLE-PLAN-1', 'cases': list(CASES),
+# Human acknowledgements include operator/tool round trips; retention still lasts
+# at least 120 seconds and every case remains inside the same overall deadline.
+BUDGETS = (300, 180, 300, 300, 300, 30, 720, 180, 180)
+PLAN = {'schema': 'OT0101E-LIFECYCLE-PLAN-2', 'cases': list(CASES),
         'case_seconds': list(BUDGETS), 'observation_seconds': 2160,
-        'disconnect_min_seconds': 120, 'restart_reserve_seconds': 960,
+        'disconnect_min_seconds': 120, 'restart_reserve_seconds': 1080,
         'phone_off_until_clock_cleared': True, 'silent_stream_case': False}
 OUTCOMES = ('passed', 'failed', 'inconclusive', 'cancelled', 'timeout', 'invalid_input')
 FIELDS = {
@@ -29,24 +33,24 @@ FIELDS = {
 }
 INSTRUCTIONS = {
     'baseline': 'Operator: verify protected Ready and a fresh saved-region readback. '
-                'Owner: check GPS FIX and a clock time on Bench 2. Do not send time or location.',
+                'Owner: check GPS FIX and a clock time on the selected Trail device. Do not send time or location.',
     'phone_stopped': 'Operator: stop V1-Test Bluetooth service and verify it stays stopped. '
                      'Owner: remember the clock reading now; do not send it.',
     'phone_disconnected': 'Operator: verify V1-Test Bluetooth service remains stopped. '
-                          'Owner: leave Bench 2 powered by USB. Compare its clock now and '
+                          'Owner: leave the selected Trail device powered by USB. Compare its clock now and '
                           'at least two minutes after the phone-stopped confirmation; report '
                           'whether it advanced. Do not unplug USB.',
-    'gps_loss': 'Owner: keeping USB connected, move Bench 2 to a safe nearby place with poor '
+    'gps_loss': 'Owner: keeping USB connected, move the selected Trail device to a safe nearby place with poor '
                 'sky reception. Report GPS NO FIX and whether the clock still advances. '
                 'Operator: keep the phone service stopped. If NO FIX is not seen in five '
                 'minutes, report not_observed. Do not cover vents or open the case.',
-    'gps_recovery': 'Owner: keeping USB connected, return Bench 2 to its previous clear-sky '
+    'gps_recovery': 'Owner: keeping USB connected, return the selected Trail device to its previous clear-sky '
                     'position. Report GPS FIX and whether the clock still advances. '
                     'Operator: keep the phone service stopped. If FIX is not seen in five '
                     'minutes, report not_observed. Do not send coordinates.',
     'restart_guard': 'Operator: verify the phone Bluetooth service is still stopped. '
                      'Do not reconnect until the next clock-cleared reading. Owner: no buttons needed.',
-    'clock_cleared': 'Owner: after the controlled restart, does Bench 2 show --:--? '
+    'clock_cleared': 'Owner: after the controlled restart, does the selected Trail device show --:--? '
                      'Operator: keep the phone service stopped; do not sync yet.',
     'fresh_reconnect': 'Operator: reconnect the saved device, verify fresh protected Ready, '
                        'fresh clock sync and a protected region readback matching baseline. '
@@ -144,8 +148,9 @@ is performed by the existing custody engine outside this observation budget.
                 return finish(case, 'failed')
         else:
             token = token_factory()
-            emit(json.dumps({'schema': 'OT0101E-LIFECYCLE-CHECKPOINT-1', 'token': token,
+            emit(json.dumps({'schema': 'OT0101E-LIFECYCLE-CHECKPOINT-2', 'token': token,
                  'case': case, 'seconds_available': int(deadline - case_start),
+                 'deadline_monotonic': deadline,
                  'instruction': INSTRUCTIONS[case]}), flush=True)
             while True:
                 try:
@@ -186,5 +191,150 @@ is performed by the existing custody engine outside this observation budget.
                     return finish(case, 'invalid_input')
         cases.append({'case': case, 'status': 'passed', 'elapsed_ms': elapsed()})
         on_case(dict(cases[-1]))
+        if case != 'warm_restart':
+            # An echoed input is not acceptance. Publish only after durable recording.
+            emit(json.dumps({'schema': 'OT0101E-LIFECYCLE-ACK-1',
+                 'token': token, **cases[-1]}), flush=True)
     return validate_result({'schema': 'OT0101E-LIFECYCLE-OBSERVATION-1', 'outcome': 'passed',
                             'first_failure': None, 'cases': cases, 'elapsed_ms': elapsed()})
+
+
+# Local synthetic observation only: no wire schema or real execution admission.
+# Keep the legacy PLAN, validators and observe entrypoint independent.
+CLOCK_RESTART_HOST_CASES = ('baseline', 'restart_guard', 'warm_restart',
+                          'clock_cleared', 'fresh_reconnect')
+CLOCK_RESTART_HOST_BUDGETS = (300, 30, 720, 180, 180)
+CLOCK_RESTART_HOST_FIELDS = {
+    'baseline': ('protected_ready', 'clock_visible', 'clock_synchronized', 'region_readback_valid'),
+    'restart_guard': ('phone_service_stopped',),
+    'clock_cleared': ('phone_service_stopped', 'clock_unknown'),
+    'fresh_reconnect': ('protected_ready', 'clock_visible', 'clock_synchronized', 'region_matches_before'),
+}
+
+
+def validate_clock_restart_host_cases(cases):
+    need(type(cases) is list and len(cases) <= len(CLOCK_RESTART_HOST_CASES))
+    previous = 0
+    for index, item in enumerate(cases):
+        need(type(item) is dict and set(item) == {'case', 'status', 'elapsed_ms'})
+        need(item['case'] == CLOCK_RESTART_HOST_CASES[index])
+        need(type(item['status']) is str and item['status'] in OUTCOMES and
+             item['status'] != 'inconclusive')
+        need(type(item['elapsed_ms']) is int and previous <= item['elapsed_ms'] <= 3600000)
+        need(item['status'] != 'passed' or item['elapsed_ms'] < 2160000)
+        need(index == len(cases) - 1 or item['status'] == 'passed')
+        previous = item['elapsed_ms']
+
+
+def validate_clock_restart_host_prefix(cases):
+    validate_clock_restart_host_cases(cases)
+    need(len(cases) == 2 and all(item['status'] == 'passed' for item in cases))
+
+
+def validate_clock_restart_host_result(value):
+    need(type(value) is dict and set(value) ==
+         {'host_only', 'scenario', 'outcome', 'first_failure', 'cases', 'elapsed_ms'})
+    need(value['host_only'] is True and value['scenario'] == 'clock_restart_host')
+    need(type(value['outcome']) is str and value['outcome'] in OUTCOMES and
+         value['outcome'] != 'inconclusive')
+    need(type(value['elapsed_ms']) is int and 0 <= value['elapsed_ms'] <= 3600000)
+    validate_clock_restart_host_cases(value['cases'])
+    need(bool(value['cases']) and value['cases'][-1]['elapsed_ms'] <= value['elapsed_ms'])
+    if value['outcome'] == 'passed':
+        need(len(value['cases']) == len(CLOCK_RESTART_HOST_CASES) and
+             value['first_failure'] is None and value['elapsed_ms'] < 2160000 and
+             all(item['status'] == 'passed' for item in value['cases']))
+    else:
+        need(value['first_failure'] == value['cases'][-1]['case'] and
+             value['cases'][-1]['status'] == value['outcome'])
+    return value
+
+
+def observe_clock_restart_host(lines, synthetic_restart_once, *, emit, clock,
+                               token_factory, available_seconds=2160,
+                               on_case=lambda _case: None):
+    """Device-free scenario with an injected synthetic restart and clock.
+
+    No CLI, custody, grant, runner or handoff integration exists for this API.
+    Setup must precede invocation. Outputs are explicitly host-only and cannot
+    be admitted as legacy checkpoints/results. Retention and GPS are not cases.
+    """
+    need(type(available_seconds) in (int, float) and
+         math.isfinite(available_seconds) and 0 < available_seconds <= 2160)
+
+    def now():
+        value = clock()
+        need(type(value) in (int, float) and math.isfinite(value))
+        need(value >= last[0])
+        last[0] = value
+        return value
+
+    last = [float('-inf')]
+    started = now()
+    overall = started + available_seconds
+    cases = []
+    restarted = False
+
+    def elapsed():
+        return int((now() - started) * 1000)
+
+    def finish(case, outcome):
+        item = {'case': case, 'status': outcome, 'elapsed_ms': elapsed()}
+        cases.append(item)
+        on_case(dict(item))
+        return validate_clock_restart_host_result({
+            'host_only': True, 'scenario': 'clock_restart_host', 'outcome': outcome,
+            'first_failure': case if outcome != 'passed' else None,
+            'cases': cases, 'elapsed_ms': elapsed()})
+
+    for index, case in enumerate(CLOCK_RESTART_HOST_CASES):
+        case_start = now()
+        deadline = min(overall, case_start + CLOCK_RESTART_HOST_BUDGETS[index])
+        if case_start >= overall:
+            return finish(case, 'timeout')
+        if case == 'warm_restart':
+            # Retain the existing three-operation plus following-case reserve.
+            if overall - case_start < 1080:
+                return finish(case, 'timeout')
+            try:
+                validate_clock_restart_host_prefix(cases)
+                need(not restarted)
+                restarted = True  # No retry after an uncertain callback.
+                need(synthetic_restart_once([dict(item) for item in cases]) is True)
+                if now() >= deadline:
+                    return finish(case, 'timeout')
+            except Exception:
+                return finish(case, 'failed')
+        else:
+            token = token_factory()
+            need(type(token) is str and bool(token))
+            emit(json.dumps({'host_only': True, 'scenario': 'clock_restart_host',
+                'case': case, 'token': token, 'deadline_monotonic': deadline,
+                'seconds_available': int(deadline - case_start)}), flush=True)
+            try:
+                remaining = deadline - now()
+                if remaining <= 0:
+                    return finish(case, 'timeout')
+                reply = lines.read(remaining)
+                if now() >= deadline:
+                    return finish(case, 'timeout')
+                need(type(reply) is dict and reply.get('token') == token and
+                     reply.get('case') == case)
+                if set(reply) == {'case', 'token', 'result'}:
+                    need(reply['result'] in ('cancelled', 'failed'))
+                    return finish(case, reply['result'])
+                fields = CLOCK_RESTART_HOST_FIELDS[case]
+                need(set(reply) == {'case', 'token'} | set(fields) and
+                     all(type(reply[field]) is bool for field in fields))
+                if not all(reply[field] for field in fields):
+                    return finish(case, 'failed')
+            except queue.Empty:
+                return finish(case, 'timeout')
+            except Exception:
+                return finish(case, 'invalid_input')
+        item = {'case': case, 'status': 'passed', 'elapsed_ms': elapsed()}
+        cases.append(item)
+        on_case(dict(item))
+    return validate_clock_restart_host_result({
+        'host_only': True, 'scenario': 'clock_restart_host', 'outcome': 'passed',
+        'first_failure': None, 'cases': cases, 'elapsed_ms': elapsed()})

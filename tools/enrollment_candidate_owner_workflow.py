@@ -28,7 +28,14 @@ SETTINGS_NAME = 'enrollment_candidate_settings_successor.py'
 FULL_STAGE = 'ot0238c-full-successor-admission-20261012'
 FULL_KIND = 'ot0238c-reviewed-capture-core-full-successor'
 REVOKE_KIND = 'ot0238e-reviewed-revoke-successor'
+CANCEL_KIND = 'ot0238c-reviewed-cancel-successor'
+RECOVERY_A_KIND = 'ot0238c-reviewed-recovery-A-successor'
+OBSERVED_KIND = 'ot0238c-reviewed-recovery-A-observed-successor'
 REVOKE_STAGE = 'ot0238e-revoke-admission-20261013'
+CANCEL_STAGE = 'ot0238c-cancel-admission-20261014'
+RECOVERY_A_STAGE = 'ot0238c-recovery-A-admission-20261014'
+OBSERVED_STAGE = 'ot0238c14-recovery-observed-admission-20261014'
+OBSERVED_AFTER_PINS = {"enrollment_candidate_controller.py":{"bytes":31385,"sha256":"78c015af015acb0162c74d5f529f137ed8decadadc4cacffe1af17e59ab01e71"},"enrollment_candidate_operator.py":{"bytes":57373,"sha256":"656d3703fc87de46f47a4c4ec5ec21d9ef6a83856a510f8a8f8fd751d1ba8fae"},"enrollment_candidate_runner.py":{"bytes":66698,"sha256":"5222937a7ab6ecdaefd8ef7f061ebd6b6bad2501c2e42c222dd4de6354dff792"}}
 SETTINGS_AFTER_PINS = {'enrollment_candidate_rom_adapter.py': {'bytes': 70957, 'sha256': 'cc207e17bea17355fd9228cd221235c2a7ce5d777d0cbafde6134df8e98c8f4b'}, 'enrollment_candidate_original_capture.py': {'bytes': 56311, 'sha256': '866192e7dd6ebf95e47d5dc519ff9a475bc74ebd50f57a0a7e48bfa0e23f04e1'}, 'enrollment_candidate_capture_runner.py': {'bytes': 23027, 'sha256': 'fbaf3d0fc820210fbac6371cdf7c2ebea1bdb8744738612bfba0480785abbd02'}}
 # Reviewed capture-runner bytes require a protected route; they do not select
 # the full mode. Runtime is shared by historical routes and is enforced only
@@ -141,10 +148,14 @@ def require_cleanup_recovery(binding_ref):
         ROOT / '.private/ot0238c-settings-check-20261011/prestage-v2')
     full_parent = Path(binding.get('session', {}).get('path', '')).parent in (
         ROOT / '.private' / FULL_STAGE / 'prestage',
-        ROOT / '.private' / REVOKE_STAGE / 'prestage')
+        ROOT / '.private' / REVOKE_STAGE / 'prestage',
+        ROOT / '.private' / CANCEL_STAGE / 'prestage',
+        ROOT / '.private' / RECOVERY_A_STAGE / 'prestage',
+             ROOT / '.private' / OBSERVED_STAGE / 'prestage')
     settings_sources = type(sources) is dict and (SETTINGS_NAME in sources or any(
         sources.get(name) == pin for name, pin in SETTINGS_AFTER_PINS.items()) or any(
-            sources.get(name) == pin for name, pin in REVIEWED_CORE_AFTER_PINS.items()))
+            sources.get(name) == pin for name, pin in REVIEWED_CORE_AFTER_PINS.items()) or any(
+            sources.get(name) == pin for name, pin in OBSERVED_AFTER_PINS.items()))
     cleanup_sources = type(sources) is dict and any(sources.get(name) == pin
         for name, pin in CLEANUP_AFTER_PINS.items())
     if binding.get('schema') != 'OT-VISIBLE-SESSION-BINDING-2':
@@ -157,7 +168,7 @@ def require_cleanup_recovery(binding_ref):
     transition = item.get('runtime_transition') if type(item) is dict else None
     cleanup_kind = type(transition) is dict and transition.get('kind') == 'ot0238c-capture-mismatch-cleanup'
     settings_kind = type(transition) is dict and transition.get('kind') == 'ot0238c-retained-firmware-current-settings'
-    full_kind = type(transition) is dict and transition.get('kind') in (FULL_KIND, REVOKE_KIND)
+    full_kind = type(transition) is dict and transition.get('kind') in (FULL_KIND, REVOKE_KIND, CANCEL_KIND, RECOVERY_A_KIND, OBSERVED_KIND)
     if not full_kind and not full_parent and not cleanup_kind and not cleanup_parent and not cleanup_sources and not settings_kind and not settings_parent and not settings_sources:
         return
     try:

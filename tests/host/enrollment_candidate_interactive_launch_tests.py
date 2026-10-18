@@ -17,6 +17,7 @@ import enrollment_candidate_visible_session as session
 import enrollment_candidate_runtime as runtime
 import enrollment_candidate_predevice_resume as resume
 from enrollment_candidate_runtime_tests import AssemblyFixture
+from enrollment_candidate_settings_successor_tests import LEGACY_POLICY_PINS, historical_source
 
 
 SCOPE = dict(strategy=visible.STRATEGY, session_id=1, logon_sha256='a' * 64,
@@ -261,7 +262,7 @@ class RecoveryBindingFixture:
         self.private = self.root / '.private'; self.private.mkdir()
         tools = self.root / 'tools'; tools.mkdir()
         for name in visible.RESUME_SOURCE_NAMES:
-            raw = (ROOT / 'tools' / name).read_bytes()
+            raw = historical_source(name)
             if name in visible.SETTINGS_AFTER_PINS:
                 # This fixture represents the historical cleanup runtime.
                 # Distinguish its synthetic source pins from today's current
@@ -387,9 +388,11 @@ class BindingTests(unittest.TestCase):
         # Legacy positives use the preserved v16 sources. Today's cleanup
         # runtime is deliberately forbidden from claiming a schema1 binding.
         historical = ROOT / 'tests/host/fixtures/enrollment_candidate_legacy_sources'
-        for name in visible.CLEANUP_AFTER_PINS:
-            raw = (historical / (name + '.fixture')).read_bytes()
-            self.assertEqual(runtime.descriptor(raw), resume.CLEANUP_TRANSITION_PINS[name]['before'])
+        for name in set(visible.CLEANUP_AFTER_PINS) | set(LEGACY_POLICY_PINS):
+            raw = historical_source(name) if name in LEGACY_POLICY_PINS else (historical / (name + '.fixture')).read_bytes()
+            expected = (LEGACY_POLICY_PINS[name] if name in LEGACY_POLICY_PINS
+                else resume.CLEANUP_TRANSITION_PINS[name]['before'])
+            self.assertEqual(runtime.descriptor(raw), expected)
             (f.worktree / 'tools' / name).write_bytes(raw)
             f.sources['tools/' + name] = runtime.descriptor(raw)
         f.save_source_pins()

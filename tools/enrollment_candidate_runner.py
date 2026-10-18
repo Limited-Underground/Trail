@@ -498,6 +498,81 @@ def _final_queries(value, case):
     return rows
 
 
+def _recovery_queries(value, case):
+    """Separate mode-2 generation-2 observation; legacy final grammar is unchanged."""
+    need(type(value) is dict and case in ('recovery_after_A_commit', 'recovery_after_B_commit')
+        and set(value) == {'schema', 'budget', 'queries'}
+        and value['schema'] == 'OT-CANDIDATE-RECOVERY-SUMMARY-1'
+        and type(value['budget']) is dict and set(value['budget']) == {'initial_allowance_ns'}
+        and type(value['budget']['initial_allowance_ns']) is int
+        and 0 <= value['budget']['initial_allowance_ns'] <= 60_000_000_000
+        and type(value['queries']) is list and 1 <= len(value['queries']) <= 9, 'event_invalid')
+    expected = [('archive', role, 2) for role in ROLES]
+    missing = 'B' if case == 'recovery_after_A_commit' else 'A'
+    if len(value['queries']) > 2 and type(value['queries'][2]) is dict and value['queries'][2].get('phase') == 'acceptarchive':
+        expected.append(('acceptarchive', missing, 2))
+    expected.extend((phase, role, 2) for phase in ('recoverbegin', 'recoversign', 'recoverfinish') for role in ROLES)
+    need(len(value['queries']) <= len(expected), 'event_invalid')
+    fields = {'phase', 'role', 'generation', 'boundary', 'entry_allowance_ns',
+        'sampled_elapsed_ns', 'sampled_remaining_ns', 'rejected', 'query', 'diagnostic_failure', 'shared_sampled_elapsed_ns'}
+    query_fields = {'phase', 'role', 'generation', 'boundary', 'entry_allowance_ns',
+        'prelude_elapsed_ns', 'elapsed_ns', 'timing_valid', 'transport', 'sampled_remaining_ns', 'diagnostic_failure'}
+    failures = ('query_unavailable', 'query_snapshot', 'query_finish', 'authority_sample_invalid',
+                'observation_clock_invalid', 'observer_reentry')
+    def duration(item, names):
+        need(all(item[name] is None or (type(item[name]) is int and
+            0 <= item[name] <= 0x7fffffffffffffff) for name in names), 'event_invalid')
+    def failure(item):
+        need(item is None or type(item) is str and item in failures, 'event_invalid')
+    rows = []
+    for index, row in enumerate(value['queries']):
+        need(type(row) is dict and set(row) == fields
+            and (row['phase'], row['role'], row['generation']) == expected[index]
+            and type(row['phase']) is str and type(row['role']) is str
+            and type(row['generation']) is int and type(row['boundary']) is str
+            and row['boundary'] in ('precheck', 'endpoint', 'postcheck', 'returned')
+            and type(row['rejected']) is bool
+            and row['rejected'] == (row['boundary'] != 'returned')
+            and (not row['rejected'] or index == len(value['queries']) - 1), 'event_invalid')
+        duration(row, ('entry_allowance_ns', 'sampled_elapsed_ns', 'sampled_remaining_ns', 'shared_sampled_elapsed_ns'))
+        need(all(row[name] is None or row[name] <= value['budget']['initial_allowance_ns']
+            for name in ('entry_allowance_ns', 'sampled_remaining_ns')), 'event_invalid')
+        shared = row['shared_sampled_elapsed_ns']
+        if index and shared is not None and rows[-1]['shared_sampled_elapsed_ns'] is not None:
+            need(shared >= rows[-1]['shared_sampled_elapsed_ns'], 'event_invalid')
+        need(shared is None or row['sampled_elapsed_ns'] is None or shared >= row['sampled_elapsed_ns'], 'event_invalid')
+        failure(row['diagnostic_failure'])
+        query = row['query']
+        if query is None:
+            need(row['boundary'] == 'precheck' or row['diagnostic_failure'] is not None, 'event_invalid')
+        else:
+            need(row['boundary'] != 'precheck' and type(query) is dict and set(query) == query_fields
+                 and all(query[k] == row[k] and type(query[k]) is type(row[k])
+                     for k in ('phase', 'role', 'generation'))
+                 and type(query['boundary']) is str and query['boundary'] in QUERY_BOUNDARIES
+                 and type(query['timing_valid']) is bool, 'event_invalid')
+            duration(query, ('entry_allowance_ns', 'prelude_elapsed_ns', 'elapsed_ns', 'sampled_remaining_ns'))
+            failure(query['diagnostic_failure'])
+            need(query['timing_valid'] or query['prelude_elapsed_ns'] is None and query['elapsed_ns'] is None,
+                 'event_invalid')
+            need(query['prelude_elapsed_ns'] is None or query['elapsed_ns'] is not None
+                 and query['prelude_elapsed_ns'] <= query['elapsed_ns'], 'event_invalid')
+            transport = query['transport']
+            if transport is None:
+                need(query['boundary'] in ('owner_check', 'progress') or query['diagnostic_failure'] is not None,
+                     'event_invalid')
+            else:
+                need(query['boundary'] in ('endpoint', 'postcheck', 'returned'), 'event_invalid')
+                try:
+                    transport = validate_query_snapshot(transport)
+                except BaseException:
+                    raise RunnerError('event_invalid') from None
+                need(transport['stream'] is None, 'event_invalid')
+            query = dict(query, transport=transport)
+        rows.append(dict(row, query=query))
+    return dict(budget=dict(value['budget']), queries=rows)
+
+
 class _Events:
     def __init__(self, root, attempt, request_sha, grant_sha, clock, execution, restoration, *, case=None):
         self.path = root / ('enrollment-candidate-runner-' + attempt + '-events.jsonl')
@@ -511,6 +586,7 @@ class _Events:
             'recovery_after_B_commit') else 1
         self.query_summary_count = 0
         self.final_summary_count = 0
+        self.recovery_summary_count = 0
         self.startup_counts, self.probe_summaries = {}, set()
 
     def __call__(self, value):
@@ -648,6 +724,10 @@ class _Events:
             if scoped:
                 result.update(role=role, generation=generation)
             ceiling = self.execution
+        elif value.get('schema') == 'OT-CANDIDATE-RECOVERY-SUMMARY-1':
+            need(self.recovery_summary_count == 0, 'event_invalid')
+            result.update(schema=value['schema'], **_recovery_queries(value, self.case))
+            ceiling = self.execution
         elif value.get('schema') == 'OT-CANDIDATE-FINAL-SUMMARY-1':
             need(self.case in CASES - {'startup_A', 'cancel'} and self.final_summary_count == 0, 'event_invalid')
             result.update(schema=value['schema'], queries=_final_queries(value, self.case))
@@ -672,6 +752,8 @@ class _Events:
         need(self.path.read_bytes() == prior + raw, 'receipt_failed')
         # A durable row owns its sequence even if the post-write check expires.
         self.count += 1
+        if value.get('schema') == 'OT-CANDIDATE-RECOVERY-SUMMARY-1':
+            self.recovery_summary_count += 1
         if value.get('schema') == 'OT-CANDIDATE-FINAL-SUMMARY-1':
             self.final_summary_count += 1
         if value.get('schema') == 'OT-CANDIDATE-PROGRESS-1':

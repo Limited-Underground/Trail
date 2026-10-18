@@ -37,19 +37,97 @@ LIFECYCLE_ACTIONS = ['rom_preflight', 'application_write', 'candidate_boot',
                      'lifecycle_observation', 'one_candidate_warm_restart',
                      'application_restore', 'full_nvs_restore', 'original_reset']
 ACTIVE = 'gnss-observation-active.lock'
+# Internal custody identities, independent of retained PLAN-2 and host-only output.
+CLOCK_RESTART_MODE = 'clock_restart'
+CLOCK_RESTART_REQUEST = 'OT0101E-CLOCK-RESTART-REQUEST-1'
+CLOCK_RESTART_GRANT = 'OT0101E-CLOCK-RESTART-GRANT-1'
+CLOCK_RESTART_OBSERVATION = 'OT0101E-CLOCK-RESTART-OBSERVATION-1'
+CLOCK_RESTART_CASES = ('baseline', 'restart_guard', 'warm_restart',
+                       'clock_cleared', 'fresh_reconnect')
+CLOCK_RESTART_BUDGETS = (300, 30, 720, 180, 180)
+CLOCK_RESTART_FIELDS = {
+    'baseline': ('protected_ready', 'clock_visible', 'clock_synchronized', 'region_readback_valid'),
+    'restart_guard': ('phone_service_stopped',),
+    'warm_restart': (),
+    'clock_cleared': ('phone_service_stopped', 'clock_unknown'),
+    'fresh_reconnect': ('protected_ready', 'clock_visible', 'clock_synchronized', 'region_matches_before'),
+}
+# Canonical bytes are immutable; callers obtain their own decoded plan copy.
+CLOCK_RESTART_PLAN_BYTES = canonical({
+    'schema': 'OT0101E-CLOCK-RESTART-PLAN-1', 'cases': list(CLOCK_RESTART_CASES),
+    'case_seconds': list(CLOCK_RESTART_BUDGETS), 'observation_seconds': 2160,
+    'restart_reserve_seconds': 1080, 'phone_off_until_clock_cleared': True,
+    'silent_stream_case': False})
+CLOCK_RESTART_ACTIONS = ['rom_preflight', 'application_write', 'candidate_boot',
+                         'clock_restart_observation', 'one_candidate_warm_restart',
+                         'application_restore', 'full_nvs_restore', 'original_reset']
+
+
+def validate_execution_mode(request, execution_mode):
+    need(type(request) is dict, 'request_invalid')
+    need(execution_mode in ('retained', CLOCK_RESTART_MODE) and
+         (request.get('schema') == CLOCK_RESTART_REQUEST) ==
+         (execution_mode == CLOCK_RESTART_MODE), 'execution_mode_invalid')
+
+
+def validate_clock_restart_cases(cases):
+    need(type(cases) is list and len(cases) <= len(CLOCK_RESTART_CASES), 'observation_invalid')
+    previous = 0
+    for index, item in enumerate(cases):
+        need(type(item) is dict and set(item) == {'case', 'status', 'elapsed_ms', 'observations'},
+             'observation_invalid')
+        need(item['case'] == CLOCK_RESTART_CASES[index] and type(item['status']) is str and
+             item['status'] in ('passed', 'failed', 'cancelled', 'timeout', 'invalid_input'),
+             'observation_invalid')
+        need(type(item['elapsed_ms']) is int and previous <= item['elapsed_ms'] <= 3600000 and
+             (index == len(cases) - 1 or item['status'] == 'passed'), 'observation_invalid')
+        fields = CLOCK_RESTART_FIELDS[item['case']]
+        values = item['observations']
+        need(type(values) is dict and set(values) == set(fields) and
+             all(type(values[field]) is bool for field in fields), 'observation_invalid')
+        if item['status'] == 'passed':
+            need(all(values.values()) and item['elapsed_ms'] < 2160000 and
+                 item['elapsed_ms'] - previous < CLOCK_RESTART_BUDGETS[index] * 1000,
+                 'observation_invalid')
+        previous = item['elapsed_ms']
+
+
+def validate_clock_restart_prefix(cases):
+    validate_clock_restart_cases(cases)
+    need(len(cases) == 2 and all(item['status'] == 'passed' for item in cases), 'restart_phase_invalid')
+
+
+def validate_clock_restart_result(value, request):
+    need(type(value) is dict and set(value) ==
+         {'schema', 'request_sha256', 'outcome', 'first_failure', 'cases', 'elapsed_ms'} and
+         value['schema'] == CLOCK_RESTART_OBSERVATION and
+         value['request_sha256'] == sha(canonical(request)), 'observation_invalid')
+    validate_clock_restart_cases(value['cases'])
+    need(bool(value['cases']) and type(value['elapsed_ms']) is int and
+         value['cases'][-1]['elapsed_ms'] <= value['elapsed_ms'] <= 3600000, 'observation_invalid')
+    if value['outcome'] == 'passed':
+        need(len(value['cases']) == len(CLOCK_RESTART_CASES) and value['first_failure'] is None and
+             all(item['status'] == 'passed' for item in value['cases']) and
+             value['elapsed_ms'] < 2160000, 'observation_invalid')
+    else:
+        need(value['outcome'] != 'passed' and value['first_failure'] == value['cases'][-1]['case'] and
+             value['cases'][-1]['status'] == value['outcome'], 'observation_invalid')
+    return value
 
 
 def descriptor(raw):
     return {'bytes': len(raw), 'sha256': sha(raw)}
 
 
-def validate_request(request):
+def validate_request(request, *, execution_mode='retained'):
+    validate_execution_mode(request, execution_mode)
     try:
         raw = canonical(request)
         need(len(raw) <= 4096, 'request_invalid')
         obj = decode(raw)
         diagnostic = obj.get('schema') == 'OT0101E-CONNECTION-REQUEST-1'
-        lifecycle = obj.get('schema') == 'OT0101E-LIFECYCLE-REQUEST-1'
+        clock_restart = obj.get('schema') == CLOCK_RESTART_REQUEST
+        lifecycle = obj.get('schema') == 'OT0101E-LIFECYCLE-REQUEST-1' or clock_restart
         need(set(obj) == {'schema', 'runtime_sha256', 'device_binding', 'candidate', 'protected',
                           'original_prefix', 'boot_compatibility', 'case'} |
              ({'profile'} if diagnostic or lifecycle else set()) |
@@ -57,16 +135,22 @@ def validate_request(request):
              'request_invalid')
         expected = CONNECTION_CANDIDATES.get(obj.get('profile')) if diagnostic or lifecycle else CANDIDATE
         need(((diagnostic and expected is not None and obj['case'] == 'capture-and-restore') or
-              (lifecycle and obj['profile'] == 'A_STACK_8192' and obj['case'] == 'lifecycle-and-restore') or
+              (lifecycle and obj['profile'] == 'A_STACK_8192' and obj['case'] ==
+               ('clock-restart-and-restore' if clock_restart else 'lifecycle-and-restore')) or
               (not diagnostic and obj['schema'] == 'OT0101E-GNSS-REQUEST-1' and obj['case'] == 'observe-and-restore'))
              and obj['boot_compatibility'] == 'reviewed-ot0101e-image-header-compatibility'
              and common.HEX64.fullmatch(obj['runtime_sha256'])
              and common.HEX64.fullmatch(obj['device_binding']) and obj['candidate'] == expected,
              'request_invalid')
         if lifecycle:
-            from gnss_lifecycle_observation import PLAN
-            need(canonical(obj['plan']) == canonical(PLAN) and type(obj['approved_revision']) is int
-                 and obj['approved_revision'] >= 2, 'request_invalid')
+            if clock_restart:
+                need(canonical(obj['plan']) == CLOCK_RESTART_PLAN_BYTES and
+                     type(obj['approved_revision']) is int and obj['approved_revision'] == 1,
+                     'request_invalid')
+            else:
+                from gnss_lifecycle_observation import PLAN
+                need(canonical(obj['plan']) == canonical(PLAN) and type(obj['approved_revision']) is int
+                     and obj['approved_revision'] >= 2, 'request_invalid')
         need(set(obj['protected']) == {'bootloader', 'partition', 'ota'}, 'request_invalid')
         for name, expected in {**obj['protected'], 'original_prefix': obj['original_prefix']}.items():
             size = 589824 if name == 'original_prefix' else SPANS[name][1]
@@ -86,10 +170,12 @@ def validate_grant(request, raw, expected_sha, operation, utc):
         need(set(grant) == {'schema', 'attempt', 'request_sha256', 'runtime_sha256', 'operation',
                            'origin_attempt', 'attempt_count', 'actions', 'issued_utc', 'expires_utc'}, 'authority_invalid')
         diagnostic = request['schema'] == 'OT0101E-CONNECTION-REQUEST-1'
+        clock_restart = request['schema'] == CLOCK_RESTART_REQUEST
         lifecycle = request['schema'] == 'OT0101E-LIFECYCLE-REQUEST-1'
-        schema = ('OT0101E-LIFECYCLE-GRANT-1' if lifecycle else
+        schema = (CLOCK_RESTART_GRANT if clock_restart else 'OT0101E-LIFECYCLE-GRANT-1' if lifecycle else
                   'OT0101E-CONNECTION-GRANT-1' if diagnostic else 'OT0101E-GNSS-GRANT-1')
-        actions = LIFECYCLE_ACTIONS if lifecycle else CONNECTION_ACTIONS if diagnostic else ACTIONS
+        actions = (CLOCK_RESTART_ACTIONS if clock_restart else LIFECYCLE_ACTIONS if lifecycle else
+                   CONNECTION_ACTIONS if diagnostic else ACTIONS)
         need(grant['schema'] == schema and common.HEX32.fullmatch(grant['attempt'])
              and grant['request_sha256'] == sha(canonical(request))
              and grant['runtime_sha256'] == request['runtime_sha256']
@@ -232,8 +318,9 @@ def _hold(backend):
 
 
 @common.single_process
-def execute(root, request, grant_raw, grant_sha, candidate, backend, observe, *, utc=time.time):
-    request = validate_request(request)
+def execute(root, request, grant_raw, grant_sha, candidate, backend, observe, *, utc=time.time,
+            execution_mode='retained'):
+    request = validate_request(request, execution_mode=execution_mode)
     grant = validate_grant(request, grant_raw, grant_sha, 'execute', utc)
     need(type(candidate) is bytes and descriptor(candidate) == request['candidate'], 'candidate_changed')
     # Share the historic process lease, and refuse any old durable hardware custody.
@@ -272,8 +359,10 @@ def execute(root, request, grant_raw, grant_sha, candidate, backend, observe, *,
         need(backend.boot_candidate() is True, 'candidate_boot_uncertain')
         validate_grant(request, grant_raw, grant_sha, 'execute', utc)
         diagnostic = request['schema'] == 'OT0101E-CONNECTION-REQUEST-1'
-        lifecycle = request['schema'] == 'OT0101E-LIFECYCLE-REQUEST-1'
-        journal.event(state, 'lifecycle_observation_intent' if lifecycle else
+        clock_restart = request['schema'] == CLOCK_RESTART_REQUEST
+        lifecycle = request['schema'] == 'OT0101E-LIFECYCLE-REQUEST-1' or clock_restart
+        journal.event(state, 'clock_restart_observation_intent' if clock_restart else
+                      'lifecycle_observation_intent' if lifecycle else
                       'connection_capture_intent' if diagnostic else 'gnss_observation_intent')
         if lifecycle:
             state['lifecycle_cases'] = []
@@ -294,29 +383,51 @@ def execute(root, request, grant_raw, grant_sha, candidate, backend, observe, *,
                              for item in value['markers']), 'startup_fault')
             record_startup('initial')
             def record_case(item):
-                from gnss_lifecycle_observation import validate_cases
+                if clock_restart:
+                    validate_cases = validate_clock_restart_cases
+                    item = decode(canonical(item))  # Observer cannot mutate a durable row afterward.
+                else:
+                    from gnss_lifecycle_observation import validate_cases
                 value = state['lifecycle_cases'] + [item]
                 validate_cases(value)
+                if clock_restart and len(value) >= 3 and item['status'] == 'passed':
+                    need('candidate_warm_restart_intent' in state['events'] and
+                         'candidate_warm_restart_verified' in state['events'], 'restart_phase_invalid')
+                if clock_restart:
+                    validate_grant(request, grant_raw, grant_sha, 'execute', utc)
                 state['lifecycle_cases'] = value
                 journal.save(state)
             def warm_restart(prefix):
-                from gnss_lifecycle_observation import validate_restart_prefix
+                if clock_restart:
+                    validate_restart_prefix = validate_clock_restart_prefix
+                else:
+                    from gnss_lifecycle_observation import validate_restart_prefix
                 validate_restart_prefix(prefix)
                 need(prefix == state['lifecycle_cases'], 'restart_phase_invalid')
+                if clock_restart:
+                    need(prefix == journal.load()['lifecycle_cases'], 'restart_phase_invalid')
                 need('candidate_warm_restart_intent' not in state['events'], 'restart_already_used')
                 current_grant = validate_grant(request, grant_raw, grant_sha, 'execute', utc)
-                need(current_grant['expires_utc'] - utc() >= 720, 'restart_budget_invalid')
+                reserve = 1080 if clock_restart else 720
+                need(current_grant['expires_utc'] - utc() >= reserve, 'restart_budget_invalid')
                 journal.event(state, 'candidate_warm_restart_intent')
                 checked(backend, request['device_binding'])
                 validate_grant(request, grant_raw, grant_sha, 'execute', utc)
+                if clock_restart:
+                    need(current_grant['expires_utc'] - utc() >= reserve, 'restart_budget_invalid')
                 # Existing transport rechecks exact candidate bytes before boot.
                 need(backend.boot_candidate() is True, 'candidate_warm_restart_uncertain')
                 journal.event(state, 'candidate_warm_restart_verified')
                 record_startup('warm')
                 return True
             result = observe(warm_restart, record_case)
-            from gnss_lifecycle_observation import validate_result
-            validate_result(result)
+            if clock_restart:
+                validate_grant(request, grant_raw, grant_sha, 'execute', utc)
+                validate_clock_restart_result(result, request)
+                result = decode(canonical(result))
+            else:
+                from gnss_lifecycle_observation import validate_result
+                validate_result(result)
             need(result['cases'] == state['lifecycle_cases'], 'observation_invalid')
             need(result['outcome'] != 'passed' or
                  'candidate_warm_restart_verified' in state['events'], 'observation_invalid')
@@ -339,7 +450,7 @@ def execute(root, request, grant_raw, grant_sha, candidate, backend, observe, *,
                             'connection_not_ready'),
                  'observation_invalid')
         state['observation'] = result
-        journal.event(state, 'lifecycle_observed' if lifecycle else
+        journal.event(state, 'clock_restart_observed' if clock_restart else 'lifecycle_observed' if lifecycle else
                       'connection_observed' if diagnostic else 'gnss_observed')
     except BaseException:
         # Any uncertain application mutation is recoverable, never retried.
@@ -360,8 +471,8 @@ def execute(root, request, grant_raw, grant_sha, candidate, backend, observe, *,
 
 
 @common.single_process
-def recover(root, request, grant_raw, grant_sha, backend, *, utc=time.time):
-    request = validate_request(request)
+def recover(root, request, grant_raw, grant_sha, backend, *, utc=time.time, execution_mode='retained'):
+    request = validate_request(request, execution_mode=execution_mode)
     grant = validate_grant(request, grant_raw, grant_sha, 'recover', utc)
     active = decode(path(root, ACTIVE).read_bytes())
     need(active == {'attempt': grant['origin_attempt'], 'request_sha256': sha(canonical(request))}, 'recovery_binding_invalid')
