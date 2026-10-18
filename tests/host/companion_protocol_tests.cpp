@@ -289,6 +289,27 @@ void test_fragment_decode_rejects_noncanonical_input() {
         {changed.data(), size});
     EXPECT(!zero_exchange.decoded());
     EXPECT(zero_exchange.error == CompanionCodecError::invalid_exchange_id);
+
+    changed = encoded;
+    changed[17] = 0;
+    const auto zero_count = decode_companion_fragment(
+        {changed.data(), size});
+    EXPECT(!zero_count.decoded());
+    EXPECT(zero_count.error == CompanionCodecError::invalid_fragment);
+
+    changed = encoded;
+    changed[17] = static_cast<std::uint8_t>(kCompanionMaxFragmentCount + 1U);
+    const auto excessive_count = decode_companion_fragment(
+        {changed.data(), size});
+    EXPECT(!excessive_count.decoded());
+    EXPECT(excessive_count.error == CompanionCodecError::invalid_fragment);
+
+    changed = encoded;
+    changed[16] = changed[17];
+    const auto invalid_index = decode_companion_fragment(
+        {changed.data(), size});
+    EXPECT(!invalid_index.decoded());
+    EXPECT(invalid_index.error == CompanionCodecError::invalid_fragment);
 }
 
 void test_session_open_requires_all_adapter_security_evidence() {
