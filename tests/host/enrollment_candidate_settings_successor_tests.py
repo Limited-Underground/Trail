@@ -24,7 +24,7 @@ def historical_source(name):
     """Old-route fixtures use retained exact policy bytes, never today's c13."""
     if name not in LEGACY_POLICY_PINS:
         return (ROOT / 'tools' / name).read_bytes()
-    path = ROOT / '.private/ot0238c-capture-selection-20261011/enrollment-runtime-capture-v20/policy' / name
+    path = ROOT / 'tests/host/fixtures/enrollment_candidate_legacy_sources' / (name + '.fixture')
     raw = path.read_bytes()
     assert runtime.descriptor(raw) == LEGACY_POLICY_PINS[name]
     return raw

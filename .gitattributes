@@ -1062,3 +1062,6 @@ tests/host/enrollment_candidate_operator_tests.py -text whitespace=blank-at-eol,
 /tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_rom_adapter.py.fixture -text
 /tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_original_capture.py.fixture -text
 /tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_capture_runner.py.fixture -text
+/tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_controller.py.fixture -text
+/tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_operator.py.fixture -text
+/tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_runner.py.fixture -text
