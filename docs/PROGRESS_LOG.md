@@ -1,6 +1,39 @@
 # OpenTrail Progress Log
 
+## 2026-10-18
+
+### OT-0238c Publish GNSS lifecycle and recovery host work
+
+[PR #53](https://github.com/Limited-Underground/Trail/pull/53) merged reviewed
+GNSS lifecycle tools/tests and OT-0101e documents, selected recovery helpers/tests,
+and one Android fullscreen call at [7721067](https://github.com/Limited-Underground/Trail/commit/7721067f308f925ef7d96d520bf76ea3cf588c69).
+Original local work was preserved before reconciliation; older gallery and
+E-only build-helper variants were not replayed over newer public safeguards.
+
+Initial CI exposed tests depending on ignored local evidence.
+[f54cf1f](https://github.com/Limited-Underground/Trail/commit/f54cf1f1d603dceeb3f6acaddaefafec515e7df2)
+added three tracked historical policy fixtures, preserving size/hash checks and
+exact bytes. All 40 interactive-launch tests passed with private reads blocked.
+[75aace9](https://github.com/Limited-Underground/Trail/commit/75aace9601c3b3d23fb6d1cd73d0e34698d5ab75)
+made cancel/recovery-A fixtures portable; all 58 predevice-resume tests passed
+under the same restriction. All seven final PR checks passed, including Windows
+core host tests and host matrix. This is source publication and host validation,
+not new device, RF, Android BLE, full OT-0238c, V1, package or release acceptance.
+Existing historical evidence remains dated; no public website capability changed.
+
 ## 2026-10-17
+
+### OT-175 Publish host inbox and phone foundations
+
+[PR #50](https://github.com/Limited-Underground/Trail/pull/50) published the
+five-file host-only device inbox model; [PR #52](https://github.com/Limited-Underground/Trail/pull/52)
+published reviewed phone consent/inbox/snapshot foundations and tracking plans.
+Both publication gates passed all seven configured checks. The main checkpoints
+were [71dcc9a](https://github.com/Limited-Underground/Trail/commit/71dcc9a4226f6e5d539fbea92edfc184c614f09e)
+and [5b2dc92](https://github.com/Limited-Underground/Trail/commit/5b2dc925e14feeaa675561f8c9d167c999a9f68d).
+Source publication does not establish protected storage, authenticated transport
+or ACK composition, live app wiring, physical acceptance or additional V1 credit.
+The phone validation record and remaining gates are documented below.
 
 ### OT-175 Validate existing phone inbox foundations for publication
 
