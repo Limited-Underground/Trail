@@ -141,6 +141,16 @@ void test_protocol_info_decode_fails_closed() {
                {changed.data(), changed.size()}).error ==
            CompanionCodecError::unknown_role);
     changed = encoded;
+    changed[7] = 0x10;
+    EXPECT(decode_companion_protocol_info(
+               {changed.data(), changed.size()}).error ==
+           CompanionCodecError::unknown_capability);
+    changed = encoded;
+    changed[7] = 0x80;
+    EXPECT(decode_companion_protocol_info(
+               {changed.data(), changed.size()}).error ==
+           CompanionCodecError::unknown_capability);
+    changed = encoded;
     changed[14] = 1;
     EXPECT(decode_companion_protocol_info(
                {changed.data(), changed.size()}).error ==
