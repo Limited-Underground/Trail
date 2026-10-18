@@ -172,7 +172,11 @@ void test_fragment_has_one_canonical_vector() {
     EXPECT(decoded.fragment.kind == CompanionFrameKind::action_request);
     EXPECT(decoded.fragment.session_nonce == 0x11223344U);
     EXPECT(decoded.fragment.exchange_id == 0xA1B2C3D4U);
+    EXPECT(decoded.fragment.fragment_index == 0);
+    EXPECT(decoded.fragment.fragment_count == 1);
     EXPECT(decoded.fragment.payload_bytes == 3);
+    EXPECT(decoded.fragment.payload[0] == 0x10);
+    EXPECT(decoded.fragment.payload[1] == 0x20);
     EXPECT(decoded.fragment.payload[2] == 0x30);
 }
 
