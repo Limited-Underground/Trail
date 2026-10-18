@@ -97,6 +97,185 @@ class Fixture:
     def require(self,fresh=True):return resume.require(self.value,self.bound,admission=self.native,
         monotonic=lambda:self.now,utc=lambda:self.now+self.utc_offset,fresh=fresh)
 
+class CancelReadinessFixture(Fixture):
+    """Real cancel admission combined with synthetic current readiness I/O."""
+    def __init__(self):
+        super().__init__()
+        from enrollment_candidate_settings_successor_tests import CancelFixture
+        self.route = CancelFixture()
+        f = self.route
+        proof = json.loads((self.oldready/'neutral-proof.json').read_bytes())
+        owner = json.loads((self.oldready/'owner-reply.json').read_bytes())
+        practice = json.loads((self.oldready/'practice.json').read_bytes())
+        proof['binding'] = f.old_ref
+        proof_ref = f.write(f.old_ready/'neutral-proof.json', proof)
+        owner['proof'] = proof_ref
+        owner_ref = f.write(f.old_ready/'owner.json', owner)
+        practice['binding_sha256'] = f.old_ref['sha256']
+        f.previous.update(proof=proof_ref, owner=owner_ref,
+            practice=f.write(f.old_ready/'practice.json', practice),
+            readiness=f.write(f.old_ready/'readiness.json', dict(schema='OT-VISIBLE-READINESS-1',
+                binding=f.old_ref, proof=proof_ref, owner=owner_ref,
+                hardware_authority=False, enrollment_acceptance=False)))
+        f.refresh_cancel()
+        f.bound_loader()
+        self.patch.stop()
+        self.root, self.private = f.root, f.private
+        self.oldroot, self.oldready = f.old_output, f.old_ready
+        self.newroot, self.newready = f.output, f.readiness
+        self.old, self.oldref = f.old, f.old_ref
+        self.value, self.item, self.bound = f.binding, f.item, f.bound
+        self.patch = patch.object(visible, 'ROOT', self.root); self.patch.start()
+        self.approval.update(binding=self.bound, case='cancel', group=1)
+        self.write(self.newroot/'owner-workflow-start.json', dict(schema='OT-OWNER-WORKFLOW-START-1',
+            session_nonce=self.value['session_nonce'], binding=self.bound))
+        self.write(self.newroot/'owner-approval-intent.json', self.approval)
+    def close(self):
+        super().close()
+        self.route.close()
+
+
+class CancelReadinessTests(unittest.TestCase):
+    def fixture(self):
+        f=CancelReadinessFixture(); self.addCleanup(f.close); return f
+    def test_cancel_readiness_and_derived_authorization_bind_exact_current_case(self):
+        f=self.fixture(); before={p.name:p.read_bytes() for p in f.oldready.iterdir()}
+        ref=f.revalidate(); self.assertEqual(f.require(),f.value)
+        auth=json.loads((f.newroot/'owner-authorization.json').read_bytes())
+        self.assertEqual((auth['case'],auth['group']),('cancel',1))
+        self.assertEqual(auth['visible_readiness'],ref)
+        self.assertEqual(auth['fixed_inputs_sha256'],f.item['successor']['fixed_inputs']['sha256'])
+        self.assertEqual(auth['visible_binding_sha256'],f.bound['sha256'])
+        self.assertEqual(auth['session_nonce'],f.value['session_nonce'])
+        self.assertEqual((auth['execute_seconds'],auth['total_seconds']),(2100,3600))
+        self.assertEqual(before,{p.name:p.read_bytes() for p in f.oldready.iterdir()})
+        self.assertEqual((f.opened,f.process_calls),(1,2))
+    def test_crosscase_stale_strict_boolean_and_consumed_state_refuse_before_popup(self):
+        for fault in ('first','retained_rekey','revoke','stale','group_bool','roles_bool','consumed'):
+            f=self.fixture()
+            if fault in ('first','retained_rekey','revoke'): f.approval['case']=fault
+            elif fault=='stale': f.approval['received_utc']=99099
+            elif fault=='group_bool': f.approval['group']=True
+            elif fault=='roles_bool': f.approval['roles_ready']['A']=1
+            else: (f.oldroot/'capture-grant.json').write_bytes(b'inert consumed fixture')
+            f.write(f.newroot/'owner-approval-intent.json',f.approval)
+            with self.subTest(fault=fault),self.assertRaises(Exception): f.revalidate()
+            self.assertEqual(f.opened,0)
+            self.assertEqual(list(f.newready.iterdir()),[])
+            self.assertFalse((f.newroot/'owner-authorization.json').exists())
+    def test_cancel_popup_clear_expiry_and_intent_changes_refuse_without_authorization(self):
+        for fault in ('cancel','clear','expired','changed_intent'):
+            f=self.fixture(); original=f.backend
+            if fault=='cancel': f.event='cancel'
+            if fault=='clear': f.clear=False
+            def backend():
+                value=original()
+                def poll():
+                    if fault=='expired': f.now+=900
+                    if fault=='changed_intent':
+                        f.approval['case']='first'; f.write(f.newroot/'owner-approval-intent.json',f.approval)
+                    return f.event
+                value.poll=poll; return value
+            f.backend=backend
+            with self.subTest(fault=fault),self.assertRaises(Exception): f.revalidate()
+            self.assertEqual(list(f.newready.iterdir()),[])
+            self.assertFalse((f.newroot/'owner-authorization.json').exists())
+    def test_cancel_current_readiness_expiry_refuses(self):
+        f=self.fixture(); f.revalidate(); f.now+=900
+        with self.assertRaises(visible.AdmissionError): f.require()
+
+
+class RecoveryAReadinessFixture(Fixture):
+    """Real recovery A admission combined with synthetic current readiness I/O."""
+    def __init__(self):
+        super().__init__()
+        from enrollment_candidate_settings_successor_tests import RecoveryAFixture
+        self.route = RecoveryAFixture()
+        f = self.route
+        proof = json.loads((self.oldready/'neutral-proof.json').read_bytes())
+        owner = json.loads((self.oldready/'owner-reply.json').read_bytes())
+        practice = json.loads((self.oldready/'practice.json').read_bytes())
+        proof['binding'] = f.old_ref
+        proof_ref = f.write(f.old_ready/'neutral-proof.json', proof)
+        owner['proof'] = proof_ref
+        owner_ref = f.write(f.old_ready/'owner.json', owner)
+        practice['binding_sha256'] = f.old_ref['sha256']
+        f.previous.update(proof=proof_ref, owner=owner_ref,
+            practice=f.write(f.old_ready/'practice.json', practice),
+            readiness=f.write(f.old_ready/'readiness.json', dict(schema='OT-VISIBLE-READINESS-1',
+                binding=f.old_ref, proof=proof_ref, owner=owner_ref,
+                hardware_authority=False, enrollment_acceptance=False)))
+        f.refresh_recovery_a()
+        f.bound_loader()
+        self.patch.stop()
+        self.root, self.private = f.root, f.private
+        self.oldroot, self.oldready = f.old_output, f.old_ready
+        self.newroot, self.newready = f.output, f.readiness
+        self.old, self.oldref = f.old, f.old_ref
+        self.value, self.item, self.bound = f.binding, f.item, f.bound
+        self.patch = patch.object(visible, 'ROOT', self.root); self.patch.start()
+        self.approval.update(binding=self.bound, case='recovery_after_A_commit', group=1)
+        self.write(self.newroot/'owner-workflow-start.json', dict(schema='OT-OWNER-WORKFLOW-START-1',
+            session_nonce=self.value['session_nonce'], binding=self.bound))
+        self.write(self.newroot/'owner-approval-intent.json', self.approval)
+    def close(self):
+        super().close()
+        self.route.close()
+
+
+class RecoveryAReadinessTests(unittest.TestCase):
+    def fixture(self):
+        f=RecoveryAReadinessFixture(); self.addCleanup(f.close); return f
+    def test_recovery_a_readiness_and_derived_authorization_bind_exact_current_case(self):
+        f=self.fixture(); before={p.name:p.read_bytes() for p in f.oldready.iterdir()}
+        ref=f.revalidate(); self.assertEqual(f.require(),f.value)
+        auth=json.loads((f.newroot/'owner-authorization.json').read_bytes())
+        self.assertEqual((auth['case'],auth['group']),('recovery_after_A_commit',1))
+        self.assertEqual(auth['visible_readiness'],ref)
+        self.assertEqual(auth['fixed_inputs_sha256'],f.item['successor']['fixed_inputs']['sha256'])
+        self.assertEqual(auth['visible_binding_sha256'],f.bound['sha256'])
+        self.assertEqual(auth['session_nonce'],f.value['session_nonce'])
+        self.assertEqual((auth['execute_seconds'],auth['total_seconds']),(2100,3600))
+        self.assertEqual(before,{p.name:p.read_bytes() for p in f.oldready.iterdir()})
+        self.assertEqual((f.opened,f.process_calls),(1,2))
+    def test_crosscase_stale_strict_boolean_and_consumed_state_refuse_before_popup(self):
+        for fault in ('first','retained_rekey','revoke','cancel','recovery_after_B_commit','reset_preparation','stale','group_bool','group_float','group_string','group_non1','roles_bool','consumed'):
+            f=self.fixture()
+            if fault in ('first','retained_rekey','revoke','cancel','recovery_after_B_commit','reset_preparation'): f.approval['case']=fault
+            elif fault=='stale': f.approval['received_utc']=99099
+            elif fault=='group_bool': f.approval['group']=True
+            elif fault=='group_float': f.approval['group']=1.0
+            elif fault=='group_string': f.approval['group']='1'
+            elif fault=='group_non1': f.approval['group']=2
+            elif fault=='roles_bool': f.approval['roles_ready']['A']=1
+            else: (f.oldroot/'capture-grant.json').write_bytes(b'inert consumed fixture')
+            f.write(f.newroot/'owner-approval-intent.json',f.approval)
+            with self.subTest(fault=fault),self.assertRaises(Exception): f.revalidate()
+            self.assertEqual(f.opened,0)
+            self.assertEqual(list(f.newready.iterdir()),[])
+            self.assertFalse((f.newroot/'owner-authorization.json').exists())
+    def test_recovery_a_popup_clear_expiry_and_intent_changes_refuse_without_authorization(self):
+        for fault in ('cancel','clear','expired','changed_intent'):
+            f=self.fixture(); original=f.backend
+            if fault=='cancel': f.event='cancel'
+            if fault=='clear': f.clear=False
+            def backend():
+                value=original()
+                def poll():
+                    if fault=='expired': f.now+=900
+                    if fault=='changed_intent':
+                        f.approval['case']='first'; f.write(f.newroot/'owner-approval-intent.json',f.approval)
+                    return f.event
+                value.poll=poll; return value
+            f.backend=backend
+            with self.subTest(fault=fault),self.assertRaises(Exception): f.revalidate()
+            self.assertEqual(list(f.newready.iterdir()),[])
+            self.assertFalse((f.newroot/'owner-authorization.json').exists())
+    def test_recovery_a_current_readiness_expiry_refuses(self):
+        f=self.fixture(); f.revalidate(); f.now+=900
+        with self.assertRaises(visible.AdmissionError): f.require()
+
+
 class ResumeTests(unittest.TestCase):
     def fixture(self):
         f=Fixture();self.addCleanup(f.close);return f

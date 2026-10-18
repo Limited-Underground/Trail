@@ -3,6 +3,7 @@
 One candidate session, one additional warm restart, existing original-span
 restoration. No passive recorder, continuous runtime evidence or phone automation.
 Execute is unavailable with old grants or the uncorrected revision-1 acceptance.
+Binding schema 2 selects an explicit registry device; schema 1 retains Bench 2.
 """
 import argparse
 import json
@@ -12,13 +13,16 @@ import time
 
 REQUIRED_FILES = {
     'tools/run_gnss_lifecycle_trial.py', 'tools/gnss_lifecycle_observation.py',
+    'tools/gnss_lifecycle_handoff.py', 'tests/host/gnss_lifecycle_handoff_tests.py',
+    'tools/gnss_lifecycle_handoff_cli.py', 'tests/host/gnss_lifecycle_handoff_cli_tests.py',
+    'docs/testing/OT-0101e-LIFECYCLE-HANDOFF-OPERATOR-2026-09-29.md',
     'tools/gnss_observation_trial.py', 'tools/run_gnss_observation_trial.py',
     'tools/ble_confirmation_trial_transport.py', 'tools/ble_startup_diagnostics.py',
     'tools/security_policy_execution.py', 'tools/security_policy_input_readback.py',
     'tools/security_policy_deadline_operator.py', 'tools/security_policy_bundle.py',
     'tools/security_policy_capture.py', 'tools/gnss_counter_capture.py',
     'tests/host/gnss_lifecycle_trial_tests.py',
-    'docs/testing/OT-0101e-LIFECYCLE-TRIAL-PLAN-2026-09-28.md',
+    'docs/testing/OT-0101e-LIFECYCLE-TRIAL-PLAN-V2-2026-09-28.md',
 }
 
 
@@ -39,10 +43,17 @@ def verify_binding(root, source, expected, *, recovery=False):
     raw = source.read_bytes()
     legacy.need(engine.sha(raw) == expected)
     obj = engine.decode(raw)
-    legacy.need(type(obj) is dict and set(obj) ==
-        {'schema', 'files', 'runtime_manifest', 'runtime_sha256', 'candidate', 'profile', 'registry', 'apk'})
-    legacy.need(obj['schema'] == 'OT0101E-LIFECYCLE-OPERATOR-BINDING-1' and
+    legacy.need(type(obj) is dict)
+    selected = obj.get('schema') == 'OT0101E-LIFECYCLE-OPERATOR-BINDING-2'
+    legacy.need(set(obj) ==
+        {'schema', 'files', 'runtime_manifest', 'runtime_sha256', 'candidate', 'profile', 'registry', 'apk'} |
+        ({'inventory_id'} if selected else set()))
+    legacy.need(obj['schema'] in ('OT0101E-LIFECYCLE-OPERATOR-BINDING-1',
+                                 'OT0101E-LIFECYCLE-OPERATOR-BINDING-2') and
                 obj['profile'] == 'A_STACK_8192')
+    if selected:
+        legacy.need(type(obj['inventory_id']) is str and
+                    obj['inventory_id'] in ('OT-DEV-001', 'OT-DEV-002'))
     files, apk = obj['files'], obj['apk']
     legacy.need(type(files) is dict and REQUIRED_FILES <= set(files))
     legacy.need(type(apk) is dict and set(apk) == {'path', 'bytes', 'sha256', 'signer_sha256'} and
@@ -100,7 +111,10 @@ def main(argv=None):
         legacy.need(args.original_control_verified and args.acceptance_revision_verified ==
                     request['approved_revision'] and args.acceptance_revision_verified >= 2)
         from gnss_counter_capture import bound_identity, normalized_identity
-        legacy.need(bound_identity(root / binding['registry'], 'OT-DEV-002') ==
+        # Selection is bound by the request/grant's binding hash. Legacy bindings
+        # retain Bench 2; recovery uses its original opaque identity, not a lookup.
+        inventory_id = binding.get('inventory_id', 'OT-DEV-002')
+        legacy.need(bound_identity(root / binding['registry'], inventory_id) ==
                     normalized_identity(ephemeral['identity']))
     candidate = b'' if args.mode == 'recover' else legacy.checked_file(
         root, binding['candidate'], request['candidate']['sha256'])

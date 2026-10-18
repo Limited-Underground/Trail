@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 class V1TestLogActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        configureTrailFullscreen(this)
 
         setContent { TrailTheme { LogReview() } }
     }

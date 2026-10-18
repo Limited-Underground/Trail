@@ -28,6 +28,10 @@ RESUME_SOURCE_NAMES = SOURCE_NAMES + ('enrollment_candidate_predevice_resume.py'
 SETTINGS_NAME = 'enrollment_candidate_settings_successor.py'
 FULL_STAGE = 'ot0238c-full-successor-admission-20261012'
 REVOKE_STAGE = 'ot0238e-revoke-admission-20261013'
+CANCEL_STAGE = 'ot0238c-cancel-admission-20261014'
+RECOVERY_A_STAGE = 'ot0238c-recovery-A-admission-20261014'
+OBSERVED_STAGE = 'ot0238c14-recovery-observed-admission-20261014'
+OBSERVED_AFTER_PINS = {"enrollment_candidate_controller.py":{"bytes":31385,"sha256":"78c015af015acb0162c74d5f529f137ed8decadadc4cacffe1af17e59ab01e71"},"enrollment_candidate_operator.py":{"bytes":57373,"sha256":"656d3703fc87de46f47a4c4ec5ec21d9ef6a83856a510f8a8f8fd751d1ba8fae"},"enrollment_candidate_runner.py":{"bytes":66698,"sha256":"5222937a7ab6ecdaefd8ef7f061ebd6b6bad2501c2e42c222dd4de6354dff792"}}
 SETTINGS_SOURCE_NAMES = RESUME_SOURCE_NAMES + (SETTINGS_NAME,)
 SETTINGS_AFTER_PINS = {'enrollment_candidate_rom_adapter.py': {'bytes': 70957, 'sha256': 'cc207e17bea17355fd9228cd221235c2a7ce5d777d0cbafde6134df8e98c8f4b'}, 'enrollment_candidate_original_capture.py': {'bytes': 56311, 'sha256': '866192e7dd6ebf95e47d5dc519ff9a475bc74ebd50f57a0a7e48bfa0e23f04e1'}, 'enrollment_candidate_capture_runner.py': {'bytes': 23027, 'sha256': 'fbaf3d0fc820210fbac6371cdf7c2ebea1bdb8744738612bfba0480785abbd02'}}
 # Reviewed capture-runner bytes require a protected route; they do not select
@@ -95,12 +99,16 @@ def admit_binding(path, sha256, *, assembly_verifier=runtime.verify_assembly):
             for name, pin in CLEANUP_AFTER_PINS.items())
         settings_sources = type(sources) is dict and (SETTINGS_NAME in sources or any(
             sources.get(name) == pin for name, pin in SETTINGS_AFTER_PINS.items()) or any(
-            sources.get(name) == pin for name, pin in REVIEWED_CORE_AFTER_PINS.items()))
+            sources.get(name) == pin for name, pin in REVIEWED_CORE_AFTER_PINS.items()) or any(
+            sources.get(name) == pin for name, pin in OBSERVED_AFTER_PINS.items()))
         settings_parent = type(value.get('session')) is dict and Path(value['session'].get('path', '')).parent == (
             ROOT / '.private/ot0238c-settings-check-20261011/prestage-v2')
         full_parent = type(value.get('session')) is dict and Path(value['session'].get('path', '')).parent in (
             ROOT / '.private' / FULL_STAGE / 'prestage',
-            ROOT / '.private' / REVOKE_STAGE / 'prestage')
+            ROOT / '.private' / REVOKE_STAGE / 'prestage',
+            ROOT / '.private' / CANCEL_STAGE / 'prestage',
+             ROOT / '.private' / RECOVERY_A_STAGE / 'prestage',
+             ROOT / '.private' / OBSERVED_STAGE / 'prestage')
         cleanup_parent = type(value.get('session')) is dict and Path(value['session'].get('path', '')).parent == (
             ROOT / '.private/ot0238c-launcher-recovery-20261011/prestage')
         need(not (cleanup_sources or cleanup_parent or settings_sources or settings_parent or full_parent)
@@ -136,8 +144,11 @@ def admit_binding(path, sha256, *, assembly_verifier=runtime.verify_assembly):
              ROOT / '.private/ot0238c-retained-preparation-20261009/prestage',
              ROOT / '.private/ot0238c-restart-package-20261010/prestage',
              ROOT / '.private/ot0238c-settings-check-20261011/prestage-v2',
-              ROOT / '.private' / FULL_STAGE / 'prestage',
-              ROOT / '.private' / REVOKE_STAGE / 'prestage'), 'session_invalid')
+             ROOT / '.private' / FULL_STAGE / 'prestage',
+             ROOT / '.private' / REVOKE_STAGE / 'prestage',
+             ROOT / '.private' / CANCEL_STAGE / 'prestage',
+             ROOT / '.private' / RECOVERY_A_STAGE / 'prestage',
+             ROOT / '.private' / OBSERVED_STAGE / 'prestage'), 'session_invalid')
     output = runtime.regular(value['session_output'], directory=True)
     owning_root = session.parent.parent
     need(output == owning_root / 'sessions' / value['session_nonce'],

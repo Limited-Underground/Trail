@@ -64,6 +64,10 @@ if ($LASTEXITCODE -ne 0) { throw 'GNSS observation trial tests failed.' }
 
 & $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\gnss_lifecycle_trial_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'GNSS lifecycle sequence and restoration tests failed.' }
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\gnss_lifecycle_handoff_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'GNSS lifecycle handoff tests failed.' }
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\gnss_lifecycle_handoff_cli_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'GNSS lifecycle handoff CLI tests failed.' }
 
 & $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\connection_diagnostic_capture_tests.py')
 if ($LASTEXITCODE -ne 0) { throw 'Connection diagnostic capture tests failed.' }

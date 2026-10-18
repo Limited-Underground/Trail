@@ -59,7 +59,14 @@ SETTINGS_NAME = 'enrollment_candidate_settings_successor.py'
 FULL_TRANSITION_KIND = 'ot0238c-reviewed-capture-core-full-successor'
 FULL_STAGE = 'ot0238c-full-successor-admission-20261012'
 REVOKE_TRANSITION_KIND = 'ot0238e-reviewed-revoke-successor'
+CANCEL_TRANSITION_KIND = 'ot0238c-reviewed-cancel-successor'
+RECOVERY_A_TRANSITION_KIND = 'ot0238c-reviewed-recovery-A-successor'
+OBSERVED_TRANSITION_KIND = 'ot0238c-reviewed-recovery-A-observed-successor'
 REVOKE_STAGE = 'ot0238e-revoke-admission-20261013'
+CANCEL_STAGE = 'ot0238c-cancel-admission-20261014'
+RECOVERY_A_STAGE = 'ot0238c-recovery-A-admission-20261014'
+OBSERVED_STAGE = 'ot0238c14-recovery-observed-admission-20261014'
+OBSERVED_AFTER_PINS = {"enrollment_candidate_controller.py":{"bytes":31385,"sha256":"78c015af015acb0162c74d5f529f137ed8decadadc4cacffe1af17e59ab01e71"},"enrollment_candidate_operator.py":{"bytes":57373,"sha256":"656d3703fc87de46f47a4c4ec5ec21d9ef6a83856a510f8a8f8fd751d1ba8fae"},"enrollment_candidate_runner.py":{"bytes":66698,"sha256":"5222937a7ab6ecdaefd8ef7f061ebd6b6bad2501c2e42c222dd4de6354dff792"}}
 SETTINGS_AFTER_PINS = {'enrollment_candidate_rom_adapter.py': {'bytes': 70957, 'sha256': 'cc207e17bea17355fd9228cd221235c2a7ce5d777d0cbafde6134df8e98c8f4b'}, 'enrollment_candidate_original_capture.py': {'bytes': 56311, 'sha256': '866192e7dd6ebf95e47d5dc519ff9a475bc74ebd50f57a0a7e48bfa0e23f04e1'}, 'enrollment_candidate_capture_runner.py': {'bytes': 23027, 'sha256': 'fbaf3d0fc820210fbac6371cdf7c2ebea1bdb8744738612bfba0480785abbd02'}}
 # Reviewed capture-runner bytes require a protected route; they do not select
 # the full mode. Runtime is shared by historical routes and is enforced only
@@ -130,12 +137,16 @@ def require_recovery_gate(value):
         for name, pair in CLEANUP_TRANSITION_PINS.items() if name != 'enrollment_candidate_runner.py')
     settings_sources = type(sources) is dict and (SETTINGS_NAME in sources or any(sources.get(name) == pin
         for name, pin in SETTINGS_AFTER_PINS.items()) or any(
-            sources.get(name) == pin for name, pin in REVIEWED_CORE_AFTER_PINS.items()))
+            sources.get(name) == pin for name, pin in REVIEWED_CORE_AFTER_PINS.items()) or any(
+            sources.get(name) == pin for name, pin in OBSERVED_AFTER_PINS.items()))
     settings_parent = Path(value.get('session', {}).get('path', '')).parent == (
         visible.ROOT / '.private/ot0238c-settings-check-20261011/prestage-v2')
     full_parent = Path(value.get('session', {}).get('path', '')).parent in (
         visible.ROOT / '.private' / FULL_STAGE / 'prestage',
-        visible.ROOT / '.private' / REVOKE_STAGE / 'prestage')
+        visible.ROOT / '.private' / REVOKE_STAGE / 'prestage',
+        visible.ROOT / '.private' / CANCEL_STAGE / 'prestage',
+        visible.ROOT / '.private' / RECOVERY_A_STAGE / 'prestage',
+             visible.ROOT / '.private' / OBSERVED_STAGE / 'prestage')
     cleanup_parent = Path(value.get('session', {}).get('path', '')).parent == (
         visible.ROOT / '.private/ot0238c-launcher-recovery-20261011/prestage')
     if value.get('schema') != 'OT-VISIBLE-SESSION-BINDING-2':
@@ -146,7 +157,7 @@ def require_recovery_gate(value):
     transition = item.get('runtime_transition') if type(item) is dict else None
     cleanup_kind = type(transition) is dict and transition.get('kind') == CLEANUP_TRANSITION_KIND
     settings_kind = type(transition) is dict and transition.get('kind') == SETTINGS_TRANSITION_KIND
-    full_kind = type(transition) is dict and transition.get('kind') in (FULL_TRANSITION_KIND, REVOKE_TRANSITION_KIND)
+    full_kind = type(transition) is dict and transition.get('kind') in (FULL_TRANSITION_KIND, REVOKE_TRANSITION_KIND, CANCEL_TRANSITION_KIND, RECOVERY_A_TRANSITION_KIND, OBSERVED_TRANSITION_KIND)
     if full_kind or full_parent:
         visible.need(type(item) is dict and item.get('schema') == TRANSITION_MANIFEST_SCHEMA
             and full_kind and full_parent, 'recovery_gate_invalid')
@@ -201,21 +212,25 @@ def runtime_transition(item, old, value):
     need(type(transition) is dict, 'resume_transition_invalid')
     cleanup = transition.get('kind') == CLEANUP_TRANSITION_KIND
     revoke = transition.get('kind') == REVOKE_TRANSITION_KIND
-    full = revoke or transition.get('kind') == FULL_TRANSITION_KIND
+    cancel = transition.get('kind') == CANCEL_TRANSITION_KIND
+    observed = transition.get('kind') == OBSERVED_TRANSITION_KIND
+    recovery_a = transition.get('kind') == RECOVERY_A_TRANSITION_KIND or observed
+    full = revoke or cancel or recovery_a or transition.get('kind') == FULL_TRANSITION_KIND
     settings = full or transition.get('kind') == SETTINGS_TRANSITION_KIND
-    need(set(transition) == (keys | {'settings_gate', 'settings_successor', 'admission_profile', 'core_review', 'fixed_inputs'} if revoke else
+    need(set(transition) == (keys | {'settings_gate', 'settings_successor', 'admission_profile', 'core_review', 'fixed_inputs'} if revoke or cancel or recovery_a else
             keys | {'settings_gate', 'settings_successor', 'admission_profile', 'core_review'} if full else
             keys | {'settings_gate', 'settings_successor'} if settings else
             keys | {'cleanup_review', 'recovery_gate'} if cleanup else keys)
         and transition['schema'] == TRANSITION_SCHEMA
-        and transition['kind'] in ('ot0238c-restart-diagnostic', CLEANUP_TRANSITION_KIND, SETTINGS_TRANSITION_KIND, FULL_TRANSITION_KIND, REVOKE_TRANSITION_KIND),
+        and transition['kind'] in ('ot0238c-restart-diagnostic', CLEANUP_TRANSITION_KIND, SETTINGS_TRANSITION_KIND, FULL_TRANSITION_KIND, REVOKE_TRANSITION_KIND, CANCEL_TRANSITION_KIND, RECOVERY_A_TRANSITION_KIND, OBSERVED_TRANSITION_KIND),
         'resume_transition_invalid')
     expected_pins = (transition['sources'] if settings else
         CLEANUP_TRANSITION_PINS if cleanup else TRANSITION_PINS)
     if settings:
         require_settings_gate(value, transition)
         need(set(expected_pins) == set(TRANSITION_PINS) | {'enrollment_candidate_original_capture.py',
-            'enrollment_candidate_capture_runner.py'} | ({'enrollment_candidate_runtime.py'} if full else set()), 'resume_transition_changed')
+            'enrollment_candidate_capture_runner.py'} | ({'enrollment_candidate_runtime.py'} if full else set())
+            | ({'enrollment_candidate_controller.py', 'enrollment_candidate_operator.py'} if observed else set()), 'resume_transition_changed')
     need(transition['sources'] == expected_pins
         and all(runtime.pin_valid(pin) for pair in transition['sources'].values() for pin in pair.values()),
         'resume_transition_changed')
@@ -340,7 +355,7 @@ def manifest(value):
         and set(previous['archives']) == set(old['sources']), 'resume_sources_invalid')
     if transition:
         runtime_transition(item, old, value)
-    full = transition and item['runtime_transition']['kind'] in (FULL_TRANSITION_KIND, REVOKE_TRANSITION_KIND)
+    full = transition and item['runtime_transition']['kind'] in (FULL_TRANSITION_KIND, REVOKE_TRANSITION_KIND, CANCEL_TRANSITION_KIND, RECOVERY_A_TRANSITION_KIND, OBSERVED_TRANSITION_KIND)
     settings = full or transition and item['runtime_transition']['kind'] == SETTINGS_TRANSITION_KIND
     if full:
         from enrollment_candidate_settings_successor import full_successor_profile
@@ -479,9 +494,32 @@ def history(value, bound, admission, monotonic, utc):
 
 
 def selection(item):
-    """Resolve only the independently reviewed first/retained/revoke selection."""
+    """Cancellation and A-commit recovery require their explicit successor routes."""
     visible = api()
     fixed = record(item['successor']['fixed_inputs'], visible.ROOT / '.private')
+    transition = item.get('runtime_transition')
+    cancel = type(transition) is dict and transition.get('kind') == CANCEL_TRANSITION_KIND
+    observed = type(transition) is dict and transition.get('kind') == OBSERVED_TRANSITION_KIND
+    recovery_a = type(transition) is dict and transition.get('kind') in (RECOVERY_A_TRANSITION_KIND, OBSERVED_TRANSITION_KIND)
+    if cancel or recovery_a or type(fixed) is dict and fixed.get('case') in ('cancel', 'recovery_after_A_commit'):
+        visible.need((cancel or recovery_a) and item.get('schema') == TRANSITION_MANIFEST_SCHEMA,
+            'owner_authorization_stale')
+        # The history/manifest gate closes sources and reviews separately.
+        # Selection still checks the immutable route and exact fixed input.
+        from enrollment_candidate_settings_successor import full_successor_profile
+        profile, ref, _, _ = full_successor_profile(visible.ROOT / '.private',
+            OBSERVED_TRANSITION_KIND if observed else RECOVERY_A_TRANSITION_KIND if recovery_a else CANCEL_TRANSITION_KIND)
+        visible.need(transition.get('admission_profile') == ref
+            and item['successor']['fixed_inputs'] == transition.get('fixed_inputs')
+            and Path(transition['fixed_inputs']['path']) == visible.ROOT / '.private' / (OBSERVED_STAGE if observed else RECOVERY_A_STAGE if recovery_a else CANCEL_STAGE) / 'prestage/fixed-inputs.json'
+            and type(fixed) is dict and type(fixed.get('case')) is str
+            and fixed['case'] == profile['selection']['case']
+            and type(fixed.get('group')) is int and fixed['group'] == profile['selection']['group']
+            and fixed.get('runtime') == transition.get('successor_runtime')
+            and type(fixed.get('proposed_execute_seconds')) is int and fixed['proposed_execute_seconds'] == 2100
+            and type(fixed.get('proposed_restore_seconds')) is int and fixed['proposed_restore_seconds'] == 3600,
+            'owner_authorization_stale')
+        return fixed['case'], fixed['group']
     visible.need(type(fixed) is dict and type(fixed.get('case')) is str
         and fixed['case'] in ('first', 'retained_rekey', 'revoke')
         and type(fixed.get('group')) is int and fixed['group'] == 1,

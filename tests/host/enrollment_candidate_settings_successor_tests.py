@@ -17,6 +17,19 @@ import enrollment_candidate_predevice_resume as resume
 import enrollment_candidate_owner_workflow as flow
 
 
+LEGACY_POLICY_PINS = {"enrollment_candidate_controller.py":{"bytes":29536,"sha256":"6c50e36b18a7dfdb3426418425d8345b328700541fc4a6cdf5c51b9627ce19c4"},"enrollment_candidate_operator.py":{"bytes":55897,"sha256":"2a502a49615926db313f059037707bf1f11b94ea3ed2f8d9fd62525168ced1c7"},"enrollment_candidate_runner.py":{"bytes":61076,"sha256":"56bbf37b2fd9a848ad8120a196d8be9cc03ab05895af90e5acf249f3a20079f0"}}
+
+
+def historical_source(name):
+    """Old-route fixtures use retained exact policy bytes, never today's c13."""
+    if name not in LEGACY_POLICY_PINS:
+        return (ROOT / 'tools' / name).read_bytes()
+    path = ROOT / '.private/ot0238c-capture-selection-20261011/enrollment-runtime-capture-v20/policy' / name
+    raw = path.read_bytes()
+    assert runtime.descriptor(raw) == LEGACY_POLICY_PINS[name]
+    return raw
+
+
 class Fixture:
     def __init__(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -273,6 +286,125 @@ class SettingsSuccessorTests(unittest.TestCase):
         self.assertFalse((f.private/'deleted-old-marker.json').exists())
 
 
+class RelocatedSettingsFixture(Fixture):
+    """Inert relocated successor using the actual immutable C-identity history."""
+    def __init__(self):
+        temporary_directory = tempfile.TemporaryDirectory
+        with patch.object(tempfile, 'TemporaryDirectory',
+                side_effect=lambda: temporary_directory(dir=ROOT / '.private')):
+            super().__init__()
+        for item in reversed(self.patches):
+            item.stop()
+        self.patches = []
+        actual_private = ROOT / '.private'
+        actual_linkage = dict(path=str(actual_private /
+            'ot0238c-inspection-inventory-correction-20261011/inspection/diagnostic-linkage.json'),
+            **gate.HISTORICAL_LINKAGE_PIN)
+        leaves = {}
+        original_read = gate.read
+        def collect(ref, boundary):
+            raw = original_read(ref, boundary)
+            leaves[Path(ref['path']).relative_to(actual_private)] = raw
+            return raw
+        with patch.object(gate, 'read', side_effect=collect):
+            _, self.receipt, self.diagnostic_package = gate.settled_diagnostic(actual_linkage, actual_private)
+        for relative, raw in leaves.items():
+            path = self.private / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(raw)
+        self.historical_leaves = leaves
+        self.linkage = dict(actual_linkage, path=str(self.private /
+            Path(actual_linkage['path']).relative_to(actual_private)))
+        historical = gate._HistoricalClosure(self.private, True)
+        self.disposition = dict(self.receipt['legacy_disposition'],
+            path=str(historical.physical_path(self.receipt['legacy_disposition']['path'])))
+        self.preservation = dict(self.receipt['legacy_preservation'],
+            path=str(historical.physical_path(self.receipt['legacy_preservation']['path'])))
+        preserved = historical.record(self.receipt['legacy_preservation'])
+        self.legacy = historical.directory(preserved['session'])
+        self.historical = historical.record(self.diagnostic_package['capture_request'])
+        self.request = dict(self.historical, schema=gate.REQUEST, runtime_sha256=self.runtime['sha256'])
+        self.requestref = self.write(self.prestage / 'capture-request.json', self.request)
+        self.sourcereview['capture_request'] = self.requestref
+        self.reviewref = self.write(self.stage / 'independent-source-review-v2.json', self.sourcereview)
+        self.transition['review'] = self.reviewref
+        self.resolution.update(legacy_disposition=self.disposition, legacy_preservation=self.preservation,
+            settled_diagnostic_linkage=self.linkage, capture_request=self.requestref, source_review=self.reviewref)
+        self.refresh()
+
+
+class RelocatedSettingsSuccessorTests(unittest.TestCase):
+    def fixture(self):
+        f = RelocatedSettingsFixture(); self.addCleanup(f.close); return f
+
+    def test_relocated_successor_admits_actual_c_history_without_rewriting_or_historical_root_reads(self):
+        f = self.fixture()
+        self.assertTrue(f.private.resolve().is_relative_to((ROOT / '.private').resolve()))
+        original_read = gate.read
+        def physical_only(ref, boundary):
+            self.assertTrue(Path(ref['path']).is_relative_to(f.private))
+            return original_read(ref, boundary)
+        with patch.object(gate, 'read', side_effect=physical_only):
+            self.assertTrue(f.admit())
+        self.assertTrue(f.receipt['legacy_disposition']['path'].startswith(gate.HISTORICAL_PRIVATE_ROOT + '\\'))
+        for relative, raw in f.historical_leaves.items():
+            self.assertEqual((f.private / relative).read_bytes(), raw)
+        self.assertEqual(list(f.output.iterdir()), [])
+
+    def test_new_resolution_rejects_logical_mixed_copied_or_forged_history_refs(self):
+        f = self.fixture()
+        expected_refs = {key:copy.deepcopy(f.resolution[key])
+            for key in ('legacy_disposition', 'legacy_preservation')}
+        for key in ('legacy_disposition', 'legacy_preservation'):
+            for fault in ('logical', 'copy', 'forged_pin', 'wrong_prefix'):
+                with self.subTest(key=key, fault=fault):
+                    f.resolution.update(copy.deepcopy(expected_refs))
+                    ref = expected_refs[key]
+                    if fault == 'logical':
+                        f.resolution[key] = f.receipt[key]
+                    elif fault == 'copy':
+                        f.resolution[key] = f.raw(f.stage / (key + '.json'), Path(ref['path']).read_bytes())
+                    elif fault == 'forged_pin':
+                        f.resolution[key] = dict(ref, sha256='0' * 64)
+                    elif fault == 'wrong_prefix':
+                        f.resolution[key] = dict(f.receipt[key], path=f.receipt[key]['path'].replace(
+                            gate.HISTORICAL_PRIVATE_ROOT, gate.HISTORICAL_PRIVATE_ROOT + '-other'))
+                    f.refresh()
+                    with self.assertRaises(gate.SettingsSuccessorError):
+                        f.admit()
+                    self.assertEqual(list(f.output.iterdir()), [])
+
+    def test_fresh_request_rejects_mixed_physical_and_historical_logical_identity(self):
+        f = self.fixture()
+        request = copy.deepcopy(f.request)
+        historical = gate._HistoricalClosure(f.private, True)
+        key = next(iter(request['retained']))
+        ref = request['retained'][key]
+        request['retained'][key] = dict(ref, path=str(historical.physical_path(ref['path'])))
+        self.assertNotEqual(request, f.request)
+        f.resolution['capture_request'] = f.write(f.prestage / 'capture-request.json', request)
+        f.refresh()
+        with self.assertRaises(gate.SettingsSuccessorError):
+            f.admit()
+        self.assertEqual(list(f.output.iterdir()), [])
+
+    def test_missing_or_changed_relocated_history_never_falls_back_to_logical_source(self):
+        f = self.fixture()
+        path = Path(f.preservation['path'])
+        raw = path.read_bytes()
+        for fault in ('missing', 'changed'):
+            with self.subTest(fault=fault):
+                path.write_bytes(raw)
+                if fault == 'missing':
+                    path.unlink()
+                else:
+                    path.write_bytes(path.read_bytes() + b'changed')
+                with self.assertRaises(gate.SettingsSuccessorError):
+                    f.admit()
+                self.assertEqual(list(f.output.iterdir()), [])
+        path.write_bytes(raw)
+
+
 class ActualAcceptedDiagnosticTests(unittest.TestCase):
     def test_actual_frozen_diagnostic_finite_closure(self):
         private=ROOT/'.private'
@@ -330,7 +462,7 @@ class FullFixture(Fixture):
         sources = {}
         policy = Path(self.manifest['root']) / 'policy'
         for name in runtime.SOURCE_NAMES:
-            raw = (ROOT / 'tools' / name).read_bytes()
+            raw = (ROOT / 'tools' / name).read_bytes() if portable else historical_source(name)
             ref = self.raw(policy / name, raw)
             sources['tools/' + name] = {k:ref[k] for k in ('bytes', 'sha256')}
             pair = self.profile['cumulative_sources'].get(name)
@@ -361,7 +493,20 @@ class FullFixture(Fixture):
             actual_previous=json.loads((ROOT / '.private/ot0238c-settings-check-20261011/prestage-v2/resume-manifest.json').read_bytes())['predecessor']
         old_archive=self.private / 'old-archive';old_archive.mkdir()
         for name in visible.SOURCE_NAMES:
-            raw = predecessor_sources[name] if portable else Path(actual_previous['archives'][name]['path']).read_bytes()
+            if portable:
+                raw = predecessor_sources[name]
+            else:
+                archive_ref=actual_previous['archives'][name]
+                relative=('ot0238c-predevice-resume-20261008/predecessor' if name in
+                    ('enrollment_candidate_interactive_launch.py', 'enrollment_candidate_owner_workflow.py',
+                     'enrollment_candidate_visible_session.py') else
+                    'ot0238c-query-efficiency-20261008/enrollment-runtime-v16/policy')
+                expected=gate.HISTORICAL_PRIVATE_ROOT + '\\' + relative.replace('/', '\\') + '\\' + name
+                if archive_ref['path'] != expected:
+                    raise AssertionError('historical archive path changed')
+                raw=(ROOT / '.private' / relative / name).read_bytes()
+                if runtime.descriptor(raw) != {k:archive_ref[k] for k in ('bytes','sha256')}:
+                    raise AssertionError('historical archive bytes changed')
             ref=self.raw(old_archive / name,raw)
             old_archives[name]=ref
             old_binding_sources[name]={k:ref[k] for k in ('bytes','sha256')}
@@ -392,7 +537,7 @@ class FullFixture(Fixture):
             session_output=str(self.output),readiness_root=str(self.readiness),host=visible.reference(sys.executable),
             assembly=self.assembly)
         for name in visible.SETTINGS_SOURCE_NAMES:
-            ref=self.raw(self.tools / name,(ROOT / 'tools' / name).read_bytes())
+            ref=self.raw(self.tools / name,(ROOT / 'tools' / name).read_bytes() if portable else historical_source(name))
             self.binding['sources'][name]={k:ref[k] for k in ('bytes','sha256')}
         self.request = dict(self.historical,schema=gate.REQUEST,runtime_sha256=self.runtime['sha256'])
         self.requestref=self.write(self.prestage / 'capture-request.json',self.request)
@@ -597,8 +742,14 @@ class ActualAcceptedCoreTests(unittest.TestCase):
     def test_frozen_profile_and_review_with_no_trust_constant_patches(self):
         profile,profile_ref,core_ref,archived=gate.full_successor_profile(ROOT / '.private')
         self.assertEqual(core_ref['sha256'],'2052cf6c6e65b536a814f3d7d234c3b3973a3cd321d2fa9b62b1df4bad4e07e0')
-        self.assertEqual(profile['predecessor']['sha256'],'302eedf51ba9862556edc1e1ee4b1e0a4d4fbf9d7913d629538ba9379861df8e')
-        old=gate.record(profile['predecessor'],ROOT / '.private')
+        predecessor=profile['predecessor']
+        self.assertEqual(predecessor['sha256'],'302eedf51ba9862556edc1e1ee4b1e0a4d4fbf9d7913d629538ba9379861df8e')
+        self.assertEqual(predecessor,dict(path=gate.HISTORICAL_PRIVATE_ROOT +
+            r'\ot0238c-launch-binding-20261008\prestage\binding.json',bytes=3512,
+            sha256='302eedf51ba9862556edc1e1ee4b1e0a4d4fbf9d7913d629538ba9379861df8e'))
+        current=dict(predecessor,path=str(ROOT / '.private' /
+            'ot0238c-launch-binding-20261008/prestage/binding.json'))
+        old=gate.record(current,ROOT / '.private')
         self.assertEqual(old['schema'],'OT-VISIBLE-SESSION-BINDING-1')
         for name,pair in profile['reviewed_core_delta'].items():
             self.assertEqual(runtime.descriptor((ROOT / 'tools' / name).read_bytes()),pair['after'])
@@ -844,6 +995,509 @@ class RevokeSuccessorTests(unittest.TestCase):
         self.assertEqual(core_ref['sha256'], gate.CORE_REVIEW_PIN['sha256'])
         self.assertEqual(profile['reviewed_selection_source']['sha256'],
             '0fe4c14bb34dac5fe650740c345c40b33b914dcc085213ff71ec7e5eb3d9bc95')
+        self.assertEqual(set(profile['cumulative_sources']), set(gate.CORE) | {'enrollment_candidate_runtime.py'})
+        self.assertEqual(set(archived['sources']), set(visible.SETTINGS_SOURCE_NAMES))
+
+
+class CancelFixture(FullFixture):
+    """Inert future cancel closure with real immutable review leaves."""
+    def __init__(self):
+        super().__init__()
+        self.prior_profile_ref = self.profile_ref
+        historical_profile = copy.deepcopy(self.profile)
+        actual = json.loads((ROOT / '.private' / gate.CANCEL_STAGE / 'successor-admission-profile.json').read_bytes())
+        self.stage = self.private / gate.CANCEL_STAGE; self.stage.mkdir()
+        self.prestage = self.stage / 'prestage'; self.prestage.mkdir()
+        self.output = self.stage / 'sessions' / ('f' * 32); self.output.mkdir(parents=True)
+        self.readiness = self.stage / 'readiness' / ('f' * 32); self.readiness.mkdir(parents=True)
+        self.profile = dict(historical_profile, **{k:actual[k] for k in
+            ('schema', 'kind', 'stage', 'cancellation_controller', 'controller_scope', 'selection')},
+            prior_full_profile=dict(relative_path=gate.FULL_STAGE + '/successor-admission-profile.json',
+                **{k:self.prior_profile_ref[k] for k in ('bytes', 'sha256')}))
+        self.profile_ref = self.write(self.stage / 'successor-admission-profile.json', self.profile)
+        pin_patch = patch.object(gate, 'CANCEL_PROFILE_PIN', {k:self.profile_ref[k] for k in ('bytes', 'sha256')})
+        pin_patch.start(); self.patches.append(pin_patch)
+        self.binding.update(session=self.raw(self.prestage / 'session.template.py', b'inert cancel session'),
+            session_output=str(self.output), readiness_root=str(self.readiness))
+        self.requestref = self.write(self.prestage / 'capture-request.json', self.request)
+        self.fixed = dict(case='cancel', group=1, runtime=self.runtime,
+            proposed_execute_seconds=2100, proposed_restore_seconds=3600)
+        self.transition.update(kind=gate.CANCEL_KIND, admission_profile=self.profile_ref)
+        self.resolution.update(schema='OT-CURRENT-SETTINGS-SUCCESSOR-5',
+            scope='fresh_current_nvs_capture_for_early_cancel_enrollment', capture_request=self.requestref,
+            successor_session=self.binding['session'], successor_root=str(self.output))
+        self.sourcereview.update(schema='OT-CANCEL-SUCCESSOR-SOURCE-REVIEW-1',
+            capture_request=self.requestref, admission_profile=self.profile_ref)
+        self.refresh_cancel()
+
+    def refresh_cancel(self, *, sync_fixed=True):
+        if sync_fixed:
+            self.fixed_ref = self.write(self.prestage / 'fixed-inputs.json', self.fixed)
+            self.transition['fixed_inputs'] = self.fixed_ref
+            self.resolution['fixed_inputs'] = self.fixed_ref
+            self.sourcereview['fixed_inputs'] = self.fixed_ref
+        self.gatesource = visible.reference(self.tools / gate.NAME)
+        self.sourcereview.update(validator_source=self.gatesource, binding_sources=self.binding['sources'])
+        self.reviewref = self.write(self.stage / 'independent-source-review.json', self.sourcereview)
+        self.resolution['source_review'] = self.reviewref
+        self.transition.update(settings_gate=self.gatesource, review=self.reviewref,
+            settings_successor=self.write(self.stage / 'settings-successor.json', self.resolution))
+        successor = {k:self.binding[k] for k in ('session_nonce', 'readiness_root', 'session_output',
+            'session', 'assembly', 'sources')}
+        successor.update(fixed_inputs=self.fixed_ref,
+            procedure=self.write(self.stage / 'procedure.json', {'fixture':'inert procedure'}),
+            static_review=self.write(self.stage / 'static-review.json', {'fixture':'inert review'}))
+        self.item = dict(schema=resume.TRANSITION_MANIFEST_SCHEMA, runtime_transition=self.transition,
+            predecessor=self.previous, successor=successor)
+        self.close_manifest()
+
+    def close_manifest(self):
+        self.item['review'] = self.write(self.stage / 'resume-review.json', dict(
+            schema='OT-PREDEVICE-SUCCESSION-REVIEW-1', manifest_core_sha256=runtime.descriptor(
+                runtime.canonical({k:v for k,v in self.item.items() if k != 'review'}))['sha256'],
+            outcome='no_unresolved_findings', findings=[], hardware_access=False, live_grants_created=False))
+        self.close_binding()
+
+    def close_binding(self):
+        self.binding['predevice'] = self.write(self.stage / 'resume.json', self.item)
+        self.binding['review'] = self.write(self.stage / 'binding-review.json', dict(
+            schema='OT-VISIBLE-SESSION-REVIEW-1', binding_core_sha256=runtime.descriptor(
+                runtime.canonical(visible.binding_core(self.binding)))['sha256'], outcome='no_unresolved_findings',
+            findings=[], hardware_access=False, live_grants_created=False))
+        self.bound = self.write(self.stage / 'binding.json', self.binding)
+
+    def bound_loader(self):
+        text = (ROOT / 'tools' / gate.NAME).read_text()
+        for name, ref in (('LINKAGE', self.linkage), ('DISPOSITION', self.disposition),
+                ('PRESERVATION', self.preservation), ('FULL_PROFILE_PIN', self.prior_profile_ref),
+                ('CANCEL_PROFILE_PIN', self.profile_ref)):
+            text = '\n'.join(name + ' = ' + repr({k:ref[k] for k in ('bytes', 'sha256')})
+                if line.startswith(name + ' = ') else line for line in text.splitlines()) + '\n'
+        ref = self.raw(self.tools / gate.NAME, text.encode())
+        self.binding['sources'][gate.NAME] = {k:ref[k] for k in ('bytes', 'sha256')}
+        self.refresh_cancel()
+        return self.bound
+
+
+
+class CancelSuccessorTests(unittest.TestCase):
+    def fixture(self):
+        f = CancelFixture(); self.addCleanup(f.close); return f
+
+    def refused_at_all_entries(self, f):
+        forbidden = unittest.mock.Mock(side_effect=AssertionError('forbidden native, SDK or process dispatch'))
+        bound = f.write(f.stage / 'binding.json', f.binding)
+        plan = dict(binding=bound, session_output=str(f.output), readiness_root=str(f.readiness), session_nonce='f'*32)
+        with patch.object(visible, 'ROOT', f.root), patch.object(flow, 'ROOT', f.root), \
+                patch.object(visible, 'native_admission', forbidden), patch.object(runtime, 'verify_assembly', forbidden):
+            for label, call, error in (
+                    ('predevice', lambda:resume.require_recovery_gate(f.binding), visible.AdmissionError),
+                    ('interactive', lambda:visible.admit_binding(bound['path'], bound['sha256'],
+                        assembly_verifier=forbidden), visible.AdmissionError),
+                    ('owner', lambda:flow.Workflow(plan, run=forbidden, popen=forbidden,
+                        notify=lambda text:None).execute(), flow.Refused)):
+                with self.subTest(entry=label), self.assertRaises(error):
+                    call()
+        forbidden.assert_not_called()
+        self.assertEqual(list(f.output.iterdir()), [])
+        self.assertEqual(list(f.readiness.iterdir()), [])
+
+    def test_exact_cancel_reaches_four_actual_gates_without_dispatch_or_markers(self):
+        f = self.fixture(); bound = f.bound_loader()
+        assembly = type('Assembly', (), dict(worktree=f.root, root=Path(f.manifest['root']), manifest=f.manifest))()
+        forbidden = unittest.mock.Mock(side_effect=AssertionError('forbidden dispatch'))
+        self.assertTrue(f.admit())
+        with patch.object(visible, 'ROOT', f.root), patch.object(flow, 'ROOT', f.root), \
+                patch.object(visible, 'native_admission', forbidden), patch.object(runtime, 'verify_assembly', forbidden):
+            self.assertTrue(resume.require_recovery_gate(f.binding))
+            self.assertIsNone(flow.require_cleanup_recovery(bound))
+            admitted, _ = visible.admit_binding(bound['path'], bound['sha256'], assembly_verifier=lambda *a:assembly)
+            self.assertEqual(admitted, f.binding)
+        forbidden.assert_not_called()
+        with patch.object(visible, 'ROOT', f.root):
+            self.assertEqual(resume.selection(f.item), ('cancel', 1))
+        self.assertEqual(list(f.output.iterdir()), [])
+        self.assertEqual(list(f.readiness.iterdir()), [])
+
+    def test_wrong_cases_group_types_values_runtime_and_deadlines_refuse(self):
+        faults = [('case', v) for v in ('first', 'retained_rekey', 'revoke', 'CANCEL', None, True)]
+        faults += [('group', v) for v in (True, False, '1', 1.0, 0, 2, None)]
+        faults += [('runtime', {}), ('proposed_execute_seconds', 2101),
+            ('proposed_restore_seconds', 3599), ('proposed_execute_seconds', True)]
+        for key, value in faults:
+            with self.subTest(field=key, value=value):
+                f = self.fixture(); f.bound_loader(); f.fixed[key] = value; f.refresh_cancel()
+                with self.assertRaises(gate.SettingsSuccessorError): f.admit()
+                self.refused_at_all_entries(f)
+
+    def test_selection_ref_must_be_same_in_actual_successor_transition_resolution_and_review(self):
+        for target in ('successor', 'transition', 'resolution', 'review', 'changed_bytes'):
+            with self.subTest(target=target):
+                f = self.fixture(); f.bound_loader()
+                other = f.write(f.stage / 'unbound-fixed.json', f.fixed)
+                if target == 'successor':
+                    f.item['successor']['fixed_inputs'] = other; f.close_manifest()
+                elif target == 'transition':
+                    f.transition['fixed_inputs'] = other; f.refresh_cancel(sync_fixed=False)
+                elif target == 'resolution':
+                    f.resolution['fixed_inputs'] = other; f.refresh_cancel(sync_fixed=False)
+                elif target == 'review':
+                    f.sourcereview['fixed_inputs'] = other; f.refresh_cancel(sync_fixed=False)
+                else:
+                    f.write(Path(f.fixed_ref['path']), dict(f.fixed, case='retained_rekey'))
+                with self.assertRaises(gate.SettingsSuccessorError): f.admit()
+                self.refused_at_all_entries(f)
+
+    def test_route_stripping_downgrade_and_cross_stage_substitution_refuse(self):
+        for fault in ('strip', 'missing_predevice', 'kind', 'full_kind', 'revoke_kind', 'schema', 'old_stage', 'revoke_stage', 'arbitrary_stage'):
+            with self.subTest(fault=fault):
+                f = self.fixture(); f.bound_loader()
+                if fault == 'strip':
+                    f.item.pop('runtime_transition'); f.close_manifest()
+                elif fault == 'missing_predevice':
+                    f.binding.pop('predevice'); f.binding['sources'] = {}
+                elif fault in ('kind', 'full_kind', 'revoke_kind'):
+                    f.transition['kind'] = gate.KIND if fault == 'kind' else gate.REVOKE_KIND if fault == 'revoke_kind' else gate.FULL_KIND; f.refresh_cancel()
+                elif fault == 'schema':
+                    f.binding['schema'] = 'OT-VISIBLE-SESSION-BINDING-1'; f.binding.pop('predevice')
+                else:
+                    parent = f.private / (gate.FULL_STAGE if fault == 'old_stage' else gate.REVOKE_STAGE if fault == 'revoke_stage' else 'arbitrary') / 'prestage'
+                    parent.mkdir(parents=True, exist_ok=True)
+                    f.binding['session'] = f.raw(parent / 'session.template.py', b'inert substituted session')
+                    f.refresh_cancel()
+                self.refused_at_all_entries(f)
+
+    def test_succession_and_binding_reviews_refuse_before_assembly_or_owner_markers(self):
+        # Reseal all outer pins and the binding review after an inner review
+        # fault. This discriminates early semantic closure from a hash mismatch.
+        faults = ('hash', 'schema', 'outcome', 'findings', 'hardware', 'grant',
+            'extra_key', 'missing_key', 'missing_file', 'changed_bytes')
+        for target in ('succession', 'binding'):
+            for fault in faults:
+                with self.subTest(target=target, fault=fault):
+                    f = self.fixture(); f.bound_loader()
+                    owner = f.item if target == 'succession' else f.binding
+                    ref = owner['review']; path = Path(ref['path'])
+                    review = json.loads(path.read_bytes())
+                    if fault == 'hash':
+                        review['manifest_core_sha256' if target == 'succession' else 'binding_core_sha256'] = '0'*64
+                    elif fault == 'schema': review['schema'] = 'OT-FULL-SUCCESSOR-SOURCE-REVIEW-1'
+                    elif fault == 'outcome': review['outcome'] = 'approved_host_source_only'
+                    elif fault == 'findings': review['findings'] = ['unresolved']
+                    elif fault == 'hardware': review['hardware_access'] = True
+                    elif fault == 'grant': review['live_grants_created'] = True
+                    elif fault == 'extra_key': review['accepted'] = True
+                    elif fault == 'missing_key': review.pop('findings')
+                    if fault == 'missing_file': path.unlink()
+                    elif fault == 'changed_bytes': f.raw(path, b'changed review without repinning')
+                    else: owner['review'] = f.write(path, review)
+                    if target == 'succession': f.close_binding()
+                    else: f.bound = f.write(f.stage / 'binding.json', f.binding)
+                    with self.assertRaises(gate.SettingsSuccessorError): f.admit()
+                    self.refused_at_all_entries(f)
+
+    def test_forged_profile_core_sources_reviews_and_consumed_predecessor_refuse(self):
+        for fault in ('profile', 'controller', 'core_review', 'source', 'source_review',
+                'capture_request', 'authority', 'physical_predecessor', 'consumed_predecessor'):
+            with self.subTest(fault=fault):
+                f = self.fixture(); f.bound_loader()
+                if fault == 'profile':
+                    forged = copy.deepcopy(f.profile); forged['selection']['case'] = 'retained_rekey'
+                    f.transition['admission_profile'] = f.write(Path(f.profile_ref['path']), forged)
+                elif fault == 'controller':
+                    ref = f.raw(f.tools / 'enrollment_candidate_controller.py', b'changed inert controller')
+                    f.binding['sources']['enrollment_candidate_controller.py'] = {k:ref[k] for k in ('bytes','sha256')}
+                elif fault == 'core_review':
+                    review = json.loads(Path(f.transition['core_review']['path']).read_bytes())
+                    review['open_findings'] = ['unresolved']; f.transition['core_review'] = f.write(
+                        Path(f.transition['core_review']['path']), review)
+                elif fault == 'source':
+                    f.delta['enrollment_candidate_runtime.py']['after'] = runtime.descriptor(b'forged core')
+                elif fault == 'source_review':
+                    f.sourcereview['findings'] = ['unresolved']
+                elif fault == 'capture_request':
+                    f.request['retained'] = {}; f.write(Path(f.requestref['path']), f.request)
+                elif fault == 'authority':
+                    f.resolution['diagnostic_nvs_adopted'] = True
+                elif fault == 'physical_predecessor':
+                    f.previous['binding'] = f.write(f.stage / 'physical-binding.json',
+                        dict(f.old, schema='OT-VISIBLE-SESSION-BINDING-2'))
+                else:
+                    f.raw(f.old_output / 'enrollment-candidate-active.json', b'consumed state')
+                f.refresh_cancel(sync_fixed=False)
+                self.refused_at_all_entries(f)
+
+    def test_frozen_cancel_profile_uses_real_reviews_without_trust_patches(self):
+        profile, ref, core_ref, archived = gate.full_successor_profile(ROOT / '.private', gate.CANCEL_KIND)
+        self.assertEqual(profile['selection'], {'case':'cancel', 'group':1})
+        self.assertEqual(runtime.descriptor(Path(ref['path']).read_bytes()), gate.CANCEL_PROFILE_PIN)
+        self.assertEqual(profile['prior_full_profile']['sha256'], gate.FULL_PROFILE_PIN['sha256'])
+        self.assertEqual(core_ref['sha256'], gate.CORE_REVIEW_PIN['sha256'])
+        self.assertEqual(profile['cancellation_controller'], dict(path='tools/enrollment_candidate_controller.py',
+            **gate.CANCEL_CONTROLLER_PIN))
+        self.assertEqual(runtime.descriptor(historical_source('enrollment_candidate_controller.py')),
+            gate.CANCEL_CONTROLLER_PIN)
+        self.assertNotIn('selection_review', profile)
+        self.assertEqual(set(profile['cumulative_sources']), set(gate.CORE) | {'enrollment_candidate_runtime.py'})
+        self.assertEqual(set(archived['sources']), set(visible.SETTINGS_SOURCE_NAMES))
+
+
+class RecoveryAFixture(FullFixture):
+    """Inert future recovery A closure with real immutable review leaves."""
+    def __init__(self):
+        super().__init__()
+        self.prior_profile_ref = self.profile_ref
+        historical_profile = copy.deepcopy(self.profile)
+        actual = json.loads((ROOT / '.private' / gate.RECOVERY_A_STAGE / 'successor-admission-profile.json').read_bytes())
+        self.stage = self.private / gate.RECOVERY_A_STAGE; self.stage.mkdir()
+        self.prestage = self.stage / 'prestage'; self.prestage.mkdir()
+        self.output = self.stage / 'sessions' / ('f' * 32); self.output.mkdir(parents=True)
+        self.readiness = self.stage / 'readiness' / ('f' * 32); self.readiness.mkdir(parents=True)
+        self.profile = dict(historical_profile, **{k:actual[k] for k in
+            ('schema', 'kind', 'stage', 'recovery_controller', 'controller_scope', 'selection')},
+            prior_full_profile=dict(relative_path=gate.FULL_STAGE + '/successor-admission-profile.json',
+                **{k:self.prior_profile_ref[k] for k in ('bytes', 'sha256')}))
+        self.profile_ref = self.write(self.stage / 'successor-admission-profile.json', self.profile)
+        pin_patch = patch.object(gate, 'RECOVERY_A_PROFILE_PIN', {k:self.profile_ref[k] for k in ('bytes', 'sha256')})
+        pin_patch.start(); self.patches.append(pin_patch)
+        self.binding.update(session=self.raw(self.prestage / 'session.template.py', b'inert recovery A session'),
+            session_output=str(self.output), readiness_root=str(self.readiness))
+        self.requestref = self.write(self.prestage / 'capture-request.json', self.request)
+        self.fixed = dict(case='recovery_after_A_commit', group=1, runtime=self.runtime,
+            proposed_execute_seconds=2100, proposed_restore_seconds=3600)
+        self.transition.update(kind=gate.RECOVERY_A_KIND, admission_profile=self.profile_ref)
+        self.resolution.update(schema='OT-CURRENT-SETTINGS-SUCCESSOR-6',
+            scope='fresh_current_nvs_capture_for_recovery_after_A_commit', capture_request=self.requestref,
+            successor_session=self.binding['session'], successor_root=str(self.output))
+        self.sourcereview.update(schema='OT-RECOVERY-A-SUCCESSOR-SOURCE-REVIEW-1',
+            capture_request=self.requestref, admission_profile=self.profile_ref)
+        self.refresh_recovery_a()
+
+    def refresh_recovery_a(self, *, sync_fixed=True):
+        if sync_fixed:
+            self.fixed_ref = self.write(self.prestage / 'fixed-inputs.json', self.fixed)
+            self.transition['fixed_inputs'] = self.fixed_ref
+            self.resolution['fixed_inputs'] = self.fixed_ref
+            self.sourcereview['fixed_inputs'] = self.fixed_ref
+        self.gatesource = visible.reference(self.tools / gate.NAME)
+        self.sourcereview.update(validator_source=self.gatesource, binding_sources=self.binding['sources'])
+        self.reviewref = self.write(self.stage / 'independent-source-review.json', self.sourcereview)
+        self.resolution['source_review'] = self.reviewref
+        self.transition.update(settings_gate=self.gatesource, review=self.reviewref,
+            settings_successor=self.write(self.stage / 'settings-successor.json', self.resolution))
+        successor = {k:self.binding[k] for k in ('session_nonce', 'readiness_root', 'session_output',
+            'session', 'assembly', 'sources')}
+        successor.update(fixed_inputs=self.fixed_ref,
+            procedure=self.write(self.stage / 'procedure.json', {'fixture':'inert procedure'}),
+            static_review=self.write(self.stage / 'static-review.json', {'fixture':'inert review'}))
+        self.item = dict(schema=resume.TRANSITION_MANIFEST_SCHEMA, runtime_transition=self.transition,
+            predecessor=self.previous, successor=successor)
+        self.close_manifest()
+
+    def close_manifest(self):
+        self.item['review'] = self.write(self.stage / 'resume-review.json', dict(
+            schema='OT-PREDEVICE-SUCCESSION-REVIEW-1', manifest_core_sha256=runtime.descriptor(
+                runtime.canonical({k:v for k,v in self.item.items() if k != 'review'}))['sha256'],
+            outcome='no_unresolved_findings', findings=[], hardware_access=False, live_grants_created=False))
+        self.close_binding()
+
+    def close_binding(self):
+        self.binding['predevice'] = self.write(self.stage / 'resume.json', self.item)
+        self.binding['review'] = self.write(self.stage / 'binding-review.json', dict(
+            schema='OT-VISIBLE-SESSION-REVIEW-1', binding_core_sha256=runtime.descriptor(
+                runtime.canonical(visible.binding_core(self.binding)))['sha256'], outcome='no_unresolved_findings',
+            findings=[], hardware_access=False, live_grants_created=False))
+        self.bound = self.write(self.stage / 'binding.json', self.binding)
+
+    def bound_loader(self):
+        text = (ROOT / 'tools' / gate.NAME).read_text()
+        for name, ref in (('LINKAGE', self.linkage), ('DISPOSITION', self.disposition),
+                ('PRESERVATION', self.preservation), ('FULL_PROFILE_PIN', self.prior_profile_ref),
+                ('RECOVERY_A_PROFILE_PIN', self.profile_ref)):
+            text = '\n'.join(name + ' = ' + repr({k:ref[k] for k in ('bytes', 'sha256')})
+                if line.startswith(name + ' = ') else line for line in text.splitlines()) + '\n'
+        ref = self.raw(self.tools / gate.NAME, text.encode())
+        self.binding['sources'][gate.NAME] = {k:ref[k] for k in ('bytes', 'sha256')}
+        self.refresh_recovery_a()
+        return self.bound
+
+
+
+class RecoveryASuccessorTests(unittest.TestCase):
+    def fixture(self):
+        f = RecoveryAFixture(); self.addCleanup(f.close); return f
+
+    def refused_at_all_entries(self, f):
+        forbidden = unittest.mock.Mock(side_effect=AssertionError('forbidden native, SDK or process dispatch'))
+        bound = f.write(f.stage / 'binding.json', f.binding)
+        plan = dict(binding=bound, session_output=str(f.output), readiness_root=str(f.readiness), session_nonce='f'*32)
+        with patch.object(visible, 'ROOT', f.root), patch.object(flow, 'ROOT', f.root), \
+                patch.object(visible, 'native_admission', forbidden), patch.object(runtime, 'verify_assembly', forbidden):
+            for label, call, error in (
+                    ('predevice', lambda:resume.require_recovery_gate(f.binding), visible.AdmissionError),
+                    ('interactive', lambda:visible.admit_binding(bound['path'], bound['sha256'],
+                        assembly_verifier=forbidden), visible.AdmissionError),
+                    ('owner', lambda:flow.Workflow(plan, run=forbidden, popen=forbidden,
+                        notify=lambda text:None).execute(), flow.Refused)):
+                with self.subTest(entry=label), self.assertRaises(error):
+                    call()
+        forbidden.assert_not_called()
+        self.assertEqual(list(f.output.iterdir()), [])
+        self.assertEqual(list(f.readiness.iterdir()), [])
+
+    def test_exact_recovery_a_reaches_four_actual_gates_without_dispatch_or_markers(self):
+        f = self.fixture(); bound = f.bound_loader()
+        assembly = type('Assembly', (), dict(worktree=f.root, root=Path(f.manifest['root']), manifest=f.manifest))()
+        forbidden = unittest.mock.Mock(side_effect=AssertionError('forbidden dispatch'))
+        self.assertTrue(f.admit())
+        with patch.object(visible, 'ROOT', f.root), patch.object(flow, 'ROOT', f.root), \
+                patch.object(visible, 'native_admission', forbidden), patch.object(runtime, 'verify_assembly', forbidden):
+            self.assertTrue(resume.require_recovery_gate(f.binding))
+            self.assertIsNone(flow.require_cleanup_recovery(bound))
+            admitted, _ = visible.admit_binding(bound['path'], bound['sha256'], assembly_verifier=lambda *a:assembly)
+            self.assertEqual(admitted, f.binding)
+        forbidden.assert_not_called()
+        with patch.object(visible, 'ROOT', f.root):
+            self.assertEqual(resume.selection(f.item), ('recovery_after_A_commit', 1))
+        self.assertEqual(list(f.output.iterdir()), [])
+        self.assertEqual(list(f.readiness.iterdir()), [])
+
+    def test_wrong_cases_group_types_values_runtime_and_deadlines_refuse(self):
+        faults = [('case', v) for v in ('first', 'retained_rekey', 'revoke', 'cancel', 'recovery_after_B_commit', 'reset_preparation', 'startup_A', 'unknown', None, True)]
+        faults += [('group', v) for v in (True, False, '1', 1.0, 0, 2, None)]
+        faults += [('runtime', {}), ('proposed_execute_seconds', 2101),
+            ('proposed_restore_seconds', 3599), ('proposed_execute_seconds', True)]
+        for key, value in faults:
+            with self.subTest(field=key, value=value):
+                f = self.fixture(); f.bound_loader(); f.fixed[key] = value; f.refresh_recovery_a()
+                with self.assertRaises(gate.SettingsSuccessorError): f.admit()
+                self.refused_at_all_entries(f)
+
+    def test_selection_ref_must_be_same_in_actual_successor_transition_resolution_and_review(self):
+        for target in ('successor', 'transition', 'resolution', 'review', 'changed_bytes'):
+            with self.subTest(target=target):
+                f = self.fixture(); f.bound_loader()
+                other = f.write(f.stage / 'unbound-fixed.json', f.fixed)
+                if target == 'successor':
+                    f.item['successor']['fixed_inputs'] = other; f.close_manifest()
+                elif target == 'transition':
+                    f.transition['fixed_inputs'] = other; f.refresh_recovery_a(sync_fixed=False)
+                elif target == 'resolution':
+                    f.resolution['fixed_inputs'] = other; f.refresh_recovery_a(sync_fixed=False)
+                elif target == 'review':
+                    f.sourcereview['fixed_inputs'] = other; f.refresh_recovery_a(sync_fixed=False)
+                else:
+                    f.write(Path(f.fixed_ref['path']), dict(f.fixed, case='retained_rekey'))
+                with self.assertRaises(gate.SettingsSuccessorError): f.admit()
+                self.refused_at_all_entries(f)
+
+    def test_route_stripping_downgrade_and_cross_stage_substitution_refuse(self):
+        for fault in ('strip', 'missing_predevice', 'kind', 'full_kind', 'revoke_kind', 'cancel_kind', 'schema', 'transition_schema', 'old_stage', 'revoke_stage', 'cancel_stage', 'arbitrary_stage'):
+            with self.subTest(fault=fault):
+                f = self.fixture(); f.bound_loader()
+                if fault == 'strip':
+                    f.item.pop('runtime_transition'); f.close_manifest()
+                elif fault == 'missing_predevice':
+                    f.binding.pop('predevice'); f.binding['sources'] = {}
+                elif fault in ('kind', 'full_kind', 'revoke_kind', 'cancel_kind'):
+                    f.transition['kind'] = gate.KIND if fault == 'kind' else gate.REVOKE_KIND if fault == 'revoke_kind' else gate.CANCEL_KIND if fault == 'cancel_kind' else gate.FULL_KIND; f.refresh_recovery_a()
+                elif fault == 'transition_schema':
+                    f.transition['schema'] = 'OT-PREDEVICE-RUNTIME-TRANSITION-0'; f.refresh_recovery_a()
+                elif fault == 'schema':
+                    f.binding['schema'] = 'OT-VISIBLE-SESSION-BINDING-1'; f.binding.pop('predevice')
+                else:
+                    parent = f.private / (gate.FULL_STAGE if fault == 'old_stage' else gate.REVOKE_STAGE if fault == 'revoke_stage' else gate.CANCEL_STAGE if fault == 'cancel_stage' else 'arbitrary') / 'prestage'
+                    parent.mkdir(parents=True, exist_ok=True)
+                    f.binding['session'] = f.raw(parent / 'session.template.py', b'inert substituted session')
+                    f.refresh_recovery_a()
+                self.refused_at_all_entries(f)
+
+    def test_succession_and_binding_reviews_refuse_before_assembly_or_owner_markers(self):
+        # Reseal all outer pins and the binding review after an inner review
+        # fault. This discriminates early semantic closure from a hash mismatch.
+        faults = ('hash', 'schema', 'outcome', 'findings', 'hardware', 'grant',
+            'extra_key', 'missing_key', 'missing_file', 'changed_bytes')
+        for target in ('succession', 'binding'):
+            for fault in faults:
+                with self.subTest(target=target, fault=fault):
+                    f = self.fixture(); f.bound_loader()
+                    owner = f.item if target == 'succession' else f.binding
+                    ref = owner['review']; path = Path(ref['path'])
+                    review = json.loads(path.read_bytes())
+                    if fault == 'hash':
+                        review['manifest_core_sha256' if target == 'succession' else 'binding_core_sha256'] = '0'*64
+                    elif fault == 'schema': review['schema'] = 'OT-FULL-SUCCESSOR-SOURCE-REVIEW-1'
+                    elif fault == 'outcome': review['outcome'] = 'approved_host_source_only'
+                    elif fault == 'findings': review['findings'] = ['unresolved']
+                    elif fault == 'hardware': review['hardware_access'] = True
+                    elif fault == 'grant': review['live_grants_created'] = True
+                    elif fault == 'extra_key': review['accepted'] = True
+                    elif fault == 'missing_key': review.pop('findings')
+                    if fault == 'missing_file': path.unlink()
+                    elif fault == 'changed_bytes': f.raw(path, b'changed review without repinning')
+                    else: owner['review'] = f.write(path, review)
+                    if target == 'succession': f.close_binding()
+                    else: f.bound = f.write(f.stage / 'binding.json', f.binding)
+                    with self.assertRaises(gate.SettingsSuccessorError): f.admit()
+                    self.refused_at_all_entries(f)
+
+    def test_forged_profile_core_sources_reviews_and_consumed_predecessor_refuse(self):
+        for fault in ('profile', 'controller', 'core_review', 'source', 'source_review',
+                'capture_request', 'authority', 'physical_predecessor', 'consumed_predecessor'):
+            with self.subTest(fault=fault):
+                f = self.fixture(); f.bound_loader()
+                if fault == 'profile':
+                    forged = copy.deepcopy(f.profile); forged['selection']['case'] = 'retained_rekey'
+                    f.transition['admission_profile'] = f.write(Path(f.profile_ref['path']), forged)
+                elif fault == 'controller':
+                    ref = f.raw(f.tools / 'enrollment_candidate_controller.py', b'changed inert controller')
+                    f.binding['sources']['enrollment_candidate_controller.py'] = {k:ref[k] for k in ('bytes','sha256')}
+                elif fault == 'core_review':
+                    review = json.loads(Path(f.transition['core_review']['path']).read_bytes())
+                    review['open_findings'] = ['unresolved']; f.transition['core_review'] = f.write(
+                        Path(f.transition['core_review']['path']), review)
+                elif fault == 'source':
+                    f.delta['enrollment_candidate_runtime.py']['after'] = runtime.descriptor(b'forged core')
+                elif fault == 'source_review':
+                    f.sourcereview['findings'] = ['unresolved']
+                elif fault == 'capture_request':
+                    f.request['retained'] = {}; f.write(Path(f.requestref['path']), f.request)
+                elif fault == 'authority':
+                    f.resolution['diagnostic_nvs_adopted'] = True
+                elif fault == 'physical_predecessor':
+                    f.previous['binding'] = f.write(f.stage / 'physical-binding.json',
+                        dict(f.old, schema='OT-VISIBLE-SESSION-BINDING-2'))
+                else:
+                    f.raw(f.old_output / 'enrollment-candidate-active.json', b'consumed state')
+                f.refresh_recovery_a(sync_fixed=False)
+                self.refused_at_all_entries(f)
+
+    def test_repointed_profile_missing_source_review_and_selection_without_route_refuse(self):
+        for fault in ('profile_repointed', 'source_review_missing', 'generic_selection'):
+            with self.subTest(fault=fault):
+                f = self.fixture(); f.bound_loader()
+                if fault == 'profile_repointed':
+                    f.transition['admission_profile'] = f.write(f.stage / 'profile-copy.json', f.profile)
+                    f.refresh_recovery_a()
+                elif fault == 'source_review_missing':
+                    Path(f.reviewref['path']).unlink()
+                else:
+                    f.item.pop('runtime_transition'); f.close_manifest()
+                    with patch.object(visible, 'ROOT', f.root), self.assertRaises(visible.AdmissionError):
+                        resume.selection(f.item)
+                self.refused_at_all_entries(f)
+
+    def test_frozen_recovery_a_profile_uses_real_reviews_without_trust_patches(self):
+        profile, ref, core_ref, archived = gate.full_successor_profile(ROOT / '.private', gate.RECOVERY_A_KIND)
+        self.assertEqual(profile['selection'], {'case':'recovery_after_A_commit', 'group':1})
+        self.assertEqual(runtime.descriptor(Path(ref['path']).read_bytes()), gate.RECOVERY_A_PROFILE_PIN)
+        self.assertEqual(profile['prior_full_profile']['sha256'], gate.FULL_PROFILE_PIN['sha256'])
+        self.assertEqual(core_ref['sha256'], gate.CORE_REVIEW_PIN['sha256'])
+        self.assertEqual(profile['recovery_controller'], dict(path='tools/enrollment_candidate_controller.py',
+            **gate.RECOVERY_A_CONTROLLER_PIN))
+        self.assertEqual(runtime.descriptor(historical_source('enrollment_candidate_controller.py')),
+            gate.RECOVERY_A_CONTROLLER_PIN)
+        self.assertNotIn('selection_review', profile)
         self.assertEqual(set(profile['cumulative_sources']), set(gate.CORE) | {'enrollment_candidate_runtime.py'})
         self.assertEqual(set(archived['sources']), set(visible.SETTINGS_SOURCE_NAMES))
 
