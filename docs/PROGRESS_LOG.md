@@ -2,6 +2,18 @@
 
 ## 2026-10-18
 
+### OT-0248 Reconcile firmware scope, targets and protocol fixtures
+
+[Bounded reconciliation](testing/OT-0248-FIRMWARE-SCOPE-RECONCILIATION-2026-10-18.md)
+maps accepted V1 scope to bench/evaluation source, protocol fixtures and dated
+evidence. Historical failures and host/USB/RF/phone boundaries remain distinct;
+unsupported coverage and physical acceptance remain UNKNOWN. Existing name and
+configuration consumers are identified. One proposed source-only follow-up would
+trace the two protocol-v0 vectors to exact C++/Kotlin expectations; not started.
+Documentation only: no firmware tests/builds, device/E: access, implementation,
+commit or push. No V1 or public website capability change. Owner acceptance and
+publication remain separate gates.
+
 ### OT-0238c Publish GNSS lifecycle and recovery host work
 
 [PR #53](https://github.com/Limited-Underground/Trail/pull/53) merged reviewed
