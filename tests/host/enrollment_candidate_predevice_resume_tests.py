@@ -102,7 +102,7 @@ class CancelReadinessFixture(Fixture):
     def __init__(self):
         super().__init__()
         from enrollment_candidate_settings_successor_tests import CancelFixture
-        self.route = CancelFixture()
+        self.route = CancelFixture(portable=True)
         f = self.route
         proof = json.loads((self.oldready/'neutral-proof.json').read_bytes())
         owner = json.loads((self.oldready/'owner-reply.json').read_bytes())
@@ -190,7 +190,7 @@ class RecoveryAReadinessFixture(Fixture):
     def __init__(self):
         super().__init__()
         from enrollment_candidate_settings_successor_tests import RecoveryAFixture
-        self.route = RecoveryAFixture()
+        self.route = RecoveryAFixture(portable=True)
         f = self.route
         proof = json.loads((self.oldready/'neutral-proof.json').read_bytes())
         owner = json.loads((self.oldready/'owner-reply.json').read_bytes())

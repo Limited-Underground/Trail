@@ -1001,11 +1001,22 @@ class RevokeSuccessorTests(unittest.TestCase):
 
 class CancelFixture(FullFixture):
     """Inert future cancel closure with real immutable review leaves."""
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *, portable=False):
+        super().__init__(portable=portable)
         self.prior_profile_ref = self.profile_ref
         historical_profile = copy.deepcopy(self.profile)
-        actual = json.loads((ROOT / '.private' / gate.CANCEL_STAGE / 'successor-admission-profile.json').read_bytes())
+        if portable:
+            # Pin public source once; later fault mutations never renew trust.
+            self.controller_pin = runtime.descriptor((ROOT / 'tools/enrollment_candidate_controller.py').read_bytes())
+            controller_patch = patch.object(gate, 'CANCEL_CONTROLLER_PIN', self.controller_pin)
+            controller_patch.start(); self.patches.append(controller_patch)
+            actual = dict(schema='OT-CANCEL-SUCCESSOR-ADMISSION-PROFILE-1',
+                kind=gate.CANCEL_KIND, stage=gate.CANCEL_STAGE,
+                cancellation_controller=dict(path='tools/enrollment_candidate_controller.py', **self.controller_pin),
+                controller_scope='mode0_begin_both_cancel_A_close_B_before_activation',
+                selection=dict(case='cancel', group=1))
+        else:
+            actual = json.loads((ROOT / '.private' / gate.CANCEL_STAGE / 'successor-admission-profile.json').read_bytes())
         self.stage = self.private / gate.CANCEL_STAGE; self.stage.mkdir()
         self.prestage = self.stage / 'prestage'; self.prestage.mkdir()
         self.output = self.stage / 'sessions' / ('f' * 32); self.output.mkdir(parents=True)
@@ -1068,9 +1079,13 @@ class CancelFixture(FullFixture):
 
     def bound_loader(self):
         text = (ROOT / 'tools' / gate.NAME).read_text()
-        for name, ref in (('LINKAGE', self.linkage), ('DISPOSITION', self.disposition),
+        pins = [('LINKAGE', self.linkage), ('DISPOSITION', self.disposition),
                 ('PRESERVATION', self.preservation), ('FULL_PROFILE_PIN', self.prior_profile_ref),
-                ('CANCEL_PROFILE_PIN', self.profile_ref)):
+                ('CANCEL_PROFILE_PIN', self.profile_ref)]
+        if self.portable:
+            pins += [('CORE_REVIEW_PIN', self.core_review_pin),
+                     ('CANCEL_CONTROLLER_PIN', self.controller_pin)]
+        for name, ref in pins:
             text = '\n'.join(name + ' = ' + repr({k:ref[k] for k in ('bytes', 'sha256')})
                 if line.startswith(name + ' = ') else line for line in text.splitlines()) + '\n'
         ref = self.raw(self.tools / gate.NAME, text.encode())
@@ -1244,11 +1259,22 @@ class CancelSuccessorTests(unittest.TestCase):
 
 class RecoveryAFixture(FullFixture):
     """Inert future recovery A closure with real immutable review leaves."""
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *, portable=False):
+        super().__init__(portable=portable)
         self.prior_profile_ref = self.profile_ref
         historical_profile = copy.deepcopy(self.profile)
-        actual = json.loads((ROOT / '.private' / gate.RECOVERY_A_STAGE / 'successor-admission-profile.json').read_bytes())
+        if portable:
+            # Pin public source once; later fault mutations never renew trust.
+            self.controller_pin = runtime.descriptor((ROOT / 'tools/enrollment_candidate_controller.py').read_bytes())
+            controller_patch = patch.object(gate, 'RECOVERY_A_CONTROLLER_PIN', self.controller_pin)
+            controller_patch.start(); self.patches.append(controller_patch)
+            actual = dict(schema='OT-RECOVERY-A-SUCCESSOR-ADMISSION-PROFILE-1',
+                kind=gate.RECOVERY_A_KIND, stage=gate.RECOVERY_A_STAGE,
+                recovery_controller=dict(path='tools/enrollment_candidate_controller.py', **self.controller_pin),
+                controller_scope='mode0_commit_A_restart_mode2_recovery_fresh_activation_eight_statuses',
+                selection=dict(case='recovery_after_A_commit', group=1))
+        else:
+            actual = json.loads((ROOT / '.private' / gate.RECOVERY_A_STAGE / 'successor-admission-profile.json').read_bytes())
         self.stage = self.private / gate.RECOVERY_A_STAGE; self.stage.mkdir()
         self.prestage = self.stage / 'prestage'; self.prestage.mkdir()
         self.output = self.stage / 'sessions' / ('f' * 32); self.output.mkdir(parents=True)
@@ -1311,9 +1337,13 @@ class RecoveryAFixture(FullFixture):
 
     def bound_loader(self):
         text = (ROOT / 'tools' / gate.NAME).read_text()
-        for name, ref in (('LINKAGE', self.linkage), ('DISPOSITION', self.disposition),
+        pins = [('LINKAGE', self.linkage), ('DISPOSITION', self.disposition),
                 ('PRESERVATION', self.preservation), ('FULL_PROFILE_PIN', self.prior_profile_ref),
-                ('RECOVERY_A_PROFILE_PIN', self.profile_ref)):
+                ('RECOVERY_A_PROFILE_PIN', self.profile_ref)]
+        if self.portable:
+            pins += [('CORE_REVIEW_PIN', self.core_review_pin),
+                     ('RECOVERY_A_CONTROLLER_PIN', self.controller_pin)]
+        for name, ref in pins:
             text = '\n'.join(name + ' = ' + repr({k:ref[k] for k in ('bytes', 'sha256')})
                 if line.startswith(name + ' = ') else line for line in text.splitlines()) + '\n'
         ref = self.raw(self.tools / gate.NAME, text.encode())
