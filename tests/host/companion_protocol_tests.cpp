@@ -271,6 +271,24 @@ void test_fragment_decode_rejects_noncanonical_input() {
     changed[18] = 2;
     EXPECT(decode_companion_fragment({changed.data(), size}).error ==
            CompanionCodecError::malformed);
+
+    changed = encoded;
+    for (std::size_t index = 8; index < 12; ++index) {
+        changed[index] = 0;
+    }
+    const auto zero_session = decode_companion_fragment(
+        {changed.data(), size});
+    EXPECT(!zero_session.decoded());
+    EXPECT(zero_session.error == CompanionCodecError::invalid_session_nonce);
+
+    changed = encoded;
+    for (std::size_t index = 12; index < 16; ++index) {
+        changed[index] = 0;
+    }
+    const auto zero_exchange = decode_companion_fragment(
+        {changed.data(), size});
+    EXPECT(!zero_exchange.decoded());
+    EXPECT(zero_exchange.error == CompanionCodecError::invalid_exchange_id);
 }
 
 void test_session_open_requires_all_adapter_security_evidence() {
