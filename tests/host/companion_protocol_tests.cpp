@@ -141,6 +141,16 @@ void test_protocol_info_decode_fails_closed() {
                {changed.data(), changed.size()}).error ==
            CompanionCodecError::unknown_role);
     changed = encoded;
+    changed[7] = 0x10;
+    EXPECT(decode_companion_protocol_info(
+               {changed.data(), changed.size()}).error ==
+           CompanionCodecError::unknown_capability);
+    changed = encoded;
+    changed[7] = 0x80;
+    EXPECT(decode_companion_protocol_info(
+               {changed.data(), changed.size()}).error ==
+           CompanionCodecError::unknown_capability);
+    changed = encoded;
     changed[14] = 1;
     EXPECT(decode_companion_protocol_info(
                {changed.data(), changed.size()}).error ==
@@ -310,6 +320,18 @@ void test_fragment_decode_rejects_noncanonical_input() {
         {changed.data(), size});
     EXPECT(!invalid_index.decoded());
     EXPECT(invalid_index.error == CompanionCodecError::invalid_fragment);
+
+    std::array<std::uint8_t, kCompanionMaxFragmentBytes + 1> oversized{};
+    for (std::size_t index = 0; index < kCompanionFragmentHeaderBytes; ++index) {
+        oversized[index] = encoded[index];
+    }
+    const auto oversized_payload_bytes = kCompanionMaxFragmentPayloadBytes + 1U;
+    oversized[18] = static_cast<std::uint8_t>(oversized_payload_bytes & 0xFFU);
+    oversized[19] = static_cast<std::uint8_t>(oversized_payload_bytes >> 8U);
+    const auto oversized_result = decode_companion_fragment(
+        {oversized.data(), oversized.size()});
+    EXPECT(!oversized_result.decoded());
+    EXPECT(oversized_result.error == CompanionCodecError::payload_too_large);
 }
 
 void test_session_open_requires_all_adapter_security_evidence() {
