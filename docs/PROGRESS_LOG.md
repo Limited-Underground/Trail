@@ -1,5 +1,28 @@
 # OpenTrail Progress Log
 
+## 2026-10-19
+
+### OT-0251b Clarify bench factory-reset operator instructions
+
+Closed locally for the owner-approved documentation-only correction in the
+[bench guide](../firmware/targets/heltec_v4_bench/README.md). The exact interaction
+wording identifies the implemented BOOT/GPIO0 input, requires an initial release,
+and makes the confirmation press and release explicit within the following
+10-second window. Physical Button 1/Button 2 numbering remains UNKNOWN;
+ordinary-build/display conditions and the existing physical-acceptance warning
+and durable-cleanup boundary are retained.
+
+Source comparison used the [input definition](../firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_input.hpp),
+[gesture recognizer](../firmware/components/companion/src/companion_factory_reset_gesture.cpp),
+[application wiring](../firmware/targets/heltec_v4_bench/main/app_main.cpp) and
+[display guard](../firmware/targets/heltec_v4_bench/main/heltec_startup_display.cpp).
+Validation is limited to exact diff/source comparison, read-only independent
+review and existing-work/schedule preservation checks. Tests and builds were
+not run, as explicitly instructed. No source/header/build changes, device/E:
+access, commit or push. This local completion does not create or close a GitHub
+Project card or grant physical, release or V1 acceptance. Existing work and the
+scheduled batch are preserved; public website status is unchanged.
+
 ## 2026-10-18
 
 ### OT-0248 Reconcile firmware scope, targets and protocol fixtures
