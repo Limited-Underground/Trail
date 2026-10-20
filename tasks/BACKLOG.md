@@ -43,6 +43,12 @@ device run is authorized by the host evidence.
 Full OT-0238c remains In Progress; retained/new-key, revoke/reset/recovery and RF
 acceptance remain open.
 
+2026-10-20: OT-DEV-001 was reflashed with the known-good `heltec_v4_bench` application
+image (SHA-256 `3705d4dc…`) and completed fresh companion enrollment and phone
+connection ([owner-reported note](../tests/hardware/OT-DEV-001-CONNECTION-2026-10-20.md)).
+OT-0238c retained/rekey beyond the accepted USB case, revoke/reset/recovery and RF
+acceptance remain open.
+
 1. The [OT244 controlled radio trial](../docs/testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md)
    failed at activation1 after both local confirmations; originals/state are
    restored and custody closed, both normal screens confirmed. The [OT245 host replay](../docs/testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md)
