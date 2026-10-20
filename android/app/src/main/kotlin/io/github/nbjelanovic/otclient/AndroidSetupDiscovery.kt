@@ -15,16 +15,26 @@ internal object AndroidSetupAdvertisementLabel {
         if (record.size > 512) return Result.Invalid
         var offset = 0
         var label: String? = null
+        // Some stacks pad the primary advertisement with zeros and append the scan
+        // response. Allow exactly one zero-padding boundary; the second segment is
+        // the scan response and may not carry a local name.
+        var inResponse = false
         while (offset < record.size) {
             val length = record[offset].toInt() and 0xff
             if (length == 0) {
-                if (record.copyOfRange(offset, record.size).any { it.toInt() != 0 }) return Result.Invalid
-                break
+                var next = offset
+                while (next < record.size && record[next].toInt() == 0) next++
+                if (next == record.size) break
+                if (inResponse) return Result.Invalid // Only one padded boundary is plausible.
+                inResponse = true
+                offset = next
+                continue
             }
             if (offset + 1 + length > record.size) return Result.Invalid
             when (record[offset + 1].toInt() and 0xff) {
                 0x08 -> return Result.Invalid // A shortened local name cannot identify a setup choice.
                 0x09 -> {
+                    if (inResponse) return Result.Invalid // Firmware names only the primary record.
                     if (label != null || length != V1_SETUP_CODE_LENGTH + 1) return Result.Invalid
                     val code = record.copyOfRange(offset + 2, offset + 1 + length)
                     if (code.any { (it.toInt() and 0xff) > 0x7f }) return Result.Invalid
