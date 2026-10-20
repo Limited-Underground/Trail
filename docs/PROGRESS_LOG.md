@@ -1,5 +1,9 @@
 # OpenTrail Progress Log
 
+## 2026-10-20
+
+- OT-DEV-001 connected to the Trail Android app after re-flashing the known-good `heltec_v4_bench` application image (owner-reported; no OT-0238c or RF acceptance): [hardware note](../tests/hardware/OT-DEV-001-CONNECTION-2026-10-20.md).
+
 ## 2026-10-19
 
 ### OT-0251b Clarify bench factory-reset operator instructions
