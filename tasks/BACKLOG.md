@@ -37,17 +37,17 @@ reuses five firmware backups, freshly captures exact attempt settings and
 preserves strict verification/restoration. All 281 local host cases and the
 actual finite evidence/package gates passed independent review. The familiar
 launcher is repointed without execution; historical backups/holds remain intact.
-Next: obtain current authorization for one reviewed retained/rekey attempt and
-validate actual restart, new-key behavior and exact restoration. No further
+The retained/rekey USB case passed on 2026-10-12
+([record](../tests/hardware/OT-0238c-RETAINED-REKEY-2026-10-12.md)). No further
 device run is authorized by the host evidence.
-Full OT-0238c remains In Progress; retained/new-key, revoke/reset/recovery and RF
-acceptance remain open.
+Full OT-0238c remains In Progress; the remaining open cases are revoke and factory
+reset/recovery, plus RF acceptance.
 
 2026-10-20: OT-DEV-001 was reflashed with the known-good `heltec_v4_bench` application
 image (SHA-256 `3705d4dc…`) and completed fresh companion enrollment and phone
 connection ([owner-reported note](../tests/hardware/OT-DEV-001-CONNECTION-2026-10-20.md)).
-OT-0238c retained/rekey beyond the accepted USB case, revoke/reset/recovery and RF
-acceptance remain open.
+The OT-0238c retained/rekey USB case passed 2026-10-12; revoke, factory reset/recovery
+and RF acceptance remain open.
 
 1. The [OT244 controlled radio trial](../docs/testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md)
    failed at activation1 after both local confirmations; originals/state are

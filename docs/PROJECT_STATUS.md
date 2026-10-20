@@ -311,8 +311,8 @@ public website capability credit.
 2026-10-20: OT-DEV-001 was reflashed with the known-good `heltec_v4_bench` application
 image (SHA-256 `3705d4dc…`) and completed fresh companion enrollment and phone
 connection ([owner-reported note](../tests/hardware/OT-DEV-001-CONNECTION-2026-10-20.md)).
-OT-0238c retained/rekey beyond the accepted USB case, revoke/reset/recovery and RF
-acceptance remain open.
+The OT-0238c retained/rekey USB case passed 2026-10-12; revoke, factory reset/recovery
+and RF acceptance remain open.
 
 
 
