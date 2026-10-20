@@ -308,6 +308,12 @@ Only this retained-rekey USB case is accepted. RF, Android protected BLE, revoke
 factory reset/recovery and full OT-0238c remain separate open gates; no V1 or
 public website capability credit.
 
+2026-10-20: OT-DEV-001 was reflashed with the known-good `heltec_v4_bench` application
+image (SHA-256 `3705d4dc…`) and completed fresh companion enrollment and phone
+connection ([owner-reported note](../tests/hardware/OT-DEV-001-CONNECTION-2026-10-20.md)).
+OT-0238c retained/rekey beyond the accepted USB case, revoke/reset/recovery and RF
+acceptance remain open.
+
 
 
 [OT-0237b startup/entropy host admission](testing/OT-0237b-ENTROPY-STARTUP-HOST-2026-10-01.md)

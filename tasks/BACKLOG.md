@@ -43,6 +43,12 @@ device run is authorized by the host evidence.
 Full OT-0238c remains In Progress; retained/new-key, revoke/reset/recovery and RF
 acceptance remain open.
 
+2026-10-20: OT-DEV-001 was reflashed with the known-good `heltec_v4_bench` application
+image (SHA-256 `3705d4dc…`) and completed fresh companion enrollment and phone
+connection ([owner-reported note](../tests/hardware/OT-DEV-001-CONNECTION-2026-10-20.md)).
+OT-0238c retained/rekey beyond the accepted USB case, revoke/reset/recovery and RF
+acceptance remain open.
+
 1. The [OT244 controlled radio trial](../docs/testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md)
    failed at activation1 after both local confirmations; originals/state are
    restored and custody closed, both normal screens confirmed. The [OT245 host replay](../docs/testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md)
@@ -585,6 +591,7 @@ and implementation scope before execution; do not perform the same work twice.
 | OT-0249 | planned | — | Close only evidence-backed firmware/security/protocol gaps in approved V1: identity, provisioning, replay, compatibility, queues and recovery | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
 | OT-0250 | planned | — | Validate full supported two-node behavior, faults, recovery and measured field limits | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
 | OT-0251 | planned | — | Reconcile operator/support docs, artifact compatibility, upgrade/rollback and V1 acceptance evidence | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0251b | closed locally; documentation only; unpublished | OT-0251 | Clarify the bench factory-reset control and confirmation release | Owner-approved interaction wording, initial release and press/release deadline match current source. Physical Button 1/Button 2 numbering stays UNKNOWN; ordinary-build/display conditions and the existing physical-acceptance warning remain explicit. Local diff/source review and preservation checks only; no tests/builds, GitHub closure, physical/release acceptance or V1 credit. |
 | OT-0252 | planned | — | Map implemented screens, permissions, protected BLE, saved state and accepted phone evidence to existing tasks | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
 | OT-0253 | planned | — | Define bounded fixes for remaining approved app behavior, diagnostics, reconnect, interruption and data preservation gaps | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
 | OT-0254 | planned | — | Validate upgrade and fresh-install paths as distinct tests, including expected recovery and connection failures | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |

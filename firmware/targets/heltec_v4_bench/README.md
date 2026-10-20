@@ -16,8 +16,15 @@ complete a protected normal `ProtocolInfo` read before the app can report
 `Ready`; that path never creates a new bond or requests a PIN.
 
 The physical factory-reset path is build-linked but not yet physically
-accepted: hold the Heltec button for 10 seconds, release when `Erase all Trail
-data?` appears, then short-press within 10 seconds to commit. Its durable
+accepted.
+
+With the control initially released, hold the implemented BOOT input (GPIO0) until the warning appears after at least 10 seconds. Release it, then press and release the same control within the following 10 seconds. Early release or confirmation timeout cancels the sequence.
+
+The current source names the BOOT/GPIO0 input; physical Button 1/Button 2
+numbering remains UNKNOWN. This gesture is wired only in the ordinary bench
+build (`OPENTRAIL_CONFIRMATION_EVALUATION=0`). It requires initialized input and an
+available confirmation display; the prompt is refused while a pairing PIN is
+visible. The warning is `Erase all Trail data?`. Its durable
 cleanup contract removes prior-user Trail state and retains firmware,
 boot/OTA trust, hardware identity, and calibration. V1 has no phone-replacement
 path. OT-168 remains partial until the complete reset, reconnect, two-device,
