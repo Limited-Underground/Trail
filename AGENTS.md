@@ -6,7 +6,7 @@ This directory is the complete boundary for OpenTrail. Keep OpenTrail project fi
 
 ## Current phase
 
-OpenTrail is in architecture and proof-of-concept planning. Capabilities in the README and architecture documents are goals unless backed by test evidence. Do not describe projected hardware or behavior as tested.
+OpenTrail is in active V1 development. Bounded host and selected physical evidence exist only within their recorded source, setup and acceptance limits; full product and release acceptance remain open. Check `docs/PROJECT_STATUS.md` and Trail V1 Project #1 for the current source, task and gate state. Capabilities in the README and architecture documents are goals unless backed by test evidence. Do not describe projected hardware or behavior as tested.
 
 ## Brand and trademark safeguards
 

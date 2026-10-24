@@ -22,27 +22,31 @@ claims. Confirm the live item before acting; this page does not select or execut
 The active source-recovery task is [OT-0340 in Trail V1](https://github.com/orgs/Limited-Underground/projects/1/views/1?filterQuery=OT-0340&pane=issue&itemId=280742462)
 (`In Progress`, Next step `Host-only` in the October 24 live view). Confirm the
 current item before new work. The [dated recovery evidence](testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md)
-records the exact C: live checkout, dirty work, five registered additional
-worktrees, historical E: branch, hash-verified E: checkpoints, D: restorations
-and local OneDrive copies. At the initial checkpoint, C: `main` was
-`9446b85be5e4e887cc5fd6c0f33d900381538cbb`; 15 modified tracked and eight
-untracked entries were retained. The final eleven-file post-checkpoint ordinary-source
-delta superseded the earlier nine-file freeze. It includes the reviewed host-harness
-repair and owner-acceptance handoff; a complete 3,076-file D: source reconstruction
-passed path and SHA-256 checks against manifest
-`2e4685c936cdaac8d4b4f39916fb2b435fee7082f616e30268fd87082d97740f`.
-The exact machine-local receipt is linked from the parent recovery coordinator. The E:
-finished storage copy was not byte-verified under the storage-only rule. Any later
-source edit needs a fresh delta. The historical E: branch has one unique commit
-and 113 dirty entries; no copy has been selected for removal.
+records the initial source, worktree, backup and restore boundaries. Its earlier
+working-tree counts are historical snapshots.
 
-An October 24 working-tree recheck found 18 modified tracked files and 10
-untracked ordinary files on the approved C: `main`. Recovery handoff and host
-harness edits are mixed with separately scoped OT-0238c/f, OT-0170a and OT-177
-work; the final eleven-file recovery delta does not certify these later working
-bytes. Preserve the existing changes and separate their task ownership before
-staging or publishing anything. No local commit, branch switch, reset or
-worktree cleanup was performed in this recheck.
+On October 24, [PR #61](https://github.com/Limited-Underground/Trail/pull/61)
+merged the reviewed recovery-only documentation and [PR #62](https://github.com/Limited-Underground/Trail/pull/62)
+merged the separate Android and firmware documentation update after required checks.
+The approved C: checkout's `main` and `origin/main` were then verified at
+`1b2e63a2f67b17584747f51a9d5641963841d308`. The local advance preserved all
+16 unrelated OT task paths byte-for-byte. Its final working status was 11 modified
+tracked and eight untracked files, with zero staged; those 19 entries remain
+unpublished and must be reviewed within their own task scopes. They cover
+OT-0238c reset preparation, OT-0170a Android host evidence and OT-177 support
+export, including mixed shared-document edits. The maintainer's recovery coordinator
+holds the exact before/after receipt and task-specific file triage. No whole-file
+discard candidate was established.
+
+At the October 23 initial checkpoint, C: `main` was
+`9446b85be5e4e887cc5fd6c0f33d900381538cbb`; 15 modified tracked and eight
+untracked entries were retained. The eleven-file ordinary-source delta and complete
+3,076-file D: reconstruction passed their recorded path and SHA-256 checks. A later
+October 24 pre-publication recheck found 18 modified tracked and 10 untracked files.
+Those earlier counts and the historical E: branch's one unique commit and 113 dirty
+entries are preserved in their dated receipts, not the current C: Git status.
+No historical copy has been selected for removal. E: finished storage packages
+remain storage-only; their destination payload bytes were not read back.
 
 Next safe recovery actions: reconcile remaining historical consumers and ignored
 holdings and correct the saved Codex Trail project path. Ordinary host-only tasks
