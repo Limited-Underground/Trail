@@ -1,5 +1,20 @@
 # Android client foundation
 
+## Current pickup
+
+The Android app lives in this Trail repository and shares its task authority with
+firmware. Start with the [working contract](../CONTRIBUTING.md#working-contract)
+and [current project status](../docs/PROJECT_STATUS.md#current-recovery-handoff).
+The [Android App view in Trail V1](https://github.com/orgs/Limited-Underground/projects/1/views/3)
+shows current task status and parent relationships. Its
+[OT-0252-1 checklist](https://github.com/orgs/Limited-Underground/projects/1/views/1?filterQuery=OT-0252&pane=issue&itemId=271003465)
+is **Todo** and planning-only; it does not accept an implementation, physical
+device behavior, or a release.
+
+Use the [build instructions](#build) for host validation. The dated sections
+below retain their original evidence boundaries; read the current project
+status and the selected Project item before relying on an earlier checkpoint.
+
 ## 2026-09-06
 
 ### First installed name and clock workflow
