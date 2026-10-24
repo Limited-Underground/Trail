@@ -1,11 +1,68 @@
 # OpenTrail Project Status
 
-As of 2026-10-11. This page summarizes accepted behavior and the next work; dated
-history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
+Current recovery handoff reviewed 2026-10-24; evidence below retains its own dates
+and artifact limits. Dated history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
 See [archive navigation](history/README.md) for moved headings, [Architecture](ARCHITECTURE.md)
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
+
+## Current recovery handoff
+
+The owner accepted the bounded local Trail source-recovery baseline on October 23,
+2026 (America/New_York) and authorized ordinary host-only development from the
+approved C: checkout. The five [OT-0340 recovery exceptions](testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md)
+remain open, and OT-0340 stays In Progress. The
+[working contract](../CONTRIBUTING.md#working-contract) applies to humans and AI
+tools. This handoff is not a new device or release gate.
+[Trail V1](https://github.com/orgs/Limited-Underground/projects/1) owns current
+task scope/status/dependencies; linked repository evidence constrains capability
+claims. Confirm the live item before acting; this page does not select or execute it.
+
+The active source-recovery task is [OT-0340 in Trail V1](https://github.com/orgs/Limited-Underground/projects/1/views/1?filterQuery=OT-0340&pane=issue&itemId=280742462)
+(`In Progress`, Next step `Host-only` in the October 24 live view). Confirm the
+current item before new work. The [dated recovery evidence](testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md)
+records the exact C: live checkout, dirty work, five registered additional
+worktrees, historical E: branch, hash-verified E: checkpoints, D: restorations
+and local OneDrive copies. At the initial checkpoint, C: `main` was
+`9446b85be5e4e887cc5fd6c0f33d900381538cbb`; 15 modified tracked and eight
+untracked entries were retained. The final eleven-file post-checkpoint ordinary-source
+delta superseded the earlier nine-file freeze. It includes the reviewed host-harness
+repair and owner-acceptance handoff; a complete 3,076-file D: source reconstruction
+passed path and SHA-256 checks against manifest
+`2e4685c936cdaac8d4b4f39916fb2b435fee7082f616e30268fd87082d97740f`.
+The exact machine-local receipt is linked from the parent recovery coordinator. The E:
+finished storage copy was not byte-verified under the storage-only rule. Any later
+source edit needs a fresh delta. The historical E: branch has one unique commit
+and 113 dirty entries; no copy has been selected for removal.
+
+An October 24 working-tree recheck found 18 modified tracked files and 10
+untracked ordinary files on the approved C: `main`. Recovery handoff and host
+harness edits are mixed with separately scoped OT-0238c/f, OT-0170a and OT-177
+work; the final eleven-file recovery delta does not certify these later working
+bytes. Preserve the existing changes and separate their task ownership before
+staging or publishing anything. No local commit, branch switch, reset or
+worktree cleanup was performed in this recheck.
+
+Next safe recovery actions: reconcile remaining historical consumers and ignored
+holdings and correct the saved Codex Trail project path. Ordinary host-only tasks
+may resume only from the maintainer-approved local Trail checkout through Trail V1.
+OneDrive backup and its later cloud retrieval/restore remain required follow-up but
+never block local work. Retirement candidates use the reversible project-specific deleted holding area
+defined by the shared storage rules;
+its held Trail build folder contains material needing later disposition review.
+The historical policy commit was reviewed and two
+safeguards carried forward. The publication-safety finding was resolved and the
+repaired current C: source passed the complete isolated Trail host wrapper with
+`-SkipSecurityOperators`; Android and targeted firmware host matrices also passed.
+The [dated recovery evidence](testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md)
+records exact counts, identities and acceptance limits. These host results do not
+establish physical product acceptance. Cloud retrieval, complete remote
+history and whole-project recovery remain open; bounded host-only resumption is
+owner-accepted.
+The [October 22 baseline](testing/RECOVERY-BASELINE-2026-10-22.md) retains its
+earlier counts and documentation-check evidence as a historical checkpoint.
+No V1 progress or public website capability changes from this recovery work.
 
 ## Current accepted capabilities
 
