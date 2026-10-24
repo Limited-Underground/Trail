@@ -22,7 +22,7 @@ guidance. The [project README](../README.md) is the product overview.
 | --- | --- |
 | Product scope | [Product boundaries](PRODUCT_BOUNDARIES_V0.md), [V1 user experience](product/V1_USER_EXPERIENCE.md), [V1/V1.5 acceptance scope](testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md) |
 | Android | [Client development](../android/README.md) |
-| Firmware | [Porting lessons and preflight](firmware-porting-lessons.md), [components](../firmware/components/), [targets](../firmware/targets/) |
+| Firmware | [Porting lessons and preflight](firmware-porting-lessons.md), [components](../firmware/components/), [targets](../firmware/targets/), [experimental Heltec V4 bench target](../firmware/targets/heltec_v4_bench/README.md) |
 | Hardware | [Inventory](../hardware/INVENTORY.md), [hardware procedures](../hardware/) |
 | Device setup and reset | [Factory reset contract](platform/DEVICE_FACTORY_RESET_V1.md), [decision](decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md) |
 | Display | [Heltec OLED V1 layout](product/HELTEC_OLED_V1.md) |
@@ -36,6 +36,11 @@ guidance. The [project README](../README.md) is the product overview.
 Versioned contracts may describe historical experiments. Check current status and
 the relevant [architecture decision](decisions/) before treating an older
 document as implementation authority.
+
+The experimental Heltec V4 bench target guide records the pinned ESP-IDF v6.0.2
+environment requirement and build helper. It is not a supported product target
+or an ESP-IDF installation guide. Device writes have a separate authorization,
+identity, and recovery gate.
 
 ## Evidence and history
 
