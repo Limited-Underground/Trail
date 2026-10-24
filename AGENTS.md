@@ -2,7 +2,7 @@
 
 ## Scope
 
-This directory is the complete boundary for OpenTrail. Do not place OpenTrail files in `D:\ESP32`, `OpenGauge`, or a root-level shared directory. If reusable code becomes justified, document the dependency and evaluate a separately versioned library first.
+This directory is the complete boundary for OpenTrail. Keep OpenTrail project files within the maintainer-approved checkout; do not place them in another project or a root-level shared directory. If reusable code becomes justified, document the dependency and evaluate a separately versioned library first.
 
 ## Current phase
 
@@ -25,11 +25,13 @@ OpenTrail is in architecture and proof-of-concept planning. Capabilities in the 
 4. Avoid giant `.ino` files. Prefer bounded components with host-testable protocol and state logic.
 5. Version every over-the-air protocol and defensively reject malformed or incompatible packets.
 6. Do not hard-code credentials, group secrets, private keys, or device-specific identifiers.
-7. Treat emergency functions as safety aids, not guaranteed rescue systems. Loss of GPS, radio, maps, or OpenGauge must degrade independently.
+7. Treat emergency functions as safety aids, not guaranteed rescue systems. Loss of GPS, radio, maps, or Trail Display must degrade independently.
 8. Record hardware model, radio region/frequency plan, firmware version, test setup, and observed result for hardware tests.
 9. Keep LoRa payloads compact. Do not transport map data or high-rate vehicle telemetry over LoRa.
 10. Do not use public OpenStreetMap tile servers for bulk/offline downloads. Verify provider, license, attribution, and redistribution terms before selecting a map pipeline.
 11. Before implementing or materially changing any firmware target, read and apply `docs/firmware-porting-lessons.md`. Record the applicable preflight results and a reason for each skipped item; do not begin hardware execution while an applicable checklist gate is unresolved.
+12. The in-tree `tools/windows-loader` is a frozen historical predecessor. Current Firmware Loader implementation and acceptance belong to the separate `Firmware-Loader` repository; its older Trail tests do not accept the current Loader. Cross-repository changes require explicit scope and provenance review.
+13. A successful build never authorizes a physical write. For an authorized two-device flash procedure, mutate one device at a time; before each write, re-enumerate and independently verify the actual endpoint, target, artifact, offsets, intended device, and recovery path. Never flash both devices simultaneously.
 
 ## Validation expectations
 
@@ -75,7 +77,7 @@ inside the repository; anchors are not validated.
 
 ## Lean execution cadence
 
-- Scope ordinary increments to one coherent result expected to complete in 30-60 minutes. Split a larger increment before implementation instead of allowing one task to expand for hours.
+- Keep recovery increments coherent and verifiable. Larger authorized recovery work may span sessions; preserve a readable handoff rather than refusing it solely for duration. Ordinary host-only work may resume under the owner-accepted bounded Trail recovery baseline and CONTRIBUTING contract; remaining OT-0340 exceptions stay open.
 - Reuse a previously validated implementation, build, test, and publication path when its boundary and prerequisites have not changed. If it fails, diagnose the concrete conflict before abandoning the proven path.
 - Run focused validation while implementing and one complete affected matrix at the final gate. Do not repeatedly run the full matrix after every small edit.
 - Keep canonical project records current for each accepted increment, but batch editorial website synchronization and deployment at each ten-task checkpoint. Publish sooner only when the public completion percentage, demonstrated capability, field-test readiness, support/release state, or a material public correction changes.
@@ -84,9 +86,9 @@ inside the repository; anchors are not validated.
 
 ## Completion and publication gate
 
-- Follow the workspace-wide guidance in `C:\lu\AGENTS.md`; current state and publication authority are recorded under `C:\lu\.tracker`.
-- Once an OpenTrail task is implemented and validated, update every affected canonical record and dated public progress entry, commit and push the relevant public-ready OpenTrail changes to a topic branch, open a pull request, and require the configured checks before merging. Verify the remote main commit before calling the task complete. Do not bypass branch protection or disable documentation checks to publish a task.
-- If accepted evidence changes public project status or V1 progress, synchronize and validate the Limited Underground website projection, commit and push the website update, deploy it, and verify the live OpenTrail status before calling the task complete.
+- Follow the portable human-readable working contract in [CONTRIBUTING.md](CONTRIBUTING.md#working-contract); the six-section ceremony is retired. On the owner's recovery machine, local parent routing selects the approved firmware/Android checkout; it is not a prerequisite for other clones. Verify the actual checkout before acting. GitHub Projects owns current task scope, status, priority and dependencies; repository records own engineering evidence. Legacy trackers, hosted-checklist approval and historical checkout paths are not execution prerequisites.
+- Once an OpenTrail task is implemented and validated, update the affected repository records only within the accepted scope. Commit, push, open a PR, merge and verify remote main only when the corresponding operation is explicitly authorized for the named repository/ref. Use a topic branch and require all configured required checks before an authorized merge. Do not bypass branch protection or disable documentation checks.
+- If accepted evidence changes public project status or V1 progress, identify the corresponding website synchronization. Perform its validation, publication, deployment and live verification only when those operations are explicitly in scope; otherwise report the pending website work.
 - If no public website status changed, say so explicitly in the completion report. If any required push, synchronization, deployment, or verification is blocked, report `implementation complete; publication pending` and identify the remaining step.
 - Do not bundle unrelated or unvalidated dirty-worktree changes merely to satisfy this gate, and never publish private or unsafe material.
 

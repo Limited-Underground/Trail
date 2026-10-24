@@ -30,6 +30,19 @@ See [current project status](docs/PROJECT_STATUS.md), the
 [V1 progress record](docs/V1_PROGRESS.json), and the
 [engineering backlog](tasks/BACKLOG.md) for accepted evidence and next gates.
 
+## Resume work
+
+Start with the [working contract](CONTRIBUTING.md#working-contract) and the
+[current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff).
+[Trail V1 in GitHub Projects](https://github.com/orgs/Limited-Underground/projects/1)
+owns current task scope, status and dependencies; repository records hold the
+technical evidence. On the owner's recovery machine, use the maintainer-approved checkout;
+historical copies are provenance, not active source. The owner
+accepted the bounded local recovery baseline and authorized ordinary host-only
+development from that C: checkout; OT-0340 retains the remaining exceptions.
+OneDrive backup completion does not block local work. A board status
+or these setup examples do not authorize device operations or publication.
+
 ## Get started
 
 1. Read the [development guide](docs/DEVELOPMENT.md) for prerequisites and build
@@ -51,11 +64,11 @@ For Android validation, follow the [Android guide](android/README.md).
 ## Contribute
 
 We welcome focused contributions to clients, firmware, testing, and documentation.
-An immediate opportunity is the
+When ordinary development resumes, a contribution opportunity is the
 [iPhone companion app contributor brief](docs/community/IOS_CONTRIBUTOR_BRIEF.md).
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md), choose a bounded item from the
-[backlog](tasks/BACKLOG.md), and discuss substantial changes before implementation.
+Read [CONTRIBUTING.md](CONTRIBUTING.md), reconcile the current Project item with
+the [backlog](tasks/BACKLOG.md), and confirm scope before implementation.
 The [community guide](docs/community/README.md) explains how to get involved.
 Report sensitive issues through [SECURITY.md](SECURITY.md).
 

@@ -1,5 +1,72 @@
 # OpenTrail Progress Log
 
+## 2026-10-24
+
+### OT-0340 bounded local baseline accepted
+
+On October 23 in America/New_York, the owner accepted the bounded local Trail
+source-recovery baseline and authorized ordinary host-only development from the
+approved C: checkout with five retained exceptions. OT-0340 remains In Progress;
+E: delta bytes, cloud/off-device recovery, the stale saved-project path and
+historical/ignored holdings remain open, while device, release, security-operator
+and publication gates remain separate. This decision adds no V1 or website credit.
+
+### OT-0340 Restored-source host validation and scoped maintenance
+
+The owner-selected C: source received an independently reviewed three-file repair
+to Trail's frozen historical host harness. A fresh, SHA-matched D: copy then
+passed the complete `Test-Host.ps1 -SkipSecurityOperators` wrapper with child
+exit 0, stopped processes and postflight checks. Android's 184-task host matrix
+and a targeted 604-command firmware matrix passed separately. These are host
+results, not device, product, release or owner acceptance. The D: full-host copy
+remains a one-run diagnostic and is not an accepted reusable source restoration.
+After synthetic and real dry-run checks, only duplicate SDK/cache children in two
+failed Android D: test copies were retired, freeing 2,477,122,452 logical bytes;
+their unique logs and recovery evidence were retained and hash-verified. The
+encrypted protected archive passed local integrity checks; its OneDrive upload
+was still in progress at the last dated owner report; current cloud progress is
+unverified. Cloud retrieval and an off-device restore remain open, but the owner
+clarified that OneDrive never blocks local work. The eleven-file source/documentation delta
+postdates the initial preservation package; a fresh D: reconstruction matched all
+3,076 ordinary files. Its exact current capture receipt is linked from the parent
+recovery coordinator. E: delta bytes remain unverified under the storage-only rule.
+See [OT-0340 evidence](testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md).
+
+The owner set a project-specific reversible retirement holding area, with
+deeper keep/return, archive or delete decisions deferred. Two previously held
+Trail build batches were moved into it with an origin index. A
+quick name-level scan found source, private, recovery and acceptance material
+alongside build output, so the held folder remains pending audit. The final
+eleven-file source freeze supersedes the older nine-file account; the current
+status and handoff were corrected accordingly. No live checkout or historical
+Trail source tree was moved, and no V1 or website credit changed.
+
+## 2026-10-23
+
+### OT-0340 Reconcile Trail source recovery baseline
+
+The [source-recovery evidence](testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md)
+records the owner-selected C: checkout, two additional dirty worktrees and a
+distinct historical E: checkout. Three ordinary source packages and one opaque
+historical-artifact package passed E: capture and D: hash-verified restore.
+Local OneDrive folder copies passed byte comparison; cloud retrieval and
+off-device restoration remain unverified. Originals and all worktree Git state
+were retained. The historical policy commit was dispositioned and two
+safeguards carried forward. Metadata-only inventory counted protected holdings;
+the isolated host suite stopped on two historical local-path findings. Protected
+payload custody, cloud retrieval, full recovery and owner acceptance remain open. No device,
+feature, release, publication or V1 credit was claimed.
+
+## 2026-10-22
+
+- Owner-authorized recovery established the portable working contract and resume
+  route while ordinary feature work remains paused. The
+  [recovery baseline](testing/RECOVERY-BASELINE-2026-10-22.md) records the initial
+  source revision, 19 preserved dirty entries, changed governance documents,
+  validation scope and unresolved recovery task identity. Earlier documentation
+  checks and final provenance checks passed, including all 18 documentation tests.
+  No device, product acceptance, publication or V1 credit is claimed.
+
 ## 2026-10-20
 
 - OT-DEV-001 connected to the Trail Android app after re-flashing the known-good `heltec_v4_bench` application image (owner-reported; no OT-0238c or RF acceptance): [hardware note](../tests/hardware/OT-DEV-001-CONNECTION-2026-10-20.md).

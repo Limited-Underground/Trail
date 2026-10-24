@@ -1,5 +1,13 @@
 # OpenTrail Development Setup
 
+## Before using these commands
+
+Read the [working contract](../CONTRIBUTING.md#working-contract) and
+[current handoff](PROJECT_STATUS.md#current-recovery-handoff). These commands
+document setup and validation; they do not select a task or authorize hardware,
+publication or resumption of paused feature work. Keep the exact source and
+candidate under test identifiable and preserve existing working changes.
+
 ## Current host toolchain
 
 - Python 3.14.6 with `meshcore` 2.3.8, `meshcore-cli` 1.5.7, and `pyserial`
@@ -7,14 +15,23 @@
 - PowerShell 7
 
 MSYS2 and its UCRT64 GCC package are intentionally installed on the development
-laptop for repeatable native C++ testing. PlatformIO is not required yet because
-OpenTrail has no approved board binding or production firmware target.
+laptop for repeatable native C++ testing. These are the recorded host prerequisites,
+not portable assumptions about every developer's machine. PlatformIO is not a
+prerequisite for this host path. Bounded Heltec bench/evaluation targets exist;
+complete production enrollment and secure messaging binding remain separate gates.
 
 The Windows loader development shell additionally uses the .NET 8 SDK. The
 repository `global.json` selects the latest installed compatible .NET 8 feature
 band so newer SDKs do not silently become the build authority.
 
-## Build and test the Windows loader shell
+## Build and test the retained Windows loader shell
+
+This in-tree shell is the frozen predecessor retained for its existing tests and
+evidence. New standalone utility work belongs in the separate
+[Firmware-Loader repository](https://github.com/Limited-Underground/Firmware-Loader).
+Do not add new loader features here or infer firmware-writing authority from its
+presence. The following describes the retained check; recovery does not change
+its SDK versions, build gate or disabled writing behavior.
 
 From the repository root:
 
@@ -78,6 +95,18 @@ hardware is needed. CI uses the same Python version. See the
 Generated executables live in per-run directories under ignored
 `build\host-tests` so a stale Windows process cannot block the next compile.
 
+## Hardware examples and authorization
+
+The remaining sections are bounded procedure references, not the current trial
+plan. Before opening a device, pairing, resetting, transmitting or writing, use
+the current task's exact authorization, target/candidate identity and recovery
+procedure. Read [firmware porting lessons](firmware-porting-lessons.md) for an
+affected target; unresolved applicable hardware gates block that execution.
+Example COM names are historical and do not select current devices. Do not
+automatically retry a consumed session or run an old cleanup journal against a
+new session. Inspect the retained evidence and reconcile current ownership first.
+Enumeration-only checks remain distinct from serial access and physical acceptance.
+
 ## Inspect connected MeshCore USB companions
 
 Disconnect every MeshCore browser tab from Web Serial first, then run:
@@ -137,8 +166,9 @@ Build both host matrices, select their newest bridge/verifier CLIs, then supply
 the two current Heltec companion ports and the SenseCAP repeater console port:
 
 ```powershell
+$ogRoot = $null # Active OpenGauge destination UNKNOWN; set only after owner confirmation.
+if (-not $ogRoot) { throw 'Active OpenGauge destination UNKNOWN. Confirm its approved C: root before running this procedure.' }
 .\tools\Test-Host.ps1
-$ogRoot = 'D:\ESP32\OpenGauge'
 Push-Location $ogRoot
 .\tools\Test-Host.ps1
 Pop-Location
