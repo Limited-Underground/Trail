@@ -25,6 +25,49 @@ class V1SupportReportTest {
     }
 
     @Test
+    fun identicalSyntheticInputsProduceIdenticalReportBytesAndMetadata() {
+        val note = "Synthetic reconnect observation.\r\nRetried once."
+        val first = assertNotNull(V1SupportReportGenerator.create(snapshot(), note))
+        val second = assertNotNull(V1SupportReportGenerator.create(snapshot(), note))
+
+        assertEquals(first.fileName, second.fileName)
+        assertEquals(first.mimeType, second.mimeType)
+        assertEquals(first.text, second.text)
+        assertTrue(first.text.toByteArray(Charsets.UTF_8).contentEquals(second.text.toByteArray(Charsets.UTF_8)))
+    }
+
+    @Test
+    fun automaticSectionsContainExactlyTheTwelveAllowlistedFieldsOnceEach() {
+        val note = "App: synthetic user note, not an automatic field\nExtra note field: visible user text"
+        val expectedFields = listOf(
+            "App", "Firmware", "Phone", "Android", "Device", "Radio region",
+            "Phone connection", "Radio", "GPS", "Power", "Reconnect count", "Last support code",
+        )
+        val inputs = listOf(
+            snapshot(),
+            snapshot().copy(radioRegion = null, reconnectCount = null, lastSupportCode = null),
+        )
+        inputs.forEach { input ->
+            val report = assertNotNull(V1SupportReportGenerator.create(input, note))
+            val automaticStart = "\n[Versions]\n"
+            val automaticEnd = "\n[Excluded from automatic diagnostics]\n"
+            assertEquals(1, report.text.split(automaticStart).size - 1)
+            assertEquals(1, report.text.split(automaticEnd).size - 1)
+            val automaticLines = report.text.substringAfter(automaticStart)
+                .substringBefore(automaticEnd).lines().filter { it.isNotBlank() }
+            assertEquals(
+                listOf("[Configuration]", "[Current health]"),
+                automaticLines.filter { it.startsWith("[") },
+            )
+            val fields = automaticLines.filterNot { it == "[Configuration]" || it == "[Current health]" }
+            assertTrue(fields.all { ": " in it }, "Every automatic data line must be a named field")
+            assertEquals(expectedFields, fields.map { it.substringBefore(": ") })
+            assertTrue(report.text.substringBefore(automaticStart).contains(note))
+            assertFalse(automaticLines.any { "synthetic user note" in it || "Extra note field" in it })
+        }
+    }
+
+    @Test
     fun automaticSchemaHasNoPrivateIdentifiersMessagesInvitationsOrCoordinates() {
         val report = assertNotNull(V1SupportReportGenerator.create(snapshot(), ""))
         listOf("MAC:", "Bluetooth address:", "Pairing ID:", "PIN:", "Message body:", "Latitude:", "Longitude:", "Invitation PIN:")
