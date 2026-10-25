@@ -2,6 +2,10 @@
 
 ## 2026-10-24
 
+### OT-0170a Focused setup and saved-device host matrix
+
+For Trail V1 child OT-0170a-1, a focused Android host matrix passed: 129 tests across ten JUnit suites with zero failures, errors, or skips. Independent review matched selected source and test hashes; see [focused evidence](testing/OT-0170A-HOST-MATRIX-2026-10-24.md). This closes only the host child; device and parent acceptance remain open, with no V1 or website credit.
+
 ### OT-0340 bounded local baseline accepted
 
 On October 23 in America/New_York, the owner accepted the bounded local Trail

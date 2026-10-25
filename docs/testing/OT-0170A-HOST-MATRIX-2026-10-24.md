@@ -1,0 +1,9 @@
+# OT-0170a-1 setup and saved-device recovery: focused host matrix
+
+On October 23, 2026 (America/New_York), an approved host-only validation ran for Trail V1 child OT-0170a-1. Selected Android source and test inputs were SHA-256 matched to the approved checkout before an isolated disposable build.
+
+The matrix ran `:app:testDebugUnitTest` with `--rerun-tasks` and ten `--tests` filters under `io.github.nbjelanovic.otclient`: `V1OnboardingBindingTest`, `V1SetupProfileTest`, `V1SetupDraftTest`, `V1AppNavigationTest`, `AndroidSetupDiscoveryTest`, `BlePublicProfileSettingsTest`, `BleConfigurationSessionTest`, `BleCompanionRuntimeTest`, `FactoryResetRecoveryPresentationTest`, and `AndroidFactoryResetReceiptStoreTest`. It used JDK 17, Android SDK platform 35, and Gradle 8.11.1. An initial Gradle distribution download timed out before tests ran. An offline rerun using an installed distribution passed: **129 tests in ten JUnit suites, zero failures, errors, or skips**; Gradle exited 0.
+
+An independent review checked selected production and test-source hashes and all ten JUnit results. The host tests cover first-use discovery and setup, returning-owner selection, interruption and stale-callback rejection, draft and receipt models, and navigation retention. Detailed logs, XML/HTML results, manifests, and exact environment commands are retained in private recovery records.
+
+This supports host-unit behavior only. It does not establish Android process-death recovery, durable phone storage, actual bond inventory, visible large-font or rotation behavior, BLE or firmware behavior on a device, physical reset, the full Android suite, product acceptance, or release readiness. OT-0170a-1 is Done in Trail V1 Project #1 after review; parent OT-0170a and device child OT-0170a-2 remain open. No V1 or website credit changed.
