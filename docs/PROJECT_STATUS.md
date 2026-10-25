@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-Current recovery handoff reviewed 2026-10-24; evidence below retains its own dates
+Current recovery handoff reviewed 2026-10-25; evidence below retains its own dates
 and artifact limits. Dated history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -9,64 +9,39 @@ for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
 ## Current recovery handoff
 
-The owner accepted the bounded local Trail source-recovery baseline on October 23,
-2026 (America/New_York) and authorized ordinary host-only development from the
-approved C: checkout. The five [OT-0340 recovery exceptions](testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md)
-remain open, and OT-0340 stays In Progress. The
-[working contract](../CONTRIBUTING.md#working-contract) applies to humans and AI
-tools. This handoff is not a new device or release gate.
-[Trail V1](https://github.com/orgs/Limited-Underground/projects/1) owns current
-task scope/status/dependencies; linked repository evidence constrains capability
-claims. Confirm the live item before acting; this page does not select or execute it.
+**Checked October 25, 2026.** Trail firmware and the Android app share this
+repository. The owner accepted a bounded source-recovery baseline on October 23
+and permitted ordinary **host-only** development. The five
+[OT-0340 recovery exceptions](testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md)
+remain open. This does not accept device behavior, a release, or publication.
 
-The active source-recovery task is [OT-0340 in Trail V1](https://github.com/orgs/Limited-Underground/projects/1/views/1?filterQuery=OT-0340&pane=issue&itemId=280742462)
-(`In Progress`, Next step `Host-only` in the October 24 live view). Confirm the
-current item before new work. The [dated recovery evidence](testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md)
-records the initial source, worktree, backup and restore boundaries. Its earlier
-working-tree counts are historical snapshots.
+At this October 25 checkpoint, the approved working checkout and GitHub `main` matched
+`510e48bd39e1ba699cc5d9b77e4285977a13732b` after
+[PR #61](https://github.com/Limited-Underground/Trail/pull/61) through
+[PR #65](https://github.com/Limited-Underground/Trail/pull/65) passed required
+checks and merged. Local working changes may still exist; inspect Git status and
+preserve task-specific work before editing overlapping files.
 
-On October 24, [PR #61](https://github.com/Limited-Underground/Trail/pull/61)
-merged the reviewed recovery-only documentation and [PR #62](https://github.com/Limited-Underground/Trail/pull/62)
-merged the separate Android and firmware documentation update after required checks.
-The approved C: checkout's `main` and `origin/main` were then verified at
-`1b2e63a2f67b17584747f51a9d5641963841d308`. The local advance preserved all
-16 unrelated OT task paths byte-for-byte. Its final working status was 11 modified
-tracked and eight untracked files, with zero staged; those 19 entries remain
-unpublished and must be reviewed within their own task scopes. They cover
-OT-0238c reset preparation, OT-0170a Android host evidence and OT-177 support
-export, including mixed shared-document edits. The maintainer's recovery coordinator
-holds the exact before/after receipt and task-specific file triage. No whole-file
-discard candidate was established.
+The [OT-0170a host matrix](testing/OT-0170A-HOST-MATRIX-2026-10-24.md) records
+a completed bounded Android host child; its parent and physical device work are
+open. The [OT-177 C01 host report](testing/OT-177-C01-HOST-SCHEMA-EVIDENCE.md)
+records published synthetic schema tests. OT-0177a-1 remains Todo; full C01-C12
+execution, privacy, Save/Share, device and parent acceptance remain open.
 
-At the October 23 initial checkpoint, C: `main` was
-`9446b85be5e4e887cc5fd6c0f33d900381538cbb`; 15 modified tracked and eight
-untracked entries were retained. The eleven-file ordinary-source delta and complete
-3,076-file D: reconstruction passed their recorded path and SHA-256 checks. A later
-October 24 pre-publication recheck found 18 modified tracked and 10 untracked files.
-Those earlier counts and the historical E: branch's one unique commit and 113 dirty
-entries are preserved in their dated receipts, not the current C: Git status.
-No historical copy has been selected for removal. E: finished storage packages
-remain storage-only; their destination payload bytes were not read back.
+[Trail V1 Project #1](https://github.com/orgs/Limited-Underground/projects/1)
+owns current task scope, status, priority and dependencies. Its
+[Firmware view](https://github.com/orgs/Limited-Underground/projects/1/views/2)
+and [Android App view](https://github.com/orgs/Limited-Underground/projects/1/views/3)
+route the components without duplicating items. Check the selected live item,
+its parent and the [working contract](../CONTRIBUTING.md#working-contract).
 
-Next safe recovery actions: reconcile remaining historical consumers and ignored
-holdings and correct the saved Codex Trail project path. Ordinary host-only tasks
-may resume only from the maintainer-approved local Trail checkout through Trail V1.
-OneDrive backup and its later cloud retrieval/restore remain required follow-up but
-never block local work. Retirement candidates use the reversible project-specific deleted holding area
-defined by the shared storage rules;
-its held Trail build folder contains material needing later disposition review.
-The historical policy commit was reviewed and two
-safeguards carried forward. The publication-safety finding was resolved and the
-repaired current C: source passed the complete isolated Trail host wrapper with
-`-SkipSecurityOperators`; Android and targeted firmware host matrices also passed.
-The [dated recovery evidence](testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md)
-records exact counts, identities and acceptance limits. These host results do not
-establish physical product acceptance. Cloud retrieval, complete remote
-history and whole-project recovery remain open; bounded host-only resumption is
-owner-accepted.
-The [October 22 baseline](testing/RECOVERY-BASELINE-2026-10-22.md) retains its
-earlier counts and documentation-check evidence as a historical checkpoint.
-No V1 progress or public website capability changes from this recovery work.
+**Next safe action:** choose one current Project item, inspect its affected
+files and retained working changes, and follow its applicable host-only gate.
+Resolve the remaining OT-0340 exceptions through their recorded evidence.
+Firmware installation, physical Android pairing, coherent end-to-end messaging,
+release and publication each require separate evidence and authority. Existing
+host validation and source-recovery results are bounded by their stated setup;
+they do not establish those product gates or change V1 progress credit.
 
 ## Current accepted capabilities
 

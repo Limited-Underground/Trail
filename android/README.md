@@ -11,6 +11,13 @@ shows current task status and parent relationships. Its
 is **Todo** and planning-only; it does not accept an implementation, physical
 device behavior, or a release.
 
+The [OT-0170a host matrix](../docs/testing/OT-0170A-HOST-MATRIX-2026-10-24.md)
+records the completed OT-0170a-1 bounded host task; its parent and physical
+device validation remain open. The [OT-177 support-export checklist](../docs/testing/OT-177-SUPPORT-EXPORT-ACCEPTANCE-CHECKLIST.md)
+tracks OT-0177a-1, which remains **Todo**. C01-C12 execution cases are **NOT RUN**;
+the published schema tests do not establish complete privacy, Save/Share or
+device acceptance.
+
 Use the [build instructions](#build) for host validation. The dated sections
 below retain their original evidence boundaries; read the current project
 status and the selected Project item before relying on an earlier checkpoint.
