@@ -13,6 +13,7 @@ guidance. The [project README](../README.md) is the product overview.
 | [Backlog](../tasks/BACKLOG.md) | Scoped engineering work and acceptance criteria |
 | [V1 progress](V1_PROGRESS.json) | Canonical milestone evidence and completion |
 | [Progress log](PROGRESS_LOG.md) | Dated engineering history |
+| [Hardware integration runbook](HARDWARE_INTEGRATION_RUNBOOK.md) | Reusable hardware procedures, troubleshooting and evidence limits |
 | [Community guide](community/README.md) | Contribution routes and coordination |
 | [iPhone contributor brief](community/IOS_CONTRIBUTOR_BRIEF.md) | Starting scope for an iOS companion |
 
