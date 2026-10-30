@@ -20,6 +20,8 @@ still missing. None means universal compatibility or production acceptance.
 
 | Need | Existing authority |
 |---|---|
+| Windows COM access denied in Codex | [AppContainer limitation and authorized hardware-access route](#windows-serial-access-from-codex) |
+| Hardware libraries and porting references | [Existing dependencies, upstream references and adaptation boundaries](#established-libraries-and-reference-implementations) |
 | Firmware target differences and known integration mistakes | [Porting lessons](firmware-porting-lessons.md) |
 | Hardware roles and board provenance | [Inventory](../hardware/INVENTORY.md) |
 | Heltec application and radio console | [Bench target](../firmware/targets/heltec_v4_bench/README.md), [radio diagnostic target](../firmware/targets/heltec_v4_radio_diag/README.md) |
@@ -27,6 +29,54 @@ still missing. None means universal compatibility or production acceptance.
 | Historical milestones | [Progress log](PROGRESS_LOG.md); retain its chronology rather than copying it here |
 | Operator documentation/release reconciliation | [OT-0089f](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270977521) |
 | Frozen V1 comprehensive physical campaign | [OT-0089a](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286119770) |
+
+## Windows serial access from Codex
+
+**Proven on the retained Windows bench, 2026-10-30:** COM10 enumerated correctly,
+but the Codex AppContainer denied `QueryDosDeviceW` with Windows error 5
+(`Access is denied`); the integrated writer stopped at `serial_open` with a
+normalized `SerialException`. The identical namespace query outside AppContainer
+succeeded under a non-admin token. One exclusive COM10 open/close then passed in
+4.441 ms, with Windows error 0 and no serial I/O, configuration or control-line
+commands. This proves the recorded execution-context limitation and successful
+access at that time; it does not establish firmware health or historical port
+ownership. The failed writer's original Windows exception text was not retained.
+Reuse these results; do not repeat the connection test merely to rediscover them.
+
+### Authorized hardware-access route
+
+For authorized serial operations on this bench, launch the exact currently
+approved guarded parent/operator through `exec_command` with the tool's
+outside-sandbox approval mechanism:
+
+```json
+{
+  "cmd": "<exact command from the current approved physical procedure>",
+  "workdir": "<approved Trail checkout>",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Run the owner-authorized <operation> on <bound device/COM> within <grant limits> outside AppContainer."
+}
+```
+
+Wait for tool approval before dispatch. The successful test used a non-admin
+Windows token; do not change global sandbox settings, Windows ACLs, drivers or
+firmware to address this known restriction. Keep the existing source/runtime
+leases, artifact pins, target binding and guarded operator intact. Tool approval
+does not grant ROM entry, reset, readback, programming or RF authority: each
+operation still needs its applicable physical grant. An attempt consumed in the
+wrong context stays consumed; changing context does not authorize a retry.
+
+PnP enumeration alone does not prove access. Error 5 or `SerialException` alone
+also does not prove a device fault or another process's ownership. Classify the
+execution context first. If the approved hardware-access route fails, retain the
+complete exception, Windows error code, operation phase and close result, then
+investigate the actual endpoint, owner or configuration without automatic retries.
+A rejected outside-sandbox request stops the dependent operation; report the
+stated reason rather than substituting an unapproved route.
+
+Existing chats must explicitly reread this section and the updated `AGENTS.md`
+before their next hardware action. Other worktrees do not automatically inherit
+these edits; follow the current authoritative checkout instructions.
 
 ## Heltec ESP32-S3 workflow
 
@@ -133,6 +183,7 @@ equality does not establish full mutable-state equality or radio calibration.
 
 | Symptom | Confirmed cause or limit | Correction | Verification | Reuse |
 |---|---|---|---|---|
+| Port enumerates but serial access is denied in Codex | Recorded Windows AppContainer denies device-namespace access. | Use the [approved hardware-access route](#windows-serial-access-from-codex); retain physical grants and frozen operators. | Same-host outside-AppContainer namespace query and single exclusive open/close passed. | Reuse the proven context correction before investigating firmware or replacing drivers. |
 | Connection refuses after SYNC | Pinned esptool S3 `_post_connect()` attempts watchdog-register writes outside the fixed-range writer's allowlist. The original failed attempt lost its exception, so its unique physical cause remains unknown. | Reuse the successful factory reader's scoped post-connect behavior; retain first fixed failure diagnostics; do not broaden register permissions. | October 30 pinned-SDK replay reproduced the incompatibility; later physical install/readback succeeded. | Compare actual inherited SDK hooks before changing timing or retrying hardware. |
 | First post-program ROM read fails, including restoration | `prefix_program()` called `flash_finish(reboot=False)`; `FLASH_END` exits the ROM loader even without the intended explicit return. Historical raw responses were not retained. | Deny `FLASH_END`; finish acknowledged blocks, read/compare while still in ROM, then separately return. | 276 affected host cases passed; corrected physical installation and full-original restoration passed. | Trace command ordering; do not infer corrupt flash from an unavailable loader. |
 | Prefix/hash or erase range does not match intended operation | Candidate length, erased tail and sector-rounded span are different quantities; the larger original is not an authorized prefix write. | Bind offset, image length, padded length, erase span and role-specific restore slice together. | September 6 tail readback and October 30 prefix-only/full-original verification. | Calculate erase geometry before dispatch; fail closed on any out-of-span write. |
@@ -180,6 +231,37 @@ See [runtime](../android/app/src/main/kotlin/io/github/nbjelanovic/otclient/BleC
 and [facade](../android/app/src/main/kotlin/io/github/nbjelanovic/otclient/AndroidBluetoothGattFacade.kt);
 source presence does not prove the installed APK's behavior.
 
+## Established libraries and reference implementations
+
+Use official chip-manufacturer datasheets, SDK documentation, application notes
+and licensed reference drivers; official board-manufacturer schematics and pin
+definitions; published technical standards and general public LoRa specifications;
+and independently developed Trail implementations. Do not use Meshtastic or
+MeshCore source code, architecture or implementation patterns as references for
+new Trail development.
+
+Keep working drivers. RadioLib and other third-party libraries are existing
+dependencies only where actually used; their source is not a recommended starting
+point for new implementations. Preserve dependency, licensing and attribution
+records. The recorded physical evidence qualifies only its exact artifacts.
+
+| Permitted reference / existing dependency | Trail already reuses | Remains Trail-specific | Hardware adaptations | License | Compatibility / maintenance risks |
+|---|---|---|---|---|---|
+| [Semtech SX1262 documentation](https://www.semtech.com/products/wireless-rf/lora-connect/sx1262) and [SX126x C driver](https://github.com/Lora-net/sx126x_driver) | Chip/API reference; inspected Heltec targets use RadioLib, not this separate C driver. | Protocol, admission, queues and bounded lifecycle. | A direct-driver port would need the vendor HAL's reset/wakeup/read/write, plus board SPI, BUSY/IRQ, TCXO, regulator and RF/FEM handling. | Driver: [BSD-3-Clause-Clear](https://github.com/Lora-net/sx126x_driver/blob/master/LICENSE.txt); no patent license granted. | Chip support does not establish board wiring, RF power or regional acceptance; do not introduce a second driver without a concrete need. |
+| RadioLib 7.7.1 — existing dependency only | SX1262/Module APIs; [diagnostic dependency lock](../firmware/targets/heltec_v4_radio_diag/dependencies.lock) pins 7.7.1. | [ESP-IDF HAL](../firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.cpp), FEM switching and bounded driver policy. | Match SPI/CS/BUSY/DIO1/reset, TCXO voltage and external PA/LNA truth table to the actual revision. | [MIT](https://github.com/jgromes/RadioLib/blob/7.7.1/license.txt). | Trail's [TX BUSY](../tools/radiolib_busy_source.py) and [pair-driver calibration](../tools/pair_radio_driver_source.py) derivatives are source-hash pinned; an upgrade can invalidate them. Managed upstream inputs remain untouched. |
+| [Espressif ESP-IDF 6.0.2](https://docs.espressif.com/projects/esp-idf/en/v6.0.2/esp32s3/) | GPIO/interrupts, SPI, timers, RTOS, NVS and BLE facilities; bench/radio locks select 6.0.2. | Task/session ownership, persistence rules, security admission and error containment. | Board pinmux, SPI ownership/timing, clock, USB console and sdkconfig. | [Apache-2.0](https://github.com/espressif/esp-idf/blob/v6.0.2/LICENSE); bundled components retain their own licenses. | SDK/API and target changes need matching toolchain/configuration evidence. Use the [versioned SPI reference](https://docs.espressif.com/projects/esp-idf/en/v6.0.2/esp32s3/api-reference/peripherals/spi_master.html), not an unreviewed move to latest. |
+| [Espressif esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/esptool/index.html) | Guarded ROM adapters pin esptool 5.3.1 and pySerial 3.5; accepted read/write/restore evidence above. | Identity/range/image grants, readback, restoration, first-error retention and SDK command allowlists. | USB/serial route and reviewed reset sequence for the exact chip; use the documented Windows execution context. | esptool: [GPL-2.0-or-later](https://github.com/espressif/esptool/blob/v5.3.1/pyproject.toml); pySerial: [BSD-3-Clause](https://github.com/pyserial/pyserial/blob/v3.5/LICENSE.txt). | SDK hooks, stub defaults and FLASH_END can cross Trail's bounds. Keep the approved frozen adapter; generic CLI commands are not substitutes. |
+| Existing [HeltecPairRadioDriver](../firmware/targets/heltec_v4_pair_radio_eval/main/pair_radio_driver.cpp) and [ROM adapter](../tools/enrollment_candidate_rom_adapter.py) | Existing RadioLib/ESP-IDF and esptool boundaries; reuse their interfaces and accepted fixtures first. | MTU, queue/retry/stop budgets, peer/session authority and recovery custody. | New boards need their own HAL, power-off behavior, geometry and recovery binding. | Trail-created code: root [Apache-2.0](../LICENSE); upstream/derived files keep their own notices. | Source presence or host tests do not activate a target or replace a frozen operator's acceptance evidence. |
+
+For an authorized change to an existing dependency, record the exact tag/commit and lock,
+retain applicable notices, and check the affected adapter against that version.
+Reuse accepted tests/physical results while relevant inputs are unchanged. New
+board behavior remains subject to the existing porting checks and physical grants.
+
+Publication gate: PR #68 and subsequent runbook publications must include this
+reference-policy correction and preserve unrelated changes; do not publish the
+superseded implementation-reference recommendations.
+
 ## Carry the lessons to other hardware
 
 | Layer/target | Reuse | Evidence boundary and differences |
@@ -226,6 +308,11 @@ Exact retained anchors for the new observations (not download locations):
   `c06abd94d8e1db9ad4d638b1a094e1efbf35b9b8d10cebc8591f04fb41615a63`.
 - Successful radio-health trial `RESULTS.md`, SHA-256
   `4b0686087bc3bac028150f52faf9ab779e9839c84a72b6f4e35bcc5f09ee49e0`.
+
+- COM10 `COM10_DIAGNOSIS.json`, SHA-256
+  `b0b900476699e1d1e2298aae2f8f95ffc436370543c83057e7b4afe35f6b9773`.
+- COM10 `COM10_CONNECTION_ONLY_RESULT.json`, SHA-256
+  `0d8cdae84d10adcfe0c4da9493f89847645ac4a5f5baab27fdc5f7e6501d5a8f`.
 
 Still open: exact original exceptions in collapsed historical connection/read
 failures; missing RF metrics/distance; sustained reliability and full phone-to-phone
