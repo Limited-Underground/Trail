@@ -33,6 +33,10 @@ OpenTrail is in active V1 development. Bounded host and selected physical eviden
 12. The in-tree `tools/windows-loader` is a frozen historical predecessor. Current Firmware Loader implementation and acceptance belong to the separate `Firmware-Loader` repository; its older Trail tests do not accept the current Loader. Cross-repository changes require explicit scope and provenance review.
 13. A successful build never authorizes a physical write. For an authorized two-device flash procedure, mutate one device at a time; before each write, re-enumerate and independently verify the actual endpoint, target, artifact, offsets, intended device, and recovery path. Never flash both devices simultaneously.
 
+14. For authorized Windows serial operations, use the [documented hardware-access route](docs/HARDWARE_INTEGRATION_RUNBOOK.md#windows-serial-access-from-codex) outside AppContainer through tool approval; retain per-operation physical authorization and never reuse a consumed attempt.
+
+15. For new Trail development, use manufacturer documentation/schematics/reference drivers, published standards/public LoRa specifications and independently developed Trail code; exclude Meshtastic and MeshCore source, architecture and implementation patterns, and treat third-party libraries only as actually used dependencies with preserved licenses/attribution, not implementation starting points.
+
 ## Validation expectations
 
 - Protocol/state logic: deterministic host tests where practical.
