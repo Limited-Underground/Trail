@@ -1,5 +1,88 @@
 # OpenTrail Progress Log
 
+## 2026-10-29
+
+### OT-0237b Close exact-lineage entropy/startup acceptance
+
+The [later source-bound acceptance](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270978173) reuses October 5's actual twenty-case entropy run, 485 matching firmware pins and retained build/image/package receipts to bind October 12's guarded restart/rekey evidence. This resolves the earlier b image-lineage gate without rerunning accepted tests or claiming October 1/12 images identical. Cold-power/brownout remains expressly deferred; c/d target persistence/retirement and e production admission stay open. One bounded physical proposal identifies missing cut/oracle tooling and fresh custody/operation grants before any future execution; no hardware, reset, flash, secret or production action occurred.
+
+### OT-0237e Existing security-gate evidence reconciliation
+
+Reconciled live OT-0237b/c/d/e against the [updated recommendation](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270978428), existing startup/persistence/retirement host proof, later physical restart/revoke evidence and immutable admission records. Completed host slices are no longer a proposed next step. The one owner packet separates b's source-binding/acceptance question from c/d's missing exact-target interruption/cleanup proof, historical raw-custody disposition and final production selection. No validated behavioral test was repeated, no physical operation occurred, and no production/physical or V1 acceptance was inferred.
+
+### OT-0086a Pilot signing and packaging checklist
+
+Prepared the [OT-0086a-1 host checklist](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286126230) with ten cases, immutable artifact/public-signer/custody fields, the exact permission union and separate signing, device, removal and release gates. Existing unsigned/debug evidence remains bounded; the current OTAR successor/evaluator under OT-0327, signer/custody decisions, accepted signed audit procedure and two-phone freeze remain unresolved. No build, signing, installation, firmware trust or release authority is created.
+
+### OT-0089a Coherent two-pair acceptance checklist
+
+Prepared the [OT-0089a-1 host checklist](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286126665) with fourteen numbered physical cases, exact candidate/evidence freeze fields, separate device/owner gates and original-custody recovery requirements. Every physical result remains NOT RUN; candidate, current phone matrix, production admission and required bounds remain unknown until separately frozen. Historical OTAR0 validation and Trail Dev presentation evidence cannot admit a production run. No hardware, release, V1 milestone or public website acceptance changes.
+
+### OT-0266b Record optional P1-Pro build-only smoke evidence
+
+The existing [OT-0266b-5](https://github.com/orgs/Limited-Underground/projects/9?pane=issue&itemId=286304806) records the isolated SenseCAP P1-Pro build-only smoke milestone: eight unchanged P1-P3 sources compiled/linked under GNU C++17, with 68,304 of 811,008 flash bytes and 13,348 of 237,568 static-RAM bytes. These are linker sizes, not runtime measurements. Seven newlib POSIX-stub warnings were retained. Authority denies all operations, storage/ledger inputs remain unavailable, the radio does not transmit and the upload action refuses execution. Independent reviews were clear and documentation checks/18 tests passed; accepted host suites were reused, not rerun. Five retained artifact hashes were independently matched during this audit; smoke-target patch SHA-256 is `195b9532df7c85f3b5106bc35839a719f3f351bb2c883070efec5c49347cbf21`. The candidate remains unpublished and separate from Live. Actual SX1262, protected state, power/recovery and physical acceptance remain open; no hardware, RF, signing or release occurred. The subsequent October 30 adapter implementation was still active without completed test/build results at this audit cutoff.
+
+## 2026-10-28
+
+### OT-0005j Validate isolated Android runtime and session binding
+
+Completed the four-file opt-in Packet-v1 runtime/session host slice, with 77 protocol, 499 Debug and 498 Release tests passing and independent security/test review. Trusted host-injected authority, current attachment/generation/nonce binding and truthful unknown outcomes were exercised; the production provider remained unavailable and profile 6 default-off. This was an isolated unpublished candidate, not production BLE or physical interoperability. The existing [OT-0005j](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270977413) retains the evidence and remaining production gates.
+
+### OT-0314 Complete bounded host delivery and Messages evidence
+
+Completed [OT-0314-1](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286304474) request-correlated projection (127 focused, 77 protocol, 511 Debug and 510 Release tests) and [OT-0314-2](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286342279) Recent Device Status presentation (70 focused, 77 protocol, 523 Debug and 522 Release tests), with independent review. Queue acceptance, transmission, protected peer ACK, received status, rejection and unknown outcomes remain distinct; presentation adds no sending or durable delivery history. [OT-0314-4](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286342712) preserved the accepted candidate in an isolated worktree with patch round-trip and exact-source verification; [OT-0314-3](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286342508) produced two byte-identical Debug APKs, SHA-256 `d5fb0185a39862ba0a0a9498342395f6e28dfd3397125bdb2674f41fe4074ada`, plus 70 focused tests and clean Debug lint. All work remained unpublished and unintegrated; host child completion did not close the parent or production/physical/release gates.
+
+### OT-0255 Validate isolated Trail Dev packaging and partial physical UI
+
+Built the separate Trail Dev Debug package without Bluetooth permissions and with the owning service disabled; Release and V1-Test boundaries stayed unchanged. An exact owner-approved APK was subsequently installed alongside the existing base application on the Note20 Ultra. The bounded physical walkthrough verified navigation and Activity recreation, found a nonfunctional Set up later action and recorded contrast concerns. It did not exercise nonempty delivery states, TalkBack, protected communication or two-pair operation. Emulator attempts also failed stable framework/Bluetooth-isolation readiness before application installation; boot diagnostics were not rendered application acceptance.
+
+A separately approved seven-file host correction fixed the local navigation callback, permission-presentation restoration and unavailable-icon palette. Final validation passed 55 focused, 77 protocol, 529 Debug and 528 Release tests with clean lint and independent review. Corrected Trail Dev APK SHA-256 is `75b82e934caebd831c2b9f0a9f98bcc7f0fe92f2122757bf0631f136ed32a46c`; it was not installed in that correction or the subsequent October 29 integrity checkpoint. The earlier installed build therefore retained the observed defects. Existing [OT-0255](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286121766) records the reviewed evidence; full rendered/accessibility, production security, physical interoperability and release acceptance remain open. No Live integration, commit, merge, public V1 or website change was claimed.
+
+## 2026-10-27
+
+### OT-0237e Production security decision preparation
+
+Prepared the [conditional production recommendation](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270978428): pinned libsodium, separate signing/agreement keys, Noise XK, purpose-separated pairwise AEAD and compact Packet-v1 framing. Existing lifecycle, persistence, retirement, custody and independent-admission gates remain open. The owner decision and a bounded host-only codec slice are specified; no production selection, implementation, hardware execution or acceptance is claimed.
+
+Later on October 27, the isolated host candidate completed compact Packet-v1 codec/security proof and authenticated-session/driver facade work. Recorded gates included 46 codec checks, 140 crypto groups and the later 863-assertion armed-facade run, with synthetic transport regressions and independent security/test review. Actual driver code used host SDK/RadioLib stubs and synthetic authority; no target build, RF, hardware execution, production selection or Live integration was accepted. The existing [OT-0237e](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270978428) owns this host evidence and its still-open production admission; this later implementation checkpoint supersedes the earlier same-day proposal-only next-step wording without erasing it.
+
+### OT-0005j Validate isolated Android Packet-v1 protocol foundations
+
+Completed the six-file protocol-only candidate: 77 tests across ten suites, 119 golden rows and exhaustive semantic combinations, with independent security/test review and documentation checks. Runtime/session and physical interoperability were separate later gates; no production authority, device operation or release resulted. Evidence is retained on the existing [OT-0005j](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270977413).
+
+## 2026-10-26
+
+### OT-0170a S24 saved-device BLE and Activity resume
+
+The updated V1-Test APK was installed on the S24 with app installation history and Nearby Devices grants retained. One bounded scan registered, received saved-peer advertisements, stopped normally, and completed GATT connection/service discovery. Two Activity reattachments and one same-instance resume preserved the connected UI without a second scan or observed disconnect. The [physical record](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286127059) identifies the exact APK, private diagnostic capture hashes, timestamps, and limitations. Automatic stale-`Blocked` recovery passed the Android host matrix but did not occur physically in this trial. OT-0170a-2 and its parent remain open; no release, V1-progress, or website credit is claimed.
+
+### OT-0304 Production-launch host prerequisite reconciliation
+
+OT-0304-1 remains open. The earlier Note20 explicit-Start stall was reproduced and corrected by [OT-0304b](testing/OT-0304b-PENDING-START-2026-10-01.md); its bounded [Note20 checkpoint](testing/OT-0304b-NOTE20-CONFIRMATION-2026-10-01.md) reached protected Ready and retained the draft through rotation, reopening and larger text. The subsequent BLE lifecycle changes touched the same owner/controller path, but the post-change Android test reports from this morning pass 477 debug, 476 release and 532 V1-Test cases with zero failures, errors or skips. This reuses current-candidate results rather than repeating accepted matrices.
+
+Host/physical matrix review: OT-0301/0302/0303 have accepted host scope for ordered setup, protected settings and saved-device recovery. Production entry/explicit Start and bounded Note20 rotation, larger text and draft retention have the evidence above. The October 26 S24 result adds saved-device discovery, GATT and connection-preserving resume, not fresh first-use or automatic Blocked recovery. The earlier original-device application read/USB restart failure was not reproduced by later guarded custody/restoration, but its hidden cause and executing original profile remain unknown. The [standard settings trial](testing/OT-0304-STANDARD-SETTINGS-PHYSICAL-2026-10-01.md) passed protected Ready and fresh name/region READ, then timed out before a durable public READ ACK. Its [automatic observation helper](testing/OT-0304-AUTOMATED-PHONE-OBSERVATION-2026-10-01.md) is host-tested against retained captures; no new physical session used it. The original control still needs the accepted second-device clock correction after control duty. Fresh first-use, full saved-state continuity, exact resident/candidate profile, public-settings ACK, warm restart and production-launch acceptance remain unverified. No new code, device operation, V1 credit or release claim resulted from this review.
+
+The same-day READ/ACK preflight located the missing protected closeout in a completed, verified restore set; its frozen manifest, observation owner, landscape Note20 APK and standard candidate match restored bytes. The currently installed Note20 V1-Test APK also matches the frozen landscape APK (12,007,386 bytes; SHA-256 F992DA1F187A533C9CAE3C1E5C368FDA9FB4B140861B3186449164288AFB80F5). The current phone helper matches its frozen SHA-256 CB60EE2D9B1052D095DBA34BF55F79F66F833BEA1DD988F02AC0CF43F920B219. USB enumeration matches the registered Trail Bench identity, but fresh isolated ROM identity verification has not occurred. Historical receipt custody is not a current one-use grant, fresh caller configuration or complete recovery readiness. The validated operator requires a temporary candidate application write and original restoration; this task's explicit no-flashing restriction excludes that operation. No capture, public READ/ACK request, device state change or substitute firmware path occurred. The public READ/ACK remains unobserved; a later trial needs exact fresh inputs, operation-bound authority and the existing recovery procedure, or a separately validated READ-only method against a proven capable resident profile.
+
+The owner subsequently authorized one temporary candidate install and original restoration, conditional on full preflight. This authorization removed the no-flashing restriction for that single session but did not establish operational readiness. Read-only preflight found the exact candidate and four historical original reference files hash-matched in protected restore custody; their historical source paths are absent from Live. Current NVS and both state halves have not been freshly captured twice, so present-state restoration and independent recovery are unproved. USB metadata matches the registered Trail Bench, but another unregistered serial device is present and the required isolated ROM identity read has not occurred. The old caller pins a different APK and historical paths; the newer tested phone helper has no execution-ready caller or fresh one-use grant. Rebinding it requires a reviewed, device-free validated integration. No flash, capture, test request, restoration or board operation was attempted. The physical attempt belongs to separate board child OT-0304-2; OT-0304-1 host tracking remains in progress. Do not use historical grants or files as current recovery authority.
+
+After the owner isolated Trail Bench and placed it in ROM mode, the approved read-only identity verifier returned `OTDEV-ID/v1 MATCHED OT-DEV-001` on the single registered USB instance; the extra unregistered serial port was absent. The same USB instance remained present after verification. No MAC or protected identity was displayed in public evidence. This match is valid only for the current uninterrupted ROM/port session; it does not carry forward through disconnect or re-enumeration. The historical operator hardcodes the older APK, registry and original-source pins, while the tested newer phone helper has no operational caller or self-grant. Repointing those constants would bypass validated checks, so no successor caller, grant, capture, custody read or firmware write was created. Current-state NVS/state capture and independent restore-only recovery remain open; the public READ/ACK was not attempted. After this read-only check, the owner tapped RESET and reported the usual Trail Bench screen returned. This is an owner-observed display result, not a fresh firmware-byte, protected-state, connection or READ/ACK verification; the ROM identity must be repeated in any later operational session.
+
+The separate current-root READ/ACK caller and independent restore-only controller are now executable software, with no hardware execution in this work. A fresh runtime capsule passed its inert probe; the origin context binds reviewed caller code, candidate, Note20 APK, registry and historical originals without a circular restore dependency. The caller and restore controller verify the same origin SHA-256 CEFA8EB45C76E7D6D40487F345088603D2AF88C8BC65C2DFC6AA21A3F20B6881. Caller SHA-256 is 9201DDBAAF2AADEEFFA9DDD1CBA9A8026B19B66A02A6CF35C38C71D14948F8FA; independent restore CLI SHA-256 is 40D92F8DDFB3421EC1ACCB180FD4EF40D28EEC411407C951D471589E9816B72F. Both pinned-runtime inert checks pass without serial or phone access. Focused synthetic suites pass 19 caller/preflight, 16 restore/authority compatibility, eight custody-validator, 42 unchanged trial-engine and 46 unchanged phone-observer tests. The original four retained images match their hashes in new private task custody; this does not prove present board equality. No fresh one-use engine or challenge-bound phone grant, current-state NVS/state capture, physical recovery proof, firmware write, public READ/ACK or device acceptance was produced. The previous ROM identity match ended with RESET; OT-0304-1 remains In Progress, and OT-0304-2/parent physical gates remain open.
+## 2026-10-25
+
+### OT-0170a Publish bounded setup and saved-device host evidence
+
+[PR #64](https://github.com/Limited-Underground/Trail/pull/64) published the reviewed host matrix and progress entry. Its 129-test host child remains separate from first-use, saved-state and physical parent acceptance.
+
+### OT-0177a Publish C01 synthetic host-schema evidence
+
+[PR #65](https://github.com/Limited-Underground/Trail/pull/65) published the bounded C01 schema tests/report after required checks. Synthetic schema success does not accept full checklist review, export/privacy behavior, Save/Share or physical support-export acceptance.
+
+### OT-0340 Publish portable firmware and Android pickup
+
+[PR #66](https://github.com/Limited-Underground/Trail/pull/66) published only the portable handoff documents after required checks; approved main reached `c96d93ea459a7c41cf453e27edea082985650fa6`. Unrelated local work was retained. This documentation publication did not close the recovery exceptions or add device, security, release or V1 acceptance.
+
 ## 2026-10-24
 
 ### OT-0170a Focused setup and saved-device host matrix
@@ -70,6 +153,39 @@ feature, release, publication or V1 credit was claimed.
   validation scope and unresolved recovery task identity. Earlier documentation
   checks and final provenance checks passed, including all 18 documentation tests.
   No device, product acceptance, publication or V1 credit is claimed.
+
+## 2026-10-21
+
+### OT-0238c Implement reset_preparation predevice selection gate
+
+Micro-task OT-0238c-27 (host-only): selection gate now admits explicit
+`reset_preparation` with strict integer `group == 1`, mirroring revoke. Focused
+predevice-resume suite: 62 tests OK in 99.850s. Report:
+[OT-0238c-RESET-PREPARATION-SELECTION](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=278911816).
+Evidence under protected owner-held receipts. No
+package, USB, launcher, or physical acceptance. Next child OT-0238c-28 inert
+successor package admission remains separately accepted.
+
+### OT-0238c Admit inert reset_preparation successor package
+
+Micro-task OT-0238c-28 (host-only): KIND/STAGE/profile
+`ot0238f-reviewed-reset-preparation-successor` with inert package receipt
+(`launcher_created=false`). Portable successor tests: 5 OK; predevice suite
+still 62 OK. Report:
+[OT-0238f-RESET-PREPARATION-ADMISSION](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=278911862).
+Evidence under protected owner-held receipts. No
+USB, launcher activation, or physical acceptance. Next child OT-0238c-29
+remains separately accepted.
+
+### OT-0238c Stage reset_preparation launcher for physical attempt
+
+Micro-task OT-0238c-29 (host-only): empty session/readiness nonce dirs, staged
+owner-workflow plan, refusing session template, and staged launcher CMD
+(exit 2). Receipt keeps `usb_authorized=false` and
+`physical_authorization_required=true`. Report:
+[OT-0238f-RESET-PREPARATION-LAUNCHER-STAGING](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=278911884).
+No USB, grants, workflow execution, or physical acceptance. Owner action
+remaining: Physical Authorization Required before any USB attempt.
 
 ## 2026-10-20
 
