@@ -4,7 +4,7 @@ import sys
 import tempfile
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from check_repository_docs import check_repository, LINK_DOCS
+from check_repository_docs import check_repository, check_closeout_changes, LINK_DOCS
 
 
 class RepositoryDocsTests(unittest.TestCase):
@@ -17,6 +17,22 @@ class RepositoryDocsTests(unittest.TestCase):
             self.write(path, "# Document\n\nCurrent facts.\n")
         self.write("tasks/BACKLOG.md", "# Backlog\n\n| Task | Status |\n| --- | --- |\n| OT-171 | partial |\n")
         self.write("docs/PROGRESS_LOG.md", "# Progress\n\n## 2026-09-08\n\n### OT-171 Work completed\n")
+
+        self.write_handoff()
+
+    def write_handoff(self, task="OT-171", title="OT-171 Work completed", reviewed="2026-09-08", **changes):
+        fields = {"Reviewed": reviewed, "Task": task, "Owner": "Test maintainer; review unassigned",
+                  "Scope": "Documentation fixture only", "State": "Host-tested; review open",
+                  "Source": "Fixture revision one", "Verified": "Recorded host result only",
+                  "Blocker": "Independent review outstanding", "Next action": "Claim focused review",
+                  "Restrictions": "No hardware or publication authority",
+                  "Latest record": f"[{title}](PROGRESS_LOG.md#{title.lower().replace(chr(32), chr(45))})",
+                  "Evidence access": "Summary in clone; private evidence from maintainer"}
+        fields.update(changes)
+        self.write("docs/PROJECT_STATUS.md", "# Status\n\n<!-- current-handoff:start -->\n" +
+                   "| Field | Current pickup state |\n| --- | --- |\n" +
+                   "".join(f"| {key} | {value} |\n" for key, value in fields.items()) +
+                   "<!-- current-handoff:end -->\n")
 
     def write(self, path, text):
         target = self.root / path
@@ -83,6 +99,7 @@ class RepositoryDocsTests(unittest.TestCase):
 
     def test_legacy_progress_titles_remain_untouched(self):
         self.write("docs/PROGRESS_LOG.md", "# Progress\n## 2026-09-08\n### OT-171 Current\n## 2026-08-10\n### Old heading without ID\n")
+        self.write_handoff(title="OT-171 Current")
         self.assertEqual([], self.problems())
 
     def test_wrong_progress_section_cannot_disable_new_entry_rules(self):
@@ -99,11 +116,13 @@ class RepositoryDocsTests(unittest.TestCase):
     def test_registered_suffix_and_repeated_task_updates_are_allowed(self):
         self.write("tasks/BACKLOG.md", "# Backlog\n| OT-171A | partial |\n")
         self.write("docs/PROGRESS_LOG.md", "# Progress\n## 2026-09-09\n### OT-171A Second update\n## 2026-09-08\n### OT-171A First update\n")
+        self.write_handoff(task="OT-171A", title="OT-171A Second update", reviewed="2026-09-09")
         self.assertEqual([], self.problems())
 
     def test_four_digit_lowercase_child_ids_require_exact_registration(self):
         self.write("tasks/BACKLOG.md", "# Backlog\n| OT-0101c | review pending |\n")
         self.write("docs/PROGRESS_LOG.md", "# Progress\n## 2026-09-21\n### OT-0101c Configuration audit\n")
+        self.write_handoff(task="OT-0101c", title="OT-0101c Configuration audit", reviewed="2026-09-21")
         self.assertEqual([], self.problems())
         self.write("docs/PROGRESS_LOG.md", "# Progress\n## 2026-09-21\n### OT-0101d Unregistered child\n")
         self.assertTrue(any("not registered" in p for p in self.problems()))
@@ -120,6 +139,50 @@ class RepositoryDocsTests(unittest.TestCase):
     def test_missing_required_document_is_actionable(self):
         (self.root / "CONTRIBUTING.md").unlink()
         self.assertEqual(["CONTRIBUTING.md: required readable UTF-8 document missing"], self.problems())
+
+
+    def test_handoff_requires_owner_scope_and_access_boundary(self):
+        for field in ("Owner", "Scope", "Evidence access"):
+            self.write_handoff(**{field: ""})
+            self.assertTrue(any(f"field {field}" in p for p in self.problems()))
+
+    def test_handoff_rejects_unregistered_task_and_missing_marker(self):
+        self.write_handoff(task="OT-999")
+        self.assertTrue(any("one registered task" in p for p in self.problems()))
+        self.write("docs/PROJECT_STATUS.md", "# Status\nNo current handoff.\n")
+        self.assertTrue(any("marker pair" in p for p in self.problems()))
+
+    def test_new_same_day_task_result_requires_updated_handoff_reference(self):
+        self.write("docs/PROGRESS_LOG.md", "# Progress\n## 2026-09-08\n"
+                   "### OT-171 New failure and next action\n\n### OT-171 Work completed\n")
+        self.assertTrue(any("newest task heading" in p for p in self.problems()))
+        self.write_handoff(title="OT-171 New failure and next action")
+        self.assertEqual([], self.problems())
+
+    def test_handoff_date_cannot_predate_referenced_result(self):
+        self.write("docs/PROGRESS_LOG.md", "# Progress\n## 2026-09-09\n### OT-171 Work completed\n")
+        self.assertTrue(any("predates" in p for p in self.problems()))
+        self.write_handoff(reviewed="2026-09-09")
+        self.assertEqual([], self.problems())
+
+    def test_handoff_duplicate_fields_and_placeholders_are_rejected(self):
+        self.write_handoff(Owner="TBD")
+        target = self.root / "docs/PROJECT_STATUS.md"
+        target.write_text(target.read_text().replace("<!-- current-handoff:end -->",
+                          "| Owner | Another claimant |\n<!-- current-handoff:end -->"))
+        self.assertTrue(any("duplicate handoff field Owner" in p for p in self.problems()))
+        self.write_handoff(Owner="TBD")
+        self.assertTrue(any("field Owner" in p for p in self.problems()))
+
+    def test_source_and_evidence_changes_require_both_closeout_documents(self):
+        for source in ("firmware/main.cpp", "android/app/Main.kt", "tools/operator.py",
+                       "docs/testing/result.md", "tests/hardware/result.md"):
+            self.assertEqual(2, len(check_closeout_changes([source])))
+            self.assertEqual(1, len(check_closeout_changes([source, "docs/PROJECT_STATUS.md"])))
+            self.assertEqual([], check_closeout_changes([source, "docs/PROJECT_STATUS.md", "docs/PROGRESS_LOG.md"]))
+
+    def test_unrelated_editorial_changes_do_not_force_development_closeout(self):
+        self.assertEqual([], check_closeout_changes(["LICENSE", "docs/community/README.md"]))
 
 
 if __name__ == "__main__":

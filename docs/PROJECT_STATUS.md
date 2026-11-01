@@ -1,6 +1,6 @@
 # OpenTrail Project Status
 
-Current recovery handoff reviewed 2026-10-25; evidence below retains its own dates
+Current task handoff reviewed 2026-11-01; older checkpoints below retain their own dates
 and artifact limits. Dated history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -8,6 +8,33 @@ See [archive navigation](history/README.md) for moved headings, [Architecture](A
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
 ## Current recovery handoff
+
+<!-- current-handoff:start -->
+| Field | Current pickup state |
+| --- | --- |
+| Reviewed | 2026-11-01 |
+| Task | [OT-0005j](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270977413) — protected bidirectional phone status integration; original production/physical acceptance remains open. |
+| Owner | Trail Firmware development role owns the diagnostic candidate. The focused independent reviewer is not assigned in the task/handoff; claim that review before work. GitHub Development owns continuity/tracking under OT-0340 and this documentation-only repair, not diagnostic implementation. |
+| Scope | Next reviewer inspects only the frozen P2 successor and focused evidence in a separate review context; do not overwrite candidate files or other active work. Check current task claims and source hashes before overlapping edits. |
+| State | Local successor implemented and host-tested; required focused independent review outstanding. No diagnostic change is accepted or physically validated by this handoff. |
+| Source | P2 transport SHA-256 `234d598312f412eebd999b64d9aa6725c95ff7585c09eae48f724aca5b104129`; patch `d0a9fb961ac72f4c0850775a2095f7c994cddd093a81cd12742d400cd8ea9e85`. Local isolated candidate, not repository main or a released artifact. |
+| Verified | Latest recorded physical attempt `6cf06a0183c44b5396d181ca53d8f544` failed at A connect_sync before flash reads/programming; B untouched and both RF directions not run. A later separately approved single RST returned the usual advancing Trail screen by owner observation; no new firmware readback or formal restoration receipt. Trial resources closed and grant consumed. |
+| Blocker | Physical connect_sync cause remains unknown. Original diagnostic `3c99c3bd900ee055854f72f88527cac89186d6c8804f4ddd81dc6eb95ce06653` was rejected in focused independent review for missing first-refusal classification at sync_stub_detected and USB-OTG guards. P2 records 92 passing host tests (22 focused + 70 regressions), but independent acceptance remains outstanding. |
+| Next action | Claim and perform focused independent review of P2 RESULT.md, SOURCE_MANIFEST.json, CORRECTION.patch and retained validation. Verify exact candidate/evidence identities; do not repeat broad audits or start another physical attempt. If local evidence is unavailable, request maintainer access to that packet and stop only the dependent review. |
+| Restrictions | No current physical retry or live grant is authorized. Never reuse consumed attempts. Serial/JTAG, reset, firmware writes, BLE/RF, APK changes and new trials require exact fresh authority and existing identity, image, ownership, timing and recovery safeguards. Commits, pushes and merges remain separately authorized. |
+| Latest record | [OT-0005j Reconcile failed trial and diagnostic successor](PROGRESS_LOG.md#ot-0005j-reconcile-failed-trial-and-diagnostic-successor) |
+| Evidence access | This summary, contracts and progress history are repository-local. Exact source, raw device evidence, grants and recovery images remain maintainer-held outside the clone; packet names below are navigation identifiers, not clone-relative files or execution authority. |
+<!-- current-handoff:end -->
+
+Historical backlog/status checkpoints below do not supersede the owning live
+GitHub item or this source-bound pickup. Exact diagnostic sources and private
+receipts remain in maintainer-held workspace Recovery-Records packets
+`Trail-Two-Heltec-Fresh-Attempt-Execution-20261031-6cf06a01`,
+`Trail-Heltec-A-Reset-Only-Return-20261031` and
+`Trail-ROM-SYNC-Diagnostic-Correction-20261101/p2-successor`. A fresh clone
+contains the summary, not those private inputs; request access before their review.
+The hardware runbook remains owned by [PR #68](https://github.com/Limited-Underground/Trail/pull/68);
+this repair neither introduces nor changes that runbook.
 
 **Checked October 25, 2026.** Trail firmware and the Android app share this
 repository. The owner accepted a bounded source-recovery baseline on October 23
@@ -35,7 +62,7 @@ and [Android App view](https://github.com/orgs/Limited-Underground/projects/1/vi
 route the components without duplicating items. Check the selected live item,
 its parent and the [working contract](../CONTRIBUTING.md#working-contract).
 
-**Next safe action:** choose one current Project item, inspect its affected
+**For other authorized work:** choose one current Project item, inspect its affected
 files and retained working changes, and follow its applicable host-only gate.
 Resolve the remaining OT-0340 exceptions through their recorded evidence.
 Firmware installation, physical Android pairing, coherent end-to-end messaging,

@@ -1,5 +1,42 @@
 # OpenTrail Progress Log
 
+## 2026-11-01
+
+### OT-0340 Reconcile portable continuity publication candidate
+
+Prepared a seven-file governance/documentation/checker/CI candidate from the
+published repository, without copying dirty local document postimages. The existing
+working contract now contains the portable owner/scope, interruption and closeout
+obligations; workspace policy files remain local. PR #68 retains runbook and index
+ownership. Exact changed-file scope, validation and publication sequencing remain
+in the existing task evidence. Fresh clean-checkout validation passed all 25
+documentation tests, the documentation check against the published Git base and
+whitespace checks. The exact patch also applies over PR #68 with its documentation
+check passing; PR-owned runbook/index and policies remain unchanged. No hosted
+Actions or application matrix is claimed. No commit, push, PR or merge occurred. No product,
+physical, release or whole-recovery acceptance follows.
+
+### OT-0005j Reconcile failed trial and diagnostic successor
+
+Physical attempt `6cf06a0183c44b5396d181ca53d8f544` failed at A connect_sync
+before flash reads/programming. B remained untouched; neither RF direction ran.
+Native/terminal/parent records report closed resources and consumed authority. A
+separate approved single RST returned the usual advancing Trail screen by owner
+observation; no fresh firmware readback or formal restoration receipt was created.
+The failed attempt and its zero normal-return count remain historical evidence.
+
+Diagnostic predecessor `3c99c3bd900ee055854f72f88527cac89186d6c8804f4ddd81dc6eb95ce06653`
+had 88 passing host tests but was independently rejected for missing first-refusal
+classification at SYNC-stub and USB-OTG guards. Isolated P2 transport
+`234d598312f412eebd999b64d9aa6725c95ff7585c09eae48f724aca5b104129` records
+92 passing host tests (22 focused plus 70 regressions) and 18 trace comparisons;
+its focused independent acceptance remains outstanding in this reconciled record.
+This documents verified local artifacts, not integrated or released functionality.
+The physical SYNC cause remains unknown. No physical retry or live grant is
+authorized; consumed authority is never reusable. Original protected phone-to-phone
+acceptance and security dependencies remain open. See the [current handoff](PROJECT_STATUS.md#current-recovery-handoff)
+for owner, review scope and maintainer-held evidence access.
+
 ## 2026-10-29
 
 ### OT-0237b Close exact-lineage entropy/startup acceptance

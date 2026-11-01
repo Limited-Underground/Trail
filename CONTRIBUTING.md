@@ -43,8 +43,9 @@ validation and document-role rules; it does not grant additional authority.
   completion remains required follow-up but never blocks local work. This does not
   authorize indiscriminate deletion, a rewrite, device operations, publication
   or whole-portfolio resumption.
-- **One task authority.** [Trail V1](https://github.com/orgs/Limited-Underground/projects/1)
-  owns current scope, priority, status, dependencies and recorded owner decisions.
+- **One task authority per product.** [Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
+  and [Android Project #8](https://github.com/orgs/Limited-Underground/projects/8) own
+  their respective live scope, status, dependencies and recorded owner decisions.
   [Architecture](docs/ARCHITECTURE.md), [decisions](docs/decisions/) and
   [backlog](tasks/BACKLOG.md) retain technical constraints and acceptance criteria.
   Resolve conflicting current instructions before the affected action. Board
@@ -86,6 +87,47 @@ validation and document-role rules; it does not grant additional authority.
   only affected records. No duplicate journal is required. After an interruption,
   reconcile actual state before retrying a mutation. Missing evidence remains
   unknown; do not reconstruct it from a success summary.
+
+### Continuity closeout gate
+
+Read the current handoff and owning Project item before work; reuse unchanged
+instructions and consult only relevant technical references. Record the responsible
+role or named worker and exact edit scope in the existing owning task. Check
+existing claims/worktrees before overlapping edits. Re-read shared records just
+before writing; preserve intervening unrelated updates. Unclear ownership blocks
+only the overlapping work. A Project assignee or CI concurrency group is not a
+file lock. On transfer, identify the receiving role and whether it has accepted;
+otherwise record that the next worker is unassigned.
+
+Update affected task records at material transitions and before yielding. Before
+completion, update the existing current-status handoff, relevant progress entry
+and owning GitHub item; independently read back remote changes or state exactly
+what remains tracking-pending. No owner reminder is required. For interruption,
+record Interrupted, last success/first failure, exact source, remaining resources,
+blocker and next safe action when possible. A crash may prevent that write; the
+next agent must reconcile actual state before mutation.
+
+The single table between the current-handoff markers in docs/PROJECT_STATUS.md
+is a pickup summary, not a second task authority. Keep its reviewed date, task,
+owner/edit scope, state, source identity, verified outcome, blocker, next action,
+restrictions, latest progress-record heading and evidence-access boundary current.
+Link the latest exact task heading in PROGRESS_LOG.md; distinguish clone-visible
+summaries from maintainer-held evidence and local unintegrated candidates.
+
+The documentation checker validates those fields, the registered task and latest
+progress reference/date. CI also checks that development or detailed-evidence
+changes include both current status and progress-log changes. It cannot verify
+unrecorded/out-of-repository work, evidence truth, agent reading, ownership or GitHub
+updates. Local checks without --base-ref are structural only; use the relevant
+base revision for the comparison check. Do not invent completion to satisfy it.
+
+GitHub Projects owns live task scope, dependencies and status. Firmware uses
+[Project #1](https://github.com/orgs/Limited-Underground/projects/1); Android uses
+[Project #8](https://github.com/orgs/Limited-Underground/projects/8). Routine evidence
+and status updates within authorized task scope belong to closeout; report failed
+updates explicitly. Board status grants no hardware or publication authority.
+These portable Trail rules contain only the applicable continuity obligations;
+workspace routing and portfolio policy remain local and are not copied here.
 
 ## CI and publication cadence
 

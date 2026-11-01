@@ -19,7 +19,7 @@ OpenTrail is in active V1 development. Bounded host and selected physical eviden
 
 ## Working rules
 
-1. Read `README.md`, `docs/ARCHITECTURE.md`, `docs/PROJECT_STATUS.md`, and `tasks/BACKLOG.md` before implementation.
+1. Identify the owning task and current handoff in `docs/PROJECT_STATUS.md` before work. Follow the [continuity closeout gate](CONTRIBUTING.md#continuity-closeout-gate): record owner/edit scope, preserve other work and leave evidence, blockers and next action before completion or transfer. Consult only relevant technical references; reuse unchanged guidance.
 2. Preserve existing work and unrelated changes. Do not delete, rename, or broadly restructure without a documented reason.
 3. Keep board-specific code behind interfaces in `firmware/components`; place deployable board applications in `firmware/targets`.
 4. Avoid giant `.ino` files. Prefer bounded components with host-testable protocol and state logic.

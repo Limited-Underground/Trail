@@ -4,6 +4,7 @@ import argparse
 from datetime import date
 from pathlib import Path
 import re
+import subprocess
 from urllib.parse import unquote, urlsplit
 ENTRY_DOCS = ("README.md", "docs/ARCHITECTURE.md", "docs/PROJECT_STATUS.md", "tasks/BACKLOG.md")
 TITLE_DOCS = (*ENTRY_DOCS, "docs/README.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md",
@@ -88,6 +89,73 @@ def check_links(root: Path, relative: str, text: str) -> list[str]:
     return problems
 
 
+
+HANDOFF_FIELDS = ("Reviewed", "Task", "Owner", "Scope", "State", "Source",
+                  "Verified", "Blocker", "Next action", "Restrictions",
+                  "Latest record", "Evidence access")
+
+
+def check_handoff(contents: dict[str, str], registered: set[str]) -> list[str]:
+    relative = "docs/PROJECT_STATUS.md"
+    text = contents.get(relative, "")
+    start, end = "<!-- current-handoff:start -->", "<!-- current-handoff:end -->"
+    if text.count(start) != 1 or text.count(end) != 1 or text.find(start) >= text.find(end):
+        return [f"{relative}: require one ordered current-handoff marker pair"]
+    block = text.split(start, 1)[1].split(end, 1)[0]
+    rows = re.findall(r"^\|\s*([^|]+?)\s*\|\s*(.*?)\s*\|\s*$", block, re.MULTILINE)
+    problems, fields = [], {}
+    for name, value in rows:
+        if name in HANDOFF_FIELDS:
+            if name in fields:
+                problems.append(f"{relative}: duplicate handoff field {name}")
+            fields[name] = value
+    for name in HANDOFF_FIELDS:
+        if not fields.get(name) or re.fullmatch(r"(?i:TBD|TODO|unknown|pending|-)\.?", fields[name]):
+            problems.append(f"{relative}: handoff field {name} needs an explicit value")
+    try:
+        reviewed = date.fromisoformat(fields.get("Reviewed", ""))
+    except ValueError:
+        problems.append(f"{relative}: handoff Reviewed must be an ISO date")
+        reviewed = None
+    task_ids = re.findall(r"OT-\d+[A-Za-z]*(?=\b)", fields.get("Task", ""))
+    if len(set(task_ids)) != 1 or task_ids[0] not in registered:
+        problems.append(f"{relative}: handoff Task must name one registered task")
+        return problems
+    task = task_ids[0]
+    latest = None
+    day = None
+    for _, level, title in headings(contents.get(PROGRESS, "")):
+        if level == 2:
+            try:
+                day = date.fromisoformat(title)
+            except ValueError:
+                day = None
+        if level == 3 and re.match(rf"^{re.escape(task)}(?=\s|$)", title) and day:
+            if latest is None or day > latest[0]:
+                latest = (day, title)
+    if latest is None:
+        problems.append(f"{relative}: handoff task has no dated progress record")
+    else:
+        day, title = latest
+        anchor = re.sub(r"[^\w -]", "", title.lower()).replace(" ", "-")
+        expected = f"[{title}](PROGRESS_LOG.md#{anchor})"
+        if expected not in fields.get("Latest record", ""):
+            problems.append(f"{relative}: Latest record must link newest task heading: {title}")
+        if reviewed is not None and reviewed < day:
+            problems.append(f"{relative}: handoff Reviewed predates latest task progress")
+    return problems
+
+
+def check_closeout_changes(changed_paths: list[str]) -> list[str]:
+    paths = {name.replace("\\", "/") for name in changed_paths}
+    development = any(name.startswith(("firmware/", "android/", "tools/", "tests/",
+                                       "docs/testing/", "docs/security/")) for name in paths)
+    if not development:
+        return []
+    required = {"docs/PROJECT_STATUS.md", PROGRESS}
+    return [f"continuity closeout: development/evidence changes require changes to {name}"
+            for name in sorted(required - paths)]
+
 def check_repository(root: Path) -> list[str]:
     root = root.resolve()
     problems = []
@@ -144,14 +212,26 @@ def check_repository(root: Path) -> list[str]:
         if level == 3 and current_date is not None and current_date >= OT_HEADING_START:
             if not re.match(r"^OT-\d+[A-Za-z]*\s+\S", title) or _RANGE.match(title) or _DATE.search(title):
                 problems.append(f"{PROGRESS}:{number}: use one individual OT task heading without a date or range")
+    problems.extend(check_handoff(contents, registered))
     return problems
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--base-ref", help="Compare tracked changes against this revision; omitted means structural checks only")
     args = parser.parse_args()
     problems = check_repository(args.root)
+    if args.base_ref:
+        try:
+            base = args.base_ref
+            command = (["git", "--no-optional-locks", "ls-tree", "-r", "--name-only", "HEAD"]
+                       if set(base) == {"0"} else
+                       ["git", "--no-optional-locks", "diff", "--name-only", "--no-renames", base, "--"])
+            changed = subprocess.run(command, cwd=args.root, check=True, capture_output=True, text=True)
+            problems.extend(check_closeout_changes(changed.stdout.splitlines()))
+        except (OSError, subprocess.CalledProcessError):
+            problems.append("continuity closeout: cannot compare requested base revision")
     if problems:
         print("\n".join(problems))
         return 1
