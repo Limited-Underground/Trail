@@ -8,7 +8,7 @@ project.
 ## Before starting
 
 The working contract below governs the contribution guidance on this page;
-feature suggestions do not authorize work beyond the accepted host-only scope.
+feature suggestions do not resume development during the indefinite product freeze.
 
 For questions, use cases and early ideas, start in
 [Discussions](https://github.com/Limited-Underground/Trail/discussions).
@@ -32,20 +32,29 @@ model memory or machine-local skill is required to understand them. Tool routing
 in [AGENTS.md](AGENTS.md) retains the repository's detailed engineering, brand,
 validation and document-role rules; it does not grant additional authority.
 
-- **Recovery first.** The owner accepted the bounded local Trail source-recovery
-  baseline on October 23, 2026 (America/New_York) and authorized ordinary
-  host-only development from the owner-approved checkout on the recovery machine. Five exceptions remain:
+- **Current freeze.** Effective November 2, 2026, product development is frozen
+  indefinitely. Authorized foundation work is preservation, reproducibility and
+  documentation only. Earlier host-development approvals do not resume features,
+  protocol/firmware/app behavior, hardware operations, deployment, release or merge.
+  Read the [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff) and
+  owning dedicated Project before future work; explicit owner resumption is required.
+- **Recovery first.** The historical October 23, 2026 (America/New_York) bounded
+  source-recovery acceptance then authorized ordinary host-only development.
+  That approval does not override the current freeze. Its five recorded exceptions were:
   unverified E: delta bytes; incomplete cloud/off-device recovery and passphrase
   custody verification; the stale saved Codex Trail project path; retained
   historical/ignored holdings; and separate device, release, security-operator
-  and publication gates. OT-0340 remains In Progress. Select each task through
-  Trail V1 and preserve and validate subsequent changes normally. OneDrive backup
-  completion remains required follow-up but never blocks local work. This does not
+  and publication gates. OT-0340 remains open; consult the current handoff for
+  current custody and evidence. Select each authorized task through its dedicated
+  Project and preserve subsequent changes. The earlier OneDrive follow-up did not
+  block local work. This historical checkpoint does not
   authorize indiscriminate deletion, a rewrite, device operations, publication
   or whole-portfolio resumption.
-- **One task authority.** [Trail V1](https://github.com/orgs/Limited-Underground/projects/1)
-  owns current scope, priority, status, dependencies and recorded owner decisions.
-  [Architecture](docs/ARCHITECTURE.md), [decisions](docs/decisions/) and
+- **One task authority per product.** [Trail Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
+  and [Trail Android App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
+  own their current scope, priority, status, dependencies and recorded owner decisions.
+  [Concise architecture](docs/architecture/README.md), [protocol selection](docs/protocol/README.md),
+  [detailed architecture](docs/ARCHITECTURE.md), [decisions](docs/decisions/) and
   [backlog](tasks/BACKLOG.md) retain technical constraints and acceptance criteria.
   Resolve conflicting current instructions before the affected action. Board
   status is not execution permission. Hosted Project Control, `Control-Checklist.ps1`,

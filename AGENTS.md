@@ -6,7 +6,9 @@ This directory is the complete boundary for OpenTrail. Keep OpenTrail project fi
 
 ## Current phase
 
-OpenTrail is in active V1 development. Bounded host and selected physical evidence exist only within their recorded source, setup and acceptance limits; full product and release acceptance remain open. Check `docs/PROJECT_STATUS.md` and Trail V1 Project #1 for the current source, task and gate state. Capabilities in the README and architecture documents are goals unless backed by test evidence. Do not describe projected hardware or behavior as tested.
+Product development is frozen indefinitely under the November 2, 2026 owner direction. Current authorized work is preservation, reproducibility and documentation only. Earlier host-development approvals do not resume features, protocol/firmware/app behavior, hardware operations, deployment, release or merge. Bounded evidence retains its exact source/setup limits; full product acceptance remains open. Read the human-readable working contract in `CONTRIBUTING.md`, the current handoff in `docs/PROJECT_STATUS.md`, and the dedicated Firmware Project #1 or Android App Project #8 before future work. A board status is not execution permission.
+
+Use `docs/architecture/README.md` for the concise architecture/C4 source and `docs/protocol/README.md` for contract selection. The existing detailed architecture and original decisions/evidence remain preserved. Capabilities are intended unless identified source and demonstrated evidence support them.
 
 ## Brand and trademark safeguards
 
@@ -19,7 +21,7 @@ OpenTrail is in active V1 development. Bounded host and selected physical eviden
 
 ## Working rules
 
-1. Read `README.md`, `docs/ARCHITECTURE.md`, `docs/PROJECT_STATUS.md`, and `tasks/BACKLOG.md` before implementation.
+1. Read `README.md`, `CONTRIBUTING.md`, `docs/architecture/README.md`, `docs/protocol/README.md`, `docs/PROJECT_STATUS.md`, and the relevant `tasks/BACKLOG.md` criteria before authorized work. Use `docs/ARCHITECTURE.md` for detailed boundaries/history; the freeze remains binding.
 2. Preserve existing work and unrelated changes. Do not delete, rename, or broadly restructure without a documented reason.
 3. Keep board-specific code behind interfaces in `firmware/components`; place deployable board applications in `firmware/targets`.
 4. Avoid giant `.ino` files. Prefer bounded components with host-testable protocol and state logic.
@@ -77,7 +79,7 @@ inside the repository; anchors are not validated.
 
 ## Lean execution cadence
 
-- Keep recovery increments coherent and verifiable. Larger authorized recovery work may span sessions; preserve a readable handoff rather than refusing it solely for duration. Ordinary host-only work may resume under the owner-accepted bounded Trail recovery baseline and CONTRIBUTING contract; remaining OT-0340 exceptions stay open.
+- Keep recovery increments coherent and verifiable. Larger authorized recovery work may span sessions; preserve a readable handoff rather than refusing it solely for duration. The October 23 bounded recovery acceptance and remaining OT-0340 exceptions are historical context; the current indefinite product freeze controls execution under CONTRIBUTING.
 - Reuse a previously validated implementation, build, test, and publication path when its boundary and prerequisites have not changed. If it fails, diagnose the concrete conflict before abandoning the proven path.
 - Run focused validation while implementing and one complete affected matrix at the final gate. Do not repeatedly run the full matrix after every small edit.
 - Keep canonical project records current for each accepted increment, but batch editorial website synchronization and deployment at each ten-task checkpoint. Publish sooner only when the public completion percentage, demonstrated capability, field-test readiness, support/release state, or a material public correction changes.

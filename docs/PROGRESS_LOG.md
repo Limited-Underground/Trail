@@ -1,5 +1,27 @@
 # OpenTrail Progress Log
 
+## 2026-11-02
+
+### OT-0340a Reconcile frozen architecture and diagnostic recovery lineage
+
+Registered the [foundation documentation child](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=291531176)
+under open OT-0340 and reconciled the portable indefinite product-development
+freeze, [architecture reading path](architecture/README.md), C4 source model and
+[protocol-selection index](protocol/README.md). The source-owner review confirms
+the distinction between canonical/dirty source, exact successful diagnostic
+overlays and the conditionally approved isolated Packet-v1 host slice. The
+November 2 fixed-status exchange remains unauthenticated diagnostic evidence;
+the separate OT-0005j record and PR #70 retain its original detailed result.
+
+Protected source/history preservation, independent file restoration and exact
+accepted-binary hashes are verified within their recorded limits. Clean source
+rebuild, independent byte equality and device/runtime restoration are not
+claimed. The current handoff preserves the older October 25 checkpoint as
+history and selects one primary diagnostic evidence route. Final integrated
+documentation and fresh-reader/PR gates remain separate. Parent recovery
+exceptions, protected/production acceptance, consumed physical grants and V1
+credit are unchanged; no product behavior or hardware operation occurred.
+
 ## 2026-10-29
 
 ### OT-0237b Close exact-lineage entropy/startup acceptance

@@ -15,14 +15,21 @@ V1 design; optional maps and later repeater work have separate scope.
 
 ## Current status
 
+**Product development is frozen indefinitely, effective November 2, 2026.**
+Current authorized foundation work is preservation, reproducibility and
+documentation. Earlier host-development approvals do not resume features,
+protocol/firmware/app behavior, hardware operations, deployment or releases.
+
 Trail is an experimental project, not a production release. Android and Heltec
 bench work demonstrates bounded secure pairing, saved-owner reconnection,
 protected device configuration, and display-clock synchronization. Each result
 applies only to the setup and limitations in its evidence record.
 
-Secure radio experiments and host tests are separate from complete product
-messaging. Coherent two-phone/two-device messaging, supported hardware, field
-range, endurance, and release acceptance remain open. An iPhone app is not yet
+The November 2 fixed-status diagnostic run demonstrated both phone-to-phone
+directions through BLE/direct LoRa/BLE, matching diagnostic ACKs and verified
+closure. Its RF was unauthenticated. Coherent protected product messaging,
+supported hardware, field range/endurance and release acceptance remain open.
+Earlier secure-radio experiments retain their exact evidence limits. An iPhone app is not yet
 implemented. Trail is a supplemental communication aid, not a guaranteed rescue
 system.
 
@@ -34,13 +41,14 @@ See [current project status](docs/PROJECT_STATUS.md), the
 
 Start with the [working contract](CONTRIBUTING.md#working-contract) and the
 [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff).
-[Trail V1 in GitHub Projects](https://github.com/orgs/Limited-Underground/projects/1)
-owns current task scope, status and dependencies; repository records hold the
+[Trail Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
+and [Trail Android App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
+own their current task scope, status and dependencies; repository records hold the
 technical evidence. On the owner's recovery machine, use the maintainer-approved checkout;
-historical copies are provenance, not active source. The owner
-accepted the bounded local recovery baseline and authorized ordinary host-only
-development from that C: checkout; OT-0340 retains the remaining exceptions.
-OneDrive backup completion does not block local work. A board status
+historical copies are provenance, not active source. The October 23 bounded
+local recovery acceptance remains historical; OT-0340 retains its exceptions.
+The current freeze controls execution until an explicit owner decision resumes
+product development. A board status
 or these setup examples do not authorize device operations or publication.
 
 ## Get started
@@ -74,8 +82,10 @@ Report sensitive issues through [SECURITY.md](SECURITY.md).
 
 ## Documentation
 
-The [documentation index](docs/README.md) routes readers to architecture,
-protocols, hardware evidence, and project records. Dated engineering updates live
+The [concise architecture](docs/architecture/README.md) and
+[protocol selection index](docs/protocol/README.md) explain current boundaries
+and evidence limits. The [documentation index](docs/README.md) routes readers to
+hardware, build/recovery guidance and project records. Dated engineering updates live
 in the [progress log](docs/PROGRESS_LOG.md). The
 [future-concepts register](docs/FUTURE_CONCEPTS.md) separates longer-term ideas
 from current release commitments.
