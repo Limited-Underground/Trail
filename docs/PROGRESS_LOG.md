@@ -1,5 +1,105 @@
 # OpenTrail Progress Log
 
+## 2026-11-02
+
+### OT-0005j two-phone diagnostic LoRa exchange delivered both ways
+
+Owner-approved G3 981e43cff4914a948386933fb3edb7fb ran with both boards on
+553ece87 and both phones on APK 7b9b25e8. Exact SHA-256 identities:
+
+- Firmware (both): `553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283`
+- APK (both): `7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c`
+- Execution bundle: `b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc`
+
+Preflight, fresh protected Ready and diagnostic opt-in all passed, and the board
+now records the opt-in. Both boards
+answered the idle gate and accepted session-start.
+
+- Forward: "Test: OK" went Note20 → A → LoRa 915 MHz → B → S24. The S24
+  displayed "Received: peer diagnostic DATA - OK", and the Note20 displayed the
+  matching diagnostic peer ACK.
+- Reverse: "Test: Available to help" went S24 → B → LoRa → A → Note20. The
+  Note20 displayed the received DATA, and the S24 displayed its ACK.
+- Result verified with exact counters: each board tx 2/2, rx_data 1, rx_ack 1,
+  rejected 0, BLE 3/3. RF 4/4 with no retry, 57.2 s from opt-in to close.
+- Both boards verified_stopped, phones closed, exit 0. No reset, flash or panic
+  markers. The owner reported the boards normal and the app closed on both
+  phones, which is the designed, verified force-stop closure. The final UI
+  captures show the delivered messages.
+
+This is diagnostic, unauthenticated RF only. Protected delivery and production
+acceptance remain open, and the V1 milestone requiring authenticated messaging
+is unchanged. Evidence:
+Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb/PHYSICAL_RESULT.json.
+Recorded on GitHub OT-0005j: appended and read back, with status unchanged
+(In Progress).
+
+### OT-0005j console reader fixed; diagnostic opt-in defect found and corrected
+
+Owner-approved status-only probes confirmed the A console failures. The frozen
+reader reassigned the serial timeout before every byte (Windows SetCommState
+plus CDC requests), and that alone stopped both boards' USB receive path until
+re-enumeration. Fixed-timeout reads answered. The host successor configures the
+opened port once (console-gate manifest ef460c25…), and V1–V4 passed with and
+without Note20 capture load.
+
+G3 b7bbfaf5fd40422f9ce56fa4200a11aa then passed the console gate: both boards
+were idle on the first status. A refused session-start before its one-use latch,
+and the cleanup session-end was refused too. RF0, B untouched, phones closed.
+
+Source analysis found a firmware defect on every bonded reconnect.
+NVS-persisted CCCDs are restored at encryption before Ready, so the diagnostic
+lane is retired. The phone's later opt-in leaves the flags unchanged, so NimBLE
+raises no subscribe event, and the board lease never becomes valid. This
+affects A and B equally; G0's fake lease hid it.
+
+Firmware successor Trail-Diagnostic-Opt-In-Fix-20261102 changes only
+companion_nimble_gatt.cpp in the diagnostic build. An authorized Ready write
+to an already indicate-only restored CCCD now records the opt-in. Padded image
+553ece87…, span [0x10000,0xB2000), two byte-identical builds. A composed replay
+of the actual target and pinned NimBLE code passes 8/8 and reproduces the field
+refusal on 0bbf0482. At that preparation checkpoint the image was not installed;
+deployment needed a one-board-at-a-time install successor and fresh approvals.
+
+The install successor Trail-Diagnostic-Opt-In-Install-20261102 derives A and B
+from their last successful official-SDK routes. Image pins move to 553ece87…,
+and each board's pre-write reference is now its own verified 0bbf0482 full
+readback rather than a host composition. Original-recovery provenance is
+unchanged. The post-install idle health gets the confirmed stable console
+reader, and B's prerequisite is A's verified install of the new image.
+
+Validation: real admission checks pass for both boards, A caller 19/19 plus
+adapter 22/22, and B caller 20/20. Three inherited B tests had asserted that
+B.install is refused; they were corrected to B's scope. Activation tools pass
+11/11, and the real launcher-to-runtime child reaches ready and closes for both
+boards on SYNTHETIC copies. Stray bytecode written into the admitted runtime by
+a helper check was removed; the runtime matches its manifest again. Physical
+requests (A first, then B, then one G3) were prepared in PHYSICAL_AUTHORIZATION.md
+before the separate approvals recorded below.
+
+Owner-approved A install 7d6107a6314a490ca5eb5fc5ec8d7895 sequence:
+
+- The identity check matched COM10.
+- After one owner PRG/RST entry, the live full read equalled 0bbf0482.
+- One write, then verify. The full readback was 553ece87…, byte-equal to the image.
+- After one owner RST, the normal display returned.
+- Idle health through the stable reader gave CONTROL plus an all-zero STATUS, with
+  rejected=0.
+
+The operator closed and the grant was consumed; launcher and child exited 0.
+RF0, and no B, phone, retry or restore. At this checkpoint B remained on
+0bbf0482 pending its own approval.
+
+Owner-approved B install 00e8f45cb83c41dea7ffe32d407d0c8a: its A prerequisite was
+attempt 7d6107a6. The identity check matched COM3, the live full read equalled
+0bbf0482, and the readback was 553ece87…, byte-equal to the image. The owner's
+normal return and an idle all-zero STATUS followed, with closure exit 0 and RF0.
+Both boards now run 553ece87. The G3 route's retained-install prerequisites
+(message_session IMAGES/ATTEMPTS and templates) now name the two attempts.
+Console gate 15/15, rehearsal 13/13, probe 10/10 and clock 4/4 pass; the timing
+suite showed the same 7 inherited failures by name. At this checkpoint G3
+awaited owner approval; its later successful result is recorded above.
+
 ## 2026-10-29
 
 ### OT-0237b Close exact-lineage entropy/startup acceptance
