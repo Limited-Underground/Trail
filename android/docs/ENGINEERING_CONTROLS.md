@@ -36,7 +36,9 @@ a normal UI/BLE readiness prerequisite.
 
 ## Current action and review
 
-Documentation/preservation only under the freeze. Coordinate component changes
+The [narrow host exception](../../CONTRIBUTING.md#working-contract) permits
+OT-0305-1 implementation and isolated validation. The [group snapshot slice](OT-0305-1-DURABLE-GROUP-SNAPSHOT.md)
+remains dormant with no production issuer/transport. Coordinate component changes
 with the current owners of shared architecture/protocol/status and handbook
 projections; preserve other writers and source/evidence. Record the exact delta
 and hashes before independent review. Repository/ref-specific publication and

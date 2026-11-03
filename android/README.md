@@ -12,8 +12,12 @@ and [exact artifacts and source boundaries](docs/SOURCE_BUILD.md#exact-reference
 **This was unauthenticated diagnostic RF, not protected production delivery or
 release acceptance.**
 
-**Product development is frozen indefinitely.** Current work is documentation,
-preservation and reproducibility. Read the [working contract](../CONTRIBUTING.md#working-contract)
+**The indefinite freeze has a narrow November 3 host exception for OT-0305-1.**
+A dormant [versioned group-state projection](docs/OT-0305-1-DURABLE-GROUP-SNAPSHOT.md)
+now has 37 passing focused host tests. It requires a fresh authoritative-device
+source; the default source is unavailable. It is not wired to production
+transport, UI, BLE or Android protected storage. Physical operations, signing,
+release and unapproved publication remain excluded. Other development remains frozen. Read the [working contract](../CONTRIBUTING.md#working-contract)
 and [current handoff](../docs/PROJECT_STATUS.md#current-recovery-handoff).
 [Android App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
 owns Android task scope/status; [Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)

@@ -2,6 +2,29 @@
 
 ## 2026-11-03
 
+### OT-0305 Durable group-state host slice
+
+The existing child OT-0305-1, under the November 3 narrow host exception, added
+a dormant Android-local
+versioned snapshot codec/coordinator and ordinary-file fixture adapter. Device
+state remains authoritative: a fresh admitted source and exact session reference
+are required; retained bytes/checksums or diagnostic confirmation cannot mint
+membership. Unsupported/corrupt records, rollback, version conflicts, stale
+contexts, uncertain storage and reentrancy refuse without automatic repair.
+Independent pre-build review found unenforced thread confinement; the correction
+checks construction-thread ownership before every public operation/state read.
+
+One offline JVM gate compiled the current main/test Kotlin and passed 37 tests:
+17 snapshot, 5 actual temporary-file and 15 unchanged group-model tests, with
+zero failures/errors/skips. The real-thread overlap/close case passed. The
+[source/transition and reproduction note](../android/docs/OT-0305-1-DURABLE-GROUP-SNAPSHOT.md)
+describes the exact boundary; the selected base is
+a44630abc028a778b2aee5e8b02e04bd3efa9f0a. Canonical dirty overlays and
+accepted diagnostic artifacts were preserved. No production adapter/issuer,
+transport, UI/service integration, protected-store or physical proof is added.
+Host child/parent completion, production admission, publication and release
+remain separate; no V1 progress credit or device operation follows.
+
 ### OT-0340a Attribute the reconstructed image differences without substitution
 
 Integrated the November 3 focused recovery review at its accepted exact-image
