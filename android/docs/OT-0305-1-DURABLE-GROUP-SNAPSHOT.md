@@ -33,7 +33,9 @@ physical child OT-0305-2 remain open; host checks do not complete them.
   at the same revision. A newer revision is published only after compare/replace
   and complete independent readback. Failure is terminal for that owner; it does
   not retry, erase, repair or relax admission.
-- `FileV1GroupSnapshotStorage` is an ordinary-file host adapter. It bounds reads,
+- `FileV1GroupSnapshotStorage` is an ordinary-file **JVM-test fixture**, located
+  only in `app/src/test/kotlin/io/github/nbjelanovic/otclient/`. It is absent from
+  production main source and must not be packaged as an Android store. It bounds reads,
   serializes cooperating writers with an OS lock, syncs a new temporary file and
   requires atomic replacement without a non-atomic fallback. It creates no
   directory or product store. It is not a Keystore, protected Android adapter,
@@ -80,3 +82,20 @@ The retained task recipe additionally isolates C-local output/cache/temp and
 uses the unchanged dependency cache read-only. No APK assembly, signing, install
 or hardware operation ran. The wider foundation helper includes assembly and
 signing defaults and was not used for this narrow gate.
+
+## Production privacy boundary correction
+
+The first published host slice at `d4e652a0eecd695fad7393b79298135fe0191d16`
+failed the retained OT-088 source-privacy gate: the ordinary-file host fixture
+was incorrectly under production `app/src/main`. Its unchanged source is now
+in `app/src/test` only. No privacy rule or production-storage permission was
+relaxed, and no store was added to production.
+
+The same failure was reproduced before correction. After the move, all 23
+unchanged operational-release admission scenarios passed. The offline focused
+JVM gate recompiled main/test Kotlin and passed all 37 tests with zero failures,
+errors or skips. The fixture class is absent from main Kotlin output and both
+production runtime/compile class jars, and present in JVM-test output. This is
+source-set/class-output evidence, not an APK assembly or release acceptance.
+Full remote CI must still pass on the exact corrected public head; the earlier
+failed run is preserved and is not replaced by local success.

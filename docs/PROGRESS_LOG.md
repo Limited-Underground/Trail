@@ -25,6 +25,16 @@ transport, UI/service integration, protected-store or physical proof is added.
 Host child/parent completion, production admission, publication and release
 remain separate; no V1 progress credit or device operation follows.
 
+The first public host slice d4e652a subsequently failed the existing OT-088
+source-privacy gate: its ordinary-file fixture was in production main source.
+The unchanged fixture is now isolated to JVM-test source. The original failure
+was reproduced, then the unchanged 23-scenario admission suite and affected
+37-test JVM gate passed. Main/test Kotlin recompiled; the fixture is absent
+from main output and both production class jars and present only in test output.
+No privacy/check policy or production storage permission changed. Full CI on
+the corrected public head remains required; local success does not replace the
+retained failure or grant release/device/production acceptance.
+
 ### OT-0340a Attribute the reconstructed image differences without substitution
 
 Integrated the November 3 focused recovery review at its accepted exact-image
