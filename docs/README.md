@@ -11,6 +11,7 @@ defines the current preservation, reproducibility and documentation scope.
 | Document | Purpose |
 | --- | --- |
 | [Current status](PROJECT_STATUS.md) | Accepted capabilities, limitations, and next gates |
+| [Trail Firmware V1](firmware/README.md) | Nine assessment areas, source/build/recovery and existing V1 criteria |
 | [Concise architecture](architecture/README.md) | Twelve arc42 sections, C4 model, source/evidence boundaries and limitations |
 | [Detailed architecture](ARCHITECTURE.md) | Preserved design detail, original decisions and dated evidence scopes |
 | [Protocol selection](protocol/README.md) | Standard/custom interfaces and diagnostic/production contract status |
@@ -27,7 +28,7 @@ defines the current preservation, reproducibility and documentation scope.
 | --- | --- |
 | Product scope | [Product boundaries](PRODUCT_BOUNDARIES_V0.md), [V1 user experience](product/V1_USER_EXPERIENCE.md), [V1/V1.5 acceptance scope](testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md) |
 | Android | [Client development](../android/README.md) |
-| Firmware | [Porting lessons and preflight](firmware-porting-lessons.md), [components](../firmware/components/), [targets](../firmware/targets/), [experimental Heltec V4 bench target](../firmware/targets/heltec_v4_bench/README.md) |
+| Firmware | [V1 guide](firmware/README.md), [build and recovery](firmware/BUILD_AND_RECOVERY.md), [remaining acceptance](firmware/V1_ACCEPTANCE.md), [porting lessons](firmware-porting-lessons.md), [experimental Heltec V4 bench target](../firmware/targets/heltec_v4_bench/README.md) |
 | Hardware | [Inventory](../hardware/INVENTORY.md), [hardware procedures](../hardware/) |
 | Device setup and reset | [Factory reset contract](platform/DEVICE_FACTORY_RESET_V1.md), [decision](decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md) |
 | Display | [Heltec OLED V1 layout](product/HELTEC_OLED_V1.md) |

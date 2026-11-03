@@ -1,4 +1,6 @@
-# OpenTrail Architecture
+# Limited Underground Trail architecture detail
+
+<a id="opentrail-architecture"></a>
 
 This document describes the system design and its implementation boundaries.
 For current accepted behavior and remaining gates, see [Project status](PROJECT_STATUS.md).

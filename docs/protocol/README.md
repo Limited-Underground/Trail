@@ -1,12 +1,14 @@
 # Trail communication contract selection
 
-Documentation candidate, November 2, 2026. Product development is frozen indefinitely. This index maps existing contracts; it does not select a new wire format, algorithm, profile, acceptance rule or implementation. Read [current status](../PROJECT_STATUS.md#current-recovery-handoff), the [architecture](../architecture/README.md) and controlling decisions before treating a versioned document as current.
+Product development is frozen indefinitely. This maintained index maps existing contracts; it does not select a new wire format, algorithm, profile, acceptance rule or implementation. Read [current status](../PROJECT_STATUS.md#current-recovery-handoff), the [architecture](../architecture/README.md) and controlling decisions before treating a versioned document as current.
+
+The [firmware V1 guide](../firmware/README.md) and [existing acceptance map](../firmware/V1_ACCEPTANCE.md) route the remaining product criteria. The qualified declared-host reconstruction does not select or admit any protected protocol; its [raw firmware equality limit](../firmware/BUILD_AND_RECOVERY.md#frozen-result-and-exact-artifact-comparison) remains explicit.
 
 ## Current intended path and latest demonstration
 
 [Decision 0033](../decisions/0033-permanent-v1-v1-5-scope-and-security-boundary.md) requires two phone/Heltec pairs, protected BLE control and separately authenticated/encrypted direct LoRa. [Decision 0103](../decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md) supersedes only the older pairing/replacement clauses. BLE ownership is independent of radio membership; phone Ready does not establish peer/key or RF authority.
 
-The November 2 attempt `981e43cff4914a948386933fb3edb7fb` demonstrated a fixed-status exchange and reply through both phone/radio pairs, matching diagnostic ACKs and verified closure. That RF was unauthenticated diagnostic traffic. It does not satisfy protected product delivery, imply a person read a message, select Packet-v1, or authorize another attempt. The maintained handoff owns exact firmware/APK/bundle identities and private evidence access. [PR #70](https://github.com/Limited-Underground/Trail/pull/70) is the separate diagnostic evidence proposal; consult its live state rather than assuming it merged.
+The November 2 attempt `981e43cff4914a948386933fb3edb7fb` demonstrated a fixed-status exchange and reply through both phone/radio pairs, matching diagnostic ACKs and verified closure. That RF was unauthenticated diagnostic traffic. It does not satisfy protected product delivery, imply a person read a message, select Packet-v1, or authorize another attempt. The maintained handoff owns exact firmware/APK/bundle identities and private evidence access; the [diagnostic progress entry](../PROGRESS_LOG.md#ot-0005j-two-phone-diagnostic-lora-exchange-delivered-both-ways) preserves the full success and preparation record.
 
 ## Select an existing contract by layer
 

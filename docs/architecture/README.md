@@ -1,8 +1,8 @@
 # Limited Underground Trail architecture
 
-Foundation documentation candidate, November 2, 2026. Product development is frozen indefinitely. This page maps existing decisions, source and evidence using the shared arc42/C4 pattern first applied to the bounded Firmware Loader example. It grants no behavior change, device operation, deployment, release or merge authority. Source-owner/independent review and repository integration remain pending.
+Foundation documentation, updated November 3, 2026. Product development is frozen indefinitely. This page is the shared architecture reading path, mapping existing decisions, source and evidence with arc42/C4. It grants no behavior change, device operation, deployment, release or merge authority. The [current handoff](../PROJECT_STATUS.md#current-recovery-handoff) identifies documentation publication/adoption state separately from product acceptance.
 
-Read [current status](../PROJECT_STATUS.md#current-recovery-handoff) for exact accepted artifacts and restrictions, [protocol selection](../protocol/README.md) for contract status, and [the working contract](../../CONTRIBUTING.md) before using any procedure. Intended requirements, implemented source and demonstrated results are distinguished below.
+Read [current status](../PROJECT_STATUS.md#current-recovery-handoff) for exact accepted artifacts and restrictions, [firmware V1](../firmware/README.md) for the nine assessment areas and remaining criteria, [protocol selection](../protocol/README.md) for contract status, and [the working contract](../../CONTRIBUTING.md) before using any procedure. Intended requirements, implemented source and demonstrated results are distinguished below.
 
 ## 1. Introduction and Goals
 
@@ -50,6 +50,8 @@ These are existing architecture choices, not a completed protected product compo
 
 C4 containers represent the Android application, embedded firmware runtime and device-owned durable-state boundary. Individual classes and two copies of the same runtime are not separate products. The model's view descriptions record intended versus implemented boundaries and evidence limits.
 
+The [Android architecture](../../android/docs/ARCHITECTURE.md) and versioned [AndroidComponents model](../../android/docs/android-components.dsl) refine the Android application container. They share these system/interface boundaries; a component view does not imply protected-radio or device acceptance.
+
 ## 6. Runtime View
 
 **Intended pairing/reconnect.** Verified unowned boot opens one 60-second pairing window with a fresh locally displayed six-digit PIN and D1 marker. Owned boot exposes neither PIN nor D1. Returning-owner discovery uses the existing bond and D0 route, then protected ProtocolInfo/current owner authorization before Ready. No lost-phone transfer/replacement is implied; destructive reset has its own contract and physical gates.
@@ -66,7 +68,7 @@ The intended product deploys the same Android application and embedded firmware 
 
 Canonical Android configuration pins compile/target SDK 35, build tools 35.0.0, minimum SDK 26, JVM 17, AGP 8.7.3, Kotlin 2.0.21 and Gradle 8.11.1 with a distribution checksum. `v1Test` has a separate application suffix and diagnostic surface. Exact accepted APK identity and signer/source overlays come from maintained evidence, not `versionName` alone.
 
-No build was run for this documentation. VM/emulator qualification and independent clean-source reconstruction belong to their assigned workers; emulators do not establish Samsung BLE/radio acceptance.
+No product build was run for this documentation. The separate independent frozen-evidence review now qualifies declared-host firmware reconstruction and unsigned Android source-build/focused-test evidence. Firmware raw equality failed; Android non-signing entries match but signed-container equality/signer execution is unproved. [Build/recovery](../firmware/BUILD_AND_RECOVERY.md) records the exact result. This is not new-OS/hermetic reconstruction or device/runtime restoration; emulators do not establish Samsung BLE/radio acceptance.
 
 ## 8. Crosscutting Concepts
 
@@ -92,7 +94,7 @@ Existing acceptance requires a candidate-bound coherent protected path, rejected
 | BLE owner/session changes or runtime closes | Stale generation cannot publish current results or gain control. | Host lifecycle tests and exact-phone observations; no universal phone acceptance. |
 | GNSS is absent or position becomes stale | Position is unavailable/stale truthfully; messaging must remain independent. | Intended product boundary; a parser/host snapshot is not physical GNSS or end-to-end acceptance. |
 | Persistence or operation outcome is uncertain | Preserve uncertainty; do not release authority or automatically invent/retry success. | Existing durable lifecycle requirements; interrupted target persistence remains gated. |
-| Original source environment is unavailable | Retrieve declared source and exact binary separately; identify rebuild/equality/runtime limits. | Maintainer recovery evidence; file restoration is not a successful clean build or device-state restore. |
+| Original source environment is unavailable | Retrieve declared source and exact binary separately; identify rebuild/equality/runtime limits. | Declared-host reconstruction/focused tests qualified; firmware raw equality failed. Exact artifact retrieval and runtime/data restore remain distinct. |
 
 Use the [development guide](../DEVELOPMENT.md), [Android guide](../../android/README.md#build) and target guide for declared recipes. Tests and builds demonstrate their recorded scope; this documentation does not rerun or broaden them. The in-tree Windows loader is historical; current Firmware Loader lives in its separate repository.
 

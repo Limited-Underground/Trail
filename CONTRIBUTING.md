@@ -1,6 +1,6 @@
-# Contributing to OpenTrail
+# Contributing to Limited Underground Trail
 
-OpenTrail is an early architecture and proof-of-concept project released under
+Limited Underground Trail is an early architecture and proof-of-concept project released under
 the [Apache License 2.0](LICENSE). Contributions are welcome, but every claim
 must remain proportional to its evidence and the safety boundaries of the
 project.
@@ -31,6 +31,10 @@ These rules apply to human developers and any AI tool. No private chat history,
 model memory or machine-local skill is required to understand them. Tool routing
 in [AGENTS.md](AGENTS.md) retains the repository's detailed engineering, brand,
 validation and document-role rules; it does not grant additional authority.
+Start with the [firmware V1 guide](docs/firmware/README.md) or [Android guide](android/README.md).
+Use full Limited Underground product names in current prose; retain historical
+names and technical identifiers. Optional tool skills must route to these
+portable records without restoring older development or physical permissions.
 
 - **Current freeze.** Effective November 2, 2026, product development is frozen
   indefinitely. Authorized foundation work is preservation, reproducibility and

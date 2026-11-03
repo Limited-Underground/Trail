@@ -53,21 +53,26 @@ or these setup examples do not authorize device operations or publication.
 
 ## Get started
 
-1. Read the [development guide](docs/DEVELOPMENT.md) for prerequisites and build
-   instructions.
+1. Read the [Trail Firmware V1 guide](docs/firmware/README.md) for its nine
+   assessment areas, [build/recovery evidence](docs/firmware/BUILD_AND_RECOVERY.md)
+   and [remaining V1 criteria](docs/firmware/V1_ACCEPTANCE.md).
 2. Explore the [Android client](android/README.md),
    [firmware components](firmware/components/), and
    [hardware inventory](hardware/INVENTORY.md).
-3. Start with host validation; hardware installation has separate target,
-   recovery, and operating requirements.
+3. Match validation to the authorized change; hardware installation has separate
+   target, recovery, and operating requirements.
 
-From the repository root on a configured Windows development machine:
+For documentation validation, from the repository root:
 
 ```powershell
-.\tools\Test-Host.ps1
+python -B tools/check_repository_docs.py
+python -B tests/host/repository_docs_tests.py
 ```
 
-For Android validation, follow the [Android guide](android/README.md).
+For setup recipes use the [development guide](docs/DEVELOPMENT.md); Android
+validation has its own [Android guide](android/README.md). The qualified host
+firmware rebuild differs from the accepted diagnostic image; neither result
+establishes protected product or release acceptance.
 
 ## Contribute
 

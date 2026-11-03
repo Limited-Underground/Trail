@@ -1,6 +1,6 @@
 # V1 remaining task plan
 
-This is the remaining-work plan for the existing V1 scope, not completion evidence or operational approval. The backlog registers IDs; the private hosted checklist records owner decisions. Reuse accepted exact-artifact evidence. Unknown defects discovered during execution require bounded child tasks, not silently expanded scope.
+This is the remaining-work plan for the existing V1 scope, not completion evidence or operational approval. The backlog registers IDs; the dedicated Firmware Project #1 and Android App Project #8 own live task status and recorded owner decisions, as linked from [current status](../docs/PROJECT_STATUS.md). The private hosted checklist is retired as an engineering authority. Product development is frozen indefinitely from November 2, 2026. Reuse accepted exact-artifact evidence and later task records; dated plan entries do not reopen accepted slices. The [firmware acceptance map](../docs/firmware/V1_ACCEPTANCE.md) supplies the current reading route. Unknown defects require bounded existing-task reconciliation rather than silently expanded scope.
 
 Optional products and V1.5 are excluded. Each physical or release task must first freeze exact artifacts, criteria, device/host identity and recovery authority.
 
