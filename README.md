@@ -71,8 +71,10 @@ python -B tests/host/repository_docs_tests.py
 
 For setup recipes use the [development guide](docs/DEVELOPMENT.md); Android
 validation has its own [Android guide](android/README.md). The qualified host
-firmware rebuild differs from the accepted diagnostic image; neither result
-establishes protected product or release acceptance.
+firmware rebuild remains byte-different from the accepted diagnostic image.
+Focused independent review now accounts for [every compared image difference](docs/firmware/BUILD_AND_RECOVERY.md#reviewed-attribution-of-the-image-differences),
+with explicit symbol-range and ELF limits. It does not establish runtime
+equivalence, authorize substitution, or satisfy protected product/release acceptance.
 
 ## Contribute
 

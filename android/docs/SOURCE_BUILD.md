@@ -75,6 +75,9 @@ matching-signer execution were **not** established. The 43 tests are host proof.
 
 The exact accepted diagnostic firmware remains
 `553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283`.
-The relocated firmware rebuild differs; [its source-path/equality limit](../../docs/firmware/BUILD_AND_RECOVERY.md#frozen-result-and-exact-artifact-comparison)
-must not be hidden by Android payload equality. Accepted and rebuilt artifacts
-remain separate. No build was rerun for this documentation.
+The firmware rebuild remains byte-different. [Reviewed image attribution and
+remaining limits](../../docs/firmware/BUILD_AND_RECOVERY.md#reviewed-attribution-of-the-image-differences)
+account for its exact image differences without establishing runtime equivalence
+or selecting a replacement. Android payload equality does not change those
+limits; accepted and rebuilt artifacts remain separate. No build was rerun for
+this documentation.

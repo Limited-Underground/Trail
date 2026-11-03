@@ -2,6 +2,33 @@
 
 ## 2026-11-03
 
+### OT-0340a Attribute the reconstructed image differences without substitution
+
+Integrated the November 3 focused recovery review at its accepted exact-image
+scope. It accounts for every differing byte in the two retained application
+images: the embedded source filename, 2,200 corresponding data pointers,
+segment packaging and derived integrity metadata. Independent systematic
+transformation reproduces the retained rebuilt image in memory with zero
+unattributed output bytes. The 4,503 nonzero loaded ELF function symbol ranges
+retain identical names, addresses, sizes and range bytes. Disassembly, maps,
+39 original SDK relocation records and the final relaxed initializer support
+the executable-section literal/data classification.
+
+Raw image equality remains false. Nonloaded/debug ELF attribution is incomplete;
+the symbol-range result does not establish every executable instruction,
+reachable behavior or runtime equivalence. No replacement image, new product
+build or device result is accepted, and the original diagnostic reference remains
+authoritative. Android host/unsigned-payload proof and signed-container/signer/
+runtime restoration remain separate. See the [central recovery explanation](firmware/BUILD_AND_RECOVERY.md#reviewed-attribution-of-the-image-differences).
+
+This minimal documentation delta follows published topic27713db, which already
+contains PR70's original history. It awaits delta-only fresh-reader review and
+scoped publication to existing draft PR71; that base's green checks do not
+validate this unpublished delta. Main/Ready transitions, product resumption,
+hardware and release retain separate owner authority. The earlier reconstruction
+and November 2 diagnostic/preparation records below are unchanged; no V1 credit,
+product behavior, protocol, checker, model or workflow changes.
+
 ### OT-0340a Finalize V1 documentation and preserve diagnostic evidence
 
 Reconciled the shared firmware/Android V1 reading route with the separate
