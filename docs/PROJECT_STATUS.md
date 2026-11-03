@@ -1,6 +1,6 @@
-# OpenTrail Project Status
+# Limited Underground Trail project status
 
-Current recovery handoff reviewed 2026-10-25; evidence below retains its own dates
+Current foundation handoff reviewed 2026-11-03; dated checkpoints retain their own dates
 and artifact limits. Dated history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -8,6 +8,34 @@ See [archive navigation](history/README.md) for moved headings, [Architecture](A
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
 ## Current recovery handoff
+
+<!-- current-handoff:start -->
+| Field | Current pickup state |
+| --- | --- |
+| Reviewed | 2026-11-03 |
+| Task | [OT-0340a](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=291531176) — In Progress; frozen architecture and diagnostic recovery-lineage documentation under open parent OT-0340. |
+| Owner | Trail Architecture & Documentation is the sole editor of the current firmware/Android/shared recovery-attribution documentation delta and local handbook integration; earlier author slots are stopped. Trail Recovery & Reproducibility retains source/evidence custody. The foundation coordinator serializes authors, fresh review and exact-delta publication; no main adoption is implied. |
+| Scope | Foundation preservation, reproducibility and documentation only. Product development is frozen indefinitely from November 2, 2026; earlier host-development permissions remain historical. No product behavior or physical action is authorized. |
+| State | The November 2 diagnostic attempt 981e43cff4914a948386933fb3edb7fb displayed fixed peer statuses in both phone-to-phone directions with matching diagnostic ACKs, four RF transmissions and verified closure. This is historical unauthenticated diagnostic evidence, not current live readiness, protected delivery or production acceptance. |
+| Source | Reference firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. Exact successful firmware/Android overlays are separate from canonical main, preserved dirty work and isolated Packet-v1 host candidates. |
+| Verified | The independent frozen-evidence review qualified declared-host firmware configure/build and focused native tests (four suites/110 groups, eight SDK fact tests and eight composed scenarios), plus 43 Android tests and unsigned non-signing payload equality to the accepted APK. Exact accepted binaries and file/history retrieval remain separately verified. Receipt trail-reconstruction-001/receipt.json SHA-256 b0575b69d795513aed746243aee67578d50087f6aedc72b10686cb02a5ad3055 is retained privately. A later focused independent review accounts for every differing byte in the two exact application images and verifies 4,503 nonzero loaded ELF function symbol ranges with identical addresses, sizes and range bytes. Raw inequality remains; no runtime equivalence or replacement image is accepted. These are host/synthetic and forensic results, not new device observations. |
+| Blocker | Raw firmware equality failed: rebuilt padded image fbc5b44ed3abd3823ca66f5b870d1bfc8c4d06523f8f37a5eba91256d66c56ce differs from the accepted reference in 164913 bytes. The source-path/data-pointer/packaging/integrity differences in those two exact application images are now accounted for by independent forensic review; nonloaded/debug ELF attribution and runtime equivalence remain unproved. The accepted reference remains authoritative; no substitution is authorized. Unsigned payload equality does not prove signed APK equality or signer execution. Wider OT-0340 exceptions, new-OS/hermetic reconstruction, runtime/data restoration, protected-product and production admission remain open. Private evidence is not available from a public clone. |
+| Next action | Read the owning dedicated Project item and working contract, select only the currently authorized scope, preserve its exact source/artifacts and validate changed prerequisites. Reuse accepted evidence within its limits and update the affected handoff/history. Publication needs the named repository/ref authority and configured checks; any main merge needs explicit owner approval. Product development and physical testing remain frozen. |
+| Restrictions | No firmware/protocol/app behavior change, USB/ADB/serial/BLE/RF, reset, flashing, installation, cache/bond/data changes, production activation or release. Do not publish private captures, signing material or recovery payloads. Never reuse consumed physical grants. Reviewed nonsecret foundation topic/draft-PR work remains bounded by the owner brief; merge requires separate approval. |
+| Latest record | [OT-0340a attribute the reconstructed image differences without substitution](PROGRESS_LOG.md#ot-0340a-attribute-the-reconstructed-image-differences-without-substitution). |
+| Evidence access | One primary success root: Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb. Start with PHYSICAL_RESULT.json, then execution/SESSION_RESULT.json within that same root; installation lineage and RF/timeline/phone-closure records support it. Earlier fix/install steps are historical context in the [November 2 progress record](PROGRESS_LOG.md#ot-0005j-two-phone-diagnostic-lora-exchange-delivered-both-ways), not alternate success entry points. Private primary evidence and foundation preservation receipts remain with their custodians; they are unavailable from a public clone and are not navigation or execution prerequisites. |
+<!-- current-handoff:end -->
+
+The current reading path is [architecture](architecture/README.md) and
+[protocol selection](protocol/README.md). Source/history retrieval, exact binary
+retrieval, source rebuild, rebuild equality and runtime/data restore are distinct
+claims. No documentation build or review increases product acceptance.
+
+### Historical recovery checkpoint — October 25, 2026
+
+The checkpoint below is preserved as dated history. Its host-development
+permission and next-action wording are superseded by the current freeze above;
+its recorded evidence and unresolved exceptions remain intact.
 
 **Checked October 25, 2026.** Trail firmware and the Android app share this
 repository. The owner accepted a bounded source-recovery baseline on October 23

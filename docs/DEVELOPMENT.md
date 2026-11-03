@@ -1,4 +1,4 @@
-# OpenTrail Development Setup
+# Limited Underground Trail development setup
 
 ## Before using these commands
 
@@ -8,7 +8,14 @@ document setup and validation; they do not select a task or authorize hardware,
 publication or resumption of paused feature work. Keep the exact source and
 candidate under test identifiable and preserve existing working changes.
 
-## Current host toolchain
+For current firmware evidence, source selection and recovery limits, start with
+the [firmware V1 guide](firmware/README.md) and [build/recovery guide](firmware/BUILD_AND_RECOVERY.md).
+The recipes below do not reproduce the accepted diagnostic artifact merely by
+building canonical source. Current standalone Firmware Loader documentation and
+.NET prerequisites belong to its [separate repository](https://github.com/Limited-Underground/Firmware-Loader);
+the in-tree .NET 8 shell below is historical.
+
+## Recorded host toolchain
 
 - Python 3.14.6 with `meshcore` 2.3.8, `meshcore-cli` 1.5.7, and `pyserial`
 - MSYS2 UCRT64 GCC 16.1.0 under `C:\msys64`
@@ -20,9 +27,11 @@ not portable assumptions about every developer's machine. PlatformIO is not a
 prerequisite for this host path. Bounded Heltec bench/evaluation targets exist;
 complete production enrollment and secure messaging binding remain separate gates.
 
-The Windows loader development shell additionally uses the .NET 8 SDK. The
+The retained in-tree Windows loader development shell uses the .NET 8 SDK. The
 repository `global.json` selects the latest installed compatible .NET 8 feature
-band so newer SDKs do not silently become the build authority.
+band so newer SDKs do not silently become that predecessor's build authority.
+The separate current Firmware Loader uses its own .NET 10 baseline and guide;
+do not apply this historical shell's SDK requirement to it.
 
 ## Build and test the retained Windows loader shell
 
