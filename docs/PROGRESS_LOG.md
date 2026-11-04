@@ -2,6 +2,42 @@
 
 ## 2026-11-04
 
+### OT-0313 Draft publication and handoff correction
+
+Publication occurred on November 4, 2026: [draft PR #209](https://github.com/Limited-Underground/Trail/pull/209)
+was opened at 20:45:36 UTC with source revision
+[05120f37f2a48f2fc134cf70a4000ed105717a0c](https://github.com/Limited-Underground/Trail/commit/05120f37f2a48f2fc134cf70a4000ed105717a0c),
+parent main 7e1c394987eed9384681c16b35eaf0df5cf06474 and exact tree
+6dfe6161db1377bf9e22d9cae4dcba4c85c895b4. Remote identities matched
+the original approved seven-file payload:
+
+- Four reviewed files: V1HomeScreen.kt, V1QuickMessages.kt,
+  V1QuickMessagesTest.kt and android/docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md.
+- Three continuity documents: android/README.md, docs/PROJECT_STATUS.md
+  and docs/PROGRESS_LOG.md.
+
+At that exact published editor head, the required
+[Repository documentation](https://github.com/Limited-Underground/Trail/actions/runs/41909653842)
+and [Windows host matrix](https://github.com/Limited-Underground/Trail/actions/runs/41909653518)
+checks passed; all seven checks succeeded. The actual synthetic-merge CI
+checkout had the approved tree. Independent publication review found no
+implementation defect and one documentation finding, DOC-PUBLICATION-1.
+
+This subsequent correction updates only the current handoff and adds this dated
+publication record. The earlier integration-candidate entry below records the
+prepublication checkpoint and is preserved unchanged. Frozen manifests, source,
+original tests/reviews and publication receipts retain their original identities.
+The four reviewed files and canonical dirty checkout are untouched.
+
+PR #209 remains a draft and is not merged. Full OT-0313, OT-0312 and actual
+Android preferences/rendered/IME/accessibility/process-death acceptance remain
+open. Existing 13 JVM cases, 23 privacy scenarios and editor review are reused
+at their unchanged source scope; no JVM, privacy or physical testing is repeated
+for this documentation correction. Each newer head requires its applicable
+publication authority, remote identity checks and required CI. Ready/merge needs
+explicit owner approval; issue #117 body changes remain excluded. No V1 score,
+public website capability or device state changed.
+
 ### OT-0313 Local template editor integration candidate
 
 The owner-approved local-only editor was reconciled with main
