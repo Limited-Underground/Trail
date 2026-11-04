@@ -9,7 +9,7 @@ from urllib.parse import unquote, urlsplit
 ENTRY_DOCS = ("README.md", "docs/ARCHITECTURE.md", "docs/PROJECT_STATUS.md", "tasks/BACKLOG.md")
 TITLE_DOCS = (*ENTRY_DOCS, "docs/README.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md",
               "docs/community/README.md", "docs/community/IOS_CONTRIBUTOR_BRIEF.md")
-LINK_DOCS = (*TITLE_DOCS, "AGENTS.md")
+LINK_DOCS = (*TITLE_DOCS, "AGENTS.md", "docs/HARDWARE_INTEGRATION_RUNBOOK.md")
 PROGRESS = "docs/PROGRESS_LOG.md"
 # Reading surfaces, not a second status register. Android concern pages are
 # discovered from its maintained README; contracts/evidence stay with their owners.
