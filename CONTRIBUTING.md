@@ -36,12 +36,21 @@ Use full Limited Underground product names in current prose; retain historical
 names and technical identifiers. Optional tool skills must route to these
 portable records without restoring older development or physical permissions.
 
-- **Current freeze.** Effective November 2, 2026, product development is frozen
-  indefinitely. Authorized foundation work is preservation, reproducibility and
-  documentation only. Earlier host-development approvals do not resume features,
-  protocol/firmware/app behavior, hardware operations, deployment, release or merge.
-  Read the [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff) and
-  owning dedicated Project before future work; explicit owner resumption is required.
+- **Current freeze and narrow host exception.** The November 2 indefinite freeze
+  remains. On November 3 the owner authorized Firmware OT-0237e, Android
+  OT-0305-1 durable group-state host work and, only after accepted security
+  admission and exact production-source selection, OT-0005i. Allowed work is
+  bounded host implementation, isolated tests/builds, documentation, evidence
+  and draft-PR preparation. First bind the exact live task/source/evidence,
+  preserve relevant dirty overlays and use a clean isolated topic. Maximum
+  three product workers, one per product, with one heavy build at a time;
+  serialize shared Trail contracts and records. Firmware Loader has its own
+  authorized LUF-0009g scope in its separate repository. No physical operations,
+  ADB/USB/serial/BLE/RF, flashing, device installation/reset, live protected-store
+  changes, privileged-machine changes, signing, deployment, release, unapproved
+  publication or main merge. Other product work remains frozen. Read the
+  [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff) and owning
+  dedicated Project; a board status or host test does not expand this authority.
 - **Recovery first.** The historical October 23, 2026 (America/New_York) bounded
   source-recovery acceptance then authorized ordinary host-only development.
   That approval does not override the current freeze. Its five recorded exceptions were:

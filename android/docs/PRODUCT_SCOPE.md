@@ -45,4 +45,4 @@ resolves older transient-only promises against later accepted requirements.
 
 Trail is a supplemental communication aid, not guaranteed rescue. No field range,
 endurance, supported-device expansion, store distribution or release promise is
-created by these docs. Product development remains frozen.
+created by these docs. Product development remains frozen except for the [narrow OT-0305-1 host scope](../../CONTRIBUTING.md#working-contract).

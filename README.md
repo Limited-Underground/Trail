@@ -15,10 +15,12 @@ V1 design; optional maps and later repeater work have separate scope.
 
 ## Current status
 
-**Product development is frozen indefinitely, effective November 2, 2026.**
-Current authorized foundation work is preservation, reproducibility and
-documentation. Earlier host-development approvals do not resume features,
-protocol/firmware/app behavior, hardware operations, deployment or releases.
+**The November 2 product freeze remains, with a narrow November 3 host exception.**
+The owner authorized OT-0237e admission work and Android OT-0305-1 isolated
+host implementation; OT-0005i waits for accepted admission and exact production
+source selection. See the [working contract](CONTRIBUTING.md#working-contract).
+Physical work, signing, deployment, releases and unapproved publication remain
+excluded. Other product development remains frozen.
 
 Trail is an experimental project, not a production release. Android and Heltec
 bench work demonstrates bounded secure pairing, saved-owner reconnection,
@@ -47,8 +49,8 @@ own their current task scope, status and dependencies; repository records hold t
 technical evidence. On the owner's recovery machine, use the maintainer-approved checkout;
 historical copies are provenance, not active source. The October 23 bounded
 local recovery acceptance remains historical; OT-0340 retains its exceptions.
-The current freeze controls execution until an explicit owner decision resumes
-product development. A board status
+The current freeze and its task-specific host exception control execution.
+A board status
 or these setup examples do not authorize device operations or publication.
 
 ## Get started

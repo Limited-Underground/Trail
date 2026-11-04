@@ -39,7 +39,8 @@ qualified. A version label or wrapper checksum alone is not a complete offline a
 The existing helper expects **`android/` as the working directory**, a supplied
 JDK 17 root and an SDK containing platform 35/build tools 35.0.0. Its implementation
 is [Test-AndroidFoundation.ps1](../Test-AndroidFoundation.ps1). An example for a
-future authorized development scope, not execution under the current freeze:
+separately authorized broader development scope, not the narrow OT-0305-1 gate
+(which uses only the [focused JVM recipe](OT-0305-1-DURABLE-GROUP-SNAPSHOT.md#focused-validation)):
 
 ```powershell
 # Working directory: the selected checkout's android folder.

@@ -1,6 +1,6 @@
 # Limited Underground Trail Firmware V1
 
-Start here for the firmware's current scope, implementation, evidence and remaining V1 criteria. Product development is frozen indefinitely from November 2, 2026. This documentation permits no firmware/protocol changes, device operation or release. [Current handoff](../PROJECT_STATUS.md#current-recovery-handoff) identifies the documentation task, artifact identities and evidence-access limits.
+Start here for the firmware's current scope, implementation, evidence and remaining V1 criteria. The November 2 indefinite freeze has a [narrow November 3 host exception](../../CONTRIBUTING.md#working-contract) for OT-0237e; OT-0005i waits for accepted security admission and exact production-source selection. Those production prerequisites remain unmet. No device operation or release is authorized. [Current handoff](../PROJECT_STATUS.md#current-recovery-handoff) identifies the documentation task, artifact identities and evidence-access limits.
 
 ## Purpose and present result
 

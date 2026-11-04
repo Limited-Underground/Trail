@@ -3,7 +3,7 @@
 [Android reading path](../README.md) · [Source/build](SOURCE_BUILD.md)
 
 This is a reading procedure, not permission to operate a phone or board. Current
-product/device work is frozen. Do not reinstall, refresh a cache, clear data or
+device work is frozen; only the [named host exception](../../CONTRIBUTING.md#working-contract) permits bounded implementation. Do not reinstall, refresh a cache, clear data or
 bonds, reenroll, reset or flash to follow this page.
 
 ## Existing normal lifecycle
