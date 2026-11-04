@@ -1,11 +1,14 @@
-# Contributing to OpenTrail
+# Contributing to Limited Underground Trail
 
-OpenTrail is an early architecture and proof-of-concept project released under
+Limited Underground Trail is an early architecture and proof-of-concept project released under
 the [Apache License 2.0](LICENSE). Contributions are welcome, but every claim
 must remain proportional to its evidence and the safety boundaries of the
 project.
 
 ## Before starting
+
+The working contract below governs the contribution guidance on this page;
+feature suggestions do not resume development during the indefinite product freeze.
 
 For questions, use cases and early ideas, start in
 [Discussions](https://github.com/Limited-Underground/Trail/discussions).
@@ -22,7 +25,106 @@ See the [community guide](docs/community/README.md) and
 - Include exact hardware, firmware, radio configuration, setup, limitations,
   and observed results with hardware claims.
 
-Repository work must follow [AGENTS.md](AGENTS.md), the architecture boundaries in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and the acceptance criteria in [tasks/BACKLOG.md](tasks/BACKLOG.md).
+## Working contract
+
+These rules apply to human developers and any AI tool. No private chat history,
+model memory or machine-local skill is required to understand them. Tool routing
+in [AGENTS.md](AGENTS.md) retains the repository's detailed engineering, brand,
+validation and document-role rules; it does not grant additional authority.
+Start with the [firmware V1 guide](docs/firmware/README.md) or [Android guide](android/README.md).
+Use full Limited Underground product names in current prose; retain historical
+names and technical identifiers. Optional tool skills must route to these
+portable records without restoring older development or physical permissions.
+
+- **Current freeze and narrow host exception.** The November 2 indefinite freeze
+  remains. On November 3 the owner authorized Firmware OT-0237e, Android
+  OT-0305-1 durable group-state host work and, only after accepted security
+  admission and exact production-source selection, OT-0005i. Allowed work is
+  bounded host implementation, isolated tests/builds, documentation, evidence
+  and draft-PR preparation. First bind the exact live task/source/evidence,
+  preserve relevant dirty overlays and use a clean isolated topic. Maximum
+  three product workers, one per product, with one heavy build at a time;
+  serialize shared Trail contracts and records. Firmware Loader has its own
+  authorized LUF-0009g scope in its separate repository. No physical operations,
+  ADB/USB/serial/BLE/RF, flashing, device installation/reset, live protected-store
+  changes, privileged-machine changes, signing, deployment, release, unapproved
+  publication or main merge. Other product work remains frozen. Read the
+  [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff) and owning
+  dedicated Project; a board status or host test does not expand this authority.
+- **Recovery first.** The historical October 23, 2026 (America/New_York) bounded
+  source-recovery acceptance then authorized ordinary host-only development.
+  That approval does not override the current freeze. Its five recorded exceptions were:
+  unverified E: delta bytes; incomplete cloud/off-device recovery and passphrase
+  custody verification; the stale saved Codex Trail project path; retained
+  historical/ignored holdings; and separate device, release, security-operator
+  and publication gates. OT-0340 remains open; consult the current handoff for
+  current custody and evidence. Select each authorized task through its dedicated
+  Project and preserve subsequent changes. The earlier OneDrive follow-up did not
+  block local work. This historical checkpoint does not
+  authorize indiscriminate deletion, a rewrite, device operations, publication
+  or whole-portfolio resumption.
+- **One task authority per product.** [Trail Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
+  and [Trail Android App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
+  own their current scope, priority, status, dependencies and recorded owner decisions.
+  [Concise architecture](docs/architecture/README.md), [protocol selection](docs/protocol/README.md),
+  [detailed architecture](docs/ARCHITECTURE.md), [decisions](docs/decisions/) and
+  [backlog](tasks/BACKLOG.md) retain technical constraints and acceptance criteria.
+  Resolve conflicting current instructions before the affected action. Board
+  status is not execution permission. Hosted Project Control, `Control-Checklist.ps1`,
+  `canStart` and private control APIs are retired workflow authorities; do not
+  restore them as prerequisites. This does not retire separately scoped service code.
+- **Bounded work, useful evidence.** State the purpose, scope, applicable checks
+  and stopping conditions in the existing task or handoff. No fixed six-section
+  ceremony or automatic stop after each micro-task applies. Continue authorized
+  recovery through routine errors while scope and prerequisites remain valid.
+  Stop only affected actions when authority, identity, preservation or scope is
+  unresolved. Reuse still-applicable evidence; do not call host success device,
+  field, deployment or owner acceptance.
+- **Preserve first.** Identify the exact checkout, source revision and existing
+  working changes before edits. Preserve unrelated and unique work. Before
+  permanent deletion or replacement, verify resolved paths and refs and retain
+  an appropriate recovery record; remove only approved obsolete paths. Selected
+  retirement candidates may instead move promptly to the reversible
+  project-specific deleted holding area after an exact-path and
+  active-consumer check with their origins recorded. Audit later to return useful
+  active material to C:, retain history in E: Archive, or permanently delete the
+  remainder. A holding move alone never establishes redundancy. Old paths in
+  evidence are not permission to operate there. Do not publish private data.
+- **Separate consequential operations.** Device access, flashing, resets,
+  destructive/interruption trials and RF need their exact applicable authorization,
+  identity, recovery and acceptance conditions. A documented command is not
+  permission to execute it. Publication requires explicit authorization for the
+  named repository, destination and ref and each applicable commit, fetch/pull,
+  push, PR, merge and remote-verification operation. Never force-push, rewrite
+  history, delete backup branches or bundle unrelated dirty work without the
+  relevant explicit authority. Required checks and branch protection remain
+  mandatory. Website synchronization/deployment is separate scope.
+- **Leave a resumable handoff.** Update [current status](docs/PROJECT_STATUS.md)
+  with the outcome, exact source/candidate and relevant environment, preserved
+  dirty work, verified results and limits, blockers and next safe action.
+  Identify who coordinates a cross-component outcome without granting that
+  person or tool new authority. Keep dated results in [PROGRESS_LOG.md](docs/PROGRESS_LOG.md),
+  detailed evidence in testing records, and durable choices in decisions; update
+  only affected records. No duplicate journal is required. After an interruption,
+  reconcile actual state before retrying a mutation. Missing evidence remains
+  unknown; do not reconstruct it from a success summary.
+
+## CI and publication cadence
+
+The owner retired the daily PR and morning CI timing rule on October 22, 2026.
+There is no one-PR-per-day limit or required publication window. Batch related
+changes when useful without imposing a time quota. Use focused checks while
+implementing and the complete affected matrix at its final gate; do not rerun
+the full matrix after every small edit. Documentation-only changes avoid
+unrelated matrices, but every configured required check must pass before an
+authorized merge. Never disable a failing check to get unrelated work merged.
+
+At closeout distinguish implementation, validation, owner acceptance and
+publication. If implementation is complete but required publication is pending,
+say so and name the remaining operation. Assess affected V1 milestones using
+[V1_PROGRESS.json](docs/V1_PROGRESS.json), the sole weighted completion record;
+planning or code volume earns no credit. Identify any resulting website work
+without implying that it is authorized or live. State when public status did not change.
 
 Development prerequisites and repeatable test commands are documented in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Run the host test suite for every transport or packet-codec change. Hardware results require a separate evidence record and must not be inferred from host tests.
 

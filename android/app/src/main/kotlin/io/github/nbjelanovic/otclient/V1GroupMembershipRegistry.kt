@@ -13,6 +13,8 @@ enum class V1GroupRegistryFailure {
 internal const val V1_GROUP_DELETE_CONFIRMATION_MILLIS = 30_000L
 
 class V1GroupToken private constructor(private val bytes: ByteArray) {
+    internal fun persistenceBytes(): ByteArray = bytes.copyOf()
+
     override fun equals(other: Any?): Boolean = other is V1GroupToken && bytes.contentEquals(other.bytes)
     override fun hashCode(): Int = bytes.contentHashCode()
     override fun toString(): String = "V1GroupToken(redacted)"

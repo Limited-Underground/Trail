@@ -1,35 +1,38 @@
-# OpenTrail Agent Guide
+# Limited Underground Trail agent guide
 
 ## Scope
 
-This directory is the complete boundary for OpenTrail. Do not place OpenTrail files in `D:\ESP32`, `OpenGauge`, or a root-level shared directory. If reusable code becomes justified, document the dependency and evaluate a separately versioned library first.
+This repository contains Limited Underground Trail Firmware and Limited Underground Trail Android App. Keep project files within the maintainer-approved checkout and assigned scope. If reusable code becomes justified, document the dependency and evaluate a separately versioned library first. The human-readable rules and handoff linked below govern any developer or AI; user-local skills are optional routing aids, never additional authority or prerequisites.
 
 ## Current phase
 
-OpenTrail is in architecture and proof-of-concept planning. Capabilities in the README and architecture documents are goals unless backed by test evidence. Do not describe projected hardware or behavior as tested.
+The November 2, 2026 indefinite product freeze remains with the owner's November 3 narrow host exception: OT-0237e admission work, Android OT-0305-1 durable group-state host work, and OT-0005i only after accepted security admission and exact production-source selection. Select the exact task/source/evidence, preserve dirty overlays and use a clean isolated topic before mutation. Maximum three product workers and one heavy build; one editor owns shared Trail contracts and records. Physical operations, live protected stores, privileged-machine changes, signing, deployment, release and unapproved publication/merge remain excluded. Other product development remains frozen. Bounded evidence retains its exact source/setup limits; full product acceptance remains open. Read the human-readable working contract in `CONTRIBUTING.md`, the current handoff in `docs/PROJECT_STATUS.md`, and the dedicated Firmware Project #1 or Android App Project #8 before future work. A board status is not execution permission.
 
-## Brand and trademark safeguards
+Use `docs/firmware/README.md` for firmware's V1 reading path, `android/README.md` for Android, `docs/architecture/README.md` for shared arc42/C4 source and `docs/protocol/README.md` for contract selection. The existing detailed architecture and original decisions/evidence remain preserved. Capabilities are intended unless identified source and demonstrated evidence support them.
 
-- `Limited Underground` and `Limited Underground Business` are owner-approved working identities pending attorney clearance, not cleared or registered names.
-- Use `LU` only as a monogram visibly paired with the full words `Limited Underground`. Do not create or publish `LU Link`, `LU Studio`, or an `LU`-plus-number public model name such as `LU300`, `LU-300`, or `LU 300`.
+## Current names and retained identifiers
+
+- Use the full owner-approved names in current prose: Limited Underground Trail Firmware, Limited Underground Trail Android App and Limited Underground Firmware Loader. Other products retain their full Limited Underground names. Do not invent replacements or abbreviations as new product names.
 - Never use `®` without documented federal registration for the exact mark and relevant goods or services. Use `™` only where an unregistered trademark symbol is appropriate.
 - New public product or family names require documented preliminary screening and explicit owner approval; obtain professional clearance before permanent hardware marking, packaging, sales, or another hard-to-reverse release.
 - Keep working names out of protocol fields, compatibility identifiers, device IDs, persistent schemas, API contracts, cryptographic material, and board identifiers so branding remains replaceable.
-- Existing `OT-` engineering, protocol, test, and inventory identifiers remain allowed. They are OpenTrail technical identifiers, not `LU` model names.
+- Preserve existing `OT-` IDs, OpenTrail historical references, filenames, namespaces, package/application IDs, UUIDs, protocol magic/version fields, schemas, board identifiers and compatibility keys. A prose naming correction does not authorize technical migration.
 
 ## Working rules
 
-1. Read `README.md`, `docs/ARCHITECTURE.md`, `docs/PROJECT_STATUS.md`, and `tasks/BACKLOG.md` before implementation.
+1. Read `README.md`, `CONTRIBUTING.md`, `docs/architecture/README.md`, `docs/protocol/README.md`, `docs/PROJECT_STATUS.md`, and the relevant `tasks/BACKLOG.md` criteria before authorized work. Use `docs/ARCHITECTURE.md` for detailed boundaries/history; the freeze remains binding.
 2. Preserve existing work and unrelated changes. Do not delete, rename, or broadly restructure without a documented reason.
 3. Keep board-specific code behind interfaces in `firmware/components`; place deployable board applications in `firmware/targets`.
 4. Avoid giant `.ino` files. Prefer bounded components with host-testable protocol and state logic.
 5. Version every over-the-air protocol and defensively reject malformed or incompatible packets.
 6. Do not hard-code credentials, group secrets, private keys, or device-specific identifiers.
-7. Treat emergency functions as safety aids, not guaranteed rescue systems. Loss of GPS, radio, maps, or OpenGauge must degrade independently.
+7. Treat emergency functions as safety aids, not guaranteed rescue systems. Loss of GPS, radio, maps, or Trail Display must degrade independently.
 8. Record hardware model, radio region/frequency plan, firmware version, test setup, and observed result for hardware tests.
 9. Keep LoRa payloads compact. Do not transport map data or high-rate vehicle telemetry over LoRa.
 10. Do not use public OpenStreetMap tile servers for bulk/offline downloads. Verify provider, license, attribution, and redistribution terms before selecting a map pipeline.
 11. Before implementing or materially changing any firmware target, read and apply `docs/firmware-porting-lessons.md`. Record the applicable preflight results and a reason for each skipped item; do not begin hardware execution while an applicable checklist gate is unresolved.
+12. The in-tree `tools/windows-loader` is a frozen historical predecessor. Current Firmware Loader implementation and acceptance belong to the separate `Firmware-Loader` repository; its older Trail tests do not accept the current Loader. Cross-repository changes require explicit scope and provenance review.
+13. A successful build never authorizes a physical write. Current foundation work excludes device operations. If an owner later grants an exact physical procedure, retain its target/artifact/endpoint/recovery checks and sequential device-write safeguards; never reuse a consumed grant.
 
 ## Validation expectations
 
@@ -69,30 +72,34 @@ headings remain archival; individual OT headings are enforced from 2026-09-08.
 
 Run `python tools/check_repository_docs.py` and
 `python tests/host/repository_docs_tests.py` after documentation changes. The
-checker covers the curated entry documents and progress headings, not immutable
-historical evidence bundles. Relative links in entry documents must resolve
-inside the repository; anchors are not validated.
+checker covers curated roles/progress headings and the current V1 reading paths,
+including Markdown anchors, exact filename case and identities derived from the
+selected diagnostic progress entry/current handoff. It rejects known stale
+permissions, blanket absence claims and temporary PR-next-step instructions.
+Dates alone do not establish freshness. Retained evidence/history is not rewritten
+to satisfy current-overview rules; these checks do not prove evidence truth,
+privacy completeness, source reproducibility or product/device acceptance.
 
 ## Lean execution cadence
 
-- Scope ordinary increments to one coherent result expected to complete in 30-60 minutes. Split a larger increment before implementation instead of allowing one task to expand for hours.
+- Keep recovery increments coherent and verifiable. Larger authorized recovery work may span sessions; preserve a readable handoff rather than refusing it solely for duration. The October 23 bounded recovery acceptance and remaining OT-0340 exceptions are historical context; the current indefinite product freeze controls execution under CONTRIBUTING.
 - Reuse a previously validated implementation, build, test, and publication path when its boundary and prerequisites have not changed. If it fails, diagnose the concrete conflict before abandoning the proven path.
 - Run focused validation while implementing and one complete affected matrix at the final gate. Do not repeatedly run the full matrix after every small edit.
-- Keep canonical project records current for each accepted increment, but batch editorial website synchronization and deployment at each ten-task checkpoint. Publish sooner only when the public completion percentage, demonstrated capability, field-test readiness, support/release state, or a material public correction changes.
+- Update affected project records for each accepted increment. Website synchronization and deployment require their own scope; documentation work does not impose a task-count publication cadence or authorize either operation.
 - Time-box unexpected failures to a focused evidence-gathering pass. If the correction is a separate capability or materially expands the task, record it and split it into the next bounded increment.
 - Do not create redundant backups, recovery copies, or duplicate evidence solely for preservation. Retain only artifacts required for deterministic validation, recovery, publication, or an accepted contract.
 
 ## Completion and publication gate
 
-- Follow the workspace-wide guidance in `C:\lu\AGENTS.md`; current state and publication authority are recorded under `C:\lu\.tracker`.
-- Once an OpenTrail task is implemented and validated, update every affected canonical record and dated public progress entry, commit and push the relevant public-ready OpenTrail changes to a topic branch, open a pull request, and require the configured checks before merging. Verify the remote main commit before calling the task complete. Do not bypass branch protection or disable documentation checks to publish a task.
-- If accepted evidence changes public project status or V1 progress, synchronize and validate the Limited Underground website projection, commit and push the website update, deploy it, and verify the live OpenTrail status before calling the task complete.
+- Follow the portable human-readable working contract in [CONTRIBUTING.md](CONTRIBUTING.md#working-contract); the six-section ceremony is retired. On the owner's recovery machine, local parent routing selects the approved firmware/Android checkout; it is not a prerequisite for other clones. Verify the actual checkout before acting. GitHub Projects owns current task scope, status, priority and dependencies; repository records own engineering evidence. Legacy trackers, hosted-checklist approval and historical checkout paths are not execution prerequisites.
+- Once a Trail task is implemented and validated, update the affected repository records only within the accepted scope. Commit, push, open a PR, merge and verify remote main only when the corresponding operation is explicitly authorized for the named repository/ref. Use a topic branch and require all configured required checks before an authorized merge. Do not bypass branch protection or disable documentation checks.
+- If accepted evidence changes public project status or V1 progress, identify the corresponding website synchronization. Perform its validation, publication, deployment and live verification only when those operations are explicitly in scope; otherwise report the pending website work.
 - If no public website status changed, say so explicitly in the completion report. If any required push, synchronization, deployment, or verification is blocked, report `implementation complete; publication pending` and identify the remaining step.
 - Do not bundle unrelated or unvalidated dirty-worktree changes merely to satisfy this gate, and never publish private or unsafe material.
 
 ## V1 progress completion gate
 
-- `docs/V1_PROGRESS.json` is the canonical OpenTrail V1 progress record. Do not maintain a separate percentage in the README, firmware, or website source.
+- `docs/V1_PROGRESS.json` is the canonical Trail V1 progress record, with separate historical standalone and Companion tracks. Do not maintain a separate percentage in the README, firmware, or website source. A dated score is not a fresh readiness measurement; documentation alone changes no score.
 - Before calling any task complete, compare its accepted evidence with every affected V1 milestone. Planning, code volume, or an unvalidated implementation does not increase completion.
 - When evidence changes a milestone, update its completion, evidence references, next gate, and `as_of` date; append a dated `change_log` entry with the newly calculated weighted overall. Never rewrite prior history.
 - Milestone weights must remain positive and total exactly 100. A regression or newly discovered blocker may lower completion and must be recorded just like an increase.

@@ -42,6 +42,23 @@ if ($null -eq $python) {
     throw 'Python was not found for the OpenTrail host validation matrix.'
 }
 
+# Check the same CMake selector used by the Heltec stack test before starting
+# the long matrix. Importing the test definitions does not execute its tests.
+$cmakePreflight = @'
+import pathlib, runpy, shutil, sys
+selector = runpy.run_path(sys.argv[1], run_name="opentrail_preflight")["cmake_command"]
+candidate = selector()
+if not pathlib.Path(candidate).is_file() and not shutil.which(candidate):
+    raise SystemExit("CMake candidate is not an existing executable")
+'@
+& $python.Source -B -c $cmakePreflight (Join-Path $projectRoot 'tests\host\heltec_v4_ble_stack_config_tests.py')
+if ($LASTEXITCODE -ne 0) { throw 'Heltec CMake prerequisite failed before host validation.' }
+
+# The Windows Loader has no dependency on earlier host build output. Run its
+# read-only environment/path preflight, then its one real validation early.
+& (Join-Path $projectRoot 'tools\Test-WindowsLoader.ps1') -PreflightOnly
+& (Join-Path $projectRoot 'tools\Test-WindowsLoader.ps1')
+
 # Run checkout-sensitive target and frozen-harness contracts before the long
 # native matrix so structural target changes fail in seconds, not at the end.
 foreach ($containedSuite in @('radiolib_busy_source', 'noise_xk_contained_firmware', 'noise_xk_contained_endpoint', 'noise_xk_contained_runtime', 'noise_xk_contained_execution', 'noise_xk_receipt_observation_endpoint', 'noise_xk_receipt_observation_execution', 'noise_xk_console_source_probe', 'noise_xk_console_firmware_source', 'usb_console_binding', 'noise_xk_receipt_firmware_source', 'receipt_console_binding', 'receipt_ready_admission', 'noise_xk_console_execution_package')) {
@@ -3053,8 +3070,6 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw "Cross-tool firmware-bundle signature-vector verification failed with exit code $LASTEXITCODE."
 }
-
-& (Join-Path $projectRoot 'tools\Test-WindowsLoader.ps1')
 
 & (Join-Path $projectRoot 'tools\Test-WindowsSimulator.ps1')
 if (-not $?) {

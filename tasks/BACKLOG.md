@@ -1,4 +1,4 @@
-# OpenTrail Engineering Backlog
+# Limited Underground Trail engineering backlog
 
 This is the task register. Rows retain their existing identifiers, status and
 acceptance boundaries; historical evidence within a row remains tied to its
@@ -37,11 +37,17 @@ reuses five firmware backups, freshly captures exact attempt settings and
 preserves strict verification/restoration. All 281 local host cases and the
 actual finite evidence/package gates passed independent review. The familiar
 launcher is repointed without execution; historical backups/holds remain intact.
-Next: obtain current authorization for one reviewed retained/rekey attempt and
-validate actual restart, new-key behavior and exact restoration. No further
+The retained/rekey USB case passed on 2026-10-12
+([record](../tests/hardware/OT-0238c-RETAINED-REKEY-2026-10-12.md)). No further
 device run is authorized by the host evidence.
-Full OT-0238c remains In Progress; retained/new-key, revoke/reset/recovery and RF
-acceptance remain open.
+Full OT-0238c remains In Progress; the remaining open cases are revoke and factory
+reset/recovery, plus RF acceptance.
+
+2026-10-20: OT-DEV-001 was reflashed with the known-good `heltec_v4_bench` application
+image (SHA-256 `3705d4dc…`) and completed fresh companion enrollment and phone
+connection ([owner-reported note](../tests/hardware/OT-DEV-001-CONNECTION-2026-10-20.md)).
+The OT-0238c retained/rekey USB case passed 2026-10-12; revoke, factory reset/recovery
+and RF acceptance remain open.
 
 1. The [OT244 controlled radio trial](../docs/testing/OT-244-CONTROLLED-RADIO-TRIAL-2026-09-18.md)
    failed at activation1 after both local confirmations; originals/state are
@@ -147,6 +153,8 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
+| OT-0340 | in progress; scoped source restore and host checks verified | Reconcile Trail source recovery baseline | C: ordinary source, two dirty worktrees and historical E: checkout have preserved checkpoints and D: restored hashes. The final eleven-file post-checkpoint delta superseded the earlier nine-file account and passed full 3,076-file D: reconstruction; E: delta bytes remain unverified under the storage-only rule. Protected `.private` holdings passed a full isolated D: restore; the encrypted local OneDrive copy passed integrity checks, but cloud retrieval remains open. Android and targeted firmware host matrices passed, as did the patched full Trail host wrapper with `-SkipSecurityOperators`; bounded local host-only resumption is owner-accepted; physical/product acceptance and the five recovery exceptions remain open. Refresh the delta after later edits, reconcile ignored holdings and saved-path consumers, and retain historical copies. Historical policy was dispositioned and two safeguards carried forward. See [evidence](../docs/testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md). |
+| OT-0340a | in progress; minimal attribution delta review/publication pending | Reconcile frozen architecture and diagnostic recovery lineage | [Registered foundation child](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=291531176), parent OT-0340: portable indefinite freeze and architecture/protocol routes, exact diagnostic/canonical/host-candidate distinctions, and recovery continuity. Qualified reconstruction/host tests and the November 3 independent exact-image attribution review are retained; raw firmware inequality, incomplete nonloaded/debug ELF attribution and runtime/signer/device limits remain explicit in the [build/recovery guide](../docs/firmware/BUILD_AND_RECOVERY.md#reviewed-attribution-of-the-image-differences). Published PR71 base27713db already contains original PR70 history. This minimal factual delta still requires fresh-reader review and exact-delta publication to existing draft PR71; main adoption is separate owner authority. Preserve the parent's exceptions, original diagnostic evidence and consumed physical grants; no product, hardware or V1-credit change. |
 | OT-247 | host correction accepted; physical timing gate failed | Audit complete flow and correct receive/host transport sequencing | Baseline five/three-status failures retained in [audit](../docs/testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md). [OT-0247c](../docs/testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md) passes eight statuses and cleanup in all three host profiles. |
 | OT-246 | physical diagnostic capture complete; originals restored | Capture exact failure provenance and physical stage timing | Exact B invitation expiry4ms past deadline; 28 WAIT polls after first activation TX; host guard costs measured. Both originals independently verified/restored/reset, custody closed and normal screens confirmed. [Proof and limits](../docs/testing/OT-246-FAILURE-CAPTURE-2026-09-18.md). |
 | OT-245 | host investigation complete; physical cause unproven | Replay actual bridge with independent node idle scheduling | Sixteen cases pass scheduler checks; idle adds only107–133ms in10s-delay controls.47s synthetic delay reproduces activation1 B/RFPOLL with idle on/off. Four uninstrumented controls match. [Proof and limits](../docs/testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md). |
@@ -585,6 +593,7 @@ and implementation scope before execution; do not perform the same work twice.
 | OT-0249 | planned | — | Close only evidence-backed firmware/security/protocol gaps in approved V1: identity, provisioning, replay, compatibility, queues and recovery | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
 | OT-0250 | planned | — | Validate full supported two-node behavior, faults, recovery and measured field limits | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
 | OT-0251 | planned | — | Reconcile operator/support docs, artifact compatibility, upgrade/rollback and V1 acceptance evidence | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
+| OT-0251b | closed locally; documentation only; unpublished | OT-0251 | Clarify the bench factory-reset control and confirmation release | Owner-approved interaction wording, initial release and press/release deadline match current source. Physical Button 1/Button 2 numbering stays UNKNOWN; ordinary-build/display conditions and the existing physical-acceptance warning remain explicit. Local diff/source review and preservation checks only; no tests/builds, GitHub closure, physical/release acceptance or V1 credit. |
 | OT-0252 | planned | — | Map implemented screens, permissions, protected BLE, saved state and accepted phone evidence to existing tasks | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
 | OT-0253 | planned | — | Define bounded fixes for remaining approved app behavior, diagnostics, reconnect, interruption and data preservation gaps | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |
 | OT-0254 | planned | — | Validate upgrade and fresh-install paths as distinct tests, including expected recovery and connection failures | Reconcile existing evidence; define the remaining bounded task and objective validation before implementation approval. |

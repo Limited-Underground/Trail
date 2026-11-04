@@ -86,6 +86,15 @@ class AndroidSetupDiscoveryTest {
         assertEquals("Trail-8M4R2T", scan.observe("other", flags + service + name("8M4R2T"), d1).label)
     }
 
+    @Test fun zeroPaddedPrimaryFollowedByScanResponseStillProducesLabel() {
+        val primary = flags + service + name()
+        assertEquals(29, primary.size)
+        val padded = primary + ByteArray(2)
+        assertEquals(31, padded.size)
+        val response = byteArrayOf(19, 0x21) + uuidBytes + byteArrayOf(0x4f, 0x54)
+        assertEquals("Trail-7K3P9Q", assertIs<AndroidSetupAdvertisementLabel.Result.Label>(
+            AndroidSetupAdvertisementLabel.decode(padded + response)).value)
+    }
     @Test fun malformedNewEndpointCannotBecomeGenericChoiceAndCapacityCannotHideAmbiguity() {
         val scan = AndroidSetupDiscovery<String>(1)
         assertNull(scan.observe("bad", name("BAD")).label)

@@ -131,6 +131,13 @@ void test_protocol_info_decode_fails_closed() {
                {changed.data(), changed.size()}).error ==
            CompanionCodecError::malformed);
     changed = encoded;
+    changed[4] = 1;
+    const auto unsupported_major = decode_companion_protocol_info(
+        {changed.data(), changed.size()});
+    EXPECT(!unsupported_major.decoded());
+    EXPECT(unsupported_major.error == CompanionCodecError::unsupported_version);
+
+    changed = encoded;
     changed[5] = 1;
     EXPECT(decode_companion_protocol_info(
                {changed.data(), changed.size()}).error ==
@@ -269,6 +276,13 @@ void test_fragment_decode_rejects_noncanonical_input() {
     changed[4] = 1;
     EXPECT(decode_companion_fragment({changed.data(), size}).error ==
            CompanionCodecError::unsupported_version);
+    changed = encoded;
+    changed[5] = 1;
+    const auto unsupported_minor = decode_companion_fragment(
+        {changed.data(), size});
+    EXPECT(!unsupported_minor.decoded());
+    EXPECT(unsupported_minor.error == CompanionCodecError::unsupported_version);
+
     changed = encoded;
     changed[6] = 0x7F;
     EXPECT(decode_companion_fragment({changed.data(), size}).error ==

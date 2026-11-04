@@ -1,12 +1,20 @@
 # Security Policy
 
-OpenTrail is pre-release research software and is not suitable for emergency-response dependency, safety-critical control, or protection of sensitive information.
+Limited Underground Trail is pre-release research software and is not suitable for emergency-response dependency, safety-critical control, or protection of sensitive information.
 
 ## Reporting a security concern
 
 Do not include credentials, private keys, channel secrets, precise private locations, or exploit details in a public issue. Prefer a private GitHub Security Advisory when that feature is enabled. Otherwise, contact the repository owner privately before sharing sensitive details.
 
-## Current security boundaries
+## Current reading route
+
+Product development is frozen indefinitely from November 2, 2026. The [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff), [protocol selector](docs/protocol/README.md) and [firmware acceptance map](docs/firmware/V1_ACCEPTANCE.md) distinguish intended protected product behavior, admitted historical slices, the isolated conditional Packet-v1 host candidate and the latest unauthenticated diagnostic result. BLE ownership does not authenticate radio. Qualified source builds and synthetic tests do not accept the complete production security composition. Existing physical grants are consumed; no operation is authorized here.
+
+The benchmark counts and interim admission states retained below describe their named historical checkpoints. Later accepted evidence must be read through the current routes above; those old interim counts are not a current task-status report or a reason to rerun unchanged evidence.
+
+The recorded fixed-status exchange succeeded in both directions using unauthenticated diagnostic RF. It does not accept protected product delivery. Final production security admission, selected transport/enrollment binding, exact-target interruption/persistence and secret retirement retain their existing criteria. The isolated conditional Packet-v1 host slice is narrower than that production composition. Reuse accepted bounded evidence rather than treating an older blanket absence statement as current.
+
+## Retained security boundaries and historical admission summary
 
 - Emergency and priority features are supplemental aids, not guaranteed rescue services.
 - The owner-approved V1 design permits pairing only from a verified unowned boot: the device automatically opens exactly one 60-second window, displays one fresh six-decimal-digit passkey locally, and permits one Bluetooth LE Secure Connections-only, MITM-authenticated passkey pairing attempt with bonding and an exact 16-byte/128-bit key. An owned boot is PIN-free and accepts only its saved authorized phone. V1 has no phone-replacement or lost-phone transfer path. Recovery is a destructive factory reset initiated either by the authorized app, after explicit in-app confirmation and without Heltec confirmation, or by the local 10-second hold/warning/release/short-press sequence. Both paths must erase and verify absence of all user data and BLE bonds before the device may restart unowned. Decision 0103 and `DEVICE_FACTORY_RESET_V1` are current; OT-090 remains historical host evidence.

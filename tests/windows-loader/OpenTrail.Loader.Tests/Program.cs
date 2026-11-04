@@ -20,8 +20,12 @@ void Expect(bool condition, string message)
     }
 }
 
-var applicationManifest = XDocument.Load(
-    Path.Combine(AppContext.BaseDirectory, "app.manifest"));
+XDocument applicationManifest;
+using (var applicationManifestStream = File.OpenRead(
+    Path.Combine(AppContext.BaseDirectory, "app.manifest")))
+{
+    applicationManifest = XDocument.Load(applicationManifestStream);
+}
 var dpiAwarenessValues = applicationManifest
     .Descendants()
     .Where(static element => element.Name.LocalName is "dpiAware" or "dpiAwareness")
