@@ -308,9 +308,10 @@ class V1GroupSnapshotTest {
         var closes = 0
         var closeFails = false
         var read: () -> V1GroupDeviceRead = { V1GroupDeviceRead.Admitted(context, snapshot()) }
+        private fun readFixture() = read()
         fun owner(storage: V1GroupSnapshotStorage) = V1GroupSnapshotCoordinator(context, { current }, storage,
             object : V1GroupDeviceSource {
-                override fun read(context: V1GroupDeviceContext): V1GroupDeviceRead { reads++; return this@Fixture.read() }
+                override fun read(context: V1GroupDeviceContext): V1GroupDeviceRead { reads++; return readFixture() }
                 override fun close() { closes++; if (closeFails) throw IOException("synthetic cleanup") }
             })
     }

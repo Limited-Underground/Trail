@@ -35,6 +35,18 @@ No privacy/check policy or production storage permission changed. Full CI on
 the corrected public head remains required; local success does not replace the
 retained failure or grant release/device/production acceptance.
 
+Corrected public head 1974863 passed all 23 admission scenarios in CI, then
+the unchanged publication-safety scan refused an email-like qualified receiver
+expression in a JVM test. A private fixture helper preserves the same lambda
+read without that syntax. Production source, the file fixture and both guards
+are unchanged. The full local publication scan and its scanner scenarios pass;
+a new four-class JVM run passes all 37 tests with zero failures/errors/skips.
+The production jar exclusion remains verified. The follow-up was local at its
+source-review checkpoint; narrow independent review then passed with no findings.
+Exact publication authority and full CI on any resulting public head remain
+separate: local checks do not turn the retained failed full CI into a pass.
+No main merge or product acceptance follows.
+
 ### OT-0340a Attribute the reconstructed image differences without substitution
 
 Integrated the November 3 focused recovery review at its accepted exact-image
