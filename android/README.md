@@ -23,6 +23,16 @@ and [current handoff](../docs/PROJECT_STATUS.md#current-recovery-handoff).
 owns Android task scope/status; [Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
 owns firmware work. Neither a board status nor a documented command grants execution authority.
 
+The separately approved [local template editor](docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md)
+adds in-place edit/save/cancel under the existing 12-entry, 160-character policy.
+Its exact three source/test files retain the independently reviewed 13-test JVM
+evidence and 23 privacy scenarios. The implementation note preserves its author
+checkpoint; independent coordinator review subsequently passed. The editor has
+been reconciled with main 7e1c394 without importing canonical dirty overlays.
+This remains a host-qualified integration candidate: rendered UI, real Android
+preferences, IME, accessibility and process-death acceptance remain open. OT-0312
+and full OT-0313 remain open; no composer or sending path is added.
+
 ## Read by concern
 
 | Area | Reading path |

@@ -1,5 +1,33 @@
 # OpenTrail Progress Log
 
+## 2026-11-04
+
+### OT-0313 Local template editor integration candidate
+
+The owner-approved local-only editor was reconciled with main
+7e1c394987eed9384681c16b35eaf0df5cf06474 in an independent topic. The four
+reviewed files were carried forward exactly; canonical dirty overlays and the
+original editor topic were untouched. The only difference between the reviewed
+base d54d64e and current main is an unrelated C++ protocol test addition.
+
+The [editor behavior and acceptance note](../android/docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md)
+covers in-place edit/save/cancel, separate add draft, order/original-value fencing,
+12-by-160 bounds and honest preference-write uncertainty. The exact source-bound
+13 JVM cases and independent coordinator review are reused because Android
+source/build/test inputs are unchanged. Current integration privacy, documentation
+and continuity checks, exact patch replay and preservation checks passed. No
+repeated Gradle build, new editor functionality or synthetic acceptance was added.
+
+The candidate remains uncommitted and unpublished pending exact adoption
+approval. Full OT-0313, OT-0312, actual Android preferences, rendered/IME/
+accessibility/process-death behavior remain open. No composer, sending, queue,
+delivery, authenticated transport, signing or device operation occurred.
+No V1 score or public website status changed. Maintainer-held evidence is under
+Android-Packet-v1-Consolidation-20261028/ot-0313-local-editor-20261104,
+with the current integration manifest, patch, validation and approval scope in
+integration-20261104. Previous evidence and recovery obligations remain preserved.
+
+
 ## 2026-11-03
 
 ### OT-0305 Durable group-state host slice
