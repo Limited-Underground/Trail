@@ -3,12 +3,19 @@
 Use this index to find design contracts, accepted evidence, and contribution
 guidance. The [project README](../README.md) is the product overview.
 
+The indefinite product freeze retains its narrow November 3 host exception.
+The [working contract](../CONTRIBUTING.md#working-contract) defines the exact
+tasks, permitted host work and unchanged physical/publication restrictions.
+
 ## Start here
 
 | Document | Purpose |
 | --- | --- |
 | [Current status](PROJECT_STATUS.md) | Accepted capabilities, limitations, and next gates |
-| [Architecture](ARCHITECTURE.md) | System boundaries, interfaces, and failure behavior |
+| [Trail Firmware V1](firmware/README.md) | Nine assessment areas, source/build/recovery and existing V1 criteria |
+| [Concise architecture](architecture/README.md) | Twelve arc42 sections, C4 model, source/evidence boundaries and limitations |
+| [Detailed architecture](ARCHITECTURE.md) | Preserved design detail, original decisions and dated evidence scopes |
+| [Protocol selection](protocol/README.md) | Standard/custom interfaces and diagnostic/production contract status |
 | [Development guide](DEVELOPMENT.md) | Toolchains and repeatable validation |
 | [Backlog](../tasks/BACKLOG.md) | Scoped engineering work and acceptance criteria |
 | [V1 progress](V1_PROGRESS.json) | Canonical milestone evidence and completion |
@@ -23,11 +30,11 @@ guidance. The [project README](../README.md) is the product overview.
 | --- | --- |
 | Product scope | [Product boundaries](PRODUCT_BOUNDARIES_V0.md), [V1 user experience](product/V1_USER_EXPERIENCE.md), [V1/V1.5 acceptance scope](testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md) |
 | Android | [Client development](../android/README.md) |
-| Firmware | [Porting lessons and preflight](firmware-porting-lessons.md), [components](../firmware/components/), [targets](../firmware/targets/), [experimental Heltec V4 bench target](../firmware/targets/heltec_v4_bench/README.md) |
+| Firmware | [V1 guide](firmware/README.md), [build and recovery](firmware/BUILD_AND_RECOVERY.md), [remaining acceptance](firmware/V1_ACCEPTANCE.md), [porting lessons](firmware-porting-lessons.md), [experimental Heltec V4 bench target](../firmware/targets/heltec_v4_bench/README.md) |
 | Hardware | [Inventory](../hardware/INVENTORY.md), [hardware procedures](../hardware/) |
 | Device setup and reset | [Factory reset contract](platform/DEVICE_FACTORY_RESET_V1.md), [decision](decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md) |
 | Display | [Heltec OLED V1 layout](product/HELTEC_OLED_V1.md) |
-| Protocols | [Protocol contracts](protocol/) |
+| Protocols | [Contract selection and traceability](protocol/README.md), [versioned contracts](protocol/) |
 | Security | [Threat model](security/THREAT_MODEL_V0.md), [security contracts](security/) |
 | Location and maps | [Location](location/), [maps](maps/) |
 | Platform and persistence | [Platform contracts](platform/), [persistence](persistence/) |

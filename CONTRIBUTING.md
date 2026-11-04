@@ -1,6 +1,6 @@
-# Contributing to OpenTrail
+# Contributing to Limited Underground Trail
 
-OpenTrail is an early architecture and proof-of-concept project released under
+Limited Underground Trail is an early architecture and proof-of-concept project released under
 the [Apache License 2.0](LICENSE). Contributions are welcome, but every claim
 must remain proportional to its evidence and the safety boundaries of the
 project.
@@ -8,7 +8,7 @@ project.
 ## Before starting
 
 The working contract below governs the contribution guidance on this page;
-feature suggestions do not authorize work beyond the accepted host-only scope.
+feature suggestions do not resume development during the indefinite product freeze.
 
 For questions, use cases and early ideas, start in
 [Discussions](https://github.com/Limited-Underground/Trail/discussions).
@@ -31,21 +31,43 @@ These rules apply to human developers and any AI tool. No private chat history,
 model memory or machine-local skill is required to understand them. Tool routing
 in [AGENTS.md](AGENTS.md) retains the repository's detailed engineering, brand,
 validation and document-role rules; it does not grant additional authority.
+Start with the [firmware V1 guide](docs/firmware/README.md) or [Android guide](android/README.md).
+Use full Limited Underground product names in current prose; retain historical
+names and technical identifiers. Optional tool skills must route to these
+portable records without restoring older development or physical permissions.
 
-- **Recovery first.** The owner accepted the bounded local Trail source-recovery
-  baseline on October 23, 2026 (America/New_York) and authorized ordinary
-  host-only development from the owner-approved checkout on the recovery machine. Five exceptions remain:
+- **Current freeze and narrow host exception.** The November 2 indefinite freeze
+  remains. On November 3 the owner authorized Firmware OT-0237e, Android
+  OT-0305-1 durable group-state host work and, only after accepted security
+  admission and exact production-source selection, OT-0005i. Allowed work is
+  bounded host implementation, isolated tests/builds, documentation, evidence
+  and draft-PR preparation. First bind the exact live task/source/evidence,
+  preserve relevant dirty overlays and use a clean isolated topic. Maximum
+  three product workers, one per product, with one heavy build at a time;
+  serialize shared Trail contracts and records. Firmware Loader has its own
+  authorized LUF-0009g scope in its separate repository. No physical operations,
+  ADB/USB/serial/BLE/RF, flashing, device installation/reset, live protected-store
+  changes, privileged-machine changes, signing, deployment, release, unapproved
+  publication or main merge. Other product work remains frozen. Read the
+  [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff) and owning
+  dedicated Project; a board status or host test does not expand this authority.
+- **Recovery first.** The historical October 23, 2026 (America/New_York) bounded
+  source-recovery acceptance then authorized ordinary host-only development.
+  That approval does not override the current freeze. Its five recorded exceptions were:
   unverified E: delta bytes; incomplete cloud/off-device recovery and passphrase
   custody verification; the stale saved Codex Trail project path; retained
   historical/ignored holdings; and separate device, release, security-operator
-  and publication gates. OT-0340 remains In Progress. Select each task through
-  Trail V1 and preserve and validate subsequent changes normally. OneDrive backup
-  completion remains required follow-up but never blocks local work. This does not
+  and publication gates. OT-0340 remains open; consult the current handoff for
+  current custody and evidence. Select each authorized task through its dedicated
+  Project and preserve subsequent changes. The earlier OneDrive follow-up did not
+  block local work. This historical checkpoint does not
   authorize indiscriminate deletion, a rewrite, device operations, publication
   or whole-portfolio resumption.
-- **One task authority.** [Trail V1](https://github.com/orgs/Limited-Underground/projects/1)
-  owns current scope, priority, status, dependencies and recorded owner decisions.
-  [Architecture](docs/ARCHITECTURE.md), [decisions](docs/decisions/) and
+- **One task authority per product.** [Trail Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
+  and [Trail Android App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
+  own their current scope, priority, status, dependencies and recorded owner decisions.
+  [Concise architecture](docs/architecture/README.md), [protocol selection](docs/protocol/README.md),
+  [detailed architecture](docs/ARCHITECTURE.md), [decisions](docs/decisions/) and
   [backlog](tasks/BACKLOG.md) retain technical constraints and acceptance criteria.
   Resolve conflicting current instructions before the affected action. Board
   status is not execution permission. Hosted Project Control, `Control-Checklist.ps1`,

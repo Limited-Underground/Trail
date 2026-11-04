@@ -20,6 +20,8 @@ enum class V1GroupMutationFailure {
 }
 
 class V1GroupMemberToken private constructor(private val bytes: ByteArray) {
+    internal fun persistenceBytes(): ByteArray = bytes.copyOf()
+
     override fun equals(other: Any?): Boolean =
         other is V1GroupMemberToken && bytes.contentEquals(other.bytes)
 

@@ -1,5 +1,247 @@
 # OpenTrail Progress Log
 
+## 2026-11-03
+
+### OT-0305 Durable group-state host slice
+
+The existing child OT-0305-1, under the November 3 narrow host exception, added
+a dormant Android-local
+versioned snapshot codec/coordinator and ordinary-file fixture adapter. Device
+state remains authoritative: a fresh admitted source and exact session reference
+are required; retained bytes/checksums or diagnostic confirmation cannot mint
+membership. Unsupported/corrupt records, rollback, version conflicts, stale
+contexts, uncertain storage and reentrancy refuse without automatic repair.
+Independent pre-build review found unenforced thread confinement; the correction
+checks construction-thread ownership before every public operation/state read.
+
+One offline JVM gate compiled the current main/test Kotlin and passed 37 tests:
+17 snapshot, 5 actual temporary-file and 15 unchanged group-model tests, with
+zero failures/errors/skips. The real-thread overlap/close case passed. The
+[source/transition and reproduction note](../android/docs/OT-0305-1-DURABLE-GROUP-SNAPSHOT.md)
+describes the exact boundary; the selected base is
+a44630abc028a778b2aee5e8b02e04bd3efa9f0a. Canonical dirty overlays and
+accepted diagnostic artifacts were preserved. No production adapter/issuer,
+transport, UI/service integration, protected-store or physical proof is added.
+Host child/parent completion, production admission, publication and release
+remain separate; no V1 progress credit or device operation follows.
+
+The first public host slice d4e652a subsequently failed the existing OT-088
+source-privacy gate: its ordinary-file fixture was in production main source.
+The unchanged fixture is now isolated to JVM-test source. The original failure
+was reproduced, then the unchanged 23-scenario admission suite and affected
+37-test JVM gate passed. Main/test Kotlin recompiled; the fixture is absent
+from main output and both production class jars and present only in test output.
+No privacy/check policy or production storage permission changed. Full CI on
+the corrected public head remains required; local success does not replace the
+retained failure or grant release/device/production acceptance.
+
+Corrected public head 1974863 passed all 23 admission scenarios in CI, then
+the unchanged publication-safety scan refused an email-like qualified receiver
+expression in a JVM test. A private fixture helper preserves the same lambda
+read without that syntax. Production source, the file fixture and both guards
+are unchanged. The full local publication scan and its scanner scenarios pass;
+a new four-class JVM run passes all 37 tests with zero failures/errors/skips.
+The production jar exclusion remains verified. The follow-up was local at its
+source-review checkpoint; narrow independent review then passed with no findings.
+Exact publication authority and full CI on any resulting public head remain
+separate: local checks do not turn the retained failed full CI into a pass.
+No main merge or product acceptance follows.
+
+### OT-0340a Attribute the reconstructed image differences without substitution
+
+Integrated the November 3 focused recovery review at its accepted exact-image
+scope. It accounts for every differing byte in the two retained application
+images: the embedded source filename, 2,200 corresponding data pointers,
+segment packaging and derived integrity metadata. Independent systematic
+transformation reproduces the retained rebuilt image in memory with zero
+unattributed output bytes. The 4,503 nonzero loaded ELF function symbol ranges
+retain identical names, addresses, sizes and range bytes. Disassembly, maps,
+39 original SDK relocation records and the final relaxed initializer support
+the executable-section literal/data classification.
+
+Raw image equality remains false. Nonloaded/debug ELF attribution is incomplete;
+the symbol-range result does not establish every executable instruction,
+reachable behavior or runtime equivalence. No replacement image, new product
+build or device result is accepted, and the original diagnostic reference remains
+authoritative. Android host/unsigned-payload proof and signed-container/signer/
+runtime restoration remain separate. See the [central recovery explanation](firmware/BUILD_AND_RECOVERY.md#reviewed-attribution-of-the-image-differences).
+
+This minimal documentation delta follows published topic27713db, which already
+contains PR70's original history. It awaits delta-only fresh-reader review and
+scoped publication to existing draft PR71; that base's green checks do not
+validate this unpublished delta. Main/Ready transitions, product resumption,
+hardware and release retain separate owner authority. The earlier reconstruction
+and November 2 diagnostic/preparation records below are unchanged; no V1 credit,
+product behavior, protocol, checker, model or workflow changes.
+
+### OT-0340a Finalize V1 documentation and preserve diagnostic evidence
+
+Reconciled the shared firmware/Android V1 reading route with the separate
+[diagnostic PR70](https://github.com/Limited-Underground/Trail/pull/70). The
+original November 2 OT-0005j success, exact firmware/APK/execution hashes and
+preparation history are retained below without broadening their unauthenticated
+diagnostic scope. The original PR70 and PR71 heads both insert November 2
+entries at the same point and conflict; the reviewed topic must incorporate
+PR70 through normal history reconciliation before an eventual separately
+authorized PR70-then-PR71 main adoption. No main merge occurs in this task.
+
+The [firmware V1 guide](firmware/README.md), [build/recovery comparison](firmware/BUILD_AND_RECOVERY.md),
+[existing acceptance map](firmware/V1_ACCEPTANCE.md), shared arc42/C4 and
+[protocol selector](protocol/README.md) distinguish accepted prerequisites,
+qualified declared-host reconstruction, failed raw firmware equality and
+remaining protected-product/runtime/release acceptance. Android documentation
+has a separate author and stopped-input handoff. Final integrated fresh review,
+exact-delta topic publication and prospective-main reading-path checks remain
+separate from merge approval; no V1 score, product behavior or physical grant changes.
+
+Current V1 entrypoint reconciliation replaces temporary publication-next-step
+instructions with stable Project/working-contract gates, clarifies the recorded
+in-tree Loader toolchain, and keeps Android's physical bidirectional diagnostic
+result prominent while excluding protected production/release acceptance.
+The existing documentation checker now verifies current Markdown anchors and
+filename case, derives exact accepted artifact identities and the single primary
+success route from the handoff-selected progress record, and rejects known
+stale permissions/claims. Targeted negative fixtures cover those regressions;
+dates alone do not establish freshness. Historical contracts/evidence and the
+original diagnostic-success block remain preserved. No product behavior, V1
+score, hardware, workflow protection or merge authority changes.
+
+## 2026-11-02
+
+### OT-0005j two-phone diagnostic LoRa exchange delivered both ways
+
+Owner-approved G3 981e43cff4914a948386933fb3edb7fb ran with both boards on
+553ece87 and both phones on APK 7b9b25e8. Exact SHA-256 identities:
+
+- Firmware (both): `553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283`
+- APK (both): `7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c`
+- Execution bundle: `b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc`
+
+Preflight, fresh protected Ready and diagnostic opt-in all passed, and the board
+now records the opt-in. Both boards
+answered the idle gate and accepted session-start.
+
+- Forward: "Test: OK" went Note20 → A → LoRa 915 MHz → B → S24. The S24
+  displayed "Received: peer diagnostic DATA - OK", and the Note20 displayed the
+  matching diagnostic peer ACK.
+- Reverse: "Test: Available to help" went S24 → B → LoRa → A → Note20. The
+  Note20 displayed the received DATA, and the S24 displayed its ACK.
+- Result verified with exact counters: each board tx 2/2, rx_data 1, rx_ack 1,
+  rejected 0, BLE 3/3. RF 4/4 with no retry, 57.2 s from opt-in to close.
+- Both boards verified_stopped, phones closed, exit 0. No reset, flash or panic
+  markers. The owner reported the boards normal and the app closed on both
+  phones, which is the designed, verified force-stop closure. The final UI
+  captures show the delivered messages.
+
+This is diagnostic, unauthenticated RF only. Protected delivery and production
+acceptance remain open, and the V1 milestone requiring authenticated messaging
+is unchanged. Evidence:
+Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb/PHYSICAL_RESULT.json.
+Recorded on GitHub OT-0005j: appended and read back, with status unchanged
+(In Progress).
+
+### OT-0005j console reader fixed; diagnostic opt-in defect found and corrected
+
+Owner-approved status-only probes confirmed the A console failures. The frozen
+reader reassigned the serial timeout before every byte (Windows SetCommState
+plus CDC requests), and that alone stopped both boards' USB receive path until
+re-enumeration. Fixed-timeout reads answered. The host successor configures the
+opened port once (console-gate manifest ef460c25…), and V1–V4 passed with and
+without Note20 capture load.
+
+G3 b7bbfaf5fd40422f9ce56fa4200a11aa then passed the console gate: both boards
+were idle on the first status. A refused session-start before its one-use latch,
+and the cleanup session-end was refused too. RF0, B untouched, phones closed.
+
+Source analysis found a firmware defect on every bonded reconnect.
+NVS-persisted CCCDs are restored at encryption before Ready, so the diagnostic
+lane is retired. The phone's later opt-in leaves the flags unchanged, so NimBLE
+raises no subscribe event, and the board lease never becomes valid. This
+affects A and B equally; G0's fake lease hid it.
+
+Firmware successor Trail-Diagnostic-Opt-In-Fix-20261102 changes only
+companion_nimble_gatt.cpp in the diagnostic build. An authorized Ready write
+to an already indicate-only restored CCCD now records the opt-in. Padded image
+553ece87…, span [0x10000,0xB2000), two byte-identical builds. A composed replay
+of the actual target and pinned NimBLE code passes 8/8 and reproduces the field
+refusal on 0bbf0482. At that preparation checkpoint the image was not installed;
+deployment needed a one-board-at-a-time install successor and fresh approvals.
+
+The install successor Trail-Diagnostic-Opt-In-Install-20261102 derives A and B
+from their last successful official-SDK routes. Image pins move to 553ece87…,
+and each board's pre-write reference is now its own verified 0bbf0482 full
+readback rather than a host composition. Original-recovery provenance is
+unchanged. The post-install idle health gets the confirmed stable console
+reader, and B's prerequisite is A's verified install of the new image.
+
+Validation: real admission checks pass for both boards, A caller 19/19 plus
+adapter 22/22, and B caller 20/20. Three inherited B tests had asserted that
+B.install is refused; they were corrected to B's scope. Activation tools pass
+11/11, and the real launcher-to-runtime child reaches ready and closes for both
+boards on SYNTHETIC copies. Stray bytecode written into the admitted runtime by
+a helper check was removed; the runtime matches its manifest again. Physical
+requests (A first, then B, then one G3) were prepared in PHYSICAL_AUTHORIZATION.md
+before the separate approvals recorded below.
+
+Owner-approved A install 7d6107a6314a490ca5eb5fc5ec8d7895 sequence:
+
+- The identity check matched COM10.
+- After one owner PRG/RST entry, the live full read equalled 0bbf0482.
+- One write, then verify. The full readback was 553ece87…, byte-equal to the image.
+- After one owner RST, the normal display returned.
+- Idle health through the stable reader gave CONTROL plus an all-zero STATUS, with
+  rejected=0.
+
+The operator closed and the grant was consumed; launcher and child exited 0.
+RF0, and no B, phone, retry or restore. At this checkpoint B remained on
+0bbf0482 pending its own approval.
+
+Owner-approved B install 00e8f45cb83c41dea7ffe32d407d0c8a: its A prerequisite was
+attempt 7d6107a6. The identity check matched COM3, the live full read equalled
+0bbf0482, and the readback was 553ece87…, byte-equal to the image. The owner's
+normal return and an idle all-zero STATUS followed, with closure exit 0 and RF0.
+Both boards now run 553ece87. The G3 route's retained-install prerequisites
+(message_session IMAGES/ATTEMPTS and templates) now name the two attempts.
+Console gate 15/15, rehearsal 13/13, probe 10/10 and clock 4/4 pass; the timing
+suite showed the same 7 inherited failures by name. At this checkpoint G3
+awaited owner approval; its later successful result is recorded above.
+
+### OT-0340a Reconcile frozen architecture and diagnostic recovery lineage
+
+Registered the [foundation documentation child](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=291531176)
+under open OT-0340 and reconciled the portable indefinite product-development
+freeze, [architecture reading path](architecture/README.md), C4 source model and
+[protocol-selection index](protocol/README.md). The source-owner review confirms
+the distinction between canonical/dirty source, exact successful diagnostic
+overlays and the conditionally approved isolated Packet-v1 host slice. The
+November 2 fixed-status exchange remains unauthenticated diagnostic evidence;
+the separate OT-0005j record and PR #70 retain its original detailed result.
+
+Protected source/history preservation, independent file restoration and exact
+accepted-binary hashes are verified within their recorded limits. Clean source
+rebuild, independent byte equality and device/runtime restoration are not
+claimed. The current handoff preserves the older October 25 checkpoint as
+history and selects one primary diagnostic evidence route. Final integrated
+documentation and fresh-reader/PR gates remain separate. Parent recovery
+exceptions, protected/production acceptance, consumed physical grants and V1
+credit are unchanged; no product behavior or hardware operation occurred.
+
+November 2 V1 documentation continuation: added the [firmware V1 guide](firmware/README.md),
+[build/recovery comparison](firmware/BUILD_AND_RECOVERY.md) and [existing acceptance map](firmware/V1_ACCEPTANCE.md);
+reconciled shared reading routes, full product names and portable instructions without
+changing technical identifiers, versioned contracts, historical evidence or V1 scores.
+The frozen independent reconstruction receipt b0575b69d795513aed746243aee67578d50087f6aedc72b10686cb02a5ad3055
+qualifies declared-host firmware configure/build, four native suites/110 groups,
+eight SDK fact tests and eight composed scenarios. Rebuilt padded firmware
+fbc5b44ed3abd3823ca66f5b870d1bfc8c4d06523f8f37a5eba91256d66c56ce
+differs from accepted 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283
+in 164913 bytes; a source-path dependency is confirmed, full attribution remains open.
+The accepted image remains preserved. Android's 43 tests and unsigned non-signing
+payload equality do not prove signed APK equality, signer execution or runtime.
+No product build/test was repeated for documentation. Fresh integrated reading-path
+review and the exact new PR71 delta remain pending; no merge, device operation,
+product acceptance or score increase is claimed.
+
 ## 2026-10-29
 
 ### OT-0237b Close exact-lineage entropy/startup acceptance
