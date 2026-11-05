@@ -8,6 +8,8 @@ This repository contains Limited Underground Trail Firmware and Limited Undergro
 
 The November 2, 2026 indefinite product freeze remains with the owner's November 3 narrow host exception: OT-0237e admission work, Android OT-0305-1 durable group-state host work, and OT-0005i only after accepted security admission and exact production-source selection. Select the exact task/source/evidence, preserve dirty overlays and use a clean isolated topic before mutation. Maximum three product workers and one heavy build; one editor owns shared Trail contracts and records. Physical operations, live protected stores, privileged-machine changes, signing, deployment, release and unapproved publication/merge remain excluded. Other product development remains frozen. Bounded evidence retains its exact source/setup limits; full product acceptance remains open. Read the human-readable working contract in `CONTRIBUTING.md`, the current handoff in `docs/PROJECT_STATUS.md`, and the dedicated Firmware Project #1 or Android App Project #8 before future work. A board status is not execution permission.
 
+The November 4 owner decision also permits the bounded OT-0313 local-template-editor host slice while OT-0312 remains open. It grants no composer, send, queue, authentication, protected-store, transport, physical or publication authority. Wio firmware code waits for completion and required acceptance of Heltec V4 firmware, the Android app and Firmware Loader; authorized reference documentation does not resume it.
+
 Use `docs/firmware/README.md` for firmware's V1 reading path, `android/README.md` for Android, `docs/architecture/README.md` for shared arc42/C4 source and `docs/protocol/README.md` for contract selection. The existing detailed architecture and original decisions/evidence remain preserved. Capabilities are intended unless identified source and demonstrated evidence support them.
 
 ## Current names and retained identifiers
@@ -20,7 +22,7 @@ Use `docs/firmware/README.md` for firmware's V1 reading path, `android/README.md
 
 ## Working rules
 
-1. Read `README.md`, `CONTRIBUTING.md`, `docs/architecture/README.md`, `docs/protocol/README.md`, `docs/PROJECT_STATUS.md`, and the relevant `tasks/BACKLOG.md` criteria before authorized work. Use `docs/ARCHITECTURE.md` for detailed boundaries/history; the freeze remains binding.
+1. Identify the owning task and current handoff in `docs/PROJECT_STATUS.md` before work. Follow the [continuity closeout gate](CONTRIBUTING.md#continuity-closeout-gate): record owner/edit scope, preserve other work and leave evidence, blockers and next action before completion or transfer. Use the product, architecture and protocol reading routes above for relevant constraints; reuse unchanged guidance.
 2. Preserve existing work and unrelated changes. Do not delete, rename, or broadly restructure without a documented reason.
 3. Keep board-specific code behind interfaces in `firmware/components`; place deployable board applications in `firmware/targets`.
 4. Avoid giant `.ino` files. Prefer bounded components with host-testable protocol and state logic.
@@ -74,13 +76,14 @@ result in the progress log and link to detailed evidence rather than copying
 that result across the entry documents. Existing earlier historical progress
 headings remain archival; individual OT headings are enforced from 2026-09-08.
 
-Run `python tools/check_repository_docs.py` and
+Run `python tools/check_repository_docs.py --base-ref <relevant-base-revision>` and
 `python tests/host/repository_docs_tests.py` after documentation changes. The
 checker covers curated roles/progress headings and the current V1 reading paths,
 including Markdown anchors, exact filename case and identities derived from the
 selected diagnostic progress entry/current handoff. It rejects known stale
 permissions, blanket absence claims and temporary PR-next-step instructions.
-Dates alone do not establish freshness. Retained evidence/history is not rewritten
+The base comparison also checks development/evidence closeout records; omission of
+`--base-ref` performs structural checks only. Dates alone do not establish freshness. Retained evidence/history is not rewritten
 to satisfy current-overview rules; these checks do not prove evidence truth,
 privacy completeness, source reproducibility or product/device acceptance.
 

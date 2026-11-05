@@ -20,7 +20,6 @@ tasks, permitted host work and unchanged physical/publication restrictions.
 | [Backlog](../tasks/BACKLOG.md) | Scoped engineering work and acceptance criteria |
 | [V1 progress](V1_PROGRESS.json) | Canonical milestone evidence and completion |
 | [Progress log](PROGRESS_LOG.md) | Dated engineering history |
-| [Hardware integration runbook](HARDWARE_INTEGRATION_RUNBOOK.md) | Reusable hardware procedures, troubleshooting and evidence limits |
 | [Community guide](community/README.md) | Contribution routes and coordination |
 | [iPhone contributor brief](community/IOS_CONTRIBUTOR_BRIEF.md) | Starting scope for an iOS companion |
 
@@ -31,7 +30,7 @@ tasks, permitted host work and unchanged physical/publication restrictions.
 | Product scope | [Product boundaries](PRODUCT_BOUNDARIES_V0.md), [V1 user experience](product/V1_USER_EXPERIENCE.md), [V1/V1.5 acceptance scope](testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md) |
 | Android | [Client development](../android/README.md) |
 | Firmware | [V1 guide](firmware/README.md), [build and recovery](firmware/BUILD_AND_RECOVERY.md), [remaining acceptance](firmware/V1_ACCEPTANCE.md), [porting lessons](firmware-porting-lessons.md), [experimental Heltec V4 bench target](../firmware/targets/heltec_v4_bench/README.md) |
-| Hardware | [Inventory](../hardware/INVENTORY.md), [hardware procedures](../hardware/) |
+| Hardware | [Inventory](../hardware/INVENTORY.md), [hardware procedures](../hardware/), [integration and troubleshooting runbook](HARDWARE_INTEGRATION_RUNBOOK.md) |
 | Device setup and reset | [Factory reset contract](platform/DEVICE_FACTORY_RESET_V1.md), [decision](decisions/0103-adopt-ot168-v1-factory-reset-and-boot-pairing.md) |
 | Display | [Heltec OLED V1 layout](product/HELTEC_OLED_V1.md) |
 | Protocols | [Contract selection and traceability](protocol/README.md), [versioned contracts](protocol/) |

@@ -1,5 +1,36 @@
 # OpenTrail Progress Log
 
+## 2026-11-05
+
+### OT-0340a Reconcile runbook and continuity on adopted main
+
+The owner authorized isolated reconciliation of the previously reviewed nine-file
+documentation candidate with main
+`546b13d2725d3da9dd50f071d62cc01b153071f6`. The runbook/reference policy,
+portable continuity rules, current-V1 checks and base-aware documentation workflow
+are retained together. The public runbook remains registered for link checking;
+the private extended runbook and unrelated dirty overlays are excluded.
+
+The November 2 bidirectional unauthenticated diagnostic history and its full
+artifact attribution remain unchanged. Main already adopted the durable Android
+host slice through PR #72 and the bounded local editor through PR #209. The latter
+normal merge is `546b13d2725d3da9dd50f071d62cc01b153071f6`, with reviewed tree
+`5b66d9005230dcd71b44e5f9872ae9969d335354`; its main documentation and host CI
+passed. The November 4 draft/publication and earlier local-candidate entries below
+retain their original checkpoint facts, rather than implying earlier adoption.
+Full OT-0313, OT-0312, actual Android preferences/rendered/IME/accessibility/
+process-death behavior and firmware security/source admission remain open.
+
+Only the two current history/handoff overlaps, the later runbook-link registration
+and its focused regression differ from the frozen reviewed candidate. Source-bound
+prior reviews and unchanged workflow evidence are reused; current focused checks,
+exact source/history preservation and independent delta review are retained in the
+maintainer-held reconciliation-20261105 handoff under the existing OT-0340a
+pr-closeout evidence route. The resulting candidate is local and uncommitted;
+publication and adoption require exact owner approval and applicable required CI.
+No product code, canonical checkout synchronization, device operation, protected
+store, production activation, V1 score or public website status changed.
+
 ## 2026-11-04
 
 ### OT-0313 Draft publication and handoff correction
@@ -63,6 +94,24 @@ Android-Packet-v1-Consolidation-20261028/ot-0313-local-editor-20261104,
 with the current integration manifest, patch, validation and approval scope in
 integration-20261104. Previous evidence and recovery obligations remain preserved.
 
+### OT-0340 Reconcile adopted documentation and portable continuity
+
+The owner approved adoption of the exact Android group-state host slice in
+[PR #72](https://github.com/Limited-Underground/Trail/pull/72). Main reached
+`59447d1d0bb206f32feb2464e1f01109ccf7c282`, retaining the successful November 2
+unauthenticated diagnostic evidence and the default-unavailable production source.
+This adoption is not authenticated transport, protected-store, physical, release
+or parent-task acceptance. The separate local-template-editor host exception
+remains local-only while its production state dependency stays open.
+
+The coordinator prepared a local, uncommitted nine-path reconciliation of the
+public runbook/reference rules and portable continuity checker from PRs #68/#69
+against that adopted main. The current reading/anchor/diagnostic-identity guards
+and seven distinct continuity cases are combined; the private extended runbook
+and unrelated dirty overlays are excluded. The combined documentation checker and 39 focused tests passed locally.
+Independent review and exact candidate evidence remain separate from publication
+and product acceptance. This candidate is uncommitted and unpublished. Historical
+source and evidence remain preserved.
 
 ## 2026-11-03
 
@@ -305,6 +354,43 @@ payload equality do not prove signed APK equality, signer execution or runtime.
 No product build/test was repeated for documentation. Fresh integrated reading-path
 review and the exact new PR71 delta remain pending; no merge, device operation,
 product acceptance or score increase is claimed.
+
+## 2026-11-01
+
+### OT-0340 Reconcile portable continuity publication candidate
+
+Prepared a seven-file governance/documentation/checker/CI candidate from the
+published repository, without copying dirty local document postimages. The existing
+working contract now contains the portable owner/scope, interruption and closeout
+obligations; workspace policy files remain local. PR #68 retains runbook and index
+ownership. Exact changed-file scope, validation and publication sequencing remain
+in the existing task evidence. Fresh clean-checkout validation passed all 25
+documentation tests, the documentation check against the published Git base and
+whitespace checks. The exact patch also applies over PR #68 with its documentation
+check passing; PR-owned runbook/index and policies remain unchanged. No hosted
+Actions or application matrix is claimed. No commit, push, PR or merge occurred. No product,
+physical, release or whole-recovery acceptance follows.
+
+### OT-0005j Reconcile failed trial and diagnostic successor
+
+Physical attempt `6cf06a0183c44b5396d181ca53d8f544` failed at A connect_sync
+before flash reads/programming. B remained untouched; neither RF direction ran.
+Native/terminal/parent records report closed resources and consumed authority. A
+separate approved single RST returned the usual advancing Trail screen by owner
+observation; no fresh firmware readback or formal restoration receipt was created.
+The failed attempt and its zero normal-return count remain historical evidence.
+
+Diagnostic predecessor `3c99c3bd900ee055854f72f88527cac89186d6c8804f4ddd81dc6eb95ce06653`
+had 88 passing host tests but was independently rejected for missing first-refusal
+classification at SYNC-stub and USB-OTG guards. Isolated P2 transport
+`234d598312f412eebd999b64d9aa6725c95ff7585c09eae48f724aca5b104129` records
+92 passing host tests (22 focused plus 70 regressions) and 18 trace comparisons;
+its focused independent acceptance remains outstanding in this reconciled record.
+This documents verified local artifacts, not integrated or released functionality.
+The physical SYNC cause remains unknown. No physical retry or live grant is
+authorized; consumed authority is never reusable. Original protected phone-to-phone
+acceptance and security dependencies remain open. See the [current handoff](PROJECT_STATUS.md#current-recovery-handoff)
+for owner, review scope and maintainer-held evidence access.
 
 ## 2026-10-29
 

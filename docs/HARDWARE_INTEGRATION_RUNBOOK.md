@@ -1,4 +1,12 @@
-# Trail hardware integration and troubleshooting runbook
+# Limited Underground Trail hardware integration and troubleshooting runbook
+
+Current boundary: only the separately authorized V1 host tasks may proceed. No
+hardware operation is authorized by this runbook. Wio firmware code waits for
+completion and required acceptance of Heltec V4 firmware, Android and Firmware
+Loader. The [November 2 bidirectional phone diagnostic milestone](PROGRESS_LOG.md#ot-0005j-two-phone-diagnostic-lora-exchange-delivered-both-ways)
+is later than the October 30 examples below; it was unauthenticated and does not
+accept protected messaging. Historical artifacts and port examples are not a
+current installed-state assertion.
 
 Use this reference to reproduce established engineering methods, not to authorize
 device operations. Current tasks and grants select the exact devices, artifacts
@@ -258,9 +266,9 @@ retain applicable notices, and check the affected adapter against that version.
 Reuse accepted tests/physical results while relevant inputs are unchanged. New
 board behavior remains subject to the existing porting checks and physical grants.
 
-Publication gate: PR #68 and subsequent runbook publications must include this
-reference-policy correction and preserve unrelated changes; do not publish the
-superseded implementation-reference recommendations.
+Changes to this runbook must retain this reference policy and preserve unrelated
+work. Publication remains separately authorized; do not restore the superseded
+implementation-reference recommendations.
 
 ## Carry the lessons to other hardware
 
