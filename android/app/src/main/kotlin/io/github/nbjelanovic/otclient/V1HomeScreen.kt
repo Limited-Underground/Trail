@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
@@ -133,21 +135,34 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
     initiallyDirect: Boolean = false, initiallyEditing: Boolean = false) {
     val context = LocalContext.current
     val preferences = remember { context.getSharedPreferences("v1-local-templates", 0) }
-    var templates by remember {
-        mutableStateOf((0 until V1QuickMessages.MAX_CUSTOM).mapNotNull { index ->
+    val loadedTemplates = remember {
+        V1QuickMessages.load { index ->
+            check(index in (0 until V1QuickMessages.MAX_CUSTOM))
             preferences.getString("template-$index", null)?.let(V1QuickMessages::normalize)
-        }.distinct())
+        }
     }
-    fun persist(value: List<String>) {
+    var templates by remember {
+        mutableStateOf(loadedTemplates.orEmpty())
+    }
+    var saveFailed by rememberSaveable { mutableStateOf(false) }
+    fun persist(value: List<String>): Boolean {
+        if (loadedTemplates == null) return false
         // Only this dedicated preferences file is replaced; no connection/group state is touched.
-        preferences.edit().clear().also { editor ->
-            value.forEachIndexed { index, text -> editor.putString("template-$index", text) }
-        }.apply()
-        templates = value
+        val saved = V1QuickMessages.save(value) { snapshot ->
+            preferences.edit().clear().also { editor ->
+                snapshot.forEachIndexed { index, text -> editor.putString("template-$index", text) }
+            }.commit()
+        }
+        saveFailed = !saved
+        if (saved) templates = value
+        return saved
     }
     var direct by rememberSaveable { mutableStateOf(initiallyDirect) }
     var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
     var text by rememberSaveable { mutableStateOf("") }
+    var editingIndex by rememberSaveable { mutableStateOf<Int?>(null) }
+    var editingOriginal by rememberSaveable { mutableStateOf<String?>(null) }
+    var editText by rememberSaveable { mutableStateOf("") }
     var nearby by rememberSaveable { mutableStateOf(false) }
     androidx.activity.compose.BackHandler(enabled = nearby) { nearby = false }
     if (nearby) {
@@ -178,30 +193,97 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Quick messages", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = { editing = !editing }) { Text(if (editing) "Done" else "Customize") }
+            TextButton(onClick = { if (editingIndex == null) editing = !editing },
+                enabled = loadedTemplates != null && editingIndex == null) {
+                Text(if (editing) "Done" else "Customize")
+            }
         }
         Text("Prepare your messages here. Nothing is sent from this screen.", style = MaterialTheme.typography.bodySmall)
+        if (loadedTemplates == null) {
+            Text("Saved quick messages could not be read. Editing is unavailable.")
+        } else if (saveFailed) {
+            Text("Save could not be confirmed. Your draft is still here; saved state is uncertain.")
+        }
         V1QuickMessages.builtIn.forEach { Text(it) }
         templates.forEachIndexed { index, template ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Text(template)
                     if (editing) {
+                        TextButton(onClick = {
+                            if (editingIndex == null && templates.getOrNull(index) == template) {
+                                editingIndex = index
+                                editingOriginal = template
+                                editText = template
+                            }
+                        }, enabled = loadedTemplates != null && editingIndex == null,
+                            modifier = Modifier.semantics { contentDescription = "Edit quick message ${index + 1}" }) {
+                            Text("Edit")
+                        }
                         Row {
-                            TextButton(onClick = { persist(V1QuickMessages.move(templates, index, -1)) }, enabled = index > 0) { Text("Up") }
-                            TextButton(onClick = { persist(V1QuickMessages.move(templates, index, 1)) }, enabled = index < templates.lastIndex) { Text("Down") }
-                            TextButton(onClick = { persist(templates.filterIndexed { i, _ -> i != index }) }) { Text("Remove") }
+                            TextButton(onClick = {
+                                if (editingIndex == null && templates.getOrNull(index) == template)
+                                    persist(V1QuickMessages.move(templates, index, -1))
+                            },
+                                enabled = loadedTemplates != null && editingIndex == null && index > 0) { Text("Up") }
+                            TextButton(onClick = {
+                                if (editingIndex == null && templates.getOrNull(index) == template)
+                                    persist(V1QuickMessages.move(templates, index, 1))
+                            },
+                                enabled = loadedTemplates != null && editingIndex == null && index < templates.lastIndex) { Text("Down") }
+                            TextButton(onClick = {
+                                if (editingIndex == null && templates.getOrNull(index) == template)
+                                    persist(templates.filterIndexed { i, _ -> i != index })
+                            },
+                                enabled = loadedTemplates != null && editingIndex == null) { Text("Remove") }
                         }
                     }
                 }
             }
         }
         if (editing) {
-            OutlinedTextField(value = text, onValueChange = { if (it.length <= V1QuickMessages.MAX_CHARS) text = it },
-                label = { Text("Your quick message") }, modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text("${text.length}/160 · ${templates.size}/12 custom messages") })
-            Button(onClick = { V1QuickMessages.add(templates, text)?.let { persist(it); text = "" } },
-                enabled = V1QuickMessages.add(templates, text) != null) { Text("Save quick message") }
+            val index = editingIndex
+            val formText = if (index == null) text else editText
+            fun candidate(): List<String>? {
+                if (editingIndex != index) return null
+                return if (index == null) V1QuickMessages.add(templates, text)
+                    else editingOriginal?.let { V1QuickMessages.edit(templates, index, it, editText) }
+            }
+            val staleEdit = index != null && (index !in templates.indices || templates[index] != editingOriginal)
+            OutlinedTextField(value = formText, onValueChange = {
+                if (it.length <= V1QuickMessages.MAX_CHARS) {
+                    if (index == null) text = it else editText = it
+                }
+            }, enabled = loadedTemplates != null,
+                label = { Text(if (index == null) "Your quick message" else "Edit quick message") },
+                isError = formText.isNotEmpty() && candidate() == null,
+                modifier = Modifier.fillMaxWidth(), supportingText = {
+                    Text(when {
+                        staleEdit -> "This quick message changed. Cancel the edit before choosing it again."
+                        formText.isNotEmpty() && candidate() == null -> "Use a unique message of 1–160 characters without control characters."
+                        else -> "${formText.length}/160 · ${templates.size}/12 custom messages"
+                    })
+                })
+            Button(onClick = {
+                candidate()?.let { value ->
+                    if (persist(value)) {
+                        if (index == null) text = "" else {
+                            editingIndex = null
+                            editingOriginal = null
+                            editText = ""
+                        }
+                    }
+                }
+            }, enabled = loadedTemplates != null && candidate() != null) {
+                Text(if (index == null) "Save quick message" else "Save changes")
+            }
+            if (index != null) {
+                OutlinedButton(onClick = {
+                    editingIndex = null
+                    editingOriginal = null
+                    editText = ""
+                }) { Text("Cancel edit") }
+            }
         }
     }
 }
