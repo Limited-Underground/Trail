@@ -1,5 +1,69 @@
 # OpenTrail Progress Log
 
+## 2026-11-04
+
+### OT-0313 Draft publication and handoff correction
+
+Publication occurred on November 4, 2026: [draft PR #209](https://github.com/Limited-Underground/Trail/pull/209)
+was opened at 20:45:36 UTC with source revision
+[05120f37f2a48f2fc134cf70a4000ed105717a0c](https://github.com/Limited-Underground/Trail/commit/05120f37f2a48f2fc134cf70a4000ed105717a0c),
+parent main 7e1c394987eed9384681c16b35eaf0df5cf06474 and exact tree
+6dfe6161db1377bf9e22d9cae4dcba4c85c895b4. Remote identities matched
+the original approved seven-file payload:
+
+- Four reviewed files: V1HomeScreen.kt, V1QuickMessages.kt,
+  V1QuickMessagesTest.kt and android/docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md.
+- Three continuity documents: android/README.md, docs/PROJECT_STATUS.md
+  and docs/PROGRESS_LOG.md.
+
+At that exact published editor head, the required
+[Repository documentation](https://github.com/Limited-Underground/Trail/actions/runs/41909653842)
+and [Windows host matrix](https://github.com/Limited-Underground/Trail/actions/runs/41909653518)
+checks passed; all seven checks succeeded. The actual synthetic-merge CI
+checkout had the approved tree. Independent publication review found no
+implementation defect and one documentation finding, DOC-PUBLICATION-1.
+
+This subsequent correction updates only the current handoff and adds this dated
+publication record. The earlier integration-candidate entry below records the
+prepublication checkpoint and is preserved unchanged. Frozen manifests, source,
+original tests/reviews and publication receipts retain their original identities.
+The four reviewed files and canonical dirty checkout are untouched.
+
+PR #209 remains a draft and is not merged. Full OT-0313, OT-0312 and actual
+Android preferences/rendered/IME/accessibility/process-death acceptance remain
+open. Existing 13 JVM cases, 23 privacy scenarios and editor review are reused
+at their unchanged source scope; no JVM, privacy or physical testing is repeated
+for this documentation correction. Each newer head requires its applicable
+publication authority, remote identity checks and required CI. Ready/merge needs
+explicit owner approval; issue #117 body changes remain excluded. No V1 score,
+public website capability or device state changed.
+
+### OT-0313 Local template editor integration candidate
+
+The owner-approved local-only editor was reconciled with main
+7e1c394987eed9384681c16b35eaf0df5cf06474 in an independent topic. The four
+reviewed files were carried forward exactly; canonical dirty overlays and the
+original editor topic were untouched. The only difference between the reviewed
+base d54d64e and current main is an unrelated C++ protocol test addition.
+
+The [editor behavior and acceptance note](../android/docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md)
+covers in-place edit/save/cancel, separate add draft, order/original-value fencing,
+12-by-160 bounds and honest preference-write uncertainty. The exact source-bound
+13 JVM cases and independent coordinator review are reused because Android
+source/build/test inputs are unchanged. Current integration privacy, documentation
+and continuity checks, exact patch replay and preservation checks passed. No
+repeated Gradle build, new editor functionality or synthetic acceptance was added.
+
+The candidate remains uncommitted and unpublished pending exact adoption
+approval. Full OT-0313, OT-0312, actual Android preferences, rendered/IME/
+accessibility/process-death behavior remain open. No composer, sending, queue,
+delivery, authenticated transport, signing or device operation occurred.
+No V1 score or public website status changed. Maintainer-held evidence is under
+Android-Packet-v1-Consolidation-20261028/ot-0313-local-editor-20261104,
+with the current integration manifest, patch, validation and approval scope in
+integration-20261104. Previous evidence and recovery obligations remain preserved.
+
+
 ## 2026-11-03
 
 ### OT-0305 Durable group-state host slice
