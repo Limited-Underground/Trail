@@ -131,6 +131,14 @@ class RepositoryDocsTests(unittest.TestCase):
         (self.root / "CONTRIBUTING.md").unlink()
         self.assertEqual(["CONTRIBUTING.md: required readable UTF-8 document missing"], self.problems())
 
+    def test_backlog_history_keeps_title_and_link_checks(self):
+        self.write("tasks/BACKLOG.md", "# Backlog\n## Historical execution sequence\n"
+                   "[Retained evidence](missing.md)\n# Duplicate title\n"
+                   "## Post-release options\n| OT-171 | partial |\n")
+        problems = self.problems()
+        self.assertTrue(any("level-one document title" in p for p in problems))
+        self.assertTrue(any("missing local link" in p for p in problems))
+
 
 class CurrentV1ReadingTests(unittest.TestCase):
     """Behavioral regressions from stale entrypoints, independent of today's hashes/date."""
@@ -239,6 +247,61 @@ Evidence: Recovery-Records/success/{self.attempt}/PHYSICAL_RESULT.json.
     def test_current_next_action_cannot_be_a_temporary_pr(self):
         self.write("docs/firmware/V1_ACCEPTANCE.md", "# Criteria\nNext step is to finish draft PR71.\n")
         self.assertTrue(any("stable task/authority gates" in x for x in self.problems()))
+
+    def test_backlog_rejects_the_published_pending_pr71_instruction(self):
+        self.write("tasks/BACKLOG.md", "# Backlog\n\n## Foundation\n"
+                   "| OT-0340a | review/publication pending | This minimal factual delta still requires "
+                   "fresh-reader review and exact-delta publication to existing draft PR71; "
+                   "main adoption is separate owner authority. |\n")
+        self.assertTrue(any("tasks/BACKLOG.md: current instructions must use stable task/authority gates" in x
+                            for x in self.problems()))
+
+    def test_backlog_history_does_not_hide_current_rows_after_it(self):
+        text = ("# Backlog\n\n## Current task selection\n"
+                "Use the owning Project task and current handoff; preserve each acceptance gate.\n"
+                "## Historical execution sequence\nNext action is draft PR71.\n"
+                "### Earlier checkpoint\nHost-only development may resume.\n"
+                "## Post-release options\nUnscheduled ideas retain their existing gates.\n"
+                "## Foundation\n| OT-0340a | Done within its bounded scope | PR71 was merged. |\n")
+        self.write("tasks/BACKLOG.md", text)
+        self.assertEqual([], self.problems())
+        self.write("tasks/BACKLOG.md", text + "| OT-171 | open | Next action is draft PR71. |\n")
+        self.assertTrue(any("tasks/BACKLOG.md: current instructions must use stable task/authority gates" in x
+                            for x in self.problems()))
+
+    def test_backlog_old_execution_heading_is_not_current_authority(self):
+        self.write("tasks/BACKLOG.md", "# Backlog\n## Current execution order\nRetained physical sequence.\n")
+        self.assertTrue(any("tasks/BACKLOG.md: retained execution sequence must be labeled historical" in x
+                            for x in self.problems()))
+
+    def test_backlog_history_without_a_closing_section_cannot_hide_current_rows(self):
+        self.write("tasks/BACKLOG.md", "# Backlog\n## Historical execution sequence\n"
+                   "Retained observations.\n| OT-171 | open | Next action is draft PR71. |\n")
+        self.assertTrue(any("tasks/BACKLOG.md: current instructions must use stable task/authority gates" in x
+                            for x in self.problems()))
+
+    def test_backlog_fenced_history_heading_cannot_hide_current_text(self):
+        self.write("tasks/BACKLOG.md", "# Backlog\n```markdown\n## Historical execution sequence\n```\n"
+                   "Next action is draft PR71.\n## Post-release options\nUnscheduled.\n")
+        self.assertTrue(any("tasks/BACKLOG.md: current instructions must use stable task/authority gates" in x
+                            for x in self.problems()))
+
+    def test_backlog_commented_history_heading_cannot_hide_current_text(self):
+        self.write("tasks/BACKLOG.md", "# Backlog\n<!--\n## Historical execution sequence\n-->\n"
+                   "Next action is draft PR71.\n## Foundation\n")
+        self.assertTrue(any("tasks/BACKLOG.md: current instructions must use stable task/authority gates" in x
+                            for x in self.problems()))
+
+    def test_backlog_pr71_check_keeps_separate_rows_and_joins_prose_wraps(self):
+        table = ("# Backlog\n\n## Foundation\n"
+                 "| OT-001 | Next step | Wait for permission |\n"
+                 "| OT-002 | Done | PR71 was merged |\n")
+        self.write("tasks/BACKLOG.md", table)
+        self.assertEqual([], self.problems())
+        self.write("tasks/BACKLOG.md", table + "\nNext action is to finish\n"
+                   "draft PR71.\n")
+        self.assertTrue(any("tasks/BACKLOG.md: current instructions must use stable task/authority gates" in x
+                            for x in self.problems()))
 
     def test_unreadable_or_malformed_current_overview_reports_instead_of_crashing(self):
         self.write("android/README.md", self.intro + "\n[Bad](https://[malformed)\n")

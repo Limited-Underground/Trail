@@ -1,5 +1,31 @@
 # OpenTrail Progress Log
 
+## 2026-11-06
+
+### OT-0340 Correct current guidance and guard backlog history
+
+The Foundation coordinator prepared the correction under the existing OT-0340
+continuity scope in an isolated topic based on published main
+`46cbbc67f21e674184649ff276cb97dac8c04d49`. The backlog now routes current work
+through its owning Project and labels the retained physical sequence as history.
+The historical sequence body was preserved byte-for-byte in the repository diff.
+
+The OT-0340a row records the later adoption evidence: PRs #71, #68 and #210
+merged, and PR #69 closed as superseded. The November 5 progress entry below
+still records its original checkpoint. OT-0340 stays open for its remaining
+source and recovery exceptions.
+
+The checker now rejects the stale PR71 next action without treating separate
+task rows as one instruction. Headings in HTML comment blocks and fenced
+examples cannot hide the current backlog. Independent review identified both
+regressions. The new tests reproduced them on the supplied checker, and all 48
+documentation tests passed with the correction. The base-aware check uses this
+dated record and the current project handoff.
+
+This is an uncommitted local candidate. Publication and hosted checks are
+separate. The existing diagnostic artifact identities and physical acceptance
+limits remain authoritative. Canonical overlays are outside the isolated topic.
+
 ## 2026-11-05
 
 ### OT-0340a Reconcile runbook and continuity on adopted main

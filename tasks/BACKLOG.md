@@ -8,7 +8,26 @@ The [complete pre-cleanup backlog](../docs/history/BACKLOG_BEFORE_CLEANUP_2026-0
 preserves all removed summaries and superseded sequencing; see the
 [archive navigation map](../docs/history/README.md).
 
-## Current execution order
+## Current task selection
+
+Select current work through the [Firmware Project](https://github.com/orgs/Limited-Underground/projects/1)
+or [Android App Project](https://github.com/orgs/Limited-Underground/projects/8),
+the [working contract](../CONTRIBUTING.md#working-contract), and the
+[current handoff](../docs/PROJECT_STATUS.md#current-recovery-handoff).
+Bind the selected task to its actual source, applicable owner authority,
+dependencies and acceptance evidence. The product freeze and its bounded
+exceptions remain governed by those records; a task row, historical next step
+or successful host check does not expand execution authority.
+
+When a task's next gate is unresolved, record the exact blocker and continue
+only an already-authorized eligible task. Completed bounded children retain
+their acceptance limits; their completion does not close an unfinished parent.
+
+## Historical execution sequence
+
+Historical: the sequence below preserves earlier checkpoints and proposed next
+steps for traceability. It is not the current work queue or an execution grant.
+Use [current task selection](#current-task-selection) for active work.
 
 The [October 9 first physical enrollment case](../tests/hardware/OT-0238c-FIRST-2026-10-09.md)
 remains passed. The [October 10 retained attempt](../tests/hardware/OT-0238c-RETAINED-2026-10-10.md)
@@ -153,8 +172,8 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
-| OT-0340 | in progress; scoped source restore and host checks verified | Reconcile Trail source recovery baseline | C: ordinary source, two dirty worktrees and historical E: checkout have preserved checkpoints and D: restored hashes. The final eleven-file post-checkpoint delta superseded the earlier nine-file account and passed full 3,076-file D: reconstruction; E: delta bytes remain unverified under the storage-only rule. Protected `.private` holdings passed a full isolated D: restore; the encrypted local OneDrive copy passed integrity checks, but cloud retrieval remains open. Android and targeted firmware host matrices passed, as did the patched full Trail host wrapper with `-SkipSecurityOperators`; bounded local host-only resumption is owner-accepted; physical/product acceptance and the five recovery exceptions remain open. Refresh the delta after later edits, reconcile ignored holdings and saved-path consumers, and retain historical copies. Historical policy was dispositioned and two safeguards carried forward. See [evidence](../docs/testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md). |
-| OT-0340a | in progress; minimal attribution delta review/publication pending | Reconcile frozen architecture and diagnostic recovery lineage | [Registered foundation child](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=291531176), parent OT-0340: portable indefinite freeze and architecture/protocol routes, exact diagnostic/canonical/host-candidate distinctions, and recovery continuity. Qualified reconstruction/host tests and the November 3 independent exact-image attribution review are retained; raw firmware inequality, incomplete nonloaded/debug ELF attribution and runtime/signer/device limits remain explicit in the [build/recovery guide](../docs/firmware/BUILD_AND_RECOVERY.md#reviewed-attribution-of-the-image-differences). Published PR71 base27713db already contains original PR70 history. This minimal factual delta still requires fresh-reader review and exact-delta publication to existing draft PR71; main adoption is separate owner authority. Preserve the parent's exceptions, original diagnostic evidence and consumed physical grants; no product, hardware or V1-credit change. |
+| OT-0340 | open; scoped source restore and host checks verified; guidance regressions verified | Reconcile Trail source recovery baseline | C: ordinary source, two dirty worktrees and historical E: checkout have preserved checkpoints and D: restored hashes. The final eleven-file post-checkpoint delta superseded the earlier nine-file account and passed full 3,076-file D: reconstruction; E: delta bytes remain unverified under the storage-only rule. Protected `.private` holdings passed a full isolated D: restore; the encrypted local OneDrive copy passed integrity checks, but cloud retrieval remains open. Android and targeted firmware host matrices passed, as did the patched full Trail host wrapper with `-SkipSecurityOperators`; bounded local host-only resumption is owner-accepted; physical/product acceptance and the five recovery exceptions remain open. Refresh the delta after later edits, reconcile ignored holdings and saved-path consumers, and retain historical copies. Historical policy was dispositioned and two safeguards carried forward. See [evidence](../docs/testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md). |
+| OT-0340a | complete within bounded documentation scope; adopted | Reconcile frozen architecture and diagnostic recovery lineage | [Registered foundation child](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=291531176), parent OT-0340: portable indefinite freeze and architecture/protocol routes, exact diagnostic/canonical/host-candidate distinctions, and recovery continuity. Qualified reconstruction/host tests and the November 3 independent exact-image attribution review are retained; raw firmware inequality, incomplete nonloaded/debug ELF attribution and runtime/signer/device limits remain explicit in the [build/recovery guide](../docs/firmware/BUILD_AND_RECOVERY.md#reviewed-attribution-of-the-image-differences). [PR #71](https://github.com/Limited-Underground/Trail/pull/71), [PR #68](https://github.com/Limited-Underground/Trail/pull/68) and [PR #210](https://github.com/Limited-Underground/Trail/pull/210) are merged; [PR #69](https://github.com/Limited-Underground/Trail/pull/69) was closed as superseded. The [reconciliation record](../docs/PROGRESS_LOG.md#ot-0340a-reconcile-runbook-and-continuity-on-adopted-main) retains the source and review history. Parent OT-0340 remains open with its recovery exceptions. Preserve original diagnostic evidence and consumed physical grants; no product, hardware or V1-credit change. |
 | OT-247 | host correction accepted; physical timing gate failed | Audit complete flow and correct receive/host transport sequencing | Baseline five/three-status failures retained in [audit](../docs/testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md). [OT-0247c](../docs/testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md) passes eight statuses and cleanup in all three host profiles. |
 | OT-246 | physical diagnostic capture complete; originals restored | Capture exact failure provenance and physical stage timing | Exact B invitation expiry4ms past deadline; 28 WAIT polls after first activation TX; host guard costs measured. Both originals independently verified/restored/reset, custody closed and normal screens confirmed. [Proof and limits](../docs/testing/OT-246-FAILURE-CAPTURE-2026-09-18.md). |
 | OT-245 | host investigation complete; physical cause unproven | Replay actual bridge with independent node idle scheduling | Sixteen cases pass scheduler checks; idle adds only107–133ms in10s-delay controls.47s synthetic delay reproduces activation1 B/RFPOLL with idle on/off. Four uninstrumented controls match. [Proof and limits](../docs/testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md). |
