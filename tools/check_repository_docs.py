@@ -21,7 +21,8 @@ CURRENT_DOCS = ("README.md", "CONTRIBUTING.md", "AGENTS.md", "SECURITY.md",
                 "docs/README.md", "docs/ARCHITECTURE.md", "docs/PROJECT_STATUS.md",
                 "docs/DEVELOPMENT.md", "docs/architecture/README.md", "docs/protocol/README.md",
                 "docs/firmware/README.md", "docs/firmware/BUILD_AND_RECOVERY.md",
-                "docs/firmware/V1_ACCEPTANCE.md", "tasks/V1_REMAINING_PLAN.md", "android/README.md")
+                "docs/firmware/V1_ACCEPTANCE.md", "tasks/V1_REMAINING_PLAN.md",
+                "tasks/BACKLOG.md", "android/README.md")
 _HASH = r"[0-9a-fA-F]{64}"
 OT_HEADING_START = date(2026, 9, 8)
 _DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
@@ -31,9 +32,14 @@ _INLINE_START = re.compile(r"!?\[[^]\n]*\]\(\s*")
 _REFERENCE = re.compile(r"^\s{0,3}\[[^]\n]+\]:\s*(<[^>\n]+>|\S+)", re.MULTILINE)
 
 
-def prose_lines(text: str):
+def prose_lines(text: str, *, ignore_comment_blocks: bool = False):
     fence = None
+    comment_open = False
     for number, line in enumerate(text.splitlines(), 1):
+        if ignore_comment_blocks and fence is None and (
+                comment_open or re.match(r"^[ ]{0,3}<!--", line)):
+            comment_open = "-->" not in line
+            continue
         marker = re.match(r"^\s{0,3}(`{3,}|~{3,})", line)
         if marker:
             token = marker[1]
@@ -46,8 +52,8 @@ def prose_lines(text: str):
             yield number, line
 
 
-def headings(text: str):
-    for number, line in prose_lines(text):
+def headings(text: str, *, ignore_comment_blocks: bool = False):
+    for number, line in prose_lines(text, ignore_comment_blocks=ignore_comment_blocks):
         match = re.match(r"^(#{1,6})\s+(.+?)(?:\s+#+)?\s*$", line)
         if match:
             yield number, len(match[1]), match[2]
@@ -143,9 +149,35 @@ def current_text(relative: str, text: str) -> str:
         lines = text.splitlines()
         first = next((n for n, level, _ in headings(text) if level == 2), len(lines) + 1)
         return "\n".join(lines[:first - 1])
+    if relative == "tasks/BACKLOG.md":
+        lines = text.splitlines()
+        titles = list(headings(text, ignore_comment_blocks=True))
+        for index, (number, level, title) in enumerate(titles):
+            if level == 2 and title.casefold() == "historical execution sequence":
+                end = next((n - 1 for n, lev, _ in titles[index + 1:] if lev <= 2), None)
+                if end is not None:
+                    # Exclude only this bounded history, not the task rows after it.
+                    # Fenced examples cannot open or close the section.
+                    return "\n".join(lines[:number - 1] + [""] + lines[end:])
     if relative == "SECURITY.md":
         return text.split("## Retained security boundaries and historical admission summary", 1)[0]
     return text
+
+
+def backlog_passages(text: str):
+    """Keep backlog task rows separate and preserve soft wraps in prose."""
+    paragraph = []
+    for _, line in prose_lines(text, ignore_comment_blocks=True):
+        separate = line.lstrip().startswith(("|", "#"))
+        if paragraph and (not line.strip() or separate):
+            yield " ".join(paragraph)
+            paragraph = []
+        if separate:
+            yield line
+        elif line.strip():
+            paragraph.append(line)
+    if paragraph:
+        yield " ".join(paragraph)
 
 
 def diagnostic_record(progress: str, attempt: str):
@@ -191,11 +223,22 @@ def check_current_v1(root: Path) -> list[str]:
         if sum(level == 1 for _, level, _ in headings(texts[relative])) != 1:
             problems.append(f"{relative}: current reading document requires one level-one title")
         problems.extend(check_links(root, relative, texts[relative], strict=True))
-        prose = " ".join(line for _, line in prose_lines(texts[relative]))
-        if re.search(r"\b(?:next (?:action|step)|finish|continue)\b[^.!?]{0,180}\b(?:draft\s+)?PR\s*#?\s*71\b", prose, re.IGNORECASE):
+        pending_pr71 = r"\b(?:next (?:action|step)|finish|continue)\b[^.!?]{0,180}\b(?:draft\s+)?PR\s*#?\s*71\b"
+        if relative == "tasks/BACKLOG.md":
+            if any(level == 2 and title.casefold() == "current execution order"
+                   for _, level, title in headings(texts[relative], ignore_comment_blocks=True)):
+                problems.append(f"{relative}: retained execution sequence must be labeled historical; use current task/authority gates")
+            paragraphs = list(backlog_passages(texts[relative]))
+            instructions = paragraphs
+            pending_pr71 += r"|\bstill requires\b[^.!?]{0,180}\bdraft\s+PR\s*#?\s*71\b"
+        else:
+            instructions = [" ".join(line for _, line in prose_lines(texts[relative]))]
+            paragraphs = [" ".join(line for _, line in prose_lines(paragraph))
+                          for paragraph in re.split(r"\n\s*\n", texts[relative])]
+        if any(re.search(pending_pr71, passage, re.IGNORECASE) for passage in instructions):
             problems.append(f"{relative}: current instructions must use stable task/authority gates, not a temporary PR71 next step")
-        for paragraph in re.split(r"\n\s*\n", texts[relative]):
-            phrase = " ".join(line for _, line in prose_lines(paragraph)).lower()
+        for paragraph in paragraphs:
+            phrase = paragraph.lower()
             if re.match(r"\s*(?:[-*]\s*)?\*{0,2}historical\b", phrase):
                 continue
             if re.search(r"\bno (?:secure-lora implementation or )?(?:physical|bidirectional|phone-to-phone) (?:evidence|exchange|success|acceptance) exists\b", phrase):
