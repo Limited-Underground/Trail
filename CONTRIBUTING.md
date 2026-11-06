@@ -51,6 +51,13 @@ portable records without restoring older development or physical permissions.
   publication or main merge. Other product work remains frozen. Read the
   [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff) and owning
   dedicated Project; a board status or host test does not expand this authority.
+- **November 4 local editor exception.** The owner separately authorized the
+  bounded OT-0313 local-template-editor host slice while OT-0312 remains open.
+  It permits local edit/save/reload/refusal work only; composer, send/queue,
+  delivery, authenticated issuer, protected-store and transport admission remain
+  excluded. This is no publication, physical or release grant. Wio firmware code
+  waits for completion and required acceptance of Heltec V4 firmware, Android
+  and Firmware Loader.
 - **Recovery first.** The historical October 23, 2026 (America/New_York) bounded
   source-recovery acceptance then authorized ordinary host-only development.
   That approval does not override the current freeze. Its five recorded exceptions were:
@@ -108,6 +115,47 @@ portable records without restoring older development or physical permissions.
   only affected records. No duplicate journal is required. After an interruption,
   reconcile actual state before retrying a mutation. Missing evidence remains
   unknown; do not reconstruct it from a success summary.
+
+### Continuity closeout gate
+
+Read the current handoff and owning Project item before work; reuse unchanged
+instructions and consult only relevant technical references. Record the responsible
+role or named worker and exact edit scope in the existing owning task. Check
+existing claims/worktrees before overlapping edits. Re-read shared records just
+before writing; preserve intervening unrelated updates. Unclear ownership blocks
+only the overlapping work. A Project assignee or CI concurrency group is not a
+file lock. On transfer, identify the receiving role and whether it has accepted;
+otherwise record that the next worker is unassigned.
+
+Update affected task records at material transitions and before yielding. Before
+completion, update the existing current-status handoff, relevant progress entry
+and owning GitHub item; independently read back remote changes or state exactly
+what remains tracking-pending. No owner reminder is required. For interruption,
+record Interrupted, last success/first failure, exact source, remaining resources,
+blocker and next safe action when possible. A crash may prevent that write; the
+next agent must reconcile actual state before mutation.
+
+The single table between the current-handoff markers in docs/PROJECT_STATUS.md
+is a pickup summary, not a second task authority. Keep its reviewed date, task,
+owner/edit scope, state, source identity, verified outcome, blocker, next action,
+restrictions, latest progress-record heading and evidence-access boundary current.
+Link the latest exact task heading in PROGRESS_LOG.md; distinguish clone-visible
+summaries from maintainer-held evidence and local unintegrated candidates.
+
+The documentation checker validates those fields, the registered task and latest
+progress reference/date. CI also checks that development or detailed-evidence
+changes include both current status and progress-log changes. It cannot verify
+unrecorded/out-of-repository work, evidence truth, agent reading, ownership or GitHub
+updates. Local checks without --base-ref are structural only; use the relevant
+base revision for the comparison check. Do not invent completion to satisfy it.
+
+GitHub Projects owns live task scope, dependencies and status. Firmware uses
+[Project #1](https://github.com/orgs/Limited-Underground/projects/1); Android uses
+[Project #8](https://github.com/orgs/Limited-Underground/projects/8). Routine evidence
+and status updates within authorized task scope belong to closeout; report failed
+updates explicitly. Board status grants no hardware or publication authority.
+These portable Trail rules contain only the applicable continuity obligations;
+workspace routing and portfolio policy remain local and are not copied here.
 
 ## CI and publication cadence
 
