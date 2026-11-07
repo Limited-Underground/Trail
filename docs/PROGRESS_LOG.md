@@ -2,6 +2,17 @@
 
 ## 2026-11-07
 
+### OT-0313 Correct local editor focus and keyboard-visible actions
+
+The owner authorized a bounded local production correction and Note20 validation, with publication excluded. On accepted main `4c7579f59507c09292135f8787bd8f3ac6864018`, the isolated local-validation candidate keeps Save/Cancel outside the scrolling content, adds policy-bound Tab/Shift-Tab and IME Next form navigation, and gives repeated reorder/remove controls contextual descriptions. Multiline Tab insertion is a documented Compose default; the application-specific navigation change follows the existing control-free template policy. No storage/schema, authenticated composer, transport, firmware or backend change. The earlier seven-pass/two-blocked physical record is preserved.
+
+Final focused host validation passed six debug UI tests, 13 template tests in each variant and five affected release preferences tests, plus debug/release lint and 23 unchanged privacy/admission groups. A reviewed test source-set finding was corrected by placing the new suite only in testDebug; the release class output excludes it. Initial fixture/resource-path/assertion failures remain in private task evidence. The existing non-fatal preferences-fixture nullability warning remains disclosed.
+
+Standard debug APK SHA-256 `fa8b7e70d21b75dcb4979e4bb4fb0c100eb506fd3e772b1bc7dbc81799fb5713` was installed in place on the authorized Note20 after signer/data checks. Existing template and receipt bytes survived the update; automated physical tests observed reachable field/Save/Cancel with the Samsung keyboard visible, forward/reverse keyboard focus and Next, create/edit/cancel/save and force-stop/relaunch retention. With Samsung TalkBack actually enabled and the keyboard hidden, the owner reported correct names and matching blue outlines in both directions for the requested field, Save/Cancel and navigation controls. Automated tests separately covered keyboard-visible controls. Earlier unclear field-start instructions were not counted; an assisted starting selection at Save was used. This is bounded owner-reported screen-reader evidence, not tree-only or universal conformance. CLI navigation bounds alone did not establish an app defect, and shared navigation layout is unchanged.
+
+[Existing editor note](../android/docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md) retains scope and evidence limits. Source, APK, command/XML/screenshot and review receipts remain in the existing owner-held OT-0313 packet. Canonical dirty work and earlier evidence are preserved. The validation phase made no commit/push/PR/merge, new task, OT-0312 change or full OT-0313 Done claim. After the owner-confirmed TalkBack result, TalkBack was restored Off. The owner then authorized normal publication/merge of the independently reviewed correction, subject to required checks and reviews; [OT-0313](https://github.com/Limited-Underground/Trail/issues/117) and repository history record the actual publication outcome.
+
+
 ### OT-0313 Prepare reviewed SharedPreferences host tests for adoption
 
 Five focused Android-35 SharedPreferences host tests passed, native exit 0,
