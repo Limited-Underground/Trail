@@ -36,3 +36,48 @@ Exact source, command, result and review state are retained in the task-owned
 failures/errors/skips**, native exit 0, with all three source/test hashes
 unchanged before/after. Main/test Kotlin compiled; no APK was assembled.
 Independent review and shared-record integration remain with the coordinator.
+
+
+## Host Android preferences checkpoint — November 7, 2026
+
+The test-only increment adds `V1SharedPreferencesTest` with Robolectric 4.14.1
+and Android-35 framework classes. Its five focused tests passed with zero
+failures, errors or skips, native exit 0, and independent read-only review found
+no actionable defects. All 77 tracked Android production file hashes remained
+unchanged. This local candidate is not yet published or adopted.
+
+The tests write actual SharedPreferences XML, then use a distinct framework
+instance to parse it without the original instance's cache. They verify edited
+values and order, obsolete-key removal, empty saves, isolation from another
+preferences file, and malformed-type read refusal. Two filesystem faults replace
+only the temporary preference parent with a regular file: the actual framework
+commit returns false, prior XML bytes stay identical, and a fresh reader sees
+the prior durable values. In-memory values can still change on a failed commit;
+these checks do not equate failure with rollback. No mocked commit result is used.
+
+Run only this suite from `android` with:
+
+```text
+gradle :app:testDebugUnitTest --tests io.github.nbjelanovic.otclient.V1SharedPreferencesTest
+```
+
+The recorded final XML SHA-256 is
+`d3f753d17d570e2d1528cf2befef026d03bede6e810c0e310e4ba65f3156b183`.
+One non-fatal Kotlin platform-nullability warning remains at the fixture's
+`java.io.tmpdir` lookup. The unchanged five-test result is reused after proving
+the Android base tree equals the tested base, the test source bytes are unchanged,
+and the Gradle configuration differs from reviewed input only in CRLF-to-LF
+representation.
+No fresh hosted Android test or main-merge result is claimed.
+
+### Remaining process-death acceptance
+
+A new SharedPreferences instance in one JVM is not Android app process death.
+Robolectric simulates Android in a host JVM; killing a separate host JVM would
+only add host-process evidence, without exercising Android OS app termination
+and application relaunch. It does not meet the actual process-death requirement.
+That requirement needs an authorized Android runtime and a bounded app
+kill/relaunch path using the app's private store. Neither is supplied by this
+no-device/ADB host-only scope, so no proxy test or production seam was added.
+Rendered/IME/accessibility, process-death and device durability, and the existing
+OT-0312 authenticated-messaging dependency remain open.

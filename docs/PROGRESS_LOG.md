@@ -1,5 +1,24 @@
 # OpenTrail Progress Log
 
+## 2026-11-07
+
+### OT-0313 Prepare reviewed SharedPreferences host tests for adoption
+
+Five focused Android-35 SharedPreferences host tests passed, native exit 0,
+and independent review found no actionable defects. Actual XML save/reload and
+real failed commits preserve prior durable data, while failed commits can change
+in-memory values. The test-only payload was reconciled against published main
+`06da083ca1652a7ccd7362e1f9f52dac268558f1`; its complete Android base tree equals
+the tested base. Existing editor and production source remain unchanged.
+
+This local candidate is uncommitted and unpublished. The five-test proof is
+reused, not a new main or hosted run; its non-fatal fixture nullability warning
+remains. The [Android task note](../android/docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md#host-android-preferences-checkpoint--november-7-2026) records
+coverage and limits. Actual Android process death needs an authorized Android
+runtime and app kill/relaunch path; a host JVM proxy does not accept that gate.
+OT-0313 and OT-0312 remain open. No production, device/ADB, authentication or
+recovery work occurred.
+
 ## 2026-11-06
 
 ### OT-0340 Correct current guidance and guard backlog history
