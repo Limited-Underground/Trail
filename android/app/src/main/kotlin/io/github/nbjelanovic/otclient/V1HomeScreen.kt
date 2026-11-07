@@ -12,6 +12,15 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
@@ -171,7 +180,21 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
             onAction = { if (it == V1PeopleUiAction.Back) nearby = false })
         return
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+    val focusManager = LocalFocusManager.current
+    val fieldFocus = remember { FocusRequester() }
+    val saveFocus = remember { FocusRequester() }
+    val cancelFocus = remember { FocusRequester() }
+    val index = editingIndex
+    val formText = if (index == null) text else editText
+    fun candidate(): List<String>? {
+        if (editingIndex != index) return null
+        return if (index == null) V1QuickMessages.add(templates, text)
+            else editingOriginal?.let { V1QuickMessages.edit(templates, index, it, editText) }
+    }
+    val canSave = loadedTemplates != null && candidate() != null
+    // Keep actions outside the scrolling content so the IME cannot push them below it.
+    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Messages", style = MaterialTheme.typography.headlineMedium)
         TextButton(onClick = onConnect) { Text(connectionStatus) }
@@ -225,30 +248,26 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
                                 if (editingIndex == null && templates.getOrNull(index) == template)
                                     persist(V1QuickMessages.move(templates, index, -1))
                             },
-                                enabled = loadedTemplates != null && editingIndex == null && index > 0) { Text("Up") }
+                                enabled = loadedTemplates != null && editingIndex == null && index > 0,
+                                modifier = Modifier.semantics { contentDescription = "Move quick message ${index + 1} up" }) { Text("Up") }
                             TextButton(onClick = {
                                 if (editingIndex == null && templates.getOrNull(index) == template)
                                     persist(V1QuickMessages.move(templates, index, 1))
                             },
-                                enabled = loadedTemplates != null && editingIndex == null && index < templates.lastIndex) { Text("Down") }
+                                enabled = loadedTemplates != null && editingIndex == null && index < templates.lastIndex,
+                                modifier = Modifier.semantics { contentDescription = "Move quick message ${index + 1} down" }) { Text("Down") }
                             TextButton(onClick = {
                                 if (editingIndex == null && templates.getOrNull(index) == template)
                                     persist(templates.filterIndexed { i, _ -> i != index })
                             },
-                                enabled = loadedTemplates != null && editingIndex == null) { Text("Remove") }
+                                enabled = loadedTemplates != null && editingIndex == null,
+                                modifier = Modifier.semantics { contentDescription = "Remove quick message ${index + 1}" }) { Text("Remove") }
                         }
                     }
                 }
             }
         }
         if (editing) {
-            val index = editingIndex
-            val formText = if (index == null) text else editText
-            fun candidate(): List<String>? {
-                if (editingIndex != index) return null
-                return if (index == null) V1QuickMessages.add(templates, text)
-                    else editingOriginal?.let { V1QuickMessages.edit(templates, index, it, editText) }
-            }
             val staleEdit = index != null && (index !in templates.indices || templates[index] != editingOriginal)
             OutlinedTextField(value = formText, onValueChange = {
                 if (it.length <= V1QuickMessages.MAX_CHARS) {
@@ -257,14 +276,36 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
             }, enabled = loadedTemplates != null,
                 label = { Text(if (index == null) "Your quick message" else "Edit quick message") },
                 isError = formText.isNotEmpty() && candidate() == null,
-                modifier = Modifier.fillMaxWidth(), supportingText = {
+                // Templates reject control characters. Tab is form navigation here, not text,
+                // while the field still wraps long messages and keeps normal editing shortcuts.
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }),
+                modifier = Modifier.fillMaxWidth().focusRequester(fieldFocus)
+                    .focusProperties {
+                        next = if (canSave) saveFocus else if (index != null) cancelFocus else FocusRequester.Default
+                    }
+                    .onPreviewKeyEvent { event ->
+                        if (event.key == Key.Tab && !event.isCtrlPressed && !event.isAltPressed && !event.isMetaPressed) {
+                            if (event.type == KeyEventType.KeyDown) {
+                                focusManager.moveFocus(if (event.isShiftPressed) FocusDirection.Previous else FocusDirection.Next)
+                            }
+                            true
+                        } else false
+                    }, supportingText = {
                     Text(when {
                         staleEdit -> "This quick message changed. Cancel the edit before choosing it again."
                         formText.isNotEmpty() && candidate() == null -> "Use a unique message of 1–160 characters without control characters."
                         else -> "${formText.length}/160 · ${templates.size}/12 custom messages"
                     })
                 })
-            Button(onClick = {
+        }
+    }
+    if (editing) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(modifier = Modifier.weight(1f).heightIn(min = 48.dp).focusRequester(saveFocus)
+                .focusProperties { previous = fieldFocus; next = if (index != null) cancelFocus else FocusRequester.Default },
+                onClick = {
                 candidate()?.let { value ->
                     if (persist(value)) {
                         if (index == null) text = "" else {
@@ -274,17 +315,21 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
                         }
                     }
                 }
-            }, enabled = loadedTemplates != null && candidate() != null) {
+            }, enabled = canSave) {
                 Text(if (index == null) "Save quick message" else "Save changes")
             }
             if (index != null) {
-                OutlinedButton(onClick = {
+                OutlinedButton(modifier = Modifier.weight(1f).heightIn(min = 48.dp).focusRequester(cancelFocus)
+                    .focusProperties { previous = if (canSave) saveFocus else fieldFocus },
+                    onClick = {
+                    focusManager.clearFocus()
                     editingIndex = null
                     editingOriginal = null
                     editText = ""
                 }) { Text("Cancel edit") }
             }
         }
+    }
     }
 }
 
