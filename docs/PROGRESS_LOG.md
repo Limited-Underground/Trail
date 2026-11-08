@@ -1,5 +1,21 @@
 # OpenTrail Progress Log
 
+## 2026-11-08
+
+### OT-0101g Request-time coarse GNSS firmware bridge
+
+Connected the existing app-task GNSS observer to synchronized protected BLE
+snapshots, replacing the constant unknown placeholder. Six shared C++/Kotlin
+vectors, no-fix/fix, five-second expiry, malformed-NMEA retention, monotonic
+rollback and revision checks pass. Existing Android snapshot lifecycle and
+status projection tests pass without production Android changes. Unchanged
+authorization, 32-byte OTN0 and reserved-zero behavior are retained. Independent
+source/consumer review found no actionable findings. Target build and final
+task closeout are recorded on [OT-0101g](https://github.com/Limited-Underground/Trail/issues/214).
+Host implementation does not establish installed-device, continuous/numeric
+telemetry, reset/security or full-product acceptance. No public website
+capability claim or V1 completion credit changes.
+
 ## 2026-11-07
 
 ### OT-0313 Correct local editor focus and keyboard-visible actions

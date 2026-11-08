@@ -1,5 +1,6 @@
 #include "companion_public_profile_storage.hpp"
 #include "companion_nimble_runtime.hpp"
+#include "heltec_v4_gnss_snapshot.hpp"
 #include "confirmation_evaluation_config.hpp"
 #include "companion_connection_diagnostics.hpp"
 #if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
@@ -73,19 +74,17 @@ public:
     }
 };
 
+portMUX_TYPE g_snapshot_mux = portMUX_INITIALIZER_UNLOCKED;
+HeltecV4GnssSnapshot g_gnss_snapshot;
+
 class HeltecV4SnapshotAuthority final : public CompanionSnapshotAuthority {
 public:
     CompanionSnapshotAuthorityResult read_snapshot() override {
-        CompanionStatusSnapshot snapshot{};
-        snapshot.revision = 1;
-        snapshot.radio = CompanionRadioState::unavailable;
-        snapshot.gnss = CompanionGnssState::unknown;
-        snapshot.power = CompanionPowerState::unknown;
-        snapshot.position_sharing =
-            CompanionPositionSharingState::stopped;
-        snapshot.queued_action_count = 0;
-        snapshot.pending_critical_alert_id = 0;
-        return {CompanionAuthorityError::none, snapshot};
+        portENTER_CRITICAL(&g_snapshot_mux);
+        const auto result = g_gnss_snapshot.read(
+            static_cast<std::uint64_t>(esp_timer_get_time() / 1000));
+        portEXIT_CRITICAL(&g_snapshot_mux);
+        return result;
     }
 };
 
@@ -1464,6 +1463,13 @@ bool companion_nimble_host_stack_minimum_free_bytes(std::uint32_t& bytes) {
     return g_runtime_port.host_stack_minimum_free_bytes(bytes);
 }
 #endif
+
+void publish_companion_gnss_observation(
+    bool initialized, GnssFixObservation fix, std::uint64_t observed_at_ms) {
+    portENTER_CRITICAL(&g_snapshot_mux);
+    g_gnss_snapshot.publish(initialized, fix, observed_at_ms);
+    portEXIT_CRITICAL(&g_snapshot_mux);
+}
 
 CompanionBleRuntimeError service_companion_nimble_runtime(
     std::uint64_t now_ms) {

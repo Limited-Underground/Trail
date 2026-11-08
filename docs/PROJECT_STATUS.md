@@ -583,6 +583,18 @@ measurements. Owner review is pending; no candidate or operating limit is select
 
 ## Current GNSS and protected connection investigation
 
+The OT-0101g host bridge now publishes the app-owned coarse GNSS observation
+through the existing protected request-time snapshot. The unchanged Android
+codec and status consumer accept UNKNOWN, UNAVAILABLE, SEARCHING, CURRENT,
+STALE and FAULT using shared C++/Kotlin vectors. Expiry remains five seconds;
+callbacks perform no sensor acquisition. OTN0/v0, authorization and reserved
+bytes are unchanged; power remains unknown. This is a host candidate, not an
+installed-device result, continuous telemetry or numeric sensor support.
+See the [snapshot bridge](../firmware/targets/heltec_v4_bench/main/heltec_v4_gnss_snapshot.hpp)
+and [shared vectors](../tests/fixtures/heltec_v4_gnss_snapshots.txt).
+The original physical GNSS, reset and security acceptance requirements below
+remain open.
+
 OT-0101e remains in progress. The [one diagnostic A trial](../tests/hardware/OT-0101e-2026-09-25.md)
 showed GPS:6 / GPS FIX, then detected an `ot_ble_host` stack overflow and panic
 reboot during protected phone connection. The updated S24 app reached protected

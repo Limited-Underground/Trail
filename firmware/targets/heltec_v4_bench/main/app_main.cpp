@@ -317,8 +317,13 @@ extern "C" void app_main() {
     ESP_LOGI(kLogTag, "companion runtime started");
 
     if (!g_gnss.initialize()) {
-        ESP_LOGW(kLogTag, "GNSS unavailable; GPS status remains unknown");
+        ESP_LOGW(kLogTag, "GNSS unavailable; GPS status is unavailable");
     }
+    const auto gnss_started_ms =
+        static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+    opentrail::target::heltec_v4_bench::publish_companion_gnss_observation(
+        g_gnss.initialized(),
+        g_gnss.fix(gnss_started_ms, kGnssFreshForMs), gnss_started_ms);
     if (!opentrail::heltec_v4::battery_init()) {
         ESP_LOGW(kLogTag, "battery ADC unavailable; battery status remains unknown");
     }
@@ -414,6 +419,9 @@ extern "C" void app_main() {
         }
 #endif
         g_gnss.service(elapsed_ms);
+        opentrail::target::heltec_v4_bench::publish_companion_gnss_observation(
+            g_gnss.initialized(),
+            g_gnss.fix(elapsed_ms, kGnssFreshForMs), elapsed_ms);
         if (elapsed_ms >= next_gnss_diagnostic_ms) {
             const auto counts = g_gnss.diagnostics();
             ESP_LOGI(kLogTag,
