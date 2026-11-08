@@ -724,6 +724,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'Heltec V4 request-time GNSS snapshot bridge'
+        Output = Join-Path $buildDirectory 'heltec_v4_gnss_snapshot_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_v4_gnss.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'tests\host\heltec_v4_gnss_snapshot_tests.cpp')
+        )
+    },
+    @{
         Name = 'restricted companion GATT authorization lifecycle'
         Output = Join-Path $buildDirectory 'companion_gatt_authorization_tests.exe'
         Sources = @(

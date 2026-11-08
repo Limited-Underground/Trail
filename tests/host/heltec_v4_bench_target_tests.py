@@ -215,6 +215,7 @@ def test_contract() -> None:
         "main/heltec_v4_battery.hpp",
         "main/heltec_v4_gnss.cpp",
         "main/heltec_v4_gnss.hpp",
+        "main/heltec_v4_gnss_snapshot.hpp",
         "main/heltec_v4_factory_reset_input.cpp",
         "main/heltec_v4_factory_reset_input.hpp",
         "main/heltec_enrollment_input_arbiter.cpp",
@@ -3197,6 +3198,8 @@ def test_factory_reset_surfaces() -> None:
 
 def test_live_heltec_snapshot_authority_mapping() -> None:
     runtime = NIMBLE_RUNTIME.read_text(encoding="utf-8")
+    helper = (TARGET / "main/heltec_v4_gnss_snapshot.hpp").read_text(
+        encoding="utf-8")
 
     denied = re.search(
         r"class DeniedSnapshotAuthority final.*?^};",
@@ -3225,35 +3228,71 @@ def test_live_heltec_snapshot_authority_mapping() -> None:
     require(admitted is not None,
             "missing truthful Heltec snapshot authority")
     authority = admitted.group(0)
+    require("HeltecV4GnssSnapshot g_gnss_snapshot;" in runtime and
+            "portMUX_TYPE g_snapshot_mux = portMUX_INITIALIZER_UNLOCKED;" in runtime,
+            "Heltec authority must bind the complete synchronized GNSS publication")
+    read = "g_gnss_snapshot.read("
+    require(authority.count(read) == 1 and
+            authority.index("portENTER_CRITICAL(&g_snapshot_mux)") <
+            authority.index(read) <
+            authority.index("portEXIT_CRITICAL(&g_snapshot_mux)") <
+            authority.index("return result;"),
+            "Heltec authority must return one locked request-time snapshot")
+    require("esp_timer_get_time() / 1000" in authority,
+            "snapshot freshness must use the target monotonic clock")
+    for forbidden in ("uart_", "adc_", "nvs_", "g_gnss."):
+        require(forbidden not in authority,
+                f"snapshot callback must not acquire sensor/storage state: {forbidden}")
+    publication = runtime.split("void publish_companion_gnss_observation(", 1)[1].split(
+        "CompanionBleRuntimeError service_companion_nimble_runtime(", 1)[0]
+    require(publication.index("portENTER_CRITICAL(&g_snapshot_mux)") <
+            publication.index("g_gnss_snapshot.publish(initialized, fix, observed_at_ms)") <
+            publication.index("portEXIT_CRITICAL(&g_snapshot_mux)") and
+            "publish_companion_gnss_observation(" in SOURCE.read_text(encoding="utf-8"),
+            "the app task must publish a complete observation under the same lock")
+    snapshot_body = helper.split(
+        "[[nodiscard]] companion::CompanionSnapshotAuthorityResult read(", 1)[1].split(
+        "private:", 1)[0]
     require(re.search(
         r"\bCompanionStatusSnapshot\s+snapshot\s*\{\s*\}\s*;",
-        authority,
+        snapshot_body,
     ) is not None, "Heltec authority must build one explicit snapshot value")
     assignments = (
-        (r"\bsnapshot\.revision\s*=\s*1(?:[uUlL]{0,3})?\b\s*;",
-         "revision 1"),
+        (r"\bsnapshot\.revision\s*=\s*revision_\s*;",
+         "coherent observation revision"),
         (r"\bsnapshot\.radio\s*=\s*"
          r"CompanionRadioState::unavailable\s*;", "radio unavailable"),
-        (r"\bsnapshot\.gnss\s*=\s*CompanionGnssState::unknown\s*;",
-         "GNSS unknown"),
+        (r"\bsnapshot\.gnss\s*=\s*state_\s*;",
+         "published coarse GNSS state"),
         (r"\bsnapshot\.power\s*=\s*CompanionPowerState::unknown\s*;",
          "power unknown"),
         (r"\bsnapshot\.position_sharing\s*=\s*"
          r"CompanionPositionSharingState::stopped\s*;",
          "position sharing stopped"),
-        (r"\bsnapshot\.queued_action_count\s*=\s*0(?:[uUlL]{0,3})?\b\s*;",
-         "empty action queue"),
-        (r"\bsnapshot\.pending_critical_alert_id\s*=\s*"
-         r"0(?:[uUlL]{0,3})?\b\s*;", "no pending critical alert"),
     )
     for pattern, description in assignments:
-        require(len(re.findall(pattern, authority)) == 1,
+        require(len(re.findall(pattern, snapshot_body)) == 1,
                 f"Heltec snapshot must assign exactly one {description}")
-    require(authority.count("snapshot.") == len(assignments),
-            "Heltec fixed snapshot must not mutate undocumented fields")
+    require(snapshot_body.count("snapshot.") == len(assignments),
+            "Heltec snapshot must not mutate undocumented fields")
+    semantics = (ROOT / "firmware/components/companion/include/opentrail/"
+                 "companion_semantics.hpp").read_text(encoding="utf-8")
+    defaults = re.search(r"struct CompanionStatusSnapshot\s*\{.*?^};",
+                         semantics, flags=re.MULTILINE | re.DOTALL)
+    require(defaults is not None, "snapshot value defaults must remain explicit")
+    for field in ("queued_action_count", "pending_critical_alert_id"):
+        require(re.search(r"\b" + field + r"\s*\{\s*0\s*\}\s*;", defaults.group(0))
+                is not None,
+                f"value-initialized snapshot must retain zero {field}")
+    require("std::uint32_t revision_{1};" in helper and
+            "if (exhausted_) return {CompanionAuthorityError::not_ready, {}};" in helper,
+            "snapshot revisions must start nonzero and fail closed at exhaustion")
+    for state in ("unknown", "unavailable", "searching", "current", "stale", "fault"):
+        require("CompanionGnssState::" + state in helper,
+                f"GNSS bridge must retain the accepted {state} mapping")
     require(re.search(
         r"return\s*\{\s*CompanionAuthorityError::none\s*,\s*snapshot\s*\}\s*;",
-        authority,
+        snapshot_body,
     ) is not None,
             "Heltec authority must return the exact populated snapshot as ready")
 

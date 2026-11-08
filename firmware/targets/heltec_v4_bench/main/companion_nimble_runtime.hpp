@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "heltec_v4_gnss.hpp"
 
 #include "opentrail/companion_ble_runtime_owner.hpp"
 #include "opentrail/companion_pairing_window.hpp"
@@ -39,6 +40,11 @@ start_companion_nimble_runtime(
 // re-advertising and the host-sync watchdog, and performs no device logging.
 [[nodiscard]] companion::CompanionBleRuntimeError
 service_companion_nimble_runtime(std::uint64_t now_ms);
+
+// App task only: publish a complete coarse GNSS observation. No acquisition,
+// callbacks, unsolicited notification or authorization change is performed.
+void publish_companion_gnss_observation(
+    bool initialized, GnssFixObservation fix, std::uint64_t observed_at_ms);
 
 // Evaluation admission only; known runtime faults are sticky before queued
 // lifecycle work is drained. This performs no SDK, storage, or crypto work.
