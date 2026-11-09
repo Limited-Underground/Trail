@@ -91,6 +91,12 @@ class OutboundCounterAllocator {
 public:
     explicit OutboundCounterAllocator(OutboundCounterLeaseStore& store);
 
+    // A live lease cursor has exactly one owner; cloning it reuses counters.
+    OutboundCounterAllocator(const OutboundCounterAllocator&) = delete;
+    OutboundCounterAllocator& operator=(const OutboundCounterAllocator&) = delete;
+    OutboundCounterAllocator(OutboundCounterAllocator&&) = delete;
+    OutboundCounterAllocator& operator=(OutboundCounterAllocator&&) = delete;
+
     [[nodiscard]] OutboundCounterError start(
         const OutboundCounterLeaseRequest& request);
     [[nodiscard]] OutboundCounterAllocation next();
