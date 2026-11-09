@@ -1,5 +1,22 @@
 # OpenTrail Progress Log
 
+## 2026-11-09
+
+### OT-0237c Preserve exclusive outbound counter lease ownership
+
+Prohibited copy and move operations on the live outbound counter allocator,
+preventing a cloned lease cursor from returning a previously allocated counter.
+The existing host lease suite now enforces all four ownership traits at compile
+time. Historical operator test fixtures reconstruct the exact earlier
+header bytes required by their frozen build reports; current allocator changes
+are not substituted into historical candidates. The admission checks and original
+source/evidence pins remain unchanged. Existing lease, key-value composition and direct-consumer validation passed;
+independent source review found no actionable findings. Counter reservation,
+persistence formats and wire behavior are unchanged. This host correction does
+not accept target interruption, replay/retirement, production security or device
+operation. Full [OT-0237c](https://github.com/Limited-Underground/Trail/issues/204)
+remains open; no public website or V1 acceptance credit changes.
+
 ## 2026-11-08
 
 ### OT-0101g Request-time coarse GNSS firmware bridge

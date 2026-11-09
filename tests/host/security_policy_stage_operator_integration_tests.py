@@ -1,5 +1,6 @@
 """Actual stage custody/worker/ROM child/backend/Endpoint; synthetic physical boundary."""
 from pathlib import Path
+from frozen_build_source_fixture import pinned_source
 from types import SimpleNamespace
 import contextlib,copy,hashlib,importlib,io,json,sys,tempfile,time,unittest
 from unittest.mock import patch
@@ -22,8 +23,8 @@ class Tests(unittest.TestCase):
   for name in bundle.SOURCE_PATHS:
    p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((ROOT/name).read_bytes());self.ctx['manifest']['files']['policy/'+p.name]={'bytes':p.stat().st_size,'sha256':sha(p.read_bytes())}
   report=json.loads((ROOT/bundle.REPORT).read_bytes())
-  for name in report['source_pins']:
-   p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((ROOT/name).read_bytes())
+  for name, pin in report['source_pins'].items():
+   p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(pinned_source(ROOT, name, pin))
   p=self.root/bundle.REPORT;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((ROOT/bundle.REPORT).read_bytes())
   self.candidate=self.root/'candidate.bin';self.candidate.write_bytes(b'C'*bundle.CANDIDATE_SIZE)
   self.flash={};self.trace=[];self.child_errors=[];self.now=time.monotonic();self.empty=False;self.failed_observation=False;self.replay=False;self.fail_preflight=False

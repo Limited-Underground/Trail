@@ -499,6 +499,15 @@ binds the completed corpus and identifies the remaining target/product lifecycle
 gates. Libsodium remains the evaluation recommendation; Phase3 and production
 crypto/wire selection remain withheld. No V1 credit.
 
+The outbound counter allocator now prohibits copying and moving its live lease
+cursor. The existing host lease suite enforces exclusive ownership at compile
+time; counter reservation and storage formats are unchanged. Historical operator
+fixtures use the exact original build input rather than current counter source;
+their runtime integrity checks and evidence pins are unchanged. See the
+[host correction record](PROGRESS_LOG.md#ot-0237c-preserve-exclusive-outbound-counter-lease-ownership).
+Full OT-0237c target interruption, replay/retirement and production security
+admission remain open.
+
 The [OT-235 host candidate](testing/OT-235-PEER-TRAFFIC-INTEGRATION-2026-09-15.md)
 composes independent local confirmation, authenticated peer activation, durable
 activation readback and encrypted fixed-status exchange. Fresh-only receipt and
