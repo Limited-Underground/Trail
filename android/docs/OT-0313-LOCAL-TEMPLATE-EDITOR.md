@@ -92,3 +92,35 @@ The field still wraps long messages. [Compose normally inserts Tab characters in
 Six real composed debug-host UI tests cover keyboard-sized viewport actions, minimum target sizes, forward/reverse traversal, invalid Save skipping/Cancel retention, IME Next/save wiring and contextual descriptions. They belong only in src/testDebug because the test activity is a debug fixture. Thirteen template tests pass per variant; five release SharedPreferences tests check the affected resource-enabled host setup. Both lint checks and 23 privacy/admission groups pass. Host tests are not TalkBack acceptance.
 
 The matching-signer Note20 update of the standard debug app retained prior data. Automated physical observations verify keyboard-visible field/actions, Tab/Shift-Tab and Samsung Next focus, create/edit/cancel/save and force-stop/relaunch. APK SHA-256 is `fa8b7e70d21b75dcb4979e4bb4fb0c100eb506fd3e772b1bc7dbc81799fb5713`; exact modified-source hashes and all first failures are retained in the existing private task packet. With actual Samsung TalkBack on and the keyboard hidden, the owner reported correct names and outlines in both directions for the field, Save/Cancel and navigation destinations. Automated checks separately covered keyboard-visible actions. The accepted check used an assisted starting selection at Save after earlier unclear instructions and text-selection popup handling; it is bounded owner-reported evidence, not full accessibility conformance. Original evidence/worktrees remain intact. Physical failed-write injection, full OT-0313 composer acceptance and OT-0312 remain open. The validation scope excluded publication, messaging/RF and other product changes. The owner subsequently authorized the exact reviewed correction through normal commit/PR/required-check/merge verification. The existing [OT-0313 issue](https://github.com/Limited-Underground/Trail/issues/117) and repository history record actual adoption; the prior checkpoint is not a claim that publication occurred earlier. TalkBack was restored to its original Off state after the check.
+
+## Composed editor write-failure acceptance - November 9, 2026
+
+On adopted base `fba056a6d62fffdc9d6ffc47bfa9379bb28eb306`, four new
+[debug-host tests](../app/src/testDebug/kotlin/io/github/nbjelanovic/otclient/V1EditorWriteFailureTest.kt)
+exercise the actual editor together with Android-35 `SharedPreferencesImpl`.
+The earlier storage-only failure tests did not compose the editor, and the six
+accepted UI tests covered successful interaction. Those unchanged results and
+the physical Note20/TalkBack evidence were reused rather than rerun.
+
+The new cases cover failed add, failed edit, failed reorder/removal, and an
+unreadable stored type. A real blocked-parent filesystem fixture is confined to
+the test worker's temporary app data; no mocked commit result or production
+persistence seam is used. Failed writes retain the draft and displayed list/order,
+show save uncertainty, and preserve the prior durable XML. Once the fixture is
+restored, an explicit retry becomes durable as verified by a distinct actual
+framework reader. An unreadable store disables editing without rewriting it.
+Android's same-process cache may change after a failed commit; the tests do not
+equate that cache with successful persistence or rollback.
+
+The final filtered `:app:testDebugUnitTest` run passed all four cases with no
+failures, errors or skips. The first run passed add/edit but exposed two test
+assumptions: clipped coordinates do not establish list order, and a disabled
+field exposes no SetText action. The corrected assertions use semantic tree order
+and the field label. Both runs are preserved. The pre-existing nullability warning
+in `V1SharedPreferencesTest` remains; no warning-free claim is made.
+
+This is new host acceptance of existing production behavior, not a production
+code correction, device write-fault acceptance or Android process-death proof.
+No APK, installation, signing, firmware, transport or authentication operation was
+performed. The candidate is local and uncommitted; independent review and any
+publication remain separate. OT-0313 and OT-0312 remain open.
