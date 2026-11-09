@@ -17,6 +17,19 @@ not accept target interruption, replay/retirement, production security or device
 operation. Full [OT-0237c](https://github.com/Limited-Underground/Trail/issues/204)
 remains open; no public website or V1 acceptance credit changes.
 
+### OT-0313 Cover composed local-editor storage failures
+
+Added four composed editor host cases using actual framework preference files:
+failed add, edit, reorder/removal and unreadable stored data. Failed writes retain
+the draft and visible entries, show uncertainty and preserve durable XML; only
+an explicit successful retry publishes durable changes. An unreadable stored
+type disables editing without rewriting the record. All four cases and the
+48 documentation fixtures pass; independent review found no actionable findings.
+Initial test-coordinate and disabled-input assumptions were corrected and retained.
+Production source is unchanged; this is host simulation, not physical disk-full,
+power-loss or device acceptance. Full OT-0313 and OT-0312 remain open pending
+real authority/transport integration. No V1 or website credit changes.
+
 ## 2026-11-08
 
 ### OT-0101g Request-time coarse GNSS firmware bridge
