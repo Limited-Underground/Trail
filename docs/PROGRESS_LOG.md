@@ -7,7 +7,10 @@
 Prohibited copy and move operations on the live outbound counter allocator,
 preventing a cloned lease cursor from returning a previously allocated counter.
 The existing host lease suite now enforces all four ownership traits at compile
-time. Existing lease, key-value composition and direct-consumer validation passed;
+time. Historical operator test fixtures reconstruct the exact earlier
+header bytes required by their frozen build reports; current allocator changes
+are not substituted into historical candidates. The admission checks and original
+source/evidence pins remain unchanged. Existing lease, key-value composition and direct-consumer validation passed;
 independent source review found no actionable findings. Counter reservation,
 persistence formats and wire behavior are unchanged. This host correction does
 not accept target interruption, replay/retirement, production security or device

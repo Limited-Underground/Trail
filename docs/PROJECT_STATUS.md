@@ -501,7 +501,9 @@ crypto/wire selection remain withheld. No V1 credit.
 
 The outbound counter allocator now prohibits copying and moving its live lease
 cursor. The existing host lease suite enforces exclusive ownership at compile
-time; counter reservation and storage formats are unchanged. See the
+time; counter reservation and storage formats are unchanged. Historical operator
+fixtures use the exact original build input rather than current counter source;
+their runtime integrity checks and evidence pins are unchanged. See the
 [host correction record](PROGRESS_LOG.md#ot-0237c-preserve-exclusive-outbound-counter-lease-ownership).
 Full OT-0237c target interruption, replay/retirement and production security
 admission remain open.
