@@ -539,8 +539,7 @@ PortableUiShellResult PortableUiShell::prepare_input() {
     if (shell_status_.mode == PortableUiShellMode::inactive ||
         shell_status_.mode == PortableUiShellMode::closed ||
         shell_status_.mode == PortableUiShellMode::faulted ||
-        shell_status_.mode == PortableUiShellMode::system_fault ||
-        shell_status_.mode == PortableUiShellMode::request_pending) {
+        shell_status_.mode == PortableUiShellMode::system_fault) {
         return reject(PortableUiShellError::invalid_state);
     }
     const auto resolved = local_interface_.poll_action();
@@ -701,6 +700,11 @@ PortableUiShellResult PortableUiShell::prepare_input() {
             }
             if (deferred_request_failure_kind_ ==
                 PortableUiRequestKind::message_template_send) {
+                if (shell_status_.selected_template_id == 0) {
+                    return offer(PortableUiShellMode::message_compose,
+                                 snapshot_,
+                                 PendingEffect::acknowledge_request_failure);
+                }
                 return offer(
                     PortableUiShellMode::message_compose_confirmation,
                     snapshot_, PendingEffect::acknowledge_request_failure,
@@ -730,6 +734,10 @@ PortableUiShellResult PortableUiShell::prepare_input() {
                 PendingEffect::acknowledge_request_failure);
         default: {
             const auto kind = request_for(resolved.action);
+            // View navigation never releases ownership of an in-flight request.
+            if (shell_status_.pending_request_id != 0) {
+                return reject(PortableUiShellError::invalid_state);
+            }
             if (kind == PortableUiRequestKind::none) {
                 latch(PortableUiShellError::unexpected_action);
                 return reject(PortableUiShellError::unexpected_action);
@@ -794,9 +802,11 @@ PortableUiShellResult PortableUiShell::prepare_refresh(
         snapshot, has_acknowledged_recovery_, acknowledged_recovery_word_);
     const bool request_in_flight = shell_status_.pending_request_id != 0;
     if (request_in_flight) {
-        mode = root == PortableUiShellMode::system_fault
-                   ? PortableUiShellMode::system_fault
-                   : PortableUiShellMode::request_pending;
+        if (root == PortableUiShellMode::system_fault) {
+            mode = PortableUiShellMode::system_fault;
+        } else if (mode == PortableUiShellMode::system_fault) {
+            mode = PortableUiShellMode::request_pending;
+        }
     } else if (root != PortableUiShellMode::home) {
         mode = root;
     } else if (mode == PortableUiShellMode::recovery_notice ||
@@ -808,8 +818,7 @@ PortableUiShellResult PortableUiShell::prepare_refresh(
     auto message_page = shell_status_.message_page;
     auto selected_template_id = shell_status_.selected_template_id;
     auto selected_message_sequence = shell_status_.selected_message_sequence;
-    if (!request_in_flight &&
-        snapshot.bridge_session_epoch != snapshot_.bridge_session_epoch) {
+    if (snapshot.bridge_session_epoch != snapshot_.bridge_session_epoch) {
         if (mode == PortableUiShellMode::quick_status_first ||
             mode == PortableUiShellMode::quick_status_second ||
             mode == PortableUiShellMode::critical_confirmation) {
@@ -824,14 +833,13 @@ PortableUiShellResult PortableUiShell::prepare_refresh(
         selected_template_id = 0;
         selected_message_sequence = 0;
     }
-    if (!request_in_flight && mode == PortableUiShellMode::message_detail &&
+    if (mode == PortableUiShellMode::message_detail &&
         message_by_sequence(snapshot, selected_message_sequence) == nullptr) {
         mode = PortableUiShellMode::message_center;
         message_page = 0;
         selected_message_sequence = 0;
     }
-    if (!request_in_flight &&
-        (mode == PortableUiShellMode::message_inbox ||
+    if ((mode == PortableUiShellMode::message_inbox ||
          mode == PortableUiShellMode::message_outbox)) {
         const auto list_kind = mode == PortableUiShellMode::message_inbox
                                    ? ui::UiMessageListKind::inbox
@@ -876,8 +884,9 @@ PortableUiShellResult PortableUiShell::prepare_completion(
     if (pending_.present) {
         return reject(PortableUiShellError::pending_offer);
     }
-    if ((shell_status_.mode != PortableUiShellMode::request_pending &&
-         shell_status_.mode != PortableUiShellMode::system_fault) ||
+    if (shell_status_.mode == PortableUiShellMode::inactive ||
+        shell_status_.mode == PortableUiShellMode::closed ||
+        shell_status_.mode == PortableUiShellMode::faulted ||
         request_id == 0 || request_id != shell_status_.pending_request_id ||
         request_kind == PortableUiRequestKind::none ||
         request_kind != shell_status_.pending_request_kind ||
@@ -887,7 +896,9 @@ PortableUiShellResult PortableUiShell::prepare_completion(
         (succeeded && bridge_request(request_kind) &&
          (applied_bridge_session_epoch == 0 ||
          applied_bridge_session_epoch !=
-              shell_status_.pending_request_bridge_session_epoch)) ||
+              shell_status_.pending_request_bridge_session_epoch ||
+          snapshot.bridge_session_epoch != applied_bridge_session_epoch ||
+          snapshot_.bridge_session_epoch != applied_bridge_session_epoch)) ||
         (succeeded && !bridge_request(request_kind) &&
          (applied_bridge_session_epoch != 0 || applied_message_sequence != 0)) ||
         (!succeeded &&
@@ -926,7 +937,7 @@ PortableUiShellResult PortableUiShell::prepare_completion(
                         shell_status_.pending_request_bridge_session_epoch ||
                     message_by_sequence(
                         snapshot,
-                        shell_status_.selected_message_sequence) == nullptr
+                        shell_status_.pending_request_message_sequence) == nullptr
                 ? PortableUiShellMode::message_inbox
                 : PortableUiShellMode::message_detail;
     }
@@ -950,12 +961,12 @@ PortableUiShellResult PortableUiShell::prepare_completion(
          request_kind == PortableUiRequestKind::message_template_send) ||
                 !same_request_epoch
             ? 0
-            : shell_status_.selected_template_id,
+            : shell_status_.pending_request_template_id,
         (succeeded &&
          request_kind == PortableUiRequestKind::message_template_send) ||
                 !same_request_epoch
             ? 0
-            : shell_status_.selected_message_sequence);
+            : shell_status_.pending_request_message_sequence);
 }
 
 PortableUiShellResult PortableUiShell::commit_present(
@@ -1485,6 +1496,8 @@ ui::UiFrame PortableUiShell::frame_for(
             frame.notice = request_kind == PortableUiRequestKind::critical_alert
                                ? ui::UiNotice::critical_alert_pending
                                : ui::UiNotice::none;
+            frame.action_count = 1;
+            frame.actions[0] = {ui::UiAction::cancel, true};
             break;
         case PortableUiShellMode::request_failed:
             frame.screen = ui::UiScreen::status;
@@ -1534,6 +1547,30 @@ PortableUiShellResult PortableUiShell::offer(
     auto frame = frame_for(mode, revision, snapshot, request_kind,
                            message_page, selected_template_id,
                            selected_message_sequence, sidecar);
+    const bool request_in_flight =
+        shell_status_.pending_request_id != 0 &&
+        effect != PendingEffect::complete_request &&
+        effect != PendingEffect::complete_request_failed;
+    if (request_in_flight) {
+        // Keep the existing single-operation bound while permitting read-only
+        // navigation. Back is a view action, never a transport cancellation.
+        for (std::size_t index = 0; index < frame.action_count; ++index) {
+            const auto action = frame.actions[index].action;
+            if (request_for(action) != PortableUiRequestKind::none ||
+                action == ui::UiAction::open_quick_status_menu ||
+                action == ui::UiAction::open_critical_confirmation ||
+                action == ui::UiAction::open_archive_controls ||
+                action == ui::UiAction::open_compose) {
+                frame.actions[index].enabled = false;
+            }
+        }
+        if (sidecar.messages.detail_acknowledge_available) {
+            sidecar.messages.detail_acknowledge_available = false;
+            frame.actions[0] = frame.actions[1];
+            frame.actions[1] = {};
+            --frame.action_count;
+        }
+    }
     const auto validation = local_interface_.validate_candidate(frame);
     if (validation != ui::PresentError::none ||
         !ui::valid_portable_ui_presentation(frame, sidecar)) {

@@ -10,8 +10,11 @@ internal static class Program
     private static int passed;
 
     [STAThread]
-    private static int Main()
+    private static int Main(string[] args)
     {
+        var hostOnly = args.SequenceEqual(["--host-only"]);
+        if (args.Length != 0 && !hostOnly)
+            throw new ArgumentException("Supported optional argument: --host-only");
         var application = new App { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         application.InitializeComponent();
         Run("theme round trip", ThemeRoundTrip);
@@ -23,11 +26,17 @@ internal static class Program
         Run("deterministic circular LCD scales", DeterministicCircularLcdScales);
         Run("core presenter copy remains bridge-local", CorePresenterCopyRemainsBridgeLocal);
         Run("request completion sends exactly once", RequestCompletionSendsExactlyOnce);
+        Run("pending producer leaves native navigation responsive", PendingProducerLeavesNativeNavigationResponsive);
+        Run("timeout and cancellation retire late producer success", TimeoutAndCancellationRetireLateProducerSuccess);
+        Run("stale connection never restores native Ready", StaleConnectionNeverRestoresNativeReady);
+        Run("failed and uncertain operation evidence remain distinct", FailedAndUncertainOperationEvidenceRemainDistinct);
         Run("snapshot during blocked start reaches native UI", SnapshotDuringBlockedStartReachesNativeUi);
         Run("snapshot refresh burst is bounded and touch remains live", SnapshotRefreshBurstIsBoundedAndTouchRemainsLive);
         Run("dual LCD native request crosses local bridge", DualLcdNativeRequestCrossesLocalBridge);
-        Run("second native session failure rolls startup back", SecondNativeSessionFailureRollsStartupBack);
-        Console.WriteLine($"OpenTrail simulator UI tests passed: {passed}/13");
+        if (!hostOnly)
+            Run("second native session failure rolls startup back", SecondNativeSessionFailureRollsStartupBack);
+        Console.WriteLine($"Trail simulator UI tests passed: {passed}/{(hostOnly ? 16 : 17)}" +
+            (hostOnly ? " (host-only; hardware runtime composition excluded)" : string.Empty));
         return 0;
     }
 
@@ -386,15 +395,188 @@ internal static class Program
         var emitted = PortableUiProtocolParser.Parse(
             "COMMITTED|2|1|1|2|7|5|42|0|0|0|-");
         Require(emitted.Disposition == 2, "Request-emitted disposition was lost.");
-        window.DispatchCommittedRequestForTestAsync(emitted).GetAwaiter().GetResult();
+        var dispatched = window.DispatchCommittedRequestForTestAsync(emitted);
+        PumpUntil(() => dispatched.IsCompleted);
+        dispatched.GetAwaiter().GetResult();
         var completion = PortableUiProtocolParser.Parse(
             "COMMITTED|2|1|2|1|7|5|42|0|0|0|-");
         window.DispatchCommittedRequestForTestAsync(completion).GetAwaiter().GetResult();
+        window.DispatchCommittedRequestForTestAsync(emitted).GetAwaiter().GetResult();
         Require(presenter.CriticalAlertCount == 1,
             "One critical firmware request did not produce exactly one bridge send.");
         Require(session.CompleteCount == 1,
             "The exact request was not completed exactly once.");
     }
+
+    private static void PendingProducerLeavesNativeNavigationResponsive()
+    {
+        var presenter = new FakePresenter(Snapshot("Client A", "Simulated device A", 42,
+            [UiMessage(1, "Incoming field note")]));
+        var release = new TaskCompletionSource<SimulatorUiCommandAdmission>(TaskCreationOptions.RunContinuationsAsynchronously);
+        presenter.TemplateOverride = (_, _, _) => release.Task;
+        var window = new VirtualLcdWindow(presenter, new NativePortableUiSession(NativePath));
+        try
+        {
+            ShowOffscreen(window);
+            BeginTemplateRequest(window);
+            var pendingRevision = window.CurrentOffer!.Revision;
+            ClickAction(window, 0, 0); // Back is not cancellation.
+            Require(window.HasUnresolvedOperationForTest, "Back canceled or lost the operation owner.");
+            Require(!window.CurrentOffer!.Actions[2].Enabled, "A duplicate quick status was offered.");
+            ClickAction(window, 1, 7);
+            Require(!window.CurrentOffer!.Actions[2].Enabled, "Compose was offered during an active request.");
+            ClickAction(window, 0, 8);
+            ClickAction(window, 0, 9);
+            Require(window.CurrentOffer!.OwnedTexts.Any(text => text.Text == "Incoming field note"),
+                "Native inbox reading did not remain usable during the delayed producer.");
+            presenter.Publish(presenter.Snapshot with { Messages =
+                [UiMessage(1, "Incoming field note"), OutboundUiMessage(2, "Checking in")] });
+            release.SetResult(new(42, 2));
+            PumpUntil(() => window.OperationStateForTest == SimulatorUiOperationState.Confirmed &&
+                !window.HasUnresolvedOperationForTest && window.InteractiveCommandReadyForTest);
+            Require(window.CurrentOffer!.Revision > pendingRevision && window.CurrentOffer.Messages.ListKind == 2,
+                "Completion did not use the latest navigated revision and show the native outbox.");
+            Require(window.OperationTextForTest.Contains("Recipient delivery", StringComparison.Ordinal) &&
+                window.OperationTextForTest.Contains("unverified", StringComparison.Ordinal),
+                "Confirmed local admission was promoted to peer delivery.");
+            Require(presenter.TemplateCount == 1, "Navigation caused duplicate dispatch.");
+            SaveRenderedWindow(window, "trail-console-local-admission.png");
+        }
+        finally { window.Close(); PumpUntil(() => !window.IsVisible); }
+    }
+
+    private static void TimeoutAndCancellationRetireLateProducerSuccess()
+    {
+        foreach (var cancel in new[] { false, true })
+        {
+            var presenter = new FakePresenter(Snapshot("Client A", "Simulated device A", 42));
+            var release = new TaskCompletionSource<SimulatorUiCommandAdmission>(TaskCreationOptions.RunContinuationsAsynchronously);
+            presenter.TemplateOverride = (_, _, _) => release.Task; // Deliberately ignores cancellation.
+            var window = new VirtualLcdWindow(presenter, new NativePortableUiSession(NativePath),
+                cancel ? TimeSpan.FromSeconds(5) : TimeSpan.FromMilliseconds(100));
+            try
+            {
+                ShowOffscreen(window);
+                BeginTemplateRequest(window);
+                if (cancel) window.CancelOperationForTest();
+                var expected = cancel ? SimulatorUiOperationState.Canceled : SimulatorUiOperationState.TimedOut;
+                PumpUntil(() => window.OperationStateForTest == expected);
+                Require(window.HasUnresolvedOperationForTest &&
+                    window.OperationTextForTest.Contains("Outcome unknown", StringComparison.Ordinal),
+                    "Ending a local wait claimed cancellation of the actual action.");
+                ClickAction(window, 0, 0);
+                Require(!window.CurrentOffer!.Actions[2].Enabled,
+                    "An unresolved producer admitted a new operation.");
+                SaveRenderedWindow(window, cancel ? "trail-console-canceled-unknown.png" : "trail-console-timeout-unknown.png");
+                presenter.Publish(presenter.Snapshot with { Messages = [OutboundUiMessage(1, "Checking in")] });
+                release.SetResult(new(42, 1));
+                PumpUntil(() => !window.HasUnresolvedOperationForTest && window.InteractiveCommandReadyForTest);
+                Require(window.OperationStateForTest == expected && presenter.TemplateCount == 1,
+                    "A retired late result became Confirmed or automatically retried.");
+                Require(window.OperationTextForTest.Contains("unknown", StringComparison.OrdinalIgnoreCase),
+                    "The terminal uncertainty explanation disappeared.");
+            }
+            finally { release.TrySetResult(new(42, 1)); window.Close(); PumpUntil(() => !window.IsVisible); }
+        }
+    }
+
+    private static void StaleConnectionNeverRestoresNativeReady()
+    {
+        var presenter = new FakePresenter(Snapshot("Client A", "Simulated device A", 42));
+        var window = new VirtualLcdWindow(presenter, new NativePortableUiSession(NativePath));
+        try
+        {
+            ShowOffscreen(window);
+            PumpUntilInteractiveReady(window, 0);
+            Require(window.CurrentOffer!.Actions[2].Enabled, "Connected test session was unavailable.");
+            foreach (var state in new[] { SimulatorUiConnectionState.Stale,
+                SimulatorUiConnectionState.Disconnected, SimulatorUiConnectionState.Connecting,
+                SimulatorUiConnectionState.Faulted })
+            {
+                var revision = window.CurrentOffer.Revision;
+                presenter.Publish(presenter.Snapshot with { ConnectionState = state });
+                PumpUntil(() => window.CurrentOffer!.Revision > revision && window.InteractiveCommandReadyForTest);
+                Require(!window.CurrentOffer!.Actions[2].Enabled && !window.CurrentOffer.Actions[3].Enabled,
+                    $"A retained epoch incorrectly enabled native requests while {state}.");
+            }
+            presenter.Publish(presenter.Snapshot with { ConnectionState = SimulatorUiConnectionState.Connected,
+                ConnectedSessionEpoch = 43 });
+            PumpUntil(() => window.CurrentOffer!.Actions[2].Enabled && window.InteractiveCommandReadyForTest);
+            Require(window.CurrentOffer!.Position == 0 && window.CurrentOffer.Power == 0,
+                "A reconnect fabricated position or battery telemetry.");
+        }
+        finally { window.Close(); PumpUntil(() => !window.IsVisible); }
+    }
+
+    private static void FailedAndUncertainOperationEvidenceRemainDistinct()
+    {
+        // Unsupported simulation-only operation: known local refusal.
+        var unavailable = new FakePresenter(Snapshot("Client A", "Host-only fixture", 42))
+        { SourceOverride = SimulatorUiConnectionSource.UsbCandidate };
+        var refused = new VirtualLcdWindow(unavailable, new NativePortableUiSession(NativePath));
+        try
+        {
+            ShowOffscreen(refused);
+            PumpUntilInteractiveReady(refused, 0);
+            ClickAction(refused, 0, 1);
+            ClickAction(refused, 1, 4);
+            ClickAction(refused, 0, 5);
+            _ = refused.ActivateActionForTestAsync(0, PortableUiGesture.Hold);
+            PumpUntil(() => refused.OperationStateForTest == SimulatorUiOperationState.Failed &&
+                !refused.HasUnresolvedOperationForTest);
+            Require(refused.OperationTextForTest.Contains("unavailable or rejected", StringComparison.Ordinal),
+                "Known local refusal lost its explanation.");
+        }
+        finally { refused.Close(); PumpUntil(() => !refused.IsVisible); }
+
+        foreach (var replaceSession in new[] { false, true })
+        {
+            var presenter = new FakePresenter(Snapshot("Client A", "Simulated device A", 42));
+            var release = new TaskCompletionSource<SimulatorUiCommandAdmission>(TaskCreationOptions.RunContinuationsAsynchronously);
+            presenter.TemplateOverride = (_, _, _) => release.Task;
+            var window = new VirtualLcdWindow(presenter, new NativePortableUiSession(NativePath));
+            try
+            {
+                ShowOffscreen(window);
+                BeginTemplateRequest(window);
+                if (replaceSession)
+                {
+                    presenter.Publish(presenter.Snapshot with { ConnectedSessionEpoch = 43,
+                        Messages = [OutboundUiMessage(1, "Checking in")] });
+                    PumpUntil(() => window.InteractiveCommandReadyForTest);
+                    release.SetResult(new(42, 1));
+                }
+                else release.SetException(new IOException("Fabricated interrupted producer; side effects unknown."));
+                PumpUntil(() => window.OperationStateForTest == SimulatorUiOperationState.OutcomeUnknown &&
+                    !window.HasUnresolvedOperationForTest);
+                Require(presenter.TemplateCount == 1 && window.OperationTextForTest.Contains("No automatic retry", StringComparison.Ordinal),
+                    "Uncertain dispatch was retried or misreported.");
+            }
+            finally { release.TrySetResult(new(42, 1)); window.Close(); PumpUntil(() => !window.IsVisible); }
+        }
+    }
+
+    private static void BeginTemplateRequest(VirtualLcdWindow window)
+    {
+        PumpUntilInteractiveReady(window, 0);
+        ClickAction(window, 1, 7);
+        ClickAction(window, 2, 10);
+        ClickAction(window, 0, 11);
+        window.ActionButtons[0].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        PumpUntil(() => window.OperationStateForTest == SimulatorUiOperationState.Pending &&
+            window.InteractiveCommandReadyForTest);
+    }
+
+    private static void ClickAction(VirtualLcdWindow window, int slot, int expectedScreen)
+    {
+        window.ActionButtons[slot].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        PumpUntilInteractiveReady(window, expectedScreen);
+    }
+
+    private static SimulatorUiMessage OutboundUiMessage(long sequence, string text) => new(
+        sequence, SimulatorUiMessageDirection.Outbound, SimulatorUiMessageKind.Chat,
+        SimulatorUiMessagePriority.Normal, text, SimulatorUiDeliveryState.BridgeAccepted,
+        DateTimeOffset.UnixEpoch, false);
 
     private static void SnapshotDuringBlockedStartReachesNativeUi()
     {
@@ -532,6 +714,8 @@ internal static class Program
             ShowOffscreen(windowA);
             ShowOffscreen(windowB);
             PumpUntil(() => windowA.CurrentOffer is not null && windowB.CurrentOffer is not null);
+            PumpUntilInteractiveReady(windowA, 0);
+            PumpUntilInteractiveReady(windowB, 0);
 
             windowA.ActionButtons[1].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
             PumpUntilInteractiveReady(windowA, 7);
@@ -541,6 +725,11 @@ internal static class Program
             PumpUntilInteractiveReady(windowA, 11);
             windowA.ActionButtons[0].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
             PumpUntilInteractiveReady(windowA, 8);
+            PumpUntil(() => windowA.OperationStateForTest == SimulatorUiOperationState.Confirmed &&
+                !windowA.HasUnresolvedOperationForTest);
+            Require(windowA.OperationTextForTest.Contains("Local bridge admission", StringComparison.Ordinal) &&
+                windowA.OperationTextForTest.Contains("unverified", StringComparison.Ordinal),
+                "The composed loopback workflow overstated delivery evidence.");
             simulator.Bridge.ServiceAsync(OpenTrail.Simulator.Core.SimulatorClientId.A)
                 .AsTask().GetAwaiter().GetResult();
             simulator.Bridge.ServiceAsync(OpenTrail.Simulator.Core.SimulatorClientId.B)
@@ -641,7 +830,8 @@ internal static class Program
     private static SimulatorUiSnapshot Snapshot(
         string client, string device, long connectedEpoch = 0,
         IReadOnlyList<SimulatorUiMessage>? messages = null) => new(
-        client, device, "local loopback", SimulatorUiConnectionState.Disconnected,
+        client, device, "local loopback", connectedEpoch > 0
+            ? SimulatorUiConnectionState.Connected : SimulatorUiConnectionState.Disconnected,
         "No observation", messages ?? [], [], connectedEpoch, 0, 32, null);
 
     private static SimulatorUiMessage UiMessage(long sequence, string text) => new(
@@ -696,9 +886,11 @@ internal static class Program
         public event EventHandler? SnapshotChanged;
         public SimulatorUiSnapshot Snapshot { get; private set; }
         public IReadOnlyList<SimulatorUiDeviceChoice> DeviceChoices => [];
-        public SimulatorUiConnectionSource ConnectionSource =>
-            SimulatorUiConnectionSource.LocalSimulation;
+        public SimulatorUiConnectionSource ConnectionSource => SourceOverride;
+        internal SimulatorUiConnectionSource SourceOverride { get; set; } = SimulatorUiConnectionSource.LocalSimulation;
         internal int DisposeCount { get; private set; }
+        internal Func<string, long, CancellationToken, Task<SimulatorUiCommandAdmission>>? TemplateOverride { get; set; }
+        internal int TemplateCount { get; private set; }
         public Task RefreshDeviceChoicesAsync(CancellationToken token) => Task.CompletedTask;
         public Task SelectDeviceAsync(SimulatorUiDeviceChoice choice, CancellationToken token) => Task.CompletedTask;
         public Task ForgetDeviceAsync(CancellationToken token) => Task.CompletedTask;
@@ -708,7 +900,12 @@ internal static class Program
         public Task QueueMessageAsync(string text, bool high, CancellationToken token) => Task.CompletedTask;
         public Task<SimulatorUiCommandAdmission> QueueMessageTemplateAsync(
             int templateId, string exactText, long expectedEpoch,
-            CancellationToken token) => Task.FromResult(new SimulatorUiCommandAdmission(expectedEpoch, 1));
+            CancellationToken token)
+        {
+            ++TemplateCount;
+            return TemplateOverride?.Invoke(exactText, expectedEpoch, token)
+                ?? Task.FromResult(new SimulatorUiCommandAdmission(expectedEpoch, 1));
+        }
         public Task<SimulatorUiCommandAdmission> QueueQuickStatusAsync(
             int kind, long expectedEpoch, CancellationToken token) =>
             Task.FromResult(new SimulatorUiCommandAdmission(expectedEpoch, 1));

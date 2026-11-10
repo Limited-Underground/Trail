@@ -811,12 +811,152 @@ void message_epoch_and_acknowledgement_races_fail_closed() {
         state.generation, state.active_revision, request.request_id,
         request.request_kind, true, 1, 4, 0,
         request.request_message_sequence, second);
-    EXPECT(offered.has_offer);
-    EXPECT(harness.shell.pending_frame().screen == UiScreen::message_list);
-    EXPECT(harness.shell.commit_present(state.generation, offered.revision).disposition ==
-           PortableUiShellDisposition::committed);
-    EXPECT(harness.shell.status().selected_message_sequence == 0);
+    EXPECT(!offered.has_offer);
+    EXPECT(offered.error ==
+           opentrail::integration::PortableUiShellError::request_mismatch);
+    EXPECT(harness.shell.status().pending_request_id == request.request_id);
     EXPECT(harness.display.latest_frame().status.unread_messages == 2);
+}
+
+PortableUiShellResult emit_template_request(Harness& harness) {
+    harness.start(message_snapshot());
+    harness.activate_slot(1);  // Messages.
+    harness.activate_slot(2);  // Compose.
+    harness.activate_slot(0);  // First template.
+    const auto state = harness.shell.status();
+    EXPECT(harness.input.enqueue_action(state.active_revision, 0));
+    const auto offered = harness.shell.prepare_input();
+    const auto request =
+        harness.shell.commit_present(state.generation, offered.revision);
+    EXPECT(request.disposition == PortableUiShellDisposition::request_emitted);
+    return request;
+}
+
+void pending_request_allows_read_only_navigation_and_exact_completion() {
+    Harness harness{};
+    const auto request = emit_template_request(harness);
+    harness.activate_slot(0);  // Back changes the view, not the operation.
+    EXPECT(harness.display.latest_frame().screen == UiScreen::home);
+    EXPECT(harness.shell.status().pending_request_id == request.request_id);
+    EXPECT(!harness.display.latest_frame().actions[2].enabled);
+    EXPECT(!harness.display.latest_frame().actions[3].enabled);
+    harness.activate_slot(0);  // Status remains available.
+    EXPECT(!harness.display.latest_frame().actions[0].enabled);
+    EXPECT(!harness.display.latest_frame().actions[1].enabled);
+    harness.activate_slot(2);
+    harness.activate_slot(1);
+    EXPECT(!harness.display.latest_frame().actions[2].enabled);
+    auto state = harness.shell.status();
+    EXPECT(harness.input.enqueue_action(state.active_revision, 2));
+    EXPECT(harness.shell.prepare_input().disposition ==
+           PortableUiShellDisposition::input_rejected);
+    EXPECT(harness.shell.status().pending_request_id == request.request_id);
+    harness.activate_slot(0);  // Inbox.
+    harness.activate_slot(0);  // Read alert without offering another operation.
+    EXPECT(harness.display.latest_frame().screen == UiScreen::message_detail);
+    EXPECT(!harness.shell.presentation_sidecar().messages.detail_acknowledge_available);
+    EXPECT(harness.display.latest_frame().action_count == 1);
+
+    auto changed = message_snapshot();
+    changed.status.peer_count = 4;
+    state = harness.shell.status();
+    auto offered = harness.shell.prepare_refresh(
+        state.generation, state.active_revision, changed);
+    EXPECT(offered.has_offer);
+    EXPECT(harness.shell.commit_present(state.generation, offered.revision).error ==
+           opentrail::integration::PortableUiShellError::none);
+    EXPECT(harness.display.latest_frame().screen == UiScreen::message_detail);
+    EXPECT(harness.shell.status().pending_request_id == request.request_id);
+
+    changed.message_count = 4;
+    changed.messages[3] = message(
+        4, PortableUiMessageDirection::outbound, PortableUiMessageKind::chat,
+        PortableUiMessagePriority::normal,
+        PortableUiMessageDeliveryState::bridge_accepted, "Checking in");
+    state = harness.shell.status();
+    offered = harness.shell.prepare_completion(
+        state.generation, state.active_revision, request.request_id,
+        request.request_kind, true, 1, 4, request.request_template_id, 0, changed);
+    EXPECT(offered.has_offer);
+    EXPECT(harness.shell.commit_present(state.generation, offered.revision).error ==
+           opentrail::integration::PortableUiShellError::none);
+    EXPECT(harness.shell.status().pending_request_id == 0);
+    EXPECT(harness.shell.presentation_sidecar().messages.list_kind ==
+           opentrail::ui::UiMessageListKind::outbox);
+    EXPECT(harness.shell.presentation_sidecar().messages.rows[0].delivery ==
+           opentrail::ui::UiMessageDeliveryState::bridge_accepted);
+}
+
+void failed_request_after_navigation_or_session_loss_has_valid_retry_context() {
+    for (const bool replace_session : {false, true}) {
+        Harness harness{};
+        const auto request = emit_template_request(harness);
+        harness.activate_slot(0);
+        auto changed = message_snapshot(replace_session ? 2 : 1);
+        auto state = harness.shell.status();
+        auto offered = harness.shell.prepare_completion(
+            state.generation, state.active_revision, request.request_id,
+            request.request_kind, false, 0, 0, request.request_template_id, 0,
+            changed);
+        EXPECT(offered.has_offer);
+        EXPECT(harness.shell.commit_present(state.generation, offered.revision).error ==
+               opentrail::integration::PortableUiShellError::none);
+        EXPECT(harness.display.latest_frame().notice ==
+               opentrail::ui::UiNotice::message_failed);
+        harness.activate_slot(0);  // Acknowledging failure never resubmits.
+        EXPECT(harness.shell.status().pending_request_id == 0);
+        EXPECT(harness.display.latest_frame().screen ==
+               (replace_session ? UiScreen::message_compose
+                                : UiScreen::message_compose_confirmation));
+    }
+}
+
+void retired_session_cannot_borrow_old_snapshot_or_complete_new_request() {
+    Harness harness{};
+    const auto old_request = emit_template_request(harness);
+    auto state = harness.shell.status();
+    auto replacement = message_snapshot(2);
+    auto offered = harness.shell.prepare_refresh(
+        state.generation, state.active_revision, replacement);
+    EXPECT(harness.shell.commit_present(state.generation, offered.revision).error ==
+           opentrail::integration::PortableUiShellError::none);
+    auto old_evidence = message_snapshot(1);
+    old_evidence.message_count = 4;
+    old_evidence.messages[3] = message(
+        4, PortableUiMessageDirection::outbound, PortableUiMessageKind::chat,
+        PortableUiMessagePriority::normal,
+        PortableUiMessageDeliveryState::bridge_accepted, "Checking in");
+    state = harness.shell.status();
+    offered = harness.shell.prepare_completion(
+        state.generation, state.active_revision, old_request.request_id,
+        old_request.request_kind, true, 1, 4, old_request.request_template_id, 0,
+        old_evidence);
+    EXPECT(!offered.has_offer);
+    EXPECT(offered.error ==
+           opentrail::integration::PortableUiShellError::request_mismatch);
+    EXPECT(harness.shell.close_session(state.generation, state.active_revision).error ==
+           opentrail::integration::PortableUiShellError::none);
+    offered = harness.shell.prepare_activate(replacement);
+    EXPECT(harness.shell.commit_present(offered.generation, offered.revision).error ==
+           opentrail::integration::PortableUiShellError::none);
+    harness.activate_slot(1);
+    harness.activate_slot(2);
+    harness.activate_slot(0);
+    state = harness.shell.status();
+    EXPECT(harness.input.enqueue_action(state.active_revision, 0));
+    offered = harness.shell.prepare_input();
+    const auto new_request =
+        harness.shell.commit_present(state.generation, offered.revision);
+    EXPECT(new_request.request_id != old_request.request_id);
+    state = harness.shell.status();
+    offered = harness.shell.prepare_completion(
+        state.generation, state.active_revision, old_request.request_id,
+        old_request.request_kind, false, 0, 0, old_request.request_template_id, 0,
+        replacement);
+    EXPECT(!offered.has_offer);
+    EXPECT(offered.error ==
+           opentrail::integration::PortableUiShellError::request_mismatch);
+    EXPECT(harness.shell.status().pending_request_id == new_request.request_id);
 }
 
 void invalid_frames_and_plans_fail_before_offer() {
@@ -976,6 +1116,9 @@ int main() {
     recovery_priority_and_acknowledgement_recurrence();
     message_inbox_read_compose_and_delivery_are_cpp_owned();
     message_epoch_and_acknowledgement_races_fail_closed();
+    pending_request_allows_read_only_navigation_and_exact_completion();
+    failed_request_after_navigation_or_session_loss_has_valid_retry_context();
+    retired_session_cannot_borrow_old_snapshot_or_complete_new_request();
     invalid_frames_and_plans_fail_before_offer();
     unavailable_text_and_exact_render_schema_fail_closed();
     close_restart_and_render_failure_are_fail_closed();

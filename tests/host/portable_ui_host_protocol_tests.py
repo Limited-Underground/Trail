@@ -89,7 +89,7 @@ lines = run((
     "PRESENTED|2|1|2\n"
     "INPUT|2|1|2|0|A\n"
     "PRESENTED|2|1|3\n"
-    "INPUT|2|1|3|0|A\n"
+    "INPUT|2|1|3|1|A\n"
     f"COMPLETE|2|1|3|1|1|0|0|0|0|0|{SNAPSHOT}\n"
     "PRESENTED|2|1|4\n"
     "INPUT|2|1|4|0|A\n"
@@ -100,7 +100,36 @@ expect(len(lines) == 11 and lines[5].startswith(b"COMMITTED|2|1|3|2|1|1|") and
        lines[7].startswith(b"OFFER|2|1|4|") and
        lines[8].startswith(b"COMMITTED|2|1|4|") and
        lines[9].startswith(b"OFFER|2|1|5|") and lines[10] == b"BYE|2",
-       "INPUT rejected while a request is pending must not survive completion")
+       "unoffered INPUT while a request is pending must not survive completion")
+
+applied_template = "1|1|0|0|1|0|0|0|11|436865636B696E6720696E"
+completion_snapshot = f"{SNAPSHOT_PREFIX}|1|{applied_template}"
+lines = run((
+    f"START|2|{SNAPSHOT}\n"
+    "PRESENTED|2|1|1\n"
+    "INPUT|2|1|1|1|A\nPRESENTED|2|1|2\n"
+    "INPUT|2|1|2|2|A\nPRESENTED|2|1|3\n"
+    "INPUT|2|1|3|0|A\nPRESENTED|2|1|4\n"
+    "INPUT|2|1|4|0|A\nPRESENTED|2|1|5\n"
+    "INPUT|2|1|5|0|A\nPRESENTED|2|1|6\n"
+    "INPUT|2|1|6|1|A\nPRESENTED|2|1|7\n"
+    "INPUT|2|1|7|2|A\n"
+    f"COMPLETE|2|1|5|1|10|1|1|1|1|0|{completion_snapshot}\n"
+    f"COMPLETE|2|1|7|1|10|1|1|1|1|0|{completion_snapshot}\n"
+    "PRESENTED|2|1|8\n"
+    f"COMPLETE|2|1|8|1|10|1|1|1|1|0|{completion_snapshot}\n"
+    "QUIT|2\n"
+).encode("ascii"))
+expect(len(lines) == 20 and
+       lines[9].startswith(b"COMMITTED|2|1|5|2|1|10|") and
+       lines[10].startswith(b"OFFER|2|1|6|") and
+       lines[14].startswith(b"REJECT|2|") and
+       lines[15].startswith(b"REJECT|2|") and
+       lines[16].startswith(b"OFFER|2|1|8|") and
+       lines[17].startswith(b"COMMITTED|2|1|8|") and
+       lines[18].startswith(b"REJECT|2|") and lines[19] == b"BYE|2",
+       "pending Back/navigation must retain identity, disable duplicate Send, "
+       "and accept only one completion against the current rendered revision")
 
 maximum_text = "A" * 96
 maximum_hex = maximum_text.encode("ascii").hex().upper()
@@ -122,4 +151,4 @@ expect(len(lines) == 6 and lines[4].startswith(b"OFFER|2|1|3|") and
        max(map(len, lines)) <= 8192 and lines[5] == b"BYE|2",
        "maximum snapshot and message-list OFFER must fit frozen protocol bounds")
 
-print("Portable UI native protocol: 10 groups, 0 failures")
+print("Portable UI native protocol: 11 groups, 0 failures")

@@ -229,15 +229,34 @@ public sealed class DualClientBridge : IAsyncDisposable
                     state.Candidate, cancellationToken).ConfigureAwait(false) ??
                     throw new InvalidOperationException(
                         "The companion transport factory returned no session.");
+                // Opening may complete after its caller has canceled. Keep the
+                // acquired resource owned until it has been closed successfully.
+                cancellationToken.ThrowIfCancellationRequested();
                 state.SessionGeneration = nextSessionGeneration;
                 state.Connection = SimulatorConnectionState.Connected;
                 state.LastObservationAt = _clock.UtcNow;
+                state.LastClockAt = state.LastObservationAt;
+                state.Observed.Clear();
+                state.ObservationOrder.Clear();
                 AddSystem(state, "Connected to assigned companion.");
             }
             catch (OperationCanceledException)
             {
                 state.Connection = SimulatorConnectionState.Disconnected;
                 state.LastPublicError = null;
+                if (state.Transport is not null)
+                {
+                    try
+                    {
+                        await state.Transport.DisposeAsync().ConfigureAwait(false);
+                        state.Transport = null;
+                    }
+                    catch
+                    {
+                        state.Connection = SimulatorConnectionState.Faulted;
+                        state.LastPublicError = "The canceled companion session did not close cleanly.";
+                    }
+                }
                 throw;
             }
             catch
@@ -375,6 +394,7 @@ public sealed class DualClientBridge : IAsyncDisposable
             var state = State(clientId);
             var alert = state.AlertDetails.FirstOrDefault(item =>
                 item.Snapshot.LocalSequence == alertSequence &&
+                item.SessionGeneration == state.SessionGeneration &&
                 item.Snapshot.Direction == SimulatorMessageDirection.Inbound &&
                 item.Snapshot.State == SimulatorAlertState.Active);
             if (alert is null) throw new InvalidOperationException("Only an active received alert can be acknowledged.");
@@ -408,10 +428,12 @@ public sealed class DualClientBridge : IAsyncDisposable
         {
             ThrowIfDisposed();
             var state = State(clientId);
+            ObserveClock(state);
             if (state.Transport is null || state.Connection == SimulatorConnectionState.Faulted) return;
             try
             {
-                if (state.Outgoing.TryPeek(out var queued))
+                cancellationToken.ThrowIfCancellationRequested();
+                if (IsFresh(state) && state.Outgoing.TryPeek(out var queued))
                 {
                     if (state.Candidate is null ||
                         !state.Candidate.Endpoint.Equals(queued.Endpoint) ||
@@ -423,7 +445,24 @@ public sealed class DualClientBridge : IAsyncDisposable
                             "A queued command no longer belongs to the active companion session.";
                         return;
                     }
-                    await state.Transport.SendAsync(queued.Command, cancellationToken).ConfigureAwait(false);
+                    try
+                    {
+                        await state.Transport.SendAsync(queued.Command, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // The transport may have accepted bytes before observing
+                        // cancellation. Retire the operation; never replay it.
+                        RetireUncertainSend(state, queued);
+                        throw;
+                    }
+                    catch
+                    {
+                        // This interface has no typed proof of rejection before
+                        // submission. An I/O failure can also follow acceptance.
+                        RetireUncertainSend(state, queued);
+                        return;
+                    }
                     _ = state.Outgoing.Dequeue();
                     UpdateMessageDelivery(state, queued.LocalSequence,
                         SimulatorDeliveryState.BridgeAccepted);
@@ -433,8 +472,8 @@ public sealed class DualClientBridge : IAsyncDisposable
                 {
                     var observation = await state.Transport.ReceiveAsync(cancellationToken).ConfigureAwait(false);
                     if (observation is null) break;
-                    state.LastObservationAt = _clock.UtcNow;
-                    AcceptObservation(state, observation);
+                    if (AcceptObservation(state, observation))
+                        state.LastObservationAt = _clock.UtcNow;
                 }
                 state.LastPublicError = null;
                 state.Connection = SimulatorConnectionState.Connected;
@@ -494,6 +533,9 @@ public sealed class DualClientBridge : IAsyncDisposable
             EnsureQueueSpace(state);
             EnsureOpenSession(state);
             EnsureExpectedSession(state, expectedSessionEpoch);
+            if (!Enum.IsDefined(priority) ||
+                (severity.HasValue && !Enum.IsDefined(severity.Value)))
+                throw new ArgumentException("The simulator command has an invalid priority or severity.");
             var appliedEpoch = state.SessionGeneration;
             var sequence = NextSequence(state);
             var wireCorrelation = correlation ?? sequence;
@@ -505,7 +547,8 @@ public sealed class DualClientBridge : IAsyncDisposable
                 SimulatorDeliveryState.Queued));
             if (kind == CompanionCommandKind.Alert)
                 AddAlert(state, new(new(sequence, SimulatorMessageDirection.Outbound,
-                    text, severity!.Value, SimulatorAlertState.Active, _clock.UtcNow), wireCorrelation));
+                    text, severity!.Value, SimulatorAlertState.Active, _clock.UtcNow),
+                    wireCorrelation, state.SessionGeneration));
             return new(appliedEpoch, sequence);
         }
         finally { _gate.Release(); Publish(clientId); }
@@ -563,8 +606,40 @@ public sealed class DualClientBridge : IAsyncDisposable
                 "Clear or deliver queued commands before changing companion selection.");
     }
 
-    private void AcceptObservation(ClientState state, CompanionObservation observation)
+    private bool AcceptObservation(ClientState state, CompanionObservation observation)
     {
+        // Malformed or repeated observations cannot renew a session's freshness.
+        if (!Enum.IsDefined(observation.Kind) || !Enum.IsDefined(observation.Priority) ||
+            observation.Correlation <= 0 ||
+            (observation.Kind == CompanionCommandKind.Alert
+                ? !observation.AlertSeverity.HasValue ||
+                    !Enum.IsDefined(observation.AlertSeverity.Value)
+                : observation.AlertSeverity.HasValue) ||
+            ValidateText(observation.Text, 160) != observation.Text ||
+            (observation.Kind == CompanionCommandKind.Acknowledgement &&
+                (observation.Text != "Acknowledged" ||
+                 observation.Priority != SimulatorMessagePriority.Important)))
+            throw new InvalidDataException("The companion observation is invalid.");
+        var identity = (observation.Kind, observation.Correlation);
+        if (state.Observed.TryGetValue(identity, out var prior))
+        {
+            if (prior != observation)
+                throw new InvalidDataException("Conflicting companion observation identity.");
+            return false;
+        }
+        AlertDetail? acknowledged = null;
+        if (observation.Kind == CompanionCommandKind.Acknowledgement)
+        {
+            acknowledged = state.AlertDetails.FirstOrDefault(item =>
+                item.Correlation == observation.Correlation &&
+                item.SessionGeneration == state.SessionGeneration &&
+                item.Snapshot.Direction == SimulatorMessageDirection.Outbound &&
+                item.Snapshot.State == SimulatorAlertState.Active &&
+                state.Messages.Any(message =>
+                    message.LocalSequence == item.Snapshot.LocalSequence &&
+                    message.DeliveryState == SimulatorDeliveryState.BridgeAccepted));
+            if (acknowledged is null) return false;
+        }
         var sequence = NextSequence(state);
         AddMessage(state, new(sequence, SimulatorMessageDirection.Inbound,
             ToMessageKind(observation.Kind), observation.Priority,
@@ -573,26 +648,27 @@ public sealed class DualClientBridge : IAsyncDisposable
         if (observation.Kind == CompanionCommandKind.Alert)
             AddAlert(state, new(new(sequence, SimulatorMessageDirection.Inbound,
                 observation.Text, observation.AlertSeverity ?? SimulatorAlertSeverity.Important,
-                SimulatorAlertState.Active, _clock.UtcNow), observation.Correlation));
-        else if (observation.Kind == CompanionCommandKind.Acknowledgement)
+                SimulatorAlertState.Active, _clock.UtcNow), observation.Correlation,
+                state.SessionGeneration));
+        else if (acknowledged is not null)
         {
-            var alert = state.AlertDetails.FirstOrDefault(item =>
-                item.Correlation == observation.Correlation &&
-                item.Snapshot.Direction == SimulatorMessageDirection.Outbound);
-            if (alert is not null)
+            ReplaceAlert(state, acknowledged, acknowledged.Snapshot with
             {
-                ReplaceAlert(state, alert, alert.Snapshot with
-                {
-                    State = SimulatorAlertState.BridgeAcknowledgementObserved,
-                });
-                UpdateMessageDelivery(state, alert.Snapshot.LocalSequence,
-                    SimulatorDeliveryState.BridgeAcknowledgementObserved);
-            }
+                State = SimulatorAlertState.BridgeAcknowledgementObserved,
+            });
+            UpdateMessageDelivery(state, acknowledged.Snapshot.LocalSequence,
+                SimulatorDeliveryState.BridgeAcknowledgementObserved);
         }
+        state.Observed.Add(identity, observation);
+        state.ObservationOrder.Enqueue(identity);
+        if (state.ObservationOrder.Count > MessageHistoryCapacity)
+            state.Observed.Remove(state.ObservationOrder.Dequeue());
+        return true;
     }
 
     private SimulatorClientSnapshot CreateSnapshot(ClientState state)
     {
+        ObserveClock(state);
         TimeSpan? age = state.LastObservationAt.HasValue
             ? _clock.UtcNow - state.LastObservationAt.Value
             : null;
@@ -609,9 +685,18 @@ public sealed class DualClientBridge : IAsyncDisposable
                 ? state.SessionGeneration
                 : 0,
             Array.AsReadOnly(state.Messages.ToArray()),
-            Array.AsReadOnly(state.AlertDetails.Select(static item => item.Snapshot).ToArray()),
+            Array.AsReadOnly(state.AlertDetails.Select(item => item.Snapshot with
+            {
+                CanAcknowledge = !clockRollback && !stale &&
+                    state.Connection == SimulatorConnectionState.Connected &&
+                    item.SessionGeneration == state.SessionGeneration &&
+                    item.Snapshot.Direction == SimulatorMessageDirection.Inbound &&
+                    item.Snapshot.State == SimulatorAlertState.Active,
+            }).ToArray()),
             state.Outgoing.Count, QueueCapacity,
-            clockRollback ? "The simulator clock moved backward; restart this session." : state.LastPublicError);
+            clockRollback ? "The simulator clock moved backward; restart this session." :
+                stale ? "The latest companion observation is stale. Reconnect or wait for a new valid observation." :
+                state.LastPublicError);
     }
 
     private void Publish(SimulatorClientId id)
@@ -681,13 +766,35 @@ public sealed class DualClientBridge : IAsyncDisposable
             throw new InvalidOperationException("The client command queue is full.");
     }
 
-    private static void EnsureOpenSession(ClientState state)
+    private void EnsureOpenSession(ClientState state)
     {
+        ObserveClock(state);
         if (state.Transport is null || state.Candidate is null ||
             state.Connection != SimulatorConnectionState.Connected ||
-            state.SessionGeneration <= 0)
+            state.SessionGeneration <= 0 || !IsFresh(state))
             throw new InvalidOperationException(
                 "Connect this client to its selected companion before queuing a command.");
+    }
+
+    private bool IsFresh(ClientState state)
+    {
+        var now = _clock.UtcNow;
+        return state.LastObservationAt.HasValue && now >= state.LastObservationAt.Value &&
+            now - state.LastObservationAt.Value <= _staleAfter;
+    }
+
+    private void ObserveClock(ClientState state)
+    {
+        if (state.Transport is null || state.Connection == SimulatorConnectionState.Faulted) return;
+        var now = _clock.UtcNow;
+        if (state.LastClockAt.HasValue && now < state.LastClockAt.Value)
+        {
+            state.Connection = SimulatorConnectionState.Faulted;
+            state.LastPublicError = "The simulator clock moved backward; reconnect this session.";
+            FailAndClearQueued(state);
+            return;
+        }
+        state.LastClockAt = now;
     }
 
     private static void EnsureExpectedSession(
@@ -705,6 +812,16 @@ public sealed class DualClientBridge : IAsyncDisposable
     {
         while (state.Outgoing.TryDequeue(out var queued))
             UpdateMessageDelivery(state, queued.LocalSequence, SimulatorDeliveryState.Failed);
+    }
+
+    private void RetireUncertainSend(ClientState state, QueuedCommand queued)
+    {
+        _ = state.Outgoing.Dequeue();
+        UpdateMessageDelivery(state, queued.LocalSequence, SimulatorDeliveryState.Failed);
+        FailAndClearQueued(state);
+        state.Connection = SimulatorConnectionState.Faulted;
+        state.LastPublicError = $"Command {queued.LocalSequence} interrupted; peer outcome unknown. Reconnect before another attempt.";
+        AddSystem(state, state.LastPublicError);
     }
 
     private static long NextSequence(ClientState state) => checked(++state.NextSequence);
@@ -753,6 +870,9 @@ public sealed class DualClientBridge : IAsyncDisposable
         internal long NextSequence { get; set; }
         internal long SessionGeneration { get; set; }
         internal DateTimeOffset? LastObservationAt { get; set; }
+        internal DateTimeOffset? LastClockAt { get; set; }
+        internal Dictionary<(CompanionCommandKind Kind, long Correlation), CompanionObservation> Observed { get; } = new();
+        internal Queue<(CompanionCommandKind Kind, long Correlation)> ObservationOrder { get; } = new();
         internal string? LastPublicError { get; set; }
     }
 
@@ -761,5 +881,6 @@ public sealed class DualClientBridge : IAsyncDisposable
         CompanionEndpoint Endpoint,
         long SessionGeneration,
         CompanionCommand Command);
-    private sealed record AlertDetail(AlertSnapshot Snapshot, long Correlation);
+    private sealed record AlertDetail(
+        AlertSnapshot Snapshot, long Correlation, long SessionGeneration);
 }

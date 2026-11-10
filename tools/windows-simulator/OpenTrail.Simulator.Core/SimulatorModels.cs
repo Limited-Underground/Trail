@@ -46,7 +46,8 @@ public sealed record AlertSnapshot(
     string Text,
     SimulatorAlertSeverity Severity,
     SimulatorAlertState State,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    bool CanAcknowledge = false);
 
 public sealed record SimulatorCommandAdmission(
     long AppliedSessionEpoch,

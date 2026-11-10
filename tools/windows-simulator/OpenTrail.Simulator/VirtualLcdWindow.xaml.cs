@@ -8,6 +8,11 @@ using System.Windows.Threading;
 
 namespace OpenTrail.Simulator;
 
+internal enum SimulatorUiOperationState
+{
+    Pending, Confirmed, Failed, TimedOut, Canceled, OutcomeUnknown,
+}
+
 public partial class VirtualLcdWindow : Window
 {
     private readonly ISimulatorClientPresenter presenter;
@@ -28,16 +33,40 @@ public partial class VirtualLcdWindow : Window
     private ulong nextSnapshotRefreshGeneration;
     private bool snapshotRefreshDrainScheduled;
     private bool interactiveCommandPending;
+    private readonly TimeSpan operationTimeout;
+    private readonly object operationSync = new();
+    private PendingOperation? activeOperation;
+    private uint lastOperationGeneration;
+    private uint lastOperationRequestId;
+    private Task operationTask = Task.CompletedTask;
+    private SimulatorUiOperationState? operationState;
+
+    private sealed class PendingOperation(PortableUiProtocolResult request, CancellationToken lifetime)
+    {
+        internal PortableUiProtocolResult Request { get; } = request;
+        internal CancellationTokenSource Cancellation { get; } =
+            CancellationTokenSource.CreateLinkedTokenSource(lifetime);
+        internal TaskCompletionSource<bool> StopWait { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    private sealed record OperationResult(
+        bool Succeeded, SimulatorUiCommandAdmission Admission,
+        int? PositionState = null, int? ArchiveState = null);
 
     internal VirtualLcdWindow(
         ISimulatorClientPresenter presenter,
-        IPortableUiSession uiSession)
+        IPortableUiSession uiSession,
+        TimeSpan? operationTimeout = null)
     {
         this.presenter = presenter ?? throw new ArgumentNullException(nameof(presenter));
         this.uiSession = uiSession ?? throw new ArgumentNullException(nameof(uiSession));
+        this.operationTimeout = operationTimeout ?? TimeSpan.FromSeconds(5);
+        if (this.operationTimeout <= TimeSpan.Zero || this.operationTimeout > TimeSpan.FromMinutes(1))
+            throw new ArgumentOutOfRangeException(nameof(operationTimeout));
         InitializeComponent();
         firmwareState = BuildFirmwareState(this.presenter.Snapshot, firmwareState);
-        Title = $"OpenTrail Simulator — {presenter.Snapshot.ClientLabel}";
+        Title = $"Trail Console Simulator — {DisplayClientLabel(presenter.Snapshot.ClientLabel)}";
         AutomationProperties.SetName(this, $"{presenter.Snapshot.ClientLabel} virtual touchscreen simulator");
         this.presenter.SnapshotChanged += HandleSnapshotChanged;
         Loaded += HandleLoaded;
@@ -60,8 +89,18 @@ public partial class VirtualLcdWindow : Window
             }
         }
     }
-    internal Task DispatchCommittedRequestForTestAsync(PortableUiProtocolResult result) =>
-        DispatchCommittedRequestAsync(result);
+    internal Task DispatchCommittedRequestForTestAsync(PortableUiProtocolResult result)
+    {
+        _ = DispatchCommittedRequestAsync(result);
+        return operationTask;
+    }
+    internal SimulatorUiOperationState? OperationStateForTest => operationState;
+    internal string OperationTextForTest => OperationStateText.Text + " " + OperationEvidenceText.Text;
+    private bool HasUnresolvedOperation { get { lock (operationSync) return activeOperation is not null; } }
+    internal bool HasUnresolvedOperationForTest => HasUnresolvedOperation;
+    internal void CancelOperationForTest() => CancelOperationWait(this, new RoutedEventArgs());
+    internal Task ActivateActionForTestAsync(int slot, PortableUiGesture gesture = PortableUiGesture.Activate) =>
+        RunInteractiveFirmwareCommandAsync((RenderedAction)actionButtons[slot].Tag, gesture);
     private sealed record RenderedAction(PortableUiPrimitive Primitive, uint Generation, uint Revision);
     private sealed record PendingSnapshotRefresh(ulong Generation, SimulatorUiSnapshot Snapshot);
 
@@ -111,7 +150,6 @@ public partial class VirtualLcdWindow : Window
         {
             while (!closeStarted && !firmwareSessionFaulted)
             {
-                PendingSnapshotRefresh nextRefresh;
                 lock (snapshotRefreshSync)
                 {
                     // START owns an immutable snapshot. Retain the latest event
@@ -119,20 +157,23 @@ public partial class VirtualLcdWindow : Window
                     // without ever reaching the native presenter.
                     if (interactiveCommandPending || pendingSnapshotRefresh is null ||
                         currentOffer is null) break;
-                    nextRefresh = pendingSnapshotRefresh;
                     pendingSnapshotRefresh = null;
                 }
 
-                RenderHostSnapshot(nextRefresh.Snapshot);
-                var nextFirmwareState = BuildFirmwareState(nextRefresh.Snapshot, firmwareState);
-                if (FirmwareStateEquals(firmwareState, nextFirmwareState)) continue;
-                firmwareState = nextFirmwareState;
-                var offer = currentOffer;
-                if (offer is not null)
+                await RunFirmwareCommandAsync(async token =>
                 {
-                    await RunFirmwareCommandAsync(token => uiSession.RefreshAsync(
-                        offer.Generation, offer.Revision, nextFirmwareState, token));
-                }
+                    // Read the current owner only after acquiring the native
+                    // gate. A queued older event cannot restore a retired epoch
+                    // or overwrite a setting completed while it waited.
+                    var latest = presenter.Snapshot;
+                    await InvokeUiAsync(() => RenderHostSnapshot(latest));
+                    var offer = currentOffer ?? throw new InvalidOperationException("No committed frame.");
+                    var next = BuildFirmwareState(latest, firmwareState);
+                    if (FirmwareStateEquals(firmwareState, next))
+                        return new PortableUiProtocolResult("IDLE", offer.Generation, offer.Revision, 0, 0, null, null);
+                    firmwareState = next;
+                    return await uiSession.RefreshAsync(offer.Generation, offer.Revision, next, token);
+                });
             }
         }
         catch (Exception)
@@ -154,7 +195,7 @@ public partial class VirtualLcdWindow : Window
 
     private void RenderHostSnapshot(SimulatorUiSnapshot snapshot)
     {
-        ClientNameText.Text = snapshot.ClientLabel;
+        ClientNameText.Text = DisplayClientLabel(snapshot.ClientLabel);
         DeviceLabelText.Text = string.IsNullOrWhiteSpace(snapshot.PublicDeviceFamily)
             ? snapshot.PublicDeviceLabel
             : $"{snapshot.PublicDeviceLabel} · {snapshot.PublicDeviceFamily}";
@@ -199,9 +240,9 @@ public partial class VirtualLcdWindow : Window
         switch (presenter.ConnectionSource)
         {
             case SimulatorUiConnectionSource.LocalSimulation:
-                SourceBannerText.Text = "LOCAL LOOPBACK";
+                SourceBannerText.Text = "SIMULATION · LOCAL LOOPBACK";
                 SourceEvidenceText.Text =
-                    "Native C++ portable UI model · local bridge-test evidence only";
+                    "Limited Underground Trail · simulated messages, no authenticated device delivery";
                 break;
             case SimulatorUiConnectionSource.UsbCandidate:
                 SourceBannerText.Text = snapshot.ConnectionState == SimulatorUiConnectionState.Connected
@@ -271,6 +312,13 @@ public partial class VirtualLcdWindow : Window
         lock (snapshotRefreshSync)
         {
             if (closeStarted || firmwareSessionFaulted) return;
+            if (HasUnresolvedOperation && currentOffer is not null &&
+                action.Primitive.ActionSlot < currentOffer.Actions.Count &&
+                OperationAction(currentOffer.Actions[action.Primitive.ActionSlot].Action))
+            {
+                HostNoticeText.Text = "A previous producer is still settling. Read-only navigation remains available.";
+                return;
+            }
             if (interactiveCommandPending)
             {
                 HostNoticeText.Text =
@@ -354,93 +402,200 @@ public partial class VirtualLcdWindow : Window
 
     private Task DispatchCommittedRequestAsync(PortableUiProtocolResult result)
     {
-        return result.Kind == "COMMITTED" && result.Disposition == 2
-            ? CompleteRequestAsync(result)
-            : Task.CompletedTask;
+        if (result.Kind != "COMMITTED" || result.Disposition != 2) return Task.CompletedTask;
+        PendingOperation operation;
+        lock (operationSync)
+        {
+            if (activeOperation is not null || result.RequestId == 0 ||
+                result.Generation < lastOperationGeneration ||
+                (result.Generation == lastOperationGeneration && result.RequestId <= lastOperationRequestId))
+                return Task.CompletedTask;
+            lastOperationGeneration = result.Generation;
+            lastOperationRequestId = result.RequestId;
+            operation = new(result, lifetime.Token);
+            activeOperation = operation;
+        }
+        // The native command gate protects native request/reply ordering,
+        // not the lifetime of a producer. Do not invoke callbacks under the
+        // operation lock; a slow producer must leave navigation responsive.
+        operationTask = CompleteRequestAsync(operation);
+        return Task.CompletedTask;
     }
 
-    private async Task CompleteRequestAsync(PortableUiProtocolResult request)
+    private async Task<OperationResult> ExecuteOperationAsync(
+        PortableUiProtocolResult request, CancellationToken token)
     {
-        var succeeded = false;
-        var admission = new SimulatorUiCommandAdmission(0, 0);
+        if (request.RequestBridgeSessionEpoch > long.MaxValue ||
+            request.RequestMessageSequence > long.MaxValue)
+            return new(false, new(0, 0));
+        var expectedEpoch = (long)request.RequestBridgeSessionEpoch;
+        switch (request.RequestKind)
+        {
+            case >= 1 and <= 4:
+                return new(true, await presenter.QueueQuickStatusAsync(
+                    request.RequestKind, expectedEpoch, token).ConfigureAwait(false));
+            case 5:
+                return new(true, await presenter.QueueCriticalAlertAsync(
+                    expectedEpoch, token).ConfigureAwait(false));
+            case 10:
+                return new(true, await presenter.QueueMessageTemplateAsync(
+                    request.RequestTemplateId, request.RequestText, expectedEpoch, token).ConfigureAwait(false));
+            case 11:
+                return new(true, await presenter.AcknowledgeAlertAsync(
+                    (long)request.RequestMessageSequence, expectedEpoch, token).ConfigureAwait(false));
+            case >= 6 and <= 9 when presenter.ConnectionSource == SimulatorUiConnectionSource.LocalSimulation:
+                return request.RequestKind switch
+                {
+                    6 => new(true, new(0, 0), ArchiveState: 1),
+                    7 => new(true, new(0, 0), ArchiveState: 0),
+                    8 => new(true, new(0, 0), PositionState: 1),
+                    _ => new(true, new(0, 0), PositionState: 0),
+                };
+            default:
+                return new(false, new(0, 0));
+        }
+    }
+
+    private async Task CompleteRequestAsync(PendingOperation operation)
+    {
+        var request = operation.Request;
+        var state = SimulatorUiOperationState.Pending;
+        var result = new OperationResult(false, new(0, 0));
         try
         {
-            if (request.RequestBridgeSessionEpoch > long.MaxValue ||
-                request.RequestMessageSequence > long.MaxValue)
+            await SetOperationStateAsync(request, state,
+                "Waiting for local producer evidence. Back changes the view and does not cancel this action.");
+            // An adapter may do synchronous work before returning its Task.
+            // Keep that work outside the dispatcher as well as the native gate.
+            var producer = Task.Run(() => ExecuteOperationAsync(request, operation.Cancellation.Token));
+            _ = producer.ContinueWith(task => { _ = task.Exception; },
+                CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted |
+                TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+            var timeout = Task.Delay(operationTimeout, deadline.Token);
+            var winner = await Task.WhenAny(producer, timeout, operation.StopWait.Task).ConfigureAwait(false);
+            if (lifetime.IsCancellationRequested) return;
+            var retired = operation.StopWait.Task.IsCompleted || winner != producer;
+            if (retired)
             {
-                throw new InvalidOperationException(
-                    "The portable UI request correlation exceeded the Windows boundary.");
+                state = operation.StopWait.Task.IsCompleted
+                    ? SimulatorUiOperationState.Canceled : SimulatorUiOperationState.TimedOut;
+                operation.Cancellation.Cancel();
+                await SetOperationStateAsync(request, state,
+                    "Outcome unknown. The local wait ended; the action may already have been accepted. " +
+                    "Read-only navigation remains available. New actions wait for this producer to settle.");
             }
-            var expectedEpoch = (long)request.RequestBridgeSessionEpoch;
-            switch (request.RequestKind)
+            deadline.Cancel();
+            try
             {
-                case >= 1 and <= 4:
-                    admission = await presenter.QueueQuickStatusAsync(
-                        request.RequestKind, expectedEpoch, lifetime.Token)
-                        .ConfigureAwait(false);
-                    succeeded = true;
-                    break;
-                case 5:
-                    admission = await presenter.QueueCriticalAlertAsync(
-                        expectedEpoch, lifetime.Token).ConfigureAwait(false);
-                    succeeded = true;
-                    break;
-                case 6:
-                    if (presenter.ConnectionSource == SimulatorUiConnectionSource.LocalSimulation)
-                    {
-                        firmwareState = firmwareState with { ArchiveState = 1 };
-                        succeeded = true;
-                    }
-                    break;
-                case 7:
-                    if (presenter.ConnectionSource == SimulatorUiConnectionSource.LocalSimulation)
-                    {
-                        firmwareState = firmwareState with { ArchiveState = 0, ArchiveQueueCount = 0 };
-                        succeeded = true;
-                    }
-                    break;
-                case 8:
-                    if (presenter.ConnectionSource == SimulatorUiConnectionSource.LocalSimulation)
-                    {
-                        firmwareState = firmwareState with { PositionState = 1 };
-                        succeeded = true;
-                    }
-                    break;
-                case 9:
-                    if (presenter.ConnectionSource == SimulatorUiConnectionSource.LocalSimulation)
-                    {
-                        firmwareState = firmwareState with { PositionState = 0 };
-                        succeeded = true;
-                    }
-                    break;
-                case 10:
-                    admission = await presenter.QueueMessageTemplateAsync(
-                        request.RequestTemplateId, request.RequestText,
-                        expectedEpoch, lifetime.Token).ConfigureAwait(false);
-                    succeeded = true;
-                    break;
-                case 11:
-                    admission = await presenter.AcknowledgeAlertAsync(
-                        (long)request.RequestMessageSequence, expectedEpoch,
-                        lifetime.Token).ConfigureAwait(false);
-                    succeeded = true;
-                    break;
+                // Retain at most this one unresolved producer. It cannot block
+                // the native/UI gates or create an unbounded orphan-call queue.
+                result = await producer.WaitAsync(lifetime.Token).ConfigureAwait(false);
+                if (!retired) state = result.Succeeded
+                    ? SimulatorUiOperationState.Confirmed : SimulatorUiOperationState.Failed;
             }
+            catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }
+            catch (Exception)
+            {
+                if (!retired) state = SimulatorUiOperationState.OutcomeUnknown;
+            }
+            if (retired) result = new(false, new(0, 0));
+
+            await commandGate.WaitAsync(lifetime.Token).ConfigureAwait(false);
+            try
+            {
+                if (closeStarted || firmwareSessionFaulted) return;
+                firmwareState = BuildFirmwareState(presenter.Snapshot, firmwareState);
+                var bridgeRequest = request.RequestKind is >= 1 and <= 5 or 10 or 11;
+                if (result.Succeeded && bridgeRequest &&
+                    (result.Admission.AppliedSessionEpoch <= 0 || result.Admission.AppliedMessageSequence <= 0 ||
+                     checked((ulong)result.Admission.AppliedSessionEpoch) != request.RequestBridgeSessionEpoch ||
+                     firmwareState.BridgeSessionEpoch != request.RequestBridgeSessionEpoch))
+                {
+                    result = new(false, new(0, 0));
+                    state = SimulatorUiOperationState.OutcomeUnknown;
+                }
+                if (result.Succeeded)
+                {
+                    if (result.PositionState is int position) firmwareState = firmwareState with { PositionState = position };
+                    if (result.ArchiveState is int archive) firmwareState = firmwareState with
+                    { ArchiveState = archive, ArchiveQueueCount = archive == 0 ? (byte)0 : firmwareState.ArchiveQueueCount };
+                }
+                var offer = currentOffer;
+                var completed = await uiSession.CompleteAsync(
+                    offer?.Generation ?? request.Generation, offer?.Revision ?? request.Revision,
+                    request.RequestId, request.RequestKind, result.Succeeded,
+                    result.Succeeded ? checked((ulong)result.Admission.AppliedSessionEpoch) : 0,
+                    result.Succeeded ? checked((ulong)result.Admission.AppliedMessageSequence) : 0,
+                    request.RequestTemplateId, request.RequestMessageSequence,
+                    firmwareState, lifetime.Token).ConfigureAwait(false);
+                if (completed.Kind == "REJECT")
+                {
+                    // Keep the same operation pending for an explicit failure
+                    // reconciliation; never turn rejected evidence into success.
+                    state = SimulatorUiOperationState.OutcomeUnknown;
+                    completed = await uiSession.CompleteAsync(
+                        offer?.Generation ?? request.Generation, offer?.Revision ?? request.Revision,
+                        request.RequestId, request.RequestKind, false, 0, 0,
+                        request.RequestTemplateId, request.RequestMessageSequence,
+                        firmwareState, lifetime.Token).ConfigureAwait(false);
+                }
+                await ProcessProtocolResultAsync(completed).ConfigureAwait(false);
+            }
+            finally { commandGate.Release(); }
+            await SetOperationStateAsync(request, state, state switch
+            {
+                SimulatorUiOperationState.Confirmed => request.RequestKind is >= 6 and <= 9
+                    ? "Simulation setting changed locally. No position, storage durability or device result is verified."
+                    : "Local bridge admission confirmed. Recipient delivery and authenticated device acceptance remain unverified.",
+                SimulatorUiOperationState.Failed => "The local action was unavailable or rejected. No successful delivery is claimed.",
+                SimulatorUiOperationState.TimedOut => "Outcome unknown after timeout. Late producer evidence was retired. Inspect the outbox before deliberately retrying.",
+                SimulatorUiOperationState.Canceled => "Local wait canceled. Outcome unknown; cancellation does not retract an accepted action. Inspect the outbox before retrying.",
+                _ => "Outcome unknown. Session loss, invalid evidence or interrupted dispatch prevents confirmation. No automatic retry occurred.",
+            });
         }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception)
         {
-            succeeded = false;
+            firmwareSessionFaulted = true;
+            await SetOperationStateAsync(request, SimulatorUiOperationState.OutcomeUnknown,
+                "Outcome unknown. The local UI session failed; reconnecting does not establish delivery.");
+            await InvokeUiAsync(() => FailUi("The local UI session failed; close this simulator window to recover."));
         }
-        firmwareState = BuildFirmwareState(presenter.Snapshot, firmwareState);
-        var completed = await uiSession.CompleteAsync(
-            request.Generation, request.Revision, request.RequestId,
-            request.RequestKind, succeeded,
-            succeeded ? checked((ulong)admission.AppliedSessionEpoch) : 0,
-            succeeded ? checked((ulong)admission.AppliedMessageSequence) : 0,
-            request.RequestTemplateId, request.RequestMessageSequence,
-            firmwareState, lifetime.Token).ConfigureAwait(false);
-        await ProcessProtocolResultAsync(completed).ConfigureAwait(false);
+        finally
+        {
+            lock (operationSync)
+                if (ReferenceEquals(activeOperation, operation)) activeOperation = null;
+            operation.Cancellation.Dispose();
+            await InvokeUiAsync(() => CancelOperationButton.IsEnabled = false);
+        }
     }
+
+    private Task SetOperationStateAsync(PortableUiProtocolResult request,
+        SimulatorUiOperationState state, string evidence) => InvokeUiAsync(() =>
+    {
+        operationState = state;
+        var label = state switch
+        {
+            SimulatorUiOperationState.Confirmed => "Confirmed locally",
+            SimulatorUiOperationState.TimedOut => "Timed out",
+            SimulatorUiOperationState.OutcomeUnknown => "Outcome unknown",
+            _ => state.ToString(),
+        };
+        OperationStateText.Text = $"{label} · operation {request.Generation}:{request.RequestId}";
+        OperationEvidenceText.Text = evidence;
+        CancelOperationButton.IsEnabled = state == SimulatorUiOperationState.Pending;
+        CancelOperationButton.Visibility = state == SimulatorUiOperationState.Pending
+            ? Visibility.Visible : Visibility.Collapsed;
+    });
+
+    private void CancelOperationWait(object sender, RoutedEventArgs e)
+    {
+        lock (operationSync) activeOperation?.StopWait.TrySetResult(true);
+    }
+
+    private static bool OperationAction(int action) =>
+        action is >= 4 and <= 8 or 11 or 14 or 15 or 17 or 18 or 19 or 20 or 31 or 32;
 
     private enum RenderState { Success, NotReady, Invalid }
 
@@ -538,7 +693,11 @@ public partial class VirtualLcdWindow : Window
         currentOffer = pendingRenderedOffer;
         pendingRenderedOffer = null;
         foreach (var button in actionButtons)
-            if (button.Tag is RenderedAction action) button.IsEnabled = action.Primitive.Enabled;
+            if (button.Tag is RenderedAction action)
+            {
+                button.IsEnabled = action.Primitive.Enabled;
+                button.Opacity = action.Primitive.Enabled ? 1.0 : 0.45;
+            }
         HostNoticeText.Text = $"Native frame {generation}:{revision} committed locally";
         ScheduleSnapshotRefreshDrain();
         return true;
@@ -655,7 +814,8 @@ public partial class VirtualLcdWindow : Window
             PeerCountValid = false,
             PeerCount = 0,
             UnreadMessages = 0,
-            BridgeSessionEpoch = snapshot.ConnectedSessionEpoch > 0
+            BridgeSessionEpoch = snapshot.ConnectionState == SimulatorUiConnectionState.Connected &&
+                snapshot.ConnectedSessionEpoch > 0
                 ? checked((ulong)snapshot.ConnectedSessionEpoch)
                 : 0,
             Messages = messages,
@@ -854,6 +1014,12 @@ public partial class VirtualLcdWindow : Window
         SimulatorUiConnectionState.Faulted => "Bridge fault",
         _ => "Unavailable",
     };
+
+    private static string DisplayClientLabel(string label) =>
+        label.StartsWith("OpenTrail Client ", StringComparison.Ordinal)
+            ? "Trail Console " + label["OpenTrail Client ".Length..]
+            : label.StartsWith("Client ", StringComparison.Ordinal)
+                ? "Trail Console " + label["Client ".Length..] : label;
 
     private Brush ConnectionBrush(SimulatorUiConnectionState state) => state switch
     {

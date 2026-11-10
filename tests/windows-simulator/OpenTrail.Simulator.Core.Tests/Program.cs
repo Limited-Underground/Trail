@@ -206,7 +206,9 @@ await using (var bridge = boundedPeerHarness.Bridge)
     var bounded = bridge.GetSnapshot(SimulatorClientId.A);
     Expect(bounded.ConnectionState == SimulatorConnectionState.Faulted &&
         bounded.OutgoingQueueCount == 0 &&
-        bounded.Messages.Last().DeliveryState == SimulatorDeliveryState.Failed,
+        bounded.Messages.Last(message =>
+            message.Direction == SimulatorMessageDirection.Outbound).DeliveryState ==
+                SimulatorDeliveryState.Failed,
         "an unserviced synthetic peer inbox must fail the exact command without retaining it for another session");
     for (var index = 0; index < 8; index++)
         await bridge.ServiceAsync(SimulatorClientId.B);
@@ -682,7 +684,11 @@ await using (var bridge = sessionAdmissionHarness.Bridge)
     var alert = received.Alerts.Single(item =>
         item.Direction == SimulatorMessageDirection.Inbound &&
         item.State == SimulatorAlertState.Active);
+    Expect(alert.CanAcknowledge,
+        "a fresh current-session received alert must expose its acknowledgement capability");
     await bridge.ReconnectAsync(SimulatorClientId.B);
+    Expect(!bridge.GetSnapshot(SimulatorClientId.B).Alerts.Single().CanAcknowledge,
+        "retained old-session alert history must not offer a new-session acknowledgement");
     var beforeAck = bridge.GetSnapshot(SimulatorClientId.B).Messages.Count;
     try
     {
@@ -696,13 +702,232 @@ await using (var bridge = sessionAdmissionHarness.Bridge)
         "a rejected prior-session acknowledgement must not enqueue in the new session");
 }
 
+groups++;
+var freshnessClock = new ManualClock(DateTimeOffset.Parse("2026-10-31T00:00:00Z"));
+var freshnessHarness = LocalLoopbackSimulator.Create(freshnessClock, TimeSpan.FromSeconds(5));
+await using (var bridge = freshnessHarness.Bridge)
+{
+    await bridge.ConnectAsync(SimulatorClientId.A);
+    var epoch = bridge.GetSnapshot(SimulatorClientId.A).ConnectedSessionEpoch;
+    freshnessClock.Advance(TimeSpan.FromSeconds(6));
+    try
+    {
+        await bridge.EnqueueQuickStatusAsync(SimulatorClientId.A, SimulatorQuickStatus.ImOk);
+        Expect(false, "legacy enqueue must refuse a stale session just like its snapshot");
+    }
+    catch (InvalidOperationException) { }
+    try
+    {
+        await bridge.EnqueueQuickStatusForSessionAsync(
+            SimulatorClientId.A, SimulatorQuickStatus.ImOk, epoch);
+        Expect(false, "an exact old admission epoch must not bypass freshness");
+    }
+    catch (InvalidOperationException) { }
+    Expect(bridge.GetSnapshot(SimulatorClientId.A).OutgoingQueueCount == 0,
+        "stale admission must not leave future-session work");
+    freshnessClock.Advance(TimeSpan.FromSeconds(-7));
+    _ = bridge.GetSnapshot(SimulatorClientId.A);
+    freshnessClock.Advance(TimeSpan.FromSeconds(2));
+    Expect(bridge.GetSnapshot(SimulatorClientId.A).ConnectionState ==
+            SimulatorConnectionState.Faulted,
+        "clock rollback must stay faulted after the old wall time is reached again");
+    await bridge.ReconnectAsync(SimulatorClientId.A);
+    Expect(bridge.GetSnapshot(SimulatorClientId.A).ConnectedSessionEpoch > epoch,
+        "an explicit reconnect must establish a fresh epoch after clock rollback");
+}
+
+groups++;
+var cancellationFactory = new ScriptedTransportFactory();
+using (var cancellation = new CancellationTokenSource())
+await using (var bridge = ScriptedBridge(cancellationFactory))
+{
+    cancellationFactory.OnOpen = () => cancellation.Cancel();
+    try
+    {
+        await bridge.ConnectAsync(SimulatorClientId.A, cancellation.Token);
+        Expect(false, "late open cancellation must not establish Connected");
+    }
+    catch (OperationCanceledException) { }
+    var canceled = bridge.GetSnapshot(SimulatorClientId.A);
+    Expect(canceled.ConnectionState == SimulatorConnectionState.Disconnected &&
+            canceled.ConnectedSessionEpoch == 0 && cancellationFactory.CloseCount == 1,
+        "the exact newly opened transport must close after late cancellation");
+}
+
+groups++;
+foreach (var sendFailure in new Exception[]
+    { new OperationCanceledException(), new IOException("synthetic partial write") })
+{
+var interruptedFactory = new ScriptedTransportFactory();
+await using (var bridge = ScriptedBridge(interruptedFactory))
+{
+    await bridge.ConnectAsync(SimulatorClientId.A);
+    await bridge.EnqueueChatAsync(SimulatorClientId.A, "possibly accepted");
+    await bridge.EnqueueChatAsync(SimulatorClientId.A, "not submitted");
+    interruptedFactory.FailSend = sendFailure;
+    var cancellationPropagated = false;
+    try
+    {
+        await bridge.ServiceAsync(SimulatorClientId.A);
+    }
+    catch (OperationCanceledException) { cancellationPropagated = true; }
+    Expect(cancellationPropagated == (sendFailure is OperationCanceledException),
+        "only send cancellation must propagate after retiring ambiguous work");
+    var interrupted = bridge.GetSnapshot(SimulatorClientId.A);
+    Expect(interrupted.OutgoingQueueCount == 0 &&
+            interrupted.ConnectionState == SimulatorConnectionState.Faulted &&
+            interrupted.LastPublicError?.Contains("outcome unknown", StringComparison.Ordinal) == true,
+        "a potentially accepted canceled send must expose uncertainty and retire its queue");
+    interruptedFactory.FailSend = null;
+    await bridge.ServiceAsync(SimulatorClientId.A);
+    Expect(bridge.GetSnapshot(SimulatorClientId.A).LastPublicError?.Contains(
+            "outcome unknown", StringComparison.Ordinal) == true,
+        "a later service call on the faulted session must preserve the uncertainty explanation");
+    await bridge.ReconnectAsync(SimulatorClientId.A);
+    await bridge.ServiceAsync(SimulatorClientId.A);
+    Expect(interruptedFactory.SendCount == 1 &&
+            bridge.GetSnapshot(SimulatorClientId.A).Messages.Any(message =>
+                message.Kind == SimulatorMessageKind.System &&
+                message.Text.Contains("outcome unknown", StringComparison.Ordinal)),
+        "service or reconnect must never automatically replay a possibly accepted send");
+}
+}
+
+groups++;
+var queuedAgingFactory = new ScriptedTransportFactory();
+var queuedAgingClock = new ManualClock(DateTimeOffset.Parse("2026-10-31T00:00:00Z"));
+await using (var bridge = ScriptedBridge(queuedAgingFactory, queuedAgingClock))
+{
+    await bridge.ConnectAsync(SimulatorClientId.A);
+    await bridge.EnqueueChatAsync(SimulatorClientId.A, "admitted while fresh");
+    queuedAgingClock.Advance(TimeSpan.FromSeconds(6));
+    await bridge.ServiceAsync(SimulatorClientId.A);
+    Expect(queuedAgingFactory.SendCount == 0 &&
+            bridge.GetSnapshot(SimulatorClientId.A).ConnectionState == SimulatorConnectionState.Stale,
+        "a queued command must not transmit after its session becomes stale");
+    queuedAgingFactory.Observations.Enqueue(new(CompanionCommandKind.Chat, 1,
+        "fresh incoming observation", SimulatorMessagePriority.Normal, null));
+    await bridge.ServiceAsync(SimulatorClientId.A);
+    await bridge.ServiceAsync(SimulatorClientId.A);
+    Expect(queuedAgingFactory.SendCount == 1,
+        "a new valid observation may restore the same session before one queued send");
+}
+
+groups++;
+foreach (var malformed in new CompanionObservation[]
+{
+    new((CompanionCommandKind)255, 1, "invalid kind", SimulatorMessagePriority.Normal, null),
+    new(CompanionCommandKind.Chat, 0, "invalid identity", SimulatorMessagePriority.Normal, null),
+    new(CompanionCommandKind.Chat, 1, "invalid priority", (SimulatorMessagePriority)255, null),
+    new(CompanionCommandKind.Alert, 1, "missing severity", SimulatorMessagePriority.Critical, null),
+    new(CompanionCommandKind.Chat, 1, "unexpected severity", SimulatorMessagePriority.Normal,
+        SimulatorAlertSeverity.Critical),
+})
+{
+    var invalidFactory = new ScriptedTransportFactory();
+    var invalidClock = new ManualClock(DateTimeOffset.Parse("2026-10-31T00:00:00Z"));
+    await using var bridge = ScriptedBridge(invalidFactory, invalidClock);
+    await bridge.ConnectAsync(SimulatorClientId.A);
+    invalidClock.Advance(TimeSpan.FromSeconds(4));
+    invalidFactory.Observations.Enqueue(malformed);
+    await bridge.ServiceAsync(SimulatorClientId.A);
+    var rejected = bridge.GetSnapshot(SimulatorClientId.A);
+    Expect(rejected.ConnectionState == SimulatorConnectionState.Faulted &&
+            rejected.LastObservationAge == TimeSpan.FromSeconds(4) &&
+            rejected.Messages.All(message => message.Direction != SimulatorMessageDirection.Inbound),
+        "invalid incoming events must fail before freshness, sequence or visible history changes");
+}
+
+groups++;
+var duplicateFactory = new ScriptedTransportFactory();
+var duplicateClock = new ManualClock(DateTimeOffset.Parse("2026-10-31T00:00:00Z"));
+await using (var bridge = ScriptedBridge(duplicateFactory, duplicateClock))
+{
+    await bridge.ConnectAsync(SimulatorClientId.A);
+    var observed = new CompanionObservation(CompanionCommandKind.Chat, 1,
+        "one observation", SimulatorMessagePriority.Normal, null);
+    duplicateFactory.Observations.Enqueue(observed);
+    await bridge.ServiceAsync(SimulatorClientId.A);
+    duplicateClock.Advance(TimeSpan.FromSeconds(4));
+    duplicateFactory.Observations.Enqueue(observed);
+    await bridge.ServiceAsync(SimulatorClientId.A);
+    var repeated = bridge.GetSnapshot(SimulatorClientId.A);
+    Expect(repeated.Messages.Count(message =>
+                message.Direction == SimulatorMessageDirection.Inbound) == 1 &&
+            repeated.LastObservationAge == TimeSpan.FromSeconds(4),
+        "duplicate callbacks must not duplicate history or rejuvenate old observations");
+}
+
+groups++;
+var lateAckFactory = new ScriptedTransportFactory();
+await using (var bridge = ScriptedBridge(lateAckFactory))
+{
+    await bridge.ConnectAsync(SimulatorClientId.A);
+    await bridge.EnqueueAlertAsync(SimulatorClientId.A, "original alert",
+        SimulatorAlertSeverity.Critical);
+    await bridge.ServiceAsync(SimulatorClientId.A);
+    var alert = bridge.GetSnapshot(SimulatorClientId.A).Alerts.Single();
+    var correlation = lateAckFactory.LastCommand!.Correlation;
+    await bridge.ReconnectAsync(SimulatorClientId.A);
+    lateAckFactory.Observations.Enqueue(new(CompanionCommandKind.Acknowledgement,
+        correlation, "Acknowledged", SimulatorMessagePriority.Important, null));
+    await bridge.ServiceAsync(SimulatorClientId.A);
+    Expect(bridge.GetSnapshot(SimulatorClientId.A).Alerts.Single().State ==
+            SimulatorAlertState.Active,
+        "a later session cannot acknowledge a retained earlier-session alert");
+}
+
 Console.WriteLine($"OpenTrail simulator core: {groups} groups, {failures} failures");
 return failures == 0 ? 0 : 1;
+
+static DualClientBridge ScriptedBridge(
+    ScriptedTransportFactory factory, ISimulatorClock? clock = null) => new(
+    new FixedDiscovery(
+    [new(CompanionEndpoint.CreateSessionPrivate(), "Simulated companion A",
+        CompanionDeviceFamily.Simulated)]), factory,
+    clock ?? new ManualClock(DateTimeOffset.Parse("2026-10-31T00:00:00Z")),
+    TimeSpan.FromSeconds(5));
 
 sealed class ManualClock(DateTimeOffset now) : ISimulatorClock
 {
     public DateTimeOffset UtcNow { get; private set; } = now;
     public void Advance(TimeSpan elapsed) => UtcNow += elapsed;
+}
+
+sealed class ScriptedTransportFactory : ICompanionTransportFactory
+{
+    public Queue<CompanionObservation> Observations { get; } = new();
+    public Action? OnOpen { get; set; }
+    public Exception? FailSend { get; set; }
+    public int SendCount { get; private set; }
+    public int CloseCount { get; private set; }
+    public CompanionCommand? LastCommand { get; private set; }
+
+    public ValueTask<ICompanionTransport> OpenAsync(
+        CompanionCandidate candidate, CancellationToken cancellationToken)
+    {
+        OnOpen?.Invoke();
+        return ValueTask.FromResult<ICompanionTransport>(new Transport(this));
+    }
+
+    private sealed class Transport(ScriptedTransportFactory owner) : ICompanionTransport
+    {
+        public ValueTask SendAsync(CompanionCommand command, CancellationToken cancellationToken)
+        {
+            owner.SendCount++;
+            owner.LastCommand = command;
+            return owner.FailSend is null ? ValueTask.CompletedTask :
+                ValueTask.FromException(owner.FailSend);
+        }
+        public ValueTask<CompanionObservation?> ReceiveAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult(owner.Observations.TryDequeue(out var observation)
+                ? observation : null);
+        public ValueTask DisposeAsync()
+        {
+            owner.CloseCount++;
+            return ValueTask.CompletedTask;
+        }
+    }
 }
 
 sealed class FixedDiscovery(IReadOnlyList<CompanionCandidate> candidates)

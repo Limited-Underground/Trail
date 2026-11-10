@@ -282,7 +282,8 @@ internal sealed class CoreSimulatorClientPresenter : ISimulatorClientPresenter
                     alert.LocalSequence == message.LocalSequence &&
                     alert.Direction == SimulatorMessageDirection.Inbound &&
                     alert.Severity == SimulatorAlertSeverity.Critical &&
-                    alert.State == SimulatorAlertState.Active))).ToArray(),
+                    alert.State == SimulatorAlertState.Active &&
+                    alert.CanAcknowledge))).ToArray(),
             source.Alerts.Select(alert => new SimulatorUiAlert(
                 alert.LocalSequence,
                 alert.Direction switch
@@ -312,7 +313,8 @@ internal sealed class CoreSimulatorClientPresenter : ISimulatorClientPresenter
                 },
                 alert.CreatedAt,
                 alert.Direction == SimulatorMessageDirection.Inbound &&
-                alert.State == SimulatorAlertState.Active)).ToArray(),
+                alert.State == SimulatorAlertState.Active &&
+                alert.CanAcknowledge)).ToArray(),
             source.ConnectedSessionEpoch,
             source.OutgoingQueueCount,
             source.OutgoingQueueCapacity,
