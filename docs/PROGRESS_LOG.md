@@ -2,6 +2,25 @@
 
 ## 2026-11-10
 
+### OT-0101c Record owner-approved D1 qualification metadata
+
+Recorded the evidenced HTIT-WB32LAF V4.2 received revision, bounded US915
+applicability label and OTHP0 layout version 1 in the bench target contract.
+The exact UTF-8/LF postimage is 6861 bytes, SHA-256
+`bf40d99aa261a616060672238eb0c301e462e164c5fa2ae3ccdabb7e78ebbbba`.
+Only the corresponding old-value expectations in the target-admission test
+changed; all 19 target-admission groups pass. The separate standalone contract
+schema version, experimental status, supported=false and every capability,
+write and recovery refusal are preserved.
+
+The Firmware owner prepares this bounded correction on
+`fix/d1-target-contract-r6-2-20261110` for a draft PR; merge is not authorized.
+D1 records qualification applicability only, not operational support,
+certification, installation or RF authority. The Loader pin remains unchanged;
+its eventual repin and all remaining LUF-0008b production-input criteria stay
+separate. No device, security activation, signing, release or V1 completion
+credit follows from these metadata and host-check results.
+
 ### OT-0320 Clean unoffered reports after failed share preparation
 
 Corrected the existing Share / Email path so a preparation failure cleans up only its newly created, never-offered cached report. Reports offered previously, or possibly offered once chooser dispatch is attempted, remain available. Report bytes, read-only grant flags and the existing eight-file/24-hour retention policy are unchanged. The before-fix provider-failure regression left an extra report; the same case now passes, along with repeated failures, successful/uncertain handoff and capacity preservation. All 19 focused/affected debug JVM tests pass.
