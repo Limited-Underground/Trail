@@ -21,6 +21,20 @@ its eventual repin and all remaining LUF-0008b production-input criteria stay
 separate. No device, security activation, signing, release or V1 completion
 credit follows from these metadata and host-check results.
 
+### OT-0312 Bind the inactive host session-authority adapter
+
+R6-3 resumes the preserved R5 topic on B1 af07c204d9ff771104897bd2d492e2d9bf2f3cc7. Only the missing MainActivity denied-state branch is added, using the verified sealed-patch wording; no other part of that file is imported. The service owns an unarmed OTY0 consumer; production runtime provider remains default-null and profile6 remains disabled. One completed protected-owner exchange is correlated to exact supplied pins, membership revision, lease/callback, nonce/exchange and fixed request-start deadline. Refusal, malformed/duplicate/late responses and lifecycle changes cannot create or renew proof. No caller Boolean supplies authority.
+
+Maintained validation passes test: 91, testDebugUnitTest: 569, testReleaseUnitTest: 553 JVM cases, zero failures/errors/skips, plus debug/release lint. Fifteen adapter tests exercise the consumer side of frozen state cases2–6. Actual producer journal transitions, command-time races and target/physical behavior remain Not Tested here. The original fixture no-op mutation failure and interrupted runs are retained. Source review corrected reentrant clock-callback retirement, with a focused regression. This is host lifecycle evidence only; supplied identity pins still require the real protected owner and are not authenticated by metadata.
+
+The exact adopted runtime/test and three verified dependency versions remain preserved. The existing [OT-0312](https://github.com/Limited-Underground/Trail/issues/116) records the draft stacked on #220 and current CI separately from main adoption. No target registration, device/BLE/RF, signing/release, Ready/merge or product completion is included.
+
+### OT-0312 Stop B2 at the adopted-runtime rendering dependency
+
+R5-2 admits the exact eleven-file B2 scope and a new isolated topic stacked on B1 af07c204d9ff771104897bd2d492e2d9bf2f3cc7. The adopted runtime/test were copied at their exact approved successor hashes. CompanionRadioEvents.kt, CompanionConfiguration.kt and BleConfigurationSession.kt used preserved, verified versions: original baseline/absence plus sealed consolidation patch reconstructs each pinned successor; recorded historical tests bind those versions. No other overlay source was imported.
+
+The actual protocol suite passes, but app debug compilation fails at MainActivity.kt:1069 because its exhaustive when lacks BLUETOOTH_STATE_READ_DENIED from the exact adopted runtime. MainActivity.kt is outside the eleven-file allowlist. Stop before adapter implementation, service wiring or publication; do not remove the adopted enum, add a stub or edit the twelfth file. App and adapter tests are Not Run; state cases 2–6 remain Not Tested, not passing fixtures. An additional rendering-path admission is needed before continuing this same B2 topic. No B2 PR, production activation, device, signing, Ready or merge occurred. Canonical dirty source and original evidence remain preserved.
+
 ### OT-0312 Validate the standalone session-authority wire codec
 
 Added a standalone, unwired OTY0 codec in the protocol module: exact 76-byte request and 136-byte response records, schema/domain/header/reserved validation, flags 3 success / 0 refusal with zero authority metadata, full unsigned generation fields, supplied-pin/request comparison and fixed request-start monotonic expiry. Decoded metadata cannot authenticate itself or create Packet authority. Profile 6 remains disabled and the production provider unavailable; no Android app file changes.

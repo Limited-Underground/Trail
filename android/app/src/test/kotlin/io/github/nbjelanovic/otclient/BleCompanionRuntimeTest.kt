@@ -17,6 +17,7 @@ import io.github.nbjelanovic.otprotocol.CompanionAuthorizationWireCodec
 import io.github.nbjelanovic.otprotocol.CompanionActionDisposition
 import io.github.nbjelanovic.otprotocol.CompanionActionKind
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
+import io.github.nbjelanovic.otprotocol.CompanionActionRejectReason
 import io.github.nbjelanovic.otprotocol.CompanionActionResult
 import io.github.nbjelanovic.otprotocol.CompanionFragment
 import io.github.nbjelanovic.otprotocol.CompanionFrameKind
@@ -39,6 +40,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertNotNull
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotSame
+import kotlin.test.assertNotEquals
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -75,6 +78,72 @@ class BleCompanionRuntimeTest {
             assertIs<BleRuntimeState.Blocked>(runtime.state).reason,
         )
         assertFalse(runtime.submitAction(quickStatus()))
+    }
+
+    @Test
+    fun blockedOwnerRetryRechecksBluetoothAndUsesOneBoundedReturningScan() {
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+        val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+        facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        runtime.onLifecycleStart()
+        assertEquals(BleRuntimeBlock.BLUETOOTH_DISABLED,
+            assertIs<BleRuntimeState.Blocked>(runtime.state).reason)
+        assertTrue(facade.scans.isEmpty())
+
+        runtime.retryDiscovery()
+        assertEquals(BleRuntimeBlock.BLUETOOTH_DISABLED,
+            assertIs<BleRuntimeState.Blocked>(runtime.state).reason)
+        assertTrue(facade.returningOwnerScans.isEmpty())
+
+        facade.preflight = BlePreflight()
+        runtime.retryDiscovery()
+        assertIs<BleRuntimeState.FindingReturningOwner>(runtime.state)
+        assertEquals(1, facade.returningOwnerScans.size)
+        val retryScan = facade.returningOwnerScans.last()
+        assertTrue(retryScan.started)
+        runtime.retryDiscovery()
+        assertEquals(1, facade.returningOwnerScans.size)
+        assertTrue(facade.scans.isEmpty(), "retry must not enter the D1 setup scan")
+
+        retryScan.emit(BleScanEvent.Complete)
+        assertTrue(retryScan.closed)
+        assertIs<BleRuntimeState.Idle>(runtime.state)
+        assertTrue(facade.connections.isEmpty())
+    }
+
+    @Test
+    fun blockedOwnerRetryWithDeniedPermissionDoesNotStartAnotherScan() {
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+        val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+        facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        runtime.onLifecycleStart()
+        facade.preflight = BlePreflight(BleRuntimeBlock.SCAN_PERMISSION_MISSING)
+        runtime.retryDiscovery()
+        assertEquals(BleRuntimeBlock.SCAN_PERMISSION_MISSING,
+            assertIs<BleRuntimeState.Blocked>(runtime.state).reason)
+        assertTrue(facade.returningOwnerScans.isEmpty())
+        assertTrue(facade.scans.isEmpty())
+    }
+
+    @Test
+    fun blockedAddDeviceRetryKeepsTheD1SetupScanRoute() {
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+        val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+        runtime.onLifecycleStart()
+        facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
+        facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        runtime.requestScan()
+        facade.preflight = BlePreflight()
+
+        runtime.retryDiscovery()
+
+        assertIs<BleRuntimeState.Scanning>(runtime.state)
+        assertEquals(1, facade.scans.size)
+        assertEquals(1, facade.returningOwnerScans.size)
+        runtime.retryDiscovery()
+        assertEquals(1, facade.scans.size)
+        runtime.onLifecycleStop()
+        assertTrue(facade.scans.single().closed)
     }
 
     @Test
@@ -1668,12 +1737,361 @@ class BleCompanionRuntimeTest {
         f.runtime.close()
     }
 
+    private fun packetFixture(): ConfigurationFixture = ConfigurationFixture(profile=6,packetOptIn=true).also { it.name();it.clock() }
+    private fun ConfigurationFixture.packetEvent(id: UInt, state: Int, receipt: ULong=100u,
+        kind: Int=1, reason: Int=0, exchange: UInt=1u, generation: ULong=99u,
+        nonce: UInt=this.nonce, detail: Int=1) {
+        val event=io.github.nbjelanovic.otprotocol.CompanionRadioEvent(kind,if(kind in 1..2) detail else 0,
+            if(kind in 1..2) receipt else 0u,generation,state,reason,
+            if(kind==1) this.nonce else 0u,if(kind==1) exchange else 0u)
+        val wire=checkNotNull(io.github.nbjelanovic.otprotocol.CompanionRadioEventCodec.encodeRecord(
+            io.github.nbjelanovic.otprotocol.CompanionRadioEventRecord(nonce,id,event),allowProfile06=true))
+        val lease=facade.connections.last()
+        if(lease.closed) lease.emitStale(BleGattEvent.StreamIndication(wire)) else lease.emit(BleGattEvent.StreamIndication(wire))
+    }
+    private fun ConfigurationFixture.packetResult(id:UInt=last().exchangeId,
+        disposition:CompanionActionDisposition=CompanionActionDisposition.QUEUED) {
+        val result=CompanionActionResult(kind=CompanionActionKind.QUICK_STATUS,disposition=disposition,
+            rejectReason=if(disposition==CompanionActionDisposition.REJECTED) CompanionActionRejectReason.POLICY_DENIED else CompanionActionRejectReason.NONE,
+            quickStatus=CompanionQuickStatus.OK)
+        respond(0x82,checkNotNull(CompanionSemanticCodec.encodeActionResult(result).value),id)
+    }
+
+    @Test fun packetProfileRequiresExplicitOptInAndIndependentAdmission() {
+        assertIs<BleRuntimeState.Failed>(ConfigurationFixture(profile=6).runtime.state)
+        val missing=ConfigurationFixture(profile=6,packetOptIn=true,packetAdmission=false)
+        val count=missing.gatt.commands.size
+        assertFalse(missing.runtime.submitAction(quickStatus()))
+        missing.packetEvent(1u,4,kind=2)
+        assertEquals(count,missing.gatt.commands.size)
+        assertEquals(0u,missing.runtime.packetRadioState.eventId)
+        val good=packetFixture()
+        assertTrue(assertIs<BleRuntimeState.Ready>(good.runtime.state).session.configuration.regionAvailable)
+        assertTrue(assertIs<BleRuntimeState.Ready>(good.runtime.state).session.configuration.publicProfileAvailable)
+    }
+    @Test fun packetQueueTransmitAckRemainDistinctBeforeAndAfterActionResult() {
+        for(early in listOf(false,true)) {
+            val f=packetFixture();assertTrue(f.runtime.submitAction(quickStatus()));val id=f.last().exchangeId
+            if(!early) f.packetResult(id)
+            assertNull(f.runtime.packetRadioState.lastEvent)
+            f.packetEvent(1u,1,exchange=id);assertEquals(1,f.runtime.packetRadioState.lastEvent?.state)
+            f.packetEvent(2u,2,exchange=id);assertEquals(2,f.runtime.packetRadioState.lastEvent?.state)
+            f.packetEvent(3u,3,exchange=id);assertEquals(3,f.runtime.packetRadioState.lastEvent?.state)
+            if(early) f.packetResult(id)
+            assertFalse(f.runtime.packetRadioState.outcomeUnknown)
+            assertTrue(f.runtime.submitAction(quickStatus()))
+        }
+    }
+    @Test fun packetAuthorityMismatchAndRevocationRefuseBeforeWrite() {
+        val transforms:List<(BlePacketAuthority)->BlePacketAuthority?> = listOf(
+            {null},{it.copy(admitted=false)},{it.copy(radioArmed=false)},{it.copy(expiresAtMillis=100)},
+            {it.copy(peer="other")},{it.copy(group=23u)},{it.copy(admittedSession=23u)},
+            {it.copy(deviceGeneration=100u)},{it.copy(nonce=18u)},{it.copy(callbackGeneration=it.callbackGeneration+1)})
+        for(transform in transforms) {
+            val f=packetFixture();val count=f.gatt.commands.size;f.proofTransform=transform
+            assertFalse(f.runtime.submitAction(quickStatus()));assertEquals(count,f.gatt.commands.size)
+            assertEquals(0u,f.runtime.packetRadioState.eventId)
+            val expected=f.last().exchangeId+1u
+            f.proofTransform={it};assertTrue(f.runtime.submitAction(quickStatus()))
+            assertEquals(expected,f.last().exchangeId)
+        }
+    }
+    @Test fun packetProviderReentrancyAndAuthorityChangeDuringHandoffFailClosed() {
+        val f=packetFixture();var attempted=false
+        f.proofHook={if(!attempted) {attempted=true;assertFalse(f.runtime.submitAction(quickStatus()))}}
+        assertTrue(f.runtime.submitAction(quickStatus()));assertTrue(attempted)
+        val g=packetFixture();val count=g.gatt.commands.size
+        g.gatt.onCommand={g.proofTransform={it.copy(admitted=false)}}
+        assertFalse(g.runtime.submitAction(quickStatus()));assertEquals(count+1,g.gatt.commands.size)
+        assertTrue(g.runtime.packetRadioState.outcomeUnknown);assertTrue(g.gatt.closed)
+    }
+    @Test fun packetSynchronousEventsBeforeResultAndFalseReturnKeepExactOutcome() {
+        val f=packetFixture()
+        f.gatt.onCommand={val id=f.last().exchangeId;f.packetEvent(1u,1,exchange=id);f.packetEvent(2u,2,exchange=id);f.packetEvent(3u,3,exchange=id);f.packetResult(id)}
+        assertTrue(f.runtime.submitAction(quickStatus()));assertEquals(3,f.runtime.packetRadioState.lastEvent?.state)
+        val g=packetFixture();g.gatt.writeResult=false
+        assertFalse(g.runtime.submitAction(quickStatus()));assertTrue(g.runtime.packetRadioState.outcomeUnknown)
+        assertTrue(g.gatt.closed)
+    }
+    @Test fun packetDuplicateAndWrongOriginOrGenerationCannotMutateCursor() {
+        val f=packetFixture();f.runtime.submitAction(quickStatus());val id=f.last().exchangeId
+        f.packetEvent(1u,1,exchange=id);val saved=f.runtime.packetRadioState
+        f.packetEvent(1u,1,exchange=id);f.packetEvent(2u,2,exchange=id,generation=100u)
+        f.packetEvent(2u,2,exchange=id+1u);f.packetEvent(2u,2,exchange=id,nonce=18u)
+        assertEquals(saved,f.runtime.packetRadioState)
+        f.packetResult(id);f.packetResult(id);assertIs<BleRuntimeState.Ready>(f.runtime.state)
+        f.packetEvent(2u,2,exchange=id);f.packetEvent(3u,3,exchange=id)
+        f.packetEvent(4u,2,exchange=id);assertEquals(3u,f.runtime.packetRadioState.eventId)
+    }
+    @Test fun packetRejectionAndContradictionRetireAndPreserveResult() {
+        val f=packetFixture();f.runtime.submitAction(quickStatus());f.packetResult(disposition=CompanionActionDisposition.REJECTED)
+        assertTrue(f.gatt.closed);assertEquals(CompanionActionDisposition.REJECTED,f.runtime.packetRadioState.lastActionResult?.disposition)
+        assertFalse(f.runtime.packetRadioState.outcomeUnknown)
+        val g=packetFixture();g.runtime.submitAction(quickStatus());val id=g.last().exchangeId
+        g.packetEvent(1u,1,exchange=id);g.packetResult(id,CompanionActionDisposition.REJECTED)
+        assertTrue(g.gatt.closed);assertTrue(g.runtime.packetRadioState.outcomeUnknown)
+    }
+    @Test fun packetCancelTimeoutAndLifecycleInterruptionNeverResend() {
+        for(stop in 0..3) {
+            val f=packetFixture();assertFalse(f.runtime.cancelPacketOperation())
+            f.runtime.submitAction(quickStatus());f.packetResult();val count=f.gatt.commands.size
+            when(stop) {0->assertTrue(f.runtime.cancelPacketOperation());1->f.scheduler.advanceBy(ACTION_RESULT_TIMEOUT_MILLIS);2->f.runtime.onLifecycleStop();else->f.runtime.close()}
+            assertTrue(f.runtime.packetRadioState.outcomeUnknown);assertEquals(count,f.gatt.commands.size);assertTrue(f.gatt.closed)
+        }
+    }
+    @Test fun packetGapAndTransportExpiryRetireWithoutRadioCommand() {
+        for(pair in listOf(4 to 9,3 to 8,3 to 7)) {
+            val f=packetFixture();f.runtime.submitAction(quickStatus());val count=f.gatt.commands.size
+            f.packetEvent(1u,pair.second,kind=pair.first,reason=if(pair.second==8)3 else 7)
+            assertTrue(f.runtime.packetRadioState.outcomeUnknown);assertTrue(f.gatt.closed)
+            assertEquals(count,f.gatt.commands.size)
+        }
+    }
+    @Test fun packetReceiptsAreBoundedAndEvictedReceiptCannotReappear() {
+        val f=packetFixture()
+        for(i in 1..17) f.packetEvent(i.toUInt(),4,receipt=i.toULong(),kind=2)
+        assertEquals(16,f.runtime.packetRadioState.terminalEvents.size)
+        assertTrue(f.runtime.packetRadioState.outcomeUnknown)
+        f.packetEvent(18u,4,receipt=1u,kind=2)
+        assertEquals(17u,f.runtime.packetRadioState.eventId)
+    }
+    @Test fun packetObserverReattachmentPreservesOwnerButReentrantSubmissionIsRefused() {
+        val f=packetFixture();f.runtime.submitAction(quickStatus());val id=f.last().exchangeId
+        f.runtime.observe(null);var seen=false
+        f.runtime.observe { if(it is BleRuntimeState.Ready) {seen=true;assertFalse(f.runtime.submitAction(quickStatus()))} }
+        f.packetEvent(1u,1,exchange=id);assertTrue(seen);assertFalse(f.gatt.closed)
+        f.runtime.close();f.gatt.emitStale(BleGattEvent.StreamIndication(byteArrayOf(1)))
+        assertIs<BleRuntimeState.Closed>(f.runtime.state)
+    }
+
+    @Test fun packetReconnectRequiresFreshNonceAndRetainsSameGenerationReplayFence() {
+        val f=packetFixture()
+        for(i in 1..17) f.packetEvent(i.toUInt(),4,receipt=i.toULong(),kind=2)
+        val old=f.gatt;old.emit(BleGattEvent.Disconnected);f.scheduler.runNext();f.negotiate(18u);f.name();f.clock()
+        old.emitStale(BleGattEvent.StreamIndication(byteArrayOf(1)))
+        assertIs<BleRuntimeState.Ready>(f.runtime.state)
+        f.packetEvent(1u,4,receipt=1u,kind=2)
+        assertEquals(17u,f.runtime.packetRadioState.eventId) // no accepted event on new lease yet
+        f.packetEvent(1u,4,receipt=18u,kind=2);assertEquals(18uL,f.runtime.packetRadioState.lastEvent?.receipt)
+        f.facade.connections.last().emit(BleGattEvent.Disconnected);f.scheduler.runNext();f.negotiate(18u)
+        assertIs<BleRuntimeState.Failed>(f.runtime.state)
+    }
+    @Test fun packetClockReentryAndPreHandoffRevocationRetireWithoutSending() {
+        val f=packetFixture();var attempted=false
+        f.clockHook={if(!attempted) {attempted=true;assertFalse(f.runtime.submitAction(quickStatus()))}}
+        assertTrue(f.runtime.submitAction(quickStatus()));assertTrue(attempted)
+        val g=packetFixture();val count=g.gatt.commands.size;var checks=0
+        g.proofTransform={proof->checks++;if(checks==3) proof.copy(admitted=false) else proof}
+        assertFalse(g.runtime.submitAction(quickStatus()));assertEquals(count,g.gatt.commands.size);assertTrue(g.gatt.closed)
+        assertFalse(g.runtime.packetRadioState.outcomeUnknown)
+    }
+    @Test fun packetLateContradictoryRejectionAndCompletedCancellationAreBounded() {
+        val f=packetFixture();f.runtime.submitAction(quickStatus());val id=f.last().exchangeId
+        f.packetResult(id);f.packetEvent(1u,1,exchange=id);f.packetEvent(2u,2,exchange=id);f.packetEvent(3u,3,exchange=id)
+        assertFalse(f.runtime.cancelPacketOperation());assertFalse(f.gatt.closed)
+        f.packetResult(id,CompanionActionDisposition.REJECTED)
+        assertTrue(f.gatt.closed);assertTrue(f.runtime.packetRadioState.outcomeUnknown)
+        val g=packetFixture();g.runtime.submitAction(quickStatus());val next=g.last().exchangeId
+        g.packetEvent(1u,1,exchange=next);g.packetEvent(2u,4,kind=2,receipt=101u)
+        g.packetResult(next,CompanionActionDisposition.REJECTED)
+        assertTrue(g.runtime.packetRadioState.outcomeUnknown)
+    }
+    @Test fun packetEventMutationRechecksAuthorityAndMalformedEventIsAtomic() {
+        val f=packetFixture();f.runtime.submitAction(quickStatus());val id=f.last().exchangeId
+        f.packetEvent(1u,1,exchange=id);val before=f.runtime.packetRadioState
+        val wire=checkNotNull(io.github.nbjelanovic.otprotocol.CompanionRadioEventCodec.encodeRecord(
+            io.github.nbjelanovic.otprotocol.CompanionRadioEventRecord(17u,2u,
+                io.github.nbjelanovic.otprotocol.CompanionRadioEvent(1,1,100u,99u,2,0,17u,id)),allowProfile06=true))
+        wire[46]=1 // reserved OTE0 byte26
+        f.gatt.emit(BleGattEvent.StreamIndication(wire));assertEquals(before,f.runtime.packetRadioState)
+        f.proofTransform={it.copy(admitted=false)};f.packetEvent(2u,2,exchange=id)
+        assertEquals(1u,f.runtime.packetRadioState.eventId);assertTrue(f.runtime.packetRadioState.outcomeUnknown);assertTrue(f.gatt.closed)
+    }
+    @Test fun packetServiceOwnerReattachmentPreservesWorkAndDestructionInvalidates() {
+        val f=ConfigurationFixture(profile=6,packetOptIn=true,withSessionOwner=true);f.name();f.clock()
+        val owner=checkNotNull(f.owner);assertTrue(owner.submitAction(quickStatus()));val id=f.last().exchangeId
+        var observed=0;val first=checkNotNull(owner.observe{observed++});first.close()
+        val second=checkNotNull(owner.observe{observed++});f.packetEvent(1u,1,exchange=id)
+        assertTrue(observed>=2);assertFalse(f.gatt.closed);second.close();val count=f.gatt.commands.size
+        owner.close();assertTrue(f.gatt.closed);assertTrue(f.runtime.packetRadioState.outcomeUnknown)
+        assertFalse(owner.submitAction(quickStatus()));assertEquals(count,f.gatt.commands.size)
+    }
+
+    @Test fun packetPlatformThrowAfterHandoffRetiresAsUnknownWithoutResend() {
+        val f=packetFixture();val count=f.gatt.commands.size;f.gatt.throwOnWrite=true
+        assertFalse(f.runtime.submitAction(quickStatus()));assertEquals(count+1,f.gatt.commands.size)
+        assertTrue(f.gatt.closed);assertTrue(f.runtime.packetRadioState.outcomeUnknown)
+    }
+
+    @Test fun packetSynchronousRejectionAndTerminalClosePreserveObservedOutcome() {
+        val f=packetFixture();f.gatt.onCommand={f.packetResult(disposition=CompanionActionDisposition.REJECTED)}
+        assertFalse(f.runtime.submitAction(quickStatus()));assertTrue(f.gatt.closed)
+        assertEquals(CompanionActionDisposition.REJECTED,f.runtime.packetRadioState.lastActionResult?.disposition)
+        assertFalse(f.runtime.packetRadioState.outcomeUnknown)
+        assertEquals(BlePacketDeliveryPhase.AUTHORITATIVE_REJECTION,f.runtime.packetDelivery.currentRequest?.phase)
+        assertFalse(assertNotNull(f.runtime.packetDelivery.currentRequest).currentAttachment)
+        val g=packetFixture();g.gatt.onCommand={
+            val id=g.last().exchangeId;g.packetEvent(1u,1,exchange=id);g.packetEvent(2u,2,exchange=id);g.packetEvent(3u,3,exchange=id)
+            g.packetResult(id);g.runtime.close()
+        }
+        assertFalse(g.runtime.submitAction(quickStatus()));assertIs<BleRuntimeState.Closed>(g.runtime.state)
+        assertEquals(3,g.runtime.packetRadioState.lastEvent?.state);assertFalse(g.runtime.packetRadioState.outcomeUnknown)
+        assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK,g.runtime.packetDelivery.currentRequest?.phase)
+        assertFalse(assertNotNull(g.runtime.packetDelivery.currentRequest).currentAttachment)
+    }
+
+    @Test fun packetRequestAndEventCursorsFailClosedAtExhaustion() {
+        val f=ConfigurationFixture(profile=6,packetOptIn=true,firstId=0xffff_fffbL);f.name();f.clock()
+        assertTrue(f.runtime.submitAction(quickStatus()));val id=f.last().exchangeId;assertEquals(UInt.MAX_VALUE,id)
+        f.packetResult(id);f.packetEvent(1u,1,exchange=id);f.packetEvent(2u,2,exchange=id);f.packetEvent(3u,3,exchange=id)
+        val count=f.gatt.commands.size;assertFalse(f.runtime.submitAction(quickStatus()));assertEquals(count,f.gatt.commands.size)
+        val g=packetFixture();g.packetEvent(UInt.MAX_VALUE,4,kind=2)
+        val before=g.gatt.commands.size;assertFalse(g.runtime.submitAction(quickStatus()));assertEquals(before,g.gatt.commands.size)
+        assertEquals(UInt.MAX_VALUE,g.runtime.packetRadioState.eventId)
+    }
+
+    @Test fun deliveryProjectionKeepsBothResponseOrderingsAndStagesDistinct() {
+        for(earlyEvent in listOf(false,true)) {
+            val f=packetFixture();assertTrue(f.runtime.submitAction(quickStatus()));val id=f.last().exchangeId
+            val ref=assertNotNull(f.runtime.packetDelivery.currentRequest).reference
+            assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,f.runtime.packetDelivery.currentRequest?.phase)
+            if(earlyEvent) f.packetEvent(1u,1,exchange=id) else f.packetResult(id)
+            assertEquals(BlePacketDeliveryPhase.QUEUE_ACCEPTED,f.runtime.packetDelivery.currentRequest?.phase)
+            if(earlyEvent) f.packetResult(id) else f.packetEvent(1u,1,exchange=id)
+            f.packetEvent(2u,2,exchange=id)
+            assertEquals(BlePacketDeliveryPhase.TRANSMISSION_COMPLETED,f.runtime.packetDelivery.currentRequest?.phase)
+            f.packetEvent(3u,3,exchange=id)
+            assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK,f.runtime.packetDelivery.currentRequest?.phase)
+            assertSame(ref,f.runtime.packetDelivery.currentRequest?.reference)
+        }
+    }
+
+    @Test fun deliverySuccessiveRequestReplacesPriorAckBeforeSynchronousCallback() {
+        val f=packetFixture();f.runtime.submitAction(quickStatus());val first=f.last().exchangeId
+        f.packetResult(first);f.packetEvent(1u,1,exchange=first);f.packetEvent(2u,2,exchange=first);f.packetEvent(3u,3,exchange=first)
+        val old=assertNotNull(f.runtime.packetDelivery.currentRequest)
+        f.gatt.onCommand={
+            val current=assertNotNull(f.runtime.packetDelivery.currentRequest)
+            assertNotSame(old.reference,current.reference)
+            assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,current.phase)
+            assertNull(assertIs<BleRuntimeState.Ready>(f.runtime.state).session.lastActionResult)
+            f.packetResult()
+        }
+        assertTrue(f.runtime.submitAction(quickStatus()))
+        assertEquals(BlePacketDeliveryPhase.QUEUE_ACCEPTED,f.runtime.packetDelivery.currentRequest?.phase)
+        assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK,old.phase)
+        val other=packetFixture();other.runtime.submitAction(quickStatus())
+        assertNotEquals(old.reference,other.runtime.packetDelivery.currentRequest?.reference)
+    }
+
+    @Test fun deliveryReceivedDuplicateAndWrongOriginCannotCompleteOutbound() {
+        val f=packetFixture();f.runtime.submitAction(quickStatus());val id=f.last().exchangeId
+        val pending=f.runtime.packetDelivery
+        f.packetEvent(1u,1,exchange=id+1u);assertEquals(pending,f.runtime.packetDelivery)
+        f.packetEvent(1u,4,kind=2,receipt=1u,detail=2)
+        assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,f.runtime.packetDelivery.currentRequest?.phase)
+        assertEquals(2,f.runtime.packetDelivery.receivedStatus?.status)
+        val received=f.runtime.packetDelivery
+        f.packetEvent(1u,4,kind=2,receipt=1u,detail=2);assertEquals(received,f.runtime.packetDelivery)
+        f.packetEvent(2u,1,exchange=id);val queued=f.runtime.packetDelivery
+        f.packetEvent(3u,2,exchange=id,generation=100u);assertEquals(queued,f.runtime.packetDelivery)
+    }
+
+    @Test fun deliveryKnownOutcomeAndPerRequestUnknownAreSeparateFromStickyGap() {
+        val f=packetFixture();f.runtime.submitAction(quickStatus());val id=f.last().exchangeId
+        f.packetResult(id);f.packetEvent(1u,1,exchange=id);f.packetEvent(2u,2,exchange=id);f.packetEvent(3u,3,exchange=id)
+        for(i in 1..17) f.packetEvent((3+i).toUInt(),4,kind=2,receipt=(100+i).toULong())
+        assertTrue(f.runtime.packetDelivery.observationGap)
+        assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK,f.runtime.packetDelivery.currentRequest?.phase)
+        assertTrue(f.runtime.submitAction(quickStatus()))
+        assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,f.runtime.packetDelivery.currentRequest?.phase)
+        f.packetResult();assertEquals(BlePacketDeliveryPhase.QUEUE_ACCEPTED,f.runtime.packetDelivery.currentRequest?.phase)
+        assertTrue(f.runtime.packetDelivery.observationGap)
+        f.packetEvent(21u,9,kind=4,reason=7)
+        assertEquals(BlePacketDeliveryPhase.OUTCOME_UNKNOWN,f.runtime.packetDelivery.currentRequest?.phase)
+        assertFalse(assertNotNull(f.runtime.packetDelivery.currentRequest).currentAttachment)
+        assertTrue(f.runtime.packetDelivery.observationGap)
+    }
+
+    @Test fun deliveryRejectionAmbiguityAndRetirementKeepExactReference() {
+        val rejected=packetFixture();rejected.runtime.submitAction(quickStatus())
+        val ref=rejected.runtime.packetDelivery.currentRequest?.reference
+        rejected.packetResult(disposition=CompanionActionDisposition.REJECTED)
+        assertEquals(BlePacketDeliveryPhase.AUTHORITATIVE_REJECTION,rejected.runtime.packetDelivery.currentRequest?.phase)
+        assertSame(ref,rejected.runtime.packetDelivery.currentRequest?.reference)
+        assertFalse(assertNotNull(rejected.runtime.packetDelivery.currentRequest).currentAttachment)
+        for(end in 0..3) {
+            val f=packetFixture();f.runtime.submitAction(quickStatus());val request=f.runtime.packetDelivery.currentRequest?.reference
+            when(end) {0->f.runtime.cancelPacketOperation();1->f.runtime.onLifecycleStop();2->f.scheduler.advanceBy(ACTION_RESULT_TIMEOUT_MILLIS);else->f.runtime.close()}
+            assertEquals(BlePacketDeliveryPhase.OUTCOME_UNKNOWN,f.runtime.packetDelivery.currentRequest?.phase)
+            assertSame(request,f.runtime.packetDelivery.currentRequest?.reference)
+            assertFalse(assertNotNull(f.runtime.packetDelivery.currentRequest).currentAttachment)
+        }
+        val ambiguous=packetFixture();ambiguous.gatt.writeResult=false
+        assertFalse(ambiguous.runtime.submitAction(quickStatus()))
+        assertEquals(BlePacketDeliveryPhase.OUTCOME_UNKNOWN,ambiguous.runtime.packetDelivery.currentRequest?.phase)
+    }
+
+    @Test fun deliveryReconnectRetiresOldReferenceAndNeverReactivatesItsSuccess() {
+        val f=packetFixture();f.runtime.submitAction(quickStatus());val id=f.last().exchangeId
+        f.packetResult(id);f.packetEvent(1u,1,exchange=id);f.packetEvent(2u,2,exchange=id);f.packetEvent(3u,3,exchange=id)
+        val old=assertNotNull(f.runtime.packetDelivery.currentRequest);val gatt=f.gatt
+        gatt.emit(BleGattEvent.Disconnected);f.scheduler.runNext();f.negotiate(18u);f.name();f.clock()
+        assertFalse(assertNotNull(f.runtime.packetDelivery.currentRequest).currentAttachment)
+        assertSame(old.reference,f.runtime.packetDelivery.currentRequest?.reference)
+        assertTrue(f.runtime.submitAction(quickStatus()))
+        val current=f.runtime.packetDelivery;assertNotSame(old.reference,current.currentRequest?.reference)
+        gatt.emitStale(BleGattEvent.StreamIndication(byteArrayOf(1)))
+        assertEquals(current,f.runtime.packetDelivery)
+        assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,current.currentRequest?.phase)
+        for(failure in 0..1) {
+            val g=packetFixture();g.runtime.submitAction(quickStatus());val gid=g.last().exchangeId
+            g.packetResult(gid);g.packetEvent(1u,1,exchange=gid);g.packetEvent(2u,2,exchange=gid);g.packetEvent(3u,3,exchange=gid)
+            g.gatt.emit(BleGattEvent.Disconnected);g.scheduler.runNext();g.negotiate(18u)
+            val retained=g.runtime.packetDelivery.currentRequest
+            if(failure==0) {g.name();g.clock();g.packetEvent(1u,8,kind=3,reason=3)}
+            else {g.proofTransform={it.copy(admitted=false)};g.scheduler.advanceBy(6000)}
+            assertEquals(retained,g.runtime.packetDelivery.currentRequest)
+            assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK,retained?.phase)
+            assertFalse(assertNotNull(retained).currentAttachment)
+        }
+    }
+
+    @Test fun deliveryPreHandoffObserverCloseProducesNoWriteOrRfUncertainty() {
+        val f=packetFixture();val writes=f.gatt.commands.size
+        f.runtime.observe { if(f.runtime.packetDelivery.currentRequest?.phase==BlePacketDeliveryPhase.AWAITING_ACCEPTANCE) f.runtime.close() }
+        assertFalse(f.runtime.submitAction(quickStatus()));assertEquals(writes,f.gatt.commands.size)
+        assertEquals(BlePacketDeliveryPhase.NOT_SENT,f.runtime.packetDelivery.currentRequest?.phase)
+        assertFalse(assertNotNull(f.runtime.packetDelivery.currentRequest).currentAttachment)
+        val disabled=ConfigurationFixture();assertEquals(BlePacketDeliveryObservation(),disabled.runtime.packetDelivery)
+    }
+
+    @Test fun deliveryProjectionDiagnosticsAreRedactedAndSnapshotsDoNotChange() {
+        val f=packetFixture();f.runtime.submitAction(quickStatus());val old=f.runtime.packetDelivery
+        val id=f.last().exchangeId;f.packetEvent(1u,1,exchange=id)
+        assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,old.currentRequest?.phase)
+        val text=listOf(old.toString(),old.currentRequest.toString(),old.currentRequest?.reference.toString()).joinToString()
+        for(secret in listOf("opaque-test-token","nonce=","exchange=","deviceGeneration=","admittedSession=","group=")) assertFalse(text.contains(secret))
+        assertEquals("BlePacketRequestReference(redacted)",old.currentRequest?.reference.toString())
+    }
+
     private class ConfigurationFixture(val firstSetup: Boolean = false, val profile: Int = 3,
-        optIn: Boolean = false, withController: Boolean = false, withSessionOwner: Boolean = false) {
+        optIn: Boolean = false, withController: Boolean = false, withSessionOwner: Boolean = false,
+        packetOptIn: Boolean = false, packetAdmission: Boolean = true, private val firstId:Long=1) {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
         val scheduler=TestRuntimeScheduler()
         var now=100L
-        val runtime=BleCompanionRuntime(facade,scheduler,evaluationConfirmationEnabled=optIn,confirmationClockMillis={now})
+        var proofTransform: (BlePacketAuthority)->BlePacketAuthority? = { it }
+        var proofHook: (() -> Unit)? = null
+        var proofCalls=0
+        var clockHook: (() -> Unit)? = null
+        var nonce=17u
+        val runtime=BleCompanionRuntime(facade,scheduler,firstRequestId=firstId,evaluationConfirmationEnabled=optIn,confirmationClockMillis={clockHook?.invoke();now},
+            packetV1Enabled=packetOptIn,packetAuthority=BlePacketAuthorityProvider { query ->
+                proofCalls++;proofHook?.invoke()
+                if(!packetAdmission) null else proofTransform(BlePacketAuthority(query.lease,query.callbackGeneration,
+                    query.nonce,query.peer,21u,22u,99u,100000L))
+            })
         val controller=if(withController || withSessionOwner) TrailAppController(CompanionAppController(FakeCompanionTransport()),runtime,
             NearbyDevicesPermissionReader { NearbyDevicesPermissionState.GRANTED },RuntimeDeviceAuthorizationClaimClient(runtime),scheduler,
             groupConfirmationAdapter=RuntimeV1GroupConfirmationAdapter(runtime),groupConfirmationClock={now}) else null
@@ -1697,24 +2115,29 @@ class BleCompanionRuntimeTest {
                 facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
             }
             gatt=facade.connections.single()
+            negotiate(17u)
+        }
+        fun negotiate(nextNonce:UInt) {
+            val gatt=facade.connections.last()
+            nonce=nextNonce
             gatt.emit(BleGattEvent.ProfileReady)
-            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(17)))
+            gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(nonce.toLong())))
             gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
             gatt.emit(BleGattEvent.StreamIndicationsSubscribed)
-            gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(17)))
-            gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(17)))
+            gatt.emit(BleGattEvent.StreamIndication(authorizationPendingEnvelope(nonce.toLong(),firstId)))
+            gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(nonce.toLong(),firstId)))
             gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(checkNotNull(codec.encodeInfo(
-                io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo(if(profile==127)0xdf else 0xff,minorVersion=profile)))))
+                io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo(if(profile==127)0xdf else 0xff,minorVersion=profile),allowProfile06=profile==6))))
             if(runtime.state is BleRuntimeState.Negotiating) {
                 val request=last()
-                val payload=checkNotNull(CompanionProtocolCodec.decodeFragment(snapshotEnvelope(17,1)).value).payload
+                val payload=checkNotNull(CompanionProtocolCodec.decodeFragment(snapshotEnvelope(nonce.toLong(),1)).value).payload
                 respond(0x81,payload,request.exchangeId)
             }
         }
-        fun last()=checkNotNull(codec.decodeFrame(gatt.commands.last(),profile))
+        fun last()=checkNotNull(codec.decodeFrame(facade.connections.last().commands.last(),profile,allowProfile06=profile==6))
         fun respond(kind:Int,payload:ByteArray,id:UInt=last().exchangeId) {
-            gatt.emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
-                io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(kind,17u,id,payload,profile)))))
+            facade.connections.last().emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+                io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(kind,nonce,id,payload,profile),allowProfile06=profile==6))))
         }
         fun name(value:String="Trail test") {
             assertEquals(4,last().kind)
@@ -1974,6 +2397,86 @@ class BleCompanionRuntimeTest {
         recovered.close()
     }
 
+    @Test fun automaticReconnectPhonePreflightBlockPreservesReasonAndReturningOwnerRecovery() {
+        val blockers=listOf(BleRuntimeBlock.BLUETOOTH_DISABLED,BleRuntimeBlock.BLUETOOTH_STATE_READ_DENIED,
+            BleRuntimeBlock.SCAN_PERMISSION_MISSING,BleRuntimeBlock.CONNECT_PERMISSION_MISSING,
+            BleRuntimeBlock.BLUETOOTH_UNAVAILABLE,BleRuntimeBlock.PLATFORM_UNSUPPORTED)
+        for (blocker in blockers) {
+            val scheduler=TestRuntimeScheduler()
+            val facade=TestBluetoothFacade(returningOwnerScanSupported=true)
+            val fixture=Fixture(facade=facade,scheduler=scheduler)
+            val first=fixture.readyGatt(71)
+            val scans=facade.scans.size;val returning=facade.returningOwnerScans.size
+            val commands=first.commands.size
+            first.emit(BleGattEvent.Disconnected)
+            assertEquals(1,assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state).attempt)
+            facade.preflight=BlePreflight(blocker)
+            scheduler.advanceBy(999)
+            assertIs<BleRuntimeState.Reconnecting>(fixture.runtime.state)
+            scheduler.advanceBy(1)
+            assertEquals(blocker,assertIs<BleRuntimeState.Blocked>(fixture.runtime.state).reason)
+            assertEquals(1,facade.connections.size);assertEquals(commands,first.commands.size)
+            assertTrue(first.closed);assertFalse(scheduler.hasOpenTimers())
+            first.emitStale(BleGattEvent.ProfileReady)
+            first.emitStale(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(71)))
+            assertEquals(blocker,assertIs<BleRuntimeState.Blocked>(fixture.runtime.state).reason)
+            fixture.runtime.retryDiscovery()
+            assertEquals(returning,facade.returningOwnerScans.size)
+            assertEquals(scans,facade.scans.size)
+            facade.preflight=BlePreflight()
+            fixture.runtime.retryDiscovery()
+            assertIs<BleRuntimeState.FindingReturningOwner>(fixture.runtime.state)
+            assertEquals(returning+1,facade.returningOwnerScans.size)
+            assertEquals(scans,facade.scans.size)
+            facade.returningOwnerScans.last().apply {
+                emit(BleScanEvent.Candidate(CANDIDATE));emit(BleScanEvent.Complete)
+            }
+            val fresh=facade.connections.last()
+            assertIs<BleRuntimeState.Connecting>(fixture.runtime.state)
+            fixture.advanceReturningOwnerToInitialSnapshot(fresh,72)
+            assertFalse(fixture.runtime.state is BleRuntimeState.Ready)
+            fresh.emit(BleGattEvent.StreamIndication(snapshotEnvelope(72,1)))
+            assertEquals(72L,assertIs<BleRuntimeState.Ready>(fixture.runtime.state).session.sessionNonce)
+            fixture.runtime.retryDiscovery()
+            assertEquals(returning+1,facade.returningOwnerScans.size)
+            fixture.runtime.close()
+        }
+    }
+
+    @Test fun manualAuthorizationPreflightBlockStillFailsClosedWithoutTransportOrRetry() {
+        val fixture=Fixture();fixture.startScanWithCandidate()
+        assertEquals(CANDIDATE,fixture.runtime.beginAuthorization(CANDIDATE.endpointToken))
+        val events=mutableListOf<DeviceAuthorizationClaimEvent>()
+        val claim=checkNotNull(fixture.runtime.createAuthorizationClaim(CANDIDATE.endpointToken,
+            DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE,events::add))
+        fixture.facade.preflight=BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        assertTrue(claim.start())
+        assertEquals(BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE,
+            assertIs<BleRuntimeState.Failed>(fixture.runtime.state).reason)
+        assertIs<DeviceAuthorizationClaimEvent.Unavailable>(events.single())
+        assertTrue(fixture.facade.connections.isEmpty())
+        fixture.facade.preflight=BlePreflight();fixture.runtime.retryDiscovery()
+        assertIs<BleRuntimeState.Failed>(fixture.runtime.state)
+        assertTrue(fixture.facade.connections.isEmpty())
+        fixture.runtime.close()
+    }
+
+    @Test fun stoppingBlockedAutomaticReconnectPreventsRecoveryUntilFreshLifecycleStart() {
+        val scheduler=TestRuntimeScheduler();val facade=TestBluetoothFacade(returningOwnerScanSupported=true)
+        val fixture=Fixture(facade=facade,scheduler=scheduler);val first=fixture.readyGatt(71)
+        first.emit(BleGattEvent.Disconnected);facade.preflight=BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        scheduler.advanceBy(1000)
+        assertIs<BleRuntimeState.Blocked>(fixture.runtime.state)
+        val scans=facade.returningOwnerScans.size
+        fixture.runtime.onLifecycleStop();facade.preflight=BlePreflight();fixture.runtime.retryDiscovery()
+        assertIs<BleRuntimeState.Inactive>(fixture.runtime.state)
+        assertEquals(scans,facade.returningOwnerScans.size)
+        fixture.runtime.onLifecycleStart()
+        assertIs<BleRuntimeState.FindingReturningOwner>(fixture.runtime.state)
+        assertEquals(scans+1,facade.returningOwnerScans.size)
+        fixture.runtime.close()
+    }
+
     private class Fixture(
         val facade: TestBluetoothFacade = TestBluetoothFacade(),
         scheduler: TestRuntimeScheduler = TestRuntimeScheduler(),
@@ -2159,6 +2662,7 @@ class BleCompanionRuntimeTest {
         var streamSubscriptions = 0
         val commands = mutableListOf<ByteArray>()
         var writeResult = true
+        var throwOnWrite = false
         var onCommand: (() -> Unit)? = null
         private val operationGate = if(enforceOperationGate) AndroidGattOperationGate() else null
 
@@ -2178,6 +2682,7 @@ class BleCompanionRuntimeTest {
             // Simulate the matching Android write callback before application indication.
             operationGate?.let { check(it.acceptCommandWrite()) }
             onCommand?.invoke()
+            if(throwOnWrite) throw IllegalStateException("host write failure")
             return writeResult
         }
         override fun close() { closed = true;operationGate?.close() }
@@ -2261,12 +2766,12 @@ class BleCompanionRuntimeTest {
                 CompanionAuthorizationProtocolInfo(provisionalSessionNonce = sessionNonce),
             ).value!!
 
-        private fun authorizationPendingEnvelope(sessionNonce: Long): ByteArray =
+        private fun authorizationPendingEnvelope(sessionNonce: Long, exchangeId:Long=1): ByteArray =
             CompanionProtocolCodec.encodeFragment(
                 CompanionFragment(
                     kind = CompanionFrameKind.AUTHORIZATION_CLAIM_STATUS,
                     sessionNonce = sessionNonce,
-                    exchangeId = 1,
+                    exchangeId = exchangeId,
                     payload = CompanionAuthorizationWireCodec.encodeClaimStatus(
                         CompanionAuthorizationClaimStatus(
                             CompanionAuthorizationPurpose.AUTHORIZE_CONTROLLER,
@@ -2277,12 +2782,12 @@ class BleCompanionRuntimeTest {
                 ),
             ).value!!
 
-        private fun authorizationAcceptedEnvelope(sessionNonce: Long): ByteArray =
+        private fun authorizationAcceptedEnvelope(sessionNonce: Long, exchangeId:Long=1): ByteArray =
             CompanionProtocolCodec.encodeFragment(
                 CompanionFragment(
                     kind = CompanionFrameKind.AUTHORIZATION_CLAIM_RESULT,
                     sessionNonce = sessionNonce,
-                    exchangeId = 1,
+                    exchangeId = exchangeId,
                     payload = CompanionAuthorizationWireCodec.encodeClaimResult(
                         CompanionAuthorizationClaimResult(
                             CompanionAuthorizationPurpose.AUTHORIZE_CONTROLLER,

@@ -16,6 +16,8 @@ import android.os.Looper
 import java.util.concurrent.atomic.AtomicLong
 
 class TrailConnectedDeviceService : Service() {
+    // Owned but unarmed: no protected exchange or production runtime wiring is enabled.
+    private val packetAuthority = BlePacketAuthorityAdapter(this) { android.os.SystemClock.elapsedRealtime() }
     private val binder = LocalBinder()
     private var owner: ConnectedDeviceSessionOwner? = null
     private var destroyed = false
@@ -62,6 +64,7 @@ class TrailConnectedDeviceService : Service() {
         assertMainThread()
         if (!destroyed) {
             destroyed = true
+            packetAuthority.invalidate(BlePacketAuthorityAdapter.Invalidation.RESTART_AMBIGUITY)
             try {
                 binder.attach(null)
                 val current = owner
@@ -79,6 +82,7 @@ class TrailConnectedDeviceService : Service() {
     }
 
     private fun createOwner(generation: Long): ConnectedDeviceSessionOwner {
+        packetAuthority.invalidate(BlePacketAuthorityAdapter.Invalidation.OWNER_REPLACEMENT)
         val facade = AndroidBluetoothGattFacade(applicationContext)
         var controller: TrailAppController? = null
         return try {
