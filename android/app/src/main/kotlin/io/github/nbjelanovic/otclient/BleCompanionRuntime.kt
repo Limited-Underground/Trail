@@ -21,6 +21,7 @@ import io.github.nbjelanovic.otprotocol.CompanionAuthorizationResponsePhase
 import io.github.nbjelanovic.otprotocol.CompanionAuthorizationResponseTracker
 import io.github.nbjelanovic.otprotocol.CompanionAuthorizationWireCodec
 import io.github.nbjelanovic.otprotocol.CompanionAuthorizationWireError
+import io.github.nbjelanovic.otprotocol.CompanionQuickStatus
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 import io.github.nbjelanovic.otprotocol.CompanionActionResult
 import io.github.nbjelanovic.otprotocol.CompanionActionDisposition
@@ -474,6 +475,7 @@ class BleCompanionRuntime(
     private val packetProjectionScope = Any()
     var packetDelivery = BlePacketDeliveryObservation()
         private set
+    private var quickStatusRecipient: V1QuickStatusRecipient? = null
     private var packetBinding: BlePacketAuthority? = null
     private var queryingPacketAuthority = false
     private data class PacketOrigin(val exchange: UInt, val detail: Int,
@@ -864,6 +866,27 @@ class BleCompanionRuntime(
         requireOwnerThread()
         if (request.kind == CompanionActionKind.FACTORY_RESET) return false
         return submitActionInternal(request, factoryResetAuthorized = false)
+    }
+
+    /** Dedicated fixed-status lane: never falls back to a legacy/plaintext action. */
+    @Synchronized
+    fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: CompanionQuickStatus): Boolean {
+        requireOwnerThread()
+        if (recipient !== quickStatusRecipient || !currentPacketAuthority()) return false
+        // Reentrant provider calls cannot replace the selected recipient between these checks.
+        if (recipient !== quickStatusRecipient) return false
+        return submitActionInternal(CompanionActionRequest(CompanionActionKind.QUICK_STATUS, status), false)
+    }
+
+    @Synchronized
+    fun quickStatusState(): V1QuickStatusState {
+        requireOwnerThread()
+        val recipient = quickStatusRecipient
+        if (state !is BleRuntimeState.Ready || !packetDelivery.available || recipient == null)
+            return V1QuickStatusState()
+        return V1QuickStatusState(recipient,
+            packetDelivery.receivedStatus?.takeIf { it.currentAttachment }?.let { CompanionQuickStatus.fromWire(it.status) },
+            packetDelivery.currentRequest?.takeIf { it.currentAttachment }?.phase)
     }
 
     /**
@@ -1840,6 +1863,7 @@ class BleCompanionRuntime(
         if(prior!=null) return prior==proof && packetReceiver.connected
         if(!bind) return false
         if(!packetReceiver.open(query.nonce,proof.deviceGeneration)) return false
+        quickStatusRecipient=V1QuickStatusRecipient()
         packetBinding=proof
         packetDelivery=packetDelivery.copy(available=true)
         return true
@@ -2751,6 +2775,7 @@ class BleCompanionRuntime(
         if(packetOrigin?.handedOff==true && packetOrigin?.terminal!=true)
             packetRadioState=packetRadioState.copy(outcomeUnknown=true)
         packetTimeout?.close();packetTimeout=null
+        quickStatusRecipient=null
         packetBinding=null;packetReceiver.disconnect();packetOrigin=null
         groupConfirmationSession?.endSession()
         groupConfirmationSession = null

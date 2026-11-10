@@ -268,6 +268,10 @@ class TrailConnectedDeviceService : Service() {
             assertMainThread()
             attached?.disconnect()
         }
+        override fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean {
+            assertMainThread()
+            return attached?.submitQuickStatus(recipient, status) == true
+        }
         override fun submitAction(request: io.github.nbjelanovic.otprotocol.CompanionActionRequest): Boolean {
             assertMainThread()
             return attached?.submitAction(request) == true

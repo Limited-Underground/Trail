@@ -2075,9 +2075,84 @@ class BleCompanionRuntimeTest {
         assertEquals("BlePacketRequestReference(redacted)",old.currentRequest?.reference.toString())
     }
 
+    private fun fixedStatusFixture() = ConfigurationFixture(profile=6,packetOptIn=true,wireAuthority=true).also { it.name();it.clock() }
+
+    @Test fun fixedComposerUsesCompletedRealWireAdapterForAllFourStatuses() {
+        for (status in CompanionQuickStatus.entries) {
+            val f=fixedStatusFixture()
+            val recipient=assertNotNull(f.runtime.quickStatusState().recipient)
+            val before=f.gatt.commands.size
+            assertTrue(f.runtime.submitQuickStatus(recipient,status))
+            assertEquals(before+1,f.gatt.commands.size)
+            assertEquals(20,f.last().payload.size)
+            assertEquals(status,CompanionSemanticCodec.decodeActionRequest(f.last().payload).value?.quickStatus)
+            assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,f.runtime.quickStatusState().outbound)
+            assertFalse(f.runtime.submitQuickStatus(recipient,status)) // no plaintext queue or duplicate pending request
+            f.runtime.close()
+        }
+    }
+    @Test fun fixedComposerRejectsForeignRetiredExpiredAndRevokedRecipientsWithoutWrites() {
+        val a=fixedStatusFixture();val b=fixedStatusFixture()
+        val recipient=assertNotNull(a.runtime.quickStatusState().recipient)
+        val count=b.gatt.commands.size
+        assertFalse(b.runtime.submitQuickStatus(recipient,CompanionQuickStatus.OK))
+        assertFalse(b.runtime.submitQuickStatus(V1QuickStatusRecipient(),CompanionQuickStatus.OK))
+        assertEquals(count,b.gatt.commands.size)
+        b.wireAdapter.invalidate(BlePacketAuthorityAdapter.Invalidation.REVOCATION)
+        val own=assertNotNull(b.runtime.quickStatusState().recipient)
+        assertFalse(b.runtime.submitQuickStatus(own,CompanionQuickStatus.OK));assertEquals(count,b.gatt.commands.size)
+        a.now=30100
+        val ac=a.gatt.commands.size
+        assertFalse(a.runtime.submitQuickStatus(recipient,CompanionQuickStatus.OK));assertEquals(ac,a.gatt.commands.size)
+        a.runtime.disconnect();assertNull(a.runtime.quickStatusState().recipient)
+        assertFalse(a.runtime.submitQuickStatus(recipient,CompanionQuickStatus.OK))
+        a.runtime.close();b.runtime.close()
+    }
+    @Test fun fixedComposerHasNoLegacyFallbackAndRefusedWireCannotAdmit() {
+        val old=ConfigurationFixture();old.name();old.clock()
+        val count=old.gatt.commands.size
+        assertFalse(old.runtime.submitQuickStatus(V1QuickStatusRecipient(),CompanionQuickStatus.OK))
+        assertEquals(count,old.gatt.commands.size);assertNull(old.runtime.quickStatusState().recipient);old.runtime.close()
+        for (fault in 0..3) {
+            val f=ConfigurationFixture(profile=6,packetOptIn=true,wireAuthority=true,wireResponse={ bytes ->
+                when(fault) { 0 -> bytes.copyOf(135);1 -> bytes+0.toByte();2 -> bytes.copyOf().also { it[120]=5 };else -> bytes.copyOf().also { it[60]=0 } }
+            })
+            assertNull(f.runtime.quickStatusState().recipient)
+            val n=f.gatt.commands.size
+            assertFalse(f.runtime.submitQuickStatus(V1QuickStatusRecipient(),CompanionQuickStatus.OK));assertEquals(n,f.gatt.commands.size)
+            f.runtime.close()
+        }
+    }
+    @Test fun fixedReceiveRefusesLengthVersionStatusNonceGenerationAndRevokedProof() {
+        val f=fixedStatusFixture()
+        val codec=io.github.nbjelanovic.otprotocol.CompanionRadioEventCodec
+        val valid=checkNotNull(codec.encodeRecord(io.github.nbjelanovic.otprotocol.CompanionRadioEventRecord(17u,1u,
+            io.github.nbjelanovic.otprotocol.CompanionRadioEvent(2,1,100u,3u,4,0)),allowProfile06=true))
+        val faults=listOf(valid.copyOf(59),valid+0.toByte()) + listOf(5,8,24,27,36,46).map { offset -> valid.copyOf().also { it[offset]=0x7f } }
+        for(bytes in faults) { f.gatt.emit(BleGattEvent.StreamIndication(bytes));assertNull(f.runtime.quickStatusState().received) }
+        f.gatt.emit(BleGattEvent.StreamIndication(valid))
+        assertEquals(CompanionQuickStatus.OK,f.runtime.quickStatusState().received)
+        f.wireAdapter.invalidate(BlePacketAuthorityAdapter.Invalidation.MEMBERSHIP_CHANGE)
+        f.packetEvent(2u,4,kind=2,generation=3u,detail=2)
+        assertNull(f.runtime.quickStatusState().received);assertNull(f.runtime.quickStatusState().recipient)
+        f.runtime.close()
+    }
+    @Test fun fixedStatusDeliveryNeverPromotesQueueOrTransmissionToPeerAck() {
+        val f=fixedStatusFixture();val r=assertNotNull(f.runtime.quickStatusState().recipient)
+        assertTrue(f.runtime.submitQuickStatus(r,CompanionQuickStatus.OK));val id=f.last().exchangeId
+        f.packetEvent(1u,1,exchange=id,generation=3u)
+        assertEquals(BlePacketDeliveryPhase.QUEUE_ACCEPTED,f.runtime.quickStatusState().outbound)
+        f.packetEvent(2u,2,exchange=id,generation=3u)
+        assertEquals(BlePacketDeliveryPhase.TRANSMISSION_COMPLETED,f.runtime.quickStatusState().outbound)
+        f.packetEvent(3u,3,exchange=id,generation=3u)
+        assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK,f.runtime.quickStatusState().outbound)
+        f.runtime.disconnect();assertEquals(V1QuickStatusState(),f.runtime.quickStatusState());f.runtime.close()
+    }
+
     private class ConfigurationFixture(val firstSetup: Boolean = false, val profile: Int = 3,
         optIn: Boolean = false, withController: Boolean = false, withSessionOwner: Boolean = false,
-        packetOptIn: Boolean = false, packetAdmission: Boolean = true, private val firstId:Long=1) {
+        packetOptIn: Boolean = false, packetAdmission: Boolean = true, private val firstId:Long=1,
+        wireAuthority: Boolean = false, wireResponse: (ByteArray) -> ByteArray = { it }) {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
         val scheduler=TestRuntimeScheduler()
         var now=100L
@@ -2086,8 +2161,10 @@ class BleCompanionRuntimeTest {
         var proofCalls=0
         var clockHook: (() -> Unit)? = null
         var nonce=17u
+        val authorityOwner = Any()
+        val wireAdapter = BlePacketAuthorityAdapter(authorityOwner) { now }
         val runtime=BleCompanionRuntime(facade,scheduler,firstRequestId=firstId,evaluationConfirmationEnabled=optIn,confirmationClockMillis={clockHook?.invoke();now},
-            packetV1Enabled=packetOptIn,packetAuthority=BlePacketAuthorityProvider { query ->
+            packetV1Enabled=packetOptIn,packetAuthority=if (wireAuthority) wireAdapter else BlePacketAuthorityProvider { query ->
                 proofCalls++;proofHook?.invoke()
                 if(!packetAdmission) null else proofTransform(BlePacketAuthority(query.lease,query.callbackGeneration,
                     query.nonce,query.peer,21u,22u,99u,100000L))
@@ -2115,6 +2192,19 @@ class BleCompanionRuntimeTest {
                 facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
             }
             gatt=facade.connections.single()
+            if (wireAuthority) {
+                // Explicit fixture protected exchange, completed before protocol6 negotiation queries it.
+                // Generation3 is the actual start/scan/connection sequence; pins are fixture inputs.
+                val query = BlePacketAuthorityQuery(gatt, 3L, 17u, CANDIDATE.endpointToken)
+                assertNotNull(wireAdapter.begin(authorityOwner, query, ByteArray(32) { (it+1).toByte() },
+                    ByteArray(32) { (it+33).toByte() }, 1uL, 2u, 4uL, 0x05060708u))
+                val frozen = "4f54433000068b000403020108070605000174004f545930010103000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f400100000000000000020000000300000000000000030000000000000004000000000000000403020130750000"
+                    .chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                for (offset in listOf(8,128)) repeat(4) { frozen[offset+it] = if(it==0) 17 else 0 }
+                val codec = io.github.nbjelanovic.otprotocol.CompanionAuthorityCodec
+                val response = codec.encodeResponse(checkNotNull(codec.decodeResponse(frozen)))
+                wireAdapter.complete(authorityOwner, gatt, 3L, wireResponse(response))
+            }
             negotiate(17u)
         }
         fun negotiate(nextNonce:UInt) {

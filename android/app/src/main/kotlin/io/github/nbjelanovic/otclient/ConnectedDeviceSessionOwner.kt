@@ -68,6 +68,8 @@ class ConnectedDeviceSessionOwner(
         if (!closed) controller.disconnectBluetoothDevice()
     }
 
+    override fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean =
+        !closed && controller.submitQuickStatus(recipient, status)
     override fun submitAction(request: CompanionActionRequest): Boolean =
         !closed && controller.submitBluetoothAction(request)
     override fun refreshGroupConfirmation(): Boolean = !closed && controller.refreshGroupConfirmation()
