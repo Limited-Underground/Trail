@@ -2,6 +2,14 @@
 
 ## 2026-11-10
 
+### OT-0312 Add the OTXT v1 payload codec
+
+T-0066 implements only the protocol payload accepted under D-024: OTXT version1, reserved flags0, exact unsigned big-endian length and 1–90 strict UTF-8 bytes. Encoding refuses unpaired UTF-16 surrogates, empty/oversize input and smaller admitted whole-frame budgets. Decoding refuses malformed/overlong UTF-8, wrong domain/version/flags and missing/trailing bytes. No normalization, replacement, truncation or fragmentation occurs.
+
+The portable fixture copies every golden/fault ID and exact payload/frame bytes from T-0042's frozen JSON (SHA-256 b88a38379c914c38319e19a324633e3086d5b43d42e3024ca8ef43939998b77d). Three goldens round-trip byte-exact; fourteen malformed payload cases refuse; the lower-link-budget vector refuses in both directions. Six outer Packet faults are tested only as non-payload domains, with an independent valid-payload control: this codec performs no Packet authentication, replay, recipient or fragment admission. Additional tests cover 89/90/91-byte ASCII/multibyte/supplementary boundaries, strict scalars, unsigned lengths and extreme budgets. Protocol, lint and documentation results are bound to the exact draft on #116.
+
+The isolated topic begins at main 6d72cfd8ec74729a0c7e0c1a1b6ef8c3c5fe9f30 after normal adoption of PR #223. App-module source and its fixed-status behavior are unchanged. T-0065's protected BLE text carrier is still a proposal; no composer, send/receive, template or firmware binding is added. Production profile6/default-null authority and free-text sending remain disabled. Full OT-0312 stays open; this draft supplies no device, BLE/RF, signing/release, Ready or merge acceptance.
+
 ### OT-0313 Bind fixed quick statuses to the inactive authenticated path
 
 T-0040 narrows the text-blocked continuation to the existing four firmware meanings. Messages maps only exact known status labels, including matching saved templates; other built-ins and free text remain editable/local but their Send controls are visibly disabled. Template storage, limits, order and save-failure behavior are unchanged. The ordinary text format remains F-005, not an invented encoding.
