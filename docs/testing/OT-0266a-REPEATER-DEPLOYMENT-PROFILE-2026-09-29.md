@@ -171,3 +171,15 @@ Local link/whitespace checks and coordinator-owned documentation validation
 verify the document; they establish no hardware, radio, security implementation,
 runtime or environmental result. No new IDs, product names, code, purchases,
 V1 credit, Git publication, deployment or public capability change resulted.
+
+
+## Owner target selection - 2026-10-29
+
+SenseCAP Solar Node P1-Pro is the dedicated Repeater development device.
+This owner decision supersedes earlier board-selection research prospectively;
+historical physical unknowns remain. No alternative purchase or use of Trail's
+two endpoint Heltecs. Current specs, SDK/radio/power review and exact next
+build-scope gate are maintained in the
+[OT-0266b packet](OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#owner-selected-sensecap-solar-node-p1-pro---2026-10-29).
+Target identity is accepted; board revision/region, installed bootloader,
+measured fit/power/wake/rearm and P4 production security are not accepted.

@@ -1,5 +1,255 @@
 # OpenTrail Progress Log
 
+## 2026-10-31
+
+### OT-0266b P5 checked P1-Pro backend and target execution
+
+- Fixed actual backend IRQ transport-error loss; valid zero and failure differ,
+  failed observation retires RX readiness. Nine real ARDUINO backend/setup/loop
+  controlled groups and ten adapter regressions PASS. Eight portable sources
+  unchanged; prior63 affected regressions reused after input hash verification.
+- Two clean-output ARM builds match ELF/HEX/BIN:103764flash/14892staticRAM;
+  seven existing stub warnings. Image checks pass. Independent production review
+  CLEAR. Existing OT-0266b packet records actual path, power/recovery/dependencies.
+- Evidence: `build/repeater-baseline/p5-target-bound-20261031/`. No physical
+  connection/RF/reset/flash/debug/publication. Next is dedicated-unit identity/
+  recovery then separately authorized RX interface validation; P4/P5 stay open.
+
+
+## 2026-10-30
+
+### OT-0266b P1-Pro SX1262 adapter implementation
+
+- Owner-approved nine-file slice adds existing-P5 radio port and explicit
+  RadioLib receive-only hardware interface, physically disabled TX and admission.
+  Actual eight portable sources remain unchanged; source/artifact custody held.
+- Controlled host tests exercise actual P1-P3 ownership and event faults;
+  initial tests caught post-submit invalidation compatibility defect corrected
+  only in adapter. Evidence, final tests/build/map/size/warnings and one
+  independent review: `build/repeater-baseline/p5-sx1262-adapter-20261030/`.
+- Next milestone is authorized connection/receive-only interface validation
+  on actual P1-Pro; no flash, RF, endpoint/Live/core edits or publication here.
+  P4, real radio timing, power and broader P5 physical acceptance remain open.
+
+## 2026-10-29
+
+
+### OT-0266b P1-Pro build-only target
+
+- Owner-approved five-file target adds inert Arduino entry point and pinned
+  Seeed XIAO nRF52840 Plus build; actual eight P1-P3 sources reused unchanged.
+  No production admission, RF, keys, hardware, Live or publication changes.
+- Build logs, dependency/source hashes and actual ARM result retained in
+  `build/repeater-baseline/p5-p1pro-build-20261029/verification.json`.
+  Broader P5/P4 and physical acceptance remain open; host suites unchanged.
+
+### OT-0266b Owner-selected P1-Pro target reconciliation
+
+- Recorded owner-selected SenseCAP Solar Node P1-Pro in existing hardware
+  decision and [P5 packet](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#owner-selected-sensecap-solar-node-p1-pro---2026-10-29).
+  Verified official MCU/radio/memory/SDK/recovery references; physical unit
+  revision, bootloader, region, power and wake timing remain unverified.
+- P1-P3 C++17 reuse is plausible; nRF crossbuild/real driver requires new exact
+  build scope under OT-0266b-5. No source/target/adapter created or changed.
+  Existing P5 source/artifact hashes verified; unchanged host results reused.
+  Preserve18 dirty paths, prior evidence and new task receipts in
+  `build/repeater-baseline/p5-p1pro-target-20261029`. No device access, RF, Live,
+  commit/publication, cleanup or public V1 capability change.
+
+## 2026-10-28
+
+
+### OT-0266b Host driver-contract fixture exception
+
+- Owner-approved four-file host-only exception adds six deterministic D1-D6
+  driver-event sequences using existing synthetic ports and actual P1-P3 owners.
+  See [fixture contract](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p5-host-driver-contract-fixture).
+- New fixture6 and affected regressions57 pass:63 groups across five executables;
+  remaining80 consolidated groups reused unchanged. Both independent reviews CLEAR.
+- Preserve seventeen existing dirty paths,260 runtime input hashes and prior
+  evidence. Task evidence/reproduction belongs in
+  `build/repeater-baseline/p5-driver-contract-20261028`. Broader P5 and P4 gates
+  remain open; no hardware, production admission, target or public V1 change.
+
+### OT-0266b P4 shared security and storage decision preparation
+
+- Verified consolidated patch/manifest/receipt, seventeen candidate hashes,
+  52 consolidation artifacts, earlier8 receipts/196 artifacts and260 inputs;
+  reused corrected17-executable/137-group host evidence without new runtime work.
+- Prepared [P4 decisions](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p4-security-and-storage-decision-packet)
+  for trusted identity/membership/role producers, endpoint-secret exclusion,
+  protected role/replay/ledger ownership, explicit rollback/time threat and
+  retained radio reconciliation. Existing direct-only sessions are not relay
+  credentials; namespaces/CRC and companion OAP0 stores are not generic protected
+  Repeater backends. Decision0033 supersession is preserved.
+- Proposed the smallest conditional seven-file single-ledger binding only after
+  a named shared protected-store API and threat/boot contract are accepted.
+  BLOCKED for implementation; new paths uncreated, fixtures NOT RUN. No Packet-v1,
+  security framework, keys, hardware, production budgets or other-worktree change.
+- Updated only existing four P4 planning files. Evidence/reviews/checks retained
+  in `build/repeater-baseline/p4-preparation-20261028`; all prior source/evidence
+  and dirty paths preserved. No cleanup, GitHub status, commit/publication or
+  V1/website capability change. Stop for named owner decisions and separate scope.
+
+### OT-0266b P1-P3 consolidated host integration
+
+- Preserved existing detached Repeater candidate and all seventeen dirty paths;
+  only this log and the decision report changed. Verified eight prior receipts,
+  196 artifact hashes and all260 current matrix inputs together.
+- Fresh affected matrix passed17executables/**137 reported scenarios/groups**.
+  Independent integration review caught an inherited ten-group arithmetic error:
+  old totals104/106/118/128/147 are superseded by94/96/108/118/137. No tests failed
+  or were removed; old receipts remain immutable. Per-suite/count lineage audit
+  accompanies the [consolidated handoff](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p1-p3-consolidated-integration-candidate).
+- Runtime sources/tests unchanged: sole forwarder FIFO, P2 pending/finalclaim,
+  B irreversible ledger/attempts, retained replay/radio uncertainty, expiry and
+  terminal closure reviewed together. No new fixture required by review.
+- Retain full seventeen-path patch, exact source/evidence manifest, raw alternate-
+  index patch recovery check, fresh matrix and standalone reproduction recipe in
+  `build/repeater-baseline/p1-p3-integration-20261028`. No Live/index modification,
+  commit/publication/GitHub change, hardware or P4/P5/P6 implementation.
+- Next candidate is existing P4 decision-only scope after separate approval.
+  No cleanup or V1/public status change; all prior source/recovery evidence held.
+
+### OT-0266b P3-B bounded host dispatch and resource accounting
+
+- Implemented only the owner-approved seven-file host slice: private actual P2
+  composition, one-source/two-global credits, irreversible full399616-us debit,
+  one attempt, exact terminal/rearm and retained-port uncertainty invalidation.
+  Existing forwarder remains sole FIFO; P2 owns pending bytes/final claim.
+- Final strict matrix passed 17 executables / 147 reported scenarios or groups
+  (128 prior + four existing airtime + fifteen B); no compiler/runtime stderr.
+  Actual ledger/replay/port reconstruction, both transaction fault phases,
+  persisted backpressure/rate denials, proof races, stale events, no-allocation
+  hot path, unavailable-port expiry and terminal cleanup passed.
+- Independent reviews and exact source/input/patch/evidence hashes retained in
+  `build/repeater-baseline/p3b-implementation-20261028`; see
+  [P3-B results](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p3-b-host-dispatch-implementation)
+  and [host contract](protocol/REPEATER_HOST_DISPATCH_V0.md).
+- No P4/P5/P6, production values, hardware, protected storage/endpoint keys,
+  Packet-v1, other worktree, publication or GitHub status change. Private board
+  read remains unavailable; current explicit human grant governs this slice.
+  All prior dirty source/evidence retained; no cleanup, V1 score or website
+  status change. Stop after host B; later work requires separate authorization.
+
+### OT-0266b P3-B dispatch and budget decision preparation
+
+- Verified P3-A patch/receipt, nine file hashes, 43 artifacts and 255 inputs;
+  reused its 128-case host baseline. Existing airtime suite passed four groups;
+  unchanged helper gives C=399616 us for proposed 255-byte/125 kHz SF7 fixture.
+- P3-B remains BLOCKED: seven-file implementation authority and finite synthetic
+  ledger/attempt/rearm/budget choices were still proposed. Prepared the exact
+  [P3-B approval decision](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p3-b-implementation-decision-candidate),
+  including no refill/refund/retry, retained radio uncertainty and conservative
+  whole-queue retirement. No B code/contract/runner registration created.
+- Current portfolio map moved Repeater authority to private Project #9, mapped
+  item 286137273; direct read was unavailable. Old Project #1 snapshots remain
+  history. No GitHub write/status change or authority inferred from old board.
+- Evidence retained in `build/repeater-baseline/p3b-preparation-20261028`;
+  only report/progress changed, all prior dirty source/evidence preserved.
+  No cleanup or V1/public status change; stop for exact contract/profile/scope
+  approval and reconciliation of any newer Project #9 decision.
+
+### OT-0266b P3-A bounded host dispatch bridge
+
+- Implemented only the approved nine-file P3-A scope in the existing isolated
+  Repeater candidate; P3-B is not started. The forwarder remains the sole FIFO,
+  preserving verified metadata, exact bytes and original enqueue/age.
+- Added bounded post-auth/new-key admission gate, persisted pressure/uncertainty
+  handling, expiry-only pruning and fixed-mode P2 metadata tickets with one-use
+  claims. P2 owns pending bytes and final authority; legacy extraction refuses
+  in bridge mode. Restart loses unsent work while durable replay remains spent.
+- Final strict host matrix passed 15 executables / 128 reported scenarios or
+  groups (118 prior + ten new). Original nine forwarder/twelve P2 test bodies
+  and eleven-group P1 coordinator suite remain intact. No hardware, radio,
+  protected-storage, protocol, endpoint-key or production acceptance.
+- Independent security/test review and documentation checks are retained with
+  exact patch/source/input hashes in
+  `build/repeater-baseline/p3a-implementation-20261028`; see the
+  [P3-A result](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p3-a-host-bridge-implementation).
+  No cleanup, commits, publication or GitHub status change; next gate is separate
+  P3-B contract/scope authorization. No V1 score or website status change.
+
+### OT-0266b P3 dispatch and budget preparation
+
+P1/P2 source and evidence were hash-reverified, including 35 P2 artifacts and
+255 matrix inputs. The original seven-file P3 scope cannot connect actual P2:
+current candidate output lacks original age/source provenance and a one-use
+dispatch claim; queued radio acceptance also supplies no terminal/rearm proof.
+
+The [P3 preparation packet](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p3-dispatch-and-resource-budget-preparation)
+proposes a nine-existing-file P3-A bridge, then the original seven-file P3-B host
+dispatcher, fourteen files in union. It freezes queue/pending/in-flight capacity,
+post-authentication consumed-opportunity gates, irreversible finite quota/airtime
+debit, serialized final claim, one attempt, explicit terminal/rearm and bounded
+private diagnostics. F1-F12 remain NOT RUN acceptance cases. Implementation is
+blocked under the old scope; the concrete expanded contracts/scopes await owner
+approval. Only the existing report/log change; all source/tests/runner/contracts
+and prior evidence remain preserved. No P3 code, radio, Packet-v1, endpoint-key,
+GitHub, publication, cleanup, product-version, V1 or public-website credit.
+
+### OT-0266b P2 host lifecycle supervision
+
+The owner explicitly accepted the P2 lifecycle contract and its seven-file scope.
+Host supervision now composes existing replay/forwarding owners with disabled
+startup, bound one-use consent/Active lease, exact private-frame binding,
+generation-first whole-queue retirement, deliberate recovery and terminal
+shutdown. Real enrollment/storage, Packet-v1, target linkage and P3 radio/
+airtime work remain excluded. Injected uncertain submission/rearm outcomes
+contain; no transmission/rearm implementation was added.
+
+All L1-L12 groups passed strict focused validation. The final affected matrix
+passed 15 executables: all 106 prior scenarios/groups plus 12 lifecycle groups.
+P1's 11 coordinator groups and source are unchanged. Separate security and
+test/source review findings are corrected and independently cleared; see the
+[P2 implementation closeout](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p2-host-lifecycle-implementation-closeout)
+and [host API contract](protocol/REPEATER_HOST_LIFECYCLE_V0.md). Original/P1/
+preparation evidence, failed author attempts, final source hashes, patch and
+receipts remain retained in the task-owned implementation child. Existing dirty
+task-plan/backlog/P1 test bytes are preserved. This is synthetic host evidence,
+not physical or production acceptance; parent/P3-P6 gates remain open. No GitHub
+write, commit/push/merge, cleanup, product version, V1 or public-site credit.
+
+### OT-0266b P2 lifecycle contract preparation
+
+P1's source, preserved planning files, 28 artifacts and 252 matrix-input hashes
+were reverified, along with 22 original baseline artifacts. The existing packet
+still requires acceptance of a concrete host lifecycle contract and separate P2
+implementation authority. The owner's conditional instruction therefore takes
+the preparation-only path; no lifecycle C++, test or runner file was created.
+
+The [P2 contract candidate](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p2-lifecycle-supervision-contract-candidate)
+defines startup, provider-bound synthetic admission/consent, suspension,
+reconstruction, expiry, injected radio faults, shutdown and whole-queue
+retirement while preserving P1 replay guarantees. Its exact seven-file proposed
+scope and L1-L12 pass/fail cases are ready for owner review. P1's 106 host
+scenarios remain existing evidence; no P2 runtime result is claimed. Only the
+existing report and this log change; task-owned preparation evidence preserves
+prior bytes. No P3, hardware, target, Packet-v1, GitHub write, publication,
+cleanup, product version or V1/public-website credit is added.
+
+## 2026-10-27
+
+### OT-0266b P1 host replay recovery coverage
+
+The owner conditionally approved the recorded D1-D7 direction and explicitly
+authorized the existing P1 test-only slice without GitHub registration or status
+changes. Two coordinator scenarios now cover rate-limited replay persistence
+with spare queue capacity and saved-but-unsent loss across fresh host owners.
+Write/generation counts, retained duplicate refusal, zero extra save/release and
+pre-expiry empty-queue assertions pass. The focused coordinator has 11 passing
+groups; the affected 14-executable matrix passes all 104 prior scenarios/groups
+plus two new groups, 106 total. Production source and Packet-v1 remain unchanged.
+
+Separate independent security and test reviews found no blocking issue. See the
+[P1 closeout and local evidence inventory](testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p1-host-recovery-test-closeout).
+The original baseline is preserved; P1 output, preimages, patch and hashes stay
+in its task-owned ignored child directory. Earlier task-plan/backlog dirty bytes
+remain unchanged. This is synthetic host reconstruction evidence, not physical
+power-loss, protected storage/authentication, durable frame or airtime recovery
+acceptance. OT-0266b and P2-P6 gates remain open; no hardware, target, public
+website change, V1 credit, publication, cleanup or automatic P2 continuation.
+
 ## 2026-10-24
 
 ### OT-0170a Focused setup and saved-device host matrix
@@ -8617,3 +8867,19 @@ The measured retry deadline now has an actual-path host reproduction with
 synthetic 172 us/read and a 1200 ms host gap. A completion-only TX service path is
 being implemented and validated; no further physical retry is authorized. This
 work does not retrospectively prove causes of earlier uninstrumented refusals.
+
+
+P4 dependency reconciliation (2026-10-28): see the existing OT-0266b decision packet section "P4 shared-security dependency reconciliation" and build/repeater-baseline/p4-dependency-resolution-20261028/. Verified reciprocal Project 9 OT-0266b-4 / Project 1 OT-0237e requests; OT-0237c actual-target persistence is not a generic ledger API. Implementation BLOCKED pending actual shared-owner contracts; no status/acceptance or runtime changes.
+
+Build milestone result: PASS ELF/HEX;68304 flash bytes and13348 staticRAM bytes against BSP app limits811008/237568. Eight portable sources unchanged; seven newlib POSIX stub linker warnings retained, not runtime accepted. Short task-owned tool copies required on Windows; no upload/RF. Exact commands/package hashes/map/symbol evidence retained in build/repeater-baseline/p5-p1pro-build-20261029/. Broader P5/P4 and hardware gates stay open.
+
+Final adapter result (2026-10-30): PASS10 new controlled groups +63 affected
+regression groups =73 executed groups; native strict C++17 warnings-as-errors.
+Final P1-Pro ELF/HEX PASS:103716 bytes flash of811008,14892 bytes staticRAM
+of237568. Seven existing newlib POSIXstub linker warnings remain; no stub
+runtime or stack/power behavior accepted. Symbols/map retain RX initialize,
+rearm and IRQ probes; setup never invokes them. Independent integration/security
+review CLEAR. No portable source edits. Normal readiness invalidation preserves
+current attempt receipts; hard uncertainty remains sticky, no retries/refunds.
+Exact source/library/artifact hashes, initial failure outputs, incrementalpatch
+and reproduction evidence retained under build/repeater-baseline/p5-sx1262-adapter-20261030/.

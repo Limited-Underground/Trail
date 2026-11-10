@@ -718,8 +718,8 @@ Pending planning only; base V1 unchanged. These definition-stage tasks are not c
 | OT-0264b | owner accepted | OT-0264 | Prepare dedicated versus client/repeater role decision; [proposal](../docs/testing/OT-0264b-REPEATER-ROLE-PROPOSAL-2026-09-29.md). Planning only; choices and successor implementation remain separately gated. |
 | OT-0265a | planning proposal owner-accepted | OT-0265 | Define a secure forwarding contract review; [review proposal](../docs/testing/OT-0265a-REPEATER-SECURITY-REVIEW-2026-09-29.md). Planning only; implementation and physical acceptance remain separate. |
 | OT-0265b | planning proposal owner-accepted | OT-0265 | [Repeater scheduling and congestion proposal](../docs/testing/OT-0265b-REPEATER-SCHEDULING-2026-09-29.md). Relay-capable security construction, target and measured numeric budgets remain prerequisites. |
-| OT-0266a | planning profile reviewed; owner acceptance pending | OT-0266 | [Repeater hardware and deployment evidence profile](../docs/testing/OT-0266a-REPEATER-DEPLOYMENT-PROFILE-2026-09-29.md). Candidate specifications remain separate from received-unit measurements; target, installation and protected radio construction remain unselected. |
-| OT-0266b | planned | OT-0266 | Specify provisioning, diagnostics and durable recovery |
+| OT-0266a | planning Done in live Project; no target acceptance | OT-0266 | [Repeater hardware and deployment evidence profile](../docs/testing/OT-0266a-REPEATER-DEPLOYMENT-PROFILE-2026-09-29.md). Live dependency checked October 27; candidate specifications remain separate from received-unit measurements. Target, installation and protected radio construction remain unselected. |
+| OT-0266b | Private Repeater Project #9; live status unverified | OT-0266 | [Current P4 security/storage decisions](../docs/testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p4-security-and-storage-decision-packet): P1-P3 consolidated host candidate passed17 executables/corrected137 reported groups; sealed source/evidence verified. P4 preparation is authorized locally; production relay credential, protected state API/threat/freshness/time and retained radio producer remain BLOCKED pending owner decisions. Conditional seven-file one-ledger binding is a proposal, not execution authority. Preserve direct-only V1/Packet-v1, opaque payloads and endpoint-key custody; no hardware, adapter implementation, GitHub write or parent closure. |
 | OT-0267a | planned | OT-0267 | Prepare relay interoperability and fault acceptance |
 | OT-0267b | planned | OT-0267 | Prepare repeater deployment and release guidance |
 
@@ -745,3 +745,6 @@ accepted source, fixtures and authorization decisions before implementation.
 The HA app owns consumer implementation and packaging in its own backlog. Future
 message/radio bridging and physical two-node validation need separately scoped
 work after checking existing upstream tasks; this initial breakdown is incomplete.
+
+
+P4 dependency reconciliation (2026-10-28): see the existing OT-0266b decision packet section "P4 shared-security dependency reconciliation" and build/repeater-baseline/p4-dependency-resolution-20261028/. Verified reciprocal Project 9 OT-0266b-4 / Project 1 OT-0237e requests; OT-0237c actual-target persistence is not a generic ledger API. Implementation BLOCKED pending actual shared-owner contracts; no status/acceptance or runtime changes.

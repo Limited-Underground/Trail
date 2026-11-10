@@ -252,6 +252,138 @@ void test_persisted_observation_survives_restart() {
     EXPECT(!second.next_transmit(22).forwarding.has_frame);
 }
 
+void test_rate_limited_observation_survives_restart_without_another_save() {
+    FakeStorage storage{};
+    {
+        DuplicateCheckpointStore store{storage, kGroupContext, kEpoch};
+        DuplicateWindow live{kRetentionMs};
+        SingleRepeaterForwarder forwarder{
+            kRepeater, kGroupContext, kEpoch, policy(2, 1), live};
+        SingleRepeaterReplayCoordinator coordinator{
+            kRetentionMs, kGroupContext, kEpoch, live, store, forwarder};
+        EXPECT(coordinator.boot(binding(true), 0).operational());
+        EXPECT(storage.writes() == 1);
+
+        const auto admitted = coordinator.process_and_persist(
+            metadata(80), {kFrame.data(), kFrame.size()}, 10);
+        EXPECT(admitted.error == RepeaterReplayError::none);
+        EXPECT(admitted.forwarding.queued);
+        EXPECT(admitted.replay_state_persisted);
+        EXPECT(admitted.generation == 2);
+        EXPECT(storage.writes() == 2);
+        // The next distinct key is denied by rate, not by a full queue.
+        EXPECT(forwarder.status().queue_depth == 1);
+        EXPECT(forwarder.status().queue_depth < 2);
+
+        const auto denied = coordinator.process_and_persist(
+            metadata(81), {kFrame.data(), kFrame.size()}, 11);
+        EXPECT(denied.error == RepeaterReplayError::none);
+        EXPECT(!denied.forwarding.queued);
+        EXPECT(denied.forwarding.disposition ==
+               SingleRepeaterDisposition::rate_limited);
+        EXPECT(denied.forwarding.replay_state_changed);
+        EXPECT(denied.replay_state_persisted);
+        EXPECT(denied.store_error == DuplicateCheckpointStoreError::none);
+        EXPECT(denied.generation == 3);
+        EXPECT(storage.writes() == 3);
+        EXPECT(forwarder.status().queue_depth == 1);
+        expect_exact_frame(coordinator.next_transmit(12));
+        EXPECT(!coordinator.next_transmit(13).forwarding.has_frame);
+        EXPECT(storage.writes() == 3);
+    }
+
+    // All volatile owners are new. The old rate window has elapsed, while
+    // this key is still within the checkpoint's retained duplicate lifetime.
+    DuplicateCheckpointStore store{storage, kGroupContext, kEpoch};
+    DuplicateWindow live{kRetentionMs};
+    SingleRepeaterForwarder forwarder{
+        kRepeater, kGroupContext, kEpoch, policy(2, 1), live};
+    SingleRepeaterReplayCoordinator coordinator{
+        kRetentionMs, kGroupContext, kEpoch, live, store, forwarder};
+    const auto reboot = coordinator.boot(binding(false), 2000);
+    EXPECT(reboot.operational());
+    EXPECT(reboot.outcome == RepeaterReplayBootOutcome::restored);
+    EXPECT(reboot.generation == 3);
+    EXPECT(storage.writes() == 3);
+    EXPECT(forwarder.status().queue_depth == 0);
+
+    const auto replay = coordinator.process_and_persist(
+        metadata(81), {kFrame.data(), kFrame.size()}, 2001);
+    EXPECT(replay.error == RepeaterReplayError::none);
+    EXPECT(!replay.forwarding.queued);
+    EXPECT(replay.forwarding.disposition == SingleRepeaterDisposition::duplicate);
+    EXPECT(!replay.forwarding.replay_state_changed);
+    EXPECT(!replay.replay_state_persisted);
+    EXPECT(replay.generation == 3);
+    EXPECT(storage.writes() == 3);
+    EXPECT(forwarder.status().queue_depth == 0);
+    const auto output = coordinator.next_transmit(2002);
+    EXPECT(output.error == RepeaterReplayError::none);
+    EXPECT(!output.forwarding.has_frame);
+    EXPECT(output.forwarding.expired_frames_dropped == 0);
+}
+
+void test_saved_but_unsent_frame_is_lost_without_resetting_replay() {
+    FakeStorage storage{};
+    {
+        DuplicateCheckpointStore store{storage, kGroupContext, kEpoch};
+        DuplicateWindow live{kRetentionMs};
+        SingleRepeaterForwarder forwarder{
+            kRepeater, kGroupContext, kEpoch, policy(), live};
+        SingleRepeaterReplayCoordinator coordinator{
+            kRetentionMs, kGroupContext, kEpoch, live, store, forwarder};
+        EXPECT(coordinator.boot(binding(true), 0).operational());
+        const auto admitted = coordinator.process_and_persist(
+            metadata(90), {kFrame.data(), kFrame.size()}, 10);
+        EXPECT(admitted.error == RepeaterReplayError::none);
+        EXPECT(admitted.forwarding.queued);
+        EXPECT(admitted.forwarding.replay_state_changed);
+        EXPECT(admitted.replay_state_persisted);
+        EXPECT(admitted.store_error == DuplicateCheckpointStoreError::none);
+        EXPECT(admitted.generation == 2);
+        EXPECT(storage.writes() == 2);
+        EXPECT(forwarder.status().queue_depth == 1);
+        // Destroy every volatile owner without ever calling next_transmit.
+    }
+
+    DuplicateCheckpointStore store{storage, kGroupContext, kEpoch};
+    DuplicateWindow live{kRetentionMs};
+    SingleRepeaterForwarder forwarder{
+        kRepeater, kGroupContext, kEpoch, policy(), live};
+    SingleRepeaterReplayCoordinator coordinator{
+        kRetentionMs, kGroupContext, kEpoch, live, store, forwarder};
+    EXPECT(coordinator.next_transmit(19).error ==
+           RepeaterReplayError::not_operational);
+    const auto reboot = coordinator.boot(binding(false), 20);
+    EXPECT(reboot.operational());
+    EXPECT(reboot.outcome == RepeaterReplayBootOutcome::restored);
+    EXPECT(reboot.generation == 2);
+    EXPECT(storage.writes() == 2);
+    EXPECT(live.status(20).entries == 1);
+    EXPECT(forwarder.status().queue_depth == 0);
+    // This is before the old frame's age limit, so expiry cannot mask a
+    // mistakenly reconstructed queue. Saved replay state is not an outbox.
+    const auto unsent = coordinator.next_transmit(21);
+    EXPECT(unsent.error == RepeaterReplayError::none);
+    EXPECT(!unsent.forwarding.has_frame);
+    EXPECT(unsent.forwarding.expired_frames_dropped == 0);
+
+    const auto replay = coordinator.process_and_persist(
+        metadata(90), {kFrame.data(), kFrame.size()}, 22);
+    EXPECT(replay.error == RepeaterReplayError::none);
+    EXPECT(!replay.forwarding.queued);
+    EXPECT(replay.forwarding.disposition == SingleRepeaterDisposition::duplicate);
+    EXPECT(!replay.forwarding.replay_state_changed);
+    EXPECT(!replay.replay_state_persisted);
+    EXPECT(replay.generation == 2);
+    EXPECT(storage.writes() == 2);
+    EXPECT(forwarder.status().queue_depth == 0);
+    const auto output = coordinator.next_transmit(23);
+    EXPECT(output.error == RepeaterReplayError::none);
+    EXPECT(!output.forwarding.has_frame);
+    EXPECT(output.forwarding.expired_frames_dropped == 0);
+}
+
 void test_failed_save_disables_transmission() {
     FakeStorage storage{};
     DuplicateCheckpointStore store{storage, kGroupContext, kEpoch};
@@ -504,6 +636,8 @@ int main() {
     test_authorized_empty_store_initializes_before_operation();
     test_unprovisioned_empty_store_requires_service();
     test_persisted_observation_survives_restart();
+    test_rate_limited_observation_survives_restart_without_another_save();
+    test_saved_but_unsent_frame_is_lost_without_resetting_replay();
     test_failed_save_disables_transmission();
     test_congestion_observation_is_persisted();
     test_known_degraded_store_is_repaired_before_operation();
@@ -516,6 +650,6 @@ int main() {
                   << " single-repeater replay coordinator assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 9 reboot-safe repeater replay scenario groups\n";
+    std::cout << "PASS: 11 reboot-safe repeater replay scenario groups\n";
     return EXIT_SUCCESS;
 }
