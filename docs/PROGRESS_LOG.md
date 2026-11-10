@@ -2,6 +2,25 @@
 
 ## 2026-11-10
 
+### OT-0101c Record owner-approved D1 qualification metadata
+
+Recorded the evidenced HTIT-WB32LAF V4.2 received revision, bounded US915
+applicability label and OTHP0 layout version 1 in the bench target contract.
+The exact UTF-8/LF postimage is 6861 bytes, SHA-256
+`bf40d99aa261a616060672238eb0c301e462e164c5fa2ae3ccdabb7e78ebbbba`.
+Only the corresponding old-value expectations in the target-admission test
+changed; all 19 target-admission groups pass. The separate standalone contract
+schema version, experimental status, supported=false and every capability,
+write and recovery refusal are preserved.
+
+The Firmware owner prepares this bounded correction on
+`fix/d1-target-contract-r6-2-20261110` for a draft PR; merge is not authorized.
+D1 records qualification applicability only, not operational support,
+certification, installation or RF authority. The Loader pin remains unchanged;
+its eventual repin and all remaining LUF-0008b production-input criteria stay
+separate. No device, security activation, signing, release or V1 completion
+credit follows from these metadata and host-check results.
+
 ### OT-0312 Bind the inactive host session-authority adapter
 
 R6-3 resumes the preserved R5 topic on B1 af07c204d9ff771104897bd2d492e2d9bf2f3cc7. Only the missing MainActivity denied-state branch is added, using the verified sealed-patch wording; no other part of that file is imported. The service owns an unarmed OTY0 consumer; production runtime provider remains default-null and profile6 remains disabled. One completed protected-owner exchange is correlated to exact supplied pins, membership revision, lease/callback, nonce/exchange and fixed request-start deadline. Refusal, malformed/duplicate/late responses and lifecycle changes cannot create or renew proof. No caller Boolean supplies authority.

@@ -281,8 +281,8 @@ def test_contract() -> None:
         "version": "v6.0.2",
         "target": "esp32s3",
     }, "framework must be exactly pinned")
-    require(document["hardware"]["exact_received_revision"] is None,
-            "received revision must not be invented")
+    require(document["hardware"]["exact_received_revision"] == "HTIT-WB32LAF V4.2",
+            "received revision must match owner-approved D1 qualification")
     require(document["hardware"] == {
         "family_candidate": "Heltec WiFi LoRa 32 V4",
         "evidence_unit": "OT-DEV-001",
@@ -305,8 +305,8 @@ def test_contract() -> None:
             "build_frequency_mhz": 80,
             "physical_interface_and_frequency_verified": False,
         },
-        "exact_received_revision": None,
-        "rf_variant": None,
+        "exact_received_revision": "HTIT-WB32LAF V4.2",
+        "rf_variant": "US915",
         "display_candidate": {
             "controller": "SSD1315-compatible",
             "width": 128,
@@ -327,7 +327,7 @@ def test_contract() -> None:
             "candidate must not claim support")
     require(document["partition_layout"] == {
         "schema": "OTHP0",
-        "schema_version": 0,
+        "schema_version": 1,
         "file": "partitions.csv",
         "flash_bytes": 16777216,
         "factory_slot_bytes": 5177344,
