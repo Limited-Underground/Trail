@@ -21,6 +21,16 @@ its eventual repin and all remaining LUF-0008b production-input criteria stay
 separate. No device, security activation, signing, release or V1 completion
 credit follows from these metadata and host-check results.
 
+### OT-0312 Validate the standalone session-authority wire codec
+
+Added a standalone, unwired OTY0 codec in the protocol module: exact 76-byte request and 136-byte response records, schema/domain/header/reserved validation, flags 3 success / 0 refusal with zero authority metadata, full unsigned generation fields, supplied-pin/request comparison and fixed request-start monotonic expiry. Decoded metadata cannot authenticate itself or create Packet authority. Profile 6 remains disabled and the production provider unavailable; no Android app file changes.
+
+Owner R4-2 accepts B1 for codec-local evidence only. The exact unchanged protocol suite passes 91 tests with zero failures/errors/skips, including 32 new tests: 29 frozen codec-local cases plus 3 additional tests. Frozen positive controls retain their specified valid outcomes. State cases 2–6 remain **Not Tested** and move to B2/producer integration: journal/precommit/readback, lease/callback/duplicate lifecycle, revoke/rekey/membership races, lost invalidation/command-time refusal and restart without traffic resumption. No simulated or Boolean authority is counted as acceptance.
+
+Static comparison with the adopted firmware CompanionPacketOwnerChannel::query at f3ef095ceef0e54f05cf3e35dc9a0e181512e241 found no byte-layout disagreement; independent LE reconstruction matches all three full records. This is source/serialization evidence, not execution of a target issuer or protected channel. The R3-3 protocol files and their test results are unchanged; only the two repository-required continuity documents are added under R4-2. Documentation checks are run on the resulting four-file publication candidate. The existing [OT-0312 issue](https://github.com/Limited-Underground/Trail/issues/116) records draft publication/CI and the separately gated B2 scope.
+
+The owner selects the preserved runtime/test successors only, using the verified October 30 S24 reconnect baseline-to-successor chain. That decision neither adopts the remaining dirty overlay nor supplies an authenticated production provider. Full OT-0312, target/security and physical acceptance remain open. Canonical dirty source, original evidence and earlier diagnostic/editor/phone results remain preserved. No Ready/merge, device, BLE/RF, installation, signing, release or activation is included.
+
 ### OT-0320 Clean unoffered reports after failed share preparation
 
 Corrected the existing Share / Email path so a preparation failure cleans up only its newly created, never-offered cached report. Reports offered previously, or possibly offered once chooser dispatch is attempted, remain available. Report bytes, read-only grant flags and the existing eight-file/24-hour retention policy are unchanged. The before-fix provider-failure regression left an extra report; the same case now passes, along with repeated failures, successful/uncertain handoff and capacity preservation. All 19 focused/affected debug JVM tests pass.
