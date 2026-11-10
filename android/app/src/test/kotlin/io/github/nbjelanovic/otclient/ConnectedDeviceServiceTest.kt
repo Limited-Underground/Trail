@@ -11,6 +11,20 @@ import kotlin.test.assertTrue
 
 class ConnectedDeviceServiceTest {
     @Test
+    fun fixedStatusHandleTraversesActivityAndOwnerOnlyWhileLive() {
+        val service=FakeServiceController();val owner=ConnectedDeviceSessionOwner(103,service);val ui=fixture()
+        val recipient=V1QuickStatusRecipient();val status=io.github.nbjelanovic.otprotocol.CompanionQuickStatus.NEED_ASSISTANCE
+        assertFalse(ui.controller.submitQuickStatus(recipient,status))
+        ui.controller.onLifecycleStart();ui.controller.chooseBluetoothDeviceMode();ui.controller.startBluetoothService()
+        ui.connector.emit(0,ConnectedDeviceServiceConnection.Connected(owner))
+        assertTrue(ui.controller.submitQuickStatus(recipient,status))
+        assertEquals(listOf(recipient to status),service.quickStatuses)
+        ui.controller.onLifecycleStop();assertFalse(ui.controller.submitQuickStatus(recipient,status))
+        owner.close();assertFalse(owner.submitQuickStatus(recipient,status))
+        assertEquals(1,service.quickStatuses.size)
+    }
+
+    @Test
     fun confirmationCarriesExactHandleAndCannotForwardAfterDetachOrOwnerClose() {
         val service = FakeServiceController()
         val owner = ConnectedDeviceSessionOwner(102, service)
@@ -789,6 +803,11 @@ class ConnectedDeviceServiceTest {
 
     private class FakeServiceController : TrailServiceController {
         var groupRefreshCount = 0
+        // Command-forwarding fixture only, never used as authentication/production evidence.
+        val quickStatuses=mutableListOf<Pair<V1QuickStatusRecipient,io.github.nbjelanovic.otprotocol.CompanionQuickStatus>>()
+        override fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean {
+            quickStatuses += recipient to status; return true
+        }
         val groupOffers = mutableListOf<V1GroupConfirmationOffer>()
         override fun confirmGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean {
             groupOffers += offer; return true

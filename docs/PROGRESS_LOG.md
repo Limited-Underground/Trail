@@ -2,6 +2,16 @@
 
 ## 2026-11-10
 
+### OT-0313 Bind fixed quick statuses to the inactive authenticated path
+
+T-0040 narrows the text-blocked continuation to the existing four firmware meanings. Messages maps only exact known status labels, including matching saved templates; other built-ins and free text remain editable/local but their Send controls are visibly disabled. Template storage, limits, order and save-failure behavior are unchanged. The ordinary text format remains F-005, not an invented encoding.
+
+The dedicated runtime lane requires its current opaque attachment handle and rechecks the accepted OTY0 provider proof before using the existing OTA0 action path. It cannot fall back to legacy/local transport. Received OTE0 records retain strict format, nonce/generation and live-proof checks. Existing request-correlated queue, TX and protected-peer-ACK observations remain distinct; neither a template nor a successful platform write means delivered. Attachment retirement hides old received/progress state and makes old UI handles unusable.
+
+Focused host tests use the actual B1 codec and completed adapter exchange with the frozen producer-wire fixture, existing OTA0/OTE0 byte layouts, malformed/boundary cases, expired/revoked/foreign-handle refusals, owner forwarding and composed UI. Initial compilation caught a missing import, corrected within scope; that failure is preserved. The maintained full Android JVM/lint/documentation matrix qualifies the publication candidate. Host fixture pins are supplied inputs, not physical authentication or target acceptance.
+
+PR #221 was normally adopted at a9802721249d378fcb4ec52e27f7a82738fe4536 after all seven checks passed at its exact owner-approved head. T-0040 begins from that main in a clean topic and is draft-only; the existing issues record publication/CI separately. Production remains disabled/default-null provider. No hardware, BLE/RF, install/signing/release, new authentication framework, full OT-0312/OT-0313 completion or owner merge is included.
+
 ### OT-0101c Record owner-approved D1 qualification metadata
 
 Recorded the evidenced HTIT-WB32LAF V4.2 received revision, bounded US915

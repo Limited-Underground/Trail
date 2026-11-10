@@ -37,6 +37,7 @@ internal fun V1HomeScreen(
     onConfirmGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
     onCancelGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
     additionalDeviceTools: @Composable () -> Unit = {},
+    onSubmitQuickStatus: (V1QuickStatusRecipient, io.github.nbjelanovic.otprotocol.CompanionQuickStatus) -> Boolean = { _, _ -> false },
     deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit) -> Unit,
 ) {
     val launchSaver=remember { Saver<V1HomeLaunchState,Any>(
@@ -80,7 +81,8 @@ internal fun V1HomeScreen(
         state = V1AppNavigationState.empty().select(destination),
         onDestinationSelected = { navigation = navigation.select(it) },
         messages = { retainedPages.SaveableStateProvider("messages") {
-            V1MessagesScreen(status, onConnect = { navigation = navigation.beginSetup(currentRuntime()) })
+            V1MessagesScreen(status, onConnect = { navigation = navigation.beginSetup(currentRuntime()) },
+                quickStatus = bluetooth?.quickStatus ?: V1QuickStatusState(), onSubmitQuickStatus = onSubmitQuickStatus)
         } },
         group = { retainedPages.SaveableStateProvider("group") {
             V1GroupScreen(
@@ -141,8 +143,21 @@ internal fun V1HomeScreen(
 
 @Composable
 internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
-    initiallyDirect: Boolean = false, initiallyEditing: Boolean = false) {
+    initiallyDirect: Boolean = false, initiallyEditing: Boolean = false,
+    quickStatus: V1QuickStatusState = V1QuickStatusState(),
+    onSubmitQuickStatus: (V1QuickStatusRecipient, io.github.nbjelanovic.otprotocol.CompanionQuickStatus) -> Boolean = { _, _ -> false }) {
     val context = LocalContext.current
+    var submissionNotice by remember(quickStatus.recipient) { mutableStateOf<String?>(null) }
+    fun chooseStatus(value: String) {
+        val status = V1QuickStatusComposer.fromTemplate(value)
+        val recipient = quickStatus.recipient
+        submissionNotice = when {
+            status == null -> V1QuickStatusComposer.TEXT_UNAVAILABLE
+            recipient == null -> V1QuickStatusComposer.AUTHORITY_UNAVAILABLE
+            onSubmitQuickStatus(recipient, status) -> "Request submitted; delivery is not confirmed."
+            else -> "Request refused or outcome uncertain. Check device evidence; do not resend automatically."
+        }
+    }
     val preferences = remember { context.getSharedPreferences("v1-local-templates", 0) }
     val loadedTemplates = remember {
         V1QuickMessages.load { index ->
@@ -221,17 +236,28 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
                 Text(if (editing) "Done" else "Customize")
             }
         }
-        Text("Prepare your messages here. Nothing is sent from this screen.", style = MaterialTheme.typography.bodySmall)
+        Text("Fixed quick statuses use the current authenticated pair only. Templates remain local until explicitly selected.", style = MaterialTheme.typography.bodySmall)
+        if (quickStatus.recipient == null) Text(V1QuickStatusComposer.AUTHORITY_UNAVAILABLE)
+        submissionNotice?.let { Text(it) }
+        if (quickStatus.recipient != null) {
+            quickStatus.received?.let { Text("Received status: " + V1QuickStatusComposer.label(it)) }
+            quickStatus.outbound?.let { Text(V1QuickStatusComposer.evidence(it)) }
+        }
         if (loadedTemplates == null) {
             Text("Saved quick messages could not be read. Editing is unavailable.")
         } else if (saveFailed) {
             Text("Save could not be confirmed. Your draft is still here; saved state is uncertain.")
         }
-        V1QuickMessages.builtIn.forEach { Text(it) }
+        val choices = if (editing) V1QuickMessages.builtIn else
+            (V1QuickMessages.builtIn + io.github.nbjelanovic.otprotocol.CompanionQuickStatus.entries.map(V1QuickStatusComposer::label)).distinct()
+        choices.forEach { value ->
+            if (editing) Text(value) else V1QuickStatusChoice(value, quickStatus.recipient != null) { chooseStatus(value) }
+        }
         templates.forEachIndexed { index, template ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Text(template)
+                    if (!editing) V1QuickStatusChoice(template, quickStatus.recipient != null) { chooseStatus(template) }
                     if (editing) {
                         TextButton(onClick = {
                             if (editingIndex == null && templates.getOrNull(index) == template) {
@@ -342,4 +368,13 @@ private fun v1SupportSnapshot(state: TrailAppUiState): V1SafeDiagnosticSnapshot 
     return V1SafeDiagnosticSnapshot(label(version), label("Not available"), label(Build.MODEL),
         label(Build.VERSION.RELEASE), label("Not available"), V1SupportRegionProjector.from(state), health.connection,
         health.radio, health.gps, health.power, null, health.lastCode)
+}
+
+/** Unknown phrases stay editable but can never silently acquire fixed-status semantics. */
+@Composable
+private fun V1QuickStatusChoice(text: String, currentRecipient: Boolean, submit: () -> Unit) {
+    val mapped = V1QuickStatusComposer.fromTemplate(text) != null
+    OutlinedButton(onClick = submit, enabled = mapped && currentRecipient,
+        modifier = Modifier.heightIn(min = 48.dp)) { Text("Send: $text") }
+    if (!mapped) Text(V1QuickStatusComposer.TEXT_UNAVAILABLE, style = MaterialTheme.typography.bodySmall)
 }
