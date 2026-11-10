@@ -7,6 +7,27 @@ including assumptions and older decision checkpoints, is preserved in the
 See [archive navigation](history/README.md) for moved headings, [Architecture](ARCHITECTURE.md)
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
+## Target qualification applicability
+
+The owner-approved D1 metadata correction records `HTIT-WB32LAF V4.2`, bounded
+`US915` applicability and the existing `OTHP0/v1` layout in the
+[bench target contract](../firmware/targets/heltec_v4_bench/target-contract.json),
+consistent with the [target audit](testing/OT-0101c-TARGET-CONFIGURATION-AUDIT-2026-09-21.md)
+and [partition CSV](../firmware/targets/heltec_v4_bench/partitions.csv).
+This is qualification applicability only: `supported=false`, experimental status
+and every capability, write and recovery boundary remain unchanged. It supplies
+no operational support, certification, installation or RF authority.
+
+The Firmware owner prepared only the contract's three values, their matching
+host-test expectations and required continuity notes on
+`fix/d1-target-contract-r6-2-20261110`. Nineteen target-admission groups pass.
+Draft review/CI and a separate owner merge decision remain; the Loader inspection
+pin is unchanged and any later repin is a separate Loader task. Full concrete
+production-input acceptance remains open on
+[LUF-0008b](https://github.com/Limited-Underground/Firmware-Loader/issues/37);
+[OT-0101c](https://github.com/Limited-Underground/Trail/issues/191) retains its
+original completed evidence scope. No physical or release acceptance is added.
+
 ## Firmware host composition
 
 [OT-0005i](https://github.com/Limited-Underground/Trail/issues/75) has a local,

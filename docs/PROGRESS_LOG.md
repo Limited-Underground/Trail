@@ -2,6 +2,25 @@
 
 ## 2026-11-10
 
+### OT-0101c Record owner-approved D1 qualification metadata
+
+Recorded the evidenced HTIT-WB32LAF V4.2 received revision, bounded US915
+applicability label and OTHP0 layout version 1 in the bench target contract.
+The exact UTF-8/LF postimage is 6861 bytes, SHA-256
+`bf40d99aa261a616060672238eb0c301e462e164c5fa2ae3ccdabb7e78ebbbba`.
+Only the corresponding old-value expectations in the target-admission test
+changed; all 19 target-admission groups pass. The separate standalone contract
+schema version, experimental status, supported=false and every capability,
+write and recovery refusal are preserved.
+
+The Firmware owner prepares this bounded correction on
+`fix/d1-target-contract-r6-2-20261110` for a draft PR; merge is not authorized.
+D1 records qualification applicability only, not operational support,
+certification, installation or RF authority. The Loader pin remains unchanged;
+its eventual repin and all remaining LUF-0008b production-input criteria stay
+separate. No device, security activation, signing, release or V1 completion
+credit follows from these metadata and host-check results.
+
 ### OT-0312 Validate the standalone session-authority wire codec
 
 Added a standalone, unwired OTY0 codec in the protocol module: exact 76-byte request and 136-byte response records, schema/domain/header/reserved validation, flags 3 success / 0 refusal with zero authority metadata, full unsigned generation fields, supplied-pin/request comparison and fixed request-start monotonic expiry. Decoded metadata cannot authenticate itself or create Packet authority. Profile 6 remains disabled and the production provider unavailable; no Android app file changes.
