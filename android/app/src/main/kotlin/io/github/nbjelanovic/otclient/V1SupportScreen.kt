@@ -143,21 +143,30 @@ internal fun shareSupportReport(
             V1_SUPPORT_SHARED_REPORT_SUFFIX,
             directory,
         )
-        reportFile.writeText(report.text, Charsets.UTF_8)
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.support-files",
-            reportFile,
-        )
-        val sendIntent = Intent(Intent.ACTION_SEND).apply {
-            type = report.mimeType
-            putExtra(Intent.EXTRA_SUBJECT, "Trail support report")
-            putExtra(Intent.EXTRA_STREAM, uri)
-            clipData = ClipData.newUri(context.contentResolver, report.fileName, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        var handoffAttempted = false
+        try {
+            reportFile.writeText(report.text, Charsets.UTF_8)
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.support-files",
+                reportFile,
+            )
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = report.mimeType
+                putExtra(Intent.EXTRA_SUBJECT, "Trail support report")
+                putExtra(Intent.EXTRA_STREAM, uri)
+                clipData = ClipData.newUri(context.contentResolver, report.fileName, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(sendIntent, "Share support report")
+            // Dispatch may succeed before startActivity throws; retain that report on uncertainty.
+            handoffAttempted = true
+            context.startActivity(chooser)
+            "Share options opened."
+        } finally {
+            // Only this newly created, never-offered report is eligible for failure cleanup.
+            if (!handoffAttempted) runCatching { reportFile.delete() }
         }
-        context.startActivity(Intent.createChooser(sendIntent, "Share support report"))
-        "Share options opened."
     }
     return result.getOrElse { "Support report could not be shared." }
 }

@@ -1,5 +1,15 @@
 # OpenTrail Progress Log
 
+## 2026-11-10
+
+### OT-0320 Clean unoffered reports after failed share preparation
+
+Corrected the existing Share / Email path so a preparation failure cleans up only its newly created, never-offered cached report. Reports offered previously, or possibly offered once chooser dispatch is attempted, remain available. Report bytes, read-only grant flags and the existing eight-file/24-hour retention policy are unchanged. The before-fix provider-failure regression left an extra report; the same case now passes, along with repeated failures, successful/uncertain handoff and capacity preservation. All 19 focused/affected debug JVM tests pass.
+
+Host contexts intercept every Activity launch. The Windows positive-handoff fixture adapts only AndroidX path separators after real provider initialization; it does not prove device provider or cross-app permissions. Original red/failing/stopped evidence and the original isolated candidate remain preserved. The publication topic is based on merged PR #218, with an unchanged Android base tree. Only the two scoped source/test paths and required current-status/progress records change.
+
+Owner Task 5 authorizes a topic PR only; no merge. Full [OT-0320](https://github.com/Limited-Underground/Trail/issues/124) physical export/recipient/grant acceptance remains open. The producer-interface report on [OT-0312](https://github.com/Limited-Underground/Trail/issues/116) is read-only: no authority adapter, OT-0305 work, device, signing or release operation occurs. Earlier Note20/editor/TalkBack evidence is retained rather than repeated.
+
 ## 2026-11-09
 
 ### OT-0005i Bind committed enrollment to live authority queries
