@@ -48,6 +48,14 @@ jobs:
           update: true
           install: mingw-w64-ucrt-x86_64-gcc
 
+      - name: Verify adopted authenticated messaging composition
+        shell: pwsh
+        env:
+          OPENTRAIL_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          python -X utf8 -B .\tools\companion_packet_service_ci.py --out "$env:RUNNER_TEMP/ot0005i-host"
+          if ($LASTEXITCODE -ne 0) { throw "OT-0005i host composition failed." }
+
       - name: Run core host matrix
         shell: pwsh
         env:

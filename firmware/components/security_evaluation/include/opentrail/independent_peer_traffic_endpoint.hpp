@@ -7,6 +7,7 @@
 #include "opentrail/peer_activation_store.hpp"
 
 namespace opentrail::security_evaluation {
+class PacketSessionPort;
 class IndependentPeerTrafficEndpoint final {
 public:
     IndependentPeerTrafficEndpoint(security::SecureRandomSource& random,
@@ -169,6 +170,15 @@ public:
     bool consume_window_expired() { return endpoint_.consume_window_expired(); }
     EnrolledFailureDetail consume_failure_detail() { return endpoint_.consume_failure_detail(); }
 private:
+    friend class ProductEnrollmentActivation;
+    // Callback-free continuation of the same serialized owner's ready check;
+    // this observation neither polls nor grants admission by itself.
+    bool observed_clock(ConfirmationSample& output) const {
+        output = {};
+        return !busy_ && !reentered_ && active() && endpoint_.observed_clock(output);
+    }
+ friend class CommittedPacketSession;
+ friend class PacketSessionPort; // Dormant host-only Packet-v1 binding port.
     std::array<unsigned char, 8> control(unsigned char kind) const {
         return {'O','T',1,kind,static_cast<unsigned char>(role_),0,0,0};
     }

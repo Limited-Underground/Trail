@@ -6,6 +6,7 @@
 #include "opentrail/independent_policy_session.hpp"
 
 namespace opentrail::security_evaluation {
+class PacketSessionPort;
 class IndependentAuthorizedPolicySession final {
 public:
  IndependentAuthorizedPolicySession(security::SecureRandomSource& random,
@@ -87,6 +88,8 @@ public:
  bool retired()const{return session_.retired();}
  bool secrets_cleared()const{return session_.secrets_cleared();}
 private:
+ friend class CommittedPacketSession;
+ friend class PacketSessionPort; // Isolated host Packet-v1 port; no active target wiring.
  bool admitted()const{return !closed_&&begun_&&authority_!=nullptr&&authority_->current();}
  bool abort_core(){
   // Preserve the frozen core abort ordering: the invalid-role begin transition
@@ -99,5 +102,6 @@ private:
  bool fail(){(void)abort_core();closed_=true;active_=false;return false;}
  IndependentRoleInvitationAuthority* authority_{nullptr};IndependentPolicySession session_;
  bool identity_{false},begun_{false},active_{false},closed_{false};
+ bool packet_bound_{false}; // Single host binding claim per authenticated owner.
 };
 }

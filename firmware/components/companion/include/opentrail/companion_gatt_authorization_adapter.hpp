@@ -6,6 +6,7 @@
 #include "opentrail/companion_gatt_authorization.hpp"
 
 namespace opentrail::companion {
+class CompanionPacketOwnerChannel;
 
 inline constexpr std::uint8_t kCompanionGattMinimumSecurityKeyBytes = 16;
 
@@ -204,6 +205,7 @@ public:
     void abandon_indication(std::uint64_t delivery_token) override;
 
 private:
+    friend class CompanionPacketOwnerChannel;
     [[nodiscard]] CompanionGattAdapterError connection_error(
         std::uint16_t connection_handle) const;
     [[nodiscard]] CompanionGattAdapterError refresh_security_impl(
