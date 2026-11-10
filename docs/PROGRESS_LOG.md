@@ -2,6 +2,52 @@
 
 ## 2026-11-09
 
+### OT-0005i Bind committed enrollment to live authority queries
+
+Implemented the internal Companion producer from the real committed enrollment
+owner and durable stores, with per-request and command-current checks. It retains
+Ed25519 identity direction, full group64, exact epoch and original deadline;
+revoke/reset/close, generation changes, reentry and storage uncertainty refuse.
+Independent review reproduced authenticated-context substitution and lifetime
+inflation from producer-only clock samples. The corrected private observation
+path consumes the same owner's last validated time/context after its original
+live checks. The failed reproductions remain preserved.
+
+The initial producer validation passed 14 scenario families, eight actual
+clock-cancellation boundaries and 28 paired context substitutions. The runner
+pins the 27 reused accepted objects and their dependencies; unchanged versus
+altered/missing reuse controls pass. An actual post-run tamper refuses with exit 2
+and cannot leave a PASS result. Accepted cryptographic admission evidence was
+reused. Independent behavioral review passed for that initial producer increment.
+
+A subsequent direct owner grant released the existing inactive Packet/driver and
+protected owner-channel host increment. Its fourteen-file implementation now
+composes the real committed enrollment owner, private Packet session keys,
+four distinct fresh counter/replay stores and actual Heltec driver code with
+host I/O stubs. OTY0 export uses the same concrete controller/persistent GATT
+authority and live inner-session/owner checks. No target registration or Android
+runtime is changed. Review found and corrected context-domain mismatch,
+misreported retirement uncertainty, cleanup of borrowed unacquired resources,
+unconsumed plaintext overwrite and ACK/retry ordering. Original failures and
+intermediate passing candidates remain preserved.
+
+The final affected native suite passes 68 composed host scenarios, including
+retirement write/partial/sync failure, inert/duplicate facade preservation,
+rekey/retained-store/tampered-frame refusal, two messages before draining the
+single receive slot, and an ACK already present at the retry boundary. Thirty
+accepted objects are reused with before/after compiler, cache, object and
+dependency checks. New filesystem controls refuse changed/missing inputs and
+post-run tampering; unsupported inherited runner selectors now refuse before
+creating output. Independent behavioral review passed for this bounded host composition. The fixture
+issuer, protected store, peer and hardware I/O are not target acceptance.
+
+The local candidate is uncommitted and unpublished. Full OT-0005i, OT-0312,
+target/security and production acceptance remain open; OT-0168c stays paused.
+The next boundary is separate source publication/adoption or additional execution authority. [Current pickup state](PROJECT_STATUS.md#firmware-host-composition) and
+[focused cases](../tests/host/companion_committed_authority_tests.cpp) identify the
+source and limits. Canonical dirty work, original selected source, failed runs and
+all admission evidence are retained. No website or V1 completion credit changes.
+
 ### OT-0237c Preserve exclusive outbound counter lease ownership
 
 Prohibited copy and move operations on the live outbound counter allocator,

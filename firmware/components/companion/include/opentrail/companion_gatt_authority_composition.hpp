@@ -6,6 +6,7 @@
 #include "opentrail/companion_gatt_authorization_adapter.hpp"
 
 namespace opentrail::companion {
+class CompanionPacketOwnerChannel;
 
 enum class CompanionGattPrivateBondReferenceError : std::uint8_t {
     none = 0,
@@ -120,6 +121,7 @@ public:
     release_connection(std::uint64_t controller_binding) override;
 
 private:
+    friend class CompanionPacketOwnerChannel;
     CompanionAuthorizationAuthority& authority_;
     bool operation_active_{false};
     bool reentry_observed_{false};

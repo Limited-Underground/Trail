@@ -10,7 +10,10 @@
 #include "opentrail/enrollment_evidence_store.hpp"
 #include "opentrail/enrollment_binding_store.hpp"
 
+namespace opentrail::companion { class CommittedEnrollmentAuthority; }
 namespace opentrail::security_evaluation {
+class PacketSessionPort;
+class CommittedPacketSession;
 class ProductEnrollmentActivation final {
 public:
     ProductEnrollmentActivation(security::SecureRandomSource& random,
@@ -25,6 +28,7 @@ public:
           journal_(journal), membership_(membership), evidence_(evidence), binding_store_(binding_proof),
           port_(port),role_(role), signer_(signer),lifecycle_guard_(lifecycle_guard),lifecycle_context_(lifecycle_context) {
         const persistence::PersistentStorage* stores[]{&boot,&roles,&tx,&rx,&activation,&journal,&membership,&evidence,&binding_proof};
+        for(unsigned i=0;i<9;++i) storage_owners_[i]=stores[i];
         isolated_=true;
         for(unsigned i=0;i<9;++i) for(unsigned j=0;j<i;++j) if(stores[i]==stores[j]) isolated_=false;
     }
@@ -236,6 +240,12 @@ public:
     }
     bool secrets_cleared() const { return endpoint_.secrets_cleared(); }
 private:
+ friend class opentrail::companion::CommittedEnrollmentAuthority;
+    bool observed_clock(ConfirmationSample& output) const {
+        return endpoint_.observed_clock(output);
+    }
+ friend class CommittedPacketSession;
+ friend class PacketSessionPort; // Dormant host-only Packet-v1 binding port.
     bool confirmation_observation(EnrollmentGestureObservation& output) {
         EnrollmentGestureObservation staged{};
         const bool ok=operation([&]{
@@ -284,6 +294,7 @@ private:
         if(!ok || reentered_) { (void)close(); return false; }
         return true;
     }
+    std::array<const persistence::PersistentStorage*,9> storage_owners_{};
     IndependentPeerTrafficEndpoint endpoint_;
     EnrollmentCommitCoordinator journal_;
     PeerMembershipStore membership_;
