@@ -87,6 +87,7 @@ interface ConnectedDeviceSessionPort {
     fun scan()
     fun authorize(endpointToken: String)
     fun disconnect()
+    fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean = false
     fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean = false
     fun submitAction(request: CompanionActionRequest): Boolean
     fun refreshGroupConfirmation(): Boolean = false

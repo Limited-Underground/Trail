@@ -245,6 +245,12 @@ class TrailActivityController(
     override fun synchronizeDisplayTime(): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.synchronizeDisplayTime()==true }
     override fun selectBluetoothDevice(endpointToken: String) = bluetoothOnly { it.authorize(endpointToken) }
     override fun disconnectBluetoothDevice() = bluetoothOnly { it.disconnect() }
+    override fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean {
+        requireOwnerThread()
+        return canMutate() && lifecycleActive && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            port?.submitText(recipient, text) == true
+    }
+
     override fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean {
         requireOwnerThread()
         return canMutate() && lifecycleActive && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&

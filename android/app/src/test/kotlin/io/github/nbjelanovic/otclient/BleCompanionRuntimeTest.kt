@@ -1,5 +1,7 @@
 package io.github.nbjelanovic.otclient
 
+import io.github.nbjelanovic.otprotocol.*
+
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -2149,6 +2151,140 @@ class BleCompanionRuntimeTest {
         f.runtime.disconnect();assertEquals(V1QuickStatusState(),f.runtime.quickStatusState());f.runtime.close()
     }
 
+
+    internal fun textCarrierHostFixture(): TextCarrierHostFixture {
+        val f=ConfigurationFixture(profile=6,packetOptIn=true,wireAuthority=true,withSessionOwner=true).also { it.name();it.clock() }
+        return TextCarrierHostFixture(checkNotNull(f.owner), { textWire(f) }, { textEmit(f,it) })
+    }
+    private fun textWire(f: ConfigurationFixture) = checkNotNull(io.github.nbjelanovic.otprotocol.CompanionTextCarrierCodec
+        .decode(f.gatt.commands.last(), true)) as io.github.nbjelanovic.otprotocol.CompanionTextSend
+    private fun textEmit(f: ConfigurationFixture, value: io.github.nbjelanovic.otprotocol.CompanionTextRecord) {
+        val event=BleGattEvent.StreamIndication(checkNotNull(io.github.nbjelanovic.otprotocol.CompanionTextCarrierCodec.encode(value, true)))
+        if(f.gatt.closed) f.gatt.emitStale(event) else f.gatt.emit(event)
+    }
+    private fun textResult(f: ConfigurationFixture, disposition: Int=1, reason: Int=0, known: Boolean=true) {
+        val r=textWire(f)
+        textEmit(f,io.github.nbjelanovic.otprotocol.CompanionTextResult(r.reference,r.exchange,r.operation,disposition,reason,
+            if(known)100uL else 0uL,if(known)4097u else 0u,if(known)1uL else 0uL))
+    }
+    private fun textDelivery(f: ConfigurationFixture, event: UInt, phase: Int, reason: Int=if(phase<=3)0 else 12,
+        counter: ULong=1uL, origin: UInt=textWire(f).exchange) {
+        val r=textWire(f)
+        textEmit(f,io.github.nbjelanovic.otprotocol.CompanionTextDelivery(r.reference,event,origin,r.operation,100uL,4097u,counter,phase,reason))
+    }
+    @Test fun textComposerUsesActualCompletedOtyBindingAndByteBoundaries() {
+        for(n in 89..91) for(text in listOf("x".repeat(n),"界".repeat(n/3)+"x".repeat(n%3),"🚲".repeat(n/4)+"x".repeat(n%4))) {
+            val f=fixedStatusFixture();val recipient=assertNotNull(f.runtime.textState().recipient);val before=f.gatt.commands.size
+            assertEquals(n<=90,f.runtime.submitText(recipient,text))
+            assertEquals(before+if(n<=90)1 else 0,f.gatt.commands.size)
+            if(n<=90) {
+                val r=textWire(f);assertEquals(text,r.text);assertEquals(2u,r.epoch)
+                assertEquals(17u,r.reference.nonce);assertEquals(0x05060708u,r.reference.authorityExchange)
+                assertEquals(3uL,r.reference.generation);assertEquals(1uL,r.operation)
+                assertTrue(r.exchange > r.reference.authorityExchange)
+                assertEquals(58+n,f.gatt.commands.last().size)
+                assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,f.runtime.textState().outbound)
+            }
+            f.runtime.close()
+        }
+    }
+    @Test fun textRejectsBooleanOnlyAuthorityInvalidTextAndForeignOrStaleHandle() {
+        val old=packetFixture();val oldHandle=assertNotNull(old.runtime.quickStatusState().recipient);val before=old.gatt.commands.size
+        assertNull(old.runtime.textState().recipient);assertFalse(old.runtime.submitText(oldHandle,"test"));assertEquals(before,old.gatt.commands.size);old.runtime.close()
+        val f=fixedStatusFixture();val other=fixedStatusFixture();val r=assertNotNull(f.runtime.textState().recipient);val n=f.gatt.commands.size
+        for(text in listOf("","\uD800","x".repeat(91))) assertFalse(f.runtime.submitText(r,text))
+        assertFalse(f.runtime.submitText(assertNotNull(other.runtime.textState().recipient),"test"))
+        assertFalse(f.runtime.submitText(V1QuickStatusRecipient(),"test"));assertEquals(n,f.gatt.commands.size)
+        f.runtime.disconnect();assertFalse(f.runtime.submitText(r,"test"));assertEquals(n,f.gatt.commands.size)
+        f.runtime.close();other.runtime.close()
+    }
+    @Test fun textAllSevenAuthorityInvalidationsRefuseWithoutAWrite() {
+        for(reason in listOf(BlePacketAuthorityAdapter.Invalidation.DISCONNECT,BlePacketAuthorityAdapter.Invalidation.LEASE_CHANGE,
+            BlePacketAuthorityAdapter.Invalidation.OWNER_REPLACEMENT,BlePacketAuthorityAdapter.Invalidation.RESTART_AMBIGUITY,
+            BlePacketAuthorityAdapter.Invalidation.REKEY,BlePacketAuthorityAdapter.Invalidation.MEMBERSHIP_CHANGE,BlePacketAuthorityAdapter.Invalidation.REVOCATION)) {
+            val f=fixedStatusFixture();val r=assertNotNull(f.runtime.textState().recipient);val n=f.gatt.commands.size
+            f.wireAdapter.invalidate(reason);assertFalse(f.runtime.submitText(r,"test"));assertEquals(n,f.gatt.commands.size)
+            assertNull(f.runtime.textState().recipient);assertNull(f.runtime.textState().received);f.runtime.close()
+        }
+    }
+    @Test fun textReceiveRejectsMalformedStaleReplayAndWrongAuthorityReference() {
+        val f=fixedStatusFixture();val ref=io.github.nbjelanovic.otprotocol.CompanionTextReference(17u,0x05060708u,3uL)
+        val good=io.github.nbjelanovic.otprotocol.CompanionTextReceived(ref,1u,4097u,1uL,"live text")
+        val wire=checkNotNull(io.github.nbjelanovic.otprotocol.CompanionTextCarrierCodec.encode(good,true))
+        for(bad in listOf(wire.copyOf(wire.size-1),wire+0.toByte())+listOf(5,8,24,25,26,30,54).map { offset->wire.copyOf().also{it[offset]=0x7f} }) {
+            f.gatt.emit(BleGattEvent.StreamIndication(bad));assertNull(f.runtime.textState().received)
+        }
+        textEmit(f,good);assertEquals("live text",f.runtime.textState().received)
+        textEmit(f,good.copy(text="duplicate"));assertEquals("live text",f.runtime.textState().received)
+        textEmit(f,good.copy(exchange=2u,text="replayed counter"));assertEquals("live text",f.runtime.textState().received)
+        textEmit(f,good.copy(exchange=2u,counter=2uL,text="next"));assertEquals("next",f.runtime.textState().received)
+        f.wireAdapter.invalidate(BlePacketAuthorityAdapter.Invalidation.REVOCATION)
+        textEmit(f,good.copy(exchange=3u,counter=3uL,text="revoked"));assertNull(f.runtime.textState().received);f.runtime.close()
+    }
+    @Test fun textAndOteUseOneCursorAndGapRetiresTheAttachment() {
+        val f=fixedStatusFixture();val ref=io.github.nbjelanovic.otprotocol.CompanionTextReference(17u,0x05060708u,3uL)
+        textEmit(f,io.github.nbjelanovic.otprotocol.CompanionTextReceived(ref,1u,4097u,1uL,"one"))
+        f.packetEvent(2u,4,kind=2,generation=3u,detail=2)
+        assertEquals(CompanionQuickStatus.NEED_ASSISTANCE,f.runtime.quickStatusState().received)
+        textEmit(f,io.github.nbjelanovic.otprotocol.CompanionTextReceived(ref,3u,4098u,2uL,"three"))
+        f.packetEvent(2u,4,kind=2,generation=3u,detail=1,receipt=101uL)
+        assertEquals("three",f.runtime.textState().received)
+        textEmit(f,io.github.nbjelanovic.otprotocol.CompanionTextReceived(ref,5u,4099u,3uL,"gap"))
+        assertNull(f.runtime.textState().recipient);assertNull(f.runtime.textState().received);assertTrue(f.gatt.closed);f.runtime.close()
+    }
+    @Test fun textQueueTxAndMatchingDeliveryEvidenceAreDistinctInBothResultRaces() {
+        for(resultFirst in listOf(true,false)) {
+            val f=fixedStatusFixture();assertTrue(f.runtime.submitText(assertNotNull(f.runtime.textState().recipient),"test"))
+            assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,f.runtime.textState().outbound)
+            if(resultFirst)textResult(f)
+            textDelivery(f,1u,1);if(!resultFirst)textResult(f)
+            assertEquals(BlePacketDeliveryPhase.QUEUE_ACCEPTED,f.runtime.textState().outbound)
+            textDelivery(f,2u,2);assertEquals(BlePacketDeliveryPhase.TRANSMISSION_COMPLETED,f.runtime.textState().outbound)
+            textDelivery(f,3u,3);assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK,f.runtime.textState().outbound)
+            f.runtime.disconnect();assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK,f.runtime.textState().outbound)
+            assertFalse(f.runtime.textState().currentAttachment);f.runtime.close()
+        }
+    }
+    @Test fun textWrongPendingIdentityCannotPromoteDeliveryAndLateAckCannotRecoverUnknown() {
+        val f=fixedStatusFixture();f.runtime.submitText(assertNotNull(f.runtime.textState().recipient),"test")
+        textResult(f);textDelivery(f,1u,2)
+        textDelivery(f,2u,3,origin=textWire(f).exchange+1u)
+        assertEquals(BlePacketDeliveryPhase.TRANSMISSION_COMPLETED,f.runtime.textState().outbound)
+        textDelivery(f,2u,3,counter=2uL)
+        assertEquals(BlePacketDeliveryPhase.OUTCOME_UNKNOWN,f.runtime.textState().outbound);assertTrue(f.gatt.closed)
+        textDelivery(f,2u,3);assertEquals(BlePacketDeliveryPhase.OUTCOME_UNKNOWN,f.runtime.textState().outbound);f.runtime.close()
+    }
+    @Test fun textRefusedUnknownFailedTimeoutAndDisconnectAreTerminalWithoutResend() {
+        for(end in 0..4) {
+            val f=fixedStatusFixture();f.runtime.submitText(assertNotNull(f.runtime.textState().recipient),"test");val count=f.gatt.commands.size
+            when(end) {0->textResult(f,2,4,false);1->textResult(f,3,12,false);2->textDelivery(f,1u,5,11)
+                3->f.scheduler.advanceBy(ACTION_RESULT_TIMEOUT_MILLIS);else->f.runtime.disconnect()}
+            val expected=when(end){0->BlePacketDeliveryPhase.AUTHORITATIVE_REJECTION;2->BlePacketDeliveryPhase.FAILED;else->BlePacketDeliveryPhase.OUTCOME_UNKNOWN}
+            assertEquals(expected,f.runtime.textState().outbound)
+            textDelivery(f,2u,3);assertEquals(expected,f.runtime.textState().outbound);assertEquals(count,f.gatt.commands.size);f.runtime.close()
+        }
+    }
+    @Test fun textSynchronousAckBeforeFalsePlatformReturnRemainsHistoricalEvidence() {
+        val f=fixedStatusFixture();f.gatt.writeResult=false
+        f.gatt.onCommand={textDelivery(f,1u,1);textDelivery(f,2u,2);textDelivery(f,3u,3)}
+        assertFalse(f.runtime.submitText(assertNotNull(f.runtime.textState().recipient),"test"))
+        assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK,f.runtime.textState().outbound)
+        assertFalse(f.runtime.textState().currentAttachment);assertTrue(f.gatt.closed);f.runtime.close()
+    }
+    @Test fun textExpiryRevokesIdleProjectionAndOperationExhaustionNeverWraps() {
+        val f=fixedStatusFixture();val r=assertNotNull(f.runtime.textState().recipient);val n=f.gatt.commands.size
+        f.now=30100;f.scheduler.advanceBy(30000)
+        assertNull(f.runtime.textState().recipient);assertFalse(f.runtime.submitText(r,"test"));assertEquals(n,f.gatt.commands.size);assertTrue(f.gatt.closed);f.runtime.close()
+        val g=fixedStatusFixture();val own=assertNotNull(g.runtime.textState().recipient);val before=g.gatt.commands.size
+        g.runtime.javaClass.getDeclaredField("textOperation").also{it.isAccessible=true}.setLong(g.runtime,-1L)
+        assertFalse(g.runtime.submitText(own,"test"));assertEquals(before,g.gatt.commands.size);assertTrue(g.gatt.closed);g.runtime.close()
+        val h=fixedStatusFixture();val handle=assertNotNull(h.runtime.textState().recipient)
+        h.runtime.javaClass.getDeclaredField("nextRequestId").also{it.isAccessible=true}.setLong(h.runtime,0xffff_ffffL)
+        assertTrue(h.runtime.submitText(handle,"last exchange"));assertEquals(UInt.MAX_VALUE,textWire(h).exchange)
+        textResult(h,2,9,false);val writes=h.gatt.commands.size
+        assertFalse(h.runtime.submitText(handle,"no wrap"));assertEquals(writes,h.gatt.commands.size);assertTrue(h.gatt.closed);h.runtime.close()
+    }
+
     private class ConfigurationFixture(val firstSetup: Boolean = false, val profile: Int = 3,
         optIn: Boolean = false, withController: Boolean = false, withSessionOwner: Boolean = false,
         packetOptIn: Boolean = false, packetAdmission: Boolean = true, private val firstId:Long=1,
@@ -2194,8 +2330,10 @@ class BleCompanionRuntimeTest {
             gatt=facade.connections.single()
             if (wireAuthority) {
                 // Explicit fixture protected exchange, completed before protocol6 negotiation queries it.
-                // Generation3 is the actual start/scan/connection sequence; pins are fixture inputs.
-                val query = BlePacketAuthorityQuery(gatt, 3L, 17u, CANDIDATE.endpointToken)
+                // Android callback generation comes from this actual host graph; wire device/session generation3 is a separate domain.
+                // This is the runtime callback domain, not the OTY0 device/session generation.
+                val callbackGeneration = runtime.javaClass.getDeclaredField("generation").also { it.isAccessible = true }.getLong(runtime)
+                val query = BlePacketAuthorityQuery(gatt, callbackGeneration, 17u, CANDIDATE.endpointToken)
                 assertNotNull(wireAdapter.begin(authorityOwner, query, ByteArray(32) { (it+1).toByte() },
                     ByteArray(32) { (it+33).toByte() }, 1uL, 2u, 4uL, 0x05060708u))
                 val frozen = "4f54433000068b000403020108070605000174004f545930010103000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f400100000000000000020000000300000000000000030000000000000004000000000000000403020130750000"
@@ -2203,7 +2341,7 @@ class BleCompanionRuntimeTest {
                 for (offset in listOf(8,128)) repeat(4) { frozen[offset+it] = if(it==0) 17 else 0 }
                 val codec = io.github.nbjelanovic.otprotocol.CompanionAuthorityCodec
                 val response = codec.encodeResponse(checkNotNull(codec.decodeResponse(frozen)))
-                wireAdapter.complete(authorityOwner, gatt, 3L, wireResponse(response))
+                wireAdapter.complete(authorityOwner, gatt, callbackGeneration, wireResponse(response))
             }
             negotiate(17u)
         }
@@ -2941,4 +3079,100 @@ class BleCompanionRuntimeTest {
             assertEquals(phase, assertIs<BleRuntimeState.Negotiating>(runtime.state).phase)
         }
     }
+}
+
+/** Pure correlation tests; metadata here is not an authority provider. Runtime tests use real OTY0. */
+class V1TextComposerTest {
+    private val ref = CompanionTextReference(17u, 0x05060708u, 3uL)
+    private fun request() = CompanionTextSend(ref, 9u, 2u, 1uL, "Hello Trail")
+    private fun result(d: Int=1, reason: Int=0, known: Boolean=true) = CompanionTextResult(ref, 9u, 1uL, d, reason,
+        if(known) 100uL else 0uL, if(known) 4097u else 0u, if(known) 1uL else 0uL)
+    private fun evidence(phase: Int, event: UInt=phase.toUInt(), reason: Int=if(phase in 1..3) 0 else 12) =
+        CompanionTextDelivery(ref,event,9u,1uL,100uL,4097u,1uL,phase,reason)
+    @Test fun allSixSharedDeliverySequencesRetainTheirMeaning() {
+        val cases = listOf(listOf(1) to false, listOf(1,2) to false, listOf(1,2,3) to true,
+            listOf(1,2,6,3) to false, emptyList<Int>() to false, listOf(3) to false)
+        for((phases,delivered) in cases) {
+            val c=V1TextConversation();assertTrue(c.begin(request()))
+            for((i,p) in phases.withIndex()) c.receive(evidence(p,(i+1).toUInt()))
+            assertEquals(delivered,c.delivered,phases.toString())
+        }
+    }
+    @Test fun acceptedResultAndQueueEventCanRaceInEitherOrder() {
+        for(resultFirst in listOf(true,false)) {
+            val c=V1TextConversation();c.begin(request())
+            if(resultFirst) assertTrue(c.receive(result()))
+            assertTrue(c.receive(evidence(1)))
+            if(!resultFirst) assertTrue(c.receive(result()))
+            assertFalse(c.delivered);assertTrue(c.receive(evidence(2)));assertFalse(c.delivered)
+            assertTrue(c.receive(evidence(3)));assertTrue(c.delivered)
+            assertFalse(c.receive(evidence(3)))
+        }
+    }
+    @Test fun wrongOriginDoesNotBindButWrongKnownIdentityContains() {
+        val c=V1TextConversation();c.begin(request())
+        assertFalse(c.receive(result().copy(exchange=8u)))
+        assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,c.phase)
+        assertTrue(c.receive(result()));assertTrue(c.receive(evidence(2)))
+        assertFalse(c.receive(evidence(3).copy(counter=2uL)))
+        assertEquals(BlePacketDeliveryPhase.OUTCOME_UNKNOWN,c.phase);assertTrue(c.faulted)
+        assertFalse(c.receive(evidence(3)));assertFalse(c.delivered)
+    }
+    @Test fun refusalUnknownAndFailureCannotBecomeDelivered() {
+        for(terminal in listOf<CompanionTextRecord>(result(2,4,false),result(3,12,false),evidence(5))) {
+            val c=V1TextConversation();c.begin(request());assertTrue(c.receive(terminal))
+            val phase=c.phase;assertFalse(c.receive(evidence(3)));assertEquals(phase,c.phase);assertFalse(c.delivered)
+        }
+    }
+    @Test fun contradictionCannotEraseObservedAckButContainsFurtherProcessing() {
+        val c=V1TextConversation();c.begin(request());c.receive(evidence(1));c.receive(evidence(2));c.receive(evidence(3))
+        assertTrue(c.receive(result()));assertTrue(c.delivered)
+        assertFalse(c.receive(result(2,4,false)));assertTrue(c.delivered);assertTrue(c.faulted)
+        c.retire();assertTrue(c.delivered);assertFalse(c.currentAttachment)
+    }
+    @Test fun interruptedHandoffIsUnknownAndPreHandoffIsNotSent() {
+        for(handed in listOf(false,true)) {
+            val c=V1TextConversation();c.begin(request());c.retire(handed)
+            assertEquals(if(handed) BlePacketDeliveryPhase.OUTCOME_UNKNOWN else BlePacketDeliveryPhase.NOT_SENT,c.phase)
+            assertNull(c.origin);assertNull(c.received);assertFalse(c.currentAttachment)
+        }
+    }
+    @Test fun newOperationCannotConsumeOldResultOrAck() {
+        val c=V1TextConversation();c.begin(request());c.receive(result(3,12,false))
+        assertTrue(c.begin(request().copy(exchange=10u,operation=2uL)))
+        assertFalse(c.receive(evidence(3)));assertFalse(c.receive(result()))
+        assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE,c.phase)
+    }
+    @Test fun receivedCounterReplayAndOutboundCounterReuseAreRefused() {
+        val c=V1TextConversation()
+        assertTrue(c.receive(CompanionTextReceived(ref,1u,4097u,1uL,"first")))
+        assertFalse(c.receive(CompanionTextReceived(ref,2u,4098u,1uL,"replay")));assertEquals("first",c.received)
+        c.begin(request());c.receive(result());c.receive(evidence(2));c.receive(evidence(3))
+        c.begin(request().copy(exchange=10u,operation=2uL))
+        assertFalse(c.receive(result().copy(exchange=10u,operation=2uL)))
+        assertEquals(BlePacketDeliveryPhase.OUTCOME_UNKNOWN,c.phase)
+    }
+    @Test fun validationHasVisibleReasonsForEmptyOversizeAndInvalidScalars() {
+        assertNotNull(V1TextComposer.refusal(""));assertNotNull(V1TextComposer.refusal("\uD800"))
+        for(n in 89..91) {
+            val text="界".repeat(n/3)+"x".repeat(n%3)
+            if(n<=90) assertNull(V1TextComposer.refusal(text)) else assertNotNull(V1TextComposer.refusal(text))
+        }
+        assertNull(V1TextComposer.refusal(" \r\n "))
+        for(reason in 1..15) assertTrue(V1TextComposer.reason(reason).isNotBlank())
+    }
+    @Test fun privateTextIsAbsentFromDiagnosticStrings() {
+        val c=V1TextConversation();c.begin(request());c.receive(CompanionTextReceived(ref,1u,4097u,1uL,"private phrase"))
+        assertFalse(c.toString().contains("private phrase"))
+        assertFalse(V1TextState(received="private phrase").toString().contains("private phrase"))
+    }
+}
+
+/** Full current OTY0 adapter/controller/owner/runtime graph with the existing host GATT fixture. */
+internal class TextCarrierHostFixture(
+    val owner: ConnectedDeviceSessionOwner,
+    val command: () -> io.github.nbjelanovic.otprotocol.CompanionTextSend,
+    val emit: (io.github.nbjelanovic.otprotocol.CompanionTextRecord) -> Unit,
+) : AutoCloseable {
+    override fun close() = owner.close()
 }

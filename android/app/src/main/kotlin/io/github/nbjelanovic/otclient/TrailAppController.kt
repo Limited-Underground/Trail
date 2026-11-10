@@ -36,6 +36,7 @@ sealed interface TrailAppUiState {
         val serviceState: ConnectedDeviceServiceUiState = ConnectedDeviceServiceUiState.START_REQUIRED,
         val notificationPermissionState: NotificationPermissionState = NotificationPermissionState.NOT_REQUIRED,
         val quickStatus: V1QuickStatusState = V1QuickStatusState(),
+        val textMessages: V1TextState = V1TextState(),
         val serviceFailure: ConnectedDeviceServiceStartFailure? = null,
     ) : TrailAppUiState
 }
@@ -278,6 +279,11 @@ class TrailAppController(
             releaseAuthorization(DeviceAuthorizationUiState.None)
             bluetoothRuntime.disconnect()
         }
+    }
+
+    override fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean {
+        requireOwnerThread()
+        return mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.submitText(recipient, text)
     }
 
     override fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean {
@@ -595,6 +601,7 @@ class TrailAppController(
         publish(
             TrailAppUiState.BluetoothDevice(
                 quickStatus = bluetoothRuntime.quickStatusState(),
+                textMessages = bluetoothRuntime.textState(),
                 runtimeState = runtimeState,
                 permissionState = permissionState,
                 permissionRequestInFlight = permissionRequestInFlight,

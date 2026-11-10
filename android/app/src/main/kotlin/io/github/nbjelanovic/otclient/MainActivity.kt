@@ -168,6 +168,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             state = state,
             liveRuntime = { (controller.state as? TrailAppUiState.BluetoothDevice)?.runtimeState },
             onSubmitQuickStatus = controller::submitQuickStatus,
+            onSubmitText = controller::submitText,
             onRefreshGroupConfirmation = controller::refreshGroupConfirmation,
             onConfirmGroupConfirmation = controller::confirmGroupConfirmation,
             onCancelGroupConfirmation = controller::cancelGroupConfirmation,
