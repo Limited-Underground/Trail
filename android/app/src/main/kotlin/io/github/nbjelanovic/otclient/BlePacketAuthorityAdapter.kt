@@ -67,7 +67,7 @@ internal class BlePacketAuthorityAdapter(
             ?: run { invalidate(Invalidation.EXPIRY_OR_ROLLBACK); return }
         // Flags3 was strictly decoded; these values are derived from the wire, not Boolean admission.
         proof = BlePacketAuthority(lease, callbackGeneration, response.nonce, waiting.query.peer,
-            response.group, response.sessionGeneration, response.deviceGeneration, deadline)
+            response.group, response.sessionGeneration, response.deviceGeneration, deadline, wireBinding = response)
     }
 
     @Synchronized override fun current(query: BlePacketAuthorityQuery): BlePacketAuthority? {

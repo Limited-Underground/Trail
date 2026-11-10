@@ -10,6 +10,17 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ConnectedDeviceServiceTest {
+    @Test fun textTraversesActivityAndOwnerWithoutTruncationAndStopsOnDetach() {
+        val service=FakeServiceController();val owner=ConnectedDeviceSessionOwner(104,service);val ui=fixture()
+        val recipient=V1QuickStatusRecipient();val text="界".repeat(30)
+        assertFalse(ui.controller.submitText(recipient,text))
+        ui.controller.onLifecycleStart();ui.controller.chooseBluetoothDeviceMode();ui.controller.startBluetoothService()
+        ui.connector.emit(0,ConnectedDeviceServiceConnection.Connected(owner))
+        assertTrue(ui.controller.submitText(recipient,text));assertEquals(listOf(recipient to text),service.texts)
+        ui.controller.onLifecycleStop();assertFalse(ui.controller.submitText(recipient,text))
+        owner.close();assertFalse(owner.submitText(recipient,text));assertEquals(1,service.texts.size)
+    }
+
     @Test
     fun fixedStatusHandleTraversesActivityAndOwnerOnlyWhileLive() {
         val service=FakeServiceController();val owner=ConnectedDeviceSessionOwner(103,service);val ui=fixture()
@@ -804,6 +815,8 @@ class ConnectedDeviceServiceTest {
     private class FakeServiceController : TrailServiceController {
         var groupRefreshCount = 0
         // Command-forwarding fixture only, never used as authentication/production evidence.
+        val texts=mutableListOf<Pair<V1QuickStatusRecipient,String>>()
+        override fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean { texts.add(recipient to text);return true }
         val quickStatuses=mutableListOf<Pair<V1QuickStatusRecipient,io.github.nbjelanovic.otprotocol.CompanionQuickStatus>>()
         override fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean {
             quickStatuses += recipient to status; return true

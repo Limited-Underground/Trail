@@ -32,6 +32,15 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class TrailAppControllerTest {
+    @Test fun typedTextNeverFallsBackToLocalOrUnarmedProduction() {
+        val h=harness();val recipient=V1QuickStatusRecipient()
+        assertFalse(h.controller.submitText(recipient,"text"))
+        h.controller.chooseLocalTestMode();assertFalse(h.controller.submitText(recipient,"text"))
+        h.controller.chooseBluetoothDeviceMode();assertFalse(h.controller.submitText(recipient,"text"))
+        assertEquals(V1TextState(),assertIs<TrailAppUiState.BluetoothDevice>(h.controller.state).textMessages)
+        h.controller.close();assertFalse(h.controller.submitText(recipient,"text"))
+    }
+
     @Test
     fun fixedStatusNeverFallsBackToLocalOrUnarmedProductionRuntime() {
         val h=harness();val recipient=V1QuickStatusRecipient();val status=io.github.nbjelanovic.otprotocol.CompanionQuickStatus.OK

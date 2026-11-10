@@ -23,6 +23,7 @@ interface TrailUiController {
     fun scanBluetoothDevices()
     fun selectBluetoothDevice(endpointToken: String)
     fun disconnectBluetoothDevice()
+    fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean = false
     fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean = false
     fun submitBluetoothAction(request: CompanionActionRequest): Boolean
     fun refreshGroupConfirmation(): Boolean = false

@@ -2,6 +2,16 @@
 
 ## 2026-11-10
 
+### OT-0312 Integrate the accepted typed-text carrier on the host
+
+T-0072 implements D-035 TEXT-CARRIER-V1 without changing OTXT, OTY0 or crypto. The four records retain kinds0a/8c/8d/8e, exact single-fragment sizes and the148-byte record /151 ATT MTU ceiling. Exact shared vectors include13 goldens and23 faults; nine fault records are structurally valid and require live context refusal rather than decoder authority. The accepted OTXT fixture remains unchanged and byte-exact. Invalid Unicode, empty/oversize text and over-limit templates have visible refusal; no truncation or fragmentation occurs.
+
+Messages forwards typed drafts or selected free-text templates through the existing Activity/binder/session owner/controller/runtime. Only a current provider proof from the completed OTY0 adapter supplies the immutable sender/recipient/group/epoch/membership binding. A Boolean-only provider, UI selection, received event or cached observation cannot admit text. The existing command allocator stays above the accepted OTY0 exchange, and OTE0/text events share one cursor. Receive is current-session and counter-bound. Matching delivery evidence alone supplies protected-peer ACK; write, queue, TX, timeout and unknown never do. Fixed quick statuses and template persistence/order policy are preserved.
+
+Focused tests exercise the actual OTY0 wire adapter, opaque handles, all seven lifecycle invalidations, shared cursor/replay/gap, result/event races, terminal outcomes, fixed expiry, counter exhaustion, owner forwarding and the composed UI. First-run failures exposed incomplete containment and a host fixture callback-generation assumption; corrected with evidence retained. Android callback generation is independently bound and is not equated with device/session generation. The maintained full protocol/debug/release JVM, lint and documentation matrix qualifies this exact host draft; owning issues record source/head and CI.
+
+PR #224 was normally adopted at8aee75e17b43d67f0e221cc4aa488dcd8c679559 after all seven checks passed at its exact approved8552b4da692ccd5bd3a042d78f1b00c883de8d7c. This twenty-file topic begins there. Firmware does not implement the carrier yet: interoperability is proven only against shared host vectors, production stays disabled/default-null provider, and real issuer/pins/target/security/physical acceptance remains separate. Full OT-0312, OT-0313 and OT-0314 stay open. No device, BLE/RF, signing/release, firmware change or Ready/merge is included.
+
 ### OT-0312 Add the OTXT v1 payload codec
 
 T-0066 implements only the protocol payload accepted under D-024: OTXT version1, reserved flags0, exact unsigned big-endian length and 1–90 strict UTF-8 bytes. Encoding refuses unpaired UTF-16 surrogates, empty/oversize input and smaller admitted whole-frame budgets. Decoding refuses malformed/overlong UTF-8, wrong domain/version/flags and missing/trailing bytes. No normalization, replacement, truncation or fragmentation occurs.
