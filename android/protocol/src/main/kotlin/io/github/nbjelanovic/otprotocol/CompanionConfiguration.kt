@@ -36,6 +36,8 @@ data class CompanionTimePayload(
 data class CompanionRegionPayload(val kind: Int, val status: Int = 0, val revision: ULong = 0u, val selectionId: Int = 0)
 
 object CompanionConfigurationCodec {
+    /** Host-engineering only; no default negotiation or runtime activation. */
+    const val PROVISIONAL_RADIO_PROFILE = 6
     const val REGION_CAPABILITY = 0x10
     const val NAME_CAPABILITY = 0x40
     const val TIME_CAPABILITY = 0x80
@@ -47,34 +49,39 @@ object CompanionConfigurationCodec {
     private val frameMagic = byteArrayOf(0x4f,0x54,0x43,0x30)
     private val timeMagic = byteArrayOf(0x4f,0x54,0x54,0x43)
 
-    private fun validInfo(value: CompanionConfigurationInfo) = value.role == 1 &&
+    private fun supportedMinor(minor: Int, allowProfile06: Boolean) =
+        minor in listOf(2,3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) ||
+            allowProfile06 && minor == PROVISIONAL_RADIO_PROFILE
+
+    private fun validInfo(value: CompanionConfigurationInfo, allowProfile06: Boolean = false) = value.role == 1 &&
         (value.minorVersion == 2 && value.capabilities in 0..255 && value.capabilities and KNOWN_CAPABILITIES.inv() == 0 ||
             value.minorVersion in listOf(3, CompanionPublicProfileCodec.PROFILE) && value.capabilities == 0xff ||
-            value.minorVersion == CompanionConfirmationCodec.PROFILE && value.capabilities == CompanionConfirmationCodec.CAPABILITIES) &&
+            value.minorVersion == CompanionConfirmationCodec.PROFILE && value.capabilities == CompanionConfirmationCodec.CAPABILITIES ||
+            allowProfile06 && value.minorVersion == PROVISIONAL_RADIO_PROFILE && value.capabilities == 0xff) &&
         value.capabilities and (NAME_CAPABILITY or TIME_CAPABILITY) != 0 &&
         value.maxPayloadBytes == MAX_PAYLOAD_BYTES && value.minimumAttMtu == MINIMUM_MTU &&
         value.fragmentCount == 1 && value.controllerCount == 1
 
     /** Capacity/feature compatibility only; this does not authenticate or establish Ready. */
     fun transportCompatible(info: CompanionConfigurationInfo, requiredCapability: Int, mtu: Int,
-                            sendCapacity: Int, receiveCapacity: Int, indications: Boolean): Boolean =
-        validInfo(info) && (requiredCapability in listOf(NAME_CAPABILITY,TIME_CAPABILITY) || requiredCapability == REGION_CAPABILITY && info.minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE)) &&
+                            sendCapacity: Int, receiveCapacity: Int, indications: Boolean, allowProfile06: Boolean = false): Boolean =
+        validInfo(info,allowProfile06) && (requiredCapability in listOf(NAME_CAPABILITY,TIME_CAPABILITY) || requiredCapability == REGION_CAPABILITY && (info.minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || allowProfile06 && info.minorVersion == PROVISIONAL_RADIO_PROFILE)) &&
             info.capabilities and requiredCapability != 0 && mtu in MINIMUM_MTU..65535 &&
             sendCapacity >= MAX_RECORD_BYTES && receiveCapacity >= MAX_RECORD_BYTES && indications
 
-    fun encodeInfo(value: CompanionConfigurationInfo): ByteArray? {
-        if (!validInfo(value)) return null
+    fun encodeInfo(value: CompanionConfigurationInfo, allowProfile06: Boolean = false): ByteArray? {
+        if (!validInfo(value,allowProfile06)) return null
         return ByteArray(16).also {
             infoMagic.copyInto(it); it[5]=value.minorVersion.toByte(); it[6]=1; it[7]=value.capabilities.toByte()
             put(it,8,128u,2); put(it,10,151u,2); it[12]=1; it[13]=1
         }
     }
 
-    fun decodeInfo(bytes: ByteArray, expectedMinorVersion: Int = 2): CompanionConfigurationInfo? {
-        if(bytes.size != 16 || !magic(bytes,infoMagic) || u8(bytes,4)!=0 || expectedMinorVersion !in listOf(2,3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || u8(bytes,5)!=expectedMinorVersion ||
+    fun decodeInfo(bytes: ByteArray, expectedMinorVersion: Int = 2, allowProfile06: Boolean = false): CompanionConfigurationInfo? {
+        if(bytes.size != 16 || !magic(bytes,infoMagic) || u8(bytes,4)!=0 || !supportedMinor(expectedMinorVersion,allowProfile06) || u8(bytes,5)!=expectedMinorVersion ||
             u8(bytes,14)!=0 || u8(bytes,15)!=0) return null
         return CompanionConfigurationInfo(u8(bytes,7),u8(bytes,6),get(bytes,8,2).toInt(),
-            get(bytes,10,2).toInt(),u8(bytes,12),u8(bytes,13),u8(bytes,5)).takeIf(::validInfo)
+            get(bytes,10,2).toInt(),u8(bytes,12),u8(bytes,13),u8(bytes,5)).takeIf { validInfo(it,allowProfile06) }
     }
 
     private fun validTime(value: CompanionTimePayload): Boolean {
@@ -128,8 +135,9 @@ object CompanionConfigurationCodec {
         return CompanionRegionPayload(u8(bytes,5),u8(bytes,6),get(bytes,8,8),get(bytes,16,2).toInt()).takeIf(::validRegion)
     }
 
-    private fun validPayload(kind: Int, payload: ByteArray, minorVersion: Int): Boolean {
-        if(minorVersion !in listOf(2,3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || payload.size>MAX_PAYLOAD_BYTES) return false
+    private fun validPayload(kind: Int, payload: ByteArray, minorVersion: Int, allowProfile06: Boolean = false): Boolean {
+        if(!supportedMinor(minorVersion,allowProfile06) || payload.size>MAX_PAYLOAD_BYTES) return false
+        if(minorVersion == PROVISIONAL_RADIO_PROFILE && kind == 0x83) return CompanionRadioEventCodec.decodeEvent(payload) != null
         return when(kind) {
             1,2,0x81,0x82,0x83 -> true // Existing semantic validation remains a separate dispatch gate.
             4 -> CompanionNamePayloadCodec.decode(payload)?.kind in listOf(CompanionNameKind.READ,CompanionNameKind.WRITE)
@@ -137,21 +145,21 @@ object CompanionConfigurationCodec {
                 CompanionNameKind.APPLIED,CompanionNameKind.REJECTED,CompanionNameKind.UNCERTAIN)
             5 -> decodeTime(payload)?.kind in listOf(1,3)
             0x87 -> decodeTime(payload)?.kind in listOf(2,4)
-            6 -> minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) && decodeRegion(payload)?.kind in listOf(1,2)
-            0x88 -> minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) && decodeRegion(payload)?.kind in listOf(0x81,0x82,0x83,0x84)
+            6 -> (minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || allowProfile06 && minorVersion == PROVISIONAL_RADIO_PROFILE) && decodeRegion(payload)?.kind in listOf(1,2)
+            0x88 -> (minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || allowProfile06 && minorVersion == PROVISIONAL_RADIO_PROFILE) && decodeRegion(payload)?.kind in listOf(0x81,0x82,0x83,0x84)
             7 -> minorVersion == CompanionConfirmationCodec.PROFILE && CompanionConfirmationCodec.decode(payload)?.op in listOf(1,2,3)
             0x89 -> minorVersion == CompanionConfirmationCodec.PROFILE && CompanionConfirmationCodec.decode(payload)?.op in listOf(4,5)
-            CompanionPublicProfileCodec.REQUEST -> minorVersion == CompanionPublicProfileCodec.PROFILE &&
+            CompanionPublicProfileCodec.REQUEST -> (minorVersion == CompanionPublicProfileCodec.PROFILE || allowProfile06 && minorVersion == PROVISIONAL_RADIO_PROFILE) &&
                 CompanionPublicProfileCodec.decode(payload)?.kind in listOf(1,2)
-            CompanionPublicProfileCodec.RESPONSE -> minorVersion == CompanionPublicProfileCodec.PROFILE &&
+            CompanionPublicProfileCodec.RESPONSE -> (minorVersion == CompanionPublicProfileCodec.PROFILE || allowProfile06 && minorVersion == PROVISIONAL_RADIO_PROFILE) &&
                 CompanionPublicProfileCodec.decode(payload)?.kind in listOf(0x81,0x82,0x83,0x84)
             else -> false
         }
     }
 
-    fun encodeFrame(value: CompanionConfigurationFrame): ByteArray? {
+    fun encodeFrame(value: CompanionConfigurationFrame, allowProfile06: Boolean = false): ByteArray? {
         val payload=value.payload
-        if(value.sessionNonce==0u || value.exchangeId==0u || !validPayload(value.kind,payload,value.minorVersion)) return null
+        if(value.sessionNonce==0u || value.exchangeId==0u || !validPayload(value.kind,payload,value.minorVersion,allowProfile06)) return null
         return ByteArray(20+payload.size).also {
             frameMagic.copyInto(it);it[5]=value.minorVersion.toByte();it[6]=value.kind.toByte();it[17]=1
             put(it,8,value.sessionNonce.toULong(),4);put(it,12,value.exchangeId.toULong(),4)
@@ -159,13 +167,13 @@ object CompanionConfigurationCodec {
         }
     }
 
-    fun decodeFrame(bytes: ByteArray, expectedMinorVersion: Int = 2): CompanionConfigurationFrame? {
+    fun decodeFrame(bytes: ByteArray, expectedMinorVersion: Int = 2, allowProfile06: Boolean = false): CompanionConfigurationFrame? {
         if(bytes.size !in 20..MAX_RECORD_BYTES || !magic(bytes,frameMagic) || u8(bytes,4)!=0 ||
-            expectedMinorVersion !in listOf(2,3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || u8(bytes,5)!=expectedMinorVersion || u8(bytes,7)!=0 || u8(bytes,16)!=0 || u8(bytes,17)!=1 ||
+            !supportedMinor(expectedMinorVersion,allowProfile06) || u8(bytes,5)!=expectedMinorVersion || u8(bytes,7)!=0 || u8(bytes,16)!=0 || u8(bytes,17)!=1 ||
             get(bytes,18,2).toInt()!=bytes.size-20) return null
         val session=get(bytes,8,4).toUInt();val exchange=get(bytes,12,4).toUInt()
         val payload=bytes.copyOfRange(20,bytes.size);val kind=u8(bytes,6)
-        if(session==0u || exchange==0u || !validPayload(kind,payload,u8(bytes,5))) return null
+        if(session==0u || exchange==0u || !validPayload(kind,payload,u8(bytes,5),allowProfile06)) return null
         return CompanionConfigurationFrame(kind,session,exchange,payload,u8(bytes,5))
     }
 

@@ -30,6 +30,7 @@ internal class BleConfigurationSession(
     private val civilSample: () -> Pair<UInt,Int>,
     private val changed: (BleConfigurationState) -> Unit,
     private val minorVersion: Int = 2,
+    private val allowProfile06: Boolean = false,
 ) {
     private val names = V1NameTransaction(V1NameAuthoritySource {
         V1NameAuthority(if(isCurrent()) V1NamePhase.READY else V1NamePhase.DISCONNECTED,context)
@@ -42,7 +43,7 @@ internal class BleConfigurationSession(
     private var timeExchange: UInt? = null
     private var challenge: ULong? = null
     private var closed = false
-    var state = BleConfigurationState(available=true,editorSessionId=context.device,regionAvailable=minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE),publicProfileAvailable=minorVersion==CompanionPublicProfileCodec.PROFILE,notice="Read the device name before applying a change.")
+    var state = BleConfigurationState(available=true,editorSessionId=context.device,regionAvailable=(minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || allowProfile06 && minorVersion==6),publicProfileAvailable=(minorVersion==CompanionPublicProfileCodec.PROFILE || allowProfile06 && minorVersion==6),notice="Read the device name before applying a change.")
         private set
     val busy get() = namePending != null || timeExchange != null || regionPending != null || publicPending != null
 
@@ -54,8 +55,9 @@ internal class BleConfigurationSession(
         return startRegion(CompanionRegionPayload(2,revision=revision,selectionId=selectionId))
     }
     private fun startRegion(request: CompanionRegionPayload): Boolean {
-        if(closed || !isCurrent() || busy || minorVersion !in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE)) return false
+        if(closed || !isCurrent() || busy || !(minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || allowProfile06 && minorVersion==6)) return false
         val exchange=allocate() ?: return false
+        if(!isCurrent()) return false
         regionPending=RegionPending(exchange,request)
         update(clearPublic(state).copy(busy=true,regionRevision=null,notice="Waiting for region readback..."))
         return transmit(6,exchange,checkNotNull(CompanionConfigurationCodec.encodeRegion(request)))
@@ -76,6 +78,7 @@ internal class BleConfigurationSession(
         if(closed || !isCurrent() || busy || !state.publicProfileAvailable || !publicPrerequisites()) return false
         val payload=CompanionPublicProfileCodec.encode(request) ?: return false
         val exchange=allocate() ?: return false
+        if(!isCurrent()) return false
         publicPending=PublicPending(exchange,request)
         update(clearPublic(state).copy(busy=true,notice="Waiting for public settings readback..."))
         return transmit(CompanionPublicProfileCodec.REQUEST,exchange,payload)
@@ -88,29 +91,31 @@ internal class BleConfigurationSession(
         return startName { names.beginWrite(name,revision) }
     }
     private fun startName(create: () -> V1NameRequest?): Boolean {
-        if(closed || !isCurrent() || busy) return false
+        if(closed || !isCurrent() || minorVersion==6 && !allowProfile06 || busy) return false
         val request=create() ?: return false
+        if(!isCurrent()) return false
         namePending=request
         update(clearPublic(state).copy(busy=true,nameRevision=null,notice="Waiting for device readback…"))
         return transmit(4,request.exchangeId,request.encodedPayload())
     }
     fun synchronizeTime(): Boolean {
-        if(closed || !isCurrent() || busy) return false
+        if(closed || !isCurrent() || minorVersion==6 && !allowProfile06 || busy) return false
         val id=allocate() ?: return false
+        if(!isCurrent()) return false
         timeExchange=id;challenge=null
         update(state.copy(busy=true,notice="Synchronizing the display clock…"))
         return transmit(5,id,checkNotNull(CompanionConfigurationCodec.encodeTime(CompanionTimePayload(1))))
     }
     private fun transmit(kind: Int,id: UInt,payload: ByteArray): Boolean {
         if(closed || !isCurrent()) return false
-        val wire=CompanionConfigurationCodec.encodeFrame(CompanionConfigurationFrame(kind,context.sessionNonce,id,payload,minorVersion))
+        val wire=CompanionConfigurationCodec.encodeFrame(CompanionConfigurationFrame(kind,context.sessionNonce,id,payload,minorVersion),allowProfile06=allowProfile06)
             ?: return false
         if(send(wire)) return true
         if(namePending?.exchangeId==id || timeExchange==id || regionPending?.exchange==id || publicPending?.exchange==id) lost(id)
         return false
     }
     fun receive(frame: CompanionConfigurationFrame): Boolean {
-        if(closed || !isCurrent() || frame.sessionNonce!=context.sessionNonce || frame.minorVersion!=minorVersion) return false
+        if(closed || !isCurrent() || minorVersion==6 && !allowProfile06 || frame.sessionNonce!=context.sessionNonce || frame.minorVersion!=minorVersion) return false
         val profile=publicPending
         if(frame.kind==CompanionPublicProfileCodec.RESPONSE && profile?.exchange==frame.exchangeId) {
             publicPending=null
@@ -172,7 +177,9 @@ internal class BleConfigurationSession(
             val sample=civilSample()
             val payload=CompanionConfigurationCodec.encodeTime(CompanionTimePayload(3,format=sample.second,
                 challenge=time.challenge,localSecond=sample.first)) ?: run { lost(frame.exchangeId); return true }
+            if(!isCurrent()) return false
             val next=allocate() ?: run { lost(frame.exchangeId); return true }
+            if(!isCurrent()) return false
             challenge=time.challenge;timeExchange=next
             transmit(5,next,payload)
             return true
@@ -183,6 +190,7 @@ internal class BleConfigurationSession(
         return true
     }
     fun lost(exchange: UInt) {
+        if(closed || !isCurrent()) return
         if(publicPending?.exchange==exchange) { publicPending=null;uncertainPublic();return }
         if(regionPending?.exchange==exchange) { regionPending=null;uncertainRegion();return }
         if(namePending?.exchangeId==exchange) {

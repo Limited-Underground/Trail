@@ -1,4 +1,7 @@
 package io.github.nbjelanovic.otclient
+import io.github.nbjelanovic.otprotocol.CompanionRadioEvent
+import io.github.nbjelanovic.otprotocol.CompanionRadioEventCodec
+import io.github.nbjelanovic.otprotocol.CompanionRadioEventReceiver
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame
@@ -74,6 +77,7 @@ enum class BleRuntimeBlock {
     PLATFORM_UNSUPPORTED,
     BLUETOOTH_UNAVAILABLE,
     BLUETOOTH_DISABLED,
+    BLUETOOTH_STATE_READ_DENIED,
     SCAN_PERMISSION_MISSING,
     CONNECT_PERMISSION_MISSING,
 }
@@ -290,6 +294,58 @@ enum class BleNegotiationPhase {
     INITIAL_SNAPSHOT,
 }
 
+/** Host-only trusted input; a received event never supplies any of these authorities. */
+data class BlePacketAuthorityQuery(val lease: BleGattLease, val callbackGeneration: Long,
+    val nonce: UInt, val peer: String) {
+    override fun toString() = "BlePacketAuthorityQuery(fields=redacted)"
+}
+data class BlePacketAuthority(val lease: BleGattLease, val callbackGeneration: Long,
+    val nonce: UInt, val peer: String, val group: ULong, val admittedSession: ULong,
+    val deviceGeneration: ULong, val expiresAtMillis: Long, val admitted: Boolean = true,
+    val radioArmed: Boolean = true) {
+    override fun toString() = "BlePacketAuthority(fields=redacted)"
+}
+fun interface BlePacketAuthorityProvider { fun current(query: BlePacketAuthorityQuery): BlePacketAuthority? }
+
+/** Copied bounded host observation, never radio authority or durable delivery history. */
+data class BlePacketRadioState(val lastEvent: CompanionRadioEvent? = null,
+    val terminalEvents: List<CompanionRadioEvent> = emptyList(), val eventId: UInt = 0u,
+    val outcomeUnknown: Boolean = false, val lastActionResult: CompanionActionResult? = null) {
+    override fun toString() = "BlePacketRadioState(terminals=${terminalEvents.size}, outcomeUnknown=$outcomeUnknown)"
+}
+
+/** Opaque, volatile correlation only; this is never a durable message identifier. */
+class BlePacketRequestReference internal constructor(
+    private val runtimeScope: Any, private val callbackGeneration: Long,
+    private val nonce: UInt, private val exchange: UInt, private val deviceGeneration: ULong,
+) {
+    override fun toString() = "BlePacketRequestReference(redacted)"
+}
+
+enum class BlePacketDeliveryPhase {
+    AWAITING_ACCEPTANCE, QUEUE_ACCEPTED, TRANSMISSION_COMPLETED, PROTECTED_PEER_ACK,
+    AUTHORITATIVE_REJECTION, FAILED, OUTCOME_UNKNOWN, NOT_SENT,
+}
+
+data class BlePacketRequestObservation(
+    val reference: BlePacketRequestReference, val status: Int,
+    val phase: BlePacketDeliveryPhase, val currentAttachment: Boolean = true,
+) {
+    override fun toString() = "BlePacketRequestObservation(phase=$phase, currentAttachment=$currentAttachment)"
+}
+
+data class BlePacketReceivedObservation(val status: Int, val currentAttachment: Boolean = true) {
+    override fun toString() = "BlePacketReceivedObservation(currentAttachment=$currentAttachment)"
+}
+
+/** A copied projection of the existing bounded receiver, not another transport owner or history. */
+data class BlePacketDeliveryObservation(
+    val available: Boolean = false, val currentRequest: BlePacketRequestObservation? = null,
+    val receivedStatus: BlePacketReceivedObservation? = null, val observationGap: Boolean = false,
+) {
+    override fun toString() = "BlePacketDeliveryObservation(available=$available, request=${currentRequest?.phase}, gap=$observationGap)"
+}
+
 data class BleActiveSession(
     val companion: BleDiscoveredCompanion,
     val sessionNonce: Long,
@@ -369,6 +425,8 @@ class BleCompanionRuntime(
     initialGeneration: Long = 0,
     private val evaluationConfirmationEnabled: Boolean = false,
     private val confirmationClockMillis: () -> Long = { System.nanoTime() / 1_000_000L },
+    private val packetV1Enabled: Boolean = false,
+    private val packetAuthority: BlePacketAuthorityProvider = BlePacketAuthorityProvider { null },
 ) : AutoCloseable {
     init {
         require(maximumReconnectAttempts in 0..16)
@@ -412,12 +470,27 @@ class BleCompanionRuntime(
     private var lastDeviceEventId = 0L
     private var nextRequestId = firstRequestId
     private var pendingAction: PendingAction? = null
+    private val packetReceiver = CompanionRadioEventReceiver()
+    private val packetProjectionScope = Any()
+    var packetDelivery = BlePacketDeliveryObservation()
+        private set
+    private var packetBinding: BlePacketAuthority? = null
+    private var queryingPacketAuthority = false
+    private data class PacketOrigin(val exchange: UInt, val detail: Int,
+        var handedOff: Boolean = false, var result: CompanionActionResult? = null,
+        var terminal: Boolean = false, var observed: Boolean = false)
+    private var packetOrigin: PacketOrigin? = null
+    private var packetTimeout: BleReconnectLease? = null
+    var packetRadioState = BlePacketRadioState()
+        private set
     private var factoryResetVerificationTarget: FactoryResetVerificationTarget? = null
     private var authorizationProtocolInfo: CompanionAuthorizationProtocolInfo? = null
     private var authorizationSecurityEvidence: BleSecurityEvidence? = null
     private var authorizationTransportGeneration = 0L
     private var authorizationOperationCounter = 0L
     private var deliveringAuthorizationObserver = false
+    private enum class DiscoveryRoute { ADD_DEVICE, RETURNING_OWNER }
+    private var retryDiscoveryRoute = DiscoveryRoute.RETURNING_OWNER
     private var pendingSnapshotExchangeId = 0L
     private val authorizationTracker = CompanionAuthorizationResponseTracker()
     private var authorizationClaim: RuntimeAuthorizationClaim? = null
@@ -483,7 +556,11 @@ class BleCompanionRuntime(
         }
         val remembered = selected
         if (remembered == null) {
-            if (!beginReturningOwnerDiscovery()) publish(BleRuntimeState.Idle)
+            if (!beginReturningOwnerDiscovery()) {
+                val preflight = facade.preflight()
+                publish(if (preflight.isReady) BleRuntimeState.Idle
+                    else BleRuntimeState.Blocked(preflight.blocker!!))
+            }
         } else if (periodicReconnect) {
             beginPeriodicDiscovery()
         } else {
@@ -497,6 +574,7 @@ class BleCompanionRuntime(
      * its own state and reports concrete startup/callback failures.
      */
     private fun beginReturningOwnerDiscovery(periodicCycle: Boolean = false): Boolean {
+        retryDiscoveryRoute = DiscoveryRoute.RETURNING_OWNER
         if (!facade.preflight().isReady) return false
         var callbackGeneration = 0L
         val candidates = linkedMapOf<String, BleDiscoveredCompanion>()
@@ -558,11 +636,39 @@ class BleCompanionRuntime(
         publish(BleRuntimeState.Inactive)
     }
 
+    /** Explicit retry on the existing owner, preserving the last discovery route. */
+    @Synchronized
+    fun retryDiscovery() {
+        requireOwnerThread()
+        if (deliveringObserver || closed || !lifecycleActive || state !is BleRuntimeState.Blocked ||
+            authorizationClaim != null || factoryResetVerificationTarget != null ||
+            facade.loadPendingFactoryResetReceipt() != null
+        ) return
+        if (retryDiscoveryRoute == DiscoveryRoute.ADD_DEVICE) {
+            requestScan()
+            return
+        }
+        val preflight = facade.preflight()
+        if (!preflight.isReady) {
+            publish(BleRuntimeState.Blocked(preflight.blocker!!))
+            return
+        }
+        selected = null
+        reconnectAttempt = 0
+        invalidateAndRelease()
+        if (!beginReturningOwnerDiscovery()) {
+            val current = facade.preflight()
+            publish(if (current.isReady) BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED)
+                else BleRuntimeState.Blocked(current.blocker!!))
+        }
+    }
+
     @Synchronized
     fun requestScan() {
         requireOwnerThread()
         if (deliveringObserver) return
         if (!lifecycleActive || closed) return
+        retryDiscoveryRoute = DiscoveryRoute.ADD_DEVICE
         lifecycleAuthorizationFailure = null
         val resetTarget = factoryResetVerificationTarget ?: facade.loadPendingFactoryResetReceipt()?.let { receipt ->
             if (receipt == 0uL) null else FactoryResetVerificationTarget(receipt, companion = null)
@@ -788,6 +894,9 @@ class BleCompanionRuntime(
                     (ready.session.protocolInfo.capabilities and COMPANION_FACTORY_RESET_CAPABILITY) == 0
                 )
         ) return false
+        val isPacket = configurationInfo?.minorVersion == 6
+        if (isPacket && (request.kind != CompanionActionKind.QUICK_STATUS ||
+                !currentPacketAuthority() || packetReceiver.pendingRequest || packetReceiver.activeEvent != null)) return false
         val requestId = nextRequestId
         if (requestId !in 1..0xffff_ffffL) {
             handleConnectionFailure(
@@ -832,10 +941,34 @@ class BleCompanionRuntime(
                 ready.session.companion,
             )
         }
+        if (isPacket) {
+            if (!currentPacketAuthority()) return false
+            val detail = checkNotNull(request.quickStatus).wireValue
+            if (!packetReceiver.registerRequest(requestId.toUInt(), detail)) return false
+            packetOrigin = PacketOrigin(requestId.toUInt(), detail)
+            packetDelivery=packetDelivery.copy(currentRequest=BlePacketRequestObservation(
+                BlePacketRequestReference(packetProjectionScope,generation,ready.session.sessionNonce.toUInt(),
+                    requestId.toUInt(),checkNotNull(packetBinding).deviceGeneration),detail,
+                BlePacketDeliveryPhase.AWAITING_ACCEPTANCE))
+        }
         // Consume an ID before handing bytes to the platform because a false return can still be uncertain.
         nextRequestId = requestId + 1
         pendingAction = PendingAction(requestId, effectiveRequest)
-        if (!lease.writeCommandWithResponse(encoded)) {
+        if(isPacket) publish(BleRuntimeState.Ready(ready.session.copy(lastActionResult=null)))
+        if (isPacket && !currentPacketAuthority()) {
+            retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED, unknown=false)
+            return false
+        }
+        val submittedOrigin=if(isPacket) packetOrigin else null
+        if (isPacket) submittedOrigin?.handedOff=true
+        val written=if(isPacket) try { lease.writeCommandWithResponse(encoded) } catch(_:Exception) { false } else lease.writeCommandWithResponse(encoded)
+        if (isPacket && (!currentPacketAuthority() || !written)) {
+            // A synchronous accepted response/event cannot be undone by a false platform return.
+            retirePacket(if(written) BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED else BleRuntimeFailure.ACTION_WRITE_FAILED,
+                unknown=submittedOrigin?.terminal != true)
+            return false
+        }
+        if (!written) {
             if (effectiveRequest.kind == CompanionActionKind.FACTORY_RESET) {
                 // A synchronous callback may already have published the authoritative admitted or
                 // rejected state. Only classify uncertainty while this exact request is still pending.
@@ -1001,9 +1134,15 @@ class BleCompanionRuntime(
         invalidateAndRelease()
         val preflight = facade.preflight()
         if (!preflight.isReady) {
-            if (authorizationClaim != null) {
+            val claim = authorizationClaim
+            if (claim != null && (!claim.automaticReturningOwner || claim.pendingReported || claim.terminal)) {
                 finishAuthorizationTransportFailure(BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE)
             } else {
+                // No wire claim started: retain the phone blocker so the existing owner retry can recover.
+                if (claim?.automaticReturningOwner == true) {
+                    authorizationClaim = null
+                    selected = null
+                }
                 publish(BleRuntimeState.Blocked(preflight.blocker!!))
             }
             return
@@ -1074,6 +1213,7 @@ class BleCompanionRuntime(
             publish(BleRuntimeState.Failed(BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED))
             return
         }
+        retryDiscoveryRoute = DiscoveryRoute.RETURNING_OWNER
         authorizationOperationCounter += 1
         val operationId = authorizationOperationCounter
         authorizationClaim = RuntimeAuthorizationClaim(
@@ -1282,7 +1422,8 @@ class BleCompanionRuntime(
     }
 
     private fun decodeNormalInfo(value: ByteArray): CompanionProtocolInfo? {
-        val configuration=CompanionConfigurationCodec.decodeInfo(value) ?: CompanionConfigurationCodec.decodeInfo(value,3) ?:
+        val packet=if(packetV1Enabled) CompanionConfigurationCodec.decodeInfo(value,6,allowProfile06=true) else null
+        val configuration=packet ?: CompanionConfigurationCodec.decodeInfo(value) ?: CompanionConfigurationCodec.decodeInfo(value,3) ?:
             CompanionConfigurationCodec.decodeInfo(value,CompanionPublicProfileCodec.PROFILE) ?:
             if(evaluationConfirmationEnabled) CompanionConfigurationCodec.decodeInfo(value,CompanionConfirmationCodec.PROFILE) else null
         configurationInfo=configuration
@@ -1338,7 +1479,7 @@ class BleCompanionRuntime(
 
     private fun encodeNormalFragment(fragment: CompanionFragment): ByteArray? =
         if(configurationInfo!=null) CompanionConfigurationCodec.encodeFrame(CompanionConfigurationFrame(
-            fragment.kind.wireValue,fragment.sessionNonce.toUInt(),fragment.exchangeId.toUInt(),fragment.payload,checkNotNull(configurationInfo).minorVersion))
+            fragment.kind.wireValue,fragment.sessionNonce.toUInt(),fragment.exchangeId.toUInt(),fragment.payload,checkNotNull(configurationInfo).minorVersion),allowProfile06=packetV1Enabled)
         else CompanionProtocolCodec.encodeFragment(fragment).value
 
     private fun acceptPromotedNormalInfo(companion: BleDiscoveredCompanion,value: ByteArray) {
@@ -1392,26 +1533,35 @@ class BleCompanionRuntime(
     private fun initializeConfigurationSession() {
         val ready=state as? BleRuntimeState.Ready ?: return
         val info=configurationInfo ?: return
-        if(!CompanionConfigurationCodec.transportCompatible(info,0x40,negotiatedMtu,148,148,true) ||
-            !CompanionConfigurationCodec.transportCompatible(info,0x80,negotiatedMtu,148,148,true)) return
+        if(!CompanionConfigurationCodec.transportCompatible(info,0x40,negotiatedMtu,148,148,true,allowProfile06=packetV1Enabled) ||
+            !CompanionConfigurationCodec.transportCompatible(info,0x80,negotiatedMtu,148,148,true,allowProfile06=packetV1Enabled)) return
         val callbackGeneration=generation
         val nonce=ready.session.sessionNonce
+        if(info.minorVersion==6 && !currentPacketAuthority(bind=true)) return
         val scope=nextConfigurationScope() ?: return
         val tokenBytes=ByteArray(16)
         repeat(8) { tokenBytes[it]=(scope shr (it*8)).toByte();tokenBytes[8+it]=(callbackGeneration shr (it*8)).toByte() }
         val token=V1SetupSessionToken.create(tokenBytes) ?: return
         val context=V1NameContext(scope,nextConfigurationScope() ?: return,nextConfigurationScope() ?: return,
             nextConfigurationScope() ?: return,callbackGeneration,nextConfigurationScope() ?: return,nonce.toUInt(),matchedSetupLabel,token)
-        configurationSession=BleConfigurationSession(context,minorVersion=info.minorVersion,
-            isCurrent={ accepts(callbackGeneration) && (state as? BleRuntimeState.Ready)?.session?.sessionNonce==nonce },
+        configurationSession=BleConfigurationSession(context,minorVersion=info.minorVersion,allowProfile06=packetV1Enabled,
+            isCurrent={ accepts(callbackGeneration) && (state as? BleRuntimeState.Ready)?.session?.sessionNonce==nonce && (info.minorVersion!=6 || currentPacketAuthority()) },
             allocate={
-                if(nextRequestId !in 1..0xffff_ffffL) null else nextRequestId.toUInt().also { nextRequestId++ }
+                if(info.minorVersion==6 && !currentPacketAuthority() || nextRequestId !in 1..0xffff_ffffL) null else nextRequestId.toUInt().also { nextRequestId++ }
             },
-            send={ bytes -> gattLease?.writeCommandWithResponse(bytes)==true },
+            send={ bytes ->
+                if(info.minorVersion==6 && !currentPacketAuthority()) false
+                else {
+                    val sent=if(info.minorVersion==6) try { gattLease?.writeCommandWithResponse(bytes)==true } catch(_:Exception) { false } else gattLease?.writeCommandWithResponse(bytes)==true
+                    if(info.minorVersion==6 && (!sent || !currentPacketAuthority())) {
+                        retirePacket(BleRuntimeFailure.ACTION_WRITE_FAILED,unknown=true);false
+                    } else sent
+                }
+            },
             civilSample={ facade.displayTimeSample() },
             changed={ configuration ->
                 val current=state as? BleRuntimeState.Ready
-                if(accepts(callbackGeneration) && current?.session?.sessionNonce==nonce)
+                if(accepts(callbackGeneration) && current?.session?.sessionNonce==nonce && (info.minorVersion!=6 || currentPacketAuthority()))
                     publish(BleRuntimeState.Ready(current.session.copy(configuration=configuration)))
             })
         val session=checkNotNull(configurationSession)
@@ -1437,6 +1587,9 @@ class BleCompanionRuntime(
         configurationTimeout=scheduler.schedule(6000) {
             requireOwnerThread()
             if(accepts(callbackGeneration) && configurationSession===session) {
+                if(configurationInfo?.minorVersion==6 && !currentPacketAuthority()) {
+                    retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,unknown=true);return@schedule
+                }
                 session.lost(exchange)
                 pumpAutomaticConfiguration()
             }
@@ -1657,8 +1810,121 @@ class BleCompanionRuntime(
         }
     }
 
+    /** No production provider is connected; only a trusted caller may supply this context. */
+    private fun currentPacketAuthority(bind: Boolean = false, preReady: BleDiscoveredCompanion? = null): Boolean {
+        if(!packetV1Enabled || configurationInfo?.minorVersion!=6 || deliveringObserver || queryingPacketAuthority) return false
+        val expectedState=state
+        val ready=state as? BleRuntimeState.Ready
+        val companion=ready?.session?.companion ?: preReady ?: return false
+        if(ready==null) {
+            val negotiating=expectedState as? BleRuntimeState.Negotiating ?: return false
+            if(negotiating.companion!=companion || negotiating.phase !in listOf(BleNegotiationPhase.PROTOCOL_INFO,BleNegotiationPhase.INITIAL_SNAPSHOT) ||
+                packetBinding==null && authorizationClaim?.promoted!=true) return false
+        }
+        val nonce=ready?.session?.sessionNonce ?: activeSessionNonce
+        if(nonce !in 1..0xffff_ffffL) return false
+        val lease=gattLease ?: return false
+        val local=generation
+        if(!accepts(local)) return false
+        val query=BlePacketAuthorityQuery(lease,local,nonce.toUInt(),companion.endpointToken)
+        queryingPacketAuthority=true
+        val sampled=try { packetAuthority.current(query) to confirmationClockMillis() } catch(_:Exception) { null }
+            finally { queryingPacketAuthority=false }
+        val proof=sampled?.first ?: return false
+        val now=sampled.second
+        if(!accepts(local) || gattLease!==lease || state!==expectedState || activeSessionNonce!=query.nonce.toLong() ||
+            proof.lease!==lease || proof.callbackGeneration!=local || proof.nonce!=query.nonce || proof.peer!=query.peer ||
+            proof.group==0uL || proof.admittedSession==0uL || proof.deviceGeneration==0uL ||
+            !proof.admitted || !proof.radioArmed || now>=proof.expiresAtMillis) return false
+        val prior=packetBinding
+        if(prior!=null) return prior==proof && packetReceiver.connected
+        if(!bind) return false
+        if(!packetReceiver.open(query.nonce,proof.deviceGeneration)) return false
+        packetBinding=proof
+        packetDelivery=packetDelivery.copy(available=true)
+        return true
+    }
+
+    private fun retirePacket(reason: BleRuntimeFailure, unknown: Boolean) {
+        if(unknown) {
+            packetRadioState=packetRadioState.copy(outcomeUnknown=true)
+            if(packetOrigin?.terminal!=true) updatePacketPhase(BlePacketDeliveryPhase.OUTCOME_UNKNOWN)
+        }
+        if(closed) return
+        // Retirement releases only Android BLE ownership; there is no radio-stop command.
+        failAndRelease(reason)
+    }
+
+    fun cancelPacketOperation(): Boolean {
+        requireOwnerThread()
+        if(deliveringObserver || queryingPacketAuthority || configurationInfo?.minorVersion!=6 || packetOrigin==null || packetOrigin?.terminal==true && packetOrigin?.result!=null) return false
+        retirePacket(BleRuntimeFailure.ACTION_RESULT_TIMEOUT,unknown=packetOrigin?.handedOff==true && packetOrigin?.terminal!=true)
+        return true
+    }
+
+    private fun armPacketTimeout(origin: PacketOrigin) {
+        packetTimeout?.close()
+        val local=generation
+        val timer=scheduler.schedule(ACTION_RESULT_TIMEOUT_MILLIS) {
+            requireOwnerThread()
+            if(accepts(local) && packetOrigin===origin && !origin.terminal)
+                retirePacket(BleRuntimeFailure.ACTION_RESULT_TIMEOUT,unknown=true)
+        }
+        if(accepts(local) && packetOrigin===origin && !origin.terminal) packetTimeout=timer else timer.close()
+    }
+
+    private fun updatePacketPhase(phase: BlePacketDeliveryPhase) {
+        val current=packetDelivery.currentRequest ?: return
+        if(packetOrigin==null || !current.currentAttachment) return
+        packetDelivery=packetDelivery.copy(currentRequest=current.copy(phase=phase))
+    }
+
+    private fun acceptPacketEvent(value: ByteArray) {
+        // Decode first for structure only: no generation bootstrap or state allocation from input.
+        val copied=value.copyOf()
+        val record=CompanionRadioEventCodec.decodeRecord(copied,allowProfile06=true) ?: return
+        if(!currentPacketAuthority()) {
+            if(packetBinding!=null) retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,unknown=packetOrigin?.handedOff==true)
+            return
+        }
+        val terminalsBefore=packetReceiver.terminalCount
+        if(!packetReceiver.accept(copied)) return
+        val event=record.event
+        val insertedTerminal=event.kind==2 || event.kind==1 && event.state in listOf(3,5,6)
+        packetDelivery=packetDelivery.copy(observationGap=packetDelivery.observationGap || event.kind==4 ||
+            insertedTerminal && terminalsBefore==16)
+        if(event.kind==1) updatePacketPhase(when(event.state) {
+            1 -> BlePacketDeliveryPhase.QUEUE_ACCEPTED
+            2 -> BlePacketDeliveryPhase.TRANSMISSION_COMPLETED
+            3 -> BlePacketDeliveryPhase.PROTECTED_PEER_ACK
+            5 -> BlePacketDeliveryPhase.FAILED
+            else -> BlePacketDeliveryPhase.OUTCOME_UNKNOWN
+        })
+        if(event.kind==2) packetDelivery=packetDelivery.copy(receivedStatus=BlePacketReceivedObservation(event.detail))
+        if(event.kind==1) packetOrigin?.observed=true
+        if(event.kind==1 && event.state in listOf(3,5,6)) {
+            packetOrigin?.terminal=true;packetTimeout?.close();packetTimeout=null
+        }
+        packetRadioState=packetRadioState.copy(lastEvent=event,terminalEvents=packetReceiver.terminalEvents(),
+            eventId=record.eventId,outcomeUnknown=packetRadioState.outcomeUnknown || packetReceiver.deliveryUnknown)
+        if(event.kind in listOf(3,4)) {
+            retirePacket(BleRuntimeFailure.PROTOCOL_VIOLATION,unknown=true)
+            return
+        }
+        val ready=state as? BleRuntimeState.Ready ?: return
+        publish(BleRuntimeState.Ready(ready.session))
+    }
+
     private fun onStreamValue(companion: BleDiscoveredCompanion, value: ByteArray) {
-        val configurationFrame = if(configurationInfo != null) CompanionConfigurationCodec.decodeFrame(value,checkNotNull(configurationInfo).minorVersion) else null
+        if(configurationInfo?.minorVersion==6 && value.size>6 && (value[6].toInt() and 255)==0x83) {
+            acceptPacketEvent(value)
+            return
+        }
+        if(configurationInfo?.minorVersion==6 && state is BleRuntimeState.Ready && !currentPacketAuthority()) {
+            retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,unknown=packetOrigin?.handedOff==true)
+            return
+        }
+        val configurationFrame = if(configurationInfo != null) CompanionConfigurationCodec.decodeFrame(value,checkNotNull(configurationInfo).minorVersion,allowProfile06=packetV1Enabled) else null
         if (configurationFrame?.kind == CompanionConfirmationCodec.RESPONSE) {
             if (groupConfirmationSession?.receive(configurationFrame) == true) {
                 armGroupConfirmationTimeout()
@@ -1842,6 +2108,10 @@ class BleCompanionRuntime(
             return
         }
         activeSessionNonce = info.provisionalSessionNonce
+        val packetProfile=configurationInfo?.minorVersion==6
+        if(packetProfile && !currentPacketAuthority(bind=true,preReady=companion)) {
+            failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED);return
+        }
         val exchangeId = firstRequestId
         if (exchangeId == 0xffff_ffffL) {
             failAndRelease(BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED)
@@ -1859,7 +2129,14 @@ class BleCompanionRuntime(
         pendingSnapshotExchangeId = exchangeId
         publish(BleRuntimeState.Negotiating(companion, BleNegotiationPhase.INITIAL_SNAPSHOT))
         if (!hasActiveGattPhase(BleNegotiationPhase.INITIAL_SNAPSHOT)) return
-        if (gattLease?.writeCommandWithResponse(encoded) != true) {
+        if(packetProfile && !currentPacketAuthority(preReady=companion)) {
+            retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,unknown=false);return
+        }
+        val written=if(packetProfile) try { gattLease?.writeCommandWithResponse(encoded)==true } catch(_:Exception) { false } else gattLease?.writeCommandWithResponse(encoded)==true
+        if(packetProfile && (!written || !currentPacketAuthority(preReady=companion))) {
+            retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,unknown=false);return
+        }
+        if (!written) {
             failAndRelease(BleRuntimeFailure.INITIAL_SNAPSHOT_FAILED)
         } else if (isPhase(BleNegotiationPhase.INITIAL_SNAPSHOT)) {
             armNegotiationTimeout(generation, BleNegotiationPhase.INITIAL_SNAPSHOT)
@@ -1867,6 +2144,10 @@ class BleCompanionRuntime(
     }
 
     private fun acceptInitialSnapshot(companion: BleDiscoveredCompanion, fragment: CompanionFragment) {
+        val packetProfile=configurationInfo?.minorVersion==6
+        if(packetProfile && !currentPacketAuthority(preReady=companion)) {
+            failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED);return
+        }
         val info = protocolInfo
         val snapshot = if (fragment.kind == CompanionFrameKind.SNAPSHOT) {
             CompanionSemanticCodec.decodeStatusSnapshot(fragment.payload).value
@@ -1900,6 +2181,9 @@ class BleCompanionRuntime(
             snapshot.positionSharing,
         ) ?: return failAndRelease(BleRuntimeFailure.INITIAL_SNAPSHOT_FAILED)
         facade.authenticatedSessionReady()
+        if(packetProfile && !currentPacketAuthority(preReady=companion)) {
+            retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,unknown=false);return
+        }
         publish(
             BleRuntimeState.Ready(
                 BleActiveSession(companion, fragment.sessionNonce, snapshot, info, groupLocation),
@@ -1927,6 +2211,38 @@ class BleCompanionRuntime(
     }
 
     private fun acceptActionResult(session: BleActiveSession, fragment: CompanionFragment) {
+        if(configurationInfo?.minorVersion==6) {
+            val origin=packetOrigin ?: return
+            val result=CompanionSemanticCodec.decodeActionResult(fragment.payload).value ?: return
+            if(fragment.exchangeId.toUInt()!=origin.exchange || result.kind!=CompanionActionKind.QUICK_STATUS ||
+                result.quickStatus?.wireValue!=origin.detail) return
+            if(!currentPacketAuthority()) {
+                retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,unknown=true);return
+            }
+            if(origin.result!=null) {
+                if(origin.result!=result) {
+                    packetRadioState=packetRadioState.copy(lastActionResult=result)
+                    updatePacketPhase(BlePacketDeliveryPhase.OUTCOME_UNKNOWN)
+                    retirePacket(BleRuntimeFailure.PROTOCOL_VIOLATION,unknown=true)
+                }
+                return
+            }
+            origin.result=result
+            packetRadioState=packetRadioState.copy(lastActionResult=result)
+            pendingAction=null;operationTimeoutLease?.close();operationTimeoutLease=null
+            if(result.disposition==CompanionActionDisposition.REJECTED) {
+                origin.terminal=true
+                updatePacketPhase(if(origin.observed) BlePacketDeliveryPhase.OUTCOME_UNKNOWN else BlePacketDeliveryPhase.AUTHORITATIVE_REJECTION)
+                retirePacket(BleRuntimeFailure.PROTOCOL_VIOLATION,
+                    unknown=origin.observed)
+                return
+            }
+            if(packetDelivery.currentRequest?.phase==BlePacketDeliveryPhase.AWAITING_ACCEPTANCE)
+                updatePacketPhase(BlePacketDeliveryPhase.QUEUE_ACCEPTED)
+            if(!origin.terminal) armPacketTimeout(origin)
+            publish(BleRuntimeState.Ready(session.copy(lastActionResult=result)))
+            return
+        }
         val pending = pendingAction
         val result = CompanionSemanticCodec.decodeActionResult(fragment.payload).value
         if (
@@ -2426,6 +2742,16 @@ class BleCompanionRuntime(
     }
 
     private fun clearSessionState() {
+        val origin=packetOrigin
+        if(origin!=null && !origin.terminal) updatePacketPhase(
+            if(origin.handedOff) BlePacketDeliveryPhase.OUTCOME_UNKNOWN else BlePacketDeliveryPhase.NOT_SENT)
+        packetDelivery=packetDelivery.copy(available=false,
+            currentRequest=packetDelivery.currentRequest?.copy(currentAttachment=false),
+            receivedStatus=packetDelivery.receivedStatus?.copy(currentAttachment=false))
+        if(packetOrigin?.handedOff==true && packetOrigin?.terminal!=true)
+            packetRadioState=packetRadioState.copy(outcomeUnknown=true)
+        packetTimeout?.close();packetTimeout=null
+        packetBinding=null;packetReceiver.disconnect();packetOrigin=null
         groupConfirmationSession?.endSession()
         groupConfirmationSession = null
         groupConfirmationTimeout?.close()

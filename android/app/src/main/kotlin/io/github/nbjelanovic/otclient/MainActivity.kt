@@ -1071,6 +1071,8 @@ private fun BleRuntimeBlock.publicText(): String = when (this) {
     BleRuntimeBlock.PLATFORM_UNSUPPORTED -> "The real Bluetooth path requires Android 12 or newer."
     BleRuntimeBlock.BLUETOOTH_UNAVAILABLE -> "This phone does not expose the required Bluetooth Low Energy adapter."
     BleRuntimeBlock.BLUETOOTH_DISABLED -> "Turn on Bluetooth, then scan again."
+    BleRuntimeBlock.BLUETOOTH_STATE_READ_DENIED ->
+        "Android refused the Bluetooth state check. Verify Nearby Devices permission, then retry discovery."
     BleRuntimeBlock.SCAN_PERMISSION_MISSING,
     BleRuntimeBlock.CONNECT_PERMISSION_MISSING,
     -> "Nearby Devices permission is required before Bluetooth can continue."
