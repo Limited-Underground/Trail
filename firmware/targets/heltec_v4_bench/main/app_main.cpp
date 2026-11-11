@@ -198,7 +198,17 @@ bool run_companion_codec_self_check() {
     }
 }
 
-[[noreturn]] void contain_runtime_failure() {
+[[noreturn]] void contain_runtime_failure(const char* site, unsigned code) {
+    // I-020: name the failing site and its error code before containment, so a
+    // failure stop can be diagnosed from the serial log alone.
+    ESP_LOGE(kLogTag,
+             "companion runtime FAIL site=%s code=%u runtime_phase=%u "
+             "pairing_phase=%u reset_reason=%u",
+             site, code,
+             static_cast<unsigned>(companion_nimble_runtime_status().phase),
+             static_cast<unsigned>(opentrail::target::heltec_v4_bench::
+                                       companion_pairing_window_status().phase),
+             static_cast<unsigned>(esp_reset_reason()));
     (void)opentrail::target::heltec_v4_bench::
         fault_companion_pairing_window();
     const bool ble_containment_verified =
@@ -287,11 +297,13 @@ extern "C" void app_main() {
         contain_self_check_failure();
     }
     ESP_LOGI(kLogTag, "companion boot self-check PASS");
+    ESP_LOGI(kLogTag, "boot reset_reason=%u",
+             static_cast<unsigned>(esp_reset_reason()));
     const auto started_at_ms =
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
 #if !OPENTRAIL_CONFIRMATION_EVALUATION
     if (!g_factory_reset_input.initialize()) {
-        contain_runtime_failure();
+        contain_runtime_failure("reset_input_init", 0);
     }
 #endif
     g_pairing_random.set_entropy_state(
@@ -312,7 +324,8 @@ extern "C" void app_main() {
                  static_cast<unsigned>(
                      opentrail::target::heltec_v4_bench::
                          companion_nimble_security_failure_detail()));
-        contain_runtime_failure();
+        contain_runtime_failure("runtime_start",
+                                static_cast<unsigned>(runtime_start_result));
     }
     ESP_LOGI(kLogTag, "companion runtime started");
 
@@ -369,7 +382,8 @@ extern "C" void app_main() {
                 service_companion_nimble_runtime(elapsed_ms);
         if (runtime_result !=
             opentrail::companion::CompanionBleRuntimeError::none) {
-            contain_runtime_failure();
+            contain_runtime_failure("runtime_service",
+                                    static_cast<unsigned>(runtime_result));
         }
         const auto runtime_status = companion_nimble_runtime_status();
         const auto configured_name = opentrail::target::heltec_v4_bench::companion_configuration_name();
@@ -386,7 +400,8 @@ extern "C" void app_main() {
             pairing_service !=
                 opentrail::companion::CompanionPairingWindowError::
                     window_expired) {
-            contain_runtime_failure();
+            contain_runtime_failure("pairing_window_service",
+                                    static_cast<unsigned>(pairing_service));
         }
 #if !OPENTRAIL_CONFIRMATION_EVALUATION
         const auto reset_event = g_factory_reset_input.poll();
