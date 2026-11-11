@@ -242,6 +242,9 @@ bool run_companion_codec_self_check() {
             const auto reset_result =
                 opentrail::target::heltec_v4_bench::
                     begin_contained_companion_factory_reset_recovery();
+            ESP_LOGI(kLogTag, "factory_reset contained commit error=%u phase=%u",
+                     static_cast<unsigned>(reset_result.error),
+                     static_cast<unsigned>(reset_result.phase));
             const bool verified_intent =
                 reset_result.accepted() &&
                 reset_result.phase ==
@@ -423,6 +426,9 @@ extern "C" void app_main() {
             const auto reset_result =
                 opentrail::target::heltec_v4_bench::
                     begin_companion_factory_reset();
+            ESP_LOGI(kLogTag, "factory_reset commit error=%u phase=%u",
+                     static_cast<unsigned>(reset_result.error),
+                     static_cast<unsigned>(reset_result.phase));
             if (reset_result.accepted() &&
                 reset_result.phase ==
                     opentrail::companion::DeviceFactoryResetPhase::
