@@ -282,6 +282,16 @@ SemaphoreHandle_t g_pairing_mutex = nullptr;
 StaticSemaphore_t g_factory_reset_mutex_control{};
 SemaphoreHandle_t g_factory_reset_mutex = nullptr;
 CompanionPairingWindow* g_pairing_window = nullptr;
+// I-020: window timestamps are read before PairingLock on two tasks (main
+// loop and NimBLE host callbacks), so they can arrive a few ms out of order
+// and trip the window's clock-rollback fault. esp_timer is monotonic, so
+// present the window the latest time seen. Guarded by g_pairing_mutex;
+// call only while holding PairingLock.
+std::uint64_t g_pairing_clock_ms = 0;
+std::uint64_t pairing_clock(std::uint64_t observed_ms) {
+    if (observed_ms > g_pairing_clock_ms) g_pairing_clock_ms = observed_ms;
+    return g_pairing_clock_ms;
+}
 std::uint16_t g_pairing_connection_handle{
     kCompanionBleInvalidConnectionHandle};
 std::uint64_t g_pairing_transport_generation{0};
@@ -1010,7 +1020,7 @@ int runtime_gap_event(ble_gap_event* event, void*) {
                     pairing_generation = candidate.transport_generation;
                     action_result = g_pairing_window->
                         handle_passkey_action_deferred_cleanup(
-                            observed, candidate,
+                            pairing_clock(observed), candidate,
                             g_pairing_passkey_port);
                     accepted = action_result ==
                                CompanionPairingWindowError::none;
@@ -1071,7 +1081,7 @@ int runtime_gap_event(ble_gap_event* event, void*) {
                             // even if inventory or owner publication fails.
                             const auto reservation = g_pairing_window->
                                 reserve_secure_bond_terminal(
-                                    observed, candidate);
+                                    pairing_clock(observed), candidate);
                             if (reservation ==
                                 CompanionPairingWindowError::none) {
                                 const auto inventory =
@@ -1186,7 +1196,7 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
                 g_boot_pairing_attempted = true;
                 const auto opened =
                     g_pairing_window->open_unowned_boot_window(
-                        event.observed_at_ms, 1);
+                        pairing_clock(event.observed_at_ms), 1);
                 if (opened != CompanionPairingWindowError::none) {
                     return CompanionBleRuntimeError::invalid_argument;
                 }
@@ -1245,7 +1255,7 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
                         phase != CompanionPairingWindowPhase::faulted &&
                         event.transport_generation != 0) {
                         const auto result = g_pairing_window->disconnect(
-                            event.observed_at_ms,
+                            pairing_clock(event.observed_at_ms),
                             {event.connection_handle,
                              event.transport_generation});
                         if (result != CompanionPairingWindowError::none &&
@@ -1285,7 +1295,7 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
                 return CompanionBleRuntimeError::none;
             }
             const auto result = g_pairing_window->finish_attempt(
-                event.observed_at_ms,
+                pairing_clock(event.observed_at_ms),
                 {event.connection_handle, event.transport_generation},
                 event.kind == RuntimeEventKind::pairing_completed
                     ? CompanionPairingAttemptTerminal::secure_bond_complete
@@ -1315,7 +1325,7 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
                 return CompanionBleRuntimeError::none;
             }
             const auto result = g_pairing_window->disconnect(
-                event.observed_at_ms,
+                pairing_clock(event.observed_at_ms),
                 {event.connection_handle, event.transport_generation});
             if (result == CompanionPairingWindowError::none ||
                 result == CompanionPairingWindowError::window_expired) {
@@ -1774,6 +1784,7 @@ CompanionPairingWindowError service_companion_pairing_window(
         if (!lock.locked() || g_pairing_window == nullptr) {
             return CompanionPairingWindowError::window_not_available;
         }
+        now_ms = pairing_clock(now_ms);
         result = g_pairing_window->service(now_ms);
         if (result == CompanionPairingWindowError::window_expired) {
             terminate_handle = g_pairing_connection_handle;
