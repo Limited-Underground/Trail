@@ -24,7 +24,6 @@
 #include "heltec_enrollment_identity_owner.hpp"
 #include "heltec_v4_factory_reset_storage.hpp"
 #include "esp_err.h"
-#include "esp_log.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -1710,23 +1709,11 @@ DeviceFactoryResetResult begin_companion_factory_reset() {
         g_factory_reset_executor->status().phase ==
             DeviceFactoryResetPhase::idle_unowned) {
         // Paired since boot: the boot-time unowned view is stale.
-        const auto refreshed =
-            g_factory_reset_executor->refresh_idle_ownership();
-        ESP_LOGI("ot_bench", "factory_reset ownership refresh error=%u phase=%u",
-                 static_cast<unsigned>(refreshed.error),
-                 static_cast<unsigned>(refreshed.phase));
+        (void)g_factory_reset_executor->refresh_idle_ownership();
     }
     if (!reset_lock.locked() || g_factory_reset_executor == nullptr ||
         g_factory_reset_executor->status().phase !=
             DeviceFactoryResetPhase::idle_old_state) {
-        ESP_LOGW("ot_bench",
-                 "factory_reset refused: lock=%u executor=%u phase=%u",
-                 static_cast<unsigned>(reset_lock.locked()),
-                 static_cast<unsigned>(g_factory_reset_executor != nullptr),
-                 g_factory_reset_executor == nullptr
-                     ? 0u
-                     : static_cast<unsigned>(
-                           g_factory_reset_executor->status().phase));
         return {DeviceFactoryResetError::invalid_state,
                 g_factory_reset_executor == nullptr
                     ? DeviceFactoryResetPhase::not_restored
@@ -1739,11 +1726,6 @@ DeviceFactoryResetResult begin_companion_factory_reset() {
     const auto contained = g_runtime_owner.callback_overflow();
     if (contained != CompanionBleRuntimeError::callback_queue_overflow ||
         !g_runtime_owner.status().stack_shutdown_complete) {
-        ESP_LOGW("ot_bench",
-                 "factory_reset refused: ble_containment=%u shutdown_complete=%u",
-                 static_cast<unsigned>(contained),
-                 static_cast<unsigned>(
-                     g_runtime_owner.status().stack_shutdown_complete));
         return {DeviceFactoryResetError::invalid_state,
                 g_factory_reset_executor->status().phase};
     }
