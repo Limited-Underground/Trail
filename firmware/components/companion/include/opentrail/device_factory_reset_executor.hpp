@@ -146,6 +146,15 @@ public:
     // idle_old_state. Mixed or unreadable state fails closed.
     [[nodiscard]] DeviceFactoryResetResult restore();
 
+    // Runtime re-check while idle. Ownership can be established after boot
+    // (pairing in the unowned window) without a restart, so the boot-time
+    // idle_unowned/idle_old_state view can become stale. Valid only in those
+    // two idle phases with an absent marker; it rereads both domains and
+    // moves to the matching idle phase. Any read failure, mixed state or
+    // non-absent marker leaves the phase unchanged (fail closed: begin()
+    // still requires idle_old_state). Never writes storage.
+    [[nodiscard]] DeviceFactoryResetResult refresh_idle_ownership();
+
     // Commits and exactly reads back reset intent. No user or bond erasure is
     // attempted until this returns cleanup_required with accepted()==true.
     [[nodiscard]] DeviceFactoryResetResult begin(

@@ -1706,6 +1706,16 @@ DeviceFactoryResetResult begin_companion_factory_reset() {
     return {DeviceFactoryResetError::invalid_state, DeviceFactoryResetPhase::not_restored};
 #else
     FactoryResetLock reset_lock{pdMS_TO_TICKS(100)};
+    if (reset_lock.locked() && g_factory_reset_executor != nullptr &&
+        g_factory_reset_executor->status().phase ==
+            DeviceFactoryResetPhase::idle_unowned) {
+        // Paired since boot: the boot-time unowned view is stale.
+        const auto refreshed =
+            g_factory_reset_executor->refresh_idle_ownership();
+        ESP_LOGI("ot_bench", "factory_reset ownership refresh error=%u phase=%u",
+                 static_cast<unsigned>(refreshed.error),
+                 static_cast<unsigned>(refreshed.phase));
+    }
     if (!reset_lock.locked() || g_factory_reset_executor == nullptr ||
         g_factory_reset_executor->status().phase !=
             DeviceFactoryResetPhase::idle_old_state) {
