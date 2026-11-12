@@ -2,6 +2,12 @@
 
 ## 2026-11-12
 
+### OT-171 Name the Heltec V4 in Android's Bluetooth list
+
+Android listed every Trail board as "nimble": the firmware started the NimBLE GAP service but never set a device name, so the stack default was used, and testers could not tell which pairing to forget after a reset. Following owner decision D-056 (workspace records), the Bluetooth device name is now the device name saved from the app; until one is saved it is `Trail-XXXXXX`, the label this boot already shows during setup; an owned boot without a saved name uses `Trail`. Owned advertising is unchanged and still carries no name; only a connected client can read the Device Name characteristic. The main loop requests the name and the NimBLE host task applies it, so the characteristic is never changed under a read. `CONFIG_BT_NIMBLE_GAP_DEVICE_NAME_MAX_LEN` is raised to 96 to match the saved-name limit, and the default name is `Trail` instead of `nimble`. A factory reset already erases the saved name, so a reset board is named by its new setup label.
+
+Results: Heltec V4 bench build passes (ESP-IDF 6.0.2, 604,944-byte app). Startup display host tests 19/19, including the new naming group; bench target checks 19/19; reset composition 27/27; raw-byte checkout 291/291 with the sdkconfig register updated; BLE stack configuration checks pass. Not yet tested on a board, including whether Android refreshes a paired board's name after a rename.
+
 ### OT-0170a Confirm phone indications so a restarted Heltec V4 reconnects
 
 After a Heltec V4 board restart, the bonded Android phone reconnected about one second later and then dropped the link with `BLE-GATT-PLATFORM-FAILURE`. Phone and board logs captured together on board A (Samsung Note20) show the cause. On a bonded reconnect Android sends the board a Service Changed indication (ATT 0x1D). The bench target was built without the NimBLE GATT client, so NimBLE had no handler for it and answered with an ATT Error Response. Android matched that error to its own pending service discovery request, ended discovery with an empty database, and the app's profile check failed. The same happens after any disconnect while the phone's own GATT database has changed, not only after a restart.
