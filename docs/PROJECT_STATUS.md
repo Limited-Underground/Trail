@@ -28,6 +28,10 @@ else `Trail-XXXXXX`) instead of "nimble". Checked on board A on 2026-11-12:
 Android shows `Trail-XXXXXX` after pairing; a later rename in the app is not
 picked up by Android until the board is paired again.
 
+## Firmware Loader release support
+
+The bench target now reports a release generation (build option `OPENTRAIL_RELEASE_GENERATION`, 0 for development builds) and prints a `lu_ident` identity and health line after the boot self-check and with every heartbeat, for the Firmware Loader's first signed release (workspace decision D-063). See the [target README](../firmware/targets/heltec_v4_bench/README.md#release-generation-and-boot-identity-line). Built, not yet run on a board.
+
 ## Group design
 
 Groups use pairwise delivery: each group message is sent once to each other
